@@ -869,6 +869,31 @@ describe('InstagramService', () => {
       ]);
     });
 
+    it('describes the grant accounts a caller already read without asking Meta again', async () => {
+      (httpServiceMock.get as Mock).mockImplementation((url: string) => {
+        if (url.endsWith('/me/assigned_instagram_accounts')) {
+          return of({ data: { data: [] } });
+        }
+        if (url.endsWith('/debug_token')) {
+          return throwError(() => new Error('debug_token unavailable'));
+        }
+        return of({ data: { name: 'Shayla', username: 'itsshaylamonroe' } });
+      });
+
+      const result = await service.listAuthorizedInstagramAccounts('token', [
+        'ig-shayla',
+      ]);
+
+      expect(result).toEqual([
+        {
+          id: 'ig-shayla',
+          label: 'Shayla',
+          platform: 'instagram',
+          username: 'itsshaylamonroe',
+        },
+      ]);
+    });
+
     it('returns an empty list when the edge is empty and Meta will not describe the grant', async () => {
       (httpServiceMock.get as Mock).mockImplementation((url: string) =>
         url.endsWith('/debug_token')

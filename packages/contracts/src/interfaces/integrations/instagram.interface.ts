@@ -51,6 +51,7 @@ export interface InstagramSelectionCredential {
   grantedScopes?: string[] | null;
   grantedScopesCapturedAt?: Date | null;
   id: string;
+  isHistoryImportRequested?: boolean | null;
   userId?: string | null;
 }
 

@@ -179,7 +179,10 @@ export class InstagramConnectionResolverService {
 
     markStage('account_discovery');
     const accounts =
-      await this.instagramService.listAuthorizedInstagramAccounts(access_token);
+      await this.instagramService.listAuthorizedInstagramAccounts(
+        access_token,
+        grant?.instagramTargetIds,
+      );
 
     if (accounts.length === 0) {
       if (!hasReadGrant) {
@@ -386,6 +389,22 @@ export class InstagramConnectionResolverService {
       return [];
     }
 
+    // Further accounts are created on the pending credential's brand for its
+    // owner. Without either, refuse up front rather than connect the first
+    // account and silently drop the rest.
+    const brandId = credential.brandId;
+    const userId = credential.userId;
+    if (others.length > 0 && (!brandId || !userId)) {
+      throw new HttpException(
+        {
+          detail:
+            'This connection is not tied to a brand, so it can connect only one account. Choose one account, or reconnect from the brand.',
+          title: 'Choose one account',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     const connected = [
       await this.connectSelectedAccount({
         accessToken,
@@ -396,18 +415,29 @@ export class InstagramConnectionResolverService {
       }),
     ];
 
-    if (others.length === 0 || !credential.brandId || !credential.userId) {
+    if (!brandId || !userId) {
       return connected;
     }
 
     for (const account of others) {
-      const sibling = await this.credentialsService.createPendingForBrand(
-        { id: credential.brandId, organizationId },
-        credential.userId,
-        CredentialPlatform.INSTAGRAM,
-        { accessToken },
-      );
+      let siblingId: string | undefined;
       try {
+        const sibling = await this.credentialsService.createPendingForBrand(
+          { id: brandId, organizationId },
+          userId,
+          CredentialPlatform.INSTAGRAM,
+          {
+            accessToken,
+            // The operator's history-import choice covers every account
+            // this connect adds, not just the first.
+            ...(typeof credential.isHistoryImportRequested === 'boolean'
+              ? {
+                  isHistoryImportRequested: credential.isHistoryImportRequested,
+                }
+              : {}),
+          },
+        );
+        siblingId = sibling.id.toString();
         connected.push(
           await this.connectSelectedAccount({
             accessToken,
@@ -419,7 +449,7 @@ export class InstagramConnectionResolverService {
               grantedScopesCapturedAt:
                 credential.grantedScopesCapturedAt ?? null,
             },
-            credentialId: sibling.id.toString(),
+            credentialId: siblingId,
             organizationId,
             url,
           }),
@@ -429,16 +459,34 @@ export class InstagramConnectionResolverService {
           `${url} could not connect an additional selected account`,
           getSafeInstagramOAuthErrorLog(error),
         );
-        await this.credentialsService.patch(sibling.id.toString(), {
-          accessToken: null,
-          isDeleted: true,
-        });
+        if (siblingId) {
+          await this.retireSibling(siblingId, url);
+        }
       }
     }
 
     // Two ticked accounts can never settle onto one row (each id is a
     // distinct identity), so the result has no duplicates to collapse.
     return connected;
+  }
+
+  /**
+   * Take the token off a further account's row that never settled. A failed
+   * cleanup is logged, not thrown, so it cannot undo the accounts already
+   * connected; the stale-pending reaper retires the row later.
+   */
+  private async retireSibling(siblingId: string, url: string): Promise<void> {
+    try {
+      await this.credentialsService.patch(siblingId, {
+        accessToken: null,
+        isDeleted: true,
+      });
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${url} could not retire an unsettled additional account`,
+        getSafeInstagramOAuthErrorLog(error),
+      );
+    }
   }
 
   /** Write one chosen account's identity onto a credential, then finish it. */

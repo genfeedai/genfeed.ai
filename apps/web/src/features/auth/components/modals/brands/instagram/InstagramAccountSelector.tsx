@@ -137,10 +137,22 @@ export default function InstagramAccountSelector({
       };
 
       if (connected.length < selectedAccountIds.length) {
+        const connectedIds = new Set(
+          connected.map((credential) => credential.externalId),
+        );
+        const missingNames = availableAccounts
+          .filter(
+            (candidate) =>
+              selectedAccountIds.includes(candidate.id) &&
+              !connectedIds.has(candidate.id),
+          )
+          .map((candidate) => candidate.label || `@${candidate.username}`)
+          .join(', ');
         setPartialResult({
           account,
           notice: translate('partial', {
             connected: connected.length,
+            missing: missingNames,
             selected: selectedAccountIds.length,
           }),
         });

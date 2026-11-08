@@ -494,7 +494,7 @@ describe('InstagramController', () => {
 
       expect(
         instagramServiceMock.listAuthorizedInstagramAccounts,
-      ).toHaveBeenCalledWith('business-token');
+      ).toHaveBeenCalledWith('business-token', []);
       // Discovery happens before the token is ever persisted.
       const discoveryCallOrder =
         instagramServiceMock.listAuthorizedInstagramAccounts.mock
@@ -1288,6 +1288,7 @@ describe('InstagramController', () => {
       grantedScopes: GRANTED_UNIFIED_SCOPES,
       id: credentialId,
       isDeleted: false,
+      isHistoryImportRequested: false,
       userId: instagramUserId,
     };
 
@@ -1367,7 +1368,7 @@ describe('InstagramController', () => {
         { id: instagramBrandId, organizationId: orgId },
         instagramUserId,
         'instagram',
-        { accessToken: 'encrypted-token' },
+        { accessToken: 'encrypted-token', isHistoryImportRequested: false },
       );
       expect(credentialsConnectAccountMock).toHaveBeenCalledWith(
         'sibling-b',
@@ -1411,6 +1412,85 @@ describe('InstagramController', () => {
         accessToken: null,
         isDeleted: true,
       });
+    });
+
+    it('keeps going when a further account cannot be created', async () => {
+      credentialsCreatePendingForBrandMock
+        .mockRejectedValueOnce(new Error('database unavailable'))
+        .mockResolvedValueOnce({ id: 'sibling-c' });
+
+      const result = await controller.selectAccount(
+        mockRequest,
+        mockUser,
+        credentialId,
+        { externalIds: ['ig-account-a', 'ig-account-b', 'ig-account-c'] },
+      );
+
+      expect(result).toEqual([
+        expect.objectContaining({
+          externalId: 'ig-account-a',
+          id: credentialId,
+        }),
+        expect.objectContaining({
+          externalId: 'ig-account-c',
+          id: 'sibling-c',
+        }),
+      ]);
+    });
+
+    it('keeps the connected accounts when retiring a failed row also fails', async () => {
+      credentialsCreatePendingForBrandMock
+        .mockResolvedValueOnce({ id: 'sibling-b' })
+        .mockResolvedValueOnce({ id: 'sibling-c' });
+      credentialsConnectAccountMock.mockImplementation(
+        async (
+          id: string,
+          _organizationId: string,
+          profile: { id: string },
+        ) => {
+          if (id === 'sibling-b') {
+            throw new Error('avatar store unavailable');
+          }
+          return { externalId: profile.id, id, isConnected: true };
+        },
+      );
+      credentialsPatchMock.mockRejectedValue(new Error('database unavailable'));
+
+      const result = await controller.selectAccount(
+        mockRequest,
+        mockUser,
+        credentialId,
+        { externalIds: ['ig-account-a', 'ig-account-b', 'ig-account-c'] },
+      );
+
+      expect(result).toEqual([
+        expect.objectContaining({
+          externalId: 'ig-account-a',
+          id: credentialId,
+        }),
+        expect.objectContaining({
+          externalId: 'ig-account-c',
+          id: 'sibling-c',
+        }),
+      ]);
+    });
+
+    it('refuses several accounts on a connection with no brand, connecting none', async () => {
+      credentialsFindOneMock
+        .mockReset()
+        .mockResolvedValue({ ...pendingCredential, brandId: null });
+
+      const failure = await captureHttpException(
+        controller.selectAccount(mockRequest, mockUser, credentialId, {
+          externalIds: ['ig-account-a', 'ig-account-b'],
+        }),
+      );
+
+      expect(failure.getStatus()).toBe(HttpStatus.BAD_REQUEST);
+      expect(failure.getResponse()).toEqual(
+        expect.objectContaining({ title: 'Choose one account' }),
+      );
+      expect(credentialsConnectAccountMock).not.toHaveBeenCalled();
     });
 
     it('never sends a null handle when the chosen account has no username', async () => {

@@ -377,6 +377,7 @@ export class InstagramController {
         id: true,
         isConnected: true,
         isDeleted: true,
+        isHistoryImportRequested: true,
         userId: true,
       },
     );

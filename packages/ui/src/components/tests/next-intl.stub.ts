@@ -236,7 +236,7 @@ const UI_TEST_MESSAGES = {
           error: 'Failed to load accounts. Please try again.',
           loading: 'Loading accounts…',
           partial:
-            'Connected {connected} of {selected} accounts. Run connect again to add the rest.',
+            'Connected {connected} of {selected} accounts. Not connected: {missing}. Run connect again to add them.',
           retry: 'Try again',
           title: 'Choose accounts',
         },

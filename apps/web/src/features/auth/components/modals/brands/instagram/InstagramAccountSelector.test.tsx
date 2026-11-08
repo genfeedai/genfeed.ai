@@ -384,7 +384,7 @@ describe('InstagramAccountSelector', () => {
       candidateAccounts,
     );
     mockServicesService.postSelectAccounts.mockResolvedValue([
-      { externalName: 'Genfeed AI' },
+      { externalId: 'ig-account-1', externalName: 'Genfeed AI' },
     ]);
 
     render(
@@ -400,7 +400,7 @@ describe('InstagramAccountSelector', () => {
 
     expect(
       await screen.findByText(
-        'Connected 1 of 2 accounts. Run connect again to add the rest.',
+        'Connected 1 of 2 accounts. Not connected: Genfeed Studio. Run connect again to add them.',
       ),
     ).toBeInTheDocument();
     expect(onConnected).not.toHaveBeenCalled();

@@ -304,10 +304,13 @@ export class InstagramService {
    * The assigned-accounts edge comes first (see `InstagramAccountsService`).
    * It can answer empty for a grant that does name accounts; the token's
    * `debug_token` targets are then the accounts the customer chose in Meta's
-   * dialog, so those are described instead.
+   * dialog, so those are described instead. A caller that already read the
+   * grant passes its account ids so a second `debug_token` read cannot fail
+   * a connect the first read could serve.
    */
   public async listAuthorizedInstagramAccounts(
     accessToken: string,
+    knownGrantedIds?: string[],
   ): Promise<InstagramPageResponse[]> {
     const assigned =
       await this.accountsService.listAuthorizedInstagramAccounts(accessToken);
@@ -315,7 +318,9 @@ export class InstagramService {
       return assigned;
     }
 
-    const grantedIds = await this.readGrantedInstagramAccountIds(accessToken);
+    const grantedIds =
+      knownGrantedIds ??
+      (await this.readGrantedInstagramAccountIds(accessToken));
     if (grantedIds.length === 0) {
       return [];
     }
