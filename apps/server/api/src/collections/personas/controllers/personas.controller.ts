@@ -12,11 +12,13 @@ import { CharacterOwnershipService } from '@api/collections/personas/services/ch
 import { PersonaReferencesService } from '@api/collections/personas/services/persona-references.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import {
-  brandAvailabilityWhere,
   hasSharedAvailability,
   isPersonaAvailableToBrand,
 } from '@api/collections/personas/utils/persona-availability.util';
-import { resolveAllBrandsFilter } from '@api/collections/ingredients/utils/library-brand-scope.util';
+import {
+  buildPersonasFindAllQuery,
+  resolveAllowedPersonaBrandIds,
+} from '@api/collections/personas/utils/personas-find-all-query.util';
 import { stripAvailabilityFields } from '@api/collections/personas/utils/persona-availability-fields.util';
 import { composeCharacterSheetPrompt } from '@api/endpoints/ai-actions/prompts/character-sheet-preset';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -27,15 +29,12 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
-import { PersonaStatus } from '@genfeedai/contracts';
 import type {
   AgentCharacterMentionsResponse,
   JsonApiCollectionResponse,
@@ -103,23 +102,15 @@ export class PersonasController extends BaseCRUDController<
     @Query() query: PersonasQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     if (query.allBrands && !query.brandId) {
-      const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      this.allowedBrandIdsByQuery.set(
         query,
-        user,
-        request,
+        await resolveAllowedPersonaBrandIds(
+          this.brandAccess,
+          query,
+          user,
+          request,
+        ),
       );
-      const scope = await resolveAllBrandsFilter(
-        this.brandAccess,
-        tenant,
-        user,
-        getIsSuperAdmin(user, request),
-      );
-      const brandIds = (
-        scope?.OR as Array<{ brandId: { in: string[] } | null }> | undefined
-      )?.find((clause) => clause.brandId !== null)?.brandId as
-        | { in: string[] }
-        | undefined;
-      this.allowedBrandIdsByQuery.set(query, brandIds?.in);
     }
 
     return super.findAll(request, user, query);
@@ -129,67 +120,11 @@ export class PersonasController extends BaseCRUDController<
     user: User,
     query: PersonasQueryDto,
   ): PrismaFindAllInput {
-    const match: Record<string, unknown> = {
-      isDeleted: query.isDeleted ?? false,
-    };
-    CollectionFilterUtil.applyAuthorizedTenantMatch(match, query, user);
-
-    // Characters owned by the brand plus those shared to it, in one query.
-    const isAllBrands = Boolean(query.allBrands) && !query.brandId;
-    const brandId = isAllBrands ? undefined : match.brandId;
-    delete match.brandId;
-    if (typeof brandId === 'string') {
-      match.AND = [brandAvailabilityWhere(brandId)];
-    }
-    if (isAllBrands) {
-      const allowedBrandIds = this.allowedBrandIdsByQuery.get(query);
-      if (allowedBrandIds) {
-        match.brandId = { in: allowedBrandIds };
-      }
-    }
-
-    if (query.status) {
-      match.status = query.status;
-    }
-    if (query.avatarProvider) {
-      match.avatarProvider = query.avatarProvider;
-    }
-    if (query.assignedMember) {
-      match.assignedMembers = { some: { id: query.assignedMember } };
-    }
-
-    if (query.isMentionable) {
-      match.handle = { not: null };
-      match.status =
-        query.status && query.status !== PersonaStatus.ARCHIVED
-          ? query.status
-          : PersonaStatus.ACTIVE;
-    }
-
-    const prefix = query.q?.trim();
-    if (prefix) {
-      match.OR = [
-        { handle: { startsWith: prefix.toLowerCase(), mode: 'insensitive' } },
-        { label: { startsWith: prefix, mode: 'insensitive' } },
-      ];
-    }
-
-    const input: PrismaFindAllInput & { grantedToBrandId?: string } = {
-      orderBy: handleQuerySort(query.sort),
-      where: match,
-    };
-    // Characters granted to the organization join the unfiltered brand list.
-    const hasFilters = Boolean(
-      query.status ||
-        query.avatarProvider ||
-        query.assignedMember ||
-        query.isMentionable ||
-        query.q?.trim(),
+    return buildPersonasFindAllQuery(
+      user,
+      query,
+      this.allowedBrandIdsByQuery.get(query),
     );
-    if (typeof brandId === 'string' && !hasFilters) {
-      input.grantedToBrandId = brandId;
-    }
-    return input;
   }
 
   @TenantReadPolicy('selected')
