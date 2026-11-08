@@ -1475,23 +1475,29 @@ describe('InstagramController', () => {
       ]);
     });
 
-    it('refuses several accounts on a connection with no brand, connecting none', async () => {
-      credentialsFindOneMock
-        .mockReset()
-        .mockResolvedValue({ ...pendingCredential, brandId: null });
+    it.each([
+      ['brand', { brandId: null }],
+      ['owner', { userId: null }],
+    ])(
+      'refuses several accounts on a connection with no %s, connecting none',
+      async (_missing, override) => {
+        credentialsFindOneMock
+          .mockReset()
+          .mockResolvedValue({ ...pendingCredential, ...override });
 
-      const failure = await captureHttpException(
-        controller.selectAccount(mockRequest, mockUser, credentialId, {
-          externalIds: ['ig-account-a', 'ig-account-b'],
-        }),
-      );
+        const failure = await captureHttpException(
+          controller.selectAccount(mockRequest, mockUser, credentialId, {
+            externalIds: ['ig-account-a', 'ig-account-b'],
+          }),
+        );
 
-      expect(failure.getStatus()).toBe(HttpStatus.BAD_REQUEST);
-      expect(failure.getResponse()).toEqual(
-        expect.objectContaining({ title: 'Choose one account' }),
-      );
-      expect(credentialsConnectAccountMock).not.toHaveBeenCalled();
-    });
+        expect(failure.getStatus()).toBe(HttpStatus.BAD_REQUEST);
+        expect(failure.getResponse()).toEqual(
+          expect.objectContaining({ title: 'Choose one account' }),
+        );
+        expect(credentialsConnectAccountMock).not.toHaveBeenCalled();
+      },
+    );
 
     it('never sends a null handle when the chosen account has no username', async () => {
       instagramServiceMock.listAuthorizedInstagramAccounts.mockResolvedValue([

@@ -398,7 +398,7 @@ export class InstagramConnectionResolverService {
       throw new HttpException(
         {
           detail:
-            'This connection is not tied to a brand, so it can connect only one account. Choose one account, or reconnect from the brand.',
+            'This connection is missing its brand or owner, so it can connect only one account. Choose one account, or reconnect from the brand.',
           title: 'Choose one account',
         },
         HttpStatus.BAD_REQUEST,
