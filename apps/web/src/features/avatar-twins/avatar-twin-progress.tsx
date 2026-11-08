@@ -187,11 +187,7 @@ export default function AvatarTwinProgress({
           <Button
             label={translate('newTake')}
             onClick={onRetake}
-            variant={
-              twin.status === AvatarTwinStatus.FAILED
-                ? ButtonVariant.DEFAULT
-                : ButtonVariant.SECONDARY
-            }
+            variant={ButtonVariant.SECONDARY}
           />
         ) : null}
         <Button

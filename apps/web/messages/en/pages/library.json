@@ -509,5 +509,22 @@
       "confirm": "Delete",
       "error": "The twin could not be deleted. Try again."
     }
+  },
+  "createVoice": {
+    "connected": {
+      "title": "Create your own voice",
+      "body": "Clone your voice from a short recording. It is created in your own ElevenLabs account, and Genfeed takes no credits for it."
+    },
+    "disconnected": {
+      "title": "Connect your account to create your voices",
+      "body": "Your voices are created in your own ElevenLabs or HeyGen account, never in Genfeed's, and Genfeed takes no credits for them."
+    },
+    "invalid": {
+      "title": "Reconnect your ElevenLabs account",
+      "body": "ElevenLabs rejected the saved API key. Update it in Integrations to create your voices."
+    },
+    "clone": "Clone my voice",
+    "connect": "Connect your account",
+    "twin": "Create my digital twin"
   }
 }
