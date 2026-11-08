@@ -1,14 +1,19 @@
+import {
+  normalizeReferralCode,
+  REFERRAL_CODE_MAX_LENGTH,
+  REFERRAL_CODE_MIN_LENGTH,
+  REFERRAL_CODE_PATTERN,
+} from '@genfeedai/contracts/constants';
 import { Transform } from 'class-transformer';
-import { IsString, Matches, MaxLength } from 'class-validator';
-
-const REFERRAL_CODE_PATTERN = /^[23456789abcdefghjkmnpqrstuvwxyz]{8,32}$/;
+import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class ClaimReferralDto {
   @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim().toLowerCase() : value,
+    typeof value === 'string' ? normalizeReferralCode(value) : value,
   )
   @IsString()
-  @MaxLength(32)
+  @MinLength(REFERRAL_CODE_MIN_LENGTH)
+  @MaxLength(REFERRAL_CODE_MAX_LENGTH)
   @Matches(REFERRAL_CODE_PATTERN)
   code!: string;
 }

@@ -12,7 +12,8 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { ReferralsService } from '@services/billing/referrals.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
-import { useQuery } from '@tanstack/react-query';
+import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/dashboard/MetricCardGrid';
@@ -21,9 +22,11 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Text } from '@ui/typography/text';
+import { getApiErrorMessage } from '@utils/error/error-handler.util';
 import { Copy, Gift, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
+import ReferralCodesCard from './referral-codes-card';
 
 const REFERRAL_REWARD_STATUS_KEYS = {
   [ReferralRewardStatus.CANCELLED]: 'status.cancelled',
@@ -47,14 +50,16 @@ function resolveShareUrl(value: string): string {
  */
 export default function SettingsReferralsPage() {
   const translate = useTranslations('common.referrals');
-  const { organizationId } = useBrand();
+  const { brands, organizationId } = useBrand();
+  const queryClient = useQueryClient();
   const { sessionId, userId } = useAuthIdentity();
   const getReferralsService = useAuthedService((token: string) =>
     ReferralsService.getInstance(token),
   );
+  const queryKey = ['referral-program', userId, sessionId, organizationId];
   const { data, isFetching, isLoading, error, refetch } = useQuery({
     enabled: Boolean(userId && organizationId),
-    queryKey: ['referral-program', userId, sessionId, organizationId],
+    queryKey,
     queryFn: async () => (await getReferralsService()).getMine(),
     staleTime: 30_000,
   });
@@ -99,6 +104,28 @@ export default function SettingsReferralsPage() {
       return;
     }
     await ClipboardService.getInstance().copyToClipboard(shareUrl);
+  };
+
+  const createCode = async (input: { brandId?: string; code?: string }) => {
+    try {
+      await (await getReferralsService()).createCode(input);
+      await queryClient.invalidateQueries({ queryKey });
+    } catch (createError: unknown) {
+      NotificationsService.getInstance().error(
+        getApiErrorMessage(createError, translate('codes.createFailed')),
+      );
+    }
+  };
+
+  const setCodeActive = async (codeId: string, isActive: boolean) => {
+    try {
+      await (await getReferralsService()).setCodeActive(codeId, isActive);
+      await queryClient.invalidateQueries({ queryKey });
+    } catch (updateError: unknown) {
+      NotificationsService.getInstance().error(
+        getApiErrorMessage(updateError, translate('codes.updateFailed')),
+      );
+    }
   };
 
   return (
@@ -165,6 +192,23 @@ export default function SettingsReferralsPage() {
           />
         </MetricCardGrid>
       </Card>
+
+      <ReferralCodesCard
+        brands={brands.map((brand) => ({
+          id: brand.id,
+          label: brand.label,
+          slug: brand.slug,
+        }))}
+        codes={data?.codes ?? []}
+        isLoading={isLoading}
+        onCopy={(url) => {
+          void ClipboardService.getInstance().copyToClipboard(
+            resolveShareUrl(url),
+          );
+        }}
+        onCreate={createCode}
+        onSetActive={setCodeActive}
+      />
 
       {data?.recentRewards.length ? (
         <Card label={translate('recentRewards')} padding={CardPadding.NONE}>

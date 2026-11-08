@@ -1,3 +1,4 @@
+import { parseReferralCode } from '@genfeedai/contracts/constants';
 import type { ISignupAttribution } from '@genfeedai/contracts/interfaces';
 import { extractBrandDomain } from './signup-brand-domain.helper';
 
@@ -22,12 +23,11 @@ export const SIGNUP_ATTRIBUTION_MAX_VALUE_LENGTH = 100;
 export const SIGNUP_ATTRIBUTION_MAX_PATH_LENGTH = 200;
 
 /**
- * Referral credential on the sign-up URL. Same Crockford base32 shape as
- * `parseReferralCode` in the app. It is not a campaign tag, so it is absent
+ * Referral credential on the sign-up URL. Same shape as `parseReferralCode`
+ * in `@genfeedai/contracts/constants`. It is not a campaign tag, so it is absent
  * from `ISignupAttribution` and from `SIGNUP_ATTRIBUTION_QUERY_PARAMS`.
  */
 export const SIGNUP_REFERRAL_QUERY_PARAM = 'ref';
-const REFERRAL_CODE_PATTERN = /^[23456789abcdefghjkmnpqrstuvwxyz]{8,32}$/;
 
 // No `/` or `:` in campaign values, and no `//` in paths, so a URL can never
 // be smuggled into storage as a UTM tag or landing path.
@@ -124,8 +124,7 @@ export function resolveExternalReferrerDomain(
 export function normalizeSignupReferralCode(
   value?: string | null,
 ): string | undefined {
-  const code = value?.trim().toLowerCase();
-  return code && REFERRAL_CODE_PATTERN.test(code) ? code : undefined;
+  return parseReferralCode(value) ?? undefined;
 }
 
 /** Referral code carried on a URL, never part of the attribution record. */

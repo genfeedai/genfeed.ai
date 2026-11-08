@@ -1,6 +1,7 @@
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -16,6 +17,7 @@ import {
   assertTenantScopedQuery,
   TenantIsolationError,
 } from '@libs/prisma/tenant-guard';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const configMock = vi.hoisted(() => ({ organizationBilling: true }));
@@ -29,12 +31,25 @@ type MockFn = ReturnType<typeof vi.fn>;
 
 type PrismaMock = {
   billingAccount: { findFirst: MockFn };
+  brand: { findFirst: MockFn };
   billingAccountOrganization: { findFirst: MockFn; findMany: MockFn };
   billingAccountMember: { findFirst: MockFn; findMany: MockFn };
   creditTransaction: { findFirst: MockFn };
   organization: { findFirst: MockFn; findMany: MockFn };
-  referral: { count: MockFn; create: MockFn; findFirst: MockFn };
-  referralCode: { create: MockFn; findFirst: MockFn; update: MockFn };
+  referral: {
+    count: MockFn;
+    create: MockFn;
+    findFirst: MockFn;
+    findMany: MockFn;
+    groupBy: MockFn;
+  };
+  referralCode: {
+    count: MockFn;
+    create: MockFn;
+    findFirst: MockFn;
+    findMany: MockFn;
+    update: MockFn;
+  };
   referralReward: {
     count: MockFn;
     create: MockFn;
@@ -115,6 +130,7 @@ describe('ReferralsService', () => {
           .fn()
           .mockResolvedValue({ id: 'ba_referred', isDeleted: false }),
       },
+      brand: { findFirst: vi.fn().mockResolvedValue(null) },
       billingAccountOrganization: {
         findFirst: vi.fn().mockResolvedValue(null),
         findMany: vi
@@ -141,10 +157,14 @@ describe('ReferralsService', () => {
         count: vi.fn(),
         create: vi.fn(),
         findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
+        groupBy: vi.fn().mockResolvedValue([]),
       },
       referralCode: {
+        count: vi.fn().mockResolvedValue(1),
         create: vi.fn(),
         findFirst: vi.fn(),
+        findMany: vi.fn().mockResolvedValue([]),
         update: vi.fn(),
       },
       referralReward: {
@@ -683,6 +703,7 @@ describe('ReferralsService', () => {
 
       expect(prisma.referralCode.findFirst).toHaveBeenCalledTimes(1);
       expect(prisma.referralCode.findFirst).toHaveBeenCalledWith({
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
         select: { code: true },
         where: {
           isActive: true,
@@ -707,7 +728,7 @@ describe('ReferralsService', () => {
       ).resolves.toBe('older2345xyz');
 
       expect(prisma.referralCode.findFirst).toHaveBeenLastCalledWith({
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
         select: { code: true },
         where: {
           isActive: true,
@@ -737,17 +758,29 @@ describe('ReferralsService', () => {
   });
 
   it('counts failed rewards consistently as converted and pending', async () => {
-    prisma.referralCode.findFirst.mockResolvedValue({
+    const primary = {
+      brand: null,
+      brandId: null,
       code: 'frend2345xyz',
       createdAt: NOW,
       id: 'code_1',
+      isActive: true,
       isDeleted: false,
+      isPrimary: true,
       updatedAt: NOW,
-    });
-    prisma.referral.count.mockResolvedValueOnce(1).mockResolvedValueOnce(1);
+    };
+    prisma.referralCode.findFirst.mockResolvedValue(primary);
+    prisma.referralCode.findMany.mockResolvedValue([primary]);
+    prisma.referral.groupBy.mockResolvedValue([
+      { _count: { _all: 1 }, codeId: 'code_1' },
+    ]);
+    prisma.referral.findMany.mockResolvedValue([
+      { codeId: 'code_1', id: 'referral_1' },
+    ]);
     prisma.referralReward.groupBy.mockResolvedValue([
       {
         _sum: { reversedCredits: 0, rewardCredits: 250 },
+        referralCodeId: 'code_1',
         status: ReferralRewardStatus.FAILED,
       },
     ]);
@@ -755,19 +788,218 @@ describe('ReferralsService', () => {
 
     const result = await service.getMine(ACTOR);
 
-    expect(prisma.referral.count).toHaveBeenNthCalledWith(2, {
-      where: expect.objectContaining({
-        rewards: {
-          some: {
-            isDeleted: false,
-            status: {
-              in: expect.arrayContaining([ReferralRewardStatus.FAILED]),
-            },
-          },
-        },
-      }),
-    });
     expect(result).toMatchObject({ convertedCount: 1, pendingCredits: 250 });
+    expect(result.codes).toEqual([
+      expect.objectContaining({
+        convertedCount: 1,
+        pendingCredits: 250,
+        referralCount: 1,
+      }),
+    ]);
+  });
+
+  describe('named affiliate codes (#9643)', () => {
+    const primary = {
+      brand: null,
+      brandId: null,
+      code: 'frend2345xyz',
+      createdAt: NOW,
+      id: 'code_1',
+      isActive: true,
+      isDeleted: false,
+      isPrimary: true,
+      updatedAt: NOW,
+    };
+    const brandCode = {
+      brand: { label: 'Shayla', slug: 'itsshaylamonroe' },
+      brandId: 'brand_1',
+      code: 'itsshaylamonroe',
+      createdAt: NOW,
+      id: 'code_2',
+      isActive: true,
+      isDeleted: false,
+      isPrimary: false,
+      updatedAt: NOW,
+    };
+
+    beforeEach(() => {
+      prisma.referralCode.findFirst.mockResolvedValue(primary);
+      prisma.referralCode.create.mockImplementation(
+        async ({ data }: { data: Record<string, unknown> }) => ({
+          ...primary,
+          ...data,
+          id: 'code_new',
+          isPrimary: false,
+        }),
+      );
+    });
+
+    it('shows each code with its own sign-ups and credits, and totals across codes', async () => {
+      prisma.referralCode.findMany.mockResolvedValue([primary, brandCode]);
+      prisma.referral.groupBy.mockResolvedValue([
+        { _count: { _all: 2 }, codeId: 'code_1' },
+        { _count: { _all: 3 }, codeId: 'code_2' },
+      ]);
+      prisma.referral.findMany.mockResolvedValue([
+        { codeId: 'code_2', id: 'referral_2' },
+      ]);
+      prisma.referralReward.groupBy.mockResolvedValue([
+        {
+          _sum: { reversedCredits: 0, rewardCredits: 400 },
+          referralCodeId: 'code_2',
+          status: ReferralRewardStatus.GRANTED,
+        },
+      ]);
+      prisma.referralReward.findMany.mockResolvedValue([]);
+
+      const result = await service.getMine(ACTOR);
+
+      expect(result).toMatchObject({
+        code: 'frend2345xyz',
+        earnedCredits: 400,
+        referralCount: 5,
+        shareUrl: 'https://app.example.test/sign-up?ref=frend2345xyz',
+      });
+      expect(result.codes).toEqual([
+        expect.objectContaining({
+          brandSlug: null,
+          code: 'frend2345xyz',
+          earnedCredits: 0,
+          isPrimary: true,
+          referralCount: 2,
+        }),
+        expect.objectContaining({
+          brandLabel: 'Shayla',
+          brandSlug: 'itsshaylamonroe',
+          code: 'itsshaylamonroe',
+          earnedCredits: 400,
+          referralCount: 3,
+          shareUrl: 'https://app.example.test/sign-up?ref=itsshaylamonroe',
+        }),
+      ]);
+    });
+
+    it('defaults a brand code to the brand handle', async () => {
+      prisma.brand.findFirst.mockResolvedValue({
+        id: 'brand_1',
+        label: 'Shayla',
+        slug: 'itsshaylamonroe',
+      });
+
+      const created = await service.createCode(ACTOR, { brandId: 'brand_1' });
+
+      expect(created).toMatchObject({
+        brandId: 'brand_1',
+        brandSlug: 'itsshaylamonroe',
+        code: 'itsshaylamonroe',
+        isPrimary: false,
+        shareUrl: 'https://app.example.test/sign-up?ref=itsshaylamonroe',
+      });
+    });
+
+    it('lowercases a custom code the owner names', async () => {
+      const created = await service.createCode(ACTOR, { code: '  Launch10 ' });
+
+      expect(created).toMatchObject({ brandId: null, code: 'launch10' });
+    });
+
+    it('generates a random code when neither a name nor a brand is given', async () => {
+      const created = await service.createCode(ACTOR, {});
+
+      expect(created.code).toMatch(/^[23456789abcdefghjkmnpqrstuvwxyz]{12}$/);
+    });
+
+    it.each([
+      ['admin', 'That code is reserved.'],
+      ['sign-up', 'That code is reserved.'],
+      ['ab', 'Use 3 to 32 lowercase letters, numbers or hyphens.'],
+      ['has space', 'Use 3 to 32 lowercase letters, numbers or hyphens.'],
+      ['-edge', 'Use 3 to 32 lowercase letters, numbers or hyphens.'],
+    ])('refuses the code %j', async (code, message) => {
+      await expect(service.createCode(ACTOR, { code })).rejects.toThrow(
+        new BadRequestException(message),
+      );
+      expect(prisma.referralCode.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses a brand handle that cannot be a code and asks for one', async () => {
+      prisma.brand.findFirst.mockResolvedValue({
+        id: 'brand_1',
+        label: 'Ad',
+        slug: 'ad',
+      });
+
+      await expect(
+        service.createCode(ACTOR, { brandId: 'brand_1' }),
+      ).rejects.toThrow(
+        'This brand handle cannot be used as a code. Enter a code instead.',
+      );
+    });
+
+    it('refuses a brand outside the active organization', async () => {
+      prisma.brand.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.createCode(ACTOR, { brandId: 'brand_other_org' }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.brand.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationId: ACTOR.organizationId,
+          }),
+        }),
+      );
+    });
+
+    it('refuses a code that is already taken without touching the other owner', async () => {
+      prisma.referralCode.create.mockRejectedValue(
+        Object.assign(new Error('unique'), { code: 'P2002' }),
+      );
+
+      await expect(
+        service.createCode(ACTOR, { code: 'shayla' }),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('stops at the per-member limit', async () => {
+      prisma.referralCode.count.mockResolvedValue(25);
+
+      await expect(
+        service.createCode(ACTOR, { code: 'launch10' }),
+      ).rejects.toThrow('You can hold up to 25 affiliate codes.');
+    });
+
+    it('keeps the primary code on', async () => {
+      prisma.referralCode.findFirst.mockResolvedValue({
+        id: 'code_1',
+        isPrimary: true,
+      });
+
+      await expect(
+        service.setCodeActive(ACTOR, 'code_1', false),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.referralCode.update).not.toHaveBeenCalled();
+    });
+
+    it('turns a named code off and on', async () => {
+      prisma.referralCode.findFirst.mockResolvedValue({
+        id: 'code_2',
+        isPrimary: false,
+      });
+      prisma.referralCode.update.mockResolvedValue({});
+
+      await expect(
+        service.setCodeActive(ACTOR, 'code_2', false),
+      ).resolves.toEqual({ id: 'code_2', isActive: false });
+    });
+
+    it("does not find another member's code", async () => {
+      prisma.referralCode.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.setCodeActive(ACTOR, 'code_of_someone_else', true),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
   });
 
   it('bounds direct admin pagination before calculating Prisma skip', async () => {

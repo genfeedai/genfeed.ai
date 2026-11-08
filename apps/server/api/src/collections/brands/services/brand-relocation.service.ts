@@ -54,6 +54,7 @@ import {
   findSharedBrandPersonas,
   resetPersonaSharingForRelocation,
 } from '@api/collections/personas/utils/persona-relocation-sharing.util';
+import { detachReferralCodesFromBrand } from '@api/collections/referrals/utils/referral-code-relocation.util';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
@@ -751,9 +752,8 @@ export class BrandRelocationService {
     // 0. Reassign source-org members off this brand BEFORE its organizationId
     // moves. currentBrandId is a single-column FK to Brand.id (not the
     // compound (brandId, organizationId) FK used by brand-owned content, see
-    // schema.prisma) so a member row never gets swept into the destination org
-    // by a cascade; this method reassigns it explicitly instead. The caller's
-    // last-brand guard proved `sourceFallbackBrand` exists; re-read in the tx.
+    // schema.prisma), so no cascade sweeps a member row into the destination
+    // org; reassign it here. The last-brand guard proved a fallback exists.
     const sourceFallbackBrand = await tx.brand.findFirst({
       orderBy: { createdAt: 'asc' },
       select: { id: true },
@@ -777,6 +777,7 @@ export class BrandRelocationService {
       },
     });
 
+    await detachReferralCodesFromBrand(tx, brandId);
     await unlinkStraddlingAgentThreadParents(tx, brandId);
     // 1. The brand row itself (+ any co-patched scalar fields). The workflow
     // composite FK cascades workflow.organizationId with the brand.

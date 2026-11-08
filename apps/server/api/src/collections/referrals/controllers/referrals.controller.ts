@@ -1,5 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ClaimReferralDto } from '@api/collections/referrals/dto/claim-referral.dto';
+import { CreateReferralCodeDto } from '@api/collections/referrals/dto/create-referral-code.dto';
+import { UpdateReferralCodeDto } from '@api/collections/referrals/dto/update-referral-code.dto';
 import {
   REFERRAL_ADMIN_MAX_PAGE,
   ReferralsService,
@@ -24,6 +26,8 @@ import {
   Body,
   Controller,
   Get,
+  Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -76,6 +80,31 @@ export class ReferralsController {
       this.actor(request, user),
     );
     return serializeCollection(request, ReferralRewardSerializer, { docs });
+  }
+
+  @Post('me/codes')
+  @RateLimit({ limit: 20, scope: 'user', windowMs: 60_000 })
+  async createCode(
+    @Req() request: RequestWithContext,
+    @CurrentUser() user: User,
+    @Body() body: CreateReferralCodeDto,
+  ) {
+    return this.referralsService.createCode(this.actor(request, user), body);
+  }
+
+  @Patch('me/codes/:codeId')
+  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
+  async updateCode(
+    @Req() request: RequestWithContext,
+    @CurrentUser() user: User,
+    @Param('codeId') codeId: string,
+    @Body() body: UpdateReferralCodeDto,
+  ) {
+    return this.referralsService.setCodeActive(
+      this.actor(request, user),
+      codeId,
+      body.isActive,
+    );
   }
 
   @Post('me/claim')

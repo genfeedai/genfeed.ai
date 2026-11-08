@@ -12,18 +12,30 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-const { brandState, errorMock, getMineMock, identityState, successMock } =
-  vi.hoisted(() => ({
-    brandState: { organizationId: 'org_1' },
-    errorMock: vi.fn(),
-    getMineMock: vi.fn(),
-    identityState: {
-      orgId: 'org_1',
-      sessionId: 'session_1',
-      userId: 'user_1',
-    },
-    successMock: vi.fn(),
-  }));
+const {
+  brandState,
+  createCodeMock,
+  errorMock,
+  getMineMock,
+  identityState,
+  setCodeActiveMock,
+  successMock,
+} = vi.hoisted(() => ({
+  brandState: {
+    brands: [{ id: 'brand_1', label: 'Shayla', slug: 'itsshaylamonroe' }],
+    organizationId: 'org_1',
+  },
+  createCodeMock: vi.fn(),
+  errorMock: vi.fn(),
+  getMineMock: vi.fn(),
+  identityState: {
+    orgId: 'org_1',
+    sessionId: 'session_1',
+    userId: 'user_1',
+  },
+  setCodeActiveMock: vi.fn(),
+  successMock: vi.fn(),
+}));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => brandState,
@@ -34,7 +46,11 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({ getMine: getMineMock }),
+  useAuthedService: () => async () => ({
+    createCode: createCodeMock,
+    getMine: getMineMock,
+    setCodeActive: setCodeActiveMock,
+  }),
 }));
 
 vi.mock('@services/core/notifications.service', () => ({
@@ -52,6 +68,36 @@ describe('SettingsReferralsPage', () => {
     vi.clearAllMocks();
     getMineMock.mockResolvedValue({
       code: 'frend2345xyz',
+      codes: [
+        {
+          brandId: null,
+          brandLabel: null,
+          brandSlug: null,
+          code: 'frend2345xyz',
+          convertedCount: 1,
+          earnedCredits: 500,
+          id: 'code_1',
+          isActive: true,
+          isPrimary: true,
+          pendingCredits: 250,
+          referralCount: 1,
+          shareUrl: '/sign-up?ref=frend2345xyz',
+        },
+        {
+          brandId: 'brand_1',
+          brandLabel: 'Shayla',
+          brandSlug: 'itsshaylamonroe',
+          code: 'itsshaylamonroe',
+          convertedCount: 0,
+          earnedCredits: 0,
+          id: 'code_2',
+          isActive: true,
+          isPrimary: false,
+          pendingCredits: 0,
+          referralCount: 1,
+          shareUrl: '/sign-up?ref=itsshaylamonroe',
+        },
+      ],
       convertedCount: 1,
       earnedCredits: 500,
       id: 'code_1',
@@ -175,6 +221,61 @@ describe('SettingsReferralsPage', () => {
     await waitFor(() => {
       expect(getMineMock).toHaveBeenCalledTimes(2);
       expect(screen.getByText('Earned')).toBeVisible();
+    });
+  });
+  it('lists every code with its brand and sign-ups', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SettingsReferralsPage />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('itsshaylamonroe')).toBeVisible();
+    expect(screen.getByText('Primary')).toBeVisible();
+    expect(screen.getAllByText('Shayla').length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole('switch', {
+        name: 'Accept sign-ups through frend2345xyz',
+      }),
+    ).toBeDisabled();
+
+    fireEvent.click(
+      screen.getByRole('switch', {
+        name: 'Accept sign-ups through itsshaylamonroe',
+      }),
+    );
+    await waitFor(() => {
+      expect(setCodeActiveMock).toHaveBeenCalledWith('code_2', false);
+    });
+  });
+
+  it('adds a named code and shows the reason when it is refused', async () => {
+    createCodeMock.mockRejectedValueOnce(
+      Object.assign(new Error('Request failed'), {
+        isAxiosError: true,
+        response: { data: { message: 'That code is already taken.' } },
+      }),
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SettingsReferralsPage />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.change(await screen.findByLabelText('Code'), {
+      target: { value: 'launch10' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add code' }));
+
+    await waitFor(() => {
+      expect(createCodeMock).toHaveBeenCalledWith({ code: 'launch10' });
+      expect(errorMock).toHaveBeenCalledWith('That code is already taken.');
     });
   });
 });

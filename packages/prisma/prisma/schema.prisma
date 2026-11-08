@@ -1234,6 +1234,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   skillAssignments           SkillAssignment[]            @relation("skill_assignment_brand")
   skillResolutions           SkillResolution[]            @relation("skill_resolution_brand")
   generationPromptSnapshots  GenerationPromptSnapshot[]   @relation("prompt_snapshot_brand")
+  referralCodes              ReferralCode[]               @relation("referral_code_brand")
 
   @@unique([id, organizationId], map: "brands_id_organizationId_key")
   @@index([isDefault])
@@ -3855,6 +3856,14 @@ model ReferralCode {
   rewardOrganizationId   String
   rewardOrganization     Organization   @relation("referral_code_reward_organization", fields: [rewardOrganizationId], references: [id])
   code                   String         @unique
+  /// The brand whose followers this code is shared with; attribution reads
+  /// "which brand sent them" from here. Null for an account-level code.
+  brandId                String?
+  brand                  Brand?         @relation("referral_code_brand", fields: [brandId], references: [id])
+  /// The owner's first, randomly generated code on this billing account. The
+  /// partial unique index `referral_codes_primary_per_owner_key` (migration
+  /// 20261108000000) keeps it at one per owner and billing account.
+  isPrimary              Boolean        @default(false)
   isActive               Boolean        @default(true)
   isDeleted              Boolean        @default(false)
   createdAt              DateTime       @default(now())
@@ -3862,7 +3871,8 @@ model ReferralCode {
   referrals              Referral[]
   rewards                ReferralReward[]
 
-  @@unique([ownerUserId, rewardBillingAccountId], map: "referral_codes_owner_billing_account_key")
+  @@index([ownerUserId, rewardBillingAccountId, isDeleted])
+  @@index([brandId, isDeleted])
   @@index([rewardBillingAccountId, isDeleted])
   @@index([rewardOrganizationId, isDeleted])
   @@map("referral_codes")

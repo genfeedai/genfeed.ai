@@ -1,8 +1,10 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
+  ICreateReferralCodeInput,
   IPaginatedResponse,
   IReferralAdminReward,
   IReferralClaimResult,
+  IReferralCode,
   IReferralProgram,
 } from '@genfeedai/contracts/interfaces';
 import { ReferralProgram } from '@genfeedai/models/billing/referral-program.model';
@@ -26,6 +28,24 @@ export class ReferralsService extends BaseService<ReferralProgram> {
   public async getMine(): Promise<IReferralProgram> {
     const response = await this.instance.get<JsonApiResponseDocument>('me');
     return deserializeResource<IReferralProgram>(response.data);
+  }
+
+  public async createCode(
+    input: ICreateReferralCodeInput,
+  ): Promise<IReferralCode> {
+    const response = await this.instance.post<IReferralCode>('me/codes', input);
+    return response.data;
+  }
+
+  public async setCodeActive(
+    codeId: string,
+    isActive: boolean,
+  ): Promise<{ id: string; isActive: boolean }> {
+    const response = await this.instance.patch<{
+      id: string;
+      isActive: boolean;
+    }>(`me/codes/${encodeURIComponent(codeId)}`, { isActive });
+    return response.data;
   }
 
   public async claim(code: string): Promise<IReferralClaimResult> {

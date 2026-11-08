@@ -1074,6 +1074,9 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
   // owner organization that granted.
   'PersonaAvailabilityAudit',
   'PersonaGrant',
+  // Owned by a user and a billing account, not by the brand's organization. The
+  // optional brand link is a label that the relocation clears (runBrandOrgCascade).
+  'ReferralCode',
 ];
 
 /**
@@ -1127,4 +1130,5 @@ export const AUDITOR_IGNORED_TABLES: readonly string[] = [
   'subscription_attributions',
   'persona_availability_audits',
   'persona_grants',
+  'referral_codes',
 ];

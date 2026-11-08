@@ -18,6 +18,7 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   ONBOARDING_STEPS,
+  parseReferralCode,
   resolveForcedOnboardingHref,
 } from '@genfeedai/contracts/constants';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -44,7 +45,6 @@ import {
   extractBrandDomain,
   ONBOARDING_STORAGE_KEYS,
   parseOnboardingAccountType,
-  parseReferralCode,
   resolvePendingSignupAttribution,
   resolveSelectedPlanParam,
 } from '@/lib/onboarding/onboarding-access.util';

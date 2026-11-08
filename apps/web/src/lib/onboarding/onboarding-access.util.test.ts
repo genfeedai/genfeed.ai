@@ -1,4 +1,5 @@
 import { OrganizationCategory } from '@genfeedai/contracts';
+import { parseReferralCode } from '@genfeedai/contracts/constants';
 import type { ISetting } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
@@ -11,7 +12,6 @@ import {
   isFreePlanHandoff,
   ONBOARDING_ACCESS_SOURCE,
   ONBOARDING_STORAGE_KEYS,
-  parseReferralCode,
   persistOnboardingHandoffParams,
   persistSignupAttribution,
   resolveBrandStepAccountType,
