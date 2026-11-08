@@ -88,7 +88,7 @@ export default function AvatarTwinRecorder({
           )}
           {isRecording ? (
             <div className="absolute top-3 left-3 flex items-center gap-2 rounded-full bg-background/80 px-3 py-1 font-medium text-sm tabular-nums">
-              <Circle className="size-3 fill-destructive text-destructive" />
+              <Circle className="size-3.5 fill-destructive text-destructive" />
               {translate('record.elapsed', {
                 elapsed: formatDuration(elapsedSeconds),
                 recommended: formatDuration(AVATAR_TWIN_RECOMMENDED_SECONDS),
