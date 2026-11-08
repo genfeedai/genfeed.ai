@@ -8,6 +8,7 @@ import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/colle
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import { PersonaStatus } from '@genfeedai/contracts';
+import { traced } from '@libs/tracing/traced';
 import type { Request } from 'express';
 
 /**
@@ -15,28 +16,31 @@ import type { Request } from 'express';
  * for owners, admins and superadmins, otherwise the caller's assigned brands.
  * `undefined` means no restriction.
  */
-export async function resolveAllowedPersonaBrandIds(
-  brandAccess: BrandAccessService | undefined,
-  query: PersonasQueryDto,
-  user: User,
-  request: Request,
-): Promise<string[] | undefined> {
-  const tenant = CollectionFilterUtil.resolveListOrganizationId(
-    query,
-    user,
-    request,
-  );
-  const scope = await resolveAllBrandsFilter(
-    brandAccess,
-    tenant,
-    user,
-    getIsSuperAdmin(user, request),
-  );
-  const clauses = scope?.OR as
-    | Array<{ brandId: { in: string[] } | null }>
-    | undefined;
-  return clauses?.find((clause) => clause.brandId !== null)?.brandId?.in;
-}
+export const resolveAllowedPersonaBrandIds = traced(
+  'resolveAllowedPersonaBrandIds',
+  async (
+    brandAccess: BrandAccessService | undefined,
+    query: PersonasQueryDto,
+    user: User,
+    request: Request,
+  ): Promise<string[] | undefined> => {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
+    const scope = await resolveAllBrandsFilter(
+      brandAccess,
+      tenant,
+      user,
+      getIsSuperAdmin(user, request),
+    );
+    const clauses = scope?.OR as
+      | Array<{ brandId: { in: string[] } | null }>
+      | undefined;
+    return clauses?.find((clause) => clause.brandId !== null)?.brandId?.in;
+  },
+);
 
 export function buildPersonasFindAllQuery(
   user: User,
