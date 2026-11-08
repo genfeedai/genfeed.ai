@@ -69,6 +69,18 @@ export const ACTIVITY_ALERT_POLICIES = {
   [ActivityKey.VIDEO_REFRAME_FAILED]: GENERATION_FAILED,
   [ActivityKey.VIDEO_UPSCALE_FAILED]: GENERATION_FAILED,
   [ActivityKey.VOICE_FAILED]: GENERATION_FAILED,
+  // A digital twin trains for minutes to hours, and consent is given on the
+  // provider's page: tell the person who recorded it once it settles.
+  [ActivityKey.AVATAR_TWIN_TRAINING_COMPLETED]: {
+    recipients: [{ channels: ['in_app'], recipient: 'actor' }],
+    severity: 'success',
+    topic: 'generation.status',
+  },
+  [ActivityKey.AVATAR_TWIN_TRAINING_FAILED]: {
+    recipients: [{ channels: ['in_app'], recipient: 'actor' }],
+    severity: 'warning',
+    topic: 'generation.status',
+  },
   [ActivityKey.POST_FAILED]: {
     recipients: [{ channels: ['in_app'], recipient: 'actor' }],
     severity: 'critical',

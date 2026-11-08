@@ -67,6 +67,19 @@ describe('activity alert policy map (#5197)', () => {
     });
   });
 
+  it('tells the person who recorded a digital twin once it settles', () => {
+    expect(
+      getActivityAlertPolicy(ActivityKey.AVATAR_TWIN_TRAINING_COMPLETED),
+    ).toEqual({
+      recipients: [{ channels: ['in_app'], recipient: 'actor' }],
+      severity: 'success',
+      topic: 'generation.status',
+    });
+    expect(
+      getActivityAlertPolicy(ActivityKey.AVATAR_TWIN_TRAINING_FAILED)?.severity,
+    ).toBe('warning');
+  });
+
   it('uses only known topics and channels', () => {
     for (const policy of Object.values(ACTIVITY_ALERT_POLICIES)) {
       expect(NOTIFICATION_TOPICS).toContain(policy.topic);
@@ -110,6 +123,18 @@ describe('activity alert policy map (#5197)', () => {
         getActivityMessageDescriptor(ActivityKey.CREDITS_LOW),
       ),
     ).toBe('Credits are running low');
+    expect(
+      formatActivityMessage(
+        getActivityMessageDescriptor(
+          ActivityKey.AVATAR_TWIN_TRAINING_COMPLETED,
+        ),
+      ),
+    ).toBe('Completed digital twin training');
+    expect(
+      formatActivityMessage(
+        getActivityMessageDescriptor(ActivityKey.AVATAR_TWIN_TRAINING_FAILED),
+      ),
+    ).toBe('Digital twin training failed');
     expect(getActivityLifecycleStatus(ActivityKey.AGENT_RUN_FAILED)).toBe(
       'failed',
     );

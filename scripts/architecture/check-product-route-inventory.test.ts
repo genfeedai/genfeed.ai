@@ -202,14 +202,15 @@ describe('runCheckProductRouteInventory', () => {
     // /agent/[id]/full pages (org and brand) are gone: full view is
     // /agent/[id]?view=full. Library gained the digital twin page. The lead
     // invite moved from the app's /preview/[token] to the website's
-    // /@handle/invite/[token]. Creator profiles, their tabs and their articles
-    // live under /creator-profile/[handle] (served at /@handle), and the
-    // website gained /community.
+    // /@handle/invite/[token]. The voice studio is also served at the
+    // organization level by the catch-all. Creator profiles, their tabs and
+    // their articles live under /creator-profile/[handle] (served at /@handle),
+    // and the website gained /community.
     expect(runCheckProductRouteInventory()).toMatchObject({
       appPublicRouteCount: 25,
       issues: [],
-      protectedPageCount: 245,
-      protectedRouteCount: 267,
+      protectedPageCount: 246,
+      protectedRouteCount: 269,
       publicRouteCount: 118,
       websitePublicRouteCount: 93,
     });

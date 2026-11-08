@@ -295,4 +295,88 @@ describe('HeyGenTwinService', () => {
       ).rejects.toThrow('Retry after 12 seconds');
     });
   });
+  describe('voice clones', () => {
+    const sample = {
+      audio: Buffer.from('RIFFdataWAVE'),
+      contentType: 'audio/wav',
+      name: 'My studio voice',
+    };
+
+    beforeEach(() => {
+      heyGen.resolveOrganizationConnection.mockResolvedValue({
+        apiKey: 'personal-key',
+        binding: {
+          credentialVersionId: 'heygen-v1',
+          kind: 'byok',
+          organizationId: ORG,
+          provider: 'heygen',
+        },
+      });
+    });
+
+    it('sends the sample inline as an instant clone on the personal key', async () => {
+      http.post.mockReturnValueOnce(
+        of(ok({ data: { voice_id: 'voice_7' } }, 202)),
+      );
+
+      await expect(service.cloneVoice(ORG, sample)).resolves.toMatchObject({
+        connection: { kind: 'byok', provider: 'heygen' },
+        voiceId: 'voice_7',
+      });
+      const [url, body, config] = http.post.mock.calls[0] ?? [];
+      expect(url).toBe('https://api.heygen.com/v3/models/audio/voices');
+      expect(body).toEqual({
+        audio: [
+          {
+            data: sample.audio.toString('base64'),
+            media_type: 'audio/wav',
+            type: 'base64',
+          },
+        ],
+        mode: 'instant',
+        name: 'My studio voice',
+        remove_background_noise: true,
+      });
+      expect(config.headers['X-Api-Key']).toBe('personal-key');
+    });
+
+    it.each([
+      [{ contentType: 'audio/webm' }, 'WAV or MP3'],
+      [{ audio: Buffer.alloc(16_000_001) }, 'over 16 MB'],
+      [{ audio: Buffer.alloc(0) }, 'empty'],
+    ])(
+      'refuses a sample the provider cannot clone (%#)',
+      async (change, message) => {
+        await expect(
+          service.cloneVoice(ORG, { ...sample, ...change }),
+        ).rejects.toThrow(message);
+        expect(http.post).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      ['ACTIVE', 'active'],
+      ['FAILED', 'failed'],
+      ['PENDING', 'pending'],
+      ['SOMETHING_NEW', 'pending'],
+    ])('reads provider status %s as %s', async (status, expected) => {
+      http.get.mockReturnValueOnce(
+        of(ok({ data: { status, voice_id: 'voice_7' } })),
+      );
+
+      await expect(service.getVoice(ORG, 'voice_7')).resolves.toMatchObject({
+        status: expected,
+      });
+    });
+
+    it('treats an already deleted voice as deleted', async () => {
+      http.delete.mockReturnValueOnce(
+        failure(404, { error: { code: 'voice_not_found' } }),
+      );
+
+      await expect(
+        service.deleteVoice(ORG, 'voice_7'),
+      ).resolves.toBeUndefined();
+    });
+  });
 });

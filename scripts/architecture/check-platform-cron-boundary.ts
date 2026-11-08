@@ -238,6 +238,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform schedule discovery handler (#4879); every tenant asset is perceived through the media-perception queue under its own organization.',
   },
   {
+    file: 'apps/server/workers/src/crons/avatar-twins/cron.avatar-twins.service.ts',
+    id: 'avatar-twin-tracking',
+    methodName: 'trackWaitingTwins',
+    reason:
+      'Platform schedule handler for #9683; re-reads waiting digital twins at the provider, each as its owner inside its own organization.',
+  },
+  {
     file: 'apps/server/workers/src/crons/branded-dispatch-recovery/cron.branded-dispatch-recovery.service.ts',
     id: 'branded-dispatch-recovery',
     methodName: 'recoverExpiredDispatches',

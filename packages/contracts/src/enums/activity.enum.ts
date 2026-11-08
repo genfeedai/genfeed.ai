@@ -81,6 +81,10 @@ export enum ActivityKey {
   MODELS_TRAINING_CREATED = 'model-training-created',
   MODELS_TRAINING_FAILED = 'model-training-failed',
   MODELS_TRAINING_COMPLETED = 'model-training-completed',
+  /** A digital twin finished training and consent: it can make videos. */
+  AVATAR_TWIN_TRAINING_COMPLETED = 'avatar-twin-training-completed',
+  /** A digital twin failed training, or its consent was declined. */
+  AVATAR_TWIN_TRAINING_FAILED = 'avatar-twin-training-failed',
   SOCIAL_INTEGRATION_FAILED = 'integration-social-failed',
   SOCIAL_INTEGRATION_DISCONNECTED = 'integration-social-disconnected',
   SOCIAL_HISTORY_IMPORT_SCHEDULED = 'integration-social-history-import-scheduled',

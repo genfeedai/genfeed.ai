@@ -242,6 +242,7 @@ export class BrandsService extends BaseService<Brand> {
       defaultAvatarIngredientId?: string | null;
       defaultAvatarRef?:
         | import('@genfeedai/contracts/interfaces').HeyGenAvatarRef
+        | import('@genfeedai/contracts/interfaces').HeyGenAvatarSelection
         | null;
       heygenAvatarId?: string | null;
       heygenVoiceId?: string | null;

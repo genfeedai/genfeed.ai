@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import VoiceCreateCallout from './voice-create-callout';
 
 const account = vi.hoisted(() => ({
+  heyGen: 'disconnected' as string,
   status: 'disconnected' as string,
 }));
 
@@ -46,20 +47,35 @@ vi.mock('@services/ingredients/voices.service', () => ({
   },
 }));
 
-function renderCallout(onCloneVoice = vi.fn()) {
+vi.mock('@services/ingredients/heygen.service', () => ({
+  HeyGenService: {
+    getInstance: () => ({
+      fetchConnectionStatus: async () => ({
+        hasCustomKey: account.heyGen !== 'disconnected',
+        isConnected: account.heyGen === 'connected',
+        provider: 'heygen',
+        state: account.heyGen,
+      }),
+    }),
+  },
+}));
+
+function renderCallout(onUploadSample = vi.fn()) {
   render(
     <VoiceCreateCallout
       connectHref="/acme/settings/integrations"
-      onCloneVoice={onCloneVoice}
+      onUploadSample={onUploadSample}
+      recordHref="/acme/main/library/voices/record"
       twinHref="/acme/main/library/avatars/twin"
     />,
     { wrapper: queryClientWrapper() },
   );
-  return onCloneVoice;
+  return onUploadSample;
 }
 
 describe('VoiceCreateCallout', () => {
   beforeEach(() => {
+    account.heyGen = 'disconnected';
     account.status = 'disconnected';
   });
 
@@ -73,7 +89,7 @@ describe('VoiceCreateCallout', () => {
       screen.getByRole('link', { name: 'Connect your account' }),
     ).toHaveAttribute('href', '/acme/settings/integrations');
     expect(
-      screen.queryByRole('button', { name: 'Clone my voice' }),
+      screen.queryByRole('link', { name: 'Record my voice' }),
     ).not.toBeInTheDocument();
   });
 
@@ -82,22 +98,32 @@ describe('VoiceCreateCallout', () => {
     renderCallout();
 
     expect(
-      await screen.findByText('Reconnect your ElevenLabs account'),
+      await screen.findByText('Reconnect your account'),
     ).toBeInTheDocument();
   });
 
-  it('offers cloning once the account is connected', async () => {
+  it('offers recording and file upload once ElevenLabs is connected', async () => {
     account.status = 'connected';
-    const onCloneVoice = renderCallout();
+    const onUploadSample = renderCallout();
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Clone my voice' }),
-    );
-
-    expect(onCloneVoice).toHaveBeenCalledOnce();
     expect(
-      screen.getByText(/created in your own ElevenLabs account/),
+      await screen.findByRole('link', { name: 'Record my voice' }),
+    ).toHaveAttribute('href', '/acme/main/library/voices/record');
+    fireEvent.click(screen.getByRole('button', { name: 'Upload a sample' }));
+
+    expect(onUploadSample).toHaveBeenCalledOnce();
+  });
+
+  it('offers recording with only HeyGen connected', async () => {
+    account.heyGen = 'connected';
+    renderCallout();
+
+    expect(
+      await screen.findByRole('link', { name: 'Record my voice' }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Upload a sample' }),
+    ).not.toBeInTheDocument();
   });
 
   it('always links to the digital twin', async () => {
