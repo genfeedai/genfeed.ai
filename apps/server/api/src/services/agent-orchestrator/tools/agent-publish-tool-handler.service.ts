@@ -14,7 +14,6 @@ import {
   scheduleCanonicalPostAction,
 } from '@api/services/agent-orchestrator/tools/agent-publish-canonical-actions';
 import { resolveConfirmedPublishTargets } from '@api/services/agent-orchestrator/tools/agent-publish-confirmed-targets.util';
-import { resolveDraftMediaUrls } from '@api/services/agent-orchestrator/tools/agent-publish-draft-media.util';
 import {
   blockMcpCreatePost,
   isMcpActionOrigin,
@@ -26,6 +25,7 @@ import {
   createAgentTextDraft,
   createProactiveAgentTextPost,
   finishConfirmedPublish,
+  parsePostVisibility,
   resolveConfirmedFallbackPolicy,
   scheduleAgentPost,
 } from '@api/services/agent-orchestrator/tools/agent-publish-post-actions';
@@ -82,7 +82,6 @@ import {
   InternalServerErrorException,
   Optional,
 } from '@nestjs/common';
-import { z } from 'zod';
 
 type IngredientsServiceLike = Pick<IngredientsService, 'findOne'>;
 
@@ -775,11 +774,9 @@ export class AgentPublishToolHandler {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     if (isMcpActionOrigin()) return mcpDraftOnlyResult();
-    const visibility = z
-      .nativeEnum(PostVisibility)
-      .safeParse(params.visibility ?? PostVisibility.PUBLIC);
+    const visibility = parsePostVisibility(params.visibility);
     const contentId = readPublishContentId(params);
-    if (!visibility.success || !contentId) {
+    if (!visibility || !contentId) {
       return {
         creditsUsed: 0,
         success: false,
@@ -805,7 +802,7 @@ export class AgentPublishToolHandler {
         contentId,
         platforms,
         scheduledAt: requestedScheduledAt,
-        visibility: visibility.data,
+        visibility,
       },
       ctx,
     );
@@ -817,19 +814,15 @@ export class AgentPublishToolHandler {
   ): Promise<AgentToolResult> {
     const mcpBlock = blockMcpCreatePost(params);
     if (mcpBlock) return mcpBlock;
-    const parsedVisibility = z
-      .nativeEnum(PostVisibility)
-      .safeParse(params.visibility ?? PostVisibility.PUBLIC);
-    if (!parsedVisibility.success) {
+    const visibility = parsePostVisibility(params.visibility);
+    if (!visibility) {
       return {
         creditsUsed: 0,
         error: 'visibility must be public, private, or unlisted.',
         success: false,
       };
     }
-    const visibility = parsedVisibility.data;
     const contentId = readPublishContentId(params);
-
     if (contentId) {
       const { caption, platforms, requestedScheduledAt, requestedTargets } =
         this.readPublishRequest(params);
@@ -945,23 +938,12 @@ export class AgentPublishToolHandler {
     if (ctx.isProactive)
       return this.createProactiveTextPost(params, ctx, visibility);
 
-    const media = await resolveDraftMediaUrls({
-      brandId: ctx.validatedScope?.brandId,
-      ingredients: this.ingredientsService,
-      organizationId: ctx.organizationId,
-      platforms: this.readPublishRequest(params).platforms,
-      value: params.mediaUrls,
-    });
-    if (media.error !== undefined) {
-      return { creditsUsed: 0, error: media.error, success: false };
-    }
-
     return createAgentTextDraft(
       this.postsService,
       params,
       ctx,
       visibility,
-      media,
+      this.ingredientsService,
     );
   }
 
