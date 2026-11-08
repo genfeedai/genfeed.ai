@@ -444,8 +444,50 @@ describe('fal refresh of a rate-sheet contract', () => {
     });
   });
 
-  it('reports a different base rate as a price change for review', async () => {
+  it('keeps a variant sheet when fal states a base rate that matches none of its variants', async () => {
+    const { model, modelProviderContract, service } = harness(sheetContract);
+
+    const result = await service.synchronizeModel(
+      sheetModel,
+      providerModel('minimax/h3-max/text-to-video'),
+      falPrice('seconds', 0.005),
+      new Date('2026-10-16T07:00:00Z'),
+    );
+
+    expect(result.drifted).toBe(false);
+    expect(result.priceChange).toBeUndefined();
+    expect(modelProviderContract.upsert).not.toHaveBeenCalled();
+    expect(model.update.mock.calls[0]?.[0].data).toMatchObject({
+      pendingProviderContractVersion: null,
+      providerSyncFailureCode: 'rates_unavailable:fal_rate_unverifiable',
+    });
+  });
+
+  it('puts a model a stale flat candidate left in review back to fresh', async () => {
     const { model, service } = harness(sheetContract);
+
+    await service.synchronizeModel(
+      sheetModel,
+      providerModel('minimax/h3-max/text-to-video'),
+      falPrice('seconds', 0.005),
+      new Date('2026-10-16T07:00:00Z'),
+    );
+
+    expect(model.updateMany).toHaveBeenCalledExactlyOnceWith({
+      data: { providerSyncStatus: 'fresh' },
+      where: { id: 'model-1', providerSyncStatus: 'review_required' },
+    });
+  });
+
+  it('reports a different base rate as a price change when the sheet has one flat rate', async () => {
+    const flatSheet = {
+      ...sheetContract,
+      pricing: {
+        ...sheetContract.pricing,
+        rates: [sheetContract.pricing.rates[0]],
+      },
+    };
+    const { model, service } = harness(flatSheet);
 
     const result = await service.synchronizeModel(
       sheetModel,
@@ -473,6 +515,7 @@ describe('fal refresh of a rate-sheet contract', () => {
     expect(result.refreshFailure).toBeUndefined();
     expect(model.update).toHaveBeenCalledExactlyOnceWith({
       data: {
+        pendingProviderContractVersion: null,
         providerSyncFailureCode: 'rates_unavailable:fal_rate_unverifiable',
       },
       where: { id: 'model-1' },

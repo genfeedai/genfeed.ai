@@ -75,6 +75,16 @@ export function observeFalRateSheet(
     )
   )
     return { status: 'confirmed' };
+  // A sheet that prices variants (resolution, audio, tier) states its rates on
+  // the model page; fal's API states one base price that is often none of them
+  // (pixverse v6 returns $0.005 against $0.025-$0.115, Kling v3 Pro $0.14
+  // against $0.112/$0.168). That price cannot say a variant moved, and
+  // replacing the sheet with it would drop every variant, so the sheet stays.
+  if (reviewed.rates.length > 1 || (reviewed.variantRules?.length ?? 0) > 0)
+    return {
+      reason: 'fal states one base price; the sheet prices variants',
+      status: 'unverifiable',
+    };
   const observed: ReviewedProviderRate = {
     component: 'output',
     unit: mapped.unit,
@@ -82,6 +92,5 @@ export function observeFalRateSheet(
     when: {},
     ...(mapped.isPerOutput ? { isPerOutput: true } : {}),
   };
-  const { variantRules: _variantRules, ...sheet } = reviewed;
-  return { pricing: { ...sheet, rates: [observed] }, status: 'changed' };
+  return { pricing: { ...reviewed, rates: [observed] }, status: 'changed' };
 }
