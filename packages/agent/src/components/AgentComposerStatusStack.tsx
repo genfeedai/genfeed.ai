@@ -589,7 +589,7 @@ export function AgentComposerStatusStack({
         <div
           aria-live="polite"
           aria-label={`${progressTitle} progress, ${completedTaskCount} of ${visibleTasks.length} steps`}
-          className="overflow-hidden rounded-t-lg rounded-b-none border border-border/70 bg-background/70 shadow-sm backdrop-blur-xl"
+          className="overflow-hidden rounded-t-lg rounded-b-none border border-border bg-accent"
           data-testid="agent-composer-tasks"
           role="region"
         >

@@ -1,9 +1,13 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
 
-/** Shared glass and border for every composer. Flat on purpose: no outer shadow. */
+/**
+ * Shared plane and border for every composer. The bar sits one step above the
+ * canvas (`accent`, gray-200) so it reads against the page without a shadow,
+ * a blur or a transition.
+ */
 export const PROMPT_BAR_SURFACE_CLASS =
-  'overflow-hidden rounded-[var(--radius-workspace-composer)] border border-border-strong/70 bg-background/70 backdrop-blur-xl backdrop-saturate-150 transition-[background-color] focus-within:bg-background/80';
+  'overflow-hidden rounded-[var(--radius-workspace-composer)] border border-border bg-accent';
 
 export interface PromptBarShellProps extends HTMLAttributes<HTMLDivElement> {
   /**
@@ -23,10 +27,8 @@ const PromptBarShell = forwardRef<HTMLDivElement, PromptBarShellProps>(
         {...props}
         ref={ref}
         className={cn(
-          // No solid bg here — callers pass PROMPT_BAR_SURFACE_CLASS (glass) or
-          // their own fill. A hardcoded bg-background painted an opaque black
-          // slab behind every agent/studio composer.
-          'relative transition-[border-color,background-color,box-shadow]',
+          // No bg here: callers pass PROMPT_BAR_SURFACE_CLASS or their own fill.
+          'relative',
           className,
         )}
       >

@@ -160,12 +160,10 @@ export default function StudioPlaygroundComposer({
   isLoadingModels,
   isTranscribing,
   isUploading,
-  isResting = false,
   isStopAvailable = false,
   isSubmitting = false,
   models,
   notice,
-  onExpand,
   onAddFiles,
   onOpenLibrary,
   onPromptChange,
@@ -1119,8 +1117,6 @@ export default function StudioPlaygroundComposer({
   return (
     <PromptBarComposer
       banner={notice}
-      isResting={isResting}
-      onExpand={onExpand}
       beforeBody={
         <>
           {attachedAssets.length > 0 ? (

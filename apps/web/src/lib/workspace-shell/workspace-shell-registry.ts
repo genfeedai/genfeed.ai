@@ -145,7 +145,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug': 'Overview',
   '/:orgSlug/:brandSlug/agent': 'New Conversation',
   '/:orgSlug/:brandSlug/agent/:id': 'Conversation',
-  '/:orgSlug/:brandSlug/agent/:id/full': 'Conversation',
   '/:orgSlug/:brandSlug/agent/threads': 'Threads',
   '/:orgSlug/:brandSlug/agent/new': 'New Conversation',
   '/:orgSlug/:brandSlug/analytics/brands/:id': 'Brand Details',
@@ -251,7 +250,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/automation/runs': 'Runs',
   '/:orgSlug/~/agent': 'New Conversation',
   '/:orgSlug/~/agent/:id': 'Conversation',
-  '/:orgSlug/~/agent/:id/full': 'Conversation',
   '/:orgSlug/~/agent/threads': 'Threads',
   '/:orgSlug/~/agent/new': 'New Conversation',
   '/:orgSlug/~/library/:type': ':type',
@@ -668,7 +666,6 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/agent/new',
       '/:orgSlug/~/agent/threads',
       '/:orgSlug/~/agent/:id',
-      '/:orgSlug/~/agent/:id/full',
     ],
     {
       fallback: '/:orgSlug/~/agent',
@@ -837,7 +834,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/agent/new',
       '/:orgSlug/:brandSlug/agent/threads',
       '/:orgSlug/:brandSlug/agent/:id',
-      '/:orgSlug/:brandSlug/agent/:id/full',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/agent',

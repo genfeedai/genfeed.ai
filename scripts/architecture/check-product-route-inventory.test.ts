@@ -198,12 +198,14 @@ describe('compareProductRouteInventories', () => {
 describe('runCheckProductRouteInventory', () => {
   it('keeps the checked-in registries aligned with every app-router page', () => {
     // Four creation routes moved into their app workspaces; Motion gained a
-    // detail route. The registry also drops /~/editor/new.
+    // detail route. The registry also drops /~/editor/new. The agent's
+    // /agent/[id]/full pages (org and brand) are gone: full view is
+    // /agent/[id]?view=full.
     expect(runCheckProductRouteInventory()).toMatchObject({
       appPublicRouteCount: 26,
       issues: [],
-      protectedPageCount: 246,
-      protectedRouteCount: 268,
+      protectedPageCount: 244,
+      protectedRouteCount: 266,
       publicRouteCount: 112,
       websitePublicRouteCount: 86,
     });

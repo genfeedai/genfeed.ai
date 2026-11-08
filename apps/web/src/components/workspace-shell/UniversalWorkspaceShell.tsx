@@ -321,7 +321,10 @@ function UniversalWorkspaceShellContent({
     normalizedPathname.startsWith(`${APP_ROUTES.AGENT.ROOT}/`);
   // Pages that render `AgentOutputShell` are the conversation's other half:
   // like `/agent`, the product dock stays off and the composer sits in flow.
-  const isAgentOutputSurface = isAgentOutputRoute(normalizedPathname);
+  const isAgentOutputSurface = isAgentOutputRoute(
+    normalizedPathname,
+    searchParams,
+  );
   const isUnthreadedConversation =
     normalizedPathname === APP_ROUTES.AGENT.ROOT ||
     normalizedPathname === APP_ROUTES.AGENT.NEW;
