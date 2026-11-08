@@ -88,6 +88,23 @@ export interface ICredentialInstagram extends ICredential {
   isAlreadyConnected?: boolean;
 }
 
+/**
+ * One account a connected LinkedIn token can post as, offered for the member to
+ * choose from after authorizing: their own profile, or a company page they run.
+ * `id` is the value `select-account` stores as the credential's `externalId`.
+ */
+export interface ICredentialLinkedInAccount {
+  id: string;
+  kind: 'member' | 'organization';
+  label: string;
+  /** Page vanity name; absent for a member profile. */
+  username?: string;
+  image?: string;
+  platform: CredentialPlatform;
+  /** True when another live credential of this brand already holds the account. */
+  isAlreadyConnected?: boolean;
+}
+
 export interface ICredentialOAuth extends ICredential {
   url: string;
 }

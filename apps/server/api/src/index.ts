@@ -185,10 +185,8 @@ export {
 export { HiggsFieldService } from './services/integrations/higgsfield/higgsfield.service';
 export { KlingAIService } from './services/integrations/klingai/services/klingai.service';
 export { LeonardoAIService } from './services/integrations/leonardoai/services/leonardoai.service';
-export {
-  LinkedInService,
-  resolveLinkedInVisibility,
-} from './services/integrations/linkedin/services/linkedin.service';
+export { LinkedInService } from './services/integrations/linkedin/services/linkedin.service';
+export { resolveLinkedInVisibility } from './services/integrations/linkedin/utils/linkedin-author.util';
 export { ManagedInferenceRuntimeService } from './services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 export type {
   CreateAdParams,

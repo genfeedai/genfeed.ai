@@ -18,6 +18,10 @@ import {
   downloadLinkedInMedia,
   type LinkedInMediaSource,
 } from '@api/services/integrations/linkedin/services/linkedin-media-download.util';
+import {
+  resolveLinkedInAuthorUrn,
+  resolveLinkedInVisibility,
+} from '@api/services/integrations/linkedin/utils/linkedin-author.util';
 import { getSafeLinkedInOAuthErrorLog } from '@api/services/integrations/linkedin/utils/linkedin-oauth-error.util';
 import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
 import {
@@ -26,10 +30,7 @@ import {
 } from '@api/services/integrations/publishers/publisher-verification.util';
 import { parseLinkedInVerificationPage } from '@api/services/integrations/publishers/publisher-verification-pages.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
-import {
-  type ChannelTargetSettings,
-  readChannelSettingString,
-} from '@genfeedai/contracts/api-types/contracts';
+import { type ChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts';
 import {
   buildGrantedScopesCredentialPatch,
   readOAuthTokenScopeField,
@@ -48,15 +49,19 @@ import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { AuthClient } from 'linkedin-api-client';
 import { firstValueFrom } from 'rxjs';
 import {
+  type LinkedInAccountCandidate,
+  LinkedInAccountsLookup,
+} from './linkedin-accounts.lookup';
+import {
   LinkedInAnalyticsService,
   type LinkedInMediaAnalytics,
 } from './linkedin-analytics.service';
-
-const LINKEDIN_PERSON_URN_PATTERN = /^urn:li:person:[A-Za-z0-9_-]+$/;
+import { LINKEDIN_CONNECT_SCOPES } from './linkedin-connect-scopes.constants';
 
 interface LinkedInCredential {
   id: string;
   accessToken?: string | null;
+  externalId?: string | null;
   refreshToken?: string | null;
   grantedScopes?: string[] | null;
 }
@@ -111,21 +116,6 @@ type LinkedInCommentsResponse = {
 
 const LINKEDIN_PROVIDER = getIntegrationProviderDefinition('linkedin');
 
-/**
- * LinkedIn's member-network visibility for this release.
- *
- * `PUBLIC` stays the fallback because it is what every share used before the
- * setting existed, so an unset value keeps the previous behaviour. The catalog
- * stays platform-neutral, so this is the only place the provider spelling is
- * decided.
- */
-export function resolveLinkedInVisibility(
-  settings: ChannelTargetSettings,
-): string {
-  const visibility = readChannelSettingString(settings, 'visibility');
-  return visibility === 'CONNECTIONS' ? 'CONNECTIONS' : 'PUBLIC';
-}
-
 @Traced()
 @Injectable()
 export class LinkedInService {
@@ -134,6 +124,7 @@ export class LinkedInService {
     LINKEDIN_PROVIDER?.endpoints.apiBaseUrl ?? 'https://api.linkedin.com/v2';
   private authClient: AuthClient;
   private readonly analyticsService: LinkedInAnalyticsService;
+  private readonly accountsLookup: LinkedInAccountsLookup;
   private readonly integrationHttpClient: IntegrationHttpClient;
 
   constructor(
@@ -154,6 +145,12 @@ export class LinkedInService {
       clientSecret: this.configService.get('LINKEDIN_CLIENT_SECRET') as string,
       redirectUrl: this.configService.get('LINKEDIN_REDIRECT_URI') as string,
     });
+    this.accountsLookup = new LinkedInAccountsLookup(
+      this.httpService,
+      this.loggerService,
+      (path) => this.getApiUrl(path),
+      (accessToken) => this.getUserProfile(accessToken),
+    );
     this.analyticsService = new LinkedInAnalyticsService(
       this.httpService,
       this.loggerService,
@@ -231,7 +228,7 @@ export class LinkedInService {
     }
 
     return this.authClient.generateMemberAuthorizationUrl(
-      ['openid', 'profile', 'email', 'w_member_social'],
+      [...LINKEDIN_CONNECT_SCOPES],
       state,
     );
   }
@@ -366,6 +363,13 @@ export class LinkedInService {
     }
   }
 
+  /** Every account this token can post as; see `LinkedInAccountsLookup`. */
+  public async listAuthorizedAccounts(
+    accessToken: string,
+  ): Promise<LinkedInAccountCandidate[]> {
+    return await this.accountsLookup.list(accessToken);
+  }
+
   /**
    * @param credentialId - which connected LinkedIn account this runs as. A brand
    *   may hold several; without an id this falls back to its oldest one.
@@ -397,14 +401,13 @@ export class LinkedInService {
         credential.accessToken,
       );
 
-      const userInfo = await this.getUserProfile(decryptedAccessToken);
-      const personURN = `urn:li:person:${userInfo.id}`;
+      const authorUrn = resolveLinkedInAuthorUrn(credential.externalId);
 
       // Steps 1 and 2: register the asset, then upload the bytes
       const assetId = await uploadLinkedInImageAsset(
         this.uploadContext(),
         decryptedAccessToken,
-        personURN,
+        authorUrn,
         imageUrl,
         mediaSource,
       );
@@ -414,7 +417,7 @@ export class LinkedInService {
         this.httpService.post(
           'https://api.linkedin.com/v2/ugcPosts',
           {
-            author: personURN,
+            author: authorUrn,
             lifecycleState: 'PUBLISHED',
             specificContent: {
               'com.linkedin.ugc.ShareContent': {
@@ -435,7 +438,7 @@ export class LinkedInService {
             },
             visibility: {
               'com.linkedin.ugc.MemberNetworkVisibility':
-                resolveLinkedInVisibility(settings),
+                resolveLinkedInVisibility(settings, authorUrn),
             },
           },
           {
@@ -483,14 +486,14 @@ export class LinkedInService {
         throw new Error('LinkedIn credential not found or invalid');
       }
       const accessToken = EncryptionUtil.decrypt(credential.accessToken);
-      const userInfo = await this.getUserProfile(accessToken);
+      const authorUrn = resolveLinkedInAuthorUrn(credential.externalId);
       const id = await createLinkedInMultiImagePost(this.uploadContext(), {
         accessToken,
-        authorUrn: `urn:li:person:${userInfo.id}`,
+        authorUrn,
         caption,
         imageUrls,
         mediaSource,
-        visibility: resolveLinkedInVisibility(settings),
+        visibility: resolveLinkedInVisibility(settings, authorUrn),
       });
       this.loggerService.log(`${url} success`, { id });
       return { id };
@@ -531,11 +534,7 @@ export class LinkedInService {
     )
       throw new Error('LinkedIn verification account unavailable or changed');
     const token = EncryptionUtil.decrypt(credential.accessToken);
-    const author = credential.externalId.startsWith('urn:li:person:')
-      ? credential.externalId
-      : `urn:li:person:${credential.externalId}`;
-    if (!LINKEDIN_PERSON_URN_PATTERN.test(author))
-      throw new Error('LinkedIn verification member identity unavailable');
+    const author = resolveLinkedInAuthorUrn(credential.externalId);
     const response = await firstValueFrom(
       this.httpService.get<unknown>(this.getApiUrl('ugcPosts'), {
         headers: {
@@ -584,12 +583,11 @@ export class LinkedInService {
         credential.accessToken,
       );
 
-      const userInfo = await this.getUserProfile(decryptedAccessToken);
-      const personURN = `urn:li:person:${userInfo.id}`;
+      const authorUrn = resolveLinkedInAuthorUrn(credential.externalId);
 
       const shareResponse = await this.integrationHttpClient.request<unknown>({
         body: {
-          author: personURN,
+          author: authorUrn,
           lifecycleState: 'PUBLISHED',
           specificContent: {
             'com.linkedin.ugc.ShareContent': {
@@ -601,7 +599,7 @@ export class LinkedInService {
           },
           visibility: {
             'com.linkedin.ugc.MemberNetworkVisibility':
-              resolveLinkedInVisibility(settings),
+              resolveLinkedInVisibility(settings, authorUrn),
           },
         },
         headers: {
@@ -652,8 +650,7 @@ export class LinkedInService {
         credential.accessToken,
       );
 
-      const userInfo = await this.getUserProfile(decryptedAccessToken);
-      const personURN = `urn:li:person:${userInfo.id}`;
+      const authorUrn = resolveLinkedInAuthorUrn(credential.externalId);
 
       // Step 1: Register video upload
       const registerResponse = await firstValueFrom(
@@ -661,7 +658,7 @@ export class LinkedInService {
           'https://api.linkedin.com/v2/assets?action=registerUpload',
           {
             registerUploadRequest: {
-              owner: personURN,
+              owner: authorUrn,
               recipes: ['urn:li:digitalmediaRecipe:feedshare-video'],
               serviceRelationships: [
                 {
@@ -708,7 +705,7 @@ export class LinkedInService {
         this.httpService.post(
           'https://api.linkedin.com/v2/ugcPosts',
           {
-            author: personURN,
+            author: authorUrn,
             lifecycleState: 'PUBLISHED',
             specificContent: {
               'com.linkedin.ugc.ShareContent': {
@@ -729,7 +726,7 @@ export class LinkedInService {
             },
             visibility: {
               'com.linkedin.ugc.MemberNetworkVisibility':
-                resolveLinkedInVisibility(settings),
+                resolveLinkedInVisibility(settings, authorUrn),
             },
           },
           {
@@ -923,8 +920,7 @@ export class LinkedInService {
         credential.accessToken,
       );
 
-      const userInfo = await this.getUserProfile(decryptedAccessToken);
-      const personURN = `urn:li:person:${userInfo.id}`;
+      const authorUrn = resolveLinkedInAuthorUrn(credential.externalId);
 
       // A comment attachment references an uploaded asset, the same way a
       // feed share does. Comments take one image; LinkedIn has no video
@@ -933,7 +929,7 @@ export class LinkedInService {
         ? await uploadLinkedInImageAsset(
             this.uploadContext(),
             decryptedAccessToken,
-            personURN,
+            authorUrn,
             options.imageUrl,
             mediaSource,
           )
@@ -944,7 +940,7 @@ export class LinkedInService {
         this.httpService.post(
           `https://api.linkedin.com/v2/socialActions/${encodeURIComponent(postUrn)}/comments`,
           {
-            actor: personURN,
+            actor: authorUrn,
             message: {
               text,
             },
