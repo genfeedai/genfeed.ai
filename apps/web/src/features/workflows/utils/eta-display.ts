@@ -1,4 +1,7 @@
-import { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import {
+  isTerminalWorkflowExecutionStatus,
+  type WorkflowExecutionStatus,
+} from '@genfeedai/contracts';
 import {
   formatEtaDuration,
   formatEtaRange,
@@ -27,26 +30,15 @@ function getElapsedMs(startedAt?: string): number | null {
   return Math.max(0, Date.now() - startedAtMs);
 }
 
-/**
- * A settled execution has no ETA left to show — `workflow_executions.status` is
- * Prisma-backed, so these are the SCREAMING_SNAKE wire values. `CANCELLED` is
- * settled too: the run stopped, so any remaining estimate is meaningless.
- *
- * @see .agents/memory/rules/enum_source_of_truth.md
- */
-const SETTLED_STATUSES: ReadonlySet<WorkflowExecutionStatus> = new Set([
-  WorkflowExecutionStatus.CANCELLED,
-  WorkflowExecutionStatus.COMPLETED,
-  WorkflowExecutionStatus.FAILED,
-]);
-
 export function getExecutionEtaDisplayState(params: {
   eta?: ExecutionEtaMetadata;
   status: WorkflowExecutionStatus;
   durationMs?: number;
 }): ExecutionEtaDisplayState {
   const { eta, status, durationMs } = params;
-  const isSettled = SETTLED_STATUSES.has(status);
+  // A settled execution has no ETA left to show: the run stopped, so any
+  // remaining estimate is meaningless.
+  const isSettled = isTerminalWorkflowExecutionStatus(status);
   const actualDurationMs = eta?.actualDurationMs ?? durationMs;
   const etaVisible = shouldDisplayEta(eta);
   const estimatedDurationMs = eta?.estimatedDurationMs;

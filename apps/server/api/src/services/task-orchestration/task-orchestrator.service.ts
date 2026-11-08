@@ -8,7 +8,10 @@ import {
   buildRollupReviewOutcome,
 } from '@api/services/task-orchestration/task-rollup-outcome.util';
 import { WorkspaceTaskQualityService } from '@api/services/task-orchestration/workspace-task-quality.service';
-import { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import {
+  isTerminalWorkflowExecutionStatus,
+  WorkflowExecutionStatus,
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
@@ -316,11 +319,7 @@ export class TaskOrchestratorService {
   }
 
   private isTerminalStatus(status: WorkflowExecutionStatus): boolean {
-    return (
-      status === WorkflowExecutionStatus.COMPLETED ||
-      status === WorkflowExecutionStatus.FAILED ||
-      status === WorkflowExecutionStatus.CANCELLED
-    );
+    return isTerminalWorkflowExecutionStatus(status);
   }
 
   private async areAllExecutionsFinished(
@@ -415,16 +414,13 @@ export class TaskOrchestratorService {
           this.readString(workflow?.label) ??
           this.readString(execution.metadata?.label) ??
           'Workflow execution',
-        progress:
-          executionStatus === WorkflowExecutionStatus.COMPLETED ||
-          executionStatus === WorkflowExecutionStatus.FAILED ||
-          executionStatus === WorkflowExecutionStatus.CANCELLED
-            ? 100
-            : executionStatus === WorkflowExecutionStatus.PENDING
-              ? 5
-              : typeof execution.progress === 'number'
-                ? Math.min(99, Math.max(1, execution.progress))
-                : 50,
+        progress: isTerminalWorkflowExecutionStatus(executionStatus)
+          ? 100
+          : executionStatus === WorkflowExecutionStatus.PENDING
+            ? 5
+            : typeof execution.progress === 'number'
+              ? Math.min(99, Math.max(1, execution.progress))
+              : 50,
         status: executionStatus,
         summary: this.readString(execution.metadata?.summary),
       });

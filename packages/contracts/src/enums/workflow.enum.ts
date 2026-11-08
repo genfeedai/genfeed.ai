@@ -42,6 +42,24 @@ export enum WorkflowExecutionStatus {
   CANCELLED = 'CANCELLED',
 }
 
+/**
+ * Statuses that end an execution's run. This only classifies statuses for
+ * polling, ETA display and orchestration; it does not enforce transitions
+ * (see #9734). Accounting still checks its own status list.
+ */
+export const WORKFLOW_EXECUTION_TERMINAL_STATUSES: ReadonlySet<WorkflowExecutionStatus> =
+  new Set([
+    WorkflowExecutionStatus.COMPLETED,
+    WorkflowExecutionStatus.FAILED,
+    WorkflowExecutionStatus.CANCELLED,
+  ]);
+
+export function isTerminalWorkflowExecutionStatus(
+  status: WorkflowExecutionStatus,
+): boolean {
+  return WORKFLOW_EXECUTION_TERMINAL_STATUSES.has(status);
+}
+
 export enum WorkflowExecutionTrigger {
   MANUAL = 'manual',
   SCHEDULED = 'scheduled',
