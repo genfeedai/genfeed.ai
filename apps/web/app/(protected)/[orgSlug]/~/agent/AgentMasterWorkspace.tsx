@@ -59,6 +59,7 @@ export default function AgentMasterWorkspace({
   const { hasFailed, isLoading, masterThreadId } = useMasterThread(
     agentApiService,
     isLoaded,
+    orgSlug,
   );
   const resolution = useThreadResolution(agentApiService, isLoaded);
   const { prefetchThread } = useAgentThreadPrefetch({

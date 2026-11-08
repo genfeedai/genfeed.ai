@@ -49,6 +49,20 @@ describe('PromptBarSuggestions', () => {
     expect(handleSelect).toHaveBeenCalledWith(suggestions[1]);
   });
 
+  it('sets chips on the prompt bar plane with no shadow', () => {
+    render(
+      <PromptBarSuggestions
+        suggestions={suggestions}
+        onSuggestionSelect={vi.fn()}
+      />,
+    );
+
+    const chip = screen.getByRole('button', { name: 'Create a plan' });
+    expect(chip).toHaveClass('bg-accent', 'border', 'border-border');
+    expect(chip).not.toHaveClass('bg-background');
+    expect(chip.className).not.toMatch(/(^|\s)shadow/);
+  });
+
   it('supports keyboard focus because suggestions are rendered as buttons', () => {
     render(
       <PromptBarSuggestions

@@ -1,5 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { isAgentFullView } from '@/lib/navigation/operator-shell';
+import { resolveAgentConversationRoute } from '@/lib/navigation/operator-shell';
 
 /**
  * Routes whose page renders `AgentOutputShell`: the agent on the left, the
@@ -33,16 +33,15 @@ const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   new RegExp(`^${APP_ROUTES.STUDIO.EDITOR}(?:/[^/]+)?/?$`),
 ];
 
-const AGENT_ROUTE_PATTERN = new RegExp(`^${APP_ROUTES.AGENT.ROOT}(?:/|$)`);
-
 export function isAgentOutputRoute(
   normalizedPathname: string,
   searchParams?: Pick<URLSearchParams, 'get'> | null,
 ): boolean {
-  // A thread opened full size has no output pane beside it.
+  // A thread opened full size has no output pane beside it. The master routes
+  // (`/agent`, `/agent/threads`) keep theirs whatever the query says.
   if (
-    AGENT_ROUTE_PATTERN.test(normalizedPathname) &&
-    isAgentFullView(searchParams)
+    resolveAgentConversationRoute(normalizedPathname, searchParams)?.layout ===
+    'single'
   ) {
     return false;
   }

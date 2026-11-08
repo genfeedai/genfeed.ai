@@ -38,6 +38,15 @@ describe('isAgentOutputRoute', () => {
     ).toBe(true);
   });
 
+  it.each(['/agent', '/agent/threads'])(
+    'keeps the split layout on master route %s even with view=full',
+    (path) => {
+      expect(isAgentOutputRoute(path, new URLSearchParams('view=full'))).toBe(
+        true,
+      );
+    },
+  );
+
   it('matches the workflow editor, new or saved', () => {
     expect(isAgentOutputRoute('/automation/workflows/new')).toBe(true);
     expect(isAgentOutputRoute('/automation/workflows/wf-1')).toBe(true);
