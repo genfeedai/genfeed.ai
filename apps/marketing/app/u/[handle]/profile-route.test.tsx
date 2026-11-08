@@ -75,10 +75,12 @@ describe('getPublicBrandBySlug', () => {
     });
   });
 
-  it('swallows a service failure and returns null', async () => {
+  it('throws on a service failure instead of returning null', async () => {
     findPublicProfileBySlug.mockRejectedValue(new Error('offline'));
 
-    await expect(getPublicBrandBySlug('loader-fail')).resolves.toBeNull();
+    await expect(getPublicBrandBySlug('loader-fail')).rejects.toThrow(
+      'offline',
+    );
   });
 });
 

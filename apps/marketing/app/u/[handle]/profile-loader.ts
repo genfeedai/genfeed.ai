@@ -18,14 +18,12 @@ export interface PublicProfilePageData {
   videos: Video[];
 }
 
+// Null means the API answered that no public brand has this handle, and the
+// page turns it into a 404. A failed request throws instead, so an outage is a
+// server error and never a cached 404 for a profile that exists.
 export const getPublicBrandBySlug = cache(
-  async (slug: string): Promise<Brand | null> => {
-    try {
-      return await PublicService.getInstance().findPublicProfileBySlug(slug);
-    } catch {
-      return null;
-    }
-  },
+  (slug: string): Promise<Brand | null> =>
+    PublicService.getInstance().findPublicProfileBySlug(slug),
 );
 
 async function getPublicReferralCode(brandId: string): Promise<string | null> {
