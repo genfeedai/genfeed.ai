@@ -508,6 +508,7 @@ describe('McpApprovalsService', () => {
           data: {
             status: decision === 'approve' ? 'APPROVED' : 'DECLINED',
             resolvedAt: expect.any(Date),
+            resolvedOrigin: ActionOrigin.UNKNOWN,
             result: { ok: true },
           },
         });
