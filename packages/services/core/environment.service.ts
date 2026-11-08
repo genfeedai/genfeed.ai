@@ -120,7 +120,7 @@ export const EnvironmentService = {
 
   calendly:
     process.env.NEXT_PUBLIC_CALENDLY_URL ||
-    'https://calendly.com/vincent-genfeed/30min',
+    'https://calendar.app.google/S2Crg8uCe1dVnWRN6',
 
   get mcpConnectHref(): string {
     return `${this.apps.app}/connect`;
