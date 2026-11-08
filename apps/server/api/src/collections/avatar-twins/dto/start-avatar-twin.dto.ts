@@ -1,11 +1,5 @@
 import { Transform } from 'class-transformer';
-import {
-  IsOptional,
-  IsString,
-  Matches,
-  MaxLength,
-  MinLength,
-} from 'class-validator';
+import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_-]{8,128}$/;
 
@@ -21,11 +15,6 @@ export class StartAvatarTwinDto {
   @IsString()
   @MaxLength(64)
   sourceIngredientId!: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(64)
-  brandId?: string;
 
   /** Repeating a request with the same key returns the same enrollment. */
   @IsString()

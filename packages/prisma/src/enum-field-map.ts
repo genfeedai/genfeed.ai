@@ -1004,8 +1004,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   AvatarTwin: {
     allFields: [
-      'brand',
-      'brandId',
       'consentLinkExpiresAt',
       'createdAt',
       'failureCode',
@@ -1036,7 +1034,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       status: { enumType: 'AvatarTwinStatus', isRequired: true },
     },
     relationIdFields: {
-      brand: 'brandId',
       organization: 'organizationId',
       user: 'userId',
     },
@@ -1356,7 +1353,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'apiKeyDefaults',
       'articleAnalytics',
       'articles',
-      'avatarTwins',
       'bookmarks',
       'botActivities',
       'bots',

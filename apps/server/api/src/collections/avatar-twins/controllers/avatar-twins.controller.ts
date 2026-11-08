@@ -7,6 +7,7 @@ import {
 } from '@api/collections/avatar-twins/services/avatar-twins.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -15,6 +16,7 @@ import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorato
 import type { IAvatarTwinConsentLink } from '@genfeedai/contracts/interfaces';
 import { AvatarTwinSerializer } from '@genfeedai/serializers';
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -36,7 +38,7 @@ export class AvatarTwinsController {
   @Get()
   @RateLimit({ limit: 60, scope: 'user', windowMs: 60_000 })
   async list(@Req() request: Request, @CurrentUser() user: User) {
-    const docs = await this.avatarTwinsService.list(actor(user));
+    const docs = await this.avatarTwinsService.list(actor(user, request));
     return serializeCollection(request, AvatarTwinSerializer, { docs });
   }
 
@@ -47,7 +49,10 @@ export class AvatarTwinsController {
     @CurrentUser() user: User,
     @Body() body: StartAvatarTwinDto,
   ) {
-    const twin = await this.avatarTwinsService.start(actor(user), body);
+    const twin = await this.avatarTwinsService.start(
+      actor(user, request),
+      body,
+    );
     return serializeSingle(request, AvatarTwinSerializer, twin);
   }
 
@@ -59,19 +64,23 @@ export class AvatarTwinsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const twin = await this.avatarTwinsService.refresh(actor(user), id);
+    const twin = await this.avatarTwinsService.refresh(
+      actor(user, request),
+      id,
+    );
     return serializeSingle(request, AvatarTwinSerializer, twin);
   }
 
   @Post(':id/consent-link')
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   async consentLink(
+    @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() body: AvatarTwinConsentDto,
   ): Promise<{ data: IAvatarTwinConsentLink }> {
     const link = await this.avatarTwinsService.requestConsentLink(
-      actor(user),
+      actor(user, request),
       id,
       body.returnPath,
     );
@@ -90,11 +99,26 @@ export class AvatarTwinsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const twin = await this.avatarTwinsService.remove(actor(user), id);
+    const twin = await this.avatarTwinsService.remove(actor(user, request), id);
     return serializeSingle(request, AvatarTwinSerializer, twin);
   }
 }
 
-function actor(user: User): AvatarTwinActor {
-  return { organizationId: user.organizationId, userId: user.userId };
+/**
+ * The person and the organization the request runs in: the session one, or a
+ * verified superadmin's `?organizationId=` override, which the tenant context
+ * is pinned to as well.
+ */
+function actor(user: User, request: Request): AvatarTwinActor {
+  const override = request.query.organizationId;
+  const { organizationId } = CollectionFilterUtil.resolveListOrganizationId(
+    { organizationId: typeof override === 'string' ? override : undefined },
+    user,
+    request,
+  );
+  if (!organizationId)
+    throw new BadRequestException(
+      'An organization is required for this request',
+    );
+  return { organizationId, userId: user.userId };
 }

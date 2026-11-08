@@ -118,7 +118,6 @@ describe('Avatar twin enrollment (real Postgres)', () => {
   let service: AvatarTwinsService;
 
   const startInput = (key: string) => ({
-    brandId: 'alpha-brand',
     idempotencyKey: key,
     name: 'My Digital Twin',
     sourceIngredientId: 'take-1',
@@ -168,15 +167,6 @@ describe('Avatar twin enrollment (real Postgres)', () => {
         { id: 'bravo', label: 'Bravo', slug: 'bravo', userId: 'bob' },
       ],
     });
-    await prisma.brand.create({
-      data: {
-        id: 'alpha-brand',
-        label: 'Alpha Brand',
-        organizationId: 'alpha',
-        slug: 'alpha-brand',
-        userId: 'alice',
-      },
-    });
     const metadata = await prisma.metadata.create({
       data: { extension: 'WEBM', label: 'take', size: 5_000_000 },
     });
@@ -220,7 +210,6 @@ describe('Avatar twin enrollment (real Postgres)', () => {
 
     expect(second.id).toBe(first.id);
     expect(first).toMatchObject({
-      brandId: 'alpha-brand',
       providerAssetIds: ['asset_1'],
       providerGroupId: 'grp_1',
       providerLookId: 'look_1',
@@ -274,7 +263,7 @@ describe('Avatar twin enrollment (real Postgres)', () => {
 
   it('refuses a recording from another organization', async () => {
     await expect(
-      service.start(bob, { ...startInput('key-00000004'), brandId: undefined }),
+      service.start(bob, startInput('key-00000004')),
     ).rejects.toThrow("Recording with identifier 'take-1' not found");
   });
 

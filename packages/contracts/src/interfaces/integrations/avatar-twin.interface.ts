@@ -9,7 +9,6 @@ export interface IAvatarTwin {
   id: string;
   name: string;
   status: AvatarTwinStatus;
-  brandId: string | null;
   providerGroupId: string | null;
   providerLookId: string | null;
   supportedEngines: string[];

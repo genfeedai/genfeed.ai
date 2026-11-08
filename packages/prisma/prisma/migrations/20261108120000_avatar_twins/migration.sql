@@ -10,7 +10,6 @@ CREATE TABLE "avatar_twins" (
     "id" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
-    "brandId" TEXT,
     "provider" TEXT NOT NULL DEFAULT 'heygen',
     "name" TEXT NOT NULL,
     "status" "AvatarTwinStatus" NOT NULL DEFAULT 'UPLOADING',
@@ -53,7 +52,4 @@ ALTER TABLE "avatar_twins" ADD CONSTRAINT "avatar_twins_organizationId_fkey" FOR
 
 -- AddForeignKey
 ALTER TABLE "avatar_twins" ADD CONSTRAINT "avatar_twins_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "avatar_twins" ADD CONSTRAINT "avatar_twins_brandId_organizationId_fkey" FOREIGN KEY ("brandId", "organizationId") REFERENCES "brands"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE;
 

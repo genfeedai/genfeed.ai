@@ -1176,7 +1176,6 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   agentThreads               AgentThread[]
   outboundAgentTransfers     AgentTransfer[]            @relation("agent_transfer_source_brand")
   inboundAgentTransfers      AgentTransfer[]            @relation("agent_transfer_destination_brand")
-  avatarTwins                AvatarTwin[]               @relation("avatar_twin_brand")
   socialConversations        SocialConversation[]
   socialMessages             SocialMessage[]
   agentStrategyOpportunities AgentStrategyOpportunity[]
@@ -4910,8 +4909,6 @@ model AvatarTwin {
   organization         Organization     @relation(fields: [organizationId], references: [id])
   userId               String
   user                 User             @relation(fields: [userId], references: [id])
-  brandId              String?
-  brand                Brand?           @relation("avatar_twin_brand", fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   provider             String           @default("heygen")
   name                 String
   status               AvatarTwinStatus @default(UPLOADING)

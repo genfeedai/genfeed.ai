@@ -90,13 +90,11 @@ export class AvatarTwinsService {
     if (existing) return existing;
 
     const footage = await this.readFootage(actor, dto.sourceIngredientId);
-    if (dto.brandId) await this.assertBrand(actor, dto.brandId);
 
     let twin: AvatarTwin;
     try {
       twin = await this.prisma.avatarTwin.create({
         data: {
-          brandId: dto.brandId ?? null,
           idempotencyKey: dto.idempotencyKey,
           name: dto.name,
           organizationId: actor.organizationId,
@@ -311,18 +309,6 @@ export class AvatarTwinsService {
       sizeBytes,
       url,
     };
-  }
-
-  private async assertBrand(actor: AvatarTwinActor, brandId: string) {
-    const brand = await this.prisma.brand.findFirst({
-      select: { id: true },
-      where: {
-        id: brandId,
-        isDeleted: false,
-        organizationId: actor.organizationId,
-      },
-    });
-    if (!brand) throw new NotFoundException('Brand', brandId);
   }
 
   /** Only a path inside our own app; never an arbitrary host. */
