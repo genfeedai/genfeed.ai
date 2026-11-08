@@ -23,6 +23,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { VoiceSampleError } from '@/features/voice-studio/hooks/use-voice-studio';
 import type {
+  VoiceStudioCreated,
   VoiceStudioProvider,
   VoiceStudioRecorderProps,
 } from '@/features/voice-studio/props/voice-studio.props';
@@ -55,21 +56,37 @@ export default function VoiceStudioRecorder({
   const {
     clearRecordedFile,
     error: recordingError,
+    isFinalizing,
     isRecording,
     isSupported,
     recordedFile,
     startRecording,
     stopRecording,
   } = useAudioRecording({ hasVoiceProcessing: false });
-  const [provider, setProvider] = useState<VoiceStudioProvider>(
+  const [chosenProvider, setProvider] = useState<VoiceStudioProvider>(
     connectedProviders[0] ?? VoiceProvider.HEYGEN,
   );
+  // An account that disconnects while the page is open is never used.
+  const provider = connectedProviders.includes(chosenProvider)
+    ? chosenProvider
+    : (connectedProviders[0] ?? VoiceProvider.HEYGEN);
   const [name, setName] = useState(VOICE_SAMPLE_DEFAULT_NAME);
   const [isBrandDefault, setIsBrandDefault] = useState(true);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [createdName, setCreatedName] = useState<string | null>(null);
-  const playbackRef = useRef<HTMLAudioElement | null>(null);
+  const [created, setCreated] = useState<VoiceStudioCreated | null>(null);
+  const playbackRef = useRef<{ audio: HTMLAudioElement; url: string } | null>(
+    null,
+  );
+
+  /** Stops the listen-back and frees its copy of the recording. */
+  const stopPlayback = () => {
+    const playback = playbackRef.current;
+    if (!playback) return;
+    playbackRef.current = null;
+    playback.audio.pause();
+    URL.revokeObjectURL(playback.url);
+  };
 
   useEffect(() => {
     if (!isRecording) return;
@@ -88,7 +105,11 @@ export default function VoiceStudioRecorder({
 
   useEffect(
     () => () => {
-      playbackRef.current?.pause();
+      const playback = playbackRef.current;
+      playbackRef.current = null;
+      if (!playback) return;
+      playback.audio.pause();
+      URL.revokeObjectURL(playback.url);
     },
     [],
   );
@@ -98,16 +119,19 @@ export default function VoiceStudioRecorder({
 
   const handlePlayback = () => {
     if (!recordedFile) return;
-    playbackRef.current?.pause();
+    stopPlayback();
     const url = URL.createObjectURL(recordedFile);
     const audio = new Audio(url);
-    audio.onended = () => URL.revokeObjectURL(url);
-    playbackRef.current = audio;
+    const playback = { audio, url };
+    audio.onended = () => {
+      if (playbackRef.current === playback) stopPlayback();
+    };
+    playbackRef.current = playback;
     void audio.play();
   };
 
   const handleRetake = () => {
-    playbackRef.current?.pause();
+    stopPlayback();
     clearRecordedFile();
     setElapsedSeconds(0);
     setSubmitError(null);
@@ -117,13 +141,14 @@ export default function VoiceStudioRecorder({
     if (!recordedFile) return;
     setSubmitError(null);
     try {
-      const voice = await onCreate({
-        isBrandDefault: hasBrand && isBrandDefault,
-        name: name.trim() || VOICE_SAMPLE_DEFAULT_NAME,
-        provider,
-        recording: recordedFile,
-      });
-      setCreatedName(voice.metadataLabel ?? name);
+      setCreated(
+        await onCreate({
+          isBrandDefault: hasBrand && isBrandDefault,
+          name: name.trim() || VOICE_SAMPLE_DEFAULT_NAME,
+          provider,
+          recording: recordedFile,
+        }),
+      );
     } catch (error: unknown) {
       if (error instanceof VoiceSampleError) {
         setSubmitError(
@@ -138,17 +163,30 @@ export default function VoiceStudioRecorder({
     }
   };
 
-  if (createdName)
+  if (created) {
+    const doneValues = {
+      name: created.voice.metadataLabel ?? name,
+      provider: PROVIDER_LABELS[created.provider],
+    };
     return (
       <div className="flex flex-col gap-4">
         <Alert variant="success">
           <AlertDescription>
             {translate(
-              hasBrand && isBrandDefault ? 'done.brandDefault' : 'done.saved',
-              { name: createdName, provider: PROVIDER_LABELS[provider] },
+              created.brandDefault === 'set'
+                ? 'done.brandDefault'
+                : 'done.saved',
+              doneValues,
             )}
           </AlertDescription>
         </Alert>
+        {created.brandDefault === 'failed' ? (
+          <Alert variant="warning">
+            <AlertDescription>
+              {translate('done.brandDefaultFailed')}
+            </AlertDescription>
+          </Alert>
+        ) : null}
         <div className="flex flex-wrap gap-2">
           <Button asChild withWrapper={false}>
             <Link href={voicesHref}>{translate('done.voices')}</Link>
@@ -156,7 +194,7 @@ export default function VoiceStudioRecorder({
           <Button
             label={translate('done.again')}
             onClick={() => {
-              setCreatedName(null);
+              setCreated(null);
               handleRetake();
             }}
             variant={ButtonVariant.SECONDARY}
@@ -164,6 +202,7 @@ export default function VoiceStudioRecorder({
         </div>
       </div>
     );
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
@@ -304,7 +343,7 @@ export default function VoiceStudioRecorder({
             ) : (
               <Button
                 icon={<Circle />}
-                isDisabled={!isSupported}
+                isDisabled={!isSupported || isFinalizing}
                 label={translate('record.start')}
                 onClick={() => {
                   setSubmitError(null);

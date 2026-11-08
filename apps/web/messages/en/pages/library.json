@@ -550,6 +550,11 @@
       "action": "Open Integrations",
       "recheck": "I connected it"
     },
+    "checkFailed": {
+      "title": "We couldn't check your connected accounts",
+      "body": "Your HeyGen and ElevenLabs connections could not be read just now. Try again in a moment.",
+      "retry": "Try again"
+    },
     "provider": {
       "label": "Clone it with",
       "account": "The voice is created in your own {provider} account."
@@ -582,6 +587,7 @@
     "done": {
       "brandDefault": "{name} is ready in your {provider} account and is now this brand's voice.",
       "saved": "{name} is ready in your {provider} account.",
+      "brandDefaultFailed": "We couldn't make it this brand's voice. Pick it as the default voice from Voices.",
       "voices": "Back to Voices",
       "again": "Record another"
     },

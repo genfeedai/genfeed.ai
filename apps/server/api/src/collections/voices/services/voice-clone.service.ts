@@ -340,21 +340,56 @@ export class VoiceCloneService {
     }
     this.voiceCreditsService.waivePersonalCloneCredits(request);
 
+    // From here on the voice exists in the person's HeyGen account: any
+    // failure before it is saved here removes it again, so a retry never
+    // leaves an untracked clone behind under a name they cannot see.
+    let ingredientId: string;
+    try {
+      ingredientId = await this.saveHeyGenVoice(user, dto, created);
+    } catch (error: unknown) {
+      await this.heyGenTwinService
+        .deleteVoice(user.organizationId, created.voiceId)
+        .catch((cleanupError: unknown) => {
+          this.loggerService.error(
+            `${this.constructorName} could not remove an unfinished HeyGen voice`,
+            cleanupError,
+          );
+        });
+      throw error;
+    }
+
+    const completedVoice = await this.findRequiredVoice(
+      ingredientId,
+      'Voice not found after cloning',
+    );
+    // The voice is saved; a missed live update must not report it as failed.
+    try {
+      await this.notificationsPublisherService.publishAssetStatus(
+        ingredientId,
+        VoiceCloneStatus.READY,
+        user.userId ?? user.id,
+        { cloneStatus: VoiceCloneStatus.READY, provider: VoiceProvider.HEYGEN },
+      );
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} could not publish the cloned voice status`,
+        error,
+      );
+    }
+    return completedVoice;
+  }
+
+  /** Waits for HeyGen to finish the clone, then saves it as a voice here. */
+  private async saveHeyGenVoice(
+    user: User,
+    dto: CloneVoiceDto,
+    created: Awaited<ReturnType<HeyGenTwinService['cloneVoice']>>,
+  ): Promise<string> {
     const voice = await this.waitForHeyGenVoice(
       user.organizationId,
       created.voiceId,
     );
     if (voice.status !== 'active') {
-      // A failed or stuck clone is removed so it does not linger in the
-      // person's HeyGen account under a name they cannot see here.
-      await this.heyGenTwinService
-        .deleteVoice(user.organizationId, created.voiceId)
-        .catch((error: unknown) => {
-          this.loggerService.error(
-            `${this.constructorName} could not remove an unfinished HeyGen voice`,
-            error,
-          );
-        });
       throw new HttpException(
         {
           detail:
@@ -392,22 +427,12 @@ export class VoiceCloneService {
         providerData: {
           heygen: { connection: created.connection, version: 1 },
         },
+        sampleAudioUrl: voice.previewAudioUrl,
         voiceProvider: VoiceProvider.HEYGEN,
         voiceSource: 'cloned',
       },
     );
-
-    const completedVoice = await this.findRequiredVoice(
-      ingredientId,
-      'Voice not found after cloning',
-    );
-    await this.notificationsPublisherService.publishAssetStatus(
-      ingredientId,
-      VoiceCloneStatus.READY,
-      user.userId ?? user.id,
-      { cloneStatus: VoiceCloneStatus.READY, provider: VoiceProvider.HEYGEN },
-    );
-    return completedVoice;
+    return ingredientId;
   }
 
   private async waitForHeyGenVoice(

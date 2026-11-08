@@ -254,6 +254,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/agent/:id': 'Conversation',
   '/:orgSlug/~/agent/threads': 'Threads',
   '/:orgSlug/~/agent/new': 'New Conversation',
+  '/:orgSlug/~/library/voices/record': 'Record your voice',
   '/:orgSlug/~/library/:type': ':type',
   '/:orgSlug/~/library/shelf/:shelf': ':shelf',
   '/:orgSlug/~/connect/social': 'Social account',
@@ -724,6 +725,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/~/library',
+      '/:orgSlug/~/library/voices/record',
       '/:orgSlug/~/library/:type',
       '/:orgSlug/~/library/shelf/:shelf',
     ],

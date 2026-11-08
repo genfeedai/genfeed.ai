@@ -64,6 +64,10 @@ class FakeHeyGenVoices {
       this.voices.set(voiceId, {
         ...voice,
         failureReason: this.failureReason,
+        previewAudioUrl:
+          this.outcome === 'active'
+            ? `https://resource.heygen.ai/voices/${voiceId}.mp3`
+            : null,
         status: this.outcome,
       });
     return this.voices.get(voiceId) as HeyGenClonedVoice;
@@ -376,11 +380,44 @@ describe('VoiceCloneService', () => {
         providerData: {
           heygen: { connection: { kind: 'byok', provider: 'heygen' } },
         },
+        sampleAudioUrl: 'https://resource.heygen.ai/voices/hg-voice-1.mp3',
         voiceProvider: VoiceProvider.HEYGEN,
       });
       expect(request).toMatchObject({
         creditsConfig: { amount: 0, deferred: false },
       });
+      expect([...heyGen.voices.keys()]).toEqual(['hg-voice-1']);
+    });
+
+    it('removes the HeyGen voice when it cannot be saved here', async () => {
+      voices.patchAll.mockRejectedValue(new Error('database unavailable'));
+
+      await expect(
+        service.clone(
+          user,
+          { name: 'Voice', provider: VoiceProvider.HEYGEN },
+          wav,
+          request,
+        ),
+      ).rejects.toMatchObject({
+        response: { detail: 'database unavailable' },
+      });
+      expect(heyGen.voices.size).toBe(0);
+    });
+
+    it('returns the saved voice when the live status update fails', async () => {
+      notifications.publishAssetStatus.mockRejectedValue(
+        new Error('socket down'),
+      );
+
+      const voice = await service.clone(
+        user,
+        { name: 'Voice', provider: VoiceProvider.HEYGEN },
+        wav,
+        request,
+      );
+
+      expect(voice).toMatchObject({ id: ingredientId });
       expect([...heyGen.voices.keys()]).toEqual(['hg-voice-1']);
     });
 

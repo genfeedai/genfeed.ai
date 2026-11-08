@@ -162,9 +162,11 @@ export function useAvatarTwinEnrollment(): AvatarTwinEnrollment {
     async (twinId: string): Promise<void> => {
       const twins = await getTwinsService();
       await twins.remove(twinId);
-      await refreshTwin();
+      // Deleting a twin clears brand defaults that used it: reload them so
+      // Studio stops offering the deleted look.
+      await Promise.all([refreshTwin(), refreshBrands()]);
     },
-    [getTwinsService, refreshTwin],
+    [getTwinsService, refreshBrands, refreshTwin],
   );
 
   const brandConfig =

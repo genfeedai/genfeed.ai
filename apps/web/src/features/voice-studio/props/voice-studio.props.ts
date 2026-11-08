@@ -18,10 +18,20 @@ export interface VoiceStudioCreateInput {
   recording: File;
 }
 
+/** The voice made from one take, with what was asked for it. */
+export interface VoiceStudioCreated {
+  /** `failed`: the voice exists, but the brand default was not saved. */
+  brandDefault: 'set' | 'failed' | 'skipped';
+  provider: VoiceStudioProvider;
+  voice: Voice;
+}
+
 export interface VoiceStudio {
   connectedProviders: VoiceStudioProvider[];
-  create: (input: VoiceStudioCreateInput) => Promise<Voice>;
+  create: (input: VoiceStudioCreateInput) => Promise<VoiceStudioCreated>;
   hasBrand: boolean;
+  /** No account could be confirmed because the check itself failed. */
+  hasConnectionError: boolean;
   isLoading: boolean;
   phase: VoiceStudioPhase | null;
   recheckConnections: () => void;
@@ -30,7 +40,7 @@ export interface VoiceStudio {
 export interface VoiceStudioRecorderProps {
   connectedProviders: VoiceStudioProvider[];
   hasBrand: boolean;
-  onCreate: (input: VoiceStudioCreateInput) => Promise<Voice>;
+  onCreate: (input: VoiceStudioCreateInput) => Promise<VoiceStudioCreated>;
   phase: VoiceStudioPhase | null;
   voicesHref: string;
 }

@@ -1,7 +1,9 @@
 import 'reflect-metadata';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { resolve } from 'node:path';
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { AvatarTwinsService } from '@api/collections/avatar-twins/services/avatar-twins.service';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { RecordActivityInput } from '@api/services/activity-recording/activity-recording.types';
@@ -139,7 +141,17 @@ describe('Avatar twin enrollment (real Postgres)', () => {
     sourceIngredientId: 'take-1',
   });
 
+  // Stored files go to a scratch folder, so deleting the take is observable.
+  const storageRoot = mkdtempSync(join(tmpdir(), 'twin-storage-'));
+  const storedFile = (key: string) => join(storageRoot, key);
+  const store = (key: string) => {
+    mkdirSync(dirname(storedFile(key)), { recursive: true });
+    writeFileSync(storedFile(key), 'take');
+  };
+
   beforeAll(async () => {
+    process.env.GENFEED_CLOUD = 'false';
+    process.env.GENFEED_STORAGE_PATH = storageRoot;
     const connectionString = assertIsolatedDatabaseUrl();
     sql = new Client({ connectionString });
     await sql.connect();
@@ -332,16 +344,37 @@ describe('Avatar twin enrollment (real Postgres)', () => {
     expect((await service.get(alice, twin.id)).id).toBe(twin.id);
   });
   it('deletes the stored recording once HeyGen has it, unless kept', async () => {
+    store('ingredients/videos/take-1.webm');
+    store('delivery/take-1-720.mp4');
+    await prisma.mediaDeliveryVariant.create({
+      data: {
+        ingredientId: 'take-1',
+        organizationId: 'alpha',
+        policyVersion: 1,
+        purpose: 'playback',
+        sourceIdentity: 'take-1',
+        sourceKey: 'ingredients/videos/take-1.webm',
+        sourceVersion: 1,
+        storageKey: 'delivery/take-1-720.mp4',
+      },
+    });
+
     await service.start(alice, startInput('key-00000009'));
+
     expect(
       (await prisma.ingredient.findUniqueOrThrow({ where: { id: 'take-1' } }))
         .isDeleted,
     ).toBe(true);
+    expect(existsSync(storedFile('ingredients/videos/take-1.webm'))).toBe(
+      false,
+    );
+    expect(existsSync(storedFile('delivery/take-1-720.mp4'))).toBe(false);
 
     await prisma.ingredient.update({
       data: { isDeleted: false },
       where: { id: 'take-1' },
     });
+    store('ingredients/videos/take-1.webm');
     await service.start(alice, {
       ...startInput('key-00000010'),
       isRecordingKept: true,
@@ -350,6 +383,7 @@ describe('Avatar twin enrollment (real Postgres)', () => {
       (await prisma.ingredient.findUniqueOrThrow({ where: { id: 'take-1' } }))
         .isDeleted,
     ).toBe(false);
+    expect(existsSync(storedFile('ingredients/videos/take-1.webm'))).toBe(true);
   });
 
   it('keeps the recording when HeyGen never received it', async () => {
@@ -372,8 +406,9 @@ describe('Avatar twin enrollment (real Postgres)', () => {
       provider: 'HEYGEN',
       source: 'catalog',
     };
+    // Same id as the twin's voice, but another provider's: not the twin's.
     const otherVoice = {
-      externalVoiceId: 'other',
+      externalVoiceId: 'voice_1',
       provider: 'ELEVENLABS',
       source: 'catalog',
     };
@@ -383,6 +418,8 @@ describe('Avatar twin enrollment (real Postgres)', () => {
           agentConfig: {
             defaultAvatarRef: twinLook,
             defaultVoiceRef: twinVoice,
+            heygenAvatarId: 'grp_1',
+            heygenVoiceId: 'voice_1',
             persona: 'kept',
           },
           id: 'brand-twin',
@@ -421,6 +458,8 @@ describe('Avatar twin enrollment (real Postgres)', () => {
         agentConfig: {
           defaultAvatarRef: null,
           defaultVoiceRef: null,
+          heygenAvatarId: null,
+          heygenVoiceId: null,
           persona: 'kept',
         },
         id: 'brand-twin',

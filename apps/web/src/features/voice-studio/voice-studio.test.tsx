@@ -10,6 +10,7 @@ import VoiceStudio from '@/features/voice-studio/voice-studio';
 
 const api = vi.hoisted(() => ({
   brandUpdates: [] as unknown[],
+  isBrandUpdateFailing: false,
   clones: [] as Record<string, string>[],
   elevenLabs: 'disconnected',
   heyGen: 'connected',
@@ -69,12 +70,15 @@ vi.mock('@services/core/logger.service', () => ({
 vi.mock('@services/ingredients/heygen.service', () => ({
   HeyGenService: {
     getInstance: () => ({
-      fetchConnectionStatus: async () => ({
-        hasCustomKey: api.heyGen !== 'disconnected',
-        isConnected: api.heyGen === 'connected',
-        provider: 'heygen',
-        state: api.heyGen,
-      }),
+      fetchConnectionStatus: async () => {
+        if (api.heyGen === 'unreachable') throw new Error('network down');
+        return {
+          hasCustomKey: api.heyGen !== 'disconnected',
+          isConnected: api.heyGen === 'connected',
+          provider: 'heygen',
+          state: api.heyGen,
+        };
+      },
     }),
   },
 }));
@@ -82,12 +86,15 @@ vi.mock('@services/ingredients/heygen.service', () => ({
 vi.mock('@services/ingredients/voices.service', () => ({
   VoicesService: {
     getInstance: () => ({
-      findAccountVoices: async () => ({
-        connection: { status: api.elevenLabs },
-        hasMore: false,
-        nextPageToken: null,
-        voices: [],
-      }),
+      findAccountVoices: async () => {
+        if (api.elevenLabs === 'unreachable') throw new Error('network down');
+        return {
+          connection: { status: api.elevenLabs },
+          hasMore: false,
+          nextPageToken: null,
+          voices: [],
+        };
+      },
     }),
   },
 }));
@@ -119,6 +126,7 @@ vi.mock('@services/social/brands.service', () => ({
   BrandsService: {
     getInstance: () => ({
       updateAgentConfig: async (id: string, data: unknown) => {
+        if (api.isBrandUpdateFailing) throw new Error('brand save failed');
         api.brandUpdates.push({ data, id });
       },
     }),
@@ -158,6 +166,7 @@ async function recordTake() {
 describe('VoiceStudio', () => {
   beforeEach(() => {
     api.brandUpdates = [];
+    api.isBrandUpdateFailing = false;
     api.clones = [];
     api.elevenLabs = 'disconnected';
     api.heyGen = 'connected';
@@ -185,6 +194,25 @@ describe('VoiceStudio', () => {
     expect(
       screen.getByRole('link', { name: 'Open Integrations' }),
     ).toHaveAttribute('href', '/acme/settings/integrations');
+  });
+
+  it('offers a retry when the connected accounts cannot be read', async () => {
+    api.heyGen = 'unreachable';
+    api.elevenLabs = 'unreachable';
+    render(<VoiceStudio />, { wrapper: queryClientWrapper() });
+
+    expect(
+      await screen.findByRole('heading', {
+        name: "We couldn't check your connected accounts",
+      }),
+    ).toBeInTheDocument();
+
+    api.heyGen = 'connected';
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(
+      await screen.findByRole('button', { name: 'Start recording' }),
+    ).toBeInTheDocument();
   });
 
   it('records with the browser’s voice processing off', async () => {
@@ -272,5 +300,28 @@ describe('VoiceStudio', () => {
 
     expect(await screen.findByText(message)).toBeInTheDocument();
     expect(api.clones).toEqual([]);
+  });
+
+  it('keeps the new voice when it cannot become the brand’s voice', async () => {
+    api.isBrandUpdateFailing = true;
+    render(<VoiceStudio />, { wrapper: queryClientWrapper() });
+
+    await recordTake();
+    fireEvent.change(screen.getByLabelText('Voice name'), {
+      target: { value: 'Studio me' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Create my voice' }));
+    });
+
+    expect(
+      await screen.findByText(
+        "We couldn't make it this brand's voice. Pick it as the default voice from Voices.",
+      ),
+    ).toBeInTheDocument();
+    expect(api.clones).toHaveLength(1);
+    expect(
+      screen.queryByRole('button', { name: 'Create my voice' }),
+    ).not.toBeInTheDocument();
   });
 });

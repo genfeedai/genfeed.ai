@@ -21,8 +21,13 @@ import {
   ActivitySource,
   AvatarTwinStatus,
   IngredientCategory,
+  VoiceProvider,
 } from '@genfeedai/contracts';
 import { type AvatarTwin, Prisma } from '@genfeedai/prisma';
+import {
+  createStorageProvider,
+  type StorageProvider,
+} from '@genfeedai/storage';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { readIngredientMediaUrl } from '@libs/media/media-url.util';
@@ -70,6 +75,8 @@ const FOOTAGE_CONTENT_TYPES: Readonly<Record<string, string>> = {
 @Injectable()
 export class AvatarTwinsService {
   private readonly constructorName: string = String(this.constructor.name);
+  private readonly storage: Pick<StorageProvider, 'delete'> =
+    createStorageProvider();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -172,17 +179,7 @@ export class AvatarTwinsService {
         },
       );
       const state = deriveAvatarTwinState(created.look, created.group);
-      if (!dto.isRecordingKept)
-        await this.prisma.ingredient.updateMany({
-          data: { isDeleted: true },
-          where: {
-            id: dto.sourceIngredientId,
-            isDeleted: false,
-            organizationId: actor.organizationId,
-            userId: actor.userId,
-          },
-        });
-      return await this.update(actor, twin.id, {
+      const started = await this.update(actor, twin.id, {
         ...state,
         lastCheckedAt: new Date(),
         previewImageUrl: created.look.previewImageUrl,
@@ -194,6 +191,11 @@ export class AvatarTwinsService {
         supportedEngines: created.look.supportedEngines,
         voiceId: created.look.defaultVoiceId ?? created.group.defaultVoiceId,
       });
+      // The provider ids are stored first, so the twin can always be deleted
+      // at HeyGen even if discarding the recording here fails.
+      if (!dto.isRecordingKept)
+        await this.discardRecording(actor, dto.sourceIngredientId);
+      return started;
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName} ${CallerUtil.getCallerName()} failed`,
@@ -403,16 +405,32 @@ export class AvatarTwinsService {
       if (!config || typeof config !== 'object' || Array.isArray(config))
         return null;
       const record = config as Record<string, unknown>;
+      const twinAvatarIds = [twin.providerLookId, twin.providerGroupId].filter(
+        (id): id is string => !!id,
+      );
       const isTwinLook =
         !!twin.providerLookId &&
         readField(record.defaultAvatarRef, 'lookId') === twin.providerLookId;
+      // Only a HeyGen voice can be the twin's; an id from another provider
+      // that happens to match is someone else's voice.
       const isTwinVoice =
         !!twin.voiceId &&
+        readField(record.defaultVoiceRef, 'provider') ===
+          VoiceProvider.HEYGEN &&
         readField(record.defaultVoiceRef, 'externalVoiceId') === twin.voiceId;
-      if (!isTwinLook && !isTwinVoice) return null;
+      // Older brands keep the facecam identity in plain HeyGen id fields.
+      const isLegacyAvatar =
+        typeof record.heygenAvatarId === 'string' &&
+        twinAvatarIds.includes(record.heygenAvatarId);
+      const isLegacyVoice =
+        !!twin.voiceId && record.heygenVoiceId === twin.voiceId;
+      if (!isTwinLook && !isTwinVoice && !isLegacyAvatar && !isLegacyVoice)
+        return null;
       return {
         ...(isTwinLook ? { defaultAvatarRef: null } : {}),
         ...(isTwinVoice ? { defaultVoiceRef: null } : {}),
+        ...(isLegacyAvatar ? { heygenAvatarId: null } : {}),
+        ...(isLegacyVoice ? { heygenVoiceId: null } : {}),
       };
     };
 
@@ -537,6 +555,68 @@ export class AvatarTwinsService {
       data,
       where: { id, isDeleted: false, organizationId: actor.organizationId },
     });
+  }
+
+  /**
+   * Removes the training take once HeyGen has it: the Library row and the
+   * stored files (the upload and its delivery copies). A file that cannot be
+   * removed is logged for follow-up; the twin itself already started.
+   */
+  private async discardRecording(
+    actor: AvatarTwinActor,
+    ingredientId: string,
+  ): Promise<void> {
+    try {
+      const ingredient = await this.prisma.ingredient.findFirst({
+        select: { id: true, s3Key: true },
+        where: {
+          id: ingredientId,
+          isDeleted: false,
+          organizationId: actor.organizationId,
+          userId: actor.userId,
+        },
+      });
+      if (!ingredient) return;
+      const variants = await this.prisma.mediaDeliveryVariant.findMany({
+        select: { storageKey: true },
+        where: {
+          ingredientId: ingredient.id,
+          isDeleted: false,
+          organizationId: actor.organizationId,
+        },
+      });
+      await this.prisma.ingredient.updateMany({
+        data: { isDeleted: true },
+        where: {
+          id: ingredient.id,
+          isDeleted: false,
+          organizationId: actor.organizationId,
+          userId: actor.userId,
+        },
+      });
+      await this.prisma.mediaDeliveryVariant.updateMany({
+        data: { isDeleted: true },
+        where: {
+          ingredientId: ingredient.id,
+          isDeleted: false,
+          organizationId: actor.organizationId,
+        },
+      });
+      const keys = [
+        ingredient.s3Key,
+        ...variants.map((variant) => variant.storageKey),
+      ].filter((key): key is string => !!key);
+      for (const key of keys) await this.storage.delete(key);
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} could not discard the training recording`,
+        {
+          error: error instanceof Error ? error.message : 'Unknown',
+          ingredientId,
+          organizationId: actor.organizationId,
+        },
+      );
+    }
   }
 
   /** Only the caller's own take: a twin is the person who recorded it. */

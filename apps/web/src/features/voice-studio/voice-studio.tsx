@@ -25,6 +25,7 @@ export default function VoiceStudio() {
     connectedProviders,
     create,
     hasBrand,
+    hasConnectionError,
     isLoading,
     phase,
     recheckConnections,
@@ -32,6 +33,26 @@ export default function VoiceStudio() {
 
   const renderBody = () => {
     if (isLoading) return <Skeleton className="h-64 w-full" />;
+    if (hasConnectionError)
+      return (
+        <Card variant={CardVariant.BORDERED}>
+          <div className="flex flex-col gap-1">
+            <h2 className="font-medium text-base">
+              {translate('checkFailed.title')}
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              {translate('checkFailed.body')}
+            </p>
+          </div>
+          <div>
+            <Button
+              label={translate('checkFailed.retry')}
+              onClick={recheckConnections}
+              variant={ButtonVariant.SECONDARY}
+            />
+          </div>
+        </Card>
+      );
     if (connectedProviders.length === 0)
       return (
         <Card variant={CardVariant.BORDERED}>

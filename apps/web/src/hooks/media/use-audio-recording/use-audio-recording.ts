@@ -33,6 +33,8 @@ export function useAudioRecording({
 
   const [error, setError] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  /** Stopped, but the take is not saved yet: starting now would lose it. */
+  const [isFinalizing, setIsFinalizing] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const [recordedFile, setRecordedFile] = useState<File | null>(null);
 
@@ -68,6 +70,7 @@ export function useAudioRecording({
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
+      setIsFinalizing(true);
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
@@ -80,6 +83,7 @@ export function useAudioRecording({
       isMountedRef.current && generationRef.current === generation;
     cleanup();
     setIsRecording(false);
+    setIsFinalizing(false);
     try {
       setError(null);
       setRecordedFile(null);
@@ -121,6 +125,7 @@ export function useAudioRecording({
 
       mediaRecorder.onstop = () => {
         if (!ownsRecording()) return;
+        setIsFinalizing(false);
         const blob = new Blob(chunksRef.current, {
           type: mediaRecorder.mimeType || 'audio/webm',
         });
@@ -168,6 +173,7 @@ export function useAudioRecording({
   return {
     clearRecordedFile: () => setRecordedFile(null),
     error,
+    isFinalizing,
     isRecording,
     isSupported,
     recordedFile,

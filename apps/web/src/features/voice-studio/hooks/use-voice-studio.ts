@@ -6,11 +6,11 @@ import type {
   ElevenLabsAccountVoicePage,
   IHeyGenConnectionStatus,
 } from '@genfeedai/contracts/interfaces';
-import type { Voice } from '@genfeedai/models/ingredients/voice.model';
 import { buildDefaultVoiceRefFromVoice } from '@helpers/voice/default-voice-ref.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import { logger } from '@services/core/logger.service';
 import { HeyGenService } from '@services/ingredients/heygen.service';
 import { VoiceCloneService } from '@services/ingredients/voice-clone.service';
 import { VoicesService } from '@services/ingredients/voices.service';
@@ -20,6 +20,7 @@ import { useCallback, useMemo, useState } from 'react';
 import type {
   VoiceSampleProblem,
   VoiceStudio,
+  VoiceStudioCreated,
   VoiceStudioCreateInput,
   VoiceStudioPhase,
   VoiceStudioProvider,
@@ -82,7 +83,7 @@ export function useVoiceStudio(): VoiceStudio {
   }, [elevenLabsQuery.data, heyGenQuery.data]);
 
   const create = useCallback(
-    async (input: VoiceStudioCreateInput): Promise<Voice> => {
+    async (input: VoiceStudioCreateInput): Promise<VoiceStudioCreated> => {
       setPhase('preparing');
       try {
         const sample = await prepareVoiceSample(
@@ -100,14 +101,22 @@ export function useVoiceStudio(): VoiceStudio {
         formData.append('file', sample.file);
         const voice = await (await getCloneService()).cloneVoice(formData);
 
-        if (input.isBrandDefault && brandId) {
+        const created = { provider: input.provider, voice };
+        if (!input.isBrandDefault || !brandId)
+          return { ...created, brandDefault: 'skipped' };
+        // The voice already exists in the person's account: a failed brand
+        // update must not send them back to record and clone it again.
+        try {
           await (await getBrandsService()).updateAgentConfig(brandId, {
             defaultVoiceId: voice.id,
             defaultVoiceRef: buildDefaultVoiceRefFromVoice(voice),
           });
           await refreshBrands();
+          return { ...created, brandDefault: 'set' };
+        } catch (error: unknown) {
+          logger.error('Voice studio brand default failed', error);
+          return { ...created, brandDefault: 'failed' };
         }
-        return voice;
       } finally {
         setPhase(null);
       }
@@ -124,6 +133,9 @@ export function useVoiceStudio(): VoiceStudio {
     connectedProviders,
     create,
     hasBrand: Boolean(brandId),
+    hasConnectionError:
+      connectedProviders.length === 0 &&
+      (heyGenQuery.isError || elevenLabsQuery.isError),
     isLoading: heyGenQuery.isLoading || elevenLabsQuery.isLoading,
     phase,
     recheckConnections,
