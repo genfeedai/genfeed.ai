@@ -164,6 +164,7 @@ export {
 } from './registry/mutation-policy';
 export {
   appendCreditPricingDescription,
+  describeAvatarVideoPricing,
   describeCreditPricing,
   estimateToolCreditCost,
   fixedCreditPricing,

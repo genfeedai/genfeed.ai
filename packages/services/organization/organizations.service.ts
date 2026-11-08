@@ -515,15 +515,16 @@ export class OrganizationsService extends BaseService<Organization> {
   }
 
   /**
-   * Create a new organization and switch to it.
+   * Create a new organization. The API makes it the active one and returns its
+   * slug; follow with a client navigation to that slug.
    */
   public async createOrganization(data: CreateOrganizationPayload): Promise<{
-    organization: { id: string; label: string };
+    organization: { id: string; label: string; slug: string };
     brand: { id: string; label: string };
   }> {
     return await this.instance
       .post<{
-        organization: { id: string; label: string };
+        organization: { id: string; label: string; slug: string };
         brand: { id: string; label: string };
       }>('', data)
       .then((res) => res.data);

@@ -3,6 +3,10 @@ import type { PostGroupsService } from '@api/collections/post-groups/services/po
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
 import { resolveConfirmedPublishTargets } from '@api/services/agent-orchestrator/tools/agent-publish-confirmed-targets.util';
+import {
+  type DraftMediaLookup,
+  resolveDraftMediaUrls,
+} from '@api/services/agent-orchestrator/tools/agent-publish-draft-media.util';
 import { resolveAgentPublishMediaGate } from '@api/services/agent-orchestrator/tools/agent-publish-media-readiness.util';
 import {
   collectInvalidTargetBlockers,
@@ -442,7 +446,18 @@ export async function createAgentTextDraft(
   params: Record<string, unknown>,
   ctx: ToolExecutionContext,
   visibility: PostVisibility,
+  ingredientsService?: DraftMediaLookup,
 ): Promise<AgentToolResult> {
+  const media = await resolveDraftMediaUrls({
+    brandId: ctx.validatedScope?.brandId,
+    ingredients: ingredientsService,
+    organizationId: ctx.organizationId,
+    params,
+  });
+  if (media.error !== undefined) {
+    return { creditsUsed: 0, error: media.error, success: false };
+  }
+
   const post = await postsService.create({
     ...(ctx.runId ? { workflowExecutionId: ctx.runId } : {}),
     ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
@@ -451,6 +466,8 @@ export async function createAgentTextDraft(
     agentThreadId: ctx.validatedScope?.threadId,
     brandId: ctx.validatedScope?.brandId,
     description: params.content as string,
+    ingredients: media.ingredientIds,
+    ...(media.category ? { category: media.category } : {}),
     label: ((params.content as string) || '').substring(0, 100),
     organizationId: ctx.organizationId,
     source: 'agent',
@@ -464,6 +481,14 @@ export async function createAgentTextDraft(
     data: {
       id: String(post.id),
       executionState: TargetExecutionState.DRAFT,
+      ...(media.ingredientIds.length > 0
+        ? {
+            media: media.ingredientIds.map((assetId, order) => ({
+              assetId,
+              order,
+            })),
+          }
+        : {}),
       visibility,
     },
     success: true,
@@ -681,4 +706,14 @@ export function fallbackConfirmedPublishPolicy(
       mediaAssessment,
     }),
   };
+}
+
+/** Parses a tool's `visibility` param; absent means public, invalid is undefined. */
+export function parsePostVisibility(
+  value: unknown,
+): PostVisibility | undefined {
+  const parsed = z
+    .nativeEnum(PostVisibility)
+    .safeParse(value ?? PostVisibility.PUBLIC);
+  return parsed.success ? parsed.data : undefined;
 }

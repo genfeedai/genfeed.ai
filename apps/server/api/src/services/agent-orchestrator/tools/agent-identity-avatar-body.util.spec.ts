@@ -36,4 +36,17 @@ describe('buildIdentityAvatarVideoBody', () => {
       ).aspectRatio,
     ).toBe('16:9');
   });
+
+  it('passes a chosen saved voice as the cloned voice', () => {
+    expect(
+      buildIdentityAvatarVideoBody('hi', { voiceId: ' voice-1 ' }, {})
+        .clonedVoiceId,
+    ).toBe('voice-1');
+  });
+
+  it('leaves the voice to the brand default when none is chosen', () => {
+    expect(buildIdentityAvatarVideoBody('hi', {}, {})).not.toHaveProperty(
+      'clonedVoiceId',
+    );
+  });
 });

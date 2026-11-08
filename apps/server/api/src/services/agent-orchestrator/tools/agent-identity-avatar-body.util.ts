@@ -14,7 +14,10 @@ export function buildIdentityAvatarVideoBody(
   text: string,
   params: Record<string, unknown>,
   ctx: Pick<ToolExecutionContext, 'generationSettings'>,
-): Pick<CreateAvatarVideoDto, 'aspectRatio' | 'text' | 'useIdentity'> {
+): Pick<
+  CreateAvatarVideoDto,
+  'aspectRatio' | 'clonedVoiceId' | 'text' | 'useIdentity'
+> {
   return {
     aspectRatio: resolveAvatarVideoAspectRatio({
       aspectRatio: [
@@ -23,6 +26,10 @@ export function buildIdentityAvatarVideoBody(
       ].find(isAvatarVideoAspectRatio),
       platform: params.platform,
     }),
+    // A saved voice the caller chose replaces the brand default voice.
+    ...(typeof params.voiceId === 'string' && params.voiceId.trim()
+      ? { clonedVoiceId: params.voiceId.trim() }
+      : {}),
     text,
     useIdentity: true,
   };

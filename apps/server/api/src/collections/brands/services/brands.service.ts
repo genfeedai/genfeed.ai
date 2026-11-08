@@ -36,6 +36,7 @@ import {
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { assertValidMergedAgentSchedule } from '@api/collections/brands/utils/brand-agent-schedule-validation.util';
 import {
+  BOOTSTRAP_CREDENTIAL_VISIBLE,
   bootstrapCredentialInclude,
   mapBootstrapCredentials,
 } from '@api/collections/brands/utils/brand-bootstrap-credentials.util';
@@ -329,6 +330,7 @@ export class BrandsService extends BaseService<
         orderBy,
         select,
         where: {
+          OR: BOOTSTRAP_CREDENTIAL_VISIBLE,
           brandId: { in: group.map((brand) => String(brand.id)) },
           isDeleted: false,
           organizationId,

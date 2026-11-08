@@ -4,7 +4,7 @@ import BookingSection from './BookingSection';
 
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
-    calendly: 'https://calendly.com/vincent-genfeed/30min',
+    calendly: 'https://calendar.app.google/S2Crg8uCe1dVnWRN6',
   },
 }));
 
@@ -16,7 +16,7 @@ describe('BookingSection', () => {
     const booking = screen.getByRole('link', { name: 'Book a call' });
     expect(booking).toHaveAttribute(
       'href',
-      'https://calendly.com/vincent-genfeed/30min',
+      'https://calendar.app.google/S2Crg8uCe1dVnWRN6',
     );
     expect(booking).toHaveAttribute('target', '_blank');
     expect(booking).toHaveAttribute('rel', 'noopener noreferrer');

@@ -46,7 +46,7 @@ vi.mock('@web-hooks/ui/use-marketing-entrance', () => ({
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
     apps: { app: 'https://app.genfeed.test' },
-    calendly: 'https://calendly.com/vincent-genfeed/30min',
+    calendly: 'https://calendar.app.google/S2Crg8uCe1dVnWRN6',
   },
 }));
 
@@ -110,7 +110,7 @@ describe('PricingContent', () => {
     ).toBeInTheDocument();
     expect(managed.getByRole('link', { name: 'Book a call' })).toHaveAttribute(
       'href',
-      'https://calendly.com/vincent-genfeed/30min',
+      'https://calendar.app.google/S2Crg8uCe1dVnWRN6',
     );
   });
 

@@ -200,13 +200,14 @@ describe('runCheckProductRouteInventory', () => {
     // Four creation routes moved into their app workspaces; Motion gained a
     // detail route. The registry also drops /~/editor/new. The agent's
     // /agent/[id]/full pages (org and brand) are gone: full view is
-    // /agent/[id]?view=full. The lead invite moved from the app's
-    // /preview/[token] to the website's /u/[handle]/invite/[token].
+    // /agent/[id]?view=full. Library gained the digital twin page. The lead
+    // invite moved from the app's /preview/[token] to the website's
+    // /u/[handle]/invite/[token].
     expect(runCheckProductRouteInventory()).toMatchObject({
       appPublicRouteCount: 25,
       issues: [],
-      protectedPageCount: 244,
-      protectedRouteCount: 266,
+      protectedPageCount: 245,
+      protectedRouteCount: 267,
       publicRouteCount: 112,
       websitePublicRouteCount: 87,
     });

@@ -263,6 +263,30 @@ and is not saved as Knowledge.
 The CLI equivalents are `gf connect <platform>`, `gf gen image --brand --context`,
 and `gf status <id>`; see [CLI](/api-reference/cli).
 
+## Avatar video and personal voices
+
+`generate` with `type: "avatar"` renders a talking-head video of the brand's
+saved identity (its default avatar and voice). `prompt` is the topic Genfeed
+writes a spoken script for; with `isVerbatim: true` it is spoken exactly as
+written. `aspectRatio` defaults to `9:16`, and `voiceId` swaps the brand default
+voice for a saved one. The call waits in the approvals queue like other paid
+generation, is billed per second of the rendered clip, and returns the Library
+video id: poll it with `get_job_status`.
+
+Personal voices belong to the organization's own connected ElevenLabs account;
+nothing falls back to a platform account.
+
+- `get_assets` with `type: "voice"` lists the voices the organization saved
+  (`isBrandDefault` marks the brand default). With `source: "account"` it browses
+  the connected account (`q` searches, `pageToken` pages) and reports
+  `connection.status`; a `disconnected` account returns no voices and says to
+  connect it in Genfeed.
+- `get_generation_options` with `type: "voice"` returns the same saved voices and
+  whether an account is connected.
+- `set_generation_settings` with `scope: "brand"` and `defaultVoice` (`voiceId`
+  for a saved voice, or `externalVoiceId` to first save a voice from the
+  connected account) makes the voice the brand default.
+
 ## Brand context
 
 `get_brand_context` returns what Genfeed's own agent is given about a brand in

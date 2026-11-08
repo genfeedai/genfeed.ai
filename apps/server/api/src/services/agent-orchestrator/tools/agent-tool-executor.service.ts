@@ -60,6 +60,7 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-tool-workflow-definition';
 import { AgentTransferToolHandler } from '@api/services/agent-orchestrator/tools/agent-transfer-tool-handler.service';
 import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
+import { AgentVoiceToolHandler } from '@api/services/agent-orchestrator/tools/agent-voice-tool-handler.service';
 import { AgentWorkObjectService } from '@api/services/agent-orchestrator/tools/agent-work-object.service';
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
@@ -319,6 +320,9 @@ export class AgentToolExecutorService implements OnModuleInit {
 
   @Inject(AgentGenerationSettingsToolHandler)
   private readonly generationSettingsHandler!: AgentGenerationSettingsToolHandler;
+
+  @Inject(AgentVoiceToolHandler)
+  private readonly voiceHandler!: AgentVoiceToolHandler;
 
   @Inject(AgentThreadToolHandler)
   private readonly threadHandler!: AgentThreadToolHandler;
@@ -756,6 +760,9 @@ export class AgentToolExecutorService implements OnModuleInit {
       ].includes(toolName)
     ) {
       return this.workObjects.execute(toolName, parameters, context);
+    }
+    if (this.voiceHandler.handlesList(toolName, parameters)) {
+      return this.voiceHandler.list(parameters, context);
     }
     if (this.generationSettingsHandler.handles(toolName)) {
       return this.generationSettingsHandler.execute(

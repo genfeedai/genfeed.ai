@@ -7,7 +7,10 @@ import {
   CardPadding,
   CardVariant,
 } from '@genfeedai/contracts';
-import { STORYBOARD_SLIDESHOW_LIMITS } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import {
+  STORYBOARD_SLIDESHOW_INSTAGRAM_MAX_SLIDES,
+  STORYBOARD_SLIDESHOW_LIMITS,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -62,6 +65,12 @@ export default function StoryboardSlideshowBoard({
     (slide) => slide.stillFreshness === 'generating',
   );
   const isFull = slides.length >= maxSlides;
+  // Instagram has the tightest photo-carousel limit; a plan has no target
+  // channel yet, so warn before generation credits go to slides it can't take.
+  const overChannelBy = Math.max(
+    0,
+    slides.length - STORYBOARD_SLIDESHOW_INSTAGRAM_MAX_SLIDES,
+  );
 
   function savePost() {
     if (!actions) return;
@@ -88,6 +97,16 @@ export default function StoryboardSlideshowBoard({
         <p className="text-sm text-muted-foreground">
           {translate('swipeHint')}
         </p>
+        {overChannelBy > 0 ? (
+          <p role="alert" className="text-sm text-warning">
+            {translate('channelLimit', {
+              channel: 'Instagram',
+              count: slides.length,
+              extra: overChannelBy,
+              max: STORYBOARD_SLIDESHOW_INSTAGRAM_MAX_SLIDES,
+            })}
+          </p>
+        ) : null}
         <div className="flex flex-wrap items-center gap-3">
           <p role="status" className="text-sm">
             {translate('progress', { ready, total: slides.length })}

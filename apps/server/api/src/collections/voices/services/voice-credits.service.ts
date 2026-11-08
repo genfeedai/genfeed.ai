@@ -11,8 +11,6 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 
-export const VOICE_CLONE_CREDITS = 17;
-
 type VoiceCreditsRequest = Request & {
   creditsConfig?: CreditsConfig & {
     deferred?: boolean;
@@ -82,12 +80,12 @@ export class VoiceCreditsService {
     );
   }
 
-  async settleElevenLabsCloneCredits(
-    request: Request,
-    organizationId: string,
-  ): Promise<void> {
-    await this.assertOrganizationCanAfford(organizationId, VOICE_CLONE_CREDITS);
-    this.finalizeRequestCredits(request, VOICE_CLONE_CREDITS);
+  /**
+   * A clone made on the workspace's own provider account costs no platform
+   * credits: the provider bills the account that owns the voice.
+   */
+  waivePersonalCloneCredits(request: Request): void {
+    this.finalizeRequestCredits(request, 0);
   }
 
   private finalizeRequestCredits(request: Request, amount: number): void {

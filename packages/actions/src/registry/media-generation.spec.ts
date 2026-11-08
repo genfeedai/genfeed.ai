@@ -30,13 +30,14 @@ describe('brand mode applicability', () => {
 });
 
 describe('media generation type parsing', () => {
-  it('names the single generate tool and its four types', () => {
+  it('names the single generate tool and its five types', () => {
     expect(MEDIA_GENERATION_TOOL_NAME).toBe('generate');
     expect([...MEDIA_GENERATION_TYPES]).toEqual([
       'image',
       'video',
       'voice',
       'music',
+      'avatar',
     ]);
   });
 

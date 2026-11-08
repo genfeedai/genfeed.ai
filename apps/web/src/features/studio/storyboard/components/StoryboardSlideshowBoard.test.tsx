@@ -163,6 +163,28 @@ describe('StoryboardSlideshowBoard', () => {
     ).toBeDisabled();
   });
 
+  it('warns once there are more slides than an Instagram carousel takes', () => {
+    render(
+      <Harness
+        initial={Array.from({ length: 12 }, (_, index) => slide(index + 1))}
+      />,
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      "Instagram carousels take up to 10 images. A slideshow of 12 can't publish there; remove 2 slides first.",
+    );
+  });
+
+  it('does not warn at the Instagram carousel limit', () => {
+    render(
+      <Harness
+        initial={Array.from({ length: 10 }, (_, index) => slide(index + 1))}
+      />,
+    );
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('draws only the slide asked for', () => {
     render(<Harness />);
 

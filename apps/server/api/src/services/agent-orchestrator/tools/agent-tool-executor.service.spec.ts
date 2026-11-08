@@ -1275,6 +1275,7 @@ describe('AgentToolExecutorService', () => {
       brandAccessService: brandAccessFixture(),
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
+      voiceHandler: { handlesList: vi.fn().mockReturnValue(false) },
       threadHandler: { handles: vi.fn().mockReturnValue(false) },
     });
     service.onModuleInit();
@@ -6534,6 +6535,7 @@ describe('AgentToolExecutorService', () => {
       brandAccessService: brandAccessFixture(),
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
+      voiceHandler: { handlesList: vi.fn().mockReturnValue(false) },
       threadHandler: { handles: vi.fn().mockReturnValue(false) },
     });
     serviceWithoutScorer.onModuleInit();

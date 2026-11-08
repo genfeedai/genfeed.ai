@@ -141,6 +141,7 @@ import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools
 import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
 import { AgentTransferToolHandler } from '@api/services/agent-orchestrator/tools/agent-transfer-tool-handler.service';
 import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
+import { AgentVoiceToolHandler } from '@api/services/agent-orchestrator/tools/agent-voice-tool-handler.service';
 import { AgentWorkObjectService } from '@api/services/agent-orchestrator/tools/agent-work-object.service';
 import { AgentWorkflowToolCreateService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-create.service';
 import { AgentWorkflowToolExecuteService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-execute.service';
@@ -273,6 +274,7 @@ import { Module } from '@nestjs/common';
     AgentGenerationCostToolHandler,
     AgentGenerationOptionsToolHandler,
     AgentGenerationSettingsToolHandler,
+    AgentVoiceToolHandler,
     AgentCompletionCardBuilderService,
     AgentAdsResearchToolHandler,
     AgentAutoModelResolverService,

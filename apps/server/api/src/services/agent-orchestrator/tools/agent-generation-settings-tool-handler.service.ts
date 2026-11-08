@@ -1,6 +1,7 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentVoiceToolHandler } from '@api/services/agent-orchestrator/tools/agent-voice-tool-handler.service';
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
 import { ActivitySource } from '@genfeedai/contracts';
@@ -18,6 +19,7 @@ export class AgentGenerationSettingsToolHandler {
   constructor(
     private readonly settings: GenerationHarnessSettingsService,
     private readonly enhancement: MediaPromptEnhancementService,
+    private readonly voices: AgentVoiceToolHandler,
     @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
   ) {}
 
@@ -112,6 +114,14 @@ export class AgentGenerationSettingsToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    if (params.defaultVoice !== undefined) {
+      if (params.isEnabled !== undefined) {
+        throw new BadRequestException(
+          'Set defaultVoice or isEnabled in one call, not both.',
+        );
+      }
+      return this.voices.setBrandDefault(params, ctx);
+    }
     if (
       (params.scope !== 'organization' && params.scope !== 'brand') ||
       (params.isEnabled !== null && typeof params.isEnabled !== 'boolean')

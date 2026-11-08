@@ -226,6 +226,11 @@ const RETIRED_MEDIA_SUCCESSORS: Readonly<Record<string, string>> = {
   // fal lists Stable Video Diffusion as `fal-ai/stable-video` with status
   // `deprecated` (checked 2026-11-01); the stored `-diffusion` id is not served.
   [MODEL_KEYS.FAL_STABLE_VIDEO]: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+  // fal's sitemap and model pages no longer list `fal-ai/luma-dream-machine`
+  // or its ray-2 variants (checked 2026-11-08); the fal price refresh failed
+  // with model_fetch_failed for it.
+  [MODEL_KEYS.FAL_LUMA_DREAM_MACHINE]:
+    MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
   // The Genfeed GPU fleet that ran these is archived (2026-10-30), so they are
   // retired on every deployment.
   [MODEL_KEYS.GENFEED_AI_FLUX_DEV]:

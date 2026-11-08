@@ -83,11 +83,27 @@ function toBootstrapCredential(
   };
 }
 
+/**
+ * Which live credentials are worth embedding. A row that is neither connected
+ * nor identified is a pending or abandoned OAuth start: every Connect click
+ * creates one, and it stays until the next attempt reaps it. The app hides
+ * these rows (`isVisibleCredentialRow`), so embedding them would only show an
+ * extra, nameless account in every list that reads the bootstrap directly.
+ */
+export const BOOTSTRAP_CREDENTIAL_VISIBLE: Prisma.CredentialWhereInput[] = [
+  { isConnected: true },
+  { externalId: { not: null } },
+];
+
 export function bootstrapCredentialInclude(organizationId: string) {
   return {
     orderBy: { createdAt: 'asc' as const },
     select: BOOTSTRAP_CREDENTIAL_SELECT,
-    where: { isDeleted: false, organizationId },
+    where: {
+      OR: BOOTSTRAP_CREDENTIAL_VISIBLE,
+      isDeleted: false,
+      organizationId,
+    },
   };
 }
 
