@@ -1,6 +1,7 @@
 import type {
   ApiKeyConnectPayload,
   ICredential,
+  ICredentialLinkedInAccount,
   ICredentialOAuth,
 } from '@genfeedai/contracts/interfaces';
 import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
@@ -92,6 +93,18 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
       .then(
         (res) =>
           new Credential(this.extractResource<Partial<ICredential>>(res)),
+      );
+  }
+
+  /** LinkedIn: the accounts a connection can post as, the member and their pages. */
+  public async findLinkedInAccounts(
+    credentialId: string,
+    signal?: AbortSignal,
+  ): Promise<ICredentialLinkedInAccount[]> {
+    return await this.instance
+      .get<JsonApiResponseDocument>(`${credentialId}/accounts`, { signal })
+      .then((res) =>
+        this.extractCollection<ICredentialLinkedInAccount>(res.data),
       );
   }
 

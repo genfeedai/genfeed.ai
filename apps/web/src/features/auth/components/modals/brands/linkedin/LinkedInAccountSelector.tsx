@@ -6,7 +6,6 @@ import { LinkedinIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { ServicesService } from '@genfeedai/services/external/services.service';
-import { CredentialsService } from '@genfeedai/services/organization/credentials.service';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
@@ -50,12 +49,9 @@ export default function LinkedInAccountSelector({
 
   const accountsQuery = useAuthedQuery({
     queryFn: async (service, signal) => {
-      const url = `GET /credentials/${credentialId}/linkedin/accounts`;
+      const url = `GET /services/linkedin/${credentialId}/accounts`;
       try {
-        const data = await service.findCredentialLinkedInAccounts(
-          credentialId,
-          signal,
-        );
+        const data = await service.findLinkedInAccounts(credentialId, signal);
         logger.info(`${url} success`, data);
         return data;
       } catch (fetchError) {
@@ -66,7 +62,7 @@ export default function LinkedInAccountSelector({
       }
     },
     queryKey: ['linkedin-credential-accounts', credentialId],
-    service: (token: string) => CredentialsService.getInstance(token),
+    service: (token: string) => new ServicesService('linkedin', token),
   });
   const availableAccounts = accountsQuery.data ?? EMPTY_ACCOUNTS;
   // A refresh that no longer lists the pick clears it, so Confirm never sends

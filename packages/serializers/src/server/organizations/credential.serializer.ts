@@ -19,10 +19,9 @@ export const { CredentialOAuthSerializer } = buildSerializer(
 export const { CredentialInstagramPagesSerializer } = buildSerializer(
   'server',
   credentialInstagramPagesSerializerConfig,
-  credentialLinkedInAccountsSerializerConfig,
 );
 
-export const { CredentialLinkedInAccountsSerializer } = buildSerializer(
+export const { CredentialLinkedinAccountsSerializer } = buildSerializer(
   'server',
   credentialLinkedInAccountsSerializerConfig,
 );

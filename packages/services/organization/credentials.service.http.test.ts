@@ -27,10 +27,6 @@ describe('CredentialsService HTTP methods', () => {
       'GET /cred_1/instagram/pages': collectionDocument([
         { id: 'page_1', name: 'Page' },
       ]),
-      'GET /cred_1/linkedin/accounts': collectionDocument([
-        { id: 'urn:li:organization:42', kind: 'organization', label: 'Acme' },
-        { id: 'member-1', kind: 'member', label: 'Pat Doe' },
-      ]),
       'GET /cred_1/publishing-context?surface=post': context,
       'GET /cred_1/publishing-context?surface=thread': {
         ...context,
@@ -55,15 +51,6 @@ describe('CredentialsService HTTP methods', () => {
         { id: credentialId },
       ),
     });
-  });
-
-  it('findCredentialLinkedInAccounts returns the pages and the member profile', async () => {
-    const result = await service.findCredentialLinkedInAccounts(credentialId);
-
-    expect(result.map((account) => [account.id, account.kind])).toEqual([
-      ['urn:li:organization:42', 'organization'],
-      ['member-1', 'member'],
-    ]);
   });
 
   it('findCredentialInstagramPages maps Instagram pages', async () => {

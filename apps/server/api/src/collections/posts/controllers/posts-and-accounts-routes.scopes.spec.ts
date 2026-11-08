@@ -11,6 +11,7 @@ import { CredentialsController } from '@api/collections/credentials/controllers/
 import { CredentialsPublishingController } from '@api/collections/credentials/controllers/credentials-publishing.controller';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
+import { LinkedInController } from '@api/services/integrations/linkedin/controllers/linkedin.controller';
 import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import type { ExecutionContext } from '@nestjs/common';
@@ -105,9 +106,9 @@ const ACCOUNT_READ_ROUTES: ReadonlyArray<
     CredentialsController.prototype.findAllInstagramPages,
   ],
   [
-    'GET /credentials/:credentialId/linkedin/accounts',
-    CredentialsController,
-    CredentialsController.prototype.findAllLinkedInAccounts,
+    'GET /services/linkedin/:credentialId/accounts',
+    LinkedInController,
+    LinkedInController.prototype.findAllAccounts,
   ],
   [
     'GET /credentials/brand/:brandId/publishing-readiness',

@@ -262,12 +262,6 @@ export const TENANT_READ_ACCOUNT_ROUTES = [
     policy: 'mutating',
   },
   {
-    controller: CredentialsController,
-    handler: 'findAllLinkedInAccounts',
-    route: '/v1/credentials/{credentialId}/linkedin/accounts',
-    policy: 'mutating',
-  },
-  {
     controller: CredentialsPublishingController,
     handler: 'findNextPostingSlot',
     route: '/v1/credentials/{credentialId}/next-slot',

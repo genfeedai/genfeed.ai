@@ -5,7 +5,6 @@ import type {
   AssessAccountHealthRequest,
   ContentSurface,
   IClockTime,
-  ICredentialLinkedInAccount,
   ICredentialPostingTimes,
   INextPostingSlot,
   IPublishingProviderReadiness,
@@ -40,18 +39,6 @@ export class CredentialsService extends BaseService<Credential> {
         this.extractCollection<Partial<CredentialInstagram>>(res.data).map(
           (item) => new CredentialInstagram(item),
         ),
-      );
-  }
-
-  /** Accounts a LinkedIn connection can post as: the member and their pages. */
-  public async findCredentialLinkedInAccounts(
-    id: string,
-    signal?: AbortSignal,
-  ): Promise<ICredentialLinkedInAccount[]> {
-    return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/linkedin/accounts`, { signal })
-      .then((res) =>
-        this.extractCollection<ICredentialLinkedInAccount>(res.data),
       );
   }
 

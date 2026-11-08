@@ -192,7 +192,6 @@ const observedTemplates = [
   '/v1/credentials/brand/{brandId}/publishing-readiness',
   '/v1/credentials/mentions',
   '/v1/credentials/{credentialId}/instagram/pages',
-  '/v1/credentials/{credentialId}/linkedin/accounts',
   '/v1/credentials/{credentialId}/next-slot',
   '/v1/credentials/{credentialId}/posting-times',
   '/v1/credentials/{credentialId}/publishing-context',
@@ -270,6 +269,7 @@ const observedTemplates = [
   '/v1/services/google-ads/search-terms/{campaignId}',
   '/v1/services/google-search-console/search-analytics',
   '/v1/services/google-search-console/sites',
+  '/v1/services/linkedin/{credentialId}/accounts',
   '/v1/services/meta-ads/accounts',
   '/v1/services/meta-ads/ads/{id}/insights',
   '/v1/services/meta-ads/adsets/{id}/insights',
@@ -336,22 +336,22 @@ const observedTemplates = [
 ] as const;
 
 describe('combined tenant read policy registry', () => {
-  it('conserves exactly248 original canonical routes,74 prefixes and126 distinct owned controllers', () => {
-    expect(routes).toHaveLength(248);
-    expect(new Set(routes.map((entry) => entry.route)).size).toBe(248);
+  it('conserves exactly249 original canonical routes,74 prefixes and127 distinct owned controllers', () => {
+    expect(routes).toHaveLength(249);
+    expect(new Set(routes.map((entry) => entry.route)).size).toBe(249);
     expect(new Set(routes.map((entry) => entry.route.split('/')[2])).size).toBe(
       74,
     );
-    expect(new Set(routes.map((entry) => entry.controller)).size).toBe(126);
+    expect(new Set(routes.map((entry) => entry.controller)).size).toBe(127);
     expect(routes.map((entry) => entry.route).sort()).toEqual(
       [...observedTemplates].sort(),
     );
-    expect(cohorts.map((cohort) => cohort.length)).toEqual([54, 61, 133]);
+    expect(cohorts.map((cohort) => cohort.length)).toEqual([54, 61, 134]);
     expect(
       cohorts.map(
         (cohort) => new Set(cohort.map((entry) => entry.controller)).size,
       ),
-    ).toEqual([25, 32, 69]);
+    ).toEqual([25, 32, 70]);
     const owners = new Map<object, number>();
     cohorts.forEach((cohort, index) => {
       cohort.forEach((entry) => {
@@ -407,7 +407,7 @@ describe('combined tenant read policy registry', () => {
       expect(next.handle).toHaveBeenCalledTimes(2);
     },
   );
-  it('keeps persona grants owner-bound without adding it to the248-route repair', async () => {
+  it('keeps persona grants owner-bound without adding it to the249-route repair', async () => {
     const listForPersona = vi.fn();
     const controller = new PersonaGrantsController({
       listForPersona,

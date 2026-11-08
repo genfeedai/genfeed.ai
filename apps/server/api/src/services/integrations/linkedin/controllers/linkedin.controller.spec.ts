@@ -8,6 +8,11 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type: string, id: string) => ({
     errors: [{ detail: `${type} ${id} not found` }],
   })),
+  serializeCollection: vi.fn(
+    (_req: unknown, _serializer: unknown, data: { docs: unknown[] }) => ({
+      data: data.docs,
+    }),
+  ),
   serializeSingle: vi.fn(
     (_req: unknown, _serializer: unknown, data: unknown) => ({ data }),
   ),
@@ -53,6 +58,7 @@ describe('LinkedInController', () => {
   const mockCredentialsService = {
     beginOAuthForBrand: vi.fn(),
     findOne: vi.fn(),
+    findConnectedAccounts: vi.fn(),
     findOneSelect: vi.fn(),
     findPendingOAuthCredential: vi.fn(),
     patch: vi.fn(),
@@ -484,6 +490,93 @@ describe('LinkedInController', () => {
       });
     });
   });
+  describe('findAllAccounts', () => {
+    const user =
+      mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser;
+    const pendingCredential = {
+      accessToken: 'encrypted-token',
+      brandId,
+      id: 'pending-credential',
+    };
+    const accounts = [
+      {
+        id: 'urn:li:organization:5515715',
+        kind: 'organization',
+        label: 'Acme Studio',
+      },
+      { id: 'member-1', kind: 'member', label: 'Pat Doe' },
+    ];
+
+    it('lists the pages and the profile, flagging one this brand already holds', async () => {
+      mockCredentialsService.findOne.mockResolvedValueOnce(pendingCredential);
+      mockLinkedInService.listAuthorizedAccounts.mockResolvedValueOnce(
+        accounts,
+      );
+      mockCredentialsService.findConnectedAccounts.mockResolvedValueOnce([
+        { externalId: 'member-1', id: 'other-credential' },
+      ]);
+
+      const result = await controller.findAllAccounts(
+        mockRequest,
+        user,
+        'pending-credential',
+      );
+
+      expect(result).toEqual({
+        data: [
+          {
+            id: 'urn:li:organization:5515715',
+            isAlreadyConnected: false,
+            kind: 'organization',
+            label: 'Acme Studio',
+            platform: 'linkedin',
+          },
+          {
+            id: 'member-1',
+            isAlreadyConnected: true,
+            kind: 'member',
+            label: 'Pat Doe',
+            platform: 'linkedin',
+          },
+        ],
+      });
+      expect(mockLinkedInService.listAuthorizedAccounts).toHaveBeenCalledWith(
+        'decrypted:encrypted-token',
+      );
+    });
+
+    it('rejects a credential that holds no token yet', async () => {
+      mockCredentialsService.findOne.mockResolvedValueOnce({ id: 'x' });
+
+      const result = await controller.findAllAccounts(mockRequest, user, 'x');
+
+      expect(result).toEqual({
+        errors: [
+          {
+            detail: 'LinkedIn account is not connected',
+            title: 'Not Connected',
+          },
+        ],
+      });
+    });
+
+    it('asks the member to reconnect when LinkedIn rejects the token', async () => {
+      mockCredentialsService.findOne.mockResolvedValueOnce(pendingCredential);
+      mockLinkedInService.listAuthorizedAccounts.mockRejectedValueOnce({
+        response: { status: 401 },
+      });
+
+      const error = await expectHttpStatus(
+        controller.findAllAccounts(mockRequest, user, 'pending-credential'),
+        HttpStatus.UNAUTHORIZED,
+      );
+
+      expect(error.getResponse()).toMatchObject({
+        title: 'Authentication failed',
+      });
+    });
+  });
+
   describe('selectAccount', () => {
     const credId = 'pending-credential';
     const user =

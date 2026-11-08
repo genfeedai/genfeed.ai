@@ -10,15 +10,11 @@ import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import LinkedInAccountSelector from '@/features/auth/components/modals/brands/linkedin/LinkedInAccountSelector';
 
-const mockCredentialsService: {
-  findCredentialLinkedInAccounts: ReturnType<typeof vi.fn>;
-} = vi.hoisted(() => ({
-  findCredentialLinkedInAccounts: vi.fn(),
-}));
-
 const mockServicesService: {
+  findLinkedInAccounts: Mock<(...args: unknown[]) => unknown>;
   postSelectAccount: Mock<(...args: unknown[]) => unknown>;
 } = vi.hoisted(() => ({
+  findLinkedInAccounts: vi.fn(),
   postSelectAccount: vi.fn(),
 }));
 
@@ -41,14 +37,13 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
 // `new` semantics intact while still routing calls through the shared mock.
 vi.mock('@genfeedai/services/external/services.service', () => ({
   ServicesService: class {
+    findLinkedInAccounts(...args: unknown[]) {
+      return mockServicesService.findLinkedInAccounts(...args);
+    }
     postSelectAccount(...args: unknown[]) {
       return mockServicesService.postSelectAccount(...args);
     }
   },
-}));
-
-vi.mock('@genfeedai/services/organization/credentials.service', () => ({
-  CredentialsService: { getInstance: () => mockCredentialsService },
 }));
 
 vi.mock('next-intl', async () => {
@@ -78,12 +73,12 @@ describe('LinkedInAccountSelector', () => {
   ];
 
   beforeEach(() => {
-    mockCredentialsService.findCredentialLinkedInAccounts = vi.fn();
+    mockServicesService.findLinkedInAccounts = vi.fn();
     mockServicesService.postSelectAccount = vi.fn();
   });
 
   it('offers the company pages and the personal profile, each labelled by kind', async () => {
-    mockCredentialsService.findCredentialLinkedInAccounts.mockResolvedValue(
+    mockServicesService.findLinkedInAccounts.mockResolvedValue(
       candidateAccounts,
     );
 
@@ -98,13 +93,14 @@ describe('LinkedInAccountSelector', () => {
     const profile = screen.getByRole('radio', { name: /Pat Doe/ });
     expect(page).toHaveTextContent('Company page');
     expect(profile).toHaveTextContent('Personal profile');
-    expect(
-      mockCredentialsService.findCredentialLinkedInAccounts,
-    ).toHaveBeenCalledWith(credentialId, expect.any(AbortSignal));
+    expect(mockServicesService.findLinkedInAccounts).toHaveBeenCalledWith(
+      credentialId,
+      expect.any(AbortSignal),
+    );
   });
 
   it('selects nothing by default, so the personal profile is never the silent choice', async () => {
-    mockCredentialsService.findCredentialLinkedInAccounts.mockResolvedValue(
+    mockServicesService.findLinkedInAccounts.mockResolvedValue(
       candidateAccounts,
     );
 
@@ -118,14 +114,17 @@ describe('LinkedInAccountSelector', () => {
     expect(
       await screen.findByRole('radio', { name: /Pat Doe/ }),
     ).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('radio', { name: /Acme Studio/ })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
     expect(
-      screen.getByRole('radio', { name: /Acme Studio/ }),
-    ).toHaveAttribute('aria-checked', 'false');
-    expect(screen.getByRole('button', { name: 'Post as this account' })).toBeDisabled();
+      screen.getByRole('button', { name: 'Post as this account' }),
+    ).toBeDisabled();
   });
 
   it('flags an account another connection of this brand already holds', async () => {
-    mockCredentialsService.findCredentialLinkedInAccounts.mockResolvedValue([
+    mockServicesService.findLinkedInAccounts.mockResolvedValue([
       { ...candidateAccounts[1], isAlreadyConnected: true },
     ]);
 
@@ -141,7 +140,7 @@ describe('LinkedInAccountSelector', () => {
 
   it('connects the page the member picked and reports it', async () => {
     const onConnected = vi.fn();
-    mockCredentialsService.findCredentialLinkedInAccounts.mockResolvedValue(
+    mockServicesService.findLinkedInAccounts.mockResolvedValue(
       candidateAccounts,
     );
     mockServicesService.postSelectAccount.mockResolvedValue({});
@@ -154,7 +153,9 @@ describe('LinkedInAccountSelector', () => {
     );
 
     fireEvent.click(await screen.findByRole('radio', { name: /Acme Studio/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Post as this account' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Post as this account' }),
+    );
 
     await waitFor(() => {
       expect(mockServicesService.postSelectAccount).toHaveBeenCalledWith(
@@ -170,12 +171,10 @@ describe('LinkedInAccountSelector', () => {
 
   it('shows an error and stays on the picker when connecting the account fails', async () => {
     const onConnected = vi.fn();
-    mockCredentialsService.findCredentialLinkedInAccounts.mockResolvedValue(
+    mockServicesService.findLinkedInAccounts.mockResolvedValue(
       candidateAccounts,
     );
-    mockServicesService.postSelectAccount.mockRejectedValue(
-      new Error('boom'),
-    );
+    mockServicesService.postSelectAccount.mockRejectedValue(new Error('boom'));
 
     render(
       <LinkedInAccountSelector
@@ -185,7 +184,9 @@ describe('LinkedInAccountSelector', () => {
     );
 
     fireEvent.click(await screen.findByRole('radio', { name: /Pat Doe/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Post as this account' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Post as this account' }),
+    );
 
     expect(
       await screen.findByText(
@@ -196,7 +197,7 @@ describe('LinkedInAccountSelector', () => {
   });
 
   it('shows a retry when the accounts cannot be loaded', async () => {
-    mockCredentialsService.findCredentialLinkedInAccounts.mockRejectedValue(
+    mockServicesService.findLinkedInAccounts.mockRejectedValue(
       new Error('network'),
     );
 
@@ -217,7 +218,7 @@ describe('LinkedInAccountSelector', () => {
 
   it('cancels without saving anything', async () => {
     const onBack = vi.fn();
-    mockCredentialsService.findCredentialLinkedInAccounts.mockResolvedValue(
+    mockServicesService.findLinkedInAccounts.mockResolvedValue(
       candidateAccounts,
     );
 

@@ -93,7 +93,7 @@ import { TagSerializer } from '@serializers/server/management/tag.serializer';
 import { BrandSerializer } from '@serializers/server/organizations/brand.serializer';
 import {
   CredentialInstagramPagesSerializer,
-  CredentialLinkedInAccountsSerializer,
+  CredentialLinkedinAccountsSerializer,
   CredentialOAuthSerializer,
   CredentialSerializer,
 } from '@serializers/server/organizations/credential.serializer';
@@ -454,9 +454,9 @@ describe('Server Serializers', () => {
     });
   });
 
-  describe('CredentialLinkedInAccountsSerializer', () => {
+  describe('CredentialLinkedinAccountsSerializer', () => {
     it('serializes the account kind so the picker can tell a page from a profile', () => {
-      const document = CredentialLinkedInAccountsSerializer.serialize([
+      const document = CredentialLinkedinAccountsSerializer.serialize([
         {
           id: 'urn:li:organization:42',
           isAlreadyConnected: false,

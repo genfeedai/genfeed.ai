@@ -7,15 +7,20 @@ import {
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { throwIfOAuthCallbackError } from '@api/collections/credentials/utils/oauth-callback-error.util';
 import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { API_KEY_CONNECTED_ACCOUNT_READ_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import {
   returnBadRequest,
   returnNotFound,
+  serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { LinkedInAuthorizedSignalsService } from '@api/services/integrations/linkedin/services/linkedin-authorized-signals.service';
+import { isLinkedinAuthorizationError } from '@api/services/integrations/linkedin/utils/linkedin-error.util';
 import {
   getSafeLinkedInOAuthErrorLog,
   throwMappedLinkedInOAuthError,
@@ -23,6 +28,7 @@ import {
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
+  CredentialLinkedinAccountsSerializer,
   CredentialOAuthSerializer,
   CredentialSerializer,
 } from '@genfeedai/serializers';
@@ -32,6 +38,7 @@ import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   Body,
   Controller,
+  Get,
   HttpException,
   HttpStatus,
   Param,
@@ -188,8 +195,84 @@ export class LinkedInController {
   }
 
   /**
+   * Step 2: the accounts this connection can post as: the member's profile and
+   * every company page they hold a posting role on. Read with the credential's
+   * own token, so the picker never offers more than a selection will accept
+   * (see `selectAccount`).
+   */
+  @TenantReadPolicy('mutating')
+  @RequiredScopes(...API_KEY_CONNECTED_ACCOUNT_READ_SCOPES)
+  @Get(':credentialId/accounts')
+  async findAllAccounts(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('credentialId') credentialId: string,
+  ) {
+    const credential = await this.credentialsService.findOne({
+      id: credentialId,
+      organizationId: user.organizationId,
+      platform: CredentialPlatform.LINKEDIN,
+    });
+
+    if (!credential?.accessToken) {
+      return returnBadRequest({
+        detail: 'LinkedIn account is not connected',
+        title: 'Not Connected',
+      });
+    }
+
+    try {
+      const accounts = await this.linkedInService.listAuthorizedAccounts(
+        EncryptionUtil.decrypt(credential.accessToken),
+      );
+
+      // Flag accounts another live credential of this brand already holds. The
+      // picker still lists them: choosing one is a deliberate reconnect that
+      // merges into that incumbent.
+      const heldAccounts = credential.brandId
+        ? await this.credentialsService.findConnectedAccounts(
+            user.organizationId,
+            credential.brandId,
+            CredentialPlatform.LINKEDIN,
+          )
+        : [];
+      const heldExternalIds = new Set(
+        heldAccounts
+          .filter((account) => account.id !== credential.id)
+          .map((account) => account.externalId)
+          .filter((externalId): externalId is string => Boolean(externalId)),
+      );
+
+      return serializeCollection(
+        request,
+        CredentialLinkedinAccountsSerializer,
+        {
+          docs: accounts.map((account) => ({
+            ...account,
+            isAlreadyConnected: heldExternalIds.has(account.id),
+            platform: CredentialPlatform.LINKEDIN,
+          })),
+        },
+      );
+    } catch (error: unknown) {
+      if (isLinkedinAuthorizationError(error)) {
+        throw new HttpException(
+          {
+            detail:
+              'Your LinkedIn connection has expired. Please reconnect your LinkedIn account.',
+            title: 'Authentication failed',
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  /**
    * Step 3: the member has chosen which account this connection posts as,
-   * from `GET /credentials/:credentialId/linkedin/accounts`. The page or
+   * from `GET :credentialId/accounts`. The page or
    * profile is re-read from LinkedIn with this credential's own token and the
    * request supplies only its id, so a client cannot claim a page the token
    * does not administer. The connection is not live, and publishes nowhere,
