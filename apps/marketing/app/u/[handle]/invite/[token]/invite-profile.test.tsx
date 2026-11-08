@@ -175,6 +175,20 @@ describe('InviteProfile', () => {
     expect(screen.getByRole('button', { name: UNLOCK })).toBeEnabled();
   });
 
+  it('turns into the dead-link page when the key expires before unlock', async () => {
+    fetchMock.mockImplementation(answerInvite(404));
+
+    render(<InviteProfile handle="acme-invoices" token={TOKEN} />);
+    fireEvent.click(await screen.findByRole('button', { name: UNLOCK }));
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'This invite link is no longer active',
+      }),
+    ).toBeVisible();
+    expect(screen.queryByText('Acme Invoices')).toBeNull();
+  });
+
   it('shows one plain message, with no brand data, for an unknown, expired or revoked key', async () => {
     fetchMock.mockResolvedValue(new Response('{}', { status: 404 }));
 

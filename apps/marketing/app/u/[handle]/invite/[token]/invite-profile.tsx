@@ -94,6 +94,12 @@ export default function InviteProfile({ handle, token }: InviteProfileProps) {
         method: 'POST',
         referrerPolicy: 'no-referrer',
       });
+      // A key that expired or was revoked while the page was open answers 404:
+      // show the same dead-link state as on load, not a retry.
+      if (response.status === 404) {
+        setState({ status: 'unavailable' });
+        return;
+      }
       setUnlockStatus(response.ok ? 'sent' : 'failed');
     } catch {
       setUnlockStatus('failed');

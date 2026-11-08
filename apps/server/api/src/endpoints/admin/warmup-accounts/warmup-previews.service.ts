@@ -75,6 +75,12 @@ export class WarmupPreviewsService {
       throw new BadRequestException(
         'Every previewed post must be an unpublished draft of the prepared brand',
       );
+    // The link carries the brand's handle, so a deleted brand gets no preview.
+    const brand = await this.prisma.brand.findFirst({
+      select: { slug: true },
+      where: scopedWhere(organizationId, { id: brandId, isDeleted: false }),
+    });
+    if (!brand) throw new NotFoundException('Brand', brandId);
     const expiresAt = new Date(
       Date.now() +
         (dto.expiresInDays ?? DEFAULT_PREVIEW_LIFETIME_DAYS) * DAY_MS,
@@ -92,11 +98,6 @@ export class WarmupPreviewsService {
       actorUserId,
       `Minted content preview ${preview.id}.`,
     );
-    const brand = await this.prisma.brand.findFirst({
-      select: { slug: true },
-      where: scopedWhere(organizationId, { id: brandId, isDeleted: false }),
-    });
-    if (!brand) throw new NotFoundException('Brand', brandId);
     return {
       ...this.previews.toView(preview),
       token,
