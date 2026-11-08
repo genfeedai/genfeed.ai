@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  BOOTSTRAP_CREDENTIAL_VISIBLE,
   isBootstrapCredentialWrite,
   mapBootstrapCredentials,
 } from './brand-bootstrap-credentials.util';
@@ -63,5 +64,14 @@ describe('mapBootstrapCredentials', () => {
 
     expect(credential).not.toHaveProperty('grantedScopes');
     expect(credential?.directMessageCapability).toBeUndefined();
+  });
+});
+
+describe('BOOTSTRAP_CREDENTIAL_VISIBLE', () => {
+  it('embeds credentials that are connected or identified, never bare pending OAuth starts', () => {
+    expect(BOOTSTRAP_CREDENTIAL_VISIBLE).toEqual([
+      { isConnected: true },
+      { externalId: { not: null } },
+    ]);
   });
 });

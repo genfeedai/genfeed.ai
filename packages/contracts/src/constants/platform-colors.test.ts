@@ -39,6 +39,14 @@ describe('platform-colors', () => {
       expect(getPlatformDisplayName('INSTAGRAM')).toBe('Instagram');
     });
 
+    it.each([
+      ['google_ads', 'Google Ads'],
+      ['GOOGLE_ADS', 'Google Ads'],
+      ['google_search_console', 'Google Search Console'],
+    ])('labels %s as %s', (platform, label) => {
+      expect(getPlatformDisplayName(platform)).toBe(label);
+    });
+
     it('capitalizes unknown platform', () => {
       expect(getPlatformDisplayName('MYPLATFORM')).toBe('Myplatform');
     });
