@@ -140,13 +140,15 @@ function readPendingApproval(result: unknown): PendingApproval | null {
 const PREVIEW_MAX_LINES = 24;
 const PREVIEW_MAX_CHARS = 2400;
 const PREVIEW_SKIPPED_KEYS = new Set(['organization']);
+/** Repeated spaces, or any whitespace other than a single space. */
+const UNUSUAL_WHITESPACE = /\s\s|[^\S ]/;
 
 /**
  * A string exactly as stored: plain text as is, and anything with line breaks,
  * tabs, repeated or edge spaces quoted with escapes, so nothing is hidden.
  */
 function previewString(value: string): string {
-  const isPlain = value === value.trim() && !/\s\s|[^\S ]/.test(value);
+  const isPlain = value === value.trim() && !UNUSUAL_WHITESPACE.test(value);
   return isPlain ? value : JSON.stringify(value);
 }
 
