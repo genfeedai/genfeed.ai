@@ -15,6 +15,7 @@ import {
   returnBadRequest,
   returnInternalServerError,
   returnNotFound,
+  serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
@@ -325,25 +326,36 @@ export class InstagramController {
 
   /**
    * Step 3 (only when verify reported `needsAccountSelection`): the operator
-   * has picked one of the candidates from `GET
-   * /credentials/:credentialId/instagram/pages`. Handle/name/avatar are read
-   * from this endpoint's own re-fetch of the credential's authorized
-   * accounts — never trusted from the request body — so a client cannot
-   * claim an externalId the token does not actually authorize, and cannot
-   * repoint this credential onto an account it was never granted.
+   * has ticked one or more of the candidates from `GET
+   * /credentials/:credentialId/instagram/pages`. The first settles this
+   * credential and each further one becomes its own credential on the brand
+   * (see `InstagramConnectionResolverService.connectSelectedAccounts`).
+   * Handle/name/avatar are read from this endpoint's own re-fetch of the
+   * credential's authorized accounts — never trusted from the request body —
+   * so a client cannot claim an account the token does not authorize.
    */
   @Post(':credentialId/select-account')
   async selectAccount(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('credentialId') credentialId: string,
-    @Body() body: { externalId?: string },
+    @Body() body: { externalIds?: unknown },
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const externalIds = Array.isArray(body?.externalIds)
+      ? [
+          ...new Set(
+            body.externalIds.filter(
+              (externalId): externalId is string =>
+                typeof externalId === 'string' && externalId.length > 0,
+            ),
+          ),
+        ]
+      : [];
 
-    if (!body?.externalId) {
+    if (externalIds.length === 0) {
       return returnBadRequest({
-        detail: 'externalId is required',
+        detail: 'externalIds must name at least one account',
         title: 'Invalid payload',
       });
     }
@@ -356,10 +368,17 @@ export class InstagramController {
       },
       {
         accessToken: true,
+        accessTokenExpiry: true,
+        brandId: true,
+        externalBusinessId: true,
         externalId: true,
+        grantedScopes: true,
+        grantedScopesCapturedAt: true,
         id: true,
         isConnected: true,
         isDeleted: true,
+        isHistoryImportRequested: true,
+        userId: true,
       },
     );
 
@@ -393,13 +412,19 @@ export class InstagramController {
 
     try {
       const accessToken = EncryptionUtil.decrypt(credential.accessToken);
-      const accounts =
+      const authorized =
         await this.instagramService.listAuthorizedInstagramAccounts(
           accessToken,
         );
-      const chosen = accounts.find((account) => account.id === body.externalId);
+      const authorizedById = new Map(
+        authorized.map((account) => [account.id, account]),
+      );
+      const chosen = externalIds.flatMap((externalId) => {
+        const account = authorizedById.get(externalId);
+        return account ? [account] : [];
+      });
 
-      if (!chosen) {
+      if (chosen.length !== externalIds.length) {
         return returnBadRequest({
           detail:
             'That account is not authorized by this connection. Reconnect Instagram and try again.',
@@ -407,33 +432,20 @@ export class InstagramController {
         });
       }
 
-      let updated = await this.credentialsService.updateExternalProfile(
-        credential.id.toString(),
-        user.organizationId,
-        {
-          avatarUrl: chosen.image,
-          // `username` is optional on InstagramPageResponse — Graph can omit
-          // it on a reconnect. `undefined` means "leave the column as is";
-          // an explicit `null` here would wipe an existing good handle, the
-          // opposite of every other updateExternalProfile caller.
-          handle: chosen.username ?? undefined,
-          id: chosen.id,
-          name: chosen.label || chosen.username,
-        },
-      );
-
-      updated = await this.connectionResolver.finalizeConnection({
+      const connected = await this.connectionResolver.connectSelectedAccounts({
         accessToken,
-        credential: updated,
-        // Undefined so `finalizeConnection`'s signal refresh falls back to
-        // this credential's already-persisted grantedScopes, the same as
-        // any other post-connection refresh.
-        grantedScopes: undefined,
+        accounts: chosen,
+        credential: {
+          ...credential,
+          id: credential.id.toString(),
+        },
         organizationId: user.organizationId,
         url,
       });
 
-      return serializeSingle(request, CredentialSerializer, updated);
+      return serializeCollection(request, CredentialSerializer, {
+        docs: connected,
+      });
     } catch (error: unknown) {
       this.loggerService.error(
         `${url} failed`,

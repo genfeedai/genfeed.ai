@@ -7,8 +7,17 @@ import {
   getSafeInstagramOAuthErrorLog,
   parseInstagramGrantedScopes,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
+import {
+  INSTAGRAM_BASIC_SCOPE,
+  toInstagramTokenGrant,
+} from '@api/services/integrations/instagram/utils/instagram-token-grant.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
-import type { InstagramPageResponse } from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
+import type {
+  InstagramDebugTokenResponse,
+  InstagramPageResponse,
+  InstagramSelectionCredential,
+  InstagramTokenGrant,
+} from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
 import {
   META_GRAPH_API_VERSION,
   META_GRAPH_URL,
@@ -31,31 +40,6 @@ interface InstagramTokenExchangeResponse {
 interface InstagramBusinessIdentityResponse {
   client_business_id?: string;
 }
-
-/** `GET /debug_token`: what Meta says about the exchanged token. */
-interface InstagramDebugTokenResponse {
-  data?: {
-    expires_at?: number;
-    granular_scopes?: Array<{ scope?: string; target_ids?: string[] }>;
-    is_valid?: boolean;
-    scopes?: string[];
-  };
-}
-
-/** What Meta says one token was granted: permissions and the assets chosen. */
-interface InstagramTokenGrant {
-  /** Instagram account ids the customer chose for `instagram_basic`. */
-  instagramTargetIds: string[];
-  /** Permission names that carry chosen assets, for diagnosis. */
-  scopedPermissions: string[];
-  scopes: string[] | undefined;
-}
-
-/**
- * The permission without which an authorization can never publish, read
- * insights, or tell which account it refers to.
- */
-const INSTAGRAM_BASIC_SCOPE = 'instagram_basic';
 
 /**
  * The Instagram API with Unified Login orchestration behind
@@ -194,24 +178,16 @@ export class InstagramConnectionResolverService {
     }
 
     markStage('account_discovery');
-    let accounts =
-      await this.instagramService.listAuthorizedInstagramAccounts(access_token);
-
-    if (accounts.length === 0 && !hasReadGrant) {
-      grant = await this.readTokenGrant(access_token, appId, appSecret);
-    }
-
-    if (accounts.length === 0 && grant?.instagramTargetIds.length) {
-      // The assigned-accounts edge can answer empty for a grant that does name
-      // accounts. The grant's own targets are the accounts the customer picked
-      // in Meta's dialog, so describe those instead of rejecting the connect.
-      accounts = await this.instagramService.describeInstagramAccounts(
-        grant.instagramTargetIds,
+    const accounts =
+      await this.instagramService.listAuthorizedInstagramAccounts(
         access_token,
+        grant?.instagramTargetIds,
       );
-    }
 
     if (accounts.length === 0) {
+      if (!hasReadGrant) {
+        grant = await this.readTokenGrant(access_token, appId, appSecret);
+      }
       this.loggerService.warn(
         'InstagramConnectionResolverService - Meta authorized no Instagram account',
         {
@@ -261,23 +237,7 @@ export class InstagramConnectionResolverService {
             },
           ),
         );
-      const data = response.data?.data;
-      const granular = Array.isArray(data?.granular_scopes)
-        ? data.granular_scopes
-        : [];
-      return {
-        instagramTargetIds: [
-          ...new Set(
-            granular
-              .filter((entry) => entry.scope === INSTAGRAM_BASIC_SCOPE)
-              .flatMap((entry) => entry.target_ids ?? []),
-          ),
-        ],
-        scopedPermissions: granular
-          .map((entry) => entry.scope)
-          .filter((name): name is string => typeof name === 'string'),
-        scopes: Array.isArray(data?.scopes) ? data.scopes : undefined,
-      };
+      return toInstagramTokenGrant(response.data?.data);
     } catch (error: unknown) {
       this.loggerService.warn(
         'InstagramConnectionResolverService - Could not read granted scopes',
@@ -400,6 +360,170 @@ export class InstagramConnectionResolverService {
     );
 
     return { credential: updated, needsSelection: false };
+  }
+
+  /**
+   * Settle a credential that verify left as `needsSelection` onto every
+   * account the operator ticked, in the order given. The first account
+   * settles this credential. Each further account becomes its own Instagram
+   * credential on the same brand and shares this connection's token, so one
+   * pass through Meta's dialog can connect several accounts. An account the
+   * brand already holds is merged into that credential by
+   * `CredentialsService.connectAccount`, exactly like a reconnect.
+   *
+   * The caller has already checked every account against the token's own
+   * authorized list. A further account that fails to save is logged and
+   * left out of the result instead of undoing the ones already connected;
+   * its half-made row is retired so no token stays on an unidentified row.
+   */
+  async connectSelectedAccounts(params: {
+    accessToken: string;
+    accounts: InstagramPageResponse[];
+    credential: InstagramSelectionCredential;
+    organizationId: string;
+    url: string;
+  }): Promise<Awaited<ReturnType<CredentialsService['patch']>>[]> {
+    const { accessToken, accounts, credential, organizationId, url } = params;
+    const [first, ...others] = accounts;
+    if (!first) {
+      return [];
+    }
+
+    // Further accounts are created on the pending credential's brand for its
+    // owner. Without either, refuse up front rather than connect the first
+    // account and silently drop the rest.
+    const brandId = credential.brandId;
+    const userId = credential.userId;
+    if (others.length > 0 && (!brandId || !userId)) {
+      throw new HttpException(
+        {
+          detail:
+            'This connection is missing its brand or owner, so it can connect only one account. Choose one account, or reconnect from the brand.',
+          title: 'Choose one account',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const connected = [
+      await this.connectSelectedAccount({
+        accessToken,
+        account: first,
+        credentialId: credential.id,
+        organizationId,
+        url,
+      }),
+    ];
+
+    if (!brandId || !userId) {
+      return connected;
+    }
+
+    for (const account of others) {
+      let siblingId: string | undefined;
+      try {
+        const sibling = await this.credentialsService.createPendingForBrand(
+          { id: brandId, organizationId },
+          userId,
+          CredentialPlatform.INSTAGRAM,
+          {
+            accessToken,
+            // The operator's history-import choice covers every account
+            // this connect adds, not just the first.
+            ...(typeof credential.isHistoryImportRequested === 'boolean'
+              ? {
+                  isHistoryImportRequested: credential.isHistoryImportRequested,
+                }
+              : {}),
+          },
+        );
+        siblingId = sibling.id.toString();
+        connected.push(
+          await this.connectSelectedAccount({
+            accessToken,
+            account,
+            connection: {
+              accessTokenExpiry: credential.accessTokenExpiry ?? null,
+              externalBusinessId: credential.externalBusinessId ?? null,
+              grantedScopes: credential.grantedScopes ?? [],
+              grantedScopesCapturedAt:
+                credential.grantedScopesCapturedAt ?? null,
+            },
+            credentialId: siblingId,
+            organizationId,
+            url,
+          }),
+        );
+      } catch (error: unknown) {
+        this.loggerService.warn(
+          `${url} could not connect an additional selected account`,
+          getSafeInstagramOAuthErrorLog(error),
+        );
+        if (siblingId) {
+          await this.retireSibling(siblingId, url);
+        }
+      }
+    }
+
+    // Two ticked accounts can never settle onto one row (each id is a
+    // distinct identity), so the result has no duplicates to collapse.
+    return connected;
+  }
+
+  /**
+   * Take the token off a further account's row that never settled. A failed
+   * cleanup is logged, not thrown, so it cannot undo the accounts already
+   * connected; the stale-pending reaper retires the row later.
+   */
+  private async retireSibling(siblingId: string, url: string): Promise<void> {
+    try {
+      await this.credentialsService.patch(siblingId, {
+        accessToken: null,
+        isDeleted: true,
+      });
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${url} could not retire an unsettled additional account`,
+        getSafeInstagramOAuthErrorLog(error),
+      );
+    }
+  }
+
+  /** Write one chosen account's identity onto a credential, then finish it. */
+  private async connectSelectedAccount(params: {
+    accessToken: string;
+    account: InstagramPageResponse;
+    connection?: Record<string, unknown>;
+    credentialId: string;
+    organizationId: string;
+    url: string;
+  }): Promise<Awaited<ReturnType<CredentialsService['patch']>>> {
+    const { accessToken, account, connection, credentialId, organizationId } =
+      params;
+    const settled = await this.credentialsService.connectAccount(
+      credentialId,
+      organizationId,
+      {
+        avatarUrl: account.image,
+        // `username` is optional on InstagramPageResponse — Graph can omit
+        // it. `undefined` means "leave the column as is"; an explicit `null`
+        // would wipe an existing good handle on a reconnect.
+        handle: account.username ?? undefined,
+        id: account.id,
+        name: account.label || account.username,
+      },
+      connection,
+    );
+
+    return this.finalizeConnection({
+      accessToken,
+      credential: settled,
+      // Undefined so the signal refresh falls back to the credential's
+      // already-persisted grantedScopes, like any post-connection refresh.
+      grantedScopes: undefined,
+      organizationId,
+      url: params.url,
+    });
   }
 
   /**

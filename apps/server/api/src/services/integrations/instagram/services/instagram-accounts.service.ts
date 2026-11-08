@@ -29,9 +29,8 @@ export class InstagramAccountsService {
    * `access_token` in a string that ends up in request logs and history) and
    * stops after `INSTAGRAM_ACCOUNT_LIST_MAX_PAGES` batches so a
    * pathologically large or looping result set cannot hang the request.
-   * This is the single source of truth for "which accounts can this token
-   * act as" — both verify-time resolution and the reconnect picker
-   * (`CredentialsController.findAllInstagramPages`) read it directly.
+   * `InstagramService.listAuthorizedInstagramAccounts` reads this first and
+   * falls back to the token's grant targets when it answers empty.
    *
    * The list edge documents only `id` and `username`; the display name and
    * avatar are read per account and are best-effort.
