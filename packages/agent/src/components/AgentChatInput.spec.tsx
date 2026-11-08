@@ -168,17 +168,17 @@ describe('AgentChatInput', () => {
 
     const shell = screen.getByTestId('agent-chat-input-shell');
 
-    expect(shell.className).toMatch(/bg-background\/55|backdrop-blur/);
+    expect(shell).toHaveClass('bg-accent');
     expect(shell).not.toHaveClass('opacity-50');
   });
 
-  it('uses the shared composer glass with no outer shadow', () => {
+  it('uses the shared composer plane with no outer shadow', () => {
     render(<AgentChatInput onSend={vi.fn()} />);
 
     const shell = screen.getByTestId('agent-chat-input-shell');
 
-    expect(shell).toHaveClass('bg-background/70', 'backdrop-blur-xl');
-    expect(shell).toHaveClass('border', 'border-border-strong/70');
+    expect(shell).toHaveClass('bg-accent');
+    expect(shell).toHaveClass('border', 'border-border');
     expect(shell.className).not.toMatch(/(^|\s)shadow-/);
   });
 

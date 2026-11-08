@@ -46,6 +46,14 @@ describe('website next.config', () => {
           ],
           source: '/',
         },
+        {
+          destination: '/creator-profile/:handle',
+          source: '/@:handle([a-z0-9]+(?:-[a-z0-9]+)*)',
+        },
+        {
+          destination: '/creator-profile/:handle/:path*',
+          source: '/@:handle([a-z0-9]+(?:-[a-z0-9]+)*)/:path*',
+        },
       ],
       fallback: [],
     });
@@ -75,6 +83,16 @@ describe('website next.config', () => {
       permanent: false,
       source: '/openapi.json',
     });
+  });
+
+  it('retires the pre-handle article addresses without a redirect', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: '/articles/:slug/:path*' }),
+      ]),
+    );
   });
 
   it('delegates authorization-server discovery without redirecting origin-bound resource metadata', async () => {

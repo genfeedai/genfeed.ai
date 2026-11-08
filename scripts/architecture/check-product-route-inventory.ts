@@ -80,6 +80,7 @@ export const ORGANIZATION_CATCH_ALL_PAGE = '/:orgSlug/~/:orgRootApp/*segments?';
 
 export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/library',
+  '/:orgSlug/~/library/voices/record',
   '/:orgSlug/~/library/:type',
   '/:orgSlug/~/library/shelf/:shelf',
   '/:orgSlug/~/editor',
@@ -146,9 +147,6 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/onboarding/providers',
     '/onboarding/success',
     '/onboarding/summary',
-  ] as const),
-  ...classifyPublicRoutes('app', 'public-content', [
-    '/preview/:token',
   ] as const),
   // Runtime-owned shells rather than ordinary public destinations. The
   // service worker renders /~offline after failed navigation; Electron owns
@@ -240,12 +238,21 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
   ] as const),
   ...classifyPublicRoutes('website', 'public-content', [
     '/articles',
-    '/articles/:slug',
-    '/articles/:slug/preview',
     '/changelog',
+    '/community',
+    // Served at /@:handle/* through a next.config rewrite: an `@` folder is a
+    // parallel-route slot, so the pages live under this internal segment.
+    '/creator-profile/:handle',
+    '/creator-profile/:handle/articles',
+    '/creator-profile/:handle/articles/:slug',
+    '/creator-profile/:handle/articles/:slug/preview',
+    '/creator-profile/:handle/images',
+    '/creator-profile/:handle/invite/:token',
+    '/creator-profile/:handle/posts',
+    '/creator-profile/:handle/posts/:id',
+    '/creator-profile/:handle/videos',
     '/posts',
     '/posts/:id',
-    '/u/:handle',
   ] as const),
   ...classifyPublicRoutes('website', 'legal', ['/privacy', '/terms'] as const),
   ...classifyPublicRoutes('website', 'transactional', [

@@ -1,3 +1,4 @@
+export * from '@serializers/configs/elements/avatar-twin.config';
 export * from '@serializers/configs/elements/blacklist.config';
 export * from '@serializers/configs/elements/camera.config';
 export * from '@serializers/configs/elements/camera-movement.config';

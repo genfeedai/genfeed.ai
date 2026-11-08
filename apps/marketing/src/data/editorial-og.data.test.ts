@@ -87,7 +87,7 @@ describe('dedicated editorial OG coverage', () => {
     expect(Object.keys(ARTICLE_OG_CARDS)).toHaveLength(57);
     expect(new Set(Object.values(ARTICLE_OG_CARDS)).size).toBe(57);
     for (const slug of Object.keys(ARTICLE_OG_CARDS))
-      expectDedicated(`/articles/${slug}`);
+      expectDedicated(`/@genfeedai/articles/${slug}`);
   });
 
   it('gives every Cloud help article matching header artwork and an editorial OG card', () => {
@@ -95,7 +95,7 @@ describe('dedicated editorial OG coverage', () => {
       const id = ARTICLE_OG_CARDS[slug];
       const cover = `https://cdn.genfeed.ai/assets/cards/articles/${id}.webp`;
       expect(getEditorialArticleCard(slug, cover)).toBe(id);
-      expectDedicated(`/articles/${slug}`);
+      expectDedicated(`/@genfeedai/articles/${slug}`);
       expect(MARKETING_OG_CARDS[id].artwork).toBe(
         `https://cdn.genfeed.ai/assets/og/${id}.jpg`,
       );

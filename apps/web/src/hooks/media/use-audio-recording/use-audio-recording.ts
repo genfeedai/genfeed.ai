@@ -4,6 +4,12 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface UseAudioRecordingOptions {
+  /**
+   * Browser noise suppression, echo cancellation and gain control. On by
+   * default; a voice-clone sample turns them off, because their artifacts
+   * end up in the cloned voice.
+   */
+  hasVoiceProcessing?: boolean;
   onError?: (error: string) => void;
   preferredMimeType?: string;
 }
@@ -15,6 +21,7 @@ const DEFAULT_MIME_TYPES = [
 ];
 
 export function useAudioRecording({
+  hasVoiceProcessing = true,
   onError,
   preferredMimeType,
 }: UseAudioRecordingOptions = {}) {
@@ -26,6 +33,8 @@ export function useAudioRecording({
 
   const [error, setError] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  /** Stopped, but the take is not saved yet: starting now would lose it. */
+  const [isFinalizing, setIsFinalizing] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const [recordedFile, setRecordedFile] = useState<File | null>(null);
 
@@ -61,6 +70,7 @@ export function useAudioRecording({
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
+      setIsFinalizing(true);
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
@@ -73,15 +83,17 @@ export function useAudioRecording({
       isMountedRef.current && generationRef.current === generation;
     cleanup();
     setIsRecording(false);
+    setIsFinalizing(false);
     try {
       setError(null);
       setRecordedFile(null);
 
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          autoGainControl: true,
-          echoCancellation: true,
-          noiseSuppression: true,
+          autoGainControl: hasVoiceProcessing,
+          channelCount: 1,
+          echoCancellation: hasVoiceProcessing,
+          noiseSuppression: hasVoiceProcessing,
         },
       });
 
@@ -113,6 +125,7 @@ export function useAudioRecording({
 
       mediaRecorder.onstop = () => {
         if (!ownsRecording()) return;
+        setIsFinalizing(false);
         const blob = new Blob(chunksRef.current, {
           type: mediaRecorder.mimeType || 'audio/webm',
         });
@@ -155,11 +168,12 @@ export function useAudioRecording({
       cleanup();
       return false;
     }
-  }, [cleanup, onError, preferredMimeType]);
+  }, [cleanup, hasVoiceProcessing, onError, preferredMimeType]);
 
   return {
     clearRecordedFile: () => setRecordedFile(null),
     error,
+    isFinalizing,
     isRecording,
     isSupported,
     recordedFile,

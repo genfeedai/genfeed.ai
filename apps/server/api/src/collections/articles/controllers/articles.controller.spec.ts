@@ -66,8 +66,10 @@ describe('ArticlesController', () => {
     findOne: vi.fn(),
     getArticleVersions: vi.fn(),
     patch: vi.fn(),
-    publicArticleScope: { isHostedOrganization: vi.fn(async () => true) },
     remove: vi.fn(),
+    publicArticleScope: {
+      resolveHandle: vi.fn(async (): Promise<string | null> => 'genfeedai'),
+    },
     restoreArticleVersion: vi.fn(),
     update: vi.fn(),
   };
@@ -298,7 +300,7 @@ describe('ArticlesController', () => {
       });
       expect(result.expiresInSeconds).toBeGreaterThan(0);
       expect(result.url).toContain(
-        'https://genfeed.ai/articles/test-article?previewToken=',
+        'https://genfeed.ai/@genfeedai/articles/test-article/preview?previewToken=',
       );
     });
 
@@ -310,10 +312,10 @@ describe('ArticlesController', () => {
       expect(mockConfigService.get).not.toHaveBeenCalled();
     });
 
-    it('rejects a preview for an organization genfeed.ai does not host', async () => {
+    it('rejects a preview for an article without a public brand', async () => {
       mockArticlesService.findOne.mockResolvedValue(mockArticle);
-      mockArticlesService.publicArticleScope.isHostedOrganization.mockResolvedValueOnce(
-        false,
+      mockArticlesService.publicArticleScope.resolveHandle.mockResolvedValueOnce(
+        null,
       );
 
       await expect(

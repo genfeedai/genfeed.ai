@@ -44,9 +44,13 @@ describe('operator-shell helpers', () => {
     ['/agent/threads', { layout: 'master', threadId: undefined }],
     ['/agent/thread-1', { layout: 'master', threadId: 'thread-1' }],
     ['/agent/new', { layout: 'single', threadId: undefined }],
-    ['/agent/thread-1/full', { layout: 'single', threadId: 'thread-1' }],
-  ])('resolves %s to the conversation layout it hosts', (path, expected) => {
-    expect(resolveAgentConversationRoute(path)).toEqual(expected);
+    ['/agent/thread-1?view=full', { layout: 'single', threadId: 'thread-1' }],
+    ['/agent/threads?view=full', { layout: 'master', threadId: undefined }],
+  ])('resolves %s to the conversation layout it hosts', (url, expected) => {
+    const [path = '', search = ''] = url.split('?');
+    expect(
+      resolveAgentConversationRoute(path, new URLSearchParams(search)),
+    ).toEqual(expected);
   });
 
   it('resolves a scoped thread path the same as a normalized one', () => {
@@ -64,7 +68,12 @@ describe('operator-shell helpers', () => {
       layout: 'master',
       threadId: undefined,
     });
-    expect(resolveAgentConversationRoute('/agent/undefined/full')).toEqual({
+    expect(
+      resolveAgentConversationRoute(
+        '/agent/undefined',
+        new URLSearchParams('view=full'),
+      ),
+    ).toEqual({
       layout: 'single',
       threadId: undefined,
     });
@@ -73,8 +82,8 @@ describe('operator-shell helpers', () => {
   it('leaves non-conversation agent routes to their own page', () => {
     expect(resolveAgentConversationRoute('/agent/journey')).toBeNull();
     expect(resolveAgentConversationRoute('/agent/thread-1/extra')).toBeNull();
+    expect(resolveAgentConversationRoute('/agent/thread-1/full')).toBeNull();
     expect(resolveAgentConversationRoute('/agent/new/full')).toBeNull();
-    expect(resolveAgentConversationRoute('/agent/threads/full')).toBeNull();
     expect(resolveAgentConversationRoute('/workspace')).toBeNull();
     expect(resolveAgentConversationRoute('/agents')).toBeNull();
   });
@@ -82,7 +91,7 @@ describe('operator-shell helpers', () => {
   it('builds the thread href beside the master or full size', () => {
     expect(buildAgentThreadHref('thread-1')).toBe('/agent/thread-1');
     expect(buildAgentThreadHref('thread-1', { isFull: true })).toBe(
-      '/agent/thread-1/full',
+      '/agent/thread-1?view=full',
     );
   });
 
@@ -162,10 +171,10 @@ describe('operator-shell helpers', () => {
     expect(resolveOrganizationScopePath('/settings/knowledge')).toBe(
       '/settings/brands',
     );
-    expect(resolveOrganizationScopePath('/library/references')).toBe(
-      '/settings/brands',
-    );
     // Shared surfaces keep their path under org scope.
+    expect(resolveOrganizationScopePath('/library/references')).toBe(
+      '/library/references',
+    );
     expect(resolveOrganizationScopePath('/settings')).toBe('/settings');
     expect(resolveOrganizationScopePath('/settings/brands')).toBe(
       '/settings/brands',

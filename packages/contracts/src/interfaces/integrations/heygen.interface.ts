@@ -31,6 +31,17 @@ export interface HeyGenAvatarRef {
   connection: HeyGenConnectionRef;
 }
 
+/**
+ * A look chosen by id. The server reads it at the provider and stores the
+ * full `HeyGenAvatarRef`, so a client never vouches for readiness itself.
+ */
+export interface HeyGenAvatarSelection {
+  source: 'heygen-look';
+  lookId: string;
+  groupId: string | null;
+  ownership: 'private' | 'public';
+}
+
 /** HeyGen's catalogue gender, normalized; null when HeyGen does not say. */
 export type HeyGenGender = 'female' | 'male';
 
@@ -152,14 +163,22 @@ export interface IHeyGenAvatarsResponse {
   };
 }
 
+/**
+ * The workspace's own HeyGen connection: `invalid` means a key is saved but
+ * HeyGen rejects it.
+ */
+export type HeyGenConnectionState = 'connected' | 'disconnected' | 'invalid';
+
+export interface IHeyGenConnectionStatus {
+  provider: string;
+  isConnected: boolean;
+  hasCustomKey: boolean;
+  state: HeyGenConnectionState;
+}
+
 export interface IHeyGenStatusResponse {
   data: {
     type: 'service-status';
-    attributes: {
-      provider: string;
-      isConnected: boolean;
-      hasCustomKey: boolean;
-      error: string | null;
-    };
+    attributes: IHeyGenConnectionStatus;
   };
 }

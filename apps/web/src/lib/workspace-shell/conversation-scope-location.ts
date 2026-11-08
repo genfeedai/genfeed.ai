@@ -2,7 +2,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 
 const AGENT_PATH_SEGMENT_PATTERN = /\/agent(?:\/|$)/;
-const AGENT_THREAD_PATH_PATTERN = /^\/agent\/([^/]+)(?:\/full)?$/;
+const AGENT_THREAD_PATH_PATTERN = /^\/agent\/([^/]+)$/;
 
 interface BuildConversationScopeHrefParams {
   readonly brandSlug: string | null;
@@ -67,7 +67,7 @@ export function buildScopedThreadHref(
 
 /**
  * Extract a standard agent thread id from a normalized protected pathname
- * (`/agent/:id` or `/agent/:id/full`). Unthreaded entry routes return null.
+ * (`/agent/:id`). Unthreaded entry routes return null.
  */
 export function extractAgentThreadIdFromPathname(
   pathname: string,

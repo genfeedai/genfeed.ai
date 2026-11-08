@@ -1,8 +1,8 @@
 import type { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
-import type { PublicArticleScope } from '@api/collections/articles/utils/public-article-scope.util';
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { ChannelDispatchInput } from '@api/services/activity-recording/activity-recording.types';
+import { creatorArticlePath } from '@genfeedai/contracts/constants';
 import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -17,12 +17,12 @@ export function buildArticlePublishedDispatch(
   article: ArticleDocument,
   organizationId: string,
   publicBaseUrl: string | undefined,
+  handle: string | null,
 ): ChannelDispatchInput {
-  // Only Genfeed's own articles are hosted on the website; callers pass no
-  // base URL for any other organization.
+  // Only articles with a public handle are hosted on the website.
   const publicUrl =
-    article.slug && publicBaseUrl
-      ? `${publicBaseUrl.replace(TRAILING_SLASH_PATTERN, '')}/articles/${article.slug}`
+    article.slug && publicBaseUrl && handle
+      ? `${publicBaseUrl.replace(TRAILING_SLASH_PATTERN, '')}${creatorArticlePath(handle, article.slug)}`
       : undefined;
   return {
     deduplicationKey: `message.article-published/${article.id}`,
@@ -64,8 +64,8 @@ export async function sendArticlePublishedNotification(
     configService?: ConfigService;
     logger: LoggerService;
     organizationSettingsService?: OrganizationSettingsService;
-    /** Only the organization the website hosts gets a genfeed.ai link. */
-    publicArticleScope: PublicArticleScope;
+    /** Only an article with a public handle gets a genfeed.ai link. */
+    resolvePublicHandle: (articleId: string) => Promise<string | null>;
     source: string;
   },
   result: ArticleDocument,
@@ -77,7 +77,7 @@ export async function sendArticlePublishedNotification(
     configService,
     logger,
     organizationSettingsService,
-    publicArticleScope,
+    resolvePublicHandle,
     source,
   } = deps;
   if (
@@ -102,9 +102,8 @@ export async function sendArticlePublishedNotification(
       buildArticlePublishedDispatch(
         result,
         organizationId,
-        (await publicArticleScope.isHostedOrganization(organizationId))
-          ? configService.get('GENFEEDAI_PUBLIC_URL')
-          : undefined,
+        configService.get('GENFEEDAI_PUBLIC_URL'),
+        await resolvePublicHandle(String(result.id)),
       ),
     );
 

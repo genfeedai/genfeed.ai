@@ -20,7 +20,7 @@ export default function ProfileImages({ images }: ProfileImagesProps) {
 
   return (
     <div>
-      <Masonry columns={{ default: 1 }}>
+      <Masonry columns={{ default: 1, lg: 3, md: 2 }}>
         {visibleImages.map((image: IImage) => (
           <LazyMasonryImage
             key={image.id}

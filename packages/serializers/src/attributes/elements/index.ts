@@ -1,3 +1,4 @@
+export * from '@serializers/attributes/elements/avatar-twin.attributes';
 export * from '@serializers/attributes/elements/blacklist.attributes';
 export * from '@serializers/attributes/elements/camera.attributes';
 export * from '@serializers/attributes/elements/camera-movement.attributes';

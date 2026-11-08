@@ -23,9 +23,9 @@ import type {
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
 import {
-  ArticleSerializer,
   IngredientSerializer,
   LinkSerializer,
+  PublicArticleSerializer,
   PublicBrandSerializer,
   VideoSerializer,
 } from '@genfeedai/serializers';
@@ -177,6 +177,7 @@ export class PublicBrandsController {
     // Scope is filtered in the query, not after the fetch — see findOneBySlug.
     const data = await this.brandsService.findOne({
       id: brandId,
+      isDeleted: false,
       scope: AssetScope.PUBLIC,
     });
 
@@ -388,7 +389,7 @@ export class PublicBrandsController {
     };
 
     const data = await this.articlesService.findAll(aggregate, options);
-    return serializeCollection(request, ArticleSerializer, data);
+    return serializeCollection(request, PublicArticleSerializer, data);
   }
 
   /**
@@ -408,7 +409,7 @@ export class PublicBrandsController {
     this.logger.log(url, logContext);
 
     const brand = await this.brandsService.findOne(
-      { id: brandId, scope: AssetScope.PUBLIC },
+      { id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
       'none',
     );
 

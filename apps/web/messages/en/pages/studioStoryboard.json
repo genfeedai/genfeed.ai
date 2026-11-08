@@ -588,6 +588,7 @@
     "remove": "Remove slide {ordinal}",
     "addSlide": "Add slide",
     "maxSlides": "A slideshow has at most 12 slides.",
+    "channelLimit": "{channel} carousels take up to {max} images. A slideshow of {count} can't publish there; remove {extra, plural, one {# slide} other {# slides}} first.",
     "newSlideLabel": "New slide",
     "postTitle": "Post",
     "postNeedsApproval": "Approve the slides to save them as a draft post.",

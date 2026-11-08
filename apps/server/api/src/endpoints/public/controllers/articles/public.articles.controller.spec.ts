@@ -32,7 +32,7 @@ vi.mock('@genfeedai/serializers', async (importOriginal) => {
     await importOriginal<typeof import('@genfeedai/serializers')>();
   return {
     ...actual,
-    ArticleSerializer: { opts: {}, serialize: vi.fn((data) => data) },
+    PublicArticleSerializer: { opts: {}, serialize: vi.fn((data) => data) },
   };
 });
 

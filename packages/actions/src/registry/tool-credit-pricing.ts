@@ -87,6 +87,19 @@ function avatarClipCreditRange(): { maximum: number; minimum: number } {
   return { maximum: Math.max(...perSecond), minimum: 0 };
 }
 
+/**
+ * What an avatar `generate` call costs, in words: HeyGen bills per second of
+ * the rendered clip, so the price settles to the clip length instead of
+ * being a frozen per-request quote.
+ */
+export function describeAvatarVideoPricing(): string {
+  return describeCreditPricing({
+    ...avatarClipCreditRange(),
+    mode: 'variable',
+    unit: 'second of avatar video',
+  });
+}
+
 export function fixedCreditPricing(amount: number): ToolCreditPricing {
   return { amount, mode: 'fixed' };
 }

@@ -1,3 +1,5 @@
+import { formatPlatformLabel } from '../enums/platform.util';
+
 export const PLATFORM_COLORS = {
   beehiiv: {
     base: '#FCD34D',
@@ -211,7 +213,10 @@ export function getPlatformDisplayName(platform?: string): string {
     return platformData.name;
   }
 
-  return platform.charAt(0).toUpperCase() + platform.slice(1).toLowerCase();
+  return (
+    formatPlatformLabel(platform) ??
+    platform.charAt(0).toUpperCase() + platform.slice(1).toLowerCase()
+  );
 }
 
 export function getDiscordEmbedColor(platform?: string): number {

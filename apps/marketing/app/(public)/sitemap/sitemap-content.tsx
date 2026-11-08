@@ -83,6 +83,8 @@ export const SITE_DIRECTORY: readonly DirectorySection[] = [
       { href: '/pricing', label: 'Pricing' },
       { href: '/affiliates', label: 'Affiliates' },
       { href: '/articles', label: 'Articles' },
+      { href: '/community', label: 'Community' },
+      { href: '/@genfeedai', label: 'Genfeed on Genfeed' },
       { href: '/changelog', label: 'Changelog' },
       { href: '/posts', label: 'Posts by ingredient' },
       { href: '/benchmark', label: 'Benchmark' },

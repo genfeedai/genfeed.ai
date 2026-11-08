@@ -14,6 +14,11 @@ import {
 } from '@api/services/integrations/elevenlabs/elevenlabs-error.util';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import { ElevenLabsConnectionService } from '@api/services/integrations/elevenlabs/services/elevenlabs-connection.service';
+import {
+  describeVoiceCloneFailure,
+  type HeyGenClonedVoice,
+} from '@api/services/integrations/heygen/helpers/heygen-twin';
+import { HeyGenTwinService } from '@api/services/integrations/heygen/services/heygen-twin.service';
 import { ManagedInferenceRuntimeService } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -31,6 +36,11 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 
+/** An instant clone is usually ready within seconds. */
+export const HEYGEN_CLONE_POLL_INTERVAL_MS = 2_000;
+/** Stay well inside the HTTP request timeout. */
+export const HEYGEN_CLONE_WAIT_MS = 40_000;
+
 @Traced()
 @Injectable()
 export class VoiceCloneService {
@@ -39,6 +49,7 @@ export class VoiceCloneService {
   constructor(
     private readonly connectionService: ElevenLabsConnectionService,
     private readonly elevenLabsService: ElevenLabsService,
+    private readonly heyGenTwinService: HeyGenTwinService,
     private readonly managedInferenceRuntimeService: ManagedInferenceRuntimeService,
     private readonly loggerService: LoggerService,
     private readonly notificationsPublisherService: NotificationsPublisherService,
@@ -58,11 +69,11 @@ export class VoiceCloneService {
 
     try {
       if (provider === VoiceProvider.ELEVENLABS) {
-        await this.voiceCreditsService.settleElevenLabsCloneCredits(
-          request,
-          user.organizationId,
-        );
-        return await this.cloneWithElevenLabs(user, dto, file);
+        return await this.cloneWithElevenLabs(user, dto, file, request);
+      }
+
+      if (provider === VoiceProvider.HEYGEN) {
+        return await this.cloneWithHeyGen(user, dto, file, request);
       }
 
       if (provider === VoiceProvider.GENFEED_AI) {
@@ -123,6 +134,16 @@ export class VoiceCloneService {
         user.organizationId,
         voiceRecord.externalVoiceId,
         voiceRecord.providerData,
+      );
+    }
+
+    if (
+      voiceRecord.externalVoiceId &&
+      voiceRecord.voiceProvider === VoiceProvider.HEYGEN
+    ) {
+      await this.heyGenTwinService.deleteVoice(
+        user.organizationId,
+        voiceRecord.externalVoiceId,
       );
     }
 
@@ -199,12 +220,25 @@ export class VoiceCloneService {
     user: User,
     dto: CloneVoiceDto,
     file: Express.Multer.File | undefined,
+    request: Request,
   ): Promise<IngredientDocument> {
-    const connection =
-      (await this.connectionService.findPersonalConnection(
-        user.organizationId,
-      )) ??
-      (await this.connectionService.resolve(user.organizationId, 'platform'));
+    // A cloned voice is the person's own: it is created only in their own
+    // ElevenLabs account, never in the platform account, and the platform
+    // charges nothing for it.
+    const connection = await this.connectionService.findPersonalConnection(
+      user.organizationId,
+    );
+    if (!connection) {
+      throw new HttpException(
+        {
+          detail:
+            'Connect your ElevenLabs account in Settings → Integrations to clone your voice. The voice is created in your own account.',
+          title: 'ElevenLabs account required',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    this.voiceCreditsService.waivePersonalCloneCredits(request);
     let result: { voiceId: string; name: string };
     try {
       result = await this.elevenLabsService.cloneVoice(
@@ -271,6 +305,151 @@ export class VoiceCloneService {
     );
 
     return completedVoice;
+  }
+
+  /**
+   * An instant clone in the person's own HeyGen account, from a WAV or MP3
+   * sample. Like ElevenLabs, there is no platform fallback and no platform
+   * charge. The voice is saved only once HeyGen reports it active.
+   */
+  private async cloneWithHeyGen(
+    user: User,
+    dto: CloneVoiceDto,
+    file: Express.Multer.File | undefined,
+    request: Request,
+  ): Promise<IngredientDocument> {
+    if (!file) {
+      throw new HttpException(
+        {
+          detail: 'Record or upload a WAV or MP3 voice sample.',
+          title: 'Validation failed',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    let created: Awaited<ReturnType<HeyGenTwinService['cloneVoice']>>;
+    try {
+      created = await this.heyGenTwinService.cloneVoice(user.organizationId, {
+        audio: file.buffer,
+        contentType: file.mimetype,
+        name: dto.name,
+        removeBackgroundNoise: dto.removeBackgroundNoise ?? true,
+      });
+    } catch (error: unknown) {
+      throw toHttpException(error);
+    }
+    this.voiceCreditsService.waivePersonalCloneCredits(request);
+
+    // From here on the voice exists in the person's HeyGen account: any
+    // failure before it is saved here removes it again, so a retry never
+    // leaves an untracked clone behind under a name they cannot see.
+    let ingredientId: string;
+    try {
+      ingredientId = await this.saveHeyGenVoice(user, dto, created);
+    } catch (error: unknown) {
+      await this.heyGenTwinService
+        .deleteVoice(user.organizationId, created.voiceId)
+        .catch((cleanupError: unknown) => {
+          this.loggerService.error(
+            `${this.constructorName} could not remove unfinished HeyGen voice ${created.voiceId}`,
+            cleanupError,
+          );
+        });
+      throw error;
+    }
+
+    const completedVoice = await this.findRequiredVoice(
+      ingredientId,
+      'Voice not found after cloning',
+    );
+    // The voice is saved; a missed live update must not report it as failed.
+    try {
+      await this.notificationsPublisherService.publishAssetStatus(
+        ingredientId,
+        VoiceCloneStatus.READY,
+        user.userId ?? user.id,
+        { cloneStatus: VoiceCloneStatus.READY, provider: VoiceProvider.HEYGEN },
+      );
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} could not publish the cloned voice status`,
+        error,
+      );
+    }
+    return completedVoice;
+  }
+
+  /** Waits for HeyGen to finish the clone, then saves it as a voice here. */
+  private async saveHeyGenVoice(
+    user: User,
+    dto: CloneVoiceDto,
+    created: Awaited<ReturnType<HeyGenTwinService['cloneVoice']>>,
+  ): Promise<string> {
+    const voice = await this.waitForHeyGenVoice(
+      user.organizationId,
+      created.voiceId,
+    );
+    if (voice.status !== 'active') {
+      throw new HttpException(
+        {
+          detail:
+            voice.status === 'failed'
+              ? describeVoiceCloneFailure(voice.failureReason)
+              : 'HeyGen is taking longer than usual to create the voice. Try again in a few minutes.',
+          title: 'Cloning failed',
+        },
+        voice.status === 'failed'
+          ? HttpStatus.UNPROCESSABLE_ENTITY
+          : HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+
+    const { ingredientData } = await this.sharedService.createMediaDocuments(
+      user,
+      {
+        origin: IngredientOrigin.GENERATED,
+        brandId: user.brandId,
+        category: IngredientCategory.VOICE,
+        label: dto.name,
+        organizationId: user.organizationId,
+        status: IngredientStatus.GENERATED,
+      },
+    );
+    const ingredientId = String(ingredientData.id);
+    await this.voicesService.patchAll(
+      { id: ingredientId },
+      {
+        cloneStatus: VoiceCloneStatus.READY,
+        externalVoiceId: created.voiceId,
+        isCloned: true,
+        isDefaultSelectable: true,
+        isVoiceActive: true,
+        providerData: {
+          heygen: { connection: created.connection, version: 1 },
+        },
+        sampleAudioUrl: voice.previewAudioUrl,
+        voiceProvider: VoiceProvider.HEYGEN,
+        voiceSource: 'cloned',
+      },
+    );
+    return ingredientId;
+  }
+
+  private async waitForHeyGenVoice(
+    organizationId: string,
+    voiceId: string,
+  ): Promise<HeyGenClonedVoice> {
+    const deadline = Date.now() + HEYGEN_CLONE_WAIT_MS;
+    for (;;) {
+      const voice = await this.heyGenTwinService.getVoice(
+        organizationId,
+        voiceId,
+      );
+      if (voice.status !== 'pending' || Date.now() >= deadline) return voice;
+      await new Promise((resolve) =>
+        setTimeout(resolve, HEYGEN_CLONE_POLL_INTERVAL_MS),
+      );
+    }
   }
 
   private async cloneWithGenfeedAi(
@@ -429,4 +608,34 @@ export class VoiceCloneService {
 
     return voice;
   }
+}
+
+/** Keeps a provider's 4xx (bad sample, missing key, rate limit) as the reply. */
+function toHttpException(error: unknown): unknown {
+  if (!(error instanceof HttpException)) return error;
+  const status = error.getStatus();
+  if (status >= 500) return error;
+  const response = error.getResponse();
+  const detail =
+    typeof response === 'string'
+      ? response
+      : typeof response === 'object' &&
+          response &&
+          'message' in response &&
+          typeof response.message === 'string'
+        ? response.message
+        : error.message;
+  const isMissingKey = detail.startsWith(
+    'Reconnect your personal HeyGen account',
+  );
+  return new HttpException(
+    isMissingKey
+      ? {
+          detail:
+            'Connect your HeyGen account in Settings → Integrations to clone your voice. The voice is created in your own account.',
+          title: 'HeyGen account required',
+        }
+      : { detail, title: 'Cloning failed' },
+    status,
+  );
 }

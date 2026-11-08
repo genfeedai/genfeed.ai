@@ -8,10 +8,32 @@ import { getAllIntegrationSlugs } from '@data/integrations.data';
 import { launchArticleSlugs } from '@data/launch-articles.data';
 import { getAllProductSlugs } from '@data/products.data';
 import { getAllUseCaseSlugs } from '@data/use-cases.data';
+import {
+  articleHandle,
+  creatorArticlePath,
+  creatorProfilePath,
+  GENFEED_BRAND_HANDLE,
+} from '@genfeedai/contracts/constants';
 import { PublicService } from '@services/external/public.service';
 import type { MetadataRoute } from 'next';
 
 export const dynamic = 'force-dynamic';
+
+const SITE_URL = 'https://genfeed.ai';
+/** The public brands endpoint caps a page at 100: the newest profiles. */
+const SITEMAP_PROFILE_LIMIT = 100;
+
+function articleUrl(handle: string, slug: string): string {
+  return `${SITE_URL}${creatorArticlePath(handle, slug)}`;
+}
+
+function profileRoute(handle: string): MetadataRoute.Sitemap[number] {
+  return {
+    changeFrequency: 'weekly',
+    priority: 0.7,
+    url: `${SITE_URL}${creatorProfilePath(handle)}`,
+  };
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const agentClientSlugs = getAllAgentClientSlugs();
@@ -237,6 +259,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: 'https://genfeed.ai/articles',
     },
     {
+      changeFrequency: 'daily',
+      priority: 0.8,
+      url: 'https://genfeed.ai/community',
+    },
+    {
       changeFrequency: 'weekly',
       priority: 0.7,
       url: 'https://genfeed.ai/posts',
@@ -351,6 +378,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `https://genfeed.ai/use-cases/${slug}`,
   }));
 
+  const articleHandles = new Set<string>([GENFEED_BRAND_HANDLE]);
   let articleRoutes: MetadataRoute.Sitemap = [];
   let hasLoadedPublicArticles = false;
   try {
@@ -365,13 +393,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           return routes;
         }
 
+        const handle = articleHandle(article.brand?.slug);
+        articleHandles.add(handle);
         routes.push({
           changeFrequency: 'weekly' as const,
           ...(article.updatedAt
             ? { lastModified: new Date(article.updatedAt) }
             : {}),
           priority: 0.8,
-          url: `https://genfeed.ai/articles/${article.slug}`,
+          url: articleUrl(handle, article.slug),
         });
 
         return routes;
@@ -385,18 +415,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   const knownArticleUrls = new Set(articleRoutes.map((route) => route.url));
+  // The bundled launch and help articles are Genfeed's own.
   const fallbackArticleRoutes: MetadataRoute.Sitemap = hasLoadedPublicArticles
     ? []
     : [...launchArticleSlugs, ...helpArticleSlugs]
-        .filter(
-          (slug) =>
-            !knownArticleUrls.has(`https://genfeed.ai/articles/${slug}`),
-        )
-        .map((slug) => ({
+        .map((slug) => articleUrl(GENFEED_BRAND_HANDLE, slug))
+        .filter((url) => !knownArticleUrls.has(url))
+        .map((url) => ({
           changeFrequency: 'weekly' as const,
           priority: 0.8,
-          url: `https://genfeed.ai/articles/${slug}`,
+          url,
         }));
+
+  // Every handle that published an article, plus the newest public profiles.
+  const profileHandles = new Set(articleHandles);
+  try {
+    const brands = await PublicService.getInstance().findPublicBrands({
+      limit: SITEMAP_PROFILE_LIMIT,
+    });
+    for (const brand of brands) {
+      if (brand.slug) {
+        profileHandles.add(brand.slug);
+      }
+    }
+  } catch {
+    // Profiles behind published articles stay listed without the brand list.
+  }
+  const profileRoutes: MetadataRoute.Sitemap = [...profileHandles].map(
+    profileRoute,
+  );
 
   const allRoutes = [
     ...staticRoutes,
@@ -408,6 +455,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...bestListRoutes,
     ...integrationRoutes,
     ...useCaseRoutes,
+    ...profileRoutes,
     ...articleRoutes,
     ...fallbackArticleRoutes,
   ];

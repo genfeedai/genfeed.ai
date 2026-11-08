@@ -428,5 +428,174 @@
     "captionedTitle": "Captioned Versions ({count})",
     "empty": "No child assets found",
     "loading": "Loading child assets"
+  },
+  "avatarTwin": {
+    "title": "Create your digital twin",
+    "subtitle": "Record yourself once. Genfeed trains an avatar and a voice of you in your own HeyGen account, so every video can star you.",
+    "steps": {
+      "connect": "Connect",
+      "record": "Record",
+      "consent": "Consent",
+      "done": "Ready"
+    },
+    "connect": {
+      "title": "Connect your HeyGen account",
+      "body": "Your twin, your consent and your voice are created in your own HeyGen account, never in Genfeed's. Add your HeyGen API key in Integrations, then come back.",
+      "invalid": "HeyGen rejected the saved API key. Update it in Integrations, then come back.",
+      "action": "Open Integrations",
+      "check": "I connected it"
+    },
+    "record": {
+      "intro": "Sit facing the camera in good light, somewhere quiet. Read the script below at your normal pace. About 2 minutes works best.",
+      "onlyYou": "Record only yourself. The person on camera must also record the consent statement.",
+      "enableCamera": "Turn on camera",
+      "start": "Start recording",
+      "stop": "Stop",
+      "retake": "Record again",
+      "use": "Use this take",
+      "elapsed": "{elapsed} of {recommended} recommended",
+      "tooShort": "Keep going: at least {minimum} seconds.",
+      "maxReached": "Recording stopped at the 10 minute limit.",
+      "previewLabel": "Your camera",
+      "scriptLabel": "Read this",
+      "script": "Hi, I'm recording this so my digital twin can speak just like me. I'm going to talk naturally, the way I would to a friend. Today I want to share a few things I care about. First, why I make content at all: I like turning ideas into something people can see and use. Second, how I work: I start with a rough idea, test it quickly, and keep what works. Third, what I'd tell someone starting out: pick one thing, do it every day, and be patient. Now a few sounds for range. One, two, three, four, five, six, seven, eight, nine, ten. The quick brown fox jumps over the lazy dog. She sells seashells by the seashore. Really? Yes, really! That's amazing. Hmm, let me think about that for a second. Okay, here's the plan for this week: Monday we plan, Tuesday we film, Wednesday we edit, and Thursday we publish. Thanks for watching, and I'll see you in the next one.",
+      "cancel": "Cancel",
+      "takeTooShort": "This take is shorter than {minimum} seconds. Record again.",
+      "keepCopy": "Keep a copy of this recording in my Library",
+      "retention": "Otherwise we delete the recording as soon as HeyGen has it. It stays in your HeyGen account until you delete the twin."
+    },
+    "errors": {
+      "denied": "Camera or microphone access was blocked. Allow both in your browser settings, then try again.",
+      "no-device": "No camera or microphone found. Connect one, then try again.",
+      "unsupported": "This browser cannot record video. Use a recent Chrome, Edge, Firefox or Safari.",
+      "empty": "The recording came out empty. Try again.",
+      "failed": "Recording could not start. Try again.",
+      "tooLarge": "This take is over 200 MB. Record a shorter take.",
+      "submit": "The recording could not be submitted. Try again."
+    },
+    "submit": {
+      "uploading": "Uploading your recording…",
+      "starting": "Starting training…"
+    },
+    "status": {
+      "TRAINING": "Training your twin. This usually takes a few minutes.",
+      "AWAITING_CONSENT": "Training is done. HeyGen needs your consent before your twin can be used.",
+      "CONSENT_REJECTED": "HeyGen did not accept the consent recording.",
+      "FAILED": "Training failed.",
+      "READY": "Your twin is ready.",
+      "UPLOADING": "Uploading your recording…"
+    },
+    "consent": {
+      "body": "Record a short consent statement on HeyGen's page. It opens in a new tab and brings you back here. The link works for 24 hours.",
+      "open": "Record consent on HeyGen",
+      "newLink": "Get a new consent link",
+      "waiting": "Waiting for HeyGen to confirm your consent…",
+      "error": "The consent link could not be created. Try again."
+    },
+    "done": {
+      "body": "Your avatar and voice live in your HeyGen account. Pick them in any avatar video.",
+      "library": "Back to Avatars",
+      "studio": "Make a video"
+    },
+    "newTake": "Record a new take",
+    "reason": "Reason: {reason}",
+    "loadError": "Your digital twin could not be loaded. Refresh the page to try again.",
+    "entry": {
+      "title": "Create your digital twin",
+      "body": "Record yourself once and use your own face and voice in avatar videos.",
+      "action": "Create my digital twin"
+    },
+    "remove": {
+      "action": "Delete twin",
+      "title": "Delete your digital twin?",
+      "message": "This deletes the avatar, its training recording and its voice from your HeyGen account. Videos you already made stay in your Library.",
+      "confirm": "Delete",
+      "error": "The twin could not be deleted. Try again."
+    },
+    "brand": {
+      "label": "Use for this brand",
+      "body": "Make this twin the brand's default avatar, so its videos use it automatically.",
+      "voiceLabel": "Voice",
+      "voiceTwin": "Use the voice from my recording",
+      "voiceKeep": "Keep the brand's current voice",
+      "apply": "Use for this brand",
+      "using": "This brand uses your twin as its default avatar.",
+      "error": "The brand could not be updated. Try again."
+    }
+  },
+  "createVoice": {
+    "connected": {
+      "title": "Create your own voice",
+      "body": "Record a clean sample and clone it in your own HeyGen or ElevenLabs account. Genfeed takes no credits for it."
+    },
+    "disconnected": {
+      "title": "Connect your account to create your voices",
+      "body": "Your voices are created in your own ElevenLabs or HeyGen account, never in Genfeed's, and Genfeed takes no credits for them."
+    },
+    "invalid": {
+      "title": "Reconnect your account",
+      "body": "Your provider rejected the saved API key. Update it in Integrations to create your voices."
+    },
+    "connect": "Connect your account",
+    "twin": "Create my digital twin",
+    "record": "Record my voice",
+    "upload": "Upload a sample"
+  },
+  "voiceStudio": {
+    "title": "Record your voice",
+    "subtitle": "Read the script below in your normal speaking voice. The recording is cloned in your own account, so the voice is yours and Genfeed charges no credits for it.",
+    "connect": {
+      "title": "Connect your HeyGen or ElevenLabs account",
+      "body": "Your voice is cloned only in your own account, never in Genfeed's. Add your HeyGen or ElevenLabs API key under Integrations, then come back here.",
+      "action": "Open Integrations",
+      "recheck": "I connected it"
+    },
+    "checkFailed": {
+      "title": "We couldn't check your connected accounts",
+      "body": "Your HeyGen and ElevenLabs connections could not be read just now. Try again in a moment.",
+      "retry": "Try again"
+    },
+    "provider": {
+      "label": "Clone it with",
+      "account": "The voice is created in your own {provider} account."
+    },
+    "tips": {
+      "room": "Use a quiet room with soft surfaces. Turn off fans and notifications.",
+      "mic": "Use a headset or external microphone if you have one, about a hand's width from your mouth.",
+      "pace": "Read at your normal pace, with the energy you want in your videos. Pauses are fine.",
+      "length": "Aim for {recommended}. Recording stops at {maximum}."
+    },
+    "scriptLabel": "Read this",
+    "script": "Hi, this is my voice, recorded for my own videos.\n\nI like to keep things simple. When I explain something, I start with the point, then I give an example, and then I stop talking. That's harder than it sounds.\n\nSome days start slow. Coffee, a short walk, a look at the list. Other days start with a call at seven and don't slow down until the evening. Both kinds of days have their charm.\n\nHere are a few numbers, read the way I'd say them: three, seventeen, one hundred and twenty, two thousand twenty-six, and fifty percent.\n\nWhat's the best thing you learned this week? Mine was small: asking one more question before giving an answer saves a lot of time.\n\nIf you're watching this, thank you. I'll keep sharing what works, what doesn't, and what I'd do differently next time. See you in the next one.",
+    "record": {
+      "start": "Start recording",
+      "stop": "Stop",
+      "listen": "Listen back",
+      "retake": "Record again",
+      "elapsed": "{elapsed} / {recommended}",
+      "keepGoing": "Keep reading. A good voice needs at least {minimum} seconds."
+    },
+    "name": {
+      "label": "Voice name"
+    },
+    "brandDefault": "Use it as this brand's voice",
+    "create": "Create my voice",
+    "phase": {
+      "preparing": "Preparing your recording…",
+      "cloning": "Creating your voice. This can take up to a minute…"
+    },
+    "done": {
+      "brandDefault": "{name} is ready in your {provider} account and is now this brand's voice.",
+      "saved": "{name} is ready in your {provider} account.",
+      "brandDefaultFailed": "We couldn't make it this brand's voice. Pick it as the default voice from Voices.",
+      "voices": "Back to Voices",
+      "again": "Record another"
+    },
+    "errors": {
+      "tooShort": "This recording is shorter than {minimum} seconds. Record again and keep reading.",
+      "tooQuiet": "We could barely hear you. Check the microphone and record again.",
+      "unsupported": "This browser can't record audio. Try a recent Chrome, Edge or Safari.",
+      "clone": "The voice could not be created. Try again."
+    }
   }
 }

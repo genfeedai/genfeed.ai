@@ -1,9 +1,6 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
-import {
-  VOICE_CLONE_CREDITS,
-  VoiceCreditsService,
-} from '@api/collections/voices/services/voice-credits.service';
+import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { ActivitySource } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
@@ -105,19 +102,15 @@ describe('VoiceCreditsService', () => {
     );
   });
 
-  it('settles the flat ElevenLabs clone charge', async () => {
+  it('charges nothing for a clone made on the personal account', () => {
     const request = {
       creditsConfig: { deferred: true, description: 'Voice clone' },
     } as unknown as Request;
 
-    await service.settleElevenLabsCloneCredits(request, 'org-1');
+    service.waivePersonalCloneCredits(request);
 
-    expect(creditsUtils.checkOrganizationCreditsAvailable).toHaveBeenCalledWith(
-      'org-1',
-      VOICE_CLONE_CREDITS,
-    );
     expect(request).toMatchObject({
-      creditsConfig: { amount: VOICE_CLONE_CREDITS, deferred: false },
+      creditsConfig: { amount: 0, deferred: false },
     });
   });
 });

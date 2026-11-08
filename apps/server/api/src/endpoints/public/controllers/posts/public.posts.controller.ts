@@ -4,6 +4,7 @@ import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { customLabels } from '@api/helpers/utils/pagination.util';
+import { PUBLIC_BRAND_FILTER } from '@api/helpers/utils/public-brand/public-brand-filter.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -76,6 +77,7 @@ export class PublicPostsController {
         postVisibilityReadFilter(PostVisibility.PUBLIC),
       ],
       isDeleted: false,
+      ...PUBLIC_BRAND_FILTER,
     };
 
     // Filter by ingredient if provided
@@ -172,13 +174,15 @@ export class PublicPostsController {
 
   @Get(':postId')
   @Cache({
-    keyGenerator: (req) => `public:post:${req.params?.postId ?? 'unknown'}`,
+    keyGenerator: (req) =>
+      `public:post:${req.params?.postId ?? 'unknown'}:brand:${req.query?.brand ?? ''}`,
     tags: ['posts'],
     ttl: 1800, // 30 minutes
   })
   async getPostMetadata(
     @Req() request: Request,
     @Param('postId') postId: string,
+    @Query('brand') brand?: string,
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -196,6 +200,10 @@ export class PublicPostsController {
           postVisibilityReadFilter(PostVisibility.PUBLIC),
         ],
         id: postId,
+        ...PUBLIC_BRAND_FILTER,
+        // A creator page names its brand, so another creator's post id
+        // answers 404 under the wrong handle.
+        ...(brand && isEntityId(brand) ? { brandId: brand.trim() } : {}),
       },
       [],
     );

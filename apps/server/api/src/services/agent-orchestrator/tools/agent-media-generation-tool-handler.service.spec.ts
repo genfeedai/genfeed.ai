@@ -391,10 +391,50 @@ describe('AgentMediaGenerationToolHandler generateAsIdentity script', () => {
   });
 });
 
+describe('AgentMediaGenerationToolHandler avatar brand scope', () => {
+  it('renders the identity of the brand the call names when the context has none', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.generateAvatarVideo.mockResolvedValue({ data: { id: 'video-1' } });
+
+    await handler.generate(
+      {
+        brandId: 'brand-2',
+        isVerbatim: true,
+        prompt: 'Hello there',
+        type: 'avatar',
+      },
+      { organizationId: 'organization-1', userId: 'user-1' } as never,
+    );
+
+    expect(gateway.generateAvatarVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        principal: {
+          brandId: 'brand-2',
+          organizationId: 'organization-1',
+          userId: 'user-1',
+        },
+      }),
+    );
+  });
+
+  it('stops without rendering when no brand can be resolved', async () => {
+    const { gateway, handler } = createHandler();
+
+    const result = await handler.generate(
+      { isVerbatim: true, prompt: 'Hello there', type: 'avatar' },
+      { organizationId: 'organization-1', userId: 'user-1' } as never,
+    );
+
+    expect(result.success).toBe(false);
+    expect(gateway.generateAvatarVideo).not.toHaveBeenCalled();
+  });
+});
+
 describe('AgentMediaGenerationToolHandler generate', () => {
   function createRoutingHandler() {
     const result = { creditsUsed: 0, success: true };
     const assetGeneration = {
+      generateAsIdentity: vi.fn().mockResolvedValue(result),
       generateImage: vi.fn().mockResolvedValue(result),
       generateMusic: vi.fn().mockResolvedValue(result),
       generateVideo: vi.fn().mockResolvedValue(result),
@@ -496,6 +536,65 @@ describe('AgentMediaGenerationToolHandler generate', () => {
     );
   });
 
+  it('speaks the prompt verbatim for an avatar when isVerbatim is set', async () => {
+    const { assetGeneration, handler } = createRoutingHandler();
+
+    await handler.generate(
+      {
+        aspectRatio: '9:16',
+        isVerbatim: true,
+        prompt: 'Hi, I am Vincent.',
+        type: 'avatar',
+        voiceId: 'voice-1',
+      },
+      context,
+    );
+
+    expect(assetGeneration.generateAsIdentity).toHaveBeenCalledWith(
+      {
+        aspectRatio: '9:16',
+        text: 'Hi, I am Vincent.',
+        voiceId: 'voice-1',
+      },
+      context,
+    );
+  });
+
+  it('tags an avatar render as a video for cards and clients', async () => {
+    const { assetGeneration, handler } = createRoutingHandler();
+    assetGeneration.generateAsIdentity.mockResolvedValue({
+      creditsUsed: 0,
+      data: { id: 'video-1', status: 'processing' },
+      success: true,
+    });
+
+    const output = await handler.generate(
+      { isVerbatim: true, prompt: 'Hello', type: 'avatar' },
+      context,
+    );
+
+    expect(output.data).toEqual({
+      id: 'video-1',
+      kind: 'video',
+      status: 'processing',
+    });
+  });
+
+  it('rejects an image-only field on an avatar call', async () => {
+    const { assetGeneration, handler } = createRoutingHandler();
+
+    const output = await handler.generate(
+      { outputs: 2, prompt: 'Launch week', type: 'avatar' },
+      context,
+    );
+
+    expect(output).toMatchObject({
+      error: 'outputs does not apply to type avatar',
+      success: false,
+    });
+    expectNoGeneration(assetGeneration);
+  });
+
   it('maps the prompt to text for music so the runtime never sees undefined text', async () => {
     const { assetGeneration, handler } = createRoutingHandler();
 
@@ -592,7 +691,7 @@ describe('AgentMediaGenerationToolHandler generate', () => {
 
     expect(result).toEqual({
       creditsUsed: 0,
-      error: 'type must be one of: image, video, voice, music',
+      error: 'type must be one of: image, video, voice, music, avatar',
       success: false,
     });
     expectNoGeneration(assetGeneration);

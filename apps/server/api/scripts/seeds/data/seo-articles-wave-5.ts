@@ -303,10 +303,10 @@ you know your buyer, your angle, and what draws replies.</p>
 
 <h2>Related reading</h2>
 <ul>
-  <li><a href="https://genfeed.ai/articles/how-to-grow-on-linkedin-with-ai-generated-content">How to grow on LinkedIn with AI-generated content</a></li>
-  <li><a href="https://genfeed.ai/articles/brand-setup-and-brand-memory">Brand setup and brand memory</a></li>
-  <li><a href="https://genfeed.ai/articles/approval-queue-review-before-publishing">Approval queue: review before publishing</a></li>
-  <li><a href="https://genfeed.ai/articles/measure-ai-content-performance-across-social-platforms">Measure AI content performance across social platforms</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/how-to-grow-on-linkedin-with-ai-generated-content">How to grow on LinkedIn with AI-generated content</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/brand-setup-and-brand-memory">Brand setup and brand memory</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/approval-queue-review-before-publishing">Approval queue: review before publishing</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/measure-ai-content-performance-across-social-platforms">Measure AI content performance across social platforms</a></li>
   <li><a href="https://genfeed.ai/founder-content">Genfeed for founder content</a></li>
 </ul>
 
@@ -331,7 +331,7 @@ account told a buyer why to follow it.</p>
 profile and post types that carry it, a day-by-day plan for the first 30 days, the
 mistakes that undo progress, and when it makes sense to run it yourself versus have
 a team run it for you. If you have not decided who you are writing for, start with
-<a href="https://genfeed.ai/articles/how-to-start-b2b-content-playbook">the 30-day
+<a href="https://genfeed.ai/@genfeedai/articles/how-to-start-b2b-content-playbook">the 30-day
 B2B content playbook</a> and come back.</p>
 
 <h2>What is founder-led LinkedIn?</h2>
@@ -577,9 +577,9 @@ done-for-you service works.</p>
 
 <h2>Related reading</h2>
 <ul>
-  <li><a href="https://genfeed.ai/articles/how-to-start-b2b-content-playbook">How to start B2B content: a 30-day playbook</a></li>
-  <li><a href="https://genfeed.ai/articles/how-to-grow-on-linkedin-with-ai-generated-content">How to grow on LinkedIn with AI-generated content</a></li>
-  <li><a href="https://genfeed.ai/articles/approval-queue-review-before-publishing">Approval queue: review before publishing</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/how-to-start-b2b-content-playbook">How to start B2B content: a 30-day playbook</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/how-to-grow-on-linkedin-with-ai-generated-content">How to grow on LinkedIn with AI-generated content</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/approval-queue-review-before-publishing">Approval queue: review before publishing</a></li>
   <li><a href="https://genfeed.ai/founder-content">Genfeed for founder content</a></li>
   <li><a href="https://genfeed.ai/linkedin">Genfeed for LinkedIn</a></li>
 </ul>
@@ -791,10 +791,10 @@ the review step human.</p>
 
 <h2>Related reading</h2>
 <ul>
-  <li><a href="https://genfeed.ai/articles/how-to-start-b2b-content-playbook">How to start B2B content: a 30-day playbook</a></li>
-  <li><a href="https://genfeed.ai/articles/founder-led-linkedin-b2b-playbook">Founder-led LinkedIn for B2B</a></li>
-  <li><a href="https://genfeed.ai/articles/approval-queue-review-before-publishing">Approval queue: review before publishing</a></li>
-  <li><a href="https://genfeed.ai/articles/brand-setup-and-brand-memory">Brand setup and brand memory</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/how-to-start-b2b-content-playbook">How to start B2B content: a 30-day playbook</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/founder-led-linkedin-b2b-playbook">Founder-led LinkedIn for B2B</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/approval-queue-review-before-publishing">Approval queue: review before publishing</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/brand-setup-and-brand-memory">Brand setup and brand memory</a></li>
 </ul>
 
 <h2>Sources and further reading</h2>
@@ -988,10 +988,10 @@ output.</p>
 
 <h2>Related reading</h2>
 <ul>
-  <li><a href="https://genfeed.ai/articles/how-to-start-b2b-content-playbook">How to start B2B content: a 30-day playbook</a></li>
-  <li><a href="https://genfeed.ai/articles/turn-customer-calls-into-b2b-content-playbook">How to turn customer calls into B2B content</a></li>
-  <li><a href="https://genfeed.ai/articles/repurpose-blog-post-into-video-images-social-posts">Repurpose a blog post into video, images, and social posts</a></li>
-  <li><a href="https://genfeed.ai/articles/approval-queue-review-before-publishing">Approval queue: review before publishing</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/how-to-start-b2b-content-playbook">How to start B2B content: a 30-day playbook</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/turn-customer-calls-into-b2b-content-playbook">How to turn customer calls into B2B content</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/repurpose-blog-post-into-video-images-social-posts">Repurpose a blog post into video, images, and social posts</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/approval-queue-review-before-publishing">Approval queue: review before publishing</a></li>
 </ul>
 
 <h2>Sources and further reading</h2>
@@ -1174,10 +1174,10 @@ a quarter or more, depending on your sales cycle.</p>
 
 <h2>Related reading</h2>
 <ul>
-  <li><a href="https://genfeed.ai/articles/how-to-start-b2b-content-playbook">How to start B2B content: a 30-day playbook</a></li>
-  <li><a href="https://genfeed.ai/articles/founder-led-linkedin-b2b-playbook">Founder-led LinkedIn for B2B</a></li>
-  <li><a href="https://genfeed.ai/articles/turn-customer-calls-into-b2b-content-playbook">How to turn customer calls into B2B content</a></li>
-  <li><a href="https://genfeed.ai/articles/measure-ai-content-performance-across-social-platforms">Measure AI content performance across social platforms</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/how-to-start-b2b-content-playbook">How to start B2B content: a 30-day playbook</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/founder-led-linkedin-b2b-playbook">Founder-led LinkedIn for B2B</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/turn-customer-calls-into-b2b-content-playbook">How to turn customer calls into B2B content</a></li>
+  <li><a href="https://genfeed.ai/@genfeedai/articles/measure-ai-content-performance-across-social-platforms">Measure AI content performance across social platforms</a></li>
 </ul>
 
 <h2>Sources and further reading</h2>

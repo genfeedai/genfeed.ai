@@ -283,25 +283,65 @@ describe('article preview analytics boundary', () => {
       beforeSend({
         event: '$pageview',
         properties: {
-          $current_url: 'https://genfeed.ai/articles/test?previewToken=private',
+          $current_url:
+            'https://genfeed.ai/@genfeedai/articles/test?previewToken=private',
         },
       }),
     ).toBeNull();
-    window.history.replaceState({}, '', '/articles/test?previewToken=private');
+    window.history.replaceState(
+      {},
+      '',
+      '/@genfeedai/articles/test?previewToken=private',
+    );
     expect(beforeSend({ event: '$autocapture', properties: {} })).toBeNull();
-    window.history.replaceState({}, '', '/articles/test');
+    window.history.replaceState({}, '', '/@genfeedai/articles/test');
     const result = beforeSend({
       event: '$pageview',
       properties: {
-        $current_url: 'https://genfeed.ai/articles/test',
+        $current_url: 'https://genfeed.ai/@genfeedai/articles/test',
         $referrer:
-          'https://genfeed.ai/articles/test?previewToken=private&source=review',
+          'https://genfeed.ai/@genfeedai/articles/test?previewToken=private&source=review',
       },
     });
     expect(result.properties.$referrer).toBe(
-      'https://genfeed.ai/articles/test?source=review',
+      'https://genfeed.ai/@genfeedai/articles/test?source=review',
     );
     expect(JSON.stringify(result)).not.toContain('private');
+  });
+});
+
+describe('lead invite analytics boundary', () => {
+  afterEach(() => {
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('drops events on an invite page and strips invite links from later events', async () => {
+    const client = await loadClient();
+    client.initWebsiteAnalytics();
+    await flushInit();
+    const beforeSend = mocks.posthogInit.mock.calls[0][1].before_send;
+
+    window.history.replaceState({}, '', '/@acme/invite/secret-key');
+    expect(beforeSend({ event: '$pageleave', properties: {} })).toBeNull();
+
+    window.history.replaceState({}, '', '/pricing');
+    expect(
+      beforeSend({
+        event: '$pageview',
+        properties: {
+          $current_url: 'https://genfeed.ai/@acme/invite/secret-key',
+        },
+      }),
+    ).toBeNull();
+    const result = beforeSend({
+      event: '$pageview',
+      properties: {
+        $current_url: 'https://genfeed.ai/pricing',
+        $prev_pageview_pathname: '/@acme/invite/secret-key',
+      },
+    });
+    expect(result.properties.$current_url).toBe('https://genfeed.ai/pricing');
+    expect(JSON.stringify(result)).not.toContain('secret-key');
   });
 });
 

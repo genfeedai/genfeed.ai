@@ -676,7 +676,7 @@ describe('CredentialsService', () => {
       expect(prisma.credential.update).not.toHaveBeenCalled();
     });
 
-    it('reaps only the caller own abandoned attempts for this brand and platform', async () => {
+    it('reaps only the caller own abandoned attempts for this brand and platform, dropping their tokens', async () => {
       await service.createPendingForBrand(
         { id: brandId, organizationId: orgId },
         'u1',
@@ -684,7 +684,16 @@ describe('CredentialsService', () => {
       );
 
       expect(prisma.credential.updateMany).toHaveBeenCalledWith({
-        data: { isDeleted: true, oauthState: null, oauthToken: null },
+        data: {
+          accessToken: null,
+          accessTokenSecret: null,
+          isDeleted: true,
+          oauthState: null,
+          oauthToken: null,
+          oauthTokenHash: null,
+          oauthTokenSecret: null,
+          refreshToken: null,
+        },
         where: {
           brandId,
           externalId: null,

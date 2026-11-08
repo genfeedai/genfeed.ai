@@ -70,25 +70,32 @@ const RESERVED_GLOBAL_ROOT_SEGMENTS = new Set(
   ].filter(Boolean),
 );
 
-const AGENT_FULL_SEGMENT = 'full';
+/**
+ * A thread opened full size is `/agent/:threadId?view=full`: the same route as
+ * the thread beside the master, so switching between the two never leaves the
+ * page (no route request, no remount of the layout) and reuses the
+ * conversation already loaded.
+ */
+export const AGENT_VIEW_PARAM = 'view';
+export const AGENT_FULL_VIEW = 'full';
 
-/** `/agent/<segment>` pages that are not a thread id. */
-const AGENT_RESERVED_SEGMENTS: ReadonlySet<string> = new Set([
-  'journey',
-  'new',
-  'threads',
-]);
+/** Whether the search params ask for the one full-width conversation. */
+export function isAgentFullView(
+  searchParams: Pick<URLSearchParams, 'get'> | null | undefined,
+): boolean {
+  return searchParams?.get(AGENT_VIEW_PARAM) === AGENT_FULL_VIEW;
+}
 
 /**
  * Resolve the conversation surface an `/agent/*` pathname (already passed
  * through {@link normalizeProtectedPathname}) belongs to.
  *
  * The agent layout hosts one persistent conversation host for `/agent`,
- * `/agent/threads`, `/agent/new`, `/agent/:threadId` and
- * `/agent/:threadId/full`. `/agent`, `/agent/threads` and `/agent/:threadId`
- * are the master layout (master left, Threads or the open thread right, so
- * the URL names the open thread); `/agent/new` and `/agent/:threadId/full`
- * are one full-width conversation. Anything else under `/agent`
+ * `/agent/threads`, `/agent/new` and `/agent/:threadId`. `/agent`,
+ * `/agent/threads` and `/agent/:threadId` are the master layout (master left,
+ * Threads or the open thread right, so the URL names the open thread);
+ * `/agent/new` and `/agent/:threadId?view=full` are one full-width
+ * conversation. Anything else under `/agent`
  * (`/agent/journey`) is a page with its own content and resolves to `null`.
  *
  * Malformed ids (`/agent/undefined` from a stale link) resolve without a
@@ -97,6 +104,7 @@ const AGENT_RESERVED_SEGMENTS: ReadonlySet<string> = new Set([
  */
 export function resolveAgentConversationRoute(
   normalizedPathname: string,
+  searchParams?: Pick<URLSearchParams, 'get'> | null,
 ): AgentConversationRoute | null {
   const agentRoot = APP_ROUTES.AGENT.ROOT;
 
@@ -119,7 +127,7 @@ export function resolveAgentConversationRoute(
     return { layout: 'master', threadId: undefined };
   }
 
-  const [first, second] = segments;
+  const [first] = segments;
 
   if (segments.length === 1) {
     if (normalizedPathname === APP_ROUTES.AGENT.JOURNEY) {
@@ -131,15 +139,10 @@ export function resolveAgentConversationRoute(
     if (normalizedPathname === APP_ROUTES.AGENT.THREADS) {
       return { layout: 'master', threadId: undefined };
     }
-    return { layout: 'master', threadId: toThreadId(first) };
-  }
-
-  if (
-    segments.length === 2 &&
-    second === AGENT_FULL_SEGMENT &&
-    !AGENT_RESERVED_SEGMENTS.has(first)
-  ) {
-    return { layout: 'single', threadId: toThreadId(first) };
+    return {
+      layout: isAgentFullView(searchParams) ? 'single' : 'master',
+      threadId: toThreadId(first),
+    };
   }
 
   return null;
@@ -154,7 +157,9 @@ export function buildAgentThreadHref(
   options?: { isFull?: boolean },
 ): string {
   const href = `${APP_ROUTES.AGENT.ROOT}/${threadId}`;
-  return options?.isFull ? `${href}/${AGENT_FULL_SEGMENT}` : href;
+  return options?.isFull
+    ? `${href}?${AGENT_VIEW_PARAM}=${AGENT_FULL_VIEW}`
+    : href;
 }
 
 export function normalizeProtectedPathname(

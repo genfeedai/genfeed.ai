@@ -104,14 +104,14 @@ describe('LibraryOverview (#5502)', () => {
     );
   });
 
-  it('leaves brand-only References out at organization scope', () => {
+  it('offers References at organization scope too', () => {
     mockSummary(summary());
 
     render(<LibraryOverview scope={PageScope.ORGANIZATION} />);
 
     expect(
-      screen.queryByRole('link', { name: 'Open references' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('link', { name: 'Open references' }),
+    ).toBeInTheDocument();
   });
 
   it('reports a failed summary load instead of showing zeros as fact', () => {

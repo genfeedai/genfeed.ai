@@ -198,14 +198,21 @@ describe('compareProductRouteInventories', () => {
 describe('runCheckProductRouteInventory', () => {
   it('keeps the checked-in registries aligned with every app-router page', () => {
     // Four creation routes moved into their app workspaces; Motion gained a
-    // detail route. The registry also drops /~/editor/new.
+    // detail route. The registry also drops /~/editor/new. The agent's
+    // /agent/[id]/full pages (org and brand) are gone: full view is
+    // /agent/[id]?view=full. Library gained the digital twin page. The lead
+    // invite moved from the app's /preview/[token] to the website's
+    // /@handle/invite/[token]. The voice studio is also served at the
+    // organization level by the catch-all. Creator profiles, their tabs and
+    // their articles live under /creator-profile/[handle] (served at /@handle),
+    // and the website gained /community.
     expect(runCheckProductRouteInventory()).toMatchObject({
-      appPublicRouteCount: 26,
+      appPublicRouteCount: 25,
       issues: [],
       protectedPageCount: 246,
-      protectedRouteCount: 268,
-      publicRouteCount: 112,
-      websitePublicRouteCount: 86,
+      protectedRouteCount: 269,
+      publicRouteCount: 118,
+      websitePublicRouteCount: 93,
     });
   });
 });

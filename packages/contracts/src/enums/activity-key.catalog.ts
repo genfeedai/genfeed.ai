@@ -158,6 +158,8 @@ export const ACTIVITY_MESSAGE_ID_BY_KEY = {
   [ActivityKey.MODELS_TRAINING_COMPLETED]: 'activity.lifecycle.completed',
   [ActivityKey.MODELS_TRAINING_CREATED]: 'activity.lifecycle.created',
   [ActivityKey.MODELS_TRAINING_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.AVATAR_TWIN_TRAINING_COMPLETED]: 'activity.lifecycle.completed',
+  [ActivityKey.AVATAR_TWIN_TRAINING_FAILED]: 'activity.lifecycle.failed',
   [ActivityKey.MUSIC_FAILED]: 'activity.lifecycle.failed',
   [ActivityKey.MUSIC_GENERATED]: 'activity.lifecycle.completed',
   [ActivityKey.MUSIC_PROCESSING]: 'activity.lifecycle.processing',
@@ -270,6 +272,7 @@ function pickLifecycle(
 const SUBJECT_LABELS: Record<string, string> = {
   'agent-run': 'agent run',
   article: 'article',
+  'avatar-twin': 'digital twin training',
   brand: 'brand',
   content: 'content',
   credits: 'credits',
@@ -328,6 +331,15 @@ const SPECIAL_PARSERS: Array<(key: string) => ActivityKeyParts | null> = [
         lifecycle: pickLifecycle(tail, MODEL_TRAINING_LIFECYCLES, 'processing'),
         operation: 'train',
         subject: 'model',
+      };
+    }
+    if (key.startsWith('avatar-twin-training-')) {
+      const tail = key.slice('avatar-twin-training-'.length);
+      return {
+        key,
+        lifecycle: pickLifecycle(tail, MODEL_TRAINING_LIFECYCLES, 'processing'),
+        operation: 'train',
+        subject: 'avatar-twin',
       };
     }
     return null;

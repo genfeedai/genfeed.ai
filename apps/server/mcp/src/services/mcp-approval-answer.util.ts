@@ -11,7 +11,10 @@ import type {
   McpApprovalAnswerOutcome,
   McpApprovalResource,
 } from '@mcp/shared/interfaces/approval.interface';
-import { approvalPendingToolResult } from '@mcp/tools/mcp-tool-error';
+import {
+  approvalPendingToolResult,
+  generateApprovalCostEstimate,
+} from '@mcp/tools/mcp-tool-error';
 
 const NOTHING_RUN =
   'Nothing was run; the action is waiting in the Genfeed review inbox.';
@@ -86,25 +89,9 @@ export function pendingApprovalResult(
 ) {
   const tool = getToolByName(approval.toolName);
   if (approval.toolName === 'generate') {
-    const quote = approval.generationQuote;
-    const estimatedCredits =
-      quote?.isAvailable === true &&
-      typeof quote.credits === 'number' &&
-      Number.isFinite(quote.credits) &&
-      quote.credits >= 0 &&
-      typeof quote.modelKey === 'string' &&
-      quote.modelKey.trim()
-        ? quote.credits
-        : null;
     return approvalPendingToolResult(
       approval,
-      {
-        estimatedCredits,
-        pricingSummary:
-          estimatedCredits === null
-            ? 'A model-specific credit quote is unavailable. Request fresh consent with a supported model and complete settings.'
-            : undefined,
-      },
+      generateApprovalCostEstimate(approval, args),
       canResolveApproval,
     );
   }

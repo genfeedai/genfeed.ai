@@ -116,9 +116,8 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
                       ? 'gap-0 overflow-hidden'
                       : 'gap-2.5 px-3.5 py-3.5',
                   )
-                : // Elevated pills so transcript CTAs fade under them cleanly
-                  // without a tall opaque composer slab behind the row.
-                  'inline-flex max-w-[min(100%,18rem)] items-center rounded-full border border-border/80 bg-background px-3.5 py-2 text-xs shadow-md shadow-black/20 ring-1 ring-black/20 hover:border-border hover:bg-card',
+                : // Pills sit on the same plane as the prompt bar below them.
+                  'inline-flex max-w-[min(100%,18rem)] items-center rounded-full border border-border bg-accent px-3.5 py-2 text-xs hover:bg-hover',
               activeId === suggestion.id && 'ring-2 ring-primary',
               isDisabled && 'pointer-events-none opacity-50',
             )}

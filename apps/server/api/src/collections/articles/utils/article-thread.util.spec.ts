@@ -152,14 +152,14 @@ describe('article-thread.util', () => {
 
     it('appends a trailing link tweet only when an articleUrl is provided', () => {
       const withUrl = buildTwitterThreadTweets({
-        articleUrl: 'https://genfeed.ai/articles/my-slug',
+        articleUrl: 'https://genfeed.ai/@genfeedai/articles/my-slug',
         content: 'Body.',
         label: 'Title',
         summary: '',
       });
       const last = withUrl[withUrl.length - 1];
       expect(last.content).toBe(
-        'Read the full article:\nhttps://genfeed.ai/articles/my-slug',
+        'Read the full article:\nhttps://genfeed.ai/@genfeedai/articles/my-slug',
       );
 
       const withoutUrl = buildTwitterThreadTweets({
@@ -175,7 +175,7 @@ describe('article-thread.util', () => {
     });
 
     it('never drops the link tweet — falls back to the bare URL when the prefixed form exceeds the limit', () => {
-      const longUrl = `https://genfeed.ai/articles/${'a'.repeat(275)}`;
+      const longUrl = `https://genfeed.ai/@genfeedai/articles/${'a'.repeat(275)}`;
       // "Read the full article:\n" + longUrl would exceed 280.
       expect(`Read the full article:\n${longUrl}`.length).toBeGreaterThan(
         MAX_TWEET_CHARS,
@@ -209,7 +209,7 @@ describe('article-thread.util', () => {
 
     it('numbers tweets sequentially starting at 1', () => {
       const tweets = buildTwitterThreadTweets({
-        articleUrl: 'https://genfeed.ai/articles/slug',
+        articleUrl: 'https://genfeed.ai/@genfeedai/articles/slug',
         content: 'Body paragraph.',
         label: 'Title',
         summary: 'Summary',

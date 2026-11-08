@@ -74,7 +74,7 @@
       "@services/*": ["../../packages/services/*"],
       "@shared/*": ["../../packages/*", "../../tests/*"],
       "@styles/*": ["./styles/*", "../../packages/styles/*"],
-      "@u/*": ["./app/u/*"],
+      "@creator/*": ["./app/creator-profile/[handle]/*"],
       "@ui-constants/*": [
         "./src/ui/constants/*",
         "../../packages/ui/src/components/constants/*"

@@ -62,7 +62,7 @@ const LABELS: Record<HelpSlug, string> = {
 };
 
 function articleUrl(slug: HelpSlug): string {
-  return `${SITE}/articles/${slug}`;
+  return `${SITE}/@genfeedai/articles/${slug}`;
 }
 
 function renderRelated(slugs: readonly HelpSlug[]): string {

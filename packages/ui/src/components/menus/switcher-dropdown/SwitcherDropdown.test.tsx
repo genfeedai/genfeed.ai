@@ -230,7 +230,7 @@ describe('SwitcherDropdown', () => {
           extraTrailingActions: [
             {
               ariaLabel: 'Open Alpha public profile',
-              href: 'https://genfeed.ai/u/alpha',
+              href: 'https://genfeed.ai/@alpha',
               icon: Settings,
               onAction: vi.fn(),
               target: '_blank',
@@ -250,7 +250,7 @@ describe('SwitcherDropdown', () => {
 
     expect(settings).toHaveAttribute('href', '/org/alpha/settings');
     expect(settings).not.toHaveAttribute('target');
-    expect(profile).toHaveAttribute('href', 'https://genfeed.ai/u/alpha');
+    expect(profile).toHaveAttribute('href', 'https://genfeed.ai/@alpha');
     expect(profile).toHaveAttribute('target', '_blank');
     expect(profile).toHaveAttribute('rel', 'noopener noreferrer');
 

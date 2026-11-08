@@ -192,6 +192,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.workflowSchedules.recoverAgentTransfers(),
       [PLATFORM_SCHEDULED_TASKS.X_REPLY_WATCH]: () =>
         this.xReplyWatch.watchRecentPostReplies(),
+      [PLATFORM_SCHEDULED_TASKS.AVATAR_TWIN_TRACKING]: () =>
+        this.mediaSchedules.trackAvatarTwins(),
       [PLATFORM_SCHEDULED_TASKS.EXTERNAL_VOICE_CATALOG_SYNC]: () =>
         this.externalVoiceCatalog.syncFromProviders(),
       [PLATFORM_SCHEDULED_TASKS.YOUTUBE_MESSAGES]: () =>

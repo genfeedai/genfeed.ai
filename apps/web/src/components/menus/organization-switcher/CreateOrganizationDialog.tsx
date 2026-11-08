@@ -2,6 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import {
+  getOrgSwitchHref,
   ORGANIZATION_DESCRIPTION_MAX_LENGTH,
   ORGANIZATION_NAME_MAX_LENGTH,
   ORGANIZATION_WEBSITE_MAX_LENGTH,
@@ -21,6 +22,7 @@ import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 import type { CreateOrganizationDialogProps } from '@/props/modals/create-organization-dialog.props';
@@ -39,7 +41,18 @@ export default function CreateOrganizationDialog({
   isOpen,
   onOpenChange,
 }: CreateOrganizationDialogProps) {
-  const createModal = useCreateOrganizationModal(getOrgsService);
+  const pathname = usePathname() ?? '/';
+  const { push } = useRouter();
+  // The API makes the new organization the active one; route into it on the
+  // surface the user is on, the same way the switcher does.
+  const handleCreated = useCallback(
+    (organizationSlug: string) => {
+      onOpenChange(false);
+      push(getOrgSwitchHref(organizationSlug, pathname));
+    },
+    [onOpenChange, pathname, push],
+  );
+  const createModal = useCreateOrganizationModal(getOrgsService, handleCreated);
   const translateCreate = useTranslations('ui.organizationCreateModal');
   const { reset } = createModal;
 

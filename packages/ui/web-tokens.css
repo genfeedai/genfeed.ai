@@ -123,10 +123,10 @@
       --accent-hover: 0 0% 80%;
       --agent: 198 93% 60%;
       --background: 0 0% 0%;
-      --tertiary: 0 0% 9%;
+      --tertiary: 0 0% 10%;
       --border: 0 0% 15%;
       --border-strong: 0 0% 24%;
-      --card: 0 0% 4%;
+      --card: 0 0% 7%;
       --card-foreground: 0 0% 93%;
       --destructive: 358 100% 69%;
       --destructive-foreground: 0 0% 4%;
@@ -136,7 +136,7 @@
       --input: 0 0% 20%;
       --muted: 0 0% 4%;
       --muted-foreground: 0 0% 63%;
-      --popover: 0 0% 9%;
+      --popover: 0 0% 10%;
       --popover-foreground: 0 0% 93%;
       --primary: 0 0% 93%;
       --primary-foreground: 0 0% 4%;
@@ -190,10 +190,10 @@
     --accent-hover: 0 0% 80%;
     --agent: 198 93% 60%;
     --background: 0 0% 0%;
-    --tertiary: 0 0% 9%;
+    --tertiary: 0 0% 10%;
     --border: 0 0% 15%;
     --border-strong: 0 0% 24%;
-    --card: 0 0% 4%;
+    --card: 0 0% 7%;
     --card-foreground: 0 0% 93%;
     --destructive: 358 100% 69%;
     --destructive-foreground: 0 0% 4%;
@@ -203,7 +203,7 @@
     --input: 0 0% 20%;
     --muted: 0 0% 4%;
     --muted-foreground: 0 0% 63%;
-    --popover: 0 0% 9%;
+    --popover: 0 0% 10%;
     --popover-foreground: 0 0% 93%;
     --primary: 0 0% 93%;
     --primary-foreground: 0 0% 4%;

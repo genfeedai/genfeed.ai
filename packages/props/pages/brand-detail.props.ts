@@ -61,6 +61,11 @@ export interface BrandDetailLatestImagesProps {
 
 export interface BrandDetailLatestArticlesProps {
   articles: IArticle[];
+  /**
+   * The genfeed.ai handle the brand's articles are hosted under. Without one
+   * the website does not serve them, so no "Read article" link is shown.
+   */
+  publicHandle?: string;
 }
 
 /**

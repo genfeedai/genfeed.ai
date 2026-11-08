@@ -179,232 +179,248 @@ export const EDITORIAL_OG_ARTWORKS = {
   },
   'card-0023': {
     headline: ['Clarity', 'gets results'],
-    route: '/articles/how-to-prompt-ai-content-clear-framework',
+    route: '/@genfeedai/articles/how-to-prompt-ai-content-clear-framework',
   },
   'card-0024': {
     headline: ['Direct', 'every format'],
-    route: '/articles/how-to-prompt-ai-images-videos-and-audio',
+    route: '/@genfeedai/articles/how-to-prompt-ai-images-videos-and-audio',
   },
   'card-0003': {
     headline: ['Brief once', 'Create better'],
-    route: '/articles/ai-image-prompt-templates',
+    route: '/@genfeedai/articles/ai-image-prompt-templates',
   },
   'card-0019': {
     headline: ['Earn', 'the scroll'],
-    route: '/articles/how-to-grow-on-instagram-with-ai-generated-content',
+    route:
+      '/@genfeedai/articles/how-to-grow-on-instagram-with-ai-generated-content',
   },
   'card-0021': {
     headline: ['Hold', 'their attention'],
-    route: '/articles/how-to-grow-on-tiktok-with-ai-generated-content',
+    route:
+      '/@genfeedai/articles/how-to-grow-on-tiktok-with-ai-generated-content',
   },
   'card-0020': {
     headline: ['Make them', 'stop and read'],
-    route: '/articles/how-to-grow-on-linkedin-with-ai-generated-content',
+    route:
+      '/@genfeedai/articles/how-to-grow-on-linkedin-with-ai-generated-content',
   },
   'card-0022': {
     headline: ['Clicks meet', 'watch time'],
-    route: '/articles/how-to-grow-on-youtube-with-ai-generated-content',
+    route:
+      '/@genfeedai/articles/how-to-grow-on-youtube-with-ai-generated-content',
   },
   'card-0038': {
     headline: ['Launch', 'with proof'],
     route:
-      '/articles/how-to-launch-an-open-source-product-on-show-hn-and-product-hunt',
+      '/@genfeedai/articles/how-to-launch-an-open-source-product-on-show-hn-and-product-hunt',
   },
   'card-0005': {
     headline: ['Choose the', 'whole workflow'],
-    route: '/articles/best-ai-content-creation-tools-social-media',
+    route: '/@genfeedai/articles/best-ai-content-creation-tools-social-media',
   },
   'card-0012': {
     headline: ['Automate', 'the right jobs'],
-    route: '/articles/best-social-media-automation-tools-creators-agencies',
+    route:
+      '/@genfeedai/articles/best-social-media-automation-tools-creators-agencies',
   },
   'card-0006': {
     headline: ['One source', 'Many formats'],
-    route: '/articles/best-ai-content-repurposing-tools',
+    route: '/@genfeedai/articles/best-ai-content-repurposing-tools',
   },
   'card-0010': {
     headline: ['Own your', 'content stack'],
-    route: '/articles/best-open-source-social-media-management-tools',
+    route:
+      '/@genfeedai/articles/best-open-source-social-media-management-tools',
   },
   'card-0034': {
     headline: ['Your content', 'Connected'],
-    route: '/articles/what-is-a-content-operating-system',
+    route: '/@genfeedai/articles/what-is-a-content-operating-system',
   },
   'card-0018': {
     headline: ['Build a', 'repeatable workflow'],
-    route: '/articles/how-to-build-an-ai-content-workflow',
+    route: '/@genfeedai/articles/how-to-build-an-ai-content-workflow',
   },
   'card-0032': {
     headline: ['One episode', 'Many posts'],
-    route: '/articles/turn-podcast-into-social-media-posts-with-ai',
+    route: '/@genfeedai/articles/turn-podcast-into-social-media-posts-with-ai',
   },
   'card-0004': {
     headline: ['One calendar', 'Every channel'],
-    route: '/articles/automate-cross-platform-content-calendar',
+    route: '/@genfeedai/articles/automate-cross-platform-content-calendar',
   },
   'card-0026': {
     headline: ['Your brand', 'Every time'],
-    route: '/articles/keep-ai-generated-content-consistent-with-brand',
+    route:
+      '/@genfeedai/articles/keep-ai-generated-content-consistent-with-brand',
   },
   'card-0002': {
     headline: ['Approve', 'then publish'],
-    route: '/articles/ai-content-approval-workflows-marketing-agencies',
+    route:
+      '/@genfeedai/articles/ai-content-approval-workflows-marketing-agencies',
   },
   'card-0035': {
     headline: ['Agents need', 'real controls'],
-    route: '/articles/what-is-an-ai-content-agent',
+    route: '/@genfeedai/articles/what-is-an-ai-content-agent',
   },
   'card-0025': {
     headline: ['Run your', 'own stack'],
-    route: '/articles/how-to-self-host-ai-content-creation-platform',
+    route: '/@genfeedai/articles/how-to-self-host-ai-content-creation-platform',
   },
   'card-0014': {
     headline: ['Connect agents', 'to actions'],
-    route: '/articles/connect-chatgpt-claude-cursor-content-stack-mcp',
+    route:
+      '/@genfeedai/articles/connect-chatgpt-claude-cursor-content-stack-mcp',
   },
   'card-0037': {
     headline: ['Find signals', 'worth using'],
-    route: '/articles/what-is-social-listening-find-content-ideas',
+    route: '/@genfeedai/articles/what-is-social-listening-find-content-ideas',
   },
   'card-0011': {
     headline: ['Listen', 'then create'],
-    route: '/articles/best-social-listening-tools-content-creators',
+    route: '/@genfeedai/articles/best-social-listening-tools-content-creators',
   },
   'card-0033': {
     headline: ['Catch trends', 'Ship fast'],
-    route: '/articles/turn-social-trends-into-content-workflow',
+    route: '/@genfeedai/articles/turn-social-trends-into-content-workflow',
   },
   'card-0036': {
     headline: ['Build a', 'character system'],
-    route: '/articles/what-is-an-ai-influencer',
+    route: '/@genfeedai/articles/what-is-an-ai-influencer',
   },
   'card-0017': {
     headline: ['One identity', 'Every scene'],
-    route: '/articles/create-manage-ai-influencer-content-pipeline',
+    route: '/@genfeedai/articles/create-manage-ai-influencer-content-pipeline',
   },
   'card-0008': {
     headline: ['Test the', 'whole character'],
-    route: '/articles/best-ai-influencer-generators-brands',
+    route: '/@genfeedai/articles/best-ai-influencer-generators-brands',
   },
   'card-0001': {
     headline: ['Many brands', 'One process'],
-    route: '/articles/agencies-manage-multiple-brands-ai-content-workflows',
+    route:
+      '/@genfeedai/articles/agencies-manage-multiple-brands-ai-content-workflows',
   },
   'card-0028': {
     headline: ['Measure', 'what matters'],
-    route: '/articles/measure-ai-content-performance-across-social-platforms',
+    route:
+      '/@genfeedai/articles/measure-ai-content-performance-across-social-platforms',
   },
   'card-0029': {
     headline: ['One article', 'Many stories'],
-    route: '/articles/repurpose-blog-post-into-video-images-social-posts',
+    route:
+      '/@genfeedai/articles/repurpose-blog-post-into-video-images-social-posts',
   },
   'card-0007': {
     headline: ['Choose your', 'image engine'],
-    route: '/articles/best-ai-image-generators-marketing-teams',
+    route: '/@genfeedai/articles/best-ai-image-generators-marketing-teams',
   },
   'card-0009': {
     headline: ['Better shots', 'Better video'],
-    route: '/articles/best-ai-video-generators-short-form-content',
+    route: '/@genfeedai/articles/best-ai-video-generators-short-form-content',
   },
   'card-0013': {
     headline: ['The right model', 'for the job'],
-    route: '/articles/choose-ai-model-copy-images-video-voice',
+    route: '/@genfeedai/articles/choose-ai-model-copy-images-video-voice',
   },
   'card-0030': {
     headline: ['Export', 'with confidence'],
-    route: '/articles/short-form-video-specs-tiktok-reels-shorts-linkedin',
+    route:
+      '/@genfeedai/articles/short-form-video-specs-tiktok-reels-shorts-linkedin',
   },
   'card-0031': {
     headline: ['Keep it', 'in frame'],
-    route: '/articles/social-media-image-sizes-safe-zones',
+    route: '/@genfeedai/articles/social-media-image-sizes-safe-zones',
   },
   'card-0016': {
     headline: ['Better hooks', 'Better ads'],
-    route: '/articles/create-ai-video-ads-tiktok-reels-shorts',
+    route: '/@genfeedai/articles/create-ai-video-ads-tiktok-reels-shorts',
   },
   'card-0027': {
     headline: ['Keep the', 'visual DNA'],
-    route: '/articles/make-consistent-ai-images-across-campaign',
+    route: '/@genfeedai/articles/make-consistent-ai-images-across-campaign',
   },
   'card-0015': {
     headline: ['One brief', 'Ten directions'],
-    route: '/articles/create-10-ad-variations-from-one-creative-brief',
+    route:
+      '/@genfeedai/articles/create-10-ad-variations-from-one-creative-brief',
   },
   'card-0040': {
     headline: ['Connect', 'then publish'],
-    route: '/articles/meta-muse-connectors-schedule-social-media-posts',
+    route:
+      '/@genfeedai/articles/meta-muse-connectors-schedule-social-media-posts',
   },
   'card-0039': {
     headline: ['Automate', 'with control'],
-    route: '/articles/grok-bot-social-media-automation',
+    route: '/@genfeedai/articles/grok-bot-social-media-automation',
   },
   'card-0041': {
     headline: ['From terminal', 'to timeline'],
-    route: '/articles/schedule-social-media-posts-claude-code-mcp',
+    route: '/@genfeedai/articles/schedule-social-media-posts-claude-code-mcp',
   },
   'card-0042': {
     headline: ['Your first', 'post'],
-    route: '/articles/getting-started-with-genfeed-cloud',
+    route: '/@genfeedai/articles/getting-started-with-genfeed-cloud',
   },
   'card-0043': {
     headline: ['Know your', 'credits'],
-    route: '/articles/how-credits-and-billing-work',
+    route: '/@genfeedai/articles/how-credits-and-billing-work',
   },
   'card-0044': {
     headline: ['One home', 'Every brand'],
-    route: '/articles/organizations-in-genfeed-cloud',
+    route: '/@genfeedai/articles/organizations-in-genfeed-cloud',
   },
   'card-0045': {
     headline: ['Build your', 'team'],
-    route: '/articles/invite-your-team-roles-and-members',
+    route: '/@genfeedai/articles/invite-your-team-roles-and-members',
   },
   'card-0046': {
     headline: ['Make it', 'yours'],
-    route: '/articles/account-and-workspace-settings',
+    route: '/@genfeedai/articles/account-and-workspace-settings',
   },
   'card-0047': {
     headline: ['Your brand', 'Your voice'],
-    route: '/articles/brand-setup-and-brand-memory',
+    route: '/@genfeedai/articles/brand-setup-and-brand-memory',
   },
   'card-0048': {
     headline: ['Link your', 'channels'],
-    route: '/articles/connect-your-social-accounts',
+    route: '/@genfeedai/articles/connect-your-social-accounts',
   },
   'card-0049': {
     headline: ['Review then', 'publish'],
-    route: '/articles/approval-queue-review-before-publishing',
+    route: '/@genfeedai/articles/approval-queue-review-before-publishing',
   },
   'card-0050': {
     headline: ['Create your', 'next visual'],
-    route: '/articles/using-studio-for-images-and-video',
+    route: '/@genfeedai/articles/using-studio-for-images-and-video',
   },
   'card-0051': {
     headline: ['Your editor', 'publishes'],
-    route: '/articles/connect-claude-code-or-cursor-to-genfeed-cloud-mcp',
+    route:
+      '/@genfeedai/articles/connect-claude-code-or-cursor-to-genfeed-cloud-mcp',
   },
   'card-0052': {
     headline: ['Choose', 'your setup'],
-    route: '/articles/genfeed-cloud-vs-self-hosted',
+    route: '/@genfeedai/articles/genfeed-cloud-vs-self-hosted',
   },
   'card-0053': {
     headline: ['Start', 'small'],
-    route: '/articles/how-to-start-b2b-content-playbook',
+    route: '/@genfeedai/articles/how-to-start-b2b-content-playbook',
   },
   'card-0054': {
     headline: ['Founder', 'voice'],
-    route: '/articles/founder-led-linkedin-b2b-playbook',
+    route: '/@genfeedai/articles/founder-led-linkedin-b2b-playbook',
   },
   'card-0055': {
     headline: ['Calls to', 'content'],
-    route: '/articles/turn-customer-calls-into-b2b-content-playbook',
+    route: '/@genfeedai/articles/turn-customer-calls-into-b2b-content-playbook',
   },
   'card-0056': {
     headline: ['One becomes', 'twenty'],
-    route: '/articles/turn-one-case-study-into-20-b2b-assets',
+    route: '/@genfeedai/articles/turn-one-case-study-into-20-b2b-assets',
   },
   'card-0057': {
     headline: ['Pipeline', 'proof'],
-    route: '/articles/measure-b2b-content-against-pipeline-playbook',
+    route: '/@genfeedai/articles/measure-b2b-content-against-pipeline-playbook',
   },
 } as const;
 

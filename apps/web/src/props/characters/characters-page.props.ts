@@ -91,7 +91,7 @@ export interface CharactersTableProps {
   canManageSharing: boolean;
   characters: BrandCharacterListItem[];
   isLoading: boolean;
-  onCreate: () => void;
+  onCreate?: () => void;
   onManageAvailability: (character: BrandCharacterListItem) => void;
   onManageReferences: (character: BrandCharacterListItem) => void;
 }

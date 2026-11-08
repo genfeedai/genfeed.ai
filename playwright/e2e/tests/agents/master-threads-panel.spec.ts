@@ -524,7 +524,9 @@ test.describe('Agent master thread and Threads panel', () => {
 
     // Full size is one conversation with a way back.
     await lightView.getByRole('button', { name: 'Open full page' }).click();
-    await expect(page).toHaveURL(new RegExp(`/agent/${REVIEW_ID}/full$`));
+    await expect(page).toHaveURL(
+      new RegExp(`/agent/${REVIEW_ID}\\?view=full$`),
+    );
     await expect(page.getByTestId('agent-output-agent-pane')).toHaveCount(0);
     await page
       .getByRole('button', { name: 'Back to master and threads' })

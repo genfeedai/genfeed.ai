@@ -16,6 +16,7 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { creatorInvitePath } from '@genfeedai/contracts/constants';
 import type { IContentPreview } from '@genfeedai/contracts/interfaces';
 import type { WarmupAccount } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
@@ -26,7 +27,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 const TRAILING_SLASH_PATTERN = /\/$/;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const DEFAULT_APP_URL = 'https://app.genfeed.ai';
+const DEFAULT_WEBSITE_URL = 'https://genfeed.ai';
 
 /**
  * Operator actions on a workspace's shareable previews. The class-level
@@ -75,6 +76,12 @@ export class WarmupPreviewsService {
       throw new BadRequestException(
         'Every previewed post must be an unpublished draft of the prepared brand',
       );
+    // The link carries the brand's handle, so a deleted brand gets no preview.
+    const brand = await this.prisma.brand.findFirst({
+      select: { slug: true },
+      where: scopedWhere(organizationId, { id: brandId, isDeleted: false }),
+    });
+    if (!brand) throw new NotFoundException('Brand', brandId);
     const expiresAt = new Date(
       Date.now() +
         (dto.expiresInDays ?? DEFAULT_PREVIEW_LIFETIME_DAYS) * DAY_MS,
@@ -95,7 +102,7 @@ export class WarmupPreviewsService {
     return {
       ...this.previews.toView(preview),
       token,
-      url: this.buildUrl(token),
+      url: this.buildUrl(brand.slug, token),
     };
   }
 
@@ -170,12 +177,16 @@ export class WarmupPreviewsService {
     });
   }
 
-  private buildUrl(token: string): string {
-    const configured = this.config.get('GENFEEDAI_APP_URL');
+  /**
+   * The lead's locked profile on the public site. The handle alone answers
+   * 404 while the brand is private; only this key opens the locked view.
+   */
+  private buildUrl(handle: string, token: string): string {
+    const configured = this.config.get('GENFEEDAI_PUBLIC_URL');
     const base =
       typeof configured === 'string' && configured.length > 0
         ? configured.replace(TRAILING_SLASH_PATTERN, '')
-        : DEFAULT_APP_URL;
-    return `${base}/preview/${token}`;
+        : DEFAULT_WEBSITE_URL;
+    return `${base}${creatorInvitePath(handle, token)}`;
   }
 }

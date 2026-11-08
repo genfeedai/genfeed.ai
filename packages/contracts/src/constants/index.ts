@@ -17,6 +17,7 @@ export * from './brand-media.constant';
 export * from './brand-vision-models.constant';
 export * from './character-references.constant';
 export * from './context-embedding.constant';
+export * from './creator-paths.constant';
 export * from './credit-display.constant';
 export * from './credit-usage.constant';
 export * from './draft-generation.constant';

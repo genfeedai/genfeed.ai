@@ -177,6 +177,8 @@ export const APP_ROUTES = {
      * All assets.
      */
     AVATARS: '/library/avatars',
+    /** #9684 record and train a digital twin of yourself. */
+    AVATAR_TWIN: '/library/avatars/twin',
     CAPTIONS: '/library/captions',
     GIFS: '/library/gifs',
     IMAGES: '/library/images',
@@ -205,6 +207,7 @@ export const APP_ROUTES = {
     TRASH: '/library/trash',
     VIDEOS: '/library/videos',
     VOICES: '/library/voices',
+    VOICE_STUDIO: '/library/voices/record',
   },
   MESSAGES: {
     /**
@@ -679,7 +682,6 @@ const BRAND_ONLY_SETTINGS_PREFIXES = [
   '/settings/agent/context',
   '/settings/brand-kit/rules',
   '/settings/brand-kit',
-  '/library/references',
 ] as const;
 
 export function isBrandOnlySettingsPath(pathname: string): boolean {

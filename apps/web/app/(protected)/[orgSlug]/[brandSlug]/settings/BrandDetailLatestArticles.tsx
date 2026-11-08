@@ -1,5 +1,5 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { APP_ROUTES, creatorArticlePath } from '@genfeedai/contracts/constants';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { BrandDetailLatestArticlesProps } from '@props/pages/brand-detail.props';
@@ -17,6 +17,7 @@ const WRITE_ARTICLE_AGENT_HREF = buildAgentPromptHref(
 
 export default function BrandDetailLatestArticles({
   articles,
+  publicHandle,
 }: BrandDetailLatestArticlesProps) {
   const { href } = useOrgUrl();
 
@@ -60,20 +61,25 @@ export default function BrandDetailLatestArticles({
                     {article.summary}
                   </p>
                 ) : null}
-                <Button
-                  asChild
-                  className="mt-auto self-start"
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.SECONDARY}
-                  withWrapper={false}
-                >
-                  <NextLink
-                    href={`${EnvironmentService.apps.website}/articles/${article.slug}`}
-                    target="_blank"
+                {publicHandle && article.slug ? (
+                  <Button
+                    asChild
+                    className="mt-auto self-start"
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.SECONDARY}
+                    withWrapper={false}
                   >
-                    Read article
-                  </NextLink>
-                </Button>
+                    <NextLink
+                      href={`${EnvironmentService.apps.website}${creatorArticlePath(
+                        publicHandle,
+                        article.slug,
+                      )}`}
+                      target="_blank"
+                    >
+                      Read article
+                    </NextLink>
+                  </Button>
+                ) : null}
               </div>
             </div>
           ))}

@@ -21,10 +21,10 @@ describe('extractAgentConversationId', () => {
     ).toBe(conversationId);
   });
 
-  it('reads the id of a thread opened full size', () => {
+  it('reads no id from the retired /full path', () => {
     expect(
       extractAgentConversationId(`/default/~/agent/${conversationId}/full`),
-    ).toBe(conversationId);
+    ).toBeNull();
   });
 
   it('ignores the threads list', () => {

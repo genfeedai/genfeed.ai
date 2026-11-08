@@ -20,7 +20,7 @@ export default function ProfileVideos({ videos }: ProfileVideosProps) {
 
   return (
     <div>
-      <Masonry columns={{ default: 1 }}>
+      <Masonry columns={{ default: 1, lg: 3, md: 2 }}>
         {visibleVideos.map((video: IVideo) => (
           <LazyMasonryVideo
             key={video.id}

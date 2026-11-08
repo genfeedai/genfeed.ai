@@ -1,6 +1,6 @@
 import { MARKETING_OG_CARDS, MARKETING_OG_SIZE } from '@data/marketing-og.data';
 import { loadMarketingSatoriFonts } from '@genfeedai/fonts/og';
-import { BrandMark } from '@website/(content)/articles/[slug]/og/brand-mark';
+import { BrandMark } from '@web-components/og/brand-mark';
 import { ImageResponse } from 'next/og';
 
 // 3:2 hero artwork at full card height.

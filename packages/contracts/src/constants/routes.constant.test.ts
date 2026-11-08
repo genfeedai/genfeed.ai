@@ -304,9 +304,6 @@ describe('routes.constant', () => {
     expect(
       createOrganizationAppRoute('acme', APP_ROUTES.SETTINGS.BRAND_KIT_VOICE),
     ).toBe('/acme/~/settings/brands');
-    expect(
-      createOrganizationAppRoute('acme', APP_ROUTES.LIBRARY.REFERENCES),
-    ).toBe('/acme/~/settings/brands');
   });
 
   it('keeps organization integrations, assets, and posts on their own paths', () => {
@@ -316,6 +313,12 @@ describe('routes.constant', () => {
     expect(createOrganizationAppRoute('acme', APP_ROUTES.LIBRARY.ASSETS)).toBe(
       '/acme/~/library/assets',
     );
+    expect(
+      createOrganizationAppRoute('acme', APP_ROUTES.LIBRARY.REFERENCES),
+    ).toBe('/acme/~/library/references');
+    expect(
+      createOrganizationAppRoute('acme', APP_ROUTES.LIBRARY.IMPORTED),
+    ).toBe('/acme/~/library/imported');
     expect(
       createOrganizationAppRoute('acme', APP_ROUTES.PUBLISHING.POSTS),
     ).toBe('/acme/~/publishing/posts');

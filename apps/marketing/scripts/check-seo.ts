@@ -54,12 +54,13 @@ const SOFT_MODE = process.env.SEO_SOFT === '1';
  * The probe slug is deliberately absurd so it can never match real content.
  */
 const NOT_FOUND_PROBE_PATHS = [
-  '/articles/genfeed-seo-probe-does-not-exist',
+  '/@genfeedai/articles/genfeed-seo-probe-does-not-exist',
+  '/@genfeedai/posts/genfeed-seo-probe-does-not-exist',
   '/posts/genfeed-seo-probe-does-not-exist',
   '/vs/genfeed-seo-probe-does-not-exist',
   '/integrations/genfeed-seo-probe-does-not-exist',
   '/use-cases/genfeed-seo-probe-does-not-exist',
-  '/u/genfeed-seo-probe-does-not-exist',
+  '/@genfeed-seo-probe-does-not-exist',
   '/genfeed-seo-probe-does-not-exist',
 ] as const;
 

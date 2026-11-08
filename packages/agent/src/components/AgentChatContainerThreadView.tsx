@@ -218,6 +218,13 @@ export function AgentChatContainerThreadView({
           className="relative z-20 shrink-0 bg-background"
           data-testid="agent-column-composer"
         >
+          {/* The transcript fades out above the footer instead of being sliced
+              mid-line by its hard edge. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-full h-8 bg-gradient-to-t from-background to-transparent"
+            data-testid="agent-transcript-fade"
+          />
           {!isAtBottom ? (
             <div className="pointer-events-none absolute inset-x-0 bottom-full z-20 flex justify-center pb-2">
               <Button

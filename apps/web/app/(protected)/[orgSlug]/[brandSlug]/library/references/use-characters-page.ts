@@ -4,6 +4,7 @@ import {
   isPersonaHandle,
   MemberRole,
   normalizePersonaHandle,
+  PageScope,
   PersonaAvailabilityMode,
   QualityTier,
 } from '@genfeedai/contracts';
@@ -66,7 +67,10 @@ function parseOptionalSeed(value: string): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-export function useCharactersPage(): CharactersPageState {
+export function useCharactersPage(
+  scope: PageScope.BRAND | PageScope.ORGANIZATION = PageScope.BRAND,
+): CharactersPageState {
+  const isOrganizationScope = scope === PageScope.ORGANIZATION;
   const translate = useTranslations('common.settings.characters');
   const { brandId, brands, organizationId } = useBrand();
   const queryClient = useQueryClient();
@@ -121,24 +125,28 @@ export function useCharactersPage(): CharactersPageState {
     return () => cleanupSocket();
   }, [cleanupSocket]);
 
-  // One brand's characters, cached per viewer, brand and page: coming back
+  // One brand's characters (or every brand's, on the organization page), cached per viewer, brand and page: coming back
   // paints the last page at once and refreshes it in the background, and a
   // new page keeps the current rows on screen while it loads.
   const charactersScopeKey = [
     CHARACTERS_QUERY_KEY,
     organizationId || null,
-    brandId || null,
+    isOrganizationScope ? 'organization' : brandId || null,
   ];
   const charactersQuery = useAuthedQuery<
     PersonasService,
     IPaginatedResponse<BrandCharacterListItem>
   >({
-    enabled: Boolean(brandId),
+    enabled: isOrganizationScope ? Boolean(organizationId) : Boolean(brandId),
     keepPreviousDataWithin: charactersScopeKey,
     queryFn: async (service, signal) => {
       try {
         return await service.listCharactersPage(
-          { limit: ITEMS_PER_PAGE, page: currentPage },
+          {
+            ...(isOrganizationScope ? { allBrands: true } : {}),
+            limit: ITEMS_PER_PAGE,
+            page: currentPage,
+          },
           signal,
         );
       } catch (error) {
@@ -153,7 +161,9 @@ export function useCharactersPage(): CharactersPageState {
   });
   const charactersPage = charactersQuery.data;
   const characters = charactersPage?.items ?? EMPTY_CHARACTERS;
-  const isLoading = Boolean(brandId) && charactersQuery.isPending;
+  const isLoading =
+    Boolean(isOrganizationScope ? organizationId : brandId) &&
+    charactersQuery.isPending;
   const charactersLoadError = charactersQuery.error;
   const hasCharactersPage = charactersPage !== undefined;
 

@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { CharacterAvailabilityDto } from '@api/collections/personas/dto/character-availability.dto';
 import { ComposeCharacterSheetDto } from '@api/collections/personas/dto/compose-character-sheet.dto';
 import { CreatePersonaDto } from '@api/collections/personas/dto/create-persona.dto';
@@ -11,10 +12,13 @@ import { CharacterOwnershipService } from '@api/collections/personas/services/ch
 import { PersonaReferencesService } from '@api/collections/personas/services/persona-references.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import {
-  brandAvailabilityWhere,
   hasSharedAvailability,
   isPersonaAvailableToBrand,
 } from '@api/collections/personas/utils/persona-availability.util';
+import {
+  buildPersonasFindAllQuery,
+  resolveAllowedPersonaBrandIds,
+} from '@api/collections/personas/utils/personas-find-all-query.util';
 import { stripAvailabilityFields } from '@api/collections/personas/utils/persona-availability-fields.util';
 import { composeCharacterSheetPrompt } from '@api/endpoints/ai-actions/prompts/character-sheet-preset';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -25,17 +29,15 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
-import { PersonaStatus } from '@genfeedai/contracts';
 import type {
   AgentCharacterMentionsResponse,
+  JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
 import { PersonaSerializer } from '@genfeedai/serializers';
@@ -47,6 +49,7 @@ import {
   Controller,
   Delete,
   Get,
+  Optional,
   Param,
   Patch,
   Post,
@@ -70,6 +73,8 @@ export class PersonasController extends BaseCRUDController<
     public readonly loggerService: LoggerService,
     private readonly ownershipService: CharacterOwnershipService,
     private readonly referencesService: PersonaReferencesService,
+    @Optional()
+    private readonly brandAccess?: BrandAccessService,
   ) {
     super(loggerService, personasService, PersonaSerializer, 'Persona', [
       'user',
@@ -77,64 +82,49 @@ export class PersonasController extends BaseCRUDController<
     ]);
   }
 
+  /**
+   * Brands an `allBrands` read is limited to, keyed by the validated query.
+   * `undefined` means every brand of the organization.
+   */
+  private readonly allowedBrandIdsByQuery = new WeakMap<
+    PersonasQueryDto,
+    string[] | undefined
+  >();
+
+  /**
+   * Binds the concrete query DTO so `?allBrands=true` is parsed, and narrows an
+   * organization-wide read to the brands the caller may access.
+   */
+  @Get()
+  override async findAll(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query() query: PersonasQueryDto,
+  ): Promise<JsonApiCollectionResponse> {
+    if (query.allBrands && !query.brandId) {
+      this.allowedBrandIdsByQuery.set(
+        query,
+        await resolveAllowedPersonaBrandIds(
+          this.brandAccess,
+          query,
+          user,
+          request,
+        ),
+      );
+    }
+
+    return super.findAll(request, user, query);
+  }
+
   public buildFindAllQuery(
     user: User,
     query: PersonasQueryDto,
   ): PrismaFindAllInput {
-    const match: Record<string, unknown> = {
-      isDeleted: query.isDeleted ?? false,
-    };
-    CollectionFilterUtil.applyAuthorizedTenantMatch(match, query, user);
-
-    // Characters owned by the brand plus those shared to it, in one query.
-    const brandId = match.brandId;
-    delete match.brandId;
-    if (typeof brandId === 'string') {
-      match.AND = [brandAvailabilityWhere(brandId)];
-    }
-
-    if (query.status) {
-      match.status = query.status;
-    }
-    if (query.avatarProvider) {
-      match.avatarProvider = query.avatarProvider;
-    }
-    if (query.assignedMember) {
-      match.assignedMembers = { some: { id: query.assignedMember } };
-    }
-
-    if (query.isMentionable) {
-      match.handle = { not: null };
-      match.status =
-        query.status && query.status !== PersonaStatus.ARCHIVED
-          ? query.status
-          : PersonaStatus.ACTIVE;
-    }
-
-    const prefix = query.q?.trim();
-    if (prefix) {
-      match.OR = [
-        { handle: { startsWith: prefix.toLowerCase(), mode: 'insensitive' } },
-        { label: { startsWith: prefix, mode: 'insensitive' } },
-      ];
-    }
-
-    const input: PrismaFindAllInput & { grantedToBrandId?: string } = {
-      orderBy: handleQuerySort(query.sort),
-      where: match,
-    };
-    // Characters granted to the organization join the unfiltered brand list.
-    const hasFilters = Boolean(
-      query.status ||
-        query.avatarProvider ||
-        query.assignedMember ||
-        query.isMentionable ||
-        query.q?.trim(),
+    return buildPersonasFindAllQuery(
+      user,
+      query,
+      this.allowedBrandIdsByQuery.get(query),
     );
-    if (typeof brandId === 'string' && !hasFilters) {
-      input.grantedToBrandId = brandId;
-    }
-    return input;
   }
 
   @TenantReadPolicy('selected')

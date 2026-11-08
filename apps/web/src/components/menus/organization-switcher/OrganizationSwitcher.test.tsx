@@ -2,13 +2,20 @@ import type {
   SwitcherDropdownFooterAction,
   SwitcherDropdownItem,
 } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OrganizationSwitcher from '@/components/menus/organization-switcher/OrganizationSwitcher';
 import { failingImageUrls } from '../../../../tests/image-loading.stub';
 
 const mockPush = vi.fn();
+const mockCreateOrganization = vi.fn();
 const mockGetMyOrganizations = vi.fn();
 const mockSwitchOrganization = vi.fn();
 let mockOrganizations: Array<
@@ -57,7 +64,7 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
-    createOrganization: vi.fn(),
+    createOrganization: mockCreateOrganization,
     getMyOrganizations: mockGetMyOrganizations,
     switchOrganization: mockSwitchOrganization,
   }),
@@ -391,6 +398,32 @@ describe('OrganizationSwitcher', () => {
       await screen.findByRole('dialog', { name: 'title' }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/nameLabel/)).toHaveValue('');
+  });
+
+  it('navigates into the new organization after creating it', async () => {
+    mockSubscriptionTier = 'scale';
+    mockPathname = '/acme-org/~/agent/new';
+    mockCreateOrganization.mockResolvedValueOnce({
+      brand: { id: 'brand_new', label: 'Globex' },
+      organization: { id: 'org_new', label: 'Globex', slug: 'globex' },
+    });
+
+    renderSwitcher();
+
+    await waitFor(() => {
+      expect(capturedFooterActions).toHaveLength(1);
+    });
+    act(() => capturedFooterActions[0]?.onAction());
+
+    fireEvent.change(await screen.findByLabelText(/nameLabel/), {
+      target: { value: 'Globex' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'create' }));
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/globex/~/agent/new');
+    });
+    expect(window.location.reload).not.toHaveBeenCalled();
   });
 
   it('renders the organization as a keyboard-operable h-8 chip', async () => {

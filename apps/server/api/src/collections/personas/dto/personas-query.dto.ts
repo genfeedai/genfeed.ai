@@ -57,4 +57,15 @@ export class PersonasQueryDto extends BaseQueryDto {
   })
   @IsBoolean()
   isMentionable?: boolean;
+
+  @ApiProperty({
+    description:
+      'List the characters of every brand in the organization the caller may ' +
+      'access, ignoring the session brand. An explicit `brandId` still narrows it.',
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  allBrands?: boolean;
 }

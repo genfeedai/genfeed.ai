@@ -7,12 +7,15 @@ import {
 import { requireMetaScopes } from '@api/services/integrations/_shared/meta-page-access.util';
 import {
   getInstagramErrorCode,
+  getSafeInstagramOAuthErrorLog,
   isInstagramAuthorizationError,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
+import { toInstagramTokenGrant } from '@api/services/integrations/instagram/utils/instagram-token-grant.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   InstagramConversationThread,
   InstagramCredentialResponse,
+  InstagramDebugTokenResponse,
   InstagramGraphCommentNode,
   InstagramGraphCommentsResponse,
   InstagramGraphConversationNode,
@@ -294,12 +297,69 @@ export class InstagramService {
    */
   /**
    * Every Instagram professional account the client's Business Integration
-   * System User token was assigned. See `InstagramAccountsService`.
+   * System User token can act as. This is the one list behind verify-time
+   * resolution, the account picker and `select-account`, so the picker never
+   * offers an account that selecting would then reject.
+   *
+   * The assigned-accounts edge comes first (see `InstagramAccountsService`).
+   * It can answer empty for a grant that does name accounts; the token's
+   * `debug_token` targets are then the accounts the customer chose in Meta's
+   * dialog, so those are described instead. A caller that already read the
+   * grant passes its account ids so a second `debug_token` read cannot fail
+   * a connect the first read could serve.
    */
   public async listAuthorizedInstagramAccounts(
     accessToken: string,
+    knownGrantedIds?: string[],
   ): Promise<InstagramPageResponse[]> {
-    return this.accountsService.listAuthorizedInstagramAccounts(accessToken);
+    const assigned =
+      await this.accountsService.listAuthorizedInstagramAccounts(accessToken);
+    if (assigned.length > 0) {
+      return assigned;
+    }
+
+    const grantedIds =
+      knownGrantedIds ??
+      (await this.readGrantedInstagramAccountIds(accessToken));
+    if (grantedIds.length === 0) {
+      return [];
+    }
+
+    this.loggerService.log(
+      `${this.constructorName} listAuthorizedInstagramAccounts used the token grant`,
+      { grantedAccountCount: grantedIds.length },
+    );
+    return this.accountsService.describeInstagramAccounts(
+      grantedIds,
+      accessToken,
+    );
+  }
+
+  /** The Instagram account ids Meta lists in this token's grant, if it says. */
+  private async readGrantedInstagramAccountIds(
+    accessToken: string,
+  ): Promise<string[]> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get<InstagramDebugTokenResponse>(
+          `${this.graphUrl}/${this.apiVersion}/debug_token`,
+          {
+            params: {
+              access_token: `${this.configService.get('INSTAGRAM_APP_ID')}|${this.configService.get('INSTAGRAM_APP_SECRET')}`,
+              input_token: accessToken,
+            },
+            timeout: 10_000,
+          },
+        ),
+      );
+      return toInstagramTokenGrant(response.data?.data).instagramTargetIds;
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${this.constructorName} could not read the token grant`,
+        getSafeInstagramOAuthErrorLog(error),
+      );
+      return [];
+    }
   }
 
   public async handleAuthorizationError(

@@ -46,7 +46,8 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           type: 'string',
         },
         mediaUrls: {
-          description: 'Media URLs for a standalone draft post.',
+          description:
+            'Library media URLs for a standalone draft post (the hosted url of an uploaded or generated asset), in slide order. A URL that is not a Library asset fails the call.',
           items: { type: 'string' },
           type: 'array',
         },
@@ -101,7 +102,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     // endpoint bills the real amount (issue #482).
     creditCost: Math.min(...Object.values(MEDIA_GENERATION_CREDIT_FLOORS)),
     description:
-      'Generate an image, video, voice (text-to-speech) or music track. Set type; a parameter marked for another type is rejected. For model, pass a key from get_generation_options models, or omit it so the router picks. Image and video results include generationHarness with the exact submitted prompt and enhancement status: show that prompt with the result instead of reconstructing it. Image and video require a resolved model-specific quote and confirmation. The endpoint bills the prepared request; an unresolved quote never means free generation.',
+      "Generate an image, video, voice (text-to-speech) or music track. Set type; a parameter marked for another type is rejected. For model, pass a key from get_generation_options models, or omit it so the router picks. Image and video results include generationHarness with the exact submitted prompt and enhancement status: show that prompt with the result instead of reconstructing it. Image and video require a resolved model-specific quote and confirmation. The endpoint bills the prepared request; an unresolved quote never means free generation. Type avatar renders a talking-head video of the brand's saved identity (default avatar plus voice): prompt is the topic Genfeed writes a spoken script for, or the exact words when isVerbatim is true. It needs a saved default avatar and voice and is billed per second of the rendered clip, not from a frozen quote; get_job_status polls it with the returned id.",
     name: 'generate',
     parameters: {
       properties: {
@@ -112,7 +113,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         prompt: {
           description:
-            'What to generate. For voice, the exact text to speak. For music, the style, mood, instruments and genre.',
+            'What to generate. For voice, the exact text to speak. For music, the style, mood, instruments and genre. For avatar, the topic of the video, or the exact words to speak when isVerbatim is true.',
           type: 'string',
         },
         model: {
@@ -126,7 +127,8 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           type: 'string',
         },
         aspectRatio: {
-          description: 'Image or video only. For example 1:1, 16:9 or 9:16.',
+          description:
+            'Image, video or avatar only. For example 1:1, 16:9 or 9:16. Avatar defaults to 9:16.',
           type: 'string',
         },
         resolution: {
@@ -182,8 +184,13 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         voiceId: {
           description:
-            'Voice only. Catalog or cloned voice id; omit when unknown.',
+            'Voice or avatar only. Saved voice id from get_assets type voice, or a catalog voice id for voice. For avatar, omit to use the brand default voice.',
           type: 'string',
+        },
+        isVerbatim: {
+          description:
+            'Avatar only. True speaks prompt exactly as written. False or omitted: prompt is the topic and Genfeed writes the script from the brand brief first.',
+          type: 'boolean',
         },
         harness: {
           description:

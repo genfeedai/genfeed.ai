@@ -95,11 +95,13 @@ export interface UseCreateOrganizationModalReturn {
  * Validates with `createOrganizationSchema`, the zod mirror of the API's
  * `CreateOrganizationRequestDto`: only the name is required, and description
  * and website are optional. Field errors appear once a field is touched, while
- * `isValid` locks submit from the start. On success it reloads the page to
- * re-sync session-scoped workspace data (same contract as the switch flow).
+ * `isValid` locks submit from the start. On success it hands the new
+ * organization's slug to `onCreated`, which navigates into it (the API makes the
+ * new organization the active one).
  */
 export function useCreateOrganizationModal(
   getOrgsService: () => Promise<OrganizationsService>,
+  onCreated: (organizationSlug: string) => void,
 ): UseCreateOrganizationModalReturn {
   const [state, dispatch] = useReducer(
     createOrganizationReducer,
@@ -157,10 +159,9 @@ export function useCreateOrganizationModal(
     dispatch({ type: 'SUBMIT_START' });
     try {
       const svc = await getOrgsService();
-      await svc.createOrganization(parsed.data);
-      // Reload to re-sync session-scoped workspace data for the new org
-      // (same contract as the switch flow).
-      window.location.reload();
+      const created = await svc.createOrganization(parsed.data);
+      onCreated(created.organization.slug);
+      dispatch({ type: 'RESET' });
     } catch (error) {
       // Surface the server's reason (e.g. the plan's organization limit)
       // rather than a generic failure.
@@ -171,7 +172,7 @@ export function useCreateOrganizationModal(
         type: 'SUBMIT_ERROR',
       });
     }
-  }, [getOrgsService, parsed]);
+  }, [getOrgsService, onCreated, parsed]);
 
   return {
     createError: state.createError,

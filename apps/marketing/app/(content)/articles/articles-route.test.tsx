@@ -70,11 +70,9 @@ describe('generateMetadata', () => {
     const meta = await generateMetadata(articlesMetadataProps(), parent);
 
     expect(meta.alternates?.canonical).toMatch(/\/articles$/);
-    expect(meta.title).toBe(
-      'Articles and Blog: AI Content Insights | Genfeed.ai',
-    );
+    expect(meta.title).toBe('Articles from the Genfeed Community | Genfeed.ai');
     expect(meta.description).toBe(
-      'Discover insights, tutorials, and case studies about AI-powered content creation and digital marketing strategies.',
+      'Read what creators publish on Genfeed: guides, case studies and stories, each on its author profile at genfeed.ai/@handle.',
     );
     expect(meta.openGraph?.url).toBe('https://genfeed.ai/articles');
     expect(meta.openGraph?.images).toEqual([
@@ -114,10 +112,10 @@ describe('generateMetadata', () => {
 
       expect(meta.alternates?.canonical).toBe(canonical);
       expect(meta.title).toBe(
-        `Articles and Blog: AI Content Insights ${pageLabel} | Genfeed.ai`,
+        `Articles from the Genfeed Community ${pageLabel} | Genfeed.ai`,
       );
       expect(meta.description).toBe(
-        `Discover insights, tutorials, and case studies about AI-powered content creation and digital marketing strategies ${pageLabel}.`,
+        `Read what creators publish on Genfeed: guides, case studies and stories, each on its author profile at genfeed.ai/@handle ${pageLabel}.`,
       );
       expect(meta.openGraph?.title).toBe(meta.title);
       expect(meta.openGraph?.description).toBe(meta.description);
@@ -137,7 +135,7 @@ describe('generateMetadata', () => {
 
       expect(meta.alternates?.canonical).toBe('https://genfeed.ai/articles');
       expect(meta.title).toBe(
-        'Articles and Blog: AI Content Insights | Genfeed.ai',
+        'Articles from the Genfeed Community | Genfeed.ai',
       );
       expect(String(meta.description)).not.toContain('Page');
     },
