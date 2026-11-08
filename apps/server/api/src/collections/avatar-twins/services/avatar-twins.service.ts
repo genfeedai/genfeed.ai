@@ -566,6 +566,8 @@ export class AvatarTwinsService {
     actor: AvatarTwinActor,
     ingredientId: string,
   ): Promise<void> {
+    // Files not yet deleted, so a failure names what is left in storage.
+    const remainingKeys: string[] = [];
     try {
       const ingredient = await this.prisma.ingredient.findFirst({
         select: { id: true, s3Key: true },
@@ -602,11 +604,16 @@ export class AvatarTwinsService {
           organizationId: actor.organizationId,
         },
       });
-      const keys = [
-        ingredient.s3Key,
-        ...variants.map((variant) => variant.storageKey),
-      ].filter((key): key is string => !!key);
-      for (const key of keys) await this.storage.delete(key);
+      remainingKeys.push(
+        ...[
+          ingredient.s3Key,
+          ...variants.map((variant) => variant.storageKey),
+        ].filter((key): key is string => !!key),
+      );
+      while (remainingKeys.length > 0) {
+        await this.storage.delete(remainingKeys[0]);
+        remainingKeys.shift();
+      }
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName} could not discard the training recording`,
@@ -614,6 +621,7 @@ export class AvatarTwinsService {
           error: error instanceof Error ? error.message : 'Unknown',
           ingredientId,
           organizationId: actor.organizationId,
+          storageKeys: remainingKeys,
         },
       );
     }
