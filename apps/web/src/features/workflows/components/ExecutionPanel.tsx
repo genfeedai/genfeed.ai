@@ -5,6 +5,7 @@ import {
   ButtonVariant,
   ComponentSize,
   formatEnumLabel,
+  isTerminalWorkflowExecutionStatus,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import {
@@ -26,7 +27,6 @@ import {
 } from '@/features/workflows/services/workflow-api';
 import { getExecutionEtaDisplayState } from '@/features/workflows/utils/eta-display';
 import { buildExecutionNodePatches } from '@/features/workflows/utils/execution-node-sync';
-import { isTerminalExecutionStatus } from '@/features/workflows/utils/execution-status';
 import {
   getStatusColor,
   getStatusIcon,
@@ -100,7 +100,7 @@ export function ExecutionPanel({
 
         setExecution(data);
         if (
-          isTerminalExecutionStatus(data.status) &&
+          isTerminalWorkflowExecutionStatus(data.status) &&
           reportedTerminalExecutionIdRef.current !== data.id
         ) {
           reportedTerminalExecutionIdRef.current = data.id;
@@ -144,7 +144,7 @@ export function ExecutionPanel({
         return;
       }
 
-      if (data && !isTerminalExecutionStatus(data.status)) {
+      if (data && !isTerminalWorkflowExecutionStatus(data.status)) {
         timerId = setTimeout(poll, POLL_INTERVAL_MS);
         pollTimerRef.current = timerId;
       }

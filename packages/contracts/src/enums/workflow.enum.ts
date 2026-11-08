@@ -42,6 +42,24 @@ export enum WorkflowExecutionStatus {
   CANCELLED = 'CANCELLED',
 }
 
+/**
+ * Statuses an execution never leaves. Polling, ETA display, accounting and
+ * orchestration must all use this one set; a late write may not move an
+ * execution out of it.
+ */
+export const WORKFLOW_EXECUTION_TERMINAL_STATUSES: ReadonlySet<WorkflowExecutionStatus> =
+  new Set([
+    WorkflowExecutionStatus.COMPLETED,
+    WorkflowExecutionStatus.FAILED,
+    WorkflowExecutionStatus.CANCELLED,
+  ]);
+
+export function isTerminalWorkflowExecutionStatus(
+  status: WorkflowExecutionStatus,
+): boolean {
+  return WORKFLOW_EXECUTION_TERMINAL_STATUSES.has(status);
+}
+
 export enum WorkflowExecutionTrigger {
   MANUAL = 'manual',
   SCHEDULED = 'scheduled',

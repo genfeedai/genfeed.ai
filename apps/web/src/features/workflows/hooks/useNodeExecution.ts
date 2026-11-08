@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  isTerminalWorkflowExecutionStatus,
   WorkflowExecutionStatus,
   WorkflowNodeStatus,
 } from '@genfeedai/contracts';
@@ -17,7 +18,6 @@ import {
   type ExecutionResult,
   type WorkflowApiService,
 } from '@/features/workflows/services/workflow-api';
-import { isTerminalExecutionStatus } from '@/features/workflows/utils/execution-status';
 
 interface UseNodeExecutionReturn {
   /** Execute a partial workflow for specific node(s) and poll for results */
@@ -98,7 +98,7 @@ export function useNodeExecution(): UseNodeExecutionReturn {
             });
           }
 
-          if (isTerminalExecutionStatus(result.status)) {
+          if (isTerminalWorkflowExecutionStatus(result.status)) {
             if (result.status === WorkflowExecutionStatus.FAILED) {
               const nodeError = nodeResult?.error || result.error;
               updateNodeData(nodeId, {
