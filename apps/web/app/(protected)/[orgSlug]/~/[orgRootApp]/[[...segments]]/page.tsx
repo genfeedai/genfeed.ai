@@ -34,6 +34,8 @@ import EditorWorkspace from '@/features/studio/editor/EditorWorkspace';
 import type { OrgRootAppPageProps } from '@/props/layout/org-root-app-page.props';
 import type { PostsListSearchParams } from '@/props/publishing/publishing-list-page.props';
 import { loadProtectedBootstrap } from '@/server/protected-bootstrap.server';
+import ImportedLibrary from '../../../[brandSlug]/library/imported/imported-library';
+import LibraryCharactersPage from '../../../[brandSlug]/library/references/content';
 import AssetDeepLink from '../../../[brandSlug]/library/assets/asset-deep-link';
 import LibraryCaptionsPage from '../../../[brandSlug]/library/captions/page';
 import LibraryCreditNotice from '../../../[brandSlug]/library/library-credit-notice';
@@ -276,6 +278,18 @@ export default async function OrgRootAppPage({
 
     if (segments[0] === 'overview' && segments.length === 1) {
       return <LibraryOverview scope={PageScope.ORGANIZATION} />;
+    }
+
+    if (segments[0] === 'imported' && segments.length === 1) {
+      return <ImportedLibrary scope={PageScope.ORGANIZATION} />;
+    }
+
+    if (segments[0] === 'references' && segments.length === 1) {
+      return (
+        <Suspense fallback={null}>
+          <LibraryCharactersPage scope={PageScope.ORGANIZATION} />
+        </Suspense>
+      );
     }
 
     if (segments[0] === 'voices') {

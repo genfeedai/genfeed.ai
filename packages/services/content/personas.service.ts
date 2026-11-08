@@ -76,7 +76,7 @@ export class PersonasService extends BaseService<
 
   /** One character page with metadata from the same response. */
   async listCharactersPage(
-    query: { limit?: number; page?: number } = {},
+    query: { allBrands?: boolean; limit?: number; page?: number } = {},
     signal?: AbortSignal,
   ): Promise<IPaginatedResponse<BrandCharacterListItem>> {
     const page = await this.findAllPage(query, signal);

@@ -681,7 +681,6 @@ const BRAND_ONLY_SETTINGS_PREFIXES = [
   '/settings/agent/context',
   '/settings/brand-kit/rules',
   '/settings/brand-kit',
-  '/library/references',
 ] as const;
 
 export function isBrandOnlySettingsPath(pathname: string): boolean {

@@ -502,6 +502,17 @@ describe('PersonasController', () => {
       expect(query.where).not.toHaveProperty('brandId');
     });
 
+    it('lists every brand of the organization when allBrands is set', () => {
+      const query = controller.buildFindAllQuery(mockUser, {
+        allBrands: true,
+      } as never);
+
+      expect(query.where).toMatchObject({ isDeleted: false, organizationId });
+      expect(query.where).not.toHaveProperty('brandId');
+      expect(query.where).not.toHaveProperty('AND');
+      expect(query).not.toHaveProperty('grantedToBrandId');
+    });
+
     it('passes the availability choice and super-admin flag when creating from a sheet', async () => {
       mockServiceMethods.createFromApprovedSheet.mockResolvedValue({
         id: personaId,

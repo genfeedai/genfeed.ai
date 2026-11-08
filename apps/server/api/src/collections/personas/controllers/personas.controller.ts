@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { CharacterAvailabilityDto } from '@api/collections/personas/dto/character-availability.dto';
 import { ComposeCharacterSheetDto } from '@api/collections/personas/dto/compose-character-sheet.dto';
 import { CreatePersonaDto } from '@api/collections/personas/dto/create-persona.dto';
@@ -15,6 +16,7 @@ import {
   hasSharedAvailability,
   isPersonaAvailableToBrand,
 } from '@api/collections/personas/utils/persona-availability.util';
+import { resolveAllBrandsFilter } from '@api/collections/ingredients/utils/library-brand-scope.util';
 import { stripAvailabilityFields } from '@api/collections/personas/utils/persona-availability-fields.util';
 import { composeCharacterSheetPrompt } from '@api/endpoints/ai-actions/prompts/character-sheet-preset';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -36,6 +38,7 @@ import type { PrismaFindAllInput } from '@api/shared/services/base/base.service'
 import { PersonaStatus } from '@genfeedai/contracts';
 import type {
   AgentCharacterMentionsResponse,
+  JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
 import { PersonaSerializer } from '@genfeedai/serializers';
@@ -47,6 +50,7 @@ import {
   Controller,
   Delete,
   Get,
+  Optional,
   Param,
   Patch,
   Post,
@@ -70,11 +74,55 @@ export class PersonasController extends BaseCRUDController<
     public readonly loggerService: LoggerService,
     private readonly ownershipService: CharacterOwnershipService,
     private readonly referencesService: PersonaReferencesService,
+    @Optional()
+    private readonly brandAccess?: BrandAccessService,
   ) {
     super(loggerService, personasService, PersonaSerializer, 'Persona', [
       'user',
       'brand',
     ]);
+  }
+
+  /**
+   * Brands an `allBrands` read is limited to, keyed by the validated query.
+   * `undefined` means every brand of the organization.
+   */
+  private readonly allowedBrandIdsByQuery = new WeakMap<
+    PersonasQueryDto,
+    string[] | undefined
+  >();
+
+  /**
+   * Binds the concrete query DTO so `?allBrands=true` is parsed, and narrows an
+   * organization-wide read to the brands the caller may access.
+   */
+  @Get()
+  override async findAll(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query() query: PersonasQueryDto,
+  ): Promise<JsonApiCollectionResponse> {
+    if (query.allBrands && !query.brandId) {
+      const tenant = CollectionFilterUtil.resolveListOrganizationId(
+        query,
+        user,
+        request,
+      );
+      const scope = await resolveAllBrandsFilter(
+        this.brandAccess,
+        tenant,
+        user,
+        getIsSuperAdmin(user, request),
+      );
+      const brandIds = (
+        scope?.OR as Array<{ brandId: { in: string[] } | null }> | undefined
+      )?.find((clause) => clause.brandId !== null)?.brandId as
+        | { in: string[] }
+        | undefined;
+      this.allowedBrandIdsByQuery.set(query, brandIds?.in);
+    }
+
+    return super.findAll(request, user, query);
   }
 
   public buildFindAllQuery(
@@ -87,10 +135,17 @@ export class PersonasController extends BaseCRUDController<
     CollectionFilterUtil.applyAuthorizedTenantMatch(match, query, user);
 
     // Characters owned by the brand plus those shared to it, in one query.
-    const brandId = match.brandId;
+    const isAllBrands = Boolean(query.allBrands) && !query.brandId;
+    const brandId = isAllBrands ? undefined : match.brandId;
     delete match.brandId;
     if (typeof brandId === 'string') {
       match.AND = [brandAvailabilityWhere(brandId)];
+    }
+    if (isAllBrands) {
+      const allowedBrandIds = this.allowedBrandIdsByQuery.get(query);
+      if (allowedBrandIds) {
+        match.brandId = { in: allowedBrandIds };
+      }
     }
 
     if (query.status) {

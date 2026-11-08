@@ -1,3 +1,4 @@
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { CharacterImageInspectionController } from '@api/collections/personas/controllers/character-image-inspection.controller';
 import { PersonaGrantsController } from '@api/collections/personas/controllers/persona-grants.controller';
 import { PersonaReferencesController } from '@api/collections/personas/controllers/persona-references.controller';
@@ -22,6 +23,7 @@ import { Module } from '@nestjs/common';
   ],
   exports: [PersonasCoreModule],
   imports: [
+    BrandAccessModule,
     PersonasCoreModule,
     PersonaContentModule,
     PostsModule,

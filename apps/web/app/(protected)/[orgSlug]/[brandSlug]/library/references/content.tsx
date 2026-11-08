@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, PageScope } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -16,7 +16,12 @@ import CharacterReferencesDialog from './character-references-dialog';
 import CharactersTable from './characters-table';
 import { useCharactersPage } from './use-characters-page';
 
-export default function LibraryCharactersPage(): ReactElement {
+export default function LibraryCharactersPage({
+  scope = PageScope.BRAND,
+}: {
+  scope?: PageScope.BRAND | PageScope.ORGANIZATION;
+}): ReactElement {
+  const isOrganizationScope = scope === PageScope.ORGANIZATION;
   const translate = useTranslations('common.settings.characters');
   const translateReferences = useTranslations('pages.library.references');
   const { brandId } = useBrand();
@@ -44,13 +49,13 @@ export default function LibraryCharactersPage(): ReactElement {
     openCreateDialog,
     setIsCreateDialogOpen,
     step,
-  } = useCharactersPage();
+  } = useCharactersPage(scope);
 
   const referencesCharacter = characters.find(
     (character) => character.id === referencesCharacterId,
   );
 
-  if (!brandId) {
+  if (!isOrganizationScope && !brandId) {
     return (
       <Container>
         <Card>
@@ -67,7 +72,7 @@ export default function LibraryCharactersPage(): ReactElement {
       <Container
         label={translateReferences('title')}
         right={
-          !isLoading && characters.length > 0 ? (
+          !isOrganizationScope && !isLoading && characters.length > 0 ? (
             <Button
               onClick={openCreateDialog}
               variant={ButtonVariant.DEFAULT}
@@ -82,7 +87,7 @@ export default function LibraryCharactersPage(): ReactElement {
           canManageSharing={canManageSharing}
           characters={characters}
           isLoading={isLoading}
-          onCreate={openCreateDialog}
+          onCreate={isOrganizationScope ? undefined : openCreateDialog}
           onManageAvailability={availabilityControls.open}
           onManageReferences={(character) =>
             setReferencesCharacterId(character.id)
@@ -112,6 +117,7 @@ export default function LibraryCharactersPage(): ReactElement {
         />
       ) : null}
 
+      {isOrganizationScope ? null : (
       <CharacterCreateDialog
         approve={approve}
         approveCandidate={approveCandidate}
@@ -129,6 +135,7 @@ export default function LibraryCharactersPage(): ReactElement {
         onOpenChange={setIsCreateDialogOpen}
         step={step}
       />
+      )}
     </>
   );
 }
