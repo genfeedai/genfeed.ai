@@ -1,5 +1,12 @@
 import { Transform } from 'class-transformer';
-import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_-]{8,128}$/;
 
@@ -20,4 +27,12 @@ export class StartAvatarTwinDto {
   @IsString()
   @Matches(IDEMPOTENCY_KEY_PATTERN)
   idempotencyKey!: string;
+
+  /**
+   * Keep the recording in the Library after HeyGen has it. Off by default:
+   * footage of a face and voice is deleted once it is no longer needed.
+   */
+  @IsOptional()
+  @IsBoolean()
+  isRecordingKept?: boolean;
 }

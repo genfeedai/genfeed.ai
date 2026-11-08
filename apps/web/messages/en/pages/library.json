@@ -460,7 +460,9 @@
       "scriptLabel": "Read this",
       "script": "Hi, I'm recording this so my digital twin can speak just like me. I'm going to talk naturally, the way I would to a friend. Today I want to share a few things I care about. First, why I make content at all: I like turning ideas into something people can see and use. Second, how I work: I start with a rough idea, test it quickly, and keep what works. Third, what I'd tell someone starting out: pick one thing, do it every day, and be patient. Now a few sounds for range. One, two, three, four, five, six, seven, eight, nine, ten. The quick brown fox jumps over the lazy dog. She sells seashells by the seashore. Really? Yes, really! That's amazing. Hmm, let me think about that for a second. Okay, here's the plan for this week: Monday we plan, Tuesday we film, Wednesday we edit, and Thursday we publish. Thanks for watching, and I'll see you in the next one.",
       "cancel": "Cancel",
-      "takeTooShort": "This take is shorter than {minimum} seconds. Record again."
+      "takeTooShort": "This take is shorter than {minimum} seconds. Record again.",
+      "keepCopy": "Keep a copy of this recording in my Library",
+      "retention": "Otherwise we delete the recording as soon as HeyGen has it. It stays in your HeyGen account until you delete the twin."
     },
     "errors": {
       "denied": "Camera or microphone access was blocked. Allow both in your browser settings, then try again.",
@@ -492,7 +494,8 @@
     },
     "done": {
       "body": "Your avatar and voice live in your HeyGen account. Pick them in any avatar video.",
-      "library": "Back to Avatars"
+      "library": "Back to Avatars",
+      "studio": "Make a video"
     },
     "newTake": "Record a new take",
     "reason": "Reason: {reason}",
@@ -508,6 +511,16 @@
       "message": "This deletes the avatar, its training recording and its voice from your HeyGen account. Videos you already made stay in your Library.",
       "confirm": "Delete",
       "error": "The twin could not be deleted. Try again."
+    },
+    "brand": {
+      "label": "Use for this brand",
+      "body": "Make this twin the brand's default avatar, so its videos use it automatically.",
+      "voiceLabel": "Voice",
+      "voiceTwin": "Use the voice from my recording",
+      "voiceKeep": "Keep the brand's current voice",
+      "apply": "Use for this brand",
+      "using": "This brand uses your twin as its default avatar.",
+      "error": "The brand could not be updated. Try again."
     }
   },
   "createVoice": {

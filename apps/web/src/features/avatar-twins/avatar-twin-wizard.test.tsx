@@ -14,6 +14,29 @@ const api = vi.hoisted(() => ({
   twins: [] as Partial<IAvatarTwin>[],
   refreshed: null as Partial<IAvatarTwin> | null,
   consentUrl: 'https://app.heygen.com/consent/abc',
+  brandConfig: {} as Record<string, unknown>,
+  brandUpdates: [] as unknown[],
+}));
+
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  useCollectionScope: () => ({ brandId: 'brand-1' }),
+}));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    refreshBrands: async () => undefined,
+    selectedBrand: { agentConfig: api.brandConfig, id: 'brand-1' },
+  }),
+}));
+
+vi.mock('@services/social/brands.service', () => ({
+  BrandsService: {
+    getInstance: () => ({
+      updateAgentConfig: async (id: string, data: Record<string, unknown>) => {
+        api.brandUpdates.push({ data, id });
+      },
+    }),
+  },
 }));
 
 vi.mock('next-intl', async () => {
@@ -113,6 +136,9 @@ function twin(overrides: Partial<IAvatarTwin>): Partial<IAvatarTwin> {
     failureMessage: null,
     id: 'twin-1',
     name: 'My digital twin',
+    providerGroupId: 'grp_1',
+    providerLookId: 'look_1',
+    voiceId: 'voice_1',
     previewImageUrl: null,
     status: AvatarTwinStatus.TRAINING,
     ...overrides,
@@ -128,6 +154,8 @@ describe('AvatarTwinWizard', () => {
     api.connection.state = 'connected';
     api.twins = [];
     api.refreshed = null;
+    api.brandConfig = {};
+    api.brandUpdates = [];
   });
 
   it('asks for the person’s own HeyGen account before anything else', async () => {
@@ -237,5 +265,87 @@ describe('AvatarTwinWizard', () => {
     expect(
       await screen.findByRole('button', { name: 'Turn on camera' }),
     ).toBeInTheDocument();
+  });
+  it('makes a ready twin the brand’s avatar and voice', async () => {
+    api.twins = [twin({ status: AvatarTwinStatus.READY })];
+    renderWizard();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Use for this brand' }),
+    );
+
+    await waitFor(() =>
+      expect(api.brandUpdates).toEqual([
+        {
+          data: {
+            defaultAvatarIngredientId: null,
+            defaultAvatarRef: {
+              groupId: 'grp_1',
+              lookId: 'look_1',
+              ownership: 'private',
+              source: 'heygen-look',
+            },
+            defaultVoiceId: null,
+            defaultVoiceRef: {
+              externalVoiceId: 'voice_1',
+              label: 'My digital twin',
+              ownership: 'private',
+              provider: 'HEYGEN',
+              source: 'catalog',
+            },
+          },
+          id: 'brand-1',
+        },
+      ]),
+    );
+  });
+
+  it('can keep the brand’s current voice', async () => {
+    api.brandConfig = { defaultVoiceRef: { source: 'cloned' } };
+    api.twins = [twin({ status: AvatarTwinStatus.READY })];
+    renderWizard();
+
+    fireEvent.click(
+      await screen.findByRole('radio', {
+        name: "Keep the brand's current voice",
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Use for this brand' }));
+
+    await waitFor(() =>
+      expect(api.brandUpdates).toEqual([
+        {
+          data: {
+            defaultAvatarIngredientId: null,
+            defaultAvatarRef: {
+              groupId: 'grp_1',
+              lookId: 'look_1',
+              ownership: 'private',
+              source: 'heygen-look',
+            },
+          },
+          id: 'brand-1',
+        },
+      ]),
+    );
+  });
+
+  it('says when the brand already uses the twin', async () => {
+    api.brandConfig = { defaultAvatarRef: { lookId: 'look_1' } };
+    api.twins = [twin({ status: AvatarTwinStatus.READY })];
+    renderWizard();
+
+    expect(
+      await screen.findByText(
+        'This brand uses your twin as its default avatar.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Use for this brand' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Make a video' })).toHaveAttribute(
+      'href',
+      '/acme/main/playground',
+    );
   });
 });

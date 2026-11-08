@@ -186,6 +186,10 @@ describe('Avatar twin enrollment (real Postgres)', () => {
 
   beforeEach(async () => {
     await prisma.avatarTwin.deleteMany({});
+    await prisma.ingredient.update({
+      data: { isDeleted: false },
+      where: { id: 'take-1' },
+    });
     provider = new FakeHeyGenTwins();
     service = new AvatarTwinsService(
       prisma.$extends(
@@ -306,5 +310,107 @@ describe('Avatar twin enrollment (real Postgres)', () => {
       'voice:voice_1',
     );
     expect((await service.get(alice, twin.id)).id).toBe(twin.id);
+  });
+  it('deletes the stored recording once HeyGen has it, unless kept', async () => {
+    await service.start(alice, startInput('key-00000009'));
+    expect(
+      (await prisma.ingredient.findUniqueOrThrow({ where: { id: 'take-1' } }))
+        .isDeleted,
+    ).toBe(true);
+
+    await prisma.ingredient.update({
+      data: { isDeleted: false },
+      where: { id: 'take-1' },
+    });
+    await service.start(alice, {
+      ...startInput('key-00000010'),
+      isRecordingKept: true,
+    });
+    expect(
+      (await prisma.ingredient.findUniqueOrThrow({ where: { id: 'take-1' } }))
+        .isDeleted,
+    ).toBe(false);
+  });
+
+  it('keeps the recording when HeyGen never received it', async () => {
+    provider.failUpload = true;
+
+    await expect(
+      service.start(alice, startInput('key-00000011')),
+    ).rejects.toThrow('HeyGen is unavailable.');
+    expect(
+      (await prisma.ingredient.findUniqueOrThrow({ where: { id: 'take-1' } }))
+        .isDeleted,
+    ).toBe(false);
+  });
+
+  it('clears brand and organization defaults that point at a deleted twin', async () => {
+    const twin = await service.start(alice, startInput('key-00000012'));
+    const twinLook = { lookId: 'look_1', ownership: 'private' };
+    const twinVoice = {
+      externalVoiceId: 'voice_1',
+      provider: 'HEYGEN',
+      source: 'catalog',
+    };
+    const otherVoice = {
+      externalVoiceId: 'other',
+      provider: 'ELEVENLABS',
+      source: 'catalog',
+    };
+    await prisma.brand.createMany({
+      data: [
+        {
+          agentConfig: {
+            defaultAvatarRef: twinLook,
+            defaultVoiceRef: twinVoice,
+            persona: 'kept',
+          },
+          id: 'brand-twin',
+          label: 'Twin brand',
+          organizationId: 'alpha',
+          slug: 'twin-brand',
+          userId: 'alice',
+        },
+        {
+          agentConfig: { defaultVoiceRef: otherVoice },
+          id: 'brand-other',
+          label: 'Other brand',
+          organizationId: 'alpha',
+          slug: 'other-brand',
+          userId: 'alice',
+        },
+      ],
+    });
+    await prisma.organizationSetting.create({
+      data: {
+        defaultAvatarRef: twinLook,
+        defaultVoiceRef: otherVoice,
+        organizationId: 'alpha',
+      },
+    });
+
+    await service.remove(alice, twin.id);
+
+    const brands = await prisma.brand.findMany({
+      orderBy: { id: 'asc' },
+      select: { agentConfig: true, id: true },
+    });
+    expect(brands).toEqual([
+      { agentConfig: { defaultVoiceRef: otherVoice }, id: 'brand-other' },
+      {
+        agentConfig: {
+          defaultAvatarRef: null,
+          defaultVoiceRef: null,
+          persona: 'kept',
+        },
+        id: 'brand-twin',
+      },
+    ]);
+    expect(
+      await prisma.organizationSetting.findUnique({
+        select: { defaultAvatarRef: true, defaultVoiceRef: true },
+        where: { organizationId: 'alpha' },
+      }),
+    ).toEqual({ defaultAvatarRef: null, defaultVoiceRef: otherVoice });
   });
 });

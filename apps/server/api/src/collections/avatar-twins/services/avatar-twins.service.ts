@@ -5,7 +5,7 @@ import type { HeyGenConsentLink } from '@api/services/integrations/heygen/helper
 import { HeyGenTwinService } from '@api/services/integrations/heygen/services/heygen-twin.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AvatarTwinStatus, IngredientCategory } from '@genfeedai/contracts';
-import type { AvatarTwin, Prisma } from '@genfeedai/prisma';
+import { type AvatarTwin, Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { readIngredientMediaUrl } from '@libs/media/media-url.util';
@@ -139,6 +139,16 @@ export class AvatarTwinsService {
         },
       );
       const state = deriveAvatarTwinState(created.look, created.group);
+      if (!dto.isRecordingKept)
+        await this.prisma.ingredient.updateMany({
+          data: { isDeleted: true },
+          where: {
+            id: dto.sourceIngredientId,
+            isDeleted: false,
+            organizationId: actor.organizationId,
+            userId: actor.userId,
+          },
+        });
       return await this.update(actor, twin.id, {
         ...state,
         lastCheckedAt: new Date(),
@@ -264,7 +274,75 @@ export class AvatarTwinsService {
             .join(', ')}). Try again.`,
         );
     }
+    await this.clearIdentityDefaults(actor, twin);
     return this.update(actor, twin.id, { isDeleted: true });
+  }
+
+  /**
+   * A deleted twin can no longer render: brand and organization defaults
+   * that point at its look or voice are cleared, so videos fall back to the
+   * next default instead of failing at the provider.
+   */
+  private async clearIdentityDefaults(
+    actor: AvatarTwinActor,
+    twin: AvatarTwin,
+  ): Promise<void> {
+    const cleared = (config: unknown): Record<string, unknown> | null => {
+      if (!config || typeof config !== 'object' || Array.isArray(config))
+        return null;
+      const record = config as Record<string, unknown>;
+      const isTwinLook =
+        !!twin.providerLookId &&
+        readField(record.defaultAvatarRef, 'lookId') === twin.providerLookId;
+      const isTwinVoice =
+        !!twin.voiceId &&
+        readField(record.defaultVoiceRef, 'externalVoiceId') === twin.voiceId;
+      if (!isTwinLook && !isTwinVoice) return null;
+      return {
+        ...(isTwinLook ? { defaultAvatarRef: null } : {}),
+        ...(isTwinVoice ? { defaultVoiceRef: null } : {}),
+      };
+    };
+
+    const brands = await this.prisma.brand.findMany({
+      select: { agentConfig: true, id: true },
+      where: { isDeleted: false, organizationId: actor.organizationId },
+    });
+    for (const brand of brands) {
+      const change = cleared(brand.agentConfig);
+      if (!change) continue;
+      await this.prisma.brand.update({
+        data: {
+          agentConfig: {
+            ...(brand.agentConfig as Record<string, unknown>),
+            ...change,
+          } as Prisma.InputJsonValue,
+        },
+        where: {
+          id: brand.id,
+          isDeleted: false,
+          organizationId: actor.organizationId,
+        },
+      });
+    }
+
+    const settings = await this.prisma.organizationSetting.findFirst({
+      select: { defaultAvatarRef: true, defaultVoiceRef: true, id: true },
+      where: { organizationId: actor.organizationId },
+    });
+    const settingsChange = settings ? cleared(settings) : null;
+    if (settings && settingsChange)
+      await this.prisma.organizationSetting.update({
+        data: {
+          ...(settingsChange.defaultAvatarRef === null
+            ? { defaultAvatarRef: Prisma.DbNull }
+            : {}),
+          ...(settingsChange.defaultVoiceRef === null
+            ? { defaultVoiceRef: Prisma.DbNull }
+            : {}),
+        },
+        where: { id: settings.id },
+      });
   }
 
   private update(
@@ -338,4 +416,10 @@ function isUniqueViolation(error: unknown): boolean {
     'code' in error &&
     (error as { code?: unknown }).code === 'P2002'
   );
+}
+
+function readField(value: unknown, key: string): unknown {
+  return value && typeof value === 'object'
+    ? (value as Record<string, unknown>)[key]
+    : undefined;
 }

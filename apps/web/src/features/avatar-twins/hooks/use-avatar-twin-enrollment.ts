@@ -1,21 +1,31 @@
 'use client';
 
-import { AvatarTwinStatus, IngredientCategory } from '@genfeedai/contracts';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import {
+  AvatarTwinStatus,
+  IngredientCategory,
+  VoiceProvider,
+} from '@genfeedai/contracts';
 import type {
   IAvatarTwin,
   IHeyGenConnectionStatus,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { logger } from '@services/core/logger.service';
 import { AvatarTwinsService } from '@services/ingredients/avatar-twins.service';
 import { HeyGenService } from '@services/ingredients/heygen.service';
 import { VideosService } from '@services/ingredients/videos.service';
+import { BrandsService } from '@services/social/brands.service';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type {
+  AvatarTwinBrandUsage,
   AvatarTwinEnrollment,
+  AvatarTwinSubmitInput,
   AvatarTwinSubmitPhase,
+  AvatarTwinVoiceChoice,
 } from '@/features/avatar-twins/props/avatar-twin.props';
 
 const TWINS_KEY = ['avatar-twins'] as const;
@@ -52,6 +62,11 @@ export function useAvatarTwinEnrollment(): AvatarTwinEnrollment {
   const getVideosService = useAuthedService((token: string) =>
     VideosService.getInstance(token),
   );
+  const getBrandsService = useAuthedService((token: string) =>
+    BrandsService.getInstance(token),
+  );
+  const { brandId } = useCollectionScope();
+  const { refreshBrands, selectedBrand } = useBrand();
 
   const [isRetaking, setIsRetaking] = useState(false);
   const [submitPhase, setSubmitPhase] = useState<AvatarTwinSubmitPhase | null>(
@@ -89,7 +104,11 @@ export function useAvatarTwinEnrollment(): AvatarTwinEnrollment {
   );
 
   const submit = useCallback(
-    async (recording: File, name: string): Promise<void> => {
+    async ({
+      isRecordingKept,
+      name,
+      recording,
+    }: AvatarTwinSubmitInput): Promise<void> => {
       setUploadProgress(0);
       setSubmitPhase('uploading');
       try {
@@ -113,6 +132,7 @@ export function useAvatarTwinEnrollment(): AvatarTwinEnrollment {
         const twins = await getTwinsService();
         await twins.start({
           idempotencyKey: newIdempotencyKey(),
+          isRecordingKept,
           name,
           sourceIngredientId: saved.id,
         });
@@ -147,12 +167,56 @@ export function useAvatarTwinEnrollment(): AvatarTwinEnrollment {
     [getTwinsService, refreshTwin],
   );
 
+  const brandConfig =
+    selectedBrand?.id === brandId ? selectedBrand?.agentConfig : undefined;
+  const brandUsage = useMemo<AvatarTwinBrandUsage | null>(() => {
+    if (!brandId) return null;
+    const lookId = twinQuery.data?.providerLookId;
+    return {
+      hasVoice: Boolean(
+        brandConfig?.defaultVoiceRef || brandConfig?.defaultVoiceId,
+      ),
+      isUsingTwin: !!lookId && brandConfig?.defaultAvatarRef?.lookId === lookId,
+    };
+  }, [brandConfig, brandId, twinQuery.data?.providerLookId]);
+
+  const applyToBrand = useCallback(
+    async (twin: IAvatarTwin, voice: AvatarTwinVoiceChoice): Promise<void> => {
+      if (!brandId || !twin.providerLookId) return;
+      const brands = await getBrandsService();
+      await brands.updateAgentConfig(brandId, {
+        defaultAvatarIngredientId: null,
+        defaultAvatarRef: {
+          groupId: twin.providerGroupId,
+          lookId: twin.providerLookId,
+          ownership: 'private',
+          source: 'heygen-look',
+        },
+        ...(voice === 'twin' && twin.voiceId
+          ? {
+              defaultVoiceId: null,
+              defaultVoiceRef: {
+                externalVoiceId: twin.voiceId,
+                label: twin.name,
+                ownership: 'private' as const,
+                provider: VoiceProvider.HEYGEN,
+                source: 'catalog' as const,
+              },
+            }
+          : {}),
+      });
+      await refreshBrands();
+    },
+    [brandId, getBrandsService, refreshBrands],
+  );
+
   const recheckConnection = useCallback(
     () => queryClient.invalidateQueries({ queryKey: CONNECTION_KEY }),
     [queryClient],
   );
 
   return {
+    brandUsage,
     connectionState: connectionQuery.data?.state ?? null,
     isLoading: connectionQuery.isLoading || twinQuery.isLoading,
     isRetaking,
@@ -166,5 +230,6 @@ export function useAvatarTwinEnrollment(): AvatarTwinEnrollment {
     submitPhase,
     twin: twinQuery.data ?? null,
     uploadProgress,
+    applyToBrand,
   };
 }
