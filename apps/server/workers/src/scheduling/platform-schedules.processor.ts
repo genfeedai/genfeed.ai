@@ -3,7 +3,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
-import { CronAvatarTwinsService } from '@workers/crons/avatar-twins/cron.avatar-twins.service';
 import { CronBrandedDispatchRecoveryService } from '@workers/crons/branded-dispatch-recovery/cron.branded-dispatch-recovery.service';
 import { CronCredentialsService } from '@workers/crons/credentials/cron.credentials.service';
 import { CronCreditsService } from '@workers/crons/credits/cron.credits.service';
@@ -87,7 +86,6 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     private readonly workflowSchedules: PlatformWorkflowSchedulesService,
     private readonly xReplyWatch: CronXReplyWatchService,
     private readonly externalVoiceCatalog: CronExternalVoiceCatalogService,
-    private readonly avatarTwins: CronAvatarTwinsService,
   ) {
     super();
     this.handlers = {
@@ -195,7 +193,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
       [PLATFORM_SCHEDULED_TASKS.X_REPLY_WATCH]: () =>
         this.xReplyWatch.watchRecentPostReplies(),
       [PLATFORM_SCHEDULED_TASKS.AVATAR_TWIN_TRACKING]: () =>
-        this.avatarTwins.trackWaitingTwins(),
+        this.mediaSchedules.trackAvatarTwins(),
       [PLATFORM_SCHEDULED_TASKS.EXTERNAL_VOICE_CATALOG_SYNC]: () =>
         this.externalVoiceCatalog.syncFromProviders(),
       [PLATFORM_SCHEDULED_TASKS.YOUTUBE_MESSAGES]: () =>

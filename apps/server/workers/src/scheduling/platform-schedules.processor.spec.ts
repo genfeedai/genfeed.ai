@@ -290,7 +290,11 @@ describe('PlatformSchedulesProcessor', () => {
       tiktok as never,
       transcripts as never,
       trends as never,
-      new PlatformMediaSchedulesService(video as never, crun as never),
+      new PlatformMediaSchedulesService(
+        video as never,
+        crun as never,
+        avatarTwins as never,
+      ),
       workflowArtifacts as never,
       youtubeMessages as never,
       youtubeStatus as never,
@@ -302,7 +306,6 @@ describe('PlatformSchedulesProcessor', () => {
       workflowSchedules as never,
       xReplyWatch as never,
       externalVoiceCatalog as never,
-      avatarTwins as never,
     );
   });
 

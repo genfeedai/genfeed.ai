@@ -587,6 +587,7 @@ describe('Library asset lifecycle', () => {
       new VoiceCloneService(
         { resolveApiKey: vi.fn() } as never,
         { deleteVoice: vi.fn() } as unknown as ElevenLabsService,
+        { deleteVoice: vi.fn() } as never,
         { cloneVoice: vi.fn(), isAvailable: vi.fn() } as never,
         logger,
         {

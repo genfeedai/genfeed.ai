@@ -1,5 +1,5 @@
-import { AVATAR_TWIN_NOTIFICATION_KIND } from '@api/collections/avatar-twins/utils/avatar-twin-tracking.util';
 import { summarizeMcpApproval } from '@api/collections/mcp-approvals/utils/mcp-approval-summary.util';
+import { readAvatarTwinPayload } from '@api/services/notifications/inbox/inbox-avatar-twin.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { MemberRole } from '@genfeedai/contracts';
@@ -204,28 +204,6 @@ function readSocialReplyPayload(
   };
 }
 
-type AvatarTwinInboxPayload = { brandId: string };
-
-/** A settled digital twin; the item opens the twin page in its brand. */
-function readAvatarTwinPayload(
-  topic: string,
-  payload: Prisma.JsonValue,
-): AvatarTwinInboxPayload | null {
-  if (
-    topic !== 'generation.status' ||
-    !payload ||
-    typeof payload !== 'object' ||
-    Array.isArray(payload) ||
-    payload.kind !== AVATAR_TWIN_NOTIFICATION_KIND ||
-    payload.version !== 1 ||
-    typeof payload.brandId !== 'string' ||
-    payload.brandId.length === 0
-  ) {
-    return null;
-  }
-  return { brandId: payload.brandId };
-}
-
 type BreakoutRemixInboxPayload = {
   brandId: string;
   /** Query that opens the remix for the post the offer is about. */
@@ -258,7 +236,8 @@ function readBreakoutRemixPayload(
   return remixQuery ? { brandId: payload.brandId, remixQuery } : null;
 }
 
-function breakoutRemixInboxItem<
+/** An item that links into one brand, or lists without a link outside it. */
+function brandLinkInboxItem<
   A,
   R extends {
     event: { eventKey: string };
@@ -271,25 +250,20 @@ function breakoutRemixInboxItem<
   activity: A;
   brandSlug: string | undefined;
   orgSlug: string;
-  remix: BreakoutRemixInboxPayload;
+  outcome: 'completed' | 'failed';
+  path: string;
   row: R;
 }) {
-  const { activity, brandSlug, orgSlug, remix, row } = input;
+  const { activity, brandSlug, orgSlug, outcome, path, row } = input;
   return {
     id: row.id,
     topic: row.topic,
     occurredAt: row.occurredAt,
     readAt: row.readAt,
-    outcome: 'completed' as const,
+    outcome,
     severity: getActivityAlertPolicy(row.event.eventKey)?.severity ?? null,
     activity,
-    sourceHref: brandSlug
-      ? inboxSourceHref(
-          orgSlug,
-          brandSlug,
-          `${APP_ROUTES.ANALYTICS.POSTS}?${remix.remixQuery}`,
-        )
-      : null,
+    sourceHref: brandSlug ? inboxSourceHref(orgSlug, brandSlug, path) : null,
     sourceLabel: null,
     failure: null,
   };
@@ -509,6 +483,53 @@ function socialReplyInboxItem<
   };
 }
 
+/**
+ * Items whose link comes from the event payload: social replies, breakout
+ * offers and settled digital twins. Other rows return null.
+ */
+function payloadInboxItem<
+  A,
+  R extends {
+    event: { eventKey: string; payload: Prisma.JsonValue };
+    id: string;
+    occurredAt: Date;
+    readAt: Date | null;
+    topic: string;
+  },
+>(input: {
+  activity: A;
+  brandSlugs: Map<string, string>;
+  orgSlug: string;
+  row: R;
+}) {
+  const { activity, brandSlugs, orgSlug, row } = input;
+  const socialReply = readSocialReplyPayload(row.topic, row.event.payload);
+  if (socialReply) {
+    const brandSlug = brandSlugs.get(socialReply.brandId);
+    return socialReplyInboxItem({
+      activity,
+      brandSlug,
+      orgSlug,
+      row,
+      socialReply,
+    });
+  }
+  const remix = readBreakoutRemixPayload(row.topic, row.event.payload);
+  const twin = readAvatarTwinPayload(row.topic, row.event.payload);
+  const brandId = remix?.brandId ?? twin?.brandId;
+  if (!brandId) return null;
+  return brandLinkInboxItem({
+    activity,
+    brandSlug: brandSlugs.get(brandId),
+    orgSlug,
+    outcome: remix ? 'completed' : readInboxOutcome(row.event.eventKey),
+    path: remix
+      ? `${APP_ROUTES.ANALYTICS.POSTS}?${remix.remixQuery}`
+      : APP_ROUTES.LIBRARY.AVATAR_TWIN,
+    row,
+  });
+}
+
 @Traced()
 @Injectable()
 export class NotificationInboxService {
@@ -717,52 +738,14 @@ export class NotificationInboxService {
           row,
         });
       }
-      const socialReply = readSocialReplyPayload(row.topic, row.event.payload);
-      if (socialReply) {
-        return socialReplyInboxItem({
-          activity: readInboxActivity(organizationId, row.activity),
-          brandSlug: inboxBrandSlugs.get(socialReply.brandId),
-          orgSlug: member.organization.slug,
-          row,
-          socialReply,
-        });
-      }
-      const breakoutRemix = readBreakoutRemixPayload(
-        row.topic,
-        row.event.payload,
-      );
-      if (breakoutRemix) {
-        return breakoutRemixInboxItem({
-          activity: readInboxActivity(organizationId, row.activity),
-          brandSlug: inboxBrandSlugs.get(breakoutRemix.brandId),
-          orgSlug: member.organization.slug,
-          remix: breakoutRemix,
-          row,
-        });
-      }
-      const avatarTwin = readAvatarTwinPayload(row.topic, row.event.payload);
-      if (avatarTwin) {
-        const brandSlug = inboxBrandSlugs.get(avatarTwin.brandId);
-        return {
-          id: row.id,
-          topic: row.topic,
-          occurredAt: row.occurredAt,
-          readAt: row.readAt,
-          outcome: readInboxOutcome(row.event.eventKey),
-          severity:
-            getActivityAlertPolicy(row.event.eventKey)?.severity ?? null,
-          activity: readInboxActivity(organizationId, row.activity),
-          sourceHref: brandSlug
-            ? inboxSourceHref(
-                member.organization.slug,
-                brandSlug,
-                APP_ROUTES.LIBRARY.AVATAR_TWIN,
-              )
-            : null,
-          sourceLabel: null,
-          failure: null,
-        };
-      }
+      const activity = readInboxActivity(organizationId, row.activity);
+      const payloadItem = payloadInboxItem({
+        activity,
+        brandSlugs: inboxBrandSlugs,
+        orgSlug: member.organization.slug,
+        row,
+      });
+      if (payloadItem) return payloadItem;
       const source = sources.get(row.event.sourceId);
       const thread = threads.get(row.event.sourceId);
       const strategyId = thread?.agentStrategyId ?? strategyIdFromPayload(row);
@@ -794,7 +777,7 @@ export class NotificationInboxService {
         readAt: row.readAt,
         outcome: readInboxOutcome(row.event.eventKey),
         severity: getActivityAlertPolicy(row.event.eventKey)?.severity ?? null,
-        activity: readInboxActivity(organizationId, row.activity),
+        activity,
         sourceHref: inboxSourceHref(member.organization.slug, brandSlug, path),
         sourceLabel:
           strategy?.label?.slice(0, 300) ??
