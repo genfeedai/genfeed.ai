@@ -1,4 +1,5 @@
 // Auto-generated barrel file
+export * from '@serializers/server/elements/avatar-twin.serializer';
 export * from '@serializers/server/elements/blacklist.serializer';
 export * from '@serializers/server/elements/camera.serializer';
 export * from '@serializers/server/elements/camera-movement.serializer';

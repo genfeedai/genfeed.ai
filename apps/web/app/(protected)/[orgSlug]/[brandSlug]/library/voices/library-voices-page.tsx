@@ -32,6 +32,7 @@ import { useVoiceCatalog } from '@/features/library/voices/hooks/use-voice-catal
 import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
 import ElevenLabsAccountVoicesDialog from './elevenlabs-account-voices-dialog';
 import VoiceCatalogList from './voice-catalog-list';
+import VoiceCreateCallout from './voice-create-callout';
 import VoiceLibraryRowItem from './voice-library-row-item';
 import VoiceLibrarySkeleton from './voice-library-skeleton';
 
@@ -343,6 +344,12 @@ function LibraryVoicesContent() {
           />
         </div>
       </div>
+
+      <VoiceCreateCallout
+        connectHref={orgHref(APP_ROUTES.SETTINGS.INTEGRATIONS)}
+        onCloneVoice={handleOpenCloneModal}
+        twinHref={href(APP_ROUTES.LIBRARY.AVATAR_TWIN)}
+      />
 
       {isAccountImportOpen ? (
         <ElevenLabsAccountVoicesDialog

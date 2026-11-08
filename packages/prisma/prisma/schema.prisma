@@ -440,6 +440,17 @@ enum AgentTransferStatus {
   DEPTH_LIMIT_REACHED
 }
 
+/// Lifecycle of a digital twin recorded in the app (#9683). Derived from the
+/// provider's look status and group consent status; never guessed.
+enum AvatarTwinStatus {
+  UPLOADING
+  TRAINING
+  AWAITING_CONSENT
+  READY
+  FAILED
+  CONSENT_REJECTED
+}
+
 enum BotStatus {
   ACTIVE
   PAUSED
@@ -711,6 +722,7 @@ contentLearningOperations ContentLearningOperation[]
   agentThreads              AgentThread[]
   agentMessages             AgentMessage[]
   agentTransfers            AgentTransfer[]
+  avatarTwins               AvatarTwin[]
   socialConversations       SocialConversation[]
   socialMessages            SocialMessage[]
   agentWorkflows            AgentWorkflow[]
@@ -880,6 +892,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   agentThreads                  AgentThread[]
   agentMessages                 AgentMessage[]
   agentTransfers                AgentTransfer[]
+  avatarTwins                   AvatarTwin[]
   socialConversations           SocialConversation[]
   socialMessages                SocialMessage[]
   agentThreadEvents             AgentThreadEvent[]
@@ -4885,6 +4898,44 @@ model AgentTransfer {
   @@index([organizationId, userId, destinationThreadId, isDeleted, createdAt(sort: Desc)], map: "agent_transfers_destination_thread_idx")
   @@index([organizationId, destinationExecutionId, isDeleted], map: "agent_transfers_destination_execution_idx")
   @@map("agent_transfers")
+}
+
+/// A digital twin a person records of themselves in the app (#9681). The
+/// avatar, its consent record and its voice live in the workspace's own
+/// provider account; this row tracks enrollment until the twin is ready.
+model AvatarTwin {
+  id                   String           @id @default(cuid())
+  organizationId       String
+  organization         Organization     @relation(fields: [organizationId], references: [id])
+  userId               String
+  user                 User             @relation(fields: [userId], references: [id])
+  provider             String           @default("heygen")
+  name                 String
+  status               AvatarTwinStatus @default(UPLOADING)
+  idempotencyKey       String
+  sourceIngredientId   String?
+  providerAssetIds     String[]         @default([])
+  providerGroupId      String?
+  providerLookId       String?
+  providerLookStatus   String?
+  providerConsent      String?
+  supportedEngines     String[]         @default([])
+  previewImageUrl      String?
+  voiceId              String?
+  consentLinkExpiresAt DateTime?
+  failureCode          String?
+  failureMessage       String?
+  lastCheckedAt        DateTime?
+  readyAt              DateTime?
+  isDeleted            Boolean          @default(false)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  @@unique([organizationId, userId, idempotencyKey], map: "avatar_twins_org_user_idempotency_key")
+  @@index([organizationId, userId, isDeleted, createdAt(sort: Desc)], map: "avatar_twins_org_user_created_idx")
+  @@index([status, isDeleted, lastCheckedAt], map: "avatar_twins_status_checked_idx")
+  @@index([provider, providerLookId], map: "avatar_twins_provider_look_idx")
+  @@map("avatar_twins")
 }
 
 model SocialConversation {

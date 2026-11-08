@@ -68,6 +68,8 @@ export const ALLOWLIST = {
     // Stands in for next/image in the browser extension, which Next does not build.
     'apps/extension/src/components/ui/NextImage.tsx',
     'packages/ui/src/components/display/video-player/VideoPlayer.tsx',
+    // A live MediaStream can only render through a media element's srcObject.
+    'packages/ui/src/components/display/camera-preview/CameraPreview.tsx',
   ]),
   /**
    * Path segments where raw HTML primitives and dead-wrapper imports are the

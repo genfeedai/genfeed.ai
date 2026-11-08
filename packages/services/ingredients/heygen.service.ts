@@ -8,6 +8,8 @@ import type {
   HeyGenCatalogVoice,
   HeyGenSpeechVoiceCatalog,
   IHeyGen,
+  IHeyGenConnectionStatus,
+  IHeyGenStatusResponse,
 } from '@genfeedai/contracts/interfaces';
 import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { HeyGen } from '@genfeedai/models/integrations/heygen.model';
@@ -103,6 +105,24 @@ export class HeyGenService extends BaseService<IHeyGen> {
     );
     const { hasPersonalConnection, voices } = response.data.data.attributes;
     return { hasPersonalConnection: Boolean(hasPersonalConnection), voices };
+  }
+
+  /**
+   * The workspace's own HeyGen connection. Never the platform account:
+   * features that create things in HeyGen (a digital twin) need this one.
+   */
+  async fetchConnectionStatus(
+    signal?: AbortSignal,
+  ): Promise<IHeyGenConnectionStatus> {
+    const config: AxiosRequestConfig & IHttpRequestOptions = {
+      handledErrorStatuses: [500, 502, 503, 504],
+      signal,
+    };
+    const response = await this.instance.get<IHeyGenStatusResponse>(
+      `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.HEYGEN}/status`,
+      config,
+    );
+    return response.data.data.attributes;
   }
 
   async generate(payload: HeyGenAvatarVideoRequest): Promise<IHeyGen> {

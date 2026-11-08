@@ -58,11 +58,7 @@ export class VoiceCloneService {
 
     try {
       if (provider === VoiceProvider.ELEVENLABS) {
-        await this.voiceCreditsService.settleElevenLabsCloneCredits(
-          request,
-          user.organizationId,
-        );
-        return await this.cloneWithElevenLabs(user, dto, file);
+        return await this.cloneWithElevenLabs(user, dto, file, request);
       }
 
       if (provider === VoiceProvider.GENFEED_AI) {
@@ -199,12 +195,25 @@ export class VoiceCloneService {
     user: User,
     dto: CloneVoiceDto,
     file: Express.Multer.File | undefined,
+    request: Request,
   ): Promise<IngredientDocument> {
-    const connection =
-      (await this.connectionService.findPersonalConnection(
-        user.organizationId,
-      )) ??
-      (await this.connectionService.resolve(user.organizationId, 'platform'));
+    // A cloned voice is the person's own: it is created only in their own
+    // ElevenLabs account, never in the platform account, and the platform
+    // charges nothing for it.
+    const connection = await this.connectionService.findPersonalConnection(
+      user.organizationId,
+    );
+    if (!connection) {
+      throw new HttpException(
+        {
+          detail:
+            'Connect your ElevenLabs account in Settings → Integrations to clone your voice. The voice is created in your own account.',
+          title: 'ElevenLabs account required',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    this.voiceCreditsService.waivePersonalCloneCredits(request);
     let result: { voiceId: string; name: string };
     try {
       result = await this.elevenLabsService.cloneVoice(

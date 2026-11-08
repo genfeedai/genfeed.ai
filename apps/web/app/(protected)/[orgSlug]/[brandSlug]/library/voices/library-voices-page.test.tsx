@@ -141,6 +141,11 @@ vi.mock('./elevenlabs-account-voices-dialog', () => ({
   ),
 }));
 
+// Its connection read is covered by voice-create-callout.test.tsx.
+vi.mock('./voice-create-callout', () => ({
+  default: () => null,
+}));
+
 vi.mock('@services/organization/organizations.service', () => ({
   OrganizationsService: {
     getInstance: () => ({

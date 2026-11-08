@@ -177,6 +177,8 @@ export const APP_ROUTES = {
      * All assets.
      */
     AVATARS: '/library/avatars',
+    /** #9684 record and train a digital twin of yourself. */
+    AVATAR_TWIN: '/library/avatars/twin',
     CAPTIONS: '/library/captions',
     GIFS: '/library/gifs',
     IMAGES: '/library/images',
