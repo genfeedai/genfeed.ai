@@ -95,6 +95,7 @@ describe('InviteProfile', () => {
     expect(screen.getByText('Warm, plain-spoken')).toBeVisible();
     expect(screen.getByText('Freelancers')).toBeVisible();
     expect(screen.getByText('Invoices should take a minute.')).toBeVisible();
+    expect(screen.getByText('Locked')).toBeVisible();
     expect(screen.getByText(/opens until Nov 16, 2026/)).toBeVisible();
     expect(screen.getByRole('button', { name: UNLOCK })).toBeVisible();
   });

@@ -13,11 +13,11 @@ import { EnvironmentService } from '@services/core/environment.service';
 import BrandProfileHeader, {
   hasBrandProfileHeaderOverlap,
 } from '@ui/brand/BrandProfileHeader';
-import ContentFeed from '@ui/brand/ContentFeed';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
+import LockedPostList from '@web-components/profile/LockedPostList';
 import { useEffect, useRef, useState } from 'react';
 
 function inviteUrl(token: string, suffix = ''): string {
@@ -248,13 +248,7 @@ export default function InviteProfile({ handle, token }: InviteProfileProps) {
         description="Ready to post. Unlock to edit, download or schedule it."
         title="Made for you"
       >
-        <ContentFeed
-          authorAvatarUrl={brand.logoUrl}
-          authorName={brand.name}
-          emptyMessage="Nothing to show yet."
-          items={items}
-          statusLabel="Locked"
-        />
+        <LockedPostList emptyMessage="Nothing to show yet." items={items} />
       </CollectionSection>
     </div>
   );
