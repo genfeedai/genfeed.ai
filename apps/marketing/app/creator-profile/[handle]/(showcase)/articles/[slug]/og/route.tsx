@@ -5,6 +5,7 @@ import { renderMarketingOg } from '@web-components/og/marketing-og';
 import { getArticleCoverPalette } from '@website/(content)/articles/article-cover.palette';
 import { ImageResponse } from 'next/og';
 import { getCreatorArticleCached } from '../article-loader';
+import { getDrawableArtwork } from './artwork';
 import { getHeadlineSize, truncateHeadline } from './headline';
 
 const SIZE = { height: 630, width: 1200 };
@@ -40,7 +41,7 @@ export async function GET(
   const palette = getArticleCoverPalette(slug);
   const label = article?.label?.trim() || 'Genfeed.ai';
   const category = article?.category?.trim();
-  const artwork = article?.coverImageUrl?.trim();
+  const artwork = getDrawableArtwork(article?.coverImageUrl);
 
   /**
    * The card carries the headline and nothing else — every unfurl surface

@@ -20,7 +20,7 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
-import { ArticleSerializer } from '@genfeedai/serializers';
+import { PublicArticleSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { PrismaWhereQuery } from '@libs/interfaces/query.interface';
@@ -120,7 +120,7 @@ export class PublicArticlesController {
 
     const data = await this.articlesService.findAll(aggregate, options);
     data.docs = data.docs.map(stripPrivateBrand);
-    return serializeCollection(request, ArticleSerializer, data);
+    return serializeCollection(request, PublicArticleSerializer, data);
   }
 
   @Get('slug/:slug')
@@ -155,10 +155,10 @@ export class PublicArticlesController {
     );
 
     if (!article) {
-      return serializeSingle(request, ArticleSerializer, { data: null });
+      return serializeSingle(request, PublicArticleSerializer, { data: null });
     }
 
-    return serializeSingle(request, ArticleSerializer, article);
+    return serializeSingle(request, PublicArticleSerializer, article);
   }
 
   @Get(':articleId')
@@ -184,6 +184,6 @@ export class PublicArticlesController {
       return returnNotFound(this.constructorName, articleId);
     }
 
-    return serializeSingle(request, ArticleSerializer, article);
+    return serializeSingle(request, PublicArticleSerializer, article);
   }
 }

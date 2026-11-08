@@ -23,9 +23,9 @@ import type {
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
 import {
-  ArticleSerializer,
   IngredientSerializer,
   LinkSerializer,
+  PublicArticleSerializer,
   PublicBrandSerializer,
   VideoSerializer,
 } from '@genfeedai/serializers';
@@ -389,7 +389,7 @@ export class PublicBrandsController {
     };
 
     const data = await this.articlesService.findAll(aggregate, options);
-    return serializeCollection(request, ArticleSerializer, data);
+    return serializeCollection(request, PublicArticleSerializer, data);
   }
 
   /**
