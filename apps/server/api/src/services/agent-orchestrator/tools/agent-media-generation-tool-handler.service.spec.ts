@@ -391,6 +391,45 @@ describe('AgentMediaGenerationToolHandler generateAsIdentity script', () => {
   });
 });
 
+describe('AgentMediaGenerationToolHandler avatar brand scope', () => {
+  it('renders the identity of the brand the call names when the context has none', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.generateAvatarVideo.mockResolvedValue({ data: { id: 'video-1' } });
+
+    await handler.generate(
+      {
+        brandId: 'brand-2',
+        isVerbatim: true,
+        prompt: 'Hello there',
+        type: 'avatar',
+      },
+      { organizationId: 'organization-1', userId: 'user-1' } as never,
+    );
+
+    expect(gateway.generateAvatarVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        principal: {
+          brandId: 'brand-2',
+          organizationId: 'organization-1',
+          userId: 'user-1',
+        },
+      }),
+    );
+  });
+
+  it('stops without rendering when no brand can be resolved', async () => {
+    const { gateway, handler } = createHandler();
+
+    const result = await handler.generate(
+      { isVerbatim: true, prompt: 'Hello there', type: 'avatar' },
+      { organizationId: 'organization-1', userId: 'user-1' } as never,
+    );
+
+    expect(result.success).toBe(false);
+    expect(gateway.generateAvatarVideo).not.toHaveBeenCalled();
+  });
+});
+
 describe('AgentMediaGenerationToolHandler generate', () => {
   function createRoutingHandler() {
     const result = { creditsUsed: 0, success: true };
