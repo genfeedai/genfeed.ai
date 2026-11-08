@@ -324,14 +324,14 @@ export class BrandsService extends BaseService<
 
     const decoratedById = new Map<string, BrandDocument>();
     for (const [organizationId, group] of brandsByOrganization) {
-      const { orderBy, select } = bootstrapCredentialInclude(organizationId);
+      const { orderBy, select, where } =
+        bootstrapCredentialInclude(organizationId);
       const credentials = await this.prisma.credential.findMany({
         orderBy,
         select,
         where: {
+          ...where,
           brandId: { in: group.map((brand) => String(brand.id)) },
-          isDeleted: false,
-          organizationId,
         },
       });
 

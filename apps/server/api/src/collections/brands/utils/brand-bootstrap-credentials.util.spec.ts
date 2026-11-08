@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  bootstrapCredentialWhere,
   isBootstrapCredentialWrite,
   mapBootstrapCredentials,
 } from './brand-bootstrap-credentials.util';
@@ -63,5 +64,15 @@ describe('mapBootstrapCredentials', () => {
 
     expect(credential).not.toHaveProperty('grantedScopes');
     expect(credential?.directMessageCapability).toBeUndefined();
+  });
+});
+
+describe('bootstrapCredentialWhere', () => {
+  it('embeds live credentials that are connected or identified, never bare pending OAuth starts', () => {
+    expect(bootstrapCredentialWhere('org-1')).toEqual({
+      OR: [{ isConnected: true }, { externalId: { not: null } }],
+      isDeleted: false,
+      organizationId: 'org-1',
+    });
   });
 });
