@@ -112,6 +112,7 @@ describe('Avatar twin enrollment (real Postgres)', () => {
   const schema = `twins_${randomUUID().replaceAll('-', '')}`;
   const alice = { organizationId: 'alpha', userId: 'alice' };
   const bob = { organizationId: 'bravo', userId: 'bob' };
+  const carol = { organizationId: 'alpha', userId: 'carol' };
   let sql: Client;
   let prisma: PrismaClient;
   let provider: FakeHeyGenTwins;
@@ -159,6 +160,7 @@ describe('Avatar twin enrollment (real Postgres)', () => {
       data: [
         { handle: 'alice', id: 'alice' },
         { handle: 'bob', id: 'bob' },
+        { handle: 'carol', id: 'carol' },
       ],
     });
     await prisma.organization.createMany({
@@ -265,6 +267,13 @@ describe('Avatar twin enrollment (real Postgres)', () => {
     await expect(
       service.start(bob, startInput('key-00000004')),
     ).rejects.toThrow("Recording with identifier 'take-1' not found");
+  });
+
+  it('refuses a teammate’s recording in the same organization', async () => {
+    await expect(
+      service.start(carol, startInput('key-00000008')),
+    ).rejects.toThrow("Recording with identifier 'take-1' not found");
+    expect(provider.uploads).toBe(0);
   });
 
   it('keeps one organization out of another one’s twin', async () => {

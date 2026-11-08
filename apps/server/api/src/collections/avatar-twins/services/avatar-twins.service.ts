@@ -278,6 +278,7 @@ export class AvatarTwinsService {
     });
   }
 
+  /** Only the caller's own take: a twin is the person who recorded it. */
   private async readFootage(actor: AvatarTwinActor, ingredientId: string) {
     const ingredient = await this.prisma.ingredient.findFirst({
       include: { metadata: true },
@@ -286,6 +287,7 @@ export class AvatarTwinsService {
         id: ingredientId,
         isDeleted: false,
         organizationId: actor.organizationId,
+        userId: actor.userId,
       },
     });
     if (!ingredient) throw new NotFoundException('Recording', ingredientId);
