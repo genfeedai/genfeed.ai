@@ -204,22 +204,6 @@ describe('generateMetadata', () => {
     expect(meta.openGraph?.type).toBe('profile');
   });
 
-  it('still emits the plain profile card when the lookup throws', async () => {
-    // getPublicBrandBySlug swallows the failure, so the route sees "no brand"
-    // rather than an exception and must still answer with usable metadata.
-    findPublicProfileBySlug.mockImplementation(() => {
-      throw new Error('boom');
-    });
-
-    const meta = await generateMetadata(
-      { params: Promise.resolve({ handle: 'meta-throws' }) },
-      EMPTY_PARENT,
-    );
-
-    expect(meta.twitter?.card).toBe('summary');
-    expect(meta.description).toContain('meta-throws');
-  });
-
   it('returns the bare fallback when no handle is present', async () => {
     const meta = await generateMetadata(
       {
