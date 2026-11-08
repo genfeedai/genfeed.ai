@@ -188,6 +188,7 @@ describe('AgentToolExecutorService mutation policy', () => {
       brandAccessService: brandAccessFixture(),
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
+      voiceHandler: { handlesList: vi.fn().mockReturnValue(false) },
       threadHandler,
     });
     service.onModuleInit();

@@ -44,19 +44,48 @@ function setup() {
   const models = {
     listCallableGenerationModels: vi.fn().mockResolvedValue(MODELS),
   };
+  const voices = {
+    summarize: vi.fn().mockResolvedValue({
+      hasConnectedAccount: false,
+      hint: 'No ElevenLabs account is connected.',
+      voices: [],
+    }),
+  };
   return {
     cost,
     handler: new AgentGenerationOptionsToolHandler(
       settings as never,
       cost as never,
       models as never,
+      voices as never,
     ),
     models,
     settings,
+    voices,
   };
 }
 
 describe('AgentGenerationOptionsToolHandler', () => {
+  it('lists saved voices and the connection state for type voice', async () => {
+    const { handler } = setup();
+
+    const result = await handler.execute({ type: 'voice' }, ctx);
+
+    expect(result.data).toMatchObject({
+      hasConnectedAccount: false,
+      hint: 'No ElevenLabs account is connected.',
+      voices: [],
+    });
+  });
+
+  it('leaves voices out for other types', async () => {
+    const { handler } = setup();
+
+    const result = await handler.execute({ type: 'image' }, ctx);
+
+    expect(result.data).not.toHaveProperty('voices');
+  });
+
   it('returns settings and callable models when no type is given', async () => {
     const { cost, handler, models, settings } = setup();
 
@@ -171,6 +200,7 @@ describe('AgentGenerationOptionsToolHandler', () => {
         estimate,
       ),
       { listCallableGenerationModels: vi.fn(async () => []) } as never,
+      { summarize: vi.fn() } as never,
     );
 
     const result = await handler.execute(

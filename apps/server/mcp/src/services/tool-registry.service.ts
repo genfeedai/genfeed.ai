@@ -1,4 +1,5 @@
 import {
+  describeAvatarVideoPricing,
   describeCreditPricing,
   estimateToolCreditCost,
   getMcpCatalogOperations,
@@ -782,6 +783,18 @@ export class ToolRegistryService implements OnModuleInit {
     const canResolveApproval = this.getTools().some(
       (candidate) => candidate.name === 'resolve_approval',
     );
+    if (approval.toolName === 'generate' && args.type === 'avatar') {
+      // An avatar render is billed per second of the rendered clip, so there
+      // is no frozen per-request quote; the consent names the per-second range.
+      return approvalPendingToolResult(
+        approval,
+        {
+          estimatedCredits: null,
+          pricingSummary: describeAvatarVideoPricing(),
+        },
+        canResolveApproval,
+      );
+    }
     if (approval.toolName === 'generate') {
       const quote = approval.generationQuote;
       const estimatedCredits =

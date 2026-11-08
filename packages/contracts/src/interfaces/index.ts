@@ -22,6 +22,7 @@ export * from './ai/agent-oauth-connect-cards';
 export * from './ai/agent-prep-brief.interface';
 export * from './ai/agent-publish.interface';
 export * from './ai/agent-runtime.interface';
+export * from './ai/agent-saved-voice.interface';
 export * from './ai/agent-scope-context.interface';
 export * from './ai/agent-stalled-item.interface';
 export * from './ai/agent-strategy.interface';
