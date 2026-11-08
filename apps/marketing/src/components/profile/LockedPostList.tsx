@@ -26,7 +26,7 @@ export default function LockedPostList({
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Post for {getPlatformDisplayName(item.platform)}</span>
             <span className="flex items-center gap-1">
-              <Lock aria-hidden="true" className="size-3" />
+              <Lock aria-hidden="true" className="size-3.5" />
               Locked
             </span>
           </div>
