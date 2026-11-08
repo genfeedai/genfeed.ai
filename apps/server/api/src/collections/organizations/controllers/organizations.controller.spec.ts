@@ -113,7 +113,7 @@ describe('OrganizationsController', () => {
   it('keeps the create override transport-only and preserves its envelope', async () => {
     const result = {
       brand: { id: 'brand_new', label: 'New Org' },
-      organization: { id: 'org_new', label: 'New Org' },
+      organization: { id: 'org_new', label: 'New Org', slug: 'new-org' },
     };
     operationsService.createOrganization.mockResolvedValue(result);
     const dto = {

@@ -42,6 +42,11 @@ export interface OrganizationSelectionResult {
   organization: { id: string; label: string };
 }
 
+/** Create also returns the slug, so the client can route into the new org. */
+export interface CreatedOrganizationResult extends OrganizationSelectionResult {
+  organization: { id: string; label: string; slug: string };
+}
+
 @Traced()
 @Injectable()
 export class OrganizationsOperationsService {
@@ -155,7 +160,7 @@ export class OrganizationsOperationsService {
   async createOrganization(
     input: CreateOrganizationOperationInput,
     user: User,
-  ): Promise<OrganizationSelectionResult> {
+  ): Promise<CreatedOrganizationResult> {
     const userId = this.requireUserId(user);
     const label = input.label?.trim();
     if (!label) {
@@ -213,7 +218,11 @@ export class OrganizationsOperationsService {
 
     return {
       brand: { id: brand.id.toString(), label: brand.label },
-      organization: { id: organizationId, label: organization.label },
+      organization: {
+        id: organizationId,
+        label: organization.label,
+        slug: organization.slug,
+      },
     };
   }
 

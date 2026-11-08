@@ -319,7 +319,7 @@ describe('OrganizationsService HTTP methods', () => {
     it('createOrganization POSTs the payload to the collection root', async () => {
       const payload = {
         brand: { id: 'brand_2', label: 'Brand' },
-        organization: { id: 'org_2', label: 'New org' },
+        organization: { id: 'org_2', label: 'New org', slug: 'new-org' },
       };
       http.post.mockResolvedValue(axiosResponse(payload));
 
