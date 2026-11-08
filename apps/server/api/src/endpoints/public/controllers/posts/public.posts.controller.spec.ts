@@ -200,7 +200,7 @@ describe('PublicPostsController', () => {
           postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
           postVisibilityReadFilter(PostVisibility.PUBLIC),
         ],
-        brand: { isDeleted: false, scope: 'PUBLIC' },
+        brand: { is: { isDeleted: false, scope: 'PUBLIC' } },
         isDeleted: false,
       });
       expect(callArgs.where.scope).toBeUndefined();
@@ -304,7 +304,7 @@ describe('PublicPostsController', () => {
             postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
             postVisibilityReadFilter(PostVisibility.PUBLIC),
           ],
-          brand: { isDeleted: false, scope: 'PUBLIC' },
+          brand: { is: { isDeleted: false, scope: 'PUBLIC' } },
           id: postId,
         },
         [],
@@ -377,7 +377,7 @@ describe('PublicPostsController', () => {
             postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
             postVisibilityReadFilter(PostVisibility.PUBLIC),
           ],
-          brand: { isDeleted: false, scope: 'PUBLIC' },
+          brand: { is: { isDeleted: false, scope: 'PUBLIC' } },
           id: postId,
         },
         [],

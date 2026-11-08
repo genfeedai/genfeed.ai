@@ -47,8 +47,10 @@ import type { Request } from 'express';
  */
 const PUBLIC_BRAND_FILTER = {
   brand: {
-    isDeleted: false,
-    scope: CategoryPrismaUtil.toAssetScope(AssetScope.PUBLIC),
+    is: {
+      isDeleted: false,
+      scope: CategoryPrismaUtil.toAssetScope(AssetScope.PUBLIC),
+    },
   },
 };
 
