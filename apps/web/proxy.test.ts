@@ -646,18 +646,9 @@ describe('proxy', () => {
     );
   });
 
-  it('lets signed-out users open a claimable preview link', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeSignedOutRequest(`/preview/${'a'.repeat(43)}`),
-    );
-
-    expect(response.status).not.toBe(307);
-    expect(response.headers.get('location')).toBeNull();
-  });
-
-  it.each(['/preview', '/previews/abc'])(
+  // The lead invite lives on the public site now (/u/:handle/invite/:key);
+  // the retired /preview/:token path is an ordinary signed-in route.
+  it.each(['/preview', '/previews/abc', `/preview/${'a'.repeat(43)}`])(
     'keeps %s behind sign-in',
     async (pathname) => {
       const { default: proxy } = await import('./proxy');

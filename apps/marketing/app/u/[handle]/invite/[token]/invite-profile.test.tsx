@@ -4,21 +4,10 @@ import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import ContentPreviewContent from './content';
+import InviteProfile from './invite-profile';
 
 const TOKEN = 'a'.repeat(43);
-
-vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import(
-    '../../../../tests/next-intl.stub'
-  );
-  return {
-    useFormatter: () => ({
-      dateTime: (value: Date) => value.toISOString().slice(0, 10),
-    }),
-    useTranslations: translateFromCatalog,
-  };
-});
+const UNLOCK = 'Email me the unlock link';
 
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: { apiEndpoint: 'https://api.genfeed.ai/v1' },
@@ -39,7 +28,7 @@ vi.mock('next/image', () => ({
   }: MockImageProps) => <img {...props} alt={props.alt ?? ''} />,
 }));
 
-function previewDocument() {
+function inviteDocument() {
   return {
     data: {
       attributes: {
@@ -52,6 +41,7 @@ function previewDocument() {
           tone: 'Warm, plain-spoken',
         },
         expiresAt: '2026-11-16T10:00:00.000Z',
+        handle: 'acme-invoices',
         items: [
           {
             id: 'item-1',
@@ -67,7 +57,16 @@ function previewDocument() {
   };
 }
 
-describe('ContentPreviewContent', () => {
+function answerInvite(claimStatus = 204) {
+  return async (url: string) => {
+    if (url.endsWith('/view')) return new Response(null, { status: 204 });
+    if (url.endsWith('/claim'))
+      return new Response(null, { status: claimStatus });
+    return new Response(JSON.stringify(inviteDocument()), { status: 200 });
+  };
+}
+
+describe('InviteProfile', () => {
   const originalFetch = globalThis.fetch;
   const fetchMock = vi.fn();
 
@@ -80,36 +79,53 @@ describe('ContentPreviewContent', () => {
     globalThis.fetch = originalFetch;
   });
 
-  it('shows the brand, what was read from its website and the prepared posts', async () => {
-    fetchMock.mockImplementation(async (url: string) =>
-      url.endsWith('/view')
-        ? new Response(null, { status: 204 })
-        : new Response(JSON.stringify(previewDocument()), { status: 200 }),
-    );
+  it('shows the locked profile: brand, handle, what we know and the prepared posts', async () => {
+    fetchMock.mockImplementation(answerInvite());
 
-    render(<ContentPreviewContent token={TOKEN} />);
+    render(<InviteProfile handle="acme-invoices" token={TOKEN} />);
 
     expect(
       await screen.findByRole('heading', { name: 'Acme Invoices' }),
     ).toBeVisible();
-    expect(screen.getByText('Preview · opens until 2026-11-16')).toBeVisible();
+    expect(screen.getByText('@acme-invoices')).toBeVisible();
+    expect(
+      screen.getByText('Private · only the invited email can unlock it'),
+    ).toBeVisible();
     expect(screen.getByText('What we know about you')).toBeVisible();
     expect(screen.getByText('Warm, plain-spoken')).toBeVisible();
     expect(screen.getByText('Freelancers')).toBeVisible();
     expect(screen.getByText('Invoices should take a minute.')).toBeVisible();
+    expect(screen.getByText(/opens until Nov 16, 2026/)).toBeVisible();
+    expect(screen.getByRole('button', { name: UNLOCK })).toBeVisible();
+  });
+
+  it('answers under the handle in any letter case', async () => {
+    fetchMock.mockImplementation(answerInvite());
+
+    render(<InviteProfile handle="Acme-Invoices" token={TOKEN} />);
+
     expect(
-      screen.getByRole('button', { name: 'Claim this content' }),
+      await screen.findByRole('heading', { name: 'Acme Invoices' }),
     ).toBeVisible();
   });
 
-  it('counts one view per visit and never counts the read itself', async () => {
-    fetchMock.mockImplementation(async (url: string) =>
-      url.endsWith('/view')
-        ? new Response(null, { status: 204 })
-        : new Response(JSON.stringify(previewDocument()), { status: 200 }),
-    );
+  it('treats a key opened under another handle as a dead link', async () => {
+    fetchMock.mockImplementation(answerInvite());
 
-    render(<ContentPreviewContent token={TOKEN} />);
+    render(<InviteProfile handle="someone-else" token={TOKEN} />);
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'This invite link is no longer active',
+      }),
+    ).toBeVisible();
+    expect(screen.queryByText('Acme Invoices')).toBeNull();
+  });
+
+  it('counts one view per visit and never counts the read itself', async () => {
+    fetchMock.mockImplementation(answerInvite());
+
+    render(<InviteProfile handle="acme-invoices" token={TOKEN} />);
     await screen.findByRole('heading', { name: 'Acme Invoices' });
 
     await waitFor(() => {
@@ -128,24 +144,16 @@ describe('ContentPreviewContent', () => {
     expect(readCall?.[1]).toMatchObject({ cache: 'no-store' });
   });
 
-  it('asks for the claim email and tells the visitor to check their inbox', async () => {
-    fetchMock.mockImplementation(async (url: string) =>
-      url.endsWith('/view') || url.endsWith('/claim')
-        ? new Response(null, { status: 204 })
-        : new Response(JSON.stringify(previewDocument()), { status: 200 }),
-    );
+  it('emails the unlock link and tells the lead to check their inbox', async () => {
+    fetchMock.mockImplementation(answerInvite());
 
-    render(<ContentPreviewContent token={TOKEN} />);
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Claim this content' }),
-    );
+    render(<InviteProfile handle="acme-invoices" token={TOKEN} />);
+    fireEvent.click(await screen.findByRole('button', { name: UNLOCK }));
 
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'Check your email.',
+      'Check your inbox.',
     );
-    expect(
-      screen.queryByRole('button', { name: 'Claim this content' }),
-    ).toBeNull();
+    expect(screen.queryByRole('button', { name: UNLOCK })).toBeNull();
     expect(
       fetchMock.mock.calls.some(
         ([url, init]) =>
@@ -154,41 +162,29 @@ describe('ContentPreviewContent', () => {
     ).toBe(true);
   });
 
-  it('keeps the claim button and says so when the email could not be requested', async () => {
-    fetchMock.mockImplementation(async (url: string) =>
-      url.endsWith('/view')
-        ? new Response(null, { status: 204 })
-        : url.endsWith('/claim')
-          ? new Response(null, { status: 429 })
-          : new Response(JSON.stringify(previewDocument()), { status: 200 }),
-    );
+  it('keeps the unlock button and says so when the email could not be requested', async () => {
+    fetchMock.mockImplementation(answerInvite(429));
 
-    render(<ContentPreviewContent token={TOKEN} />);
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Claim this content' }),
-    );
+    render(<InviteProfile handle="acme-invoices" token={TOKEN} />);
+    fireEvent.click(await screen.findByRole('button', { name: UNLOCK }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'We could not send the link.',
     );
-    expect(
-      screen.getByRole('button', { name: 'Claim this content' }),
-    ).toBeEnabled();
+    expect(screen.getByRole('button', { name: UNLOCK })).toBeEnabled();
   });
 
-  it('shows one plain message when the link is unknown, expired or revoked', async () => {
+  it('shows one plain message, with no brand data, for an unknown, expired or revoked key', async () => {
     fetchMock.mockResolvedValue(new Response('{}', { status: 404 }));
 
-    render(<ContentPreviewContent token={TOKEN} />);
+    render(<InviteProfile handle="acme-invoices" token={TOKEN} />);
 
     expect(
       await screen.findByRole('heading', {
-        name: 'This preview is not available',
+        name: 'This invite link is no longer active',
       }),
     ).toBeVisible();
-    expect(
-      screen.queryByRole('button', { name: 'Claim this content' }),
-    ).toBeNull();
+    expect(screen.queryByRole('button', { name: UNLOCK })).toBeNull();
     expect(
       fetchMock.mock.calls.some(([url]) => String(url).endsWith('/view')),
     ).toBe(false);

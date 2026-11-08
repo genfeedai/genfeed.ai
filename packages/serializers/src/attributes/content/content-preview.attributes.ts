@@ -19,4 +19,9 @@ export const contentPreviewAttributes = [
  * Logged-out visitor view. An explicit allowlist: no timestamps, ids,
  * diagnostics, audit events, credit amounts or operator identity.
  */
-export const publicContentPreviewAttributes = ['expiresAt', 'brand', 'items'];
+export const publicContentPreviewAttributes = [
+  'expiresAt',
+  'handle',
+  'brand',
+  'items',
+];

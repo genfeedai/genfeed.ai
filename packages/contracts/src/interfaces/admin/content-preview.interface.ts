@@ -23,7 +23,7 @@ export interface IContentPreview {
   updatedAt: string;
   /** Only on the mint response. */
   token?: string;
-  /** Only on the mint response. Absolute link the operator sends. */
+  /** Only on the mint response. The lead's locked profile: `<website>/u/<handle>/invite/<token>`. */
   url?: string;
 }
 
@@ -76,6 +76,8 @@ export interface IPublicContentPreviewBrand {
 export interface IPublicContentPreview {
   id: string;
   expiresAt: string;
+  /** The prepared brand's profile handle; the invite page answers only under it. */
+  handle: string;
   brand: IPublicContentPreviewBrand;
   items: IPublicContentPreviewItem[];
 }

@@ -32,6 +32,7 @@ function createFakePrisma() {
       id: BRAND,
       label: 'Acme',
       organizationId: ORG,
+      slug: 'acme',
     } as Row,
   };
   const matches = (row: Row, where: Row): boolean =>
@@ -209,8 +210,11 @@ describe('ContentPreviewsService', () => {
     expect(Object.keys(document.data.attributes).sort()).toEqual([
       'brand',
       'expiresAt',
+      'handle',
       'items',
     ]);
+    // The invite page answers only under the prepared brand's own handle.
+    expect(document.data.attributes.handle).toBe('acme');
     expect(
       Object.keys(document.data.attributes.brand as object).sort(),
     ).toEqual(['name']);
