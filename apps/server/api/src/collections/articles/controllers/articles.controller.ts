@@ -255,7 +255,7 @@ export class ArticlesController extends BaseCRUDController<
       ErrorResponse.notFound(this.entityName, articleId);
     }
 
-    const handle = await this.articlesService.resolvePublicHandle(
+    const handle = await this.articlesService.publicArticleScope.resolveHandle(
       String(article.id),
     );
     if (!handle) {

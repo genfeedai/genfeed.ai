@@ -100,7 +100,6 @@ import {
   paginatedQueryCacheTag,
 } from '@api/shared/utils/query-cache/query-cache.util';
 import { ArticleScope, WorkflowExecutionTrigger } from '@genfeedai/contracts';
-import { GENFEED_BRAND_HANDLE } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -143,6 +142,7 @@ export class ArticlesService
   readonly publicArticleScope = new PublicArticleScope(
     () => this.organizationsService,
     () => this.configService.get('PUBLIC_ARTICLES_ORGANIZATION_ID'),
+    (query) => this.delegate.findFirst(query),
   );
 
   constructor(
@@ -468,8 +468,7 @@ export class ArticlesService
           configService: this.configService,
           logger: this.logger,
           organizationSettingsService: this.organizationSettingsService,
-          resolvePublicHandle: (articleId) =>
-            this.resolvePublicHandle(articleId),
+          resolvePublicHandle: this.publicArticleScope.resolveHandle,
           source: this.constructorName,
         },
         result,
@@ -627,43 +626,6 @@ export class ArticlesService
     };
   }
 
-  /**
-   * The genfeed.ai handle an article is public under: its brand's handle when
-   * the brand is public, `@genfeedai` for Genfeed's own brandless or
-   * private-brand articles, otherwise `null` (the article has no public page).
-   */
-  async resolvePublicHandle(articleId: string): Promise<string | null> {
-    const article = (await this.delegate.findFirst({
-      select: {
-        organizationId: true,
-        ...PUBLIC_ARTICLE_BRAND_INCLUDE,
-      },
-      where: { id: articleId, isDeleted: false },
-    })) as {
-      brand?: {
-        isDeleted?: unknown;
-        scope?: unknown;
-        slug?: string | null;
-      } | null;
-      organizationId: string;
-    } | null;
-
-    if (!article) {
-      return null;
-    }
-
-    const publicArticle = stripPrivateBrand(article);
-    if (publicArticle.brand?.slug) {
-      return publicArticle.brand.slug;
-    }
-
-    return (await this.publicArticleScope.isHostedOrganization(
-      article.organizationId,
-    ))
-      ? GENFEED_BRAND_HANDLE
-      : null;
-  }
-
   async findPublicArticleBySlug(
     slug: string,
     previewArticleId: string | null = null,
@@ -687,13 +649,10 @@ export class ArticlesService
     }
 
     // Application-level join for cross-DB refs (user + organization live in auth DB)
-    const articleObj = stripPrivateBrand({ ...article }) as Record<
-      string,
-      unknown
-    >;
+    const articleObj = { ...article } as Record<string, unknown>;
     await this.hydrateUserAndOrganization([articleObj]);
 
-    return articleObj as unknown as Article;
+    return stripPrivateBrand(articleObj) as unknown as Article;
   }
 
   /**
@@ -932,7 +891,7 @@ export class ArticlesService
     }
 
     return this.articlesContentService.convertToTwitterThread(article, (id) =>
-      this.resolvePublicHandle(id),
+      this.publicArticleScope.resolveHandle(id),
     );
   }
 

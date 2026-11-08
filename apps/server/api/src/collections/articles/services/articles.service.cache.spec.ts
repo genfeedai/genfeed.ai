@@ -280,6 +280,46 @@ describe('ArticlesService cache invalidation', () => {
     ).resolves.toBe(false);
   });
 
+  it.each([
+    [
+      'a public brand at its handle',
+      {
+        brand: { isDeleted: false, scope: 'PUBLIC', slug: 'shayla' },
+        organizationId: 'org_customer',
+      },
+      'shayla',
+    ],
+    [
+      "Genfeed's private-brand article at @genfeedai",
+      {
+        brand: { isDeleted: false, scope: 'PRIVATE', slug: 'internal' },
+        organizationId: 'org_genfeed',
+      },
+      'genfeedai',
+    ],
+    [
+      'no customer article whose brand is private',
+      {
+        brand: { isDeleted: false, scope: 'PRIVATE', slug: 'acme' },
+        organizationId: 'org_customer',
+      },
+      null,
+    ],
+    ['no missing article', null, null],
+  ])(
+    'resolves the public handle of %s',
+    async (_label, storedArticle, handle) => {
+      const { service } = buildService({
+        genfeedOrganization: { id: 'org_genfeed' },
+        storedArticle,
+      });
+
+      await expect(
+        service.publicArticleScope.resolveHandle('article_1'),
+      ).resolves.toBe(handle);
+    },
+  );
+
   it('busts the org list key, the single key, and the articles tag on create', async () => {
     const { invalidatedKeys, invalidatedTags, service } = buildService();
 

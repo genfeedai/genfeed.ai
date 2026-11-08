@@ -67,7 +67,9 @@ describe('ArticlesController', () => {
     getArticleVersions: vi.fn(),
     patch: vi.fn(),
     remove: vi.fn(),
-    resolvePublicHandle: vi.fn(async () => 'genfeedai'),
+    publicArticleScope: {
+      resolveHandle: vi.fn(async (): Promise<string | null> => 'genfeedai'),
+    },
     restoreArticleVersion: vi.fn(),
     update: vi.fn(),
   };
@@ -312,7 +314,9 @@ describe('ArticlesController', () => {
 
     it('rejects a preview for an article without a public brand', async () => {
       mockArticlesService.findOne.mockResolvedValue(mockArticle);
-      mockArticlesService.resolvePublicHandle.mockResolvedValueOnce(null);
+      mockArticlesService.publicArticleScope.resolveHandle.mockResolvedValueOnce(
+        null,
+      );
 
       await expect(
         controller.createPreviewLink(mockRequest, mockUser, id),

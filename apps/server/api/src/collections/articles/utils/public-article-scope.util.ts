@@ -1,7 +1,28 @@
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
-import { PUBLIC_BRAND_WHERE } from '@api/helpers/utils/public-brand/public-brand-filter.util';
-import { PUBLIC_ARTICLES_ORGANIZATION_SLUG } from '@genfeedai/contracts/constants';
+import {
+  PUBLIC_ARTICLE_BRAND_INCLUDE,
+  PUBLIC_BRAND_WHERE,
+} from '@api/helpers/utils/public-brand/public-brand-filter.util';
+import {
+  GENFEED_BRAND_HANDLE,
+  PUBLIC_ARTICLES_ORGANIZATION_SLUG,
+} from '@genfeedai/contracts/constants';
+
+const PUBLIC_ARTICLE_HOST_SELECT = {
+  organizationId: true,
+  ...PUBLIC_ARTICLE_BRAND_INCLUDE,
+};
+
+interface PublicArticleHostQuery {
+  select: typeof PUBLIC_ARTICLE_HOST_SELECT;
+  where: { id: string; isDeleted: boolean };
+}
+
+interface PublicArticleHost {
+  brand?: { isDeleted?: unknown; scope?: unknown; slug?: string | null } | null;
+  organizationId?: unknown;
+}
 
 /**
  * genfeed.ai hosts an article when its brand is public (it then lives at
@@ -21,6 +42,9 @@ export class PublicArticleScope {
     private readonly getConfiguredOrganizationId: () =>
       | string
       | undefined = () => undefined,
+    private readonly findArticleHost: (
+      query: PublicArticleHostQuery,
+    ) => Promise<object | null> = async () => null,
   ) {}
 
   async resolveOrganizationId(): Promise<string | null> {
@@ -95,22 +119,31 @@ export class PublicArticleScope {
   }
 
   /**
-   * Whether an article may be shown publicly at all: Genfeed's organization,
-   * or a brand that is public.
+   * The genfeed.ai handle an article is public under: its brand's handle when
+   * the brand is public, `genfeedai` for Genfeed's own brandless or
+   * private-brand articles, otherwise `null` (the article has no public page).
    */
-  async isPublicHost(article: {
-    brand?: { isDeleted?: unknown; scope?: unknown } | null;
-    organizationId?: unknown;
-  }): Promise<boolean> {
-    if (
-      typeof article.organizationId === 'string' &&
-      (await this.isHostedOrganization(article.organizationId))
-    ) {
-      return true;
+  readonly resolveHandle = async (
+    articleId: string,
+  ): Promise<string | null> => {
+    const article = (await this.findArticleHost({
+      select: PUBLIC_ARTICLE_HOST_SELECT,
+      where: { id: articleId, isDeleted: false },
+    })) as PublicArticleHost | null;
+    if (!article) {
+      return null;
     }
-    return (
-      article.brand?.isDeleted === false &&
-      article.brand.scope === PUBLIC_BRAND_WHERE.scope
-    );
-  }
+    const { brand } = article;
+    if (
+      brand?.slug &&
+      brand.isDeleted === false &&
+      brand.scope === PUBLIC_BRAND_WHERE.scope
+    ) {
+      return brand.slug;
+    }
+    return typeof article.organizationId === 'string' &&
+      (await this.isHostedOrganization(article.organizationId))
+      ? GENFEED_BRAND_HANDLE
+      : null;
+  };
 }
