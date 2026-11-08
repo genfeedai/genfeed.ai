@@ -236,7 +236,7 @@ describe('OrganizationsOperationsService', () => {
         ),
       ).resolves.toEqual({
         brand: { id: 'brand_new', label: 'New Org' },
-        organization: { id: 'org_new', label: 'New Org' },
+        organization: { id: 'org_new', label: 'New Org', slug: 'new-org' },
       });
       expect(organizationsService.count).not.toHaveBeenCalled();
       expect(organizationsService.create).toHaveBeenCalledWith({
@@ -343,7 +343,7 @@ describe('OrganizationsOperationsService', () => {
         ),
       ).resolves.toEqual({
         brand: { id: 'brand_new', label: 'New Org' },
-        organization: { id: 'org_new', label: 'New Org' },
+        organization: { id: 'org_new', label: 'New Org', slug: 'new-org' },
       });
       expect(rolesService.findOne).toHaveBeenNthCalledWith(1, { key: 'owner' });
       expect(rolesService.findOne).toHaveBeenNthCalledWith(2, { key: 'admin' });
