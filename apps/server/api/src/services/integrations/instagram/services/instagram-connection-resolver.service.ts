@@ -15,6 +15,7 @@ import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   InstagramDebugTokenResponse,
   InstagramPageResponse,
+  InstagramSelectionCredential,
   InstagramTokenGrant,
 } from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
 import {
@@ -356,6 +357,125 @@ export class InstagramConnectionResolverService {
     );
 
     return { credential: updated, needsSelection: false };
+  }
+
+  /**
+   * Settle a credential that verify left as `needsSelection` onto every
+   * account the operator ticked, in the order given. The first account
+   * settles this credential. Each further account becomes its own Instagram
+   * credential on the same brand and shares this connection's token, so one
+   * pass through Meta's dialog can connect several accounts. An account the
+   * brand already holds is merged into that credential by
+   * `CredentialsService.connectAccount`, exactly like a reconnect.
+   *
+   * The caller has already checked every account against the token's own
+   * authorized list. A further account that fails to save is logged and
+   * left out of the result instead of undoing the ones already connected;
+   * its half-made row is retired so no token stays on an unidentified row.
+   */
+  async connectSelectedAccounts(params: {
+    accessToken: string;
+    accounts: InstagramPageResponse[];
+    credential: InstagramSelectionCredential;
+    organizationId: string;
+    url: string;
+  }): Promise<Awaited<ReturnType<CredentialsService['patch']>>[]> {
+    const { accessToken, accounts, credential, organizationId, url } = params;
+    const [first, ...others] = accounts;
+    if (!first) {
+      return [];
+    }
+
+    const connected = [
+      await this.connectSelectedAccount({
+        accessToken,
+        account: first,
+        credentialId: credential.id,
+        organizationId,
+        url,
+      }),
+    ];
+
+    if (others.length === 0 || !credential.brandId || !credential.userId) {
+      return connected;
+    }
+
+    for (const account of others) {
+      const sibling = await this.credentialsService.createPendingForBrand(
+        { id: credential.brandId, organizationId },
+        credential.userId,
+        CredentialPlatform.INSTAGRAM,
+        { accessToken },
+      );
+      try {
+        connected.push(
+          await this.connectSelectedAccount({
+            accessToken,
+            account,
+            connection: {
+              accessTokenExpiry: credential.accessTokenExpiry ?? null,
+              externalBusinessId: credential.externalBusinessId ?? null,
+              grantedScopes: credential.grantedScopes ?? [],
+              grantedScopesCapturedAt:
+                credential.grantedScopesCapturedAt ?? null,
+            },
+            credentialId: sibling.id.toString(),
+            organizationId,
+            url,
+          }),
+        );
+      } catch (error: unknown) {
+        this.loggerService.warn(
+          `${url} could not connect an additional selected account`,
+          getSafeInstagramOAuthErrorLog(error),
+        );
+        await this.credentialsService.patch(sibling.id.toString(), {
+          accessToken: null,
+          isDeleted: true,
+        });
+      }
+    }
+
+    // Two ticked accounts can never settle onto one row (each id is a
+    // distinct identity), so the result has no duplicates to collapse.
+    return connected;
+  }
+
+  /** Write one chosen account's identity onto a credential, then finish it. */
+  private async connectSelectedAccount(params: {
+    accessToken: string;
+    account: InstagramPageResponse;
+    connection?: Record<string, unknown>;
+    credentialId: string;
+    organizationId: string;
+    url: string;
+  }): Promise<Awaited<ReturnType<CredentialsService['patch']>>> {
+    const { accessToken, account, connection, credentialId, organizationId } =
+      params;
+    const settled = await this.credentialsService.connectAccount(
+      credentialId,
+      organizationId,
+      {
+        avatarUrl: account.image,
+        // `username` is optional on InstagramPageResponse — Graph can omit
+        // it. `undefined` means "leave the column as is"; an explicit `null`
+        // would wipe an existing good handle on a reconnect.
+        handle: account.username ?? undefined,
+        id: account.id,
+        name: account.label || account.username,
+      },
+      connection,
+    );
+
+    return this.finalizeConnection({
+      accessToken,
+      credential: settled,
+      // Undefined so the signal refresh falls back to the credential's
+      // already-persisted grantedScopes, like any post-connection refresh.
+      grantedScopes: undefined,
+      organizationId,
+      url: params.url,
+    });
   }
 
   /**

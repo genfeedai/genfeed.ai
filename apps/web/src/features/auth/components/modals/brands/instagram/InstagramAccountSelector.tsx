@@ -4,6 +4,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { InstagramIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { CredentialInstagram } from '@genfeedai/models/auth/credential.model';
+import type { ConnectionAccount } from '@genfeedai/props/ui/feedback/connection-success.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { ServicesService } from '@genfeedai/services/external/services.service';
 import { CredentialsService } from '@genfeedai/services/organization/credentials.service';
@@ -23,14 +24,15 @@ const EMPTY_ACCOUNTS: CredentialInstagram[] = [];
 
 /**
  * Lets the operator resolve an ambiguous Instagram connection — several
- * eligible professional accounts and no automatic pick — by choosing one of
- * the candidates returned for this credential's own token. Reused by the
+ * eligible professional accounts and no automatic pick — by ticking one or
+ * more of the candidates returned for this credential's own token. Each
+ * ticked account connects as its own account on the brand. Reused by the
  * OAuth callback page.
  *
- * The pick is validated server-side: `handleConfirm` posts only the chosen
- * `externalId` to `POST /services/instagram/:credentialId/select-account`,
- * which re-derives handle/name/avatar from its own authorized-accounts list
- * and rejects an id that token does not actually grant.
+ * The picks are validated server-side: `handleConfirm` posts only the chosen
+ * ids to `POST /services/instagram/:credentialId/select-account`, which
+ * re-derives handle/name/avatar from its own authorized-accounts list and
+ * rejects an id that token does not actually grant.
  */
 export default function InstagramAccountSelector({
   credentialId,
@@ -45,10 +47,15 @@ export default function InstagramAccountSelector({
     (token: string) => new ServicesService('instagram', token),
   );
 
-  const [pickedAccount, setPickedAccount] =
-    useState<CredentialInstagram | null>(null);
+  const [pickedAccountIds, setPickedAccountIds] = useState<string[]>([]);
   const [isConnecting, setIsConnecting] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  // Set when only some ticked accounts connected: the operator reads which
+  // before moving on, since the rest need another connect.
+  const [partialResult, setPartialResult] = useState<{
+    account: ConnectionAccount;
+    notice: string;
+  } | null>(null);
 
   // Cached per credential: going back and reopening the picker lists the
   // candidates at once while they refresh. The pick is still validated
@@ -74,13 +81,11 @@ export default function InstagramAccountSelector({
     service: (token: string) => CredentialsService.getInstance(token),
   });
   const availableAccounts = accountsQuery.data ?? EMPTY_ACCOUNTS;
-  // A refresh that no longer lists the pick clears it, so Confirm never sends
-  // an account this credential stopped granting.
-  const selectedAccount =
-    pickedAccount &&
-    availableAccounts.some((account) => account.id === pickedAccount.id)
-      ? pickedAccount
-      : null;
+  // A refresh that no longer lists a pick drops it, so Confirm never sends
+  // an account this credential stopped granting. Kept in list order.
+  const selectedAccountIds = availableAccounts
+    .map((account) => account.id)
+    .filter((accountId) => pickedAccountIds.includes(accountId));
   const isLoading = accountsQuery.isLoading;
   // A failed background refresh keeps the cached candidates on screen.
   const hasLoadError = Boolean(accountsQuery.error) && !accountsQuery.data;
@@ -100,13 +105,13 @@ export default function InstagramAccountSelector({
   }, [loadError, loadErrorMessage]);
 
   const retry = () => {
-    setPickedAccount(null);
+    setPickedAccountIds([]);
     setConfirmError(null);
     void accountsQuery.refetch();
   };
 
   const handleConfirm = async () => {
-    if (!selectedAccount) {
+    if (selectedAccountIds.length === 0) {
       return;
     }
 
@@ -116,13 +121,33 @@ export default function InstagramAccountSelector({
 
     try {
       const service = await getServicesService();
-      await service.postSelectAccount(credentialId, selectedAccount.id);
+      const connected = await service.postSelectAccounts(
+        credentialId,
+        selectedAccountIds,
+      );
 
-      logger.info(`${url} success`);
-      onConnected({
-        avatarUrl: selectedAccount.image,
-        name: selectedAccount.label || selectedAccount.username,
+      logger.info(`${url} success`, {
+        connectedCount: connected.length,
+        selectedCount: selectedAccountIds.length,
       });
+      const [first] = connected;
+      const account: ConnectionAccount = {
+        avatarUrl: first?.externalAvatar,
+        name: first?.externalName || first?.externalHandle,
+      };
+
+      if (connected.length < selectedAccountIds.length) {
+        setPartialResult({
+          account,
+          notice: translate('partial', {
+            connected: connected.length,
+            selected: selectedAccountIds.length,
+          }),
+        });
+        return;
+      }
+
+      onConnected(account);
     } catch (confirmError) {
       logger.error(`${url} failed`, confirmError);
       const message = translate('confirmError');
@@ -144,6 +169,18 @@ export default function InstagramAccountSelector({
 
       {isLoading && (
         <p className="text-sm text-muted-foreground">{translate('loading')}</p>
+      )}
+
+      {partialResult && (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            {partialResult.notice}
+          </p>
+          <Button
+            label={translate('continue')}
+            onClick={() => onConnected(partialResult.account)}
+          />
+        </div>
       )}
 
       {!isLoading && error && (
@@ -188,20 +225,14 @@ export default function InstagramAccountSelector({
         </div>
       )}
 
-      {!isLoading && availableAccounts.length > 0 && (
+      {!isLoading && !partialResult && availableAccounts.length > 0 && (
         <OptionTileGroup
           ariaLabel={translate('title')}
           className="max-h-72 overflow-y-auto"
           columns={1}
-          onValueChange={(accountId) => {
-            const account = availableAccounts.find(
-              (entry) => entry.id === accountId,
-            );
-            if (account) {
-              setPickedAccount(account);
-            }
-          }}
-          value={selectedAccount?.id}
+          onValueChange={setPickedAccountIds}
+          type="multiple"
+          value={selectedAccountIds}
         >
           {availableAccounts.map((account) => (
             <OptionTile
@@ -230,7 +261,7 @@ export default function InstagramAccountSelector({
                   @{account.username}
                 </span>
               </span>
-              {selectedAccount?.id === account.id && (
+              {selectedAccountIds.includes(account.id) && (
                 <CircleCheck className="text-primary text-xl" />
               )}
             </OptionTile>
@@ -238,15 +269,17 @@ export default function InstagramAccountSelector({
         </OptionTileGroup>
       )}
 
-      {!isLoading && availableAccounts.length > 0 && (
+      {!isLoading && !partialResult && availableAccounts.length > 0 && (
         <div className="flex gap-2">
           <Button
             label={
-              isConnecting ? translate('confirming') : translate('confirm')
+              isConnecting
+                ? translate('confirming')
+                : translate('confirm', { count: selectedAccountIds.length })
             }
             onClick={handleConfirm}
             isLoading={isConnecting}
-            isDisabled={isConnecting || !selectedAccount}
+            isDisabled={isConnecting || selectedAccountIds.length === 0}
           />
           {onBack && (
             <Button

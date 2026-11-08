@@ -96,6 +96,27 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
   }
 
   /**
+   * Instagram: settle a connection that needs an account choice onto every
+   * account the operator ticked. The first settles this credential and each
+   * further one becomes its own credential on the brand. The server checks
+   * every id against the credential's own token and re-derives the profiles.
+   */
+  public async postSelectAccounts(
+    credentialId: string,
+    externalIds: string[],
+  ): Promise<Credential[]> {
+    return await this.instance
+      .post<JsonApiResponseDocument>(`${credentialId}/select-account`, {
+        externalIds,
+      })
+      .then((res) =>
+        this.extractCollection<Partial<ICredential>>(res.data).map(
+          (item) => new Credential(item),
+        ),
+      );
+  }
+
+  /**
    * Instagram only: settle an ambiguous connection (see
    * `needsAccountSelection`) onto one of the accounts the credential's own
    * token authorizes. The server re-derives handle/name/avatar from its own

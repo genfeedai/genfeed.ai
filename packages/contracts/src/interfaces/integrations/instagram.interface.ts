@@ -41,6 +41,20 @@ export interface InstagramTokenGrant {
 }
 
 /**
+ * The pending Instagram credential an account selection settles, with the
+ * connection columns each further selected account inherits.
+ */
+export interface InstagramSelectionCredential {
+  accessTokenExpiry?: Date | null;
+  brandId?: string | null;
+  externalBusinessId?: string | null;
+  grantedScopes?: string[] | null;
+  grantedScopesCapturedAt?: Date | null;
+  id: string;
+  userId?: string | null;
+}
+
+/**
  * Instagram credential with decrypted access token
  */
 export interface InstagramCredentialResponse {

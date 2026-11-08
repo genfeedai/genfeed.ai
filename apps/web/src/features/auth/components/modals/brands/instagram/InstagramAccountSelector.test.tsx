@@ -21,9 +21,9 @@ const mockCredentialsService: {
 }));
 
 const mockServicesService: {
-  postSelectAccount: Mock<(...args: unknown[]) => unknown>;
+  postSelectAccounts: Mock<(...args: unknown[]) => unknown>;
 } = vi.hoisted(() => ({
-  postSelectAccount: vi.fn(),
+  postSelectAccounts: vi.fn(),
 }));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
@@ -45,8 +45,8 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
 // `new` semantics intact while still routing calls through the shared mock.
 vi.mock('@genfeedai/services/external/services.service', () => ({
   ServicesService: class {
-    postSelectAccount(...args: unknown[]) {
-      return mockServicesService.postSelectAccount(...args);
+    postSelectAccounts(...args: unknown[]) {
+      return mockServicesService.postSelectAccounts(...args);
     }
   },
 }));
@@ -84,7 +84,7 @@ describe('InstagramAccountSelector', () => {
 
   beforeEach(() => {
     mockCredentialsService.findCredentialInstagramPages = vi.fn();
-    mockServicesService.postSelectAccount = vi.fn();
+    mockServicesService.postSelectAccounts = vi.fn();
   });
 
   it('lists every candidate account returned for this credential', async () => {
@@ -147,9 +147,9 @@ describe('InstagramAccountSelector', () => {
     // The flag is informational only — a held account stays pickable, since
     // choosing it is a legitimate deliberate reconnect that merges into the
     // incumbent (see InstagramConnectionResolverService.resolveAuthorizedAccount).
-    const heldAccountButton = screen
-      .getByText('Genfeed AI')
-      .closest('[role="radio"]') as HTMLElement;
+    const heldAccountButton = screen.getByRole('button', {
+      name: /Genfeed AI/,
+    });
     expect(heldAccountButton).not.toBeDisabled();
   });
 
@@ -226,7 +226,9 @@ describe('InstagramAccountSelector', () => {
       />,
     );
 
-    const confirmButton = await screen.findByText('Use this account');
+    const confirmButton = await screen.findByRole('button', {
+      name: 'Connect accounts',
+    });
     expect(confirmButton).toBeDisabled();
   });
 
@@ -243,9 +245,11 @@ describe('InstagramAccountSelector', () => {
       client,
     );
     fireEvent.click(
-      await screen.findByRole('radio', { name: /Genfeed Studio/ }),
+      await screen.findByRole('button', { name: /Genfeed Studio/ }),
     );
-    expect(screen.getByText('Use this account')).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Connect 1 account' }),
+    ).toBeEnabled();
 
     mockCredentialsService.findCredentialInstagramPages.mockResolvedValue([
       candidateAccounts[0],
@@ -255,7 +259,9 @@ describe('InstagramAccountSelector', () => {
     await waitFor(() =>
       expect(screen.queryByText('Genfeed Studio')).not.toBeInTheDocument(),
     );
-    expect(screen.getByText('Use this account')).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Connect accounts' }),
+    ).toBeDisabled();
   });
 
   it('offers Cancel beside the confirm action when the right account is not listed', async () => {
@@ -275,7 +281,7 @@ describe('InstagramAccountSelector', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
 
     expect(onBack).toHaveBeenCalledTimes(1);
-    expect(mockServicesService.postSelectAccount).not.toHaveBeenCalled();
+    expect(mockServicesService.postSelectAccounts).not.toHaveBeenCalled();
   });
 
   it('keeps every account reachable in a scrollable list when the operator manages many', async () => {
@@ -295,13 +301,15 @@ describe('InstagramAccountSelector', () => {
       />,
     );
 
-    const last = await screen.findByRole('radio', { name: /Account 24/ });
+    const last = await screen.findByRole('button', { name: /Account 24/ });
     expect(last.parentElement).toHaveClass('overflow-y-auto');
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeVisible();
-    expect(screen.getByText('Use this account')).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Connect accounts' }),
+    ).toBeVisible();
   });
 
-  it('exposes the actual selected account as checked', async () => {
+  it('lets the operator tick several accounts and untick one again', async () => {
     mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
       candidateAccounts,
     );
@@ -311,23 +319,38 @@ describe('InstagramAccountSelector', () => {
         onConnected={vi.fn()}
       />,
     );
-    const first = await screen.findByRole('radio', { name: /Genfeed AI/ });
-    const second = screen.getByRole('radio', { name: /Genfeed Studio/ });
-    expect(first).toHaveAttribute('aria-checked', 'false');
-    expect(second).toHaveAttribute('aria-checked', 'false');
+    const first = await screen.findByRole('button', { name: /Genfeed AI/ });
+    const second = screen.getByRole('button', { name: /Genfeed Studio/ });
+    expect(first).toHaveAttribute('aria-pressed', 'false');
+    expect(second).toHaveAttribute('aria-pressed', 'false');
+
     fireEvent.click(first);
-    expect(first).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(second);
-    expect(first).toHaveAttribute('aria-checked', 'false');
-    expect(second).toHaveAttribute('aria-checked', 'true');
+    expect(first).toHaveAttribute('aria-pressed', 'true');
+    expect(second).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      screen.getByRole('button', { name: 'Connect 2 accounts' }),
+    ).toBeEnabled();
+
+    fireEvent.click(first);
+    expect(first).toHaveAttribute('aria-pressed', 'false');
+    expect(
+      screen.getByRole('button', { name: 'Connect 1 account' }),
+    ).toBeEnabled();
   });
 
-  it('confirms the selection through the select-account endpoint, never the generic PATCH', async () => {
+  it('connects every ticked account through the select-account endpoint and shows the first', async () => {
     const onConnected = vi.fn();
     mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
       candidateAccounts,
     );
-    mockServicesService.postSelectAccount.mockResolvedValue({});
+    mockServicesService.postSelectAccounts.mockResolvedValue([
+      {
+        externalAvatar: 'https://cdn.example.com/one.jpg',
+        externalName: 'Genfeed AI',
+      },
+      { externalName: 'Genfeed Studio' },
+    ]);
 
     render(
       <InstagramAccountSelector
@@ -336,23 +359,57 @@ describe('InstagramAccountSelector', () => {
       />,
     );
 
-    // Pick the second candidate deliberately: it proves the id posted to the
-    // server tracks the operator's actual click rather than merely matching
-    // whatever the component happens to default to.
-    const account = await screen.findByText('Genfeed Studio');
-    fireEvent.click(account.closest('[role="radio"]') as HTMLElement);
-
-    const confirmButton = await screen.findByText('Use this account');
-    await waitFor(() => expect(confirmButton).not.toBeDisabled());
-    fireEvent.click(confirmButton);
+    // Tick in reverse list order: the ids still go out in list order.
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Genfeed Studio/ }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Genfeed AI/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Connect 2 accounts' }));
 
     await waitFor(() => {
-      expect(mockServicesService.postSelectAccount).toHaveBeenCalledWith(
-        credentialId,
-        'ig-account-2',
-      );
+      expect(onConnected).toHaveBeenCalledWith({
+        avatarUrl: 'https://cdn.example.com/one.jpg',
+        name: 'Genfeed AI',
+      });
     });
-    expect(onConnected).toHaveBeenCalled();
+    expect(mockServicesService.postSelectAccounts).toHaveBeenCalledWith(
+      credentialId,
+      ['ig-account-1', 'ig-account-2'],
+    );
+  });
+
+  it('says how many accounts connected when only some did, then continues', async () => {
+    const onConnected = vi.fn();
+    mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
+      candidateAccounts,
+    );
+    mockServicesService.postSelectAccounts.mockResolvedValue([
+      { externalName: 'Genfeed AI' },
+    ]);
+
+    render(
+      <InstagramAccountSelector
+        credentialId={credentialId}
+        onConnected={onConnected}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: /Genfeed AI/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Genfeed Studio/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Connect 2 accounts' }));
+
+    expect(
+      await screen.findByText(
+        'Connected 1 of 2 accounts. Run connect again to add the rest.',
+      ),
+    ).toBeInTheDocument();
+    expect(onConnected).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(onConnected).toHaveBeenCalledWith({
+      avatarUrl: undefined,
+      name: 'Genfeed AI',
+    });
   });
 
   it('reports a persist failure through onError and keeps the selection', async () => {
@@ -361,7 +418,7 @@ describe('InstagramAccountSelector', () => {
     mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
       candidateAccounts,
     );
-    mockServicesService.postSelectAccount.mockRejectedValue(
+    mockServicesService.postSelectAccounts.mockRejectedValue(
       new Error('persist failed'),
     );
 
@@ -373,30 +430,21 @@ describe('InstagramAccountSelector', () => {
       />,
     );
 
-    const account = await screen.findByText('Genfeed AI');
-    fireEvent.click(account.closest('[role="radio"]') as HTMLElement);
-
-    const confirmButton = screen.getByText('Use this account');
-    await waitFor(() => expect(confirmButton).not.toBeDisabled());
+    fireEvent.click(await screen.findByRole('button', { name: /Genfeed AI/ }));
+    const confirmButton = screen.getByRole('button', {
+      name: 'Connect 1 account',
+    });
     fireEvent.click(confirmButton);
 
-    // Only a genuine rejection reaches the catch block and reports through
-    // onError with this exact message; a broken mock throwing before the
-    // call (e.g. `new` on an automocked arrow function) would never let
-    // postSelectAccount observe these arguments.
-    await waitFor(() => {
-      expect(mockServicesService.postSelectAccount).toHaveBeenCalledWith(
-        credentialId,
-        'ig-account-1',
-      );
-    });
     await waitFor(() => {
       expect(onError).toHaveBeenCalledWith(
-        'Failed to connect this account. Please try again.',
+        'Failed to connect these accounts. Please try again.',
       );
     });
     expect(onConnected).not.toHaveBeenCalled();
-    expect(confirmButton).not.toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Connect 1 account' }),
+    ).toBeEnabled();
   });
 
   it('lists the cached candidates at once when the picker reopens', async () => {
