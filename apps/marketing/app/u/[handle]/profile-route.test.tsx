@@ -247,4 +247,12 @@ describe('PublicProfile', () => {
     expect(element.props.videos).toBe(VIDEOS);
     expect(element.props.articles).toBe(ARTICLES);
   });
+
+  it('answers with a 404 when the handle is unknown or not public', async () => {
+    findPublicProfileBySlug.mockResolvedValue(null);
+
+    await expect(
+      PublicProfile({ params: Promise.resolve({ handle: 'route-missing' }) }),
+    ).rejects.toThrow('NEXT_HTTP_ERROR_FALLBACK;404');
+  });
 });

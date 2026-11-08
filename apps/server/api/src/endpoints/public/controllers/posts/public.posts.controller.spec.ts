@@ -148,6 +148,11 @@ describe('PublicPostsController', () => {
         where: Record<string, unknown>;
       };
       expect(callArgs.where.brandId).toBe(brandId);
+      // A brand id lists posts only while that brand's profile is public.
+      expect(callArgs.where.brand).toEqual({
+        isDeleted: false,
+        scope: 'PUBLIC',
+      });
     });
 
     it('should filter by tag when provided', async () => {
@@ -195,6 +200,7 @@ describe('PublicPostsController', () => {
           postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
           postVisibilityReadFilter(PostVisibility.PUBLIC),
         ],
+        brand: { isDeleted: false, scope: 'PUBLIC' },
         isDeleted: false,
       });
       expect(callArgs.where.scope).toBeUndefined();
@@ -298,6 +304,7 @@ describe('PublicPostsController', () => {
             postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
             postVisibilityReadFilter(PostVisibility.PUBLIC),
           ],
+          brand: { isDeleted: false, scope: 'PUBLIC' },
           id: postId,
         },
         [],
@@ -370,6 +377,7 @@ describe('PublicPostsController', () => {
             postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
             postVisibilityReadFilter(PostVisibility.PUBLIC),
           ],
+          brand: { isDeleted: false, scope: 'PUBLIC' },
           id: postId,
         },
         [],

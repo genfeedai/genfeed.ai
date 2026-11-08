@@ -7,6 +7,7 @@ import {
 } from '@u/[handle]/profile-loader';
 import PublicProfileContent from '@u/[handle]/profile-page';
 import type { Metadata, ResolvingMetadata } from 'next';
+import { notFound } from 'next/navigation';
 
 /**
  * Profiles are edited from the app (logo, banner, links), so the cached page
@@ -136,7 +137,15 @@ export default async function PublicProfile({
   params: Promise<{ handle: string }>;
 }) {
   const { handle } = await params;
-  const profileData = await getPublicProfilePageData(handle);
+  const { brand, ...profileData } = await getPublicProfilePageData(handle);
 
-  return <PublicProfileContent handle={handle} {...profileData} />;
+  // An unknown or non-public handle answers a real 404, the same in both
+  // cases, so a visitor cannot tell a private profile from a missing one.
+  if (!brand) {
+    notFound();
+  }
+
+  return (
+    <PublicProfileContent brand={brand} handle={handle} {...profileData} />
+  );
 }
