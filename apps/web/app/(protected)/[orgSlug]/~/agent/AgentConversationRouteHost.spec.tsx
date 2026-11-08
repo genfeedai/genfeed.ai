@@ -39,8 +39,8 @@ vi.mock('./AgentMasterWorkspace', () => ({
 }));
 
 function setLocation(url: string | null) {
-  const [pathname, search = ''] = url === null ? [null] : url.split('?');
-  pathnameState.current = pathname as string;
+  const [pathname, search = ''] = (url ?? '').split('?');
+  pathnameState.current = (url === null ? null : pathname) as string;
   searchState.current = search;
 }
 
