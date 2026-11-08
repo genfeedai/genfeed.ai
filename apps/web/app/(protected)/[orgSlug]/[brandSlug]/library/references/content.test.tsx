@@ -117,6 +117,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
       { id: 'brand-2', label: 'Podcast' },
       { id: 'brand-3', label: 'Newsletter' },
     ],
+    organizationId: 'org-1',
   }),
 }));
 
