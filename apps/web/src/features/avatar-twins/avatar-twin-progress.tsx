@@ -2,16 +2,22 @@
 
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { AvatarTwinStatus, ButtonVariant } from '@genfeedai/contracts';
+import { getJsonApiErrorMessage } from '@genfeedai/services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { Label } from '@ui/primitives/label';
 import { Progress } from '@ui/primitives/progress';
+import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import type { AvatarTwinProgressProps } from '@/features/avatar-twins/props/avatar-twin.props';
+import type {
+  AvatarTwinProgressProps,
+  AvatarTwinVoiceChoice,
+} from '@/features/avatar-twins/props/avatar-twin.props';
 
 /**
  * Opens a tab synchronously (inside the click) so a popup blocker allows it,
@@ -38,10 +44,13 @@ async function openInNewTab(resolveUrl: () => Promise<string>): Promise<void> {
  * provider's page, a rejected or failed outcome, and the finished twin.
  */
 export default function AvatarTwinProgress({
+  brandUsage,
   libraryHref,
+  onApplyToBrand,
   onOpenConsent,
   onRemove,
   onRetake,
+  studioHref,
   twin,
 }: AvatarTwinProgressProps) {
   const translate = useTranslations('pages.library.avatarTwin');
@@ -51,6 +60,11 @@ export default function AvatarTwinProgress({
   const [consentError, setConsentError] = useState<string | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [voiceChoice, setVoiceChoice] = useState<AvatarTwinVoiceChoice>(
+    twin.voiceId ? 'twin' : 'keep',
+  );
+  const [isApplying, setIsApplying] = useState(false);
+  const [applyError, setApplyError] = useState<string | null>(null);
 
   const isConsentExpired =
     !!twin.consentLinkExpiresAt &&
@@ -70,6 +84,19 @@ export default function AvatarTwinProgress({
       setConsentError(translate('consent.error'));
     } finally {
       setIsOpeningConsent(false);
+    }
+  };
+
+  const handleApply = async () => {
+    setApplyError(null);
+    setIsApplying(true);
+    try {
+      await onApplyToBrand(voiceChoice);
+    } catch (error: unknown) {
+      logger.error('Avatar twin brand default failed', error);
+      setApplyError(getJsonApiErrorMessage(error, translate('brand.error')));
+    } finally {
+      setIsApplying(false);
     }
   };
 
@@ -170,6 +197,62 @@ export default function AvatarTwinProgress({
         <p className="text-sm">{translate('done.body')}</p>
       ) : null}
 
+      {twin.status === AvatarTwinStatus.READY && brandUsage ? (
+        <section
+          aria-label={translate('brand.label')}
+          className="flex flex-col gap-3"
+        >
+          {brandUsage.isUsingTwin ? (
+            <p className="text-sm" role="status">
+              {translate('brand.using')}
+            </p>
+          ) : (
+            <>
+              <p className="text-sm">{translate('brand.body')}</p>
+              {twin.voiceId && brandUsage.hasVoice ? (
+                <RadioGroup
+                  aria-label={translate('brand.voiceLabel')}
+                  className="flex flex-col gap-2"
+                  onValueChange={(value) =>
+                    setVoiceChoice(value as AvatarTwinVoiceChoice)
+                  }
+                  value={voiceChoice}
+                >
+                  <Label
+                    className="flex cursor-pointer items-center gap-2 font-normal text-sm"
+                    htmlFor="avatar-twin-voice-twin"
+                  >
+                    <RadioGroupItem id="avatar-twin-voice-twin" value="twin" />
+                    <span>{translate('brand.voiceTwin')}</span>
+                  </Label>
+                  <Label
+                    className="flex cursor-pointer items-center gap-2 font-normal text-sm"
+                    htmlFor="avatar-twin-voice-keep"
+                  >
+                    <RadioGroupItem id="avatar-twin-voice-keep" value="keep" />
+                    <span>{translate('brand.voiceKeep')}</span>
+                  </Label>
+                </RadioGroup>
+              ) : null}
+              {applyError ? (
+                <Alert variant="destructive">
+                  <AlertDescription>{applyError}</AlertDescription>
+                </Alert>
+              ) : null}
+              <div>
+                <Button
+                  isLoading={isApplying}
+                  label={translate('brand.apply')}
+                  onClick={() => {
+                    void handleApply();
+                  }}
+                />
+              </div>
+            </>
+          )}
+        </section>
+      ) : null}
+
       {removeError ? (
         <Alert variant="destructive">
           <AlertDescription>{removeError}</AlertDescription>
@@ -178,9 +261,22 @@ export default function AvatarTwinProgress({
 
       <div className="flex flex-wrap items-center gap-2">
         {twin.status === AvatarTwinStatus.READY ? (
-          <Button asChild withWrapper={false}>
-            <Link href={libraryHref}>{translate('done.library')}</Link>
-          </Button>
+          <>
+            <Button
+              asChild
+              variant={ButtonVariant.SECONDARY}
+              withWrapper={false}
+            >
+              <Link href={studioHref}>{translate('done.studio')}</Link>
+            </Button>
+            <Button
+              asChild
+              variant={ButtonVariant.SECONDARY}
+              withWrapper={false}
+            >
+              <Link href={libraryHref}>{translate('done.library')}</Link>
+            </Button>
+          </>
         ) : null}
         {twin.status === AvatarTwinStatus.FAILED ||
         twin.status === AvatarTwinStatus.CONSENT_REJECTED ? (

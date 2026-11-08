@@ -80,6 +80,7 @@ export const ORGANIZATION_CATCH_ALL_PAGE = '/:orgSlug/~/:orgRootApp/*segments?';
 
 export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/library',
+  '/:orgSlug/~/library/voices/record',
   '/:orgSlug/~/library/:type',
   '/:orgSlug/~/library/shelf/:shelf',
   '/:orgSlug/~/editor',

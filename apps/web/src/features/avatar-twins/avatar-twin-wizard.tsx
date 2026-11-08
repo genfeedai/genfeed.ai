@@ -28,6 +28,8 @@ export default function AvatarTwinWizard() {
   const pathname = usePathname();
   const { href, orgHref } = useOrgUrl();
   const {
+    applyToBrand,
+    brandUsage,
     connectionState,
     isLoading,
     isRetaking,
@@ -81,14 +83,23 @@ export default function AvatarTwinWizard() {
       return (
         <AvatarTwinRecorder
           onCancel={twin ? () => setIsRetaking(false) : undefined}
-          onSubmit={(recording) => submit(recording, AVATAR_TWIN_DEFAULT_NAME)}
+          onSubmit={(recording, isRecordingKept) =>
+            submit({
+              isRecordingKept,
+              name: AVATAR_TWIN_DEFAULT_NAME,
+              recording,
+            })
+          }
           submitPhase={submitPhase}
           uploadProgress={uploadProgress}
         />
       );
     return (
       <AvatarTwinProgress
+        brandUsage={brandUsage}
         libraryHref={href(APP_ROUTES.LIBRARY.AVATARS)}
+        onApplyToBrand={(voice) => applyToBrand(twin, voice)}
+        studioHref={href(APP_ROUTES.STUDIO.PLAYGROUND)}
         onOpenConsent={() => openConsent(twin.id, pathname)}
         onRemove={() => remove(twin.id)}
         onRetake={() => setIsRetaking(true)}

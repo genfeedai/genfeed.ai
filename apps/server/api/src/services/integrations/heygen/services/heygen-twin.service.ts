@@ -7,20 +7,27 @@ import {
   HEYGEN_CONSENT_LINK_TTL_MS,
   HEYGEN_TWIN_REQUEST_TIMEOUT_MS,
   HEYGEN_TWIN_UPLOAD_TIMEOUT_MS,
+  HEYGEN_VOICE_NAME_MAX_LENGTH,
+  type HeyGenClonedVoice,
   type HeyGenConsentLink,
   type HeyGenTwinCreated,
   type HeyGenTwinDeleteResult,
   type HeyGenTwinGroup,
   type HeyGenTwinLook,
   mapHeyGenTwinFailure,
+  toClonedVoice,
   toTwinGroup,
   toTwinLook,
   twinCreateSchema,
   twinGroupSchema,
   twinLookSchema,
+  voiceCreateSchema,
+  voiceSampleProblem,
+  voiceSchema,
 } from '@api/services/integrations/heygen/helpers/heygen-twin';
 import { HEYGEN_API_ORIGIN } from '@api/services/integrations/heygen/helpers/heygen-video';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import type { HeyGenConnectionRef } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -29,6 +36,18 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import type { AxiosResponse } from 'axios';
 import { isAxiosError } from 'axios';
 import { firstValueFrom, type Observable } from 'rxjs';
+
+export interface HeyGenVoiceSample {
+  /** WAV or MP3; the provider uses the first 3 minutes. */
+  audio: Buffer;
+  contentType: string;
+  /** Idempotency key for the clone; a retry within 24 h reuses the voice. */
+  idempotencyKey?: string;
+  /** ISO language code; omitted lets the provider detect it. */
+  language?: string;
+  name: string;
+  removeBackgroundNoise?: boolean;
+}
 
 export interface HeyGenFootageUpload {
   contentType: string;
@@ -238,6 +257,69 @@ export class HeyGenTwinService {
     await this.call('patch', `/avatars/${enc(groupId)}`, apiKey, {
       default_voice_id: voiceId,
     });
+  }
+
+  /**
+   * Starts an instant voice clone in the workspace's own account. The voice
+   * is ready when `getVoice` reports it active, usually within seconds.
+   */
+  async cloneVoice(
+    organizationId: string,
+    sample: HeyGenVoiceSample,
+  ): Promise<{ connection: HeyGenConnectionRef; voiceId: string }> {
+    const problem = voiceSampleProblem({
+      contentType: sample.contentType,
+      sizeBytes: sample.audio.byteLength,
+    });
+    if (problem) throw new BadRequestException(problem);
+    const connection = await this.heyGenService.resolveOrganizationConnection(
+      organizationId,
+      'byok',
+    );
+    const created = voiceCreateSchema.parse(
+      await this.call(
+        'post',
+        '/models/audio/voices',
+        connection.apiKey,
+        {
+          mode: 'instant',
+          name: sample.name.trim().slice(0, HEYGEN_VOICE_NAME_MAX_LENGTH),
+          audio: [
+            {
+              type: 'base64',
+              media_type: sample.contentType.split(';')[0]?.trim(),
+              data: sample.audio.toString('base64'),
+            },
+          ],
+          remove_background_noise: sample.removeBackgroundNoise ?? true,
+          ...(sample.language ? { language: sample.language } : {}),
+        },
+        sample.idempotencyKey,
+      ),
+    ).data;
+    return { connection: connection.binding, voiceId: created.voice_id };
+  }
+
+  async getVoice(
+    organizationId: string,
+    voiceId: string,
+  ): Promise<HeyGenClonedVoice> {
+    const apiKey = await this.apiKey(organizationId);
+    return toClonedVoice(
+      voiceSchema.parse(
+        await this.call('get', `/models/audio/voices/${enc(voiceId)}`, apiKey),
+      ).data,
+    );
+  }
+
+  /** Deletes a cloned voice; one that is already gone counts as deleted. */
+  async deleteVoice(organizationId: string, voiceId: string): Promise<void> {
+    const apiKey = await this.apiKey(organizationId);
+    try {
+      await this.call('delete', `/models/audio/voices/${enc(voiceId)}`, apiKey);
+    } catch (error: unknown) {
+      if (!isNotFound(error)) throw error;
+    }
   }
 
   /**

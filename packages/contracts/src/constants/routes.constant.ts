@@ -207,6 +207,7 @@ export const APP_ROUTES = {
     TRASH: '/library/trash',
     VIDEOS: '/library/videos',
     VOICES: '/library/voices',
+    VOICE_STUDIO: '/library/voices/record',
   },
   MESSAGES: {
     /**

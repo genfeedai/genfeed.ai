@@ -23,6 +23,7 @@ import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@workers/config/config.module';
+import { CronAvatarTwinsModule } from '@workers/crons/avatar-twins/cron.avatar-twins.module';
 import { CronBrandedDispatchRecoveryModule } from '@workers/crons/branded-dispatch-recovery/cron.branded-dispatch-recovery.module';
 import { CronCredentialsModule } from '@workers/crons/credentials/cron.credentials.module';
 import { CronCreditsModule } from '@workers/crons/credits/cron.credits.module';
@@ -93,6 +94,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
       { name: WORKFLOW_EXECUTION_QUEUE },
     ),
     CronTurboRunModule,
+    CronAvatarTwinsModule,
     CronCredentialsModule,
     CronCreditsModule,
     CronEngagementModule,

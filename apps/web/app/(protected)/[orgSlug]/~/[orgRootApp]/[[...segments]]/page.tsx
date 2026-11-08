@@ -31,6 +31,7 @@ import LibraryBrowser from '@/features/library/browser/library-browser';
 import { LIBRARY_TYPE_PRESETS } from '@/features/library/browser/library-browser.config';
 import LibraryOverview from '@/features/library/overview/library-overview';
 import EditorWorkspace from '@/features/studio/editor/EditorWorkspace';
+import VoiceStudio from '@/features/voice-studio/voice-studio';
 import type { OrgRootAppPageProps } from '@/props/layout/org-root-app-page.props';
 import type { PostsListSearchParams } from '@/props/publishing/publishing-list-page.props';
 import { loadProtectedBootstrap } from '@/server/protected-bootstrap.server';
@@ -290,6 +291,10 @@ export default async function OrgRootAppPage({
           <LibraryCharactersPage scope={PageScope.ORGANIZATION} />
         </Suspense>
       );
+    }
+
+    if (segments[0] === 'voices' && segments[1] === 'record') {
+      return <VoiceStudio />;
     }
 
     if (segments[0] === 'voices') {

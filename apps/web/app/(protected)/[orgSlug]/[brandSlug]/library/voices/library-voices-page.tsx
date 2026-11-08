@@ -347,7 +347,8 @@ function LibraryVoicesContent() {
 
       <VoiceCreateCallout
         connectHref={orgHref(APP_ROUTES.SETTINGS.INTEGRATIONS)}
-        onCloneVoice={handleOpenCloneModal}
+        onUploadSample={handleOpenCloneModal}
+        recordHref={href(APP_ROUTES.LIBRARY.VOICE_STUDIO)}
         twinHref={href(APP_ROUTES.LIBRARY.AVATAR_TWIN)}
       />
 

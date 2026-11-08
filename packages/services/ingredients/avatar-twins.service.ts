@@ -12,6 +12,8 @@ import {
 
 export interface StartAvatarTwinInput {
   idempotencyKey: string;
+  /** Keep the recording in the Library after HeyGen has it. */
+  isRecordingKept?: boolean;
   name: string;
   sourceIngredientId: string;
 }
