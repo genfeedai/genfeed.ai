@@ -2,6 +2,7 @@ import { ModelRegistrationService } from '@api/collections/models/services/model
 import { AgentGenerationCostToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-cost-tool-handler.service';
 import { AgentGenerationSettingsToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-settings-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentVoiceToolHandler } from '@api/services/agent-orchestrator/tools/agent-voice-tool-handler.service';
 import { MEDIA_GENERATION_TYPES } from '@genfeedai/actions';
 import type {
   AgentToolResult,
@@ -10,8 +11,9 @@ import type {
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+// Avatar videos are priced per second of the render, not by a model key.
 const GENERATION_OPTION_TYPES: readonly string[] = [
-  ...MEDIA_GENERATION_TYPES,
+  ...MEDIA_GENERATION_TYPES.filter((type) => type !== 'avatar'),
   'image-edit',
 ];
 
@@ -37,6 +39,7 @@ export class AgentGenerationOptionsToolHandler {
     private readonly settings: AgentGenerationSettingsToolHandler,
     private readonly cost: AgentGenerationCostToolHandler,
     private readonly models: ModelRegistrationService,
+    private readonly voices: AgentVoiceToolHandler,
   ) {}
 
   async execute(
@@ -69,12 +72,17 @@ export class AgentGenerationOptionsToolHandler {
     }
 
     const cost = await this.cost.execute(params, ctx);
+    // Voice generation is not routed by model key, so the useful options are
+    // the organization's own saved voices.
+    const voices =
+      type === 'voice' ? await this.voices.summarize(params, ctx) : undefined;
     return {
       creditsUsed: 0,
       data: {
         cost: cost.data,
         models: callableModels,
         settings: settings.data,
+        ...(voices ?? {}),
       },
       success: true,
     };

@@ -18,6 +18,7 @@ import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import AnalyticsPublicRouteSync from '@/components/analytics/AnalyticsPublicRouteSync';
 import InstagramAccountSelector from '@/features/auth/components/modals/brands/instagram/InstagramAccountSelector';
+import LinkedInAccountSelector from '@/features/auth/components/modals/brands/linkedin/LinkedInAccountSelector';
 import type {
   OAuthPlatformFormProps,
   VerifyResult,
@@ -153,7 +154,8 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
         const credential = await service.postVerify(body);
 
         // Instagram may resolve the token exchange to more than one eligible
-        // professional account with no automatic pick. `needsAccountSelection`
+        // professional account with no automatic pick, and LinkedIn always
+        // asks which page or profile to post as. `needsAccountSelection`
         // is computed server-side (see `computeNeedsAccountSelection`) rather
         // than inferred here from `isConnected` — that column can be false
         // for other reasons that have no operator selection waiting.
@@ -275,6 +277,10 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
     translate,
   ]);
 
+  const AccountSelector =
+    platform === 'linkedin'
+      ? LinkedInAccountSelector
+      : InstagramAccountSelector;
   const platformLabel = platform.charAt(0).toUpperCase() + platform.slice(1);
   const platformBrand = resolvePlatformConnectionBrand(platform);
 
@@ -282,7 +288,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
     <div className="flex min-h-screen items-center justify-center">
       <div className="w-full max-w-md text-center">
         {isSignedIn && result.status === 'selecting' && (
-          <InstagramAccountSelector
+          <AccountSelector
             credentialId={result.credentialId}
             onBack={cancelAccountSelection}
             onConnected={completeSuccess}

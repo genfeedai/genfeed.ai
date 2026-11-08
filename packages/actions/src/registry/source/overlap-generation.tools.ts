@@ -42,7 +42,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
   {
     name: 'get_generation_options',
     description:
-      "Read what generation can do right now, for free and without paid confirmation. models is always returned: this account's callable catalog. Pass an image, video or music models key as generate.model, and an image-edit key as transform_media.model. Voice rows are not generate.model; voice generation uses voiceId. settings is the effective image/video prompt enhancement with organization or brand overrides, always returned. cost is the Studio credit estimate and organization balance, only when type is given. Returns the same catalog estimate the Generate composer shows and the same Genfeed balance as the credits bar. Does not charge credits, change a price, or authorize a generation. Omit modelKey, or pass Auto, for image, image-edit and video estimate status auto. Music Auto quotes the registry music default. Voice, unsupported, missing or unpriced models return estimate status unavailable with credits null. balance is null when the wallet cannot be read; a numeric 0 is a real empty balance. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope for settings.",
+      "Read what generation can do right now, for free and without paid confirmation. models is always returned: this account's callable catalog. Pass an image, video or music models key as generate.model, and an image-edit key as transform_media.model. Voice rows are not generate.model; voice generation uses voiceId. settings is the effective image/video prompt enhancement with organization or brand overrides, always returned. cost is the Studio credit estimate and organization balance, only when type is given. Returns the same catalog estimate the Generate composer shows and the same Genfeed balance as the credits bar. Does not charge credits, change a price, or authorize a generation. Omit modelKey, or pass Auto, for image, image-edit and video estimate status auto. Music Auto quotes the registry music default. Voice, unsupported, missing or unpriced models return estimate status unavailable with credits null. balance is null when the wallet cannot be read; a numeric 0 is a real empty balance. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope for settings. With type voice, voices lists the organization's saved personal voices (id, name, provider, previewUrl, isBrandDefault) and hasConnectedAccount says whether a personal ElevenLabs account is connected; browse that account with get_assets type voice source account.",
     creditCost: 0,
     requiredRole: 'user',
     parameters: {
@@ -238,16 +238,38 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
   {
     name: 'set_generation_settings',
     description:
-      'Set organization or brand prompt enhancement. Use null to restore inheritance. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope. Generation pricing is unchanged.',
+      'Set organization or brand prompt enhancement. Use null to restore inheritance. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope. Generation pricing is unchanged. Also sets the brand default voice: defaultVoice (brand scope) takes voiceId for a saved voice, or externalVoiceId to first save a voice from the connected ElevenLabs account as an organization-owned reference; it never uses a platform account.',
     creditCost: 0,
     requiredRole: 'user',
     parameters: {
       type: 'object',
-      required: ['scope', 'isEnabled'],
+      required: ['scope'],
       properties: {
         scope: { type: 'string', enum: ['organization', 'brand'] },
         brandId: { type: 'string' },
-        isEnabled: { anyOf: [{ type: 'boolean' }, { type: 'null' }] },
+        isEnabled: {
+          anyOf: [{ type: 'boolean' }, { type: 'null' }],
+          description:
+            'Prompt enhancement. Required unless defaultVoice is given.',
+        },
+        defaultVoice: {
+          type: 'object',
+          additionalProperties: false,
+          description:
+            'Brand scope only. Exactly one of voiceId or externalVoiceId.',
+          properties: {
+            voiceId: {
+              type: 'string',
+              description:
+                'Saved voice id from get_assets type voice (source saved).',
+            },
+            externalVoiceId: {
+              type: 'string',
+              description:
+                'ElevenLabs voice id from get_assets type voice source account. Saved to the organization first.',
+            },
+          },
+        },
       },
     },
   },

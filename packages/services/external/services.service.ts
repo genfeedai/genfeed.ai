@@ -1,6 +1,7 @@
 import type {
   ApiKeyConnectPayload,
   ICredential,
+  ICredentialLinkedInAccount,
   ICredentialOAuth,
 } from '@genfeedai/contracts/interfaces';
 import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
@@ -95,6 +96,18 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
       );
   }
 
+  /** LinkedIn: the accounts a connection can post as, the member and their pages. */
+  public async findLinkedInAccounts(
+    credentialId: string,
+    signal?: AbortSignal,
+  ): Promise<ICredentialLinkedInAccount[]> {
+    return await this.instance
+      .get<JsonApiResponseDocument>(`${credentialId}/accounts`, { signal })
+      .then((res) =>
+        this.extractCollection<ICredentialLinkedInAccount>(res.data),
+      );
+  }
+
   /**
    * Instagram: settle a connection that needs an account choice onto every
    * account the operator ticked. The first settles this credential and each
@@ -117,7 +130,7 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
   }
 
   /**
-   * Instagram only: settle an ambiguous connection (see
+   * LinkedIn: settle an unresolved connection (see
    * `needsAccountSelection`) onto one of the accounts the credential's own
    * token authorizes. The server re-derives handle/name/avatar from its own
    * list of authorized accounts and validates `externalId` against it —

@@ -50,6 +50,11 @@ export class InstagramPublisherService extends BasePublisherService {
       return base;
     }
 
+    const carouselError = this.validateCarouselImageCount(mediaInfo);
+    if (carouselError) {
+      return carouselError;
+    }
+
     const placement = readChannelSettingString(context.settings, 'placement');
     if (placement === 'reel' && mediaInfo.isImagePost) {
       return {

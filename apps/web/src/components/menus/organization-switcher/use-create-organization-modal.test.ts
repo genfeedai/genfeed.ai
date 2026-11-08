@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useCreateOrganizationModal } from './use-create-organization-modal';
 
 const mockCreateOrganization = vi.fn();
-const reloadMock = vi.fn();
+const onCreatedMock = vi.fn();
 
 function makeService() {
   return {
@@ -22,20 +22,15 @@ describe('useCreateOrganizationModal', () => {
   beforeEach(() => {
     mockCreateOrganization.mockReset();
     mockCreateOrganization.mockResolvedValue({
-      id: 'org_new',
-      label: 'New Org',
+      brand: { id: 'brand_new', label: 'New Org' },
+      organization: { id: 'org_new', label: 'New Org', slug: 'new-org' },
     });
-    reloadMock.mockReset();
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: { reload: reloadMock },
-      writable: true,
-    });
+    onCreatedMock.mockReset();
   });
 
   it('starts with an empty, locked form and no visible errors', () => {
     const { result } = renderHook(() =>
-      useCreateOrganizationModal(getOrgsService),
+      useCreateOrganizationModal(getOrgsService, onCreatedMock),
     );
 
     expect(result.current.values).toEqual({
@@ -51,7 +46,7 @@ describe('useCreateOrganizationModal', () => {
 
   it('unlocks submit with a name alone', () => {
     const { result } = renderHook(() =>
-      useCreateOrganizationModal(getOrgsService),
+      useCreateOrganizationModal(getOrgsService, onCreatedMock),
     );
 
     act(() => result.current.setField('label', 'Acme'));
@@ -62,7 +57,7 @@ describe('useCreateOrganizationModal', () => {
 
   it('shows a clear error on a touched field and locks submit', () => {
     const { result } = renderHook(() =>
-      useCreateOrganizationModal(getOrgsService),
+      useCreateOrganizationModal(getOrgsService, onCreatedMock),
     );
 
     act(() => result.current.setField('label', 'Acme'));
@@ -80,7 +75,7 @@ describe('useCreateOrganizationModal', () => {
 
   it('flags a name that was cleared after typing', () => {
     const { result } = renderHook(() =>
-      useCreateOrganizationModal(getOrgsService),
+      useCreateOrganizationModal(getOrgsService, onCreatedMock),
     );
 
     act(() => result.current.setField('label', 'Acme'));
@@ -93,7 +88,7 @@ describe('useCreateOrganizationModal', () => {
 
   it('clears the form on reset', () => {
     const { result } = renderHook(() =>
-      useCreateOrganizationModal(getOrgsService),
+      useCreateOrganizationModal(getOrgsService, onCreatedMock),
     );
 
     act(() => result.current.setField('label', 'Acme'));
@@ -105,7 +100,7 @@ describe('useCreateOrganizationModal', () => {
 
   it('reveals every error on submit without calling the service', async () => {
     const { result } = renderHook(() =>
-      useCreateOrganizationModal(getOrgsService),
+      useCreateOrganizationModal(getOrgsService, onCreatedMock),
     );
 
     await act(async () => {
@@ -116,12 +111,12 @@ describe('useCreateOrganizationModal', () => {
       ORGANIZATION_NAME_REQUIRED_MESSAGE,
     );
     expect(mockCreateOrganization).not.toHaveBeenCalled();
-    expect(reloadMock).not.toHaveBeenCalled();
+    expect(onCreatedMock).not.toHaveBeenCalled();
   });
 
-  it('creates the organization with trimmed values and reloads', async () => {
+  it('creates the organization with trimmed values and hands its slug to onCreated', async () => {
     const { result } = renderHook(() =>
-      useCreateOrganizationModal(getOrgsService),
+      useCreateOrganizationModal(getOrgsService, onCreatedMock),
     );
 
     act(() => result.current.setField('label', '  Acme  '));
@@ -137,12 +132,12 @@ describe('useCreateOrganizationModal', () => {
       label: 'Acme',
       websiteUrl: 'acme.com',
     });
-    expect(reloadMock).toHaveBeenCalledTimes(1);
+    expect(onCreatedMock).toHaveBeenCalledExactlyOnceWith('new-org');
   });
 
   it('leaves blank optional fields out of the request', async () => {
     const { result } = renderHook(() =>
-      useCreateOrganizationModal(getOrgsService),
+      useCreateOrganizationModal(getOrgsService, onCreatedMock),
     );
 
     act(() => result.current.setField('label', 'Acme'));
@@ -161,7 +156,7 @@ describe('useCreateOrganizationModal', () => {
   it('surfaces a create failure and clears the submitting flag', async () => {
     mockCreateOrganization.mockRejectedValueOnce(new Error('boom'));
     const { result } = renderHook(() =>
-      useCreateOrganizationModal(getOrgsService),
+      useCreateOrganizationModal(getOrgsService, onCreatedMock),
     );
 
     act(() => result.current.setField('label', 'Acme'));
@@ -174,7 +169,7 @@ describe('useCreateOrganizationModal', () => {
       'Could not create the organization. Try again.',
     );
     expect(result.current.isCreating).toBe(false);
-    expect(reloadMock).not.toHaveBeenCalled();
+    expect(onCreatedMock).not.toHaveBeenCalled();
   });
 
   it('surfaces the server-provided error detail', async () => {
@@ -191,7 +186,7 @@ describe('useCreateOrganizationModal', () => {
       },
     });
     const { result } = renderHook(() =>
-      useCreateOrganizationModal(getOrgsService),
+      useCreateOrganizationModal(getOrgsService, onCreatedMock),
     );
 
     act(() => result.current.setField('label', 'Acme'));

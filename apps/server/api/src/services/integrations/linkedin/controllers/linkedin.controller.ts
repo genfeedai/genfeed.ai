@@ -7,33 +7,38 @@ import {
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { throwIfOAuthCallbackError } from '@api/collections/credentials/utils/oauth-callback-error.util';
 import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { API_KEY_CONNECTED_ACCOUNT_READ_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import {
   returnBadRequest,
   returnNotFound,
+  serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { LinkedInAuthorizedSignalsService } from '@api/services/integrations/linkedin/services/linkedin-authorized-signals.service';
+import { isLinkedinAuthorizationError } from '@api/services/integrations/linkedin/utils/linkedin-error.util';
 import {
   getSafeLinkedInOAuthErrorLog,
   throwMappedLinkedInOAuthError,
 } from '@api/services/integrations/linkedin/utils/linkedin-oauth-error.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
+import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
-  buildGrantedScopesCredentialPatch,
-  parseGrantedOAuthScopes,
-} from '@genfeedai/helpers';
-import {
+  CredentialLinkedinAccountsSerializer,
   CredentialOAuthSerializer,
   CredentialSerializer,
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   Body,
   Controller,
+  Get,
   HttpException,
   HttpStatus,
   Param,
@@ -146,8 +151,6 @@ export class LinkedInController {
         return returnNotFound('Pending OAuth credential', state);
       }
 
-      const { organizationId } = existingCredential;
-
       // Exchange code for access token
       const { accessToken, expiresIn, scope } =
         await this.linkedInService.exchangeAuthCodeForAccessToken(code);
@@ -159,48 +162,24 @@ export class LinkedInController {
         });
       }
 
-      // Get user profile
-      const profile = await this.linkedInService.getUserProfile(accessToken);
-
       // Calculate token expiry
       const expiryDate = new Date();
       expiryDate.setSeconds(expiryDate.getSeconds() + expiresIn);
 
-      // Update the credential with the access token
-      // If reconnecting the same account, reactivate previously deleted credential
-      let credential = await this.credentialsService.patch(
+      // The token is stored but the connection is held back (no identity, not
+      // live): the member must still choose whether this brand posts as a
+      // company page they run or as their own profile (see `selectAccount`).
+      const credential = await this.credentialsService.patch(
         existingCredential.id,
         {
           accessToken,
           accessTokenExpiry: expiryDate,
-          isConnected: true,
+          isConnected: false,
           isDeleted: false, // Reactivate if previously disconnected
           oauthState: null,
           ...buildGrantedScopesCredentialPatch(scope),
         },
       );
-
-      const profileName = `${profile.firstName} ${profile.lastName}`.trim();
-      credential = await this.credentialsService.updateExternalProfile(
-        credential.id,
-        organizationId,
-        {
-          avatarUrl: profile.picture,
-          // LinkedIn's member OpenID Connect profile has no public vanity
-          // handle — only a display name. Never persist the name as a handle.
-          handle: undefined,
-          id: profile.id,
-          name: profileName,
-        },
-      );
-
-      credential = await this.finalizeConnection({
-        accessToken,
-        credential,
-        grantedScopes: parseGrantedOAuthScopes(scope),
-        organizationId,
-        url,
-      });
 
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
@@ -216,6 +195,192 @@ export class LinkedInController {
   }
 
   /**
+   * Step 2: the accounts this connection can post as: the member's profile and
+   * every company page they hold a posting role on. Read with the credential's
+   * own token, so the picker never offers more than a selection will accept
+   * (see `selectAccount`).
+   */
+  @TenantReadPolicy('mutating')
+  @RequiredScopes(...API_KEY_CONNECTED_ACCOUNT_READ_SCOPES)
+  @Get(':credentialId/accounts')
+  async findAllAccounts(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('credentialId') credentialId: string,
+  ) {
+    const credential = await this.credentialsService.findOne({
+      id: credentialId,
+      organizationId: user.organizationId,
+      platform: CredentialPlatform.LINKEDIN,
+    });
+
+    if (!credential?.accessToken) {
+      return returnBadRequest({
+        detail: 'LinkedIn account is not connected',
+        title: 'Not Connected',
+      });
+    }
+
+    try {
+      const accounts = await this.linkedInService.listAuthorizedAccounts(
+        EncryptionUtil.decrypt(credential.accessToken),
+      );
+
+      // Flag accounts another live credential of this brand already holds. The
+      // picker still lists them: choosing one is a deliberate reconnect that
+      // merges into that incumbent.
+      const heldAccounts = credential.brandId
+        ? await this.credentialsService.findConnectedAccounts(
+            user.organizationId,
+            credential.brandId,
+            CredentialPlatform.LINKEDIN,
+          )
+        : [];
+      const heldExternalIds = new Set(
+        heldAccounts
+          .filter((account) => account.id !== credential.id)
+          .map((account) => account.externalId)
+          .filter((externalId): externalId is string => Boolean(externalId)),
+      );
+
+      return serializeCollection(
+        request,
+        CredentialLinkedinAccountsSerializer,
+        {
+          docs: accounts.map((account) => ({
+            ...account,
+            isAlreadyConnected: heldExternalIds.has(account.id),
+            platform: CredentialPlatform.LINKEDIN,
+          })),
+        },
+      );
+    } catch (error: unknown) {
+      if (isLinkedinAuthorizationError(error)) {
+        throw new HttpException(
+          {
+            detail:
+              'Your LinkedIn connection has expired. Please reconnect your LinkedIn account.',
+            title: 'Authentication failed',
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Step 3: the member has chosen which account this connection posts as,
+   * from `GET :credentialId/accounts`. The page or
+   * profile is re-read from LinkedIn with this credential's own token and the
+   * request supplies only its id, so a client cannot claim a page the token
+   * does not administer. The connection is not live, and publishes nowhere,
+   * until this succeeds.
+   */
+  @Post(':credentialId/select-account')
+  async selectAccount(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('credentialId') credentialId: string,
+    @Body() body: { externalId?: string },
+  ) {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    if (!body?.externalId) {
+      return returnBadRequest({
+        detail: 'externalId is required',
+        title: 'Invalid payload',
+      });
+    }
+
+    const credential = await this.credentialsService.findOneSelect(
+      {
+        id: credentialId,
+        organizationId: user.organizationId,
+        platform: CredentialPlatform.LINKEDIN,
+      },
+      {
+        accessToken: true,
+        externalId: true,
+        id: true,
+        isConnected: true,
+        isDeleted: true,
+      },
+    );
+
+    if (!credential || credential.isDeleted) {
+      return returnNotFound('LinkedIn credential', credentialId);
+    }
+
+    if (!credential.accessToken) {
+      return returnBadRequest({
+        detail: 'LinkedIn account is not connected',
+        title: 'Not Connected',
+      });
+    }
+
+    // Only a token that was exchanged but never assigned an account may be
+    // assigned one here. A live connection is changed by reconnecting, never by
+    // repointing it onto another account the same token happens to reach.
+    if (credential.isConnected || credential.externalId) {
+      return returnBadRequest({
+        detail:
+          'This credential is already connected to an account. Disconnect and reconnect to choose a different one.',
+        title: 'Already Connected',
+      });
+    }
+
+    try {
+      const accessToken = EncryptionUtil.decrypt(credential.accessToken);
+      const accounts =
+        await this.linkedInService.listAuthorizedAccounts(accessToken);
+      const chosen = accounts.find((account) => account.id === body.externalId);
+
+      if (!chosen) {
+        return returnBadRequest({
+          detail:
+            'That account is not available to this connection. Reconnect LinkedIn and try again.',
+          title: 'Account not available',
+        });
+      }
+
+      let updated = await this.credentialsService.updateExternalProfile(
+        credential.id.toString(),
+        user.organizationId,
+        {
+          avatarUrl: chosen.image,
+          // LinkedIn exposes no public handle for a member, only a name. A
+          // page's vanity name is its handle; a member's is cleared rather
+          // than persisting the display name as one.
+          handle:
+            chosen.kind === 'organization' ? (chosen.username ?? null) : null,
+          id: chosen.id,
+          name: chosen.label,
+        },
+      );
+
+      updated = await this.finalizeConnection({
+        accessToken,
+        credential: updated,
+        organizationId: user.organizationId,
+        url,
+      });
+
+      return serializeSingle(request, CredentialSerializer, updated);
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${url} failed`,
+        getSafeLinkedInOAuthErrorLog(error),
+      );
+      return throwMappedLinkedInOAuthError(
+        error,
+        'Failed to connect the selected LinkedIn account',
+      );
+    }
+  }
+
+  /**
    * Post-connection work that must never fail the connection itself: refresh
    * the authorized signals snapshot, then queue the import of the member's
    * existing posts. Both are best-effort and logged on failure.
@@ -223,7 +388,7 @@ export class LinkedInController {
   private async finalizeConnection(params: {
     accessToken: string;
     credential: Awaited<ReturnType<CredentialsService['patch']>>;
-    grantedScopes: ReturnType<typeof parseGrantedOAuthScopes>;
+    grantedScopes?: readonly string[];
     organizationId: string;
     url: string;
   }): Promise<Awaited<ReturnType<CredentialsService['patch']>>> {

@@ -3,6 +3,7 @@ import {
   computeNeedsAccountSelection,
   credentialAttributes,
   credentialInstagramAttributes,
+  credentialLinkedInAccountAttributes,
   credentialOAuthAttributes,
   mapSerializedCredentialPlatform,
 } from '@serializers/attributes/organizations/credential.attributes';
@@ -39,5 +40,13 @@ export const credentialOAuthSerializerConfig = simpleConfig(
 
 export const credentialInstagramPagesSerializerConfig = {
   ...simpleConfig('credential-instagram-pages', credentialInstagramAttributes),
+  attributeTransforms: { platform: mapSerializedCredentialPlatform },
+};
+
+export const credentialLinkedInAccountsSerializerConfig = {
+  ...simpleConfig(
+    'credential-linkedin-accounts',
+    credentialLinkedInAccountAttributes,
+  ),
   attributeTransforms: { platform: mapSerializedCredentialPlatform },
 };

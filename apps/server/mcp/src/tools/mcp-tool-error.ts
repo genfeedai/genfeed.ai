@@ -1,3 +1,4 @@
+import { describeAvatarVideoPricing } from '@genfeedai/actions';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -203,6 +204,40 @@ function approvalCostNote(estimate?: McpApprovalCostEstimate): string {
     return ` Estimated cost: ${estimate.estimatedCredits} credits.`;
   }
   return estimate.pricingSummary ? ` ${estimate.pricingSummary}` : '';
+}
+
+/**
+ * Cost line for a pending `generate` approval: the frozen quote for image and
+ * video, the per-second price for an avatar render (billed by rendered length,
+ * so it has no per-request quote).
+ */
+export function generateApprovalCostEstimate(
+  approval: McpApprovalResource,
+  args: Record<string, unknown>,
+): McpApprovalCostEstimate {
+  if (args.type === 'avatar') {
+    return {
+      estimatedCredits: null,
+      pricingSummary: describeAvatarVideoPricing(),
+    };
+  }
+  const quote = approval.generationQuote;
+  const estimatedCredits =
+    quote?.isAvailable === true &&
+    typeof quote.credits === 'number' &&
+    Number.isFinite(quote.credits) &&
+    quote.credits >= 0 &&
+    typeof quote.modelKey === 'string' &&
+    quote.modelKey.trim()
+      ? quote.credits
+      : null;
+  return {
+    estimatedCredits,
+    pricingSummary:
+      estimatedCredits === null
+        ? 'A model-specific credit quote is unavailable. Request fresh consent with a supported model and complete settings.'
+        : undefined,
+  };
 }
 
 export function approvalPendingToolResult(

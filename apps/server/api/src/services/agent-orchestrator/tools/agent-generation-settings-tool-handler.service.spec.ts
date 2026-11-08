@@ -18,17 +18,55 @@ function setup() {
       enhancedPrompt: 'Enhanced prompt',
     }),
   };
+  const voices = {
+    setBrandDefault: vi.fn().mockResolvedValue({
+      creditsUsed: 0,
+      data: { brandId: 'thread-brand' },
+      success: true,
+    }),
+  };
   return {
     settings,
     handler: new AgentGenerationSettingsToolHandler(
       settings as never,
       enhancement as never,
+      voices as never,
     ),
     enhancement,
+    voices,
   };
 }
 
 describe('AgentGenerationSettingsToolHandler', () => {
+  it('sets the brand default voice without touching prompt enhancement', async () => {
+    const { handler, settings } = setup();
+
+    const result = await handler.execute(
+      'set_generation_settings',
+      { defaultVoice: { voiceId: 'voice-1' }, scope: 'brand' },
+      ctx,
+    );
+
+    expect(result.data).toEqual({ brandId: 'thread-brand' });
+    expect(settings.set).not.toHaveBeenCalled();
+  });
+
+  it('refuses a call that sets both a voice and prompt enhancement', async () => {
+    const { handler } = setup();
+
+    await expect(
+      handler.execute(
+        'set_generation_settings',
+        {
+          defaultVoice: { voiceId: 'voice-1' },
+          isEnabled: true,
+          scope: 'brand',
+        },
+        ctx,
+      ),
+    ).rejects.toThrow('defaultVoice or isEnabled in one call');
+  });
+
   it('previews through the shared enhancer using only authenticated scope', async () => {
     const { handler, enhancement } = setup();
     expect(handler.handles('enhance_prompt')).toBe(true);

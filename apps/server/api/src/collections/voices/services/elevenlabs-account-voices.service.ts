@@ -87,6 +87,14 @@ export class ElevenLabsAccountVoicesService {
     private readonly voicesService: VoicesService,
   ) {}
 
+  /** Whether the organization connected its own ElevenLabs account. */
+  async hasPersonalConnection(organizationId: string): Promise<boolean> {
+    return (
+      (await this.connectionService.findPersonalConnection(organizationId)) !==
+      undefined
+    );
+  }
+
   async browse(
     organizationId: string,
     query: { search?: string; pageToken?: string },

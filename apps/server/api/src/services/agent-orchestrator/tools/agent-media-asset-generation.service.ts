@@ -748,10 +748,17 @@ export class AgentMediaAssetGenerationService {
     if (!text) {
       return { creditsUsed: 0, error: 'text is required', success: false };
     }
+    // The identity (avatar photo and voice) is read from this brand, so it is
+    // resolved and access-checked like every other generation. Without it a
+    // call that only names brandId (MCP) would fall to the organization's
+    // first brand.
+    const resolvedContext = await this.resolveMediaBrandContext(params, ctx);
+    if ('error' in resolvedContext) return resolvedContext.error;
+    const scopedCtx = resolvedContext.context;
     const response = toMediaResponseRecord(
       await this.generationGateway.generateAvatarVideo({
-        body: buildIdentityAvatarVideoBody(text, params, ctx),
-        principal: this.toPrincipal(ctx),
+        body: buildIdentityAvatarVideoBody(text, params, scopedCtx),
+        principal: this.toPrincipal(scopedCtx),
       }),
     );
     const id = readMediaResponseString(response, 'id');

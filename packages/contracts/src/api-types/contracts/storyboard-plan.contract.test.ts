@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { getChannelCapability } from './channel-capabilities.contract';
 import {
+  STORYBOARD_SLIDESHOW_INSTAGRAM_MAX_SLIDES,
   type StoryboardPlan,
   type StoryboardSegment,
   storyboardPlanSchema,
@@ -119,5 +121,13 @@ describe('storyboardPlanSchema long form', () => {
       storyboardPlanSchema.safeParse(longFormPlan({ longForm: undefined }))
         .success,
     ).toBe(true);
+  });
+});
+
+describe('STORYBOARD_SLIDESHOW_INSTAGRAM_MAX_SLIDES', () => {
+  it('matches the Instagram carousel limit in the channel capability catalog', () => {
+    expect(STORYBOARD_SLIDESHOW_INSTAGRAM_MAX_SLIDES).toBe(
+      getChannelCapability('instagram')?.media.images?.maxItems,
+    );
   });
 });

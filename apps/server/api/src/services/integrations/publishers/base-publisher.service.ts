@@ -236,6 +236,41 @@ export abstract class BasePublisherService implements IPublisher {
   }
 
   /**
+   * Validate the image count of a photo carousel against the channel
+   * capability catalog (the single source of truth for per-platform limits).
+   * Runs before any provider call so an over-limit carousel fails here, not
+   * halfway through creating provider containers. Platforms without catalog
+   * image limits have no known limit and skip the check. Publishers call it
+   * from their own `validatePost` (Instagram does); LinkedIn and Threads
+   * keep their own limit messages.
+   */
+  protected validateCarouselImageCount(
+    mediaInfo: MediaInfo,
+  ): PostValidationResult | undefined {
+    if (!mediaInfo.isCarousel || !mediaInfo.isImagePost) {
+      return undefined;
+    }
+
+    const capability = getChannelCapability(this.platform);
+    const images = capability?.media.images;
+    if (!capability || !images) {
+      return undefined;
+    }
+
+    const count = mediaInfo.ingredientIds.length;
+    const min = Math.max(2, images.minItems);
+    if (count >= min && count <= images.maxItems) {
+      return undefined;
+    }
+
+    return {
+      error: `${capability.label} carousels take ${min}-${images.maxItems} images`,
+      errorCode: 'carousel_image_count',
+      valid: false,
+    };
+  }
+
+  /**
    * Validate the outgoing caption length against the channel capability
    * catalog. The catalog is the single source of truth for per-platform
    * limits; platforms without an entry have no known limit and skip the

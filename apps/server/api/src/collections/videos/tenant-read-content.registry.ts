@@ -60,6 +60,7 @@ import { CostReportingController } from '@api/endpoints/cost-reporting/cost-repo
 import { FacebookController } from '@api/services/integrations/facebook/controllers/facebook.controller';
 import { GoogleAdsController } from '@api/services/integrations/google-ads/controllers/google-ads.controller';
 import { GoogleSearchConsoleController } from '@api/services/integrations/google-search-console/controllers/google-search-console.controller';
+import { LinkedInController } from '@api/services/integrations/linkedin/controllers/linkedin.controller';
 import { MetaAdsController } from '@api/services/integrations/meta-ads/controllers/meta-ads.controller';
 import { MetaAdsBulkController } from '@api/services/integrations/meta-ads/controllers/meta-ads-bulk.controller';
 import { MetaAdsOptimizationController } from '@api/services/integrations/meta-ads/controllers/meta-ads-optimization.controller';
@@ -608,6 +609,12 @@ export const TENANT_READ_CONTENT_ROUTES = [
     handler: 'listSites',
     route: '/v1/services/google-search-console/sites',
     policy: 'owner',
+  },
+  {
+    controller: LinkedInController,
+    handler: 'findAllAccounts',
+    route: '/v1/services/linkedin/{credentialId}/accounts',
+    policy: 'mutating',
   },
   {
     controller: MetaAdsController,

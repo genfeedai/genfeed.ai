@@ -84,6 +84,7 @@ import { EDITOR_TOOL_NAMES, handleEditorTool } from '@mcp/tools/editor.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import {
   approvalPendingToolResult,
+  generateApprovalCostEstimate,
   mcpToolErrorResult,
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
@@ -783,25 +784,9 @@ export class ToolRegistryService implements OnModuleInit {
       (candidate) => candidate.name === 'resolve_approval',
     );
     if (approval.toolName === 'generate') {
-      const quote = approval.generationQuote;
-      const estimatedCredits =
-        quote?.isAvailable === true &&
-        typeof quote.credits === 'number' &&
-        Number.isFinite(quote.credits) &&
-        quote.credits >= 0 &&
-        typeof quote.modelKey === 'string' &&
-        quote.modelKey.trim()
-          ? quote.credits
-          : null;
       return approvalPendingToolResult(
         approval,
-        {
-          estimatedCredits,
-          pricingSummary:
-            estimatedCredits === null
-              ? 'A model-specific credit quote is unavailable. Request fresh consent with a supported model and complete settings.'
-              : undefined,
-        },
+        generateApprovalCostEstimate(approval, args),
         canResolveApproval,
       );
     }

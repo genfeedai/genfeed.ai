@@ -406,6 +406,21 @@ describe('ToolRegistryService', () => {
     );
   });
 
+  it('handleToolCall generate avatar queues for approval and names the per-second price', async () => {
+    const result = await service.handleToolCall({
+      arguments: { brandId: 'brand-1', prompt: 'Launch week', type: 'avatar' },
+      name: 'generate',
+    });
+
+    expect(clientService.executeAgentTool).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      isError: true,
+      structuredContent: { code: 'approval_pending' },
+    });
+    expect(JSON.stringify(result)).toContain('per second of avatar video');
+    expect(JSON.stringify(result)).not.toContain('model-specific credit quote');
+  });
+
   describe('organization named on a call', () => {
     // Records the organization a tool call ran in, and the arguments it got.
     function recordToolCalls() {

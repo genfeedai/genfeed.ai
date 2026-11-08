@@ -232,6 +232,46 @@ describe('InstagramPublisherService', () => {
     });
   });
 
+  describe('validatePost carousel image count', () => {
+    const carouselMediaInfo = (count: number): MediaInfo => {
+      const ingredientIds = Array.from(
+        { length: count },
+        (_, index) => `ingredient-${index + 1}`,
+      );
+      return {
+        hasIngredients: true,
+        ingredientIds,
+        isCarousel: count > 1,
+        isImagePost: true,
+        mediaUrls: ingredientIds.map(
+          (id) => `https://api.test.com/ingredients/images/${id}`,
+        ),
+      };
+    };
+
+    it.each([2, 10])('passes a %i-image carousel', (count) => {
+      const context = createPublishContext(
+        mockImagePost as unknown as PostEntity,
+      );
+      expect(
+        service.validatePost(context, carouselMediaInfo(count)).valid,
+      ).toBe(true);
+    });
+
+    it.each([11, 12])(
+      'rejects a %i-image carousel before any Graph call',
+      (count) => {
+        const context = createPublishContext(
+          mockImagePost as unknown as PostEntity,
+        );
+        const result = service.validatePost(context, carouselMediaInfo(count));
+        expect(result.valid).toBe(false);
+        expect(result.error).toBe('Instagram carousels take 2-10 images');
+        expect(result.errorCode).toBe('carousel_image_count');
+      },
+    );
+  });
+
   describe('validatePost caption length', () => {
     const imageMediaInfo: MediaInfo = {
       hasIngredients: true,

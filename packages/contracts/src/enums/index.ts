@@ -22,6 +22,7 @@ export * from './api-key-connect-error-code.enum';
 export * from './app-source.enum';
 export * from './article.enum';
 export * from './asset.enum';
+export * from './avatar-twin.enum';
 export * from './beat-sync.enum';
 export * from './billing-account.enum';
 export * from './bookmark.enum';
