@@ -150,8 +150,7 @@ describe('PublicPostsController', () => {
       expect(callArgs.where.brandId).toBe(brandId);
       // A brand id lists posts only while that brand's profile is public.
       expect(callArgs.where.brand).toEqual({
-        isDeleted: false,
-        scope: 'PUBLIC',
+        is: { isDeleted: false, scope: 'PUBLIC' },
       });
     });
 
