@@ -21,6 +21,25 @@ export interface InstagramPageResponse {
   isAlreadyConnected?: boolean;
 }
 
+/** `GET /debug_token`: what Meta says about one access token. */
+export interface InstagramDebugTokenResponse {
+  data?: {
+    expires_at?: number;
+    granular_scopes?: Array<{ scope?: string; target_ids?: string[] }>;
+    is_valid?: boolean;
+    scopes?: string[];
+  };
+}
+
+/** What Meta says one token was granted: permissions and the assets chosen. */
+export interface InstagramTokenGrant {
+  /** Instagram account ids the customer chose for `instagram_basic`. */
+  instagramTargetIds: string[];
+  /** Permission names that carry chosen assets, for diagnosis. */
+  scopedPermissions: string[];
+  scopes: string[] | undefined;
+}
+
 /**
  * Instagram credential with decrypted access token
  */

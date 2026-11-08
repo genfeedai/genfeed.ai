@@ -99,7 +99,6 @@ describe('InstagramController', () => {
   let credentialsFindOneMock: ReturnType<typeof vi.fn>;
   let credentialsUpdateExternalProfileMock: ReturnType<typeof vi.fn>;
   let instagramServiceMock: {
-    describeInstagramAccounts: ReturnType<typeof vi.fn>;
     listAuthorizedInstagramAccounts: ReturnType<typeof vi.fn>;
     getTrends: ReturnType<typeof vi.fn>;
   };
@@ -155,7 +154,6 @@ describe('InstagramController', () => {
     httpGetMock = vi.fn();
     httpPostMock = vi.fn();
     instagramServiceMock = {
-      describeInstagramAccounts: vi.fn().mockResolvedValue([]),
       getTrends: vi.fn(),
       listAuthorizedInstagramAccounts: vi
         .fn()
@@ -721,45 +719,6 @@ describe('InstagramController', () => {
       );
       expect(credentialsPatchMock).not.toHaveBeenCalled();
       expect(credentialsUpdateExternalProfileMock).not.toHaveBeenCalled();
-    });
-
-    it('connects the account Meta names in the token grant when the assigned-accounts edge is empty', async () => {
-      mockGraphReads({
-        debugToken: () =>
-          of({
-            data: {
-              data: {
-                granular_scopes: [
-                  { scope: 'instagram_basic', target_ids: ['ig-granted'] },
-                  { scope: 'instagram_content_publish', target_ids: [] },
-                ],
-                is_valid: true,
-                scopes: GRANTED_UNIFIED_SCOPES,
-              },
-            },
-          }),
-      });
-      instagramServiceMock.listAuthorizedInstagramAccounts.mockResolvedValue(
-        [],
-      );
-      instagramServiceMock.describeInstagramAccounts.mockResolvedValue([
-        igAccount({ id: 'ig-granted', username: 'granted' }),
-      ]);
-      credentialsPatchMock.mockResolvedValue({
-        brandId,
-        id: 'test-object-id',
-        isConnected: false,
-      });
-
-      await controller.verify(mockRequest, { code: 'auth-code', state });
-
-      expect(
-        instagramServiceMock.describeInstagramAccounts,
-      ).toHaveBeenCalledWith(['ig-granted'], 'business-token');
-      expect(credentialsPatchMock).toHaveBeenCalledWith(
-        'test-object-id',
-        expect.objectContaining({ accessToken: 'business-token' }),
-      );
     });
 
     it('resolves a matching reconnect intent even among several accounts', async () => {

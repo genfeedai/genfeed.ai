@@ -817,6 +817,70 @@ describe('InstagramService', () => {
       expect(result).toEqual([]);
     });
 
+    it('lists the accounts named in the token grant when the assigned-accounts edge is empty', async () => {
+      (httpServiceMock.get as Mock).mockImplementation((url: string) => {
+        if (url.endsWith('/me/assigned_instagram_accounts')) {
+          return of({ data: { data: [] } });
+        }
+        if (url.endsWith('/debug_token')) {
+          return of({
+            data: {
+              data: {
+                granular_scopes: [
+                  {
+                    scope: 'instagram_basic',
+                    target_ids: ['ig-shayla', 'ig-genfeed'],
+                  },
+                  { scope: 'instagram_content_publish', target_ids: [] },
+                ],
+                is_valid: true,
+              },
+            },
+          });
+        }
+        const profiles: Record<string, unknown> = {
+          'https://graph.facebook.com/v26.0/ig-genfeed': {
+            name: 'Genfeed',
+            username: 'genfeedai',
+          },
+          'https://graph.facebook.com/v26.0/ig-shayla': {
+            name: 'Shayla',
+            username: 'itsshaylamonroe',
+          },
+        };
+        return of({ data: profiles[url] });
+      });
+
+      const result = await service.listAuthorizedInstagramAccounts('token');
+
+      expect(result).toEqual([
+        {
+          id: 'ig-shayla',
+          label: 'Shayla',
+          platform: 'instagram',
+          username: 'itsshaylamonroe',
+        },
+        {
+          id: 'ig-genfeed',
+          label: 'Genfeed',
+          platform: 'instagram',
+          username: 'genfeedai',
+        },
+      ]);
+    });
+
+    it('returns an empty list when the edge is empty and Meta will not describe the grant', async () => {
+      (httpServiceMock.get as Mock).mockImplementation((url: string) =>
+        url.endsWith('/debug_token')
+          ? throwError(() => new Error('debug_token unavailable'))
+          : of({ data: { data: [] } }),
+      );
+
+      const result = await service.listAuthorizedInstagramAccounts('token');
+
+      expect(result).toEqual([]);
+    });
+
     it('stops following pagination at the page cap instead of looping forever', async () => {
       (httpServiceMock.get as Mock).mockImplementation(() =>
         of({
@@ -833,7 +897,10 @@ describe('InstagramService', () => {
       await service.listAuthorizedInstagramAccounts('token');
 
       // 25 is the documented cap (INSTAGRAM_ACCOUNT_LIST_MAX_PAGES).
-      expect(httpServiceMock.get).toHaveBeenCalledTimes(25);
+      const edgeCalls = (httpServiceMock.get as Mock).mock.calls.filter(
+        ([url]) => String(url).endsWith('/me/assigned_instagram_accounts'),
+      );
+      expect(edgeCalls).toHaveLength(25);
     });
 
     it('sanitizes a timed out account request', async () => {

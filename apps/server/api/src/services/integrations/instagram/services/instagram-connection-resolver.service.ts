@@ -7,8 +7,16 @@ import {
   getSafeInstagramOAuthErrorLog,
   parseInstagramGrantedScopes,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
+import {
+  INSTAGRAM_BASIC_SCOPE,
+  toInstagramTokenGrant,
+} from '@api/services/integrations/instagram/utils/instagram-token-grant.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
-import type { InstagramPageResponse } from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
+import type {
+  InstagramDebugTokenResponse,
+  InstagramPageResponse,
+  InstagramTokenGrant,
+} from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
 import {
   META_GRAPH_API_VERSION,
   META_GRAPH_URL,
@@ -31,31 +39,6 @@ interface InstagramTokenExchangeResponse {
 interface InstagramBusinessIdentityResponse {
   client_business_id?: string;
 }
-
-/** `GET /debug_token`: what Meta says about the exchanged token. */
-interface InstagramDebugTokenResponse {
-  data?: {
-    expires_at?: number;
-    granular_scopes?: Array<{ scope?: string; target_ids?: string[] }>;
-    is_valid?: boolean;
-    scopes?: string[];
-  };
-}
-
-/** What Meta says one token was granted: permissions and the assets chosen. */
-interface InstagramTokenGrant {
-  /** Instagram account ids the customer chose for `instagram_basic`. */
-  instagramTargetIds: string[];
-  /** Permission names that carry chosen assets, for diagnosis. */
-  scopedPermissions: string[];
-  scopes: string[] | undefined;
-}
-
-/**
- * The permission without which an authorization can never publish, read
- * insights, or tell which account it refers to.
- */
-const INSTAGRAM_BASIC_SCOPE = 'instagram_basic';
 
 /**
  * The Instagram API with Unified Login orchestration behind
@@ -194,24 +177,13 @@ export class InstagramConnectionResolverService {
     }
 
     markStage('account_discovery');
-    let accounts =
+    const accounts =
       await this.instagramService.listAuthorizedInstagramAccounts(access_token);
 
-    if (accounts.length === 0 && !hasReadGrant) {
-      grant = await this.readTokenGrant(access_token, appId, appSecret);
-    }
-
-    if (accounts.length === 0 && grant?.instagramTargetIds.length) {
-      // The assigned-accounts edge can answer empty for a grant that does name
-      // accounts. The grant's own targets are the accounts the customer picked
-      // in Meta's dialog, so describe those instead of rejecting the connect.
-      accounts = await this.instagramService.describeInstagramAccounts(
-        grant.instagramTargetIds,
-        access_token,
-      );
-    }
-
     if (accounts.length === 0) {
+      if (!hasReadGrant) {
+        grant = await this.readTokenGrant(access_token, appId, appSecret);
+      }
       this.loggerService.warn(
         'InstagramConnectionResolverService - Meta authorized no Instagram account',
         {
@@ -261,23 +233,7 @@ export class InstagramConnectionResolverService {
             },
           ),
         );
-      const data = response.data?.data;
-      const granular = Array.isArray(data?.granular_scopes)
-        ? data.granular_scopes
-        : [];
-      return {
-        instagramTargetIds: [
-          ...new Set(
-            granular
-              .filter((entry) => entry.scope === INSTAGRAM_BASIC_SCOPE)
-              .flatMap((entry) => entry.target_ids ?? []),
-          ),
-        ],
-        scopedPermissions: granular
-          .map((entry) => entry.scope)
-          .filter((name): name is string => typeof name === 'string'),
-        scopes: Array.isArray(data?.scopes) ? data.scopes : undefined,
-      };
+      return toInstagramTokenGrant(response.data?.data);
     } catch (error: unknown) {
       this.loggerService.warn(
         'InstagramConnectionResolverService - Could not read granted scopes',
