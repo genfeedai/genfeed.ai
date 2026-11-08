@@ -1,3 +1,4 @@
+import { hasInvitePath } from './src/analytics/invite-path';
 import { initWebsiteAnalytics } from './src/analytics/posthog-client';
 import { initSignupAttribution } from './src/analytics/signup-attribution';
 import { initDeferredSentry } from './src/sentry/deferred-sentry';
@@ -6,6 +7,9 @@ import { dropNonBrowserRuntimeEvent } from './src/sentry/drop-non-browser-runtim
 // Error reporting starts once the page is idle; see deferred-sentry.ts.
 initDeferredSentry({
   beforeSend(event) {
+    // A lead invite URL carries the lead's only credential, so errors raised
+    // on that page are not reported.
+    if (hasInvitePath(window.location.pathname)) return null;
     return dropNonBrowserRuntimeEvent(event);
   },
   dataCollection: {
