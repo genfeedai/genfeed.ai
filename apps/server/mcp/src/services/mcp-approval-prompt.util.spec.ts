@@ -72,24 +72,20 @@ describe('readApprovalPromptRound', () => {
   const state = { approvalId: 'apr-1', toolName: 'generate' };
 
   it.each([
-    ['accept', { approvalId: 'apr-1', decision: 'approve' }],
-    ['decline', { approvalId: 'apr-1', decision: 'decline' }],
-  ])('reads %s as the person’s decision', (action, answer) => {
+    ['accept', { approval: { action: 'accept' } }, 'approve'],
+    ['decline', { approval: { action: 'decline' } }, 'decline'],
+    ['a cancelled prompt', { approval: { action: 'cancel' } }, 'cancel'],
+    ['no answer', undefined, 'cancel'],
+  ])('reads %s as %s', (_label, inputResponses, decision) => {
     const round = readApprovalPromptRound(
-      context({ inputResponses: { approval: { action } }, state }),
+      context({ inputResponses, state }),
       'generate',
     );
 
-    expect(round).toEqual({ answer, wasPrompted: true });
-  });
-
-  it.each([
-    ['a cancelled prompt', { approval: { action: 'cancel' } }],
-    ['no answer', undefined],
-  ])('leaves the approval pending after %s', (_label, inputResponses) => {
-    expect(
-      readApprovalPromptRound(context({ inputResponses, state }), 'generate'),
-    ).toEqual({ wasPrompted: true });
+    expect(round).toEqual({
+      answer: { approvalId: 'apr-1', decision },
+      wasPrompted: true,
+    });
   });
 
   it.each([

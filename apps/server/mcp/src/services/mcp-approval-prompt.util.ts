@@ -89,7 +89,7 @@ function isApprovalPromptState(value: unknown): value is ApprovalPromptState {
  * Read the person's answer from a retried call. The request state has already
  * been verified by the server's codec; unsigned state reads as a raw string
  * and is ignored. Accept approves, decline declines, and cancel (or no answer)
- * leaves the approval pending in the review inbox.
+ * runs nothing and leaves the approval pending in the review inbox.
  */
 export function readApprovalPromptRound(
   ctx: ServerContext,
@@ -100,14 +100,14 @@ export function readApprovalPromptRound(
     return { wasPrompted: false };
   }
   const response = inputResponse(ctx.mcpReq.inputResponses, APPROVAL_INPUT_KEY);
-  if (response.kind !== 'elicit' || response.action === 'cancel') {
-    return { wasPrompted: true };
-  }
+  const decision =
+    response.kind !== 'elicit' || response.action === 'cancel'
+      ? 'cancel'
+      : response.action === 'accept'
+        ? 'approve'
+        : 'decline';
   return {
-    answer: {
-      approvalId: state.approvalId,
-      decision: response.action === 'accept' ? 'approve' : 'decline',
-    },
+    answer: { approvalId: state.approvalId, decision },
     wasPrompted: true,
   };
 }

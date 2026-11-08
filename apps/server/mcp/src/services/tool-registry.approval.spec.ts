@@ -492,7 +492,7 @@ describe('ToolRegistryService — approval queue', () => {
       content: { text: string }[];
       structuredContent?: { code?: string };
     };
-    const answer = (decision: 'approve' | 'decline') => ({
+    const answer = (decision: 'approve' | 'cancel' | 'decline') => ({
       ...call,
       approvalAnswer: { approvalId: 'apr-1', decision },
     });
@@ -542,6 +542,13 @@ describe('ToolRegistryService — approval queue', () => {
         'approve',
         'Declined. The action was not run.',
       ],
+      [
+        'a dismissed prompt after a reviewer approved it in the inbox',
+        McpApprovalStatus.APPROVED,
+        undefined,
+        'cancel',
+        'This action was approved in the Genfeed review inbox. It was not run from the dismissed prompt; call it again to run it.',
+      ],
     ] as const)(
       'runs nothing for %s',
       async (_label, stored, confirmed, decision, text) => {
@@ -574,6 +581,20 @@ describe('ToolRegistryService — approval queue', () => {
 
       expect(result.content[0].text).toBe('Declined. The action was not run.');
       expect(client.executeAgentTool).not.toHaveBeenCalled();
+    });
+
+    it('keeps a dismissed prompt pending after the member waived approvals', async () => {
+      const { client, registry } = build();
+      client.isApprovalRequired.mockResolvedValue(false);
+      client.getApproval.mockResolvedValue(approval(McpApprovalStatus.PENDING));
+
+      const result = (await registry.handleToolCall(
+        answer('cancel'),
+      )) as CallResult;
+
+      expect(result.structuredContent?.code).toBe('approval_pending');
+      expect(client.executeAgentTool).not.toHaveBeenCalled();
+      expect(client.confirmApproval).not.toHaveBeenCalled();
     });
 
     it('keeps the approval pending when the API refuses the answer', async () => {

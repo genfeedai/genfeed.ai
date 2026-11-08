@@ -20,6 +20,27 @@ const NOTHING_RUN =
   'Nothing was run; the action is waiting in the Genfeed review inbox.';
 
 /**
+ * A dismissed prompt never runs anything, even if the approval policy was
+ * waived or a reviewer approved the action while the prompt was open.
+ */
+function settleCancelledPrompt(
+  approval: McpApprovalResource,
+): McpApprovalAnswerOutcome {
+  if (approval.status === McpApprovalStatus.PENDING) {
+    return { approval, kind: 'pending' };
+  }
+  if (approval.status === McpApprovalStatus.DECLINED) {
+    return { kind: 'message', message: 'Declined. The action was not run.' };
+  }
+  return {
+    kind: 'message',
+    message: approval.result
+      ? 'This action has already run.'
+      : 'This action was approved in the Genfeed review inbox. It was not run from the dismissed prompt; call it again to run it.',
+  };
+}
+
+/**
  * Settle the requester's in-conversation answer (#9647) against the approval
  * the prompt named, before the current approval policy is applied, so a
  * decline holds even when the policy changed or a reviewer acted meanwhile.
@@ -46,6 +67,9 @@ export async function settleApprovalAnswer(
       kind: 'message',
       message: `Your answer does not match this action. ${NOTHING_RUN}`,
     };
+  }
+  if (answer.decision === 'cancel') {
+    return settleCancelledPrompt(approval);
   }
   if (approval.status === McpApprovalStatus.PENDING) {
     try {
