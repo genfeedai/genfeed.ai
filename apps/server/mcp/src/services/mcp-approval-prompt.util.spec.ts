@@ -153,8 +153,45 @@ describe('approvalPromptMessage', () => {
         'Accept to run it now, or decline to cancel it.',
       ].join('\n'),
     ],
+    [
+      { toolName: 'some_unlisted_tool' },
+      {
+        idempotencyKey: 'launch-1',
+        release: {
+          content: { caption: '', text: 'A long caption '.repeat(20).trim() },
+          scheduledDate: '2026-11-09T10:00:00Z',
+          targets: [
+            { credentialId: 'cred-ig', platform: 'instagram' },
+            { credentialId: 'cred-tt', platform: 'tiktok' },
+          ],
+        },
+      },
+      [
+        'Genfeed needs your approval. Run "some_unlisted_tool"?',
+        '- idempotencyKey: launch-1',
+        `- release.content.text: ${'A long caption '.repeat(20).trim()}`,
+        '- release.scheduledDate: 2026-11-09T10:00:00Z',
+        '- release.targets[0].credentialId: cred-ig',
+        '- release.targets[0].platform: instagram',
+        '- release.targets[1].credentialId: cred-tt',
+        '- release.targets[1].platform: tiktok',
+        'Accept to run it now, or decline to cancel it.',
+      ].join('\n'),
+    ],
   ])('words the prompt for %o', (pending, args, expected) => {
     expect(approvalPromptMessage(pending, args)).toBe(expected);
+  });
+
+  it.each([
+    ['a value too long to show in full', { text: 'x'.repeat(2500) }],
+    [
+      'more nested fields than fit',
+      {
+        targets: Array.from({ length: 25 }, () => ({ platform: 'instagram' })),
+      },
+    ],
+  ])('cannot word the prompt for %s', (_label, args) => {
+    expect(approvalPromptMessage({ toolName: 'generate' }, args)).toBeNull();
   });
 });
 
@@ -204,6 +241,20 @@ describe('promptForApproval', () => {
     await expect(
       otherCaller.verify(prompt?.requestState ?? '', ctx),
     ).rejects.toThrow();
+  });
+
+  it('keeps the inbox link when the arguments cannot be shown in full', async () => {
+    const codec = createApprovalPromptCodec(SERVICE_KEY, 'caller-token');
+    if (!codec) throw new Error('codec expected');
+
+    await expect(
+      promptForApproval(
+        codec,
+        ctx,
+        { args: { text: 'x'.repeat(2500) }, toolName: 'generate' },
+        pendingResult,
+      ),
+    ).resolves.toBeNull();
   });
 
   it('leaves a result that is not a pending approval alone', async () => {

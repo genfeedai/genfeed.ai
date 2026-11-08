@@ -137,47 +137,85 @@ function readPendingApproval(result: unknown): PendingApproval | null {
   };
 }
 
-const PREVIEW_MAX_FIELDS = 8;
-const PREVIEW_MAX_CHARS = 160;
+const PREVIEW_MAX_LINES = 24;
+const PREVIEW_MAX_CHARS = 2400;
 const PREVIEW_SKIPPED_KEYS = new Set(['organization']);
 
-function previewValue(value: unknown): string | null {
-  const text =
-    typeof value === 'string'
-      ? value
-      : typeof value === 'number' || typeof value === 'boolean'
-        ? String(value)
-        : Array.isArray(value) &&
-            value.every((entry) => typeof entry === 'string')
-          ? value.join(', ')
-          : null;
-  if (!text?.trim()) return null;
-  const flat = text.replace(/\s+/g, ' ').trim();
-  return flat.length > PREVIEW_MAX_CHARS
-    ? `${flat.slice(0, PREVIEW_MAX_CHARS - 1)}…`
-    : flat;
+function previewScalar(value: unknown): string | null | undefined {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string') return value.replace(/\s+/g, ' ').trim();
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  return undefined;
+}
+
+/**
+ * Every value the call carries, nested objects included, as "path: value"
+ * lines. Empty values are left out because they carry nothing to check.
+ * Returns null when a value cannot be shown in full: the person must not
+ * approve something they cannot see, so the call keeps the inbox link.
+ */
+function previewLines(value: unknown, path: string): string[] | null {
+  const scalar = previewScalar(value);
+  if (scalar !== undefined) return scalar ? [`- ${path}: ${scalar}`] : [];
+  if (Array.isArray(value)) {
+    const scalars = value.map(previewScalar);
+    if (scalars.every((entry) => typeof entry === 'string' || entry === null)) {
+      const joined = scalars.filter(Boolean).join(', ');
+      return joined ? [`- ${path}: ${joined}`] : [];
+    }
+    return collectLines(
+      value.map((entry, index) => [`${path}[${index}]`, entry]),
+    );
+  }
+  if (isRecord(value)) {
+    return collectLines(
+      Object.entries(value).map(([key, entry]) => [`${path}.${key}`, entry]),
+    );
+  }
+  return null;
+}
+
+function collectLines(entries: [string, unknown][]): string[] | null {
+  const lines: string[] = [];
+  for (const [path, entry] of entries) {
+    const entryLines = previewLines(entry, path);
+    if (!entryLines) return null;
+    lines.push(...entryLines);
+  }
+  return lines;
 }
 
 /**
  * The call's own arguments, so the person can check what they approve (the
  * text, destination, timing) when the client shows nothing but this prompt.
+ * Null when the arguments are too large or too complex to show in full.
  */
-function argumentPreview(args: Record<string, unknown>): string {
-  return Object.entries(args)
-    .filter(([key]) => !PREVIEW_SKIPPED_KEYS.has(key))
-    .flatMap(([key, value]) => {
-      const text = previewValue(value);
-      return text ? [`- ${key}: ${text}`] : [];
-    })
-    .slice(0, PREVIEW_MAX_FIELDS)
-    .join('\n');
+function argumentPreview(args: Record<string, unknown>): string[] | null {
+  const lines = collectLines(
+    Object.entries(args).filter(([key]) => !PREVIEW_SKIPPED_KEYS.has(key)),
+  );
+  if (
+    !lines ||
+    lines.length > PREVIEW_MAX_LINES ||
+    lines.join('\n').length > PREVIEW_MAX_CHARS
+  ) {
+    return null;
+  }
+  return lines;
 }
 
-/** The question the person sees, e.g. "Generate an image with flux-pro?". */
+/**
+ * The question the person sees, e.g. "Generate an image with flux-pro?", with
+ * every argument listed. Null when the arguments cannot be shown in full.
+ */
 export function approvalPromptMessage(
   pending: Pick<PendingApproval, 'estimatedCredits' | 'toolName'>,
   args: Record<string, unknown>,
-): string {
+): string | null {
+  const preview = argumentPreview(args);
+  if (!preview) return null;
   const action =
     pending.toolName === 'generate' && typeof args.type === 'string'
       ? `Generate ${args.type === 'image' ? 'an image' : `a ${args.type}`}${
@@ -190,17 +228,17 @@ export function approvalPromptMessage(
     pending.estimatedCredits === undefined
       ? ''
       : ` It uses about ${pending.estimatedCredits} credits.`;
-  const preview = argumentPreview(args);
   return [
     `Genfeed needs your approval. ${action}?${cost}`,
-    ...(preview ? [preview] : []),
+    ...preview,
     'Accept to run it now, or decline to cancel it.',
   ].join('\n');
 }
 
 /**
  * Turn a pending-approval result into a prompt for the person, or null when
- * the result is not a pending approval.
+ * the result is not a pending approval or its arguments cannot be shown in
+ * full (the call then keeps the review-inbox link).
  */
 export async function promptForApproval(
   codec: RequestStateCodec<ApprovalPromptState>,
@@ -210,10 +248,12 @@ export async function promptForApproval(
 ): Promise<InputRequiredResult | null> {
   const pending = readPendingApproval(result);
   if (!pending) return null;
+  const message = approvalPromptMessage(pending, call.args);
+  if (!message) return null;
   return inputRequired({
     inputRequests: {
       [APPROVAL_INPUT_KEY]: inputRequired.elicit({
-        message: approvalPromptMessage(pending, call.args),
+        message,
         requestedSchema: { properties: {}, type: 'object' },
       }),
     },
