@@ -762,6 +762,7 @@ describe('model version lifecycle', () => {
       MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
       MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX,
       MODEL_KEYS.FAL_STABLE_VIDEO,
+      MODEL_KEYS.FAL_LUMA_DREAM_MACHINE,
     ])
       expect(byKey.get(key)?.lifecycle, key).toBe(ModelLifecycle.RETIRED);
   });
