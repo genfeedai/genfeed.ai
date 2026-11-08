@@ -96,7 +96,7 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
   }
 
   /**
-   * Instagram only: settle an ambiguous connection (see
+   * Instagram and LinkedIn: settle an unresolved connection (see
    * `needsAccountSelection`) onto one of the accounts the credential's own
    * token authorizes. The server re-derives handle/name/avatar from its own
    * list of authorized accounts and validates `externalId` against it —

@@ -138,12 +138,7 @@ describe('LinkedInService', () => {
       vi.spyOn(service, 'refreshToken').mockResolvedValue({
         id: 'credential',
         accessToken: 'access-token',
-      });
-      vi.spyOn(service, 'getUserProfile').mockResolvedValue({
-        id: 'member',
-        firstName: 'Test',
-        lastName: 'Member',
-        email: 'test@example.com',
+        externalId: 'member',
       });
       mockHttpService.post.mockImplementation((endpoint: string) =>
         of({
@@ -356,12 +351,7 @@ describe('LinkedInService', () => {
       vi.spyOn(service, 'refreshToken').mockResolvedValue({
         id: 'credential',
         accessToken: 'access-token',
-      });
-      vi.spyOn(service, 'getUserProfile').mockResolvedValue({
-        id: 'member',
-        firstName: 'Test',
-        lastName: 'Member',
-        email: 'test@example.com',
+        externalId: 'member',
       });
       mockHttpService.post.mockImplementation((endpoint: string) => {
         if (endpoint.includes('/images?action=initializeUpload')) {
@@ -486,22 +476,31 @@ describe('LinkedInService', () => {
   });
 
   describe('resolveLinkedInVisibility', () => {
-    it('maps the connections choice to LinkedIn vocabulary', () => {
-      expect(resolveLinkedInVisibility({ visibility: 'CONNECTIONS' })).toBe(
-        'CONNECTIONS',
-      );
+    const member = 'urn:li:person:member';
+    const page = 'urn:li:organization:5515715';
+
+    it('maps the connections choice to LinkedIn vocabulary for a member', () => {
+      expect(
+        resolveLinkedInVisibility({ visibility: 'CONNECTIONS' }, member),
+      ).toBe('CONNECTIONS');
     });
 
     it('defaults to public when the setting is unset', () => {
       // Every share was public before the setting existed, so an unset value
       // has to keep publishing the way it always did.
-      expect(resolveLinkedInVisibility({})).toBe('PUBLIC');
+      expect(resolveLinkedInVisibility({}, member)).toBe('PUBLIC');
     });
 
     it('falls back to public for a value LinkedIn does not accept', () => {
-      expect(resolveLinkedInVisibility({ visibility: 'FRIENDS' })).toBe(
+      expect(resolveLinkedInVisibility({ visibility: 'FRIENDS' }, member)).toBe(
         'PUBLIC',
       );
+    });
+
+    it('keeps a company page public, since a page has no connections', () => {
+      expect(
+        resolveLinkedInVisibility({ visibility: 'CONNECTIONS' }, page),
+      ).toBe('PUBLIC');
     });
   });
 
@@ -523,7 +522,14 @@ describe('LinkedInService', () => {
       expect(
         mockAuthClientInstance.generateMemberAuthorizationUrl,
       ).toHaveBeenCalledWith(
-        ['openid', 'profile', 'email', 'w_member_social'],
+        [
+          'openid',
+          'profile',
+          'email',
+          'w_member_social',
+          'r_organization_admin',
+          'w_organization_social',
+        ],
         'some-state',
       );
     });
@@ -766,19 +772,9 @@ describe('LinkedInService', () => {
       mockCredentialsService.findOne.mockResolvedValue({
         id: 'credential-id',
         accessToken: 'encrypted-access-token',
+        externalId: 'linkedin-user-123',
         refreshToken: null,
       });
-      mockHttpService.get.mockReturnValue(
-        of({
-          data: {
-            email: 'john@example.com',
-            family_name: 'Doe',
-            given_name: 'John',
-            sub: 'linkedin-user-123',
-          },
-          status: 200,
-        }),
-      );
       mockHttpService.post.mockReturnValue(
         of({
           data: {
@@ -820,6 +816,164 @@ describe('LinkedInService', () => {
           timeout: 30000,
         }),
       );
+    });
+  });
+
+  describe('posting as a company page', () => {
+    it('authors the post as the page and ignores a connections setting', async () => {
+      mockCredentialsService.findOne.mockResolvedValue({
+        id: 'credential-id',
+        accessToken: 'encrypted-access-token',
+        externalId: 'urn:li:organization:5515715',
+        refreshToken: null,
+      });
+      mockHttpService.post.mockReturnValue(
+        of({ data: { id: 'urn:li:share:9' }, status: 200 }),
+      );
+
+      await service.createTextPost(
+        'org-id',
+        'brand-id',
+        'From the page',
+        { visibility: 'CONNECTIONS' },
+        'credential-id',
+      );
+
+      const [, body] = mockHttpService.post.mock.calls.at(-1) ?? [];
+      expect(JSON.parse(body)).toMatchObject({
+        author: 'urn:li:organization:5515715',
+        visibility: {
+          'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
+        },
+      });
+    });
+
+    it('refuses to post when the credential was never assigned an account', async () => {
+      mockCredentialsService.findOne.mockResolvedValue({
+        id: 'credential-id',
+        accessToken: 'encrypted-access-token',
+        externalId: null,
+        refreshToken: null,
+      });
+
+      await expect(
+        service.createTextPost('org-id', 'brand-id', 'Nowhere to post'),
+      ).rejects.toThrow('LinkedIn credential has no connected account');
+      expect(mockHttpService.post).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('listAuthorizedAccounts', () => {
+    const respondWith = (routes: Record<string, unknown>) => {
+      mockHttpService.get.mockImplementation((url: string) => {
+        const match = Object.entries(routes).find(([suffix]) =>
+          url.endsWith(suffix),
+        );
+        if (!match) {
+          return throwError(() => new Error(`unexpected GET ${url}`));
+        }
+        return of({ data: match[1], status: 200 });
+      });
+    };
+
+    const memberProfile = {
+      email: 'pat@example.com',
+      family_name: 'Doe',
+      given_name: 'Pat',
+      picture: 'https://media.example/pat.jpg',
+      sub: 'member-1',
+    };
+
+    it('lists the pages the member can post as, then their own profile last', async () => {
+      respondWith({
+        '/organizationAcls': {
+          elements: [
+            {
+              organization: 'urn:li:organization:111',
+              role: 'ADMINISTRATOR',
+              state: 'APPROVED',
+            },
+            {
+              organization: 'urn:li:organization:222',
+              role: 'ANALYST',
+              state: 'APPROVED',
+            },
+            {
+              organization: 'urn:li:organization:111',
+              role: 'DIRECT_SPONSORED_CONTENT_POSTER',
+              state: 'APPROVED',
+            },
+          ],
+        },
+        '/organizations/111': {
+          localizedName: 'Acme Studio',
+          vanityName: 'acme',
+        },
+        '/userinfo': memberProfile,
+      });
+
+      const accounts = await service.listAuthorizedAccounts('access-token');
+
+      expect(accounts).toEqual([
+        {
+          id: 'urn:li:organization:111',
+          kind: 'organization',
+          label: 'Acme Studio',
+          username: 'acme',
+        },
+        {
+          id: 'member-1',
+          image: 'https://media.example/pat.jpg',
+          kind: 'member',
+          label: 'Pat Doe',
+        },
+      ]);
+    });
+
+    it('still offers the profile when the member runs no pages', async () => {
+      respondWith({
+        '/organizationAcls': { elements: [] },
+        '/userinfo': memberProfile,
+      });
+
+      const accounts = await service.listAuthorizedAccounts('access-token');
+
+      expect(accounts.map((account) => account.kind)).toEqual(['member']);
+    });
+
+    it('keeps a page listed when its details cannot be read', async () => {
+      respondWith({
+        '/organizationAcls': {
+          elements: [
+            {
+              organization: 'urn:li:organization:333',
+              role: 'ADMINISTRATOR',
+              state: 'APPROVED',
+            },
+          ],
+        },
+        '/userinfo': memberProfile,
+      });
+
+      const accounts = await service.listAuthorizedAccounts('access-token');
+
+      expect(accounts[0]).toEqual({
+        id: 'urn:li:organization:333',
+        kind: 'organization',
+        label: 'LinkedIn page 333',
+      });
+    });
+
+    it('fails instead of offering only the profile when the page list is unavailable', async () => {
+      mockHttpService.get.mockImplementation((url: string) =>
+        url.endsWith('/userinfo')
+          ? of({ data: memberProfile, status: 200 })
+          : throwError(() => new Error('403 forbidden')),
+      );
+
+      await expect(
+        service.listAuthorizedAccounts('access-token'),
+      ).rejects.toThrow('403 forbidden');
     });
   });
 

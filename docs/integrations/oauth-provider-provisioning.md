@@ -164,8 +164,15 @@ and [v26.0 migration changes](https://developers.facebook.com/docs/graph-api/cha
 2. Add `{APP_ORIGIN}/oauth/linkedin` on the Auth tab.
 3. Add the **Sign In with LinkedIn using OpenID Connect** and
    **Share on LinkedIn** products. Genfeed requests `openid`, `profile`,
-   `email`, and `w_member_social`.
-4. Set `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, and
+   `email`, and `w_member_social` for posting as a member.
+4. Posting as a company page needs two more scopes, `w_organization_social`
+   and `r_organization_admin` (the first posts as the page, the second lists
+   the pages the member runs). Genfeed always requests them, and LinkedIn
+   rejects the whole authorization when the app does not hold a requested
+   scope, so the app's **Products** tab must grant them (LinkedIn's Community
+   Management product) before this release is deployed. After authorizing, the
+   member chooses a page or their own profile; nothing posts until they do.
+5. Set `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, and
    `LINKEDIN_REDIRECT_URI`.
 
 References: [LinkedIn API access](https://learn.microsoft.com/en-us/linkedin/shared/authentication/getting-access)

@@ -105,6 +105,11 @@ const ACCOUNT_READ_ROUTES: ReadonlyArray<
     CredentialsController.prototype.findAllInstagramPages,
   ],
   [
+    'GET /credentials/:credentialId/linkedin/accounts',
+    CredentialsController,
+    CredentialsController.prototype.findAllLinkedInAccounts,
+  ],
+  [
     'GET /credentials/brand/:brandId/publishing-readiness',
     CredentialsPublishingController,
     CredentialsPublishingController.prototype.listBrandPublishingReadiness,

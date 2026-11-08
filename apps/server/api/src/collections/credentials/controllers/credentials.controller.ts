@@ -27,6 +27,7 @@ import { GoogleAdsService } from '@api/services/integrations/google-ads/services
 import { GoogleSearchConsoleService } from '@api/services/integrations/google-search-console/services/google-search-console.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
+import { isLinkedinAuthorizationError } from '@api/services/integrations/linkedin/utils/linkedin-error.util';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
@@ -40,6 +41,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import {
   CredentialInstagramPagesSerializer,
+  CredentialLinkedInAccountsSerializer,
   CredentialSerializer,
 } from '@genfeedai/serializers';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
@@ -362,6 +364,86 @@ export class CredentialsController {
           {
             detail:
               'Your Instagram connection has expired. Please reconnect your Instagram account.',
+            title: 'Authentication failed',
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * The accounts a LinkedIn connection can post as: the member's profile and
+   * every company page they hold a posting role on. Read with this
+   * credential's own token, so the picker never offers more than a selection
+   * will accept (see `LinkedInController.selectAccount`).
+   */
+  @TenantReadPolicy('mutating')
+  @RequiredScopes(...API_KEY_CONNECTED_ACCOUNT_READ_SCOPES)
+  @Get(':credentialId/linkedin/accounts')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async findAllLinkedInAccounts(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('credentialId') credentialId: string,
+  ): Promise<JsonApiCollectionResponse> {
+    const credential = await this.credentialsService.findOne({
+      id: credentialId,
+      organizationId: user.organizationId,
+      platform: CredentialPlatform.LINKEDIN,
+    });
+
+    if (!credential?.accessToken) {
+      throw new HttpException(
+        {
+          detail: 'LinkedIn account is not connected',
+          title: 'Not Connected',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      const accounts = await this.linkedInService.listAuthorizedAccounts(
+        EncryptionUtil.decrypt(credential.accessToken),
+      );
+
+      // Flag accounts another live credential of this brand already holds. The
+      // picker still lists them: choosing one is a deliberate reconnect that
+      // merges into that incumbent.
+      const heldAccounts = credential.brandId
+        ? await this.credentialsService.findConnectedAccounts(
+            user.organizationId,
+            credential.brandId,
+            CredentialPlatform.LINKEDIN,
+          )
+        : [];
+      const heldExternalIds = new Set(
+        heldAccounts
+          .filter((account) => account.id !== credential.id)
+          .map((account) => account.externalId)
+          .filter((externalId): externalId is string => Boolean(externalId)),
+      );
+
+      return serializeCollection(
+        request,
+        CredentialLinkedInAccountsSerializer,
+        {
+          docs: accounts.map((account) => ({
+            ...account,
+            isAlreadyConnected: heldExternalIds.has(account.id),
+            platform: CredentialPlatform.LINKEDIN,
+          })),
+        },
+      );
+    } catch (error: unknown) {
+      if (isLinkedinAuthorizationError(error)) {
+        throw new HttpException(
+          {
+            detail:
+              'Your LinkedIn connection has expired. Please reconnect your LinkedIn account.',
             title: 'Authentication failed',
           },
           HttpStatus.UNAUTHORIZED,

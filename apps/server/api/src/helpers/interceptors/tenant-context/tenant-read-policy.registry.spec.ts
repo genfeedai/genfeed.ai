@@ -192,6 +192,7 @@ const observedTemplates = [
   '/v1/credentials/brand/{brandId}/publishing-readiness',
   '/v1/credentials/mentions',
   '/v1/credentials/{credentialId}/instagram/pages',
+  '/v1/credentials/{credentialId}/linkedin/accounts',
   '/v1/credentials/{credentialId}/next-slot',
   '/v1/credentials/{credentialId}/posting-times',
   '/v1/credentials/{credentialId}/publishing-context',

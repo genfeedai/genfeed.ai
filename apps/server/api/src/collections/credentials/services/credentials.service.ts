@@ -647,6 +647,27 @@ export class CredentialsService
   }
 
   /**
+   * Store an exchanged token on a pending connection and leave it unidentified
+   * and not live, for providers where the member still has to choose which
+   * account the connection posts as (see `computeNeedsAccountSelection`).
+   *
+   * Identity is cleared even when the row used to point at an account, so a
+   * reconnect has to choose again instead of silently keeping the old one;
+   * `reconcileConnectedAccount` only lets an unidentified row take a new
+   * identity.
+   */
+  async storeTokenAwaitingAccountSelection(
+    credentialId: string,
+    tokenFields: Record<string, unknown>,
+  ): Promise<CredentialDocument> {
+    return this.patch(credentialId, {
+      ...tokenFields,
+      externalId: null,
+      isConnected: false,
+    });
+  }
+
+  /**
    * Attach an OAuth 1.0a request-token pair to its pending credential.
    *
    * The tokens pass through the centralized encrypt-on-write boundary. A

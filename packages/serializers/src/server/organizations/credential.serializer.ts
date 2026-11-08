@@ -1,6 +1,7 @@
 import { buildSerializer } from '@serializers/builders';
 import {
   credentialInstagramPagesSerializerConfig,
+  credentialLinkedInAccountsSerializerConfig,
   credentialOAuthSerializerConfig,
   credentialSerializerConfig,
 } from '@serializers/configs';
@@ -18,4 +19,10 @@ export const { CredentialOAuthSerializer } = buildSerializer(
 export const { CredentialInstagramPagesSerializer } = buildSerializer(
   'server',
   credentialInstagramPagesSerializerConfig,
+  credentialLinkedInAccountsSerializerConfig,
+);
+
+export const { CredentialLinkedInAccountsSerializer } = buildSerializer(
+  'server',
+  credentialLinkedInAccountsSerializerConfig,
 );

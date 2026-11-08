@@ -13,6 +13,10 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
+  EncryptionUtil: { decrypt: vi.fn((value: string) => `decrypted:${value}`) },
+}));
+
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
@@ -49,14 +53,17 @@ describe('LinkedInController', () => {
   const mockCredentialsService = {
     beginOAuthForBrand: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: vi.fn(),
     findPendingOAuthCredential: vi.fn(),
     patch: vi.fn(),
+    storeTokenAwaitingAccountSelection: vi.fn(),
     updateExternalProfile: vi.fn(),
   };
   const mockLinkedInService = {
     exchangeAuthCodeForAccessToken: vi.fn(),
     generateAuthUrl: vi.fn(),
     getUserProfile: vi.fn(),
+    listAuthorizedAccounts: vi.fn(),
   };
   const mockLinkedInAuthorizedSignalsService = {
     refresh: vi.fn().mockResolvedValue({ state: 'partial' }),
@@ -227,20 +234,14 @@ describe('LinkedInController', () => {
   });
 
   describe('verify', () => {
-    it('should exchange code, get profile, and update credential', async () => {
+    it('stores the token but holds the connection until an account is chosen', async () => {
       const credId = 'test-object-id';
       const state = 'opaque-oauth-state';
 
       mockLinkedInService.exchangeAuthCodeForAccessToken.mockResolvedValue({
         accessToken: 'linkedin-token',
         expiresIn: 5184000,
-        scope: 'openid profile w_member_social',
-      });
-      mockLinkedInService.getUserProfile.mockResolvedValue({
-        email: 'john@example.com',
-        firstName: 'John',
-        id: 'li-user-123',
-        lastName: 'Doe',
+        scope: 'openid profile w_member_social w_organization_social',
       });
       mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
         brandId,
@@ -248,56 +249,44 @@ describe('LinkedInController', () => {
         organizationId: orgId,
         userId,
       });
-      mockCredentialsService.patch.mockResolvedValue({
-        id: credId,
-        isConnected: true,
-      });
-      mockCredentialsService.updateExternalProfile.mockResolvedValue({
-        id: credId,
-        isConnected: true,
-      });
+      mockCredentialsService.storeTokenAwaitingAccountSelection.mockResolvedValue(
+        { id: credId, isConnected: false },
+      );
 
       const result = await controller.verify(mockRequest, {
         code: 'auth-code',
         state,
       });
 
-      expect(result.data).toEqual({ id: credId, isConnected: true });
+      expect(result.data).toEqual({ id: credId, isConnected: false });
       expect(
         mockCredentialsService.findPendingOAuthCredential,
       ).toHaveBeenCalledWith('opaque-oauth-state', 'linkedin');
-      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
+      // The token is stored without an account and not live, so nothing can
+      // publish as the member who authorized before they choose.
+      expect(
+        mockCredentialsService.storeTokenAwaitingAccountSelection,
+      ).toHaveBeenCalledWith(
         credId,
         expect.objectContaining({
           accessToken: 'linkedin-token',
-          isConnected: true,
           isDeleted: false,
           oauthState: null,
-          grantedScopes: ['openid', 'profile', 'w_member_social'],
+          grantedScopes: [
+            'openid',
+            'profile',
+            'w_member_social',
+            'w_organization_social',
+          ],
           grantedScopesCapturedAt: expect.any(Date),
         }),
       );
-      // LinkedIn's member profile has no public vanity handle — only a
-      // display name. It must never be persisted as a handle.
-      expect(mockCredentialsService.updateExternalProfile).toHaveBeenCalledWith(
-        credId,
-        orgId,
-        expect.objectContaining({
-          handle: undefined,
-          id: 'li-user-123',
-          name: 'John Doe',
-        }),
-      );
-
-      expect(mockLinkedInAuthorizedSignalsService.refresh).toHaveBeenCalledWith(
-        {
-          accessToken: 'linkedin-token',
-          credentialId: credId,
-          force: true,
-          grantedScopes: ['openid', 'profile', 'w_member_social'],
-          organizationId: orgId,
-        },
-      );
+      expect(
+        mockCredentialsService.updateExternalProfile,
+      ).not.toHaveBeenCalled();
+      expect(
+        mockLinkedInAuthorizedSignalsService.refresh,
+      ).not.toHaveBeenCalled();
     });
 
     it('should return bad request when code or state is missing', async () => {
@@ -382,29 +371,6 @@ describe('LinkedInController', () => {
       await expectHttpStatus(
         controller.verify(mockRequest, { code: 'expired-code', state }),
         HttpStatus.BAD_REQUEST,
-      );
-    });
-
-    it('maps a LinkedIn 401 on profile fetch to 401', async () => {
-      const state = 'opaque-oauth-state';
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
-        brandId,
-        id: 'credential-id',
-        organizationId: orgId,
-        userId,
-      });
-      mockLinkedInService.exchangeAuthCodeForAccessToken.mockResolvedValue({
-        accessToken: 'linkedin-token',
-        expiresIn: 5184000,
-      });
-      mockLinkedInService.getUserProfile.mockRejectedValue({
-        metadata: { status: 401 },
-        name: 'IntegrationHttpError',
-      });
-
-      await expectHttpStatus(
-        controller.verify(mockRequest, { code: 'auth-code', state }),
-        HttpStatus.UNAUTHORIZED,
       );
     });
 
@@ -516,6 +482,147 @@ describe('LinkedInController', () => {
           platform: 'linkedin',
         },
       });
+    });
+  });
+  describe('selectAccount', () => {
+    const credId = 'pending-credential';
+    const user =
+      mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser;
+
+    const pendingCredential = {
+      accessToken: 'encrypted-token',
+      externalId: null,
+      id: credId,
+      isConnected: false,
+      isDeleted: false,
+    };
+
+    const accounts = [
+      {
+        id: 'urn:li:organization:5515715',
+        image: undefined,
+        kind: 'organization',
+        label: 'Acme Studio',
+        username: 'acme-studio',
+      },
+      { id: 'member-1', kind: 'member', label: 'Pat Doe' },
+    ];
+
+    beforeEach(() => {
+      mockCredentialsService.findOneSelect.mockResolvedValue(pendingCredential);
+      mockLinkedInService.listAuthorizedAccounts.mockResolvedValue(accounts);
+      mockCredentialsService.updateExternalProfile.mockImplementation(
+        async (id: string, _org: string, profile: { id: string }) => ({
+          externalId: profile.id,
+          id,
+          isConnected: true,
+        }),
+      );
+    });
+
+    it('connects the chosen company page and records its URN and vanity handle', async () => {
+      const result = await controller.selectAccount(mockRequest, user, credId, {
+        externalId: 'urn:li:organization:5515715',
+      });
+
+      expect(mockLinkedInService.listAuthorizedAccounts).toHaveBeenCalledWith(
+        'decrypted:encrypted-token',
+      );
+      expect(mockCredentialsService.updateExternalProfile).toHaveBeenCalledWith(
+        credId,
+        orgId,
+        {
+          avatarUrl: undefined,
+          handle: 'acme-studio',
+          id: 'urn:li:organization:5515715',
+          name: 'Acme Studio',
+        },
+      );
+      expect(result.data).toMatchObject({
+        externalId: 'urn:li:organization:5515715',
+        isConnected: true,
+      });
+      expect(mockLinkedInAuthorizedSignalsService.refresh).toHaveBeenCalled();
+    });
+
+    it('connects the personal profile only when it is chosen, without a handle', async () => {
+      await controller.selectAccount(mockRequest, user, credId, {
+        externalId: 'member-1',
+      });
+
+      expect(mockCredentialsService.updateExternalProfile).toHaveBeenCalledWith(
+        credId,
+        orgId,
+        expect.objectContaining({ handle: null, id: 'member-1' }),
+      );
+    });
+
+    it('rejects an account the token does not reach', async () => {
+      const result = await controller.selectAccount(mockRequest, user, credId, {
+        externalId: 'urn:li:organization:999',
+      });
+
+      expect(result).toEqual({
+        errors: [expect.objectContaining({ title: 'Account not available' })],
+      });
+      expect(
+        mockCredentialsService.updateExternalProfile,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('does not repoint a credential that is already connected', async () => {
+      mockCredentialsService.findOneSelect.mockResolvedValue({
+        ...pendingCredential,
+        externalId: 'member-1',
+        isConnected: true,
+      });
+
+      const result = await controller.selectAccount(mockRequest, user, credId, {
+        externalId: 'urn:li:organization:5515715',
+      });
+
+      expect(result).toEqual({
+        errors: [expect.objectContaining({ title: 'Already Connected' })],
+      });
+      expect(mockLinkedInService.listAuthorizedAccounts).not.toHaveBeenCalled();
+    });
+
+    it('requires the id of the chosen account', async () => {
+      const result = await controller.selectAccount(
+        mockRequest,
+        user,
+        credId,
+        {},
+      );
+
+      expect(result).toEqual({
+        errors: [expect.objectContaining({ title: 'Invalid payload' })],
+      });
+    });
+
+    it('reports an unknown credential as not found', async () => {
+      mockCredentialsService.findOneSelect.mockResolvedValue(null);
+
+      const result = await controller.selectAccount(mockRequest, user, credId, {
+        externalId: 'member-1',
+      });
+
+      expect(result).toHaveProperty('errors');
+      expect(mockLinkedInService.listAuthorizedAccounts).not.toHaveBeenCalled();
+    });
+
+    it('maps a LinkedIn 401 while reading the accounts to 401', async () => {
+      mockLinkedInService.listAuthorizedAccounts.mockRejectedValue({
+        metadata: { status: 401 },
+        name: 'IntegrationHttpError',
+      });
+
+      await expectHttpStatus(
+        controller.selectAccount(mockRequest, user, credId, {
+          externalId: 'member-1',
+        }),
+        HttpStatus.UNAUTHORIZED,
+      );
     });
   });
 });

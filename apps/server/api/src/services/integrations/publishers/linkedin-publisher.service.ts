@@ -5,6 +5,7 @@ import {
   resolveLinkedInVisibility,
 } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { LINKEDIN_MULTI_IMAGE_LIMITS } from '@api/services/integrations/linkedin/services/linkedin-image-upload.util';
+import { resolveLinkedInAuthorUrn } from '@api/services/integrations/linkedin/utils/linkedin-author.util';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
   MediaInfo,
@@ -116,7 +117,10 @@ export class LinkedInPublisherService extends BasePublisherService {
         ),
       {
         text: this.sanitizeDescription(context.post.description),
-        visibility: resolveLinkedInVisibility(context.settings),
+        visibility: resolveLinkedInVisibility(
+          context.settings,
+          resolveLinkedInAuthorUrn(context.credential.externalId),
+        ),
       },
     );
     const externalId = found?.id;
