@@ -441,7 +441,16 @@ export class CredentialsService
     }
 
     await this.prisma.credential.updateMany({
-      data: { isDeleted: true, oauthState: null, oauthToken: null },
+      data: {
+        accessToken: null,
+        accessTokenSecret: null,
+        isDeleted: true,
+        oauthState: null,
+        oauthToken: null,
+        oauthTokenHash: null,
+        oauthTokenSecret: null,
+        refreshToken: null,
+      },
       where: {
         brandId,
         externalId: null,
