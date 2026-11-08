@@ -141,9 +141,18 @@ const PREVIEW_MAX_LINES = 24;
 const PREVIEW_MAX_CHARS = 2400;
 const PREVIEW_SKIPPED_KEYS = new Set(['organization']);
 
+/**
+ * A string exactly as stored: plain text as is, and anything with line breaks,
+ * tabs, repeated or edge spaces quoted with escapes, so nothing is hidden.
+ */
+function previewString(value: string): string {
+  const isPlain = value === value.trim() && !/\s\s|[^\S ]/.test(value);
+  return isPlain ? value : JSON.stringify(value);
+}
+
 function previewScalar(value: unknown): string | null | undefined {
   if (value === null || value === undefined) return null;
-  if (typeof value === 'string') return value.replace(/\s+/g, ' ').trim();
+  if (typeof value === 'string') return previewString(value);
   if (typeof value === 'number' || typeof value === 'boolean') {
     return String(value);
   }

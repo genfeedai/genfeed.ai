@@ -141,7 +141,7 @@ describe('approvalPromptMessage', () => {
         'Genfeed needs your approval. Run "some_unlisted_tool"?',
         '- platforms: instagram, tiktok',
         '- scheduledAt: 2026-11-09T10:00:00Z',
-        '- text: Launch day is here',
+        '- text: "Launch   day\\nis here"',
         'Accept to run it now, or decline to cancel it.',
       ].join('\n'),
     ],
@@ -184,6 +184,10 @@ describe('approvalPromptMessage', () => {
 
   it.each([
     ['a value too long to show in full', { text: 'x'.repeat(2500) }],
+    [
+      'a value whose spacing makes it too long',
+      { text: `a${' '.repeat(2500)}b` },
+    ],
     [
       'more nested fields than fit',
       {
