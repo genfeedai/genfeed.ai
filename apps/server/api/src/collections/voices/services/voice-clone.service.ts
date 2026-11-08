@@ -351,7 +351,7 @@ export class VoiceCloneService {
         .deleteVoice(user.organizationId, created.voiceId)
         .catch((cleanupError: unknown) => {
           this.loggerService.error(
-            `${this.constructorName} could not remove an unfinished HeyGen voice`,
+            `${this.constructorName} could not remove unfinished HeyGen voice ${created.voiceId}`,
             cleanupError,
           );
         });
