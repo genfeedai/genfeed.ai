@@ -2,14 +2,14 @@ import type { Page, Request } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 
 /**
- * A lead's locked profile: they open /u/:handle/invite/:key without an
+ * A lead's locked profile: they open /@:handle/invite/:key without an
  * account, see their brand, what we read from their website and the posts
  * prepared for them, and can ask for the unlock email. The public invite API
  * is mocked; the route, the shared feed and the view and unlock counting are
  * real.
  */
 const TOKEN = 'A'.repeat(43);
-const INVITE_PATH = `/u/acme-invoices/invite/${TOKEN}`;
+const INVITE_PATH = `/@acme-invoices/invite/${TOKEN}`;
 const UNLOCK = 'Email me the unlock link';
 
 const inviteBody = {

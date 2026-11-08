@@ -1,8 +1,9 @@
 import type { Article } from '@genfeedai/models/content/article.model';
 
 /**
- * Where "Publish" sends an article. Only Genfeed's own organization is hosted
- * on the genfeed.ai website; `publicUrl` is set only for that organization.
+ * Where "Publish" sends an article. The genfeed.ai website hosts the articles
+ * of a public brand, at genfeed.ai/@handle/articles/<slug>, and those of
+ * Genfeed's own organization; `publicUrl` is set only for those.
  */
 export type ArticlePublishDestination = {
   isHostedOnWebsite: boolean;

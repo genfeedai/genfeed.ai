@@ -22,15 +22,6 @@
     "apps/extension/src/components/settings/OrganizationSelector.tsx": {
       "unstyled-look": 1
     },
-    "apps/marketing/app/(content)/articles/[slug]/article-content.tsx": {
-      "button-restyle": 1
-    },
-    "apps/marketing/app/(content)/articles/[slug]/article-experience.tsx": {
-      "unstyled-look": 1
-    },
-    "apps/marketing/app/(content)/articles/[slug]/article-share-button.tsx": {
-      "button-restyle": 1
-    },
     "apps/marketing/app/(public)/[slug]/product-final-cta.tsx": {
       "button-restyle": 1
     },
@@ -42,6 +33,12 @@
     },
     "apps/marketing/app/(public)/skills/success/copy-command-button.tsx": {
       "button-restyle": 1
+    },
+    "apps/marketing/app/creator-profile/[handle]/(showcase)/articles/[slug]/article-content.tsx": {
+      "button-restyle": 1
+    },
+    "apps/marketing/app/creator-profile/[handle]/(showcase)/articles/[slug]/article-experience.tsx": {
+      "unstyled-look": 1
     },
     "apps/marketing/src/components/agent-connect/AgentConnectDialog.tsx": {
       "button-restyle": 1

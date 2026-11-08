@@ -67,3 +67,21 @@ describe('ArticlesList pagination', () => {
     );
   });
 });
+
+describe('ArticlesList creator links', () => {
+  it.each([
+    [ARTICLE, '/@genfeedai/articles/shipping-faster', 'by @genfeedai'],
+    [
+      { ...ARTICLE, brand: { slug: 'shayla' } } as unknown as Article,
+      '/@shayla/articles/shipping-faster',
+      'by @shayla',
+    ],
+  ])('files each article under its creator', (article, href, byline) => {
+    render(<ArticlesList articles={[article]} />);
+
+    expect(
+      screen.getByRole('link', { name: /Shipping faster/ }),
+    ).toHaveAttribute('href', href);
+    expect(screen.getByText(byline)).toBeInTheDocument();
+  });
+});

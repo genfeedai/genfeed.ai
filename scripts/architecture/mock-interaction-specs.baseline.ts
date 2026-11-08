@@ -313,7 +313,7 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/server/workers/src/services/scheduled-post-workflow.service.spec.ts',
   'apps/server/workers/src/services/scheduler-publish-state.service.spec.ts',
   'apps/server/workers/src/services/thread-comment-delivery.service.spec.ts',
-  'apps/marketing/app/(content)/articles/[slug]/article-resource.test.tsx',
+  'apps/marketing/app/creator-profile/[handle]/(showcase)/articles/[slug]/article-resource.test.tsx',
   'apps/marketing/src/analytics/run-when-idle.test.ts',
   'apps/marketing/src/sentry/deferred-sentry.test.ts',
   'packages/agent/src/components/AgentChatContainer.spec.tsx',

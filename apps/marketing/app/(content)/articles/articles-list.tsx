@@ -1,4 +1,8 @@
 import { CardVariant } from '@genfeedai/contracts';
+import {
+  articleHandle,
+  creatorArticlePath,
+} from '@genfeedai/contracts/constants';
 import type { Article } from '@models/content/article.model';
 import type { PublicListPageProps } from '@props/website/public-list-page.props';
 import Card from '@ui/card/Card';
@@ -61,11 +65,12 @@ export default function ArticlesList({
             const excerpt = article.content
               ? `${article.content.replace(HTML_TAGS_PATTERN, ' ').substring(0, 200)}...`
               : null;
+            const handle = articleHandle(article.brand?.slug);
 
             return (
               <Link
                 key={article.id}
-                href={`/articles/${article.slug || article.id}`}
+                href={creatorArticlePath(handle, article.slug || article.id)}
                 className="group block"
               >
                 <Card
@@ -120,11 +125,9 @@ export default function ArticlesList({
                       </div>
                     )}
 
-                    {article.author && (
-                      <div className="flex items-center gap-2">
-                        <span>by {article.author}</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <span>by @{handle}</span>
+                    </div>
                   </div>
                 </Card>
               </Link>

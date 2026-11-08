@@ -515,6 +515,21 @@
     font-style: normal;
   }
 
+  /* The `#` after each section heading: a shareable link to that section,
+     shown while the heading is hovered. */
+  & :where(.gen-heading-anchor) {
+    margin-inline-start: 0.4em;
+    color: var(--gen-accent-border-strong);
+    text-decoration: none;
+    opacity: 0;
+    transition: opacity 120ms ease;
+  }
+
+  & :where(h2, h3):hover :where(.gen-heading-anchor),
+  & :where(.gen-heading-anchor):focus-visible {
+    opacity: 1;
+  }
+
   /* Inline code only — `prose` styles `code` inside `pre` too, and its
      backtick pseudo-elements would land in the middle of a copied block. */
   & :where(code):not(:where(pre code)) {

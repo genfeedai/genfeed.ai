@@ -850,6 +850,7 @@ describe('DiscordService', () => {
       await service.sendArticleNotification({
         category: 'News',
         label: 'Launch',
+        publicUrl: 'https://genfeed.ai/@genfeedai/articles/launch',
         slug: 'launch',
         summary: 'Big launch',
         thumbnailUrl: 'https://cdn/thumb.png',
@@ -865,7 +866,7 @@ describe('DiscordService', () => {
         url: string;
       };
       expect(embed.title).toBe('Launch');
-      expect(embed.url).toBe('https://genfeed.ai/articles/launch');
+      expect(embed.url).toBe('https://genfeed.ai/@genfeedai/articles/launch');
       expect(embed.description).toBe('Big launch');
       expect(embed.footer).toEqual({ text: 'News' });
       expect(embed.image).toEqual({ url: 'https://cdn/thumb.png' });
@@ -883,6 +884,16 @@ describe('DiscordService', () => {
         avatarURL: 'https://cdn/avatar.png',
         username: 'Genfeed.ai',
       });
+    });
+
+    it('sends no link for an article without a public page', async () => {
+      const { service } = await createService();
+
+      await service.sendArticleNotification({ label: 'Draft', slug: 'draft' });
+
+      const payload = lastSendPayload();
+      expect(payload.components ?? []).toHaveLength(0);
+      expect(payload.embeds?.[0]).not.toHaveProperty('url');
     });
 
     it('should prefer an explicit public url and log send failures', async () => {

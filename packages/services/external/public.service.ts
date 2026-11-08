@@ -261,6 +261,18 @@ export class PublicService extends HTTPBaseService {
     return this.fetchMany('images', Image, query);
   }
 
+  public async findPublicVideosPage(
+    query?: IQueryParams,
+  ): Promise<IPaginatedResponse<Video>> {
+    return this.fetchPage('videos', Video, query);
+  }
+
+  public async findPublicImagesPage(
+    query?: IQueryParams,
+  ): Promise<IPaginatedResponse<Image>> {
+    return this.fetchPage('images', Image, query);
+  }
+
   public async findPublicMusics(query?: IQueryParams): Promise<Music[]> {
     return this.fetchMany('musics', Music, query);
   }
@@ -388,7 +400,16 @@ export class PublicService extends HTTPBaseService {
     return this.fetchOne(`posts/ingredients/${id}`, Ingredient);
   }
 
-  public async getPublicPost(id: string): Promise<Post | null> {
-    return this.fetchOne(`posts/${id}`, Post);
+  /** `brandId` scopes the read to one creator: another brand's post is null. */
+  public async getPublicPost(
+    id: string,
+    brandId?: string,
+  ): Promise<Post | null> {
+    return this.fetchOne(
+      brandId
+        ? `posts/${encodeURIComponent(id)}?brand=${encodeURIComponent(brandId)}`
+        : `posts/${id}`,
+      Post,
+    );
   }
 }

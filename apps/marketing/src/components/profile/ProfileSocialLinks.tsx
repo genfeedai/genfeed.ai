@@ -37,7 +37,7 @@ export default function ProfileSocialLinks({
   }
 
   return (
-    <div className="flex justify-center gap-4 pt-8">
+    <div className="flex flex-wrap gap-4">
       {activeLinks.map(({ url, icon: Icon, label }) => (
         <a
           key={label}

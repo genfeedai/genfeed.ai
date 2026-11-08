@@ -1,7 +1,10 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { BRAND_HANDLE_MAX_LENGTH } from '@genfeedai/contracts/constants';
+import {
+  BRAND_HANDLE_MAX_LENGTH,
+  creatorProfilePath,
+} from '@genfeedai/contracts/constants';
 import { isPublicAssetScope } from '@genfeedai/helpers';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { BrandDetailOverviewProps } from '@props/pages/brand-detail.props';
@@ -26,7 +29,7 @@ export default function BrandDetailOverview({
   onCopyPublicProfile,
 }: BrandDetailOverviewProps) {
   const t = useTranslations('pages.brandDetailOverview');
-  const profileUrl = `${EnvironmentService.apps.website}/u/${brand.slug}`;
+  const profileUrl = `${EnvironmentService.apps.website}${creatorProfilePath(brand.slug)}`;
 
   return (
     <div className="flex items-start gap-6">

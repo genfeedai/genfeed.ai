@@ -162,10 +162,17 @@ describe('ArticlesService cache invalidation', () => {
     expect(reads).toEqual([
       expect.objectContaining({
         where: {
+          // No resolvable Genfeed organization: only a public brand hosts it.
+          AND: [
+            {
+              OR: [
+                { organizationId: { in: [] } },
+                { brand: { is: { isDeleted: false, scope: 'PUBLIC' } } },
+              ],
+            },
+          ],
           id: 'article_2',
           isDeleted: false,
-          // No resolvable Genfeed organization: the read matches nothing.
-          organizationId: { in: [] },
           slug: 'shared-slug',
         },
       }),
@@ -179,6 +186,17 @@ describe('ArticlesService cache invalidation', () => {
 
     expect(reads).toEqual([
       {
+        include: {
+          brand: {
+            select: {
+              id: true,
+              isDeleted: true,
+              label: true,
+              scope: true,
+              slug: true,
+            },
+          },
+        },
         // Deterministic: the earliest release wins if a legacy duplicate survives.
         orderBy: [{ publishedAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
         where: expect.objectContaining({
@@ -192,7 +210,7 @@ describe('ArticlesService cache invalidation', () => {
     expect(reads[0]?.where).not.toHaveProperty('id');
   });
 
-  it('serves public slugs only from the Genfeed organization, resolved once', async () => {
+  it('serves public slugs from the Genfeed organization or a public brand, resolved once', async () => {
     const { organizationLookups, reads, service } = buildService({
       genfeedOrganization: { id: 'org_genfeed' },
     });
@@ -203,14 +221,20 @@ describe('ArticlesService cache invalidation', () => {
     expect(organizationLookups).toEqual([
       { isDeleted: false, slug: 'genfeedai' },
     ]);
+    const hostFilter = {
+      OR: [
+        { organizationId: 'org_genfeed' },
+        { brand: { is: { isDeleted: false, scope: 'PUBLIC' } } },
+      ],
+    };
     expect(reads.map((read) => read.where)).toEqual([
       expect.objectContaining({
-        organizationId: 'org_genfeed',
+        AND: [hostFilter],
         slug: 'shared-slug',
         status: 'PUBLISHED',
       }),
       expect.objectContaining({
-        organizationId: 'org_genfeed',
+        AND: [hostFilter],
         slug: 'other-slug',
       }),
     ]);
@@ -224,7 +248,9 @@ describe('ArticlesService cache invalidation', () => {
 
     await expect(
       service.publicArticleScope.buildWhere(),
-    ).resolves.toMatchObject({ organizationId: 'org_renamed' });
+    ).resolves.toMatchObject({
+      AND: [{ OR: [{ organizationId: 'org_renamed' }, expect.anything()] }],
+    });
     await expect(
       service.publicArticleScope.isHostedOrganization('org_renamed'),
     ).resolves.toBe(true);
@@ -234,13 +260,20 @@ describe('ArticlesService cache invalidation', () => {
     expect(organizationLookups).toEqual([]);
   });
 
-  it('matches no tenant when the Genfeed organization cannot be resolved', async () => {
+  it('serves only public brands when the Genfeed organization cannot be resolved', async () => {
     const { service } = buildService({ genfeedOrganization: null });
 
     await expect(
       service.publicArticleScope.buildWhere(),
     ).resolves.toMatchObject({
-      organizationId: { in: [] },
+      AND: [
+        {
+          OR: [
+            { organizationId: { in: [] } },
+            { brand: { is: { isDeleted: false, scope: 'PUBLIC' } } },
+          ],
+        },
+      ],
     });
     await expect(
       service.publicArticleScope.isHostedOrganization('org_customer'),

@@ -237,13 +237,21 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
   ] as const),
   ...classifyPublicRoutes('website', 'public-content', [
     '/articles',
-    '/articles/:slug',
-    '/articles/:slug/preview',
     '/changelog',
+    '/community',
+    // Served at /@:handle/* through a next.config rewrite: an `@` folder is a
+    // parallel-route slot, so the pages live under this internal segment.
+    '/creator-profile/:handle',
+    '/creator-profile/:handle/articles',
+    '/creator-profile/:handle/articles/:slug',
+    '/creator-profile/:handle/articles/:slug/preview',
+    '/creator-profile/:handle/images',
+    '/creator-profile/:handle/invite/:token',
+    '/creator-profile/:handle/posts',
+    '/creator-profile/:handle/posts/:id',
+    '/creator-profile/:handle/videos',
     '/posts',
     '/posts/:id',
-    '/u/:handle',
-    '/u/:handle/invite/:token',
   ] as const),
   ...classifyPublicRoutes('website', 'legal', ['/privacy', '/terms'] as const),
   ...classifyPublicRoutes('website', 'transactional', [

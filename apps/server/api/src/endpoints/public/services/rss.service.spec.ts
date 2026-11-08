@@ -30,6 +30,11 @@ describe('RssService', () => {
       publishedAt: new Date('2024-01-02'),
       scope: ArticleScope.PUBLIC,
       slug: 'test-article-2',
+      brand: {
+        isDeleted: false,
+        scope: 'PUBLIC',
+        slug: 'shayla',
+      },
       status: ArticleStatus.PUBLISHED,
       summary: 'Test summary 2',
     },
@@ -57,8 +62,8 @@ describe('RssService', () => {
           useValue: {
             apiUrl: 'https://api.public.genfeed.ai',
             get: vi.fn((key: string) => {
-              if (key === 'GENFEEDAI_APP_URL') {
-                return 'https://genfeed.ai';
+              if (key === 'GENFEEDAI_PUBLIC_URL') {
+                return 'https://genfeed.ai/';
               }
               if (key === 'GENFEEDAI_API_URL') {
                 return 'http://api.genfeed.internal:3010';
@@ -143,11 +148,15 @@ describe('RssService', () => {
       expect(feed).toContain('Genfeed Articles');
     });
 
-    it('should include article URLs in feed', async () => {
+    it('links each article under its public brand handle', async () => {
       const feed = await service.generateGlobalFeed();
 
-      expect(feed).toContain('https://genfeed.ai/articles/test-article-1');
-      expect(feed).toContain('https://genfeed.ai/articles/test-article-2');
+      expect(feed).toContain(
+        '<link>https://genfeed.ai/@genfeedai/articles/test-article-1</link>',
+      );
+      expect(feed).toContain(
+        '<link>https://genfeed.ai/@shayla/articles/test-article-2</link>',
+      );
     });
 
     it('should include article summaries', async () => {

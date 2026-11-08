@@ -1,4 +1,18 @@
+/** One h2 or h3 of an article body, anchored by `id`. */
+export interface ArticleSection {
+  id: string;
+  label: string;
+  level: 2 | 3;
+}
+
+export interface ArticleSections {
+  html: string;
+  sections: ArticleSection[];
+}
+
 export interface PublicArticleViewProps {
+  /** The creator handle in the URL; the article must belong to it. */
+  handle: string;
   /**
    * Present only on the preview route. The public route never forwards one, so
    * it stays statically renderable.
@@ -8,6 +22,7 @@ export interface PublicArticleViewProps {
 }
 
 export interface PublicArticleRouteParams {
+  handle: string;
   slug: string;
 }
 
@@ -44,6 +59,8 @@ export interface ArticleResourceProps {
 export interface ArticleContentProps {
   applyHref: string;
   sanitizedHtml: string;
+  /** The body's outline, built on the server with the heading anchors. */
+  sections?: ArticleSection[];
   slug?: string;
   resource?: ArticleResource | null;
 }

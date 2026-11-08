@@ -24,6 +24,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { ApiKeyScope } from '@genfeedai/contracts';
+import { creatorArticlePreviewPath } from '@genfeedai/contracts/constants';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { ArticleSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
@@ -254,13 +255,12 @@ export class ArticlesController extends BaseCRUDController<
       ErrorResponse.notFound(this.entityName, articleId);
     }
 
-    if (
-      !(await this.articlesService.publicArticleScope.isHostedOrganization(
-        String(article.organizationId),
-      ))
-    ) {
+    const handle = await this.articlesService.resolvePublicHandle(
+      String(article.id),
+    );
+    if (!handle) {
       throw new BadRequestException(
-        'Only Genfeed articles are hosted on genfeed.ai, so this article has no public preview.',
+        'Only articles of a public brand are hosted on genfeed.ai, so this article has no public preview.',
       );
     }
 
@@ -286,7 +286,7 @@ export class ArticlesController extends BaseCRUDController<
 
     return {
       expiresInSeconds: ARTICLE_PREVIEW_TOKEN_TTL_SECONDS,
-      url: `${publicUrl}/articles/${slug}?previewToken=${token}`,
+      url: `${publicUrl}${creatorArticlePreviewPath(handle, slug)}?previewToken=${token}`,
     };
   }
 

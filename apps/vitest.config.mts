@@ -346,12 +346,8 @@ export default defineConfig({
         replacement: path.resolve(appRoot, './app/$1'),
       },
       {
-        find: /^@u$/,
-        replacement: path.resolve(appRoot, './app/u'),
-      },
-      {
-        find: /^@u\/(.*)$/,
-        replacement: path.resolve(appRoot, './app/u/$1'),
+        find: /^@creator\/(.*)$/,
+        replacement: path.resolve(appRoot, './app/creator-profile/[handle]/$1'),
       },
       {
         find: /^@web-components$/,

@@ -46,6 +46,14 @@ describe('website next.config', () => {
           ],
           source: '/',
         },
+        {
+          destination: '/creator-profile/:handle',
+          source: '/@:handle([a-z0-9]+(?:-[a-z0-9]+)*)',
+        },
+        {
+          destination: '/creator-profile/:handle/:path*',
+          source: '/@:handle([a-z0-9]+(?:-[a-z0-9]+)*)/:path*',
+        },
       ],
       fallback: [],
     });
@@ -74,6 +82,16 @@ describe('website next.config', () => {
       destination: 'https://api.genfeed.ai/v1/openapi.json',
       permanent: false,
       source: '/openapi.json',
+    });
+  });
+
+  it('moves the pre-handle article addresses to the @genfeedai profile', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).toContainEqual({
+      destination: '/@genfeedai/articles/:slug/:path*',
+      permanent: true,
+      source: '/articles/:slug/:path*',
     });
   });
 

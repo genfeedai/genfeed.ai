@@ -122,6 +122,9 @@ describe('ArticleTrafficService', () => {
     expect(body.query.query).toContain(
       "properties.$pathname = '/articles/tested-guide'",
     );
+    expect(body.query.query).toContain(
+      "endsWith(properties.$pathname, '/articles/tested-guide')",
+    );
     expect(body.query.query).toContain('previewToken');
     expect(JSON.stringify(result)).not.toContain('server-read-key');
   });

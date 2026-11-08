@@ -1,5 +1,13 @@
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import {
+  PUBLIC_ARTICLE_BRAND_INCLUDE,
+  stripPrivateBrand,
+} from '@api/helpers/utils/public-brand/public-brand-filter.util';
 import { ArticleScope } from '@genfeedai/contracts';
+import {
+  articleHandle,
+  creatorArticlePath,
+} from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
@@ -12,7 +20,10 @@ interface ArticleFeed {
   content: string;
   publishedAt?: Date;
   createdAt?: Date;
+  brand?: { slug?: string | null } | null;
 }
+
+const TRAILING_SLASH_PATTERN = /\/+$/;
 
 /** A feed carries the newest items only; readers never page through RSS. */
 const RSS_ITEM_LIMIT = 50;
@@ -35,7 +46,17 @@ export class RssService {
     private readonly configService: ConfigService,
   ) {
     this.apiUrl = this.configService.apiUrl;
-    this.siteUrl = this.configService.get('GENFEEDAI_APP_URL') ?? '';
+    // Articles live on the public website, not in the app.
+    this.siteUrl = (
+      this.configService.get('GENFEEDAI_PUBLIC_URL') ?? ''
+    ).replace(TRAILING_SLASH_PATTERN, '');
+  }
+
+  private articleUrl(article: ArticleFeed): string {
+    return `${this.siteUrl}${creatorArticlePath(
+      articleHandle(article.brand?.slug),
+      article.slug,
+    )}`;
   }
 
   /**
@@ -60,11 +81,12 @@ export class RssService {
           scope: ArticleScope.PUBLIC,
           ...(await this.articlesService.publicArticleScope.buildWhere()),
         },
+        include: PUBLIC_ARTICLE_BRAND_INCLUDE,
         orderBy: RSS_FEED_ORDER,
       },
       { limit: RSS_ITEM_LIMIT, pagination: false },
     );
-    const articles = result.docs as ArticleFeed[];
+    const articles = (result.docs as ArticleFeed[]).map(stripPrivateBrand);
 
     // Add articles to feed
     for (const article of articles) {
@@ -72,9 +94,9 @@ export class RssService {
         custom_elements: [{ 'content:encoded': { _cdata: article.content } }],
         date: article.publishedAt || article.createdAt || new Date(),
         description: article.summary,
-        guid: `${this.siteUrl}/articles/${article.slug}`,
+        guid: this.articleUrl(article),
         title: article.label,
-        url: `${this.siteUrl}/articles/${article.slug}`,
+        url: this.articleUrl(article),
       });
     }
 
@@ -104,11 +126,12 @@ export class RssService {
           ...(await this.articlesService.publicArticleScope.buildWhere()),
           userId: userId,
         },
+        include: PUBLIC_ARTICLE_BRAND_INCLUDE,
         orderBy: RSS_FEED_ORDER,
       },
       { limit: RSS_ITEM_LIMIT, pagination: false },
     );
-    const articles = result.docs as ArticleFeed[];
+    const articles = (result.docs as ArticleFeed[]).map(stripPrivateBrand);
 
     // Add articles to feed
     for (const article of articles) {
@@ -116,9 +139,9 @@ export class RssService {
         custom_elements: [{ 'content:encoded': { _cdata: article.content } }],
         date: article.publishedAt || article.createdAt || new Date(),
         description: article.summary,
-        guid: `${this.siteUrl}/articles/${article.slug}`,
+        guid: this.articleUrl(article),
         title: article.label,
-        url: `${this.siteUrl}/articles/${article.slug}`,
+        url: this.articleUrl(article),
       });
     }
 
@@ -148,11 +171,12 @@ export class RssService {
           scope: ArticleScope.PUBLIC,
           ...(await this.articlesService.publicArticleScope.buildWhere()),
         },
+        include: PUBLIC_ARTICLE_BRAND_INCLUDE,
         orderBy: RSS_FEED_ORDER,
       },
       { limit: RSS_ITEM_LIMIT, pagination: false },
     );
-    const articles = result.docs as ArticleFeed[];
+    const articles = (result.docs as ArticleFeed[]).map(stripPrivateBrand);
 
     // Add articles to feed
     for (const article of articles) {
@@ -160,9 +184,9 @@ export class RssService {
         custom_elements: [{ 'content:encoded': { _cdata: article.content } }],
         date: article.publishedAt || article.createdAt || new Date(),
         description: article.summary,
-        guid: `${this.siteUrl}/articles/${article.slug}`,
+        guid: this.articleUrl(article),
         title: article.label,
-        url: `${this.siteUrl}/articles/${article.slug}`,
+        url: this.articleUrl(article),
       });
     }
 
@@ -192,11 +216,12 @@ export class RssService {
           scope: ArticleScope.PUBLIC,
           ...(await this.articlesService.publicArticleScope.buildWhere()),
         },
+        include: PUBLIC_ARTICLE_BRAND_INCLUDE,
         orderBy: RSS_FEED_ORDER,
       },
       { limit: RSS_ITEM_LIMIT, pagination: false },
     );
-    const articles = result.docs as ArticleFeed[];
+    const articles = (result.docs as ArticleFeed[]).map(stripPrivateBrand);
 
     // Add articles to feed
     for (const article of articles) {
@@ -204,9 +229,9 @@ export class RssService {
         custom_elements: [{ 'content:encoded': { _cdata: article.content } }],
         date: article.publishedAt || article.createdAt || new Date(),
         description: article.summary,
-        guid: `${this.siteUrl}/articles/${article.slug}`,
+        guid: this.articleUrl(article),
         title: article.label,
-        url: `${this.siteUrl}/articles/${article.slug}`,
+        url: this.articleUrl(article),
       });
     }
 

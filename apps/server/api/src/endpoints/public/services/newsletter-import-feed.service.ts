@@ -2,6 +2,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { renderNewsletterHtml } from '@api/collections/newsletters/utils/newsletter-html.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { creatorProfilePath } from '@genfeedai/contracts/constants';
 import type {
   NewsletterFeedBrand,
   NewsletterImportRecord,
@@ -50,8 +51,9 @@ export class NewsletterImportFeedService {
     private readonly configService: ConfigService,
   ) {
     this.apiUrl = versionedApiUrl(this.configService.apiUrl);
+    // Profiles live on the public website, not in the app.
     this.siteUrl = trimTrailingSlash(
-      this.configService.get('GENFEEDAI_APP_URL') ?? '',
+      this.configService.get('GENFEEDAI_PUBLIC_URL') ?? '',
     );
   }
 
@@ -60,7 +62,7 @@ export class NewsletterImportFeedService {
     const newsletters = await this.findPublishedNewsletters(brandId);
     const feedUrl = `${this.apiUrl}/public/rss/brands/${brandId}/newsletters`;
     const siteUrl = brand.slug
-      ? `${this.siteUrl}/u/${brand.slug}`
+      ? `${this.siteUrl}${creatorProfilePath(brand.slug)}`
       : this.siteUrl;
     const latestChange = newsletters.reduce<Date>((latest, newsletter) => {
       const candidate =

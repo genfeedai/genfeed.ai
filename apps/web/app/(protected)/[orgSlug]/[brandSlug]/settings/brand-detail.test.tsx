@@ -333,7 +333,7 @@ describe('BrandDetail', () => {
       screen.getByRole('button', { name: 'Copy Public Profile' }),
     );
     expect(mocks.handleCopy).toHaveBeenCalledWith(
-      'https://genfeed.test/u/brand-handle',
+      'https://genfeed.test/@brand-handle',
     );
     fireEvent.click(screen.getByRole('button', { name: 'Disable Public' }));
     expect(mocks.handleUpdateAccount).toHaveBeenCalledWith(

@@ -3,7 +3,10 @@
 import { useBrandCreateModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonVariant } from '@genfeedai/contracts';
-import { createBrandAppRoute } from '@genfeedai/contracts/constants';
+import {
+  createBrandAppRoute,
+  creatorProfilePath,
+} from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
@@ -112,7 +115,7 @@ export default function MenuBrandSwitcher({
           ? [
               {
                 ariaLabel: `Open ${b.label ?? 'brand'} public profile`,
-                href: `${EnvironmentService.apps.website}/u/${b.slug}`,
+                href: `${EnvironmentService.apps.website}${creatorProfilePath(b.slug)}`,
                 icon: UserRound,
                 onAction: () => undefined,
                 target: '_blank' as const,

@@ -1,7 +1,12 @@
 'use client';
 
 import { AssetCategory, AssetScope, ModalEnum } from '@genfeedai/contracts';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  creatorProfilePath,
+  GENFEED_BRAND_HANDLE,
+  MODEL_KEYS,
+  PUBLIC_ARTICLES_ORGANIZATION_SLUG,
+} from '@genfeedai/contracts/constants';
 import type { ILink } from '@genfeedai/contracts/interfaces';
 import { isPublicAssetScope } from '@genfeedai/helpers';
 import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
@@ -101,10 +106,20 @@ export default function BrandDetail() {
       return;
     }
 
-    handleCopy(`${EnvironmentService.apps.website}/u/${brand.slug}`);
+    handleCopy(
+      `${EnvironmentService.apps.website}${creatorProfilePath(brand.slug)}`,
+    );
   };
 
   const isPublicProfile = isPublicAssetScope(brand?.scope);
+  // Mirrors what genfeed.ai serves: a public brand's articles at its handle,
+  // Genfeed's own organization at @genfeedai.
+  const articlesPublicHandle =
+    isPublicProfile && brand?.slug
+      ? brand.slug
+      : orgSlug === PUBLIC_ARTICLES_ORGANIZATION_SLUG
+        ? GENFEED_BRAND_HANDLE
+        : undefined;
 
   if (!hasBrandId) {
     return (
@@ -160,7 +175,10 @@ export default function BrandDetail() {
 
               <BrandDetailLatestVideos videos={videos} />
               <BrandDetailLatestImages images={images} />
-              <BrandDetailLatestArticles articles={articles} />
+              <BrandDetailLatestArticles
+                articles={articles}
+                publicHandle={articlesPublicHandle}
+              />
             </div>
 
             <div className="md:col-span-4">

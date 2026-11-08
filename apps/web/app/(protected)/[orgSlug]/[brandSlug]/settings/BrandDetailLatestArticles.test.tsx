@@ -173,7 +173,9 @@ describe('BrandDetailLatestArticles', () => {
         coverImageUrl: 'https://media.example.test/fallback.jpg',
       }),
     ];
-    render(<BrandDetailLatestArticles articles={articles} />);
+    render(
+      <BrandDetailLatestArticles articles={articles} publicHandle="moonrise" />,
+    );
     const grid = screen.getByText('Article 2').closest('.grid');
     expect(grid).toHaveClass(
       'grid-cols-1',
@@ -218,9 +220,9 @@ describe('BrandDetailLatestArticles', () => {
     );
     const links = screen.getAllByRole('link', { name: 'Read article' });
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
-      'https://www.example.test/articles/article-2',
-      'https://www.example.test/articles/article-1',
-      'https://www.example.test/articles/article-3',
+      'https://www.example.test/@moonrise/articles/article-2',
+      'https://www.example.test/@moonrise/articles/article-1',
+      'https://www.example.test/@moonrise/articles/article-3',
     ]);
     for (const link of links) {
       expect(link).toHaveAttribute('target', '_blank');
@@ -252,10 +254,24 @@ describe('BrandDetailLatestArticles', () => {
       'href',
       'https://other-app.example.test/other/brand/agent/new?prompt=Help+me+write+a+new+long-form+article+for+my+brand.',
     );
-    rerender(<BrandDetailLatestArticles articles={[makeArticle('1')]} />);
+    rerender(
+      <BrandDetailLatestArticles
+        articles={[makeArticle('1')]}
+        publicHandle="moonrise"
+      />,
+    );
     expect(screen.getByRole('link', { name: 'Read article' })).toHaveAttribute(
       'href',
-      'https://other-www.example.test/articles/article-1',
+      'https://other-www.example.test/@moonrise/articles/article-1',
     );
+  });
+
+  it('offers no reading link for a brand genfeed.ai does not host', () => {
+    render(<BrandDetailLatestArticles articles={[makeArticle('1')]} />);
+
+    expect(screen.getByText('Article 1')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Read article' }),
+    ).not.toBeInTheDocument();
   });
 });

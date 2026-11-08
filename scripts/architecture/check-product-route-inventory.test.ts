@@ -202,14 +202,16 @@ describe('runCheckProductRouteInventory', () => {
     // /agent/[id]/full pages (org and brand) are gone: full view is
     // /agent/[id]?view=full. Library gained the digital twin page. The lead
     // invite moved from the app's /preview/[token] to the website's
-    // /u/[handle]/invite/[token].
+    // /@handle/invite/[token]. Creator profiles, their tabs and their articles
+    // live under /creator-profile/[handle] (served at /@handle), and the
+    // website gained /community.
     expect(runCheckProductRouteInventory()).toMatchObject({
       appPublicRouteCount: 25,
       issues: [],
       protectedPageCount: 245,
       protectedRouteCount: 267,
-      publicRouteCount: 112,
-      websitePublicRouteCount: 87,
+      publicRouteCount: 118,
+      websitePublicRouteCount: 93,
     });
   });
 });

@@ -2,11 +2,15 @@ import type { ArticleDocument } from '@api/collections/articles/schemas/article.
 import { buildArticlePublishedDispatch } from '@api/collections/articles/utils/article-published-notification.util';
 import { describe, expect, it } from 'vitest';
 
-function readPublicUrl(publicBaseUrl: string | undefined): unknown {
+function readPublicUrl(
+  publicBaseUrl: string | undefined,
+  handle: string | null,
+): unknown {
   const dispatch = buildArticlePublishedDispatch(
     { id: 'article_1', label: 'Launch', slug: 'launch' } as ArticleDocument,
     'org_1',
     publicBaseUrl,
+    handle,
   );
   const payload = dispatch.messages[0]?.message.payload as {
     publicUrl?: string;
@@ -15,13 +19,16 @@ function readPublicUrl(publicBaseUrl: string | undefined): unknown {
 }
 
 describe('buildArticlePublishedDispatch', () => {
-  it('links the genfeed.ai page when the article is hosted there', () => {
-    expect(readPublicUrl('https://genfeed.ai/')).toBe(
-      'https://genfeed.ai/articles/launch',
+  it('links the article under its creator handle on genfeed.ai', () => {
+    expect(readPublicUrl('https://genfeed.ai/', 'genfeedai')).toBe(
+      'https://genfeed.ai/@genfeedai/articles/launch',
     );
   });
 
-  it('omits the link for articles genfeed.ai does not host', () => {
-    expect(readPublicUrl(undefined)).toBeUndefined();
+  it.each([
+    ['no public handle', 'https://genfeed.ai', null],
+    ['no public URL', undefined, 'genfeedai'],
+  ])('omits the link when there is %s', (_case, baseUrl, handle) => {
+    expect(readPublicUrl(baseUrl, handle)).toBeUndefined();
   });
 });

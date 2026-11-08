@@ -5,6 +5,10 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import { verifyArticlePreviewToken } from '@api/helpers/utils/article-preview/article-preview-token.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
+import {
+  PUBLIC_ARTICLE_BRAND_INCLUDE,
+  stripPrivateBrand,
+} from '@api/helpers/utils/public-brand/public-brand-filter.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -109,11 +113,13 @@ export class PublicArticlesController {
     }
 
     const aggregate = {
-      where: matchQuery,
+      include: PUBLIC_ARTICLE_BRAND_INCLUDE,
       orderBy: { [sortBy]: sortOrder === 'desc' ? -1 : 1 },
+      where: matchQuery,
     };
 
     const data = await this.articlesService.findAll(aggregate, options);
+    data.docs = data.docs.map(stripPrivateBrand);
     return serializeCollection(request, ArticleSerializer, data);
   }
 
