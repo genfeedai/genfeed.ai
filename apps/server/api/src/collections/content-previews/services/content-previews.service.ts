@@ -350,6 +350,7 @@ export class ContentPreviewsService {
         logoUrl,
       }),
       expiresAt: preview.expiresAt.toISOString(),
+      handle: brand.slug,
       id: 'preview',
       items,
     };

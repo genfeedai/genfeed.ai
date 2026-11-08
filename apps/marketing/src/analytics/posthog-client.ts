@@ -7,6 +7,7 @@ import {
   type WebsiteAnalyticsEventProperties,
   type WebsiteCtaPayload,
 } from './analytics-events';
+import { hasInvitePath } from './invite-path';
 import { runWhenIdle } from './run-when-idle';
 
 const POSTHOG_PROJECT_KEY_PATTERN = /^phc_[A-Za-z0-9]+$/;
@@ -133,6 +134,7 @@ const MAX_PROPERTY_DEPTH = 6;
 
 function scrubWebsiteAnalyticsValue(value: unknown, depth = 0): unknown {
   if (typeof value === 'string') {
+    if (hasInvitePath(value)) return undefined;
     if (!URL_OR_PATH_VALUE_PATTERN.test(value)) {
       return SENSITIVE_QUERY_PATTERN.test(value) ? undefined : value;
     }
@@ -180,13 +182,18 @@ function scrubWebsiteAnalyticsValue(value: unknown, depth = 0): unknown {
   return scrubbed;
 }
 
-/** Exclude signed previews and keep referral credentials out of SDK URL properties. */
+/**
+ * Exclude signed previews and lead invites, and keep referral credentials out
+ * of SDK URL properties.
+ */
 const protectWebsiteAnalytics: BeforeSendFn = (event) => {
   if (!event) return event;
   if (new URLSearchParams(window.location.search).has('previewToken'))
     return null;
+  if (hasInvitePath(window.location.pathname)) return null;
   const currentUrl = event.properties?.$current_url;
   if (typeof currentUrl === 'string') {
+    if (hasInvitePath(currentUrl)) return null;
     try {
       if (new URL(currentUrl).searchParams.has('previewToken')) return null;
     } catch {
