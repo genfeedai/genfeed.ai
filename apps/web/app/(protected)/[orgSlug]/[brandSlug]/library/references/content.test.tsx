@@ -284,7 +284,7 @@ describe('LibraryCharactersPage', () => {
     });
   });
 
-  it('lists every brand\'s characters at organization scope without a create action', async () => {
+  it("lists every brand's characters at organization scope without a create action", async () => {
     mocks.listCharactersPage.mockResolvedValue(
       paginatedResponse([
         {

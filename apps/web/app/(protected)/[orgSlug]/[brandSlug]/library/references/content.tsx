@@ -118,23 +118,23 @@ export default function LibraryCharactersPage({
       ) : null}
 
       {isOrganizationScope ? null : (
-      <CharacterCreateDialog
-        approve={approve}
-        approveCandidate={approveCandidate}
-        brandId={brandId}
-        brands={brands}
-        canManageSharing={canManageSharing}
-        candidate={candidate}
-        create={create}
-        createCharacter={createCharacter}
-        discardCandidate={discardCandidate}
-        generateSheet={generateSheet}
-        isCreating={isCreating}
-        isGenerating={isGenerating}
-        isOpen={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-        step={step}
-      />
+        <CharacterCreateDialog
+          approve={approve}
+          approveCandidate={approveCandidate}
+          brandId={brandId}
+          brands={brands}
+          canManageSharing={canManageSharing}
+          candidate={candidate}
+          create={create}
+          createCharacter={createCharacter}
+          discardCandidate={discardCandidate}
+          generateSheet={generateSheet}
+          isCreating={isCreating}
+          isGenerating={isGenerating}
+          isOpen={isCreateDialogOpen}
+          onOpenChange={setIsCreateDialogOpen}
+          step={step}
+        />
       )}
     </>
   );
