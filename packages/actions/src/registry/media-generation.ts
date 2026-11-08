@@ -10,6 +10,7 @@ export const MEDIA_GENERATION_TYPES = [
   'video',
   'voice',
   'music',
+  'avatar',
 ] as const;
 
 export type MediaGenerationType = (typeof MEDIA_GENERATION_TYPES)[number];
@@ -26,6 +27,7 @@ export type VisualMediaGenerationType = Extract<
 export const MEDIA_GENERATION_CREDIT_FLOORS: Readonly<
   Record<MediaGenerationType, number>
 > = {
+  avatar: 100,
   image: 50,
   music: 10,
   video: 300,
@@ -66,6 +68,13 @@ export const MEDIA_GENERATION_TYPE_PARAMETERS: Readonly<
     'videoReferences',
   ]),
   voice: new Set([...SHARED_PARAMETERS, 'voiceId']),
+  // The talking-head render of the saved identity (default avatar + voice).
+  avatar: new Set([
+    ...SHARED_PARAMETERS,
+    'aspectRatio',
+    'isVerbatim',
+    'voiceId',
+  ]),
 };
 
 /** Supplied parameters (non-null) that the given type does not accept. */

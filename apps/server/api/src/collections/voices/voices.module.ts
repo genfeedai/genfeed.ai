@@ -45,6 +45,7 @@ import { Module } from '@nestjs/common';
     VoicesOperationsController,
   ],
   exports: [
+    ElevenLabsAccountVoicesService,
     ExternalVoiceCatalogService,
     VoiceCreditsService,
     VoiceGenerationService,

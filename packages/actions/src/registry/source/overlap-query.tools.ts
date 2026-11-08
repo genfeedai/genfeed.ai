@@ -151,7 +151,7 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'List library assets of one type, newest first, for one brand: brandId, else the thread brand, else your current brand; with none of those it lists the whole organization. Failed, archived and rejected assets are left out. Types image, video, music and avatar return id, category, status, url, label or prompt, origin, tags (id and label) and createdAt. Type character lists the active named characters the brand can use, including characters another organization granted to yours for use only (handle, label, description, whether a reference image exists, and who granted it). A revoked grant disappears on the next call.',
+      "List library assets of one type, newest first, for one brand: brandId, else the thread brand, else your current brand; with none of those it lists the whole organization. Failed, archived and rejected assets are left out. Types image, video, music and avatar return id, category, status, url, label or prompt, origin, tags (id and label) and createdAt. Type character lists the active named characters the brand can use, including characters another organization granted to yours for use only (handle, label, description, whether a reference image exists, and who granted it). A revoked grant disappears on the next call. Type voice lists the organization's own saved personal voices (id, name, provider, previewUrl, isBrandDefault); pass that id as generate.voiceId. With source account it browses the voices of the ElevenLabs account the organization connected, with search and paging, and reports connection status (connected, disconnected or invalid): personal voices need the customer's own connected account and never fall back to a platform account. Stock catalog voices are not listed here.",
     name: 'get_assets',
     parameters: {
       properties: {
@@ -186,7 +186,19 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
         },
         q: {
           description:
-            'Type character only. Optional handle or label prefix filter.',
+            'Type character: optional handle or label prefix filter. Type voice with source account: optional voice name search.',
+          type: 'string',
+        },
+        source: {
+          default: 'saved',
+          description:
+            'Type voice only. saved (default) lists voices already saved in the organization; account browses the connected ElevenLabs account, marking voices already saved.',
+          enum: ['saved', 'account'],
+          type: 'string',
+        },
+        pageToken: {
+          description:
+            'Type voice with source account only. nextPageToken from the previous page.',
           type: 'string',
         },
         shelf: {
@@ -211,7 +223,7 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
         },
         type: {
           description: 'Which kind of asset to list.',
-          enum: ['image', 'video', 'music', 'avatar', 'character'],
+          enum: ['image', 'video', 'music', 'avatar', 'character', 'voice'],
           type: 'string',
         },
       },

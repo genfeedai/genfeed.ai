@@ -25,7 +25,11 @@ function withMediaKind(
   const data = result.data;
   if (!data || typeof data !== 'object' || Array.isArray(data)) return result;
   if ('kind' in data) return result;
-  return { ...result, data: { ...data, kind: type } };
+  // An avatar render is a video asset; clients play it like any other clip.
+  return {
+    ...result,
+    data: { ...data, kind: type === 'avatar' ? 'video' : type },
+  };
 }
 
 /**
@@ -130,6 +134,16 @@ export class AgentMediaGenerationToolHandler {
         const { prompt: _prompt, ...voice } = rest;
         return this.assetGeneration.generateVoice(
           { ...voice, text: prompt },
+          ctx,
+        );
+      }
+      case 'avatar': {
+        const { isVerbatim, prompt: _prompt, ...avatar } = rest;
+        return this.generateAsIdentity(
+          {
+            ...avatar,
+            ...(isVerbatim === true ? { text: prompt } : { topic: prompt }),
+          },
           ctx,
         );
       }
