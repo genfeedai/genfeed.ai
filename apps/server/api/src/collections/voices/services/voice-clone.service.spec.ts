@@ -28,7 +28,7 @@ describe('VoiceCloneService', () => {
     organizationId: organizationId,
     userId,
   } as User;
-  const request = {} as Request;
+  let request: Request;
   const personalBinding = {
     credentialVersionId: 'credential-v1',
     kind: 'byok' as const,
@@ -58,7 +58,7 @@ describe('VoiceCloneService', () => {
   };
   let notifications: { publishAssetStatus: ReturnType<typeof vi.fn> };
   let shared: { createMediaDocuments: ReturnType<typeof vi.fn> };
-  let credits: { settleElevenLabsCloneCredits: ReturnType<typeof vi.fn> };
+  let credits: VoiceCreditsService;
   let voices: {
     findOne: ReturnType<typeof vi.fn>;
     patchAll: ReturnType<typeof vi.fn>;
@@ -66,6 +66,9 @@ describe('VoiceCloneService', () => {
   let service: VoiceCloneService;
 
   beforeEach(() => {
+    request = {
+      creditsConfig: { deferred: true, description: 'Voice cloning' },
+    } as unknown as Request;
     connections = {
       findPersonalConnection: vi
         .fn()
@@ -91,7 +94,7 @@ describe('VoiceCloneService', () => {
         ingredientData: { id: ingredientId },
       }),
     };
-    credits = { settleElevenLabsCloneCredits: vi.fn() };
+    credits = new VoiceCreditsService({} as never, {} as never);
     voices = {
       findOne: vi.fn().mockResolvedValue({ id: ingredientId }),
       patchAll: vi.fn(),
@@ -103,7 +106,7 @@ describe('VoiceCloneService', () => {
       logger as unknown as LoggerService,
       notifications as unknown as NotificationsPublisherService,
       shared as unknown as SharedService,
-      credits as unknown as VoiceCreditsService,
+      credits,
       voices as unknown as VoicesService,
     );
   });
@@ -112,19 +115,18 @@ describe('VoiceCloneService', () => {
     await expect(
       service.clone(user, { name: 'Clone' }, undefined, request),
     ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
-    expect(credits.settleElevenLabsCloneCredits).not.toHaveBeenCalled();
+    expect(request).toMatchObject({ creditsConfig: { deferred: true } });
   });
 
-  it('clones synchronously with ElevenLabs and settles the flat charge', async () => {
+  it('clones on the personal ElevenLabs account and charges no platform credits', async () => {
     const file = { buffer: Buffer.from('audio') } as Express.Multer.File;
 
     await expect(
       service.clone(user, { name: 'Clone' }, file, request),
     ).resolves.toMatchObject({ id: ingredientId });
-    expect(credits.settleElevenLabsCloneCredits).toHaveBeenCalledWith(
-      request,
-      organizationId,
-    );
+    expect(request).toMatchObject({
+      creditsConfig: { amount: 0, deferred: false },
+    });
     expect(elevenLabs.cloneVoice).toHaveBeenCalledWith(
       'Clone',
       [file.buffer],
@@ -167,7 +169,7 @@ describe('VoiceCloneService', () => {
         request,
       ),
     ).resolves.toMatchObject({ id: ingredientId });
-    expect(credits.settleElevenLabsCloneCredits).not.toHaveBeenCalled();
+    expect(request).toMatchObject({ creditsConfig: { deferred: true } });
     expect(managedInferenceRuntime.cloneVoice).toHaveBeenCalledWith({
       audioUrl: 'https://example.com/audio.mp3',
       handle: ingredientId,
@@ -230,30 +232,18 @@ describe('VoiceCloneService', () => {
       { isDeleted: true },
     );
   });
-  it('clones on the platform account when no personal connection exists', async () => {
+  it('refuses to clone without a personal ElevenLabs account and creates nothing', async () => {
     connections.findPersonalConnection.mockResolvedValue(undefined);
     const file = { buffer: Buffer.from('audio') } as Express.Multer.File;
 
-    await service.clone(user, { name: 'Clone' }, file, request);
-
-    expect(elevenLabs.cloneVoice).toHaveBeenCalledWith(
-      'Clone',
-      [file.buffer],
-      expect.any(Object),
-      'platform-key',
-    );
-    expect(voices.patchAll).toHaveBeenCalledWith(
-      { id: ingredientId },
-      expect.objectContaining({
-        providerData: {
-          elevenlabs: {
-            category: 'cloned',
-            connection: platformBinding,
-            version: 1,
-          },
-        },
-      }),
-    );
+    await expect(
+      service.clone(user, { name: 'Clone' }, file, request),
+    ).rejects.toMatchObject({
+      response: { title: 'ElevenLabs account required' },
+      status: HttpStatus.BAD_REQUEST,
+    });
+    expect(elevenLabs.cloneVoice).not.toHaveBeenCalled();
+    expect(shared.createMediaDocuments).not.toHaveBeenCalled();
   });
 
   it('deletes a bound clone through its own account, never the platform', async () => {

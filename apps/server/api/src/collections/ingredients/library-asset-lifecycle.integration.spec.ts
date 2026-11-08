@@ -593,7 +593,7 @@ describe('Library asset lifecycle', () => {
           publishAssetStatus: vi.fn(),
         } as unknown as NotificationsPublisherService,
         sharedService as unknown as SharedService,
-        { settleElevenLabsCloneCredits: vi.fn() } as never,
+        { waivePersonalCloneCredits: vi.fn() } as never,
         voicesService,
       ),
       new VoiceLibraryService(voicesService, {
