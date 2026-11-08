@@ -52,10 +52,7 @@ export default function CreateOrganizationDialog({
     },
     [onOpenChange, pathname, push],
   );
-  const createModal = useCreateOrganizationModal(
-    getOrgsService,
-    handleCreated,
-  );
+  const createModal = useCreateOrganizationModal(getOrgsService, handleCreated);
   const translateCreate = useTranslations('ui.organizationCreateModal');
   const { reset } = createModal;
 
