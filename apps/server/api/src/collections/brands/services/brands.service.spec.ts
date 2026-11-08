@@ -466,6 +466,7 @@ describe('BrandsService', () => {
         { select: Record<string, boolean>; where: Record<string, unknown> },
       ];
       expect(query.where).toEqual({
+        OR: [{ isConnected: true }, { externalId: { not: null } }],
         brandId: { in: ['brand-1', 'brand-2'] },
         isDeleted: false,
         organizationId: 'org-1',
@@ -571,6 +572,7 @@ describe('BrandsService', () => {
       const credentialsInclude =
         delegate.findMany.mock.calls[0]?.[0]?.include?.credentials;
       expect(credentialsInclude.where).toEqual({
+        OR: [{ isConnected: true }, { externalId: { not: null } }],
         isDeleted: false,
         organizationId: 'org-1',
       });
