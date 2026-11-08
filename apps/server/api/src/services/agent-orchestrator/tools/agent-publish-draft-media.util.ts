@@ -121,7 +121,7 @@ export async function resolveDraftMediaUrls(input: {
     const id = readLibraryMediaId(url);
     if (!id) {
       return {
-        error: `mediaUrls entry ${url} is not a Library asset URL. Upload it with upload_media and pass the returned url.`,
+        error: `mediaUrls entry ${url} is not a Library asset URL. Upload it to the Library and pass the hosted url.`,
       };
     }
     if (ingredientIds.includes(id)) {
