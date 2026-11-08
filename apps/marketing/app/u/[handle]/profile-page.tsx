@@ -9,7 +9,6 @@ import type { Link as LinkModel } from '@models/social/link.model';
 import BrandProfileHeader, {
   hasBrandProfileHeaderOverlap,
 } from '@ui/brand/BrandProfileHeader';
-import NotFoundPage from '@ui/error/not-found/not-found-page';
 import ProfileArticles from '@web-components/profile/ProfileArticles';
 import ProfileEmptyState from '@web-components/profile/ProfileEmptyState';
 import ProfileFooter from '@web-components/profile/ProfileFooter';
@@ -20,7 +19,7 @@ import '@styles/masonry.css';
 import type { PublicProfilePageData } from './profile-loader';
 
 interface ProfileContentProps {
-  brand?: Brand;
+  brand: Brand;
   handle: string;
   links: LinkModel[];
   referralCode?: string | null;
@@ -38,10 +37,6 @@ function ProfileContent({
   images,
   articles,
 }: ProfileContentProps): React.ReactElement {
-  if (!brand) {
-    return <NotFoundPage homeHref="/" homeLabel="Go to Home" />;
-  }
-
   const hasContent =
     (links?.length ?? 0) > 0 ||
     videos.length > 0 ||
@@ -127,14 +122,14 @@ export default function PublicProfileContent({
   articles,
   links,
   referralCode,
-}: PublicProfilePageData & { handle: string }) {
+}: Omit<PublicProfilePageData, 'brand'> & { brand: Brand; handle: string }) {
   return (
     <div
       className="min-h-screen flex flex-col py-8 px-4"
-      style={{ backgroundColor: brand?.backgroundColor || '#000' }}
+      style={{ backgroundColor: brand.backgroundColor || '#000' }}
     >
       <ProfileContent
-        brand={brand ?? undefined}
+        brand={brand}
         handle={handle}
         links={links}
         referralCode={referralCode}

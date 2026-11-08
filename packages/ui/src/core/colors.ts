@@ -12,7 +12,7 @@
  * | ------------------------ | ------- | ------- |
  * | foreground               | 16.91:1 | 17.18:1 |
  * | mutedForeground          |  7.66:1 |  7.49:1 |
- * | card vs background       |  1.09:1 |  1.06:1 |
+ * | card vs background       |  1.12:1 |  1.06:1 |
  * | border vs background     |  1.57:1 |  1.35:1 |
  * | destructive (as text)    |  6.74:1 |  4.83:1 |
  * | success (as text)        |  7.80:1 |  5.48:1 |
@@ -76,11 +76,12 @@ export const semanticColorTokens = {
     background: { hex: '#000000', hsl: '0 0% 0%' },
     // Nested fill inside a card (inputs, chips), half a step below gray-200 so
     // a filled input stays quieter than its hover.
-    tertiary: { hex: '#161616', hsl: '0 0% 9%' },
+    tertiary: { hex: '#1A1A1A', hsl: '0 0% 10%' },
     border: { hex: '#262626', hsl: '0 0% 15%' },
     borderStrong: { hex: '#3D3D3D', hsl: '0 0% 24%' },
-    // The near-black plane, one step above the pure-black canvas.
-    card: { hex: '#0A0A0A', hsl: '0 0% 4%' },
+    // The card plane, one clear step above the pure-black canvas (Codex). A
+    // #0A0A0A card measured 1.06:1 on black and read as no surface at all.
+    card: { hex: '#121212', hsl: '0 0% 7%' },
     cardForeground: { hex: '#EDEDED', hsl: '0 0% 93%' },
     // #DC2626 only reaches 4.10:1 on this canvas — fails AA as text.
     destructive: { hex: '#FF6166', hsl: '358 100% 69%' },
@@ -96,7 +97,7 @@ export const semanticColorTokens = {
     // One step above the near-black planes (gray-200 territory stays for
     // hover), so menus read as lifted off the app chrome they open over, plus
     // the shadow-dropdown hairline.
-    popover: { hex: '#161616', hsl: '0 0% 9%' },
+    popover: { hex: '#1A1A1A', hsl: '0 0% 10%' },
     popoverForeground: { hex: '#EDEDED', hsl: '0 0% 93%' },
     primary: { hex: '#EDEDED', hsl: '0 0% 93%' },
     primaryForeground: { hex: '#0A0A0A', hsl: '0 0% 4%' },

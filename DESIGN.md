@@ -15,7 +15,7 @@ colors:
   #   100 1.09/1.04 · 200 1.20/1.12 · 300 1.38/1.23 · 400 1.57/1.35
   #   500 2.23/1.71 · 600 3.45/2.42 · 700 5.01/3.10 · 800 6.53/4.54
   #   900 7.66/7.49 · 1000 16.91/17.18
-  gray-100: "#0A0A0A"   # subtle fill · raised surface (card, panel, sidebar)
+  gray-100: "#0A0A0A"   # subtle fill · app chrome (rail, topbar, sidebar)
   gray-200: "#1F1F1F"   # nested fill · hover on a raised surface
   gray-300: "#2A2A2A"   # active / selected fill
   gray-400: "#333333"   # border step for hand-built edges
@@ -29,12 +29,13 @@ colors:
   # ── Surfaces (semantic aliases onto the ladder) ───────────────────────────
   # Four planes, one step apart: canvas -> card -> nested fill -> hover. Each
   # name is the Tailwind colour it ships as (bg-background, bg-card, ...).
-  # Dark is Codex/Vercel: a pure-black page and a near-black plane (app chrome,
-  # cards, panels). Type stays capped at #EDEDED so it does not bloom on black.
+  # Dark is Codex/Vercel: a pure-black page, near-black app chrome (gray-100)
+  # and a card plane one clear step up. Type stays capped at #EDEDED so it does
+  # not bloom on black.
   background: "#000000"
-  card: "#0A0A0A"
-  tertiary: "#161616"
-  elevated: "#161616"
+  card: "#121212"
+  tertiary: "#1A1A1A"
+  elevated: "#1A1A1A"
   hover: "#2A2A2A"
 
   # ── Structure ─────────────────────────────────────────────────────────────
@@ -347,7 +348,7 @@ components:
     textColor: "{colors.agent}"
     rounded: "{rounded.full}"
   workspace-composer:
-    backgroundColor: "{colors.card}"
+    backgroundColor: "{colors.accent}"
     textColor: "{colors.foreground}"
     rounded: "{rounded.xl}"
   workspace-overlay:
@@ -448,10 +449,11 @@ theme is not a second design to maintain, it is the same design with the ladder
 turned over.
 
 The dark canvas is pure black (`#000000`) with a near-black `#0A0A0A` plane for
-the app chrome, cards and panels — the Codex/Vercel look, where elevation comes
-from that one step plus hairline borders rather than grays. The primary text is
-deliberately not pure white: `#EDEDED` keeps glyph edges from blooming on black
-at 14px. Maximum contrast and maximum readability are not the same target.
+the app chrome and a `#121212` card plane for cards and panels — the
+Codex/Vercel look, where elevation comes from those steps plus hairline borders.
+A `#0A0A0A` card measured 1.06:1 on black and read as no surface at all. The
+primary text is deliberately not pure white: `#EDEDED` keeps glyph edges from
+blooming on black at 14px. Maximum contrast and maximum readability are not the same target.
 
 The YAML block above records the **Dark reference**. Light values live in the same
 token source, at the same step names.
@@ -504,14 +506,16 @@ Four planes, one step apart, and no fifth:
 1. `bg-background` — the page canvas. The app rail and the topbar sit on the
    `gray-100` window plane; the menu shares that step inside the page block —
    see Shell Layout.
-2. `bg-card` / `bg-elevated` — the raised content plane: cards, panels and
-   the composer on `bg-card` (`gray-100` in Dark, white in Light). Overlays
-   (dropdowns, dialogs, tooltips) sit on `bg-elevated` (`popover`): `#161616`
+2. `bg-card` / `bg-elevated` — the raised content plane: cards and panels on
+   `bg-card` (`#121212` in Dark, white in Light). Overlays
+   (dropdowns, dialogs, tooltips) sit on `bg-elevated` (`popover`): `#1A1A1A`
    in Dark so they lift off the card plane, white in Light.
 3. `bg-tertiary` / `accent` — one step above the card: fills nested *inside* a
-   card, inputs, chips, and the hover state of a row that sits on a card.
+   card, inputs, chips, and the hover state of a row that sits on a card. The
+   prompt bar and its suggestion chips sit on `accent` (`gray-200`): the one
+   input that has to read against the black canvas from across the page.
    `accent` is `gray-200` in both themes; `tertiary` is `gray-200` in Light and
-   `#161616` in Dark, half a step below `gray-200` so a filled input stays
+   `#1A1A1A` in Dark, half a step below `gray-200` so a filled input stays
    quieter than its hover.
 4. `bg-hover` — the hover step (`gray-300`). It is a step above `bg-tertiary`
    specifically so hover stays visible on all three planes beneath it.
@@ -705,9 +709,10 @@ render identically. The rule is that a raised surface must have **an edge and a
 plane shift** — a card that differs from the canvas by 1.09:1 and has no edge is
 invisible, which is exactly what the previous `#080808`-on-`#030303` card was.
 
-The docked composer is the exception: it carries no shadow at all. An outer lift
-or a 1px ring on the glass prompt bar reads as a muddy slab, so the bar separates
-by plane only (glass fill, border and radius from `PROMPT_BAR_SURFACE_CLASS`).
+The docked composer is the exception: it carries no shadow, blur or glass. A
+translucent bar over the canvas is the canvas, so it vanished on black; the bar
+separates by plane only (the solid `accent` fill, `border` and radius from
+`PROMPT_BAR_SURFACE_CLASS`). It never changes size or animates on its own.
 
 Reserve plain `border` for structural dividers (the menu sidebar's right
 edge, the topbar's bottom edge, header separators) where there is no elevation

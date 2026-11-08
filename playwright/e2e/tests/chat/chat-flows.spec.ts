@@ -237,7 +237,7 @@ async function sendAndAwaitThreadRoute(
   await agentPage.goto();
   await assertNoErrorBoundaryFallback(authenticatedPage, agentPage.url);
   const expectedThreadUrl = orgPath(
-    `${APP_ROUTES.AGENT.ROOT}/${threadId}/full`,
+    `${APP_ROUTES.AGENT.ROOT}/${threadId}?view=full`,
   );
   const expectedThreadUrlPattern = exactUrlPattern(
     expectedThreadUrl,

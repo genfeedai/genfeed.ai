@@ -109,6 +109,23 @@ export class InstagramAccountsService {
     }
   }
 
+  /**
+   * Profiles for Instagram account ids learned some other way than the
+   * assigned-accounts edge (the token's `debug_token` grant targets). Each
+   * read is best-effort and independent, like the batch in the list above.
+   */
+  @Traced()
+  public async describeInstagramAccounts(
+    accountIds: string[],
+    accessToken: string,
+  ): Promise<InstagramPageResponse[]> {
+    return Promise.all(
+      accountIds.map((accountId) =>
+        this.readInstagramAccountProfile(accountId, undefined, accessToken),
+      ),
+    );
+  }
+
   /** Display name and avatar for one account; a failed read leaves them out. */
   @Traced()
   private async readInstagramAccountProfile(

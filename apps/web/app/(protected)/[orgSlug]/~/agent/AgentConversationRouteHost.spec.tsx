@@ -4,19 +4,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AgentConversationRouteHost from './AgentConversationRouteHost';
 
 const pathnameState = { current: '/test-org/~/agent' };
+const searchState = { current: '' };
 const shellRenderSpy = vi.fn();
 const shellMountSpy = vi.fn();
 const shellUnmountSpy = vi.fn();
 
-const pushMock = vi.fn();
-
 vi.mock('next/navigation', () => ({
   usePathname: () => pathnameState.current,
-  useRouter: () => ({ push: pushMock }),
-}));
-
-vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ orgHref: (path: string) => `/test-org/~${path}` }),
+  useSearchParams: () => new URLSearchParams(searchState.current),
 }));
 
 vi.mock('next-intl', () => ({
@@ -43,8 +38,14 @@ vi.mock('./AgentMasterWorkspace', () => ({
   ),
 }));
 
-function renderHost(pathname: string) {
-  pathnameState.current = pathname;
+function setLocation(url: string | null) {
+  const [pathname, search = ''] = (url ?? '').split('?');
+  pathnameState.current = (url === null ? null : pathname) as string;
+  searchState.current = search;
+}
+
+function renderHost(url: string | null) {
+  setLocation(url);
   return render(
     <AgentConversationRouteHost>
       <div data-testid="route-page" />
@@ -57,7 +58,6 @@ describe('AgentConversationRouteHost', () => {
     shellRenderSpy.mockClear();
     shellMountSpy.mockClear();
     shellUnmountSpy.mockClear();
-    pushMock.mockClear();
   });
 
   it('exposes the documented default export', () => {
@@ -106,9 +106,10 @@ describe('AgentConversationRouteHost', () => {
     ).toBeNull();
   });
 
-  it('renders a thread full size on /agent/[id]/full with a way back to the two columns', () => {
+  it('renders a thread full size on /agent/[id]?view=full with a way back to the two columns', () => {
+    const pushState = vi.spyOn(window.history, 'pushState');
     const { getByTestId, queryByTestId } = renderHost(
-      '/test-org/~/agent/thread-1/full',
+      '/test-org/~/agent/thread-1?view=full',
     );
 
     expect(getByTestId('conversation-shell')).toHaveTextContent('thread-1');
@@ -118,7 +119,22 @@ describe('AgentConversationRouteHost', () => {
       screen.getByRole('button', { name: 'Back to master and threads' }),
     );
 
-    expect(pushMock).toHaveBeenCalledWith('/test-org/~/agent/thread-1');
+    expect(pushState).toHaveBeenCalledWith(
+      null,
+      '',
+      '/test-org/~/agent/thread-1',
+    );
+    pushState.mockRestore();
+  });
+
+  it('serves no full view from the retired /agent/[id]/full path', () => {
+    const { queryByTestId, getByTestId } = renderHost(
+      '/test-org/~/agent/thread-1/full',
+    );
+
+    expect(queryByTestId('conversation-shell')).toBeNull();
+    expect(queryByTestId('master-workspace')).toBeNull();
+    expect(getByTestId('route-page')).toBeInTheDocument();
   });
 
   it('has no way back on /agent/new, which has no thread to return from', () => {
@@ -129,14 +145,14 @@ describe('AgentConversationRouteHost', () => {
     ).toBeNull();
   });
 
-  it('keeps one mounted shell while the full-size thread route changes', () => {
+  it('keeps one mounted shell while the full-size thread changes', () => {
     const { rerender, getByTestId } = renderHost(
-      '/test-org/~/agent/thread-1/full',
+      '/test-org/~/agent/thread-1?view=full',
     );
     expect(getByTestId('conversation-shell')).toHaveTextContent('thread-1');
     expect(shellMountSpy).toHaveBeenCalledTimes(1);
 
-    pathnameState.current = '/test-org/~/agent/thread-2/full';
+    setLocation('/test-org/~/agent/thread-2?view=full');
     rerender(
       <AgentConversationRouteHost>
         <div data-testid="route-page" />
@@ -147,7 +163,7 @@ describe('AgentConversationRouteHost', () => {
     expect(shellMountSpy).toHaveBeenCalledTimes(1);
     expect(shellUnmountSpy).not.toHaveBeenCalled();
 
-    pathnameState.current = '/test-org/~/agent/new';
+    setLocation('/test-org/~/agent/new');
     rerender(
       <AgentConversationRouteHost>
         <div data-testid="route-page" />
@@ -160,7 +176,7 @@ describe('AgentConversationRouteHost', () => {
   });
 
   it('wraps the conversation in a full-height frame', () => {
-    const { getByTestId } = renderHost('/test-org/~/agent/thread-9/full');
+    const { getByTestId } = renderHost('/test-org/~/agent/thread-9?view=full');
 
     const shell = getByTestId('conversation-shell');
     expect(shell).toHaveTextContent('thread-9');
@@ -175,14 +191,14 @@ describe('AgentConversationRouteHost', () => {
     );
   });
 
-  it('passes no thread id for malformed full-size thread segments', () => {
-    renderHost('/test-org/~/agent/undefined/full');
+  it('passes no thread id for a malformed full-size thread id', () => {
+    renderHost('/test-org/~/agent/undefined?view=full');
 
     expect(shellRenderSpy).toHaveBeenLastCalledWith(undefined);
   });
 
   it('keeps the conversation shell mounted when pathname is unresolved', () => {
-    const { getByTestId } = renderHost(null as unknown as string);
+    const { getByTestId } = renderHost(null);
 
     expect(getByTestId('conversation-shell')).toHaveTextContent('none');
     expect(getByTestId('route-page')).toBeInTheDocument();

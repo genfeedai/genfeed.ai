@@ -123,7 +123,7 @@ test.describe('Chat flow interactions', () => {
   }) => {
     // Redirects for retired entries were removed (hard cuts). `onboarding` is
     // now just an id no thread has, so the API answers 404 for it and the
-    // full-size conversation (`/agent/[id]/full`) shows the not-found state
+    // full-size conversation (`/agent/[id]?view=full`) shows the not-found state
     // with a way back; the split layout (`/agent/[id]`) only opens threads the
     // Threads panel lists. Canonical onboarding
     // stays at /onboarding (onboarding.spec.ts: "keeps the onboarding entry
@@ -136,11 +136,13 @@ test.describe('Chat flow interactions', () => {
       }),
     );
 
-    await authenticatedPage.goto(`${ORG}/agent/onboarding/full`, {
+    await authenticatedPage.goto(`${ORG}/agent/onboarding?view=full`, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/agent\/onboarding\/full$/);
+    await expect(authenticatedPage).toHaveURL(
+      /\/agent\/onboarding\?view=full$/,
+    );
     const notFound = authenticatedPage.getByTestId('agent-thread-not-found');
     await expect(notFound).toBeVisible({ timeout: 30_000 });
     await expect(
