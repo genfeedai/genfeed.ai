@@ -9,7 +9,7 @@ Public destinations pass through `EnvironmentService.help`. Configure these **at
 | Resource | Public environment variable | Default |
 | --- | --- | --- |
 | Documentation | `NEXT_PUBLIC_HELP_DOCUMENTATION_URL` | `https://docs.genfeed.ai` |
-| Cloud getting started | `NEXT_PUBLIC_HELP_GETTING_STARTED_URL` | `https://genfeed.ai/articles/getting-started-with-genfeed-cloud` |
+| Cloud getting started | `NEXT_PUBLIC_HELP_GETTING_STARTED_URL` | `https://genfeed.ai/@genfeedai/articles/getting-started-with-genfeed-cloud` |
 | Self-hosted getting started | `NEXT_PUBLIC_HELP_SELF_HOSTED_START_URL` | `https://docs.genfeed.ai/self-host/installation` |
 | Workflow learning | `NEXT_PUBLIC_HELP_WORKFLOWS_URL` | `https://docs.genfeed.ai/guides/studio` |
 | FAQ | `NEXT_PUBLIC_HELP_FAQ_URL` | `https://docs.genfeed.ai/faq` |

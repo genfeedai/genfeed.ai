@@ -1,137 +1,69 @@
-import { CardVariant } from '@genfeedai/contracts';
+import { getAppSignUpUrl } from '@data/app-links';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { Article } from '@models/content/article.model';
 import type { PublicListPageProps } from '@props/website/public-list-page.props';
-import Card from '@ui/card/Card';
-import { Badge } from '@ui/primitives/badge';
+import Pagination from '@ui/navigation/pagination/Pagination';
+import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
-import PublicListPage from '@web-components/content/PublicListPage';
-import { Calendar, Clock } from 'lucide-react';
+import CreatorArticleGrid from '@web-components/creator/CreatorArticleGrid';
 import Link from 'next/link';
-import ArticleCover from './article-cover';
-
-const HTML_TAGS_PATTERN = /<[^>]*>/g;
 
 interface ArticlesListProps {
   articles: Article[];
   pagination?: PublicListPageProps['pagination'];
 }
 
-const articleDateFormatter = new Intl.DateTimeFormat('en-US', {
-  day: 'numeric',
-  month: 'short',
-  timeZone: 'UTC',
-  year: 'numeric',
-});
-
-function formatArticleDate(publishedAt: string): string {
-  return articleDateFormatter.format(new Date(publishedAt));
-}
-
+/**
+ * Every article published on Genfeed, newest first, in the `/community`
+ * frame. Each card files under its author's profile at `/@handle`.
+ */
 export default function ArticlesList({
   articles,
   pagination,
 }: ArticlesListProps) {
   return (
-    /*
-      The site shell already says where you are, so the page repeats no title
-      of its own. `label` stays for the accessible name and the breadcrumb;
-      `isLabelHidden` is what drops the visible chrome.
-    */
-    <PublicListPage
-      className="min-h-screen pt-10"
-      isLabelHidden
-      label="Articles"
-      pagination={pagination}
-      totalLabel="articles"
-    >
+    <div className="mx-auto w-full max-w-7xl px-4 pb-24 pt-12 sm:px-6">
+      <header className="mx-auto mb-16 max-w-3xl text-center">
+        <p className="mb-3 text-sm font-medium uppercase tracking-widest text-foreground/50">
+          Articles
+        </p>
+        <h1 className="mb-4 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+          Written by the Genfeed community
+        </h1>
+        <p className="mb-8 text-lg text-foreground/70">
+          Guides, case studies and stories from creators who publish on Genfeed.
+          Every article lives on its author's profile at genfeed.ai/@handle.
+        </p>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button asChild withWrapper={false}>
+            <a href={getAppSignUpUrl()}>Publish yours</a>
+          </Button>
+          <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
+            <Link href="/community">Explore the community</Link>
+          </Button>
+        </div>
+      </header>
+
       {articles.length === 0 ? (
-        <div className="space-y-4">
-          <EmptyState surface="card" title="No articles published yet" />
-          <p className="text-center text-sm text-foreground/60">
-            Explore{' '}
-            <Link href="/features" className="link">
-              Genfeed features
-            </Link>{' '}
-            while the first articles are being prepared.
-          </p>
-        </div>
+        <EmptyState surface="card" title="No articles published yet" />
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-2">
-          {articles.map((article) => {
-            const excerpt = article.content
-              ? `${article.content.replace(HTML_TAGS_PATTERN, ' ').substring(0, 200)}...`
-              : null;
-
-            return (
-              <Link
-                key={article.id}
-                href={`/articles/${article.slug || article.id}`}
-                className="group block"
-              >
-                <Card
-                  isInteractive
-                  variant={CardVariant.BORDERED}
-                  className="h-full"
-                >
-                  <ArticleCover
-                    category={article.category}
-                    className="mb-4 aspect-[16/9]"
-                    coverImageUrl={article.coverImageUrl}
-                    isCompact
-                    label={article.label}
-                    seed={article.slug || article.id}
-                  />
-
-                  <h2 className="mb-2 text-2xl font-semibold transition-colors group-hover:text-primary">
-                    {article.label}
-                  </h2>
-
-                  {article.category && (
-                    <div className="mb-3">
-                      <Badge casing="normal" isSolid shape="pill" size="lg">
-                        {article.category}
-                      </Badge>
-                    </div>
-                  )}
-
-                  {article.summary && (
-                    <p className="mb-4 line-clamp-2 text-base text-foreground/80">
-                      {article.summary}
-                    </p>
-                  )}
-
-                  {excerpt && (
-                    <p className="prose prose-sm dark:prose-invert mb-4 line-clamp-3 max-w-none text-foreground/70">
-                      {excerpt}
-                    </p>
-                  )}
-
-                  <div className="flex flex-wrap items-center gap-4 border-t border-foreground/10 pt-4 text-sm text-foreground/60">
-                    {article.publishedAt && (
-                      <div className="flex items-center gap-2">
-                        <Calendar className="size-4" />
-                        <span>{formatArticleDate(article.publishedAt)}</span>
-                      </div>
-                    )}
-                    {article.readingTime && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="size-4" />
-                        <span>{article.readingTime} min read</span>
-                      </div>
-                    )}
-
-                    {article.author && (
-                      <div className="flex items-center gap-2">
-                        <span>by {article.author}</span>
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
+        <section aria-label="Articles">
+          <CreatorArticleGrid articles={articles} isBylineVisible />
+        </section>
       )}
-    </PublicListPage>
+
+      {/* Keyed on the API's total, not this page's items: a page past the
+          end is empty but still needs links back. */}
+      {pagination && pagination.total > 0 ? (
+        <div className="mt-12">
+          <Pagination
+            currentPage={pagination.page}
+            totalItems={pagination.total}
+            totalLabel="articles"
+            totalPages={pagination.totalPages}
+          />
+        </div>
+      ) : null}
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 const LEADING_AT_SIGNS_PATTERN = /^@+/;
 
 /**
- * A brand handle is `Brand.slug`: the `/u/<handle>` public profile path and
+ * A brand handle is `Brand.slug`: the `genfeed.ai/@<handle>` public profile path and
  * the `[brandSlug]` app route segment. It is unique across every brand,
  * including soft-deleted ones, which still hold the database constraint.
  */

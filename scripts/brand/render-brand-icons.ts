@@ -14,7 +14,7 @@ export const MARK_SOURCE_FILES = [
   CANONICAL_LOGO_PATH,
   'packages/helpers/src/ui/icons/brands/genfeed-icon.ts',
   'packages/ui/src/primitives/brand-mark.tsx',
-  'apps/marketing/app/(content)/articles/[slug]/og/brand-mark.tsx',
+  'apps/marketing/src/components/og/brand-mark.tsx',
   'apps/desktop/src/main/boot-screen.ts',
 ] as const;
 

@@ -318,6 +318,19 @@ describe('PublicPostsController', () => {
       });
     });
 
+    it('scopes the read to the brand a creator page names', async () => {
+      const postId = testId('post');
+      const brandId = testId('brand');
+      postsService.findOne.mockResolvedValue(null);
+
+      await controller.getPostMetadata(mockRequest, postId, brandId);
+
+      expect(postsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ brandId, id: postId }),
+        [],
+      );
+    });
+
     it('should not expose a post that is not public', async () => {
       const postId = testId('post');
       const responseUtil = await import(

@@ -220,7 +220,7 @@ export const EnvironmentService = {
     get gettingStarted(): string {
       return (
         process.env.NEXT_PUBLIC_HELP_GETTING_STARTED_URL ??
-        'https://genfeed.ai/articles/getting-started-with-genfeed-cloud'
+        'https://genfeed.ai/@genfeedai/articles/getting-started-with-genfeed-cloud'
       );
     },
     get selfHostedGettingStarted(): string {

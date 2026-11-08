@@ -54,8 +54,8 @@ describe('NewsletterImportFeedService', () => {
               if (key === 'GENFEEDAI_API_URL') {
                 return 'http://api.genfeed.internal:3010';
               }
-              if (key === 'GENFEEDAI_APP_URL') {
-                return 'https://app.genfeed.ai/';
+              if (key === 'GENFEEDAI_PUBLIC_URL') {
+                return 'https://genfeed.ai/';
               }
               return undefined;
             }),
@@ -72,6 +72,7 @@ describe('NewsletterImportFeedService', () => {
   it('emits the complete import contract with stable identity', async () => {
     const feed = await service.generateBrandFeed(brand.id);
 
+    expect(feed).toContain('<link>https://genfeed.ai/@acme</link>');
     expect(feed).toContain('<title><![CDATA[Launch issue]]></title>');
     expect(feed).toContain('<h1>Launch</h1>');
     expect(feed).toContain('<strong>newsletter</strong>');

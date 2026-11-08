@@ -3,8 +3,8 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
+import { PUBLIC_BRAND_FILTER } from '@api/helpers/utils/public-brand/public-brand-filter.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -37,22 +37,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-
-/**
- * A post is public only while its brand is: a private brand's posts stay off
- * Genfeed even when they are live on a social network, so a brand id cannot
- * be used to list the posts of a profile that is not public. The relation
- * filter is not enum-normalized by BaseService, so the scope is the Prisma
- * label.
- */
-const PUBLIC_BRAND_FILTER = {
-  brand: {
-    is: {
-      isDeleted: false,
-      scope: CategoryPrismaUtil.toAssetScope(AssetScope.PUBLIC),
-    },
-  },
-};
 
 @AutoSwagger()
 @Public()
@@ -190,13 +174,15 @@ export class PublicPostsController {
 
   @Get(':postId')
   @Cache({
-    keyGenerator: (req) => `public:post:${req.params?.postId ?? 'unknown'}`,
+    keyGenerator: (req) =>
+      `public:post:${req.params?.postId ?? 'unknown'}:brand:${req.query?.brand ?? ''}`,
     tags: ['posts'],
     ttl: 1800, // 30 minutes
   })
   async getPostMetadata(
     @Req() request: Request,
     @Param('postId') postId: string,
+    @Query('brand') brand?: string,
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -215,6 +201,9 @@ export class PublicPostsController {
         ],
         id: postId,
         ...PUBLIC_BRAND_FILTER,
+        // A creator page names its brand, so another creator's post id
+        // answers 404 under the wrong handle.
+        ...(brand && isEntityId(brand) ? { brandId: brand.trim() } : {}),
       },
       [],
     );

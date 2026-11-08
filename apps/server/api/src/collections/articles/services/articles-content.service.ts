@@ -35,7 +35,6 @@ import type {
   XArticleContentMetadata,
 } from '@api/collections/articles/services/articles-content.types';
 import { buildTwitterThreadTweets } from '@api/collections/articles/utils/article-thread.util';
-import type { PublicArticleScope } from '@api/collections/articles/utils/public-article-scope.util';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
@@ -59,7 +58,10 @@ import {
   PromptTemplateKey,
   SystemPromptKey,
 } from '@genfeedai/contracts';
-import { normalizeArticleSlug } from '@genfeedai/contracts/constants';
+import {
+  creatorArticlePath,
+  normalizeArticleSlug,
+} from '@genfeedai/contracts/constants';
 import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
 import type {
   ArticleGenerationResponse,
@@ -472,7 +474,7 @@ export class ArticlesContentService {
    */
   async convertToTwitterThread(
     article: ArticleDocument,
-    publicArticleScope: PublicArticleScope,
+    resolvePublicHandle: (articleId: string) => Promise<string | null>,
   ): Promise<TwitterThreadResponse> {
     try {
       this.logger.debug(`${this.constructorName} convertToTwitterThread`, {
@@ -482,7 +484,7 @@ export class ArticlesContentService {
       // Resolve the article URL for the trailing link tweet. A tweet is a
       // public broadcast, so an unpublished article gets no link at all —
       // linking one would publish the draft (and any preview grant with it).
-      // Only Genfeed's own articles are hosted on the website at all.
+      // Only articles with a public handle are hosted on the website at all.
       let articleUrl: string | undefined;
       const publicUrl = (
         this.configService?.get('GENFEEDAI_PUBLIC_URL') as string | undefined
@@ -490,12 +492,12 @@ export class ArticlesContentService {
       if (
         article.slug &&
         publicUrl &&
-        String(article.status) === ArticleStatus.PUBLISHED &&
-        (await publicArticleScope.isHostedOrganization(
-          String(article.organizationId),
-        ))
+        String(article.status) === ArticleStatus.PUBLISHED
       ) {
-        articleUrl = `${publicUrl}/articles/${article.slug}`;
+        const handle = await resolvePublicHandle(String(article.id));
+        if (handle) {
+          articleUrl = `${publicUrl}${creatorArticlePath(handle, article.slug)}`;
+        }
       }
 
       const tweets = buildTwitterThreadTweets({

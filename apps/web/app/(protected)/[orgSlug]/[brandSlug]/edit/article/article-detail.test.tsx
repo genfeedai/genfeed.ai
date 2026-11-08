@@ -44,6 +44,19 @@ vi.mock('@/hooks/pages/use-x-article-compose/use-x-article-compose', () => ({
     },
 }));
 
+const { selectedBrandMock } = vi.hoisted(() => ({
+  selectedBrandMock: {
+    current: undefined as { scope: string; slug: string } | undefined,
+  },
+}));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    credentials: [],
+    selectedBrand: selectedBrandMock.current,
+  }),
+}));
+
 vi.mock('next/navigation', () => ({
   useParams: vi.fn(() => ({
     brandSlug: 'brand-123',
@@ -100,6 +113,7 @@ const defaultArticleDetailState = () => ({
 describe('ArticleDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    selectedBrandMock.current = undefined;
     useArticleDetailMock.mockReturnValue(defaultArticleDetailState());
     useXArticleComposeMock.mockReturnValue(undefined);
     vi.mocked(useParams).mockReturnValue({
@@ -216,7 +230,9 @@ describe('ArticleDetail', () => {
 
     expect(screen.getByText('Live on genfeed.ai')).toBeInTheDocument();
     const openLink = screen.getByRole('link', { name: 'Open' });
-    expect(openLink.getAttribute('href')).toMatch(/\/articles\/launch-notes$/);
+    expect(openLink.getAttribute('href')).toMatch(
+      /\/@genfeedai\/articles\/launch-notes$/,
+    );
     expect(openLink).toHaveAttribute('target', '_blank');
     expect(
       screen.getByRole('button', { name: 'Copy link' }),
@@ -225,6 +241,18 @@ describe('ArticleDetail', () => {
       'src',
       expect.stringMatching(/\/articles\/launch-notes\/og$/),
     );
+  });
+
+  it('hosts a public brand article at its creator handle', () => {
+    selectedBrandMock.current = { scope: 'public', slug: 'shayla' };
+    useArticleDetailMock.mockReturnValue(savedArticleState('PUBLISHED'));
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(screen.getByText('Live on genfeed.ai')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Open' }).getAttribute('href'),
+    ).toMatch(/\/@shayla\/articles\/launch-notes$/);
   });
 
   it('offers a preview link before a Genfeed article is published', () => {

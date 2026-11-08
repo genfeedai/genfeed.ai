@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createAppNextConfig } from '@genfeedai/next-config';
+import { CREATOR_PROFILE_REWRITES } from './src/data/creator-routes';
 import {
   X_PLAYER_CARD_PATH,
   X_PLAYER_FRAME_ANCESTORS,
@@ -94,6 +95,7 @@ const config = createAppNextConfig({
         ],
         source: '/',
       },
+      ...CREATOR_PROFILE_REWRITES,
     ],
     fallback: [],
   }),

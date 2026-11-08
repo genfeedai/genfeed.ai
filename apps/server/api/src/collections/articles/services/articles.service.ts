@@ -82,6 +82,10 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
+import {
+  PUBLIC_ARTICLE_BRAND_INCLUDE,
+  stripPrivateBrand,
+} from '@api/helpers/utils/public-brand/public-brand-filter.util';
 import { scopedWhere } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
@@ -138,6 +142,7 @@ export class ArticlesService
   readonly publicArticleScope = new PublicArticleScope(
     () => this.organizationsService,
     () => this.configService.get('PUBLIC_ARTICLES_ORGANIZATION_ID'),
+    (query) => this.delegate.findFirst(query),
   );
 
   constructor(
@@ -461,9 +466,9 @@ export class ArticlesService
         {
           activityRecorder: this.activityRecorder,
           configService: this.configService,
-          publicArticleScope: this.publicArticleScope,
           logger: this.logger,
           organizationSettingsService: this.organizationSettingsService,
+          resolvePublicHandle: this.publicArticleScope.resolveHandle,
           source: this.constructorName,
         },
         result,
@@ -634,6 +639,7 @@ export class ArticlesService
     // explicit order keeps the answer deterministic (earliest release first)
     // even if a legacy duplicate survives.
     const article = await this.delegate.findFirst({
+      include: PUBLIC_ARTICLE_BRAND_INCLUDE,
       orderBy: [{ publishedAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
       where,
     });
@@ -646,7 +652,7 @@ export class ArticlesService
     const articleObj = { ...article } as Record<string, unknown>;
     await this.hydrateUserAndOrganization([articleObj]);
 
-    return articleObj as unknown as Article;
+    return stripPrivateBrand(articleObj) as unknown as Article;
   }
 
   /**
@@ -884,9 +890,8 @@ export class ArticlesService
       throw new NotFoundException('Article');
     }
 
-    return this.articlesContentService.convertToTwitterThread(
-      article,
-      this.publicArticleScope,
+    return this.articlesContentService.convertToTwitterThread(article, (id) =>
+      this.publicArticleScope.resolveHandle(id),
     );
   }
 

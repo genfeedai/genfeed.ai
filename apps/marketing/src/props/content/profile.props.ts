@@ -1,4 +1,4 @@
-import type { IArticle, IImage, IVideo } from '@genfeedai/contracts/interfaces';
+import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
 
 export interface ProfileSocialLinksProps {
   handle: string;
@@ -14,8 +14,4 @@ export interface ProfileVideosProps {
 
 export interface ProfileImagesProps {
   images: IImage[];
-}
-
-export interface ProfileArticlesProps {
-  articles: IArticle[];
 }

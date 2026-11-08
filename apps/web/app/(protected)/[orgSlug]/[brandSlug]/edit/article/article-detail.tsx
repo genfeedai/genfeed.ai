@@ -1,10 +1,16 @@
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   type AgentDraftSuggestionPayload,
   useAgentDraftContext,
 } from '@genfeedai/agent';
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ArticleCategory, ArticleStatus } from '@genfeedai/contracts';
-import { PUBLIC_ARTICLES_ORGANIZATION_SLUG } from '@genfeedai/contracts/constants';
+import {
+  creatorArticlePath,
+  GENFEED_BRAND_HANDLE,
+  PUBLIC_ARTICLES_ORGANIZATION_SLUG,
+} from '@genfeedai/contracts/constants';
+import { isPublicAssetScope } from '@genfeedai/helpers';
 import { escapeHtml } from '@genfeedai/helpers/security/escape-html.helper';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { Article } from '@genfeedai/models/content/article.model';
@@ -140,18 +146,27 @@ export default function ArticleDetail({
   const canArchive = !!article && isPublished;
   const plainTextContent = form.content.replace(HTML_TAGS_PATTERN, '').trim();
   const canGenerateTeaser = !!article && hasXArticleSections && !!credentialId;
-  // UX hint only: the API decides what genfeed.ai serves.
+  // UX hint only: the API decides what genfeed.ai serves. It hosts the
+  // articles of a public brand at its handle, and Genfeed's own at @genfeedai.
+  const { selectedBrand } = useBrand();
+  const publicBrandHandle = isPublicAssetScope(selectedBrand?.scope)
+    ? selectedBrand?.slug
+    : undefined;
   const isHostedOnWebsite =
+    Boolean(publicBrandHandle) ||
     params?.orgSlug === PUBLIC_ARTICLES_ORGANIZATION_SLUG;
   const destination = useMemo<ArticlePublishDestination>(
     () => ({
       isHostedOnWebsite,
       publicUrl:
         isHostedOnWebsite && article?.slug
-          ? `${EnvironmentService.apps.website}/articles/${article.slug}`
+          ? `${EnvironmentService.apps.website}${creatorArticlePath(
+              publicBrandHandle ?? GENFEED_BRAND_HANDLE,
+              article.slug,
+            )}`
           : undefined,
     }),
-    [article?.slug, isHostedOnWebsite],
+    [article?.slug, isHostedOnWebsite, publicBrandHandle],
   );
 
   const handleApplyDraftSuggestion = useCallback(

@@ -1,5 +1,6 @@
 'use client';
 
+import { creatorProfilePath } from '@genfeedai/contracts/constants';
 import type { ILink } from '@genfeedai/contracts/interfaces';
 import { isPublicAssetScope } from '@genfeedai/helpers';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
@@ -76,7 +77,7 @@ export default function BrandOverviewPanel({
             isPublicAssetScope(activeBrand.scope)
               ? () =>
                   onCopy(
-                    `${EnvironmentService.apps.website}/u/${activeBrand.slug}`,
+                    `${EnvironmentService.apps.website}${creatorProfilePath(activeBrand.slug)}`,
                   )
               : undefined
           }

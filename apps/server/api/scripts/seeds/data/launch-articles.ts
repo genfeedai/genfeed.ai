@@ -189,10 +189,10 @@ faster than any single clever trick.</p>
 <h2>Next</h2>
 
 <ul>
-  <li><a href="/articles/how-to-prompt-ai-images-videos-and-audio">How to prompt
+  <li><a href="/@genfeedai/articles/how-to-prompt-ai-images-videos-and-audio">How to prompt
   AI images, videos, and audio</a> — the same discipline applied to visual and
   audio generation.</li>
-  <li><a href="/articles/ai-image-prompt-templates">12 AI image prompt briefs to
+  <li><a href="/@genfeedai/articles/ai-image-prompt-templates">12 AI image prompt briefs to
   hand your agent</a> — describe the job, let the agent write the prompt.</li>
 </ul>
 `;
@@ -500,7 +500,7 @@ outperforms the template even when the template is filled in honestly.</p>
 
 <p>If you want the reasoning underneath — why lighting, style, and composition
 have to be named at all — start with
-<a href="/articles/how-to-prompt-ai-images-videos-and-audio">how to prompt AI
+<a href="/@genfeedai/articles/how-to-prompt-ai-images-videos-and-audio">how to prompt AI
 images, videos, and audio</a>.</p>
 
 <h2>1. Product shot</h2>

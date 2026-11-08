@@ -4,8 +4,12 @@ import { SITE_DIRECTORY } from './sitemap-content';
 
 const findAllPublicArticles = vi.fn<() => Promise<Article[]>>();
 
+const findPublicBrands = vi.fn(() => Promise.resolve([]));
+
 vi.mock('@services/external/public.service', () => ({
-  PublicService: { getInstance: () => ({ findAllPublicArticles }) },
+  PublicService: {
+    getInstance: () => ({ findAllPublicArticles, findPublicBrands }),
+  },
 }));
 
 const { default: sitemap } = await import('../../sitemap');
@@ -73,9 +77,12 @@ describe('SITE_DIRECTORY', () => {
         return false;
       }
 
-      // Hub pages (/vs, /tools, /use-cases, /integrations, /articles) link
-      // their own children, so listing the hub keeps them reachable.
-      const hub = path.slice(0, path.lastIndexOf('/'));
+      // Hub pages (/vs, /tools, /use-cases, /integrations) link their own
+      // children, so listing the hub keeps them reachable. /articles lists
+      // every creator's articles, which live at /@handle/articles/<slug>.
+      const hub = /^\/@[^/]+\/articles\//.test(path)
+        ? '/articles'
+        : path.slice(0, path.lastIndexOf('/'));
 
       return !hrefs.has(hub);
     });

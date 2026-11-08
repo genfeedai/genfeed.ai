@@ -7,7 +7,7 @@ import {
   type BenchmarkData,
   getBenchmarkData,
 } from '@public/benchmark/benchmark-loader';
-import { BrandMark } from '@website/(content)/articles/[slug]/og/brand-mark';
+import { BrandMark } from '@web-components/og/brand-mark';
 
 /**
  * The bench's social card.

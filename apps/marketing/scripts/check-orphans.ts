@@ -95,7 +95,7 @@ const ORPHAN_ALLOWLIST = new Set<string>([
  * request for a slug that does not exist must still answer 404, and
  * `check:seo` probes these same route families for exactly that.
  */
-const API_DEPENDENT_PREFIXES = ['/articles/', '/posts/', '/u/'] as const;
+const API_DEPENDENT_PREFIXES = ['/@', '/posts/'] as const;
 
 function isApiDependent(path: string): boolean {
   return API_DEPENDENT_PREFIXES.some((prefix) => path.startsWith(prefix));

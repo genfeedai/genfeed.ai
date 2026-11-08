@@ -568,11 +568,13 @@ export class DiscordService {
       await this.discordBotService.getPostsWebhook(),
       url,
       async (webhookClient) => {
-        const articleUrl =
-          article.publicUrl || `https://genfeed.ai/articles/${article.slug}`;
+        // Only an article with a public page on genfeed.ai carries a link.
+        const articleUrl = article.publicUrl;
 
         await this.sendOperatorCard(webhookClient, {
-          action: { label: 'Read Article', url: articleUrl },
+          action: articleUrl
+            ? { label: 'Read Article', url: articleUrl }
+            : undefined,
           color: 0xff6b00, // Orange for articles
           footer: article.category,
           imageUrl: article.thumbnailUrl,

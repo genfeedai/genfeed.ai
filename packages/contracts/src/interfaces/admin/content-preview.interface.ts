@@ -23,7 +23,7 @@ export interface IContentPreview {
   updatedAt: string;
   /** Only on the mint response. */
   token?: string;
-  /** Only on the mint response. The lead's locked profile: `<website>/u/<handle>/invite/<token>`. */
+  /** Only on the mint response. The lead's locked profile: `<website>/@<handle>/invite/<token>`. */
   url?: string;
 }
 

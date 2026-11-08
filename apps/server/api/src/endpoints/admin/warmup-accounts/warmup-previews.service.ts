@@ -16,6 +16,7 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { creatorInvitePath } from '@genfeedai/contracts/constants';
 import type { IContentPreview } from '@genfeedai/contracts/interfaces';
 import type { WarmupAccount } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
@@ -186,6 +187,6 @@ export class WarmupPreviewsService {
       typeof configured === 'string' && configured.length > 0
         ? configured.replace(TRAILING_SLASH_PATTERN, '')
         : DEFAULT_WEBSITE_URL;
-    return `${base}/u/${encodeURIComponent(handle)}/invite/${token}`;
+    return `${base}${creatorInvitePath(handle, token)}`;
   }
 }

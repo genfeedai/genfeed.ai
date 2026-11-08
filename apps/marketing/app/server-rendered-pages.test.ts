@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest';
 const SERVER_RENDERED_PAGES = [
   '../../packages/agent/src/components/SafeMarkdown.tsx',
   'src/components/footers/SiteFooter.tsx',
-  'app/(content)/articles/[slug]/article-detail.tsx',
+  'app/creator-profile/[handle]/(showcase)/articles/[slug]/article-detail.tsx',
   'app/(content)/articles/articles-list.tsx',
   'app/(public)/about/about-content.tsx',
   'app/(public)/affiliates/affiliates-content.tsx',
@@ -25,6 +25,7 @@ const SERVER_RENDERED_PAGES = [
   'app/(public)/calendar/calendar-content.tsx',
   'app/(public)/changelog/content.tsx',
   'app/(public)/cloud/cloud-content.tsx',
+  'app/(public)/community/page.tsx',
   'app/(public)/desktop/desktop-content.tsx',
   'app/(public)/experts/experts-content.tsx',
   'app/(public)/faq/faq-content.tsx',
@@ -46,9 +47,13 @@ const SERVER_RENDERED_PAGES = [
   'app/(public)/use-cases/use-cases-hub-content.tsx',
   'app/(public)/vs/vs-hub-content.tsx',
   'app/(x-player)/x/card/content.tsx',
-  'app/u/[handle]/profile-page.tsx',
-  'app/u/layout.tsx',
+  'app/creator-profile/[handle]/(showcase)/creator-view.tsx',
+  'app/creator-profile/[handle]/(showcase)/layout.tsx',
+  'app/creator-profile/[handle]/(showcase)/posts/[id]/page.tsx',
+  'app/creator-profile/[handle]/invite/[token]/layout.tsx',
   'src/components/PageLayout.tsx',
+  'src/components/creator/CreatorProfileLayout.tsx',
+  'src/components/creator/CreatorRail.tsx',
   'src/components/content/NeuralGrid.tsx',
   'src/components/content/PublicListPage.tsx',
   'src/components/landing/DevelopersLandingPage.tsx',
@@ -86,11 +91,11 @@ const DEFERRED_IMPORTS: ReadonlyArray<readonly [string, RegExp]> = [
   ],
   // The clipboard service brings the toast library through notifications.
   [
-    'app/(content)/articles/[slug]/article-content.tsx',
+    'app/creator-profile/[handle]/(showcase)/articles/[slug]/article-content.tsx',
     /from '@services\/core\/clipboard\.service'|from '\.\/article-experience'/,
   ],
   [
-    'app/(content)/articles/[slug]/article-share-button.tsx',
+    'src/components/creator/CopyLinkButton.tsx',
     /from '@services\/core\/clipboard\.service'/,
   ],
   // Radix Tooltip and Floating UI, on every page that renders a button.
@@ -110,8 +115,11 @@ describe('server-rendered marketing pages', () => {
   // The app's context providers bring its API service layer, pino and the
   // Sentry SDK with them. Profile tiles are read-only and read neither;
   // `ProfileMedia.test.tsx` renders them with no providers at all.
-  it('keeps the public profile layout free of app providers', () => {
-    expect(readSource('app/u/layout.tsx')).not.toMatch(/@providers\//);
+  it.each([
+    'app/creator-profile/[handle]/(showcase)/layout.tsx',
+    'app/creator-profile/[handle]/invite/[token]/layout.tsx',
+  ])('keeps the public profile layout %s free of app providers', (path) => {
+    expect(readSource(path)).not.toMatch(/@providers\//);
   });
 
   it.each(DEFERRED_IMPORTS)(
@@ -140,10 +148,14 @@ describe('server-rendered marketing pages', () => {
     // The sanitizer (sanitize-html + htmlparser2) runs in article-detail on
     // the server; the client island only receives its output.
     expect(
-      readSource('app/(content)/articles/[slug]/article-content.tsx'),
+      readSource(
+        'app/creator-profile/[handle]/(showcase)/articles/[slug]/article-content.tsx',
+      ),
     ).not.toContain('createMarkup');
     expect(
-      readSource('app/(content)/articles/[slug]/article-detail.tsx'),
+      readSource(
+        'app/creator-profile/[handle]/(showcase)/articles/[slug]/article-detail.tsx',
+      ),
     ).toContain('createMarkup(');
   });
 });

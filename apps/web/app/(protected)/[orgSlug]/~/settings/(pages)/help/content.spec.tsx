@@ -18,7 +18,7 @@ vi.mock('@services/core/environment.service', () => ({
         return mocks.documentation;
       },
       gettingStarted:
-        'https://genfeed.ai/articles/getting-started-with-genfeed-cloud',
+        'https://genfeed.ai/@genfeedai/articles/getting-started-with-genfeed-cloud',
       selfHostedGettingStarted:
         'https://docs.genfeed.ai/self-host/installation',
       workflows: 'https://docs.genfeed.ai/guides/studio',
@@ -88,7 +88,9 @@ describe('Help navigation', () => {
       screen
         .getByRole('link', { name: /^Getting started/ })
         .getAttribute('href'),
-    ).toBe('https://genfeed.ai/articles/getting-started-with-genfeed-cloud');
+    ).toBe(
+      'https://genfeed.ai/@genfeedai/articles/getting-started-with-genfeed-cloud',
+    );
   });
 
   it('gives self-hosted users an operator fallback without a broken support link', () => {

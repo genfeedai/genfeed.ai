@@ -5,6 +5,10 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import { verifyArticlePreviewToken } from '@api/helpers/utils/article-preview/article-preview-token.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
+import {
+  PUBLIC_ARTICLE_BRAND_INCLUDE,
+  stripPrivateBrand,
+} from '@api/helpers/utils/public-brand/public-brand-filter.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -16,7 +20,7 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
-import { ArticleSerializer } from '@genfeedai/serializers';
+import { PublicArticleSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { PrismaWhereQuery } from '@libs/interfaces/query.interface';
@@ -109,12 +113,14 @@ export class PublicArticlesController {
     }
 
     const aggregate = {
-      where: matchQuery,
+      include: PUBLIC_ARTICLE_BRAND_INCLUDE,
       orderBy: { [sortBy]: sortOrder === 'desc' ? -1 : 1 },
+      where: matchQuery,
     };
 
     const data = await this.articlesService.findAll(aggregate, options);
-    return serializeCollection(request, ArticleSerializer, data);
+    data.docs = data.docs.map(stripPrivateBrand);
+    return serializeCollection(request, PublicArticleSerializer, data);
   }
 
   @Get('slug/:slug')
@@ -149,10 +155,10 @@ export class PublicArticlesController {
     );
 
     if (!article) {
-      return serializeSingle(request, ArticleSerializer, { data: null });
+      return serializeSingle(request, PublicArticleSerializer, { data: null });
     }
 
-    return serializeSingle(request, ArticleSerializer, article);
+    return serializeSingle(request, PublicArticleSerializer, article);
   }
 
   @Get(':articleId')
@@ -178,6 +184,6 @@ export class PublicArticlesController {
       return returnNotFound(this.constructorName, articleId);
     }
 
-    return serializeSingle(request, ArticleSerializer, article);
+    return serializeSingle(request, PublicArticleSerializer, article);
   }
 }

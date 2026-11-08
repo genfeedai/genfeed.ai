@@ -222,7 +222,7 @@ describe('MenuBrandSwitcher', () => {
     expect(capturedItems[0]?.trailingAction?.target).toBeUndefined();
     expect(capturedItems[0]?.extraTrailingActions?.[0]).toMatchObject({
       ariaLabel: 'Open Test Brand public profile',
-      href: `${EnvironmentService.apps.website}/u/test-brand`,
+      href: `${EnvironmentService.apps.website}/@test-brand`,
       target: '_blank',
     });
   });
