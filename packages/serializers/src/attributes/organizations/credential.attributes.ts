@@ -122,13 +122,4 @@ export const credentialInstagramAttributes = createEntityAttributes([
   'isAlreadyConnected',
 ]);
 
-export const credentialLinkedInAccountAttributes = createEntityAttributes([
-  'label',
-  'kind',
-  'username',
-  'image',
-  'platform',
-  'isAlreadyConnected',
-]);
-
 export const credentialOAuthAttributes = createEntityAttributes(['url']);
