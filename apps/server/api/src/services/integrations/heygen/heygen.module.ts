@@ -5,6 +5,7 @@ import { HEYGEN_IDENTITY_SERVICE } from '@api/services/integrations/heygen/heyge
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { HeyGenIdentityService } from '@api/services/integrations/heygen/services/heygen-identity.service';
 import { HeyGenSpeechVoicesService } from '@api/services/integrations/heygen/services/heygen-speech-voices.service';
+import { HeyGenTwinService } from '@api/services/integrations/heygen/services/heygen-twin.service';
 import { HeyGenVoiceCatalogService } from '@api/services/integrations/heygen/services/heygen-voice-catalog.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { PollUntilModule } from '@api/shared/services/poll-until/poll-until.module';
@@ -27,6 +28,7 @@ const BaseModule = createServiceModule(HeyGenService, {
     HeyGenIdentityService,
     HEYGEN_IDENTITY_SERVICE,
     HeyGenSpeechVoicesService,
+    HeyGenTwinService,
   ],
   imports: BaseModule.imports,
   providers: [
@@ -34,6 +36,7 @@ const BaseModule = createServiceModule(HeyGenService, {
     HeyGenIdentityService,
     { provide: HEYGEN_IDENTITY_SERVICE, useExisting: HeyGenIdentityService },
     HeyGenSpeechVoicesService,
+    HeyGenTwinService,
     HeyGenVoiceCatalogService,
   ],
 })
