@@ -43,9 +43,9 @@ export enum WorkflowExecutionStatus {
 }
 
 /**
- * Statuses an execution never leaves. Polling, ETA display, accounting and
- * orchestration must all use this one set; a late write may not move an
- * execution out of it.
+ * Statuses that end an execution's run. This only classifies statuses for
+ * polling, ETA display and orchestration; it does not enforce transitions
+ * (see #9734). Accounting still checks its own status list.
  */
 export const WORKFLOW_EXECUTION_TERMINAL_STATUSES: ReadonlySet<WorkflowExecutionStatus> =
   new Set([
