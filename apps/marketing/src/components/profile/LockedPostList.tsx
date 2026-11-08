@@ -1,5 +1,7 @@
+import { CardGap } from '@genfeedai/contracts';
 import { getPlatformDisplayName } from '@genfeedai/contracts/constants';
 import type { LockedPostListProps } from '@props/pages/invite-profile.props';
+import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Lock } from 'lucide-react';
 import Image from 'next/image';
@@ -20,10 +22,7 @@ export default function LockedPostList({
   return (
     <ul className="flex flex-col gap-4">
       {items.map((item) => (
-        <li
-          className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4"
-          key={item.id}
-        >
+        <Card as="li" gap={CardGap.SM} key={item.id}>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Post for {getPlatformDisplayName(item.platform)}</span>
             <span className="flex items-center gap-1">
@@ -59,7 +58,7 @@ export default function LockedPostList({
               </div>
             ),
           )}
-        </li>
+        </Card>
       ))}
     </ul>
   );
