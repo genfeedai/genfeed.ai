@@ -22,7 +22,7 @@ import {
   buildPaginatedResult,
   type PaginatedResult,
 } from '@api/helpers/utils/paginated-result/paginated-result.util';
-import { scopedWhere } from '@api/index';
+import { getActionOriginContext, scopedWhere } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -361,6 +361,10 @@ export class McpApprovalsService extends BaseService<
         ? McpApprovalStatus.APPROVED
         : McpApprovalStatus.DECLINED;
 
+    // The surface that decided (review inbox, or an answer in an MCP client)
+    // and the member who decided, for the approval's audit trail (#9647).
+    const decidedBy = getActionOriginContext();
+
     // Atomic claim: the PENDING status is part of the WHERE clause, so the
     // transition itself is the concurrency fence. Two callers racing to resolve
     // the same approval cannot both succeed — whoever flips PENDING first wins,
@@ -374,6 +378,10 @@ export class McpApprovalsService extends BaseService<
       data: {
         status,
         resolvedAt: new Date(),
+        resolvedOrigin: decidedBy.origin,
+        ...(decidedBy.actorUserId && {
+          resolvedByUserId: decidedBy.actorUserId,
+        }),
         ...(result !== undefined && { result: toPrismaJson(result) }),
       },
     });

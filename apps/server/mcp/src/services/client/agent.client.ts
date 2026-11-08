@@ -168,6 +168,28 @@ export class AgentClient {
   }
 
   /**
+   * Record the requester's answer to an approval prompt shown in their MCP
+   * client (#9647). The API accepts it only with the MCP server's origin proof
+   * and only from the member who asked for the action.
+   */
+  confirmApproval(
+    approvalId: string,
+    decision: McpApprovalDecision,
+  ): Promise<McpApprovalResource> {
+    return this.base.request(
+      `confirming approval ${approvalId}`,
+      async (http) => {
+        const response = await http.post(
+          `/mcp-approvals/${encodeURIComponent(approvalId)}/confirm`,
+          { decision },
+        );
+        return response.data?.data as McpApprovalResource;
+      },
+      this.base.failWithDetail('Failed to confirm approval'),
+    );
+  }
+
+  /**
    * Claim an APPROVED approval for its single execution (an atomic fence on
    * the API: unclaimed and without an outcome). Direct-dispatch tools have no
    * other fence, so they claim before running; `false` means another caller

@@ -17,3 +17,13 @@ export interface McpApprovalResource {
 }
 
 export type McpApprovalDecision = 'approve' | 'decline';
+
+/**
+ * The requester's own answer to an approval prompt their MCP client showed
+ * them (#9647). It arrives as the client's elicitation response, which the
+ * model cannot write, bound to one approval by signed request state.
+ */
+export interface McpApprovalAnswer {
+  approvalId: string;
+  decision: McpApprovalDecision;
+}

@@ -1,3 +1,4 @@
+import { isTrustedMcpOriginProof } from '@api/action-origin/mcp-origin-proof.util';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AttachMcpApprovalResultDto } from '@api/collections/mcp-approvals/dto/attach-mcp-approval-result.dto';
 import { CreateMcpApprovalDto } from '@api/collections/mcp-approvals/dto/create-mcp-approval.dto';
@@ -19,13 +20,18 @@ import {
   type FrontendPagination,
   transformPaginationFormat,
 } from '@api/shared/utils/pagination-transform/pagination-transform.util';
-import { ActionOrigin, MemberRole } from '@genfeedai/contracts';
+import {
+  ActionOrigin,
+  MCP_ACTION_ORIGIN_PROOF_HEADER,
+  MemberRole,
+} from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { McpApprovalStatus } from '@genfeedai/prisma';
 import {
   McpApprovalPricingSerializer,
   McpApprovalStatusSerializer,
 } from '@genfeedai/serializers';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -69,6 +75,7 @@ export class McpApprovalsController {
     private readonly service: McpApprovalsService,
     private readonly policy: McpApprovalPolicyService,
     private readonly rolesGuard: RolesGuard,
+    private readonly configService: ConfigService,
     readonly _logger: LoggerService,
   ) {}
 
@@ -226,6 +233,56 @@ export class McpApprovalsController {
       dto.decision,
       dto.result,
       metadata,
+    );
+    return { data: this.toResponse(result) };
+  }
+
+  @Post(':id/confirm')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @ApiOperation({
+    summary:
+      "Record the requester's own answer to an MCP approval, given in their MCP client",
+  })
+  @ApiResponse({ description: 'Approval resolved', status: HttpStatus.OK })
+  async confirm(
+    @CurrentUser() user: User,
+    @Req() request: Request,
+    @Param('id') id: string,
+    @Body() dto: ResolveMcpApprovalDto,
+  ): Promise<{ data: McpApprovalResponse }> {
+    // Only the Genfeed MCP server holds the key behind this proof, and it calls
+    // this route only with the person's answer to the approval prompt their MCP
+    // client showed them (#9647). That answer never passes through the model,
+    // and the model's own `resolve_approval` approve stays refused above.
+    if (
+      !isTrustedMcpOriginProof(
+        this.configService.get('GENFEEDAI_API_KEY'),
+        request.headers[MCP_ACTION_ORIGIN_PROOF_HEADER],
+      )
+    ) {
+      throw new ForbiddenException(
+        'Answers given in a conversation are accepted only from the Genfeed MCP server.',
+      );
+    }
+    const approval = await this.service.findOne(
+      scopedWhere(user.organizationId, { id }),
+    );
+    if (!approval) {
+      throw new NotFoundException('MCP approval');
+    }
+    if (approval.userId !== (user.userId ?? user.id)) {
+      throw new ForbiddenException(
+        'Only the member who asked for this action can answer it in their conversation. Use the Genfeed review inbox.',
+      );
+    }
+    const result = await this.service.resolve(
+      id,
+      user.organizationId,
+      dto.decision,
+      undefined,
+      user,
     );
     return { data: this.toResponse(result) };
   }

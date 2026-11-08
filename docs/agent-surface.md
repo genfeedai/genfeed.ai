@@ -206,6 +206,7 @@ are three different grants. Do not treat them as one "approve" permission.
 | ---- | --------------- | ------------------ |
 | REST / MCP **`approve_social_draft`**, `POST /publish-approvals`, and other approval-scoped product APIs | API key with **`posts:approve`**. Social-inbox REST also requires organization owner or admin. | Approve a social reply/DM draft or a publish-approval. This is **not** `resolve_approval`. |
 | REST **`POST /mcp-approvals/:id/resolve`** | Organization **owners** and **admins** (`RolesDecorator(OWNER, ADMIN)` on `McpApprovalsController.resolve`). Session callers use membership. API-key callers that approve a publishing MCP tool also need `posts:approve` (`assertApiKeyPublishingScope(..., 'approve')`). | Approve or decline a pending MCP write. This is the path for organization reviewers. |
+| REST **`POST /mcp-approvals/:id/confirm`** (in-conversation answer, #9647) | Only the Genfeed MCP server (it must carry the MCP origin proof), for an organization **owner** or **admin**, and only for an approval that same member requested. The MCP server calls it with the person's answer to the approval prompt their MCP client showed them (an elicitation), never on a model's tool call. | Approve or decline the requester's own pending MCP write from the conversation. The decision records `resolvedOrigin = mcp`; the review inbox records `ui`. |
 | MCP tool **`resolve_approval`** | MCP role **`superadmin`** (`requiredRole` in `packages/actions/src/registry/source/mcp-only/admin.tools.ts`). Org `owner`/`admin` map to MCP `admin` and **do not** satisfy this gate. | The same resolve, exposed as an MCP tool. A `posts:approve` key does not grant it. |
 
 An MCP client holding the `mcp` preset can therefore draft, schedule, and call
@@ -213,6 +214,17 @@ approval-scoped REST actions. It cannot discover or invoke `resolve_approval`
 unless `/auth/whoami` reports the MCP `superadmin` role. Organization owners
 and admins map to MCP `admin` and resolve the queued write from the REST
 endpoint or the product UI, not by handing the client `resolve_approval`.
+
+When the client supports form elicitation on the 2026-07-28 protocol, a call
+that needs approval does not stop at the inbox link: the server asks the person
+in their client ("Generate an image with … ? It uses about N credits."). The
+client retries the call with the answer, which never passes through the model.
+The approval id rides in HMAC-signed request state bound to the caller's token
+and keyed from the service key the MCP server already shares with the API.
+Accept approves and runs the call once, decline declines it, and cancel leaves
+it pending in the review inbox. Older clients keep the inbox link. The approval
+alert in the notification inbox is marked read once the approval is decided,
+wherever it was decided.
 
 `SELF_SERVICE_API_KEY_SCOPES` is the union of all presets and bounds what a user
 may request through the public endpoint. Privileged scopes (`admin`,

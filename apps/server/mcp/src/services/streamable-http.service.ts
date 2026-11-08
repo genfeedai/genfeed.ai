@@ -16,6 +16,12 @@ import {
 } from '@mcp/mcp/server-identity';
 import { getPublicMcpUrl, getPublicWebsiteUrl } from '@mcp/mcp/setup-page';
 import { ClientService } from '@mcp/services/client.service';
+import {
+  canPromptForApproval,
+  createApprovalPromptCodec,
+  promptForApproval,
+  readApprovalPromptRound,
+} from '@mcp/services/mcp-approval-prompt.util';
 import { withMcpStructuredContent } from '@mcp/services/mcp-structured-result.util';
 import { PostHogAnalyticsService } from '@mcp/services/posthog-analytics.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
@@ -150,23 +156,48 @@ export class StreamableHttpService {
       getPublicWebsiteUrl(),
       accessMode,
     );
+    const approvalPromptCodec = createApprovalPromptCodec(
+      this.configService.get('GENFEEDAI_API_KEY'),
+      authContext?.token,
+    );
     const server = new Server(serverInfo, {
       capabilities: MCP_SERVER_CAPABILITIES,
       instructions:
         accessMode === 'claude'
           ? buildClaudeMcpServerInstructions()
           : MCP_SERVER_INSTRUCTIONS,
+      ...(approvalPromptCodec
+        ? { requestState: { verify: approvalPromptCodec.verify } }
+        : {}),
     });
 
     server.setRequestHandler('tools/list', () =>
       ListToolsResultSchema.parse({ tools: toolRegistry.getTools() }),
     );
 
-    server.setRequestHandler('tools/call', async (request) => {
+    server.setRequestHandler('tools/call', async (request, ctx) => {
+      const args = request.params.arguments ?? {};
+      const promptRound = readApprovalPromptRound(ctx, request.params.name);
       const result = await toolRegistry.handleToolCall({
         name: request.params.name,
-        arguments: request.params.arguments ?? {},
+        arguments: args,
+        ...(promptRound.answer ? { approvalAnswer: promptRound.answer } : {}),
       });
+      // Ask the person in their client instead of only linking to the inbox
+      // (#9647); clients that cannot ask keep the pending result below.
+      if (
+        approvalPromptCodec &&
+        !promptRound.wasPrompted &&
+        canPromptForApproval(ctx)
+      ) {
+        const prompt = await promptForApproval(
+          approvalPromptCodec,
+          ctx,
+          result,
+          args,
+        );
+        if (prompt) return prompt;
+      }
       const tool = getToolByName(request.params.name);
       return server.projectCallToolResult(
         withMcpStructuredContent(CallToolResultSchema.parse(result), tool),

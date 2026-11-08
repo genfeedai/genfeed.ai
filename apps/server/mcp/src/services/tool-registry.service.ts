@@ -1,6 +1,4 @@
 import {
-  describeCreditPricing,
-  estimateToolCreditCost,
   getMcpCatalogOperations,
   getToolByName,
   getToolsetNames,
@@ -40,6 +38,10 @@ import {
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import {
+  answerApprovalInConversation,
+  pendingApprovalResult,
+} from '@mcp/services/mcp-approval-answer.util';
+import {
   isMcpApprovalRedeemable,
   requiresMcpToolApproval,
 } from '@mcp/services/mcp-approval-gate.util';
@@ -62,7 +64,10 @@ import {
   markdownResource,
 } from '@mcp/services/mcp-resource-contents.util';
 import { finalizeMcpToolResult } from '@mcp/services/mcp-tool-result.util';
-import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
+import type {
+  McpApprovalAnswer,
+  McpApprovalResource,
+} from '@mcp/shared/interfaces/approval.interface';
 import type { McpResource } from '@mcp/shared/interfaces/mcp-resource.interface';
 import {
   accountToolText,
@@ -83,7 +88,6 @@ import { CONTENT_TOOL_NAMES, handleContentTool } from '@mcp/tools/content.tool';
 import { EDITOR_TOOL_NAMES, handleEditorTool } from '@mcp/tools/editor.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import {
-  approvalPendingToolResult,
   mcpToolErrorResult,
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
@@ -142,6 +146,8 @@ import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 interface ToolCallParams {
   name: string;
   arguments: Record<string, unknown>;
+  /** The requester's answer to this call's approval prompt (#9647). */
+  approvalAnswer?: McpApprovalAnswer;
 }
 
 interface ResourceReadParams {
@@ -441,15 +447,24 @@ export class ToolRegistryService implements OnModuleInit {
         return await this.brandRequiredResult();
       }
 
-      // Declared approvals and credit spenders wait for confirmation, unless the
-      // organization and member both waived a credit spender (mcp-approval-gate.util).
+      // Writes and credit spend wait for a person (unless waived, mcp-approval-gate.util).
       if (await requiresMcpToolApproval(this.clientService, name, args)) {
-        const approval = await this.clientService.createApproval(
+        const queued = await this.clientService.createApproval(
           name,
           args ?? {},
         );
-        // A reviewer approved this exact call in the Genfeed review inbox
-        // (#7340); repeating it runs the approved action once.
+        // Approved in the review inbox (#7340), or answered by the requester in
+        // their conversation (#9647); either way the approved call runs once.
+        const approval =
+          (await answerApprovalInConversation(
+            this.clientService,
+            this.logger,
+            queued,
+            params.approvalAnswer,
+          )) ?? queued;
+        if (approval.status === 'DECLINED') {
+          return this.textResult('Declined. The action was not run.');
+        }
         if (approval.status === 'APPROVED' && !approval.result) {
           return await this.runApprovedApproval(approval);
         }
@@ -778,51 +793,10 @@ export class ToolRegistryService implements OnModuleInit {
     approval: McpApprovalResource,
     args: Record<string, unknown>,
   ) {
-    const tool = getToolByName(approval.toolName);
     const canResolveApproval = this.getTools().some(
       (candidate) => candidate.name === 'resolve_approval',
     );
-    if (approval.toolName === 'generate') {
-      const quote = approval.generationQuote;
-      const estimatedCredits =
-        quote?.isAvailable === true &&
-        typeof quote.credits === 'number' &&
-        Number.isFinite(quote.credits) &&
-        quote.credits >= 0 &&
-        typeof quote.modelKey === 'string' &&
-        quote.modelKey.trim()
-          ? quote.credits
-          : null;
-      return approvalPendingToolResult(
-        approval,
-        {
-          estimatedCredits,
-          pricingSummary:
-            estimatedCredits === null
-              ? 'A model-specific credit quote is unavailable. Request fresh consent with a supported model and complete settings.'
-              : undefined,
-        },
-        canResolveApproval,
-      );
-    }
-    if (!tool?.creditPricing)
-      return approvalPendingToolResult(approval, undefined, canResolveApproval);
-    const estimatedCredits = estimateToolCreditCost(
-      approval.toolName,
-      args,
-      tool.creditPricing,
-    );
-    return approvalPendingToolResult(
-      approval,
-      {
-        estimatedCredits,
-        pricingSummary:
-          estimatedCredits === null
-            ? describeCreditPricing(tool.creditPricing)
-            : undefined,
-      },
-      canResolveApproval,
-    );
+    return pendingApprovalResult(approval, args, canResolveApproval);
   }
 
   private textResult(text: string) {

@@ -151,6 +151,7 @@ function build() {
     getJobStatus: vi
       .fn()
       .mockResolvedValue({ progress: 100, status: 'completed' }),
+    confirmApproval: vi.fn<() => Promise<McpApprovalResource>>(),
   };
   const logger = {
     debug: vi.fn(),
@@ -468,6 +469,74 @@ describe('ToolRegistryService — approval queue', () => {
     expect(result.content[0].text).toContain('review inbox');
     expect(client.resolveApproval).not.toHaveBeenCalled();
     expect(client.executeAgentTool).not.toHaveBeenCalled();
+  });
+
+  describe('answering the approval prompt in the conversation (#9647)', () => {
+    const call = {
+      arguments: { brandId: 'brand-1', content: 'hello' },
+      name: 'generate_turbo_content',
+    };
+    type CallResult = {
+      isError?: boolean;
+      content: { text: string }[];
+      structuredContent?: { code?: string };
+    };
+
+    it('runs the action once the requester approves it', async () => {
+      const { client, registry } = build();
+      client.confirmApproval.mockResolvedValue({
+        arguments: { brandId: 'brand-1', content: 'hello' },
+        id: 'apr-1',
+        result: null,
+        status: McpApprovalStatus.APPROVED,
+        toolName: 'generate_turbo_content',
+      });
+
+      const result = (await registry.handleToolCall({
+        ...call,
+        approvalAnswer: { approvalId: 'apr-1', decision: 'approve' },
+      })) as CallResult;
+
+      expect(result.isError).toBeFalsy();
+      expect(result.structuredContent?.code).not.toBe('approval_pending');
+      expect(client.executeAgentTool).toHaveBeenCalledTimes(1);
+    });
+
+    it('runs nothing when the requester declines', async () => {
+      const { client, registry } = build();
+      client.confirmApproval.mockResolvedValue({
+        id: 'apr-1',
+        status: McpApprovalStatus.DECLINED,
+        toolName: 'generate_turbo_content',
+      });
+
+      const result = (await registry.handleToolCall({
+        ...call,
+        approvalAnswer: { approvalId: 'apr-1', decision: 'decline' },
+      })) as CallResult;
+
+      expect(result.content[0].text).toBe('Declined. The action was not run.');
+      expect(client.executeAgentTool).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['an answer for another approval', 'apr-other', undefined],
+      ['an answer the API refused', 'apr-1', new Error('Forbidden')],
+    ])(
+      'keeps the approval pending for %s',
+      async (_label, approvalId, refusal) => {
+        const { client, registry } = build();
+        if (refusal) client.confirmApproval.mockRejectedValue(refusal);
+
+        const result = (await registry.handleToolCall({
+          ...call,
+          approvalAnswer: { approvalId, decision: 'approve' },
+        })) as CallResult;
+
+        expect(result.structuredContent?.code).toBe('approval_pending');
+        expect(client.executeAgentTool).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('repeating a call a reviewer approved in the review inbox', () => {

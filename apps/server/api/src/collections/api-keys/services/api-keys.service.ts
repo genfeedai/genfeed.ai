@@ -1,4 +1,5 @@
 import * as crypto from 'node:crypto';
+import { isTrustedMcpOriginProof } from '@api/action-origin/mcp-origin-proof.util';
 import { CreateApiKeyDto } from '@api/collections/api-keys/dto/create-api-key.dto';
 import { UpdateApiKeyDto } from '@api/collections/api-keys/dto/update-api-key.dto';
 import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
@@ -693,22 +694,9 @@ export class ApiKeysService extends BaseService<
       return true;
     }
 
-    const configured = this.configService.get('GENFEEDAI_API_KEY');
-    if (
-      typeof configured !== 'string' ||
-      configured.length === 0 ||
-      typeof supplied !== 'string'
-    ) {
-      return false;
-    }
-
-    const expected = crypto
-      .createHash('sha256')
-      .update(configured)
-      .digest('base64url');
-    return (
-      expected.length === supplied.length &&
-      crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))
+    return isTrustedMcpOriginProof(
+      this.configService.get('GENFEEDAI_API_KEY'),
+      supplied,
     );
   }
 

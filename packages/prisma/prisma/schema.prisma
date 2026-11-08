@@ -1044,6 +1044,11 @@ model McpApproval {
   status             McpApprovalStatus @default(PENDING)
   result             Json?
   resolvedAt         DateTime?
+  /// Surface the decision came from: an `ActionOrigin` value (`ui` for the
+  /// review inbox, `mcp` for an in-conversation answer).
+  resolvedOrigin     String?
+  /// Member who made the decision.
+  resolvedByUserId   String?
   executedAt         DateTime?
   executionClaimedAt DateTime?
   idempotencyKey     String?

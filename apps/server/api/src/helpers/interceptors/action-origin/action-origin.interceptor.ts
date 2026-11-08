@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { isTrustedMcpOriginProof } from '@api/action-origin/mcp-origin-proof.util';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { normalizeActionOrigin, runWithActionOrigin } from '@api/index';
 import {
@@ -110,20 +110,9 @@ export class ActionOriginInterceptor implements NestInterceptor {
   }
 
   private hasTrustedMcpOriginProof(request: ActionOriginRequest): boolean {
-    const configured = this.configService.get('GENFEEDAI_API_KEY');
-    const supplied = request.headers[MCP_ACTION_ORIGIN_PROOF_HEADER];
-    const expected =
-      typeof configured === 'string' && configured.length > 0
-        ? createHash('sha256').update(configured).digest('base64url')
-        : '';
-    if (
-      !expected ||
-      typeof supplied !== 'string' ||
-      expected.length !== supplied.length
-    ) {
-      return false;
-    }
-
-    return timingSafeEqual(Buffer.from(expected), Buffer.from(supplied));
+    return isTrustedMcpOriginProof(
+      this.configService.get('GENFEEDAI_API_KEY'),
+      request.headers[MCP_ACTION_ORIGIN_PROOF_HEADER],
+    );
   }
 }

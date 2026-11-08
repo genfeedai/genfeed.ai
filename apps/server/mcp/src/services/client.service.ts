@@ -127,14 +127,9 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 
 /**
- * Composition root for the MCP → Genfeed API client.
- *
- * The HTTP surface is decomposed into per-domain clients (media, content,
- * workflows, ads, analytics, workspace, agent, LinkedIn) that all
- * share a single {@link BaseApiClient} — and therefore a single axios instance,
- * so {@link setBearerToken} propagates to every sub-client. This class is a thin
- * aggregator: it owns no request logic and only delegates, preserving the exact
- * public method surface every MCP tool/resource consumes.
+ * Composition root for the MCP → Genfeed API client. Per-domain clients share
+ * one {@link BaseApiClient} (one axios instance), so {@link setBearerToken}
+ * reaches all of them. This class only delegates; it owns no request logic.
  */
 @Injectable()
 export class ClientService {
@@ -288,6 +283,10 @@ export class ClientService {
     result?: Record<string, unknown>,
   ): Promise<McpApprovalResource> {
     return this.agent.resolveApproval(approvalId, decision, result);
+  }
+
+  confirmApproval(approvalId: string, decision: McpApprovalDecision) {
+    return this.agent.confirmApproval(approvalId, decision);
   }
 
   claimApprovalExecution(approvalId: string): Promise<boolean> {
