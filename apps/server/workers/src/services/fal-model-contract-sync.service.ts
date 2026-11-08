@@ -215,9 +215,19 @@ export class FalModelContractSyncService {
    * verification timestamp stays put and no later run would move it.
    */
   private async markRatesUnverifiable(modelId: string): Promise<void> {
-    await this.modelsService.prisma.model.update({
-      data: { providerSyncFailureCode: FAL_RATE_UNVERIFIABLE_CODE },
+    const prisma = this.modelsService.prisma;
+    // A pending candidate left by an earlier run read fal's single base price
+    // as a change to the whole sheet. Nothing now supports it, so drop it.
+    await prisma.model.update({
+      data: {
+        pendingProviderContractVersion: null,
+        providerSyncFailureCode: FAL_RATE_UNVERIFIABLE_CODE,
+      },
       where: { id: modelId },
+    });
+    await prisma.model.updateMany({
+      data: { providerSyncStatus: 'fresh' },
+      where: { id: modelId, providerSyncStatus: 'review_required' },
     });
   }
 
