@@ -545,6 +545,44 @@ describe('NotificationInboxService', () => {
       }),
     );
   });
+  it('links a settled digital twin to the twin page on an accessible brand', async () => {
+    const { service, prisma } = await setup();
+    prisma.notificationInboxItem.findMany.mockResolvedValue([
+      fixture(1, {
+        topic: 'generation.status',
+        event: {
+          sourceId: 'twin-1',
+          sourceType: 'avatar_twin',
+          eventKey: 'avatar-twin-training-completed',
+          payload: {
+            version: 1,
+            kind: 'avatar_twin',
+            brandId: 'brand-1',
+            status: 'ready',
+            twinId: 'twin-1',
+          },
+        },
+      }),
+    ]);
+    prisma.brand.findMany.mockResolvedValue([
+      { id: 'brand-1', slug: 'acme-brand' },
+    ]);
+
+    expect((await service.list('org', 'recipient')).docs[0]).toEqual(
+      expect.objectContaining({
+        outcome: 'completed',
+        severity: 'success',
+        sourceHref: '/acme/acme-brand/library/avatars/twin',
+        topic: 'generation.status',
+      }),
+    );
+
+    prisma.brand.findMany.mockResolvedValue([]);
+
+    expect((await service.list('org', 'recipient')).docs[0].sourceHref).toBe(
+      null,
+    );
+  });
   it('links a native-account breakout offer by its source post and hides the link on an unreachable brand', async () => {
     const { service, prisma } = await setup();
     prisma.notificationInboxItem.findMany.mockResolvedValue([

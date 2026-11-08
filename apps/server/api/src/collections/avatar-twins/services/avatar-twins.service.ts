@@ -1,10 +1,27 @@
 import type { StartAvatarTwinDto } from '@api/collections/avatar-twins/dto/start-avatar-twin.dto';
-import { deriveAvatarTwinState } from '@api/collections/avatar-twins/utils/avatar-twin-status.util';
+import {
+  AVATAR_TWIN_WAITING_STATUSES,
+  deriveAvatarTwinState,
+} from '@api/collections/avatar-twins/utils/avatar-twin-status.util';
+import {
+  AVATAR_TWIN_NOTIFICATION_KIND,
+  AVATAR_TWIN_TRACKING_BATCH,
+  AVATAR_TWIN_TRACKING_MAX_AGE_MS,
+  AVATAR_TWIN_UPLOAD_STALE_MS,
+  type AvatarTwinNotificationPayload,
+  isAvatarTwinTrackingDue,
+} from '@api/collections/avatar-twins/utils/avatar-twin-tracking.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { HeyGenConsentLink } from '@api/services/integrations/heygen/helpers/heygen-twin';
 import { HeyGenTwinService } from '@api/services/integrations/heygen/services/heygen-twin.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { AvatarTwinStatus, IngredientCategory } from '@genfeedai/contracts';
+import {
+  ActivityKey,
+  ActivitySource,
+  AvatarTwinStatus,
+  IngredientCategory,
+} from '@genfeedai/contracts';
 import { type AvatarTwin, Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -22,6 +39,21 @@ export interface AvatarTwinActor {
   organizationId: string;
   userId: string;
 }
+
+export interface AvatarTwinTrackingTotals {
+  checked: number;
+  failed: number;
+  interrupted: number;
+}
+
+const AVATAR_TWIN_SOURCE_TYPE = 'avatar_twin';
+const AVATAR_TWIN_ENTITY_MODEL = 'AvatarTwin';
+
+const SETTLED_STATUSES: readonly AvatarTwinStatus[] = [
+  AvatarTwinStatus.CONSENT_REJECTED,
+  AvatarTwinStatus.FAILED,
+  AvatarTwinStatus.READY,
+];
 
 const FOOTAGE_CONTENT_TYPES: Readonly<Record<string, string>> = {
   MOV: 'video/quicktime',
@@ -44,6 +76,7 @@ export class AvatarTwinsService {
     private readonly heyGenTwinService: HeyGenTwinService,
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
+    private readonly activityRecorder: ActivityRecorderService,
   ) {}
 
   list(actor: AvatarTwinActor): Promise<AvatarTwin[]> {
@@ -195,7 +228,7 @@ export class AvatarTwinsService {
       ),
     ]);
     const state = deriveAvatarTwinState(look, group);
-    return this.update(actor, twin.id, {
+    const updated = await this.update(actor, twin.id, {
       ...state,
       lastCheckedAt: new Date(),
       previewImageUrl: look.previewImageUrl ?? twin.previewImageUrl,
@@ -206,6 +239,85 @@ export class AvatarTwinsService {
       supportedEngines: look.supportedEngines,
       voiceId: twin.voiceId ?? look.defaultVoiceId ?? group.defaultVoiceId,
     });
+    if (updated.status !== twin.status) await this.notifySettled(updated);
+    return updated;
+  }
+
+  /**
+   * The background check (#9683): re-reads every waiting twin that is due,
+   * across workspaces, so a twin settles and its owner hears about it with
+   * the tab closed. Uploads that never reached the provider are failed.
+   */
+  async trackWaiting(now = new Date()): Promise<AvatarTwinTrackingTotals> {
+    const totals: AvatarTwinTrackingTotals = {
+      checked: 0,
+      failed: 0,
+      interrupted: 0,
+    };
+
+    // tenant-scope-ignore: platform sweep; each row is updated under its own organization below
+    const interrupted = await this.prisma.avatarTwin.findMany({
+      take: AVATAR_TWIN_TRACKING_BATCH,
+      where: {
+        createdAt: {
+          lt: new Date(now.getTime() - AVATAR_TWIN_UPLOAD_STALE_MS),
+        },
+        isDeleted: false,
+        providerLookId: null,
+        status: AvatarTwinStatus.UPLOADING,
+      },
+    });
+    for (const twin of interrupted) {
+      const failed = await this.update(ownerOf(twin), twin.id, {
+        failureCode: 'submission_interrupted',
+        failureMessage:
+          'The upload stopped before HeyGen received it. Submit the recording again.',
+        status: AvatarTwinStatus.FAILED,
+      });
+      await this.notifySettled(failed);
+      totals.interrupted += 1;
+    }
+
+    // tenant-scope-ignore: platform sweep; each twin is refreshed as its owner, inside its own organization
+    const waiting = await this.prisma.avatarTwin.findMany({
+      orderBy: { lastCheckedAt: { nulls: 'first', sort: 'asc' } },
+      select: {
+        createdAt: true,
+        id: true,
+        lastCheckedAt: true,
+        organizationId: true,
+        userId: true,
+      },
+      take: AVATAR_TWIN_TRACKING_BATCH * 4,
+      where: {
+        createdAt: {
+          gte: new Date(now.getTime() - AVATAR_TWIN_TRACKING_MAX_AGE_MS),
+        },
+        isDeleted: false,
+        providerLookId: { not: null },
+        status: { in: [...AVATAR_TWIN_WAITING_STATUSES] },
+      },
+    });
+    const due = waiting
+      .filter((twin) => isAvatarTwinTrackingDue(twin, now))
+      .slice(0, AVATAR_TWIN_TRACKING_BATCH);
+    for (const twin of due) {
+      totals.checked += 1;
+      try {
+        await this.refresh(ownerOf(twin), twin.id);
+      } catch (error: unknown) {
+        // A disconnected key or a provider outage: wait for the next step
+        // instead of retrying this twin on every sweep.
+        totals.failed += 1;
+        this.loggerService.warn(`${this.constructorName} tracking failed`, {
+          error: error instanceof Error ? error.message : 'Unknown',
+          organizationId: twin.organizationId,
+          twinId: twin.id,
+        });
+        await this.update(ownerOf(twin), twin.id, { lastCheckedAt: now });
+      }
+    }
+    return totals;
   }
 
   /**
@@ -345,6 +457,77 @@ export class AvatarTwinsService {
       });
   }
 
+  /**
+   * Tells the person who recorded the twin once it is ready, or once it
+   * failed or its consent was declined. One bell item per twin and outcome;
+   * a failed alert never fails the status change itself.
+   */
+  private async notifySettled(twin: AvatarTwin): Promise<void> {
+    if (!SETTLED_STATUSES.includes(twin.status as AvatarTwinStatus)) return;
+    const isReady = twin.status === AvatarTwinStatus.READY;
+    const key = isReady
+      ? ActivityKey.AVATAR_TWIN_TRAINING_COMPLETED
+      : ActivityKey.AVATAR_TWIN_TRAINING_FAILED;
+    try {
+      const brandId = await this.linkBrandId(ownerOf(twin));
+      const payload: AvatarTwinNotificationPayload = {
+        brandId,
+        kind: AVATAR_TWIN_NOTIFICATION_KIND,
+        status: twin.status as AvatarTwinStatus,
+        twinId: twin.id,
+        version: 1,
+      };
+      await this.activityRecorder.record({
+        alert: {
+          deduplicationKey: `${key}/${twin.id}/${twin.status}`,
+          payload: { ...payload },
+          source: { id: twin.id, type: AVATAR_TWIN_SOURCE_TYPE },
+        },
+        brandId,
+        entityId: twin.id,
+        entityModel: AVATAR_TWIN_ENTITY_MODEL,
+        key,
+        organizationId: twin.organizationId,
+        source: ActivitySource.AVATAR_GENERATION,
+        userId: twin.userId,
+        value: describeSettledTwin(twin),
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(`${this.constructorName} notify failed`, {
+        error: error instanceof Error ? error.message : 'Unknown',
+        twinId: twin.id,
+      });
+    }
+  }
+
+  /** The person's first assigned brand, else the workspace's first brand. */
+  private async linkBrandId(actor: AvatarTwinActor): Promise<string | null> {
+    const member = await this.prisma.member.findFirst({
+      select: {
+        brands: {
+          orderBy: { createdAt: 'asc' },
+          select: { id: true },
+          take: 1,
+          where: { isDeleted: false, organizationId: actor.organizationId },
+        },
+      },
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organizationId: actor.organizationId,
+        userId: actor.userId,
+      },
+    });
+    const assigned = member?.brands[0]?.id;
+    if (assigned) return assigned;
+    const brand = await this.prisma.brand.findFirst({
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+      where: { isDeleted: false, organizationId: actor.organizationId },
+    });
+    return brand?.id ?? null;
+  }
+
   private update(
     actor: AvatarTwinActor,
     id: string,
@@ -406,6 +589,26 @@ export class AvatarTwinsService {
     } catch {
       return undefined;
     }
+  }
+}
+
+function ownerOf(twin: {
+  organizationId: string;
+  userId: string;
+}): AvatarTwinActor {
+  return { organizationId: twin.organizationId, userId: twin.userId };
+}
+
+/** The bell line under the title; the name is the person's own. */
+function describeSettledTwin(twin: AvatarTwin): string {
+  const reason = twin.failureMessage ? ` ${twin.failureMessage}` : '';
+  switch (twin.status) {
+    case AvatarTwinStatus.READY:
+      return `“${twin.name}” is ready. Use it in a video or as a brand's default avatar.`;
+    case AvatarTwinStatus.CONSENT_REJECTED:
+      return `HeyGen declined the consent for “${twin.name}”.${reason} Ask for a new consent link and try again.`;
+    default:
+      return `“${twin.name}” could not be trained.${reason} Record a new take.`;
   }
 }
 

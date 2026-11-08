@@ -1,3 +1,4 @@
+import { AVATAR_TWIN_NOTIFICATION_KIND } from '@api/collections/avatar-twins/utils/avatar-twin-tracking.util';
 import { summarizeMcpApproval } from '@api/collections/mcp-approvals/utils/mcp-approval-summary.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
@@ -203,6 +204,28 @@ function readSocialReplyPayload(
   };
 }
 
+type AvatarTwinInboxPayload = { brandId: string };
+
+/** A settled digital twin; the item opens the twin page in its brand. */
+function readAvatarTwinPayload(
+  topic: string,
+  payload: Prisma.JsonValue,
+): AvatarTwinInboxPayload | null {
+  if (
+    topic !== 'generation.status' ||
+    !payload ||
+    typeof payload !== 'object' ||
+    Array.isArray(payload) ||
+    payload.kind !== AVATAR_TWIN_NOTIFICATION_KIND ||
+    payload.version !== 1 ||
+    typeof payload.brandId !== 'string' ||
+    payload.brandId.length === 0
+  ) {
+    return null;
+  }
+  return { brandId: payload.brandId };
+}
+
 type BreakoutRemixInboxPayload = {
   brandId: string;
   /** Query that opens the remix for the post the offer is about. */
@@ -308,8 +331,8 @@ async function loadVisibleBrandSlugs(input: {
 }
 
 /**
- * Brand slugs for `social.reply` and breakout-offer rows, limited to brands the
- * member may open.
+ * Brand slugs for `social.reply`, breakout-offer and digital-twin rows,
+ * limited to brands the member may open.
  * A brand outside that set still lists the item, just without a link.
  */
 async function loadInboxBrandSlugs(input: {
@@ -322,7 +345,8 @@ async function loadInboxBrandSlugs(input: {
   const brandIds = page.flatMap((row) => {
     const payload =
       readSocialReplyPayload(row.topic, row.event.payload) ??
-      readBreakoutRemixPayload(row.topic, row.event.payload);
+      readBreakoutRemixPayload(row.topic, row.event.payload) ??
+      readAvatarTwinPayload(row.topic, row.event.payload);
     return payload ? [payload.brandId] : [];
   });
   return loadVisibleBrandSlugs({ brandIds, member, organizationId, prisma });
@@ -715,6 +739,29 @@ export class NotificationInboxService {
           remix: breakoutRemix,
           row,
         });
+      }
+      const avatarTwin = readAvatarTwinPayload(row.topic, row.event.payload);
+      if (avatarTwin) {
+        const brandSlug = inboxBrandSlugs.get(avatarTwin.brandId);
+        return {
+          id: row.id,
+          topic: row.topic,
+          occurredAt: row.occurredAt,
+          readAt: row.readAt,
+          outcome: readInboxOutcome(row.event.eventKey),
+          severity:
+            getActivityAlertPolicy(row.event.eventKey)?.severity ?? null,
+          activity: readInboxActivity(organizationId, row.activity),
+          sourceHref: brandSlug
+            ? inboxSourceHref(
+                member.organization.slug,
+                brandSlug,
+                APP_ROUTES.LIBRARY.AVATAR_TWIN,
+              )
+            : null,
+          sourceLabel: null,
+          failure: null,
+        };
       }
       const source = sources.get(row.event.sourceId);
       const thread = threads.get(row.event.sourceId);

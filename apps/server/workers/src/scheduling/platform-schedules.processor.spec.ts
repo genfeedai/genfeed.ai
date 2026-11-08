@@ -60,6 +60,7 @@ describe('PlatformSchedulesProcessor', () => {
   const workflowArtifacts = { queueExpiredArtifactCleanup: handler() };
   const xReplyWatch = { watchRecentPostReplies: handler() };
   const externalVoiceCatalog = { syncFromProviders: handler() };
+  const avatarTwins = { trackWaitingTwins: handler() };
   const youtubeMessages = { syncYoutubeMessages: handler() };
   const youtubeStatus = { checkScheduledYoutubeVideos: handler() };
   const workflowSchedules = {
@@ -239,6 +240,10 @@ describe('PlatformSchedulesProcessor', () => {
         xReplyWatch.watchRecentPostReplies,
       ],
       [
+        PLATFORM_SCHEDULED_TASKS.AVATAR_TWIN_TRACKING,
+        avatarTwins.trackWaitingTwins,
+      ],
+      [
         PLATFORM_SCHEDULED_TASKS.EXTERNAL_VOICE_CATALOG_SYNC,
         externalVoiceCatalog.syncFromProviders,
       ],
@@ -297,6 +302,7 @@ describe('PlatformSchedulesProcessor', () => {
       workflowSchedules as never,
       xReplyWatch as never,
       externalVoiceCatalog as never,
+      avatarTwins as never,
     );
   });
 
