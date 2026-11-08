@@ -36,9 +36,19 @@ interface InstagramBusinessIdentityResponse {
 interface InstagramDebugTokenResponse {
   data?: {
     expires_at?: number;
+    granular_scopes?: Array<{ scope?: string; target_ids?: string[] }>;
     is_valid?: boolean;
     scopes?: string[];
   };
+}
+
+/** What Meta says one token was granted: permissions and the assets chosen. */
+interface InstagramTokenGrant {
+  /** Instagram account ids the customer chose for `instagram_basic`. */
+  instagramTargetIds: string[];
+  /** Permission names that carry chosen assets, for diagnosis. */
+  scopedPermissions: string[];
+  scopes: string[] | undefined;
 }
 
 /**
@@ -162,9 +172,13 @@ export class InstagramConnectionResolverService {
     // Meta does not say, the grant stays "unknown" and each call is checked by
     // Meta itself rather than guessed here.
     markStage('permission_check');
-    const scope =
-      tokenRes.data.scope ??
-      (await this.readGrantedScopes(access_token, appId, appSecret));
+    let grant: InstagramTokenGrant | undefined;
+    let hasReadGrant = false;
+    if (tokenRes.data.scope === undefined) {
+      grant = await this.readTokenGrant(access_token, appId, appSecret);
+      hasReadGrant = true;
+    }
+    const scope = tokenRes.data.scope ?? grant?.scopes?.join(',');
     if (
       scope !== undefined &&
       !parseInstagramGrantedScopes(scope).includes(INSTAGRAM_BASIC_SCOPE)
@@ -180,10 +194,34 @@ export class InstagramConnectionResolverService {
     }
 
     markStage('account_discovery');
-    const accounts =
+    let accounts =
       await this.instagramService.listAuthorizedInstagramAccounts(access_token);
 
+    if (accounts.length === 0 && !hasReadGrant) {
+      grant = await this.readTokenGrant(access_token, appId, appSecret);
+    }
+
+    if (accounts.length === 0 && grant?.instagramTargetIds.length) {
+      // The assigned-accounts edge can answer empty for a grant that does name
+      // accounts. The grant's own targets are the accounts the customer picked
+      // in Meta's dialog, so describe those instead of rejecting the connect.
+      accounts = await this.instagramService.describeInstagramAccounts(
+        grant.instagramTargetIds,
+        access_token,
+      );
+    }
+
     if (accounts.length === 0) {
+      this.loggerService.warn(
+        'InstagramConnectionResolverService - Meta authorized no Instagram account',
+        {
+          grantedScopeCount: grant?.scopes?.length ?? 0,
+          hasBusinessId: Boolean(businessId),
+          hasGrant: Boolean(grant),
+          instagramTargetCount: grant?.instagramTargetIds.length ?? 0,
+          scopedPermissions: grant?.scopedPermissions ?? [],
+        },
+      );
       throw new HttpException(
         {
           detail:
@@ -203,12 +241,12 @@ export class InstagramConnectionResolverService {
     };
   }
 
-  /** Granted permissions as Meta reports them for this token, if it will say. */
-  private async readGrantedScopes(
+  /** What Meta reports for this token, if it will say. */
+  private async readTokenGrant(
     accessToken: string,
     appId: string,
     appSecret: string,
-  ): Promise<string | undefined> {
+  ): Promise<InstagramTokenGrant | undefined> {
     try {
       const response: AxiosResponse<InstagramDebugTokenResponse> =
         await firstValueFrom(
@@ -223,8 +261,23 @@ export class InstagramConnectionResolverService {
             },
           ),
         );
-      const scopes = response.data?.data?.scopes;
-      return Array.isArray(scopes) ? scopes.join(',') : undefined;
+      const data = response.data?.data;
+      const granular = Array.isArray(data?.granular_scopes)
+        ? data.granular_scopes
+        : [];
+      return {
+        instagramTargetIds: [
+          ...new Set(
+            granular
+              .filter((entry) => entry.scope === INSTAGRAM_BASIC_SCOPE)
+              .flatMap((entry) => entry.target_ids ?? []),
+          ),
+        ],
+        scopedPermissions: granular
+          .map((entry) => entry.scope)
+          .filter((name): name is string => typeof name === 'string'),
+        scopes: Array.isArray(data?.scopes) ? data.scopes : undefined,
+      };
     } catch (error: unknown) {
       this.loggerService.warn(
         'InstagramConnectionResolverService - Could not read granted scopes',

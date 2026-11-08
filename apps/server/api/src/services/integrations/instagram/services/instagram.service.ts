@@ -302,6 +302,16 @@ export class InstagramService {
     return this.accountsService.listAuthorizedInstagramAccounts(accessToken);
   }
 
+  public async describeInstagramAccounts(
+    accountIds: string[],
+    accessToken: string,
+  ): Promise<InstagramPageResponse[]> {
+    return this.accountsService.describeInstagramAccounts(
+      accountIds,
+      accessToken,
+    );
+  }
+
   public async handleAuthorizationError(
     credentialId: string,
     error: unknown,
