@@ -8,39 +8,70 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
 import type {
   McpApprovalAnswer,
+  McpApprovalAnswerOutcome,
   McpApprovalResource,
 } from '@mcp/shared/interfaces/approval.interface';
 import { approvalPendingToolResult } from '@mcp/tools/mcp-tool-error';
 
+const NOTHING_RUN =
+  'Nothing was run; the action is waiting in the Genfeed review inbox.';
+
 /**
- * Apply the requester's in-conversation answer (#9647) to the approval this
- * call found or queued. Returns the decided approval, or null when the call
- * carries no answer for this pending approval or the API refused it (for
- * example a member without approval rights), so the caller falls back to the
- * pending result and its review-inbox link.
+ * Settle the requester's in-conversation answer (#9647) against the approval
+ * the prompt named, before the current approval policy is applied, so a
+ * decline holds even when the policy changed or a reviewer acted meanwhile.
+ * Fails closed: an answer that cannot be read or matched runs nothing.
  */
-export async function answerApprovalInConversation(
-  clientService: Pick<ClientService, 'confirmApproval'>,
+export async function settleApprovalAnswer(
+  clientService: Pick<ClientService, 'confirmApproval' | 'getApproval'>,
   logger: Pick<LoggerService, 'warn'>,
-  approval: McpApprovalResource,
-  answer: McpApprovalAnswer | undefined,
-): Promise<McpApprovalResource | null> {
-  if (
-    !answer ||
-    answer.approvalId !== approval.id ||
-    approval.status !== McpApprovalStatus.PENDING
-  ) {
-    return null;
-  }
+  toolName: string,
+  answer: McpApprovalAnswer,
+): Promise<McpApprovalAnswerOutcome> {
+  let approval: McpApprovalResource | null;
   try {
-    return await clientService.confirmApproval(approval.id, answer.decision);
+    approval = await clientService.getApproval(answer.approvalId);
   } catch (error: unknown) {
-    logger.warn(
-      `In-conversation answer to approval ${approval.id} was not accepted`,
-      error,
-    );
-    return null;
+    logger.warn(`Could not read approval ${answer.approvalId}`, error);
+    return {
+      kind: 'message',
+      message: `Your answer could not be read. ${NOTHING_RUN}`,
+    };
   }
+  if (!approval || approval.toolName !== toolName) {
+    return {
+      kind: 'message',
+      message: `Your answer does not match this action. ${NOTHING_RUN}`,
+    };
+  }
+  if (approval.status === McpApprovalStatus.PENDING) {
+    try {
+      approval = await clientService.confirmApproval(
+        approval.id,
+        answer.decision,
+      );
+    } catch (error: unknown) {
+      logger.warn(
+        `In-conversation answer to approval ${approval.id} was not accepted`,
+        error,
+      );
+      return { approval, kind: 'pending' };
+    }
+  }
+  if (approval.status === McpApprovalStatus.DECLINED) {
+    return { kind: 'message', message: 'Declined. The action was not run.' };
+  }
+  if (answer.decision === 'decline') {
+    return {
+      kind: 'message',
+      message:
+        'This action was already approved in the Genfeed review inbox, so your decline could not cancel it. It was not run now.',
+    };
+  }
+  if (approval.result) {
+    return { kind: 'message', message: 'This action has already run.' };
+  }
+  return { approval, kind: 'run' };
 }
 
 /**

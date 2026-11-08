@@ -137,6 +137,42 @@ function readPendingApproval(result: unknown): PendingApproval | null {
   };
 }
 
+const PREVIEW_MAX_FIELDS = 8;
+const PREVIEW_MAX_CHARS = 160;
+const PREVIEW_SKIPPED_KEYS = new Set(['organization']);
+
+function previewValue(value: unknown): string | null {
+  const text =
+    typeof value === 'string'
+      ? value
+      : typeof value === 'number' || typeof value === 'boolean'
+        ? String(value)
+        : Array.isArray(value) &&
+            value.every((entry) => typeof entry === 'string')
+          ? value.join(', ')
+          : null;
+  if (!text?.trim()) return null;
+  const flat = text.replace(/\s+/g, ' ').trim();
+  return flat.length > PREVIEW_MAX_CHARS
+    ? `${flat.slice(0, PREVIEW_MAX_CHARS - 1)}…`
+    : flat;
+}
+
+/**
+ * The call's own arguments, so the person can check what they approve (the
+ * text, destination, timing) when the client shows nothing but this prompt.
+ */
+function argumentPreview(args: Record<string, unknown>): string {
+  return Object.entries(args)
+    .filter(([key]) => !PREVIEW_SKIPPED_KEYS.has(key))
+    .flatMap(([key, value]) => {
+      const text = previewValue(value);
+      return text ? [`- ${key}: ${text}`] : [];
+    })
+    .slice(0, PREVIEW_MAX_FIELDS)
+    .join('\n');
+}
+
 /** The question the person sees, e.g. "Generate an image with flux-pro?". */
 export function approvalPromptMessage(
   pending: Pick<PendingApproval, 'estimatedCredits' | 'toolName'>,
@@ -154,7 +190,12 @@ export function approvalPromptMessage(
     pending.estimatedCredits === undefined
       ? ''
       : ` It uses about ${pending.estimatedCredits} credits.`;
-  return `Genfeed needs your approval. ${action}?${cost} Accept to run it now, or decline to cancel it.`;
+  const preview = argumentPreview(args);
+  return [
+    `Genfeed needs your approval. ${action}?${cost}`,
+    ...(preview ? [preview] : []),
+    'Accept to run it now, or decline to cancel it.',
+  ].join('\n');
 }
 
 /**
@@ -164,20 +205,22 @@ export function approvalPromptMessage(
 export async function promptForApproval(
   codec: RequestStateCodec<ApprovalPromptState>,
   ctx: ServerContext,
+  call: { args: Record<string, unknown>; toolName: string },
   result: unknown,
-  args: Record<string, unknown>,
 ): Promise<InputRequiredResult | null> {
   const pending = readPendingApproval(result);
   if (!pending) return null;
   return inputRequired({
     inputRequests: {
       [APPROVAL_INPUT_KEY]: inputRequired.elicit({
-        message: approvalPromptMessage(pending, args),
+        message: approvalPromptMessage(pending, call.args),
         requestedSchema: { properties: {}, type: 'object' },
       }),
     },
+    // The called name, which the retry repeats; the approval may record the
+    // execution name a catalog call maps to.
     requestState: await codec.mint(
-      { approvalId: pending.approvalId, toolName: pending.toolName },
+      { approvalId: pending.approvalId, toolName: call.toolName },
       ctx,
     ),
   });

@@ -38,8 +38,8 @@ import {
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import {
-  answerApprovalInConversation,
   pendingApprovalResult,
+  settleApprovalAnswer,
 } from '@mcp/services/mcp-approval-answer.util';
 import {
   isMcpApprovalRedeemable,
@@ -447,24 +447,32 @@ export class ToolRegistryService implements OnModuleInit {
         return await this.brandRequiredResult();
       }
 
-      // Writes and credit spend wait for a person (unless waived, mcp-approval-gate.util).
+      // The requester answered this call's approval prompt (#9647). Settle it
+      // against that approval before the current policy, so a decline holds.
+      if (params.approvalAnswer) {
+        const settled = await settleApprovalAnswer(
+          this.clientService,
+          this.logger,
+          name,
+          params.approvalAnswer,
+        );
+        if (settled.kind === 'run') {
+          return await this.runApprovedApproval(settled.approval);
+        }
+        return settled.kind === 'pending'
+          ? withApprovalCard(this.pendingResult(settled.approval, args ?? {}))
+          : this.textResult(settled.message);
+      }
+
+      // Declared approvals and credit spenders wait for confirmation, unless the
+      // organization and member both waived a credit spender (mcp-approval-gate.util).
       if (await requiresMcpToolApproval(this.clientService, name, args)) {
-        const queued = await this.clientService.createApproval(
+        const approval = await this.clientService.createApproval(
           name,
           args ?? {},
         );
-        // Approved in the review inbox (#7340), or answered by the requester in
-        // their conversation (#9647); either way the approved call runs once.
-        const approval =
-          (await answerApprovalInConversation(
-            this.clientService,
-            this.logger,
-            queued,
-            params.approvalAnswer,
-          )) ?? queued;
-        if (approval.status === 'DECLINED') {
-          return this.textResult('Declined. The action was not run.');
-        }
+        // A reviewer approved this exact call in the Genfeed review inbox
+        // (#7340); repeating it runs the approved action once.
         if (approval.status === 'APPROVED' && !approval.result) {
           return await this.runApprovedApproval(approval);
         }

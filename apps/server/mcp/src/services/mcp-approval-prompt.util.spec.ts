@@ -114,17 +114,44 @@ describe('approvalPromptMessage', () => {
     [
       { estimatedCredits: 100, toolName: 'generate' },
       { model: 'nano-banana-pro', type: 'image' },
-      'Genfeed needs your approval. Generate an image with nano-banana-pro? It uses about 100 credits. Accept to run it now, or decline to cancel it.',
+      [
+        'Genfeed needs your approval. Generate an image with nano-banana-pro? It uses about 100 credits.',
+        '- model: nano-banana-pro',
+        '- type: image',
+        'Accept to run it now, or decline to cancel it.',
+      ].join('\n'),
     ],
     [
       { toolName: 'generate' },
-      { type: 'video' },
-      'Genfeed needs your approval. Generate a video? Accept to run it now, or decline to cancel it.',
+      { organization: 'genfeedai', type: 'video' },
+      [
+        'Genfeed needs your approval. Generate a video?',
+        '- type: video',
+        'Accept to run it now, or decline to cancel it.',
+      ].join('\n'),
+    ],
+    [
+      { toolName: 'some_unlisted_tool' },
+      {
+        platforms: ['instagram', 'tiktok'],
+        scheduledAt: '2026-11-09T10:00:00Z',
+        text: 'Launch   day\nis here',
+      },
+      [
+        'Genfeed needs your approval. Run "some_unlisted_tool"?',
+        '- platforms: instagram, tiktok',
+        '- scheduledAt: 2026-11-09T10:00:00Z',
+        '- text: Launch day is here',
+        'Accept to run it now, or decline to cancel it.',
+      ].join('\n'),
     ],
     [
       { toolName: 'some_unlisted_tool' },
       {},
-      'Genfeed needs your approval. Run "some_unlisted_tool"? Accept to run it now, or decline to cancel it.',
+      [
+        'Genfeed needs your approval. Run "some_unlisted_tool"?',
+        'Accept to run it now, or decline to cancel it.',
+      ].join('\n'),
     ],
   ])('words the prompt for %o', (pending, args, expected) => {
     expect(approvalPromptMessage(pending, args)).toBe(expected);
@@ -138,17 +165,23 @@ describe('promptForApproval', () => {
     const codec = createApprovalPromptCodec(SERVICE_KEY, 'caller-token');
     if (!codec) throw new Error('codec expected');
 
-    const prompt = await promptForApproval(codec, ctx, pendingResult, {
-      model: 'nano-banana-pro',
-      type: 'image',
-    });
+    const prompt = await promptForApproval(
+      codec,
+      ctx,
+      {
+        args: { model: 'nano-banana-pro', type: 'image' },
+        toolName: 'generate',
+      },
+      pendingResult,
+    );
 
     expect(prompt?.resultType).toBe('input_required');
     expect(prompt?.inputRequests?.approval).toMatchObject({
       method: 'elicitation/create',
       params: {
-        message:
-          'Genfeed needs your approval. Generate an image with nano-banana-pro? It uses about 100 credits. Accept to run it now, or decline to cancel it.',
+        message: expect.stringContaining(
+          'Generate an image with nano-banana-pro? It uses about 100 credits.',
+        ),
       },
     });
     await expect(
@@ -161,7 +194,12 @@ describe('promptForApproval', () => {
     const otherCaller = createApprovalPromptCodec(SERVICE_KEY, 'other-token');
     if (!codec || !otherCaller) throw new Error('codecs expected');
 
-    const prompt = await promptForApproval(codec, ctx, pendingResult, {});
+    const prompt = await promptForApproval(
+      codec,
+      ctx,
+      { args: {}, toolName: 'generate' },
+      pendingResult,
+    );
 
     await expect(
       otherCaller.verify(prompt?.requestState ?? '', ctx),
@@ -176,8 +214,8 @@ describe('promptForApproval', () => {
       promptForApproval(
         codec,
         ctx,
+        { args: {}, toolName: 'generate' },
         { content: [{ text: 'done', type: 'text' }] },
-        {},
       ),
     ).resolves.toBeNull();
   });

@@ -17,11 +17,11 @@ export function isTrustedMcpOriginProof(
   ) {
     return false;
   }
-  const expected = createHash('sha256')
-    .update(configuredServiceKey)
-    .digest('base64url');
-  return (
-    expected.length === supplied.length &&
-    timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))
+  const expected = Buffer.from(
+    createHash('sha256').update(configuredServiceKey).digest('base64url'),
   );
+  // Byte lengths, not string lengths: a non-ASCII header of the same string
+  // length would otherwise make timingSafeEqual throw instead of failing.
+  const proof = Buffer.from(supplied);
+  return expected.length === proof.length && timingSafeEqual(expected, proof);
 }

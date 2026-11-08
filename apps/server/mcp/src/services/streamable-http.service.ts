@@ -193,8 +193,8 @@ export class StreamableHttpService {
         const prompt = await promptForApproval(
           approvalPromptCodec,
           ctx,
+          { args, toolName: request.params.name },
           result,
-          args,
         );
         if (prompt) return prompt;
       }

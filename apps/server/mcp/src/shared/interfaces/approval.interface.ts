@@ -27,3 +27,12 @@ export interface McpApprovalAnswer {
   approvalId: string;
   decision: McpApprovalDecision;
 }
+
+/**
+ * What a requester's in-conversation answer settled: run the approved action,
+ * keep it pending (the API refused the answer), or report a final message.
+ */
+export type McpApprovalAnswerOutcome =
+  | { kind: 'run'; approval: McpApprovalResource }
+  | { kind: 'pending'; approval: McpApprovalResource }
+  | { kind: 'message'; message: string };
