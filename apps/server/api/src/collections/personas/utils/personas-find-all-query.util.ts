@@ -56,7 +56,7 @@ export function buildPersonasFindAllQuery(
     match.AND = [brandAvailabilityWhere(brandId)];
   }
   if (isAllBrands) {
-    if (allowedBrandIds) {
+    if (allowedBrandIds !== undefined) {
       match.brandId = { in: allowedBrandIds };
     }
   }
