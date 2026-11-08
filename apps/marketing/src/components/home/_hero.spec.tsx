@@ -54,7 +54,7 @@ vi.mock('@services/core/environment.service', () => ({
     apps: {
       app: 'https://app.genfeed.ai',
     },
-    calendly: 'https://calendly.com/genfeed/demo',
+    bookingUrl: 'https://example.com/book',
     mcpConnectHref: 'https://app.genfeed.ai/connect',
   },
 }));

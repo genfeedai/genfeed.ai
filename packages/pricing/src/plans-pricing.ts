@@ -546,7 +546,7 @@ export const websitePlans: WebsitePlanProps[] = [
   {
     cta: 'Book a call',
     // Calls are booked on the website's done-for-you page, never straight on
-    // Calendly, so every booking starts from the same context.
+    // the booking page, so every booking starts from the same context.
     ctaHref: '/done-for-you#book',
     description: 'Custom studio, governance, and support',
     features: [

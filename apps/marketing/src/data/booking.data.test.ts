@@ -4,7 +4,7 @@ import { BOOKING_HREF } from './booking.data';
 
 describe('booking data', () => {
   it('links directly to the configured booking page', () => {
-    expect(BOOKING_HREF).toBe(EnvironmentService.calendly);
+    expect(BOOKING_HREF).toBe(EnvironmentService.bookingUrl);
     expect(BOOKING_HREF).toMatch(/^https:\/\/calendar\.app\.google\//);
   });
 });
