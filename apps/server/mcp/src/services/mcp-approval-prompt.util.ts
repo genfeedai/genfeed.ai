@@ -115,6 +115,8 @@ export function readApprovalPromptRound(
 interface PendingApproval {
   approvalId: string;
   estimatedCredits?: number;
+  /** The price range, when the cost cannot be estimated up front. */
+  pricingSummary?: string;
   toolName: string;
 }
 
@@ -133,56 +135,75 @@ function readPendingApproval(result: unknown): PendingApproval | null {
     ...(typeof content.estimatedCredits === 'number'
       ? { estimatedCredits: content.estimatedCredits }
       : {}),
+    ...(typeof content.pricingSummary === 'string' && content.pricingSummary
+      ? { pricingSummary: content.pricingSummary }
+      : {}),
     toolName: content.toolName,
   };
 }
 
 const PREVIEW_MAX_LINES = 24;
 const PREVIEW_MAX_CHARS = 2400;
-const PREVIEW_SKIPPED_KEYS = new Set(['organization']);
 /** Repeated spaces, or any whitespace other than a single space. */
 const UNUSUAL_WHITESPACE = /\s\s|[^\S ]/;
+const STARTS_WITH_VOWEL = /^[aeiou]/i;
+
+/** Whether a string would read as another JSON value (a number, null, "x"). */
+function readsAsJson(value: string): boolean {
+  try {
+    JSON.parse(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
- * A string exactly as stored: plain text as is, and anything with line breaks,
- * tabs, repeated or edge spaces quoted with escapes, so nothing is hidden.
+ * A string exactly as stored: plain text as is, and quoted with escapes when
+ * it is empty, has line breaks, tabs, repeated or edge spaces, or would read
+ * as another value (the text "null" or "42"), so nothing is hidden.
  */
 function previewString(value: string): string {
-  const isPlain = value === value.trim() && !UNUSUAL_WHITESPACE.test(value);
+  const isPlain =
+    value !== '' &&
+    value === value.trim() &&
+    !UNUSUAL_WHITESPACE.test(value) &&
+    !readsAsJson(value);
   return isPlain ? value : JSON.stringify(value);
 }
 
-function previewScalar(value: unknown): string | null | undefined {
-  if (value === null || value === undefined) return null;
-  if (typeof value === 'string') return previewString(value);
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return String(value);
-  }
-  return undefined;
+function isScalar(value: unknown): boolean {
+  return (
+    value === null ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  );
 }
 
 /**
  * Every value the call carries, nested objects included, as "path: value"
- * lines. Empty values are left out because they carry nothing to check.
- * Returns null when a value cannot be shown in full: the person must not
- * approve something they cannot see, so the call keeps the inbox link.
+ * lines. Nulls and empty values are shown too, since they can clear a field.
+ * A list of plain values is shown as one JSON list, keeping each item's
+ * boundary and type. Returns null when a value cannot be shown in full: the
+ * person must not approve something they cannot see, so the call keeps the
+ * inbox link.
  */
 function previewLines(value: unknown, path: string): string[] | null {
-  const scalar = previewScalar(value);
-  if (scalar !== undefined) return scalar ? [`- ${path}: ${scalar}`] : [];
+  if (value === undefined) return [];
+  if (typeof value === 'string') return [`- ${path}: ${previewString(value)}`];
+  if (isScalar(value)) return [`- ${path}: ${String(value)}`];
   if (Array.isArray(value)) {
-    const scalars = value.map(previewScalar);
-    if (scalars.every((entry) => typeof entry === 'string' || entry === null)) {
-      const joined = scalars.filter(Boolean).join(', ');
-      return joined ? [`- ${path}: ${joined}`] : [];
-    }
+    if (value.every(isScalar)) return [`- ${path}: ${JSON.stringify(value)}`];
     return collectLines(
       value.map((entry, index) => [`${path}[${index}]`, entry]),
     );
   }
   if (isRecord(value)) {
+    const entries = Object.entries(value);
+    if (entries.length === 0) return [`- ${path}: {}`];
     return collectLines(
-      Object.entries(value).map(([key, entry]) => [`${path}.${key}`, entry]),
+      entries.map(([key, entry]) => [`${path}.${key}`, entry]),
     );
   }
   return null;
@@ -200,13 +221,12 @@ function collectLines(entries: [string, unknown][]): string[] | null {
 
 /**
  * The call's own arguments, so the person can check what they approve (the
- * text, destination, timing) when the client shows nothing but this prompt.
- * Null when the arguments are too large or too complex to show in full.
+ * organization, text, destination, timing) when the client shows nothing but
+ * this prompt. Null when the arguments are too large or too complex to show
+ * in full.
  */
 function argumentPreview(args: Record<string, unknown>): string[] | null {
-  const lines = collectLines(
-    Object.entries(args).filter(([key]) => !PREVIEW_SKIPPED_KEYS.has(key)),
-  );
+  const lines = collectLines(Object.entries(args));
   if (
     !lines ||
     lines.length > PREVIEW_MAX_LINES ||
@@ -222,23 +242,28 @@ function argumentPreview(args: Record<string, unknown>): string[] | null {
  * every argument listed. Null when the arguments cannot be shown in full.
  */
 export function approvalPromptMessage(
-  pending: Pick<PendingApproval, 'estimatedCredits' | 'toolName'>,
+  pending: Pick<
+    PendingApproval,
+    'estimatedCredits' | 'pricingSummary' | 'toolName'
+  >,
   args: Record<string, unknown>,
 ): string | null {
   const preview = argumentPreview(args);
   if (!preview) return null;
   const action =
     pending.toolName === 'generate' && typeof args.type === 'string'
-      ? `Generate ${args.type === 'image' ? 'an image' : `a ${args.type}`}${
+      ? `Generate ${STARTS_WITH_VOWEL.test(args.type) ? 'an' : 'a'} ${args.type}${
           typeof args.model === 'string' && args.model
             ? ` with ${args.model}`
             : ''
         }`
       : `Run "${getToolByName(pending.toolName)?.title ?? pending.toolName}"`;
   const cost =
-    pending.estimatedCredits === undefined
-      ? ''
-      : ` It uses about ${pending.estimatedCredits} credits.`;
+    pending.estimatedCredits !== undefined
+      ? ` It uses about ${pending.estimatedCredits} credits.`
+      : pending.pricingSummary
+        ? ` ${pending.pricingSummary}`
+        : '';
   return [
     `Genfeed needs your approval. ${action}?${cost}`,
     ...preview,

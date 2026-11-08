@@ -287,6 +287,7 @@ describe('MCP tool error contract', () => {
     );
 
     expect(result.structuredContent).not.toHaveProperty('estimatedCredits');
+    expect(result.structuredContent.pricingSummary).toBe(summary);
     expect(result.structuredContent.message).toContain(summary);
   });
 

@@ -52,6 +52,8 @@ export interface McpToolError {
   nextStepUrl?: string;
   errors?: McpToolFieldError[];
   estimatedCredits?: number;
+  /** The price range, when a pending approval's cost has no estimate. */
+  pricingSummary?: string;
   approvalId?: string;
   toolName?: string;
   approvalStatus?: string;
@@ -147,6 +149,7 @@ function compactToolError(error: McpToolError): McpToolError {
     ...(error.estimatedCredits !== undefined
       ? { estimatedCredits: error.estimatedCredits }
       : {}),
+    ...(error.pricingSummary ? { pricingSummary: error.pricingSummary } : {}),
   };
 }
 
@@ -254,7 +257,7 @@ export function approvalPendingToolResult(
     ...(estimate?.estimatedCredits !== null &&
     estimate?.estimatedCredits !== undefined
       ? { estimatedCredits: estimate.estimatedCredits }
-      : {}),
+      : { pricingSummary: estimate?.pricingSummary }),
     message:
       `This action requires approval before it runs. ` +
       'Review the pending action in Genfeed before continuing.' +

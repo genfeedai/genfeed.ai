@@ -567,6 +567,20 @@ describe('ToolRegistryService — approval queue', () => {
       },
     );
 
+    it('does not run an approved action again when its answer is replayed', async () => {
+      const { client, registry } = build();
+      client.getApproval.mockResolvedValue(
+        approval(McpApprovalStatus.APPROVED, { result: { postId: 'post-1' } }),
+      );
+
+      const result = (await registry.handleToolCall(
+        answer('approve'),
+      )) as CallResult;
+
+      expect(result.content[0].text).toBe('This action has already run.');
+      expect(client.executeAgentTool).not.toHaveBeenCalled();
+    });
+
     it('holds a decline after the member waived approvals', async () => {
       const { client, registry } = build();
       client.isApprovalRequired.mockResolvedValue(false);

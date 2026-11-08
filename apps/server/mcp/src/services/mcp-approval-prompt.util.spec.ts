@@ -122,6 +122,7 @@ describe('approvalPromptMessage', () => {
       { organization: 'genfeedai', type: 'video' },
       [
         'Genfeed needs your approval. Generate a video?',
+        '- organization: genfeedai',
         '- type: video',
         'Accept to run it now, or decline to cancel it.',
       ].join('\n'),
@@ -135,9 +136,48 @@ describe('approvalPromptMessage', () => {
       },
       [
         'Genfeed needs your approval. Run "some_unlisted_tool"?',
-        '- platforms: instagram, tiktok',
+        '- platforms: ["instagram","tiktok"]',
         '- scheduledAt: 2026-11-09T10:00:00Z',
         '- text: "Launch   day\\nis here"',
+        'Accept to run it now, or decline to cancel it.',
+      ].join('\n'),
+    ],
+    [
+      {
+        pricingSummary: 'Avatar video costs up to 12 credits per second.',
+        toolName: 'generate',
+      },
+      { type: 'avatar' },
+      [
+        'Genfeed needs your approval. Generate an avatar? Avatar video costs up to 12 credits per second.',
+        '- type: avatar',
+        'Accept to run it now, or decline to cancel it.',
+      ].join('\n'),
+    ],
+    [
+      { toolName: 'some_unlisted_tool' },
+      {
+        changes: {
+          campaignId: null,
+          caption: '',
+          code: '42',
+          labels: [],
+          metadata: {},
+          slots: [1, '1', null, 'a, b'],
+          status: 'null',
+        },
+        releaseId: 'rel-1',
+      },
+      [
+        'Genfeed needs your approval. Run "some_unlisted_tool"?',
+        '- changes.campaignId: null',
+        '- changes.caption: ""',
+        '- changes.code: "42"',
+        '- changes.labels: []',
+        '- changes.metadata: {}',
+        '- changes.slots: [1,"1",null,"a, b"]',
+        '- changes.status: "null"',
+        '- releaseId: rel-1',
         'Accept to run it now, or decline to cancel it.',
       ].join('\n'),
     ],
@@ -165,6 +205,7 @@ describe('approvalPromptMessage', () => {
       [
         'Genfeed needs your approval. Run "some_unlisted_tool"?',
         '- idempotencyKey: launch-1',
+        '- release.content.caption: ""',
         `- release.content.text: ${'A long caption '.repeat(20).trim()}`,
         '- release.scheduledDate: 2026-11-09T10:00:00Z',
         '- release.targets[0].credentialId: cred-ig',
