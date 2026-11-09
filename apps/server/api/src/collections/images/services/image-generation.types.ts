@@ -6,7 +6,7 @@ import type { PromptsService } from '@api/collections/prompts/services/prompts.s
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { ImageGenerationBriefDispatch } from '@api/services/generation-brief/image-generation-brief-registry';
 import type { SharedService } from '@api/shared/services/shared/shared.service';
-import type { ModelProvider } from '@genfeedai/contracts';
+import type { IngredientStatus, ModelProvider } from '@genfeedai/contracts';
 import type { ImageGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type { GenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import type { ImageEditSize } from '@genfeedai/contracts/constants';
@@ -58,6 +58,12 @@ export type ImageGenerationSavedIngredient =
   ImageGenerationSaveDocumentsResult['ingredientData'];
 export type ImageGenerationSavedMetadata =
   ImageGenerationSaveDocumentsResult['metadataData'];
+
+/** How a settled provider output leaves PROCESSING, with the columns it writes. */
+export interface ImageOutputDisposition {
+  data: Record<string, unknown>;
+  to: IngredientStatus;
+}
 
 export interface ImageGenerationContext {
   routedDispatch?: import('@genfeedai/contracts/interfaces').RoutedModelDispatch;

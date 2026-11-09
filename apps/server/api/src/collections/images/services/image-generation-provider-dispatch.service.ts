@@ -10,6 +10,7 @@ import type {
   ImageGenerationProviderResult,
   ImageGenerationSaveDocumentsResult,
   ImageGenerationSavedIngredient,
+  ImageOutputDisposition,
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
 import {
@@ -43,6 +44,7 @@ import { prepareImageGenerationProvider } from '@api/collections/images/services
 import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { isGenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
 import { ProviderGenerationFailedError } from '@api/collections/ingredients/errors/provider-generation-failed.error';
+import { transitionIngredientStatus } from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
@@ -776,9 +778,11 @@ export class ImageGenerationProviderDispatchService {
       }),
     );
     const claimed = await this.claimOutputDisposition(context, ingredientId, {
-      promptId: context.promptData.id,
-      s3Key: optionalUploadString(uploadMeta.s3Key),
-      status: IngredientStatus.GENERATED,
+      data: {
+        promptId: context.promptData.id,
+        s3Key: optionalUploadString(uploadMeta.s3Key),
+      },
+      to: IngredientStatus.GENERATED,
     });
     if (!claimed) return;
     await this.websocketService.publishVideoComplete(
@@ -832,9 +836,11 @@ export class ImageGenerationProviderDispatchService {
         ? 'Generation failed'
         : providerMessage;
     const claimed = await this.claimOutputDisposition(context, ingredientId, {
-      generationError: errorMessage,
-      status: IngredientStatus.FAILED,
-      isGenerationFailureConfirmed: true,
+      data: {
+        generationError: errorMessage,
+        isGenerationFailureConfirmed: true,
+      },
+      to: IngredientStatus.FAILED,
     });
     if (!claimed) throw error;
     this.loggerService.error(`${label} failed`, error);
@@ -863,33 +869,30 @@ export class ImageGenerationProviderDispatchService {
   private async claimOutputDisposition(
     context: ImageGenerationContext,
     ingredientId: string,
-    update: Parameters<ImagesService['patchAll']>[1] | (() => Promise<boolean>),
+    disposition: ImageOutputDisposition | (() => Promise<boolean>),
   ): Promise<boolean> {
-    const where = {
-      id: ingredientId,
-      organizationId: context.user.organizationId,
-      isDeleted: false,
-    };
+    const organizationId = context.user.organizationId;
     const claim =
-      typeof update === 'function'
-        ? update
-        : async () =>
-            (
-              await this.imagesService.patchAll(
-                { ...where, status: IngredientStatus.PROCESSING },
-                update,
-              )
-            ).modifiedCount === 1;
+      typeof disposition === 'function'
+        ? disposition
+        : () =>
+            transitionIngredientStatus(this.imagesService, {
+              data: disposition.data,
+              from: IngredientStatus.PROCESSING,
+              id: ingredientId,
+              organizationId,
+              to: disposition.to,
+            });
     if (await claim()) return true;
-    const reopened = await this.imagesService.patchAll(
-      {
-        ...where,
-        status: IngredientStatus.FAILED,
-        generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
-      },
-      { status: IngredientStatus.PROCESSING, generationError: null },
-    );
-    return reopened.modifiedCount === 1 && (await claim());
+    const reopened = await transitionIngredientStatus(this.imagesService, {
+      data: { generationError: null },
+      from: IngredientStatus.FAILED,
+      id: ingredientId,
+      match: { generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR },
+      organizationId,
+      to: IngredientStatus.PROCESSING,
+    });
+    return reopened && (await claim());
   }
 
   private billingRequest(
