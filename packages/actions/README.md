@@ -5,7 +5,7 @@ adapters.
 
 Workflows execute product actions; Agent and MCP expose curated adapters over
 those actions, not one tool per REST endpoint.
-`src/registry/curated-action-catalog.ts` is the reviewed source of truth for
+`src/registry/curated-actions.catalog.ts` is the reviewed source of truth for
 whether each action appears on Agent, MCP, or both. Definition shards provide
 schemas and metadata but do not control surface exposure.
 
