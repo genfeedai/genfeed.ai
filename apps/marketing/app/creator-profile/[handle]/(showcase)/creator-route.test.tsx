@@ -18,6 +18,10 @@ vi.mock('@public/models/models-loader', () => ({
   getPublicModels: async () => null,
 }));
 
+vi.mock('@data/public-views', () => ({
+  trackPublicView: async () => null,
+}));
+
 vi.mock('@services/external/public.service', () => ({
   PublicService: {
     getInstance: () => ({
@@ -27,7 +31,6 @@ vi.mock('@services/external/public.service', () => ({
       findPublicProfileBySlug,
       findPublicReferralCode,
       findPublicVideosPage,
-      trackAccountView: async () => null,
     }),
   },
 }));

@@ -1,7 +1,7 @@
 'use client';
 
+import { trackPublicView } from '@data/public-views';
 import type { ProfileViewCountProps } from '@props/content/creator.props';
-import { PublicService } from '@services/external/public.service';
 import { useEffect, useState } from 'react';
 
 const viewCountFormatter = new Intl.NumberFormat('en-US');
@@ -20,7 +20,8 @@ export default function ProfileViewCount({
     const controller = new AbortController();
     async function countVisit(): Promise<void> {
       try {
-        const count = await PublicService.getInstance().trackAccountView(
+        const count = await trackPublicView(
+          'profile',
           brandId,
           controller.signal,
         );
