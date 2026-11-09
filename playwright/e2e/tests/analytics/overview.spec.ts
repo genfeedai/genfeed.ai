@@ -399,8 +399,9 @@ test.describe('Analytics Overview', () => {
       await expect(
         banner.getByRole('link', { name: 'Connect accounts' }),
       ).toBeVisible();
+      // Case-sensitive: the zero-account copy reads "…accounts are connected yet".
       await expect(
-        authenticatedPage.getByText('Accounts are connected'),
+        authenticatedPage.getByText(/Accounts are connected, but/),
       ).toHaveCount(0);
 
       // The empty trend chart keeps its full frame, with the ghost preview
