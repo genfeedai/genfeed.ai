@@ -306,6 +306,7 @@ export class VideosUpscaleController {
           await this.failedGenerationService.handleFailedVideoGeneration(
             this.videosService,
             outputIngredientId,
+            user.organizationId,
             WebSocketPaths.video(outputIngredientId),
             user.id,
             getUserRoomName(user.id),
@@ -425,6 +426,7 @@ export class VideosUpscaleController {
     await this.failedGenerationService.handleFailedVideoGeneration(
       this.videosService,
       ingredientId,
+      user.organizationId,
       WebSocketPaths.video(ingredientId),
       user.id,
       getUserRoomName(user.id),

@@ -1416,7 +1416,7 @@ describe('AvatarVideoGenerationService', () => {
 
     // A bare id here throws in the handler's JSON.parse, which orphans the
     // VIDEO_PROCESSING row and creates a duplicate activity with no entity.
-    const [, , , , , activityMetadata] =
+    const [, , , , , , activityMetadata] =
       failedGenerationService.handleFailedVideoGeneration.mock.calls[0];
     expect(JSON.parse((activityMetadata as { value: string }).value)).toEqual({
       error: 'HeyGen rejected the submission due to insufficient credit.',
