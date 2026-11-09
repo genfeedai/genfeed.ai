@@ -127,9 +127,10 @@ export class StoryboardSourceService {
           ...(member.avatarAssetId ? [member.avatarAssetId] : []),
           ...(member.voiceId ? [member.voiceId] : []),
         ]),
-        ...plan.shots.flatMap((shot) =>
-          shot.stillAssetId ? [shot.stillAssetId] : [],
-        ),
+        ...plan.shots.flatMap((shot) => [
+          ...(shot.stillAssetId ? [shot.stillAssetId] : []),
+          ...(shot.referenceRoles ?? []).map((reference) => reference.assetId),
+        ]),
       ]),
     ];
     if (!ids.length) return;
@@ -185,8 +186,14 @@ export class StoryboardSourceService {
     if (
       plan.shots.some(
         (shot) =>
-          shot.stillAssetId &&
-          byId.get(shot.stillAssetId)?.category !== 'IMAGE',
+          (shot.stillAssetId &&
+            byId.get(shot.stillAssetId)?.category !== 'IMAGE') ||
+          // A role image may also be a reference asset, which has no category.
+          (shot.referenceRoles ?? []).some(
+            (reference) =>
+              byId.has(reference.assetId) &&
+              byId.get(reference.assetId)?.category !== 'IMAGE',
+          ),
       ) ||
       plan.cast.some(
         (member) =>
@@ -196,7 +203,7 @@ export class StoryboardSourceService {
       )
     )
       throw new ConflictException(
-        'Storyboard stills, avatar images and voices must use the correct asset category.',
+        'Storyboard stills, reference roles, avatar images and voices must use the correct asset category.',
       );
   }
 }

@@ -11,6 +11,42 @@ export const storyboardCastMemberSchema = z
     referenceAssetIds: z.array(storyboardIdSchema).max(20),
   })
   .strict();
+/**
+ * What a reference image is to the video model (#9617): the place, the face
+ * that carries a character's identity, the body and costume, a prop, or the
+ * look. The compiled prompt names each image by its role.
+ */
+export const STORYBOARD_REFERENCE_ROLES = [
+  'environment',
+  'character_face',
+  'character_body',
+  'prop',
+  'style',
+] as const;
+export const storyboardReferenceRoleSchema = z.enum(STORYBOARD_REFERENCE_ROLES);
+export const storyboardShotReferenceRoleSchema = z
+  .object({
+    assetId: storyboardIdSchema,
+    role: storyboardReferenceRoleSchema,
+    /** Who or what the image is, for example the character's name. */
+    label: z.string().trim().max(60).optional(),
+  })
+  .strict();
+/** A timed cut inside one generated clip, for example 0-2 s close-up. */
+export const storyboardShotCutSchema = z
+  .object({
+    startSeconds: z.number().finite().min(0).max(60),
+    endSeconds: z.number().finite().positive().max(60),
+    framing: z.string().trim().min(1).max(200),
+    camera: z.string().trim().max(200).optional(),
+  })
+  .strict();
+export const STORYBOARD_SHOT_LIMITS = {
+  maxCuts: 8,
+  maxSfx: 8,
+  maxReferenceRoles: 12,
+  maxVideoPromptCharacters: 4_000,
+} as const;
 export const storyboardShotSchema = z
   .object({
     id: storyboardIdSchema,
@@ -31,6 +67,26 @@ export const storyboardShotSchema = z
       'failed',
     ]),
     transition: z.enum(['cut', 'stitch', 'interpolate']),
+    cuts: z
+      .array(storyboardShotCutSchema)
+      .max(STORYBOARD_SHOT_LIMITS.maxCuts)
+      .optional(),
+    /** Sound-effect lines for models that render native audio. */
+    sfx: z
+      .array(z.string().trim().min(1).max(200))
+      .max(STORYBOARD_SHOT_LIMITS.maxSfx)
+      .optional(),
+    referenceRoles: z
+      .array(storyboardShotReferenceRoleSchema)
+      .max(STORYBOARD_SHOT_LIMITS.maxReferenceRoles)
+      .optional(),
+    /** The person's own video prompt; replaces the compiled one when set. */
+    videoPrompt: z
+      .string()
+      .trim()
+      .min(1)
+      .max(STORYBOARD_SHOT_LIMITS.maxVideoPromptCharacters)
+      .optional(),
   })
   .strict();
 /**
@@ -235,13 +291,46 @@ function validateStoryboardSlideshow(
       shot.dialogue ||
       shot.speakerId ||
       shot.onScreenSpeaker ||
-      shot.transition !== 'cut'
+      shot.transition !== 'cut' ||
+      shot.cuts?.length ||
+      shot.sfx?.length
     )
       ctx.addIssue({
         code: 'custom',
         path: ['shots', index],
         message: 'A slide has no duration, dialogue or transition.',
       });
+  });
+}
+
+/** Cuts run in order, without overlap, inside the shot. */
+function validateStoryboardShotCuts(
+  shot: z.infer<typeof storyboardShotSchema>,
+  index: number,
+  ctx: z.RefinementCtx,
+) {
+  let previousEnd = 0;
+  (shot.cuts ?? []).forEach((cut, cutIndex) => {
+    const path = ['shots', index, 'cuts', cutIndex];
+    if (cut.startSeconds >= cut.endSeconds)
+      ctx.addIssue({
+        code: 'custom',
+        path,
+        message: 'A cut must end after it starts.',
+      });
+    if (cut.startSeconds < previousEnd)
+      ctx.addIssue({
+        code: 'custom',
+        path,
+        message: 'Cuts must follow each other without overlapping.',
+      });
+    if (shot.durationSeconds !== null && cut.endSeconds > shot.durationSeconds)
+      ctx.addIssue({
+        code: 'custom',
+        path,
+        message: 'A cut must end inside its shot.',
+      });
+    previousEnd = cut.endSeconds;
   });
 }
 
@@ -302,6 +391,17 @@ function validateStoryboardPlan(
         path: ['shots', index, 'stillAssetId'],
         message: 'A fresh still requires an asset.',
       });
+    validateStoryboardShotCuts(shot, index, ctx);
+    if (
+      shot.referenceRoles &&
+      new Set(shot.referenceRoles.map((reference) => reference.assetId))
+        .size !== shot.referenceRoles.length
+    )
+      ctx.addIssue({
+        code: 'custom',
+        path: ['shots', index, 'referenceRoles'],
+        message: 'Give each reference image one role.',
+      });
     if (shot.transition === 'interpolate' && index === plan.shots.length - 1)
       ctx.addIssue({
         code: 'custom',
@@ -329,6 +429,13 @@ export type StoryboardPlanSettings = z.infer<
 export type StoryboardPlan = z.infer<typeof storyboardPlanSchema>;
 export type StoryboardPlanKind = z.infer<typeof storyboardPlanKindSchema>;
 export type StoryboardShot = z.infer<typeof storyboardShotSchema>;
+export type StoryboardShotCut = z.infer<typeof storyboardShotCutSchema>;
+export type StoryboardReferenceRole = z.infer<
+  typeof storyboardReferenceRoleSchema
+>;
+export type StoryboardShotReferenceRole = z.infer<
+  typeof storyboardShotReferenceRoleSchema
+>;
 export type StoryboardCastMember = z.infer<typeof storyboardCastMemberSchema>;
 export type StoryboardCutaway = z.infer<typeof storyboardCutawaySchema>;
 export type StoryboardSegment = z.infer<typeof storyboardSegmentSchema>;

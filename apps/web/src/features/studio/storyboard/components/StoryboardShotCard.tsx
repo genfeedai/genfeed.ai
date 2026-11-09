@@ -75,6 +75,7 @@ export default function StoryboardShotCard({
   startSeconds,
   still,
   supportedDurations,
+  direction,
   renders,
 }: StoryboardShotCardProps) {
   const translate = useTranslations('pages.studioStoryboard.plan');
@@ -283,6 +284,7 @@ export default function StoryboardShotCard({
           </div>
         ) : null}
 
+        {direction}
         {renders}
 
         <div className="flex items-center gap-2 border-t border-border px-4 py-2">

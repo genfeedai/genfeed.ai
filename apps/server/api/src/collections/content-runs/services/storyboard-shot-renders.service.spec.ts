@@ -308,6 +308,42 @@ describe('StoryboardShotRendersService quote', () => {
     });
   });
 
+  it('drafts a shot with timed cuts at the shortest length that holds them', async () => {
+    const config = approvedConfig();
+    config.plan.shots[0].cuts = [
+      { startSeconds: 0, endSeconds: 2, framing: 'Wide' },
+      { startSeconds: 2, endSeconds: 5, framing: 'Close-up' },
+    ];
+    const { service } = setup(config);
+    const quote = await service.quote('org-1', 'brand-1', 'run-1', {
+      expectedRevision: 7,
+      stage: 'draft',
+    });
+    expect(quote.items).toEqual([
+      { shotId: 'shot-1', credits: DRAFT_PRICE, durationSeconds: 6 },
+      { shotId: 'shot-2', credits: DRAFT_PRICE, durationSeconds: 4 },
+    ]);
+  });
+
+  it('refuses to quote a shot whose video prompt runs past the limit', async () => {
+    const config = approvedConfig();
+    config.plan.shots[0].action = 'a'.repeat(4_000);
+    config.plan.shots[0].cuts = Array.from({ length: 8 }, (_, index) => ({
+      startSeconds: index * 0.5,
+      endSeconds: (index + 1) * 0.5,
+      framing: 'f'.repeat(200),
+      camera: 'c'.repeat(200),
+    }));
+    config.plan.shots[0].sfx = Array.from({ length: 8 }, () => 's'.repeat(200));
+    const { service } = setup(config);
+    await expect(
+      service.quote('org-1', 'brand-1', 'run-1', {
+        expectedRevision: 7,
+        stage: 'draft',
+      }),
+    ).rejects.toThrow("Shot 1's video prompt is");
+  });
+
   it('renders a final at the shortest model length that covers the shot', async () => {
     const { service } = setup();
     const quote = await service.quote('org-1', 'brand-1', 'run-1', {
@@ -359,7 +395,7 @@ describe('StoryboardShotRendersService quote', () => {
 });
 
 describe('StoryboardShotRendersService render', () => {
-  it('sends the draft silent, marked as a draft, with the shot still first', async () => {
+  it('sends the draft silent with the final prompt, the shot still first', async () => {
     const context = setup();
     await render(context, 'draft', ['shot-1']);
     expect(context.dispatched).toEqual([
@@ -369,7 +405,7 @@ describe('StoryboardShotRendersService render', () => {
         isAudioEnabled: false,
         isDraft: true,
         references: ['still-1', 'avatar-mia', 'mia-1', 'style-1'],
-        text: 'Mia sprints down a wet alley. Keep every person consistent with the reference images. Visual style: Handheld 35mm.',
+        text: 'Mia sprints down a wet alley. Spoken line: "Not tonight." Keep every person consistent with the reference images. Visual style: Handheld 35mm.',
       }),
     ]);
   });
@@ -380,7 +416,7 @@ describe('StoryboardShotRendersService render', () => {
     const context = setup(config);
     await render(context, 'draft', ['shot-1']);
     expect(context.dispatched[0]?.text).toBe(
-      'Mia sprints down a wet alley. Keep every person consistent with the reference images. Visual style: Handheld 35mm.',
+      'Mia sprints down a wet alley. Spoken line: "Not tonight." Keep every person consistent with the reference images. Visual style: Handheld 35mm.',
     );
   });
 
@@ -491,6 +527,51 @@ describe('StoryboardShotRendersService render', () => {
         shotIds: ['shot-1'],
       }),
     ).rejects.toThrow('Shot 1 is already rendering.');
+  });
+
+  it('refuses a quote when a shot names more images than the model takes', async () => {
+    const config = approvedConfig();
+    config.plan.shots[1].referenceRoles = [
+      { assetId: 'env-1', role: 'environment', label: 'Neon street' },
+      { assetId: 'prop-1', role: 'prop', label: 'Sign' },
+      { assetId: 'prop-2', role: 'prop' },
+      { assetId: 'style-9', role: 'style' },
+    ];
+    const { service } = setup(config);
+    await expect(
+      service.quote('org-1', 'brand-1', 'run-1', {
+        expectedRevision: 7,
+        stage: 'final',
+        shotIds: ['shot-2'],
+      }),
+    ).rejects.toThrow(
+      'Shot 2 names 5 reference images; acme/cine-2 accepts 4.',
+    );
+  });
+
+  it('names each role image in the prompt and sends it after the still', async () => {
+    const config = approvedConfig();
+    config.plan.shots[1].referenceRoles = [
+      { assetId: 'env-1', role: 'environment', label: 'Neon street' },
+    ];
+    config.plan.shots[1].cuts = [
+      { startSeconds: 0, endSeconds: 3, framing: 'Wide on the sign' },
+      {
+        startSeconds: 3,
+        endSeconds: 8,
+        framing: 'Close-up of the flicker',
+        camera: 'slow push-in',
+      },
+    ];
+    config.plan.shots[1].sfx = ['buzzing neon', 'distant rain'];
+    const context = setup(config);
+    await render(context, 'final', ['shot-2']);
+    expect(context.dispatched[0]).toEqual(
+      expect.objectContaining({
+        references: ['still-2', 'env-1', 'style-1', 'style-2'],
+        text: 'Reference images: image 1 is the opening frame; image 2 is the environment (Neon street). Neon sign flickers over the empty street. 0-3s: Wide on the sign. 3-8s: Close-up of the flicker, slow push-in. Sound effects: buzzing neon, distant rain. Visual style: Handheld 35mm.',
+      }),
+    );
   });
 
   it('rejects a start whose quote no longer matches', async () => {

@@ -11,8 +11,8 @@ export const STORYBOARD_SHOT_RENDER_SOURCE_ACTION_PREFIX = 'storyboard-render-';
 /**
  * A shot renders twice (#9618): a cheap `draft` to check the motion, then the
  * `final` at full quality. A final that follows a current draft promotes it:
- * it reuses the draft's references and prompt, adding the spoken line when
- * the final renders sound and the silent draft left it out.
+ * it reuses the draft's exact prompt and references. The prompt already
+ * carries the line and sound effects the final renders.
  */
 export const storyboardShotRenderStageSchema = z.enum(['draft', 'final']);
 
