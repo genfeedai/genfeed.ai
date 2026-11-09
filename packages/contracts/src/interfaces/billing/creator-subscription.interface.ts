@@ -37,5 +37,4 @@ export interface ICreatorSubscriptionOffer {
 
 export interface ISubscribeToCreatorRequest {
   handle: string;
-  idempotencyKey: string;
 }

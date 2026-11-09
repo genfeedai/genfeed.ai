@@ -317,7 +317,6 @@ describe.skipIf(!connectionString)(
       await asReader(() =>
         subscriptions.subscribe(readerContext(), {
           handle,
-          idempotencyKey: 'sub-1',
         }),
       );
       expect(

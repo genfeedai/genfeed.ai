@@ -37,10 +37,6 @@ const NEEDS_CREDITS_CODES: ReadonlySet<string> = new Set([
 
 type Problem = 'failed' | 'needs-credits' | 'own-team' | null;
 
-function newIdempotencyKey(): string {
-  return globalThis.crypto.randomUUID();
-}
-
 function readProblem(error: unknown): Exclude<Problem, null> {
   const code = getJsonApiErrorMember(error)?.code;
   if (typeof code === 'string' && NEEDS_CREDITS_CODES.has(code)) {
@@ -74,8 +70,6 @@ export default function CreatorSubscriptionCard() {
   const [creatorLabel, setCreatorLabel] = useState(`@${handle}`);
   const [isBusy, setIsBusy] = useState(false);
   const [problem, setProblem] = useState<Problem>(null);
-  // One key per intended subscribe: a double click or a retry charges once.
-  const [idempotencyKey, setIdempotencyKey] = useState(newIdempotencyKey);
 
   useEffect(() => {
     if (!handle) {
@@ -115,8 +109,8 @@ export default function CreatorSubscriptionCard() {
     setIsBusy(true);
     try {
       const service = await getService();
-      applySubscription(await service.subscribe({ handle, idempotencyKey }));
-      setIdempotencyKey(newIdempotencyKey());
+      // The server keys the charge, so a double click or a retry charges once.
+      applySubscription(await service.subscribe({ handle }));
     } catch (error) {
       logger.error('Subscribing failed', error);
       setProblem(readProblem(error));

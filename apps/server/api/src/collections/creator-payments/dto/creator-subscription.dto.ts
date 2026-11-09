@@ -27,15 +27,6 @@ export class SubscribeToCreatorDto implements ISubscribeToCreatorRequest {
   @MaxLength(100)
   @ApiProperty({ description: "The creator's public profile handle." })
   readonly handle!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  @ApiProperty({
-    description:
-      'Client-generated key; a retry with the same key charges once.',
-  })
-  readonly idempotencyKey!: string;
 }
 
 /** A creator brand's monthly price in credits. */

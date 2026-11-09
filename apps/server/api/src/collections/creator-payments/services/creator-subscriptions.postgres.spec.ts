@@ -295,11 +295,7 @@ describe.skipIf(!connectionString)(
       const start = new Date('2026-11-09T10:00:00.000Z');
 
       const subscribed = await asReader(() =>
-        subscriptions.subscribe(
-          readerContext(),
-          { handle, idempotencyKey: 'sub-1' },
-          start,
-        ),
+        subscriptions.subscribe(readerContext(), { handle }, start),
       );
       expect(subscribed).toMatchObject({
         cancelAtPeriodEnd: false,
@@ -309,11 +305,7 @@ describe.skipIf(!connectionString)(
       });
       // Retrying the click charges nothing more.
       await asReader(() =>
-        subscriptions.subscribe(
-          readerContext(),
-          { handle, idempotencyKey: 'sub-1' },
-          start,
-        ),
+        subscriptions.subscribe(readerContext(), { handle }, start),
       );
       expect(await wallet(reader)).toEqual({ balance: 160, earnedBalance: 0 });
       expect(await wallet(creator)).toEqual({ balance: 40, earnedBalance: 40 });
@@ -363,15 +355,29 @@ describe.skipIf(!connectionString)(
       ]);
     });
 
+    it('charges once when two subscribe requests race', async () => {
+      await offerPlan(40);
+      const start = new Date('2026-11-09T10:00:00.000Z');
+
+      const [first, second] = await Promise.all([
+        asReader(() =>
+          subscriptions.subscribe(readerContext(), { handle }, start),
+        ),
+        asReader(() =>
+          subscriptions.subscribe(readerContext(), { handle }, start),
+        ),
+      ]);
+
+      expect(second.id).toBe(first.id);
+      expect(await wallet(reader)).toEqual({ balance: 160, earnedBalance: 0 });
+      expect(await wallet(creator)).toEqual({ balance: 40, earnedBalance: 40 });
+    });
+
     it('keeps access until the paid period ends after a cancel, then ends without charging', async () => {
       await offerPlan(40);
       const start = new Date('2026-11-09T10:00:00.000Z');
       const subscribed = await asReader(() =>
-        subscriptions.subscribe(
-          readerContext(),
-          { handle, idempotencyKey: 'sub-cancel' },
-          start,
-        ),
+        subscriptions.subscribe(readerContext(), { handle }, start),
       );
 
       const cancelled = await asReader(() =>
@@ -393,29 +399,16 @@ describe.skipIf(!connectionString)(
       expect(await hasAccess()).toBe(false);
       expect(await wallet(reader)).toEqual({ balance: 160, earnedBalance: 0 });
 
-      // Replaying the first charge's key returns the ended subscription and
-      // opens nothing; only a new charge subscribes again.
-      const replayed = await asReader(() =>
-        subscriptions.subscribe(
-          readerContext(),
-          { handle, idempotencyKey: 'sub-cancel' },
-          new Date('2026-12-10T10:00:00.000Z'),
-        ),
-      );
-      expect(replayed).toMatchObject({
-        id: subscribed.id,
-        status: CreatorSubscriptionStatus.ENDED,
-      });
-      expect(await hasAccess()).toBe(false);
-      expect(await wallet(reader)).toEqual({ balance: 160, earnedBalance: 0 });
-
+      // Subscribing again after the end opens a new subscription and charges
+      // a new month; it never revives the old charge.
       const resubscribed = await asReader(() =>
         subscriptions.subscribe(
           readerContext(),
-          { handle, idempotencyKey: 'sub-again' },
+          { handle },
           new Date('2026-12-10T10:00:00.000Z'),
         ),
       );
+      expect(resubscribed.id).not.toBe(subscribed.id);
       expect(resubscribed.status).toBe(CreatorSubscriptionStatus.ACTIVE);
       expect(await hasAccess()).toBe(true);
       expect(await wallet(reader)).toEqual({ balance: 120, earnedBalance: 0 });
@@ -426,7 +419,7 @@ describe.skipIf(!connectionString)(
       await asReader(() =>
         subscriptions.subscribe(
           readerContext(),
-          { handle, idempotencyKey: 'sub-left' },
+          { handle },
           new Date('2026-11-09T10:00:00.000Z'),
         ),
       );
@@ -447,11 +440,7 @@ describe.skipIf(!connectionString)(
       await offerPlan(150);
       const start = new Date('2026-11-09T10:00:00.000Z');
       await asReader(() =>
-        subscriptions.subscribe(
-          readerContext(),
-          { handle, idempotencyKey: 'sub-broke' },
-          start,
-        ),
+        subscriptions.subscribe(readerContext(), { handle }, start),
       );
       // 200 - 150 leaves 50: the next 150 cannot be paid.
       expect(await wallet(reader)).toEqual({ balance: 50, earnedBalance: 0 });
@@ -488,7 +477,6 @@ describe.skipIf(!connectionString)(
       await asReader(() =>
         subscriptions.subscribe(readerContext(), {
           handle,
-          idempotencyKey: 'sub-newsletter',
         }),
       );
       const db = database();
@@ -546,7 +534,6 @@ describe.skipIf(!connectionString)(
         asReader(() =>
           subscriptions.subscribe(readerContext(), {
             handle,
-            idempotencyKey: 'sub-none',
           }),
         ),
       ).rejects.toThrow('This creator does not offer a paid subscription');

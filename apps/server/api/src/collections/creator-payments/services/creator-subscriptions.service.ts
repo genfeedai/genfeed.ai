@@ -36,7 +36,7 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Subscriptions that still give the reader access and still renew. */
-const LIVE_STATUSES = [
+const LIVE_STATUSES: CreatorSubscriptionStatus[] = [
   CreatorSubscriptionStatus.ACTIVE,
   CreatorSubscriptionStatus.PAST_DUE,
 ];
@@ -248,9 +248,14 @@ export class CreatorSubscriptionsService {
   }
 
   /**
-   * Subscribes the reader and charges the first month. Retrying with the same
-   * idempotency key charges once; subscribing again while subscribed returns
-   * the existing subscription.
+   * Subscribes the reader and charges the first month. Subscribing again while
+   * subscribed returns the existing subscription.
+   *
+   * The charge key is derived on the server from the reader's previous
+   * subscription to this creator, so every attempt to open the same
+   * subscription (a retry, a double click, two tabs racing) shares one key and
+   * the ledger charges it once. Once that subscription ends, the next
+   * subscribe gets a new key and a new charge.
    */
   async subscribe(
     reader: CreatorPaymentReader,
@@ -269,16 +274,16 @@ export class CreatorSubscriptionsService {
         'SUBSCRIBE_TO_OWN_TEAM',
       );
     }
-    const [price, existing] = await this.inCreatorOrganization(
+    const [price, latest] = await this.inCreatorOrganization(
       creator,
       async () =>
         await Promise.all([
           this.findEnabledPrice(creator),
-          this.findLiveSubscription(creator, reader.userId),
+          this.findLatestSubscription(creator, reader.userId),
         ]),
     );
-    if (existing) {
-      return toSummary(existing);
+    if (latest && LIVE_STATUSES.includes(latest.status)) {
+      return toSummary(latest);
     }
     if (price === null) {
       throw new BusinessLogicException(
@@ -291,7 +296,7 @@ export class CreatorSubscriptionsService {
     const readerName = await this.creatorDirectoryService.readerName(reader);
     const transfer = await this.creditTransfersService.transfer({
       amount: price,
-      idempotencyKey: `subscribe:${reader.userId}:${creator.id}:${request.idempotencyKey}`,
+      idempotencyKey: `subscribe:${reader.userId}:${creator.id}:after:${latest?.id ?? 'none'}`,
       kind: CreditTransferKind.SUBSCRIPTION,
       payeeBrandId: creator.id,
       payeeDescription: `Subscription from ${readerName}`,
@@ -303,8 +308,7 @@ export class CreatorSubscriptionsService {
     });
 
     const created = await this.inCreatorOrganization(creator, async () => {
-      // A replayed charge returns the subscription it already paid for, even
-      // one that has since ended; it never opens a second one.
+      // A concurrent attempt that already opened this charge's subscription.
       const paidFor = await this.findByFirstCharge(
         creator,
         transfer.transferId,
@@ -328,8 +332,7 @@ export class CreatorSubscriptionsService {
           select: SUBSCRIPTION_SELECT,
         });
       } catch (error: unknown) {
-        // A concurrent retry of this charge, or a concurrent subscribe that
-        // won the one live subscription per reader.
+        // A concurrent attempt on the same charge won the insert.
         if (!isPrismaUniqueConstraintError(error)) throw error;
         return (
           (await this.findByFirstCharge(creator, transfer.transferId)) ??
@@ -655,6 +658,21 @@ export class CreatorSubscriptionsService {
         brandId: creator.id,
         payerUserId: userId,
         status: { in: LIVE_STATUSES },
+      }),
+    });
+  }
+
+  /** The reader's most recent subscription to this creator, in any state. */
+  private async findLatestSubscription(
+    creator: PublicCreator,
+    userId: string,
+  ): Promise<SubscriptionRecord | null> {
+    return await this.prisma.creatorSubscription.findFirst({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: SUBSCRIPTION_SELECT,
+      where: scopedWhere(creator.organizationId, {
+        brandId: creator.id,
+        payerUserId: userId,
       }),
     });
   }
