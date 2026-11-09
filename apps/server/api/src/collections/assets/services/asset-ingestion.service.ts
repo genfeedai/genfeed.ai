@@ -23,6 +23,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AssetCategory,
   AssetParent,
+  BrandKitSlot,
   categoryToPlural,
   FileInputType,
   IngredientCategory,
@@ -172,41 +173,13 @@ export class AssetIngestionService {
         parentType: assetData.parentType,
       });
 
-      try {
-        await this.filesClientService.uploadToS3(
-          assetData.id,
-          categoryToPlural(uploadDto.category),
-          {
-            contentType: file.mimetype,
-            data: file.buffer,
-            type: FileInputType.BUFFER,
-          },
-        );
-      } catch (error: unknown) {
-        // The slot keeps its current image when the new one never stored.
-        await this.assetsService.remove(assetData.id);
-        throw error;
-      }
-
-      // A brand keeps one live asset per logo variant or platform slot: once
-      // stored, the upload replaces only the slot it fills.
-      if (
-        isBrandKitSlotCategory(uploadDto.category) &&
-        kitSlot &&
-        entityData.parentId &&
-        uploadDto.parentType === AssetParent.BRAND
-      ) {
-        await this.assetsService.patchAll(
-          {
-            category: uploadDto.category,
-            id: { not: assetData.id },
-            parentBrandId: entityData.parentId,
-            parentType: AssetParent.BRAND,
-            ...brandKitSlotWhere(uploadDto.category, kitSlot),
-          },
-          { isDeleted: true },
-        );
-      }
+      await this.storeUploadInSlot(
+        assetData.id,
+        file,
+        uploadDto,
+        kitSlot,
+        entityData.parentId,
+      );
 
       const brandParentId =
         uploadDto.parentType === AssetParent.BRAND &&
@@ -247,6 +220,53 @@ export class AssetIngestionService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Store the uploaded file for a new asset. When the upload fails the new row
+   * is removed, so the slot keeps its current image. Once stored, a brand logo
+   * or banner replaces only the kit slot it fills: a brand keeps one live
+   * asset per logo variant or platform slot.
+   */
+  private async storeUploadInSlot(
+    assetId: string,
+    file: Express.Multer.File,
+    uploadDto: CreateAssetDto,
+    kitSlot: BrandKitSlot | undefined,
+    parentId: string | undefined,
+  ): Promise<void> {
+    try {
+      await this.filesClientService.uploadToS3(
+        assetId,
+        categoryToPlural(uploadDto.category),
+        {
+          contentType: file.mimetype,
+          data: file.buffer,
+          type: FileInputType.BUFFER,
+        },
+      );
+    } catch (error: unknown) {
+      await this.assetsService.remove(assetId);
+      throw error;
+    }
+
+    if (
+      isBrandKitSlotCategory(uploadDto.category) &&
+      kitSlot &&
+      parentId &&
+      uploadDto.parentType === AssetParent.BRAND
+    ) {
+      await this.assetsService.patchAll(
+        {
+          category: uploadDto.category,
+          id: { not: assetId },
+          parentBrandId: parentId,
+          parentType: AssetParent.BRAND,
+          ...brandKitSlotWhere(uploadDto.category, kitSlot),
+        },
+        { isDeleted: true },
+      );
     }
   }
 

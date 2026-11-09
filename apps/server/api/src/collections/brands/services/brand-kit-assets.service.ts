@@ -7,6 +7,12 @@ import {
   PRISMA_ASSET_CATEGORY_BY_ROLE,
 } from '@api/collections/brands/constants/brand-kit-assets.constant';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import {
+  BRAND_KIT_IMPORT_MAX_BYTES,
+  createBrandKitImportDiagnostic,
+  readStoredFileName,
+  validateBrandKitAssetCandidate,
+} from '@api/collections/brands/utils/brand-kit-import-candidate.util';
 import { resolveBrandLogoCdnUrls } from '@api/collections/brands/utils/brand-logo-urls.util';
 import { detectRasterImageMimeType } from '@api/collections/brands/utils/raster-image-mime.util';
 import {
@@ -16,7 +22,6 @@ import {
 } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import { scopedWhere } from '@api/index';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -36,7 +41,6 @@ import type {
   IBrandKitAssetImportRequest,
   IBrandKitAssetImportResponse,
   IBrandKitAssetImportResult,
-  IBrandKitDiagnostic,
   IBrandKitPlatformFillResult,
   IBrandKitResolvedAsset,
   IBrandKitResolvedAssets,
@@ -51,27 +55,6 @@ import { Injectable } from '@nestjs/common';
 const TRAILING_SLASHES_PATTERN = /\/+$/;
 const LEADING_SLASHES_PATTERN = /^\/+/;
 
-const BRAND_KIT_IMPORT_MAX_BYTES = 50 * 1024 * 1024;
-const BRAND_KIT_ALLOWED_MIME_TYPES = new Set([
-  'image/gif',
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/svg+xml',
-  'image/webp',
-]);
-const BRAND_KIT_ALLOWED_EXTENSIONS = new Set([
-  '.gif',
-  '.jpeg',
-  '.jpg',
-  '.png',
-  '.svg',
-  '.webp',
-]);
-/**
- * Sites often publish their logo only as an SVG. The files service rasterizes
- * SVG uploads to PNG, so an imported SVG is stored, and recorded, as a PNG.
- */
 const BRAND_KIT_DEFAULT_SLOT_BY_ROLE = {
   banner: BrandKitSlot.BANNER_MASTER,
   logo: BrandKitSlot.LOGO_PRIMARY,
@@ -79,10 +62,6 @@ const BRAND_KIT_DEFAULT_SLOT_BY_ROLE = {
   Exclude<BrandKitAssetRole, 'reference'>,
   BrandKitSlot
 >;
-const SVG_MIME_TYPE = 'image/svg+xml';
-const SVG_EXTENSION = '.svg';
-const SVG_STORED_MIME_TYPE = 'image/png';
-const SVG_STORED_EXTENSION = '.png';
 
 function toReferenceImageCategory(
   value: unknown,
@@ -123,6 +102,25 @@ function compareBrandKitSlots(
     (BRAND_KIT_SLOT_ORDER.get(left.slot ?? '') ?? Number.MAX_SAFE_INTEGER) -
     (BRAND_KIT_SLOT_ORDER.get(right.slot ?? '') ?? Number.MAX_SAFE_INTEGER)
   );
+}
+/**
+ * Sort a kit's logos and banners into slot order and pick the primary logo and
+ * master banner. Rows arrive newest first, so the fallback is the newest asset,
+ * matching the logo the leaderboards resolve.
+ */
+function orderBrandKitSlots(kit: IBrandKitResolvedAssets): void {
+  const newestLogo = kit.logos?.[0];
+  const newestBanner = kit.banners?.[0];
+  kit.logos?.sort(compareBrandKitSlots);
+  kit.banners?.sort(compareBrandKitSlots);
+  kit.logo =
+    kit.logos?.find((asset) => asset.slot === BrandKitSlot.LOGO_PRIMARY) ??
+    newestLogo;
+  kit.banner =
+    kit.banners?.find((asset) => asset.slot === BrandKitSlot.BANNER_MASTER) ??
+    newestBanner;
+  if (!kit.logo) delete kit.logo;
+  if (!kit.banner) delete kit.banner;
 }
 type BrandKitAssetRecord = Prisma.AssetGetPayload<{
   select: typeof BRAND_KIT_ASSET_SELECT;
@@ -330,21 +328,7 @@ export class BrandKitAssetsService {
     }
 
     for (const kit of resolved.values()) {
-      // Rows arrive newest first, so the fallback alias is the newest asset,
-      // matching the logo the leaderboards resolve.
-      const newestLogo = kit.logos?.[0];
-      const newestBanner = kit.banners?.[0];
-      kit.logos?.sort(compareBrandKitSlots);
-      kit.banners?.sort(compareBrandKitSlots);
-      kit.logo =
-        kit.logos?.find((asset) => asset.slot === BrandKitSlot.LOGO_PRIMARY) ??
-        newestLogo;
-      kit.banner =
-        kit.banners?.find(
-          (asset) => asset.slot === BrandKitSlot.BANNER_MASTER,
-        ) ?? newestBanner;
-      if (!kit.logo) delete kit.logo;
-      if (!kit.banner) delete kit.banner;
+      orderBrandKitSlots(kit);
     }
 
     return resolved;
@@ -498,7 +482,7 @@ export class BrandKitAssetsService {
     }
 
     if (dto.assets.length === 0) {
-      const diagnostic = this.createBrandKitImportDiagnostic(
+      const diagnostic = createBrandKitImportDiagnostic(
         'brand_kit_asset_import_empty',
         'At least one asset candidate is required.',
         'error',
@@ -567,7 +551,7 @@ export class BrandKitAssetsService {
     userId: string,
   ): Promise<IBrandKitAssetImportResult> {
     const candidateId = candidate.candidateId;
-    const validation = this.validateBrandKitAssetCandidate(candidate);
+    const validation = validateBrandKitAssetCandidate(candidate);
 
     if (validation.diagnostics.length > 0) {
       return {
@@ -607,10 +591,7 @@ export class BrandKitAssetsService {
         displayName: candidate.label,
         mimeType: validation.mimeType,
         origin: sourceUrl,
-        originalFileName: this.readStoredFileName(
-          validation.url,
-          validation.isSvg,
-        ),
+        originalFileName: readStoredFileName(validation.url, validation.isSvg),
         parentBrandId: brandId,
         parentOrgId: organizationId,
         parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
@@ -639,7 +620,7 @@ export class BrandKitAssetsService {
         return {
           candidateId,
           diagnostics: [
-            this.createBrandKitImportDiagnostic(
+            createBrandKitImportDiagnostic(
               'brand_kit_asset_too_large',
               `Imported asset exceeds the ${BRAND_KIT_IMPORT_MAX_BYTES / (1024 * 1024)}MB brand kit limit.`,
               'error',
@@ -690,7 +671,7 @@ export class BrandKitAssetsService {
       return {
         candidateId,
         diagnostics: [
-          this.createBrandKitImportDiagnostic(
+          createBrandKitImportDiagnostic(
             'brand_kit_asset_import_failed',
             message,
             'error',
@@ -766,7 +747,7 @@ export class BrandKitAssetsService {
         assetId: existing.id,
         candidateId,
         diagnostics: [
-          this.createBrandKitImportDiagnostic(
+          createBrandKitImportDiagnostic(
             'brand_kit_asset_already_imported',
             `${candidate.role} candidate was already imported.`,
             'info',
@@ -792,7 +773,7 @@ export class BrandKitAssetsService {
       return {
         candidateId,
         diagnostics: [
-          this.createBrandKitImportDiagnostic(
+          createBrandKitImportDiagnostic(
             'brand_kit_asset_existing_preserved',
             `Existing brand ${candidate.role} was preserved. Set replaceExisting to import this candidate.`,
             'warning',
@@ -804,106 +785,6 @@ export class BrandKitAssetsService {
     }
 
     return null;
-  }
-
-  private validateBrandKitAssetCandidate(
-    candidate: IBrandKitAssetImportCandidate,
-  ): {
-    diagnostics: IBrandKitDiagnostic[];
-    isSvg: boolean;
-    mimeType?: string;
-    url: URL;
-  } {
-    const diagnostics: IBrandKitDiagnostic[] = [];
-    const rawUrl = candidate.url ?? candidate.sourceUrl;
-    let parsedUrl: URL | undefined;
-
-    if (candidate.role !== 'reference' && candidate.referenceCategory) {
-      diagnostics.push(
-        this.createBrandKitImportDiagnostic(
-          'brand_kit_asset_reference_category_requires_reference_role',
-          'referenceCategory is only valid for reference assets.',
-          'error',
-        ),
-      );
-    }
-
-    if (!rawUrl) {
-      diagnostics.push(
-        this.createBrandKitImportDiagnostic(
-          'brand_kit_asset_missing_url',
-          'Asset candidate requires a URL.',
-          'error',
-        ),
-      );
-    } else {
-      try {
-        parsedUrl = new URL(rawUrl);
-        if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-          diagnostics.push(
-            this.createBrandKitImportDiagnostic(
-              'brand_kit_asset_invalid_protocol',
-              'Asset candidate URL must use http or https.',
-              'error',
-            ),
-          );
-        } else {
-          assertUrlNotPrivate(parsedUrl.href);
-        }
-      } catch (error: unknown) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : 'Invalid asset candidate URL';
-        diagnostics.push(
-          this.createBrandKitImportDiagnostic(
-            'brand_kit_asset_invalid_url',
-            message,
-            'error',
-          ),
-        );
-      }
-    }
-
-    const normalizedMimeType = candidate.mimeType?.trim().toLowerCase();
-    if (
-      normalizedMimeType &&
-      !BRAND_KIT_ALLOWED_MIME_TYPES.has(normalizedMimeType)
-    ) {
-      diagnostics.push(
-        this.createBrandKitImportDiagnostic(
-          'brand_kit_asset_unsupported_content_type',
-          `${normalizedMimeType} is not supported for brand kit assets.`,
-          'error',
-        ),
-      );
-    }
-
-    if (!normalizedMimeType && parsedUrl) {
-      const extension = this.readExtension(parsedUrl);
-      if (!BRAND_KIT_ALLOWED_EXTENSIONS.has(extension)) {
-        diagnostics.push(
-          this.createBrandKitImportDiagnostic(
-            'brand_kit_asset_unknown_content_type',
-            'Asset candidate must include a supported image MIME type or file extension.',
-            'error',
-          ),
-        );
-      }
-    }
-
-    const isSvg =
-      normalizedMimeType === SVG_MIME_TYPE ||
-      (!normalizedMimeType &&
-        parsedUrl !== undefined &&
-        this.readExtension(parsedUrl) === SVG_EXTENSION);
-
-    return {
-      diagnostics,
-      isSvg,
-      mimeType: isSvg ? SVG_STORED_MIME_TYPE : normalizedMimeType,
-      url: parsedUrl ?? new URL('https://invalid.example'),
-    };
   }
 
   private async hasExistingBrandAsset(
@@ -990,14 +871,6 @@ export class BrandKitAssetsService {
     ]);
   }
 
-  private createBrandKitImportDiagnostic(
-    code: string,
-    message: string,
-    severity: IBrandKitDiagnostic['severity'],
-  ): IBrandKitDiagnostic {
-    return { code, message, severity };
-  }
-
   private buildImportedAssetUrl(
     assetId: string,
     role: BrandKitAssetRole,
@@ -1042,26 +915,5 @@ export class BrandKitAssetsService {
       ...(role === 'reference' ? {} : { slot: toBrandKitSlot(asset.kitSlot) }),
       url: this.buildBrandAssetCdnUrl(asset.id, role, asset.cloudObjectKey),
     };
-  }
-
-  private readExtension(url: URL): string {
-    const pathname = url.pathname.toLowerCase();
-    const extensionStart = pathname.lastIndexOf('.');
-    return extensionStart >= 0 ? pathname.slice(extensionStart) : '';
-  }
-
-  private readStoredFileName(url: URL, isSvg: boolean): string | undefined {
-    const filename = this.readFileName(url);
-    if (!filename || !isSvg) {
-      return filename;
-    }
-    return filename.toLowerCase().endsWith(SVG_EXTENSION)
-      ? `${filename.slice(0, -SVG_EXTENSION.length)}${SVG_STORED_EXTENSION}`
-      : filename;
-  }
-
-  private readFileName(url: URL): string | undefined {
-    const filename = url.pathname.split('/').filter(Boolean).at(-1);
-    return filename ? decodeURIComponent(filename).slice(0, 180) : undefined;
   }
 }
