@@ -103,6 +103,19 @@ commands apply their Playwright filters to this same selector set. Missing files
 or emptied selector directories fail before Playwright starts. The changed
 command compares against `origin/master` by default.
 
+The full tier splits its selected specs across the 8 nightly shards by recorded
+duration, not by Playwright's `--shard` (which splits by test count and left one
+shard nearly twice as slow). `scripts/playwright-e2e-durations.json` holds the
+median test seconds per spec file; `assignSpecsToShards` places the longest
+specs first on the lightest shard, and a spec with no recorded duration costs the
+median. Every shard computes the same partition, so together they run exactly the
+selected files, once each: no spec is skipped, quarantined or moved. To refresh
+the durations, copy the `playwright-full-durations` artifact of a green nightly
+over that file (or run `node scripts/playwright-e2e-tiers.mjs
+--playwright-reports-dir=<dir of results.json files>
+--write-durations=scripts/playwright-e2e-durations.json`). The core tier still
+uses Playwright's `--shard`.
+
 `PLAYWRIGHT_E2E_LANE_EXCLUSIONS` records specs assigned to real-auth, cross-app,
 release-install, and Cloud execution. The `cloud` lane (`playwright/e2e/tests/cloud/`)
 needs the Cloud build (test-only `NEXT_PUBLIC_GENFEED_E2E_DEPLOYMENT=cloud`, set by the

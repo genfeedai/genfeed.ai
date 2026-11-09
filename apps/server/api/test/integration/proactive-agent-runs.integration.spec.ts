@@ -497,49 +497,17 @@ describe('proactive organization to strategy run and attributed draft integratio
       { recoverStalledRollups: vi.fn() } as never,
       { canStartWork: vi.fn() } as never,
     );
-    // List every constructor argument so an arity change fails typecheck
-    // instead of shifting workflowSchedules into the wrong slot.
+    // The task groups are not exercised here; only the proactive-agent
+    // strategy task (owned by workflowSchedules) runs.
+    const emptyTaskGroup = { createHandlers: () => ({}) } as never;
     const processor = new PlatformSchedulesProcessor(
       { isDevSchedulersEnabled: true } as never,
       {} as never,
       {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {
-        reconcileCrunTasks: vi.fn(),
-        synchronizeCrunContracts: vi.fn(),
-        reconcileEditorRenders: vi.fn(),
-        reconcileRawCutClips: vi.fn(),
-      } as unknown as ConstructorParameters<
-        typeof PlatformSchedulesProcessor
-      >[21],
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
       schedules as never,
-      {} as never,
-      {} as never,
+      emptyTaskGroup,
+      emptyTaskGroup,
+      emptyTaskGroup,
     );
 
     await prisma.organization.create({

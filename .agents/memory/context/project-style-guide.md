@@ -1,7 +1,7 @@
 # Style Guide — Genfeed.ai
 
 **last_verified: 2026-07-26** · Delta only. Type safety, import order, serializers, soft deletes,
-`ConfigService`, and the no-raw-HTML rule are stated once in CLAUDE.md — not repeated here.
+`ConfigService`, and the no-raw-HTML rule are stated once in AGENTS.md — not repeated here.
 
 - **Interfaces**: component props → `packages/props/`; state/helper shapes → `packages/contracts/src/interfaces/`
 - **Commit types**: `fix:` `feat:` `refactor:` `chore:` `test:` `build:`

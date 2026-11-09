@@ -8,6 +8,9 @@ const SCHEMA = 'packages/prisma/prisma/schema.prisma';
 const MIGRATIONS = 'packages/prisma/prisma/migrations/';
 const SHA = /^[0-9a-f]{40}$/;
 const DIGEST = /^sha256:[0-9a-f]{64}$/;
+// A rollback rehearsal has no ECR copy; it names the GHCR image instead.
+const GHCR_IMAGE =
+  /^ghcr\.io\/[a-z0-9._-]+\/[a-z0-9._-]+\/server@sha256:[0-9a-f]{64}$/;
 const ECR =
   /^\d{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com(?:\.cn)?\/[a-z0-9][a-z0-9._/-]*$/;
 
@@ -133,6 +136,7 @@ export function verifyServingSchemas({
   services,
   repository,
   candidateDigest,
+  candidateImage,
   cwd,
   execute = (command, args) =>
     execFileSync(command, args, {
@@ -142,9 +146,13 @@ export function verifyServingSchemas({
       maxBuffer: 16 * 1024 * 1024,
     }),
 }) {
+  // Exactly one candidate: the copied ECR digest, or a GHCR image (dry run).
+  const hasValidCandidate = candidateImage
+    ? !candidateDigest && GHCR_IMAGE.test(candidateImage)
+    : DIGEST.test(candidateDigest ?? '');
   if (
     !ECR.test(repository ?? '') ||
-    !DIGEST.test(candidateDigest ?? '') ||
+    !hasValidCandidate ||
     !cluster ||
     !Array.isArray(services) ||
     !services.length ||
@@ -173,7 +181,9 @@ export function verifyServingSchemas({
     }
     return revisions.get(image);
   };
-  const candidate = revision(`${repository}@${candidateDigest}`);
+  const candidate = revision(
+    candidateImage ?? `${repository}@${candidateDigest}`,
+  );
   const candidateSchema = git(['show', `${candidate}:${SCHEMA}`]);
   const images = servingImages({ cluster, services, repository, execute });
   for (const image of images) {
@@ -219,6 +229,7 @@ if (
         services: { type: 'string' },
         repository: { type: 'string' },
         'candidate-digest': { type: 'string' },
+        'candidate-image': { type: 'string' },
         cwd: { type: 'string' },
       },
     });
@@ -226,6 +237,7 @@ if (
       ...values,
       services: JSON.parse(values.services),
       candidateDigest: values['candidate-digest'],
+      candidateImage: values['candidate-image'],
     });
     process.stdout.write(
       `Serving schema compatibility verified for ${result.servingImages} image revision(s), candidate ${result.candidate}.\n`,

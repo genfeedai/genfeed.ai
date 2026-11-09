@@ -36,7 +36,7 @@ natural runs. This change does not promise one workflow run per push.
 | Source bridge | Selected PR/merge-group or dormant called-push source cases | Direct Tests Gate, qualifying the exact genuine current-attempt inner job |
 
 Off-event leaves use Not selected - PR title, Not selected - server image and
-Not selected - source gate, never a required name. Manual/release Full Suite
+Not selected - source gate, never a required name. Nightly/manual/release Full Suite
 retains its existing master verdict and Final Connected Acceptance; historical
 recovery profiles remain unchanged. Ordinary worker contexts gain actual
 reusable prefixes.
@@ -120,12 +120,14 @@ GitHub's **Re-run failed jobs** is reserved for a transient failure on the same
 SHA; it cannot carry green jobs forward to a new commit.
 
 The post-merge contract is intentionally broader: `full-suite.yml` runs the
-complete heavy tier on demand (Actions, Run workflow) and from the Release
-workflow, never on a `master` push, and never cancels a running suite. The
-`master-ci-failure` tracker is dormant because it keys off the `push` event;
-a red manual or release run is reported by the Master SHA Verdict job. The
-stable Release workflow waits for an exact-SHA run and reuses its green result
-instead of starting a duplicate Full Suite. A hard-red exact-SHA run blocks release until its failed surfaces are
+complete heavy tier every night at 03:37 UTC on `master` with final connected
+acceptance on, on demand (Actions, Run workflow), and from the Release
+workflow. It never runs on a `master` push and never cancels a running suite.
+The `master-ci-failure` tracker is dormant because it keys off the `push` event;
+a red nightly, manual or release run is reported by the Master SHA Verdict job.
+The stable Release workflow waits for an exact-SHA run (push, nightly or manual)
+and reuses its green result instead of starting a duplicate Full Suite, so a
+release cut on the commit the night verified skips the suite. A hard-red exact-SHA run blocks release until its failed surfaces are
 fixed on a new SHA. Missing or infrastructure-cancelled evidence falls back to
 the reusable Full Suite so verification is never skipped.
 
@@ -133,7 +135,9 @@ the reusable Full Suite so verification is never skipped.
 
 Update 2026-10-03: the Full Suite no longer runs on master pushes at all (on
 demand and at release only), because it still competed with PR CI for runners.
-The paragraph below records the audit as found.
+Update 2026-11-09: it also runs once a night at 03:37 UTC (CI/CD audit item 3),
+outside working hours, so the unit, typecheck and acceptance tier gets a daily
+verdict. The paragraph below records the audit as found.
 
 Over ~19 hours the repository used 205 runner-hours across 604 runs. Pull
 request CI took a median 30 minutes (p90 121) wall clock for ~15 minutes of
@@ -205,7 +209,7 @@ The alternatives considered for this audit were:
 
 | Rule | Mechanical enforcement | Scope and failure behavior | Owner |
 | --- | --- | --- | --- |
-| `master` is PR-only | GitHub ruleset `Passing CI on master`; required `Tests Gate`; on-demand `full-suite.yml` (dispatch and release) | Every PR must pass its own aggregate gate; integration drift between concurrently merged PRs surfaces at the next manual or release Full Suite | GitHub setting + repository workflows |
+| `master` is PR-only | GitHub ruleset `Passing CI on master`; required `Tests Gate`; nightly and on-demand `full-suite.yml` (schedule, dispatch and release) | Every PR must pass its own aggregate gate; integration drift between concurrently merged PRs surfaces at the next nightly, manual or release Full Suite | GitHub setting + repository workflows |
 | Superseded PR work is disposable; landed and release work is not | Domain-scoped caller/job concurrency plus `scripts/ci/ci-concurrency.test.ts` and `scripts/ci/pr-validation-workflows.test.mjs` | PR runs cancel within one PR/ref; the master Full Suite, release, deploy, and shared-cache writers queue or complete | Repository code |
 | Changed scope must preserve dependency reachability | `scripts/ci/pr-test-plan.mjs`, Vitest `--changed`, Turbo `--affected --dry=json`, adaptive 1/2/4 shard matrices, fail-closed `Tests Gate` | Root toolchain and planner changes escalate to the full matrix; invalid or missing plans fail | Repository code |
 | Lint, format, type, build, tests, schema, and boundaries are deterministic | Frozen Bun install in `.github/actions/setup-bun-env`; format, lint, and typecheck in `Static Checks`; `Spec Typecheck`; `Build` with OpenAPI drift; and `test:executable-contracts` | Architecture contracts live in executable tests rather than new one-off workflow steps | Repository code |
@@ -219,6 +223,7 @@ The alternatives considered for this audit were:
 | Untrusted pull-request code stays outside privileged event context | Code validation runs on `pull_request`; an executable workflow contract limits `pull_request_target` to the metadata-only title leaf in `ci.yml` (plus the existing trusted CLA recovery workflow), and rejects checkout or local-action execution in that leaf | Fork code cannot turn metadata validation into execution with the base repository token | Repository code |
 | Fork code never receives repository secrets | GitHub fork approval policy requires approval for every external contributor; CI uses `pull_request`, and GitHub withholds secrets from fork runs | Maintainers review and apply `run-ci`; secret-consuming publish/deploy paths are not PR-triggered | GitHub setting + repository workflows |
 | Secret regressions fail before merge | Gitleaks and changed-file secretlint inside `Static Checks`, held by the required `Tests Gate`; staged-content secret scan remains mandatory before commits | Findings fail Static Checks and therefore the gate | Repository code + required checks |
+| Flaky jobs are visible before they block a release | `flake-ledger.yml` runs nightly and reads `ci.yml`, `e2e.yml`, `playwright-full-nightly.yml` and `full-suite.yml` runs that went green after more than one attempt; `scripts/ci/flake-ledger.mjs` names the workflow, job, failing step and test of each earlier failed attempt | Reads Actions runs, jobs and check-run annotations only; writes the job summary and one rolling `flake-ledger` tracking issue. A test seen in 3 or more runs in 14 days is listed first. It never reruns, retries, skips or quarantines; a flaky test is fixed or deleted | Repository code |
 | Failure evidence must be actionable and bounded | Exact test-plan artifacts, Vitest JSON reports, Playwright traces/screenshots, coverage reports, SARIF uploads, and job summaries use explicit retention and `if: always()`/`failure()` where applicable | Artifacts diagnose the exact run without making advisory coverage a merge gate | Repository code |
 | Production deploys only from public-repository `master` CI | Manual `Release` pins one master SHA; `Deploy hosted SaaS` validates ancestry and exact SHA; deploy jobs use the `production` environment | Community and hosted lanes ship the same SHA; failed release gates do not publish a new version | Repository workflow + environment |
 | Production environment accepts only `master` | GitHub `production` deployment branch policy allowlists `master` | Environment-scoped secrets and variables are unavailable before the job reaches the environment | GitHub setting |
