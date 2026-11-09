@@ -158,10 +158,6 @@ vi.mock('@/features/trends/desk/desk-filter-rail', () => ({
   ),
 }));
 
-vi.mock('@/features/trends/desk/desk-heat-strip', () => ({
-  default: () => <div data-testid="desk-heat-strip" />,
-}));
-
 vi.mock('@/features/trends/desk/desk-sources-menu', () => ({
   default: () => <div data-testid="desk-sources-menu" />,
 }));

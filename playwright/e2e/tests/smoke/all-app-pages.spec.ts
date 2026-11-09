@@ -147,6 +147,7 @@ const protectedRouteBuckets: RouteBucket[] = [
       route === '/connect' ||
       route === '/settings' ||
       route.startsWith('/settings/') ||
+      route.startsWith('/support/') ||
       route === '/test-org',
   ),
   routeBucket('protected analytics', protectedRoutes, (route) =>

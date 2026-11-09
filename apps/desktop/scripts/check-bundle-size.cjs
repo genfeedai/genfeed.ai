@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { listTracedSourceFiles } = require('./prune-app-shell.cjs');
 
 const desktopRoot = path.resolve(__dirname, '..');
 const appShellRoot = path.join(desktopRoot, 'dist', 'app-shell');
@@ -73,6 +74,15 @@ assertMissing(
   path.join(appShellRoot, 'node_modules', '@img'),
   'Desktop bundle unexpectedly includes sharp native image packages',
 );
+
+const tracedSourceFiles = listTracedSourceFiles(
+  path.join(appShellRoot, 'apps', 'web'),
+);
+if (tracedSourceFiles.length > 0) {
+  throw new Error(
+    `Traced TypeScript sources leaked into the packaged app shell (${tracedSourceFiles.length} files), e.g. ${tracedSourceFiles[0]}`,
+  );
+}
 
 assertWithinBudget(
   'app shell',
