@@ -523,7 +523,10 @@ test('the API test job runs every full-tier shard at once and the gate still nee
     runHeavy: true,
   });
   assert.ok(maxParallel >= fullPlan.apiTests.shards);
-  assert.match(workflow, /TEST_API_RESULT: \$\{\{ needs\.test-api\.result \}\}/);
+  assert.match(
+    workflow,
+    /TEST_API_RESULT: \$\{\{ needs\.test-api\.result \}\}/,
+  );
 });
 
 test('benchmarks shared action changes alongside their conservative full coverage', () => {
