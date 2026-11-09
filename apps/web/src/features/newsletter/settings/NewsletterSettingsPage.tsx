@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant, CardGap } from '@genfeedai/contracts';
+import { NEWSLETTER_PAID_PRICE_MAX_CREDITS } from '@genfeedai/contracts/constants';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -85,9 +86,17 @@ export default function NewsletterSettingsPage() {
     const paidPriceCredits = price ? Number(price) : null;
     if (
       paidPriceCredits !== null &&
-      !(Number.isInteger(paidPriceCredits) && paidPriceCredits > 0)
+      !(
+        Number.isInteger(paidPriceCredits) &&
+        paidPriceCredits > 0 &&
+        paidPriceCredits <= NEWSLETTER_PAID_PRICE_MAX_CREDITS
+      )
     ) {
-      NotificationsService.getInstance().error(translate('priceInvalid'));
+      NotificationsService.getInstance().error(
+        translate('priceInvalid', {
+          max: NEWSLETTER_PAID_PRICE_MAX_CREDITS.toLocaleString('en-US'),
+        }),
+      );
       return;
     }
     setIsSaving(true);
@@ -259,6 +268,7 @@ export default function NewsletterSettingsPage() {
             <Input
               id="newsletter-paid-price"
               inputMode="numeric"
+              max={NEWSLETTER_PAID_PRICE_MAX_CREDITS}
               min={1}
               type="number"
               value={form.paidPriceCredits}

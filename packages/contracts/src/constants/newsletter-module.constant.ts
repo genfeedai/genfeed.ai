@@ -92,6 +92,8 @@ export const BRAND_SUBSCRIBER_IMPORT_MAX_BYTES = 5 * 1024 * 1024;
 export const BRAND_SUBSCRIBER_IMPORT_MAX_ROWS = 50_000;
 /** Addresses accepted by one "add by email" request. */
 export const BRAND_SUBSCRIBER_ADD_MAX_EMAILS = 500;
+/** Highest monthly paid-tier price a brand can set, in credits. */
+export const NEWSLETTER_PAID_PRICE_MAX_CREDITS = 1_000_000;
 
 /**
  * Cloud plan caps (runtime gate, only where organization billing applies).

@@ -716,7 +716,7 @@
       "save": "Save settings",
       "saved": "Newsletter settings saved.",
       "saveFailed": "The settings were not saved.",
-      "priceInvalid": "Enter a whole number of credits above zero, or leave the price empty.",
+      "priceInvalid": "Enter a whole number of credits from 1 to {max}, or leave the price empty.",
       "sender": "Sender",
       "senderName": "Sender name",
       "senderNameHelp": "Shown as the From name in the inbox. Defaults to the brand name.",
