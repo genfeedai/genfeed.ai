@@ -1,5 +1,4 @@
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
-import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { WarmupPreparationService } from '@api/endpoints/admin/warmup-accounts/warmup-preparation.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -110,8 +109,6 @@ describe('WarmupAccountsController', () => {
         { provide: WarmupPreviewsService, useValue: previewsService },
       ],
     })
-      .overrideGuard(IpWhitelistGuard)
-      .useValue({ canActivate: vi.fn().mockReturnValue(true) })
       .overrideGuard(SuperAdminGuard)
       .useValue({ canActivate: vi.fn().mockReturnValue(true) })
       .compile();
@@ -119,13 +116,13 @@ describe('WarmupAccountsController', () => {
     controller = module.get<WarmupAccountsController>(WarmupAccountsController);
   });
 
-  it('requires IP whitelist and platform superadmin guards', () => {
+  it('requires the platform superadmin guard and no IP allowlist', () => {
     const guards = Reflect.getMetadata(
       GUARDS_METADATA,
       WarmupAccountsController,
     );
 
-    expect(guards).toEqual([IpWhitelistGuard, SuperAdminGuard]);
+    expect(guards).toEqual([SuperAdminGuard]);
   });
 
   it('creates warm-up accounts with the local DB user id', async () => {
