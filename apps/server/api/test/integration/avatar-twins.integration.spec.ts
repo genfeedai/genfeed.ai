@@ -5,8 +5,13 @@ import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { AvatarTwinsService } from '@api/collections/avatar-twins/services/avatar-twins.service';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { RecordActivityInput } from '@api/services/activity-recording/activity-recording.types';
+import { AgentAvatarTwinToolHandler } from '@api/services/agent-orchestrator/tools/agent-avatar-twin-tool-handler.service';
+import { AgentGenerationSettingsToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-settings-tool-handler.service';
+import { AgentMediaTransformService } from '@api/services/agent-orchestrator/tools/agent-media-transform.service';
+import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type {
   HeyGenConsentLink,
   HeyGenConsentStatus,
@@ -19,7 +24,7 @@ import type {
 import type { HeyGenTwinService } from '@api/services/integrations/heygen/services/heygen-twin.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivityKey, AvatarTwinStatus } from '@genfeedai/contracts';
-import { PrismaClient } from '@genfeedai/prisma';
+import { type Prisma, PrismaClient } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { createMediaUrlExtension } from '@libs/prisma/media-url.extension';
@@ -112,6 +117,42 @@ class FakeHeyGenTwins {
       looksCount: 1,
       status: this.consent === 'rejected' ? 'failed' : 'pending_consent',
     };
+  }
+}
+
+/**
+ * The brand agent config as stored: reads and merges `brands.agentConfig`
+ * in Postgres, so a saved default can be read back like the app reads it.
+ */
+class StoredBrandConfigs {
+  constructor(private readonly prisma: PrismaClient) {}
+
+  findOne(query: { id: string; organizationId: string }) {
+    return this.prisma.brand.findFirst({
+      where: {
+        id: query.id,
+        isDeleted: false,
+        organizationId: query.organizationId,
+      },
+    });
+  }
+
+  async updateAgentConfig(
+    brandId: string,
+    organizationId: string,
+    agentConfig: Record<string, unknown>,
+  ) {
+    const brand = await this.findOne({ id: brandId, organizationId });
+    if (!brand) return null;
+    return this.prisma.brand.update({
+      data: {
+        agentConfig: {
+          ...((brand.agentConfig as Record<string, unknown> | null) ?? {}),
+          ...agentConfig,
+        } as Prisma.InputJsonValue,
+      },
+      where: { id: brand.id },
+    });
   }
 }
 
@@ -578,5 +619,273 @@ describe('Avatar twin enrollment (real Postgres)', () => {
     expect(activities.inputs.map((input) => input.key)).toEqual([
       ActivityKey.AVATAR_TWIN_TRAINING_FAILED,
     ]);
+  });
+
+  describe('through the Agent and MCP tools (#9688)', () => {
+    let twinTools: AgentAvatarTwinToolHandler;
+    let transform: AgentMediaTransformService;
+    let settings: AgentGenerationSettingsToolHandler;
+    const ctx = (
+      actor: { organizationId: string; userId: string },
+      brandId?: string,
+    ) =>
+      ({
+        ...actor,
+        ...(brandId ? { brandId } : {}),
+      }) as ToolExecutionContext;
+    const aliceCtx = ctx(alice, 'brand-agent');
+
+    beforeAll(async () => {
+      await prisma.brand.create({
+        data: {
+          agentConfig: { persona: 'kept' },
+          id: 'brand-agent',
+          label: 'Agent brand',
+          organizationId: 'alpha',
+          slug: 'agent-brand',
+          userId: 'alice',
+        },
+      });
+    });
+
+    beforeEach(async () => {
+      await prisma.brand.update({
+        data: { agentConfig: { persona: 'kept' } },
+        where: { id: 'brand-agent' },
+      });
+      twinTools = new AgentAvatarTwinToolHandler(
+        service,
+        new StoredBrandConfigs(prisma) as unknown as BrandsService,
+        prisma as unknown as PrismaService,
+        { warn: () => undefined } as unknown as LoggerService,
+      );
+      transform = new AgentMediaTransformService(
+        {} as never,
+        {} as never,
+        twinTools,
+      );
+      settings = new AgentGenerationSettingsToolHandler(
+        {} as never,
+        {} as never,
+        {} as never,
+        twinTools,
+      );
+    });
+
+    const readTwins = async (extra: Record<string, unknown> = {}) => {
+      const result = await twinTools.list(
+        { type: 'digital_twin', ...extra },
+        aliceCtx,
+      );
+      expect(result.success).toBe(true);
+      return result.data as Record<string, unknown>;
+    };
+
+    it('starts a twin from a Library clip, hands back the consent link and polls to ready', async () => {
+      const started = await transform.transformMedia(
+        { name: 'Alice', operation: 'digital_twin', videoId: 'take-1' },
+        aliceCtx,
+      );
+
+      expect(started).toMatchObject({
+        creditsUsed: 0,
+        data: {
+          consentLink: {
+            consentUrl: 'https://app.heygen.com/consent/abc',
+            expiresAt: '2026-11-09T12:00:00.000Z',
+          },
+          isExisting: false,
+          twin: {
+            consent: 'pending',
+            consentLinkExpiresAt: '2026-11-09T12:00:00.000Z',
+            name: 'Alice',
+            status: AvatarTwinStatus.TRAINING,
+          },
+        },
+        success: true,
+      });
+      const twin = (started.data as { twin: { id: string; nextStep: string } })
+        .twin;
+      expect(twin.nextStep).toContain('Not ready yet');
+
+      provider.lookStatus = 'completed';
+      expect(await readTwins()).toMatchObject({
+        count: 1,
+        twins: [
+          {
+            id: twin.id,
+            isBrandDefault: false,
+            status: AvatarTwinStatus.AWAITING_CONSENT,
+          },
+        ],
+      });
+
+      provider.consent = 'accepted';
+      expect(await readTwins({ twinId: twin.id })).toMatchObject({
+        twin: {
+          consent: 'accepted',
+          id: twin.id,
+          previewImageUrl: 'https://files.heygen.ai/look_1.png',
+          status: AvatarTwinStatus.READY,
+          voiceId: 'voice_1',
+        },
+      });
+    });
+
+    it('returns the same twin when the same clip is started again', async () => {
+      const first = await transform.transformMedia(
+        { operation: 'digital_twin', videoId: 'take-1' },
+        aliceCtx,
+      );
+      const again = await transform.transformMedia(
+        { operation: 'digital_twin', videoId: 'take-1' },
+        aliceCtx,
+      );
+
+      expect(again.data).toMatchObject({
+        isExisting: true,
+        twin: { id: (first.data as { twin: { id: string } }).twin.id },
+      });
+      expect(provider.uploads).toBe(1);
+      expect(await prisma.avatarTwin.count()).toBe(1);
+    });
+
+    it('says why a start failed and starts fresh once fixed', async () => {
+      provider.failUpload = true;
+      expect(
+        await transform.transformMedia(
+          { operation: 'digital_twin', videoId: 'take-1' },
+          aliceCtx,
+        ),
+      ).toEqual({
+        creditsUsed: 0,
+        error: 'HeyGen is unavailable.',
+        success: false,
+      });
+
+      provider.failUpload = false;
+      const retried = await transform.transformMedia(
+        { isRecordingKept: true, operation: 'digital_twin', videoId: 'take-1' },
+        aliceCtx,
+      );
+      expect(retried.data).toMatchObject({
+        isExisting: false,
+        twin: { status: AvatarTwinStatus.TRAINING },
+      });
+      expect(
+        (await readTwins()).twins as Array<{ status: string }>,
+      ).toMatchObject([
+        { status: AvatarTwinStatus.TRAINING },
+        { failure: { message: 'HeyGen is unavailable.' }, status: 'FAILED' },
+      ]);
+    });
+
+    it('issues a new consent link after HeyGen declines the consent', async () => {
+      const started = await transform.transformMedia(
+        { operation: 'digital_twin', videoId: 'take-1' },
+        aliceCtx,
+      );
+      const twinId = (started.data as { twin: { id: string } }).twin.id;
+      provider.lookStatus = 'completed';
+      provider.consent = 'rejected';
+      expect(await readTwins({ twinId })).toMatchObject({
+        twin: {
+          failure: { message: 'Say the statement on camera.' },
+          status: AvatarTwinStatus.CONSENT_REJECTED,
+        },
+      });
+
+      const renewed = await transform.transformMedia(
+        { operation: 'digital_twin_consent', twinId },
+        aliceCtx,
+      );
+
+      expect(renewed).toMatchObject({
+        data: {
+          consentLink: { consentUrl: 'https://app.heygen.com/consent/abc' },
+          twin: { failure: null, status: AvatarTwinStatus.AWAITING_CONSENT },
+        },
+        success: true,
+      });
+    });
+
+    it('makes a ready twin the brand default avatar and voice, and refuses one in training', async () => {
+      const started = await transform.transformMedia(
+        { operation: 'digital_twin', videoId: 'take-1' },
+        aliceCtx,
+      );
+      const twinId = (started.data as { twin: { id: string } }).twin.id;
+      const setDefault = () =>
+        settings.set(
+          { brandId: 'brand-agent', defaultAvatar: { twinId }, scope: 'brand' },
+          aliceCtx,
+        );
+
+      expect(await setDefault()).toMatchObject({
+        error: expect.stringContaining('The twin is not ready yet'),
+        success: false,
+      });
+
+      provider.lookStatus = 'completed';
+      provider.consent = 'accepted';
+      expect(await setDefault()).toMatchObject({
+        data: { brandId: 'brand-agent', isVoiceDefault: true },
+        success: true,
+      });
+
+      const brand = await prisma.brand.findUnique({
+        select: { agentConfig: true },
+        where: { id: 'brand-agent' },
+      });
+      expect(brand?.agentConfig).toEqual({
+        defaultAvatarRef: {
+          groupId: 'grp_1',
+          lookId: 'look_1',
+          ownership: 'private',
+          source: 'heygen-look',
+        },
+        defaultVoiceRef: {
+          externalVoiceId: 'voice_1',
+          label: 'My digital twin',
+          ownership: 'private',
+          provider: 'HEYGEN',
+          source: 'catalog',
+        },
+        persona: 'kept',
+      });
+      expect(await readTwins({ twinId })).toMatchObject({
+        twin: { isBrandDefault: true, status: AvatarTwinStatus.READY },
+      });
+    });
+
+    it('keeps another organization and a teammate out of the twin', async () => {
+      const started = await transform.transformMedia(
+        { operation: 'digital_twin', videoId: 'take-1' },
+        aliceCtx,
+      );
+      const twinId = (started.data as { twin: { id: string } }).twin.id;
+
+      for (const actor of [bob, carol]) {
+        expect(
+          await twinTools.list({ twinId, type: 'digital_twin' }, ctx(actor)),
+        ).toMatchObject({ success: false });
+        expect(
+          await transform.transformMedia(
+            { operation: 'digital_twin_consent', twinId },
+            ctx(actor),
+          ),
+        ).toMatchObject({ success: false });
+        expect(
+          await transform.transformMedia(
+            { operation: 'digital_twin', videoId: 'take-1' },
+            ctx(actor),
+          ),
+        ).toMatchObject({
+          error: "Recording with identifier 'take-1' not found",
+          success: false,
+        });
+      }
+      expect(await prisma.avatarTwin.count()).toBe(1);
+    });
   });
 });

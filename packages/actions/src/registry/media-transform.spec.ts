@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   findInapplicableMediaTransformParameters,
   getMediaTransformOperation,
+  isDigitalTwinTransformOperation,
+  isFreeMediaTransformOperation,
   isMediaTransformOperation,
   MEDIA_TRANSFORM_OPERATION_PARAMETERS,
   MEDIA_TRANSFORM_OPERATIONS,
@@ -11,15 +13,32 @@ import {
 import { getToolByName } from './tool-registry';
 
 describe('media transform operation parsing', () => {
-  it('names the single transform_media tool and its four operations', () => {
+  it('names the single transform_media tool and its operations', () => {
     expect(MEDIA_TRANSFORM_TOOL_NAME).toBe('transform_media');
     expect([...MEDIA_TRANSFORM_OPERATIONS]).toEqual([
       'edit',
       'reframe',
       'upscale',
       'merge',
+      'digital_twin',
+      'digital_twin_consent',
     ]);
   });
+
+  it.each([
+    ['edit', false, false],
+    ['reframe', false, false],
+    ['upscale', false, false],
+    ['merge', false, true],
+    ['digital_twin', true, true],
+    ['digital_twin_consent', true, true],
+  ] as const)(
+    'operation %s: digital twin %s, free and brandless %s',
+    (operation, isTwin, isFree) => {
+      expect(isDigitalTwinTransformOperation(operation)).toBe(isTwin);
+      expect(isFreeMediaTransformOperation(operation)).toBe(isFree);
+    },
+  );
 
   it.each(MEDIA_TRANSFORM_OPERATIONS)(
     'reads operation %s from a transform_media call',
@@ -134,7 +153,14 @@ describe('transform_media tool definition', () => {
     expect(tool?.parameters.required).toEqual(['operation']);
     expect(tool?.parameters).not.toHaveProperty('oneOf');
     expect(tool?.parameters.properties.operation).toMatchObject({
-      enum: ['edit', 'reframe', 'upscale', 'merge'],
+      enum: [
+        'edit',
+        'reframe',
+        'upscale',
+        'merge',
+        'digital_twin',
+        'digital_twin_consent',
+      ],
     });
   });
 
@@ -160,7 +186,9 @@ describe('transform_media tool definition', () => {
       const description = String(
         (schema as { description?: string }).description,
       );
-      expect(description, key).toMatch(/^(edit|reframe|upscale|merge)[,.:]/);
+      expect(description, key).toMatch(
+        /^(edit|reframe|upscale|merge|digital_twin|digital_twin_consent)[,.:]/,
+      );
     }
   });
 

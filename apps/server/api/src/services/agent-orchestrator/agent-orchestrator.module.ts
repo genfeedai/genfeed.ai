@@ -9,6 +9,7 @@ import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads
 import { AgentTransfersService } from '@api/collections/agent-transfers/services/agent-transfers.service';
 import { AgentUntrustedContentAuditsModule } from '@api/collections/agent-untrusted-content-audits/agent-untrusted-content-audits.module';
 import { ArticlesModule } from '@api/collections/articles/articles.module';
+import { AvatarTwinsModule } from '@api/collections/avatar-twins/avatar-twins.module';
 import { BotsModule } from '@api/collections/bots/bots.module';
 import { BotsService } from '@api/collections/bots/services/bots.service';
 import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
@@ -100,6 +101,7 @@ import { AgentTurnWorkflowExecutionService } from '@api/services/agent-orchestra
 import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
 import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
+import { AgentAvatarTwinToolHandler } from '@api/services/agent-orchestrator/tools/agent-avatar-twin-tool-handler.service';
 import { AgentBrandContentToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
 import { AgentBrandContextAskService } from '@api/services/agent-orchestrator/tools/agent-brand-context-ask.service';
 import { AgentBrandContextToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-context-tool-handler.service';
@@ -215,6 +217,7 @@ import { Module } from '@nestjs/common';
     AgentGenerationGatewayModule,
     AnalyticsModule,
     ArticlesModule,
+    AvatarTwinsModule,
     TurboRunModule,
     AutonomousPublishingModule,
     BrandInterviewModule,
@@ -275,6 +278,7 @@ import { Module } from '@nestjs/common';
     AgentGenerationOptionsToolHandler,
     AgentGenerationSettingsToolHandler,
     AgentVoiceToolHandler,
+    AgentAvatarTwinToolHandler,
     AgentCompletionCardBuilderService,
     AgentAdsResearchToolHandler,
     AgentAutoModelResolverService,

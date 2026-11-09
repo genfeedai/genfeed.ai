@@ -151,7 +151,7 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      "List library assets of one type, newest first, for one brand: brandId, else the thread brand, else your current brand; with none of those it lists the whole organization. Failed, archived and rejected assets are left out. Types image, video, music and avatar return id, category, status, url, label or prompt, origin, tags (id and label) and createdAt. Type character lists the active named characters the brand can use, including characters another organization granted to yours for use only (handle, label, description, whether a reference image exists, and who granted it). A revoked grant disappears on the next call. Type voice lists the organization's own saved personal voices (id, name, provider, previewUrl, isBrandDefault); pass that id as generate.voiceId. With source account it browses the voices of the ElevenLabs account the organization connected, with search and paging, and reports connection status (connected, disconnected or invalid): personal voices need the customer's own connected account and never fall back to a platform account. Stock catalog voices are not listed here.",
+      "List library assets of one type, newest first, for one brand: brandId, else the thread brand, else your current brand; with none of those it lists the whole organization. Failed, archived and rejected assets are left out. Types image, video, music and avatar return id, category, status, url, label or prompt, origin, tags (id and label) and createdAt. Type character lists the active named characters the brand can use, including characters another organization granted to yours for use only (handle, label, description, whether a reference image exists, and who granted it). A revoked grant disappears on the next call. Type voice lists the organization's own saved personal voices (id, name, provider, previewUrl, isBrandDefault); pass that id as generate.voiceId. With source account it browses the voices of the ElevenLabs account the organization connected, with search and paging, and reports connection status (connected, disconnected or invalid): personal voices need the customer's own connected account and never fall back to a platform account. Stock catalog voices are not listed here. Type digital_twin lists the digital twins the caller recorded of themselves (newest first, or one with twinId), after re-reading training and consent at HeyGen: id, name, status (UPLOADING, TRAINING, AWAITING_CONSENT, CONSENT_REJECTED, READY or FAILED), consent (pending, accepted or rejected), consentLinkExpiresAt, failure, previewImageUrl, voiceId, isBrandDefault and nextStep. Only READY twins can be used; relay nextStep, and never call a twin ready before status is READY.",
     name: 'get_assets',
     parameters: {
       properties: {
@@ -201,6 +201,11 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
             'Type voice with source account only. nextPageToken from the previous page.',
           type: 'string',
         },
+        twinId: {
+          description:
+            'Type digital_twin only. Read this one twin instead of the list.',
+          type: 'string',
+        },
         shelf: {
           description:
             'Only assets on this Library shelf, including unsorted (not filed in a folder). Not used with type character.',
@@ -223,7 +228,15 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
         },
         type: {
           description: 'Which kind of asset to list.',
-          enum: ['image', 'video', 'music', 'avatar', 'character', 'voice'],
+          enum: [
+            'image',
+            'video',
+            'music',
+            'avatar',
+            'character',
+            'voice',
+            'digital_twin',
+          ],
           type: 'string',
         },
       },
