@@ -38,7 +38,7 @@ const GENFEED_MCP_TOOL_NAMES_PATTERN = /\bmcp__genfeed__([a-z][a-z0-9_]*)\b/gu;
 const IGNORED_MARKDOWN_PATH_PATTERN =
   /(?:^|\/)(?:\.git|node_modules|fixtures)(?:\/|$)/u;
 
-const CATALOG = 'packages/actions/src/registry/curated-action-catalog.ts';
+const CATALOG = 'packages/actions/src/registry/curated-actions.catalog.ts';
 const TOKEN = /^[a-z][a-z0-9_]*$/u;
 function isHistoricalRetiredMention(
   line: string,
