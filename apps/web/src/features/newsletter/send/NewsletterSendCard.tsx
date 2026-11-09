@@ -97,10 +97,12 @@ export default function NewsletterSendCard({
     queryFn: async ({ signal }) => {
       const service = await getService();
       if (!service || !brandId) return null;
-      const page = await service.listSends(brandId, { limit: 50 }, signal);
-      return (
-        page.items.find((send) => send.newsletterId === newsletter.id) ?? null
+      const page = await service.listSends(
+        brandId,
+        { limit: 1, newsletterId: newsletter.id },
+        signal,
       );
+      return page.items[0] ?? null;
     },
     queryKey: [NEWSLETTER_QUERY_KEY, 'issue-send', brandId, newsletter.id],
     refetchInterval: (query) =>

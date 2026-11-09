@@ -429,7 +429,9 @@ export default async function OrgRootAppPage({
 
     // Newsletter pages belong to one brand; the all-brands view asks for one.
     if (section === 'newsletter' && publishingSegments.length <= 2) {
-      const NewsletterPage = NEWSLETTER_PAGES[campaignId ?? ''];
+      const NewsletterPage = Object.hasOwn(NEWSLETTER_PAGES, campaignId ?? '')
+        ? NEWSLETTER_PAGES[campaignId ?? '']
+        : undefined;
       if (!NewsletterPage) {
         notFound();
       }

@@ -18,7 +18,7 @@ import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
-import { type ChangeEvent, useState } from 'react';
+import { type ChangeEvent, useRef, useState } from 'react';
 import { useNewsletterService } from '@/features/newsletter/hooks/use-newsletter-module';
 import type {
   NewsletterAudienceDialogProps,
@@ -44,37 +44,44 @@ export default function NewsletterImportDialog({
   const [hasConsent, setHasConsent] = useState(false);
   const [isWorking, setIsWorking] = useState(false);
   const [error, setError] = useState('');
+  // Each pick gets a number; a slower read or preview from an earlier pick is
+  // dropped, so the previewed file is always the one that gets imported.
+  const selection = useRef(0);
 
   async function handleFile(
     event: ChangeEvent<HTMLInputElement>,
   ): Promise<void> {
     const picked = event.target.files?.[0];
+    selection.current += 1;
+    const current = selection.current;
+    setFile(null);
     setPreview(null);
     setError('');
+    setIsWorking(false);
     if (!picked) return;
     if (picked.size > BRAND_SUBSCRIBER_IMPORT_MAX_BYTES) {
-      setFile(null);
       setError(translate('fileTooLarge'));
       return;
     }
-    const csv = await picked.text();
-    setFile({ csv, name: picked.name });
     setIsWorking(true);
     try {
+      const csv = await picked.text();
       const service = await getService();
-      if (!service) return;
-      setPreview(
-        await service.importSubscribers(brandId, {
-          csv,
-          fileName: picked.name,
-          isPreview: true,
-        }),
-      );
+      if (!service) throw new Error('Newsletter service unavailable');
+      const summary = await service.importSubscribers(brandId, {
+        csv,
+        fileName: picked.name,
+        isPreview: true,
+      });
+      if (current !== selection.current) return;
+      setFile({ csv, name: picked.name });
+      setPreview(summary);
     } catch (cause) {
+      if (current !== selection.current) return;
       logger.error('Newsletter import preview failed', cause);
       setError(translate('importFailed'));
     } finally {
-      setIsWorking(false);
+      if (current === selection.current) setIsWorking(false);
     }
   }
 
@@ -84,7 +91,7 @@ export default function NewsletterImportDialog({
     setError('');
     try {
       const service = await getService();
-      if (!service) return;
+      if (!service) throw new Error('Newsletter service unavailable');
       onDone(
         await service.importSubscribers(brandId, {
           csv: file.csv,

@@ -226,7 +226,7 @@ export class NewsletterModuleService extends BaseService<BrandSubscriberRecord> 
 
   async listSends(
     brandId: string,
-    query: { limit?: number; page?: number } = {},
+    query: { limit?: number; newsletterId?: string; page?: number } = {},
     signal?: AbortSignal,
   ): Promise<IPaginatedResponse<INewsletterSend>> {
     const path = this.brandPath(brandId, 'sends');

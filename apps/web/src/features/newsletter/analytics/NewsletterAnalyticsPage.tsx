@@ -1,6 +1,7 @@
 'use client';
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
+import { BRAND_SUBSCRIBER_SOURCES } from '@genfeedai/contracts/constants';
 import type {
   INewsletterActivityItem,
   INewsletterSendReport,
@@ -22,6 +23,7 @@ import type {
   NewsletterLinkRow,
 } from '@/features/newsletter/props/newsletter.props';
 
+const SOURCE_KEYS = new Set<string>(BRAND_SUBSCRIBER_SOURCES);
 const PERCENT_FORMAT = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 1,
   style: 'percent',
@@ -113,7 +115,10 @@ export default function NewsletterAnalyticsPage() {
       {
         header: translate('analytics.columns.source'),
         key: 'source',
-        render: (row) => translate(`source.${row.source}`),
+        render: (row) =>
+          SOURCE_KEYS.has(row.source)
+            ? translate(`source.${row.source}`)
+            : row.source,
       },
       { header: translate('analytics.columns.newSubscribers'), key: 'count' },
     ],

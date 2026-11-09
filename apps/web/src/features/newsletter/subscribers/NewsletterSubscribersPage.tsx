@@ -192,7 +192,8 @@ export default function NewsletterSubscribersPage() {
     if (!brandId) return;
     try {
       const service = await getService();
-      await service?.removeSubscriber(brandId, subscriber.id);
+      if (!service) throw new Error('Newsletter service unavailable');
+      await service.removeSubscriber(brandId, subscriber.id);
       NotificationsService.getInstance().success(
         translate('subscribers.removed', { email: subscriber.email }),
       );
@@ -211,7 +212,8 @@ export default function NewsletterSubscribersPage() {
     if (!brandId) return;
     try {
       const service = await getService();
-      await service?.resendConfirmation(brandId, subscriber.id);
+      if (!service) throw new Error('Newsletter service unavailable');
+      await service.resendConfirmation(brandId, subscriber.id);
       NotificationsService.getInstance().success(
         translate('subscribers.confirmationSent', { email: subscriber.email }),
       );
