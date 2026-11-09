@@ -24,3 +24,22 @@ export const publicArticleSerializerConfig = {
   tags: rel('tag', ['label']),
   user: rel('user', ['firstName', 'lastName']),
 };
+
+/**
+ * A generation embedded in a public article (#9663): what it is, the model
+ * that made it and, when the author shows it, its prompt. Typed `ingredient`
+ * so the response pipeline attaches the public media grant.
+ */
+export const publicArticleGenerationSerializerConfig = {
+  attributes: ['category', 'status', 'metadata', 'prompt'],
+  type: 'ingredient',
+  metadata: rel('metadata', [
+    'label',
+    'description',
+    'model',
+    'modelLabel',
+    'width',
+    'height',
+  ]),
+  prompt: rel('prompt', ['original']),
+};

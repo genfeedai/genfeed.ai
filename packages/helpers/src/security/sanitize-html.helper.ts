@@ -110,6 +110,10 @@ const ALLOWED_ATTRIBUTES: Record<string, string[]> = {
   col: ['span'],
   colgroup: ['span'],
   del: ['cite', 'datetime'],
+  // An article's Genfeed generation block (#9663): which asset to show and
+  // whether its prompt is shown. The page resolves the asset through the
+  // public API, so only a public asset ever renders.
+  figure: ['data-genfeed-generation', 'data-ingredient-id', 'data-prompt'],
   img: ['alt', 'height', 'loading', 'sizes', 'src', 'srcset', 'width'],
   ins: ['cite', 'datetime'],
   li: ['value'],

@@ -1,13 +1,19 @@
 import { getEditorialArticleCoverUrl } from '@data/editorial-og.data';
 import { stringifyJsonLd } from '@data/json-ld';
+import { buildModelCredits } from '@data/model-credits';
 import {
   creatorArticlePath,
   creatorProfilePath,
 } from '@genfeedai/contracts/constants';
 import { buildArticleJsonLd } from '@genfeedai/helpers';
 import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
-import type { PublicArticleViewProps } from '@props/content/public-article.props';
+import type {
+  ArticleGenerationBlockData,
+  PublicArticleViewProps,
+} from '@props/content/public-article.props';
+import { getPublicModels } from '@public/models/models-loader';
 import { EnvironmentService } from '@services/core/environment.service';
+import { PublicService } from '@services/external/public.service';
 import { notFound } from 'next/navigation';
 import {
   getPublicBrandBySlug,
@@ -15,7 +21,37 @@ import {
 } from '../../creator-loader';
 import { resolvePublicArticleAuthor } from './article-author';
 import ArticleDetailContent from './article-detail';
+import { toArticleGenerationBlocks } from './article-generations';
 import { getCreatorArticleCached } from './article-loader';
+
+/**
+ * The generation blocks the article embeds, with model labels from the public
+ * catalog. A failed load renders the article without its blocks.
+ */
+async function loadArticleGenerations(
+  articleId: string,
+): Promise<Record<string, ArticleGenerationBlockData>> {
+  try {
+    const [ingredients, catalog] = await Promise.all([
+      PublicService.getInstance().findArticleGenerations(articleId),
+      getPublicModels(),
+    ]);
+    return toArticleGenerationBlocks(
+      ingredients,
+      buildModelCredits(
+        catalog,
+        ingredients.map((ingredient) => ({
+          model:
+            typeof ingredient.metadata === 'object'
+              ? ingredient.metadata?.model
+              : undefined,
+        })),
+      ),
+    );
+  } catch {
+    return {};
+  }
+}
 
 /**
  * The rendered article, shared by the cached public route and the dynamic
@@ -42,7 +78,10 @@ export default async function ArticleView({
 
   const handle = requestedHandle.toLowerCase();
   const brand = await getPublicBrandBySlug(handle).catch(() => null);
-  const referralCode = brand ? await getPublicReferralCode(brand.id) : null;
+  const [referralCode, generations] = await Promise.all([
+    brand ? getPublicReferralCode(brand.id) : null,
+    loadArticleGenerations(article.id),
+  ]);
   const articlePath = creatorArticlePath(handle, slug);
   const articleUrl = `${EnvironmentService.apps.website}${articlePath}`;
   const profileUrl = `${EnvironmentService.apps.website}${creatorProfilePath(handle)}`;
@@ -142,6 +181,7 @@ export default async function ArticleView({
         )}
         brand={brand}
         handle={handle}
+        generations={generations}
         isPreview={isPreview}
         referralCode={referralCode}
       />

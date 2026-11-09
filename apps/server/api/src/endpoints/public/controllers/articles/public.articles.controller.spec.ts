@@ -1,6 +1,7 @@
 import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { PublicArticlesController } from '@api/endpoints/public/controllers/articles/public.articles.controller';
+import { PublicArticleGenerationsService } from '@api/endpoints/public/services/public-article-generations.service';
 import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { createArticlePreviewToken } from '@api/helpers/utils/article-preview/article-preview-token.util';
@@ -129,6 +130,15 @@ describe('PublicArticlesController', () => {
         {
           provide: LoggerService,
           useValue: mockLoggerService,
+        },
+        {
+          provide: PublicArticleGenerationsService,
+          useValue: {
+            findForArticle: async (articleId: string) =>
+              articleId === mockArticle.id
+                ? [{ category: 'IMAGE', id: testId('ingredient') }]
+                : [],
+          },
         },
         {
           provide: PublicViewsService,
@@ -428,6 +438,24 @@ describe('PublicArticlesController', () => {
       await expect(controller.recordView(request, articleId)).resolves.toEqual({
         data: null,
       });
+    });
+  });
+
+  describe('findArticleGenerations', () => {
+    const request = { originalUrl: '/public/articles' } as Request;
+
+    it('returns the generations the article embeds', async () => {
+      await expect(
+        controller.findArticleGenerations(request, mockArticle.id),
+      ).resolves.toEqual({
+        data: [{ category: 'IMAGE', id: testId('ingredient') }],
+      });
+    });
+
+    it('returns no generations for an id that is not an entity id', async () => {
+      await expect(
+        controller.findArticleGenerations(request, 'not-an-id'),
+      ).resolves.toEqual({ data: [] });
     });
   });
 });

@@ -367,6 +367,19 @@ export class PublicService extends HTTPBaseService {
    * 404 is let through `validateStatus` so it never reaches the response
    * interceptor, whose error shape differs between development and production.
    */
+  /**
+   * The generations a published article embeds as blocks, with their output,
+   * model and (unless the author hid it) prompt. Empty when there are none.
+   */
+  public async findArticleGenerations(
+    articleId: string,
+  ): Promise<Ingredient[]> {
+    return this.fetchMany(
+      `articles/${encodeURIComponent(articleId)}/generations`,
+      Ingredient,
+    );
+  }
+
   public async getPublicArticleBySlug(
     slug: string,
     previewToken?: string,

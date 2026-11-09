@@ -189,6 +189,28 @@ describe('PublicService', () => {
     expect(result[0]).toBeInstanceOf(Link);
   });
 
+  it('findArticleGenerations GETs the article blocks as ingredients', async () => {
+    http.get.mockResolvedValue(
+      axiosResponse({
+        data: [
+          {
+            attributes: { category: 'image', status: 'generated' },
+            id: 'ingredient_1',
+            type: 'ingredient',
+          },
+        ],
+      }),
+    );
+
+    const generations = await service.findArticleGenerations('article_1');
+
+    expect(http.get).toHaveBeenCalledWith('articles/article_1/generations', {
+      params: undefined,
+    });
+    expect(generations).toHaveLength(1);
+    expect(generations[0]).toBeInstanceOf(Ingredient);
+  });
+
   describe('public collections', () => {
     const collectionCases = [
       ['findPublicBrands', 'brands', Brand],

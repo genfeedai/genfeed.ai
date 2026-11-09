@@ -29,6 +29,7 @@ import { PublicVideosController } from '@api/endpoints/public/controllers/videos
 import { PublicYoutubeClipperController } from '@api/endpoints/public/controllers/youtube-clipper/public-youtube-clipper.controller';
 import { PublicYoutubeLongFormController } from '@api/endpoints/public/controllers/youtube-long-form/public-youtube-long-form.controller';
 import { NewsletterImportFeedService } from '@api/endpoints/public/services/newsletter-import-feed.service';
+import { PublicArticleGenerationsService } from '@api/endpoints/public/services/public-article-generations.service';
 import { PublicMediaService } from '@api/endpoints/public/services/public-media.service';
 import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
 import { PublicYoutubeClipperService } from '@api/endpoints/public/services/public-youtube-clipper.service';
@@ -84,6 +85,7 @@ import { Module } from '@nestjs/common';
   providers: [
     NewsletterImportFeedService,
     PublicMediaService,
+    PublicArticleGenerationsService,
     PublicViewsService,
     PublicYoutubeClipperService,
     RssService,

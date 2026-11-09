@@ -19,6 +19,7 @@ import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { Article } from '@models/content/article.model';
 import type { Brand } from '@models/organization/brand.model';
+import type { ArticleGenerationBlockData } from '@props/content/public-article.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
@@ -191,12 +192,14 @@ export function ArticleAbout({
 export default function ArticleDetail({
   article,
   brand = null,
+  generations = {},
   handle = GENFEED_BRAND_HANDLE,
   isPreview,
   referralCode = null,
 }: {
   article: Article;
   brand?: Brand | null;
+  generations?: Record<string, ArticleGenerationBlockData>;
   handle?: string;
   isPreview: boolean;
   referralCode?: string | null;
@@ -322,6 +325,7 @@ export default function ArticleDetail({
             <div>
               <ArticleContent
                 applyHref={buildArticleApplyHref(article.label)}
+                generations={generations}
                 sanitizedHtml={html}
                 sections={sections}
                 slug={article.slug}
