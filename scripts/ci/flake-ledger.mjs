@@ -96,6 +96,35 @@ export function describeJobFailure(job, annotations) {
   };
 }
 
+const READ_ATTEMPTS = 3;
+const READ_RETRY_DELAYS_MS = [2_000, 5_000];
+
+// Anything but a server error (a missing permission, a bad request) is a
+// setup fault the nightly job must fail on rather than report around.
+function rethrowUnlessServerError(error) {
+  if (!(Number(error?.status) >= 500)) {
+    throw error;
+  }
+}
+
+/**
+ * Re-reads one Actions API call that answered with a server error. Only reads
+ * are repeated; nothing about a workflow run is ever re-triggered.
+ */
+async function readWithRetry(read, wait) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await read();
+    } catch (error) {
+      const isServerError = Number(error?.status) >= 500;
+      if (!isServerError || attempt >= READ_ATTEMPTS) {
+        throw error;
+      }
+      await wait(READ_RETRY_DELAYS_MS[attempt - 1]);
+    }
+  }
+}
+
 async function listRerunSuccessRuns(
   github,
   { owner, repo, workflowFile, now, days },
@@ -214,34 +243,52 @@ export async function collectFlakeOccurrences({
   now = Date.now(),
   days = FLAKE_LEDGER_WINDOW_DAYS,
   workflows = FLAKE_LEDGER_WORKFLOWS,
+  wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   core = console,
 }) {
   const occurrences = [];
   const truncatedWindows = [];
+  const unreadable = [];
   let scannedRuns = 0;
   let unconfirmedJobs = 0;
   for (const workflow of workflows) {
-    const listing = await listRerunSuccessRuns(github, {
-      owner,
-      repo,
-      workflowFile: workflow.file,
-      now,
-      days,
-    });
+    let listing;
+    try {
+      listing = await readWithRetry(
+        () =>
+          listRerunSuccessRuns(github, {
+            owner,
+            repo,
+            workflowFile: workflow.file,
+            now,
+            days,
+          }),
+        wait,
+      );
+    } catch (error) {
+      rethrowUnlessServerError(error);
+      core.warning?.(`${workflow.file}: run listing failed: ${error.message}`);
+      unreadable.push(workflow.file);
+      continue;
+    }
     scannedRuns += listing.scanned;
     truncatedWindows.push(...listing.truncatedWindows);
     core.info?.(
       `${workflow.file}: ${listing.runs.length} green runs with more than one attempt`,
     );
     for (const run of listing.runs) {
-      const found = await collectRunOccurrences(github, {
-        owner,
-        repo,
-        workflow,
-        run,
-      });
-      occurrences.push(...found.occurrences);
-      unconfirmedJobs += found.unconfirmedJobs;
+      try {
+        const found = await readWithRetry(
+          () => collectRunOccurrences(github, { owner, repo, workflow, run }),
+          wait,
+        );
+        occurrences.push(...found.occurrences);
+        unconfirmedJobs += found.unconfirmedJobs;
+      } catch (error) {
+        rethrowUnlessServerError(error);
+        core.warning?.(`${run.html_url}: could not be read: ${error.message}`);
+        unreadable.push(run.html_url);
+      }
     }
   }
   return {
@@ -251,6 +298,7 @@ export async function collectFlakeOccurrences({
     rerunGreenRuns: scannedRuns,
     truncatedWindows,
     unconfirmedJobs,
+    unreadable,
   };
 }
 
@@ -410,6 +458,12 @@ export function renderFlakeLedger(
   if (collected.unconfirmedJobs > 0) {
     lines.push(
       `${collected.unconfirmedJobs} failed jobs were left out because they were not green in the final attempt.`,
+      '',
+    );
+  }
+  if (collected.unreadable.length > 0) {
+    lines.push(
+      `Incomplete: GitHub kept answering with a server error for ${collected.unreadable.join(', ')}, so those runs are not in the ledger. The next nightly run reads them again.`,
       '',
     );
   }
