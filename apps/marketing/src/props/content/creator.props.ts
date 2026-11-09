@@ -48,6 +48,10 @@ export interface CreatorRailProps {
   referralCode: string | null;
 }
 
+export interface ProfileViewCountProps {
+  brandId: string;
+}
+
 export interface CreatorTabsProps {
   active: CreatorProfileView;
   counts: CreatorTabCounts;

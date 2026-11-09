@@ -288,10 +288,11 @@ export class CredentialsController {
       }
 
       const accessToken = EncryptionUtil.decrypt(credential.accessToken);
-      const pages =
-        await this.instagramService.listAuthorizedInstagramAccounts(
-          accessToken,
-        );
+      const pages = await this.instagramService.listAuthorizedInstagramAccounts(
+        accessToken,
+        undefined,
+        credential.externalBusinessId,
+      );
 
       // Flag candidates already held by another live credential of this
       // brand, the same sibling exclusion

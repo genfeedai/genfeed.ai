@@ -1,4 +1,5 @@
 import { getAppSignUpUrl } from '@data/app-links';
+import { modelAnchorId } from '@data/model-credits';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { PublicModelCatalogItem } from '@public/models/models-loader';
 import { Badge } from '@ui/primitives/badge';
@@ -233,7 +234,8 @@ export default function ModelsContent({ models }: ModelsContentProps) {
                   <ol className="border-t border-foreground/10">
                     {categoryModels.map((model) => (
                       <li
-                        className="grid gap-5 border-b border-foreground/10 py-7 sm:grid-cols-[minmax(0,1fr)_auto] sm:py-8"
+                        className="grid scroll-mt-24 gap-5 border-b border-foreground/10 py-7 sm:grid-cols-[minmax(0,1fr)_auto] sm:py-8"
+                        id={modelAnchorId(model.key)}
                         key={model.id}
                       >
                         <div className="min-w-0">

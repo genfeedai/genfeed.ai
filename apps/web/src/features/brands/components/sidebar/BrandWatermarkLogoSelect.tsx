@@ -1,5 +1,6 @@
 'use client';
 
+import type { IAsset } from '@genfeedai/contracts/interfaces';
 import type { BrandWatermarkLogoSelectProps } from '@props/pages/brand-detail.props';
 import { Label } from '@ui/primitives/label';
 import {
@@ -23,6 +24,23 @@ export default function BrandWatermarkLogoSelect({
   value,
 }: BrandWatermarkLogoSelectProps) {
   const translate = useTranslations('pages.brandWatermark');
+  const translateSlot = useTranslations('pages.brandKitSettings.slots');
+  const logoIds = new Set((brand.logos ?? []).map((logo) => logo.id));
+
+  function labelFor(asset: IAsset): string {
+    if (logoIds.has(asset.id) && asset.kitSlot) {
+      return translate('logoVariant', {
+        variant: translateSlot(`slot.${asset.kitSlot}`),
+      });
+    }
+    if (asset.id === brand.logo?.id) return translate('currentLogo');
+    return translate('reference', {
+      number:
+        (brand.references ?? []).findIndex(
+          (reference) => reference.id === asset.id,
+        ) + 1,
+    });
+  }
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -38,14 +56,7 @@ export default function BrandWatermarkLogoSelect({
           )}
           {assets.map((asset) => (
             <SelectItem key={asset.id} value={asset.id}>
-              {asset.id === brand.logo?.id
-                ? translate('currentLogo')
-                : translate('reference', {
-                    number:
-                      (brand.references ?? []).findIndex(
-                        (reference) => reference.id === asset.id,
-                      ) + 1,
-                  })}
+              {labelFor(asset)}
             </SelectItem>
           ))}
         </SelectContent>

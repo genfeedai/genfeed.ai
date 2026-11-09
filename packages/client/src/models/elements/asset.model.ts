@@ -1,5 +1,9 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { AssetCategory, AssetParent } from '@genfeedai/contracts';
+import type {
+  AssetCategory,
+  AssetParent,
+  BrandKitSlot,
+} from '@genfeedai/contracts';
 import type { IAsset, IUser } from '@genfeedai/contracts/interfaces';
 
 export class Asset extends BaseEntity implements IAsset {
@@ -11,6 +15,7 @@ export class Asset extends BaseEntity implements IAsset {
   declare public parentIngredientId?: string | null;
   declare public parentArticleId?: string | null;
   declare public category: AssetCategory;
+  declare public kitSlot?: BrandKitSlot | null;
   declare public url: string;
   declare public cdnUrl?: string;
 

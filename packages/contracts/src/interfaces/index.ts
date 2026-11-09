@@ -305,6 +305,7 @@ export * from './organization/account-health.interface';
 export * from './organization/brand.interface';
 export * from './organization/brand-interview.interface';
 export * from './organization/brand-kit.interface';
+export * from './organization/brand-kit-slot.interface';
 export * from './organization/brand-os-export.interface';
 export * from './organization/brand-os-revision.interface';
 export * from './organization/brand-profile.interface';

@@ -359,12 +359,10 @@ export class BrandsService extends BaseService<
   /**
    * Populate the serializer's brand kit asset relations on fetched brand rows.
    *
-   * `brandSerializerConfig` declares `logo`, `banner` and `references` as asset
-   * relations, but the Brand table has no such columns — they are `Asset` rows
-   * keyed by `parentBrandId`. Nothing populated them, so `brand.logo` was
-   * permanently `undefined` and every reader that asks "does this brand have a
-   * logo?" — the setup checklist above all — answered no for a brand that has
-   * one. Resolution is batched, so a whole org's brand list costs one query.
+   * The logo, banner and reference relations are `Asset` rows keyed by
+   * `parentBrandId`, not Brand columns, so readers such as the setup checklist
+   * only see them once attached here. Resolution is batched, so a whole org's
+   * brand list costs one query.
    */
   async attachBrandKitAssetRelations(
     brands: BrandDocument[],
@@ -382,7 +380,9 @@ export class BrandsService extends BaseService<
       );
 
       brand.banner = relations.banner;
+      brand.banners = relations.banners;
       brand.logo = relations.logo;
+      brand.logos = relations.logos;
       brand.references = relations.references;
     }
 

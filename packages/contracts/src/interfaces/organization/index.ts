@@ -1,6 +1,7 @@
 export * from './brand.interface';
 export * from './brand-interview.interface';
 export * from './brand-kit.interface';
+export * from './brand-kit-slot.interface';
 export * from './brand-os-export.interface';
 export * from './brand-os-revision.interface';
 export * from './brand-publish-policy.interface';

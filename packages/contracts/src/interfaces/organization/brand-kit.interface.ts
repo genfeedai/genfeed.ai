@@ -1,4 +1,4 @@
-import type { ReferenceImageCategory } from '../..';
+import type { BrandKitSlot, ReferenceImageCategory } from '../..';
 import type { BrandGenerationRulesV1 } from '../content/branded-generation.interface';
 import type { IBrandAgentStrategy, IBrandAgentVoice } from './brand.interface';
 import type { IBrandPublishPolicy } from './brand-publish-policy.interface';
@@ -337,15 +337,35 @@ export interface IBrandKitResolvedAsset {
   id: string;
   role: BrandKitAssetRole;
   referenceCategory?: ReferenceImageCategory;
+  /** The logo variant or platform slot. Only logos and banners carry one. */
+  slot?: BrandKitSlot;
   url: string;
   label?: string;
   mimeType?: string;
 }
 
 export interface IBrandKitResolvedAssets {
+  /** The default logo: the LOGO_PRIMARY variant, else the newest variant. */
   logo?: IBrandKitResolvedAsset;
+  /** The master banner, else the newest platform banner. */
   banner?: IBrandKitResolvedAsset;
+  /** Every live logo variant, one per slot, in slot order. */
+  logos?: IBrandKitResolvedAsset[];
+  /** Every live banner and platform image, one per slot, in slot order. */
+  banners?: IBrandKitResolvedAsset[];
   references: IBrandKitResolvedAsset[];
+}
+
+/** Outcome of resizing the master banner into one platform image slot. */
+export interface IBrandKitPlatformFillResult {
+  slot: BrandKitSlot;
+  status: 'filled' | 'failed';
+  assetId?: string;
+  error?: string;
+}
+
+export interface IBrandKitPlatformFillRequest {
+  slots: BrandKitSlot[];
 }
 
 /**
@@ -363,11 +383,14 @@ export interface IBrandKitAssetRelation {
   displayName?: string;
   mimeType?: string;
   referenceCategory?: ReferenceImageCategory;
+  kitSlot?: BrandKitSlot;
 }
 
 export interface IBrandKitAssetRelations {
   logo?: IBrandKitAssetRelation;
   banner?: IBrandKitAssetRelation;
+  logos: IBrandKitAssetRelation[];
+  banners: IBrandKitAssetRelation[];
   references: IBrandKitAssetRelation[];
 }
 

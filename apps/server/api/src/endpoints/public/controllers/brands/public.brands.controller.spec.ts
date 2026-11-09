@@ -11,6 +11,7 @@ import { LinksService } from '@api/collections/links/services/links.service';
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { PublicBrandsController } from '@api/endpoints/public/controllers/brands/public.brands.controller';
+import { PublicProfileViewsService } from '@api/endpoints/public/services/public-profile-views.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { AssetScope } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -107,6 +108,10 @@ describe('PublicBrandsController', () => {
         },
         { provide: VideosService, useValue: { findAll: vi.fn() } },
         { provide: LoggerService, useValue: { error: vi.fn(), log: vi.fn() } },
+        {
+          provide: PublicProfileViewsService,
+          useValue: { record: vi.fn().mockResolvedValue(12) },
+        },
       ],
     })
       .overrideGuard(RolesGuard)

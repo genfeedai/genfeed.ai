@@ -4,6 +4,12 @@ import {
   ASSET_ORIGIN_GENERATION_PENDING,
 } from '@api/collections/assets/constants/asset-origin.constant';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
+import {
+  brandKitSlotWhere,
+  isBrandKitSlotCategory,
+  resolveBrandKitSlot,
+  toBrandKitSlot,
+} from '@api/collections/assets/utils/brand-kit-slot.util';
 import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -23,6 +29,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import {
   AssetCategory,
   AssetParent,
+  BrandKitSlot,
   categoryToMediaType,
   categoryToPlural,
   FileInputType,
@@ -30,6 +37,7 @@ import {
   IngredientStatus,
   normalizeCategory,
 } from '@genfeedai/contracts';
+import { getBrandKitPlatformSlotSpec } from '@genfeedai/contracts/constants';
 import type { IFileMetadata } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -745,11 +753,38 @@ export class WebhooksService {
         { assetId, category: asset.category, url },
       );
 
-      await this.filesClientService.uploadToS3(
-        assetId,
-        categoryToPlural(asset.category),
-        { type: FileInputType.URL, url },
-      );
+      // Image models stop near one megapixel, below what platforms such as
+      // YouTube accept, so a platform image is stored at its slot's size.
+      const platformSlot =
+        asset.parentType === AssetParent.BRAND &&
+        asset.category === AssetCategory.BANNER
+          ? toBrandKitSlot(asset.kitSlot)
+          : undefined;
+      const platformSpec =
+        platformSlot && platformSlot !== BrandKitSlot.BANNER_MASTER
+          ? getBrandKitPlatformSlotSpec(platformSlot)
+          : undefined;
+      if (platformSpec) {
+        const resized = await this.filesClientService.resizeImageFromUrl(url, {
+          height: platformSpec.height,
+          width: platformSpec.width,
+        });
+        await this.filesClientService.uploadToS3(
+          assetId,
+          categoryToPlural(asset.category),
+          {
+            contentType: asset.mimeType ?? 'image/png',
+            data: resized,
+            type: FileInputType.BUFFER,
+          },
+        );
+      } else {
+        await this.filesClientService.uploadToS3(
+          assetId,
+          categoryToPlural(asset.category),
+          { type: FileInputType.URL, url },
+        );
+      }
 
       await this.finalizeGeneratedAsset(asset);
 
@@ -800,6 +835,7 @@ export class WebhooksService {
   private async finalizeGeneratedAsset(asset: {
     category: string;
     id: string;
+    kitSlot?: string | null;
     origin?: string | null;
     parentBrandId?: string | null;
     parentOrgId?: string | null;
@@ -832,16 +868,21 @@ export class WebhooksService {
 
     if (
       asset.parentType === AssetParent.BRAND &&
-      (asset.category === AssetCategory.LOGO ||
-        asset.category === AssetCategory.BANNER) &&
+      isBrandKitSlotCategory(asset.category) &&
       asset.parentBrandId
     ) {
+      // Replaces only the logo variant or platform slot it was generated for.
+      const kitSlot = resolveBrandKitSlot(
+        asset.category,
+        toBrandKitSlot(asset.kitSlot),
+      );
       await this.assetsService.patchAll(
         {
           category: asset.category,
           id: { not: asset.id },
           parentBrandId: asset.parentBrandId,
           parentType: AssetParent.BRAND,
+          ...(kitSlot ? brandKitSlotWhere(asset.category, kitSlot) : {}),
         },
         { isDeleted: true },
       );
