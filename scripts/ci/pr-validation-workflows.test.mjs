@@ -1191,38 +1191,66 @@ test('serializes reusable build verification without cancelling another caller',
   }
 });
 
-test('self-hosted release publish reuses the layers the verify build just tested', () => {
-  // The web layer reads RELEASE_TAG and BUILD_ID, so a verify build that omits
-  // them leaves the publisher to compile the web app a second time (~12 min).
+test('self-hosted release builds the image once and publishes the digest it tested', () => {
   const verify = readWorkflow('build-verify-selfhosted.yml');
   const publisher = readWorkflow('_publish-selfhosted-core.yml');
+  const tagJob = jobBlock(
+    publisher,
+    'tag-verified-image',
+    '_publish-selfhosted-core.yml',
+  );
+  const installJob = jobBlock(
+    publisher,
+    'publish-install-artifact',
+    '_publish-selfhosted-core.yml',
+  );
 
+  // The only image build lives in the verify workflow; the publisher has none.
+  assert.equal(verify.match(/uses: docker\/build-push-action@/g)?.length, 1);
+  assert.doesNotMatch(publisher, /docker\/build-push-action|docker build /);
   assert.match(verify, /^ {12}RELEASE_TAG=\$\{\{ inputs\.release_tag \}\}$/m);
   assert.match(
     verify,
     /^ {12}BUILD_ID=\$\{\{ inputs\.checkout_ref \|\| 'dev' \}\}$/m,
   );
   assert.match(verify, /^ {10}ref: \$\{\{ inputs\.checkout_ref \}\}$/m);
+  assert.match(verify, /cache-from: type=gha,scope=selfhosted\n/);
+
+  // Staged, the build is pushed by digest with no tag, and the boot check
+  // pulls that digest back, so a failed check leaves no public tag behind.
+  assert.match(verify, /push-by-digest=true,name-canonical=true,push=true/);
+  assert.doesNotMatch(verify, /^ {10}tags: .*image_tag/m);
+  assert.match(verify, /docker pull "\$\{ref\}"/);
+  assert.match(
+    verify,
+    /org\.opencontainers\.image\.version=\$\{\{ inputs\.image_tag \}\}\n {12}org\.opencontainers\.image\.revision=\$\{\{ inputs\.checkout_ref \}\}/,
+  );
+  assert.match(
+    verify,
+    /value: \$\{\{ jobs\.build-and-boot\.outputs\.image_digest \}\}/,
+  );
+
+  // The publisher verifies the exact commit and version it publishes, stages
+  // the build, and retags only the digest the verify job returned.
   assert.match(
     publisher,
-    /^ {12}RELEASE_TAG=\$\{\{ inputs\.release_tag \}\}$/m,
+    /uses: \.\/\.github\/workflows\/build-verify-selfhosted\.yml\n {4}with:\n {6}checkout_ref: \$\{\{ inputs\.checkout_ref \}\}\n {6}release_tag: \$\{\{ inputs\.release_tag \}\}\n {6}stage_image: true\n {6}image_tag: \$\{\{ inputs\.image_tag \}\}/,
   );
-  assert.match(publisher, /^ {12}BUILD_ID=\$\{\{ inputs\.checkout_ref \}\}$/m);
   assert.match(
-    publisher,
-    /uses: \.\/\.github\/workflows\/build-verify-selfhosted\.yml\n {4}with:\n {6}checkout_ref: \$\{\{ inputs\.checkout_ref \}\}\n {6}release_tag: \$\{\{ inputs\.release_tag \}\}/,
-    'the publisher must verify the exact commit and tag it publishes',
+    tagJob,
+    /VERIFIED_DIGEST: \$\{\{ needs\.verify-selfhosted\.outputs\.image_digest \}\}/,
   );
-  for (const [name, workflow] of [
-    ['verify', verify],
-    ['publisher', publisher],
-  ]) {
-    assert.match(
-      workflow,
-      /cache-from: type=gha,scope=selfhosted\n/,
-      `${name} build must read the shared selfhosted cache scope`,
-    );
-  }
+  assert.match(
+    tagJob,
+    /docker buildx imagetools create "\$\{tag_args\[@\]\}" "\$\{IMAGE\}@\$\{VERIFIED_DIGEST\}"/,
+  );
+  assert.match(tagJob, /\[ "\$\{published\}" != "\$\{VERIFIED_DIGEST\}" \]/);
+  assert.match(tagJob, /Tested \(boot check and release E2E\)/);
+  assert.match(installJob, /TESTED_IMAGE_DIGEST: .*tag-verified-image/);
+  assert.match(
+    installJob,
+    /"\$\{image_digest\}" != "\$\{TESTED_IMAGE_DIGEST\}"/,
+  );
 });
 
 test('release preflight is read-only and reuses the release evidence scripts', () => {
