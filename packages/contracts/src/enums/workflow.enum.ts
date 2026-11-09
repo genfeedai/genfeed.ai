@@ -1,3 +1,5 @@
+import { defineStateMachine } from './state-machine.util';
+
 export enum WorkflowTrigger {
   MANUAL = 'manual',
   ON_VIDEO_COMPLETE = 'on-video-complete',
@@ -43,22 +45,92 @@ export enum WorkflowExecutionStatus {
 }
 
 /**
- * Statuses that end an execution's run. This only classifies statuses for
- * polling, ETA display and orchestration; it does not enforce transitions
- * (see #9734). Accounting still checks its own status list.
+ * Legal execution status edges, as written by the API today (#9734):
+ *
+ * - `createExecution` inserts PENDING.
+ * - `startExecution` moves PENDING, RUNNING (a resumed run re-enters the
+ *   graph) or FAILED (a BullMQ retry continues the same execution) to
+ *   RUNNING. COMPLETED and CANCELLED never restart.
+ * - `completeExecution` and `cancelExecution` settle PENDING or RUNNING.
+ *
+ * Writers stay compare-and-set: `sourcesOf(to)` is the `status: { in }` list.
+ */
+export const WORKFLOW_EXECUTION_STATE_MACHINE =
+  defineStateMachine<WorkflowExecutionStatus>({
+    terminal: [
+      WorkflowExecutionStatus.COMPLETED,
+      WorkflowExecutionStatus.FAILED,
+      WorkflowExecutionStatus.CANCELLED,
+    ],
+    transitions: {
+      [WorkflowExecutionStatus.PENDING]: [
+        WorkflowExecutionStatus.RUNNING,
+        WorkflowExecutionStatus.COMPLETED,
+        WorkflowExecutionStatus.FAILED,
+        WorkflowExecutionStatus.CANCELLED,
+      ],
+      [WorkflowExecutionStatus.RUNNING]: [
+        WorkflowExecutionStatus.RUNNING,
+        WorkflowExecutionStatus.COMPLETED,
+        WorkflowExecutionStatus.FAILED,
+        WorkflowExecutionStatus.CANCELLED,
+      ],
+      [WorkflowExecutionStatus.COMPLETED]: [],
+      [WorkflowExecutionStatus.FAILED]: [WorkflowExecutionStatus.RUNNING],
+      [WorkflowExecutionStatus.CANCELLED]: [],
+    },
+  });
+
+/**
+ * Statuses that end an execution's run, for polling, ETA display and
+ * orchestration. FAILED is terminal for display even though a retry may move
+ * it back to RUNNING.
  */
 export const WORKFLOW_EXECUTION_TERMINAL_STATUSES: ReadonlySet<WorkflowExecutionStatus> =
-  new Set([
-    WorkflowExecutionStatus.COMPLETED,
-    WorkflowExecutionStatus.FAILED,
-    WorkflowExecutionStatus.CANCELLED,
-  ]);
+  WORKFLOW_EXECUTION_STATE_MACHINE.terminal;
 
 export function isTerminalWorkflowExecutionStatus(
   status: WorkflowExecutionStatus,
 ): boolean {
-  return WORKFLOW_EXECUTION_TERMINAL_STATUSES.has(status);
+  return WORKFLOW_EXECUTION_STATE_MACHINE.isTerminal(status);
 }
+
+const WORKFLOW_EXECUTION_STATUS_VALUES: ReadonlySet<string> = new Set(
+  Object.values(WorkflowExecutionStatus),
+);
+
+function isWorkflowExecutionStatus(
+  value: string,
+): value is WorkflowExecutionStatus {
+  return WORKFLOW_EXECUTION_STATUS_VALUES.has(value);
+}
+
+/**
+ * Reads a persisted or wire execution status in any casing (`completed`,
+ * `COMPLETED`). Returns null for anything that is not an execution status.
+ */
+export function parseWorkflowExecutionStatus(
+  value: unknown,
+): WorkflowExecutionStatus | null {
+  if (typeof value !== 'string') return null;
+  const upper = value.toUpperCase();
+  return isWorkflowExecutionStatus(upper) ? upper : null;
+}
+
+/**
+ * Named sub-states that live inside one persisted status. They are not column
+ * values: AWAITING_REVIEW is a RUNNING execution whose
+ * `result.metadata.pendingApproval` names a review gate waiting for a person.
+ */
+export enum WorkflowExecutionSubState {
+  AWAITING_REVIEW = 'awaiting_review',
+}
+
+export const WORKFLOW_EXECUTION_SUB_STATE_PARENT: Readonly<
+  Record<WorkflowExecutionSubState, WorkflowExecutionStatus>
+> = {
+  [WorkflowExecutionSubState.AWAITING_REVIEW]: WorkflowExecutionStatus.RUNNING,
+};
 
 export enum WorkflowExecutionTrigger {
   MANUAL = 'manual',

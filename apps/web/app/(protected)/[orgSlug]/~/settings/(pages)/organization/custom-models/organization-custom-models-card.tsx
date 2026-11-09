@@ -76,7 +76,7 @@ export default function OrganizationCustomModelsCard() {
         <div>
           <Button asChild size={ButtonSize.SM} variant={ButtonVariant.DEFAULT}>
             <Link
-              href={EnvironmentService.calendly}
+              href={EnvironmentService.bookingUrl}
               rel="noopener noreferrer"
               target="_blank"
             >

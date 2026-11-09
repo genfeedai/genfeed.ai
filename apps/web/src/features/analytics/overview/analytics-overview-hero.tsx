@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize } from '@genfeedai/contracts';
 import {
   Alert,
   AlertActions,
@@ -9,28 +9,9 @@ import {
 } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { CircleCheck, Info, TrendingUp } from 'lucide-react';
+import { Info, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
-
-type DashboardState = 'empty' | 'warming_up' | 'active';
-
-interface HeroAction {
-  href: string;
-  label: string;
-  variant: ButtonVariant;
-}
-
-interface DashboardHeroContent {
-  badge: string;
-  description: string;
-  primaryAction: HeroAction;
-}
-
-type AnalyticsOverviewHeroProps = {
-  dashboardState: DashboardState;
-  heroContent: DashboardHeroContent;
-  connectAccountsHref: string;
-};
+import type { AnalyticsOverviewHeroProps } from '@/features/analytics/props/analytics-overview-hero.props';
 
 /**
  * Warming-up status banner. First-run is a page-level card EmptyState.
@@ -42,31 +23,17 @@ type AnalyticsOverviewHeroProps = {
  * so they stay beside the text and wrap under it on a narrow screen.
  */
 export default function AnalyticsOverviewHero({
-  dashboardState,
   heroContent,
-  connectAccountsHref,
 }: AnalyticsOverviewHeroProps) {
+  const { primaryAction, secondaryAction } = heroContent;
+
   return (
     <Alert icon={false}>
       <AlertTitle>
         <Badge
-          icon={
-            dashboardState === 'active' ? (
-              <CircleCheck />
-            ) : dashboardState === 'warming_up' ? (
-              <TrendingUp />
-            ) : (
-              <Info />
-            )
-          }
+          icon={heroContent.hasConnectedAccounts ? <TrendingUp /> : <Info />}
           shape="pill"
-          variant={
-            dashboardState === 'active'
-              ? 'success'
-              : dashboardState === 'warming_up'
-                ? 'warning'
-                : 'info'
-          }
+          variant={heroContent.hasConnectedAccounts ? 'warning' : 'info'}
         >
           {heroContent.badge}
         </Badge>
@@ -76,20 +43,18 @@ export default function AnalyticsOverviewHero({
         <Button
           asChild
           size={ButtonSize.SM}
-          variant={heroContent.primaryAction.variant}
+          variant={primaryAction.variant}
           withWrapper={false}
         >
-          <Link href={heroContent.primaryAction.href}>
-            {heroContent.primaryAction.label}
-          </Link>
+          <Link href={primaryAction.href}>{primaryAction.label}</Link>
         </Button>
         <Button
           asChild
           size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
+          variant={secondaryAction.variant}
           withWrapper={false}
         >
-          <Link href={connectAccountsHref}>Manage connections</Link>
+          <Link href={secondaryAction.href}>{secondaryAction.label}</Link>
         </Button>
       </AlertActions>
     </Alert>

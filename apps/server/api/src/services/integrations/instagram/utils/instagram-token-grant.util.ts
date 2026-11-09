@@ -20,6 +20,21 @@ export function toInstagramTokenGrant(
     ? data.granular_scopes
     : [];
 
+  const scopedPermissions = granular
+    .map((entry) => entry.scope)
+    .filter((name): name is string => typeof name === 'string');
+  // A Business Integration System User token can list its permissions only
+  // under `granular_scopes` and leave `scopes` empty. An empty list is Meta
+  // saying nothing, not Meta saying "none", so it must not read as a missing
+  // permission: the grant is the union of both lists, and unknown when both
+  // are empty.
+  const grantedScopes = [
+    ...new Set([
+      ...(Array.isArray(data?.scopes) ? data.scopes : []),
+      ...scopedPermissions,
+    ]),
+  ];
+
   return {
     instagramTargetIds: [
       ...new Set(
@@ -28,9 +43,7 @@ export function toInstagramTokenGrant(
           .flatMap((entry) => entry.target_ids ?? []),
       ),
     ],
-    scopedPermissions: granular
-      .map((entry) => entry.scope)
-      .filter((name): name is string => typeof name === 'string'),
-    scopes: Array.isArray(data?.scopes) ? data.scopes : undefined,
+    scopedPermissions,
+    scopes: grantedScopes.length > 0 ? grantedScopes : undefined,
   };
 }

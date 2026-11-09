@@ -11,7 +11,12 @@ import {
   type ProviderContinuationIdentity,
   validateActionOutput,
 } from '@api/collections/workflows/services/workflow-continuation-output.util';
-import { IngredientStatus } from '@genfeedai/contracts';
+import {
+  IngredientStatus,
+  WORKFLOW_NODE_CONTINUATION_ACTIVE_STATUSES,
+  WORKFLOW_NODE_CONTINUATION_PROVIDER_SETTLED_STATUSES,
+  WORKFLOW_NODE_CONTINUATION_SUBMISSION_STATUSES,
+} from '@genfeedai/contracts';
 
 export type {
   AttachedContinuationOutput,
@@ -512,15 +517,7 @@ export class WorkflowNodeContinuationService {
         executionId: input.executionId,
         nodeId: input.nodeId,
         organizationId: input.organizationId,
-        status: {
-          in: [
-            WorkflowNodeContinuationStatus.PENDING_SUBMISSION,
-            WorkflowNodeContinuationStatus.WAITING_PROVIDER,
-            WorkflowNodeContinuationStatus.PROVIDER_SUCCEEDED,
-            WorkflowNodeContinuationStatus.PROVIDER_FAILED,
-            WorkflowNodeContinuationStatus.RESUMING,
-          ],
-        },
+        status: { in: [...WORKFLOW_NODE_CONTINUATION_ACTIVE_STATUSES] },
         workflowVersionId: input.workflowVersionId,
       },
     });
@@ -554,10 +551,7 @@ export class WorkflowNodeContinuationService {
             id: input.continuationId,
             organizationId: input.organizationId,
             status: {
-              in: [
-                WorkflowNodeContinuationStatus.PENDING_SUBMISSION,
-                WorkflowNodeContinuationStatus.WAITING_PROVIDER,
-              ],
+              in: [...WORKFLOW_NODE_CONTINUATION_SUBMISSION_STATUSES],
             },
           },
         })) as ContinuationRow | null;
@@ -879,10 +873,7 @@ export class WorkflowNodeContinuationService {
         OR: [
           {
             status: {
-              in: [
-                WorkflowNodeContinuationStatus.PROVIDER_SUCCEEDED,
-                WorkflowNodeContinuationStatus.PROVIDER_FAILED,
-              ],
+              in: [...WORKFLOW_NODE_CONTINUATION_PROVIDER_SETTLED_STATUSES],
             },
           },
           {

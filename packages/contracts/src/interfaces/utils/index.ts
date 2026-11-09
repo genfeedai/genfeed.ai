@@ -5,3 +5,4 @@ export * from './error.interface';
 export * from './filters.interface';
 export * from './http-interceptor-error.interface';
 export * from './query.interface';
+export * from './state-machine.interface';
