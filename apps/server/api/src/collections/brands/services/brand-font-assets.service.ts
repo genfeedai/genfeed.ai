@@ -407,6 +407,30 @@ export class BrandFontAssetsService {
       throw new ServiceUnavailableException('font_asset_unavailable');
     }
   }
+  /**
+   * The font bytes, for the brand kit preview. Read access is the same as the
+   * list; the stored hash is checked so a swapped object never reaches a page.
+   */
+  async readFile(actor: BrandFontActor, assetId: string): Promise<Buffer> {
+    await this.assertAccess(this.prisma, actor, false);
+    const asset = await this.prisma.asset.findFirst({
+      where: { ...this.scope(actor), id: assetId },
+    });
+    if (!asset)
+      throw new NotFoundException({ message: 'font_asset_unavailable' });
+    this.validateStored(asset);
+    try {
+      const bytes = await this.storage.readBytes(asset.cloudObjectKey ?? '', {
+        maxBytes: FONT_UPLOAD_MAX_BYTES,
+        timeoutMs: 15_000,
+      });
+      if (createHash('sha256').update(bytes).digest('hex') !== asset.sha256)
+        throw new Error('font_asset_hash_mismatch');
+      return bytes;
+    } catch {
+      throw new ServiceUnavailableException('font_asset_unavailable');
+    }
+  }
   async remove(actor: BrandFontActor, assetId: string): Promise<void> {
     await this.prisma.$transaction(
       async (tx) => {

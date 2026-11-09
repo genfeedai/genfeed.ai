@@ -169,6 +169,8 @@ function harness(initial: BrandOsRevision[] = []) {
       primaryColor: '#123456',
       secondaryColor: '#654321',
       backgroundColor: 'transparent',
+      colorPalette: [],
+      fontRoles: {},
       agentConfig: { unrelated: 'retained' },
       brandOsRevisionVersion: initial.length,
     },

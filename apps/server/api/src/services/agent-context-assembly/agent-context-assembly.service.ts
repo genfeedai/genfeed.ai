@@ -30,6 +30,7 @@ import { CacheService } from '@api/services/cache/cache.service';
 import { PatternMatcherService } from '@api/services/pattern-matcher/pattern-matcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { KnowledgeSourcePurpose } from '@genfeedai/contracts';
+import { readBrandPalette } from '@genfeedai/contracts/api-types/contracts/brand-kit-style.contract';
 import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
 import { computeBrandKitReadiness } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -44,6 +45,7 @@ import {
 } from './brand-context-budget.util';
 import {
   mergeReferenceImages,
+  readBrandFontRoleFamilies,
   readNonDefaultColor,
   readTextField,
   toBrandKitSourceBrand,
@@ -434,11 +436,15 @@ export class AgentContextAssemblyService {
     const logoUrl = brandKitAssets.logo?.url;
     const bannerUrl = brandKitAssets.banner?.url;
     const fontFamily = readTextField(brand.fontFamily);
+    const palette = readBrandPalette(brand.colorPalette);
+    const fontRoles = readBrandFontRoleFamilies(brand.fontRoles);
     const hasVisualIdentity = Boolean(
       primaryColor ||
         secondaryColor ||
         backgroundColor ||
         fontFamily ||
+        palette.length ||
+        fontRoles.length ||
         logoUrl ||
         bannerUrl ||
         referenceImages.length,
@@ -454,6 +460,8 @@ export class AgentContextAssemblyService {
     if (backgroundColor)
       context.visualIdentity.backgroundColor = backgroundColor;
     if (fontFamily) context.visualIdentity.fontFamily = fontFamily;
+    if (palette.length > 0) context.visualIdentity.palette = palette;
+    if (fontRoles.length > 0) context.visualIdentity.fontRoles = fontRoles;
     if (logoUrl) context.visualIdentity.logoUrl = logoUrl;
     if (bannerUrl) context.visualIdentity.bannerUrl = bannerUrl;
     if (referenceImages.length > 0) {

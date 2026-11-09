@@ -19,6 +19,7 @@ import { BrandsAgentConfigController } from '@api/collections/brands/controllers
 import { BrandsSetupController } from '@api/collections/brands/controllers/brands-setup.controller';
 import { BrandsRelationshipsController } from '@api/collections/brands/controllers/relationships/brands-relationships.controller';
 import { BrandFromUrlService } from '@api/collections/brands/services/brand-from-url.service';
+import { BrandLogoColorsService } from '@api/collections/brands/services/brand-logo-colors.service';
 import { BrandLutService } from '@api/collections/brands/services/brand-lut.service';
 import { BrandPersistenceService } from '@api/collections/brands/services/brand-persistence.service';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
@@ -100,6 +101,7 @@ import { Module } from '@nestjs/common';
     // OnboardingModule ↔ BrandsModule import cycle.
     BrandSetupService,
     BrandLutService,
+    BrandLogoColorsService,
     BrandWatermarkLogoService,
     BrandWebsitePreviewService,
     BrandPersistenceService,

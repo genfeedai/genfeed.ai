@@ -97,6 +97,18 @@ export class BrandFontAssetsService extends HTTPBaseService {
     );
     return brandFontAssetReadV1Schema.parse(deserializeResource(response.data));
   }
+  /** The WOFF2 bytes of one font, for a live preview. */
+  async file(
+    brandId: string,
+    assetId: string,
+    signal?: AbortSignal,
+  ): Promise<ArrayBuffer> {
+    const response = await this.instance.get<ArrayBuffer>(
+      `${this.path(brandId)}/${encodeURIComponent(assetId)}/file`,
+      { responseType: 'arraybuffer', signal },
+    );
+    return response.data;
+  }
   async remove(
     brandId: string,
     assetId: string,

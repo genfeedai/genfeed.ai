@@ -61,6 +61,34 @@ describe('brand prompt section contributions', () => {
     });
   });
 
+  it('lists the named palette after the core colors and each font role after the font', () => {
+    const value = {
+      ...context(),
+      visualIdentity: {
+        primaryColor: '#000000',
+        fontFamily: 'MONTSERRAT_BLACK',
+        palette: [
+          { name: 'Accent', hex: '#FF6600', usage: 'Buttons' },
+          { name: 'Text', hex: '#111111' },
+        ],
+        fontRoles: [
+          { role: 'heading', family: 'Acme Display' },
+          { role: 'caption', family: 'Bebas Neue' },
+        ],
+      },
+    };
+    expect(buildVisualIdentityPrompt(value)?.content).toBe(
+      [
+        '- Primary color: #000000',
+        '- Accent color: #FF6600 (Buttons)',
+        '- Text color: #111111',
+        '- Font: MONTSERRAT_BLACK',
+        '- heading font: Acme Display',
+        '- caption font: Bebas Neue',
+      ].join('\n'),
+    );
+  });
+
   it('preserves voice ordering, examples and exact authored exemplar instructions', () => {
     const value: AssembledBrandContext = {
       ...context(),

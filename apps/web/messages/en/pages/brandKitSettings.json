@@ -77,5 +77,21 @@
       "FACEBOOK_COVER": "Facebook Page cover",
       "FACEBOOK_PROFILE": "Facebook profile picture"
     }
+  },
+  "fonts": {
+    "description": "Upload your own fonts, then pick one for headings, body text and captions under Font roles.",
+    "empty": "No fonts uploaded yet.",
+    "formatHelp": "Fonts upload as WOFF2, up to 4 MB. Convert a TTF or OTF file to WOFF2 first, for example with the open source woff2_compress tool or the web font download from your font vendor.",
+    "loadFailed": "Fonts could not be loaded.",
+    "notWoff2": "Only WOFF2 files can be uploaded. Convert TTF or OTF fonts to WOFF2 first.",
+    "remove": "Remove {name}",
+    "removeFailed": "The font could not be removed.",
+    "removed": "Font removed.",
+    "sample": "The quick brown fox jumps over the lazy dog",
+    "title": "Brand fonts",
+    "tooLarge": "Fonts can be at most 4 MB.",
+    "upload": "Upload WOFF2 font",
+    "uploadFailed": "The font could not be uploaded.",
+    "uploaded": "Font uploaded."
   }
 }
