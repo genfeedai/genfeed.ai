@@ -58,6 +58,27 @@ describe('check-runtime-complexity', () => {
     );
   });
 
+  it.each([
+    'apps/web/src/features/demo/DemoWorkspace.tsx',
+    'packages/agent/src/hooks/use-demo.ts',
+    'packages/agent/src/stores/demo.store.ts',
+    'apps/desktop/src/main.ts',
+    'apps/server/api/src/webhooks/demo.handler.ts',
+  ])('measures the file size of %s, not just services', (file) => {
+    writeFixture(file, classWithPadding('Demo', 30));
+
+    const result = runRuntimeComplexityCheck({
+      files: [file],
+      mode: 'full',
+      rootDir,
+      thresholds: { runtimeLines: 10 },
+    });
+
+    expect(result.violations).toContainEqual(
+      expect.objectContaining({ file, kind: 'runtime', metric: 'file-lines' }),
+    );
+  });
+
   it('reports oversized methods with exact symbols and lines', () => {
     const file = writeFixture(
       'packages/libs/demo/demo.service.ts',
@@ -253,6 +274,14 @@ describe('check-runtime-complexity', () => {
     'apps/server/api/src/test-data/demo.service.ts',
     'apps/server/api/src/demo/demo.service.spec.ts',
     'apps/server/api/src/demo/demo.service.constants.ts',
+    'apps/server/api/src/demo/demo.constant.ts',
+    'apps/server/api/src/demo/demo.catalog.ts',
+    'apps/server/api/src/demo/demo.data.ts',
+    'apps/server/api/test/demo.fixture.ts',
+    'packages/ui/src/demo.stub.ts',
+    'apps/server/api/scripts/seeds/demo-seed.ts',
+    'packages/prisma/src/enum-field-map.ts',
+    'packages/helpers/src/ui/icons/brands/provider-icons.ts',
   ])('excludes %s with a narrow explicit rule', (file) => {
     writeFixture(file, classWithPadding('ExcludedService', 30));
 
