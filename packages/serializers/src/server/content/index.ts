@@ -50,6 +50,7 @@ export * from '@serializers/server/content/media-readiness-diagnostic.serializer
 export * from '@serializers/server/content/mood-board.serializer';
 export * from '@serializers/server/content/news.serializer';
 export * from '@serializers/server/content/newsletter.serializer';
+export * from '@serializers/server/content/newsletter-module.serializer';
 export * from '@serializers/server/content/optimization.serializer';
 export * from '@serializers/server/content/pattern-playbook.serializer';
 export * from '@serializers/server/content/performance-summary.serializer';

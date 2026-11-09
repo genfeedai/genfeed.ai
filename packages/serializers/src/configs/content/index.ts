@@ -46,6 +46,7 @@ export * from '@serializers/configs/content/media-readiness-diagnostic.config';
 export * from '@serializers/configs/content/mood-board.config';
 export * from '@serializers/configs/content/news.config';
 export * from '@serializers/configs/content/newsletter.config';
+export * from '@serializers/configs/content/newsletter-module.config';
 export * from '@serializers/configs/content/optimization.config';
 export * from '@serializers/configs/content/performance-summary.config';
 export * from '@serializers/configs/content/persona.config';

@@ -73,6 +73,9 @@ import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { MoodBoardsModule } from '@api/collections/mood-boards/mood-boards.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
+import { NewsletterAnalyticsModule } from '@api/collections/newsletter-analytics/newsletter-analytics.module';
+import { NewsletterSendsModule } from '@api/collections/newsletter-sends/newsletter-sends.module';
+import { NewsletterSubscribersModule } from '@api/collections/newsletter-subscribers/newsletter-subscribers.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
 import { OptimizersModule } from '@api/collections/optimizers/optimizers.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
@@ -211,6 +214,9 @@ import { Module } from '@nestjs/common';
     ModelsModule,
     MoodBoardsModule,
     MusicsModule,
+    NewsletterAnalyticsModule,
+    NewsletterSendsModule,
+    NewsletterSubscribersModule,
     NewslettersModule,
     OptimizersModule,
     OrganizationSettingsModule,

@@ -76,6 +76,13 @@ export interface IEmailPayload {
 }
 
 export interface IEmailDeliveryRequest extends IEmailPayload {
+  /**
+   * Display name for the configured sending address, so a newsletter arrives
+   * from "Brand" on the shared Genfeed domain. Ignored when `from` is set.
+   */
+  fromName?: string;
+  /** Extra MIME headers, e.g. `List-Unsubscribe` for newsletters. */
+  headers?: Record<string, string>;
   idempotencyKey?: string;
   replyTo?: string;
   text?: string;

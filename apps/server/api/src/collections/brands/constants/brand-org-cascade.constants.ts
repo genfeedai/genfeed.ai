@@ -342,6 +342,30 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'organizationId',
   },
   {
+    delegate: 'newsletterSettings',
+    table: 'newsletter_settings',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
+    delegate: 'newsletterSend',
+    table: 'newsletter_sends',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
+    delegate: 'brandSubscriber',
+    table: 'brand_subscribers',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
+    delegate: 'brandSubscriberImport',
+    table: 'brand_subscriber_imports',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
     delegate: 'training',
     table: 'trainings',
     brandField: 'brandId',
@@ -790,6 +814,18 @@ const POST_PARENT: SecondOrderParentLink = {
  * sees the `uncertain` receipt in the post's new organization.
  */
 export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
+  // A send's per-recipient delivery rows and click log follow the send, so a
+  // moved brand keeps its newsletter results.
+  secondOrderChild('newsletterSendRecipient', 'newsletter_send_recipients', {
+    fkField: 'sendId',
+    parentBrandField: 'brandId',
+    parentDelegate: 'newsletterSend',
+  }),
+  secondOrderChild('newsletterLinkClick', 'newsletter_link_clicks', {
+    fkField: 'sendId',
+    parentBrandField: 'brandId',
+    parentDelegate: 'newsletterSend',
+  }),
   {
     delegate: 'turboProjectItem',
     table: 'turbo_project_items',

@@ -148,6 +148,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.mediaPerception.queueDuePerceptions(),
       [PLATFORM_SCHEDULED_TASKS.MODEL_DEPRECATION]: () =>
         this.modelDeprecation.deprecateSupersededModels(),
+      [PLATFORM_SCHEDULED_TASKS.NEWSLETTER_SENDS]: () =>
+        this.recovery.deliverDueNewsletters(),
       [PLATFORM_SCHEDULED_TASKS.NOTIFICATION_DELIVERY_RECOVERY]: () =>
         this.recovery.recoverNotifications(),
       [PLATFORM_SCHEDULED_TASKS.BRANDED_DISPATCH_RECOVERY]: () =>
