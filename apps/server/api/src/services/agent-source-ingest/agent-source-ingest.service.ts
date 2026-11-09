@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import {
   AgentSourceDownloadService,
   AgentSourceImportPendingError,
@@ -120,23 +121,19 @@ export class AgentSourceIngestService {
         },
       );
       await this.assertThreadScope(context);
-      await this.prisma.ingredient.update({
-        where,
-        data: {
-          status: IngredientStatus.UPLOADED,
-          category: this.category(artifact.kind),
-          s3Key: artifact.storageKey,
-          fileSize: Math.round(artifact.size),
-          generationError: null,
-          metadata: {
-            update: {
-              extension: artifact.extension,
-              width: Math.round(artifact.width),
-              height: Math.round(artifact.height),
-              duration: artifact.duration,
-              size: Math.round(artifact.size),
-              hasAudio: artifact.hasAudio,
-            },
+      await this.markUploaded(ingredientId, context, {
+        category: this.category(artifact.kind),
+        s3Key: artifact.storageKey,
+        fileSize: Math.round(artifact.size),
+        generationError: null,
+        metadata: {
+          update: {
+            extension: artifact.extension,
+            width: Math.round(artifact.width),
+            height: Math.round(artifact.height),
+            duration: artifact.duration,
+            size: Math.round(artifact.size),
+            hasAudio: artifact.hasAudio,
           },
         },
       });
@@ -157,6 +154,44 @@ export class AgentSourceIngestService {
             'Source import failed. Retry this source from the same thread.',
         },
       });
+      throw error;
+    }
+  }
+
+  /**
+   * Finishes an import that is still running (#9735). One the user cancelled
+   * stays failed; one the processing-timeout cron failed still lands.
+   */
+  private async markUploaded(
+    ingredientId: string,
+    context: AgentSourceIngestContext,
+    data: Prisma.IngredientUpdateInput,
+  ): Promise<void> {
+    try {
+      await this.prisma.ingredient.update({
+        where: {
+          id: ingredientId,
+          organizationId: context.organizationId,
+          brandId: context.brandId ?? null,
+          isDeleted: false,
+          OR: [
+            { status: IngredientStatus.PROCESSING },
+            {
+              generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+              status: IngredientStatus.FAILED,
+            },
+          ],
+        },
+        data: { ...data, status: IngredientStatus.UPLOADED },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      )
+        throw new ConflictException(
+          'This source import was stopped before it finished.',
+        );
       throw error;
     }
   }
