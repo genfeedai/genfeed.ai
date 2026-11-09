@@ -621,6 +621,9 @@ export class WorkflowNodeGraphRunnerService {
       organizationId: state.workflow.organizationId,
       workflowVersionId: state.workflow.versionId,
     });
+    if (attached.kind === 'settled-elsewhere') {
+      return { kind: 'return', result: this.buildRunningResult(state) };
+    }
     if (attached.kind === 'waiting') {
       state.nodeResults.set(node.id, initialResult);
       state.totalCreditsUsed += initialResult.creditsUsed;
