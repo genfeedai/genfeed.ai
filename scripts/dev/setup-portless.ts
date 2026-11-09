@@ -15,11 +15,34 @@ const PLIST_BUDDY_PATH = '/usr/libexec/PlistBuddy';
 const HOMEBREW_CELLAR_NODE_PATTERN =
   /^(?<prefix>.+)\/Cellar\/(?<formula>node(?:@[^/]+)?)\/[^/]+\/bin\/node$/u;
 
+/** `launchctl print` exit status when launchd has no such job loaded. */
+const LAUNCHCTL_SERVICE_NOT_FOUND = 113;
+
+type ServiceCommandExpectation = 'any' | 'success' | 'unloaded';
+
 type ServiceCommand = {
   args: string[];
-  /** `failure` asserts the command exits non-zero, e.g. that a job is unloaded. */
-  expect: 'any' | 'success' | 'failure';
+  /** `unloaded` accepts only launchctl's not-found status, never other errors. */
+  expect: ServiceCommandExpectation;
 };
+
+export type ServiceCommandOutcome = 'continue' | 'still-loaded' | 'failed';
+
+export function evaluateServiceCommand(
+  expect: ServiceCommandExpectation,
+  status: number | null,
+): ServiceCommandOutcome {
+  if (expect === 'any') {
+    return 'continue';
+  }
+  if (expect === 'success') {
+    return status === 0 ? 'continue' : 'failed';
+  }
+  if (status === LAUNCHCTL_SERVICE_NOT_FOUND) {
+    return 'continue';
+  }
+  return status === 0 ? 'still-loaded' : 'failed';
+}
 
 export const PORTLESS_SERVICE_INSTALL_ARGS = [
   'service',
@@ -95,8 +118,9 @@ export function buildNodeRepinCommands(
       expect: 'any',
     },
     {
-      args: ['sudo', 'launchctl', 'print', serviceTarget],
-      expect: 'failure',
+      // No sudo: a failed authentication must not read as an unloaded job.
+      args: ['launchctl', 'print', serviceTarget],
+      expect: 'unloaded',
     },
     {
       args: [
@@ -220,14 +244,19 @@ function repinServiceNode(stableNodePath: string): void {
     if (result.error) {
       throw result.error;
     }
-    if (expect === 'failure' && result.status === 0) {
+
+    const outcome = evaluateServiceCommand(expect, result.status);
+    if (outcome === 'still-loaded') {
       console.error(
         'The Portless service is still loaded, so its Node path was left unchanged. Run `bun run dev:setup` again.',
       );
       process.exit(1);
     }
-    if (expect === 'success' && result.status !== 0) {
-      process.exit(result.status ?? 1);
+    if (outcome === 'failed') {
+      console.error(
+        `\`${args.join(' ')}\` failed, so the Portless service Node path was left unchanged.`,
+      );
+      process.exit(result.status || 1);
     }
   }
 }

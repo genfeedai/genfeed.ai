@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildNodeRepinCommands,
   buildPortlessCommand,
+  evaluateServiceCommand,
   isPortlessServiceReady,
   needsNodeRepin,
   PORTLESS_LAUNCH_DAEMON_PATH,
@@ -59,8 +60,8 @@ describe('Portless startup-service Node path', () => {
         expect: 'any',
       },
       {
-        args: ['sudo', 'launchctl', 'print', 'system/sh.portless.proxy'],
-        expect: 'failure',
+        args: ['launchctl', 'print', 'system/sh.portless.proxy'],
+        expect: 'unloaded',
       },
       {
         args: [
@@ -97,6 +98,21 @@ describe('Portless startup-service Node path', () => {
         expect: 'success',
       },
     ]);
+  });
+
+  it('treats only launchctl not-found as an unloaded service', () => {
+    expect(evaluateServiceCommand('unloaded', 113)).toBe('continue');
+    expect(evaluateServiceCommand('unloaded', 0)).toBe('still-loaded');
+    // e.g. a failed sudo authentication or a launchctl error
+    expect(evaluateServiceCommand('unloaded', 1)).toBe('failed');
+    expect(evaluateServiceCommand('unloaded', null)).toBe('failed');
+  });
+
+  it('stops the repin when a required step fails', () => {
+    expect(evaluateServiceCommand('success', 0)).toBe('continue');
+    expect(evaluateServiceCommand('success', 1)).toBe('failed');
+    expect(evaluateServiceCommand('success', null)).toBe('failed');
+    expect(evaluateServiceCommand('any', 1)).toBe('continue');
   });
 });
 
