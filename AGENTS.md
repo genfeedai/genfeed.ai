@@ -98,6 +98,25 @@ Judgment, no check: one PR per change, no new env vars, name the root cause, CI 
 - Do not use `develop` or `staging` as promotion branches.
 - `staging` and `production` are deploy environments, not branch names.
 
+## Local Preflight — run before you push
+
+```bash
+bun run preflight            # what PR CI runs on your diff, in about 2-5 minutes
+bun run preflight --list     # print the plan without running it
+```
+
+It refreshes `origin/master`, takes everything that differs from it (commits, staged,
+unstaged and untracked files), and runs the Static Checks (ratchet growth, e2e spec impact,
+skills, env drift, Biome, secretlint, gitleaks when installed, migration safety), the
+affected-workspace typecheck, the Spec Typecheck Ratchet for the affected workspaces, and the
+executable contracts. It stops at the first failure; `--keep-going` runs everything.
+It works in a cloud container after `bun install` and
+`cd packages/prisma && bunx prisma generate`. The contracts run under the Node in `.node-version`,
+downloaded once to `~/.cache/genfeed-preflight` when the host Node differs. Use it instead of
+a per-package `tsc`, which shows false missing-module errors until packages are built.
+Not covered: `turbo lint` (add `--lint`; some workspace lint scripts rewrite files), the
+Playwright suites, and the unit-test shards.
+
 ## Claiming Work — search open PRs before you start
 
 Many agent sessions run against this repo at once. Git shows nothing until push, so

@@ -401,6 +401,37 @@ async function runSteps(
   }
 }
 
+/**
+ * Tests in scripts/ci/runtime-acceptance.test.mjs that assert a SIGKILLed
+ * process group disappears. A container whose PID 1 does not reap orphans keeps
+ * the group visible as zombies, so they fail there and pass on a CI runner.
+ */
+const PROCESS_GROUP_TEST_SKIPS = [
+  'surviving.same-group',
+  'dedicated.work.timeout.supervises',
+] as const;
+
+/** True when a killed process group stops being visible (zombies are reaped). */
+async function hostReapsKilledGroups(): Promise<boolean> {
+  const child = spawn('sh', ['-c', 'sleep 30 & wait'], {
+    detached: true,
+    stdio: 'ignore',
+  });
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  try {
+    process.kill(-(child.pid ?? 0), 'SIGKILL');
+  } catch {
+    return true;
+  }
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  try {
+    process.kill(-(child.pid ?? 0), 0);
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 function stagesToRun(options: PreflightOptions): PreflightStage[] {
   return PREFLIGHT_STAGES.filter(
     (stage) =>
@@ -456,6 +487,28 @@ export async function main(argv: readonly string[]): Promise<number> {
     touchesMigrations: touchesMigrationFiles(touched),
     typecheckFilters,
   }).filter((step) => stages.includes(step.stage));
+
+  if (!options.isListOnly && stages.includes('contracts')) {
+    if (!(await hostReapsKilledGroups())) {
+      logger.log(
+        `This host does not reap killed process groups (typical of a cloud container): skipping ${PROCESS_GROUP_TEST_SKIPS.length} process-group tests in runtime-acceptance.test.mjs. CI runs them.`,
+      );
+      const skipFlags = PROCESS_GROUP_TEST_SKIPS.map(
+        (pattern) => `--test-skip-pattern=${pattern}`,
+      ).join(' ');
+      for (const step of plan) {
+        if (step.id === 'executable-contracts') {
+          Object.assign(step, {
+            env: {
+              ...step.env,
+              NODE_OPTIONS:
+                `${process.env.NODE_OPTIONS ?? ''} ${skipFlags}`.trim(),
+            },
+          });
+        }
+      }
+    }
+  }
 
   if (options.isListOnly) {
     for (const step of plan) {
