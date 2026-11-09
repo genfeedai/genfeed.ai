@@ -168,3 +168,8 @@ export interface CommunityFeaturedHeroProps {
   /** Catalog labels of the models, by model key. */
   modelCredits?: Record<string, string>;
 }
+
+export interface ClaimHandleBandProps {
+  /** Heading id, so the page can link to the band. */
+  id?: string;
+}

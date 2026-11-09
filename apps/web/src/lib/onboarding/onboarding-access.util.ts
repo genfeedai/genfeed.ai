@@ -3,7 +3,10 @@ import {
   SubscriptionStatus,
   SubscriptionTier,
 } from '@genfeedai/contracts';
-import { parseReferralCode } from '@genfeedai/contracts/constants';
+import {
+  parseClaimHandle,
+  parseReferralCode,
+} from '@genfeedai/contracts/constants';
 import type {
   DashboardPreferences,
   ISetting,
@@ -64,6 +67,7 @@ export const ONBOARDING_STORAGE_KEYS = {
   accountType: 'gf_onboarding_account_type',
   brandDomain: 'gf_brand_domain',
   brandName: 'gf_brand_name',
+  claimHandle: 'gf_claim_handle',
   contentType: 'gf_onboarding_content_type',
   previewUrl: 'gf_onboarding_preview_url',
   referralCode: 'gf_referral_code',
@@ -303,6 +307,7 @@ export function persistOnboardingHandoffParams(
   const accessMode = normalizeOnboardingAccessMode(params.get('accessMode'));
   const source = readTrimmedParam(params, 'source');
   const referralCode = parseReferralCode(params.get('ref'));
+  const claimHandle = parseClaimHandle(params.get('handle'));
   const accountType = parseOnboardingAccountType(params.get('accountType'));
 
   if (selectedPlan) {
@@ -323,6 +328,10 @@ export function persistOnboardingHandoffParams(
 
   if (brandName) {
     storage.setItem(ONBOARDING_STORAGE_KEYS.brandName, brandName);
+  }
+
+  if (claimHandle) {
+    storage.setItem(ONBOARDING_STORAGE_KEYS.claimHandle, claimHandle);
   }
 
   if (accessMode) {

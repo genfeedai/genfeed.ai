@@ -1,4 +1,3 @@
-import { getAppSignUpUrl } from '@data/app-links';
 import { stringifyJsonLd } from '@data/json-ld';
 import { buildModelCredits } from '@data/model-credits';
 import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
@@ -9,6 +8,7 @@ import {
 import { getPublicModels } from '@public/models/models-loader';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import ClaimHandleBand from '@web-components/creator/ClaimHandleBand';
 import CommunityCreatorCard from '@web-components/creator/CommunityCreatorCard';
 import CommunityFeaturedHero from '@web-components/creator/CommunityFeaturedHero';
 import CommunityNav from '@web-components/creator/CommunityNav';
@@ -28,6 +28,8 @@ import {
 import { getCommunityPageData } from './community-loader';
 
 export const revalidate = 300;
+
+const CLAIM_HANDLE_ID = 'claim-handle';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Community: Creators Publishing on Genfeed',
@@ -64,7 +66,7 @@ export default async function CommunityPage(): Promise<React.ReactElement> {
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Button asChild withWrapper={false}>
-              <a href={getAppSignUpUrl()}>Claim your handle</a>
+              <a href={`#${CLAIM_HANDLE_ID}`}>Claim your handle</a>
             </Button>
             <Button
               asChild
@@ -102,7 +104,7 @@ export default async function CommunityPage(): Promise<React.ReactElement> {
                 </li>
               ))}
               <li>
-                <a className="group block h-full" href={getAppSignUpUrl()}>
+                <a className="group block h-full" href={`#${CLAIM_HANDLE_ID}`}>
                   <Card
                     isInteractive
                     variant={CardVariant.BORDERED}
@@ -145,6 +147,8 @@ export default async function CommunityPage(): Promise<React.ReactElement> {
           >
             <ProfileImages images={images} modelCredits={modelCredits} />
           </CreatorSection>
+
+          <ClaimHandleBand id={CLAIM_HANDLE_ID} />
         </div>
       </div>
       <HomeFooter />
