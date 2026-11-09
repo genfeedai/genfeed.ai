@@ -2,10 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  findNestedClaudeMd,
-  importsAgentsMd,
-} from './check-single-claude-md';
+import { findNestedClaudeMd, importsAgentsMd } from './check-single-claude-md';
 
 const testDirs: string[] = [];
 
