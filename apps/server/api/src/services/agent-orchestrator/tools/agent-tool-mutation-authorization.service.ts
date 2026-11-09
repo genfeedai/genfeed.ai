@@ -1,6 +1,5 @@
 import { getActionOriginContext } from '@api/action-origin/action-origin.context';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
-import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
 import {
   approvalGenerationConstraint,
   approvalGenerationQuote,
@@ -54,6 +53,7 @@ import {
 } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import {
+  type McpApproval,
   McpApprovalStatus,
   Prisma,
   WorkflowExecutionStatus,
@@ -630,7 +630,7 @@ export class AgentToolMutationAuthorizationService {
    */
   private async resolveApprovalReviewer(
     context: ToolExecutionContext,
-    approval: McpApprovalDocument | null,
+    approval: McpApproval | null,
   ): Promise<{
     approvedByUserId?: string;
     context: ToolExecutionContext;
@@ -769,7 +769,7 @@ export class AgentToolMutationAuthorizationService {
     toolName: CuratedActionName,
     parameters: Record<string, unknown>,
     context: ToolExecutionContext,
-    existing: McpApprovalDocument | null,
+    existing: McpApproval | null,
   ): Promise<AgentMutationAuthorization> {
     if (!this.mcpApprovalsService)
       throw new Error('Approval service unavailable');
