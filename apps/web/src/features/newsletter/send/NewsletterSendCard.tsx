@@ -354,7 +354,9 @@ export default function NewsletterSendCard({
               <DialogTitle>{preview.subject}</DialogTitle>
             </DialogHeader>
             <iframe
-              className="h-[70dvh] w-full rounded-md border border-border bg-white"
+              className={
+                'h-[70dvh] w-full rounded-md border border-border bg-white' /* design-system-allow-content-color -- emails render on a white page */
+              }
               sandbox=""
               srcDoc={preview.html}
               title={translate('previewTitle')}
