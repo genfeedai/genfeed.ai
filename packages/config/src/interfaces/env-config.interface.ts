@@ -275,6 +275,7 @@ export interface IEnvConfig {
   WEBSOCKET_URL?: string;
 
   VERCEL_WEBHOOK_SECRET?: string;
+  WEBSITE_REVALIDATE_SECRET?: string;
   CI_TRIAGE_WEBHOOK_SECRET?: string;
 
   CHROME_EXTENSION_ID?: string;
