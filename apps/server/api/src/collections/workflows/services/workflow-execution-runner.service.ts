@@ -447,6 +447,7 @@ export class WorkflowExecutionRunnerService {
    * The result for an execution that settled before it could start: no node
    * runs, no failure is recorded, and the caller sees the persisted outcome.
    */
+  @Traced()
   private async buildSettledExecutionResult(
     prepared: PreparedWorkflowExecution,
   ): Promise<WorkflowExecutionResult> {

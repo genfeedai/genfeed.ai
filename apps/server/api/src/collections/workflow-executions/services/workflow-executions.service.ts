@@ -59,8 +59,6 @@ import { formatAgentError } from '@genfeedai/agent/server';
 import {
   WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
   WORKFLOW_EXECUTION_STATE_MACHINE,
-  WORKFLOW_EXECUTION_SUB_STATE_PARENT,
-  WorkflowExecutionSubState,
 } from '@genfeedai/contracts';
 import type {
   PopulateOption,
@@ -296,7 +294,8 @@ export class WorkflowExecutionsService extends BaseService<
    * first so the timeout sweep sees the longest-waiting gates first. The
    * RUNNING set is dominated by paused reviews (active runs are short-lived),
    * so a bounded scan + in-memory metadata parse is both correct and cheap and
-   * avoids brittle nested-JSON path operators.
+   * avoids brittle nested-JSON path operators. Awaiting review is a sub-state
+   * of RUNNING (`WORKFLOW_EXECUTION_SUB_STATE_PARENT` in contracts).
    */
   @HandleErrors('list pending review-gate executions', 'workflow-executions')
   async findPendingReviewGateExecutions(
@@ -313,10 +312,7 @@ export class WorkflowExecutionsService extends BaseService<
       take: limit,
       where: {
         isDeleted: false,
-        status:
-          WORKFLOW_EXECUTION_SUB_STATE_PARENT[
-            WorkflowExecutionSubState.AWAITING_REVIEW
-          ],
+        status: PrismaWorkflowExecutionStatus.RUNNING,
       },
     })) as Array<{
       id: string;

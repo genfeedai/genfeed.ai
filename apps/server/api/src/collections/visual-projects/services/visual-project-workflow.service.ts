@@ -52,6 +52,7 @@ import { z } from 'zod';
 
 const SNAKE_CASE_WORD_PATTERN = /^[a-z_]+$/;
 
+/** Revision statuses that end a visual run; no further write is applied. */
 const terminal: string[] = [...VISUAL_CODE_TERMINAL_STATUSES];
 const receiptSchema = z.object({
   id: z.string(),
