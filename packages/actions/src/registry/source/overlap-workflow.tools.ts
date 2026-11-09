@@ -113,6 +113,8 @@ export const OVERLAP_WORKFLOW_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Execute an existing workflow immediately. Select nodeIds to rerun edited steps while reusing locked outputs; pass required variables for full or partial execution.',
+    mcpDescription:
+      'Run a workflow now. nodeIds reruns edited steps using locked outputs; supply required variables for full/partial runs.',
     name: 'execute_workflow',
     parameters: {
       properties: {
