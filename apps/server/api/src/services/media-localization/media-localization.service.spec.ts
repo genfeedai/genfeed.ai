@@ -28,6 +28,7 @@ function harness() {
   const ingredients = {
     findOne: vi.fn().mockResolvedValue({ id: 'video', brandId: 'brand' }),
     patch: vi.fn().mockResolvedValue({}),
+    patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
   };
   const metadata = { patch: vi.fn().mockResolvedValue({}) };
   const shared = {
@@ -157,8 +158,13 @@ describe('MediaLocalizationService', () => {
       sourceText: 'Hello.',
       text: 'Hola.',
     });
-    expect(h.ingredients.patch).toHaveBeenLastCalledWith(
-      'audio',
+    expect(h.ingredients.patchAll).toHaveBeenLastCalledWith(
+      {
+        id: 'audio',
+        isDeleted: false,
+        organizationId: 'org',
+        status: IngredientStatus.PROCESSING,
+      },
       expect.objectContaining({
         status: IngredientStatus.GENERATED,
         s3Key: 'ingredients/audios/audio.wav',
@@ -210,8 +216,13 @@ describe('MediaLocalizationService', () => {
       }),
     ).rejects.toThrow('non-overlapping');
     expect(h.elevenlabs.generateAndUploadAudio).not.toHaveBeenCalled();
-    expect(h.ingredients.patch).toHaveBeenCalledWith(
-      'audio',
+    expect(h.ingredients.patchAll).toHaveBeenCalledWith(
+      {
+        id: 'audio',
+        isDeleted: false,
+        organizationId: 'org',
+        status: IngredientStatus.PROCESSING,
+      },
       expect.objectContaining({ status: IngredientStatus.FAILED }),
     );
   });
@@ -224,8 +235,13 @@ describe('MediaLocalizationService', () => {
     await expect(h.service.localize(request)).rejects.toThrow('exceeds');
     expect(h.elevenlabs.generateAndUploadAudio).toHaveBeenCalledTimes(2);
     expect(h.files.assembleSpeech).not.toHaveBeenCalled();
-    expect(h.ingredients.patch).toHaveBeenLastCalledWith(
-      'audio',
+    expect(h.ingredients.patchAll).toHaveBeenLastCalledWith(
+      {
+        id: 'audio',
+        isDeleted: false,
+        organizationId: 'org',
+        status: IngredientStatus.PROCESSING,
+      },
       expect.objectContaining({ status: IngredientStatus.FAILED }),
     );
   });
@@ -248,8 +264,13 @@ describe('MediaLocalizationService', () => {
       duration: 15,
     });
     await expect(h.service.localize(request)).rejects.toThrow('preserve');
-    expect(h.ingredients.patch).toHaveBeenLastCalledWith(
-      'audio',
+    expect(h.ingredients.patchAll).toHaveBeenLastCalledWith(
+      {
+        id: 'audio',
+        isDeleted: false,
+        organizationId: 'org',
+        status: IngredientStatus.PROCESSING,
+      },
       expect.objectContaining({ status: IngredientStatus.FAILED }),
     );
   });
@@ -337,12 +358,30 @@ describe('MediaLocalizationService', () => {
         organizationId: 'org',
       }),
     );
-    expect(h.ingredients.patch).toHaveBeenLastCalledWith(
-      'audio',
+    expect(h.ingredients.patchAll).toHaveBeenLastCalledWith(
+      {
+        id: 'audio',
+        isDeleted: false,
+        organizationId: 'org',
+        status: IngredientStatus.PROCESSING,
+      },
       expect.objectContaining({
         s3Key: 'ingredients/musics/audio.wav',
         status: IngredientStatus.GENERATED,
       }),
+    );
+  });
+
+  it('keeps a separation the user stopped failed when the provider finishes (#9735)', async () => {
+    const h = harness();
+    h.files.extractMetadataFromUrl.mockResolvedValue({
+      duration: 30,
+      hasAudio: true,
+    });
+    h.ingredients.patchAll.mockResolvedValue({ modifiedCount: 0 });
+
+    await expect(h.service.separateDialogue(request)).rejects.toThrow(
+      'stopped before it finished',
     );
   });
 
@@ -354,8 +393,13 @@ describe('MediaLocalizationService', () => {
     await expect(h.service.separateDialogue(request)).rejects.toThrow(
       'Provider unavailable',
     );
-    expect(h.ingredients.patch).toHaveBeenLastCalledWith(
-      'audio',
+    expect(h.ingredients.patchAll).toHaveBeenLastCalledWith(
+      {
+        id: 'audio',
+        isDeleted: false,
+        organizationId: 'org',
+        status: IngredientStatus.PROCESSING,
+      },
       expect.objectContaining({ status: IngredientStatus.FAILED }),
     );
     expect(h.files.uploadToS3).not.toHaveBeenCalled();
@@ -561,8 +605,13 @@ describe('MediaLocalizationService', () => {
       'corrected timed segments',
     );
     expect(h.elevenlabs.generateAndUploadAudio).not.toHaveBeenCalled();
-    expect(h.ingredients.patch).toHaveBeenLastCalledWith(
-      'audio',
+    expect(h.ingredients.patchAll).toHaveBeenLastCalledWith(
+      {
+        id: 'audio',
+        isDeleted: false,
+        organizationId: 'org',
+        status: IngredientStatus.PROCESSING,
+      },
       expect.objectContaining({
         providerData: {
           localization: expect.objectContaining({

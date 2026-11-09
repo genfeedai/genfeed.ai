@@ -1,4 +1,8 @@
-import { transitionIngredientStatus } from '@api/collections/ingredients/utils/ingredient-status-transition.util';
+import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
+import {
+  settleIngredientGeneration,
+  transitionIngredientStatus,
+} from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import { IngredientStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
@@ -121,4 +125,35 @@ describe('transitionIngredientStatus (#9735)', () => {
     ).resolves.toBe(false);
     expect(row.status).toBe(IngredientStatus.PROCESSING);
   });
+
+  it.each([
+    [IngredientStatus.PROCESSING, null, true, IngredientStatus.GENERATED],
+    [
+      IngredientStatus.FAILED,
+      INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+      true,
+      IngredientStatus.GENERATED,
+    ],
+    [
+      IngredientStatus.FAILED,
+      'Cancelled by user',
+      false,
+      IngredientStatus.FAILED,
+    ],
+    [IngredientStatus.GENERATED, null, false, IngredientStatus.GENERATED],
+  ])(
+    'settles a %s generation (error %s) as GENERATED: %s',
+    async (status, generationError, isSettled, finalStatus) => {
+      const row = { ...processing, generationError, status };
+
+      await expect(
+        settleIngredientGeneration(ingredientRow(row), {
+          id: 'ingredient-1',
+          organizationId: 'org-1',
+          to: IngredientStatus.GENERATED,
+        }),
+      ).resolves.toBe(isSettled);
+      expect(row.status).toBe(finalStatus);
+    },
+  );
 });

@@ -1,5 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import {
+  settleIngredientGeneration,
+  transitionIngredientStatus,
+} from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
@@ -19,7 +23,11 @@ import {
   MetadataExtension,
 } from '@genfeedai/contracts';
 import { Traced } from '@libs/tracing/traced';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 const TWO_LETTER_CODE_PATTERN = /^[a-z]{2}$/;
 
@@ -191,9 +199,8 @@ export class MediaLocalizationService {
           hasAudio: true,
         }),
       );
-      await this.ingredients.patch(id, {
+      await this.settleGenerated(id, request.organizationId, {
         s3Key: uploaded.s3Key,
-        status: IngredientStatus.GENERATED,
         providerData: {
           dialogueSeparation: {
             sourceVideoId: request.videoId,
@@ -221,7 +228,7 @@ export class MediaLocalizationService {
       };
     } catch (error: unknown) {
       try {
-        await this.ingredients.patch(id, { status: IngredientStatus.FAILED });
+        await this.failGeneration(id, request.organizationId);
       } catch {
         /* Preserve the separation failure. */
       }
@@ -317,8 +324,7 @@ export class MediaLocalizationService {
       });
     } catch (error: unknown) {
       try {
-        await this.ingredients.patch(id, {
-          status: IngredientStatus.FAILED,
+        await this.failGeneration(id, request.organizationId, {
           providerData,
         });
       } catch {
@@ -644,8 +650,7 @@ export class MediaLocalizationService {
       metadataData.id,
       new MetadataEntity({ ...assembled, duration, hasAudio: true }),
     );
-    await this.ingredients.patch(id, {
-      status: IngredientStatus.GENERATED,
+    await this.settleGenerated(id, request.organizationId, {
       s3Key: assembled.s3Key,
       providerData,
     });
@@ -661,6 +666,38 @@ export class MediaLocalizationService {
       segments: localized.map((segment) => this.editableSegment(segment)),
       duration,
     };
+  }
+
+  /** A generation the user stopped while it ran keeps its FAILED outcome. */
+  private async settleGenerated(
+    id: string,
+    organizationId: string,
+    data: Record<string, unknown>,
+  ): Promise<void> {
+    const settled = await settleIngredientGeneration(this.ingredients, {
+      data,
+      id,
+      organizationId,
+      to: IngredientStatus.GENERATED,
+    });
+    if (!settled)
+      throw new ConflictException(
+        'The generation was stopped before it finished',
+      );
+  }
+
+  private async failGeneration(
+    id: string,
+    organizationId: string,
+    data?: Record<string, unknown>,
+  ): Promise<void> {
+    await transitionIngredientStatus(this.ingredients, {
+      data,
+      from: IngredientStatus.PROCESSING,
+      id,
+      organizationId,
+      to: IngredientStatus.FAILED,
+    });
   }
 
   private async cleanupLocalizationStorage(
