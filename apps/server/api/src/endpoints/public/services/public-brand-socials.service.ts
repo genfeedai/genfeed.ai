@@ -22,6 +22,8 @@ const SOCIAL_ORDER: readonly CredentialPlatform[] = [
   CredentialPlatform.REDDIT,
 ];
 
+const LEADING_AT = /^@/;
+
 export interface PublicSocialCredential {
   externalHandle: string | null;
   externalId: string | null;
@@ -42,7 +44,7 @@ export function toPublicSocials(
     const platform = fromPrismaCredentialPlatform(credential.platform);
     const handle = (credential.externalHandle || credential.username)
       ?.trim()
-      .replace(/^@/, '');
+      .replace(LEADING_AT, '');
     if (!platform || !SOCIAL_ORDER.includes(platform) || !handle) {
       continue;
     }
