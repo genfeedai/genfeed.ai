@@ -10,7 +10,7 @@ function createStore() {
     confirm: async (token: string) => {
       if (token !== 'good-token' || state.status !== 'pending') return null;
       state.status = 'active';
-      return { brandLabel: 'Acme Weekly' };
+      return { brandLabel: 'Acme Weekly', isListFull: false };
     },
   } as unknown as BrandSubscribersService;
   return {

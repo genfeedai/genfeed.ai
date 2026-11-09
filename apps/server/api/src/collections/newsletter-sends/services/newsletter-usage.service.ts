@@ -10,7 +10,9 @@ import type { INewsletterUsage } from '@genfeedai/contracts/interfaces';
 import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
-const COUNTED_SUBSCRIBER_STATUSES = ['pending', 'active'];
+// Only confirmed readers count toward the plan cap, so unconfirmed public
+// sign-ups can never fill a list and lock its owner out.
+const COUNTED_SUBSCRIBER_STATUSES = ['active'];
 
 /**
  * Plan caps on subscribers and monthly sends. A Cloud runtime gate: only a

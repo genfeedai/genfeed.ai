@@ -66,6 +66,12 @@ export class PublicNewsletterSubscribeController {
         title: 'Link not valid',
       });
     }
+    if (result.isListFull) {
+      return renderNewsletterNoticePage({
+        message: `${result.brandLabel} is not taking new subscribers right now. Try this link again later.`,
+        title: 'List is full',
+      });
+    }
     return renderNewsletterNoticePage({
       message: `You will now receive ${result.brandLabel} by email.`,
       title: 'You are subscribed',

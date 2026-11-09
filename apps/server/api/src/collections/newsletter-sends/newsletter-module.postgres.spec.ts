@@ -300,6 +300,7 @@ describe.skipIf(!connectionString)(
       expect(await subscribers.confirm(token ?? '')).toEqual({
         brandLabel: 'Field Notes',
         brandSlug: 'field-notes',
+        isListFull: false,
       });
       expect(await statusesOf(brandId)).toEqual({
         'reader@example.com': 'active',
@@ -320,6 +321,35 @@ describe.skipIf(!connectionString)(
       ).resolves.toBeUndefined();
       expect(await statusesOf(brandId)).toEqual({});
       expect(outbox).toEqual([]);
+    });
+
+    it('keeps a confirmed reader pending while the list is full', async () => {
+      const brandId = await seedBrand();
+      await subscribers.subscribePublic(
+        { brandId, email: 'late@example.com', source: 'profile' },
+        null,
+      );
+      const token = /public\/newsletter\/confirm\/([A-Za-z0-9_-]{43})/.exec(
+        outbox[0]?.html ?? '',
+      )?.[1];
+      hasSubscriberCapacity = false;
+
+      expect(await subscribers.confirm(token ?? '')).toEqual({
+        brandLabel: 'Field Notes',
+        brandSlug: 'field-notes',
+        isListFull: true,
+      });
+      expect(await statusesOf(brandId)).toEqual({
+        'late@example.com': 'pending',
+      });
+
+      hasSubscriberCapacity = true;
+      expect(await subscribers.confirm(token ?? '')).toMatchObject({
+        isListFull: false,
+      });
+      expect(await statusesOf(brandId)).toEqual({
+        'late@example.com': 'active',
+      });
     });
 
     it('sends each active subscriber exactly once and applies a bounce', async () => {

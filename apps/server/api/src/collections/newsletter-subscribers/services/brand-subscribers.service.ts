@@ -377,9 +377,11 @@ export class BrandSubscribersService {
   }
 
   /** Confirm a double opt-in. Returns the brand for the confirmation page. */
-  async confirm(
-    token: string,
-  ): Promise<{ brandLabel: string; brandSlug: string } | null> {
+  async confirm(token: string): Promise<{
+    brandLabel: string;
+    brandSlug: string;
+    isListFull: boolean;
+  } | null> {
     if (!CONFIRM_TOKEN_PATTERN.test(token)) return null;
     // tenant-scope-ignore: the unguessable confirmation token names one subscriber; its organization is read from the row.
     const subscriber = await this.prisma.brandSubscriber.findFirst({
@@ -392,6 +394,17 @@ export class BrandSubscribersService {
       Date.now() - subscriber.confirmSentAt.getTime() > CONFIRM_TOKEN_TTL_MS
     ) {
       return null;
+    }
+    // Pending sign-ups do not count toward the plan cap; the reader takes a
+    // place only when they confirm, and waits while the list is full.
+    if (
+      !(await this.usage.hasSubscriberCapacity(subscriber.organizationId, 1))
+    ) {
+      return {
+        brandLabel: subscriber.brand.label,
+        brandSlug: subscriber.brand.slug,
+        isListFull: true,
+      };
     }
     const now = new Date();
     // sql-risk-audit: ignore bulk-write-tenant-review -- scopedWhere pins one pending subscriber inside its organization.
@@ -418,6 +431,7 @@ export class BrandSubscribersService {
     return {
       brandLabel: subscriber.brand.label,
       brandSlug: subscriber.brand.slug,
+      isListFull: false,
     };
   }
 
