@@ -275,6 +275,28 @@ enum AssetParent {
   ARTICLE
 }
 
+/// The slot a brand logo or platform image fills in the brand kit. LOGO assets
+/// take a LOGO_* variant; BANNER assets take BANNER_MASTER or a platform slot.
+/// A brand keeps one live asset per slot. A null slot is a row written before
+/// slots existed and reads as LOGO_PRIMARY or BANNER_MASTER.
+enum BrandKitSlot {
+  LOGO_PRIMARY
+  LOGO_ICON
+  LOGO_WORDMARK
+  LOGO_LIGHT
+  LOGO_DARK
+  LOGO_MONOCHROME
+  BANNER_MASTER
+  X_HEADER
+  X_PROFILE
+  YOUTUBE_BANNER
+  YOUTUBE_PROFILE
+  LINKEDIN_COVER
+  LINKEDIN_LOGO
+  FACEBOOK_COVER
+  FACEBOOK_PROFILE
+}
+
 enum VoiceProvider {
   HEYGEN
   ELEVENLABS
@@ -2825,6 +2847,7 @@ model Asset {
   parentArticleId    String?
   category           AssetCategory
   referenceCategory  ReferenceImageCategory?
+  kitSlot            BrandKitSlot?
   externalId         String?
   localAssetId       String?
   cloudObjectKey     String?

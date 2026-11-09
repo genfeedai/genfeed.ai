@@ -7,6 +7,8 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ASSET_ORIGIN_GENERATION_PENDING } from '@api/collections/assets/constants/asset-origin.constant';
 import { GenerateAssetDto } from '@api/collections/assets/dto/generate-asset.dto';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { resolveBrandKitGenerationSize } from '@api/collections/assets/utils/brand-kit-generation-size.util';
+import { resolveBrandKitSlot } from '@api/collections/assets/utils/brand-kit-slot.util';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
@@ -31,12 +33,14 @@ import {
   ActivitySource,
   AssetCategory,
   AssetParent,
+  BrandKitSlot,
   ModelCategory,
 } from '@genfeedai/contracts';
 import {
   BRAND_BANNER_GENERATION_HEIGHT,
   BRAND_BANNER_GENERATION_WIDTH,
   CLOUD_QUALITY_IMAGE_MODEL_KEY,
+  getBrandKitPlatformSlotSpec,
   LOWEST_COST_IMAGE_MODEL_KEY,
 } from '@genfeedai/contracts/constants';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
@@ -137,8 +141,16 @@ export class AssetsOperationsController {
       throw new ValidationException('Invalid asset type');
     }
 
-    const { width, height } =
-      category === AssetCategory.BANNER
+    const kitSlot = resolveBrandKitSlot(category, generateAssetDto.kitSlot);
+    // A platform slot generates at that platform's ratio; the master banner
+    // keeps the X header format.
+    const platformSpec =
+      kitSlot && kitSlot !== BrandKitSlot.BANNER_MASTER
+        ? getBrandKitPlatformSlotSpec(kitSlot)
+        : undefined;
+    const { width, height } = platformSpec
+      ? resolveBrandKitGenerationSize(platformSpec.width, platformSpec.height)
+      : category === AssetCategory.BANNER
         ? {
             height: BRAND_BANNER_GENERATION_HEIGHT,
             width: BRAND_BANNER_GENERATION_WIDTH,
@@ -164,9 +176,13 @@ export class AssetsOperationsController {
 
     const enhancedPrompt = buildBrandAssetPrompt(
       brand,
-      category === AssetCategory.BANNER
-        ? 'Generate a professional wide banner (1500x500, 3:1)'
-        : 'Generate a professional logo (1024x1024)',
+      platformSpec
+        ? `Generate a professional ${platformSpec.platform ?? ''} ${
+            platformSpec.kind === 'profile' ? 'profile image' : 'banner'
+          } (${platformSpec.width}x${platformSpec.height})`
+        : category === AssetCategory.BANNER
+          ? 'Generate a professional wide banner (1500x500, 3:1)'
+          : 'Generate a professional logo (1024x1024)',
       text,
     );
 
@@ -174,6 +190,7 @@ export class AssetsOperationsController {
     // banner stays in place) until the webhook uploads the output.
     const assetData = await this.assetsService.create({
       category,
+      kitSlot,
       origin: ASSET_ORIGIN_GENERATION_PENDING,
       parentId,
       parentOrgId: user.organizationId,

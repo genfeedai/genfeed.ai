@@ -162,6 +162,7 @@ describe('AssetsOperationsController', () => {
       expect(assetsService.patchAll).not.toHaveBeenCalled();
       expect(assetsService.create).toHaveBeenCalledWith({
         category: AssetCategory.BANNER,
+        kitSlot: 'BANNER_MASTER',
         origin: ASSET_ORIGIN_GENERATION_PENDING,
         parentId: mockBrandId,
         parentOrgId: mockOrgId,

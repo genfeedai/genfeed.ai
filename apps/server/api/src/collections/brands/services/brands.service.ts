@@ -382,7 +382,9 @@ export class BrandsService extends BaseService<
       );
 
       brand.banner = relations.banner;
+      brand.banners = relations.banners;
       brand.logo = relations.logo;
+      brand.logos = relations.logos;
       brand.references = relations.references;
     }
 

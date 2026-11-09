@@ -3,14 +3,16 @@ import {
   PRISMA_ASSET_CATEGORY_BY_ROLE,
 } from '@api/collections/brands/constants/brand-kit-assets.constant';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BrandKitSlot } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 
 const TRAILING_SLASHES_PATTERN = /\/+$/;
 const LEADING_SLASHES_PATTERN = /^\/+/;
 
 /**
- * Live logo CDN URLs for many brands at once, keyed by brand id. The newest logo
- * wins. Each organization's brand ids are looked up under that organization, so a
+ * Live logo CDN URLs for many brands at once, keyed by brand id. The newest
+ * primary logo wins (a logo without a variant is the primary one); a brand with
+ * only other variants falls back to its newest logo. Each organization's brand ids are looked up under that organization, so a
  * brand id from another tenant never resolves.
  */
 export async function resolveBrandLogoCdnUrls(
@@ -34,7 +36,12 @@ export async function resolveBrandLogoCdnUrls(
 
   const assets = await prisma.asset.findMany({
     orderBy: { updatedAt: 'desc' },
-    select: { cloudObjectKey: true, id: true, parentBrandId: true },
+    select: {
+      cloudObjectKey: true,
+      id: true,
+      kitSlot: true,
+      parentBrandId: true,
+    },
     where: {
       category: PRISMA_ASSET_CATEGORY_BY_ROLE.logo,
       isDeleted: false,
@@ -45,7 +52,13 @@ export async function resolveBrandLogoCdnUrls(
 
   const cdnBase = cdnUrl.replace(TRAILING_SLASHES_PATTERN, '');
   const logoUrlsByBrandId = new Map<string, string>();
-  for (const asset of assets) {
+  const isPrimary = (asset: (typeof assets)[number]) =>
+    asset.kitSlot === null || asset.kitSlot === BrandKitSlot.LOGO_PRIMARY;
+  const ranked = [
+    ...assets.filter(isPrimary),
+    ...assets.filter((asset) => !isPrimary(asset)),
+  ];
+  for (const asset of ranked) {
     if (!asset.parentBrandId || logoUrlsByBrandId.has(asset.parentBrandId)) {
       continue;
     }

@@ -12,6 +12,7 @@ type RankedAssetRow = {
   cloudObjectKey: string | null;
   displayName: string | null;
   id: string;
+  kitSlot: string | null;
   mimeType: string | null;
   parentBrandId: string | null;
   referenceCategory: string | null;
@@ -32,6 +33,7 @@ function rankedRow(overrides: Partial<RankedAssetRow>): RankedAssetRow {
     cloudObjectKey: null,
     displayName: null,
     id: 'asset-1',
+    kitSlot: null,
     mimeType: null,
     parentBrandId: 'brand-1',
     referenceCategory: null,
@@ -190,9 +192,8 @@ describe('BrandKitAssetsService.resolveBrandKitAssetsForBrands', () => {
     );
 
     const sql = readSql(queryRaw.mock.calls[0]);
-    expect(sql).toContain(
-      'PARTITION BY categorized."parentBrandId", categorized."category"',
-    );
+    expect(sql).toContain('categorized."slotKey"');
+    expect(sql).toContain('COALESCE(asset."kitSlot"::text, \'LOGO_PRIMARY\')');
     expect(sql).toContain(
       'COALESCE(asset."referenceCategory"::text, \'STYLE\')',
     );
@@ -238,6 +239,27 @@ describe('BrandKitAssetsService.resolveBrandKitAssetsForBrands', () => {
         referenceCategory: 'PRODUCT',
       }),
     ]);
+  });
+
+  it('keeps every logo variant and platform slot, and picks the defaults', async () => {
+    queryRaw.mockResolvedValueOnce([
+      rankedRow({ id: 'icon', kitSlot: 'LOGO_ICON' }),
+      rankedRow({ id: 'primary', kitSlot: 'LOGO_PRIMARY' }),
+      rankedRow({ category: 'BANNER', id: 'x-header', kitSlot: 'X_HEADER' }),
+    ]);
+
+    const kit = (
+      await service.resolveBrandKitAssetsForBrands(['brand-1'], 'org-1')
+    ).get('brand-1');
+
+    expect(kit?.logos?.map((logo) => [logo.id, logo.slot])).toEqual([
+      ['primary', 'LOGO_PRIMARY'],
+      ['icon', 'LOGO_ICON'],
+    ]);
+    expect(kit?.logo?.id).toBe('primary');
+    expect(kit?.banners?.map((banner) => banner.slot)).toEqual(['X_HEADER']);
+    // No master banner: the newest platform banner stands in.
+    expect(kit?.banner?.id).toBe('x-header');
   });
 
   it('ignores rows for a brand that was never requested', async () => {

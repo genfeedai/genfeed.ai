@@ -15,6 +15,7 @@ import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   AssetCategory,
   AssetParent,
+  BrandKitSlot,
   FileInputType,
   IngredientCategory,
 } from '@genfeedai/contracts';
@@ -153,6 +154,7 @@ describe('AssetIngestionService', () => {
     expect(assetsService.patchAll).toHaveBeenCalledWith(
       {
         category: AssetCategory.LOGO,
+        OR: [{ kitSlot: BrandKitSlot.LOGO_PRIMARY }, { kitSlot: null }],
         parentBrandId: brandId,
         parentType: AssetParent.BRAND,
       },
@@ -177,6 +179,7 @@ describe('AssetIngestionService', () => {
     ).toBeLessThan(invalidatedAt);
     expect(assetsService.create).toHaveBeenCalledWith({
       category: AssetCategory.LOGO,
+      kitSlot: BrandKitSlot.LOGO_PRIMARY,
       parentId: brandId,
       parentOrgId: user.organizationId,
       parentType: AssetParent.BRAND,
@@ -332,6 +335,7 @@ describe('AssetIngestionService', () => {
     expect(assetsService.patchAll).toHaveBeenCalledWith(
       {
         category: AssetCategory.LOGO,
+        OR: [{ kitSlot: BrandKitSlot.LOGO_PRIMARY }, { kitSlot: null }],
         parentBrandId: brandId,
         parentType: AssetParent.BRAND,
       },
@@ -339,6 +343,7 @@ describe('AssetIngestionService', () => {
     );
     expect(assetsService.create).toHaveBeenCalledWith({
       category: AssetCategory.LOGO,
+      kitSlot: BrandKitSlot.LOGO_PRIMARY,
       parentId: brandId,
       parentOrgId: user.organizationId,
       parentType: AssetParent.BRAND,

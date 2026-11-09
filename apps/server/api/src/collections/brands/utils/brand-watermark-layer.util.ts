@@ -15,10 +15,15 @@ export interface BrandWatermarkSettings {
   watermarkSizeRatio?: number | null;
 }
 
-/** The mark for a background: its own asset when the brand set one, else the default. */
+/**
+ * The mark for a background: its own asset when the brand set one. Light
+ * footage then takes the brand's light-background logo variant, but only when
+ * the brand uses a logo mark at all. Everything else falls back to the default.
+ */
 export function watermarkLogoIdFor(
   brand: BrandWatermarkSettings,
   variant: WatermarkVariant,
+  lightBackgroundLogoId?: string | null,
 ): string | null {
   const own =
     variant === 'light'
@@ -26,7 +31,11 @@ export function watermarkLogoIdFor(
       : variant === 'live'
         ? brand.watermarkLiveLogoId
         : null;
-  return own ?? brand.watermarkLogoId ?? null;
+  if (own) return own;
+  if (variant === 'light' && brand.watermarkLogoId && lightBackgroundLogoId) {
+    return lightBackgroundLogoId;
+  }
+  return brand.watermarkLogoId ?? null;
 }
 
 /**

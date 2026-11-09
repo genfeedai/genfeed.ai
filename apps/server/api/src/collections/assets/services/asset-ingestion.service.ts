@@ -5,6 +5,11 @@ import type { CreateFromIngredientDto } from '@api/collections/assets/dto/create
 import type { AssetDocument } from '@api/collections/assets/schemas/asset.schema';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { getAssetParentId } from '@api/collections/assets/utils/asset-parent.util';
+import {
+  brandKitSlotWhere,
+  isBrandKitSlotCategory,
+  resolveBrandKitSlot,
+} from '@api/collections/assets/utils/brand-kit-slot.util';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -118,8 +123,15 @@ export class AssetIngestionService {
             parentId,
           )
         : undefined;
+      // Only brand logos and banners fill a kit slot; an organization logo
+      // or a reference has none.
+      const kitSlot =
+        uploadDto.parentType === AssetParent.BRAND
+          ? resolveBrandKitSlot(uploadDto.category, uploadDto.kitSlot)
+          : resolveBrandKitSlot(AssetCategory.REFERENCE, uploadDto.kitSlot);
       const entityData = {
         category: uploadDto.category,
+        ...(kitSlot ? { kitSlot } : {}),
         parentId,
         parentOrgId: organizationId,
         parentType: uploadDto.parentType,
@@ -134,10 +146,11 @@ export class AssetIngestionService {
         },
       });
 
+      // A brand keeps one live asset per logo variant or platform slot: the
+      // upload replaces only the slot it fills.
       if (
-        [AssetCategory.LOGO, AssetCategory.BANNER].includes(
-          uploadDto.category,
-        ) &&
+        isBrandKitSlotCategory(uploadDto.category) &&
+        kitSlot &&
         entityData.parentId &&
         uploadDto.parentType === AssetParent.BRAND
       ) {
@@ -146,6 +159,7 @@ export class AssetIngestionService {
             category: uploadDto.category,
             parentBrandId: entityData.parentId,
             parentType: AssetParent.BRAND,
+            ...brandKitSlotWhere(uploadDto.category, kitSlot),
           },
           { isDeleted: true },
         );
@@ -288,18 +302,26 @@ export class AssetIngestionService {
 
     const ingredientType = 'images';
     const sourceKey = `ingredients/${ingredientType}/${validatedIngredientId}`;
-
-    await this.assetsService.patchAll(
-      {
-        category: validatedCategory,
-        parentBrandId: validatedParent,
-        parentType: AssetParent.BRAND,
-      },
-      { isDeleted: true },
+    const kitSlot = resolveBrandKitSlot(
+      validatedCategory,
+      createFromIngredientDto.kitSlot,
     );
+
+    if (isBrandKitSlotCategory(validatedCategory) && kitSlot) {
+      await this.assetsService.patchAll(
+        {
+          category: validatedCategory,
+          parentBrandId: validatedParent,
+          parentType: AssetParent.BRAND,
+          ...brandKitSlotWhere(validatedCategory, kitSlot),
+        },
+        { isDeleted: true },
+      );
+    }
 
     const assetData = await this.assetsService.create({
       category: validatedCategory,
+      kitSlot,
       parentId: validatedParent,
       parentOrgId: organizationId,
       parentType: AssetParent.BRAND,

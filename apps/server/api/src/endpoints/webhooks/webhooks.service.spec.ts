@@ -1224,6 +1224,7 @@ describe('WebhooksService', () => {
           {
             category: AssetCategory.LOGO,
             id: { not: assetId },
+            OR: [{ kitSlot: 'LOGO_PRIMARY' }, { kitSlot: null }],
             parentBrandId: sharedId,
             parentType: AssetParent.BRAND,
           },
