@@ -15,8 +15,9 @@ value, not a lifecycle.
 - **none**: no shared vocabulary; writers use string literals.
 
 Policy (see #9732): a column with more than one writer gets a contracts union and
-a transition table built with `defineStateMachine`. The schema does not change
-here; promoting a column to a Prisma enum is a separate migration PR.
+a transition table built with `defineStateMachine`. Columns that gate money or
+publishing are also pinned in the database with a `CHECK` constraint (#8686,
+#9812), which keeps the stored labels as they are.
 
 ## How the columns were found
 
@@ -36,12 +37,12 @@ script's reading and should be confirmed before a table is written for them.
 | `Ingredient.generationStage` |  | 3 | `api/services/video-stitch/video-stitch.service.ts` |  | none |
 | `Post.status` | `draft` | 22 | `api/collections/outliers/services/breakout-output-recovery.util.ts` | `PostStatus` | union only |
 | `Post.analyticsCollectionState` | `unavailable` | 4 | `api/analytics/services/post-analytics-collection-state.service.ts` |  | none |
-| `Post.targetValidationState` | `pending` | 4 | `api/collections/post-groups/services/post-group-target.operations.ts` | `TargetValidationState` | explicit: `TARGET_VALIDATION_STATE_MACHINE` (contracts `scheduler.enum.ts`, #9740) |
+| `Post.targetValidationState` | `pending` | 4 | `api/collections/post-groups/services/post-group-target.operations.ts` | `TargetValidationState` | explicit: `TARGET_VALIDATION_STATE_MACHINE` (contracts `scheduler.enum.ts`, #9740); database CHECK `posts_targetValidationState_check` (#9812) |
 | `Post.targetExecutionState` | `draft` | 25 | `api/post-lifecycle/post-lifecycle.service.ts` | `TargetExecutionState` | explicit: `POST_LIFECYCLE_TRANSITIONS` (`apps/server/api/src/post-lifecycle/post-lifecycle.service.ts`) |
 | `Post.brandedReceiptState` |  | 0 |  |  | none |
 | `PostProviderPublishReceipt.status` |  | 2 | `apps/server/workers/src/services/scheduled-post-provider-receipt.util.ts` | `PostProviderPublishReceiptStatus` | union only |
 | `PublishApproval.status` | `approved` | 2 | `api/publish-approvals/publish-approvals.service.ts` | `PublishApprovalStatus` | explicit: `canTransitionPublishApprovalStatus` (contracts `publish-approval.contract.ts`) |
-| `Campaign.status` | `draft` | 2 | `api/collections/campaigns/services/campaign-lifecycle.service.ts` | `ContentCampaignStatus` | explicit: `CONTENT_CAMPAIGN_STATE_MACHINE` (contracts `content-campaign.enum.ts`, #9740) |
+| `Campaign.status` | `draft` | 2 | `api/collections/campaigns/services/campaign-lifecycle.service.ts` | `ContentCampaignStatus` | explicit: `CONTENT_CAMPAIGN_STATE_MACHINE` (contracts `content-campaign.enum.ts`, #9740); database CHECK `campaigns_status_check` (#9812) |
 | `CampaignPaidActivation.status` | `paused` | 1 | `api/collections/campaigns/services/campaign-paid-activation.service.ts` | `ContentCampaignPaidActivationStatus` | union only |
 | `PostGroup.status` | `draft` | 6 | `apps/server/workers/src/services/release-recurrence-materializer.service.ts` | `ReleaseStatus` | derived: `deriveReleaseStatusFromTargets` from its targets' `targetExecutionState` |
 | `PostingCadence.status` | `active` | 0 |  | `PostingCadenceStatus` | union only |
@@ -73,7 +74,7 @@ script's reading and should be confirmed before a table is written for them.
 | `WorkflowExecution.etaCurrentPhase` |  | 1 | `api/collections/workflow-executions/services/workflow-executions.service.ts` |  | none |
 | `WorkflowExecutionNodeResult.status` |  | 1 | `api/collections/workflows/services/workflow-node-continuation.service.ts` |  | none |
 | `WorkflowNodeClaim.status` |  | 2 | `api/collections/workflows/services/workflow-node-continuation.service.ts` |  | none |
-| `ContentRun.status` |  | 6 | `api/endpoints/onboarding/services/onboarding-draft-runs.service.ts` | `ContentRunStatus` | derived for brand remix: `BRAND_REMIX_PHASE_RUN_STATUS` (#9740); onboarding draft runs write it directly |
+| `ContentRun.status` |  | 6 | `api/endpoints/onboarding/services/onboarding-draft-runs.service.ts` | `ContentRunStatus` | derived for brand remix: `BRAND_REMIX_PHASE_RUN_STATUS` (#9740); onboarding draft runs write it directly; database CHECK `content_runs_status_check` (#9812) |
 | `ContentRun.phase` |  | 1 | `api/collections/content-runs/services/brand-remix-run-persistence.service.ts` | BrandRemixPhase (brand remix runs) | union only |
 | `Task.status` | `backlog` | 2 | `api/collections/clipper-projects/services/clipper-continuity-workflow.service.ts` | `TaskStatus` | explicit: `STATUS_TRANSITIONS` (`tasks.service.ts`) |
 | `Task.reviewState` | `none` | 0 |  | `TaskReviewState` | union only: `TASK_REVIEW_STATE_TRANSITIONS` lists values a PATCH may set, not edges |
