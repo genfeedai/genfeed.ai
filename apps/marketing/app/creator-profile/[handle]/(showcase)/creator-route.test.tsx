@@ -14,6 +14,10 @@ const findPublicVideosPage = vi.fn();
 const findPublicImagesPage = vi.fn();
 const findPublicReferralCode = vi.fn<() => Promise<string | null>>();
 
+vi.mock('@public/models/models-loader', () => ({
+  getPublicModels: async () => null,
+}));
+
 vi.mock('@services/external/public.service', () => ({
   PublicService: {
     getInstance: () => ({
