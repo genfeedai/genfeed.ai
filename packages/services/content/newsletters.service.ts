@@ -1,3 +1,4 @@
+import type { NewsletterAccessLevel } from '@genfeedai/contracts/constants';
 import type {
   IChannelTarget,
   INewsletterDeliveryRequest,
@@ -33,6 +34,7 @@ export interface GenerateNewsletterDraftRequest {
 }
 
 export interface UpdateNewsletterRequest {
+  accessLevel?: NewsletterAccessLevel;
   angle?: string;
   content?: string;
   contextNewsletterIds?: string[];

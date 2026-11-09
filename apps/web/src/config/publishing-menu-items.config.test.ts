@@ -33,13 +33,14 @@ describe('PUBLISHING_MENU_ITEMS', () => {
     expect(PUBLISHING_MENU_ITEMS.length).toBeGreaterThan(0);
   });
 
-  it('is a flat Overview → Posts → Calendar → Approvals → Campaigns bar', () => {
+  it('is a flat Overview → Posts → Calendar → Approvals → Campaigns → Newsletter bar', () => {
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.label)).toEqual([
       'Overview',
       'Posts',
       'Calendar',
       'Approvals',
       'Campaigns',
+      'Newsletter',
     ]);
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.href)).toEqual([
       APP_ROUTES.PUBLISHING.OVERVIEW,
@@ -47,6 +48,7 @@ describe('PUBLISHING_MENU_ITEMS', () => {
       APP_ROUTES.PUBLISHING.CALENDAR,
       APP_ROUTES.PUBLISHING.APPROVALS,
       APP_ROUTES.PUBLISHING.CAMPAIGNS,
+      APP_ROUTES.PUBLISHING.NEWSLETTER,
     ]);
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.href)).not.toContain(
       '/publishing',

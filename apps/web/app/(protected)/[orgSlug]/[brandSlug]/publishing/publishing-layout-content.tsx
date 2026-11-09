@@ -72,10 +72,11 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
     publishingSegmentIndex === -1
       ? []
       : pathSegments.slice(publishingSegmentIndex + 1);
-  // Content desk and Campaigns own their controls.
+  // Content desk, Campaigns and Newsletter own their controls.
   const hasOwnPageLayout =
     (routeSuffix[0] === 'posts' && routeSuffix.length === 2) ||
-    routeSuffix[0] === 'campaigns';
+    routeSuffix[0] === 'campaigns' ||
+    routeSuffix[0] === 'newsletter';
   const handleRefresh = useCallback(() => {
     if (typeof refreshFn !== 'function') {
       refresh();

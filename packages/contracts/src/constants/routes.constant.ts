@@ -92,6 +92,8 @@ export const APP_ROUTES = {
     BREAKOUTS: '/analytics/breakouts',
     HOOKS: '/analytics/hooks',
     INSIGHTS: '/analytics/insights',
+    /** A brand's newsletter results: sends, opens, clicks and growth (#9727). */
+    NEWSLETTER: '/analytics/newsletter',
     /**
      * Canonical analytics home. Bare ROOT permanently redirects here so Overview
      * is a complete path (same pattern as workspace/overview).
@@ -276,6 +278,10 @@ export const APP_ROUTES = {
      *   can share this path once kind resolution is wired)
      */
     POSTS: '/publishing/posts',
+    /** A brand's newsletter audience: add, import and export (#9724). */
+    NEWSLETTER: '/publishing/newsletter',
+    /** A brand's newsletter sending settings (#9723). */
+    NEWSLETTER_SETTINGS: '/publishing/newsletter/settings',
     /**
      * Remix is a contextual **action** (Discovery/Library button), not a module
      * page. This path is the deep-link target for that action only — never a

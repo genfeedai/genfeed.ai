@@ -17,7 +17,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { notFound, permanentRedirect, redirect } from 'next/navigation';
-import { Suspense } from 'react';
+import { type ComponentType, Suspense } from 'react';
 import {
   CampaignDetailAds,
   CampaignDetailOverview,
@@ -30,6 +30,8 @@ import IngredientsList from '@/features/ingredients/list/ingredients-list';
 import LibraryBrowser from '@/features/library/browser/library-browser';
 import { LIBRARY_TYPE_PRESETS } from '@/features/library/browser/library-browser.config';
 import LibraryOverview from '@/features/library/overview/library-overview';
+import NewsletterSettingsPage from '@/features/newsletter/settings/NewsletterSettingsPage';
+import NewsletterSubscribersPage from '@/features/newsletter/subscribers/NewsletterSubscribersPage';
 import EditorWorkspace from '@/features/studio/editor/EditorWorkspace';
 import VoiceStudio from '@/features/voice-studio/voice-studio';
 import type { OrgRootAppPageProps } from '@/props/layout/org-root-app-page.props';
@@ -52,6 +54,11 @@ import PublishingLayoutContent from '../../../[brandSlug]/publishing/publishing-
 import { renderPostsListPage } from '../../../[brandSlug]/publishing/publishing-list-page';
 import ReviewQueueContent from '../../../[brandSlug]/publishing/review/review-queue-content';
 import OrganizationAutomationBrandEmptyState from '../../automation/OrganizationAutomationBrandEmptyState';
+
+const NEWSLETTER_PAGES: Readonly<Record<string, ComponentType>> = {
+  '': NewsletterSubscribersPage,
+  settings: NewsletterSettingsPage,
+};
 
 const ORG_LIBRARY_PRESET_ROUTE_BY_SEGMENT: Readonly<Record<string, string>> = {
   avatars: APP_ROUTES.LIBRARY.AVATARS,
@@ -418,6 +425,21 @@ export default async function OrgRootAppPage({
       );
 
       return <PublishingLayoutContent>{detailPage}</PublishingLayoutContent>;
+    }
+
+    // Newsletter pages belong to one brand; the all-brands view asks for one.
+    if (section === 'newsletter' && publishingSegments.length <= 2) {
+      const NewsletterPage = NEWSLETTER_PAGES[campaignId ?? ''];
+      if (!NewsletterPage) {
+        notFound();
+      }
+      return (
+        <PublishingLayoutContent>
+          <Suspense fallback={null}>
+            <NewsletterPage />
+          </Suspense>
+        </PublishingLayoutContent>
+      );
     }
 
     if (section === 'campaigns') {
