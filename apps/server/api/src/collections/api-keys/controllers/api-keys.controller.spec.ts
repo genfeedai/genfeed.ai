@@ -209,7 +209,15 @@ describe('ApiKeysController', () => {
         plainKey: 'plain_api_key_12345',
       });
 
-      await controller.create(mockRequest, mockUser, createApiKeyDto);
+      const res212 = await controller.create(
+        mockRequest,
+        mockUser,
+        createApiKeyDto,
+      );
+      expect(res212.data).toMatchObject({
+        attributes: { key: 'plain_api_key_12345' },
+        type: 'api-key-full',
+      });
 
       expect(service.createWithKey).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -379,7 +387,7 @@ describe('ApiKeysController', () => {
       mockApiKeysService.findOne.mockResolvedValue(mockApiKey);
       mockApiKeysService.patch.mockResolvedValue(mockApiKey);
 
-      await controller.update(mockRequest, mockUser, id, {
+      const res382 = await controller.update(mockRequest, mockUser, id, {
         metadata: {
           [API_KEY_ACTION_ORIGIN_METADATA_KEY]: 'mcp',
           [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: 'spoofed-proof',
@@ -390,6 +398,8 @@ describe('ApiKeysController', () => {
           purpose: 'automation',
         },
       });
+      expect(res382.data).toMatchObject({ type: 'api-key' });
+      expect(res382.data.attributes).not.toHaveProperty('key');
 
       expect(service.patch).toHaveBeenCalledWith(id, {
         metadata: { purpose: 'automation' },
@@ -410,7 +420,7 @@ describe('ApiKeysController', () => {
       });
       mockApiKeysService.patch.mockResolvedValue(mockApiKey);
 
-      await controller.update(mockRequest, mockUser, id, {
+      const res413 = await controller.update(mockRequest, mockUser, id, {
         metadata: {
           [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: {
             lastVerifiedAt: '2099-01-01T00:00:00.000Z',
@@ -419,6 +429,8 @@ describe('ApiKeysController', () => {
           purpose: 'desktop',
         },
       });
+      expect(res413.data).toMatchObject({ type: 'api-key' });
+      expect(res413.data.attributes).not.toHaveProperty('key');
 
       expect(service.patch).toHaveBeenCalledWith(id, {
         metadata: {
@@ -443,9 +455,11 @@ describe('ApiKeysController', () => {
         ActionOrigin.CLI,
       );
 
-      await controller.update(mockRequest, mockUser, id, {
+      const res446 = await controller.update(mockRequest, mockUser, id, {
         metadata: { purpose: 'desktop' },
       });
+      expect(res446.data).toMatchObject({ type: 'api-key' });
+      expect(res446.data.attributes).not.toHaveProperty('key');
 
       expect(service.patch).toHaveBeenCalledWith(id, {
         metadata: {
@@ -538,7 +552,11 @@ describe('ApiKeysController', () => {
         plainKey: 'plain_rotated_api_key_12345',
       });
 
-      await controller.rotate(mockRequest, mockUser, id);
+      const res541 = await controller.rotate(mockRequest, mockUser, id);
+      expect(res541.data).toMatchObject({
+        attributes: { key: 'plain_rotated_api_key_12345' },
+        type: 'api-key-full',
+      });
 
       expect(service.rotateWithKey).toHaveBeenCalledWith(
         id,
@@ -559,7 +577,11 @@ describe('ApiKeysController', () => {
         plainKey: 'plain_rotated_api_key_12345',
       });
 
-      await controller.rotate(mockRequest, mockUser, apiKeyId);
+      const res562 = await controller.rotate(mockRequest, mockUser, apiKeyId);
+      expect(res562.data).toMatchObject({
+        attributes: { key: 'plain_rotated_api_key_12345' },
+        type: 'api-key-full',
+      });
 
       expect(service.rotateWithKey).toHaveBeenCalledWith(
         apiKeyId,
@@ -692,10 +714,14 @@ describe('ApiKeysController', () => {
         apiKey: activeKey,
         plainKey: 'new-key',
       });
-      await controller.create(mockRequest, mockUser, {
+      const res695 = await controller.create(mockRequest, mockUser, {
         category: ApiKeyCategory.GENFEEDAI,
         label: 'New key',
         scopes: ['read'],
+      });
+      expect(res695.data).toMatchObject({
+        attributes: { key: 'new-key' },
+        type: 'api-key-full',
       });
       expect(service.findAll).toHaveBeenCalledWith(
         {
@@ -821,10 +847,14 @@ describe('ApiKeysController', () => {
     it('caps omitted scopes at what the calling key holds', async () => {
       mockCallerKey();
 
-      await controller.create(mockRequest, callerUser, {
+      const res824 = await controller.create(mockRequest, callerUser, {
         category: ApiKeyCategory.GENFEEDAI,
         label: 'Default scopes',
       } as CreateApiKeyDto);
+      expect(res824.data).toMatchObject({
+        attributes: { key: 'gf_new' },
+        type: 'api-key-full',
+      });
 
       expect(mockApiKeysService.createWithKey).toHaveBeenCalledWith(
         expect.objectContaining({ scopes: ['images:read', 'videos:read'] }),
@@ -834,11 +864,15 @@ describe('ApiKeysController', () => {
     it('allows a narrower key than the caller', async () => {
       mockCallerKey();
 
-      await controller.create(mockRequest, callerUser, {
+      const res837 = await controller.create(mockRequest, callerUser, {
         category: ApiKeyCategory.GENFEEDAI,
         label: 'Narrower',
         scopes: ['images:read'],
       } as CreateApiKeyDto);
+      expect(res837.data).toMatchObject({
+        attributes: { key: 'gf_new' },
+        type: 'api-key-full',
+      });
 
       expect(mockApiKeysService.createWithKey).toHaveBeenCalled();
     });
@@ -884,11 +918,15 @@ describe('ApiKeysController', () => {
         id: callerKeyId,
         scopes: ['images:read', 'videos:read'],
       });
-      await controller.create(mockRequest, callerUser, {
+      const res887 = await controller.create(mockRequest, callerUser, {
         category: ApiKeyCategory.GENFEEDAI,
         label: 'Null scopes',
         scopes: null,
       } as unknown as CreateApiKeyDto);
+      expect(res887.data).toMatchObject({
+        attributes: { key: 'gf_new' },
+        type: 'api-key-full',
+      });
       expect(mockApiKeysService.createWithKey).toHaveBeenCalledWith(
         expect.objectContaining({ scopes: ['images:read', 'videos:read'] }),
       );
@@ -974,18 +1012,28 @@ describe('ApiKeysController', () => {
         })
         .mockResolvedValueOnce(callerKey);
       mockApiKeysService.patch.mockResolvedValue(mockApiKey);
-      await controller.update(mockRequest, callerUser, siblingId, {
-        scopes: ['videos:read'],
-      } as UpdateApiKeyDto);
+      const res977 = await controller.update(
+        mockRequest,
+        callerUser,
+        siblingId,
+        {
+          scopes: ['videos:read'],
+        } as UpdateApiKeyDto,
+      );
+      expect(res977.data).toMatchObject({ type: 'api-key' });
       expect(mockApiKeysService.patch).toHaveBeenCalled();
     });
 
     it('does not constrain session-authenticated callers', async () => {
-      await controller.create(mockRequest, mockUser, {
+      const res984 = await controller.create(mockRequest, mockUser, {
         category: ApiKeyCategory.GENFEEDAI,
         label: 'Session key',
         scopes: ['posts:publish'],
       } as CreateApiKeyDto);
+      expect(res984.data).toMatchObject({
+        attributes: { key: 'gf_new' },
+        type: 'api-key-full',
+      });
 
       expect(mockApiKeysService.createWithKey).toHaveBeenCalled();
       expect(mockApiKeysService.findOne).not.toHaveBeenCalled();
