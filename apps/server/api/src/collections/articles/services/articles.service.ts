@@ -105,7 +105,6 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import {
-  BadRequestException,
   forwardRef,
   Inject,
   Injectable,
@@ -405,12 +404,7 @@ export class ArticlesService
         }),
       });
       if (!accessible) throw new NotFoundException('Article', id);
-      // Readers pay a creator through the article's brand (#9718).
-      if (updateArticleDto.accessLevel === 'paid' && !accessible.brandId) {
-        throw new BadRequestException(
-          'Only an article published under a brand can be paid',
-        );
-      }
+      ArticleFilterUtil.assertPayable(updateArticleDto, accessible);
 
       const updateData = ArticleFilterUtil.toArticlePersistenceData({
         ...updateArticleDto,
@@ -593,15 +587,7 @@ export class ArticlesService
     };
 
     if (search) {
-      where.OR = [
-        { label: { contains: search, mode: 'insensitive' } },
-        { summary: { contains: search, mode: 'insensitive' } },
-        // A paid article's body is not public, so search skips it (#9718).
-        {
-          accessLevel: 'public',
-          content: { contains: search, mode: 'insensitive' },
-        },
-      ];
+      where.OR = ArticleFilterUtil.buildPublicSearchClauses(search);
     }
 
     if (category) {

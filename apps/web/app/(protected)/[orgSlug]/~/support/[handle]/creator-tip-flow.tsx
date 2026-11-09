@@ -10,11 +10,11 @@ import {
   createOrganizationAppRoute,
   creatorProfilePath,
 } from '@genfeedai/contracts/constants';
-import type {
-  ICreatorTipResult,
-  ICreatorTipTarget,
-} from '@genfeedai/contracts/interfaces/billing';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
+import type {
+  CreatorTipSendState,
+  CreatorTipTargetState,
+} from '@genfeedai/props/pages/creator-tip-flow.props';
 import { CreatorPaymentsService } from '@genfeedai/services/billing/creator-payments.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -39,18 +39,6 @@ const NEEDS_CREDITS_CODES: ReadonlySet<string> = new Set([
   'CREDIT_TRANSFER_REQUIRES_PURCHASE',
   'INSUFFICIENT_CREDITS',
 ]);
-
-type TargetState =
-  | { status: 'loading' }
-  | { status: 'missing' }
-  | { status: 'ready'; target: ICreatorTipTarget };
-
-type SendState =
-  | { status: 'idle' }
-  | { status: 'sending' }
-  | { status: 'needs-credits' }
-  | { status: 'failed' }
-  | { result: ICreatorTipResult; status: 'sent' };
 
 function parseAmount(choice: string, customAmount: string): number | null {
   const raw = choice === CUSTOM_AMOUNT ? customAmount.trim() : choice;
@@ -87,13 +75,15 @@ export default function CreatorTipFlow() {
       [],
     ),
   );
-  const [targetState, setTargetState] = useState<TargetState>({
+  const [targetState, setTargetState] = useState<CreatorTipTargetState>({
     status: 'loading',
   });
   const [choice, setChoice] = useState<string>(DEFAULT_PRESET);
   const [customAmount, setCustomAmount] = useState('');
   const [message, setMessage] = useState('');
-  const [sendState, setSendState] = useState<SendState>({ status: 'idle' });
+  const [sendState, setSendState] = useState<CreatorTipSendState>({
+    status: 'idle',
+  });
   // One key per intended tip: a double click or a retry sends it once.
   const [idempotencyKey, setIdempotencyKey] = useState(newIdempotencyKey);
 

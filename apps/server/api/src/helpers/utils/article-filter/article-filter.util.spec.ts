@@ -215,6 +215,38 @@ describe('ArticleFilterUtil', () => {
     });
   });
 
+  describe('buildPublicSearchClauses', () => {
+    it('searches every title and summary but only public bodies', () => {
+      const searchFilter = { contains: 'growth', mode: 'insensitive' };
+      expect(ArticleFilterUtil.buildPublicSearchClauses('growth')).toEqual([
+        { label: searchFilter },
+        { summary: searchFilter },
+        { accessLevel: 'public', content: searchFilter },
+      ]);
+    });
+  });
+
+  describe('assertPayable', () => {
+    it('refuses a paid article without a brand', () => {
+      expect(() =>
+        ArticleFilterUtil.assertPayable(
+          { accessLevel: 'paid' },
+          { brandId: null },
+        ),
+      ).toThrow('Only an article published under a brand can be paid');
+    });
+
+    it.each([
+      [{ accessLevel: 'paid' }, { brandId: 'brand-1' }],
+      [{ accessLevel: 'public' }, { brandId: null }],
+      [{}, { brandId: null }],
+    ])('accepts %o for %o', (update, article) => {
+      expect(() =>
+        ArticleFilterUtil.assertPayable(update, article),
+      ).not.toThrow();
+    });
+  });
+
   describe('buildTagPopulation', () => {
     it('includes tags', () => {
       expect(ArticleFilterUtil.buildTagPopulation()).toEqual({

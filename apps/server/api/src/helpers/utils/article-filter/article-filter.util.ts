@@ -182,6 +182,28 @@ export const ArticleFilterUtil = {
     };
   },
 
+  /** Public search: a paid article's body is not public, so it is skipped (#9718). */
+  buildPublicSearchClauses(search: string): Record<string, unknown>[] {
+    const searchFilter = { contains: search, mode: 'insensitive' };
+    return [
+      { label: searchFilter },
+      { summary: searchFilter },
+      { accessLevel: 'public', content: searchFilter },
+    ];
+  },
+
+  /** Readers pay a creator through the article's brand (#9718). */
+  assertPayable(
+    update: { accessLevel?: string },
+    article: { brandId: string | null },
+  ): void {
+    if (update.accessLevel === 'paid' && !article.brandId) {
+      throw new BadRequestException(
+        'Only an article published under a brand can be paid',
+      );
+    }
+  },
+
   buildTagPopulation(): Record<string, unknown> {
     return { include: { tags: true } };
   },
