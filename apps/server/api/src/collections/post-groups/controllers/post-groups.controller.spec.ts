@@ -111,7 +111,8 @@ describe('PostGroupsController', () => {
       title: 'Launch note',
     };
 
-    await controller.create(req, user, body, 'same-request');
+    const res114 = await controller.create(req, user, body, 'same-request');
+    expect(res114).toEqual({ id: 'group-1' });
 
     expect(service.create).toHaveBeenCalledWith(
       'org-1',
@@ -139,9 +140,16 @@ describe('PostGroupsController', () => {
   });
 
   it('routes target updates through the service', async () => {
-    await controller.updateTarget(req, user, 'group-1', 'target-1', {
-      timezone: 'UTC',
-    });
+    const res142 = await controller.updateTarget(
+      req,
+      user,
+      'group-1',
+      'target-1',
+      {
+        timezone: 'UTC',
+      },
+    );
+    expect(res142).toEqual({ id: 'group-1' });
 
     expect(service.updateTarget).toHaveBeenCalledWith(
       'org-1',
@@ -157,10 +165,17 @@ describe('PostGroupsController', () => {
   });
 
   it('routes target schedule through scheduleTarget so a version-bound approval is created', async () => {
-    await controller.updateTarget(req, user, 'group-1', 'target-1', {
-      action: 'schedule',
-      scheduledDate: '2026-09-01T10:00:00.000Z',
-    });
+    const res160 = await controller.updateTarget(
+      req,
+      user,
+      'group-1',
+      'target-1',
+      {
+        action: 'schedule',
+        scheduledDate: '2026-09-01T10:00:00.000Z',
+      },
+    );
+    expect(res160).toEqual({ id: 'group-1' });
 
     expect(service.scheduleTarget).toHaveBeenCalledWith(
       'org-1',
@@ -174,9 +189,16 @@ describe('PostGroupsController', () => {
   });
 
   it('routes target publish-now through publishTargetNow without a client timestamp', async () => {
-    await controller.updateTarget(req, user, 'group-1', 'target-1', {
-      action: 'publish-now',
-    });
+    const res177 = await controller.updateTarget(
+      req,
+      user,
+      'group-1',
+      'target-1',
+      {
+        action: 'publish-now',
+      },
+    );
+    expect(res177).toEqual({ id: 'group-1' });
 
     expect(service.publishTargetNow).toHaveBeenCalledWith(
       'org-1',
@@ -190,9 +212,16 @@ describe('PostGroupsController', () => {
   });
 
   it('routes the TikTok app handoff through the dedicated target action', async () => {
-    await controller.updateTarget(req, user, 'group-1', 'target-1', {
-      action: 'publish-via-tiktok-app',
-    });
+    const res193 = await controller.updateTarget(
+      req,
+      user,
+      'group-1',
+      'target-1',
+      {
+        action: 'publish-via-tiktok-app',
+      },
+    );
+    expect(res193).toEqual({ id: 'group-1' });
 
     expect(service.publishTargetViaTikTokApp).toHaveBeenCalledWith(
       'org-1',
@@ -258,7 +287,10 @@ describe('PostGroupsController', () => {
   });
 
   it('wraps a desk post into a release group before schedule or publish-now', async () => {
-    await controller.ensureFromPost(req, user, { postId: 'post-1' });
+    const res261 = await controller.ensureFromPost(req, user, {
+      postId: 'post-1',
+    });
+    expect(res261).toEqual({ id: 'group-1' });
 
     expect(service.ensureReleaseForPost).toHaveBeenCalledWith(
       'org-1',
@@ -270,14 +302,16 @@ describe('PostGroupsController', () => {
   it('routes calendar-move and republish through PATCH action bodies', async () => {
     const body = { scheduledDate: '2026-09-01T10:00:00.000Z' };
 
-    await controller.update(req, user, 'group-1', {
+    const res273 = await controller.update(req, user, 'group-1', {
       action: 'calendar-move',
       ...body,
     });
-    await controller.update(req, user, 'group-1', {
+    expect(res273).toEqual({ id: 'group-1' });
+    const res277 = await controller.update(req, user, 'group-1', {
       action: 'republish',
       ...body,
     });
+    expect(res277).toEqual({ id: 'group-2' });
 
     expect(service.moveCalendarPlacement).toHaveBeenCalledWith(
       'org-1',
@@ -304,7 +338,10 @@ describe('PostGroupsController', () => {
   });
 
   it('routes publish-now through PATCH action body', async () => {
-    await controller.update(req, user, 'group-1', { action: 'publish-now' });
+    const res307 = await controller.update(req, user, 'group-1', {
+      action: 'publish-now',
+    });
+    expect(res307).toEqual({ id: 'group-1' });
 
     expect(service.publishNow).toHaveBeenCalledWith(
       'org-1',
@@ -320,15 +357,24 @@ describe('PostGroupsController', () => {
       timezone: 'UTC',
     };
 
-    await controller.previewRecurrence(previewBody);
-    await controller.update(req, user, 'group-1', { action: 'series-pause' });
-    await controller.update(req, user, 'group-1', { action: 'series-resume' });
-    await controller.update(req, user, 'group-1', {
+    const res323 = await controller.previewRecurrence(previewBody);
+    expect(res323).toEqual({ success: true });
+    const res324 = await controller.update(req, user, 'group-1', {
+      action: 'series-pause',
+    });
+    expect(res324).toEqual({ id: 'group-1' });
+    const res325 = await controller.update(req, user, 'group-1', {
+      action: 'series-resume',
+    });
+    expect(res325).toEqual({ id: 'group-1' });
+    const res326 = await controller.update(req, user, 'group-1', {
       action: 'series-cancel-future',
     });
-    await controller.editFutureSeries(req, user, 'group-1', {
+    expect(res326).toEqual({ id: 'group-1' });
+    const res329 = await controller.editFutureSeries(req, user, 'group-1', {
       scheduledDate: '2026-08-12T09:00:00.000Z',
     });
+    expect(res329).toEqual({ id: 'group-1' });
 
     expect(recurrenceService.preview).toHaveBeenCalledWith(previewBody);
     expect(recurrenceService.pauseFuture).toHaveBeenCalledWith(
