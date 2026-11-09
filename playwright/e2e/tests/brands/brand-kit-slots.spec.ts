@@ -17,9 +17,19 @@ const logo = (id: string, kitSlot: string) => ({
 });
 
 const brandAttributes = {
-  banner: { category: 'BANNER', cdnUrl: PIXEL, id: 'banner-master', kitSlot: 'BANNER_MASTER' },
+  banner: {
+    category: 'BANNER',
+    cdnUrl: PIXEL,
+    id: 'banner-master',
+    kitSlot: 'BANNER_MASTER',
+  },
   banners: [
-    { category: 'BANNER', cdnUrl: PIXEL, id: 'banner-master', kitSlot: 'BANNER_MASTER' },
+    {
+      category: 'BANNER',
+      cdnUrl: PIXEL,
+      id: 'banner-master',
+      kitSlot: 'BANNER_MASTER',
+    },
     { category: 'BANNER', cdnUrl: PIXEL, id: 'banner-x', kitSlot: 'X_HEADER' },
   ],
   createdAt: '2026-11-09T00:00:00.000Z',
