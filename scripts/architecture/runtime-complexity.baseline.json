@@ -144,12 +144,6 @@
     "symbol": "AgentCompletionCardBuilderService.buildCompletionSuggestedActions"
   },
   {
-    "actual": 513,
-    "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-stream-loop.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentOrchestratorStreamLoopService.runStreamLoop"
-  },
-  {
     "actual": 328,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-turn-round-runner.service.ts",
     "metric": "method-lines",
