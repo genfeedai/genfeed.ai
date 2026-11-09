@@ -139,7 +139,9 @@ The self-hosted release contract is version-bound:
   `genfeed-selfhosted.tar.gz.sha256`
 - bundle manifest `releaseTag=v1.2.3` and the exact GHCR image above
 
-The publish workflow advances `latest`, builds the checksummed bundle, exercises
+The publish workflow builds the image once, in the verify job, which pushes it by
+digest with no tag and boots that exact digest; the publisher retags the tested
+digest and refuses any tag that resolves elsewhere. It advances `latest`, builds the checksummed bundle, exercises
 the built `@genfeedai/create` CLI against it, anonymously pulls the exact image,
 validates OCI version/revision labels, and only then attaches the assets. The
 nightly self-hosted E2E downloads that exact public bundle and does not log in to

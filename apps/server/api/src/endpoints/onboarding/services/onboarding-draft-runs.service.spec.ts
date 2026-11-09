@@ -166,14 +166,22 @@ describe('OnboardingDraftRunsService', () => {
 
   it('uses a different reservation for another tenant or an explicit next round', async () => {
     const generate = vi.fn().mockResolvedValue(result);
-    await service.execute(user, 'brand-1', undefined, generate);
-    await service.execute(user, 'brand-1', 'previous-request', generate);
-    await service.execute(
+    const first = await service.execute(user, 'brand-1', undefined, generate);
+    const nextRound = await service.execute(
+      user,
+      'brand-1',
+      'previous-request',
+      generate,
+    );
+    const otherTenant = await service.execute(
       { ...user, organizationId: 'org-2' },
       'brand-1',
       undefined,
       generate,
     );
+    expect(first).toEqual(result);
+    expect(nextRound).toEqual(result);
+    expect(otherTenant).toEqual(result);
     const ids = prisma.contentRun.createMany.mock.calls.map(
       ([args]) => args.data[0].id,
     );
@@ -213,12 +221,13 @@ describe('OnboardingDraftRunsService', () => {
 
   it('attaches scoped media to draft posts for editing after onboarding', async () => {
     prisma.ingredient.findMany.mockResolvedValue([{ id: 'image-1' }]);
-    await service.execute(
+    const executed = await service.execute(
       user,
       'brand-1',
       undefined,
       vi.fn().mockResolvedValue({ ...result, imageIngredientId: 'image-1' }),
     );
+    expect(executed.imageIngredientId).toBe('image-1');
     expect(prisma.post.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -247,7 +256,7 @@ describe('OnboardingDraftRunsService', () => {
   });
   it('keeps processing and failed ingredients out of editable posts', async () => {
     prisma.ingredient.findMany.mockResolvedValue([]);
-    await service.execute(
+    const executed = await service.execute(
       user,
       'brand-1',
       undefined,
@@ -255,6 +264,7 @@ describe('OnboardingDraftRunsService', () => {
         .fn()
         .mockResolvedValue({ ...result, imageIngredientId: 'pending-image' }),
     );
+    expect(executed.imageIngredientId).toBe('pending-image');
     expect(prisma.ingredient.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({

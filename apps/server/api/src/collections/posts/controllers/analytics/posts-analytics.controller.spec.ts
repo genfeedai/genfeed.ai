@@ -149,9 +149,10 @@ describe('PostsAnalyticsController', () => {
   it('uses explicit selected brand and exact canonical tenant rather than user ownership OR', async () => {
     mockPostsService.findOne.mockResolvedValue(null);
     const selected = testId('selected-brand');
-    await controller.getAnalytics(mockUser, testId('post'), {
+    const result = await controller.getAnalytics(mockUser, testId('post'), {
       brandId: selected,
     });
+    expect(result).toHaveProperty('statusCode', 404);
     expect(mockPostsService.findOne).toHaveBeenCalledWith({
       id: testId('post'),
       organizationId: mockUser.organizationId,
@@ -243,7 +244,8 @@ describe('PostsAnalyticsController', () => {
     mockPostAnalyticsService.getPostAnalyticsSummary.mockResolvedValue(
       mockAnalyticsSummary,
     );
-    await controller.refreshAnalytics(mockUser, testId('post'));
+    const result = await controller.refreshAnalytics(mockUser, testId('post'));
+    expect(result.data?.type).toBe('post-analytics');
     expect(
       mockAnalyticsSyncWorkflowService.queuePostRefresh,
     ).toHaveBeenCalledWith({
@@ -386,8 +388,9 @@ describe('PostsAnalyticsController', () => {
         mockAnalyticsSummary,
       );
 
-      await controller.refreshAnalytics(mockUser, postId);
+      const result = await controller.refreshAnalytics(mockUser, postId);
 
+      expect(result.data?.type).toBe('post-analytics');
       // Exact match: an extra/missing key here is the whole defect. Filter
       // values of `undefined` are dropped by `normalizeWhere`, so a lookup
       // built from unpopulated relation aliases silently loses its tenant

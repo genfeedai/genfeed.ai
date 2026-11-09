@@ -71,9 +71,16 @@ vi.mock('@ui/dropdowns/model-selector/ModelSelectorPopover', () => ({
 
 describe('PromptBarModelControls', () => {
   const mockSetValue = vi.fn();
+  const formValues: Record<string, unknown> = {};
 
   beforeEach(() => {
     mockSetValue.mockClear();
+    mockSetValue.mockImplementation((name: string, value: unknown) => {
+      formValues[name] = value;
+    });
+    for (const key of Object.keys(formValues)) {
+      delete formValues[key];
+    }
     capturedModelSelectorPopoverProps.onChange = undefined;
     capturedModelSelectorPopoverProps.autoLabel = undefined;
     capturedModelSelectorPopoverProps.models = undefined;
@@ -155,6 +162,7 @@ describe('PromptBarModelControls', () => {
       shouldDirty: false,
       shouldValidate: false,
     });
+    expect(formValues).toMatchObject({ autoSelectModel: true, models: [] });
   });
 
   it('shows the compact auto label and updates auto priority in auto mode', async () => {
@@ -187,6 +195,7 @@ describe('PromptBarModelControls', () => {
         shouldValidate: true,
       },
     );
+    expect(formValues.prioritize).toBe(RouterPriority.QUALITY);
   });
 
   it('selecting a concrete variant updates the form models', () => {
@@ -200,6 +209,10 @@ describe('PromptBarModelControls', () => {
     expect(mockSetValue).toHaveBeenCalledWith('models', [model.key], {
       shouldDirty: false,
       shouldValidate: false,
+    });
+    expect(formValues).toMatchObject({
+      autoSelectModel: false,
+      models: [model.key],
     });
   });
 

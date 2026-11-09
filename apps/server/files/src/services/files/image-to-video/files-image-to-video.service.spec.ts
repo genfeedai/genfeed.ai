@@ -132,11 +132,12 @@ describe('FilesImageToVideoService', () => {
           filePath.includes('frame-0.mp3') && filePath.includes('musics'),
       );
 
-      await service.createVideoFromImages(
+      const result = await service.createVideoFromImages(
         [],
         { dimensions, slideText: [slideText[0]] },
         'ingredient-1',
       );
+      expect(result).toMatch(/ingredient-1\/merged\.mp4$/);
 
       expect(ffmpegService.mergeVideosWithMusic).toHaveBeenCalled();
       expect(fs.copyFileSync).not.toHaveBeenCalled();
@@ -171,7 +172,12 @@ describe('FilesImageToVideoService', () => {
     it('uses default slideText, dimensions, and fontFamily when omitted', async () => {
       (fs.readdirSync as Mock).mockReturnValue(['0.mp4']);
 
-      await service.createVideoFromImages([], {}, 'ingredient-1');
+      const result = await service.createVideoFromImages(
+        [],
+        {},
+        'ingredient-1',
+      );
+      expect(result).toMatch(/ingredient-1\/merged\.mp4$/);
 
       expect(ffmpegService.scaleVideo).toHaveBeenCalledWith(
         expect.any(String),
@@ -185,11 +191,12 @@ describe('FilesImageToVideoService', () => {
       (fs.readdirSync as Mock).mockReturnValue(['0.mp4']);
       (fs.existsSync as Mock).mockReturnValue(true);
 
-      await service.createVideoFromImages(
+      const result = await service.createVideoFromImages(
         [],
         { dimensions, slideText: [slideText[0]] },
         'ingredient-1',
       );
+      expect(result).toMatch(/ingredient-1\/merged\.mp4$/);
 
       expect(fs.unlinkSync).toHaveBeenCalledWith(
         expect.stringContaining('scaled_0.mp4'),
@@ -232,11 +239,12 @@ describe('FilesImageToVideoService', () => {
         { end: 1000, start: 0, text: 'HI' },
       ]);
 
-      await service.createVideoFromImages(
+      const result = await service.createVideoFromImages(
         [],
         { dimensions, slideText: [slideText[0]] },
         'ingredient-1',
       );
+      expect(result).toMatch(/ingredient-1\/merged\.mp4$/);
 
       expect(filesCaptionsService.filterCaptions).toHaveBeenCalled();
       expect(ffmpegService.addAudioAndTextToVideo).toHaveBeenCalledWith(
@@ -250,11 +258,12 @@ describe('FilesImageToVideoService', () => {
       (fs.readdirSync as Mock).mockReturnValue(['0.mp4']);
       (fs.existsSync as Mock).mockReturnValue(false);
 
-      await service.createVideoFromImages(
+      const result = await service.createVideoFromImages(
         [],
         { dimensions, slideText: [slideText[0]] },
         'ingredient-1',
       );
+      expect(result).toMatch(/ingredient-1\/merged\.mp4$/);
 
       expect(ffmpegService.addAudioAndTextToVideo).toHaveBeenCalledWith(
         expect.any(String),

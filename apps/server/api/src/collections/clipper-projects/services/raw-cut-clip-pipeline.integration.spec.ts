@@ -351,7 +351,7 @@ describe('raw-cut clip pipeline integration', () => {
     });
     expect(avatarVideoService.getProvider).not.toHaveBeenCalled();
 
-    await completionService.handleCompletion({
+    const completion = await completionService.handleCompletion({
       ingredientId: clipperResultId,
       organizationId: ORGANIZATION_ID,
       result: {
@@ -364,6 +364,7 @@ describe('raw-cut clip pipeline integration', () => {
       userId: USER_ID,
     });
 
+    expect(completion).toBe(true);
     expect(fileQueueService.processVideo).toHaveBeenNthCalledWith(2, {
       id: 'raw-cut-frame-clipper-result-1',
       ingredientId: 'clipper-result-1',
@@ -451,7 +452,7 @@ describe('raw-cut clip pipeline integration', () => {
   });
 
   it('keeps avatar mode on the avatar provider without files jobs', async () => {
-    await generationService.generateClips({
+    const result = await generationService.generateClips({
       avatarId: 'avatar-1',
       highlights: makeRawCutInput().highlights,
       orgId: ORGANIZATION_ID,
@@ -460,6 +461,11 @@ describe('raw-cut clip pipeline integration', () => {
       voiceId: 'voice-1',
     });
 
+    expect(result).toEqual({
+      clipperResultIds: ['clipper-result-1'],
+      providerJobIds: ['heygen-job-1'],
+      queuedClipCount: 1,
+    });
     expect(avatarVideoService.getProvider).toHaveBeenCalledWith('heygen');
     expect(avatarProvider.generateVideo).toHaveBeenCalledWith(
       expect.objectContaining({
