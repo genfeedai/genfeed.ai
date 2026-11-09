@@ -115,8 +115,6 @@ export interface AgentStreamRuntime {
   activeStreamThreadRef: MutableRefObject<string | null>;
   bufferedEventsRef: MutableRefObject<BufferedThreadEvent[]>;
   completionTimeoutRef: MutableRefObject<ReturnType<typeof setTimeout> | null>;
-  /** A send is waiting for its run id; events are held until it is known. */
-  isAwaitingRunIdRef: MutableRefObject<boolean>;
   /** Live hook instances; shared subscriptions are torn down only at zero. */
   mountCount: number;
   /**
@@ -141,6 +139,13 @@ export interface AgentStreamEntry extends AgentStreamRuntime {
   key: string;
   clientRequestId: string;
   createdAt: number;
+  /**
+   * Where the thread's stream is. Changed only by
+   * `transitionAgentStreamPhase`; events are held while it is
+   * `awaiting_run_id` (#9737).
+   */
+  phase: AgentStreamPhase;
+  /** When the entry last settled; drives pruning of terminal entries. */
   terminalAt: number | null;
   revision: number;
   bufferBytes: number;
@@ -157,8 +162,8 @@ export interface AgentStreamEntry extends AgentStreamRuntime {
 }
 
 /**
- * Where one thread's stream is (#9737). Derived from the stream entry's
- * fields; see `docs/architecture/agent-chat-stream-phases.md`.
+ * Where one thread's stream is (#9737). See
+ * `docs/architecture/agent-chat-stream-phases.md`.
  */
 export type AgentStreamPhase =
   | 'idle'
@@ -176,3 +181,18 @@ export interface AgentStreamPhaseInput {
   isRunStalled: boolean;
   isTerminal: boolean;
 }
+
+/**
+ * What moves a stream between phases. Each one is named after the code path
+ * that raises it; `AGENT_STREAM_PHASE_TRANSITIONS` lists where it is legal.
+ */
+export type AgentStreamPhaseEvent =
+  | 'send'
+  | 'handoff'
+  | 'run_named'
+  | 'hold_released'
+  | 'input_requested'
+  | 'stall'
+  | 'resume'
+  | 'reset'
+  | 'settle';
