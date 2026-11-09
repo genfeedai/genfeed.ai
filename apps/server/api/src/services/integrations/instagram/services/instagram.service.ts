@@ -311,6 +311,7 @@ export class InstagramService {
   public async listAuthorizedInstagramAccounts(
     accessToken: string,
     knownGrantedIds?: string[],
+    businessId?: string | null,
   ): Promise<InstagramPageResponse[]> {
     const assigned =
       await this.accountsService.listAuthorizedInstagramAccounts(accessToken);
@@ -322,7 +323,14 @@ export class InstagramService {
       knownGrantedIds ??
       (await this.readGrantedInstagramAccountIds(accessToken));
     if (grantedIds.length === 0) {
-      return [];
+      // Meta named no account in the grant either. The business edges are the
+      // last place the customer's choice could still be listed.
+      return businessId
+        ? this.accountsService.discoverFromBusinessEdges(
+            accessToken,
+            businessId,
+          )
+        : [];
     }
 
     this.loggerService.log(
