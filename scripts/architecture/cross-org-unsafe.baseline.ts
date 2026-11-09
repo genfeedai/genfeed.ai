@@ -46,7 +46,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     },
     {
       file: 'apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts',
-      line: 912,
+      line: 913,
     },
     // #5511: admin-pinned Featured workflows are platform-curated and read by
     // every organization. The read is limited to the pinned ids, non-deleted
@@ -244,7 +244,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // billing account, after the OWNER proof.
     {
       file: 'apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts',
-      line: 758,
+      line: 759,
     },
     // #6120: superadmin may edit any live brand's handle.
     {
