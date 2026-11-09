@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { settleSharedIngredientGeneration } from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
@@ -71,6 +72,31 @@ export class VideosEditsController {
     @Optional()
     private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
+
+  /** Marks an edited video generated and announces it, unless it was stopped first (#9735). */
+  private async settleEditedVideo(
+    user: User,
+    ingredientId: string,
+    s3Key: string | undefined,
+    eventType: WebSocketEventType,
+  ): Promise<void> {
+    const isSettled = await settleSharedIngredientGeneration(
+      this.ingredientsService,
+      {
+        data: s3Key ? { s3Key } : {},
+        id: ingredientId,
+        organizationId: user.organizationId,
+        to: IngredientStatus.GENERATED,
+      },
+    );
+    if (!isSettled) return;
+    await this.websocketService.publishVideoComplete(
+      WebSocketPaths.video(ingredientId),
+      { eventType, id: ingredientId, status: WebSocketEventStatus.COMPLETED },
+      user.id,
+      getUserRoomName(user.id),
+    );
+  }
 
   private async processingVideoUrl(
     organizationId: string,
@@ -177,21 +203,11 @@ export class VideosEditsController {
             width: meta.width,
           });
 
-          await this.ingredientsService.patch(ingredientData.id, {
-            ...(meta.s3Key ? { s3Key: meta.s3Key } : {}),
-            status: IngredientStatus.GENERATED,
-          });
-
-          const websocketUrl = WebSocketPaths.video(ingredientData.id);
-          await this.websocketService.publishVideoComplete(
-            websocketUrl,
-            {
-              eventType: WebSocketEventType.VIDEO_TRIMMED,
-              id: ingredientData.id,
-              status: WebSocketEventStatus.COMPLETED,
-            },
-            user.id,
-            getUserRoomName(user.id),
+          await this.settleEditedVideo(
+            user,
+            ingredientData.id,
+            meta.s3Key,
+            WebSocketEventType.VIDEO_TRIMMED,
           );
 
           try {
@@ -336,21 +352,11 @@ export class VideosEditsController {
             width: meta.width,
           });
 
-          await this.ingredientsService.patch(ingredientData.id, {
-            ...(meta.s3Key ? { s3Key: meta.s3Key } : {}),
-            status: IngredientStatus.GENERATED,
-          });
-
-          const websocketUrl = WebSocketPaths.video(ingredientData.id);
-          await this.websocketService.publishVideoComplete(
-            websocketUrl,
-            {
-              eventType: WebSocketEventType.VIDEO_REVERSED,
-              id: ingredientData.id,
-              status: WebSocketEventStatus.COMPLETED,
-            },
-            user.id,
-            getUserRoomName(user.id),
+          await this.settleEditedVideo(
+            user,
+            ingredientData.id,
+            meta.s3Key,
+            WebSocketEventType.VIDEO_REVERSED,
           );
 
           try {

@@ -1,5 +1,6 @@
 import { RawCutClipCompletionService } from '@api/collections/clipper-projects/services/raw-cut-clip-completion.service';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
+import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -9,6 +10,7 @@ import { VideoCompletionService } from '@api/services/video-completion/video-com
 import { VideoCompletionSubscriberService } from '@api/services/video-completion/video-completion-subscriber.service';
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { createIngredientDocumentFixture } from '@api-test/fixtures/ingredient-document.fixture';
+import { ingredientRowWorld } from '@api-test/fixtures/ingredient-row.world';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { IngredientStatus, Status } from '@genfeedai/contracts';
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/contracts/interfaces';
@@ -56,11 +58,23 @@ describe('VideoCompletionService', () => {
   const mockOrganizationId = testId('org');
   const mockMetadataId = testId('metadata');
 
+  const ingredientIdentity = {
+    id: mockIngredientId.toString(),
+    isDeleted: false,
+    organizationId: mockOrganizationId.toString(),
+  };
+  let ingredientRow: Record<string, unknown>;
+
   async function waitForAsyncHandler(): Promise<void> {
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
   }
 
   beforeEach(async () => {
+    ingredientRow = {
+      ...ingredientIdentity,
+      generationError: null,
+      status: IngredientStatus.PROCESSING,
+    };
     editorProjectsService = {
       findRenderingProjects: vi.fn().mockResolvedValue([]),
       markAsCancelled: vi.fn().mockResolvedValue(undefined),
@@ -120,7 +134,8 @@ describe('VideoCompletionService', () => {
           useValue: {
             findOne: vi.fn(),
             findOneSelect: delegateFindOneSelect(),
-            patch: vi.fn(),
+            patch: vi.fn(ingredientRowWorld(ingredientRow).patch),
+            patchAll: vi.fn(ingredientRowWorld(ingredientRow).patchAll),
           },
         },
         {
@@ -370,326 +385,177 @@ describe('VideoCompletionService', () => {
       expect(notificationsPublisher.publishMediaFailed).not.toHaveBeenCalled();
     });
 
-    it('should update ingredient status to COMPLETED on successful processing', async () => {
-      const mockData = {
-        ingredientId: mockIngredientId.toString(),
-        organizationId: mockOrganizationId.toString(),
-        result: {
-          metadata: {
-            duration: 10.5,
-            height: 1080,
-            width: 1920,
-          },
-          publicUrl: 'https://example.com/video.mp4',
-          s3Key: `ingredients/videos/${mockIngredientId}`,
-        },
-        status: 'completed',
-        timestamp: new Date().toISOString(),
-        userId: mockUserId.toString(),
-      };
-
-      ingredientsService.findOne.mockResolvedValue(
-        createIngredientDocumentFixture({
-          id: mockIngredientId,
-          metadataId: mockMetadataId,
-        }),
-      );
-      ingredientsService.patch.mockResolvedValue(
-        createIngredientDocumentFixture({
-          id: mockIngredientId,
-          status: IngredientStatus.GENERATED,
-        }),
-      );
-
-      // Get the callback function passed to subscribe
+    async function deliver(event: Record<string, unknown>): Promise<void> {
       await subscriberService.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
         .calls[0][1];
-
-      // Call the callback with mock data
-      await subscribeCallback(mockData);
-      await waitForAsyncHandler();
-
-      expect(ingredientsService.patch).toHaveBeenCalledWith(
-        mockData.ingredientId,
-        {
-          s3Key: mockData.result.s3Key,
-          status: IngredientStatus.GENERATED,
-        },
-      );
-      expect(metadataService.patch).toHaveBeenCalledWith(mockMetadataId, {
-        duration: 10.5,
-        height: 1080,
-        width: 1920,
+      await subscribeCallback({
+        ingredientId: mockIngredientId.toString(),
+        organizationId: mockOrganizationId.toString(),
+        timestamp: new Date().toISOString(),
+        userId: mockUserId.toString(),
+        ...event,
       });
-    });
-
-    it('should update ingredient status to FAILED on processing error', async () => {
-      const mockData = {
-        error: 'Processing failed due to invalid format',
-        ingredientId: mockIngredientId.toString(),
-        organizationId: mockOrganizationId.toString(),
-        status: 'failed',
-        timestamp: new Date().toISOString(),
-        userId: mockUserId.toString(),
-      };
-
-      ingredientsService.patch.mockResolvedValue(
-        createIngredientDocumentFixture({
-          id: mockIngredientId,
-          status: IngredientStatus.FAILED,
-        }),
-      );
-
-      // Get the callback function passed to subscribe
-      await subscriberService.onModuleInit();
-      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
-        .calls[0][1];
-
-      // Call the callback with mock data
-      await subscribeCallback(mockData);
       await waitForAsyncHandler();
+    }
 
-      expect(ingredientsService.patch).toHaveBeenCalledWith(
-        mockData.ingredientId,
+    const s3Key = 'ingredients/videos/resized.mp4';
+
+    it.each([
+      [
+        'a processing resize',
+        { generationError: null, status: IngredientStatus.PROCESSING },
+        { generationError: null, s3Key, status: IngredientStatus.GENERATED },
+        true,
+      ],
+      [
+        'a resize the queuing request already settled',
+        { generationError: null, status: IngredientStatus.GENERATED },
+        { generationError: null, s3Key, status: IngredientStatus.GENERATED },
+        true,
+      ],
+      [
+        'a resize the processing-timeout cron failed',
         {
+          generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
           status: IngredientStatus.FAILED,
         },
-      );
+        { generationError: null, s3Key, status: IngredientStatus.GENERATED },
+        true,
+      ],
+      [
+        'a resize the user cancelled (#9735)',
+        {
+          generationError: 'Cancelled by user',
+          status: IngredientStatus.FAILED,
+        },
+        {
+          generationError: 'Cancelled by user',
+          status: IngredientStatus.FAILED,
+        },
+        false,
+      ],
+    ])(
+      'settles a completion event for %s',
+      async (_label, before, after, isCompletionReported) => {
+        Object.assign(ingredientRow, before);
+
+        await deliver({ result: { s3Key }, status: 'completed' });
+
+        expect(ingredientRow).toEqual({ ...ingredientIdentity, ...after });
+        expect(
+          generationEventWebhookService.emitGenerationCompleted.mock.calls,
+        ).toEqual(
+          isCompletionReported
+            ? [
+                [
+                  {
+                    generationId: mockIngredientId.toString(),
+                    kind: 'video',
+                    organizationId: mockOrganizationId.toString(),
+                    output: { mimeType: null, storageKey: s3Key, url: null },
+                  },
+                ],
+              ]
+            : [],
+        );
+      },
+    );
+
+    it.each([
+      [
+        'a processing resize',
+        IngredientStatus.PROCESSING,
+        IngredientStatus.FAILED,
+        1,
+      ],
+      [
+        'a resize that already completed',
+        IngredientStatus.GENERATED,
+        IngredientStatus.GENERATED,
+        0,
+      ],
+    ])(
+      'settles a failure event for %s',
+      async (_label, before, after, failureReports) => {
+        ingredientRow.status = before;
+
+        await deliver({ error: 'Invalid format', status: 'failed' });
+
+        expect(ingredientRow.status).toBe(after);
+        expect(
+          generationEventWebhookService.emitGenerationFailed,
+        ).toHaveBeenCalledTimes(failureReports);
+      },
+    );
+
+    it('reports the failure reason for a failed resize', async () => {
+      await deliver({ error: 'Invalid format', status: 'failed' });
+
       expect(
         generationEventWebhookService.emitGenerationFailed,
       ).toHaveBeenCalledWith({
-        errorMessage: 'Processing failed due to invalid format',
-        generationId: mockData.ingredientId,
+        errorMessage: 'Invalid format',
+        generationId: mockIngredientId.toString(),
         kind: 'video',
-        organizationId: mockData.organizationId,
+        organizationId: mockOrganizationId.toString(),
       });
     });
 
-    it('emits a generation webhook when a video ingredient completes', async () => {
-      const mockData = {
-        ingredientId: mockIngredientId.toString(),
-        organizationId: mockOrganizationId.toString(),
-        result: {
-          s3Key: `ingredients/videos/${mockIngredientId}`,
-        },
-        status: 'completed',
-        timestamp: new Date().toISOString(),
-        userId: mockUserId.toString(),
-      };
+    it('marks a completed resize generated without an output key', async () => {
+      await deliver({ status: 'completed' });
 
-      ingredientsService.patch.mockResolvedValue(
-        createIngredientDocumentFixture({
-          id: mockIngredientId,
-          status: IngredientStatus.GENERATED,
-        }),
-      );
-
-      await subscriberService.onModuleInit();
-      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
-        .calls[0][1];
-
-      await subscribeCallback(mockData);
-      await waitForAsyncHandler();
-
-      expect(
-        generationEventWebhookService.emitGenerationCompleted,
-      ).toHaveBeenCalledWith({
-        generationId: mockData.ingredientId,
-        kind: 'video',
-        organizationId: mockData.organizationId,
-        output: {
-          mimeType: null,
-          storageKey: mockData.result.s3Key,
-          url: null,
-        },
+      expect(ingredientRow).toEqual({
+        ...ingredientIdentity,
+        generationError: null,
+        status: IngredientStatus.GENERATED,
       });
-    });
-
-    it('should handle completion with s3Key result', async () => {
-      const mockData = {
-        ingredientId: mockIngredientId.toString(),
-        organizationId: mockOrganizationId.toString(),
-        result: {
-          s3Key: `ingredients/videos/${mockIngredientId}`,
-        },
-        status: 'completed',
-        timestamp: new Date().toISOString(),
-        userId: mockUserId.toString(),
-      };
-
-      ingredientsService.findOne.mockResolvedValue(
-        createIngredientDocumentFixture({
-          id: mockIngredientId,
-          metadataId: mockMetadataId,
-        }),
-      );
-      ingredientsService.patch.mockResolvedValue(
-        createIngredientDocumentFixture({
-          id: mockIngredientId,
-          status: IngredientStatus.GENERATED,
-        }),
-      );
-
-      await subscriberService.onModuleInit();
-      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
-        .calls[0][1];
-
-      await subscribeCallback(mockData);
-      await waitForAsyncHandler();
-
-      expect(ingredientsService.patch).toHaveBeenCalledWith(
-        mockData.ingredientId,
-        {
-          s3Key: `ingredients/videos/${mockIngredientId}`,
-          status: IngredientStatus.GENERATED,
-        },
-      );
       expect(metadataService.patch).not.toHaveBeenCalled();
     });
 
-    it('should handle completion without result data', async () => {
-      const mockData = {
-        ingredientId: mockIngredientId.toString(),
-        organizationId: mockOrganizationId.toString(),
-        status: 'completed',
-        timestamp: new Date().toISOString(),
-        userId: mockUserId.toString(),
-      };
+    it.each([
+      [
+        'nested metadata',
+        { metadata: { duration: 10.5, height: 1080, width: 1920 }, s3Key },
+        { duration: 10.5, height: 1080, width: 1920 },
+      ],
+      [
+        'top-level duration and dimensions',
+        { dimensions: { height: 1920, width: 1080 }, duration: 24.2 },
+        { duration: 24.2, height: 1920, width: 1080 },
+      ],
+    ])(
+      'persists %s from a completed resize',
+      async (_label, result, metadata) => {
+        ingredientsService.findOne.mockResolvedValue(
+          createIngredientDocumentFixture({
+            id: mockIngredientId,
+            metadataId: mockMetadataId,
+          }),
+        );
 
-      ingredientsService.patch.mockResolvedValue(
-        createIngredientDocumentFixture({
-          id: mockIngredientId,
-          status: IngredientStatus.GENERATED,
-        }),
-      );
+        await deliver({ result, status: 'completed' });
 
-      await subscriberService.onModuleInit();
-      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
-        .calls[0][1];
+        expect(metadataService.patch).toHaveBeenCalledWith(
+          mockMetadataId,
+          metadata,
+        );
+      },
+    );
 
-      await subscribeCallback(mockData);
-      await waitForAsyncHandler();
+    it('does not persist metadata when the result carries none', async () => {
+      await deliver({ result: { s3Key }, status: 'completed' });
 
-      expect(ingredientsService.patch).toHaveBeenCalledWith(
-        mockData.ingredientId,
-        {
-          status: IngredientStatus.GENERATED,
-        },
-      );
       expect(metadataService.patch).not.toHaveBeenCalled();
     });
 
-    it('should persist top-level duration and dimensions metadata when present', async () => {
-      const mockData = {
-        ingredientId: mockIngredientId.toString(),
-        organizationId: mockOrganizationId.toString(),
-        result: {
-          dimensions: {
-            height: 1920,
-            width: 1080,
-          },
-          duration: 24.2,
-        },
-        status: 'completed',
-        timestamp: new Date().toISOString(),
-        userId: mockUserId.toString(),
-      };
-
-      ingredientsService.findOne.mockResolvedValue(
-        createIngredientDocumentFixture({
-          id: mockIngredientId,
-          metadataId: mockMetadataId,
-        }),
-      );
-      ingredientsService.patch.mockResolvedValue(
-        createIngredientDocumentFixture({
-          id: mockIngredientId,
-          status: IngredientStatus.GENERATED,
-        }),
+    it('swallows a failed ingredient write', async () => {
+      ingredientsService.patchAll.mockRejectedValue(
+        new Error('Database update failed'),
       );
 
-      await subscriberService.onModuleInit();
-      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
-        .calls[0][1];
-
-      await subscribeCallback(mockData);
-      await waitForAsyncHandler();
-
-      expect(metadataService.patch).toHaveBeenCalledWith(mockMetadataId, {
-        duration: 24.2,
-        height: 1920,
-        width: 1080,
-      });
-    });
-
-    it('should handle errors during ingredient update', async () => {
-      const mockData = {
-        ingredientId: mockIngredientId.toString(),
-        organizationId: mockOrganizationId.toString(),
-        status: 'completed',
-        timestamp: new Date().toISOString(),
-        userId: mockUserId.toString(),
-      };
-
-      const error = new Error('Database update failed');
-      ingredientsService.patch.mockRejectedValue(error);
-
-      await subscriberService.onModuleInit();
-      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
-        .calls[0][1];
-
-      // The callback is fire-and-forget (void) — errors are caught internally
-      expect(() => subscribeCallback(mockData)).not.toThrow();
-      await waitForAsyncHandler();
-      expect(ingredientsService.patch).toHaveBeenCalled();
-    });
-
-    it('should handle multiple completion events', async () => {
-      const mockData1 = {
-        ingredientId: mockIngredientId.toString(),
-        organizationId: mockOrganizationId.toString(),
-        status: 'completed',
-        timestamp: new Date().toISOString(),
-        userId: mockUserId.toString(),
-      };
-
-      const mockData2 = {
-        error: 'Processing error',
-        ingredientId: 'test-object-id',
-        organizationId: mockOrganizationId.toString(),
-        status: 'failed',
-        timestamp: new Date().toISOString(),
-        userId: mockUserId.toString(),
-      };
-
-      ingredientsService.patch.mockResolvedValue(
-        createIngredientDocumentFixture({ id: mockIngredientId }),
-      );
-
-      await subscriberService.onModuleInit();
-      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
-        .calls[0][1];
-
-      await subscribeCallback(mockData1);
-      await subscribeCallback(mockData2);
-      await waitForAsyncHandler();
-
-      expect(ingredientsService.patch).toHaveBeenCalledTimes(2);
-      expect(ingredientsService.patch).toHaveBeenNthCalledWith(
-        1,
-        mockData1.ingredientId,
-        {
-          status: IngredientStatus.GENERATED,
-        },
-      );
-      expect(ingredientsService.patch).toHaveBeenNthCalledWith(
-        2,
-        mockData2.ingredientId,
-        {
-          status: IngredientStatus.FAILED,
-        },
-      );
+      await expect(deliver({ status: 'completed' })).resolves.toBeUndefined();
+      expect(ingredientRow.status).toBe(IngredientStatus.PROCESSING);
     });
   });
 
