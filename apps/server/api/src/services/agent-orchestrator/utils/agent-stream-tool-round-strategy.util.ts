@@ -1,6 +1,6 @@
 import type { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
-import type { AgentToolRoundStrategy } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import type { AgentToolRoundStrategy } from '@api/services/agent-orchestrator/interfaces/agent-turn-round-runner.interface';
 import type { AgentUIBlocksEvent } from '@genfeedai/contracts/interfaces';
 
 /**

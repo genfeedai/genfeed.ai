@@ -144,12 +144,6 @@
     "symbol": "AgentCompletionCardBuilderService.buildCompletionSuggestedActions"
   },
   {
-    "actual": 328,
-    "file": "apps/server/api/src/services/agent-orchestrator/agent-turn-round-runner.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentTurnRoundRunnerService.executeToolRound"
-  },
-  {
     "actual": 18,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-turn-workflow-execution.service.ts",
     "metric": "constructor-dependencies",

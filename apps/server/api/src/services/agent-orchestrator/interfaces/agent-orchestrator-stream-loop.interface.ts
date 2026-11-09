@@ -1,12 +1,12 @@
 import type { AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import type { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
-import type { AgentToolRoundState } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import type {
   AgentChatAttachment,
   AgentChatContext,
   AgentChatRequest,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
+import type { AgentToolRoundState } from '@api/services/agent-orchestrator/interfaces/agent-turn-round-runner.interface';
 import type { buildAgentChatCompletionParams } from '@api/services/agent-orchestrator/utils/agent-tool-definitions.util';
 import type { OpenRouterChatCompletionResponse } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import type { CuratedActionName } from '@genfeedai/actions';
