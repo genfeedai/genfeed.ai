@@ -8,6 +8,7 @@ import { CreatorSubscriptionsService } from '@api/collections/creator-payments/s
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
@@ -25,6 +26,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 
@@ -40,8 +42,9 @@ export class CreatorSubscriptionsController {
   @Get('plans')
   async listPlans(
     @CurrentUser() user: User,
+    @Query() query: BrandScopeQueryDto,
   ): Promise<ICreatorSubscriptionPlan[]> {
-    const { organizationId } = extractRequestContext(user);
+    const { organizationId } = extractRequestContext(user, query);
     return this.creatorSubscriptionsService.listPlans(organizationId);
   }
 
