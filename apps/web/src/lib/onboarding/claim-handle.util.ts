@@ -1,3 +1,4 @@
+import { AssetScope } from '@genfeedai/contracts';
 import type {
   ClaimHandleClients,
   ClaimHandleOutcome,
@@ -7,7 +8,8 @@ import type {
  * Gives the handle someone claimed on genfeed.ai to the brand of their active
  * organization, once they are signed in. Taken or reserved handles fail on
  * the API (it checks access first, so nothing leaks); the brand then keeps its
- * current handle.
+ * current handle. A brand whose public profile is already live keeps its
+ * handle, so links shared to it never break without the owner choosing to.
  */
 export async function claimHandleAfterSignup(
   clients: ClaimHandleClients,
@@ -25,6 +27,9 @@ export async function claimHandleAfterSignup(
   }
   if (brand.slug === handle) {
     return 'unchanged';
+  }
+  if (brand.scope === AssetScope.PUBLIC) {
+    return 'kept-public';
   }
   try {
     await clients.setHandle(brand.id, handle);

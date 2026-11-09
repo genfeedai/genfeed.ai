@@ -1,4 +1,8 @@
-import type { IBrand, IMetadata } from '@genfeedai/contracts/interfaces';
+import type {
+  IBrand,
+  IIngredient,
+  IMetadata,
+} from '@genfeedai/contracts/interfaces';
 import { buildUntrustedAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { EnvironmentService } from '@services/core/environment.service';
 
@@ -58,13 +62,23 @@ export function formatCompactCount(count: number): string {
   return compactCount.format(count);
 }
 
+/** A public asset's address, for handing the work itself to the agent. */
+export function publicMediaUrl(media: IIngredient): string | undefined {
+  return media.ingredientUrl || media.cdnUrl || undefined;
+}
+
 /**
- * The agent prompt behind "Recreate in Genfeed": same kind, same model, and
- * where it was seen.
+ * The agent prompt behind "Recreate in Genfeed": same kind, same model, where
+ * it was seen, and the work itself as a reference.
  */
 export function buildRecreatePrompt(
   kind: PublicMediaKind,
-  source: { handle?: string; isFeatured?: boolean; modelLabel?: string },
+  source: {
+    handle?: string;
+    isFeatured?: boolean;
+    modelLabel?: string;
+    url?: string;
+  },
 ): string {
   const seenAt = source.isFeatured
     ? 'the one featured on genfeed.ai/community'
@@ -73,7 +87,8 @@ export function buildRecreatePrompt(
       : 'the one I saw on genfeed.ai';
   const model = source.modelLabel ? ` with ${source.modelLabel}` : '';
   const noun = kind === 'image' ? 'an image' : 'a video';
-  return `Make ${noun} like ${seenAt}${model}`;
+  const reference = source.url ? `. Reference: ${source.url}` : '';
+  return `Make ${noun} like ${seenAt}${model}${reference}`;
 }
 
 /**

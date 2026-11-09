@@ -38,6 +38,8 @@ export interface ProfileMediaCreditProps {
   kind: PublicMediaKind;
   /** The asset's id, quoted in a report so support can find it. */
   mediaId: string;
+  /** The asset's public address, handed to the agent as the reference. */
+  mediaUrl?: string;
   /** The catalog label of the model that made the item, when it is listed. */
   modelLabel?: string;
   modelKey?: string;

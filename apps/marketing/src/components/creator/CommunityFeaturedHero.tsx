@@ -5,6 +5,7 @@ import {
   buildRecreateHref,
   buildRecreatePrompt,
   mediaModelKey,
+  publicMediaUrl,
 } from '@data/public-media';
 import { trackRecreation } from '@data/public-views';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
@@ -100,7 +101,11 @@ export default function CommunityFeaturedHero({
           <Button asChild size={ButtonSize.PUBLIC} withWrapper={false}>
             <a
               href={buildRecreateHref(
-                buildRecreatePrompt(kind, { isFeatured: true, modelLabel }),
+                buildRecreatePrompt(kind, {
+                  isFeatured: true,
+                  modelLabel,
+                  url: publicMediaUrl(media),
+                }),
               )}
               onClick={() => trackRecreation(media.id)}
             >

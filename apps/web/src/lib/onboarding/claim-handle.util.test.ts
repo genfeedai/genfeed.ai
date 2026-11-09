@@ -1,8 +1,9 @@
+import { AssetScope } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import { claimHandleAfterSignup } from '@/lib/onboarding/claim-handle.util';
 
 interface World {
-  brands: { id: string; slug?: string }[];
+  brands: { id: string; scope?: AssetScope; slug?: string }[];
   organizations: { id: string; isActive?: boolean }[];
   taken: string[];
 }
@@ -48,6 +49,19 @@ describe('claimHandleAfterSignup', () => {
       claimHandleAfterSignup(clientsFor(world), 'shayla'),
     ).resolves.toBe('unavailable');
     expect(world.brands[0]?.slug).toBe('acme-1234');
+  });
+
+  it('keeps the handle of a brand whose public profile is already live', async () => {
+    const world: World = {
+      brands: [{ id: 'brand-1', scope: AssetScope.PUBLIC, slug: 'acme' }],
+      organizations: [{ id: 'org-1' }],
+      taken: [],
+    };
+
+    await expect(
+      claimHandleAfterSignup(clientsFor(world), 'shayla'),
+    ).resolves.toBe('kept-public');
+    expect(world.brands[0]?.slug).toBe('acme');
   });
 
   it.each([

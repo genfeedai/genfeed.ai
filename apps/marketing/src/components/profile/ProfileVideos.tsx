@@ -4,6 +4,7 @@ import {
   mediaBrandId,
   mediaDurationSeconds,
   mediaModelKey,
+  publicMediaUrl,
 } from '@data/public-media';
 import { IngredientStatus } from '@genfeedai/contracts';
 import type { IVideo } from '@genfeedai/contracts/interfaces';
@@ -49,6 +50,7 @@ export default function ProfileVideos({
                 durationSeconds={mediaDurationSeconds(video)}
                 kind="video"
                 mediaId={video.id}
+                mediaUrl={publicMediaUrl(video)}
                 modelKey={modelKey}
                 modelLabel={modelKey ? modelCredits[modelKey] : undefined}
                 viewCount={counts[video.id] ?? video.viewCount}

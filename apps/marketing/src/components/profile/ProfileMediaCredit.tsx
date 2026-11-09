@@ -33,6 +33,7 @@ export default function ProfileMediaCredit({
   durationSeconds,
   kind,
   mediaId,
+  mediaUrl,
   modelKey,
   modelLabel,
   viewCount,
@@ -80,6 +81,7 @@ export default function ProfileMediaCredit({
             buildRecreatePrompt(kind, {
               handle: creatorHandle,
               modelLabel: credit,
+              url: mediaUrl,
             }),
           )}
           onClick={() => trackRecreation(mediaId)}

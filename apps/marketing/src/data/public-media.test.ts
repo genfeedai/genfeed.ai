@@ -75,6 +75,11 @@ describe('buildRecreatePrompt', () => {
       'Make an image like the one featured on genfeed.ai/community with Flux Pro',
     ],
     ['video' as const, {}, 'Make a video like the one I saw on genfeed.ai'],
+    [
+      'image' as const,
+      { handle: 'shayla', url: 'https://cdn.genfeed.ai/i/1.jpg' },
+      "Make an image like @shayla's on genfeed.ai. Reference: https://cdn.genfeed.ai/i/1.jpg",
+    ],
   ])('asks for a %s like the one seen', (kind, source, expected) => {
     expect(buildRecreatePrompt(kind, source)).toBe(expected);
   });

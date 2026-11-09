@@ -1,6 +1,10 @@
 'use client';
 
-import { mediaBrandId, mediaModelKey } from '@data/public-media';
+import {
+  mediaBrandId,
+  mediaModelKey,
+  publicMediaUrl,
+} from '@data/public-media';
 import { IngredientStatus } from '@genfeedai/contracts';
 import type { IImage } from '@genfeedai/contracts/interfaces';
 import type { ProfileImagesProps } from '@props/content/profile.props';
@@ -44,6 +48,7 @@ export default function ProfileImages({
                 creatorHandle={brandId ? creators[brandId] : undefined}
                 kind="image"
                 mediaId={image.id}
+                mediaUrl={publicMediaUrl(image)}
                 modelKey={modelKey}
                 modelLabel={modelKey ? modelCredits[modelKey] : undefined}
                 viewCount={counts[image.id] ?? image.viewCount}
