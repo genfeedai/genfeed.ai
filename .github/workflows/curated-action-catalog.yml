@@ -1,6 +1,6 @@
 # Reviewer-facing diff report for the curated Agent/MCP action catalog.
 #
-# packages/actions/src/registry/curated-action-catalog.ts is the single source of
+# packages/actions/src/registry/curated-actions.catalog.ts is the single source of
 # truth for whether a product action is exposed on the in-app Agent surface, the
 # MCP surface, or both (.agents/memory/curated_agent_mcp_actions.md). Additions,
 # removals, and surface transitions must be intentional, but a sorted 200-line
@@ -22,7 +22,7 @@ on:
     branches: [master]
     types: [opened, synchronize, reopened]
     paths:
-      - "packages/actions/src/registry/curated-action-catalog.ts"
+      - "packages/actions/src/registry/curated-actions.catalog.ts"
       - "packages/actions/scripts/report-curated-action-catalog.ts"
       - ".github/workflows/curated-action-catalog.yml"
 
@@ -39,7 +39,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      CATALOG_PATH: packages/actions/src/registry/curated-action-catalog.ts
+      CATALOG_PATH: packages/actions/src/registry/curated-actions.catalog.ts
+      # The catalog lived here before it moved to a `.catalog.ts` data file; a
+      # base commit from before the move is still diffed against.
+      LEGACY_CATALOG_PATH: packages/actions/src/registry/curated-action-catalog.ts
     steps:
       # Full history: the base commit has to be present locally for `git show`
       # to read the pre-change catalog out of it.
@@ -63,6 +66,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           git show "$BASE_SHA:$CATALOG_PATH" > "$RUNNER_TEMP/base-catalog.ts" \
+            || git show "$BASE_SHA:$LEGACY_CATALOG_PATH" > "$RUNNER_TEMP/base-catalog.ts" \
             || : > "$RUNNER_TEMP/base-catalog.ts"
           cp "$CATALOG_PATH" "$RUNNER_TEMP/head-catalog.ts" \
             || : > "$RUNNER_TEMP/head-catalog.ts"
