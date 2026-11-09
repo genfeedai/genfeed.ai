@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { settleSharedIngredientGeneration } from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
@@ -120,15 +121,22 @@ export class VideosGifController {
           },
         );
 
-        await this.ingredientsService.patch(ingredientData.id, {
-          ...(uploaded.s3Key ? { s3Key: uploaded.s3Key } : {}),
-          status: IngredientStatus.GENERATED,
-        });
-
-        await this.metadataService.patch(
-          metadataData.id,
-          new MetadataEntity(result),
+        const isSettled = await settleSharedIngredientGeneration(
+          this.ingredientsService,
+          {
+            data: uploaded.s3Key ? { s3Key: uploaded.s3Key } : {},
+            id: ingredientData.id,
+            organizationId: user.organizationId,
+            to: IngredientStatus.GENERATED,
+          },
         );
+
+        if (isSettled) {
+          await this.metadataService.patch(
+            metadataData.id,
+            new MetadataEntity(result),
+          );
+        }
       })
       .catch((error: unknown) => {
         this.loggerService.error('error uploading video', error);

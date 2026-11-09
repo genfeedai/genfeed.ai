@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { settleSharedIngredientGeneration } from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CreateVideoWithCaptionsDto } from '@api/collections/videos/dto/create-video.dto';
@@ -236,29 +237,38 @@ export class VideosCaptionsController {
             type: FileInputType.FILE,
           })
           .then(async (res) => {
-            await this.ingredientsService.patch(ingredientId, {
-              ...(res.s3Key ? { s3Key: res.s3Key } : {}),
-              status: IngredientStatus.GENERATED,
-              transformations: [TransformationCategory.CAPTIONED],
-            });
-
-            await this.metadataService.patch(
-              metadataData.id,
-              new MetadataEntity(res),
-            );
-
-            const websocketUrl = `/videos/${ingredientId}`;
-            await this.websocketService.publishVideoComplete(
-              websocketUrl,
+            const isSettled = await settleSharedIngredientGeneration(
+              this.ingredientsService,
               {
-                captionId: caption.id,
-                eventType: WebSocketEventType.CAPTIONS_COMPLETED,
+                data: {
+                  ...(res.s3Key ? { s3Key: res.s3Key } : {}),
+                  transformations: [TransformationCategory.CAPTIONED],
+                },
                 id: ingredientId,
-                status: WebSocketEventStatus.COMPLETED,
+                organizationId: user.organizationId,
+                to: IngredientStatus.GENERATED,
               },
-              user.id,
-              getUserRoomName(user.id),
             );
+
+            if (isSettled) {
+              await this.metadataService.patch(
+                metadataData.id,
+                new MetadataEntity(res),
+              );
+
+              const websocketUrl = `/videos/${ingredientId}`;
+              await this.websocketService.publishVideoComplete(
+                websocketUrl,
+                {
+                  captionId: caption.id,
+                  eventType: WebSocketEventType.CAPTIONS_COMPLETED,
+                  id: ingredientId,
+                  status: WebSocketEventStatus.COMPLETED,
+                },
+                user.id,
+                getUserRoomName(user.id),
+              );
+            }
 
             if (this.configService.isProduction) {
               try {
