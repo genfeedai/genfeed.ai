@@ -172,6 +172,12 @@
   --spacing-icon-sm: var(--icon-sm);
   --spacing-icon-md: var(--icon-md);
   --spacing-icon-lg: var(--icon-lg);
+
+  /* Chart frame heights (`h-chart`, `h-chart-sm`). A chart's empty state is
+     absolutely positioned inside this frame, so without a real height the
+     card collapses to a blank sliver. */
+  --spacing-chart: 300px;
+  --spacing-chart-sm: 280px;
 }
 
 /* ──────────────────────────────────────────────────────────────────────────

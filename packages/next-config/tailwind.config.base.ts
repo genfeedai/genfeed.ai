@@ -65,10 +65,6 @@ export const baseTailwindConfig: Config = {
         ...PLATFORM_TOKEN_COLORS,
         platform: PLATFORM_COLORS,
       },
-      height: {
-        chart: '300px',
-        'chart-sm': '280px',
-      },
       keyframes: {
         'collapsible-down': {
           from: { height: '0' },

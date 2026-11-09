@@ -23,6 +23,10 @@ const state = vi.hoisted(() => ({
     getLocalSnapshot: () => null,
   },
 }));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 vi.mock('@contexts/analytics/analytics-context', () => ({
   useAnalyticsContext: () => state.context,
 }));

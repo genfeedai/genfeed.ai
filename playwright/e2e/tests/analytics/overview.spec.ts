@@ -351,6 +351,76 @@ test.describe('Analytics Overview', () => {
       });
     }
 
+    test('should not claim accounts are connected when none are', async ({
+      authenticatedPage,
+    }) => {
+      await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
+      // Posts exist, but no account is connected and nothing is tracked yet
+      // (genfeedai/genfeed.ai#9658).
+      await authenticatedPage.route(BRAND_ANALYTICS, async (route) => {
+        await route.fulfill({
+          body: JSON.stringify({
+            data: {
+              attributes: {
+                activePlatforms: [],
+                avgEngagementRate: 0,
+                engagementGrowth: 0,
+                totalCredentialsConnected: 0,
+                totalEngagement: 0,
+                totalPosts: 3,
+                totalViews: 0,
+                viewsGrowth: 0,
+              } satisfies Partial<IAnalytics>,
+              id: 'brand-1',
+              type: 'analytic',
+            },
+          }),
+          contentType: 'application/json',
+          status: 200,
+        });
+      });
+      await authenticatedPage.route(ANALYTICS_TIMESERIES, async (route) => {
+        await route.fulfill({
+          body: JSON.stringify({ data: [] }),
+          contentType: 'application/json',
+          status: 200,
+        });
+      });
+
+      await authenticatedPage.goto(OVERVIEW_ROUTE);
+
+      const banner = authenticatedPage
+        .getByRole('status')
+        .filter({ hasText: 'No accounts connected' });
+      await expect(banner).toBeVisible();
+      await expect(banner).toContainText(
+        'No social accounts are connected yet.',
+      );
+      await expect(
+        banner.getByRole('link', { name: 'Connect accounts' }),
+      ).toBeVisible();
+      await expect(
+        authenticatedPage.getByText('Accounts are connected'),
+      ).toHaveCount(0);
+
+      // The empty trend chart keeps its full frame, with the ghost preview
+      // and the explained next step inside it, not a collapsed blank sliver.
+      const emptyChart = authenticatedPage.locator(
+        '[data-slot="chart-empty-state"]',
+      );
+      await expect(emptyChart).toBeVisible();
+      await expect(
+        emptyChart.getByText(
+          'Trend lines will appear here once performance data lands',
+        ),
+      ).toBeVisible();
+      await expect(
+        emptyChart.locator('[data-slot="chart-ghost"]'),
+      ).toBeVisible();
+      const chartBox = await emptyChart.boundingBox();
+      expect(chartBox?.height ?? 0).toBeGreaterThanOrEqual(280);
+    });
+
     test('should show engagement metrics', async ({ authenticatedPage }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
       const kpiRequests = await mockOverviewData(authenticatedPage);
