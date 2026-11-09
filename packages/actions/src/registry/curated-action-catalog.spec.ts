@@ -547,7 +547,9 @@ describe('curated action catalog policy fields', () => {
   });
 
   it('names an existing tool as the quote tool and a card only for MCP tools', () => {
-    const names = new Set(CURATED_ACTION_CATALOG.map((entry) => entry.name));
+    const names = new Set<string>(
+      CURATED_ACTION_CATALOG.map((entry) => entry.name),
+    );
     const unknownQuote = CURATED_ACTION_CATALOG.filter(
       (entry: CuratedActionCatalogEntry) =>
         entry.quoteTool !== undefined && !names.has(entry.quoteTool),
