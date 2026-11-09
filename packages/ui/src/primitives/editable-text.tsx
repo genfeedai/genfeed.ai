@@ -107,8 +107,13 @@ function EditableText({
 
     try {
       await onSave(trimmedValue);
+      // A blur can still arrive before the editor closes; with the saved
+      // value as the original it resolves to "unchanged" instead of a resave.
+      originalValueRef.current = trimmedValue;
       setIsEditing(false);
     } catch {
+      // Same late blur after a failure: let it close without retrying.
+      isCancellingRef.current = true;
       setDraftValue(originalValue);
       setIsEditing(false);
     } finally {
