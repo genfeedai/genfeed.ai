@@ -43,6 +43,7 @@ const SUITE_FAMILY_OWNERS = {
   codeql: { workflow: 'codeql.yml', job: 'analyze' },
   'vulnerability-scan': { workflow: 'security-scan.yml', job: 'trivy-fs' },
   'dependency-audit': { workflow: 'dependency-review.yml', job: 'audit' },
+  'flake-ledger': { workflow: 'flake-ledger.yml', job: 'ledger' },
 };
 
 const LEARNING_SPECS = [

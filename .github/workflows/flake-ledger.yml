@@ -1,0 +1,78 @@
+# Nightly flake ledger — reporting only.
+#
+# Finds runs of ci.yml, e2e.yml, playwright-full-nightly.yml and full-suite.yml
+# that failed on an earlier attempt and then went green on the same commit, and
+# lists the workflow, job, failing step and test for each. The result goes to
+# the job summary and to one rolling tracking issue.
+#
+# Read-only against the Actions and Checks APIs: it never reruns, retries,
+# cancels, skips or quarantines anything. A flaky test is fixed or deleted.
+# This workflow is NOT reusable and is never needed by full-suite.yml or
+# release.yml.
+
+name: Flake Ledger
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Days of history to scan"
+        type: string
+        required: false
+        default: "14"
+  schedule:
+    - cron: "53 5 * * *" # 05:53 UTC — after every nightly suite has finished
+
+concurrency:
+  group: flake-ledger
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ledger:
+    name: Flake ledger
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout workflow helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build the ledger and update the tracking issue
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          INPUT_DAYS: ${{ inputs.days }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const { FLAKE_LEDGER_WINDOW_DAYS, runFlakeLedger } = await import(
+              pathToFileURL(
+                path.join(
+                  process.env.GITHUB_WORKSPACE,
+                  'scripts/ci/flake-ledger.mjs',
+                ),
+              ).href,
+            );
+            const requested = process.env.INPUT_DAYS;
+            if (requested && !/^[1-9]\d?$/.test(requested)) {
+              throw new Error('days must be a positive integer below 100.');
+            }
+            const { owner, repo } = context.repo;
+            await runFlakeLedger({
+              github,
+              owner,
+              repo,
+              days: requested ? Number(requested) : FLAKE_LEDGER_WINDOW_DAYS,
+              runUrl: process.env.RUN_URL,
+              core,
+            });
