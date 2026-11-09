@@ -205,7 +205,7 @@ This repository is [agent-native](.agents/memory/architecture/ADR-AGENT-NATIVE-R
 most of its code is written by AI agents under human direction, and the tree is
 laid out so an agent can be productive from a cold clone.
 
-- **[AGENTS.md](AGENTS.md)** and **[CLAUDE.md](CLAUDE.md)** — operating rules
+- **[AGENTS.md](AGENTS.md)** — operating rules for every agent (`CLAUDE.md` imports it)
   every agent (and human) follows: type safety, UI primitives, serializers,
   tenancy filters, commit conventions.
 - **[CONTEXT.md](CONTEXT.md)** — the glossary. One spelling per concept, used

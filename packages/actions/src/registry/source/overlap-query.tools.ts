@@ -5,7 +5,7 @@ import type { ToolParameterSchema } from '../../interfaces/tool-definition.inter
 /**
  * Read/list overlap definitions split out of `overlap.tools.ts` to keep that
  * module under the per-file line budget (`source-tools.test.ts`). Surface
- * availability is declared only in `curated-action-catalog.ts`.
+ * availability is declared only in `curated-actions.catalog.ts`.
  */
 export const REQUEST_MEDIA_UPLOAD_PARAMETERS: ToolParameterSchema = {
   properties: {

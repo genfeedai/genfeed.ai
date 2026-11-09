@@ -543,14 +543,19 @@ test('reusable CI callers grant the failure tracker permission ceiling', () => {
   }
 });
 
-test('the full suite runs on demand and at release, never on push, and never cancels a run', () => {
+test('the full suite runs nightly, on demand and at release, never on push, and never cancels a run', () => {
   const workflow = readWorkflow('full-suite.yml');
 
-  // It competed with pull-request CI for runners on every merge (2026-10-03).
-  // A cron cadence was tried earlier and dropped: this repository's scheduled
-  // workflows start hours late.
+  // It competed with pull-request CI for runners on every merge (2026-10-03),
+  // so it never runs on push. One nightly run in the quiet hours (after the
+  // 02:17/02:47/03:23 nightlies) gives the heavy tier a daily verdict
+  // (CI/CD audit 2026-11-09); release.yml reuses it for the exact SHA.
   assert.doesNotMatch(workflow, /^ {2}push:/m);
-  assert.doesNotMatch(workflow, /^ {2}schedule:/m);
+  assert.match(workflow, /^ {2}schedule:$/m);
+  assert.deepEqual(
+    [...workflow.matchAll(/^ {4}- cron: '([^']+)'/gm)].map((match) => match[1]),
+    ['37 3 * * *'],
+  );
   assert.match(workflow, /^ {2}workflow_dispatch:$/m);
   assert.match(workflow, /^ {2}workflow_call:$/m);
   assert.match(
@@ -813,7 +818,7 @@ test('reports curated action catalog changes on catalog pull requests', () => {
 
   assert.match(workflow, /^ {2}pull_request:\n/m);
   for (const pathFilter of [
-    'packages/actions/src/registry/curated-action-catalog.ts',
+    'packages/actions/src/registry/curated-actions.catalog.ts',
     'packages/actions/scripts/report-curated-action-catalog.ts',
   ]) {
     assert.ok(
@@ -1590,16 +1595,23 @@ test('dataset job freezes inspected control before the exact candidate checkout'
   assert.doesNotMatch(workflow, /path:.*\*|path:.*raw\//);
 });
 
-test('final connected Full Suite is an explicit opt-in with all receipt outputs required', () => {
+// Final connected acceptance is an explicit opt-in for manual dispatch and the
+// release call, and always on for the nightly schedule (whose run has no inputs).
+const CONNECTED_EXPRESSION =
+  "inputs\\.run_runtime_acceptance == true \\|\\| github\\.event_name == 'schedule'";
+
+test('final connected Full Suite is an explicit opt-in (always on nightly) with all receipt outputs required', () => {
   const suite = readWorkflow('full-suite.yml');
   assert.equal((suite.match(/run_runtime_acceptance:/g) ?? []).length, 3);
   assert.equal((suite.match(/default: false/g) ?? []).length, 2);
   assert.match(
     jobBlock(suite, 'e2e', 'full-suite.yml'),
-    /run_runtime_acceptance: \$\{\{ inputs\.run_runtime_acceptance == true \}\}/,
+    new RegExp(
+      `run_runtime_acceptance: \\$\\{\\{ ${CONNECTED_EXPRESSION} \\}\\}`,
+    ),
   );
   const visual = jobBlock(suite, 'visual-connected', 'full-suite.yml');
-  assert.match(visual, /if: inputs\.run_runtime_acceptance == true/);
+  assert.match(visual, new RegExp(`if: ${CONNECTED_EXPRESSION}\n`));
   assert.match(
     visual,
     /uses: \.\/\.github\/workflows\/visual-code-isolation\.yml/,
@@ -1609,7 +1621,7 @@ test('final connected Full Suite is an explicit opt-in with all receipt outputs 
   const gate = jobBlock(suite, 'runtime-acceptance-gate', 'full-suite.yml');
   assert.match(
     gate,
-    /if: always\(\) && inputs\.run_runtime_acceptance == true/,
+    new RegExp(`if: always\\(\\) && \\(${CONNECTED_EXPRESSION}\\)`),
   );
   assert.match(gate, /needs: \[ci, build-verify, e2e, visual-connected\]/);
   for (const output of [
@@ -1791,11 +1803,13 @@ test('final Full Suite forwards full API discovery only with explicit runtime ac
   );
   assert.match(
     suite,
-    /run_api_full: \$\{\{ inputs\.run_runtime_acceptance == true \}\}/,
+    new RegExp(`run_api_full: \\$\\{\\{ ${CONNECTED_EXPRESSION} \\}\\}`),
   );
   assert.match(
     suite,
-    /run_runtime_acceptance: \$\{\{ inputs\.run_runtime_acceptance == true \}\}/,
+    new RegExp(
+      `run_runtime_acceptance: \\$\\{\\{ ${CONNECTED_EXPRESSION} \\}\\}`,
+    ),
   );
   const inputDefaults = readWorkflow('full-suite.yml').matchAll(
     /run_runtime_acceptance:\n\s+description:[^\n]*\n\s+type: boolean\n\s+required: false\n\s+default: false/g,
