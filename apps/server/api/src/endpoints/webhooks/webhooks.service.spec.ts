@@ -2,6 +2,7 @@ import {
   ASSET_ORIGIN_GENERATED,
   ASSET_ORIGIN_GENERATION_PENDING,
 } from '@api/collections/assets/constants/asset-origin.constant';
+import { GENERATION_CANCELLED_BY_USER } from '@api/collections/ingredients/constants/generation-cancellation.constants';
 import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { WebhookGenerationSettlementService } from '@api/endpoints/webhooks/services/webhook-generation-settlement.service';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
@@ -500,6 +501,25 @@ describe('WebhooksService', () => {
 
       expect(ingredientsService.patchAll).not.toHaveBeenCalled();
       expect(mediaUploadService.uploadAndUpdateMetadata).not.toHaveBeenCalled();
+    });
+
+    it('keeps a generation the user cancelled failed when the provider finishes late (#9735)', async () => {
+      ingredientsService.findOne.mockResolvedValue({
+        ...mockVideoIngredientDoc,
+        generationError: GENERATION_CANCELLED_BY_USER,
+        status: IngredientStatus.FAILED,
+      });
+
+      await service.processMediaForIngredient(
+        mockIngredientId.toString(),
+        IngredientCategory.AVATAR,
+        'https://example.com/avatar.mp4',
+        'provider-video-1',
+      );
+
+      expect(ingredientsService.patchAll).not.toHaveBeenCalled();
+      expect(mediaUploadService.uploadAndUpdateMetadata).not.toHaveBeenCalled();
+      expect(generationBilling.settleOutput).not.toHaveBeenCalled();
     });
 
     it('should process video from webhook successfully', async () => {
