@@ -220,8 +220,12 @@ export function buildSnapshotLayers(
           visualIdentity: {
             backgroundColor: visualIdentity.backgroundColor,
             bannerUrl: visualIdentity.bannerUrl,
+            banners: visualIdentity.banners ?? [],
             fontFamily: visualIdentity.fontFamily,
+            fontRoles: visualIdentity.fontRoles ?? [],
             logoUrl: visualIdentity.logoUrl,
+            logos: visualIdentity.logos ?? [],
+            palette: visualIdentity.palette ?? [],
             primaryColor: visualIdentity.primaryColor,
             referenceImageCount: visualIdentity.referenceImages?.length ?? 0,
             secondaryColor: visualIdentity.secondaryColor,

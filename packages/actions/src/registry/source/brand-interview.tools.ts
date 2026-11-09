@@ -87,7 +87,7 @@ export const BRAND_INTERVIEW_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Read structured brand context for writing or reviewing on-brand content: identity, guidelines, voice, strategy, topics, persona, prompt seeds, performance insights, knowledge, recent posts, saved memories and active skills. Includes context diagnostics and model metadata. Rendered system and memory prompts are omitted unless explicitly requested for diagnostics. Read-only, no credits charged.',
+      'Read structured brand context for writing or reviewing on-brand content: identity, guidelines, the visual kit (colors, named palette, fonts by role, logo variants and platform banners with their URLs), voice, strategy, topics, persona, prompt seeds, performance insights, knowledge, recent posts, saved memories and active skills. Includes context diagnostics and model metadata. Rendered system and memory prompts are omitted unless explicitly requested for diagnostics. Read-only, no credits charged.',
     name: 'get_brand_context',
     parameters: {
       properties: {

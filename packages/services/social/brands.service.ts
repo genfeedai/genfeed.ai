@@ -14,10 +14,12 @@ import type {
   IBrandKitAssetImportRequest,
   IBrandKitAssetImportResponse,
   IBrandKitDraft,
+  IBrandKitImportResult,
   IBrandKitLogoColor,
   IBrandKitManualInput,
   IBrandKitPlatformFillRequest,
   IBrandKitPlatformFillResult,
+  IBrandKitView,
   IBrandOnboardingScan,
   IBrandOnboardingScanRequest,
   IBrandOsDraftHandoff,
@@ -651,6 +653,43 @@ export class BrandsService extends BaseService<Brand> {
     return this.instance
       .get<{ data: IBrandKitLogoColor[] }>(`/${id}/kit/logo-colors`, {
         signal,
+      })
+      .then((res) => res.data.data);
+  }
+
+  /** The whole kit: colors, palette, fonts by role, logos and platform images. */
+  public async getKit(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IBrandKitView> {
+    return this.instance
+      .get<{ data: IBrandKitView }>(`/${id}/kit`, { signal })
+      .then((res) => res.data.data);
+  }
+
+  /** The whole kit as a ZIP of every file plus a manifest. */
+  public async exportKit(id: string, signal?: AbortSignal): Promise<Blob> {
+    return this.instance
+      .get<Blob>(`/${id}/kit/export`, {
+        responseType: 'blob',
+        signal,
+        timeout: 120000,
+      })
+      .then((res) => res.data);
+  }
+
+  /** Import a kit ZIP exported from any brand into this one. */
+  public async importKit(
+    id: string,
+    file: File,
+    signal?: AbortSignal,
+  ): Promise<IBrandKitImportResult> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.instance
+      .post<{ data: IBrandKitImportResult }>(`/${id}/kit/import`, form, {
+        signal,
+        timeout: 120000,
       })
       .then((res) => res.data.data);
   }

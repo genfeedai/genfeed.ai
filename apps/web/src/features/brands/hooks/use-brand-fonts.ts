@@ -11,6 +11,13 @@ const FONT_PAGE_LIMIT = 50;
 
 const FONTS_CHANGED_EVENT = 'genfeed:brand-fonts-changed';
 
+/** Tell every list of this brand's fonts on the page to load again. */
+export function notifyBrandFontsChanged(brandId: string): void {
+  window.dispatchEvent(
+    new CustomEvent(FONTS_CHANGED_EVENT, { detail: brandId }),
+  );
+}
+
 /** A page-local family name, so a brand font never shadows an app font. */
 export function brandFontCssFamily(assetId: string): string {
   return `genfeed-brand-font-${assetId}`;
@@ -88,11 +95,7 @@ export function useBrandFonts(brandId: string): UseBrandFontsResult {
     return () => window.removeEventListener(FONTS_CHANGED_EVENT, onChanged);
   }, [brandId]);
 
-  const reload = useCallback(() => {
-    window.dispatchEvent(
-      new CustomEvent(FONTS_CHANGED_EVENT, { detail: brandId }),
-    );
-  }, [brandId]);
+  const reload = useCallback(() => notifyBrandFontsChanged(brandId), [brandId]);
 
   return { cssFamilies, fonts, hasError, isLoading, reload };
 }

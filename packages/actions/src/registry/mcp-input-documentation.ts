@@ -242,9 +242,9 @@ const TOOL_DOCUMENTATION = new Map([
     'get_brand_context',
     {
       original:
-        'Read structured brand context for writing or reviewing on-brand content: identity, guidelines, voice, strategy, topics, persona, prompt seeds, performance insights, knowledge, recent posts, saved memories and active skills. Includes context diagnostics and model metadata. Rendered system and memory prompts are omitted unless explicitly requested for diagnostics. Read-only, no credits charged.',
+        'Read structured brand context for writing or reviewing on-brand content: identity, guidelines, the visual kit (colors, named palette, fonts by role, logo variants and platform banners with their URLs), voice, strategy, topics, persona, prompt seeds, performance insights, knowledge, recent posts, saved memories and active skills. Includes context diagnostics and model metadata. Rendered system and memory prompts are omitted unless explicitly requested for diagnostics. Read-only, no credits charged.',
       concise:
-        'Read brand identity, guidelines, voice, strategy, topics, persona, prompt seeds, performance insights, Knowledge, recent posts, memories and active skills, plus diagnostics/model metadata. Rendered system/memory prompts require explicit diagnostics request. Free/read-only.',
+        'Read brand identity, guidelines, visual kit (palette, fonts by role, logo variants, platform banners), voice, strategy, topics, persona, prompt seeds, performance insights, Knowledge, recent posts, memories and active skills, plus diagnostics/model metadata. Rendered system/memory prompts require explicit diagnostics request. Free/read-only.',
     },
   ],
   [
