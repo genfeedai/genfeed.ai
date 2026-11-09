@@ -7,6 +7,7 @@ export class CreditBalanceEntity extends BaseEntity implements CreditBalance {
   declare readonly billingAccountId: string | null;
   declare readonly balance: number;
   declare readonly heldAmount: number;
+  declare readonly earnedBalance: number;
   declare readonly version: number;
   declare readonly expiresAt?: Date;
 }

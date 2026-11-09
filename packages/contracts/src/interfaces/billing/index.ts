@@ -3,6 +3,7 @@ export * from './avatar-generation-quote.interface';
 export * from './billing.tokens';
 export * from './billing-account.interface';
 export * from './cost-report.interface';
+export * from './credit-transfer.interface';
 export * from './credits.interface';
 export * from './credits-utils.contract';
 export * from './crun-generation-quote.interface';

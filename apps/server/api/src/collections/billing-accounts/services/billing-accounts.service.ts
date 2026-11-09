@@ -1,3 +1,4 @@
+import { walletMergeIncrement } from '@api/collections/billing-accounts/services/wallet-merge.util';
 import {
   creditUsageSignBuckets,
   creditUsageWhere,
@@ -561,11 +562,7 @@ export class BillingAccountsService {
 
     if (orgBalance && accountBalance && orgBalance.id !== accountBalance.id) {
       const mergedBalance = await tx.creditBalance.updateMany({
-        data: {
-          balance: { increment: orgBalance.balance },
-          heldAmount: { increment: orgBalance.heldAmount },
-          version: { increment: 1 },
-        },
+        data: walletMergeIncrement(orgBalance),
         where: billingAccountScopedWhere(scope, {
           id: accountBalance.id,
         }),

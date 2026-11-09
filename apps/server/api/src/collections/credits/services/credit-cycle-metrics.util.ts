@@ -13,6 +13,7 @@ const INFLOW_CATEGORIES = new Set<string>([
   CreditTransactionCategory.ADD,
   CreditTransactionCategory.REFUND,
   CreditTransactionCategory.ROLLOVER,
+  CreditTransactionCategory.TRANSFER_IN,
 ]);
 
 /**

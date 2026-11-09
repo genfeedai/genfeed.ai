@@ -3784,6 +3784,10 @@ model CreditBalance {
   billingAccount   BillingAccount? @relation(fields: [billingAccountId], references: [id])
   balance          Float           @default(0)
   heldAmount       Float           @default(0)
+  /// Part of `balance` received from other organizations (tips, creator
+  /// subscriptions, unlocks). Never expires and survives plan resets; spending
+  /// draws on the rest of the balance first, so it is clamped to `balance`.
+  earnedBalance    Float           @default(0)
   version          Int             @default(0)
   isDeleted        Boolean         @default(false)
   createdAt        DateTime        @default(now())

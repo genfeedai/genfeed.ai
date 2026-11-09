@@ -11,6 +11,7 @@ import { EmailVerifiedCreditsListener } from '@api/collections/credits/listeners
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import { CreditTransfersService } from '@api/collections/credits/services/credit-transfers.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
@@ -47,6 +48,7 @@ import { Module } from '@nestjs/common';
     CreditDeductionModule,
     CreditReservationService,
     CreditTransactionsService,
+    CreditTransfersService,
     CreditsUtilsService,
     FreeTrialService,
     GenerationBillingService,
@@ -81,6 +83,7 @@ import { Module } from '@nestjs/common';
     CreditBalanceService,
     CreditReservationService,
     CreditTransactionsService,
+    CreditTransfersService,
     FreeTrialService,
     GenerationBillingService,
     GenerationHoldRecoveryService,
