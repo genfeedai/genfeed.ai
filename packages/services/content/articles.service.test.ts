@@ -57,41 +57,45 @@ describe('ArticlesService', () => {
   it('findPublicArticleBySlug GETs the public slug route', async () => {
     mockArticle('get');
 
-    await service.findPublicArticleBySlug('my-post');
+    const result = await service.findPublicArticleBySlug('my-post');
 
     expect(http.get).toHaveBeenCalledWith('public/slug/my-post');
+    expect(result).toBeInstanceOf(Article);
   });
 
   describe('status transitions', () => {
     it('publish PATCHes status PUBLISHED with a publishedAt date', async () => {
       mockArticle('patch');
 
-      await service.publish(articleId);
+      const result = await service.publish(articleId);
 
       expect(http.patch).toHaveBeenCalledWith(`/${articleId}`, {
         publishedAt: expect.any(Date),
         status: ArticleStatus.PUBLISHED,
       });
+      expect(result).toBeInstanceOf(Article);
     });
 
     it('archive PATCHes status ARCHIVED', async () => {
       mockArticle('patch');
 
-      await service.archive(articleId);
+      const result = await service.archive(articleId);
 
       expect(http.patch).toHaveBeenCalledWith(`/${articleId}`, {
         status: ArticleStatus.ARCHIVED,
       });
+      expect(result).toBeInstanceOf(Article);
     });
 
     it('unarchive PATCHes status DRAFT', async () => {
       mockArticle('patch');
 
-      await service.unarchive(articleId);
+      const result = await service.unarchive(articleId);
 
       expect(http.patch).toHaveBeenCalledWith(`/${articleId}`, {
         status: ArticleStatus.DRAFT,
       });
+      expect(result).toBeInstanceOf(Article);
     });
   });
 
@@ -147,11 +151,12 @@ describe('ArticlesService', () => {
   it('scoreSeo POSTs the seo scoring request', async () => {
     mockArticle('post');
 
-    await service.scoreSeo(articleId, { targetKeyword: 'ai' });
+    const result = await service.scoreSeo(articleId, { targetKeyword: 'ai' });
 
     expect(http.post).toHaveBeenCalledWith(`/${articleId}/seo-scores`, {
       targetKeyword: 'ai',
     });
+    expect(result).toBeInstanceOf(Article);
   });
 
   it('review POSTs the review request with defaults', async () => {
@@ -183,11 +188,12 @@ describe('ArticlesService', () => {
   it('restoreVersion PATCHes the restore pointer', async () => {
     mockArticle('patch');
 
-    await service.restoreVersion(articleId, 'prompt_2');
+    const result = await service.restoreVersion(articleId, 'prompt_2');
 
     expect(http.patch).toHaveBeenCalledWith(`/${articleId}`, {
       restoreFromVersionId: 'prompt_2',
     });
+    expect(result).toBeInstanceOf(Article);
   });
 
   it('generatePrompt POSTs to the prompts route', async () => {
@@ -202,8 +208,11 @@ describe('ArticlesService', () => {
   it('generateImage POSTs image options with defaults', async () => {
     http.post.mockResolvedValue(axiosResponse({ id: 'img_1' }));
 
-    await service.generateImage(articleId, { width: 1024 });
-    await service.generateImage(articleId);
+    const sized = await service.generateImage(articleId, { width: 1024 });
+    const defaulted = await service.generateImage(articleId);
+
+    expect(sized).toEqual({ id: 'img_1' });
+    expect(defaulted).toEqual({ id: 'img_1' });
 
     expect(http.post).toHaveBeenNthCalledWith(1, `/${articleId}/images`, {
       width: 1024,
@@ -214,8 +223,11 @@ describe('ArticlesService', () => {
   it('generateVideo POSTs video options with defaults', async () => {
     http.post.mockResolvedValue(axiosResponse({ id: 'vid_1' }));
 
-    await service.generateVideo(articleId, { duration: 15 });
-    await service.generateVideo(articleId);
+    const timed = await service.generateVideo(articleId, { duration: 15 });
+    const defaulted = await service.generateVideo(articleId);
+
+    expect(timed).toEqual({ id: 'vid_1' });
+    expect(defaulted).toEqual({ id: 'vid_1' });
 
     expect(http.post).toHaveBeenNthCalledWith(1, `/${articleId}/videos`, {
       duration: 15,

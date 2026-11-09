@@ -91,6 +91,7 @@ describe('useAccountThemeSync', () => {
     act(() => {
       useSettingsStore.getState().setTheme('dark');
     });
+    expect(useSettingsStore.getState().theme).toBe('dark');
     expect(updateTheme).toHaveBeenCalledTimes(1);
 
     firstPatch.resolve();
@@ -98,6 +99,7 @@ describe('useAccountThemeSync', () => {
     await waitFor(() => {
       expect(updateTheme).toHaveBeenNthCalledWith(2, 'dark');
     });
+    expect(useSettingsStore.getState().theme).toBe('dark');
   });
 
   it('still patches later choices when the initial account read fails', async () => {
@@ -111,6 +113,7 @@ describe('useAccountThemeSync', () => {
     });
 
     await waitFor(() => expect(updateTheme).toHaveBeenCalledWith('light'));
+    expect(useSettingsStore.getState().theme).toBe('light');
   });
 
   it('does not let an account read overwrite a newer choice from another extension context', async () => {
@@ -139,5 +142,6 @@ describe('useAccountThemeSync', () => {
 
     expect(getTheme).not.toHaveBeenCalled();
     expect(updateTheme).not.toHaveBeenCalled();
+    expect(useSettingsStore.getState().theme).toBe('dark');
   });
 });

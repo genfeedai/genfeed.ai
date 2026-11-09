@@ -38,6 +38,7 @@ describe('ModalGalleryItemReference', () => {
   it('renders reference item', () => {
     render(<ModalGalleryItemReference {...defaultProps} />);
     expect(screen.getByAltText('ref-1')).toBeInTheDocument();
+    expect(screen.queryByText('✓')).not.toBeInTheDocument();
   });
 
   it('displays selection indicator when selected', () => {
@@ -85,6 +86,7 @@ describe('ModalGalleryItemReference', () => {
     const item = screen.getByAltText('ref-1').closest('div');
     await user.click(item!);
     expect(onSelectionLimit).toHaveBeenCalled();
+    expect(screen.queryByText('✓')).not.toBeInTheDocument();
   });
 
   it('replaces selection when selectionLimit is 1', async () => {

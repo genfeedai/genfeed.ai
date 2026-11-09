@@ -153,7 +153,9 @@ describe('InsightsController', () => {
       const insights: unknown[] = [];
       mockInsightsService.getInsights.mockResolvedValue(insights);
 
-      await controller.getInsights(mockReq, mockUser, '10');
+      const result = await controller.getInsights(mockReq, mockUser, '10');
+
+      expect(result).toEqual(insights);
 
       expect(service.getInsights).toHaveBeenCalledWith(ORGANIZATION_ID, 10);
       expect(
@@ -237,12 +239,14 @@ describe('InsightsController', () => {
 
       mockInsightsService.getBestTimes.mockResolvedValue(times);
 
-      await controller.getBestTimes(
+      const result = await controller.getBestTimes(
         mockReq,
         mockUser,
         'twitter',
         'America/New_York',
       );
+
+      expect(result).toEqual(times);
 
       expect(service.getBestTimes).toHaveBeenCalledWith(
         'twitter',
@@ -283,7 +287,10 @@ describe('InsightsController', () => {
 
       mockInsightsService.getGrowthPrediction.mockResolvedValue(prediction);
 
-      await controller.getGrowthPrediction(mockUser, 'youtube');
+      const result = await controller.getGrowthPrediction(mockUser, 'youtube');
+
+      expect(result).toEqual(prediction);
+      expect(result).toMatchObject({ platform: 'youtube' });
 
       expect(service.getGrowthPrediction).toHaveBeenCalledWith(
         'youtube',

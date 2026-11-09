@@ -180,7 +180,7 @@ describe('AgentThreadsController', () => {
     it('forwards the requested page window and defaults to 50 per page', async () => {
       service.getUserThreads.mockResolvedValue(emptyPage);
 
-      await controller.listThreads(
+      const res183 = await controller.listThreads(
         {} as never,
         mockUser,
         undefined,
@@ -188,7 +188,8 @@ describe('AgentThreadsController', () => {
         undefined,
         { limit: 20, page: 3 },
       );
-      await controller.listThreads(
+      expect(res183.data).toEqual([]);
+      const res191 = await controller.listThreads(
         {} as never,
         mockUser,
         undefined,
@@ -196,6 +197,7 @@ describe('AgentThreadsController', () => {
         undefined,
         { limit: 500 },
       );
+      expect(res191.data).toEqual([]);
 
       expect(service.getUserThreads.mock.calls[0]?.[5]).toEqual({
         limit: 20,
@@ -389,7 +391,12 @@ describe('AgentThreadsController', () => {
   describe('getThread', () => {
     it('should get a thread by id', async () => {
       service.findOne.mockResolvedValue({ id: 'test' });
-      await controller.getThread({} as never, 'test-id', mockUser);
+      const res392 = await controller.getThread(
+        {} as never,
+        'test-id',
+        mockUser,
+      );
+      expect(res392.data).toMatchObject({ id: 'test', type: 'thread' });
       expect(service.findOne).toHaveBeenCalled();
     });
 
@@ -413,13 +420,14 @@ describe('AgentThreadsController', () => {
         nextCursor: null,
       });
 
-      await controller.getMessages(
+      const res416 = await controller.getMessages(
         { originalUrl: '/v1/agent/threads/thread-1/messages' } as never,
         'thread-1',
         mockUser,
         '25',
         'opaque-cursor',
       );
+      expect(res416.data).toEqual([]);
 
       expect(messagesService.getMessagesPage).toHaveBeenCalledWith(
         'thread-1',
@@ -435,13 +443,14 @@ describe('AgentThreadsController', () => {
         nextCursor: null,
       });
 
-      await controller.getMessages(
+      const res438 = await controller.getMessages(
         {} as never,
         'thread-1',
         mockUser,
         undefined,
         undefined,
       );
+      expect(res438.data).toEqual([]);
 
       expect(messagesService.getMessagesPage).toHaveBeenCalledWith(
         'thread-1',
@@ -503,7 +512,7 @@ describe('AgentThreadsController', () => {
     it('gets a thread message by id within the current organization', async () => {
       messagesService.findOne.mockResolvedValue({ id: 'message-id' });
 
-      await controller.getMessage(
+      const res506 = await controller.getMessage(
         {
           originalUrl: '/v1/agent/threads/thread-id/messages/message-id',
         } as never,
@@ -511,6 +520,10 @@ describe('AgentThreadsController', () => {
         'message-id',
         mockUser,
       );
+      expect(res506.data).toMatchObject({
+        id: 'message-id',
+        type: 'thread-message',
+      });
 
       expect(messagesService.findOne).toHaveBeenCalledWith({
         id: 'message-id',
@@ -560,7 +573,12 @@ describe('AgentThreadsController', () => {
     it('should create a new thread', async () => {
       service.create.mockResolvedValue({ id: 'new' });
       service.resolveSavedMode.mockResolvedValue('plan');
-      await controller.createThread({} as never, { title: 'Test' }, mockUser);
+      const res563 = await controller.createThread(
+        {} as never,
+        { title: 'Test' },
+        mockUser,
+      );
+      expect(res563.data).toMatchObject({ id: 'new', type: 'thread' });
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({
           organizationId: 'org_current',
@@ -574,11 +592,12 @@ describe('AgentThreadsController', () => {
     it('starts an extension thread in auto when the saved default is plan', async () => {
       service.create.mockResolvedValue({ id: 'new' });
       service.resolveSavedMode.mockResolvedValue('plan');
-      await controller.createThread(
+      const res577 = await controller.createThread(
         {} as never,
         { source: 'extension', title: 'Test' },
         mockUser,
       );
+      expect(res577.data).toMatchObject({ id: 'new', type: 'thread' });
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({ mode: 'auto', source: 'extension' }),
       );
@@ -587,10 +606,11 @@ describe('AgentThreadsController', () => {
 
   describe('updateThreadContext', () => {
     it('routes the mode command with authenticated canonical identity', async () => {
-      await controller.updateAgentMode(
+      const res590 = await controller.updateAgentMode(
         { mode: 'auto' as never, threadId: 'thread' },
         mockUser,
       );
+      expect(res590).toEqual({ mode: 'auto' });
       expect(service.updateAgentMode).toHaveBeenCalledWith(
         mockUserId,
         'org_current',
@@ -634,12 +654,16 @@ describe('AgentThreadsController', () => {
         id: 'thread-1',
       });
 
-      await controller.updateThreadContext(
+      const res637 = await controller.updateThreadContext(
         {} as never,
         'thread-1',
         { brandId: 'brand-1', expectedContextVersion: 3 },
         mockUser,
       );
+      expect(res637.data).toMatchObject({
+        attributes: { brandId: 'brand-1', contextVersion: 4 },
+        id: 'thread-1',
+      });
 
       expect(scopeService.mutateBrandScope).toHaveBeenCalledWith({
         brandId: 'brand-1',
@@ -776,12 +800,13 @@ describe('AgentThreadsController', () => {
       });
       service.archiveThread.mockResolvedValue({ id: 'thread_1' });
 
-      await controller.updateThread(
+      const res779 = await controller.updateThread(
         {} as never,
         'thread_1',
         { status: AgentThreadStatus.ARCHIVED },
         mockUser,
       );
+      expect(res779.data).toMatchObject({ id: 'thread_1', type: 'thread' });
 
       expect(service.archiveThread).toHaveBeenCalledWith(
         'thread_1',

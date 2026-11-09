@@ -193,6 +193,7 @@ describe('useReviewInboxApprovals', () => {
       'Approved. The MCP client runs it the next time it asks.',
     );
     expect(fixture.getPendingItems).toHaveBeenCalledTimes(2);
+    expect(result.current.decidingItemId).toBeNull();
   });
 
   it('decides a selection in one batch request and reports one summary', async () => {

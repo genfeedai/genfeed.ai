@@ -107,7 +107,7 @@ describe('ContentRunsController', () => {
     it('lists runs scoped to org and brand with the default page window', async () => {
       mockService.listByBrand.mockResolvedValue(emptyPage);
 
-      await controller.listBrandRuns(
+      const res110 = await controller.listBrandRuns(
         mockReq,
         'brand-1',
         mockUser,
@@ -115,6 +115,7 @@ describe('ContentRunsController', () => {
         undefined,
         undefined,
       );
+      expect(res110.data).toEqual([]);
 
       expect(mockService.listByBrand).toHaveBeenCalledWith(
         'org-1',
@@ -129,7 +130,7 @@ describe('ContentRunsController', () => {
     it('passes skillSlug filter', async () => {
       mockService.listByBrand.mockResolvedValue(emptyPage);
 
-      await controller.listBrandRuns(
+      const res132 = await controller.listBrandRuns(
         mockReq,
         'brand-1',
         mockUser,
@@ -137,6 +138,7 @@ describe('ContentRunsController', () => {
         undefined,
         undefined,
       );
+      expect(res132.data).toEqual([]);
 
       expect(mockService.listByBrand).toHaveBeenCalledWith(
         'org-1',
@@ -151,7 +153,7 @@ describe('ContentRunsController', () => {
     it('passes status filter', async () => {
       mockService.listByBrand.mockResolvedValue(emptyPage);
 
-      await controller.listBrandRuns(
+      const res154 = await controller.listBrandRuns(
         mockReq,
         'brand-1',
         mockUser,
@@ -159,6 +161,7 @@ describe('ContentRunsController', () => {
         ContentRunStatus.COMPLETED,
         undefined,
       );
+      expect(res154.data).toEqual([]);
 
       expect(mockService.listByBrand).toHaveBeenCalledWith(
         'org-1',
@@ -173,7 +176,7 @@ describe('ContentRunsController', () => {
     it('passes both skillSlug and status filters', async () => {
       mockService.listByBrand.mockResolvedValue(emptyPage);
 
-      await controller.listBrandRuns(
+      const res176 = await controller.listBrandRuns(
         mockReq,
         'brand-1',
         mockUser,
@@ -181,6 +184,7 @@ describe('ContentRunsController', () => {
         ContentRunStatus.FAILED,
         undefined,
       );
+      expect(res176.data).toEqual([]);
 
       expect(mockService.listByBrand).toHaveBeenCalledWith(
         'org-1',
@@ -195,7 +199,7 @@ describe('ContentRunsController', () => {
     it('passes the search term to the service', async () => {
       mockService.listByBrand.mockResolvedValue(emptyPage);
 
-      await controller.listBrandRuns(
+      const res198 = await controller.listBrandRuns(
         mockReq,
         'brand-1',
         mockUser,
@@ -203,6 +207,7 @@ describe('ContentRunsController', () => {
         undefined,
         { search: 'launch' },
       );
+      expect(res198.data).toEqual([]);
 
       expect(mockService.listByBrand).toHaveBeenCalledWith(
         'org-1',
@@ -217,7 +222,7 @@ describe('ContentRunsController', () => {
     it('resolves the requested page and limit into a skip/take window', async () => {
       mockService.listByBrand.mockResolvedValue(emptyPage);
 
-      await controller.listBrandRuns(
+      const res220 = await controller.listBrandRuns(
         mockReq,
         'brand-1',
         mockUser,
@@ -225,6 +230,7 @@ describe('ContentRunsController', () => {
         undefined,
         { limit: 15, page: 3 },
       );
+      expect(res220.data).toEqual([]);
 
       expect(mockService.listByBrand).toHaveBeenCalledWith(
         'org-1',
@@ -328,7 +334,12 @@ describe('ContentRunsController', () => {
         status: 'completed',
       });
 
-      await controller.getRun(mockReq, 'run-1', mockUser);
+      const res331 = await controller.getRun(mockReq, 'run-1', mockUser);
+      expect(res331.data).toMatchObject({
+        attributes: { status: 'completed' },
+        id: 'run-1',
+        type: 'content-run',
+      });
 
       expect(mockService.getRunById).toHaveBeenCalledWith('org-1', 'run-1');
     });
@@ -336,10 +347,11 @@ describe('ContentRunsController', () => {
     it('uses organization from the authenticated user', async () => {
       mockService.getRunById.mockResolvedValue({ id: 'run-1' });
 
-      await controller.getRun(mockReq, 'run-1', {
+      const res339 = await controller.getRun(mockReq, 'run-1', {
         ...mockUser,
         organizationId: 'org-different',
       });
+      expect(res339.data).toMatchObject({ id: 'run-1', type: 'content-run' });
 
       expect(mockService.getRunById).toHaveBeenCalledWith(
         'org-different',
@@ -350,7 +362,8 @@ describe('ContentRunsController', () => {
     it('returns null when run not found', async () => {
       mockService.getRunById.mockResolvedValue(null);
 
-      await controller.getRun(mockReq, 'nonexistent', mockUser);
+      const res353 = await controller.getRun(mockReq, 'nonexistent', mockUser);
+      expect(res353.data).toBeNull();
 
       expect(mockService.getRunById).toHaveBeenCalledWith(
         'org-1',
@@ -383,7 +396,15 @@ describe('ContentRunsController', () => {
         status: ContentRunStatus.PENDING,
       });
 
-      await controller.createBriefRun(mockReq, 'brand-1', mockUser, body);
+      const res386 = await controller.createBriefRun(
+        mockReq,
+        'brand-1',
+        mockUser,
+        body,
+      );
+      expect(res386.data).toMatchObject({
+        attributes: { brief: { evidence: ['Source text'] }, status: 'pending' },
+      });
 
       expect(mockService.createBriefRun).toHaveBeenCalledWith(
         'org-1',
@@ -400,7 +421,13 @@ describe('ContentRunsController', () => {
       };
       mockBrandRemixRunsService.create.mockResolvedValue({ id: 'run-1' });
 
-      await controller.createBrandRemixRun(mockReq, 'brand-1', mockUser, body);
+      const res403 = await controller.createBrandRemixRun(
+        mockReq,
+        'brand-1',
+        mockUser,
+        body,
+      );
+      expect(res403.data).toMatchObject({ id: 'run-1', type: 'content-run' });
 
       expect(mockBrandRemixRunsService.create).toHaveBeenCalledWith(
         'org-1',
@@ -413,9 +440,15 @@ describe('ContentRunsController', () => {
     it('starts generation with the authenticated user and request context', async () => {
       mockBrandRemixRunsService.start.mockResolvedValue({ id: 'run-1' });
 
-      await controller.startBrandRemixRun(mockReq, 'run-1', mockUser, {
-        expectedRevision: 1,
-      });
+      const res416 = await controller.startBrandRemixRun(
+        mockReq,
+        'run-1',
+        mockUser,
+        {
+          expectedRevision: 1,
+        },
+      );
+      expect(res416.data).toMatchObject({ id: 'run-1', type: 'content-run' });
 
       expect(mockBrandRemixRunsService.start).toHaveBeenCalledWith(
         'org-1',
@@ -431,12 +464,13 @@ describe('ContentRunsController', () => {
         id: 'run-1',
       });
 
-      await controller.submitBrandRemixRunForReview(
+      const res434 = await controller.submitBrandRemixRunForReview(
         mockReq,
         'run-1',
         mockUser,
         { variantIds: ['variant-1'] },
       );
+      expect(res434.data).toMatchObject({ id: 'run-1', type: 'content-run' });
 
       expect(mockBrandRemixRunsService.submitForReview).toHaveBeenCalledWith(
         'org-1',
@@ -457,7 +491,14 @@ describe('ContentRunsController', () => {
         },
       });
 
-      await controller.analyzeRunRecommendations(mockReq, 'run-1', mockUser);
+      const res460 = await controller.analyzeRunRecommendations(
+        mockReq,
+        'run-1',
+        mockUser,
+      );
+      expect(res460.data).toMatchObject({
+        attributes: { analyticsSummary: { winningVariantId: 'variant-a' } },
+      });
 
       expect(mockRecommendationsService.analyzeRun).toHaveBeenCalledWith(
         'org-1',
@@ -473,7 +514,16 @@ describe('ContentRunsController', () => {
         variants: [{ id: 'post-thread', metadata: {}, type: 'text' }],
       });
 
-      await controller.createRemixPack(mockReq, 'run-1', mockUser);
+      const res476 = await controller.createRemixPack(
+        mockReq,
+        'run-1',
+        mockUser,
+      );
+      expect(res476.data).toMatchObject({
+        attributes: {
+          variants: [expect.objectContaining({ id: 'post-thread' })],
+        },
+      });
 
       expect(mockService.createRemixPack).toHaveBeenCalledWith(
         'org-1',
