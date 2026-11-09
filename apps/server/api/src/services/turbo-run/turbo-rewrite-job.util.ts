@@ -88,15 +88,6 @@ function resolveJobStatus(
   return TurboRewriteJobStatus.QUEUED;
 }
 
-export function isTerminalRewriteStatus(
-  status: TurboRewriteJobStatus,
-): boolean {
-  return (
-    status !== TurboRewriteJobStatus.QUEUED &&
-    status !== TurboRewriteJobStatus.PROCESSING
-  );
-}
-
 export async function toTurboRewriteJob(
   job: TurboRewriteJob,
 ): Promise<ITurboRewriteJob> {

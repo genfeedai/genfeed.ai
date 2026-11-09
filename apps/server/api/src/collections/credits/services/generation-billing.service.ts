@@ -35,6 +35,7 @@ import { usesMeteredCredits } from '@genfeedai/config';
 import {
   ActivitySource,
   CreditReservationStatus,
+  INGREDIENT_UNUSABLE_STATUSES,
   IngredientStatus,
 } from '@genfeedai/contracts';
 import {
@@ -75,11 +76,8 @@ export type GenerationReleaseOutcome = 'released' | 'no-hold' | 'held';
 /** Reconcile leaves a fresh hold to the completion hook before sweeping it. */
 const RECONCILE_GRACE_MS = 2 * 60 * 1000;
 const RECONCILE_BATCH = 200;
-const TERMINAL_FAILURE_STATUSES: readonly string[] = [
-  IngredientStatus.FAILED,
-  IngredientStatus.REJECTED,
-  IngredientStatus.ARCHIVED,
-];
+const TERMINAL_FAILURE_STATUSES: readonly string[] =
+  INGREDIENT_UNUSABLE_STATUSES;
 /**
  * The one billing contract for async media generation (#5657).
  *

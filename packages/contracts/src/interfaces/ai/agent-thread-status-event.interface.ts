@@ -1,4 +1,5 @@
 import type { AgentRuntimeState } from '../../enums/agent-runtime-state.enum';
+import type { AgentTransferStatus } from '../../enums/agent-transfer.enum';
 
 /** Run status exactly as the thread list reports it in `runStatus`. */
 export type AgentThreadRunStatus =
@@ -37,4 +38,14 @@ export interface AgentThreadStatusEvent extends AgentThreadRunState {
   threadId: string;
   timestamp: string;
   userId: string;
+}
+
+/**
+ * One durable execution status in every vocabulary an agent turn is shown in
+ * (#9738). The table in `AGENT_RUN_VOCABULARY` is the only mapping.
+ */
+export interface AgentRunVocabularyRow {
+  runtimeState: AgentRuntimeState;
+  threadRunStatus: AgentThreadRunStatus;
+  transferStatus: AgentTransferStatus;
 }

@@ -29,6 +29,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
   CreditReservationStatus,
+  WORKFLOW_EXECUTION_TERMINAL_STATUSES,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import {
@@ -40,11 +41,7 @@ import type {
   WorkflowGenerationManifest,
   WorkflowGenerationProviderEvidence,
 } from '@genfeedai/contracts/interfaces/billing';
-import {
-  Prisma,
-  WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,
-  toPrismaJson,
-} from '@genfeedai/prisma';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
@@ -611,11 +608,7 @@ export class WorkflowGenerationBillingService {
           isDeleted: false,
           organizationId,
           status: {
-            in: [
-              PrismaWorkflowExecutionStatus.COMPLETED,
-              PrismaWorkflowExecutionStatus.FAILED,
-              PrismaWorkflowExecutionStatus.CANCELLED,
-            ],
+            in: [...WORKFLOW_EXECUTION_TERMINAL_STATUSES],
           },
         },
       });

@@ -1,5 +1,7 @@
 export { Scope as AssetScope } from './scope.enum';
 
+import { defineStateMachine } from './state-machine.util';
+
 /**
  * Ingredient media category. Values match Prisma `IngredientCategory`.
  * @see packages/prisma/prisma/schema.prisma `enum IngredientCategory`
@@ -33,6 +35,92 @@ export enum IngredientStatus {
   ARCHIVED = 'ARCHIVED',
   REJECTED = 'REJECTED',
 }
+
+/**
+ * Ingredient lifecycle (#9735), in two layers:
+ *
+ * - Generation: an ingredient is created DRAFT, PROCESSING, UPLOADED or
+ *   GENERATED. PROCESSING settles as GENERATED, UPLOADED or FAILED; every
+ *   settling writer compares PROCESSING in its `where`, so a late provider
+ *   webhook never overwrites a cancelled (FAILED) generation. A FAILED
+ *   ingredient goes back to PROCESSING only to retry, or when a late success
+ *   arrives for a generation the stuck-ingredient cron timed out.
+ * - Curation: the library validates, rejects or archives usable media, and
+ *   archives failed media.
+ *
+ * `PATCH /ingredients` does not compare the current status yet, so it can
+ * write any edge; this table is what the product intends.
+ */
+export const INGREDIENT_STATE_MACHINE = defineStateMachine<IngredientStatus>({
+  terminal: [
+    IngredientStatus.UPLOADED,
+    IngredientStatus.GENERATED,
+    IngredientStatus.VALIDATED,
+    IngredientStatus.FAILED,
+    IngredientStatus.ARCHIVED,
+    IngredientStatus.REJECTED,
+  ],
+  transitions: {
+    [IngredientStatus.DRAFT]: [
+      IngredientStatus.PROCESSING,
+      IngredientStatus.UPLOADED,
+      IngredientStatus.GENERATED,
+      IngredientStatus.FAILED,
+    ],
+    [IngredientStatus.PROCESSING]: [
+      IngredientStatus.UPLOADED,
+      IngredientStatus.GENERATED,
+      IngredientStatus.FAILED,
+    ],
+    [IngredientStatus.UPLOADED]: [
+      IngredientStatus.VALIDATED,
+      IngredientStatus.REJECTED,
+      IngredientStatus.ARCHIVED,
+    ],
+    [IngredientStatus.GENERATED]: [
+      IngredientStatus.VALIDATED,
+      IngredientStatus.REJECTED,
+      IngredientStatus.ARCHIVED,
+    ],
+    [IngredientStatus.VALIDATED]: [
+      IngredientStatus.REJECTED,
+      IngredientStatus.ARCHIVED,
+    ],
+    [IngredientStatus.FAILED]: [
+      IngredientStatus.PROCESSING,
+      IngredientStatus.ARCHIVED,
+    ],
+    [IngredientStatus.ARCHIVED]: [],
+    [IngredientStatus.REJECTED]: [
+      IngredientStatus.VALIDATED,
+      IngredientStatus.ARCHIVED,
+    ],
+  },
+});
+
+/** Generation has not settled: no media to use yet. */
+export const INGREDIENT_GENERATION_ACTIVE_STATUSES: readonly IngredientStatus[] =
+  INGREDIENT_STATE_MACHINE.states.filter(
+    (status) => !INGREDIENT_STATE_MACHINE.isTerminal(status),
+  );
+
+/** Media is present and final, so other features may use it. */
+export const INGREDIENT_READY_STATUSES: readonly IngredientStatus[] = [
+  IngredientStatus.GENERATED,
+  IngredientStatus.UPLOADED,
+  IngredientStatus.VALIDATED,
+];
+
+/** Settled without usable media: failed, rejected or archived. */
+export const INGREDIENT_UNUSABLE_STATUSES: readonly IngredientStatus[] = [
+  IngredientStatus.FAILED,
+  IngredientStatus.ARCHIVED,
+  IngredientStatus.REJECTED,
+];
+
+/** Generation settled, whether or not it produced usable media. */
+export const INGREDIENT_GENERATION_SETTLED_STATUSES: readonly IngredientStatus[] =
+  [...INGREDIENT_READY_STATUSES, ...INGREDIENT_UNUSABLE_STATUSES];
 
 /**
  * Automated quality verdict for an ingredient. Values match Prisma

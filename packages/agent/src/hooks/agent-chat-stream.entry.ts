@@ -51,7 +51,10 @@ import {
 import { serializeAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { isMutationApprovalReplacement } from '@genfeedai/agent/utils/is-mutation-approval-replacement.util';
 import { syncAgentThreadFromTurn } from '@genfeedai/agent/utils/sync-agent-thread-from-turn';
-import type { AgentThreadMode } from '@genfeedai/contracts';
+import {
+  type AgentThreadMode,
+  isTerminalAgentThreadRunStatus,
+} from '@genfeedai/contracts';
 
 export type {
   SendStreamMessageOptions,
@@ -928,10 +931,7 @@ export function createAgentStreamController(
       const thread = useAgentChatStore
         .getState()
         .threads.find((item) => item.id === handoff.threadId);
-      if (
-        !thread?.runStatus ||
-        !['completed', 'failed', 'cancelled'].includes(thread.runStatus)
-      ) {
+      if (!isTerminalAgentThreadRunStatus(thread?.runStatus)) {
         updateThreadSummary(handoff.threadId, {
           runStatus: 'waiting_input',
           pendingInputCount: 1,

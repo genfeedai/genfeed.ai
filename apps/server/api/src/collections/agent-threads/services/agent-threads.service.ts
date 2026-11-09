@@ -18,6 +18,7 @@ import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-resu
 import { resolveLastGeneratedAsset } from '@genfeedai/agent/server';
 import {
   AGENT_RUNTIME_ACTIVE_STATES,
+  AGENT_RUNTIME_STATE_THREAD_RUN_STATUS,
   AgentMessageRole,
   AgentRuntimeState,
   AgentThreadKind,
@@ -803,7 +804,7 @@ export class AgentThreadsService extends BaseService<
         isLatestRun: true,
         pendingInputCount: 0,
         pendingInputRequests: [],
-        runStatus: this.toLegacyRunStatus(runtimeState),
+        runStatus: AGENT_RUNTIME_STATE_THREAD_RUN_STATUS[runtimeState],
         runtimeState,
       };
     }
@@ -847,7 +848,7 @@ export class AgentThreadsService extends BaseService<
       isLatestRun,
       pendingInputCount,
       pendingInputRequests,
-      runStatus: this.toLegacyRunStatus(runtimeState),
+      runStatus: AGENT_RUNTIME_STATE_THREAD_RUN_STATUS[runtimeState],
       runtimeState,
     };
   }
@@ -974,25 +975,6 @@ export class AgentThreadsService extends BaseService<
         .filter((brand) => Boolean(brand.label))
         .map((brand) => [brand.id, brand.label]),
     );
-  }
-
-  private toLegacyRunStatus(state: AgentRuntimeState): AgentThreadRunStatus {
-    switch (state) {
-      case AgentRuntimeState.RUNNING:
-        return 'running';
-      case AgentRuntimeState.AWAITING_INPUT:
-      case AgentRuntimeState.AWAITING_CONFIRMATION:
-        return 'waiting_input';
-      case AgentRuntimeState.COMPLETED:
-        return 'completed';
-      case AgentRuntimeState.FAILED:
-        return 'failed';
-      case AgentRuntimeState.CANCELLED:
-      case AgentRuntimeState.INTERRUPTED:
-        return 'cancelled';
-      default:
-        return 'idle';
-    }
   }
 
   private buildDecisionHref(
