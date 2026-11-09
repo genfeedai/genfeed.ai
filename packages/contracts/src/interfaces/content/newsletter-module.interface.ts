@@ -1,6 +1,7 @@
 import type {
   BrandSubscriberPublicSource,
   BrandSubscriberStatus,
+  NewsletterAccessLevel,
   NewsletterPlanKey,
   NewsletterSendStatus,
 } from '../../constants/newsletter-module.constant';
@@ -129,6 +130,49 @@ export interface INewsletterAnalytics {
   recentActivity: INewsletterActivityItem[];
 }
 
+export interface IPublicNewsletterSubscribeRequest {
+  brandId: string;
+  email: string;
+  name?: string;
+  source?: BrandSubscriberPublicSource;
+  sourceRef?: string;
+}
+
+/** The brand a public newsletter archive belongs to. */
+export interface IPublicNewsletterBrand {
+  id: string;
+  label: string;
+  slug: string;
+}
+
+/** One published issue in a public archive (#9728). */
+export interface IPublicNewsletterIssueSummary {
+  id: string;
+  subject: string;
+  summary: string | null;
+  publishedAt: string;
+  readingMinutes: number;
+  accessLevel: NewsletterAccessLevel;
+}
+
+/** A brand's published issues, newest first. */
+export interface IPublicNewsletterArchive {
+  brand: IPublicNewsletterBrand;
+  issues: IPublicNewsletterIssueSummary[];
+  hasMore: boolean;
+}
+
+/**
+ * One published issue as sanitized HTML. Issues that are not public carry
+ * only their free preview (`isPreview`).
+ */
+export interface IPublicNewsletterIssue extends IPublicNewsletterIssueSummary {
+  brand: IPublicNewsletterBrand;
+  html: string;
+  isPreview: boolean;
+}
+
+/** The public sign-up form's request body. */
 export interface IPublicNewsletterSubscribeRequest {
   brandId: string;
   email: string;

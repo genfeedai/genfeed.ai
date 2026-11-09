@@ -69,7 +69,11 @@ export default function CreatorRail({
       </div>
 
       <div className="space-y-3">
-        <ProfileSubscribe brandId={brand.id} />
+        <ProfileSubscribe
+          brandId={brand.id}
+          brandLabel={label}
+          source="profile"
+        />
         <CopyLinkButton className="w-full" url={profileUrl} />
       </div>
 

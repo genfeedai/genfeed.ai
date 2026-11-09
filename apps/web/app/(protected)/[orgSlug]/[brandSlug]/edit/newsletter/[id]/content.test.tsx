@@ -169,20 +169,14 @@ describe('NewsletterEditorContent', () => {
     expect(mocks.success).toHaveBeenCalledWith('Newsletter saved');
   });
 
-  it('shows the Substack import feed and copy-out when no Beehiiv publication is connected', async () => {
+  it('offers copy-out and account setup when no Beehiiv publication is connected', async () => {
     render(<NewsletterEditorContent artifactId="newsletter-1" />, {
       wrapper: queryClientWrapper(),
     });
 
-    expect(await screen.findByText('Import into Substack')).toBeVisible();
-    const feedUrl =
-      'https://api.example.test/v1/public/rss/brands/brand-1/newsletters';
-    expect(screen.getByText(feedUrl)).toBeVisible();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Copy feed URL' }));
-    expect(mocks.copyToClipboard).toHaveBeenCalledWith(feedUrl);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Copy Markdown' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Copy Markdown' }),
+    );
     expect(mocks.copyToClipboard).toHaveBeenCalledWith('Draft body');
     expect(
       screen.getByRole('link', { name: 'Connect an account' }),

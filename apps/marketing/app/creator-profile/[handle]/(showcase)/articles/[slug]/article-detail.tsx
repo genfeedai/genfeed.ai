@@ -361,7 +361,14 @@ export default function ArticleDetail({
             </div>
 
             <footer className="space-y-6">
-              {brand ? <ProfileSubscribe brandId={brand.id} /> : null}
+              {brand ? (
+                <ProfileSubscribe
+                  brandId={brand.id}
+                  brandLabel={brand.label?.trim() || `@${handle}`}
+                  source="article"
+                  sourceRef={article.id}
+                />
+              ) : null}
               <ArticleAbout brand={brand} handle={handle} />
             </footer>
           </div>

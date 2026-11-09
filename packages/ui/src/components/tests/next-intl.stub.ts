@@ -759,7 +759,7 @@ const UI_TEST_MESSAGES = {
       article: 'Article',
       articleHint: 'Long-form · blog or copy',
       newsletter: 'Newsletter',
-      newsletterHint: 'Email · Beehiiv or Substack',
+      newsletterHint: 'Email · your subscribers or Beehiiv',
       handoff:
         'Article and Newsletter are written in their own editor. Continue to open it.',
       continue: 'Continue',
