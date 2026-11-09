@@ -415,6 +415,7 @@ export class VideosReframeController {
     await this.failedGenerationService.handleFailedVideoGeneration(
       this.videosService,
       ingredientId,
+      user.organizationId,
       websocketUrl,
       user.id,
       getUserRoomName(user.id),

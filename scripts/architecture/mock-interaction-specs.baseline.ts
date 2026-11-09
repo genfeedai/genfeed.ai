@@ -265,7 +265,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/server/api/src/services/uploads/presigned-upload.service.spec.ts',
   'apps/server/api/src/services/video-completion/video-completion.service.spec.ts',
   'apps/server/api/src/shared/services/base/base.service.spec.ts',
-  'apps/server/api/src/shared/services/failed-generation/failed-generation.service.spec.ts',
   'apps/server/api/src/shared/services/shared/shared.service.spec.ts',
   'apps/server/discord/src/services/__tests__/discord-bot-manager.service.spec.ts',
   'apps/server/discord/src/services/discord-bot-manager.commands.spec.ts',

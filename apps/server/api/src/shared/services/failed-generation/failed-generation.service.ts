@@ -1,4 +1,6 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { settleIngredientGeneration } from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
@@ -24,7 +26,6 @@ export interface FailedGenerationOptions {
     source: ActivitySource;
     value: string;
   };
-  status?: IngredientStatus;
   websocketMethod?: 'emit' | 'publishMediaFailed';
   websocketMessage?: string;
   delay?: number;
@@ -40,18 +41,24 @@ export class FailedGenerationService {
   ) {}
 
   /**
-   * Handle failed generation for any media type
+   * Fails a generation that is still in flight and announces it (#9735). A
+   * generation the user cancelled, or one that already finished, is left as
+   * it is and announced no further.
    */
-  async handleFailedGeneration<T>(
-    service: {
-      patch: (id: string, data: Record<string, unknown>) => Promise<T>;
-    },
+  async handleFailedGeneration(
+    ingredients: Pick<IngredientsService, 'patchAll'>,
     options: FailedGenerationOptions,
   ): Promise<void> {
-    await service.patch(options.ingredientId, {
-      generationError: options.websocketMessage ?? 'Generation failed',
-      status: options.status ?? IngredientStatus.FAILED,
+    const isSettled = await settleIngredientGeneration(ingredients, {
+      data: {
+        generationError: options.websocketMessage ?? 'Generation failed',
+      },
+      id: options.ingredientId,
+      organizationId:
+        options.organizationId ?? options.activityMetadata?.organizationId,
+      to: IngredientStatus.FAILED,
     });
+    if (!isSettled) return;
     await this.notifyFailedGeneration(options);
   }
 
@@ -181,49 +188,12 @@ export class FailedGenerationService {
   }
 
   /**
-   * Handle failed voice generation
-   */
-  handleFailedVoiceGeneration(
-    voicesService: {
-      patch: (id: string, data: Record<string, unknown>) => Promise<unknown>;
-    },
-    ingredientId: string,
-    websocketUrl: string,
-  ): Promise<void> {
-    return this.handleFailedGeneration(voicesService, {
-      ingredientId,
-      status: IngredientStatus.FAILED,
-      websocketMethod: 'emit',
-      websocketUrl,
-    });
-  }
-
-  /**
-   * Handle failed avatar generation
-   */
-  handleFailedAvatarGeneration(
-    avatarsService: {
-      patch: (id: string, data: Record<string, unknown>) => Promise<unknown>;
-    },
-    ingredientId: string,
-    websocketUrl: string,
-  ): Promise<void> {
-    return this.handleFailedGeneration(avatarsService, {
-      ingredientId,
-      status: IngredientStatus.FAILED,
-      websocketMethod: 'emit',
-      websocketUrl,
-    });
-  }
-
-  /**
    * Handle failed video generation
    */
   handleFailedVideoGeneration(
-    videosService: {
-      patch: (id: string, data: Record<string, unknown>) => Promise<unknown>;
-    },
+    videosService: Pick<IngredientsService, 'patchAll'>,
     ingredientId: string,
+    organizationId: string,
     websocketUrl: string,
     userId: string,
     room?: string,
@@ -239,8 +209,8 @@ export class FailedGenerationService {
     return this.handleFailedGeneration(videosService, {
       activityMetadata,
       ingredientId,
+      organizationId,
       room,
-      status: IngredientStatus.FAILED,
       userId,
       websocketMessage: 'Processing failed',
       websocketMethod: 'publishMediaFailed',
@@ -252,19 +222,20 @@ export class FailedGenerationService {
    * Handle failed image generation
    */
   async handleFailedImageGeneration(
-    imagesService: {
-      patch: (id: string, data: Record<string, unknown>) => Promise<unknown>;
-    },
+    imagesService: Pick<IngredientsService, 'patchAll'>,
     ingredientId: string,
     websocketUrl: string,
     metadata?: { userId: string; organizationId: string },
     room?: string,
     errorMessage?: string,
   ): Promise<void> {
-    await imagesService.patch(ingredientId, {
-      generationError: errorMessage ?? 'Generation failed',
-      status: IngredientStatus.FAILED,
+    const isSettled = await settleIngredientGeneration(imagesService, {
+      data: { generationError: errorMessage ?? 'Generation failed' },
+      id: ingredientId,
+      organizationId: metadata?.organizationId,
+      to: IngredientStatus.FAILED,
     });
+    if (!isSettled) return;
     await this.notifyFailedImageGeneration(
       ingredientId,
       websocketUrl,
@@ -299,7 +270,6 @@ export class FailedGenerationService {
       ingredientId,
       organizationId: metadata?.organizationId,
       room,
-      status: IngredientStatus.FAILED,
       userId: metadata?.userId,
       websocketMessage: errorMessage || 'Generation failed',
       websocketMethod: 'publishMediaFailed',
@@ -312,9 +282,7 @@ export class FailedGenerationService {
    * stored on the ingredient and pushed to the client so the tile can show it.
    */
   handleFailedMusicGeneration(
-    musicsService: {
-      patch: (id: string, data: Record<string, unknown>) => Promise<unknown>;
-    },
+    musicsService: Pick<IngredientsService, 'patchAll'>,
     ingredientId: string,
     websocketUrl: string,
     userId: string,
@@ -333,7 +301,6 @@ export class FailedGenerationService {
       activityMetadata,
       ingredientId,
       room,
-      status: IngredientStatus.FAILED,
       userId,
       websocketMessage: errorMessage?.trim() || 'Generation failed',
       websocketMethod: 'publishMediaFailed',

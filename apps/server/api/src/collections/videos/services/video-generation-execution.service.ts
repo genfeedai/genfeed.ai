@@ -645,6 +645,7 @@ export class VideoGenerationExecutionService {
         this.failedGenerationService.handleFailedVideoGeneration(
           this.videosService,
           pendingId,
+          context.user.organizationId,
           WebSocketPaths.video(pendingId),
           context.user.id,
           getUserRoomName(context.user.id),

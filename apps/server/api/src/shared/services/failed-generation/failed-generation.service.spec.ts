@@ -1,407 +1,279 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
+import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import {
-  type FailedGenerationOptions,
-  FailedGenerationService,
-} from '@api/shared/services/failed-generation/failed-generation.service';
+  type IngredientWorldRow,
+  ingredientRowWorld,
+} from '@api-test/fixtures/ingredient-row.world';
 import {
   ActivityKey,
   ActivitySource,
   IngredientStatus,
 } from '@genfeedai/contracts';
-import { Test, TestingModule } from '@nestjs/testing';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const ingredientId = 'ingredient-1';
+const organizationId = 'org-1';
+const userId = 'user-1';
+const websocketUrl = '/videos/ingredient-1';
 
 describe('FailedGenerationService', () => {
+  let ingredient: IngredientWorldRow;
+  let activities: Array<Record<string, unknown>>;
+  let announced: Array<{ message: string; room?: string; url: string }>;
+  let emitted: Array<{ payload: unknown; url: string }>;
   let service: FailedGenerationService;
-  // One mock serves the activity lookup and the recording API.
-  let activitiesService: {
-    findByActionValue: ReturnType<typeof vi.fn>;
-    findOne: ReturnType<typeof vi.fn>;
-    record: ReturnType<typeof vi.fn>;
-    update: ReturnType<typeof vi.fn>;
-  };
-  let websocketService: vi.Mocked<NotificationsPublisherService>;
 
-  const mockIngredientId = '550e8400-e29b-41d4-a716-446655440001';
-  const mockUserId = '550e8400-e29b-41d4-a716-446655440002';
-  const mockOrganizationId = '550e8400-e29b-41d4-a716-446655440003';
-  const mockWebsocketUrl = 'ws://genfeed.localhost:3111';
-
-  const mockService = {
-    patch: vi.fn(),
-  };
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        FailedGenerationService,
-        {
-          provide: ActivitiesService,
-          useValue: {
-            record: vi.fn(),
-            findByActionValue: vi.fn().mockResolvedValue(null),
-            findOne: vi.fn().mockResolvedValue(null),
-            update: vi.fn(),
-          },
-        },
-        { provide: ActivityRecorderService, useExisting: ActivitiesService },
-        {
-          provide: NotificationsPublisherService,
-          useValue: {
-            emit: vi.fn(),
-            publishMediaFailed: vi.fn(),
-          },
-        },
-      ],
-    }).compile();
-
-    service = module.get<FailedGenerationService>(FailedGenerationService);
-    activitiesService = module.get(ActivitiesService);
-    websocketService = module.get(NotificationsPublisherService);
-
-    vi.clearAllMocks();
+  beforeEach(() => {
+    ingredient = {
+      generationError: null,
+      id: ingredientId,
+      isDeleted: false,
+      organizationId,
+      status: IngredientStatus.PROCESSING,
+    };
+    activities = [];
+    announced = [];
+    emitted = [];
+    const activityStore = {
+      findByActionValue: async () => null,
+      record: async (activity: Record<string, unknown>) => {
+        activities.push(activity);
+      },
+      update: async () => undefined,
+    };
+    const websocket = {
+      emit: async (url: string, payload: unknown) => {
+        emitted.push({ payload, url });
+      },
+      publishMediaFailed: async (
+        url: string,
+        message: string,
+        _user: string,
+        room?: string,
+      ) => {
+        announced.push({ message, room, url });
+      },
+    };
+    service = new FailedGenerationService(
+      activityStore as unknown as ActivitiesService,
+      activityStore as unknown as ActivityRecorderService,
+      websocket as unknown as NotificationsPublisherService,
+    );
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
-  describe('handleFailedGeneration', () => {
-    it('should update ingredient status to FAILED', async () => {
-      const options: FailedGenerationOptions = {
-        ingredientId: mockIngredientId,
-        websocketUrl: mockWebsocketUrl,
-      };
+  const world = () => ingredientRowWorld(ingredient);
 
-      mockService.patch.mockResolvedValue({});
-
-      await service.handleFailedGeneration(mockService, options);
-
-      expect(mockService.patch).toHaveBeenCalledWith(mockIngredientId, {
-        generationError: 'Generation failed',
+  it.each([
+    [
+      'a generation in flight',
+      { generationError: null, status: IngredientStatus.PROCESSING },
+      { generationError: 'Processing failed', status: IngredientStatus.FAILED },
+      1,
+    ],
+    [
+      'a generation the processing-timeout cron failed',
+      {
+        generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
         status: IngredientStatus.FAILED,
-      });
-    });
-
-    it('should create activity when metadata provided', async () => {
-      const options: FailedGenerationOptions = {
-        activityMetadata: {
-          key: ActivityKey.VIDEO_FAILED,
-          organizationId: mockOrganizationId,
-          source: ActivitySource.SCRIPT,
-          userId: mockUserId,
-          value: mockIngredientId,
-        },
-        ingredientId: mockIngredientId,
-        websocketUrl: mockWebsocketUrl,
-      };
-
-      mockService.patch.mockResolvedValue({});
-      activitiesService.record.mockResolvedValue({} as never);
-
-      await service.handleFailedGeneration(mockService, options);
-
-      expect(activitiesService.record).toHaveBeenCalledWith(
-        expect.objectContaining({
-          key: ActivityKey.VIDEO_FAILED,
-          organizationId: expect.any(String),
-          source: ActivitySource.SCRIPT,
-          userId: expect.any(String),
-        }),
-      );
-    });
-
-    it('should not create activity when metadata not provided', async () => {
-      const options: FailedGenerationOptions = {
-        ingredientId: mockIngredientId,
-        websocketUrl: mockWebsocketUrl,
-      };
-
-      mockService.patch.mockResolvedValue({});
-
-      await service.handleFailedGeneration(mockService, options);
-
-      expect(activitiesService.record).not.toHaveBeenCalled();
-    });
-
-    it('should use publishMediaFailed when specified', async () => {
-      const options: FailedGenerationOptions = {
-        ingredientId: mockIngredientId,
-        room: 'test-room',
-        userId: mockUserId,
-        websocketMessage: 'Custom error message',
-        websocketMethod: 'publishMediaFailed',
-        websocketUrl: mockWebsocketUrl,
-      };
-
-      mockService.patch.mockResolvedValue({});
-      websocketService.publishMediaFailed.mockResolvedValue(undefined);
-
-      await service.handleFailedGeneration(mockService, options);
-
-      expect(websocketService.publishMediaFailed).toHaveBeenCalledWith(
-        mockWebsocketUrl,
-        'Custom error message',
-        mockUserId,
-        'test-room',
-      );
-      expect(websocketService.emit).not.toHaveBeenCalled();
-    });
-
-    it('should use emit by default with delay', async () => {
-      vi.useFakeTimers();
-
-      const options: FailedGenerationOptions = {
-        delay: 500,
-        ingredientId: mockIngredientId,
-        websocketUrl: mockWebsocketUrl,
-      };
-
-      mockService.patch.mockResolvedValue({});
-
-      await service.handleFailedGeneration(mockService, options);
-
-      expect(websocketService.emit).not.toHaveBeenCalled();
-
-      vi.advanceTimersByTime(500);
-
-      expect(websocketService.emit).toHaveBeenCalledWith(mockWebsocketUrl, {
-        result: null,
-        status: IngredientStatus.FAILED,
-      });
-
-      vi.useRealTimers();
-    });
-
-    it('should use custom status when provided', async () => {
-      const options: FailedGenerationOptions = {
-        ingredientId: mockIngredientId,
-        status: IngredientStatus.ARCHIVED,
-        websocketUrl: mockWebsocketUrl,
-      };
-
-      mockService.patch.mockResolvedValue({});
-
-      await service.handleFailedGeneration(mockService, options);
-
-      expect(mockService.patch).toHaveBeenCalledWith(mockIngredientId, {
-        generationError: 'Generation failed',
-        status: IngredientStatus.ARCHIVED,
-      });
-    });
-  });
-
-  describe('handleFailedVoiceGeneration', () => {
-    it('should handle failed voice generation', async () => {
-      const voicesService = {
-        patch: vi.fn().mockResolvedValue({}),
-      };
-
-      vi.useFakeTimers();
-
-      await service.handleFailedVoiceGeneration(
-        voicesService,
-        mockIngredientId,
-        mockWebsocketUrl,
-      );
-
-      expect(voicesService.patch).toHaveBeenCalledWith(mockIngredientId, {
-        generationError: 'Generation failed',
-        status: IngredientStatus.FAILED,
-      });
-
-      vi.useRealTimers();
-    });
-  });
-
-  describe('handleFailedAvatarGeneration', () => {
-    it('should handle failed avatar generation', async () => {
-      const avatarsService = {
-        patch: vi.fn().mockResolvedValue({}),
-      };
-
-      vi.useFakeTimers();
-
-      await service.handleFailedAvatarGeneration(
-        avatarsService,
-        mockIngredientId,
-        mockWebsocketUrl,
-      );
-
-      expect(avatarsService.patch).toHaveBeenCalledWith(mockIngredientId, {
-        generationError: 'Generation failed',
-        status: IngredientStatus.FAILED,
-      });
-
-      vi.useRealTimers();
-    });
-  });
-
-  describe('handleFailedVideoGeneration', () => {
-    it('should handle failed video generation', async () => {
-      const videosService = {
-        patch: vi.fn().mockResolvedValue({}),
-      };
-
-      websocketService.publishMediaFailed.mockResolvedValue(undefined);
+      },
+      { generationError: 'Processing failed', status: IngredientStatus.FAILED },
+      1,
+    ],
+    [
+      'a generation the user cancelled (#9735)',
+      { generationError: 'Cancelled by user', status: IngredientStatus.FAILED },
+      { generationError: 'Cancelled by user', status: IngredientStatus.FAILED },
+      0,
+    ],
+    [
+      'a generation that already finished (#9735)',
+      { generationError: null, status: IngredientStatus.GENERATED },
+      { generationError: null, status: IngredientStatus.GENERATED },
+      0,
+    ],
+  ])(
+    'fails %s and announces it only when it was still running',
+    async (_label, before, after, announcements) => {
+      Object.assign(ingredient, before);
 
       await service.handleFailedVideoGeneration(
-        videosService,
-        mockIngredientId,
-        mockWebsocketUrl,
-        mockUserId,
-        'test-room',
+        world(),
+        ingredientId,
+        organizationId,
+        websocketUrl,
+        userId,
+        'room-1',
       );
 
-      expect(videosService.patch).toHaveBeenCalledWith(mockIngredientId, {
-        generationError: 'Processing failed',
-        status: IngredientStatus.FAILED,
-      });
+      expect(ingredient).toMatchObject(after);
+      expect(announced).toHaveLength(announcements);
+    },
+  );
 
-      expect(websocketService.publishMediaFailed).toHaveBeenCalledWith(
-        mockWebsocketUrl,
-        'Processing failed',
-        mockUserId,
-        'test-room',
-      );
-    });
+  it('leaves an ingredient of another organization alone', async () => {
+    await service.handleFailedVideoGeneration(
+      world(),
+      ingredientId,
+      'org-other',
+      websocketUrl,
+      userId,
+    );
+
+    expect(ingredient.status).toBe(IngredientStatus.PROCESSING);
+    expect(announced).toEqual([]);
   });
 
-  describe('handleFailedImageGeneration', () => {
-    it('should handle failed image generation with metadata', async () => {
-      const imagesService = {
-        patch: vi.fn().mockResolvedValue({}),
-      };
+  it('announces a failed video with the processing message', async () => {
+    await service.handleFailedVideoGeneration(
+      world(),
+      ingredientId,
+      organizationId,
+      websocketUrl,
+      userId,
+      'room-1',
+    );
 
-      websocketService.publishMediaFailed.mockResolvedValue(undefined);
+    expect(announced).toEqual([
+      { message: 'Processing failed', room: 'room-1', url: websocketUrl },
+    ]);
+  });
 
+  it('records the failure activity when activity details are given', async () => {
+    await service.handleFailedGeneration(world(), {
+      activityMetadata: {
+        key: ActivityKey.VIDEO_FAILED,
+        organizationId,
+        source: ActivitySource.SCRIPT,
+        userId,
+        value: ingredientId,
+      },
+      ingredientId,
+      websocketUrl,
+    });
+
+    expect(activities).toEqual([
+      expect.objectContaining({
+        key: ActivityKey.VIDEO_FAILED,
+        organizationId,
+        source: ActivitySource.SCRIPT,
+        userId,
+      }),
+    ]);
+  });
+
+  it('emits the failed status after the delay by default', async () => {
+    vi.useFakeTimers();
+
+    await service.handleFailedGeneration(world(), {
+      delay: 500,
+      ingredientId,
+      organizationId,
+      websocketUrl,
+    });
+    const beforeDelay = [...emitted];
+    vi.advanceTimersByTime(500);
+
+    expect(beforeDelay).toEqual([]);
+    expect(emitted).toEqual([
+      {
+        payload: { result: null, status: IngredientStatus.FAILED },
+        url: websocketUrl,
+      },
+    ]);
+    expect(activities).toEqual([]);
+  });
+
+  it.each([
+    [undefined, 'Generation failed'],
+    [
+      'gen4_image_turbo requires at least one reference image',
+      'gen4_image_turbo requires at least one reference image',
+    ],
+  ])(
+    'stores and announces an image failure reason (%s)',
+    async (reason, message) => {
       await service.handleFailedImageGeneration(
-        imagesService,
-        mockIngredientId,
-        mockWebsocketUrl,
-        {
-          organizationId: mockOrganizationId,
-          userId: mockUserId,
-        },
-        'test-room',
+        world(),
+        ingredientId,
+        websocketUrl,
+        { organizationId, userId },
+        'room-1',
+        ...(reason === undefined ? [] : [reason]),
       );
 
-      expect(imagesService.patch).toHaveBeenCalledWith(mockIngredientId, {
-        generationError: 'Generation failed',
+      expect(ingredient).toMatchObject({
+        generationError: message,
         status: IngredientStatus.FAILED,
       });
-
-      expect(activitiesService.record).toHaveBeenCalledWith(
+      expect(announced).toEqual([
+        { message, room: 'room-1', url: websocketUrl },
+      ]);
+      expect(activities).toEqual([
         expect.objectContaining({
           key: ActivityKey.IMAGE_FAILED,
           source: ActivitySource.SCRIPT,
         }),
-      );
+      ]);
+    },
+  );
+
+  it('keeps an image the user cancelled failed and silent (#9735)', async () => {
+    Object.assign(ingredient, {
+      generationError: 'Cancelled by user',
+      status: IngredientStatus.FAILED,
     });
 
-    it('should publish the provider error message when supplied', async () => {
-      const imagesService = {
-        patch: vi.fn().mockResolvedValue({}),
-      };
+    await service.handleFailedImageGeneration(
+      world(),
+      ingredientId,
+      websocketUrl,
+      { organizationId, userId },
+    );
 
-      websocketService.publishMediaFailed.mockResolvedValue(undefined);
+    expect(ingredient.generationError).toBe('Cancelled by user');
+    expect(announced).toEqual([]);
+    expect(activities).toEqual([]);
+  });
 
-      await service.handleFailedImageGeneration(
-        imagesService,
-        mockIngredientId,
-        mockWebsocketUrl,
+  it.each([
+    [undefined, 'Generation failed'],
+    [
+      'Mureka rejected the request (HTTP 400: prompt is too short)',
+      'Mureka rejected the request (HTTP 400: prompt is too short)',
+    ],
+  ])(
+    'stores and announces a music failure reason (%s)',
+    async (reason, message) => {
+      await service.handleFailedMusicGeneration(
+        world(),
+        ingredientId,
+        websocketUrl,
+        userId,
+        'room-1',
         {
-          organizationId: mockOrganizationId,
-          userId: mockUserId,
+          key: ActivityKey.MUSIC_FAILED,
+          organizationId,
+          source: ActivitySource.MUSIC_GENERATION,
+          userId,
+          value: JSON.stringify({ ingredientId }),
         },
-        'test-room',
-        'gen4_image_turbo requires at least one reference image',
+        reason,
       );
 
-      expect(websocketService.publishMediaFailed).toHaveBeenCalledWith(
-        mockWebsocketUrl,
-        'gen4_image_turbo requires at least one reference image',
-        mockUserId,
-        'test-room',
-      );
-    });
-
-    it('should handle failed image generation without metadata', async () => {
-      const imagesService = {
-        patch: vi.fn().mockResolvedValue({}),
-      };
-
-      websocketService.publishMediaFailed.mockResolvedValue(undefined);
-
-      await service.handleFailedImageGeneration(
-        imagesService,
-        mockIngredientId,
-        mockWebsocketUrl,
-      );
-
-      expect(imagesService.patch).toHaveBeenCalled();
-      expect(activitiesService.record).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('handleFailedMusicGeneration', () => {
-    it('should handle failed music generation', async () => {
-      const musicsService = {
-        patch: vi.fn().mockResolvedValue({}),
-      };
-
-      websocketService.publishMediaFailed.mockResolvedValue(undefined);
-
-      await service.handleFailedMusicGeneration(
-        musicsService,
-        mockIngredientId,
-        mockWebsocketUrl,
-        mockUserId,
-        'test-room',
-      );
-
-      expect(musicsService.patch).toHaveBeenCalledWith(mockIngredientId, {
-        generationError: 'Generation failed',
+      expect(ingredient).toMatchObject({
+        generationError: message,
         status: IngredientStatus.FAILED,
       });
-
-      expect(websocketService.publishMediaFailed).toHaveBeenCalledWith(
-        mockWebsocketUrl,
-        'Generation failed',
-        mockUserId,
-        'test-room',
-      );
-    });
-
-    it('stores and publishes the provider reason when one is given', async () => {
-      const musicsService = {
-        patch: vi.fn().mockResolvedValue({}),
-      };
-
-      websocketService.publishMediaFailed.mockResolvedValue(undefined);
-
-      await service.handleFailedMusicGeneration(
-        musicsService,
-        mockIngredientId,
-        mockWebsocketUrl,
-        mockUserId,
-        'test-room',
-        undefined,
-        'Mureka rejected the request (HTTP 400: prompt is too short)',
-      );
-
-      expect(musicsService.patch).toHaveBeenCalledWith(mockIngredientId, {
-        generationError:
-          'Mureka rejected the request (HTTP 400: prompt is too short)',
-        status: IngredientStatus.FAILED,
-      });
-      expect(websocketService.publishMediaFailed).toHaveBeenCalledWith(
-        mockWebsocketUrl,
-        'Mureka rejected the request (HTTP 400: prompt is too short)',
-        mockUserId,
-        'test-room',
-      );
-    });
-  });
+      expect(announced).toEqual([
+        { message, room: 'room-1', url: websocketUrl },
+      ]);
+    },
+  );
 });
