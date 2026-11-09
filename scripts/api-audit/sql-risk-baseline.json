@@ -1,0 +1,2787 @@
+{
+  "entries": [
+    {
+      "category": "broad-include",
+      "count": 1,
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-account-migration.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "broad-include",
+      "count": 2,
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "broad-include",
+      "count": 1,
+      "file": "apps/server/api/src/collections/contexts/services/knowledge-records.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "broad-include",
+      "count": 1,
+      "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "broad-include",
+      "count": 1,
+      "file": "apps/server/api/src/collections/ingredients/services/ingredient-lineage.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "broad-include",
+      "count": 1,
+      "file": "apps/server/api/src/collections/referrals/services/referrals.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "broad-include",
+      "count": 1,
+      "file": "apps/server/api/src/collections/templates/services/templates.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "broad-include",
+      "count": 1,
+      "file": "apps/server/api/src/collections/visual-projects/services/visual-project-assets.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "broad-include",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-accounting.ts",
+      "target": "-"
+    },
+    {
+      "category": "broad-include",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/featured-workflows.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "broad-include",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/workflows.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "broad-include",
+      "count": 1,
+      "file": "apps/server/api/src/services/agent-campaign/agent-campaign-workflow.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "broad-include",
+      "count": 1,
+      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-work-object.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "broad-include",
+      "count": 1,
+      "file": "apps/server/api/src/services/social-timeline/social-timeline.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "broad-include",
+      "count": 1,
+      "file": "apps/server/api/src/services/system-events/system-event-delivery.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "broad-include",
+      "count": 1,
+      "file": "apps/server/api/src/services/system-events/system-events.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/agent-memories/services/agent-memories.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/agent-memories/services/agent-memory-revisions.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/agent-strategies/services/agent-strategies.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/agent-strategies/services/agent-strategy-opportunities.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/agent-threads/utils/agent-thread-relocation.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/agent-threads/utils/reconcile-thread-workflow-snapshot.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/brands/services/brand-font-assets.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/brands/services/brand-kit-apply-persistence.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/brands/services/brand-kit-assets.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/collections/brands/services/brand-learning-mutation.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/brands/services/brand-lifecycle.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/brands/services/brand-os-revisions.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/brands/services/brand-os-scan.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/clipper-projects/services/clipper-continuity-workflow.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-account.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-artifact-binding.helper.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-baseline-materialization.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-checkpoint.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-dataset-graph.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-dataset-publication-pins.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 7,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-dataset.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-decision.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 4,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-dependency.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-experiment.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-operation.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-policy.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-release.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-run-control.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-run.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-scope-state.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/collections/content-performance/services/performance-summary.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/collections/contexts/services/context-embedding-sweep.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 10,
+      "file": "apps/server/api/src/collections/contexts/services/context-embedding-write.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 11,
+      "file": "apps/server/api/src/collections/contexts/services/context-embedding.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 7,
+      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/contexts/services/knowledge-conflict-detection.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 6,
+      "file": "apps/server/api/src/collections/contexts/services/knowledge-embedding-completion.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/contexts/services/knowledge-records.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/contexts/services/knowledge-refresh.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/contexts/services/knowledge-source-ingest.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/contexts/utils/knowledge-chunk.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/contexts/utils/knowledge-idempotent-capture.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 4,
+      "file": "apps/server/api/src/collections/credentials/services/credential-learning-mutation.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/credentials/services/credentials.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/credits/services/credit-transactions.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/credits/services/generation-line-reservation.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/collections/credits/services/workflow-generation-billing.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/collections/editor-projects/editor-projects.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/editor-projects/services/remotion-compositions.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/evaluations/services/content-evaluation-projection.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/imported-sources/services/imported-sources.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/members/services/members.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/models/services/model-provider-offers.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/models/utils/associate-provider-variant.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/collections/newsletter-analytics/services/newsletter-analytics.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/organizations/services/organizations.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/outliers/services/breakout-artifact-binding-lock.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 4,
+      "file": "apps/server/api/src/collections/outliers/services/breakout-baseline-receipt.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/outliers/services/breakout-capacity-plan.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/outliers/services/breakout-generation-admission.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/outliers/services/breakout-output-quality.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/outliers/services/breakout-publication-admission.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/outliers/services/breakout-response-execution.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/outliers/services/breakout-response-identity.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/outliers/services/native-source-exposure-observation.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/outliers/services/outlier-inputs.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/outliers/services/post-exposure-observation.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/outliers/services/winner-classification.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/personas/services/persona-references.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/personas/utils/persona-handle-lock.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/platform-settings/services/platform-settings.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 5,
+      "file": "apps/server/api/src/collections/posts/services/analytics-aggregation.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 8,
+      "file": "apps/server/api/src/collections/posts/services/post-learning-mutation.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/posts/services/post-publication-capture.write.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/posts/services/post-publication-credential-link.write.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/posts/services/post-publication-insights.read.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/posts/services/post-strategy-cadence-admission.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/settings/services/settings.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/skills/services/skill-library.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/skills/services/skill-package-import.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/collections/skills/services/skill-write-session.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/subscription-attributions/services/subscription-attributions.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/tasks/services/workspace-inbox-read.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/tracked-links/services/tracked-links.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/collections/trends/services/modules/trend-video.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/visual-projects/services/visual-project-assets.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/visual-projects/services/visual-projects.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/content-learning-workflow.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/daily-publishing.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/collections/workflows/services/workflow-artifact-lifecycle.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/workflow-webhook.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/system-workflow-mirror.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 25,
+      "file": "apps/server/api/src/endpoints/admin/economics/economics.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/endpoints/admin/unit-economics/unit-economics.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/admin/warmup-accounts/warmup-workspace.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 4,
+      "file": "apps/server/api/src/endpoints/analytics/account-analytics.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 11,
+      "file": "apps/server/api/src/endpoints/analytics/analytics.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 4,
+      "file": "apps/server/api/src/endpoints/analytics/business-analytics.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 4,
+      "file": "apps/server/api/src/endpoints/analytics/entity-leaderboard.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/analytics/organization-lifecycle.sql.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/endpoints/analytics/organization-qualification.sql.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/endpoints/cost-reporting/cost-reporting.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/helpers/utils/credits/persist-submission-failure.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/helpers/utils/credits/persist-unsubmitted-crun-abort.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/helpers/utils/credits/workflow-execution-admission.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/helpers/utils/credits/workflow-generation-recovery.util.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/main.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/seeds/model-catalog-seed.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/services/agent-orchestrator/agent-generation-decision.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-ui-action-brand-identity.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-ui-action-mutation.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 6,
+      "file": "apps/server/api/src/services/agent-source-ingest/agent-imported-source-ingest.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/services/autonomous-publishing/autonomous-publish-policy.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/services/brand-os-export/brand-os-export.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/services/brand-publish-policy/brand-publish-policy.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/services/branded-generation-receipts/brand-identity-snapshot.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 3,
+      "file": "apps/server/api/src/services/branded-generation-receipts/branded-generation-receipts.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/services/system-events/system-events.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/services/system-events/system-notification-destinations.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/services/turbo-run/turbo-run-creation.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 1,
+      "file": "apps/server/api/src/services/turbo-run/turbo-run-processing.service.ts",
+      "target": "-"
+    },
+    {
+      "category": "raw-sql-review",
+      "count": 2,
+      "file": "apps/server/api/src/services/turbo-run/turbo-run-review-transaction.ts",
+      "target": "-"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/auth/services/auth-desktop.service.ts",
+      "growth": "catalog",
+      "target": "desktopAuthCode"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/ad-creative-mappings/services/ad-creative-mappings.service.ts",
+      "growth": "growing",
+      "target": "adCreativeMapping"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/ad-optimization-configs/services/ad-optimization-configs.service.ts",
+      "growth": "config",
+      "target": "adOptimizationConfig"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/ad-optimization-recommendations/services/ad-optimization-recommendations.service.ts",
+      "growth": "growing",
+      "target": "adOptimizationRecommendation"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/ad-performance/services/ad-performance.service.ts",
+      "growth": "growing",
+      "target": "adPerformance"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/agent-goals/services/agent-goals.service.ts",
+      "growth": "config",
+      "target": "agentGoal"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/agent-strategies/services/agent-strategies.service.ts",
+      "growth": "config",
+      "target": "delegate"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/agent-strategies/services/agent-strategy-opportunities.service.ts",
+      "growth": "growing",
+      "target": "agentStrategyOpportunity"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/agent-threads/services/agent-threads.service.ts",
+      "growth": "growing",
+      "target": "agentThreadSnapshot"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/agent-threads/services/agent-threads.service.ts",
+      "growth": "growing",
+      "target": "ingredient"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/agent-transfers/services/agent-transfers.service.ts",
+      "growth": "growing",
+      "target": "agentTransfer"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/articles/services/article-analytics.service.ts",
+      "growth": "growing",
+      "target": "delegate"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/avatar-twins/services/avatar-twins.service.ts",
+      "growth": "config",
+      "target": "brand"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/avatar-twins/services/avatar-twins.service.ts",
+      "growth": "growing",
+      "target": "mediaDeliveryVariant"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-account-migration.service.ts",
+      "growth": "config",
+      "target": "organization"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "growth": "config",
+      "target": "billingAccountMember"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "growth": "config",
+      "target": "billingAccountOrganization"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/bots/services/bots-livestream.service.ts",
+      "growth": "config",
+      "target": "livestreamBotSession"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/brand-memory/services/brand-memory.service.ts",
+      "growth": "config",
+      "target": "brandMemory"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/brand-memory/services/brand-memory.service.ts",
+      "growth": "config",
+      "target": "delegate"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/brands/services/brand-learning-mutation.util.ts",
+      "growth": "config",
+      "target": "brand"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/brands/services/brand-learning-mutation.util.ts",
+      "growth": "config",
+      "target": "contentLearningAccount"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/brands/services/brand-lifecycle.service.ts",
+      "growth": "config",
+      "target": "brand"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/brands/services/brand-lifecycle.service.ts",
+      "growth": "config",
+      "target": "member"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/brands/services/brand-lifecycle.service.ts",
+      "growth": "config",
+      "target": "persona"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/brands/services/brand-lifecycle.service.ts",
+      "growth": "config",
+      "target": "personaGrant"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 4,
+      "file": "apps/server/api/src/collections/brands/services/brand-os-revisions.service.ts",
+      "growth": "growing",
+      "target": "brandOsRevision"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/brands/services/brands.service.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/brands/services/brands.service.ts",
+      "growth": "config",
+      "target": "delegate"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 3,
+      "file": "apps/server/api/src/collections/brands/services/default-recurring-content.service.ts",
+      "growth": "config",
+      "target": "workflow"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/brands/utils/brand-logo-urls.util.ts",
+      "growth": "growing",
+      "target": "asset"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/brands/utils/brand-relocation-schedules.util.ts",
+      "growth": "config",
+      "target": "workflow"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/campaign-targets/services/campaign-targets.service.ts",
+      "growth": "config",
+      "target": "campaignTarget"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/campaigns/services/campaign-generation.service.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/campaigns/services/campaign-generation.service.ts",
+      "growth": "growing",
+      "target": "post"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/campaigns/services/campaign-lifecycle.service.ts",
+      "growth": "growing",
+      "target": "post"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/campaigns/services/campaign-paid-activation.service.ts",
+      "growth": "growing",
+      "target": "campaignPaidActivation"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/campaigns/services/campaign-paid-activation.service.ts",
+      "growth": "growing",
+      "target": "post"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/campaigns/services/campaign-performance.service.ts",
+      "growth": "growing",
+      "target": "post"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/campaigns/services/campaign-performance.service.ts",
+      "growth": "growing",
+      "target": "postAnalytics"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/clipper-projects/services/clipper-continuity-workflow.service.ts",
+      "growth": "growing",
+      "target": "task"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/clipper-projects/services/clipper-continuity-workflow.service.ts",
+      "growth": "growing",
+      "target": "turboRunItem"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-intelligence/services/pattern-store.service.ts",
+      "growth": "growing",
+      "target": "delegate"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-account.service.ts",
+      "growth": "config",
+      "target": "contentLearningScopeState"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-account.service.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-baseline-lineage.helper.ts",
+      "growth": "growing",
+      "target": "contentLearningDependency"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-checkpoint.service.ts",
+      "growth": "growing",
+      "target": "contentLearningCheckpoint"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-dependency.service.ts",
+      "growth": "growing",
+      "target": "contentLearningDependency"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-experiment-evidence.service.ts",
+      "growth": "growing",
+      "target": "contentLearningExperimentEvent"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-experiment.service.ts",
+      "growth": "growing",
+      "target": "contentLearningExperimentEvent"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-experiment.service.ts",
+      "growth": "growing",
+      "target": "contentLearningOpportunity"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-policy.service.ts",
+      "growth": "growing",
+      "target": "contentLearningDecision"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-read.service.ts",
+      "growth": "config",
+      "target": "contentLearningAccount"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-read.service.ts",
+      "growth": "growing",
+      "target": "contentLearningDataset"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-read.service.ts",
+      "growth": "growing",
+      "target": "contentLearningRelease"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-read.service.ts",
+      "growth": "growing",
+      "target": "contentLearningRun"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-release.service.ts",
+      "growth": "growing",
+      "target": "contentLearningRelease"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-run-control.service.ts",
+      "growth": "growing",
+      "target": "contentLearningOperation"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-run.service.ts",
+      "growth": "growing",
+      "target": "contentLearningOperation"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-learning/services/learning-scope-state.service.ts",
+      "growth": "config",
+      "target": "contentLearningScopeState"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-performance/services/attribution.service.ts",
+      "growth": "growing",
+      "target": "contentPerformance"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-performance/services/content-performance.service.ts",
+      "growth": "growing",
+      "target": "delegate"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-performance/services/content-performance.service.ts",
+      "growth": "growing",
+      "target": "post"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-performance/services/email-digest.service.ts",
+      "growth": "config",
+      "target": "member"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-performance/services/variation-group-scoring.service.ts",
+      "growth": "growing",
+      "target": "contentPerformance"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-performance/services/winner-promotion-workflow.service.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/content-plan-items/services/content-plan-items.service.ts",
+      "growth": "growing",
+      "target": "contentPlanItem"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-previews/services/content-previews.service.ts",
+      "growth": "growing",
+      "target": "contentPreview"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-runs/services/brand-remix-run-execution.service.ts",
+      "growth": "growing",
+      "target": "ingredient"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/content-runs/services/content-run-recommendations.service.ts",
+      "growth": "growing",
+      "target": "contentPerformance"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/content-runs/services/storyboard-character-replace.service.ts",
+      "growth": "growing",
+      "target": "ingredient"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/contexts/services/context-embedding-write.service.ts",
+      "growth": "config",
+      "target": "contextEntry"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
+      "growth": "config",
+      "target": "contextBase"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
+      "growth": "config",
+      "target": "contextEntry"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/contexts/services/knowledge-conflict-detection.service.ts",
+      "growth": "growing",
+      "target": "knowledgeSourceConflict"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 3,
+      "file": "apps/server/api/src/collections/contexts/services/knowledge-content-retrieval.service.ts",
+      "growth": "config",
+      "target": "contextBase"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/contexts/services/knowledge-records.service.ts",
+      "growth": "config",
+      "target": "knowledgeSpaceMembership"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/contexts/services/knowledge-selection.service.ts",
+      "growth": "config",
+      "target": "knowledgeSpaceMembership"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/contexts/services/knowledge-source-ingest.service.ts",
+      "growth": "growing",
+      "target": "knowledgeSourceVersion"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/creator-payments/services/creator-subscriptions.service.ts",
+      "growth": "config",
+      "target": "brand"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/creator-payments/services/creator-subscriptions.service.ts",
+      "growth": "config",
+      "target": "creatorSubscription"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/creator-payments/services/creator-subscriptions.service.ts",
+      "growth": "config",
+      "target": "organization"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
+      "growth": "config",
+      "target": "socialWarmupEnrollment"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/credentials/services/credential-learning-mutation.util.ts",
+      "growth": "config",
+      "target": "contentLearningAccount"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/credentials/services/credential-learning-mutation.util.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/credentials/services/credential-posting-times.service.ts",
+      "growth": "growing",
+      "target": "post"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/credentials/services/credential-publishing-readiness.service.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/credentials/services/provider-account-purge.service.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/credits/services/credit-reservation.service.ts",
+      "growth": "growing",
+      "target": "crunGenerationTask"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/credits/services/credit-transactions.service.ts",
+      "growth": "growing",
+      "target": "delegate"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/credits/services/free-trial.service.ts",
+      "growth": "config",
+      "target": "creditBalance"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/credits/services/generation-billing.service.ts",
+      "growth": "growing",
+      "target": "creditTransaction"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/credits/services/generation-quote-group.service.ts",
+      "growth": "growing",
+      "target": "crunGenerationTask"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/credits/services/video-generation-lineage.service.ts",
+      "growth": "growing",
+      "target": "creditTransaction"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/customer-instances/services/customer-instances.service.ts",
+      "growth": "config",
+      "target": "customerInstance"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/editor-projects/editor-projects.service.ts",
+      "growth": "config",
+      "target": "editorProject"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/evaluations/services/evaluations.service.ts",
+      "growth": "config",
+      "target": "evaluation"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/harness-profiles/services/harness-profiles.service.ts",
+      "growth": "config",
+      "target": "profile"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/ingredients/services/admin-generation-reviews.service.ts",
+      "growth": "growing",
+      "target": "activity"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
+      "growth": "growing",
+      "target": "ingredient"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/insights/services/insights.service.ts",
+      "growth": "config",
+      "target": "forecast"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/members/services/members.service.ts",
+      "growth": "config",
+      "target": "member"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/models/services/model-provider-offers.service.ts",
+      "growth": "catalog",
+      "target": "providerRoutingSetting"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/models/services/model-registration.service.ts",
+      "growth": "catalog",
+      "target": "model"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/models/services/model-registration.service.ts",
+      "growth": "config",
+      "target": "training"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 3,
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
+      "growth": "catalog",
+      "target": "model"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
+      "growth": "catalog",
+      "target": "modelProviderContract"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/models/utils/model-pricing-attention.util.ts",
+      "growth": "catalog",
+      "target": "model"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/models/utils/model-pricing-contracts.util.ts",
+      "growth": "catalog",
+      "target": "modelProviderContract"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/models/utils/model-provider-offer-quote.util.ts",
+      "growth": "catalog",
+      "target": "providerRoutingSetting"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
+      "growth": "config",
+      "target": "monitoredAccount"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/newsletter-analytics/services/newsletter-analytics.service.ts",
+      "growth": "growing",
+      "target": "newsletterSend"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/newsletter-sends/services/newsletter-email.service.ts",
+      "growth": "growing",
+      "target": "asset"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/newsletter-subscribers/services/brand-subscribers.service.ts",
+      "growth": "growing",
+      "target": "brandSubscriber"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/newsletter-subscribers/services/brand-subscribers.service.ts",
+      "growth": "growing",
+      "target": "emailSuppression"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/newsletters/services/newsletters.service.ts",
+      "growth": "growing",
+      "target": "delegate"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/organizations/services/organization-logo.service.ts",
+      "growth": "growing",
+      "target": "asset"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/organizations/services/organizations.service.ts",
+      "growth": "config",
+      "target": "brand"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/organizations/services/organizations.service.ts",
+      "growth": "config",
+      "target": "contentLearningAccount"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/outliers/services/outliers.service.ts",
+      "growth": "growing",
+      "target": "outlierPostPerformance"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 4,
+      "file": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts",
+      "growth": "config",
+      "target": "outreachCampaign"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 3,
+      "file": "apps/server/api/src/collections/personas/services/persona-grant-read.service.ts",
+      "growth": "config",
+      "target": "personaGrant"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/personas/services/persona-grants.service.ts",
+      "growth": "config",
+      "target": "brand"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/personas/services/persona-grants.service.ts",
+      "growth": "config",
+      "target": "member"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/personas/services/persona-grants.service.ts",
+      "growth": "config",
+      "target": "personaGrant"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/personas/services/persona-references.service.ts",
+      "growth": "config",
+      "target": "persona"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/personas/services/personas.service.ts",
+      "growth": "config",
+      "target": "persona"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/personas/utils/persona-grant-revocation.util.ts",
+      "growth": "config",
+      "target": "persona"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/personas/utils/persona-grant-revocation.util.ts",
+      "growth": "config",
+      "target": "personaGrant"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/platform-settings/services/brand-vision-model-catalog.service.ts",
+      "growth": "catalog",
+      "target": "model"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/post-groups/services/post-group-persistence.service.ts",
+      "growth": "growing",
+      "target": "post"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/post-groups/services/post-group-recurrence.service.ts",
+      "growth": "growing",
+      "target": "post"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/post-groups/services/post-group-recurrence.service.ts",
+      "growth": "growing",
+      "target": "postGroup"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts",
+      "growth": "growing",
+      "target": "post"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/posts/services/post-analytics.service.ts",
+      "growth": "growing",
+      "target": "postAnalytics"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/posts/services/post-learning-mutation.util.ts",
+      "growth": "config",
+      "target": "contentLearningAccount"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/posts/services/post-learning-mutation.util.ts",
+      "growth": "growing",
+      "target": "post"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/posts/services/post-learning-mutation.util.ts",
+      "growth": "growing",
+      "target": "postPublishFinalization"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/posts/services/post-learning-mutation.util.ts",
+      "growth": "growing",
+      "target": "publishApproval"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/posts/services/post-publication-capture.write.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/posts/services/post-publication-insights.read.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/processed-tweets/services/processed-tweets.service.ts",
+      "growth": "growing",
+      "target": "processedTweet"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/profiles/services/profiles.service.ts",
+      "growth": "config",
+      "target": "profile"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/referrals/services/referrals.service.ts",
+      "growth": "config",
+      "target": "billingAccountMember"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/referrals/services/referrals.service.ts",
+      "growth": "config",
+      "target": "billingAccountOrganization"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/referrals/services/referrals.service.ts",
+      "growth": "config",
+      "target": "referral"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/referrals/services/referrals.service.ts",
+      "growth": "config",
+      "target": "referralCode"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/referrals/services/referrals.service.ts",
+      "growth": "growing",
+      "target": "referralReward"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/referrals/utils/referral-reward-lifecycle.util.ts",
+      "growth": "config",
+      "target": "billingAccountOrganization"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/saved-ads/services/saved-ads.service.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/saved-ads/services/saved-ads.service.ts",
+      "growth": "config",
+      "target": "savedAd"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/schedules/services/schedules.service.ts",
+      "growth": "growing",
+      "target": "contentPerformance"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/schedules/services/schedules.service.ts",
+      "growth": "config",
+      "target": "schedule"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/skills/services/skill-caller-scope.ts",
+      "growth": "config",
+      "target": "skillGrant"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/skills/services/skill-library.service.ts",
+      "growth": "config",
+      "target": "organization"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/skills/services/skill-library.service.ts",
+      "growth": "catalog",
+      "target": "skill"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/skills/services/skill-library.service.ts",
+      "growth": "config",
+      "target": "skillGrant"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/skills/services/skill-version-loader.ts",
+      "growth": "catalog",
+      "target": "skillAssignment"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/skills/services/skill-version-loader.ts",
+      "growth": "config",
+      "target": "skillGrant"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 6,
+      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
+      "growth": "catalog",
+      "target": "skill"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/social-inbox/services/instagram-webhook.service.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts",
+      "growth": "growing",
+      "target": "socialConversation"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts",
+      "growth": "growing",
+      "target": "socialMessage"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/social-inbox/services/social-reply-campaign-dispatch.service.ts",
+      "growth": "growing",
+      "target": "socialReplyCampaignRecipient"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/social-sources/services/social-sources.service.ts",
+      "growth": "config",
+      "target": "socialSource"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/streaks/services/streaks.service.ts",
+      "growth": "growing",
+      "target": "activity"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/streaks/services/streaks.service.ts",
+      "growth": "config",
+      "target": "streak"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/subscriptions/services/subscriptions.service.ts",
+      "growth": "config",
+      "target": "billingAccountOrganization"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/subscriptions/services/subscriptions.service.ts",
+      "growth": "config",
+      "target": "creditBalance"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/subscriptions/services/subscriptions.service.ts",
+      "growth": "config",
+      "target": "organizationSetting"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/subscriptions/services/subscriptions.service.ts",
+      "growth": "config",
+      "target": "subscription"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/task-comments/services/task-comments.service.ts",
+      "growth": "growing",
+      "target": "taskComment"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/tasks/services/tasks.service.ts",
+      "growth": "growing",
+      "target": "delegate"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/tasks/services/workspace-inbox-read.service.ts",
+      "growth": "config",
+      "target": "workspaceInboxRead"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/trends/services/modules/trend-query.service.ts",
+      "growth": "growing",
+      "target": "trend"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 3,
+      "file": "apps/server/api/src/collections/trends/services/modules/trend-video.service.ts",
+      "growth": "growing",
+      "target": "trendingHashtag"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 3,
+      "file": "apps/server/api/src/collections/trends/services/modules/trend-video.service.ts",
+      "growth": "growing",
+      "target": "trendingSound"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 3,
+      "file": "apps/server/api/src/collections/trends/services/modules/trend-video.service.ts",
+      "growth": "growing",
+      "target": "trendingVideo"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/turbo-projects/services/turbo-project-reconcile.service.ts",
+      "growth": "growing",
+      "target": "turboProjectItem"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/turbo-projects/services/turbo-project-reconcile.service.ts",
+      "growth": "growing",
+      "target": "workflowExecution"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/turbo-projects/services/turbo-project-reconcile.service.ts",
+      "growth": "growing",
+      "target": "workflowExecutionNodeResult"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/turbo-projects/services/turbo-projects.service.ts",
+      "growth": "growing",
+      "target": "turboProjectItem"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/visual-projects/services/visual-project-billing.service.ts",
+      "growth": "catalog",
+      "target": "model"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 3,
+      "file": "apps/server/api/src/collections/voices/services/external-voice-catalog.service.ts",
+      "growth": "config",
+      "target": "externalVoice"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflow-executions/services/proactive-run-accounting.ts",
+      "growth": "growing",
+      "target": "creditTransaction"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-accounting.ts",
+      "growth": "growing",
+      "target": "creditReservation"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-accounting.ts",
+      "growth": "growing",
+      "target": "creditTransaction"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-accounting.ts",
+      "growth": "growing",
+      "target": "llmVendorCost"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-accounting.ts",
+      "growth": "growing",
+      "target": "mediaVendorCost"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-accounting.ts",
+      "growth": "growing",
+      "target": "workflowNodeContinuation"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-cost-estimate.ts",
+      "growth": "catalog",
+      "target": "model"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-execution-query.util.ts",
+      "growth": "config",
+      "target": "workflow"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-media-accounting-reconciliation.ts",
+      "growth": "growing",
+      "target": "mediaVendorCost"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/workflows/services/agent-autopilot-workflow.service.ts",
+      "growth": "config",
+      "target": "agentStrategy"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/agent-autopilot-workflow.service.ts",
+      "growth": "growing",
+      "target": "workflowExecution"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/content-learning-workflow.service.ts",
+      "growth": "growing",
+      "target": "contentLearningCheckpoint"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/content-learning-workflow.service.ts",
+      "growth": "growing",
+      "target": "contentLearningDecision"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/content-learning-workflow.service.ts",
+      "growth": "growing",
+      "target": "contentLearningOperation"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/content-learning-workflow.service.ts",
+      "growth": "growing",
+      "target": "post"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/content-production-workflow.service.ts",
+      "growth": "config",
+      "target": "contentPlan"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/daily-publishing.service.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/system-workflow-catalog.service.ts",
+      "growth": "config",
+      "target": "workflow"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/video-qa-continuity-resolver.service.ts",
+      "growth": "catalog",
+      "target": "model"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/workflow-executor-document.service.ts",
+      "growth": "config",
+      "target": "workflow"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/workflow-platform-seed-reconcile.util.ts",
+      "growth": "config",
+      "target": "workflow"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/workflow-review-gate-feedback.service.ts",
+      "growth": "growing",
+      "target": "post"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/workflow-scheduler.service.ts",
+      "growth": "config",
+      "target": "workflow"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/collections/workflows/services/workflow-template-seeder.service.ts",
+      "growth": "config",
+      "target": "workflow"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/collections/workflows/services/workflows.service.ts",
+      "growth": "config",
+      "target": "workflow"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/admin/community/community.service.ts",
+      "growth": "config",
+      "target": "brand"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/admin/model-pricing/model-pricing.service.ts",
+      "growth": "catalog",
+      "target": "model"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/admin/warmup-accounts/warmup-workspace.ts",
+      "growth": "config",
+      "target": "billingAccountMember"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/admin/warmup-accounts/warmup-workspace.ts",
+      "growth": "config",
+      "target": "billingAccountOrganization"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/admin/warmup-accounts/warmup-workspace.ts",
+      "growth": "config",
+      "target": "creditBalance"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/admin/warmup-accounts/warmup-workspace.ts",
+      "growth": "config",
+      "target": "organizationSetting"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/admin/warmup-accounts/warmup-workspace.ts",
+      "growth": "catalog",
+      "target": "setting"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/analytics/account-analytics.service.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/analytics/organization-lifecycle.sql.ts",
+      "growth": "config",
+      "target": "warmupAccount"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/analytics/organization-qualification.sql.ts",
+      "growth": "config",
+      "target": "brand"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/analytics/x-growth-report/x-growth-report.service.ts",
+      "growth": "growing",
+      "target": "accountAnalyticsSnapshot"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/endpoints/integrations/integrations.service.ts",
+      "growth": "config",
+      "target": "orgIntegration"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/onboarding/services/onboarding-draft-runs.service.ts",
+      "growth": "growing",
+      "target": "brandedGenerationFeedback"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/onboarding/services/onboarding-draft-runs.service.ts",
+      "growth": "growing",
+      "target": "post"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/public/services/public-brand-socials.service.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/public/services/public-views.service.ts",
+      "growth": "growing",
+      "target": "ingredient"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/oauth/services/oauth-authorize.service.ts",
+      "growth": "config",
+      "target": "organization"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/publish-approvals/publish-approvals.service.ts",
+      "growth": "growing",
+      "target": "publishApproval"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/seeds/self-hosted-seed.service.ts",
+      "growth": "config",
+      "target": "brand"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/agent-context-assembly/agent-context-assembly.service.ts",
+      "growth": "growing",
+      "target": "post"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/agent-orchestrator/agent-chat-model-registry.service.ts",
+      "growth": "catalog",
+      "target": "model"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/agent-orchestrator/agent-generation-decision.service.ts",
+      "growth": "growing",
+      "target": "agentMessage"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-ui-action-mutation.service.ts",
+      "growth": "growing",
+      "target": "agentMessage"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/agent-reports/agent-report-delivery.service.ts",
+      "growth": "config",
+      "target": "orgIntegration"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/agent-threading/services/agent-thread-engine.service.ts",
+      "growth": "growing",
+      "target": "agentThreadEvent"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/autonomous-publishing/autonomous-publish-policy.service.ts",
+      "growth": "growing",
+      "target": "ingredient"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/avatar-video/providers/heygen-avatar.provider.ts",
+      "growth": "catalog",
+      "target": "metadata"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/email-product-signals/email-product-signals.service.ts",
+      "growth": "growing",
+      "target": "article"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/email-product-signals/email-product-signals.service.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/email-product-signals/email-product-signals.service.ts",
+      "growth": "growing",
+      "target": "creditTransaction"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/email-product-signals/email-product-signals.service.ts",
+      "growth": "growing",
+      "target": "ingredient"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/email-product-signals/email-product-signals.service.ts",
+      "growth": "growing",
+      "target": "post"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/expert-path/services/expert-first-system.service.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/integrations/crun/crun-preview-quote-lifecycle.ts",
+      "growth": "growing",
+      "target": "crunGenerationTask"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/integrations/crun/crun-task-finalization.service.ts",
+      "growth": "growing",
+      "target": "crunGenerationTask"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/integrations/heygen/services/heygen-voice-catalog.service.ts",
+      "growth": "config",
+      "target": "externalVoice"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/lifecycle-emails/free-trial-emails.service.ts",
+      "growth": "config",
+      "target": "organization"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/services/lifecycle-emails/lifecycle-email-maintenance.service.ts",
+      "growth": "growing",
+      "target": "article"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/lifecycle-emails/lifecycle-email-maintenance.service.ts",
+      "growth": "growing",
+      "target": "contentPerformance"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/services/lifecycle-emails/lifecycle-email-maintenance.service.ts",
+      "growth": "growing",
+      "target": "ingredient"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/lifecycle-emails/lifecycle-email-maintenance.service.ts",
+      "growth": "growing",
+      "target": "post"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/lifecycle-emails/lifecycle-email-work.service.ts",
+      "growth": "config",
+      "target": "creditBalance"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/lifecycle-emails/lifecycle-email-work.service.ts",
+      "growth": "growing",
+      "target": "emailSignalCheckpoint"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/lifecycle-emails/lifecycle-email-work.service.ts",
+      "growth": "config",
+      "target": "member"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/lifecycle-emails/lifecycle-email-work.service.ts",
+      "growth": "config",
+      "target": "organization"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/media-assessment/media-assessment.service.ts",
+      "growth": "growing",
+      "target": "mediaModeration"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/media-assessment/media-assessment.service.ts",
+      "growth": "growing",
+      "target": "mediaPerception"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/media-assessment/media-assessment.service.ts",
+      "growth": "growing",
+      "target": "mediaTextDecision"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/media-perception/media-perception.service.ts",
+      "growth": "growing",
+      "target": "mediaPerception"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/media-urls/authorized-media-url.service.ts",
+      "growth": "growing",
+      "target": "mediaDeliveryVariant"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/media-urls/authorized-media-url.service.ts",
+      "growth": "config",
+      "target": "personaGrant"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/media-urls/authorized-media-url.service.ts",
+      "growth": "growing",
+      "target": "post"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/moderation/media-moderation.service.ts",
+      "growth": "growing",
+      "target": "mediaModeration"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/notifications/inbox/notification-inbox.service.ts",
+      "growth": "growing",
+      "target": "agentThreadEvent"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/notifications/social-reply-notifications/social-reply-notification.service.ts",
+      "growth": "growing",
+      "target": "notificationInboxItem"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/services/reply-bot/reply-target-discovery.service.ts",
+      "growth": "config",
+      "target": "monitoredAccount"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/social-timeline/social-timeline.service.ts",
+      "growth": "config",
+      "target": "credential"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 2,
+      "file": "apps/server/api/src/services/system-events/system-event-delivery.service.ts",
+      "growth": "growing",
+      "target": "systemEventDelivery"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/system-events/system-event-delivery.service.ts",
+      "growth": "catalog",
+      "target": "systemNotificationDestination"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/system-events/system-notification-destinations.service.ts",
+      "growth": "catalog",
+      "target": "systemNotificationDestination"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/turbo-run/turbo-run-summary.service.ts",
+      "growth": "config",
+      "target": "member"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/services/turbo-run/turbo-run-summary.service.ts",
+      "growth": "growing",
+      "target": "postAnalytics"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 1,
+      "file": "apps/server/api/src/shared/factories/service/service.factory.ts",
+      "growth": "growing",
+      "target": "delegate"
+    },
+    {
+      "category": "unbounded-read",
+      "count": 3,
+      "file": "apps/server/api/src/shared/services/base/base.service.ts",
+      "growth": "growing",
+      "target": "delegate"
+    }
+  ]
+}

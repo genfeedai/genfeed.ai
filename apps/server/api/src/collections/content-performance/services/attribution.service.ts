@@ -69,14 +69,50 @@ export class AttributionService {
     brandId?: string,
     limit = 20,
   ): Promise<AttributionResult[]> {
-    const rows = (await this.prisma.contentPerformance.findMany({
+    // One row per measurement of every generation the organization has ever
+    // published, so this read grows for as long as the account is used. Sum in
+    // SQL and rank the per-strategy groups, which are far fewer than the rows.
+    const groups = await this.prisma.contentPerformance.groupBy({
+      _count: { _all: true },
+      _sum: {
+        comments: true,
+        engagementRate: true,
+        likes: true,
+        performanceScore: true,
+        saves: true,
+        shares: true,
+        views: true,
+      },
+      by: ['generationId', 'workflowExecutionId'],
       where: scopedWhere(organizationId, {
         generationId: { not: null },
         ...(brandId ? { brandId } : {}),
       }),
-    })) as ContentPerformanceDocument[];
+    });
 
-    return this.aggregateRows(rows)
+    return groups
+      .flatMap((group) => {
+        if (!group.generationId) {
+          return [];
+        }
+
+        const sum = group._sum;
+        return [
+          {
+            generationId: group.generationId,
+            totalEngagementRate: sum.engagementRate ?? 0,
+            totalEngagements:
+              (sum.likes ?? 0) +
+              (sum.comments ?? 0) +
+              (sum.shares ?? 0) +
+              (sum.saves ?? 0),
+            totalPerformanceScore: sum.performanceScore ?? 0,
+            totalRecords: group._count._all,
+            totalViews: sum.views ?? 0,
+            workflowExecutionId: group.workflowExecutionId ?? undefined,
+          } satisfies AttributionAccumulator,
+        ];
+      })
       .sort((a, b) => {
         const avgPerformanceA =
           a.totalRecords > 0 ? a.totalPerformanceScore / a.totalRecords : 0;
