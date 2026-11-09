@@ -13,9 +13,7 @@ import {
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
 import type {
-  BrandCharacterCandidate,
   BrandCharacterListItem,
-  BrandCharacterSheetStep,
   CharacterReferenceItem,
   IImage,
   IPaginatedResponse,
@@ -34,12 +32,23 @@ import { useQueryClient } from '@tanstack/react-query';
 import { resolvePendingIds } from '@utils/network/generation.util';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
 import type {
   CharacterAvailabilityDraft,
   CharactersPageState,
 } from '@/props/characters/characters-page.props';
+import {
+  characterSheetWizardReducer,
+  INITIAL_CHARACTER_SHEET_WIZARD,
+} from './character-sheet-wizard';
 
 function resolveCharacterImageUrl(id: string): string {
   return `${EnvironmentService.ingredientsEndpoint}/images/${id}`;
@@ -98,12 +107,11 @@ export function useCharactersPage(
   const [description, setDescription] = useState('');
   const [isNonHumanoid, setIsNonHumanoid] = useState(false);
   const [seed, setSeed] = useState('');
-  const [step, setStep] = useState<BrandCharacterSheetStep>('describe');
-  const [candidate, setCandidate] = useState<BrandCharacterCandidate | null>(
-    null,
+  const [wizard, dispatchWizard] = useReducer(
+    characterSheetWizardReducer,
+    INITIAL_CHARACTER_SHEET_WIZARD,
   );
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
+  const { candidate, isCreating, isGenerating, step } = wizard;
   const [label, setLabel] = useState('');
   const [handle, setHandle] = useState('');
   const [availability, setAvailability] =
@@ -196,16 +204,17 @@ export function useCharactersPage(
                   typeof result.id === 'string'
                 ? result.id
                 : pendingId;
-          setCandidate({
-            id: resolvedId,
-            url: resolveCharacterImageUrl(resolvedId),
+          dispatchWizard({
+            candidate: {
+              id: resolvedId,
+              url: resolveCharacterImageUrl(resolvedId),
+            },
+            type: 'generate_succeeded',
           });
-          setStep('candidate');
-          setIsGenerating(false);
           cleanupSocket();
         },
         (errorMessage: string) => {
-          setIsGenerating(false);
+          dispatchWizard({ type: 'generate_failed' });
           notificationsService.error(
             errorMessage || translate('errors.generateFailed'),
           );
@@ -223,7 +232,7 @@ export function useCharactersPage(
       return;
     }
 
-    setIsGenerating(true);
+    dispatchWizard({ type: 'generate_started' });
     cleanupSocket();
 
     try {
@@ -263,16 +272,17 @@ export function useCharactersPage(
           : undefined;
 
       if (immediateUrl && status === IngredientStatus.GENERATED) {
-        setCandidate({ id: pendingId, url: immediateUrl });
-        setStep('candidate');
-        setIsGenerating(false);
+        dispatchWizard({
+          candidate: { id: pendingId, url: immediateUrl },
+          type: 'generate_succeeded',
+        });
         return;
       }
 
       waitForCandidate(pendingId);
     } catch (error: unknown) {
       logger.error('Failed to generate character sheet', error);
-      setIsGenerating(false);
+      dispatchWizard({ type: 'generate_failed' });
       notificationsService.error(translate('errors.generateFailed'));
     }
   }, [
@@ -291,20 +301,15 @@ export function useCharactersPage(
 
   const discardCandidate = useCallback(() => {
     cleanupSocket();
-    setCandidate(null);
-    setStep('describe');
+    dispatchWizard({ type: 'discarded' });
     setLabel('');
     setHandle('');
     setAvailability(OWNING_BRAND_ONLY);
-    setIsGenerating(false);
   }, [cleanupSocket]);
 
   const approveCandidate = useCallback(() => {
-    if (!candidate) {
-      return;
-    }
-    setStep('approve');
-  }, [candidate]);
+    dispatchWizard({ type: 'approved' });
+  }, []);
 
   const createCharacter = useCallback(async () => {
     if (!candidate || isCreating) {
@@ -321,7 +326,7 @@ export function useCharactersPage(
       return;
     }
 
-    setIsCreating(true);
+    dispatchWizard({ type: 'create_started' });
     try {
       const service = await getPersonasService();
       await service.createFromSheet({
@@ -350,7 +355,7 @@ export function useCharactersPage(
       logger.error('Failed to create character from sheet', error);
       notificationsService.error(translate('errors.approveFailed'));
     } finally {
-      setIsCreating(false);
+      dispatchWizard({ type: 'create_settled' });
     }
   }, [
     availability,
