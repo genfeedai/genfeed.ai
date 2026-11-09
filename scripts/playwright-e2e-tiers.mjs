@@ -29,6 +29,10 @@ const REPORT_DIRECTORY = path.join(
 );
 const SUMMARY_FILENAME = 'full-tier-summary.json';
 const PLAYWRIGHT_JSON_REPORT_FILENAME = 'results.json';
+const SPEC_DURATIONS_PATH = path.join(
+  REPOSITORY_ROOT,
+  'scripts/playwright-e2e-durations.json',
+);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const PLAYWRIGHT_JSON_REPORT_PATH = path.join(
   REPORT_DIRECTORY,
@@ -354,6 +358,120 @@ export function mergePlaywrightJsonReports(reports) {
 }
 
 /**
+ * Sums recorded test time per spec file for one Playwright JSON report. Spec
+ * paths in the report are relative to the Playwright test directory, so they
+ * are rebased onto the repository path the tier plan uses.
+ * @param {{ suites?: object[] }} report
+ * @returns {Map<string, number>} seconds per spec file
+ */
+export function sumReportDurationsBySpec(report) {
+  const totals = new Map();
+  function visit(suite, parentFile) {
+    const file = suite.file ?? parentFile;
+    for (const spec of suite.specs ?? []) {
+      const specFile = spec.file ?? file;
+      if (!specFile) continue;
+      const repositoryPath = `${SPECS_ROOT}/${toPosixPath(specFile)}`;
+      for (const test of spec.tests ?? []) {
+        for (const result of test.results ?? []) {
+          totals.set(
+            repositoryPath,
+            (totals.get(repositoryPath) ?? 0) + (result.duration ?? 0) / 1000,
+          );
+        }
+      }
+    }
+    for (const child of suite.suites ?? []) visit(child, file);
+  }
+  for (const suite of report.suites ?? []) visit(suite);
+  return totals;
+}
+
+function median(values) {
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1
+    ? sorted[middle]
+    : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+/**
+ * Median seconds per spec file across every report given. A spec runs in
+ * exactly one shard per run, so each report contributes one sample per spec.
+ * @param {Array<{ suites?: object[] }>} reports
+ * @returns {Record<string, number>}
+ */
+export function buildSpecDurations(reports) {
+  const samples = new Map();
+  for (const report of reports) {
+    for (const [file, seconds] of sumReportDurationsBySpec(report)) {
+      samples.set(file, [...(samples.get(file) ?? []), seconds]);
+    }
+  }
+  return Object.fromEntries(
+    [...samples.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([file, values]) => [file, Math.round(median(values) * 10) / 10]),
+  );
+}
+
+/**
+ * Splits spec files across shards so each shard carries about the same recorded
+ * duration (longest-processing-time-first). Files without a recorded duration
+ * cost the median recorded duration so a new spec still lands somewhere sane.
+ * Every file lands in exactly one shard; the result depends only on the
+ * inputs, so every shard job computes the same partition.
+ * @param {string[]} files
+ * @param {Record<string, number>} durations seconds per spec file
+ * @param {number} shardCount
+ * @returns {string[][]} one ordered file list per shard
+ */
+export function assignSpecsToShards(files, durations, shardCount) {
+  if (!Number.isInteger(shardCount) || shardCount < 1) {
+    throw new Error(`Invalid shard count: ${shardCount}`);
+  }
+  const recorded = files
+    .map((file) => durations[file])
+    .filter((seconds) => Number.isFinite(seconds) && seconds >= 0);
+  const fallback = recorded.length > 0 ? median(recorded) : 1;
+  const costOf = (file) =>
+    Number.isFinite(durations[file]) && durations[file] >= 0
+      ? durations[file]
+      : fallback;
+  const shards = Array.from({ length: shardCount }, () => ({
+    files: [],
+    load: 0,
+  }));
+  const ordered = [...files].sort(
+    (left, right) => costOf(right) - costOf(left) || left.localeCompare(right),
+  );
+  for (const file of ordered) {
+    const lightest = shards.reduce((best, shard) =>
+      shard.load < best.load ? shard : best,
+    );
+    lightest.files.push(file);
+    lightest.load += costOf(file);
+  }
+  return shards.map((shard) => shard.files.sort());
+}
+
+/**
+ * @param {string[]} files
+ * @param {string} shard `index/total`, one-based, as parseShard returns it
+ * @param {Record<string, number>} durations
+ */
+export function resolveShardFiles(files, shard, durations) {
+  const [index, total] = shard.split('/').map(Number);
+  return assignSpecsToShards(files, durations, total)[index - 1];
+}
+
+function loadSpecDurations() {
+  return existsSync(SPEC_DURATIONS_PATH)
+    ? JSON.parse(readFileSync(SPEC_DURATIONS_PATH, 'utf8')).specs
+    : {};
+}
+
+/**
  * @param {{
  *   plan: PlaywrightE2eTierPlan,
  *   playwrightReport?: { stats?: { expected?: number, unexpected?: number }, suites?: unknown[] },
@@ -501,8 +619,13 @@ function parseCliOptions(args) {
   let playwrightReportPath = null;
   let playwrightReportsDir = null;
   let statusOverride = null;
+  let writeDurationsPath = null;
 
   for (const arg of ownArgs) {
+    if (arg.startsWith('--write-durations=')) {
+      writeDurationsPath = arg.slice('--write-durations='.length);
+      continue;
+    }
     if (arg.startsWith('--tier=')) {
       tier = arg.slice('--tier='.length);
       if (!['core', 'full'].includes(tier))
@@ -547,7 +670,8 @@ function parseCliOptions(args) {
     (summarize ||
       statusOverride ||
       playwrightReportPath ||
-      playwrightReportsDir)
+      playwrightReportsDir ||
+      writeDurationsPath)
   ) {
     throw new Error('Report options require --tier=full');
   }
@@ -561,6 +685,7 @@ function parseCliOptions(args) {
     shard: shard ?? readShardFromEnv(),
     statusOverride,
     summarize,
+    writeDurationsPath,
   };
 }
 
@@ -678,6 +803,34 @@ function runPlaywrightFullTier(options) {
     );
   }
 
+  if (options.writeDurationsPath) {
+    const reports = loadPlaywrightReports(options);
+    if (reports.length === 0) {
+      console.error('No Playwright JSON reports found to record durations.');
+      return 1;
+    }
+    const specs = buildSpecDurations(reports);
+    mkdirSync(path.dirname(path.resolve(options.writeDurationsPath)), {
+      recursive: true,
+    });
+    writeFileSync(
+      options.writeDurationsPath,
+      `${JSON.stringify(
+        {
+          note: 'Seconds of recorded test time per spec file (median across the reports it was built from). The full tier uses it to balance shards. Refresh with: node scripts/playwright-e2e-tiers.mjs --playwright-reports-dir=<dir of results.json files> --write-durations=scripts/playwright-e2e-durations.json. Nightly runs upload a fresh copy as the playwright-full-durations artifact.',
+          reportCount: reports.length,
+          specs,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    console.log(
+      `[playwright-e2e] recorded durations for ${Object.keys(specs).length} specs from ${reports.length} reports`,
+    );
+    return 0;
+  }
+
   if (options.listOnly) {
     writeSummary(
       buildPlaywrightE2eTierSummary({
@@ -710,16 +863,37 @@ function runPlaywrightFullTier(options) {
     return 1;
   }
 
+  // Playwright's own --shard splits by test count, which put the slowest specs
+  // in one shard. Split by recorded duration instead; the shards together run
+  // exactly the selected files, once each.
+  let shardFiles = plan.selectedFiles;
+  if (options.shard) {
+    const durations = loadSpecDurations();
+    shardFiles = resolveShardFiles(
+      plan.selectedFiles,
+      options.shard,
+      durations,
+    );
+    const recordedSeconds = shardFiles.reduce(
+      (sum, file) => sum + (durations[file] ?? 0),
+      0,
+    );
+    console.log(
+      `[playwright-e2e] shard ${options.shard} runs ${shardFiles.length} of ${plan.selectedFiles.length} files (~${Math.round(recordedSeconds)}s recorded test time)`,
+    );
+    if (shardFiles.length === 0) {
+      console.log('[playwright-e2e] nothing assigned to this shard');
+      return 0;
+    }
+  }
+
   const args = [
     'playwright',
     'test',
     `--config=${PLAYWRIGHT_CONFIG}`,
     `--project=${PLAYWRIGHT_PROJECT}`,
-    ...plan.selectedFiles,
+    ...shardFiles,
   ];
-  if (options.shard) {
-    args.push(`--shard=${options.shard}`);
-  }
   args.push(...options.playwrightArgs);
 
   console.log(
