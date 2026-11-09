@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
-import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import {
   ExtendContentPreviewDto,
   MintContentPreviewDto,
@@ -44,7 +43,9 @@ import type { Request } from 'express';
 
 @ApiTags('Admin / Warm-up Accounts')
 @Controller('admin/warmup-accounts')
-@UseGuards(IpWhitelistGuard, SuperAdminGuard)
+// Super-admin only. No IP allowlist: the console drives these routes from the
+// operator's browser, whose IP changes, and SuperAdminGuard is the gate.
+@UseGuards(SuperAdminGuard)
 export class WarmupAccountsController {
   constructor(
     private readonly warmupAccountsService: AdminWarmupAccountsService,
@@ -286,8 +287,8 @@ export class WarmupAccountsController {
   /**
    * Warm-up provisioning and preparation create and repair workspaces in the
    * TARGET customer organization (brand, member, wallet, invitation), never in
-   * the operator's own tenant. The class-level IpWhitelistGuard +
-   * SuperAdminGuard already authorized the caller, so the work runs outside
+   * the operator's own tenant. The class-level SuperAdminGuard
+   * already authorized the caller, so the work runs outside
    * request tenant enforcement.
    */
   private runAsPlatformAdmin<T>(work: () => Promise<T>): Promise<T> {

@@ -40,7 +40,7 @@ export class WarmupPreparationService {
   ) {}
 
   async prepare(id: string, actorUserId: string, dto: PrepareWarmupAccountDto) {
-    // tenant-scope-ignore: Platform-wide lookup is gated by WarmupAccountsController SuperAdminGuard and IpWhitelistGuard; the returned account supplies the target organization for all preparation writes.
+    // tenant-scope-ignore: Platform-wide lookup is gated by WarmupAccountsController SuperAdminGuard; the returned account supplies the target organization for all preparation writes.
     const account = await this.prisma.warmupAccount.findFirst({
       where: { id, isDeleted: false },
     });

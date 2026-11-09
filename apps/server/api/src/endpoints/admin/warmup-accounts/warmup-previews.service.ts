@@ -31,8 +31,7 @@ const DEFAULT_WEBSITE_URL = 'https://genfeed.ai';
 
 /**
  * Operator actions on a workspace's shareable previews. The class-level
- * IpWhitelistGuard + SuperAdminGuard on WarmupAccountsController authorize the
- * caller; every preview is tied to the warm-up workspace's own organization.
+ * SuperAdminGuard on WarmupAccountsController authorizes the caller; every preview is tied to the warm-up workspace's own organization.
  */
 @Traced()
 @Injectable()
@@ -145,7 +144,7 @@ export class WarmupPreviewsService {
   }
 
   private async getAccount(id: string): Promise<WarmupAccount> {
-    // tenant-scope-ignore: Platform-wide lookup is gated by WarmupAccountsController SuperAdminGuard and IpWhitelistGuard; the account supplies the target organization.
+    // tenant-scope-ignore: Platform-wide lookup is gated by WarmupAccountsController SuperAdminGuard; the account supplies the target organization.
     const account = await this.prisma.warmupAccount.findFirst({
       where: { id, isDeleted: false },
     });
