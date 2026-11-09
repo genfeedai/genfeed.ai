@@ -37,20 +37,13 @@ those suites.
 So a nightly run carries over to a release whose later merges are all outside
 that suite, and is re-dispatched otherwise.
 
-## Pull request smoke
+## No Playwright on pull requests
 
-`playwright-pr-smoke.yml` runs Playwright `core` on one runner (no sharding) for
-pull requests that affect `@genfeedai/web` through the workspace graph. It
-starts only after the `CI` workflow succeeds on a same-repository, non-draft
-pull request head (`workflow_run`), so superseded pushes and red heads never
-spend a runner and it does not compete with required CI. The result is a
-check run named `Playwright Core Smoke` on the head commit.
-
-It is advisory: a failure is reported as `neutral`, it is not a required check,
-and it exists so a UI change that breaks a browser spec is visible on the PR
-instead of on master. It never runs the `full` tier and is not a dependency of
-`full-suite.yml` or `release.yml`. To smoke a pull request by hand, dispatch the
-workflow with its `pr_number`.
+Pull requests do not run Playwright. A per-PR smoke ran from 2026-10-20 to
+2026-11-09 and was removed: it cost about 15 runner hours a day and slowed
+merging when many PRs are open. Browser regressions surface in the nightly
+`full` run and the release gate instead. To check a UI change before merging,
+run the `core` lane locally (see the `verify-genfeed` skill).
 
 ## Same-PR spec rule
 
