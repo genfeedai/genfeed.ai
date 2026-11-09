@@ -1,7 +1,7 @@
 import {
   AssetScope,
+  INGREDIENT_READY_STATUSES,
   IngredientCategory,
-  IngredientStatus,
 } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 
@@ -9,11 +9,7 @@ export function isStoryboardEntryAsset(ingredient: IIngredient): boolean {
   return (
     !ingredient.isDeleted &&
     ingredient.scope === AssetScope.USER &&
-    [
-      IngredientStatus.UPLOADED,
-      IngredientStatus.GENERATED,
-      IngredientStatus.VALIDATED,
-    ].includes(ingredient.status) &&
+    INGREDIENT_READY_STATUSES.includes(ingredient.status) &&
     [
       IngredientCategory.IMAGE,
       IngredientCategory.IMAGE_EDIT,

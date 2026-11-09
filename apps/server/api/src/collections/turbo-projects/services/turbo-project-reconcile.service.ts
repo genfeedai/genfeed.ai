@@ -21,6 +21,8 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
   ContentFormat,
+  INGREDIENT_READY_STATUSES,
+  INGREDIENT_UNUSABLE_STATUSES,
   IngredientCategory,
   IngredientStatus,
   isTerminalWorkflowExecutionStatus,
@@ -66,16 +68,10 @@ function wait(milliseconds: number): Promise<void> {
 }
 
 const OUTPUT_CATEGORIES = [IngredientCategory.IMAGE, IngredientCategory.VIDEO];
-const READY_INGREDIENT_STATUSES = new Set<string>([
-  IngredientStatus.GENERATED,
-  IngredientStatus.UPLOADED,
-  IngredientStatus.VALIDATED,
-]);
-const FAILED_INGREDIENT_STATUSES = new Set<string>([
-  IngredientStatus.ARCHIVED,
-  IngredientStatus.FAILED,
-  IngredientStatus.REJECTED,
-]);
+const READY_INGREDIENT_STATUSES = new Set<string>(INGREDIENT_READY_STATUSES);
+const FAILED_INGREDIENT_STATUSES = new Set<string>(
+  INGREDIENT_UNUSABLE_STATUSES,
+);
 
 type ProjectWithItems = TurboProject & { items: TurboProjectItem[] };
 
