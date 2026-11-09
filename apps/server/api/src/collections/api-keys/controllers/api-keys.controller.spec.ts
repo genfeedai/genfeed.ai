@@ -399,7 +399,7 @@ describe('ApiKeysController', () => {
         },
       });
       expect(res382.data).toMatchObject({ type: 'api-key' });
-      expect(res382.data.attributes).not.toHaveProperty('key');
+      expect(res382.data?.attributes).not.toHaveProperty('key');
 
       expect(service.patch).toHaveBeenCalledWith(id, {
         metadata: { purpose: 'automation' },
@@ -430,7 +430,7 @@ describe('ApiKeysController', () => {
         },
       });
       expect(res413.data).toMatchObject({ type: 'api-key' });
-      expect(res413.data.attributes).not.toHaveProperty('key');
+      expect(res413.data?.attributes).not.toHaveProperty('key');
 
       expect(service.patch).toHaveBeenCalledWith(id, {
         metadata: {
@@ -459,7 +459,7 @@ describe('ApiKeysController', () => {
         metadata: { purpose: 'desktop' },
       });
       expect(res446.data).toMatchObject({ type: 'api-key' });
-      expect(res446.data.attributes).not.toHaveProperty('key');
+      expect(res446.data?.attributes).not.toHaveProperty('key');
 
       expect(service.patch).toHaveBeenCalledWith(id, {
         metadata: {

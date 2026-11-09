@@ -290,7 +290,7 @@ describe('InsightsController', () => {
       const result = await controller.getGrowthPrediction(mockUser, 'youtube');
 
       expect(result).toEqual(prediction);
-      expect(result.platform).toBe('youtube');
+      expect(result).toMatchObject({ platform: 'youtube' });
 
       expect(service.getGrowthPrediction).toHaveBeenCalledWith(
         'youtube',

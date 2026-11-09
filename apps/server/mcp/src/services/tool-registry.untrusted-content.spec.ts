@@ -188,8 +188,8 @@ describe('native MCP untrusted-result integration', () => {
       name: routes[3].name,
       arguments: routes[3].args,
     });
-    expect(pending.isError).toBe(true);
-    expect(pending.structuredContent).toMatchObject({
+    expect(Reflect.get(pending, 'isError')).toBe(true);
+    expect(Reflect.get(pending, 'structuredContent')).toMatchObject({
       approvalId: 'approval',
       approvalStatus: 'PENDING',
       code: 'approval_pending',
@@ -223,12 +223,18 @@ describe('native MCP untrusted-result integration', () => {
       }),
     ]);
     const [winner, loser] = redemptions;
-    expect(winner.isError).toBeUndefined();
-    expect(winner.content[0].text).toContain(
-      'Started clip factory from YouTube',
-    );
-    expect(loser.isError).toBe(true);
-    expect(loser.content[0].text).toContain('has already run or is running');
+    expect(Reflect.get(winner, 'isError')).toBeUndefined();
+    expect(winner).toMatchObject({
+      content: [
+        { text: expect.stringContaining('Started clip factory from YouTube') },
+      ],
+    });
+    expect(Reflect.get(loser, 'isError')).toBe(true);
+    expect(loser).toMatchObject({
+      content: [
+        { text: expect.stringContaining('has already run or is running') },
+      ],
+    });
     expect(client.createClipperProjectFromYoutube).toHaveBeenCalledTimes(1);
     expect(client.evaluateMcpToolResult).toHaveBeenCalledTimes(1);
   });

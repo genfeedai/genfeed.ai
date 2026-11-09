@@ -202,7 +202,11 @@ describe('PublicBrandsController', () => {
       } as never);
 
       const brands = await controller.findPublicBrands(mockReq);
-      expect(brands.map((brand) => brand.id)).toEqual(['b1', 'b2', 'b3']);
+      expect(brands).toEqual([
+        expect.objectContaining({ id: 'b1' }),
+        expect.objectContaining({ id: 'b2' }),
+        expect.objectContaining({ id: 'b3' }),
+      ]);
 
       expect(brandsService.attachBrandKitAssetRelations).toHaveBeenCalledTimes(
         2,

@@ -191,7 +191,7 @@ describe('ProfilesController', () => {
 
       expect(service.findOne).toHaveBeenCalledWith(id, mockUser.organizationId);
       expect(result).toEqual(mockProfile);
-      expect(result._id).toBe(profileId);
+      expect(result).toMatchObject({ _id: profileId });
     });
   });
 
@@ -213,7 +213,7 @@ describe('ProfilesController', () => {
         mockUser.organizationId,
       );
       expect(result).toEqual(updatedProfile);
-      expect(result.label).toBe('Updated Profile');
+      expect(result).toMatchObject({ label: 'Updated Profile' });
     });
   });
 

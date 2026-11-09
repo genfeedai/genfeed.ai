@@ -80,7 +80,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       workflowStatus: WorkflowStatus.FAILED,
     });
 
-    expect(completed.id).toBe('exec-1');
+    expect(completed?.id).toBe('exec-1');
 
     expect(notificationsPublisher.publishWorkflowStatus).toHaveBeenCalledWith(
       'wf-1',
@@ -112,7 +112,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       workflowStatus: WorkflowStatus.FAILED,
     });
 
-    expect(completed.id).toBe('exec-2');
+    expect(completed?.id).toBe('exec-2');
 
     expect(notificationsPublisher.publishWorkflowStatus).not.toHaveBeenCalled();
   });
@@ -140,7 +140,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       workflowStatus: WorkflowStatus.ACTIVE,
     });
 
-    expect(completed.id).toBe('exec-3');
+    expect(completed?.id).toBe('exec-3');
 
     expect(notificationsPublisher.publishWorkflowStatus).not.toHaveBeenCalled();
   });
