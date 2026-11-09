@@ -957,6 +957,9 @@ describe('RoutedOrganizationProvider', () => {
     'Failed to fetch',
     'Load failed',
     'NetworkError when attempting to fetch resource.',
+    'Failed to fetch (api.genfeed.ai)',
+    'Load failed (api.genfeed.ai)',
+    'NetworkError when attempting to fetch resource. (api.genfeed.ai)',
   ])(
     'treats a fetch rejection (%s) as a transport failure, not a mismatch',
     async (message) => {

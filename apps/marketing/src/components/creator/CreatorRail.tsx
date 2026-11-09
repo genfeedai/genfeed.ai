@@ -71,7 +71,11 @@ export default function CreatorRail({
       </div>
 
       <div className="space-y-3">
-        <ProfileSubscribe brandId={brand.id} />
+        <ProfileSubscribe
+          brandId={brand.id}
+          brandLabel={label}
+          source="profile"
+        />
         {handle === GENFEED_BRAND_HANDLE ? null : (
           <SupportCreatorButton className="w-full" handle={handle} />
         )}

@@ -380,7 +380,14 @@ export default function ArticleDetail({
             </div>
 
             <footer className="space-y-6">
-              {brand ? <ProfileSubscribe brandId={brand.id} /> : null}
+              {brand ? (
+                <ProfileSubscribe
+                  brandId={brand.id}
+                  brandLabel={brand.label?.trim() || `@${handle}`}
+                  source="article"
+                  sourceRef={article.id}
+                />
+              ) : null}
               {brand && !isPreview && handle !== GENFEED_BRAND_HANDLE ? (
                 <SupportCreatorButton articleId={article.id} handle={handle} />
               ) : null}

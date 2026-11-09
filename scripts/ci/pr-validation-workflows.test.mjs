@@ -611,6 +611,55 @@ test('draft pull requests run no CI until marked ready', () => {
   }
 });
 
+test('pull requests never run Playwright, directly or through a called workflow', () => {
+  // Playwright on every PR cost about 15 runner hours a day and was removed
+  // (#9768). Browser coverage runs once on master, nightly and at release.
+  const runsPlaywright = (fileName, seen = new Set()) => {
+    if (seen.has(fileName)) return false;
+    seen.add(fileName);
+    const workflow = readWorkflow(fileName);
+    if (/setup-playwright-app|test:e2e:sharded|playwright test/.test(workflow))
+      return true;
+    return [...workflow.matchAll(/uses: \.\/\.github\/workflows\/([\w.-]+)/g)]
+      .map((match) => match[1])
+      .some((called) => runsPlaywright(called, seen));
+  };
+  const pullRequestWorkflows = readdirSync(WORKFLOWS_DIRECTORY)
+    .filter((fileName) => /\.ya?ml$/.test(fileName))
+    .filter((fileName) => {
+      const on = parseYaml(readWorkflow(fileName)).on ?? {};
+      return (
+        'pull_request' in on ||
+        'pull_request_target' in on ||
+        'merge_group' in on ||
+        on.workflow_run?.workflows?.includes('CI')
+      );
+    });
+
+  assert.ok(pullRequestWorkflows.includes('ci.yml'));
+  assert.deepEqual(
+    pullRequestWorkflows.filter((fileName) => runsPlaywright(fileName)),
+    [],
+  );
+});
+
+test('playwright core on master runs once per merge burst and never on a pull request', () => {
+  const parsed = parseYaml(readWorkflow('playwright-master-core.yml'));
+
+  assert.deepEqual(Object.keys(parsed.on).sort(), [
+    'push',
+    'workflow_dispatch',
+  ]);
+  assert.deepEqual(parsed.on.push.branches, ['master']);
+  assert.equal(parsed.concurrency.group, 'playwright-master-core');
+  assert.equal(
+    parsed.concurrency['cancel-in-progress'],
+    false,
+    'a newer push replaces the pending run; it must not cancel one in progress',
+  );
+  assert.equal(parsed.jobs.report.permissions.issues, 'write');
+});
+
 test('the full suite grants its reusable E2E failure reporter permission ceiling', () => {
   // e2e.yml reads jobs from its current run to report exact scheduled failures.
   // GitHub validates this permission before starting any called job, so omitting

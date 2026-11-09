@@ -110,12 +110,6 @@ export const PLATFORM_COLORS = {
     name: 'Snapchat',
     rgb: '255, 252, 0',
   },
-  substack: {
-    base: '#FF6719',
-    hover: '#ff8542',
-    name: 'Substack',
-    rgb: '255, 103, 25',
-  },
   telegram: {
     base: '#26A5E4',
     hover: '#3db8f5',
@@ -190,7 +184,6 @@ export const DISCORD_EMBED_COLORS: Record<string, number> = {
   SHOPIFY: 0x96bf48,
   SLACK: 0x4a154b,
   SNAPCHAT: 0xfffc00,
-  SUBSTACK: 0xff6719,
   TELEGRAM: 0x26a5e4,
   THREADS: 0x000000,
   TIKTOK: 0xfe2c55,

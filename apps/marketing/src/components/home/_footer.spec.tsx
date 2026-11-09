@@ -32,7 +32,6 @@ vi.mock('@genfeedai/services/core/environment.service', () => ({
     social: {
       discord: 'https://discord.gg/genfeed',
       instagram: 'https://instagram.com/genfeed',
-      substack: 'https://genfeed.substack.com',
       tiktok: 'https://tiktok.com/@genfeed',
       twitter: 'https://x.com/genfeed',
       youtube: 'https://youtube.com/@genfeed',
@@ -120,6 +119,19 @@ describe('Footer Component', () => {
     expect(screen.getByRole('link', { name: 'Privacy' })).toHaveAttribute(
       'href',
       '/privacy',
+    );
+  });
+
+  it('signs readers up to the newsletter in place', () => {
+    render(<HomeFooter />);
+
+    expect(
+      screen.getByRole('textbox', { name: 'Email address' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Subscribe' })).toBeDisabled();
+    expect(screen.getByRole('link', { name: 'Past issues' })).toHaveAttribute(
+      'href',
+      '/newsletter',
     );
   });
 });

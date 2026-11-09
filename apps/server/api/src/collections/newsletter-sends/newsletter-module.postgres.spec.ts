@@ -3,12 +3,14 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import type { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import type { CreatorSubscriptionsService } from '@api/collections/creator-payments/services/creator-subscriptions.service';
 import {
   type NewsletterBrandLook,
   NewsletterEmailService,
 } from '@api/collections/newsletter-sends/services/newsletter-email.service';
 import { NewsletterProviderEventsService } from '@api/collections/newsletter-sends/services/newsletter-provider-events.service';
+import { NewsletterPublicService } from '@api/collections/newsletter-sends/services/newsletter-public.service';
 import { NewsletterRecipientAccessService } from '@api/collections/newsletter-sends/services/newsletter-recipient-access.service';
 import { NewsletterSendsService } from '@api/collections/newsletter-sends/services/newsletter-sends.service';
 import type { NewsletterSettingsService } from '@api/collections/newsletter-sends/services/newsletter-settings.service';
@@ -61,6 +63,7 @@ describe.skipIf(!connectionString)(
     let prisma: PrismaClient;
     let subscribers: BrandSubscribersService;
     let sends: NewsletterSendsService;
+    let publicNewsletter: NewsletterPublicService;
     /** Every email handed to the notifications app, in order. */
     let outbox: IEmailDeliveryRequest[];
     let hasSubscriberCapacity = true;
@@ -85,10 +88,13 @@ describe.skipIf(!connectionString)(
       try {
         await client.query(`SET search_path TO "${schema}"`);
         await client.query(
-          `CREATE TABLE "brands" ("id" text PRIMARY KEY, "organizationId" text NOT NULL, "label" text NOT NULL, "slug" text NOT NULL, "isDeleted" boolean NOT NULL DEFAULT false)`,
+          `CREATE TYPE "AssetScope" AS ENUM ('USER','BRAND','ORGANIZATION','PUBLIC')`,
         );
         await client.query(
-          `CREATE TABLE "newsletters" ("id" text PRIMARY KEY, "organizationId" text NOT NULL, "brandId" text, "label" text NOT NULL, "isDeleted" boolean NOT NULL DEFAULT false)`,
+          `CREATE TABLE "brands" ("id" text PRIMARY KEY, "organizationId" text NOT NULL, "label" text NOT NULL, "slug" text NOT NULL, "scope" "AssetScope" NOT NULL DEFAULT 'PUBLIC', "isDeleted" boolean NOT NULL DEFAULT false)`,
+        );
+        await client.query(
+          `CREATE TABLE "newsletters" ("id" text PRIMARY KEY, "organizationId" text NOT NULL, "brandId" text, "label" text NOT NULL, "content" text, "summary" text, "status" text NOT NULL DEFAULT 'draft', "publishedAt" timestamp(3), "isDeleted" boolean NOT NULL DEFAULT false)`,
         );
         await client.query(
           `CREATE TABLE "email_suppressions" ("recipientHash" text PRIMARY KEY, "reason" text NOT NULL, "createdAt" timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
@@ -168,6 +174,11 @@ describe.skipIf(!connectionString)(
         emails,
         usage,
         logger,
+      );
+      publicNewsletter = new NewsletterPublicService(
+        db,
+        emails,
+        {} as BrandKitAssetsService,
       );
       sends = new NewsletterSendsService(
         db,
@@ -402,6 +413,59 @@ describe.skipIf(!connectionString)(
         lastError: 'NEWSLETTER_SEND_LIMIT: needs 3 emails, 2 left this month',
         status: 'failed',
       });
+    });
+
+    it('lists only published issues in the public archive and previews gated ones', async () => {
+      const brandId = await seedBrand();
+      const publicId = randomUUID();
+      const paidId = randomUUID();
+      const draftId = randomUUID();
+      const body = `First paragraph.\n\n${'Paid readers only, this stays private. '.repeat(20)}`;
+      await pool.query(
+        `INSERT INTO "${schema}"."newsletters" ("id","organizationId","brandId","label","content","status","publishedAt","accessLevel") VALUES
+          ($1,$4,$5,'Open issue',$6,'published',now() - interval '2 days','public'),
+          ($2,$4,$5,'Paid issue',$6,'published',now() - interval '1 day','paid'),
+          ($3,$4,$5,'Draft issue',$6,'draft',NULL,'public')`,
+        [publicId, paidId, draftId, organizationId, brandId, body],
+      );
+
+      const archive = await publicNewsletter.getArchive(brandId);
+      expect(archive.issues.map((issue) => issue.subject)).toEqual([
+        'Paid issue',
+        'Open issue',
+      ]);
+      expect(archive.brand).toEqual({
+        id: brandId,
+        label: 'Field Notes',
+        slug: 'field-notes',
+      });
+
+      const open = await publicNewsletter.getArchiveIssue(publicId);
+      expect(open.isPreview).toBe(false);
+      expect(open.html).toContain('stays private');
+
+      const paid = await publicNewsletter.getArchiveIssue(paidId);
+      expect(paid.isPreview).toBe(true);
+      expect(paid.html).toContain('First paragraph.');
+      expect(paid.html).not.toContain('stays private');
+
+      await expect(publicNewsletter.getArchiveIssue(draftId)).rejects.toThrow();
+    });
+
+    it('keeps the archive of a brand that is not public closed', async () => {
+      const brandId = await seedBrand();
+      const issueId = randomUUID();
+      await pool.query(
+        `UPDATE "${schema}"."brands" SET "scope"='USER' WHERE "id"=$1`,
+        [brandId],
+      );
+      await pool.query(
+        `INSERT INTO "${schema}"."newsletters" ("id","organizationId","brandId","label","content","status","publishedAt","accessLevel") VALUES ($1,$2,$3,'Open issue','Workspace only.','published',now(),'public')`,
+        [issueId, organizationId, brandId],
+      );
+
+      await expect(publicNewsletter.getArchive(brandId)).rejects.toThrow();
+      await expect(publicNewsletter.getArchiveIssue(issueId)).rejects.toThrow();
     });
 
     it('sends each active subscriber exactly once and applies a bounce', async () => {

@@ -13,6 +13,7 @@ import {
 import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { transitionIngredientStatus } from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
 import { AutoMergeService } from '@api/endpoints/webhooks/services/auto-merge.service';
@@ -66,16 +67,13 @@ export class WebhooksService {
         ? uploadMetadata.s3Key
         : undefined;
 
-    const claimed = await this.ingredientsService.patchAll(
-      {
-        id: ingredientId,
-        ...(organizationId ? { organizationId } : {}),
-        isDeleted: false,
-        status: IngredientStatus.PROCESSING,
-      },
-      { ...(s3Key ? { s3Key } : {}), status: IngredientStatus.GENERATED },
-    );
-    return claimed.modifiedCount === 1;
+    return transitionIngredientStatus(this.ingredientsService, {
+      ...(s3Key ? { data: { s3Key } } : {}),
+      from: IngredientStatus.PROCESSING,
+      id: ingredientId,
+      organizationId,
+      to: IngredientStatus.GENERATED,
+    });
   }
 
   constructor(
@@ -190,19 +188,14 @@ export class WebhooksService {
       return false;
     }
 
-    const reopened = await this.ingredientsService.patchAll(
-      {
-        generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
-        id: ingredient.id.toString(),
-        ...(ingredient.organizationId
-          ? { organizationId: ingredient.organizationId }
-          : {}),
-        isDeleted: false,
-        status: IngredientStatus.FAILED,
-      },
-      { generationError: null, status: IngredientStatus.PROCESSING },
-    );
-    return reopened.modifiedCount === 1;
+    return transitionIngredientStatus(this.ingredientsService, {
+      data: { generationError: null },
+      from: IngredientStatus.FAILED,
+      id: ingredient.id.toString(),
+      match: { generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR },
+      organizationId: ingredient.organizationId,
+      to: IngredientStatus.PROCESSING,
+    });
   }
 
   private async finalizeWebhookMedia(input: {
@@ -504,18 +497,14 @@ export class WebhooksService {
       }
       return;
     }
-    const claimed = await this.ingredientsService.patchAll(
-      {
-        id: ingredient.id.toString(),
-        ...(ingredient.organizationId
-          ? { organizationId: ingredient.organizationId }
-          : {}),
-        isDeleted: false,
-        status: IngredientStatus.PROCESSING,
-      },
-      { status: IngredientStatus.FAILED, isGenerationFailureConfirmed: true },
-    );
-    if (claimed.modifiedCount !== 1) {
+    const claimed = await transitionIngredientStatus(this.ingredientsService, {
+      data: { isGenerationFailureConfirmed: true },
+      from: IngredientStatus.PROCESSING,
+      id: ingredient.id.toString(),
+      organizationId: ingredient.organizationId,
+      to: IngredientStatus.FAILED,
+    });
+    if (!claimed) {
       const latest = await this.ingredientsService.findOneSelect(
         { id: ingredientId },
         { organizationId: true, status: true },

@@ -3,6 +3,7 @@ import HomeCTA from '@web-components/home/_cta';
 import HomeFooter from '@web-components/home/_footer';
 import HomeHero from '@web-components/home/_hero';
 import HomeHow from '@web-components/home/_how';
+import HomeNewsletter from '@web-components/home/_newsletter';
 import HomeProduct from '@web-components/home/_product';
 import HomeProviders from '@web-components/home/_providers';
 import HomeReveal from '@web-components/home/_reveal';
@@ -17,6 +18,7 @@ export default function HomeContent() {
       <HomeHow />
       <HomeProviders />
       <HomeAsks />
+      <HomeNewsletter />
       <HomeCTA />
       <HomeFooter />
     </HomeReveal>

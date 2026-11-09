@@ -48,8 +48,7 @@ function isNewsletterPreview(data: AgentTextArtifactPreviewData): boolean {
     data.contentFormat === 'newsletter' ||
     platform === 'beehiiv' ||
     platform === 'email' ||
-    platform === 'newsletter' ||
-    platform === 'substack'
+    platform === 'newsletter'
   );
 }
 

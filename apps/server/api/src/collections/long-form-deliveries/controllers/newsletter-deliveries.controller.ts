@@ -35,8 +35,8 @@ const CAPABILITY_BY_MODE = {
 
 /**
  * Newsletter → connected Beehiiv publication (#6753). Each delivery is a
- * one-target scheduler release linked to the newsletter. Substack has no
- * publishing API; it imports published issues from the brand feed instead.
+ * one-target scheduler release linked to the newsletter. Sending to the
+ * brand's own subscribers is the newsletter-sends module.
  */
 @AutoSwagger()
 @ApiTags('Newsletters')

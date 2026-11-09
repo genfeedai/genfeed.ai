@@ -3,6 +3,10 @@ import { renderNewsletterNoticePage } from '@api/collections/newsletter-sends/ut
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import type {
+  IPublicNewsletterArchive,
+  IPublicNewsletterIssue,
+} from '@genfeedai/contracts/interfaces';
 import { Public } from '@libs/decorators/public.decorator';
 import {
   Controller,
@@ -12,6 +16,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
   Req,
   Res,
 } from '@nestjs/common';
@@ -70,6 +75,24 @@ export class PublicNewsletterController {
     });
   }
 
+  /**
+   * A brand's published issues for its public archive page (#9728). Declared
+   * before `brands/:brandId/:role` so that route does not swallow it.
+   */
+  @Get('brands/:brandId/archive')
+  @Header('Cache-Control', 'public, max-age=300')
+  async archive(
+    @Param('brandId') brandId: string,
+    @Query('page') page?: string,
+  ): Promise<{ data: IPublicNewsletterArchive }> {
+    return {
+      data: await this.publicNewsletter.getArchive(
+        brandId,
+        page ? Number.parseInt(page, 10) : 1,
+      ),
+    };
+  }
+
   @Get('brands/:brandId/:role')
   async brandImage(
     @Param('brandId') brandId: string,
@@ -90,5 +113,14 @@ export class PublicNewsletterController {
   @Header('Content-Type', 'text/html; charset=utf-8')
   issuePage(@Param('newsletterId') newsletterId: string): Promise<string> {
     return this.publicNewsletter.renderIssuePage(newsletterId);
+  }
+
+  /** One published issue for its archive page; gated issues show a preview. */
+  @Get('archive/:newsletterId')
+  @Header('Cache-Control', 'public, max-age=300')
+  async archiveIssue(
+    @Param('newsletterId') newsletterId: string,
+  ): Promise<{ data: IPublicNewsletterIssue }> {
+    return { data: await this.publicNewsletter.getArchiveIssue(newsletterId) };
   }
 }

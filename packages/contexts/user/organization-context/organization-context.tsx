@@ -101,10 +101,12 @@ const VERIFICATION_FAILED_MESSAGE = 'Organization context verification failed';
 
 /**
  * What `fetch` itself rejects with when the request never got a response,
- * which the auth token exchange lets through unwrapped.
+ * which the auth token exchange lets through unwrapped. In production the
+ * Sentry fetch instrumentation appends the request host to these messages,
+ * as in `Failed to fetch (api.example.com)`.
  */
 const FETCH_TRANSPORT_MESSAGE =
-  /^(Failed to fetch|Load failed|NetworkError when attempting to fetch resource|Network request failed)\.?$/;
+  /^(Failed to fetch|Load failed|NetworkError when attempting to fetch resource|Network request failed)\.?( \([^)]+\))?$/;
 
 function classifyFailure(error: unknown): RoutedOrganizationFailure {
   if (typeof error === 'object' && error !== null) {

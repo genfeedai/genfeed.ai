@@ -1,7 +1,12 @@
 'use client';
 
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { AvatarTwinStatus, ButtonVariant } from '@genfeedai/contracts';
+import {
+  AvatarTwinPanelAction,
+  AvatarTwinStatus,
+  ButtonVariant,
+  canUseAvatarTwinPanelAction,
+} from '@genfeedai/contracts';
 import { getJsonApiErrorMessage } from '@genfeedai/services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
@@ -69,9 +74,14 @@ export default function AvatarTwinProgress({
   const isConsentExpired =
     !!twin.consentLinkExpiresAt &&
     new Date(twin.consentLinkExpiresAt).getTime() <= Date.now();
-  const canGiveConsent =
-    twin.status === AvatarTwinStatus.AWAITING_CONSENT ||
-    twin.status === AvatarTwinStatus.CONSENT_REJECTED;
+  const canGiveConsent = canUseAvatarTwinPanelAction(
+    twin.status,
+    AvatarTwinPanelAction.OPEN_CONSENT,
+  );
+  const canRetake = canUseAvatarTwinPanelAction(
+    twin.status,
+    AvatarTwinPanelAction.RETAKE,
+  );
 
   const handleOpenConsent = async () => {
     setConsentError(null);
@@ -197,7 +207,10 @@ export default function AvatarTwinProgress({
         <p className="text-sm">{translate('done.body')}</p>
       ) : null}
 
-      {twin.status === AvatarTwinStatus.READY && brandUsage ? (
+      {canUseAvatarTwinPanelAction(
+        twin.status,
+        AvatarTwinPanelAction.APPLY_TO_BRAND,
+      ) && brandUsage ? (
         <section
           aria-label={translate('brand.label')}
           className="flex flex-col gap-3"
@@ -278,8 +291,7 @@ export default function AvatarTwinProgress({
             </Button>
           </>
         ) : null}
-        {twin.status === AvatarTwinStatus.FAILED ||
-        twin.status === AvatarTwinStatus.CONSENT_REJECTED ? (
+        {canRetake ? (
           <Button
             label={translate('newTake')}
             onClick={onRetake}

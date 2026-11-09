@@ -166,8 +166,8 @@ export class LongFormDeliveriesService {
 
   /**
    * Deliver a newsletter issue to a connected Beehiiv publication: send now
-   * (and publish it in the workspace, which adds it to the Substack import
-   * feed), create a Beehiiv draft, or schedule the send.
+   * (and publish it in the workspace, which adds it to the public archive),
+   * create a Beehiiv draft, or schedule the send.
    */
   async deliverNewsletter(
     ctx: LongFormDeliveryContext,

@@ -230,13 +230,7 @@ export const BRAND_INTERVIEW_QUESTION_CATALOG: IBrandInterviewQuestion[] = [
   },
   {
     answerType: 'list',
-    examples: [
-      'LinkedIn',
-      'X (Twitter)',
-      'Instagram',
-      'Newsletter (Substack)',
-      'YouTube',
-    ],
+    examples: ['LinkedIn', 'X (Twitter)', 'Instagram', 'Newsletter', 'YouTube'],
     fieldKey: 'platforms',
     group: 'strategy',
     hint: 'Enter one platform per line.',
