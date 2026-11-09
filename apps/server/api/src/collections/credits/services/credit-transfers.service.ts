@@ -208,8 +208,9 @@ export class CreditTransfersService {
 
     const replay = await runWithTenantContext(
       { organizationId: payerOrganizationId },
-      () =>
-        tx.creditTransaction.findFirst({
+      // Prisma queries run when awaited: await inside the context.
+      async () =>
+        await tx.creditTransaction.findFirst({
           where: scopedWhere(payerOrganizationId, {
             category: CreditTransactionCategory.TRANSFER_OUT,
             idempotencyKey: this.legKey(input, 'out'),
