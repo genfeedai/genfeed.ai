@@ -11,8 +11,8 @@ const closeModal = vi.fn((id: string) => {
 });
 
 vi.mock('@helpers/ui/modal/modal.helper', () => ({
-  closeModal: (...args: unknown[]) => closeModal(...args),
-  openModal: (...args: unknown[]) => openModal(...args),
+  closeModal: (id: string) => closeModal(id),
+  openModal: (id: string) => openModal(id),
 }));
 
 describe('useModalAutoOpen', () => {
