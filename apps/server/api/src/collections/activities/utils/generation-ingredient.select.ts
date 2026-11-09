@@ -34,6 +34,7 @@ const GENERATION_INGREDIENT_COLUMNS = {
   promptId: true,
   promptTemplate: true,
   qualityStatus: true,
+  recreateCount: true,
   reviewStatus: true,
   s3Key: true,
   scope: true,
@@ -44,6 +45,7 @@ const GENERATION_INGREDIENT_COLUMNS = {
   updatedAt: true,
   userId: true,
   version: true,
+  viewCount: true,
   workflowExecutionId: true,
 } satisfies Prisma.IngredientSelect;
 
