@@ -37,9 +37,7 @@ describe('ModelViewer', () => {
     await waitFor(() =>
       expect(container.querySelector('model-viewer')).not.toBeNull(),
     );
-    container
-      .querySelector('model-viewer')
-      ?.dispatchEvent(new Event('error'));
+    container.querySelector('model-viewer')?.dispatchEvent(new Event('error'));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'This 3D model could not be loaded.',
