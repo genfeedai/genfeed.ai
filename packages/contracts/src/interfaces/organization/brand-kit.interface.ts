@@ -353,6 +353,8 @@ export interface IBrandKitResolvedAsset {
   url: string;
   label?: string;
   mimeType?: string;
+  /** The uploaded file's format; `svg` when a vector original is kept. */
+  originalFormat?: string;
 }
 
 export interface IBrandKitResolvedAssets {
@@ -472,6 +474,7 @@ export interface IBrandKitAssetRelation {
   cdnUrl: string;
   displayName?: string;
   mimeType?: string;
+  originalFormat?: string;
   referenceCategory?: ReferenceImageCategory;
   kitSlot?: BrandKitSlot;
 }

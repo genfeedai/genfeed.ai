@@ -23,5 +23,9 @@ export class AssetEntity extends BaseEntity implements Asset {
   declare readonly residency: string | null;
   declare readonly uploadPolicy: string | null;
   declare readonly originalFileName: string | null;
+  declare readonly originalFormat: string | null;
+  declare readonly originalWidth: number | null;
+  declare readonly originalHeight: number | null;
+  declare readonly vectorObjectKey: string | null;
   declare readonly displayName: string | null;
 }

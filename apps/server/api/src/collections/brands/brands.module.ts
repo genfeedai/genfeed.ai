@@ -21,6 +21,7 @@ import { BrandsRelationshipsController } from '@api/collections/brands/controlle
 import { BrandFromUrlService } from '@api/collections/brands/services/brand-from-url.service';
 import { BrandKitBundleService } from '@api/collections/brands/services/brand-kit-bundle.service';
 import { BrandLogoColorsService } from '@api/collections/brands/services/brand-logo-colors.service';
+import { BrandLogoDownloadService } from '@api/collections/brands/services/brand-logo-download.service';
 import { BrandLutService } from '@api/collections/brands/services/brand-lut.service';
 import { BrandPersistenceService } from '@api/collections/brands/services/brand-persistence.service';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
@@ -103,6 +104,7 @@ import { Module } from '@nestjs/common';
     BrandSetupService,
     BrandLutService,
     BrandKitBundleService,
+    BrandLogoDownloadService,
     BrandLogoColorsService,
     BrandWatermarkLogoService,
     BrandWebsitePreviewService,
