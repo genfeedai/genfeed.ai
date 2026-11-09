@@ -21,8 +21,8 @@
  *   bun run preflight --list          # print the plan, run nothing
  *   bun run preflight --only static,contracts
  *   bun run preflight --skip contracts
- *   bun run preflight --serial        # one stage at a time (default: the three heavy stages overlap)
- *   bun run preflight --bail          # stop at the first failing step
+ *   bun run preflight --serial        # one lane at a time (default: typecheck + spec ratchet overlap the contracts)
+ *   bun run preflight --keep-going    # run every step even after one fails (default: stop at the first failure)
  *   bun run preflight --full          # spec typecheck every workspace
  *   bun run preflight --lint          # also `turbo lint --affected` (may rewrite files)
  *   bun run preflight --base <ref>    # default: merge-base with origin/master
@@ -32,7 +32,12 @@
  * once into ~/.cache/genfeed-preflight when the host Node differs.
  */
 
-import { type SpawnOptions, spawn, spawnSync } from 'node:child_process';
+import {
+  type ChildProcess,
+  type SpawnOptions,
+  spawn,
+  spawnSync,
+} from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import {
@@ -94,7 +99,7 @@ function parseStages(
 export function parseOptions(argv: readonly string[]): PreflightOptions {
   const options: PreflightOptions = {
     base: null,
-    bail: false,
+    bail: true,
     full: false,
     hasFetch: true,
     hasLint: false,
@@ -111,8 +116,8 @@ export function parseOptions(argv: readonly string[]): PreflightOptions {
         options.base = argv[++index] ?? null;
         if (!options.base) throw new Error('--base needs a ref or commit SHA.');
         break;
-      case '--bail':
-        options.bail = true;
+      case '--keep-going':
+        options.bail = false;
         break;
       case '--full':
         options.full = true;
@@ -272,6 +277,24 @@ function formatDuration(ms: number): string {
     : `${seconds}s`;
 }
 
+const activeChildren = new Set<ChildProcess>();
+let isAborted = false;
+
+/** Stops every running step; used by the default fail-fast mode. */
+function abortRunningSteps(): void {
+  isAborted = true;
+  for (const child of activeChildren) {
+    if (child.pid) {
+      try {
+        // Each step leads its own process group, so descendants stop too.
+        process.kill(-child.pid, 'SIGTERM');
+      } catch {
+        // Already exited.
+      }
+    }
+  }
+}
+
 /** PATH override that puts the pinned Node first; set once in `main`. */
 let nodeEnv: Record<string, string> = {};
 
@@ -283,9 +306,11 @@ function runStep(
     const [command, ...args] = step.command;
     const spawnOptions: SpawnOptions = {
       env: { ...process.env, ...step.env, ...nodeEnv },
+      detached: true,
       stdio: isCaptured ? ['ignore', 'pipe', 'pipe'] : 'inherit',
     };
     const child = spawn(command ?? '', args, spawnOptions);
+    activeChildren.add(child);
     let output = '';
     child.stdout?.on('data', (chunk: Buffer) => {
       output += chunk.toString();
@@ -297,6 +322,7 @@ function runStep(
       resolve({ output: `${output}${error.message}\n`, status: 127 });
     });
     child.on('close', (code) => {
+      activeChildren.delete(child);
       resolve({ output, status: code ?? 1 });
     });
   });
@@ -331,7 +357,7 @@ async function runSteps(
       });
       continue;
     }
-    if (options.bail && results.some((result) => result.status === 'failed')) {
+    if (isAborted) {
       results.push({
         durationMs: 0,
         id: step.id,
@@ -345,11 +371,24 @@ async function runSteps(
     const started = Date.now();
     const { output, status } = await runStep(step, isCaptured);
     const durationMs = Date.now() - started;
-    if (isCaptured) {
+    if (isAborted && status !== 0) {
+      // Stopped because another lane failed first.
+      results.push({
+        durationMs,
+        id: step.id,
+        label: step.label,
+        status: 'skipped',
+      });
+      continue;
+    }
+    if (isCaptured && status !== 0) {
       logger.log(`▶ ${step.label}`);
       process.stdout.write(output);
     }
-    if (status !== 0) failed.add(step.id);
+    if (status !== 0) {
+      failed.add(step.id);
+      if (options.bail) abortRunningSteps();
+    }
     results.push({
       durationMs,
       id: step.id,
@@ -433,15 +472,18 @@ export async function main(argv: readonly string[]): Promise<number> {
 
   await runSteps(byStage('static'), options, false, results);
 
-  const heavy: PreflightStage[] = ['typecheck', 'spec-typecheck', 'contracts'];
+  // Two lanes so the slow contracts overlap the compiler work without the
+  // memory of three heavy stages at once (that got a container OOM-killed).
+  const compilerLane = [...byStage('typecheck'), ...byStage('spec-typecheck')];
+  const contractsLane = byStage('contracts');
   if (options.isParallel) {
-    await Promise.all(
-      heavy.map((stage) => runSteps(byStage(stage), options, true, results)),
-    );
+    await Promise.all([
+      runSteps(compilerLane, options, true, results),
+      runSteps(contractsLane, options, true, results),
+    ]);
   } else {
-    for (const stage of heavy) {
-      await runSteps(byStage(stage), options, false, results);
-    }
+    await runSteps(compilerLane, options, false, results);
+    await runSteps(contractsLane, options, false, results);
   }
 
   const failures = results.filter((result) => result.status === 'failed');
