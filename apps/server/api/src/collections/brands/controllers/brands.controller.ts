@@ -19,6 +19,7 @@ import { BrandRelocationJobsService } from '@api/collections/brands/services/bra
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { withoutCuration } from '@api/collections/brands/utils/brand-curation-fields.util';
 import { buildBrandListOrderBy } from '@api/collections/brands/utils/brand-list-order.util';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
@@ -186,7 +187,7 @@ export class BrandsController extends BaseCRUDController<
     // `syncOrganizationName` is an onboarding-only control flag, never persisted
     // on the brand row — strip it before any CRUD patch (REST audit #1354).
     const { organizationLabel, syncOrganizationName, ...rest } =
-      updateDto as UpdateBrandDto & {
+      withoutCuration(updateDto) as UpdateBrandDto & {
         organizationLabel?: string;
         syncOrganizationName?: boolean;
       };
@@ -337,7 +338,7 @@ export class BrandsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() createDto: CreateBrandDto,
   ): Promise<JsonApiSingleResponse> {
-    const enrichedDto = this.enrichCreateDto(createDto, user);
+    const enrichedDto = this.enrichCreateDto(withoutCuration(createDto), user);
     const data: BrandDocument = await this.brandsService.create(enrichedDto);
 
     return serializeSingle(request, BrandSerializer, data);

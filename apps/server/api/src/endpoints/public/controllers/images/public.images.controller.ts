@@ -60,6 +60,7 @@ export class PublicImagesController {
     @Query('tag') tag?: string,
     @Query('brand') brand?: string,
     @Query('format') _format?: string,
+    @Query('isHighlighted') isHighlighted?: string,
   ): Promise<JsonApiCollectionResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(url, { query });
@@ -81,6 +82,11 @@ export class PublicImagesController {
     // Filter by brand if provided
     if (brand && isEntityId(brand)) {
       matchQuery.brandId = brand;
+    }
+
+    // Only media an operator featured on the community page.
+    if (isHighlighted === 'true') {
+      matchQuery.isHighlighted = true;
     }
 
     // Filter by related tag label.

@@ -128,6 +128,28 @@ describe('PublicVideosController', () => {
     expect(aggregateArg.where?.brandId).toEqual(brandId);
   });
 
+  it.each([
+    ['true', true],
+    [undefined, undefined],
+    ['false', undefined],
+  ])(
+    'filters featured videos only when isHighlighted is %s',
+    async (flag, expected) => {
+      await controller.findPublicVideos(
+        mockRequest,
+        {} as never,
+        undefined,
+        undefined,
+        undefined,
+        flag,
+      );
+      const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as {
+        where?: { isHighlighted?: boolean };
+      };
+      expect(aggregateArg.where?.isHighlighted).toBe(expected);
+    },
+  );
+
   it('should pass tag filter as regex when provided', async () => {
     await controller.findPublicVideos(mockRequest, {} as never, 'funny');
     const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as {
