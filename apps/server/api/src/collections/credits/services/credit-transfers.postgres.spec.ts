@@ -380,6 +380,22 @@ describe.skipIf(!connectionString)('credit transfers (PostgreSQL)', () => {
     expect(await wallet(reader)).toEqual({ balance: 100, earnedBalance: 0 });
   });
 
+  it('rejects a payment to an organization the payer owns', async () => {
+    await seedWorkspace(reader, { balance: 100, paid: true });
+    await seedWorkspace(creator, { balance: 0, paid: false });
+    // Same person, separate billing accounts (e.g. after a detach).
+    await database().organization.update({
+      data: { userId: reader.userId },
+      where: { id: creator.organizationId },
+    });
+
+    await expect(tip(10, 'tip-own-org')).rejects.toThrow(
+      'You cannot pay an organization you belong to',
+    );
+    expect(await wallet(reader)).toEqual({ balance: 100, earnedBalance: 0 });
+    expect(await wallet(creator)).toEqual({ balance: 0, earnedBalance: 0 });
+  });
+
   it('spends purchased credits before earned ones and keeps earned credits through a plan reset', async () => {
     await seedWorkspace(reader, { balance: 100, paid: true });
     await seedWorkspace(creator, { balance: 50, paid: true });

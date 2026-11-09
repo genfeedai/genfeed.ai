@@ -191,6 +191,41 @@ export class CreditTransfersService {
   }
 
   /**
+   * A payer who owns or belongs to the receiving organization would only move
+   * credits between their own wallets, turning resettable credits into earned
+   * ones, even after the organizations stop sharing a billing account.
+   */
+  private async assertPayerOutsidePayee(
+    input: ICreditTransferInput,
+    tx: PrismaTransactionClient,
+  ): Promise<void> {
+    const payeeOrganizationId = input.payeeOrganizationId;
+    const [owned, membership] = await Promise.all([
+      tx.organization.findFirst({
+        select: { id: true },
+        where: { id: payeeOrganizationId, userId: input.payerUserId },
+      }),
+      runWithTenantContext(
+        { organizationId: payeeOrganizationId },
+        async () =>
+          await tx.member.findFirst({
+            select: { id: true },
+            where: scopedWhere(payeeOrganizationId, {
+              userId: input.payerUserId,
+            }),
+          }),
+      ),
+    ]);
+    if (owned || membership) {
+      throw new BusinessLogicException(
+        'You cannot pay an organization you belong to',
+        undefined,
+        'CREDIT_TRANSFER_TO_SELF',
+      );
+    }
+  }
+
+  /**
    * Free trial credits cannot be moved to another organization: otherwise new
    * accounts could be farmed and their trial credits pooled into one wallet.
    * Only an organization that has paid for credits can send them.
@@ -239,6 +274,8 @@ export class CreditTransfersService {
   ): Promise<ICreditTransferResult> {
     const payerOrganizationId = input.payerOrganizationId;
     const payeeOrganizationId = input.payeeOrganizationId;
+
+    await this.assertPayerOutsidePayee(input, tx);
 
     const replay = await runWithTenantContext(
       { organizationId: payerOrganizationId },
