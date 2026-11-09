@@ -1,6 +1,7 @@
 import { ENHANCE_PROMPT_CREDIT_COST } from '@genfeedai/contracts/constants/tool-credit.constant';
 import { TURBO_RUN_CAPTION_BASE_CREDITS } from '@genfeedai/contracts/constants/turbo-run-pricing.constant';
 import type { SourceTool } from '../../interfaces/source-tool.interface';
+import { MEDIA_TRANSFORM_OPERATIONS } from '../media-transform';
 
 /**
  * Turbo run definition split out of `overlap.tools.ts` to keep that
@@ -79,7 +80,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
   {
     name: 'transform_media',
     description:
-      'Change existing media or join clips. operation edit: apply an exact instruction to a Library image (the original stays unchanged; imageId is the primary source, references adds up to four ordered images for Ideogram or nine for FLUX.3; FLUX.3 supports one output, resolution and aspectRatio, with no mask or seed; optional maskId must match the primary dimensions, black changes and white stays; uses the image-editing category default, never the generation model; do not enhance or rewrite the instruction). operation reframe: re-crop an image to a new aspect ratio. operation upscale: upscale an image to higher resolution from its URL. operation merge: join two or more existing videos into one clip with transitions, captions, resizing, mute and background music (with music, isBeatSyncEnabled trims each clip so every cut lands on a beat; the brand end card, when the brand has one switched on, is appended automatically); slideshow zoom (zoomEaseCurve and zoomConfigs) is not supported and is rejected before any merge starts. Each field lists the operations it applies to; a field for another operation is rejected. Edit, reframe and upscale spend credits through the shared generation settlement; merge runs locally and is free.',
+      "Change existing media or join clips. operation edit: apply an exact instruction to a Library image (the original stays unchanged; imageId is the primary source, references adds up to four ordered images for Ideogram or nine for FLUX.3; FLUX.3 supports one output, resolution and aspectRatio, with no mask or seed; optional maskId must match the primary dimensions, black changes and white stays; uses the image-editing category default, never the generation model; do not enhance or rewrite the instruction). operation reframe: re-crop an image to a new aspect ratio. operation upscale: upscale an image to higher resolution from its URL. operation merge: join two or more existing videos into one clip with transitions, captions, resizing, mute and background music (with music, isBeatSyncEnabled trims each clip so every cut lands on a beat; the brand end card, when the brand has one switched on, is appended automatically); slideshow zoom (zoomEaseCurve and zoomConfigs) is not supported and is rejected before any merge starts. Each field lists the operations it applies to; a field for another operation is rejected. Edit, reframe and upscale spend credits through the shared generation settlement; merge runs locally and is free. operation digital_twin: start training a digital twin (avatar plus cloned voice) from videoId, the caller's own private Library recording of themselves (an uploaded or recorded Library video; 15 s to 10 min, one person facing the camera, clear speech). The twin is made in the organization's own connected HeyGen account, never a platform account; it costs no Genfeed credits, and HeyGen bills its own account. The result includes a consentUrl: the person on camera must open it and record a consent statement on HeyGen's page before the twin can be used. Give them the link, and say plainly that the twin is not ready until HeyGen reports status READY; check with get_assets type digital_twin. Starting again from the same videoId returns the same twin. operation digital_twin_consent: a fresh consent link for twinId, when the last one expired (links last 24 hours) or HeyGen declined the consent.",
     creditCost: 0,
     requiredRole: 'user',
     parameters: {
@@ -89,7 +90,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
       properties: {
         operation: {
           type: 'string',
-          enum: ['edit', 'reframe', 'upscale', 'merge'],
+          enum: [...MEDIA_TRANSFORM_OPERATIONS],
           description: 'Which transform to run.',
         },
         brandId: {
@@ -232,13 +233,35 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
           maximum: 2,
           description: 'merge. Transition length in seconds (0.1-2).',
         },
+        videoId: {
+          type: 'string',
+          description:
+            "digital_twin. Library video id of the caller's own recording of themselves (from get_assets type video). Required for digital_twin.",
+        },
+        name: {
+          type: 'string',
+          minLength: 1,
+          maxLength: 64,
+          description:
+            'digital_twin. Name for the twin, for example the person\'s name. Defaults to "My digital twin".',
+        },
+        isRecordingKept: {
+          type: 'boolean',
+          description:
+            'digital_twin. Keep the recording in the Library once HeyGen has it. Off by default: footage of a face and voice is deleted when no longer needed.',
+        },
+        twinId: {
+          type: 'string',
+          description:
+            'digital_twin_consent. Twin id from transform_media digital_twin or get_assets type digital_twin. Required for digital_twin_consent.',
+        },
       },
     },
   },
   {
     name: 'set_generation_settings',
     description:
-      'Set organization or brand prompt enhancement. Use null to restore inheritance. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope. Generation pricing is unchanged. Also sets the brand default voice: defaultVoice (brand scope) takes voiceId for a saved voice, or externalVoiceId to first save a voice from the connected ElevenLabs account as an organization-owned reference; it never uses a platform account.',
+      'Set organization or brand prompt enhancement. Use null to restore inheritance. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope. Generation pricing is unchanged. Also sets the brand default voice: defaultVoice (brand scope) takes voiceId for a saved voice, or externalVoiceId to first save a voice from the connected ElevenLabs account as an organization-owned reference; it never uses a platform account. defaultAvatar (brand scope) makes a READY digital twin from get_assets type digital_twin the brand default avatar and, unless isTwinVoiceUsed is false, its HeyGen voice the brand default voice; generate type avatar then renders with it. A twin that is not READY is refused.',
     creditCost: 0,
     requiredRole: 'user',
     parameters: {
@@ -250,7 +273,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
         isEnabled: {
           anyOf: [{ type: 'boolean' }, { type: 'null' }],
           description:
-            'Prompt enhancement. Required unless defaultVoice is given.',
+            'Prompt enhancement. Required unless defaultVoice or defaultAvatar is given.',
         },
         defaultVoice: {
           type: 'object',
@@ -267,6 +290,24 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
               type: 'string',
               description:
                 'ElevenLabs voice id from get_assets type voice source account. Saved to the organization first.',
+            },
+          },
+        },
+        defaultAvatar: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['twinId'],
+          description:
+            'Brand scope only. A READY digital twin becomes the brand default avatar.',
+          properties: {
+            twinId: {
+              type: 'string',
+              description: 'Twin id from get_assets type digital_twin.',
+            },
+            isTwinVoiceUsed: {
+              type: 'boolean',
+              description:
+                "Also make the twin's HeyGen voice the brand default voice. Defaults to true.",
             },
           },
         },

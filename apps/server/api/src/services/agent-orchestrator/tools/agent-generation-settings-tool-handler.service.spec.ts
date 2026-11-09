@@ -31,6 +31,7 @@ function setup() {
       settings as never,
       enhancement as never,
       voices as never,
+      {} as never,
     ),
     enhancement,
     voices,

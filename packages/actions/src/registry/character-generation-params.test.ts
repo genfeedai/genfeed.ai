@@ -29,7 +29,15 @@ describe('character generation tool params (#3441)', () => {
   it('registers get_assets as a zero-credit read tool that covers characters', () => {
     expect(listAssets?.creditCost).toBe(0);
     expect(listAssets?.parameters.properties.type).toMatchObject({
-      enum: ['image', 'video', 'music', 'avatar', 'character', 'voice'],
+      enum: [
+        'image',
+        'video',
+        'music',
+        'avatar',
+        'character',
+        'voice',
+        'digital_twin',
+      ],
     });
     expect(listAssets?.parameters.required).toEqual(['type']);
     expect(

@@ -24,6 +24,7 @@ import {
 } from './media-generation';
 import {
   getMediaTransformOperation,
+  isFreeMediaTransformOperation,
   MEDIA_TRANSFORM_TOOL_NAME,
 } from './media-transform';
 
@@ -247,8 +248,8 @@ export function estimateToolCreditCost(
   }
   if (name === MEDIA_TRANSFORM_TOOL_NAME) {
     const operation = getMediaTransformOperation(name, args);
-    if (operation === 'merge') return 0;
     if (!operation) return null;
+    if (isFreeMediaTransformOperation(operation)) return 0;
     return MEDIA_GENERATION_CREDIT_FLOORS.image;
   }
   if (name === 'repurpose_post') {

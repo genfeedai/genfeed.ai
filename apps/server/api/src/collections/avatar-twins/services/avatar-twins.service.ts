@@ -112,6 +112,26 @@ export class AvatarTwinsService {
   }
 
   /**
+   * The caller's twin started from this Library recording that has not
+   * failed, so a repeated start returns it instead of training a second one.
+   */
+  findActiveBySource(
+    actor: AvatarTwinActor,
+    sourceIngredientId: string,
+  ): Promise<AvatarTwin | null> {
+    return this.prisma.avatarTwin.findFirst({
+      orderBy: { createdAt: 'desc' },
+      where: {
+        isDeleted: false,
+        organizationId: actor.organizationId,
+        sourceIngredientId,
+        status: { not: AvatarTwinStatus.FAILED },
+        userId: actor.userId,
+      },
+    });
+  }
+
+  /**
    * Uploads the recording and starts training. The same idempotency key
    * returns the existing enrollment instead of creating a second avatar.
    */
