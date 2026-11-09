@@ -3,7 +3,7 @@ import type {
   ToolDataSource,
   ToolMutationPolicy,
   ToolUiActionType,
-} from '../interfaces/tool-definition.interface';
+} from '../interfaces/tool-policy.interface';
 import type { ToolsetName } from './toolset-names';
 
 export type CuratedActionSurface = 'agent' | 'mcp' | 'workflow';
