@@ -1,5 +1,9 @@
 import { reconcileWorkflowMediaCosts } from '@api/collections/workflow-executions/services/workflow-media-accounting-reconciliation';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  isTerminalWorkflowExecutionStatus,
+  parseWorkflowExecutionStatus,
+} from '@genfeedai/contracts';
 import type {
   WorkflowAccounting,
   WorkflowNodeAccounting,
@@ -149,9 +153,9 @@ export async function readWorkflowAccountings(
       ...reservations.map((row) => row.workflowNodeId ?? '__unattributed__'),
       ...providerRows.map((row) => row.workflowNodeId ?? '__unattributed__'),
     ]);
-    const isTerminal = ['COMPLETED', 'FAILED', 'CANCELLED'].includes(
-      String(execution.status).toUpperCase(),
-    );
+    const status = parseWorkflowExecutionStatus(execution.status);
+    const isTerminal =
+      status !== null && isTerminalWorkflowExecutionStatus(status);
     const nodes: WorkflowNodeAccounting[] = [...nodeIds].map((nodeId) => {
       const quote = estimate?.nodes.find((node) => node.nodeId === nodeId);
       const result = execution.nodeResults.find(

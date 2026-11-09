@@ -232,7 +232,10 @@ export class WorkflowExecutionRunnerService {
     );
 
     try {
-      await this.startExecution(prepared, event, trigger);
+      const isStarted = await this.startExecution(prepared, event, trigger);
+      if (!isStarted) {
+        return this.buildSettledExecutionResult(prepared);
+      }
       const result = await this.graphRunner.executeNodeGraph(
         prepared.executableWorkflow,
         event,
@@ -393,11 +396,19 @@ export class WorkflowExecutionRunnerService {
     prepared: PreparedWorkflowExecution,
     event: TriggerEvent,
     trigger: WorkflowExecutionTrigger,
-  ): Promise<void> {
-    await this.executionsService.startExecution(
+  ): Promise<boolean> {
+    const started = await this.executionsService.startExecution(
       prepared.executionId,
       prepared.organizationId,
     );
+    if (!started) {
+      // Completed or cancelled between the caller's read and this start.
+      this.logger.warn(
+        `${this.logContext} execution is already settled; not starting it`,
+        { executionId: prepared.executionId },
+      );
+      return false;
+    }
     await this.progressService.publishWorkflowTaskUpdate({
       eta: prepared.initialEta,
       executionId: prepared.executionId,
@@ -429,6 +440,35 @@ export class WorkflowExecutionRunnerService {
         status: 'started',
       });
     }
+    return true;
+  }
+
+  /**
+   * The result for an execution that settled before it could start: no node
+   * runs, no failure is recorded, and the caller sees the persisted outcome.
+   */
+  private async buildSettledExecutionResult(
+    prepared: PreparedWorkflowExecution,
+  ): Promise<WorkflowExecutionResult> {
+    const execution = await this.executionsService.findOne({
+      id: prepared.executionId,
+      organizationId: prepared.organizationId,
+    });
+    if (!execution) {
+      throw new Error(`Execution ${prepared.executionId} not found`);
+    }
+    return {
+      completedAt: execution.completedAt ?? new Date(),
+      executionId: prepared.executionId,
+      nodeResults: [],
+      startedAt: execution.startedAt ?? prepared.startedAt,
+      status:
+        String(execution.status) === WorkflowExecutionStatus.COMPLETED
+          ? WorkflowExecutionStatus.COMPLETED
+          : WorkflowExecutionStatus.CANCELLED,
+      totalCreditsUsed: execution.creditsUsed ?? 0,
+      workflowId: prepared.workflowId,
+    };
   }
 
   @Traced()

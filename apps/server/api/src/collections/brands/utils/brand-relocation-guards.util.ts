@@ -1,5 +1,8 @@
 import { scopedWhere } from '@api/index';
-import { LiveSessionStatus, VisualCodeStatus } from '@genfeedai/contracts';
+import {
+  LiveSessionStatus,
+  VISUAL_CODE_TERMINAL_STATUSES,
+} from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { ConflictException } from '@nestjs/common';
 
@@ -141,11 +144,7 @@ export async function assertNoOpenVisualProjects(
       OR: [
         {
           status: {
-            notIn: [
-              VisualCodeStatus.COMPLETED,
-              VisualCodeStatus.FAILED,
-              VisualCodeStatus.CANCELLED,
-            ],
+            notIn: [...VISUAL_CODE_TERMINAL_STATUSES],
           },
         },
         {
