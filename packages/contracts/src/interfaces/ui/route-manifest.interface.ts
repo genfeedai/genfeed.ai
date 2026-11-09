@@ -1,11 +1,6 @@
 import type { AppRailFeatureFlagKey } from '../../constants/feature-flags.constant';
 import type { OrganizationModuleId } from '../../constants/organization-modules.constant';
 import type {
-  AdminRailCategoryId,
-  AppRailItemConfig,
-} from './app-rail.interface';
-import type { AppContext } from './menu-config.interface';
-import type {
   WorkspaceShellAdapterSeam,
   WorkspaceShellProductClass,
   WorkspaceShellRouteMode,
@@ -16,7 +11,30 @@ import type {
 export type RouteManifestScope = 'brand' | 'organization' | 'personal';
 
 /** Apps that open from the app rail: the daily loop and the Apps launcher. */
-export type RouteManifestAppId = Exclude<AppContext, 'admin'>;
+export type RouteManifestAppId =
+  | 'agent'
+  | 'analytics'
+  | 'automation'
+  | 'clipper'
+  | 'discovery'
+  | 'editor'
+  | 'library'
+  | 'messages'
+  | 'motion'
+  | 'playground'
+  | 'publishing'
+  | 'storyboard'
+  | 'turbo'
+  | 'workspace';
+
+/** One admin rail icon; it lists the admin pages whose `menu.category` is its id. */
+export type AdminRailCategoryId =
+  | 'admin-overview'
+  | 'admin-customers'
+  | 'admin-content'
+  | 'admin-automation'
+  | 'admin-economics'
+  | 'admin-platform';
 
 /**
  * A product app on the rail. The rail, the bare-root redirects and the
@@ -25,7 +43,8 @@ export type RouteManifestAppId = Exclude<AppContext, 'admin'>;
  */
 export interface RouteManifestApp {
   id: RouteManifestAppId;
-  group: Extract<AppRailItemConfig['group'], 'app' | 'daily'>;
+  /** `daily` is the fixed core loop; `app` entries open from the Apps launcher. */
+  group: 'app' | 'daily';
   /** Scope-relative path the rail opens, for an organization and for a brand. */
   homePath: string;
   /** URL root of the app (`/publishing`); it lights the rail item. */
@@ -113,7 +132,6 @@ export interface RouteManifestAdminPage {
   menu?: RouteManifestAdminMenu;
 }
 
-/** One admin rail icon; it lists the pages whose `menu.category` is its id. */
 export interface RouteManifestAdminCategory {
   id: AdminRailCategoryId;
   /** Translation key prefix under common.appRail (`adminOverview.label`). */
