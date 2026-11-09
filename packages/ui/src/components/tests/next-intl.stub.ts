@@ -240,25 +240,6 @@ const UI_TEST_MESSAGES = {
           retry: 'Try again',
           title: 'Choose accounts',
         },
-        selectLinkedInAccount: {
-          alreadyConnected: 'Already connected',
-          back: 'Go back',
-          cancel: 'Cancel',
-          confirm: 'Post as this account',
-          confirmError: 'Failed to connect this account. Please try again.',
-          confirming: 'Connecting…',
-          description:
-            'Choose who this brand posts as on LinkedIn. Pick a company page you manage, or your own profile.',
-          empty: 'No LinkedIn accounts were found for this connection.',
-          error: 'Failed to load your LinkedIn accounts. Please try again.',
-          kind: {
-            member: 'Personal profile',
-            organization: 'Company page',
-          },
-          loading: 'Loading your LinkedIn accounts…',
-          retry: 'Try again',
-          title: 'Choose a LinkedIn account',
-        },
       },
     },
     libraryCanvas: {

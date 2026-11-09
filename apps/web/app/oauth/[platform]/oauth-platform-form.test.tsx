@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OAuthPlatformForm from './oauth-platform-form';
 
 const mockInstagramAccountSelector = vi.fn();
-const mockLinkedInAccountSelector = vi.fn();
 
 const mocks = vi.hoisted(() => ({
   authIdentity: {
@@ -59,16 +58,6 @@ vi.mock('@services/external/services.service', () => ({
 vi.mock('@/components/analytics/AnalyticsPublicRouteSync', () => ({
   default: () => <div data-testid="analytics-public-route-sync" />,
 }));
-
-vi.mock(
-  '@/features/auth/components/modals/brands/linkedin/LinkedInAccountSelector',
-  () => ({
-    default: (props: { credentialId: string }) => {
-      mockLinkedInAccountSelector(props);
-      return <div data-testid="linkedin-account-selector" />;
-    },
-  }),
-);
 
 vi.mock(
   '@/features/auth/components/modals/brands/instagram/InstagramAccountSelector',
@@ -536,28 +525,6 @@ describe('OAuthPlatformForm', () => {
       expect.objectContaining({ credentialId: 'credential-ambiguous' }),
     );
     expect(screen.queryByText('Instagram Connected')).not.toBeInTheDocument();
-    expect(mocks.navigate).not.toHaveBeenCalled();
-  });
-
-  it('asks which LinkedIn page or profile to post as instead of connecting straight away', async () => {
-    mocks.postVerify.mockResolvedValue({
-      id: 'credential-linkedin',
-      isConnected: false,
-      needsAccountSelection: true,
-    });
-
-    render(<OAuthPlatformForm platform="linkedin" />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('linkedin-account-selector')).toBeVisible();
-    });
-    expect(mockLinkedInAccountSelector).toHaveBeenCalledWith(
-      expect.objectContaining({ credentialId: 'credential-linkedin' }),
-    );
-    expect(
-      screen.queryByTestId('instagram-account-selector'),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText('Linkedin Connected')).not.toBeInTheDocument();
     expect(mocks.navigate).not.toHaveBeenCalled();
   });
 

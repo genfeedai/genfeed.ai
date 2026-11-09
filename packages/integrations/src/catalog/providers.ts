@@ -88,14 +88,7 @@ export const INTEGRATION_PROVIDER_DEFINITIONS = [
     key: 'linkedin',
     oauth: {
       authorizationUrl: 'https://www.linkedin.com/oauth/v2/authorization',
-      scopes: [
-        'openid',
-        'profile',
-        'email',
-        'w_member_social',
-        'r_organization_admin',
-        'w_organization_social',
-      ],
+      scopes: ['openid', 'profile', 'w_member_social'],
       tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken',
     },
     platform: CredentialPlatform.LINKEDIN,

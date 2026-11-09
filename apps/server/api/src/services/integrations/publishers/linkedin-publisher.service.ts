@@ -1,11 +1,10 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
-import { LINKEDIN_MULTI_IMAGE_LIMITS } from '@api/services/integrations/linkedin/services/linkedin-image-upload.util';
 import {
-  resolveLinkedInAuthorUrn,
+  LinkedInService,
   resolveLinkedInVisibility,
-} from '@api/services/integrations/linkedin/utils/linkedin-author.util';
+} from '@api/services/integrations/linkedin/services/linkedin.service';
+import { LINKEDIN_MULTI_IMAGE_LIMITS } from '@api/services/integrations/linkedin/services/linkedin-image-upload.util';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
   MediaInfo,
@@ -117,10 +116,7 @@ export class LinkedInPublisherService extends BasePublisherService {
         ),
       {
         text: this.sanitizeDescription(context.post.description),
-        visibility: resolveLinkedInVisibility(
-          context.settings,
-          resolveLinkedInAuthorUrn(context.credential.externalId),
-        ),
+        visibility: resolveLinkedInVisibility(context.settings),
       },
     );
     const externalId = found?.id;
