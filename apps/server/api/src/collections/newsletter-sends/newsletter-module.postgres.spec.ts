@@ -42,7 +42,7 @@ const connectionString = process.env.BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL;
 const MIGRATION_SQL = readFileSync(
   path.resolve(
     __dirname,
-    '../../../../../../packages/prisma/prisma/migrations/20261109090000_newsletter_module/migration.sql',
+    '../../../../../../packages/prisma/prisma/migrations/20261109093000_newsletter_module/migration.sql',
   ),
   'utf8',
 );
