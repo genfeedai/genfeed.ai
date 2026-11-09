@@ -55,7 +55,7 @@ import type { Request } from 'express';
 type AssetMatchConditions = Record<string, unknown>;
 type MutableAssetUpdate = {
   -readonly [K in keyof UpdateAssetDto]?: UpdateAssetDto[K];
-};
+} & { parentOrgId?: string };
 
 @AutoSwagger()
 @Controller('assets')
@@ -208,6 +208,11 @@ export class AssetsController {
         user,
       );
       sanitizedUpdate.parentId = updateAssetDto.parentId;
+      // Rebuilding the parent columns resets the tenant column, so a brand
+      // parent, already checked against the caller's organization, carries it.
+      if (updateAssetDto.parentType === AssetParent.BRAND) {
+        sanitizedUpdate.parentOrgId = user.organizationId;
+      }
     }
 
     if (updateAssetDto.isDeleted !== undefined) {
