@@ -21,7 +21,7 @@
  *   bun run preflight --list          # print the plan, run nothing
  *   bun run preflight --only static,contracts
  *   bun run preflight --skip contracts
- *   bun run preflight --parallel      # typecheck, spec and contracts at once
+ *   bun run preflight --serial        # one stage at a time (default: the three heavy stages overlap)
  *   bun run preflight --bail          # stop at the first failing step
  *   bun run preflight --full          # spec typecheck every workspace
  *   bun run preflight --lint          # also `turbo lint --affected` (may rewrite files)
@@ -99,7 +99,7 @@ export function parseOptions(argv: readonly string[]): PreflightOptions {
     hasFetch: true,
     hasLint: false,
     isListOnly: false,
-    isParallel: false,
+    isParallel: true,
     only: null,
     skip: new Set(),
   };
@@ -129,8 +129,8 @@ export function parseOptions(argv: readonly string[]): PreflightOptions {
       case '--only':
         options.only = parseStages(argv[++index], '--only');
         break;
-      case '--parallel':
-        options.isParallel = true;
+      case '--serial':
+        options.isParallel = false;
         break;
       case '--skip':
         options.skip = parseStages(argv[++index], '--skip');

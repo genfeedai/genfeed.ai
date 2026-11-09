@@ -77,6 +77,11 @@ function curl(url: string, output: string): void {
   if (result.status !== 0) throw new Error(`Download failed: ${url}`);
 }
 
+function hostNodeVersion(): string | null {
+  const result = spawnSync('node', ['--version'], { encoding: 'utf8' });
+  return result.status === 0 ? result.stdout.trim() : null;
+}
+
 export type PinnedNode = {
   /** Directory to put first on PATH, or null when the host Node is fine. */
   binDir: string | null;
@@ -93,10 +98,13 @@ export function ensurePinnedNode(rootDir: string): PinnedNode {
     return { binDir: null, note: 'no .node-version; using the host Node' };
   }
   const pinned = readFileSync(versionFile, 'utf8').trim();
-  if (isPinnedNode(process.version, pinned)) {
+  // Not `process.version`: under Bun that is Bun's Node-compat version, while
+  // the contracts spawn the real `node` from PATH.
+  const hostNode = hostNodeVersion();
+  if (hostNode && isPinnedNode(hostNode, pinned)) {
     return {
       binDir: null,
-      note: `host Node ${process.version} matches .node-version`,
+      note: `host Node ${hostNode} matches .node-version`,
     };
   }
 
@@ -104,7 +112,7 @@ export function ensurePinnedNode(rootDir: string): PinnedNode {
   if (!archive) {
     return {
       binDir: null,
-      note: `host Node ${process.version} differs from ${pinned} and no download exists for ${process.platform}-${process.arch}`,
+      note: `host Node ${hostNode ?? 'unknown'} differs from ${pinned} and no download exists for ${process.platform}-${process.arch}`,
     };
   }
 
@@ -151,7 +159,7 @@ export function ensurePinnedNode(rootDir: string): PinnedNode {
     const message = error instanceof Error ? error.message : String(error);
     return {
       binDir: null,
-      note: `could not provision Node ${pinned} (${message}); using host Node ${process.version}, so runtime-acceptance contracts may fail here`,
+      note: `could not provision Node ${pinned} (${message}); using host Node ${hostNode ?? 'unknown'}, so runtime-acceptance contracts may fail here`,
     };
   }
 }
