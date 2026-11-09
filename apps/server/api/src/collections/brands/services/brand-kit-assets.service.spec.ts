@@ -4,6 +4,7 @@ import { BrandKitAssetsService } from '@api/collections/brands/services/brand-ki
 import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BrandKitSlot } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -399,5 +400,67 @@ describe('BrandKitAssetsService.resolveBrandLogoUrls', () => {
     );
     expect(findMany).not.toHaveBeenCalled();
     expect(empty.size).toBe(0);
+  });
+});
+
+describe('BrandKitAssetsService.fillPlatformSlotsFromMaster', () => {
+  const asset = {
+    create: vi.fn(),
+    findFirst: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+  };
+  const files = {
+    resizeImageFromUrl: vi.fn(),
+    uploadToS3: vi.fn(),
+  };
+  let service: BrandKitAssetsService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    asset.findFirst.mockResolvedValue({
+      cloudObjectKey: 'banners/master',
+      id: 'master',
+      mimeType: 'image/svg+xml',
+    });
+    asset.create
+      .mockResolvedValueOnce({ id: 'x-header' })
+      .mockResolvedValueOnce({ id: 'youtube' });
+    files.resizeImageFromUrl.mockResolvedValue(Buffer.from('png'));
+    service = new BrandKitAssetsService(
+      { asset } as unknown as PrismaService,
+      {
+        invalidate: vi.fn(),
+        invalidateByTags: vi.fn(),
+      } as unknown as CacheInvalidationService,
+      files as unknown as FilesClientService,
+      { cdnUrl: 'https://cdn.example.com' } as unknown as ConfigService,
+    );
+  });
+
+  it('stores each filled slot as PNG when the master is SVG, and reports a failed slot', async () => {
+    files.uploadToS3
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(new Error('s3 down'));
+
+    const results = await service.fillPlatformSlotsFromMaster(
+      'brand-1',
+      'org-1',
+      'user-1',
+      [BrandKitSlot.X_HEADER, BrandKitSlot.YOUTUBE_BANNER],
+    );
+
+    expect(results).toEqual([
+      { assetId: 'x-header', slot: 'X_HEADER', status: 'filled' },
+      { error: 's3 down', slot: 'YOUTUBE_BANNER', status: 'failed' },
+    ]);
+    expect(asset.create.mock.calls[0]?.[0]?.data).toMatchObject({
+      kitSlot: 'X_HEADER',
+      mimeType: 'image/png',
+      origin: ASSET_ORIGIN_GENERATION_PENDING,
+    });
+    expect(files.uploadToS3.mock.calls[0]?.[2]).toMatchObject({
+      contentType: 'image/png',
+    });
   });
 });

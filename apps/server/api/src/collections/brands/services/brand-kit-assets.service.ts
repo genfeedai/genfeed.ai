@@ -405,6 +405,11 @@ export class BrandKitAssetsService {
     const masterUrl = this.signForFetch(
       this.buildBrandAssetCdnUrl(master.id, 'banner', master.cloudObjectKey),
     );
+    // The resize keeps raster formats as they are and rasterizes SVG to PNG.
+    const filledMimeType =
+      master.mimeType && master.mimeType !== 'image/svg+xml'
+        ? master.mimeType
+        : 'image/png';
     const results: IBrandKitPlatformFillResult[] = [];
     for (const slot of new Set(slots)) {
       const spec = getBrandKitPlatformSlotSpec(slot);
@@ -423,7 +428,7 @@ export class BrandKitAssetsService {
           data: {
             category: PRISMA_ASSET_CATEGORY_BY_ROLE.banner,
             kitSlot: slot,
-            mimeType: master.mimeType,
+            mimeType: filledMimeType,
             origin: ASSET_ORIGIN_GENERATION_PENDING,
             parentBrandId: brandId,
             parentOrgId: organizationId,
@@ -437,7 +442,7 @@ export class BrandKitAssetsService {
           asset.id,
           ASSET_UPLOAD_TYPE_BY_ROLE.banner,
           {
-            contentType: master.mimeType ?? 'image/png',
+            contentType: filledMimeType,
             data: resized,
             type: FileInputType.BUFFER,
           },
