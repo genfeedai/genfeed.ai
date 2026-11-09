@@ -58,19 +58,43 @@ function harness(overrides = {}) {
   return options;
 }
 
-test('selects only exact-SHA master push or manual Full Suite evidence', () => {
+test('selects only exact-SHA master push, nightly or manual Full Suite evidence', () => {
   const selected = selectFullSuiteRun(
     [
       run({ id: 1, head_sha: 'a'.repeat(40) }),
       run({ id: 2, head_branch: 'feature' }),
       run({ id: 3, event: 'workflow_call' }),
-      run({ id: 5, event: 'schedule', created_at: '2026-09-02T00:00:00Z' }),
+      run({ id: 5, event: 'pull_request', created_at: '2026-09-02T00:00:00Z' }),
       run({ id: 4, event: 'workflow_dispatch' }),
     ],
     RELEASE_SHA,
   );
 
   assert.equal(selected?.id, 4);
+});
+
+test('reuses the nightly scheduled Full Suite run for its exact master SHA', () => {
+  const selected = selectFullSuiteRun(
+    [
+      run({ id: 4, event: 'workflow_dispatch' }),
+      run({ id: 5, event: 'schedule', created_at: '2026-09-02T00:00:00Z' }),
+    ],
+    RELEASE_SHA,
+  );
+
+  assert.equal(selected?.id, 5);
+});
+
+test('verifies a nightly scheduled run that passed Final Connected Acceptance', async () => {
+  const result = await resolveFullSuiteEvidence(
+    harness({
+      listRuns: async () => [run({ id: 77, event: 'schedule' })],
+      listJobs: async (id) => [gate({ run_id: id })],
+    }),
+  );
+
+  assert.equal(result.kind, 'verified');
+  assert.equal(result.run.id, 77);
 });
 
 test('a cancelled run never hides an earlier failure for the same SHA', () => {
