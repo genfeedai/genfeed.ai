@@ -1,5 +1,6 @@
 import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
@@ -16,6 +17,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -26,7 +28,7 @@ import { Public } from '@libs/decorators/public.decorator';
 import { PrismaWhereQuery } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Controller, Get, Param, Query, Req } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -39,7 +41,30 @@ export class PublicArticlesController {
     private readonly articlesService: ArticlesService,
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
+    private readonly publicViewsService: PublicViewsService,
   ) {}
+
+  /** Counts a reader's view of a published article, once a day per visitor. */
+  @Post(':articleId/views')
+  @RateLimit({ limit: 30, scope: 'ip', windowMs: 60_000 })
+  async recordView(
+    @Req() request: Request,
+    @Param('articleId') articleId: string,
+  ): Promise<{ data: { views: number } | null }> {
+    if (!isEntityId(articleId)) {
+      return { data: null };
+    }
+    const userAgent = request.headers['user-agent'];
+    const views = await this.publicViewsService.recordArticle(
+      articleId,
+      await this.articlesService.publicArticleScope.buildWhere(),
+      {
+        ip: request.ip ?? '',
+        userAgent: typeof userAgent === 'string' ? userAgent : '',
+      },
+    );
+    return { data: views === null ? null : { views } };
+  }
 
   @Get()
   @Cache({

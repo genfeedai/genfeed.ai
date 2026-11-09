@@ -45,13 +45,16 @@ export const getPublicBrandBySlug = cache(
     PublicService.getInstance().findPublicProfileBySlug(slug),
 );
 
-async function getPublicReferralCode(brandId: string): Promise<string | null> {
-  try {
-    return await PublicService.getInstance().findPublicReferralCode(brandId);
-  } catch {
-    return null;
-  }
-}
+/** The creator's referral code for sign-up links, or null when there is none. */
+export const getPublicReferralCode = cache(
+  async (brandId: string): Promise<string | null> => {
+    try {
+      return await PublicService.getInstance().findPublicReferralCode(brandId);
+    } catch {
+      return null;
+    }
+  },
+);
 
 /**
  * One page of each kind of public content for a creator. A kind that fails to

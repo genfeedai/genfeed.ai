@@ -7,7 +7,7 @@ import ProfileSignupCta from '@web-components/profile/ProfileSignupCta';
 import ProfileSocialLinks from '@web-components/profile/ProfileSocialLinks';
 import ProfileSubscribe from '@web-components/profile/ProfileSubscribe';
 import CopyLinkButton from './CopyLinkButton';
-import ProfileViewCount from './ProfileViewCount';
+import ViewCount from './ViewCount';
 
 const MEMBER_SINCE_FORMAT = new Intl.DateTimeFormat('en-US', {
   month: 'long',
@@ -65,7 +65,7 @@ export default function CreatorRail({
             ))}
           </p>
         ) : null}
-        <ProfileViewCount brandId={brand.id} />
+        <ViewCount id={brand.id} target="profile" />
       </div>
 
       <div className="space-y-3">

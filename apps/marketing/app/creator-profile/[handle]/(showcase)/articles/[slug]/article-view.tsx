@@ -9,7 +9,10 @@ import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import type { PublicArticleViewProps } from '@props/content/public-article.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { notFound } from 'next/navigation';
-import { getPublicBrandBySlug } from '../../creator-loader';
+import {
+  getPublicBrandBySlug,
+  getPublicReferralCode,
+} from '../../creator-loader';
 import { resolvePublicArticleAuthor } from './article-author';
 import ArticleDetailContent from './article-detail';
 import { getCreatorArticleCached } from './article-loader';
@@ -39,6 +42,7 @@ export default async function ArticleView({
 
   const handle = requestedHandle.toLowerCase();
   const brand = await getPublicBrandBySlug(handle).catch(() => null);
+  const referralCode = brand ? await getPublicReferralCode(brand.id) : null;
   const articlePath = creatorArticlePath(handle, slug);
   const articleUrl = `${EnvironmentService.apps.website}${articlePath}`;
   const profileUrl = `${EnvironmentService.apps.website}${creatorProfilePath(handle)}`;
@@ -139,6 +143,7 @@ export default async function ArticleView({
         brand={brand}
         handle={handle}
         isPreview={isPreview}
+        referralCode={referralCode}
       />
     </>
   );

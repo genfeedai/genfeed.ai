@@ -64,3 +64,7 @@ export interface ArticleContentProps {
   slug?: string;
   resource?: ArticleResource | null;
 }
+
+export interface ArticleOutlineProps {
+  sections: ArticleSection[];
+}

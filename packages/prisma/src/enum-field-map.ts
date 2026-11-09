@@ -914,6 +914,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'updatedAt',
       'user',
       'userId',
+      'viewCount',
     ],
     listFields: [
       'articleAnalytics',

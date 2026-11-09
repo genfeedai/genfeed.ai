@@ -1,3 +1,4 @@
+import type { PublicViewTarget } from '@data/public-views';
 import type { CreatorProfileTab } from '@genfeedai/contracts/constants';
 import type { Article } from '@models/content/article.model';
 import type { Post } from '@models/content/post.model';
@@ -45,8 +46,10 @@ export interface CreatorRailProps {
   referralCode: string | null;
 }
 
-export interface ProfileViewCountProps {
-  brandId: string;
+export interface ViewCountProps {
+  /** The brand id for a profile, the article id for an article. */
+  id: string;
+  target: PublicViewTarget;
 }
 
 export interface CreatorTabsProps {
@@ -108,4 +111,11 @@ export interface ProfileSubscribeProps {
 
 export interface CommunityCreatorCardProps {
   brand: Brand;
+}
+
+export interface MakeYourOwnBannerProps {
+  /** The creator whose page the reader is on, for tracking. */
+  handle: string;
+  /** The creator's referral code, carried into sign-up. */
+  referralCode?: string | null;
 }

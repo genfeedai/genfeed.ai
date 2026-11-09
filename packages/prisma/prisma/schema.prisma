@@ -4318,6 +4318,8 @@ model Article {
   publishedAt    DateTime?
   // Live URL recorded when the article was published outside Genfeed (#6753).
   externalUrl    String?
+  // Readers of the public article page, counted once a day per visitor (#9663).
+  viewCount      Int           @default(0)
   isDeleted      Boolean       @default(false)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
