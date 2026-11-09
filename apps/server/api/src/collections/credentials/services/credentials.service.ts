@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { isBootstrapCredentialWrite } from '@api/collections/brands/utils/brand-bootstrap-credentials.util';
-import { NETWORK_ACCOUNT_WHERE } from '@api/collections/brands/utils/genfeed-profile-channel.util';
+import { networkAccountsWhere } from '@api/collections/brands/utils/genfeed-profile-channel.util';
 import { runFencedLearningMutation } from '@api/collections/content-learning/services/learning-fenced-mutation.util';
 import { OAUTH_STATE_TTL_MS } from '@api/collections/credentials/constants/oauth.constants';
 import type {
@@ -337,11 +337,7 @@ export class CredentialsService
 
   countConnected(organizationId: string, brandId?: string): Promise<number> {
     return this.prisma.credential.count({
-      where: scopedWhere(organizationId, {
-        ...NETWORK_ACCOUNT_WHERE,
-        isConnected: true,
-        ...(brandId ? { brandId } : {}),
-      }),
+      where: scopedWhere(organizationId, networkAccountsWhere(brandId)),
     });
   }
 

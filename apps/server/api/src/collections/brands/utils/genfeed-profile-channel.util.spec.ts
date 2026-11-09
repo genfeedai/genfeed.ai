@@ -1,6 +1,6 @@
 import {
   createGenfeedProfileChannel,
-  syncGenfeedProfileHandle,
+  networkAccountsWhere,
 } from '@api/collections/brands/utils/genfeed-profile-channel.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { describe, expect, it, vi } from 'vitest';
@@ -99,13 +99,17 @@ describe('createGenfeedProfileChannel', () => {
   });
 });
 
-describe('syncGenfeedProfileHandle', () => {
-  it('moves the channel to the renamed handle', async () => {
-    const { prisma, rows } = createStore();
-    await createGenfeedProfileChannel(prisma, { error: vi.fn() }, brand);
-
-    await syncGenfeedProfileHandle(prisma, { ...brand, slug: 'acme-studio' });
-
-    expect(rows[0]?.externalHandle).toBe('acme-studio');
-  });
+describe('networkAccountsWhere', () => {
+  it.each([
+    [undefined, { isConnected: true, platform: { not: 'GENFEED' } }],
+    [
+      'brand-1',
+      { brandId: 'brand-1', isConnected: true, platform: { not: 'GENFEED' } },
+    ],
+  ])(
+    'for brand %s leaves out the built-in profile channel',
+    (brandId, expected) => {
+      expect(networkAccountsWhere(brandId)).toEqual(expected);
+    },
+  );
 });

@@ -1,4 +1,3 @@
-import { scopedWhere } from '@api/index';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { traced } from '@libs/tracing/traced';
@@ -11,6 +10,15 @@ import { traced } from '@libs/tracing/traced';
 export const NETWORK_ACCOUNT_WHERE = {
   platform: { not: 'GENFEED' },
 } as const;
+
+/** Connected network accounts, optionally of one brand. */
+export function networkAccountsWhere(brandId?: string) {
+  return {
+    ...NETWORK_ACCOUNT_WHERE,
+    isConnected: true,
+    ...(brandId ? { brandId } : {}),
+  };
+}
 
 /** The label every member sees for the built-in channel. */
 export const GENFEED_PROFILE_CHANNEL_LABEL = 'Genfeed profile';
@@ -69,22 +77,5 @@ export const createGenfeedProfileChannel = traced(
         organizationId: brand.organizationId,
       });
     }
-  },
-);
-
-/** Keeps the channel's handle on the brand's current one after a rename. */
-export const syncGenfeedProfileHandle = traced(
-  'syncGenfeedProfileHandle',
-  async (
-    prisma: Pick<PrismaService, 'credential'>,
-    brand: GenfeedProfileChannelBrand,
-  ): Promise<void> => {
-    await prisma.credential.updateMany({
-      data: { externalHandle: brand.slug },
-      where: scopedWhere(brand.organizationId, {
-        brandId: brand.id,
-        platform: 'GENFEED' as const,
-      }),
-    });
   },
 );

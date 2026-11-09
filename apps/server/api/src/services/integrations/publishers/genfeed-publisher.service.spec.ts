@@ -13,9 +13,17 @@ interface BrandRow {
   slug: string;
 }
 
+const channel = { externalHandle: 'acme' };
+
 function createPublisher(brand: BrandRow | null): GenfeedPublisherService {
   const prisma = {
     brand: { findFirst: vi.fn().mockResolvedValue(brand) },
+    credential: {
+      updateMany: async ({ data }: { data: { externalHandle: string } }) => {
+        channel.externalHandle = data.externalHandle;
+        return { count: 1 };
+      },
+    },
   } as unknown as PrismaService;
   const config = {
     get: (key: string) =>
@@ -31,7 +39,10 @@ function createPublisher(brand: BrandRow | null): GenfeedPublisherService {
 
 const context = {
   brandId: 'brand-1',
-  credential: { externalHandle: 'acme' } as unknown as CredentialDocument,
+  credential: {
+    externalHandle: 'acme',
+    id: 'cred-gf',
+  } as unknown as CredentialDocument,
   organizationId: 'org-1',
   postId: 'post-1',
   settings: {},
@@ -69,6 +80,20 @@ describe('GenfeedPublisherService', () => {
       executionState: TargetExecutionState.FAILED,
       success: false,
     });
+  });
+
+  it('moves the channel to a renamed handle when it publishes', async () => {
+    channel.externalHandle = 'acme';
+    const publisher = createPublisher({
+      isDeleted: false,
+      scope: 'PUBLIC',
+      slug: 'acme-studio',
+    });
+
+    await expect(publisher.publish(context)).resolves.toMatchObject({
+      url: 'https://genfeed.ai/@acme-studio/posts/post-1',
+    });
+    expect(channel.externalHandle).toBe('acme-studio');
   });
 
   it('links a published post from its credential handle', () => {

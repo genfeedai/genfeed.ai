@@ -55,6 +55,17 @@ export class GenfeedPublisherService extends BasePublisherService {
       );
     }
 
+    // A renamed brand keeps its channel: the handle follows the brand, so
+    // links built from the channel later point at the current profile.
+    if (context.credential.externalHandle !== brand.slug) {
+      await this.prisma.credential.updateMany({
+        data: { externalHandle: brand.slug },
+        where: scopedWhere(context.organizationId, {
+          id: context.credential.id,
+        }),
+      });
+    }
+
     return this.createSuccessResult(
       context.postId,
       this.platform,
