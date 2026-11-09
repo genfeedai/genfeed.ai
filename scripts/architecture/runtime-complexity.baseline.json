@@ -360,12 +360,6 @@
     "symbol": "apps/web/src/features/studio/playground/hooks/useStudioGeneration.ts"
   },
   {
-    "actual": 3156,
-    "file": "apps/web/src/features/studio/playground/StudioPlaygroundWorkspace.tsx",
-    "metric": "file-lines",
-    "symbol": "apps/web/src/features/studio/playground/StudioPlaygroundWorkspace.tsx"
-  },
-  {
     "actual": 1219,
     "file": "apps/web/src/features/studio/storyboard/components/StoryboardPlanEditor.tsx",
     "metric": "file-lines",
