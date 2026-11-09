@@ -21,7 +21,7 @@ const PROCESSING_STATE_ENUM = [
  * Brand Knowledge actions shared by the in-app Agent and the MCP server.
  * Every executor resolves the tenant and brand from the authenticated
  * request; ids in parameters never widen scope. Surface intent lives in
- * `curated-action-catalog.ts`.
+ * `curated-actions.catalog.ts`.
  */
 export const OVERLAP_KNOWLEDGE_TOOLS: SourceTool[] = [
   {
