@@ -159,10 +159,10 @@ describe('OrganizationCommunity', () => {
 
     render(<OrganizationCommunity organizationId="org-1" />);
 
-    const alert = screen.getByText('loadError').closest('[role="alert"]');
-    expect(screen.getByText('loadError')).toBeInTheDocument();
+    const alert = screen.getByRole('alert');
+    expect(within(alert).getByText('loadError')).toBeInTheDocument();
     expect(
-      within(alert ?? document.body).getByRole('button', { name: 'retry' }),
+      within(alert).getByRole('button', { name: 'retry' }),
     ).toBeInTheDocument();
   });
 });
