@@ -391,6 +391,7 @@ describe('PublicService', () => {
 
   describe('public single resources', () => {
     const resourceCases = [
+      ['findPublicBrand', 'brands/v_1', Brand],
       ['getPublicVideo', 'videos/v_1', Video],
       ['getPublicImage', 'images/v_1', Image],
       ['getPublicMusic', 'musics/v_1', Music],

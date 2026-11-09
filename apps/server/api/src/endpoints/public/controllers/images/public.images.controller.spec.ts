@@ -194,6 +194,32 @@ describe('PublicImagesController', () => {
       );
     });
 
+    it.each([
+      ['true', true],
+      [undefined, undefined],
+      ['false', undefined],
+    ])(
+      'filters featured images only when isHighlighted is %s',
+      async (flag, expected) => {
+        imagesService.findAll.mockResolvedValue(createPaginatedFixture([]));
+        const query = tenantReadQuery(BaseQueryDto, { limit: 10, page: 1 });
+
+        await controller.findPublicImages(
+          mockRequest,
+          query,
+          undefined,
+          undefined,
+          undefined,
+          flag,
+        );
+
+        const aggregateArg = imagesService.findAll.mock.calls[0][0] as {
+          where?: { isHighlighted?: boolean };
+        };
+        expect(aggregateArg.where?.isHighlighted).toBe(expected);
+      },
+    );
+
     it('should filter by tag when provided', async () => {
       const tag = 'nature';
       const mockImages = createPaginatedFixture([]);

@@ -128,6 +128,28 @@ describe('PublicVideosController', () => {
     expect(aggregateArg.where?.brandId).toEqual(brandId);
   });
 
+  it.each([
+    ['true', true],
+    [undefined, undefined],
+    ['false', undefined],
+  ])(
+    'filters featured videos only when isHighlighted is %s',
+    async (flag, expected) => {
+      await controller.findPublicVideos(
+        mockRequest,
+        {} as never,
+        undefined,
+        undefined,
+        undefined,
+        flag,
+      );
+      const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as {
+        where?: { isHighlighted?: boolean };
+      };
+      expect(aggregateArg.where?.isHighlighted).toBe(expected);
+    },
+  );
+
   it('should pass tag filter as regex when provided', async () => {
     await controller.findPublicVideos(mockRequest, {} as never, 'funny');
     const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as {
@@ -149,7 +171,7 @@ describe('PublicVideosController', () => {
       'portrait',
     );
     const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as {
-      orderBy?: Record<string, unknown>;
+      orderBy?: unknown;
       where?: Record<string, unknown>;
     };
     expect(aggregateArg.where).toMatchObject({
@@ -157,7 +179,32 @@ describe('PublicVideosController', () => {
       isDeleted: false,
       scope: AssetScope.PUBLIC,
     });
-    expect(aggregateArg.orderBy).toEqual({ createdAt: -1 });
+    expect(aggregateArg.orderBy).toEqual([{ createdAt: 'desc' }]);
+  });
+
+  it.each([
+    ['views', [{ viewCount: 'desc' }, { createdAt: 'desc' }]],
+    ['recreations', [{ recreateCount: 'desc' }, { createdAt: 'desc' }]],
+  ])('orders the gallery by %s', async (sortBy, expected) => {
+    await controller.findPublicVideos(
+      mockRequest,
+      {} as never,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      sortBy,
+    );
+    const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as {
+      include?: unknown;
+      orderBy?: unknown;
+    };
+    expect(aggregateArg.orderBy).toEqual(expected);
+    expect(aggregateArg.include).toEqual({
+      metadata: {
+        select: { duration: true, id: true, label: true, model: true },
+      },
+    });
   });
 
   // --- getVideoMetadata ---

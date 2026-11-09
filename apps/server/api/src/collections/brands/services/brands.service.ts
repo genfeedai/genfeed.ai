@@ -46,6 +46,7 @@ import {
   mergeDefinedKeys,
   omitUndefinedFields,
 } from '@api/collections/brands/utils/brand-config-merge.util';
+import type { CuratedBrandPatch } from '@api/collections/brands/utils/brand-curation-fields.util';
 import { normalizeBrandIdentityDefaults } from '@api/collections/brands/utils/brand-identity-defaults.util';
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
 import { toBrandSlugBase } from '@api/collections/brands/utils/brand-slug.util';
@@ -391,7 +392,7 @@ export class BrandsService extends BaseService<
 
   async patch(
     id: string,
-    updateBrandDto: Partial<UpdateBrandDto>,
+    updateBrandDto: CuratedBrandPatch<UpdateBrandDto>,
   ): Promise<BrandDocument> {
     this.logger.debug('Updating brand', {
       brandId: id,
@@ -416,7 +417,7 @@ export class BrandsService extends BaseService<
    */
   private async patchBrandRow(
     id: string,
-    updateBrandDto: Partial<UpdateBrandDto>,
+    updateBrandDto: CuratedBrandPatch<UpdateBrandDto>,
   ): Promise<BrandDocument> {
     if (!id) throw new ValidationException('Document ID is required');
     const data = this.normalizeData(

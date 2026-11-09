@@ -18,6 +18,7 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   ONBOARDING_STEPS,
+  parseClaimHandle,
   parseReferralCode,
   resolveForcedOnboardingHref,
 } from '@genfeedai/contracts/constants';
@@ -41,6 +42,7 @@ import {
   captureAnalyticsEvent,
   captureBrandOsFunnelStage,
 } from '@/lib/analytics';
+import { claimHandleAfterSignup } from '@/lib/onboarding/claim-handle.util';
 import {
   extractBrandDomain,
   ONBOARDING_STORAGE_KEYS,
@@ -66,6 +68,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const requestedBrandOsTokenParam = searchParams.get('brandOsToken');
   const requestedClipToolTokenParam = searchParams.get('clipToolToken');
   const requestedReferralCodeParam = searchParams.get('ref');
+  const requestedHandleParam = searchParams.get('handle');
   const searchQuery = searchParams.toString();
   const requestedAccountType = parseOnboardingAccountType(
     searchParams.get('accountType'),
@@ -301,6 +304,39 @@ export function usePostSignupRouting(): PostSignupRoutingState {
               'Referral attribution is still pending; continuing post-signup routing',
             );
           }
+        }
+      }
+
+      // A handle claimed on genfeed.ai goes to the brand before onboarding
+      // continues; a taken one leaves the brand's handle as it is.
+      const claimHandle =
+        parseClaimHandle(requestedHandleParam) ??
+        parseClaimHandle(
+          localStorage.getItem(ONBOARDING_STORAGE_KEYS.claimHandle),
+        );
+      if (claimHandle) {
+        const token = await resolveAuthToken(getToken);
+        if (token) {
+          const organizationsService = OrganizationsService.getInstance(token);
+          const outcome = await claimHandleAfterSignup(
+            {
+              findBrands: (organizationId) =>
+                organizationsService.findOrganizationBrands(organizationId),
+              findOrganizations: () =>
+                organizationsService.getMyOrganizations(),
+              setHandle: async (brandId, handle) => {
+                await BrandsService.getInstance(token).patch(brandId, {
+                  slug: handle,
+                });
+              },
+            },
+            claimHandle,
+          ).catch((error: unknown) => {
+            logger.error('Failed to claim handle after auth', error);
+            return 'unavailable' as const;
+          });
+          localStorage.removeItem(ONBOARDING_STORAGE_KEYS.claimHandle);
+          captureAnalyticsEvent(ANALYTICS_EVENTS.HANDLE_CLAIMED, { outcome });
         }
       }
 
@@ -655,6 +691,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     requestedClipToolTokenParam,
     requestedCreditsParam,
     requestedPlanParam,
+    requestedHandleParam,
     requestedReferralCodeParam,
     routingAttempt,
     searchQuery,

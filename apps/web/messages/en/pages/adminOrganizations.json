@@ -8,6 +8,7 @@
   "libraryLoadError": "Failed to load the organization library. Please try again.",
   "libraryLoadMoreError": "Failed to load more of the library.",
   "libraryRetry": "Retry",
+  "communityTab": "Community",
   "settingsTab": "Settings",
   "spendingTab": "Spending",
   "missingId": "Organization ID is required. Open an organization from the organizations list.",
@@ -77,5 +78,34 @@
     "self_serve": "Self-serve"
   },
   "planLabel": "Plan",
-  "openOwner": "Open owner"
+  "openOwner": "Open owner",
+  "community": {
+    "creatorsDescription": "Brands with a public profile on genfeed.ai. Featured creators lead /community/creators.",
+    "creatorsTitle": "Creators",
+    "empty": "Nothing on community yet",
+    "emptyDescription": "This organization has no public profile, image or video on genfeed.ai.",
+    "feature": "Feature",
+    "featureNamed": "Feature {name} on community",
+    "featured": "Featured on community",
+    "featuredBadge": "Featured",
+    "kinds": {
+      "image": "Image",
+      "video": "Video"
+    },
+    "loadError": "Failed to load what this organization shows on community.",
+    "mediaDescription": "Public images and videos in the community galleries. A featured one can lead /community.",
+    "mediaTitle": "Images and videos",
+    "retry": "Retry",
+    "saveError": "Could not save the change. Please try again.",
+    "unfeature": "Unfeature",
+    "unfeatureNamed": "Stop featuring {name}",
+    "unfeatured": "No longer featured",
+    "unpublish": "Take off community",
+    "unpublishCreatorMessage": "{name} leaves genfeed.ai: the profile page and its creator listing go away, and the brand stays with the organization. Its public images and videos stay in the galleries until you take them off too.",
+    "unpublishCreatorTitle": "Take this profile off genfeed.ai?",
+    "unpublishMediaMessage": "{name} leaves the community galleries and the creator's profile. The organization keeps it.",
+    "unpublishMediaTitle": "Take this off community?",
+    "unpublishNamed": "Take {name} off community",
+    "unpublished": "Taken off community"
+  }
 }

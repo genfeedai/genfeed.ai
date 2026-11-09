@@ -1,3 +1,5 @@
+import { mediaModelKey, type PublicMediaFacts } from '@data/public-media';
+
 /** The anchor of a model's entry on the /models catalog page. */
 export function modelAnchorId(key: string): string {
   return `model-${key
@@ -18,10 +20,13 @@ export function modelCatalogHref(key: string): string {
  */
 export function buildModelCredits(
   catalog: readonly { key: string; label: string }[] | null,
-  media: readonly { model?: string | null }[],
+  media: readonly PublicMediaFacts[],
 ): Record<string, string> {
   const used = new Set(
-    media.flatMap((item) => (item.model ? [item.model] : [])),
+    media.flatMap((item) => {
+      const key = mediaModelKey(item);
+      return key ? [key] : [];
+    }),
   );
   return Object.fromEntries(
     (catalog ?? [])

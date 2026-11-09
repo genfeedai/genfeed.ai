@@ -3,6 +3,7 @@ import {
   BRAND_HANDLE_MAX_LENGTH,
   isValidBrandHandle,
   normalizeBrandHandle,
+  parseClaimHandle,
 } from './brand-handle.constant';
 
 describe('brand-handle.constant', () => {
@@ -27,4 +28,18 @@ describe('brand-handle.constant', () => {
   ])('rejects %j', (handle) => {
     expect(isValidBrandHandle(handle)).toBe(false);
   });
+
+  it.each([
+    ['@Shayla', 'shayla'],
+    [' vincent-on-ai ', 'vincent-on-ai'],
+  ])('reads the claimed handle %j as %j', (value, handle) => {
+    expect(parseClaimHandle(value)).toBe(handle);
+  });
+
+  it.each([null, '', 'a', 'vincent_ai', 'settings', 'admin'])(
+    'refuses %j as a claimed handle',
+    (value) => {
+      expect(parseClaimHandle(value)).toBeNull();
+    },
+  );
 });

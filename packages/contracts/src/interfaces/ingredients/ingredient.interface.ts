@@ -95,6 +95,10 @@ export interface IIngredient extends IBaseEntity {
   posts?: IPost[];
   scope: AssetScope;
   isHighlighted: boolean;
+  /** Community gallery views, once a day per visitor (#9670). */
+  viewCount?: number;
+  /** Community gallery clicks on Recreate in Genfeed, once a day per visitor. */
+  recreateCount?: number;
   isDefault: boolean;
   isFavorite: boolean;
   isSelected?: boolean;
