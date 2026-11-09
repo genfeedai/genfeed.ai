@@ -1,3 +1,4 @@
+import { withholdGatedContent } from '@api/collections/articles/utils/article-preview.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -87,10 +88,13 @@ export class PublicArticleGenerationsService {
   ): Promise<ArticleGeneration[]> {
     // tenant-scope-ignore: public article read; publicWhere pins published, live articles, and the asset read below is org-scoped.
     const article = await this.prisma.article.findFirst({
-      select: { content: true, organizationId: true },
+      select: { accessLevel: true, content: true, organizationId: true },
       where: { ...publicWhere, id: articleId, isDeleted: false },
     });
-    const refs = findArticleGenerationRefs(article?.content);
+    // A paid article only names the generations in its free preview.
+    const refs = findArticleGenerationRefs(
+      article ? withholdGatedContent(article).content : null,
+    );
     if (!article || refs.length === 0) {
       return [];
     }

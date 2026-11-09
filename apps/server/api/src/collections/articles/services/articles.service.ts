@@ -404,6 +404,7 @@ export class ArticlesService
         }),
       });
       if (!accessible) throw new NotFoundException('Article', id);
+      ArticleFilterUtil.assertPayable(updateArticleDto, accessible);
 
       const updateData = ArticleFilterUtil.toArticlePersistenceData({
         ...updateArticleDto,
@@ -586,11 +587,7 @@ export class ArticlesService
     };
 
     if (search) {
-      where.OR = [
-        { label: { contains: search, mode: 'insensitive' } },
-        { summary: { contains: search, mode: 'insensitive' } },
-        { content: { contains: search, mode: 'insensitive' } },
-      ];
+      where.OR = ArticleFilterUtil.buildPublicSearchClauses(search);
     }
 
     if (category) {

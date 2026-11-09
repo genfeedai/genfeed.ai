@@ -31,6 +31,7 @@ import {
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import BrandFontsCard from '@/features/brands/components/brand-kit/BrandFontsCard';
 import {
   BrandKitReviewActionsProvider,
   BrandKitReviewApplyBar,
@@ -196,6 +197,7 @@ export default function BrandKitPage() {
                     )
                   }
                 />
+                <BrandFontsCard brandId={brandId} isManager={canManage} />
                 <BrandWatermarkSettings
                   brand={brand}
                   brandId={brandId}

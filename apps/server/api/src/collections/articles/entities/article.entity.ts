@@ -20,6 +20,8 @@ export class ArticleEntity extends BaseEntity implements Article {
 
   publishedAt!: Article['publishedAt'];
   externalUrl!: Article['externalUrl'];
+  accessLevel!: Article['accessLevel'];
+  unlockPriceCredits!: Article['unlockPriceCredits'];
   generationCompletedAt!: Article['generationCompletedAt'];
 
   seoScore!: Article['seoScore'];

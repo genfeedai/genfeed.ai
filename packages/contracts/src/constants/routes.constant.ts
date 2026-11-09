@@ -12,6 +12,11 @@ export const APP_ROUTES = {
   MANAGED_CREDITS_SUCCESS: '/managed-credits/success',
   OAUTH: '/oauth',
   SIGN_UP: '/sign-up',
+  /**
+   * Support a creator (`/support/<handle>`): subscribe or tip; resolves to the
+   * reader's organization.
+   */
+  SUPPORT: '/support',
   ADMIN: {
     ROOT: '/admin',
     BRANDS: '/admin/brands',
@@ -302,6 +307,8 @@ export const APP_ROUTES = {
     API_KEYS: '/settings/api-keys',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',
+    /** What creators earned from readers, and what the organization paid. */
+    EARNINGS: '/settings/earnings',
     /** Provider BYOK keys (OpenAI, Replicate, …) — not Genfeed product API keys. */
     INTEGRATIONS: '/settings/integrations',
     /**
@@ -513,6 +520,7 @@ export const RESERVED_APP_ROOT_SEGMENTS: ReadonlySet<string> = new Set(
     APP_ROUTES.LOGIN.replace(/^\//, ''),
     APP_ROUTES.LOGOUT.replace(/^\//, ''),
     APP_ROUTES.SIGN_UP.replace(/^\//, ''),
+    APP_ROUTES.SUPPORT.replace(/^\//, ''),
     APP_ROUTES.OAUTH.replace(/^\//, ''),
     'agent-auth',
     'api',

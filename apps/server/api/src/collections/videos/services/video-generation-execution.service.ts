@@ -2,6 +2,7 @@ import {
   type GenerationBillingRequest,
   GenerationBillingService,
 } from '@api/collections/credits/services/generation-billing.service';
+import { transitionIngredientStatus } from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { assertProviderOfferAvailable } from '@api/collections/models/utils/assert-provider-offer-available.util';
@@ -610,20 +611,17 @@ export class VideoGenerationExecutionService {
             );
             return;
           }
-          const claimed = await this.videosService.patchAll(
-            {
-              id: pendingId,
-              organizationId: context.user.organizationId,
-              isDeleted: false,
-              status: IngredientStatus.PROCESSING,
-            },
-            {
-              status: IngredientStatus.FAILED,
-              isGenerationFailureConfirmed: true,
+          const claimed = await transitionIngredientStatus(this.videosService, {
+            data: {
               generationError: 'Generation failed before provider submission',
+              isGenerationFailureConfirmed: true,
             },
-          );
-          if (claimed.modifiedCount !== 1) return;
+            from: IngredientStatus.PROCESSING,
+            id: pendingId,
+            organizationId: context.user.organizationId,
+            to: IngredientStatus.FAILED,
+          });
+          if (!claimed) return;
           await this.releaseOutputCredits(context, pendingId);
           await this.failedGenerationService.notifyFailedGeneration({
             ingredientId: pendingId,

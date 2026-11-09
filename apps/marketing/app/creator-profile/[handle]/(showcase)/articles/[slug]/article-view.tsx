@@ -100,36 +100,40 @@ export default async function ArticleView({
       ? article.label.trim()
       : 'Article';
 
-  const articleJsonLd = buildArticleJsonLd({
-    author: authorLabel ?? {
-      name: brandName,
-      url: profileUrl,
-    },
-    body: typeof article.content === 'string' ? article.content : undefined,
-    dateModified: article.updatedAt || article.createdAt,
-    datePublished: article.publishedAt || article.createdAt,
-    description:
-      typeof article.summary === 'string' ? article.summary : undefined,
-    headline,
-    // The artwork first — it is the article's own image — then the composed
-    // social card, which is what a share preview actually renders.
-    imageUrls: [
-      getEditorialArticleCoverUrl(slug, article.coverImageUrl),
-      `${articleUrl}/og`,
-    ],
-    inLanguage: 'en-US',
-    keywords: article.tags
-      ?.map((tag) => (typeof tag?.label === 'string' ? tag.label : undefined))
-      .filter((label): label is string => Boolean(label)),
-    mainEntityUrl: articleUrl,
-    publisher: {
-      logoUrl: cdnAsset('/assets/branding/logo.jpg'),
-      name: 'Genfeed',
-      url: 'https://genfeed.ai',
-    },
-    url: articleUrl,
-    wordCount: article.wordCount || undefined,
-  });
+  const articleJsonLd = {
+    ...buildArticleJsonLd({
+      author: authorLabel ?? {
+        name: brandName,
+        url: profileUrl,
+      },
+      body: typeof article.content === 'string' ? article.content : undefined,
+      dateModified: article.updatedAt || article.createdAt,
+      datePublished: article.publishedAt || article.createdAt,
+      description:
+        typeof article.summary === 'string' ? article.summary : undefined,
+      headline,
+      // The artwork first — it is the article's own image — then the composed
+      // social card, which is what a share preview actually renders.
+      imageUrls: [
+        getEditorialArticleCoverUrl(slug, article.coverImageUrl),
+        `${articleUrl}/og`,
+      ],
+      inLanguage: 'en-US',
+      keywords: article.tags
+        ?.map((tag) => (typeof tag?.label === 'string' ? tag.label : undefined))
+        .filter((label): label is string => Boolean(label)),
+      mainEntityUrl: articleUrl,
+      publisher: {
+        logoUrl: cdnAsset('/assets/branding/logo.jpg'),
+        name: 'Genfeed',
+        url: 'https://genfeed.ai',
+      },
+      url: articleUrl,
+      wordCount: article.wordCount || undefined,
+    }),
+    // A paid article (#9718): search engines see the preview, not the rest.
+    ...(article.accessLevel === 'paid' ? { isAccessibleForFree: false } : {}),
+  };
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',

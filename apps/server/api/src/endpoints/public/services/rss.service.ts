@@ -1,4 +1,5 @@
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { withholdGatedContent } from '@api/collections/articles/utils/article-preview.util';
 import {
   PUBLIC_ARTICLE_BRAND_INCLUDE,
   stripPrivateBrand,
@@ -86,7 +87,9 @@ export class RssService {
       },
       { limit: RSS_ITEM_LIMIT, pagination: false },
     );
-    const articles = (result.docs as ArticleFeed[]).map(stripPrivateBrand);
+    const articles = (result.docs as ArticleFeed[]).map((article) =>
+      withholdGatedContent(stripPrivateBrand(article)),
+    );
 
     // Add articles to feed
     for (const article of articles) {
@@ -131,7 +134,9 @@ export class RssService {
       },
       { limit: RSS_ITEM_LIMIT, pagination: false },
     );
-    const articles = (result.docs as ArticleFeed[]).map(stripPrivateBrand);
+    const articles = (result.docs as ArticleFeed[]).map((article) =>
+      withholdGatedContent(stripPrivateBrand(article)),
+    );
 
     // Add articles to feed
     for (const article of articles) {
@@ -176,7 +181,9 @@ export class RssService {
       },
       { limit: RSS_ITEM_LIMIT, pagination: false },
     );
-    const articles = (result.docs as ArticleFeed[]).map(stripPrivateBrand);
+    const articles = (result.docs as ArticleFeed[]).map((article) =>
+      withholdGatedContent(stripPrivateBrand(article)),
+    );
 
     // Add articles to feed
     for (const article of articles) {
@@ -221,7 +228,9 @@ export class RssService {
       },
       { limit: RSS_ITEM_LIMIT, pagination: false },
     );
-    const articles = (result.docs as ArticleFeed[]).map(stripPrivateBrand);
+    const articles = (result.docs as ArticleFeed[]).map((article) =>
+      withholdGatedContent(stripPrivateBrand(article)),
+    );
 
     // Add articles to feed
     for (const article of articles) {

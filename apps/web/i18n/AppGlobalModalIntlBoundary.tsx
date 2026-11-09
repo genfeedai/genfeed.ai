@@ -49,6 +49,7 @@ const CATALOGS = {
   platforms: createModalCatalog(() => import('./page-scopes/platforms')),
   publishing: createModalCatalog(() => import('./page-scopes/publishing')),
   studio: createModalCatalog(() => import('./page-scopes/studio')),
+  support: createModalCatalog(() => import('./page-scopes/creator-payments')),
   workspace: createModalCatalog(() => import('./page-scopes/workspace')),
 };
 

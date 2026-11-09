@@ -11,6 +11,7 @@ export * from './api-key-permissions.constant';
 export * from './api-key-presets.constant';
 export * from './api-key-scope-labels.constant';
 export * from './app-display.constant';
+export * from './article-access.constant';
 export * from './avatar-video-aspect-ratio.constant';
 export * from './brand-handle.constant';
 export * from './brand-kit-slots.constant';

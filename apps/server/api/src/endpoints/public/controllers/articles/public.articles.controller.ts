@@ -1,5 +1,6 @@
 import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { withholdGatedContent } from '@api/collections/articles/utils/article-preview.util';
 import { PublicArticleGenerationsService } from '@api/endpoints/public/services/public-article-generations.service';
 import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
@@ -139,7 +140,11 @@ export class PublicArticlesController {
       matchQuery.OR = [
         { label: { mode: 'insensitive', contains: search } },
         { summary: { mode: 'insensitive', contains: search } },
-        { content: { mode: 'insensitive', contains: search } },
+        // A paid article's body is not public, so search skips it (#9718).
+        {
+          accessLevel: 'public',
+          content: { mode: 'insensitive', contains: search },
+        },
       ];
     }
 
@@ -176,7 +181,9 @@ export class PublicArticlesController {
     };
 
     const data = await this.articlesService.findAll(aggregate, options);
-    data.docs = data.docs.map(stripPrivateBrand);
+    data.docs = data.docs.map((doc) =>
+      withholdGatedContent(stripPrivateBrand(doc)),
+    );
     return serializeCollection(request, PublicArticleSerializer, data);
   }
 
@@ -215,7 +222,12 @@ export class PublicArticlesController {
       return serializeSingle(request, PublicArticleSerializer, { data: null });
     }
 
-    return serializeSingle(request, PublicArticleSerializer, article);
+    // A signed preview is the author checking their draft: show all of it.
+    return serializeSingle(
+      request,
+      PublicArticleSerializer,
+      previewArticleId ? article : withholdGatedContent(article),
+    );
   }
 
   @Get(':articleId')
@@ -241,6 +253,10 @@ export class PublicArticlesController {
       return returnNotFound(this.constructorName, articleId);
     }
 
-    return serializeSingle(request, PublicArticleSerializer, article);
+    return serializeSingle(
+      request,
+      PublicArticleSerializer,
+      withholdGatedContent(article),
+    );
   }
 }

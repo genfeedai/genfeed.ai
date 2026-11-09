@@ -45,6 +45,8 @@ export type BrandKitFieldKey =
   | 'secondaryColor'
   | 'backgroundColor'
   | 'fontFamily'
+  | 'colorPalette'
+  | 'fontRoles'
   | 'promptGuidelines'
   | 'voiceTone'
   | 'voiceStyle'
@@ -69,6 +71,8 @@ export type BrandKitFieldOwnerPath =
   | 'brand.secondaryColor'
   | 'brand.backgroundColor'
   | 'brand.fontFamily'
+  | 'brand.colorPalette'
+  | 'brand.fontRoles'
   | 'brand.text'
   | 'brand.agentConfig.voice.tone'
   | 'brand.agentConfig.voice.style'
@@ -91,7 +95,14 @@ export interface IBrandKitFieldOwner {
   label: string;
   group: BrandKitFieldGroup;
   ownerPath: BrandKitFieldOwnerPath;
-  valueKind: 'string' | 'string[]' | 'socialLinks' | 'asset' | 'asset[]';
+  valueKind:
+    | 'string'
+    | 'string[]'
+    | 'socialLinks'
+    | 'asset'
+    | 'asset[]'
+    | 'palette'
+    | 'fontRoles';
   applyActionDefault: BrandKitApplyAction;
 }
 
@@ -364,6 +375,13 @@ export interface IBrandKitPlatformFillResult {
   error?: string;
 }
 
+/** A candidate palette color read from the brand's primary logo. */
+export interface IBrandKitLogoColor {
+  hex: string;
+  /** Share of the logo's opaque pixels, 0 to 1. */
+  share: number;
+}
+
 export interface IBrandKitPlatformFillRequest {
   slots: BrandKitSlot[];
 }
@@ -446,6 +464,22 @@ export const BRAND_KIT_FIELD_OWNERSHIP: readonly IBrandKitFieldOwner[] = [
     label: 'Font family',
     ownerPath: 'brand.fontFamily',
     valueKind: 'string',
+  },
+  {
+    applyActionDefault: 'preserve',
+    group: 'visual',
+    key: 'colorPalette',
+    label: 'Color palette',
+    ownerPath: 'brand.colorPalette',
+    valueKind: 'palette',
+  },
+  {
+    applyActionDefault: 'preserve',
+    group: 'visual',
+    key: 'fontRoles',
+    label: 'Font roles',
+    ownerPath: 'brand.fontRoles',
+    valueKind: 'fontRoles',
   },
   {
     applyActionDefault: 'preserve',

@@ -48,3 +48,15 @@ export function creatorInvitePath(handle: string, token: string): string {
 export function articleHandle(brandSlug: string | null | undefined): string {
   return brandSlug || GENFEED_BRAND_HANDLE;
 }
+
+/**
+ * The app page where a signed-in reader supports a creator (`app.genfeed.ai`):
+ * subscribe or tip, optionally from one of the creator's articles.
+ */
+export function creatorSupportAppPath(
+  handle: string,
+  articleId?: string,
+): string {
+  const path = `/support/${encodeURIComponent(handle)}`;
+  return articleId ? `${path}?article=${encodeURIComponent(articleId)}` : path;
+}

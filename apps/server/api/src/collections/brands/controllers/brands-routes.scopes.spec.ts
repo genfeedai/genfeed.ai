@@ -242,6 +242,16 @@ const BRAND_READ_ROUTES: ReadonlyArray<
     BrandFontAssetsController.prototype.list,
   ],
   [
+    'GET /brands/:brandId/font-assets/:assetId/file',
+    BrandFontAssetsController,
+    BrandFontAssetsController.prototype.file,
+  ],
+  [
+    'GET /brands/:brandId/kit/logo-colors',
+    BrandKitController,
+    BrandKitController.prototype.logoColorCandidates,
+  ],
+  [
     'GET /brands/:id/brand-os/revisions',
     BrandOsRevisionsController,
     BrandOsRevisionsController.prototype.list,

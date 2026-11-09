@@ -43,6 +43,7 @@ describe('PlatformSchedulesProcessor', () => {
   const queueMetrics = { publishQueueMetrics: handler() };
   const credits = {
     expireFreeTrials: handler(),
+    renewCreatorSubscriptions: handler(),
     settleReferralRewards: handler(),
   };
   const reviewGate = { resolveTimedOutReviewGates: handler() };
@@ -118,6 +119,10 @@ describe('PlatformSchedulesProcessor', () => {
       [
         PLATFORM_SCHEDULED_TASKS.TURBO_PROJECT_RECONCILE,
         turboRun.reconcileTurboProjects,
+      ],
+      [
+        PLATFORM_SCHEDULED_TASKS.CREATOR_SUBSCRIPTION_RENEWAL,
+        credits.renewCreatorSubscriptions,
       ],
       [
         PLATFORM_SCHEDULED_TASKS.CREDENTIAL_TOKEN_REFRESH,

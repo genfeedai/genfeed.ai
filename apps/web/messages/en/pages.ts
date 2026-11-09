@@ -41,6 +41,10 @@ import brandWatermark from './pages/brandWatermark.json';
 import connectGenfeed from './pages/connectGenfeed.json';
 import connectSocial from './pages/connectSocial.json';
 import costUsage from './pages/costUsage.json';
+import creatorArticleUnlock from './pages/creatorArticleUnlock.json';
+import creatorEarnings from './pages/creatorEarnings.json';
+import creatorSubscription from './pages/creatorSubscription.json';
+import creatorTip from './pages/creatorTip.json';
 import credentialPostingTimes from './pages/credentialPostingTimes.json';
 import generationReceipts from './pages/generationReceipts.json';
 import help from './pages/help.json';
@@ -119,6 +123,10 @@ const pages = {
   connectGenfeed,
   connectSocial,
   costUsage,
+  creatorArticleUnlock,
+  creatorEarnings,
+  creatorSubscription,
+  creatorTip,
   credentialPostingTimes,
   generationReceipts,
   help,

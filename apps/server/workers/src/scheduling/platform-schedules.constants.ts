@@ -1,6 +1,7 @@
 import { PROVIDER_PRICE_SYNC_TASKS } from '@genfeedai/contracts/queue';
 import { AVATAR_TWIN_TRACKING_SCHEDULE } from '@workers/crons/avatar-twins/cron.avatar-twins.service';
 import { BRANDED_DISPATCH_RECOVERY_SCHEDULE } from '@workers/crons/branded-dispatch-recovery/branded-dispatch-recovery.constants';
+import { CREATOR_SUBSCRIPTION_RENEWAL_SCHEDULE } from '@workers/crons/credits/creator-subscription-renewal.constants';
 import { FREE_TRIAL_EXPIRY_SCHEDULE } from '@workers/crons/credits/free-trial-expiry.constants';
 import { MEDIA_DELIVERY_RECOVERY_SCHEDULE } from '@workers/crons/media-delivery-recovery/media-delivery-recovery.constants';
 import { MEDIA_PERCEPTION_SWEEP_SCHEDULE } from '@workers/crons/media-perception/media-perception.constants';
@@ -34,6 +35,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
     'turbo-run-credit-settlement-reconcile',
   TURBO_RUN_RECONCILE: 'turbo-run-reconcile',
   TURBO_PROJECT_RECONCILE: 'turbo-project-reconcile',
+  CREATOR_SUBSCRIPTION_RENEWAL: 'creator-subscription-renewal',
   CREDENTIAL_TOKEN_REFRESH: 'credential-token-refresh',
   CRUN_TASK_RECONCILE: 'crun-task-reconcile',
   CRUN_CONTRACT_SYNC: 'crun-contract-sync',
@@ -160,6 +162,11 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   // staleness window (`MODEL_PRICING_REFRESH_STALE_DAYS`).
   [PLATFORM_SCHEDULED_TASKS.FAL_MODEL_DISCOVERY]: {
     pattern: '0 7 * * 0',
+    timezone: 'UTC',
+  },
+  // Monthly periods; a 15-minute cadence charges close to the period end.
+  [PLATFORM_SCHEDULED_TASKS.CREATOR_SUBSCRIPTION_RENEWAL]: {
+    pattern: CREATOR_SUBSCRIPTION_RENEWAL_SCHEDULE,
     timezone: 'UTC',
   },
   // Admission already refuses an expired trial; this only removes the

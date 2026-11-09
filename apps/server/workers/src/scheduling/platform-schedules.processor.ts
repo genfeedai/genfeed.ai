@@ -126,6 +126,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.turboRun.resumeStrandedTurboRuns(),
       [PLATFORM_SCHEDULED_TASKS.TURBO_PROJECT_RECONCILE]: () =>
         this.turboRun.reconcileTurboProjects(),
+      [PLATFORM_SCHEDULED_TASKS.CREATOR_SUBSCRIPTION_RENEWAL]: () =>
+        this.credits.renewCreatorSubscriptions(),
       [PLATFORM_SCHEDULED_TASKS.CREDENTIAL_TOKEN_REFRESH]: () =>
         this.credentials.refreshExpiringTokens(),
       [PLATFORM_SCHEDULED_TASKS.EDITOR_RENDER_RECONCILE]: () =>

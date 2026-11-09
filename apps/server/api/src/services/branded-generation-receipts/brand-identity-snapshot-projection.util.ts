@@ -3,10 +3,16 @@ import {
   hashBrandGenerationRulesReviewV1,
   hashBrandIdentitySnapshotV1,
 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import { FONT_FAMILY_METADATA } from '@genfeedai/contracts';
 import {
   brandGenerationRulesV1Schema,
   brandIdentitySnapshotV1Schema,
 } from '@genfeedai/contracts/api-types/contracts';
+import {
+  BRAND_FONT_ROLES,
+  readBrandFontRoles,
+  readBrandPalette,
+} from '@genfeedai/contracts/api-types/contracts/brand-kit-style.contract';
 import { learningContractIdSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
 import type {
   BrandGenerationRulesV1,
@@ -112,9 +118,18 @@ function synthesizeProvisionalRules(
         ]
       : [];
   });
-  const family = draftString(fields, 'fontFamily');
+  const named = readBrandPalette(fields.colorPalette?.currentValue).map(
+    (color, index) => ({
+      color: color.hex,
+      evidenceIds,
+      id: `palette_named_${index + 1}`,
+      required: false,
+      usage: color.usage ? `${color.name}: ${color.usage}` : color.name,
+    }),
+  );
+  const { assets, typography } = synthesizeFontRoleRules(fields, evidenceIds);
   return {
-    assets: [],
+    assets,
     avoid: [],
     evidence: [
       {
@@ -126,23 +141,76 @@ function synthesizeProvisionalRules(
     examples: [],
     facts: [],
     mandatory: [],
-    palette,
+    palette: [...palette, ...named],
     schemaVersion: 1,
-    typography: family
-      ? [
-          {
-            availability: 'unknown',
-            evidenceIds,
-            family: family.slice(0, 512),
-            id: 'type_body',
-            required: false,
-            role: 'body',
-            style: 'normal',
-            weight: 400,
-          },
-        ]
-      : [],
+    typography,
   };
+}
+
+/**
+ * Font roles become typography rules. An uploaded font is an owned asset the
+ * renderer stages by its approved hash; a preset font is named only. A brand
+ * without a body role keeps the single font family it always had.
+ */
+function synthesizeFontRoleRules(
+  fields: z.infer<typeof provisionalContent>['fields'],
+  evidenceIds: string[],
+): Pick<BrandGenerationRulesV1, 'assets' | 'typography'> {
+  const roles = readBrandFontRoles(fields.fontRoles?.currentValue);
+  const assets: BrandGenerationRulesV1['assets'] = [];
+  const typography: BrandGenerationRulesV1['typography'] = [];
+  for (const role of BRAND_FONT_ROLES) {
+    const assignment = roles[role];
+    if (!assignment) continue;
+    if (assignment.source === 'preset') {
+      const metadata = FONT_FAMILY_METADATA[assignment.fontFamily];
+      typography.push({
+        availability: 'unknown',
+        evidenceIds,
+        family: metadata.cssFamily,
+        id: `type_${role}`,
+        required: false,
+        role,
+        style: 'normal',
+        weight: metadata.cssWeight,
+      });
+      continue;
+    }
+    const referenceId = `font_${role}`;
+    assets.push({
+      assetId: assignment.assetId,
+      contentHash: assignment.contentHash,
+      evidenceIds,
+      id: referenceId,
+      mimeType: 'font/woff2',
+      required: false,
+      role: 'font',
+    });
+    typography.push({
+      availability: 'owned_asset',
+      evidenceIds,
+      family: assignment.family,
+      fontAssetReferenceId: referenceId,
+      id: `type_${role}`,
+      required: false,
+      role,
+      style: assignment.style,
+      weight: assignment.weight,
+    });
+  }
+  const family = draftString(fields, 'fontFamily');
+  if (!roles.body && family)
+    typography.push({
+      availability: 'unknown',
+      evidenceIds,
+      family: family.slice(0, 512),
+      id: 'type_body',
+      required: false,
+      role: 'body',
+      style: 'normal',
+      weight: 400,
+    });
+  return { assets, typography };
 }
 
 export function projectApprovedBrandIdentitySnapshot(

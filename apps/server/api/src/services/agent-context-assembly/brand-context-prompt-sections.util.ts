@@ -21,8 +21,16 @@ export function buildVisualIdentityPrompt(
   if (visualIdentity.backgroundColor) {
     parts.push(`- Background color: ${visualIdentity.backgroundColor}`);
   }
+  for (const color of visualIdentity.palette ?? []) {
+    parts.push(
+      `- ${color.name} color: ${color.hex}${color.usage ? ` (${color.usage})` : ''}`,
+    );
+  }
   if (visualIdentity.fontFamily) {
     parts.push(`- Font: ${visualIdentity.fontFamily}`);
+  }
+  for (const font of visualIdentity.fontRoles ?? []) {
+    parts.push(`- ${font.role} font: ${font.family}`);
   }
   if (visualIdentity.logoUrl) {
     parts.push(`- Logo reference: ${visualIdentity.logoUrl}`);

@@ -131,6 +131,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
   },
   {
     file: 'apps/server/workers/src/crons/credits/cron.credits.service.ts',
+    id: 'creator-subscription-renewal',
+    methodName: 'renewCreatorSubscriptions',
+    reason:
+      'Platform credit-ledger maintenance: charges paid creator subscriptions at period end through the transfer ledger, marks readers who cannot pay as past due and ends lapsed or cancelled ones. Billing, not user automation.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/credits/cron.credits.service.ts',
     id: 'referral-reward-settlement',
     methodName: 'settleReferralRewards',
     reason:

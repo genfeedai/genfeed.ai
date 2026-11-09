@@ -45,11 +45,17 @@ function ingredient(
 }
 
 /** A public article and the asset table, answering queries in memory. */
-function createService(content: string | null, rows: IngredientRow[]) {
+function createService(
+  content: string | null,
+  rows: IngredientRow[],
+  accessLevel = 'public',
+) {
   const prisma = {
     article: {
       findFirst: async () =>
-        content === null ? null : { content, organizationId: 'org-1' },
+        content === null
+          ? null
+          : { accessLevel, content, organizationId: 'org-1' },
     },
     ingredient: {
       findMany: async ({ where }: { where: IngredientWhere }) =>
@@ -138,6 +144,19 @@ describe('PublicArticleGenerationsService', () => {
     await expect(service.findForArticle('article-1', {})).resolves.toHaveLength(
       1,
     );
+  });
+
+  it('only names the generations in the free preview of a paid article', async () => {
+    const intro = '<p>An introduction long enough to count as a block.</p>';
+    const service = createService(
+      `${block('a')}${intro}${block('b')}${intro}${block('c')}${intro}`,
+      [ingredient('a'), ingredient('b'), ingredient('c')],
+      'paid',
+    );
+
+    const generations = await service.findForArticle('article-1', {});
+
+    expect(generations.map((item) => item.id)).toEqual(['a', 'b']);
   });
 
   it('returns nothing for an article that is not public', async () => {

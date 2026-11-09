@@ -70,6 +70,8 @@ export type WorkspaceShellSurfaceKey =
   | 'connect-genfeed'
   | 'connect-genfeed-resolver'
   | 'connect-social'
+  | 'creator-support'
+  | 'creator-support-resolver'
   | 'discovery'
   | 'library'
   | 'messages'

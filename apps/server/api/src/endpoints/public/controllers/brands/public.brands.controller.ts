@@ -1,4 +1,5 @@
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { withholdGatedContent } from '@api/collections/articles/utils/article-preview.util';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
@@ -415,6 +416,7 @@ export class PublicBrandsController {
     };
 
     const data = await this.articlesService.findAll(aggregate, options);
+    data.docs = data.docs.map(withholdGatedContent);
     return serializeCollection(request, PublicArticleSerializer, data);
   }
 

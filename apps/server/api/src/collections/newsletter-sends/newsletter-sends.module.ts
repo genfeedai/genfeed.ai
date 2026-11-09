@@ -1,5 +1,6 @@
 import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
+import { CreatorPaymentsModule } from '@api/collections/creator-payments/creator-payments.module';
 import { NewsletterSendsController } from '@api/collections/newsletter-sends/controllers/newsletter-sends.controller';
 import { NewsletterSettingsController } from '@api/collections/newsletter-sends/controllers/newsletter-settings.controller';
 import { PublicNewsletterController } from '@api/collections/newsletter-sends/controllers/public-newsletter.controller';
@@ -37,6 +38,7 @@ import { Module } from '@nestjs/common';
     BrandAccessModule,
     BrandsCoreModule,
     ConfigModule,
+    CreatorPaymentsModule,
     LoggerModule,
     NewslettersModule,
     NotificationsModule,

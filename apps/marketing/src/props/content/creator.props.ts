@@ -125,3 +125,11 @@ export interface MakeYourOwnBannerProps {
   /** The creator's referral code, carried into sign-up. */
   referralCode?: string | null;
 }
+
+export interface SupportCreatorButtonProps {
+  /** The article the reader is on, when sent from an article page. */
+  articleId?: string;
+  /** Layout only (width, alignment); the button owns its look. */
+  className?: string;
+  handle: string;
+}

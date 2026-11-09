@@ -1,4 +1,5 @@
 import { ButtonVariant } from '@genfeedai/contracts';
+import { GENFEED_BRAND_HANDLE } from '@genfeedai/contracts/constants';
 import { addUTMParameters } from '@helpers/utm/utm-builder.helper';
 import type { CreatorRailProps } from '@props/content/creator.props';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
@@ -7,6 +8,7 @@ import ProfileSignupCta from '@web-components/profile/ProfileSignupCta';
 import ProfileSocialLinks from '@web-components/profile/ProfileSocialLinks';
 import ProfileSubscribe from '@web-components/profile/ProfileSubscribe';
 import CopyLinkButton from './CopyLinkButton';
+import SupportCreatorButton from './SupportCreatorButton';
 import ViewCount from './ViewCount';
 
 const STAT_LABELS = [
@@ -71,11 +73,16 @@ export default function CreatorRail({
         <CopyLinkButton className="ml-auto" url={profileUrl} />
       </div>
 
-      <ProfileSubscribe
-        brandId={brand.id}
-        brandLabel={label}
-        source="profile"
-      />
+      <div className="space-y-3">
+        <ProfileSubscribe
+          brandId={brand.id}
+          brandLabel={label}
+          source="profile"
+        />
+        {handle === GENFEED_BRAND_HANDLE ? null : (
+          <SupportCreatorButton className="w-full" handle={handle} />
+        )}
+      </div>
 
       {links.length > 0 ? (
         <ul className="space-y-2">

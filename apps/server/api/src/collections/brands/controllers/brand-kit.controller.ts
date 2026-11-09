@@ -1,20 +1,27 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-access.helpers';
+import { BrandReadScopes } from '@api/collections/brands/decorators/brand-read-scopes.decorator';
 import { FillPlatformSlotsDto } from '@api/collections/brands/dto/fill-platform-slots.dto';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
+import { BrandLogoColorsService } from '@api/collections/brands/services/brand-logo-colors.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
-import type { IBrandKitPlatformFillResult } from '@genfeedai/contracts/interfaces';
+import type {
+  IBrandKitLogoColor,
+  IBrandKitPlatformFillResult,
+} from '@genfeedai/contracts/interfaces';
 import {
   Body,
   Controller,
   ForbiddenException,
+  Get,
   Param,
   Post,
   UseGuards,
@@ -24,11 +31,29 @@ import {
 @AutoSwagger()
 @Controller('brands/:brandId/kit')
 @UseGuards(RolesGuard)
+@BrandReadScopes()
 export class BrandKitController {
   constructor(
     private readonly brandsService: BrandsService,
     private readonly brandKitAssets: BrandKitAssetsService,
+    private readonly logoColors: BrandLogoColorsService,
   ) {}
+
+  /** Candidate palette colors read from the primary logo. Saves nothing. */
+  @TenantReadPolicy('owner')
+  @Get('logo-colors')
+  async logoColorCandidates(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('brandId') brandId: string,
+  ): Promise<{ data: IBrandKitLogoColor[] }> {
+    const organizationId = user.organizationId;
+    if (!organizationId) {
+      throw new ForbiddenException('brand_kit_access_denied');
+    }
+    const id = InputValidationUtil.validateEntityId(brandId, 'brandId');
+    await verifyBrandAccess(this.brandsService, id, user);
+    return { data: await this.logoColors.fromPrimaryLogo(id, organizationId) };
+  }
 
   /** Resize the master banner into the chosen platform image slots. */
   @Post('platform-images/from-master')

@@ -158,6 +158,10 @@ export interface AssembledBrandContext {
     secondaryColor?: string;
     backgroundColor?: string;
     fontFamily?: string;
+    /** Named colors beyond primary, secondary and background. */
+    palette?: Array<{ name: string; hex: string; usage?: string }>;
+    /** The font family the brand uses for each text role. */
+    fontRoles?: Array<{ role: string; family: string }>;
     logoUrl?: string;
     bannerUrl?: string;
     referenceImages?: Array<{

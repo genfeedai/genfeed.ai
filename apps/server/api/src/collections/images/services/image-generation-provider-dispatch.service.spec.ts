@@ -1190,6 +1190,26 @@ describe('ImageGenerationProviderDispatchService', () => {
     },
   );
 
+  it('leaves an image the user cancelled during upload failed when the provider result lands (#9735)', async () => {
+    const model = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
+    replicateService.generateTextToImage.mockResolvedValueOnce('late-job');
+    replicateService.getPrediction.mockResolvedValueOnce({
+      status: 'succeeded',
+      output: ['https://replicate.delivery/pbxt/late.png'],
+    });
+    imagesService.findOne.mockResolvedValueOnce({
+      generationError: null,
+      status: IngredientStatus.PROCESSING,
+    });
+    imagesService.patchAll.mockResolvedValue({ modifiedCount: 0 });
+
+    const plan = await service.dispatch(buildContext({ model }));
+    await plan?.generationPromise;
+
+    expect(generationBilling.settleOutput).not.toHaveBeenCalled();
+    expect(websocketService.publishVideoComplete).not.toHaveBeenCalled();
+  });
+
   it.each(['provider failed', INGREDIENT_PROCESSING_TIMEOUT_ERROR])(
     'records confirmed provider failure after a processing timeout without leaving a reopenable marker (%s)',
     async (message) => {

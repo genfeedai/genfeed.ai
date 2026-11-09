@@ -22,3 +22,19 @@ export const CREATOR_PAYMENT_REVERSAL_REFERENCE_TYPE =
  * No fee at launch (epic #9714): the creator receives the full amount.
  */
 export const CREATOR_PAYMENT_FEE_BPS = 0;
+
+/** Tip amounts the tip page offers, in credits. */
+export const CREATOR_TIP_PRESET_AMOUNTS = [10, 50, 100] as const;
+
+/** Smallest and largest single tip, in credits. */
+export const CREATOR_TIP_MIN_AMOUNT = 1;
+export const CREATOR_TIP_MAX_AMOUNT = 10_000;
+
+/** Longest note a reader can attach to a tip. */
+export const CREATOR_TIP_MESSAGE_MAX_LENGTH = 280;
+
+/** Monthly price bounds for a creator's paid subscription, in credits (#9717). */
+export const CREATOR_SUBSCRIPTION_MIN_PRICE = 1;
+export const CREATOR_SUBSCRIPTION_MAX_PRICE = 10_000;
+/** Days a past-due subscription keeps access before it ends. */
+export const CREATOR_SUBSCRIPTION_GRACE_DAYS = 3;

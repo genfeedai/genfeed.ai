@@ -248,10 +248,12 @@ describe('strict saved approved identity projection', () => {
   describe('an approval saved without generation rules', () => {
     function rulesAbsent(
       patch: Partial<BrandOsRevision> = {},
+      fields: Record<string, { currentValue: unknown }> = {},
     ): BrandOsRevision {
       const base = revision({
         primaryColor: { currentValue: '#aabbcc' },
         fontFamily: { currentValue: 'Inter' },
+        ...fields,
       });
       const { generationRules: _omitted, ...content } = base.content as Record<
         string,
@@ -275,6 +277,89 @@ describe('strict saved approved identity projection', () => {
         expect.objectContaining({ color: '#AABBCC', required: false }),
       ]);
       expect(snapshot.generationRules.mandatory).toEqual([]);
+    });
+    it('passes the named palette on after primary, secondary and background', () => {
+      const snapshot = projectApprovedBrandIdentitySnapshot(
+        rulesAbsent(
+          {},
+          {
+            colorPalette: {
+              currentValue: [
+                { name: 'Accent', hex: '#ff6600', usage: 'Buttons' },
+                { name: 'Text', hex: '#111111' },
+              ],
+            },
+          },
+        ),
+        time,
+      );
+      expect(
+        snapshot.generationRules.palette.map(({ color, id, usage }) => ({
+          color,
+          id,
+          usage,
+        })),
+      ).toEqual([
+        { color: '#AABBCC', id: 'palette_primary', usage: 'Primary' },
+        { color: '#FF6600', id: 'palette_named_1', usage: 'Accent: Buttons' },
+        { color: '#111111', id: 'palette_named_2', usage: 'Text' },
+      ]);
+    });
+    it('turns font roles into typography rules and stages uploaded fonts as owned assets', () => {
+      const snapshot = projectApprovedBrandIdentitySnapshot(
+        rulesAbsent(
+          {},
+          {
+            fontRoles: {
+              currentValue: {
+                heading: {
+                  source: 'upload',
+                  assetId: 'font-asset',
+                  contentHash: hash,
+                  family: 'Acme Display',
+                  weight: 700,
+                  style: 'normal',
+                },
+                caption: { source: 'preset', fontFamily: 'BEBAS_NEUE' },
+              },
+            },
+          },
+        ),
+        time,
+      );
+      expect(snapshot.generationRules.assets).toEqual([
+        expect.objectContaining({
+          assetId: 'font-asset',
+          contentHash: hash,
+          id: 'font_heading',
+          mimeType: 'font/woff2',
+          role: 'font',
+        }),
+      ]);
+      expect(
+        snapshot.generationRules.typography.map(
+          ({ availability, family, role, weight }) => ({
+            availability,
+            family,
+            role,
+            weight,
+          }),
+        ),
+      ).toEqual([
+        {
+          availability: 'owned_asset',
+          family: 'Acme Display',
+          role: 'heading',
+          weight: 700,
+        },
+        {
+          availability: 'unknown',
+          family: 'Bebas Neue',
+          role: 'caption',
+          weight: 400,
+        },
+        { availability: 'unknown', family: 'Inter', role: 'body', weight: 400 },
+      ]);
     });
     it('still requires the rules once a review hash was recorded', () => {
       expect(() =>

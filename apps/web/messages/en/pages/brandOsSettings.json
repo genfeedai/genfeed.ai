@@ -228,5 +228,41 @@
       "fact_check": "Fact check passed"
     },
     "invalid": "This Policy cannot be saved yet: {error}"
+  },
+  "palette": {
+    "addCandidate": "Add {hex} to the palette",
+    "addColor": "Add color",
+    "colorName": "Color {index} name",
+    "colorUsage": "Usage for {name}",
+    "colorValue": "Color value for {name}",
+    "copyHex": "Copy {hex}",
+    "fromLogo": "Suggest from logo",
+    "fromLogoEmpty": "The logo has no clear colors to suggest.",
+    "fromLogoFailed": "Colors could not be read from the logo. Upload a PNG, JPG or WEBP primary logo first.",
+    "logoCandidates": "Colors found in the logo",
+    "newColorName": "Color {index}",
+    "removeColor": "Remove {name}",
+    "usagePlaceholder": "Where it goes, for example buttons and links"
+  },
+  "fontRoles": {
+    "builtIn": "Built-in fonts",
+    "chooseFor": "Font for {role}",
+    "familyFor": "Font family name for {role}",
+    "none": "Not set",
+    "role": {
+      "body": "Body",
+      "caption": "Caption",
+      "heading": "Heading"
+    },
+    "sample": {
+      "body": "Your brand voice, set in the font your audience already knows.",
+      "caption": "Captions stay readable on every clip.",
+      "heading": "Launch day is here"
+    },
+    "styleFor": "Style for {role}",
+    "styleItalic": "Italic",
+    "styleNormal": "Normal",
+    "uploaded": "Uploaded fonts",
+    "weightFor": "Weight for {role}"
   }
 }

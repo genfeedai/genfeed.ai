@@ -2332,6 +2332,17 @@
       "previewLink": "Preview link",
       "shareDomain": "genfeed.ai",
       "untitled": "Untitled Article"
+    },
+    "access": {
+      "title": "Who can read it",
+      "publicIntro": "Everyone can read the full article.",
+      "paidIntro": "Readers see a preview. Your paying subscribers read it all, and others can unlock it once when you set a price.",
+      "paidLabel": "Paid article",
+      "unlockPriceLabel": "One-time unlock price (credits)",
+      "unlockPriceHelp": "Leave empty for subscribers only, or set {min} to {max} credits.",
+      "unlockPriceInvalid": "Enter a whole number of credits in range, or leave it empty.",
+      "save": "Save",
+      "saving": "Saving…"
     }
   },
   "newsletterEditor": {
