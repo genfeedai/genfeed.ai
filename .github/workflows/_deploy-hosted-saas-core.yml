@@ -762,6 +762,40 @@ jobs:
             echo "Public source SHA: \`${SOURCE_SHA}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # Signed-in journey: sign in as the production canary account, then read
+      # the session, the app shell and one organization-scoped list. GET only,
+      # apart from the sign-in call (asserted by signed-in-smoke.test.mjs).
+      # The credentials are production environment secrets; nothing identifying
+      # the account lives in this repository. A missing secret fails the step.
+      - name: Smoke signed-in journey
+        timeout-minutes: 3
+        env:
+          DOMAIN: ${{ vars.DOMAIN }}
+          APP_HOST: ${{ vars.APP_HOST }}
+          CANARY_EMAIL: ${{ secrets.POST_DEPLOY_CANARY_EMAIL }}
+          CANARY_PASSWORD: ${{ secrets.POST_DEPLOY_CANARY_PASSWORD }}
+        run: |
+          set -uo pipefail
+          if [ -z "${CANARY_EMAIL}" ] || [ -z "${CANARY_PASSWORD}" ]; then
+            echo "::error::Set POST_DEPLOY_CANARY_EMAIL and POST_DEPLOY_CANARY_PASSWORD on the production GitHub environment."
+            exit 1
+          fi
+          echo "::add-mask::${CANARY_EMAIL}"
+
+          journey="${RUNNER_TEMP}/post-deploy-smoke/signed-in.md"
+          node ops/scripts/deploy/hosted-saas/signed-in-smoke.mjs \
+            --app-url "https://${APP_HOST}" \
+            --api-url "https://api.${DOMAIN}" \
+            | tee "${journey}"
+          status="${PIPESTATUS[0]}"
+
+          {
+            echo "## Post-deploy signed-in journey"
+            echo ""
+            cat "${journey}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "${status}"
+
   report-post-deploy-smoke-failure:
     name: Report post-deploy smoke failure
     needs: post-deploy-smoke

@@ -240,6 +240,38 @@ describe('hosted SaaS rollback contract', () => {
     expect(core).toContain('--mcp-url "https://mcp.${DOMAIN}/mcp"');
   });
 
+  test('signs in as the canary account after every deploy, with no identity in the repo', async () => {
+    const core = await workflow('_deploy-hosted-saas-core.yml');
+    const smokeJob = core.slice(
+      core.indexOf('  post-deploy-smoke:'),
+      core.indexOf('  report-post-deploy-smoke-failure:'),
+    );
+
+    expect(smokeJob).toContain('environment: production');
+    expect(smokeJob).toContain('hosted-saas/signed-in-smoke.mjs');
+    expect(smokeJob).toContain(
+      'CANARY_EMAIL: ${{ secrets.POST_DEPLOY_CANARY_EMAIL }}',
+    );
+    expect(smokeJob).toContain(
+      'CANARY_PASSWORD: ${{ secrets.POST_DEPLOY_CANARY_PASSWORD }}',
+    );
+    // A failure of the journey fails the job the failure reporter watches.
+    expect(smokeJob).not.toContain('continue-on-error');
+    expect(smokeJob).toContain('exit "${status}"');
+  });
+
+  test('keeps the signed-in journey read-only', async () => {
+    const script = await Bun.file('./signed-in-smoke.mjs').text();
+    const methods = [...script.matchAll(/method:\s*'([A-Z]+)'/g)].map(
+      (match) => match[1],
+    );
+
+    // The sign-in call is the only request the journey is allowed to POST.
+    expect(methods).toEqual(['POST']);
+    expect(script).toContain('pathname === SIGN_IN_PATH');
+    expect(script).toContain("method === 'GET' || isSignIn");
+  });
+
   test('points a failed post-deploy smoke at the rollback workflow', async () => {
     const core = await workflow('_deploy-hosted-saas-core.yml');
 
