@@ -1,26 +1,12 @@
 import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import {
   settleIngredientGeneration,
+  settleSharedIngredientGeneration,
   transitionIngredientStatus,
 } from '@api/collections/ingredients/utils/ingredient-status-transition.util';
+import { ingredientRowWorld } from '@api-test/fixtures/ingredient-row.world';
 import { IngredientStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
-
-/** Stands in for the table: a row matches when every filter column matches. */
-function ingredientRow(row: Record<string, unknown>) {
-  return {
-    patchAll: async (
-      filter: Record<string, unknown>,
-      update: Record<string, unknown>,
-    ) => {
-      const matches = Object.entries(filter).every(
-        ([key, value]) => row[key] === value,
-      );
-      if (matches) Object.assign(row, update);
-      return { modifiedCount: matches ? 1 : 0 };
-    },
-  };
-}
 
 const processing = {
   id: 'ingredient-1',
@@ -40,7 +26,7 @@ describe('transitionIngredientStatus (#9735)', () => {
     const row = { ...processing, status: from };
 
     await expect(
-      transitionIngredientStatus(ingredientRow(row), {
+      transitionIngredientStatus(ingredientRowWorld(row), {
         from,
         id: 'ingredient-1',
         organizationId: 'org-1',
@@ -59,7 +45,7 @@ describe('transitionIngredientStatus (#9735)', () => {
     const row = { ...processing, status: from };
 
     await expect(
-      transitionIngredientStatus(ingredientRow(row), {
+      transitionIngredientStatus(ingredientRowWorld(row), {
         from,
         id: 'ingredient-1',
         organizationId: 'org-1',
@@ -77,7 +63,7 @@ describe('transitionIngredientStatus (#9735)', () => {
     };
 
     await expect(
-      transitionIngredientStatus(ingredientRow(row), {
+      transitionIngredientStatus(ingredientRowWorld(row), {
         data: { s3Key: 'late.png' },
         from: IngredientStatus.PROCESSING,
         id: 'ingredient-1',
@@ -100,7 +86,7 @@ describe('transitionIngredientStatus (#9735)', () => {
     };
 
     await expect(
-      transitionIngredientStatus(ingredientRow(row), {
+      transitionIngredientStatus(ingredientRowWorld(row), {
         data: { generationError: null },
         from: IngredientStatus.FAILED,
         id: 'ingredient-1',
@@ -116,7 +102,7 @@ describe('transitionIngredientStatus (#9735)', () => {
     const row = { ...processing };
 
     await expect(
-      transitionIngredientStatus(ingredientRow(row), {
+      transitionIngredientStatus(ingredientRowWorld(row), {
         from: IngredientStatus.PROCESSING,
         id: 'ingredient-1',
         organizationId: 'org-other',
@@ -147,13 +133,57 @@ describe('transitionIngredientStatus (#9735)', () => {
       const row = { ...processing, generationError, status };
 
       await expect(
-        settleIngredientGeneration(ingredientRow(row), {
+        settleIngredientGeneration(ingredientRowWorld(row), {
           id: 'ingredient-1',
           organizationId: 'org-1',
           to: IngredientStatus.GENERATED,
         }),
       ).resolves.toBe(isSettled);
       expect(row.status).toBe(finalStatus);
+    },
+  );
+
+  it.each([
+    [
+      IngredientStatus.PROCESSING,
+      null,
+      true,
+      IngredientStatus.GENERATED,
+      'out.mp4',
+    ],
+    [
+      IngredientStatus.GENERATED,
+      null,
+      true,
+      IngredientStatus.GENERATED,
+      'out.mp4',
+    ],
+    [
+      IngredientStatus.FAILED,
+      'Cancelled by user',
+      false,
+      IngredientStatus.FAILED,
+      undefined,
+    ],
+  ])(
+    'settles a %s shared generation (error %s) as GENERATED: %s',
+    async (status, generationError, isSettled, finalStatus, s3Key) => {
+      const row: Record<string, unknown> = {
+        ...processing,
+        generationError,
+        status,
+      };
+
+      await expect(
+        settleSharedIngredientGeneration(ingredientRowWorld(row), {
+          data: { s3Key: 'out.mp4' },
+          id: 'ingredient-1',
+          organizationId: 'org-1',
+          to: IngredientStatus.GENERATED,
+        }),
+      ).resolves.toBe(isSettled);
+      expect(row.status).toBe(finalStatus);
+      expect(row.s3Key).toBe(s3Key);
     },
   );
 });

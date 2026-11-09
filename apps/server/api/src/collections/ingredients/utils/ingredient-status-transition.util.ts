@@ -95,3 +95,34 @@ export const settleIngredientGeneration = traced(
     return reopened && (await claim());
   },
 );
+
+/**
+ * Settles a generation that two writers report, such as the files worker's
+ * completion event and the request that queued the job (#9735). Whichever
+ * report lands second finds the row already in `to`; it still counts and
+ * writes its `data`. A generation the user stopped, or one the other writer
+ * settled the other way, is left as it is.
+ *
+ * @returns whether the generation is now settled as `to`.
+ */
+export const settleSharedIngredientGeneration = traced(
+  'settleSharedIngredientGeneration',
+  async (
+    ingredients: Pick<IngredientsService, 'patchAll'>,
+    settlement: IngredientGenerationSettlement,
+  ): Promise<boolean> => {
+    if (await settleIngredientGeneration(ingredients, settlement)) return true;
+    const { modifiedCount } = await ingredients.patchAll(
+      {
+        id: settlement.id,
+        ...(settlement.organizationId
+          ? { organizationId: settlement.organizationId }
+          : {}),
+        isDeleted: false,
+        status: settlement.to,
+      },
+      { ...settlement.data, status: settlement.to },
+    );
+    return modifiedCount === 1;
+  },
+);
