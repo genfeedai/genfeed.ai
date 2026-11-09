@@ -42,33 +42,34 @@ export default function IngredientThumbnail({
 
   if (videoSrc && failedSrc !== videoSrc) {
     return (
-      <span
-        className={cn(
-          'block overflow-hidden',
-          size === undefined ? 'absolute inset-0' : 'shrink-0',
-        )}
-        data-testid={testId}
-        style={size === undefined ? undefined : { height: size, width: size }}
-        title={title}
-      >
-        <VideoPlayer
-          ariaLabel={alt}
-          config={{
-            autoPlay: false,
-            controls: false,
-            loop: false,
-            muted: true,
-            playsInline: true,
-            preload: 'metadata',
-          }}
-          mediaClassName={cn('object-cover', className)}
-          mediaProps={{
-            onError: () => setFailedSrc(videoSrc),
-            tabIndex: -1,
-          }}
-          src={`${videoSrc.split('#')[0]}#t=0.001`}
-        />
-      </span>
+      <SimpleTooltip label={title}>
+        <span
+          className={cn(
+            'block overflow-hidden',
+            size === undefined ? 'absolute inset-0' : 'shrink-0',
+          )}
+          data-testid={testId}
+          style={size === undefined ? undefined : { height: size, width: size }}
+        >
+          <VideoPlayer
+            ariaLabel={alt}
+            config={{
+              autoPlay: false,
+              controls: false,
+              loop: false,
+              muted: true,
+              playsInline: true,
+              preload: 'metadata',
+            }}
+            mediaClassName={cn('object-cover', className)}
+            mediaProps={{
+              onError: () => setFailedSrc(videoSrc),
+              tabIndex: -1,
+            }}
+            src={`${videoSrc.split('#')[0]}#t=0.001`}
+          />
+        </span>
+      </SimpleTooltip>
     );
   }
 
