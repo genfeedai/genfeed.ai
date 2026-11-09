@@ -75,6 +75,7 @@ export * from './platform-settings.constant';
 export * from './platforms.constant';
 export * from './post-quick-actions.constant';
 export * from './public-articles.constant';
+export * from './public-media-sort.constant';
 export * from './publishing-campaigns-routes.constant';
 export * from './publishing-content-refresh.constant';
 export * from './publishing-posts-routes.constant';

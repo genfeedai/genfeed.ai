@@ -1,3 +1,8 @@
+import { mediaBrandId } from '@data/public-media';
+import {
+  DEFAULT_PUBLIC_MEDIA_SORT,
+  type PublicMediaSort,
+} from '@genfeedai/contracts/constants';
 import type { Article } from '@genfeedai/models/content/article.model';
 import type { Image as ImageModel } from '@genfeedai/models/ingredients/image.model';
 import type { Video } from '@genfeedai/models/ingredients/video.model';
@@ -19,21 +24,46 @@ const GALLERY_MEDIA_LIMIT = 48;
 const LATEST_ARTICLE_LIMIT = 6;
 
 export interface CommunityMedia {
+  /** Creator handles by brand id, so each card names who made it. */
+  creatorHandles: Record<string, string>;
   images: ImageModel[];
   videos: Video[];
 }
 
-export interface CommunityPageData {
+export interface CommunityPageData extends CommunityMedia {
   articles: Article[];
   creators: Brand[];
   featured: CommunityFeaturedMedia | null;
-  images: ImageModel[];
-  videos: Video[];
 }
 
-function newestFirst<T extends { createdAt?: string }>(items: T[]): T[] {
-  return [...items].sort((left, right) =>
-    (right.createdAt ?? '').localeCompare(left.createdAt ?? ''),
+interface RankedMedia {
+  createdAt?: string;
+  recreateCount?: number;
+  viewCount?: number;
+}
+
+function byNewest(left: RankedMedia, right: RankedMedia): number {
+  return (right.createdAt ?? '').localeCompare(left.createdAt ?? '');
+}
+
+/** Media in the gallery's order; ties on a count go to the newer item. */
+export function orderCommunityMedia<T extends RankedMedia>(
+  items: T[],
+  sort: PublicMediaSort,
+): T[] {
+  if (sort === 'newest') {
+    return [...items].sort(byNewest);
+  }
+  const count = (item: T) =>
+    (sort === 'views' ? item.viewCount : item.recreateCount) ?? 0;
+  return [...items].sort(
+    (left, right) => count(right) - count(left) || byNewest(left, right),
+  );
+}
+
+function handlesById(creators: Brand[]): Record<string, string> {
+  return Object.fromEntries(
+    creators.flatMap((brand) => (brand.slug ? [[brand.id, brand.slug]] : [])),
   );
 }
 
@@ -42,21 +72,22 @@ function withSlug(brands: Brand[]): Brand[] {
 }
 
 /**
- * The newest images and videos of the given creators, read per creator so
- * only work from public profiles appears. A creator whose listing fails is
- * skipped.
+ * The top images and videos of the given creators in the gallery's order,
+ * read per creator so only work from public profiles appears. A creator whose
+ * listing fails is skipped.
  */
 async function loadCreatorMedia(
   creators: Brand[],
   perCreator: number,
   limit: number,
+  sort: PublicMediaSort = DEFAULT_PUBLIC_MEDIA_SORT,
 ): Promise<CommunityMedia> {
   const publicService = PublicService.getInstance();
   const mediaQuery = (brandId: string) => ({
     brand: brandId,
     limit: perCreator,
     page: 1,
-    sort: 'createdAt: -1',
+    sortBy: sort,
   });
 
   const [videoPages, imagePages] = await Promise.all([
@@ -80,16 +111,10 @@ async function loadCreatorMedia(
   );
 
   return {
-    images: newestFirst(images).slice(0, limit),
-    videos: newestFirst(videos).slice(0, limit),
+    creatorHandles: handlesById(creators),
+    images: orderCommunityMedia(images, sort).slice(0, limit),
+    videos: orderCommunityMedia(videos, sort).slice(0, limit),
   };
-}
-
-function brandIdOf(media: ImageModel | Video): string | undefined {
-  if (typeof media.brand === 'string') {
-    return media.brand;
-  }
-  return media.brand?.id ?? media.brandId ?? undefined;
 }
 
 /**
@@ -116,7 +141,7 @@ async function loadFeaturedMedia(): Promise<CommunityFeaturedMedia | null> {
   if (!media) {
     return null;
   }
-  const brandId = brandIdOf(media);
+  const brandId = mediaBrandId(media);
   const creator = brandId ? await publicService.findPublicBrand(brandId) : null;
   if (!creator?.slug) {
     return null;
@@ -148,15 +173,18 @@ export const getCommunityCreators = cache(async (): Promise<Brand[]> => {
   });
 });
 
-/** The gallery behind the Videos and Images pages. */
-export const getCommunityMedia = cache(async (): Promise<CommunityMedia> => {
-  const creators = await getCommunityCreators();
-  return loadCreatorMedia(
-    creators.slice(0, GALLERY_CREATOR_LIMIT),
-    GALLERY_MEDIA_PER_CREATOR,
-    GALLERY_MEDIA_LIMIT,
-  );
-});
+/** The gallery behind the Videos and Images pages, in the chosen order. */
+export const getCommunityMedia = cache(
+  async (sort: PublicMediaSort): Promise<CommunityMedia> => {
+    const creators = await getCommunityCreators();
+    return loadCreatorMedia(
+      creators.slice(0, GALLERY_CREATOR_LIMIT),
+      GALLERY_MEDIA_PER_CREATOR,
+      GALLERY_MEDIA_LIMIT,
+      sort,
+    );
+  },
+);
 
 /**
  * The community gallery: highlighted public creators, their newest
@@ -184,7 +212,7 @@ export const getCommunityPageData = cache(
     const creators = withSlug(
       creatorsResult.status === 'fulfilled' ? creatorsResult.value : [],
     );
-    const [{ images, videos }, featured] = await Promise.all([
+    const [media, featured] = await Promise.all([
       loadCreatorMedia(
         creators.slice(0, MEDIA_CREATOR_LIMIT),
         MEDIA_PER_CREATOR,
@@ -194,12 +222,11 @@ export const getCommunityPageData = cache(
     ]);
 
     return {
+      ...media,
       articles:
         articlesResult.status === 'fulfilled' ? articlesResult.value.items : [],
       creators,
       featured,
-      images,
-      videos,
     };
   },
 );

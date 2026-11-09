@@ -5,6 +5,7 @@ import HomeFooter from '@web-components/home/_footer';
 /** One community section page: its heading, the sub-nav, then its listing. */
 export default function CommunitySectionLayout({
   active,
+  actions,
   children,
   description,
   title,
@@ -12,11 +13,14 @@ export default function CommunitySectionLayout({
   return (
     <>
       <div className="mx-auto w-full max-w-7xl px-4 pb-24 pt-12 sm:px-6">
-        <header className="mb-8 max-w-3xl">
-          <h1 className="mb-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            {title}
-          </h1>
-          <p className="text-base text-foreground/70">{description}</p>
+        <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div className="max-w-3xl">
+            <h1 className="mb-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              {title}
+            </h1>
+            <p className="text-base text-foreground/70">{description}</p>
+          </div>
+          {actions}
         </header>
         <CommunityNav active={active} />
         {children}

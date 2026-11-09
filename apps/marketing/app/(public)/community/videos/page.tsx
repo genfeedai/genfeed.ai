@@ -1,6 +1,9 @@
 import { buildModelCredits } from '@data/model-credits';
+import { parsePublicMediaSort } from '@genfeedai/contracts/constants';
+import type { CommunityGalleryRouteProps } from '@props/content/creator.props';
 import { getPublicModels } from '@public/models/models-loader';
 import { EmptyState } from '@ui/primitives/empty-state';
+import CommunitySortMenu from '@web-components/creator/CommunitySortMenu';
 import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 import ProfileVideos from '@web-components/profile/ProfileVideos';
 import '@styles/masonry.css';
@@ -18,20 +21,28 @@ export const generateMetadata = createPageMetadataWithCanonical(
   '/community/videos',
 );
 
-export default async function CommunityVideosPage(): Promise<React.ReactElement> {
-  const [{ videos }, catalog] = await Promise.all([
-    getCommunityMedia(),
+export default async function CommunityVideosPage({
+  searchParams,
+}: CommunityGalleryRouteProps): Promise<React.ReactElement> {
+  const { sort: sortParam } = await searchParams;
+  const sort = parsePublicMediaSort(
+    Array.isArray(sortParam) ? sortParam[0] : sortParam,
+  );
+  const [{ creatorHandles, videos }, catalog] = await Promise.all([
+    getCommunityMedia(sort),
     getPublicModels(),
   ]);
 
   return (
     <CommunitySectionLayout
+      actions={<CommunitySortMenu active={sort} basePath="/community/videos" />}
       active="videos"
       description={DESCRIPTION}
       title="Videos"
     >
       {videos.length > 0 ? (
         <ProfileVideos
+          creators={creatorHandles}
           modelCredits={buildModelCredits(catalog, videos)}
           videos={videos}
         />

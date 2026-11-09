@@ -38,8 +38,10 @@ export const generateMetadata = createPageMetadataWithCanonical(
 );
 
 export default async function CommunityPage(): Promise<React.ReactElement> {
-  const [{ articles, creators, featured, images, videos }, catalog] =
-    await Promise.all([getCommunityPageData(), getPublicModels()]);
+  const [
+    { articles, creatorHandles, creators, featured, images, videos },
+    catalog,
+  ] = await Promise.all([getCommunityPageData(), getPublicModels()]);
   const modelCredits = buildModelCredits(catalog, [
     ...images,
     ...videos,
@@ -137,7 +139,11 @@ export default async function CommunityPage(): Promise<React.ReactElement> {
             title="Latest videos"
             total={videos.length}
           >
-            <ProfileVideos modelCredits={modelCredits} videos={videos} />
+            <ProfileVideos
+              creators={creatorHandles}
+              modelCredits={modelCredits}
+              videos={videos}
+            />
           </CreatorSection>
 
           <CreatorSection
@@ -145,7 +151,11 @@ export default async function CommunityPage(): Promise<React.ReactElement> {
             title="Latest images"
             total={images.length}
           >
-            <ProfileImages images={images} modelCredits={modelCredits} />
+            <ProfileImages
+              creators={creatorHandles}
+              images={images}
+              modelCredits={modelCredits}
+            />
           </CreatorSection>
 
           <ClaimHandleBand id={CLAIM_HANDLE_ID} />

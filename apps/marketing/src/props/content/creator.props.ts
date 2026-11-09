@@ -2,6 +2,7 @@ import type { PublicViewTarget } from '@data/public-views';
 import type {
   BrandSubscriberPublicSource,
   CreatorProfileTab,
+  PublicMediaSort,
 } from '@genfeedai/contracts/constants';
 import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
 import type { Article } from '@models/content/article.model';
@@ -150,9 +151,22 @@ export interface CommunityNavProps {
 
 export interface CommunitySectionLayoutProps {
   active: CommunitySection;
+  /** Controls for the listing, such as its order, beside the heading. */
+  actions?: ReactNode;
   children: ReactNode;
   description: string;
   title: string;
+}
+
+export interface CommunitySortMenuProps {
+  active: PublicMediaSort;
+  /** The gallery page the order applies to, e.g. `/community/videos`. */
+  basePath: string;
+}
+
+/** The query of a community gallery page. */
+export interface CommunityGalleryRouteProps {
+  searchParams: Promise<{ sort?: string | string[] }>;
 }
 
 /** The image or video an operator featured at the top of /community. */

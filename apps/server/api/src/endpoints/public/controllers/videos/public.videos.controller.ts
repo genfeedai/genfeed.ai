@@ -1,4 +1,8 @@
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import {
+  PUBLIC_MEDIA_INCLUDE,
+  publicMediaOrderBy,
+} from '@api/endpoints/public/utils/public-media-listing.util';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -60,6 +64,7 @@ export class PublicVideosController {
     @Query('brand') brand?: string,
     @Query('format') _format?: string,
     @Query('isHighlighted') isHighlighted?: string,
+    @Query('sortBy') sortBy?: string,
   ): Promise<JsonApiCollectionResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(url, { query });
@@ -95,7 +100,11 @@ export class PublicVideosController {
       };
     }
 
-    const aggregate = { where: match, orderBy: { createdAt: -1 } };
+    const aggregate = {
+      include: PUBLIC_MEDIA_INCLUDE,
+      orderBy: publicMediaOrderBy(sortBy),
+      where: match,
+    };
 
     const data = await this.videosService.findAll(aggregate, options);
     return serializeCollection(request, VideoSerializer, data);

@@ -27,6 +27,11 @@ vi.mock('@web-components/home/_footer', () => ({
   default: () => null,
 }));
 
+vi.mock('@ui/lazy/masonry/LazyMasonry', () => ({
+  LazyMasonryImage: () => null,
+  LazyMasonryVideo: () => null,
+}));
+
 const { default: CommunityCreatorsPage } = await import('./creators/page');
 const { default: CommunityVideosPage } = await import('./videos/page');
 
@@ -72,9 +77,65 @@ describe('community creators page', () => {
   });
 });
 
+function videosOf(
+  brand: Brand,
+  videos: { createdAt: string; id: string; viewCount: number }[],
+): IPaginatedResponse<unknown> {
+  return {
+    ...emptyPage(),
+    items: videos.map((video) => ({
+      ...video,
+      brandId: brand.id,
+      status: 'generated',
+    })),
+  };
+}
+
+async function renderVideos(sort?: string): Promise<void> {
+  render(
+    (await CommunityVideosPage({
+      searchParams: Promise.resolve(sort ? { sort } : {}),
+    })) as ReactElement,
+  );
+}
+
 describe('community videos page', () => {
+  it('orders videos from every creator by views, naming who made each', async () => {
+    findPublicVideosPage.mockImplementation(async ({ brand }) =>
+      brand === SHAYLA.id
+        ? videosOf(SHAYLA, [
+            { createdAt: '2026-11-01', id: 'video-a', viewCount: 5 },
+          ])
+        : videosOf(ACME, [
+            { createdAt: '2026-11-08', id: 'video-b', viewCount: 40 },
+            { createdAt: '2026-11-09', id: 'video-c', viewCount: 5 },
+          ]),
+    );
+
+    await renderVideos('views');
+
+    expect(findPublicVideosPage).toHaveBeenCalledWith(
+      expect.objectContaining({ sortBy: 'views' }),
+    );
+    expect(
+      screen
+        .getAllByRole('link', { name: /^@/ })
+        .map((link) => link.textContent),
+    ).toEqual(['@acme', '@acme', '@shayla']);
+    expect(screen.getByRole('button', { name: 'Most viewed' })).toBeVisible();
+  });
+
+  it('reads an unknown order as newest first', async () => {
+    await renderVideos('loudest');
+
+    expect(findPublicVideosPage).toHaveBeenCalledWith(
+      expect.objectContaining({ sortBy: 'newest' }),
+    );
+    expect(screen.getByRole('button', { name: 'Newest' })).toBeVisible();
+  });
+
   it('invites creators to share when there are no public videos', async () => {
-    render((await CommunityVideosPage()) as ReactElement);
+    await renderVideos();
 
     expect(
       screen.getByRole('heading', { level: 1, name: 'Videos' }),

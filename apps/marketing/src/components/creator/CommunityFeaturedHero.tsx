@@ -1,15 +1,19 @@
 'use client';
 
 import { modelCatalogHref } from '@data/model-credits';
+import {
+  buildRecreateHref,
+  buildRecreatePrompt,
+  mediaModelKey,
+} from '@data/public-media';
+import { trackRecreation } from '@data/public-views';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   creatorProfilePath,
   creatorTabPath,
 } from '@genfeedai/contracts/constants';
 import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
-import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import type { CommunityFeaturedHeroProps } from '@props/content/creator.props';
-import { EnvironmentService } from '@services/core/environment.service';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
@@ -17,15 +21,6 @@ import {
 import { Button } from '@ui/primitives/button';
 import { Play, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-
-/** The agent prompt behind "Recreate in Genfeed": same kind, same model. */
-export function buildFeaturedPrompt(
-  kind: 'image' | 'video',
-  modelLabel?: string,
-): string {
-  const model = modelLabel ? ` with ${modelLabel}` : '';
-  return `Make a ${kind} like the one featured on genfeed.ai/community${model}`;
-}
 
 /**
  * The image or video an operator featured at the top of the community page,
@@ -37,7 +32,8 @@ export default function CommunityFeaturedHero({
   modelCredits = {},
 }: CommunityFeaturedHeroProps): React.ReactElement {
   const { handle, kind, media } = featured;
-  const modelLabel = media.model ? modelCredits[media.model] : undefined;
+  const modelKey = mediaModelKey(media);
+  const modelLabel = modelKey ? modelCredits[modelKey] : undefined;
   const isVideo = kind === 'video';
 
   return (
@@ -78,12 +74,12 @@ export default function CommunityFeaturedHero({
             @{handle}
           </Link>
         </h2>
-        {media.model && modelLabel ? (
+        {modelKey && modelLabel ? (
           <p className="text-sm text-foreground/70">
             Generated with{' '}
             <Link
               className="font-medium text-foreground hover:text-primary"
-              href={modelCatalogHref(media.model)}
+              href={modelCatalogHref(modelKey)}
             >
               {modelLabel}
             </Link>
@@ -103,9 +99,10 @@ export default function CommunityFeaturedHero({
           </Button>
           <Button asChild size={ButtonSize.PUBLIC} withWrapper={false}>
             <a
-              href={`${EnvironmentService.apps.app}${buildAgentPromptHref(
-                buildFeaturedPrompt(kind, modelLabel),
-              )}`}
+              href={buildRecreateHref(
+                buildRecreatePrompt(kind, { isFeatured: true, modelLabel }),
+              )}
+              onClick={() => trackRecreation(media.id)}
             >
               <Sparkles aria-hidden="true" className="size-4" />
               Recreate in Genfeed
