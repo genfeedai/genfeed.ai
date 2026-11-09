@@ -145,28 +145,6 @@ describe('admin organization brands', () => {
     expect(result.data.watermarkPosition).toBe('top-right');
   });
 
-  it.each([
-    [true, true],
-    [false, false],
-  ])(
-    'lets an operator set the community feature flag to %s',
-    async (isHighlighted, expected) => {
-      const { brandsService, controller } = createController();
-      brandsService.patch.mockImplementation(
-        async (_id: string, data: Record<string, unknown>) => ({
-          id: 'brand-1',
-          label: 'Gobl',
-          slug: 'gobl',
-          ...data,
-        }),
-      );
-      const result = await controller.update('org-1', 'brand-1', {
-        isHighlighted,
-      });
-      expect(result.data.isHighlighted).toBe(expected);
-    },
-  );
-
   it('rejects empty updates, unknown fields and a brand outside the organization before any write', async () => {
     const { brandsService, controller } = createController();
     for (const body of [
@@ -174,7 +152,6 @@ describe('admin organization brands', () => {
       { organizationId: 'other' },
       { watermarkOpacity: 2 },
       { watermarkPosition: 'middle' },
-      { isHighlighted: 'yes' },
     ]) {
       await expect(
         controller.update('org-1', 'brand-1', body),

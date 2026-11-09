@@ -41,8 +41,6 @@ const updateBrandSchema = z
     backgroundColor: color.optional(),
     description: z.string().trim().max(2000).optional(),
     fontFamily: z.nativeEnum(FontFamily).optional(),
-    // Features the brand on genfeed.ai/community. Only operators set it.
-    isHighlighted: z.boolean().optional(),
     label: z.string().trim().min(1).max(120).optional(),
     primaryColor: color.optional(),
     secondaryColor: color.optional(),
@@ -186,7 +184,6 @@ export class AdminOrganizationBrandsController {
       fontFamily: brand.fontFamily,
       id: brand.id,
       isEndCardEnabled: brand.isEndCardEnabled,
-      isHighlighted: brand.isHighlighted,
       label: brand.label,
       organizationId,
       primaryColor: brand.primaryColor,
