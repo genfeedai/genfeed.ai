@@ -1,6 +1,6 @@
 # Genfeed.ai
 
-**From brief to feed: on-brand videos, images and posts, run from your agent or the dashboard. Open source: self-host it free or use Cloud.**
+**From brief to feed: on-brand videos, images and posts. Open source, self-host it free or use Cloud.**
 
 Create on-brand videos, images and posts, then review and publish to your
 connected channels. Work in Genfeed or connect the AI agent you already use.
