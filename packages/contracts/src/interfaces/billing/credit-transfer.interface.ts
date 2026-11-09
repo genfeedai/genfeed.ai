@@ -4,8 +4,6 @@ import type { CreditTransferKind } from '../../enums/credit.enum';
 export interface ICreditTransferInput {
   /** Gross credits the payer sends. Positive whole number. */
   amount: number;
-  /** Optional context shown on both ledger rows, e.g. "Tip on My article". */
-  description?: string;
   /**
    * Caller-chosen key. A retry with the same key and payer returns the first
    * transfer instead of moving credits again.
@@ -16,7 +14,11 @@ export interface ICreditTransferInput {
   message?: string;
   /** Brand the creator was paid through; attributed on the creator's row. */
   payeeBrandId?: string;
+  /** The creator's ledger row description, e.g. "Tip from Ada on My article". */
+  payeeDescription?: string;
   payeeOrganizationId: string;
+  /** The payer's ledger row description, e.g. "Tip to Bea on My article". */
+  payerDescription?: string;
   payerOrganizationId: string;
   payerUserId: string;
   /** What was paid for: article id, creator subscription id, profile brand id. */

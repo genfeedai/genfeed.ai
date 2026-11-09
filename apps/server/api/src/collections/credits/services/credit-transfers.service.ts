@@ -253,7 +253,7 @@ export class CreditTransfersService {
           before.available,
           after.available,
           input.kind,
-          input.description,
+          input.payerDescription,
           undefined,
           tx,
           {
@@ -291,7 +291,7 @@ export class CreditTransfersService {
           before.available,
           after.available,
           input.kind,
-          input.description,
+          input.payeeDescription,
           undefined,
           tx,
           {
