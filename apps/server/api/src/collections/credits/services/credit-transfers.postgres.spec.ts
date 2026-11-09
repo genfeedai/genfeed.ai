@@ -365,6 +365,21 @@ describe.skipIf(!connectionString)('credit transfers (PostgreSQL)', () => {
     expect(await wallet(reader)).toEqual({ balance: 100, earnedBalance: 0 });
   });
 
+  it('rejects a payment between organizations that share one wallet', async () => {
+    await seedWorkspace(reader, { balance: 100, paid: true });
+    await seedWorkspace(creator, { balance: 0, paid: false });
+    // The creator organization is linked onto the reader's billing account.
+    await database().organization.update({
+      data: { billingAccountId: reader.billingAccountId },
+      where: { id: creator.organizationId },
+    });
+
+    await expect(tip(10, 'tip-shared-wallet')).rejects.toThrow(
+      'You cannot pay an organization that shares your billing account',
+    );
+    expect(await wallet(reader)).toEqual({ balance: 100, earnedBalance: 0 });
+  });
+
   it('spends purchased credits before earned ones and keeps earned credits through a plan reset', async () => {
     await seedWorkspace(reader, { balance: 100, paid: true });
     await seedWorkspace(creator, { balance: 50, paid: true });

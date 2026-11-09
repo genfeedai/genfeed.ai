@@ -82,6 +82,7 @@ export class CreditTransfersService {
   async transfer(input: ICreditTransferInput): Promise<ICreditTransferResult> {
     this.assertTransferable(input);
     const amounts = this.toAmounts(input.amount);
+    await this.assertSeparateWallets(input);
     await this.assertPayerHasPaid(input.payerOrganizationId);
 
     const result = await this.runWithRetry((tx) =>
@@ -154,6 +155,39 @@ export class CreditTransfersService {
   private toAmounts(grossAmount: number): TransferAmounts {
     const feeAmount = creatorPaymentFee(grossAmount);
     return { feeAmount, grossAmount, netAmount: grossAmount - feeAmount };
+  }
+
+  /**
+   * Organizations linked to one billing account share one wallet. A payment
+   * between them would debit and credit the same balance and only relabel
+   * purchased credits as earned ones, which survive plan resets.
+   */
+  private async assertSeparateWallets(
+    input: ICreditTransferInput,
+  ): Promise<void> {
+    const [payerAccount, payeeAccount] = await Promise.all([
+      runWithTenantContext(
+        { organizationId: input.payerOrganizationId },
+        async () =>
+          await this.billingAccountsService.resolveForOrganization(
+            input.payerOrganizationId,
+          ),
+      ),
+      runWithTenantContext(
+        { organizationId: input.payeeOrganizationId },
+        async () =>
+          await this.billingAccountsService.resolveForOrganization(
+            input.payeeOrganizationId,
+          ),
+      ),
+    ]);
+    if (payerAccount.id === payeeAccount.id) {
+      throw new BusinessLogicException(
+        'You cannot pay an organization that shares your billing account',
+        undefined,
+        'CREDIT_TRANSFER_TO_SELF',
+      );
+    }
   }
 
   /**
