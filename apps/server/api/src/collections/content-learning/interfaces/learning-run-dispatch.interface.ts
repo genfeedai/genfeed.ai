@@ -1,4 +1,5 @@
 import type { LearningRunDispatchReceiptV1 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
+import type { LearningPolicyState } from '@genfeedai/harness';
 import type {
   ContentLearningOperation,
   ContentLearningRun,
@@ -36,4 +37,11 @@ export interface LearningRunClaim {
   operation: ContentLearningOperation;
   receipt: LearningRunDispatchReceiptV1;
   token: Date;
+}
+
+/** A shared ridge policy fitted from one dataset's training entries. */
+export interface LearningRunFit {
+  coefficients: Record<string, number[]>;
+  groupCount: number;
+  state: LearningPolicyState;
 }
