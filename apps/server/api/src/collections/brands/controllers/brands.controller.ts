@@ -184,8 +184,7 @@ export class BrandsController extends BaseCRUDController<
     @Body() updateDto: UpdateBrandDto,
     @Res({ passthrough: true }) response?: Response,
   ): Promise<JsonApiSingleResponse> {
-    // `syncOrganizationName` is an onboarding-only control flag, never persisted
-    // on the brand row — strip it before any CRUD patch (REST audit #1354).
+    // Onboarding-only flags and admin curation never reach the brand row (#1354).
     const { organizationLabel, syncOrganizationName, ...rest } =
       withoutCuration(updateDto) as UpdateBrandDto & {
         organizationLabel?: string;
