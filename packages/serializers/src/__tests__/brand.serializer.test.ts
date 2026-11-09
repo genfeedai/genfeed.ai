@@ -18,18 +18,22 @@ describe('brand serializer', () => {
       ],
     });
 
-    expect(serialized.data.relationships).toMatchObject({
-      banners: {
-        data: [
-          { id: 'master', type: 'banners' },
-          { id: 'x-header', type: 'banners' },
-        ],
-      },
-      logos: {
-        data: [
-          { id: 'primary', type: 'logos' },
-          { id: 'icon', type: 'logos' },
-        ],
+    expect(serialized).toMatchObject({
+      data: {
+        relationships: {
+          banners: {
+            data: [
+              { id: 'master', type: 'banners' },
+              { id: 'x-header', type: 'banners' },
+            ],
+          },
+          logos: {
+            data: [
+              { id: 'primary', type: 'logos' },
+              { id: 'icon', type: 'logos' },
+            ],
+          },
+        },
       },
     });
     expect(serialized.included).toContainEqual({
