@@ -342,8 +342,8 @@ test('keeps the workflow wired to the planner matrices and outputs', () => {
   );
   assert.equal(
     baseConsumers?.length,
-    5,
-    'static checks, workspace, app, API, and build jobs read the planned base',
+    4,
+    'workspace, app, API, and build jobs read the planned base; static checks resolve the same base themselves',
   );
   assert.match(
     readFileSync(
