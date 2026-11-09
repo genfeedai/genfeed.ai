@@ -6,6 +6,7 @@ import {
   ChartScatter,
   Flame,
   Gauge,
+  MailCheck,
   Quote,
   SquareActivity,
   Telescope,
@@ -14,7 +15,7 @@ import {
 } from 'lucide-react';
 
 /**
- * Overview, Posts and Accounts are always listed. The other destinations are
+ * Overview, Posts, Accounts and Newsletter are always listed. The other destinations are
  * release items (`releaseItemId`), listed once released in Admin → Flags.
  *
  * Analytics is the single home for measuring the brand's own content — the
@@ -22,7 +23,8 @@ import {
  * (Trends, Trend Turnover) are research, so they live in Discovery.
  *
  * Shell already labels the module Analytics. What-happened destinations sit
- * ungrouped under that header (Overview, Posts, Brands, Streaks) so the
+ * ungrouped under that header (Overview, Posts, Accounts, Newsletter,
+ * Brands, Streaks) so the
  * sidebar does not stack ANALYTICS + PERFORMANCE. Intelligence stays a group
  * (Insights, Hooks, Outliers, Breakouts, Lab).
  *
@@ -58,6 +60,15 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.ANALYTICS.ACCOUNTS],
     outline: UsersRound,
     solid: UsersRound,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.ANALYTICS.NEWSLETTER,
+    hrefScope: 'brand',
+    label: 'Newsletter',
+    matchPaths: [APP_ROUTES.ANALYTICS.NEWSLETTER],
+    outline: MailCheck,
+    solid: MailCheck,
   },
   {
     group: '',

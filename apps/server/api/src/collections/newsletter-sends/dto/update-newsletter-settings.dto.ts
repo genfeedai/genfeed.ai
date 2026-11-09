@@ -1,3 +1,4 @@
+import { NEWSLETTER_PAID_PRICE_MAX_CREDITS } from '@genfeedai/contracts/constants';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsBoolean,
@@ -65,7 +66,7 @@ export class UpdateNewsletterSettingsDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(1_000_000)
+  @Max(NEWSLETTER_PAID_PRICE_MAX_CREDITS)
   @ApiPropertyOptional({ description: 'Monthly paid tier price in credits.' })
   readonly paidPriceCredits?: number | null;
 }

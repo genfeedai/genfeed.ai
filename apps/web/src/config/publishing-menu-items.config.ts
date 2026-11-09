@@ -1,11 +1,13 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { PostCard } from '@ui/primitives/animated-icons/custom-lucide';
-import { CalendarClock, Gauge, Gavel, Route } from 'lucide-react';
+import { CalendarClock, Gauge, Gavel, MailCheck, Route } from 'lucide-react';
 
 /**
  * Posts owns social posts, articles, and newsletters with type and status
  * filters. Calendar and Approvals are their own pages under Publishing.
+ * Newsletter is the brand's email audience and sending settings (#9723);
+ * issues stay in Posts and their results live in Analytics.
  */
 export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
   {
@@ -52,5 +54,16 @@ export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
     outline: Route,
     releaseItemId: 'campaigns',
     solid: Route,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.PUBLISHING.NEWSLETTER,
+    label: 'Newsletter',
+    matchPaths: [
+      APP_ROUTES.PUBLISHING.NEWSLETTER,
+      APP_ROUTES.PUBLISHING.NEWSLETTER_SETTINGS,
+    ],
+    outline: MailCheck,
+    solid: MailCheck,
   },
 ];

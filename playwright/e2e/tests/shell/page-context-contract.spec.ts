@@ -83,6 +83,14 @@ const CONTRACTS: PageContextContract[] = [
     breadcrumbLabels: ['Campaigns'],
   },
   {
+    // The brand's own newsletter audience lives under Publishing (#9723).
+    route: `${BRAND_BASE}/publishing/newsletter`,
+    currentApp: 'publishing',
+    sectionLabel: 'Publishing',
+    breadcrumbLabels: ['Newsletter'],
+    sidebarLabels: ['Posts', 'Newsletter'],
+  },
+  {
     route: `${BRAND_BASE}/automation/agents`,
     currentApp: 'automation',
     sectionLabel: 'Automation',
@@ -109,6 +117,40 @@ test.describe('Shell page context contract', () => {
       async (route) => {
         await route.fulfill({
           body: JSON.stringify({ data: [] }),
+          contentType: 'application/json',
+          status: 200,
+        });
+      },
+    );
+    // The newsletter audience starts empty on a fresh brand.
+    await authenticatedPage.route(
+      /\/brands\/brand-1\/newsletter\/(subscribers(?:\/stats)?|usage)(?:\?.*)?$/,
+      async (route) => {
+        const path = new URL(route.request().url()).pathname;
+        const body = path.endsWith('/subscribers')
+          ? { data: [], meta: { page: 1, pageSize: 50, total: 0 } }
+          : path.endsWith('/stats')
+            ? {
+                data: {
+                  active: 0,
+                  bounced: 0,
+                  complained: 0,
+                  pending: 0,
+                  total: 0,
+                  unsubscribed: 0,
+                },
+              }
+            : {
+                data: {
+                  emailLimit: null,
+                  emailsThisMonth: 0,
+                  plan: 'unlimited',
+                  subscriberLimit: null,
+                  subscribers: 0,
+                },
+              };
+        await route.fulfill({
+          body: JSON.stringify(body),
           contentType: 'application/json',
           status: 200,
         });

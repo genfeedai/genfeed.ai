@@ -154,9 +154,13 @@ export class NewsletterSendsService {
     brandId: string,
     page = 1,
     limit = 20,
+    newsletterId?: string,
   ): Promise<{ docs: NewsletterSend[]; total: number }> {
     await this.brandAccess.assert(user, brandId);
-    const where = scopedWhere(user.organizationId, { brandId });
+    const where = scopedWhere(user.organizationId, {
+      brandId,
+      ...(newsletterId ? { newsletterId } : {}),
+    });
     const [docs, total] = await Promise.all([
       this.prisma.newsletterSend.findMany({
         omit: { html: true, previewHtml: true, previewText: true, text: true },

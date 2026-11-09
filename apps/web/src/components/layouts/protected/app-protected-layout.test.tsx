@@ -1717,7 +1717,7 @@ describe('AppProtectedLayout', () => {
     },
   );
 
-  it('shows customers only Overview, Posts and Accounts in Analytics (#5502)', () => {
+  it('shows customers only Overview, Posts, Accounts and Newsletter in Analytics (#5502)', () => {
     mockPathname.value = '/analytics/overview';
     mockBrandState.settings.hasOrganizationBilling = true;
     mockBrandState.settings.isReleasePreviewEnabled = false;
@@ -1733,6 +1733,7 @@ describe('AppProtectedLayout', () => {
       'Overview',
       'Posts',
       'Accounts',
+      'Newsletter',
     ]);
   });
 

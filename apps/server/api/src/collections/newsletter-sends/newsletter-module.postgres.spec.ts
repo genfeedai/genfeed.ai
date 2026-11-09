@@ -356,6 +356,29 @@ describe.skipIf(!connectionString)(
       });
     });
 
+    it("finds one issue's send among many by its newsletter id", async () => {
+      const brandId = await seedBrand();
+      const sendIds = [
+        await seedSend(brandId),
+        await seedSend(brandId),
+        await seedSend(brandId),
+      ];
+      const { rows } = await pool.query(
+        `SELECT "newsletterId" FROM "${schema}"."newsletter_sends" WHERE "id"=$1`,
+        [sendIds[0]],
+      );
+
+      const page = await sends.list(user, brandId, 1, 1, rows[0].newsletterId);
+
+      expect({
+        ids: page.docs.map((send) => send.id),
+        total: page.total,
+      }).toEqual({
+        ids: [sendIds[0]],
+        total: 1,
+      });
+    });
+
     it('fails a send that no longer fits the monthly email cap when it starts', async () => {
       const brandId = await seedBrand();
       await seedSubscriber(brandId, 'a@example.com', 'active');
