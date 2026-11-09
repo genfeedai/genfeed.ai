@@ -327,6 +327,9 @@ export class NewsletterSendsService {
     const orgId = send.organizationId;
 
     try {
+      if (!send.startedAt && !(await this.fitsEmailCap(send))) {
+        return;
+      }
       if (!send.startedAt) {
         await this.materializeRecipients(send);
       }
@@ -395,6 +398,36 @@ export class NewsletterSendsService {
       });
       throw error;
     }
+  }
+
+  /**
+   * The cap is checked again when the send starts: subscribers added after it
+   * was scheduled, or other sends that started meanwhile, can leave too few
+   * emails this month. A send that no longer fits fails without emailing
+   * anyone.
+   */
+  private async fitsEmailCap(send: NewsletterSend): Promise<boolean> {
+    const [recipients, remaining] = await Promise.all([
+      this.prisma.brandSubscriber.count({
+        where: scopedWhere(send.organizationId, {
+          brandId: send.brandId,
+          status: 'active',
+        }),
+      }),
+      this.usage.remainingEmails(send.organizationId),
+    ]);
+    if (remaining === null || recipients <= remaining) return true;
+    // sql-risk-audit: ignore bulk-write-tenant-review -- scopedWhere pins this one send inside its organization.
+    await this.prisma.newsletterSend.updateMany({
+      data: {
+        completedAt: new Date(),
+        lastError: `NEWSLETTER_SEND_LIMIT: needs ${recipients} emails, ${remaining} left this month`,
+        lockedAt: null,
+        status: 'failed',
+      },
+      where: scopedWhere(send.organizationId, { id: send.id }),
+    });
+    return false;
   }
 
   /** One recipient row per active subscriber at the moment the send starts. */

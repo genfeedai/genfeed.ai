@@ -73,19 +73,35 @@ export class NewsletterUsageService {
     });
   }
 
+  /**
+   * Emails this month's cap still allows once sent emails and emails already
+   * queued in other sends count, or null on a plan without a cap. The worker
+   * checks it again when a send starts, so subscribers added after
+   * scheduling cannot push a send past the cap.
+   */
+  async remainingEmails(organizationId: string): Promise<number | null> {
+    const plan = await this.resolvePlan(organizationId);
+    if (plan === 'unlimited') return null;
+    const [sent, queued] = await Promise.all([
+      this.countEmailsThisMonth(organizationId),
+      this.countQueuedEmails(organizationId),
+    ]);
+    return Math.max(
+      0,
+      NEWSLETTER_PLAN_LIMITS[plan].emailsPerMonth - sent - queued,
+    );
+  }
+
   /** Refuse a send that would exceed this month's email cap before it starts. */
   async assertSendCapacity(
     organizationId: string,
     recipients: number,
   ): Promise<void> {
-    const usage = await this.getUsage(organizationId);
-    if (
-      usage.emailLimit !== null &&
-      usage.emailsThisMonth + recipients > usage.emailLimit
-    ) {
+    const remaining = await this.remainingEmails(organizationId);
+    if (remaining !== null && recipients > remaining) {
       throw new ForbiddenException({
         code: 'NEWSLETTER_SEND_LIMIT',
-        message: `This send needs ${recipients} emails and your plan has ${Math.max(0, usage.emailLimit - usage.emailsThisMonth)} left this month.`,
+        message: `This send needs ${recipients} emails and your plan has ${remaining} left this month.`,
       });
     }
   }
@@ -104,6 +120,13 @@ export class NewsletterUsageService {
       where: scopedWhere(organizationId, {
         status: { in: COUNTED_SUBSCRIBER_STATUSES },
       }),
+    });
+  }
+
+  /** Recipients of sends already under way that have not been emailed yet. */
+  private countQueuedEmails(organizationId: string): Promise<number> {
+    return this.prisma.newsletterSendRecipient.count({
+      where: scopedWhere(organizationId, { status: 'pending' }),
     });
   }
 

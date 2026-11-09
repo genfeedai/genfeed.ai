@@ -63,6 +63,8 @@ describe.skipIf(!connectionString)(
     /** Every email handed to the notifications app, in order. */
     let outbox: IEmailDeliveryRequest[];
     let hasSubscriberCapacity = true;
+    /** Emails left this month; null is a plan without a cap. */
+    let remainingEmails: number | null = null;
 
     beforeAll(async () => {
       if (!connectionString)
@@ -153,6 +155,7 @@ describe.skipIf(!connectionString)(
         assertSendCapacity: async () => undefined,
         assertSubscriberCapacity: async () => undefined,
         hasSubscriberCapacity: async () => hasSubscriberCapacity,
+        remainingEmails: async () => remainingEmails,
       } as unknown as NewsletterUsageService;
       const logger = { warn: () => undefined } as unknown as LoggerService;
       const brandAccess = {
@@ -187,6 +190,7 @@ describe.skipIf(!connectionString)(
 
     beforeEach(() => {
       hasSubscriberCapacity = true;
+      remainingEmails = null;
       outbox = [];
     });
 
@@ -349,6 +353,27 @@ describe.skipIf(!connectionString)(
       });
       expect(await statusesOf(brandId)).toEqual({
         'late@example.com': 'active',
+      });
+    });
+
+    it('fails a send that no longer fits the monthly email cap when it starts', async () => {
+      const brandId = await seedBrand();
+      await seedSubscriber(brandId, 'a@example.com', 'active');
+      await seedSubscriber(brandId, 'b@example.com', 'active');
+      await seedSubscriber(brandId, 'c@example.com', 'active');
+      const sendId = await seedSend(brandId);
+      remainingEmails = 2;
+
+      await sends.processSend(sendId);
+
+      expect(outbox).toEqual([]);
+      const send = await pool.query(
+        `SELECT "status","lastError" FROM "${schema}"."newsletter_sends" WHERE "id"=$1`,
+        [sendId],
+      );
+      expect(send.rows[0]).toEqual({
+        lastError: 'NEWSLETTER_SEND_LIMIT: needs 3 emails, 2 left this month',
+        status: 'failed',
       });
     });
 
