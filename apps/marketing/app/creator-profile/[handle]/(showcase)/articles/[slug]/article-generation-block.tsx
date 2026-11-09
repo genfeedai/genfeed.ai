@@ -2,7 +2,7 @@
 
 import { modelCatalogHref } from '@data/model-credits';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
+import { buildUntrustedAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import type { ArticleGenerationBlockProps } from '@props/content/public-article.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
@@ -102,7 +102,7 @@ export default function ArticleGenerationBlock({
                   withWrapper={false}
                 >
                   <a
-                    href={`${EnvironmentService.apps.app}${buildAgentPromptHref(recreatePrompt)}`}
+                    href={`${EnvironmentService.apps.app}${buildUntrustedAgentPromptHref(recreatePrompt)}`}
                     rel="noopener noreferrer"
                     target="_blank"
                   >

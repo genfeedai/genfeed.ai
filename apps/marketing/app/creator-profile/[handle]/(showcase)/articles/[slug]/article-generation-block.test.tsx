@@ -65,6 +65,8 @@ describe('ArticleGenerationBlock', () => {
     expect(url.searchParams.get('prompt')).toBe(
       'Recreate this image with Flux 2: A friendly bear, character sheet',
     );
+    // The prompt is the creator's text, so the Agent asks before acting on it.
+    expect(url.searchParams.get('agentMode')).toBe('manual');
   });
 
   it('expands the whole prompt on request', () => {
