@@ -28,6 +28,11 @@ on:
         type: boolean
         required: false
         default: false
+      skip_frontend:
+        description: 'Skip every browser job (Frontend E2E, report merge, authed). Only master-merge-check.yml sets it; the result is reporting-only and never release or deploy evidence.'
+        type: boolean
+        required: false
+        default: false
     outputs:
       agent_production_result:
         description: 'Passed only after the dedicated production receipt and evidence upload.'
@@ -351,7 +356,7 @@ jobs:
   # sources from the deploy AND-gate. Each shard is independent (fail-fast:false),
   # so "Re-run failed jobs" carries the green shards forward unchanged.
   e2e-frontend:
-    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) }}
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && inputs.skip_frontend != true }}
     name: Frontend E2E (Shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -415,7 +420,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [e2e-frontend]
-    if: ${{ always() && !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) }}
+    if: ${{ always() && !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && inputs.skip_frontend != true }}
     permissions:
       actions: read
       contents: read
@@ -822,7 +827,11 @@ jobs:
           if [[ "${{ needs.e2e-route-coverage.result }}" != "success" ]]; then
             echo "Route reference inventory did not complete" && exit 1
           fi
-          if [[ "${{ needs.e2e-frontend.result }}" != "success" ]]; then
+          if [[ "${{ inputs.skip_frontend == true }}" == "true" ]]; then
+            # Only master-merge-check.yml skips the browser; Playwright Core on
+            # Master covers it there. A skipped matrix is never release evidence.
+            test "${{ needs.e2e-frontend.result }}" = skipped
+          elif [[ "${{ needs.e2e-frontend.result }}" != "success" ]]; then
             echo "One or more E2E shards did not pass" && exit 1
           fi
           if [[ "${{ needs.e2e-api.result }}" != "success" ]]; then
@@ -855,7 +864,7 @@ jobs:
   # nightly.
   e2e-frontend-authed:
     name: Frontend Authed E2E (real Better Auth)
-    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && (vars.E2E_AUTHED_ENABLED == 'true') }}
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && inputs.skip_frontend != true && (vars.E2E_AUTHED_ENABLED == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     continue-on-error: ${{ !(github.event_name == 'schedule' && github.workflow == 'E2E Tests') }}

@@ -713,6 +713,80 @@ test('playwright core on master runs once per merge burst and never on a pull re
   assert.equal(parsed.jobs.report.permissions.issues, 'write');
 });
 
+test('master merge check runs the API tiers once per merge burst and skips the browser', () => {
+  const parsed = parseYaml(readWorkflow('master-merge-check.yml'));
+
+  assert.deepEqual(Object.keys(parsed.on).sort(), [
+    'push',
+    'workflow_dispatch',
+  ]);
+  assert.deepEqual(parsed.on.push.branches, ['master']);
+  assert.equal(parsed.concurrency.group, 'master-merge-check');
+  assert.equal(
+    parsed.concurrency['cancel-in-progress'],
+    false,
+    'a newer push replaces the pending run; it must not cancel one in progress',
+  );
+  assert.equal(parsed.jobs.e2e.uses, './.github/workflows/e2e.yml');
+  assert.equal(parsed.jobs.e2e.with.run_api_full, true);
+  assert.equal(parsed.jobs.e2e.with.skip_frontend, true);
+  assert.equal(
+    parsed.jobs.e2e.with.run_runtime_acceptance,
+    undefined,
+    'the serial final acceptance stays a nightly and release lane',
+  );
+  assert.equal(parsed.jobs.e2e.permissions.actions, 'read');
+  assert.equal(parsed.jobs.report.permissions.issues, 'write');
+});
+
+test('only the master merge check may skip the browser jobs of e2e.yml', () => {
+  // skip_frontend turns the E2E gate's browser requirement into "must be
+  // skipped". It is reporting-only, so no release or deploy path may set it.
+  const callers = readdirSync(WORKFLOWS_DIRECTORY)
+    .filter((fileName) => /\.ya?ml$/.test(fileName))
+    .filter((fileName) => /skip_frontend/.test(readWorkflow(fileName)))
+    .sort();
+  assert.deepEqual(callers, ['e2e.yml', 'master-merge-check.yml']);
+
+  const workflow = readWorkflow('e2e.yml');
+  for (const jobId of [
+    'e2e-frontend',
+    'e2e-merge-reports',
+    'e2e-frontend-authed',
+  ]) {
+    assert.match(
+      jobBlock(workflow, jobId, 'e2e.yml'),
+      /^ {4}if: .*inputs\.skip_frontend != true/m,
+      `${jobId} must skip when skip_frontend is set`,
+    );
+  }
+
+  // Run the gate's frontend check as bash: a skipped matrix passes only when
+  // skip_frontend asked for it, and a default run still needs every shard green.
+  const gate = jobBlock(workflow, 'e2e-gate', 'e2e.yml');
+  const script = gate.match(/run: \|\n((?: {10}.*\n)+)/)[1];
+  const evaluate = (skip, frontend) => {
+    const resolved = script
+      .replaceAll('${{ inputs.skip_frontend == true }}', String(skip))
+      .replaceAll('${{ needs.e2e-frontend.result }}', frontend)
+      .replaceAll('${{ needs.e2e-route-coverage.result }}', 'success')
+      .replaceAll('${{ needs.e2e-api.result }}', 'success')
+      .replaceAll('${{ inputs.run_runtime_acceptance == true }}', 'false')
+      .replaceAll('${{ needs.runtime-acceptance.result }}', 'skipped')
+      .replaceAll(
+        '${{ needs.context-embedding-acceptance.result }}',
+        'success',
+      );
+    // GitHub runs steps as `bash -e`, so a failing `test` stops the gate.
+    return spawnSync('bash', ['-e', '-c', resolved]).status;
+  };
+  assert.equal(evaluate(false, 'success'), 0);
+  assert.notEqual(evaluate(false, 'skipped'), 0);
+  assert.notEqual(evaluate(false, 'failure'), 0);
+  assert.equal(evaluate(true, 'skipped'), 0);
+  assert.notEqual(evaluate(true, 'success'), 0);
+});
+
 test('the full suite grants its reusable E2E failure reporter permission ceiling', () => {
   // e2e.yml reads jobs from its current run to report exact scheduled failures.
   // GitHub validates this permission before starting any called job, so omitting
