@@ -37,7 +37,23 @@ export class PublicNewsletterSubscribeController {
     return { data: { status: 'confirmation_sent' } };
   }
 
+  /**
+   * The emailed link shows a confirm button; only the POST activates the
+   * subscriber, so mail scanners that prefetch the GET subscribe nobody.
+   */
   @Get('confirm/:token')
+  @Header('Cache-Control', 'no-store')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  confirmPage(@Req() request: Request): string {
+    return renderNewsletterNoticePage({
+      action: { label: 'Confirm subscription', url: request.originalUrl },
+      message: 'Confirm that you want to get this newsletter by email.',
+      title: 'Confirm your subscription',
+    });
+  }
+
+  @Post('confirm/:token')
+  @HttpCode(HttpStatus.OK)
   @RateLimit({ limit: 30, scope: 'ip', windowMs: 60_000 })
   @Header('Cache-Control', 'no-store')
   @Header('Content-Type', 'text/html; charset=utf-8')
