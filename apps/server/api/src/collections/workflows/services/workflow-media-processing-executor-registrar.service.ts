@@ -318,9 +318,8 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
           },
         );
 
-        await ingredientsService.patch(ingredientId, {
+        await this.helper.completeOutput(ingredientId, context.organizationId, {
           ...(uploaded.s3Key ? { s3Key: uploaded.s3Key } : {}),
-          status: IngredientStatus.GENERATED,
           transformations: [TransformationCategory.CAPTIONED],
         });
         await metadataService.patch(
@@ -469,19 +468,21 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
             s3Key: result.s3Key,
           }),
         );
-        await this.helper.patchIngredient(pending.ingredientId, {
-          status: IngredientStatus.GENERATED,
-          s3Key: result.s3Key,
-        });
+        await this.helper.completeOutput(
+          pending.ingredientId,
+          context.organizationId,
+          { s3Key: result.s3Key },
+        );
         return {
           id: pending.ingredientId,
           status: IngredientStatus.GENERATED,
           videoUrl: this.helper.buildVideoIngredientUrl(pending.ingredientId),
         };
       } catch (error) {
-        await this.helper.patchIngredient(pending.ingredientId, {
-          status: IngredientStatus.FAILED,
-        });
+        await this.helper.failOutput(
+          pending.ingredientId,
+          context.organizationId,
+        );
         throw error;
       }
     });
