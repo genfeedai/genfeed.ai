@@ -828,4 +828,284 @@ describe('LoginPage', () => {
       '/forgot-password?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
     );
   });
+  describe('sign-in failures and retry (#9742)', () => {
+    it('shows a magic-link failure, then sends the link on retry', async () => {
+      authClientMocks.magicLink.mockResolvedValueOnce({
+        error: { message: 'Too many requests. Try again later.' },
+      });
+      render(<LoginBetterAuth mode="magic-link" />);
+
+      fireEvent.change(getEmailInput(), {
+        target: { value: 'user@example.com' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Send link' }));
+
+      expect(
+        await screen.findByText('Too many requests. Try again later.'),
+      ).toBeVisible();
+      expect(screen.getByRole('button', { name: 'Send link' })).toBeEnabled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Send link' }));
+
+      expect(await screen.findByText('Check your email')).toBeInTheDocument();
+      expect(
+        screen.queryByText('Too many requests. Try again later.'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows the magic-link fallback error when the request throws', async () => {
+      authClientMocks.magicLink.mockRejectedValueOnce(new Error('offline'));
+      render(<LoginBetterAuth mode="magic-link" />);
+
+      fireEvent.change(getEmailInput(), {
+        target: { value: 'user@example.com' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Send link' }));
+
+      expect(
+        await screen.findByText(
+          'Failed to send sign-in link. Please try again.',
+        ),
+      ).toBeVisible();
+    });
+
+    it('shows a password failure, then signs in on retry', async () => {
+      const assign = vi.fn();
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: { ...window.location, assign },
+      });
+      authClientMocks.email.mockResolvedValueOnce({
+        error: { message: 'Invalid email or password' },
+      });
+      render(<LoginBetterAuth mode="password" />);
+
+      fireEvent.change(getEmailInput(), {
+        target: { value: 'saved@example.com' },
+      });
+      fireEvent.change(screen.getByLabelText(/^Password/), {
+        target: { value: 'wrong' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+
+      expect(
+        await screen.findByText('Invalid email or password'),
+      ).toBeVisible();
+      expect(assign).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+
+      await waitFor(() => {
+        expect(assign).toHaveBeenCalledWith(absoluteCallback('/'));
+      });
+      expect(
+        screen.queryByText('Invalid email or password'),
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Sign in' })).toBeDisabled();
+    });
+
+    it('shows a Google failure, then clears it on retry', async () => {
+      authClientMocks.social.mockResolvedValueOnce({
+        error: { message: 'Google is unavailable' },
+      });
+      render(<LoginPage />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Google' }));
+
+      expect(await screen.findByText('Google is unavailable')).toBeVisible();
+      expect(screen.getByRole('button', { name: 'Google' })).toBeEnabled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Google' }));
+
+      await waitFor(() => {
+        expect(authClientMocks.social).toHaveBeenCalledTimes(2);
+      });
+      await waitFor(() => {
+        expect(
+          screen.queryByText('Google is unavailable'),
+        ).not.toBeInTheDocument();
+      });
+      expect(screen.getByRole('button', { name: 'Google' })).toBeEnabled();
+    });
+
+    it('clears an interrupted Google sign-in when Google is started again', async () => {
+      window.history.replaceState({}, '', '/login?error=state_mismatch');
+      render(<LoginPage />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Google' }));
+
+      await waitFor(() => {
+        expect(
+          screen.queryByText(
+            'Google sign-in was interrupted. Please try again.',
+          ),
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it.each([['magic-link' as const], ['password' as const]])(
+      'does not show an interrupted Google sign-in on the %s page',
+      (mode) => {
+        window.history.replaceState({}, '', '/login?error=state_mismatch');
+        render(<LoginBetterAuth mode={mode} />);
+
+        expect(
+          screen.queryByText(
+            'Google sign-in was interrupted. Please try again.',
+          ),
+        ).not.toBeInTheDocument();
+      },
+    );
+
+    it('shows a failed local workspace start and lets the user try again', async () => {
+      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+      desktopRuntimeMocks.enableOfflineMode.mockRejectedValueOnce(
+        new Error('Local database could not start.'),
+      );
+      render(<LoginPage />);
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Use a local workspace' }),
+      );
+
+      expect(
+        await screen.findByText('Local database could not start.'),
+      ).toBeVisible();
+      expect(
+        screen.getByRole('button', { name: 'Use a local workspace' }),
+      ).toBeEnabled();
+    });
+
+    it('returns to idle when the system browser cannot be opened', async () => {
+      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+      desktopRuntimeMocks.login.mockRejectedValueOnce(new Error('denied'));
+      render(<LoginPage />);
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+      );
+
+      expect(
+        await screen.findByText(
+          'The system browser could not be opened. Please try again.',
+        ),
+      ).toBeVisible();
+      expect(
+        screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+      ).toBeEnabled();
+      expect(screen.queryByLabelText('Sign-in code')).not.toBeInTheDocument();
+    });
+
+    it('keeps the code form after a rejected code, then submits the retried code', async () => {
+      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+      desktopRuntimeMocks.completeWithCode.mockRejectedValueOnce(
+        new Error('Code expired.'),
+      );
+      render(<LoginPage />);
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+      );
+      await waitFor(() => {
+        expect(desktopRuntimeMocks.login).toHaveBeenCalledOnce();
+      });
+
+      fireEvent.change(screen.getByLabelText('Sign-in code'), {
+        target: { value: 'stale-code' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Continue with code' }),
+      );
+
+      expect(await screen.findByText('Code expired.')).toBeVisible();
+      expect(screen.getByText('Waiting for the browser...')).toBeVisible();
+
+      fireEvent.change(screen.getByLabelText('Sign-in code'), {
+        target: { value: 'fresh-code' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Continue with code' }),
+      );
+
+      await waitFor(() => {
+        expect(desktopRuntimeMocks.completeWithCode).toHaveBeenLastCalledWith(
+          'fresh-code',
+        );
+      });
+      expect(screen.queryByText('Code expired.')).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Connecting…' }),
+      ).toBeDisabled();
+    });
+
+    it('clears a code error when the user goes back', async () => {
+      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+      desktopRuntimeMocks.completeWithCode.mockRejectedValueOnce(
+        new Error('Code expired.'),
+      );
+      render(<LoginPage />);
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+      );
+      await waitFor(() => {
+        expect(desktopRuntimeMocks.login).toHaveBeenCalledOnce();
+      });
+      fireEvent.change(screen.getByLabelText('Sign-in code'), {
+        target: { value: 'stale-code' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Continue with code' }),
+      );
+      expect(await screen.findByText('Code expired.')).toBeVisible();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+      expect(screen.queryByText('Code expired.')).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+      ).toBeEnabled();
+    });
+    it('re-enables the code form after a used code fails to confirm the browser session', async () => {
+      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+      authClientMocks.getSession.mockResolvedValue({ data: null, error: null });
+      render(<LoginPage />);
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+      );
+      await waitFor(() => {
+        expect(desktopRuntimeMocks.login).toHaveBeenCalledOnce();
+      });
+      fireEvent.change(screen.getByLabelText('Sign-in code'), {
+        target: { value: 'desktop-code' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Continue with code' }),
+      );
+      await waitFor(() => {
+        expect(desktopRuntimeMocks.completeWithCode).toHaveBeenCalledOnce();
+      });
+
+      act(() => {
+        desktopSessionChangeCallback?.({ id: 'desktop-session' });
+      });
+      expect(
+        await screen.findByText(/browser session could not be confirmed/i),
+      ).toBeVisible();
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+      );
+      await waitFor(() => {
+        expect(desktopRuntimeMocks.login).toHaveBeenCalledTimes(2);
+      });
+
+      expect(screen.getByLabelText('Sign-in code')).toBeEnabled();
+      expect(
+        screen.queryByRole('button', { name: 'Connecting…' }),
+      ).not.toBeInTheDocument();
+    });
+  });
 });

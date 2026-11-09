@@ -18,6 +18,7 @@ import {
   type ChangeEvent,
   type FormEvent,
   useEffect,
+  useReducer,
   useRef,
   useState,
 } from 'react';
@@ -52,9 +53,20 @@ import { useIsGoogleSignInAvailable } from '../use-is-google-sign-in-available';
 import { useIsMagicLinkAvailable } from '../use-is-magic-link-available';
 import { SUBMIT_REDIRECTING, useSingleSubmit } from '../use-single-submit';
 import { useTurnstileToken } from '../use-turnstile-token';
+import {
+  createLoginFlowState,
+  getLoginErrorMessage,
+  isLoginSubmitting,
+  isWaitingForDesktopSession,
+  loginFlowReducer,
+} from './login-flow-state';
 
 const LOGIN_TITLE = 'Welcome back';
 const LOGIN_DESCRIPTION = 'Sign in to Genfeed';
+const DESKTOP_BRIDGE_UNAVAILABLE_MESSAGE =
+  'Desktop sign-in is unavailable because the desktop bridge could not be loaded.';
+const DESKTOP_SESSION_UNCONFIRMED_MESSAGE =
+  'Your desktop sign-in completed, but the browser session could not be confirmed. Please try again.';
 const DESKTOP_IPC_ERROR_PREFIX =
   /Error invoking remote method '[^']+':(?: Error:)?\s*/;
 
@@ -123,28 +135,29 @@ export default function LoginBetterAuth({
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { isSubmitting, runSubmit: runMagicLinkSubmit } = useSingleSubmit();
-  const { isSubmitting: isPasswordSubmitting, runSubmit: runPasswordSubmit } =
-    useSingleSubmit();
-  const [isSocialSubmitting, setIsSocialSubmitting] = useState(false);
-  const [isEmailSent, setIsEmailSent] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [passwordErrorMessage, setPasswordErrorMessage] = useState<
-    string | null
-  >(null);
-  const [socialErrorMessage, setSocialErrorMessage] = useState<string | null>(
-    () => resolveOAuthLoginErrorMessage(searchParams.get('error')),
-  );
-  const [desktopErrorMessage, setDesktopErrorMessage] = useState<string | null>(
-    null,
+  // The single-submit guards drop a double submit before React re-renders;
+  // the flow reducer owns what the page shows.
+  const { runSubmit: runMagicLinkSubmit } = useSingleSubmit();
+  const { runSubmit: runPasswordSubmit } = useSingleSubmit();
+  const [flow, dispatchFlow] = useReducer(
+    loginFlowReducer,
+    searchParams.get('error'),
+    (error: string | null) =>
+      createLoginFlowState(resolveOAuthLoginErrorMessage(error)),
   );
   const [isDesktopBridgeAvailable, setIsDesktopBridgeAvailable] =
     useState(false);
-  const [isWaitingForDesktopSession, setIsWaitingForDesktopSession] =
-    useState(false);
-  const [isStartingLocalMode, setIsStartingLocalMode] = useState(false);
   const [desktopAuthCode, setDesktopAuthCode] = useState('');
-  const [isSubmittingDesktopCode, setIsSubmittingDesktopCode] = useState(false);
+  const isSubmitting = isLoginSubmitting(flow, 'magic_link');
+  const isPasswordSubmitting = isLoginSubmitting(flow, 'password');
+  const isSocialSubmitting = isLoginSubmitting(flow, 'social');
+  const isStartingLocalMode = isLoginSubmitting(flow, 'local');
+  const isSubmittingDesktopCode = isLoginSubmitting(flow, 'desktop_code');
+  const isWaitingForDesktopCode = isWaitingForDesktopSession(flow);
+  const errorMessage = getLoginErrorMessage(flow, 'magic_link');
+  const passwordErrorMessage = getLoginErrorMessage(flow, 'password');
+  const socialErrorMessage = getLoginErrorMessage(flow, 'social');
+  const desktopErrorMessage = getLoginErrorMessage(flow, 'desktop');
   const {
     isAvailable: isLocalWorkspaceAvailable,
     isEnabled: isLocalWorkspaceEnabled,
@@ -172,16 +185,18 @@ export default function LoginBetterAuth({
     const bridge = getDesktopBridge();
 
     if (!bridge) {
-      setDesktopErrorMessage(
-        'Desktop sign-in is unavailable because the desktop bridge could not be loaded.',
-      );
+      dispatchFlow({
+        message: DESKTOP_BRIDGE_UNAVAILABLE_MESSAGE,
+        method: 'desktop',
+        type: 'fail',
+      });
       setIsDesktopBridgeAvailable(false);
       return () => {
         abortController.abort();
       };
     }
 
-    setDesktopErrorMessage(null);
+    dispatchFlow({ type: 'desktop_bridge_ready' });
     setIsDesktopBridgeAvailable(true);
 
     const unsubscribe = bridge.auth.onDidChangeSession((session) => {
@@ -199,10 +214,11 @@ export default function LoginBetterAuth({
 
           if (!result.data?.session) {
             isWaitingForDesktopSessionRef.current = false;
-            setIsWaitingForDesktopSession(false);
-            setDesktopErrorMessage(
-              'Your desktop sign-in completed, but the browser session could not be confirmed. Please try again.',
-            );
+            dispatchFlow({
+              message: DESKTOP_SESSION_UNCONFIRMED_MESSAGE,
+              method: 'desktop',
+              type: 'fail',
+            });
             return;
           }
 
@@ -217,10 +233,11 @@ export default function LoginBetterAuth({
           }
 
           isWaitingForDesktopSessionRef.current = false;
-          setIsWaitingForDesktopSession(false);
-          setDesktopErrorMessage(
-            'Your desktop sign-in completed, but the browser session could not be confirmed. Please try again.',
-          );
+          dispatchFlow({
+            message: DESKTOP_SESSION_UNCONFIRMED_MESSAGE,
+            method: 'desktop',
+            type: 'fail',
+          });
         }
       };
 
@@ -243,16 +260,17 @@ export default function LoginBetterAuth({
     const bridge = getDesktopBridge();
 
     if (!bridge) {
-      setDesktopErrorMessage(
-        'Desktop sign-in is unavailable because the desktop bridge could not be loaded.',
-      );
+      dispatchFlow({
+        message: DESKTOP_BRIDGE_UNAVAILABLE_MESSAGE,
+        method: 'desktop',
+        type: 'fail',
+      });
       setIsDesktopBridgeAvailable(false);
       return;
     }
 
-    setDesktopErrorMessage(null);
     isWaitingForDesktopSessionRef.current = true;
-    setIsWaitingForDesktopSession(true);
+    dispatchFlow({ type: 'wait_for_desktop_session' });
 
     try {
       // Sign-in runs in the system browser (password managers work there);
@@ -260,19 +278,18 @@ export default function LoginBetterAuth({
       await bridge.auth.login(callbackURL === '/' ? undefined : callbackURL);
     } catch {
       isWaitingForDesktopSessionRef.current = false;
-      setIsWaitingForDesktopSession(false);
-      setDesktopErrorMessage(
-        'The system browser could not be opened. Please try again.',
-      );
+      dispatchFlow({
+        message: 'The system browser could not be opened. Please try again.',
+        method: 'desktop',
+        type: 'fail',
+      });
     }
   }
 
   function handleDesktopBack() {
     isWaitingForDesktopSessionRef.current = false;
-    setDesktopErrorMessage(null);
-    setIsWaitingForDesktopSession(false);
+    dispatchFlow({ type: 'reset' });
     setDesktopAuthCode('');
-    setIsSubmittingDesktopCode(false);
   }
 
   async function handleDesktopCompleteWithCode(
@@ -283,32 +300,34 @@ export default function LoginBetterAuth({
     const code = desktopAuthCode.trim();
 
     if (!bridge) {
-      setDesktopErrorMessage(
-        'Desktop sign-in is unavailable because the desktop bridge could not be loaded.',
-      );
+      dispatchFlow({
+        errorMessage: DESKTOP_BRIDGE_UNAVAILABLE_MESSAGE,
+        type: 'wait_for_desktop_session',
+      });
       return;
     }
 
     if (!code) {
-      setDesktopErrorMessage('Paste the sign-in code from the browser.');
+      dispatchFlow({
+        errorMessage: 'Paste the sign-in code from the browser.',
+        type: 'wait_for_desktop_session',
+      });
       return;
     }
 
-    setDesktopErrorMessage(null);
-    setIsSubmittingDesktopCode(true);
+    dispatchFlow({ method: 'desktop_code', type: 'submit' });
 
     try {
       await bridge.auth.completeWithCode(code);
     } catch (error) {
       isWaitingForDesktopSessionRef.current = true;
-      setIsWaitingForDesktopSession(true);
-      setDesktopErrorMessage(
-        readDesktopBridgeError(
+      dispatchFlow({
+        errorMessage: readDesktopBridgeError(
           error,
           'The sign-in code could not be used. Copy it again from the browser.',
         ),
-      );
-      setIsSubmittingDesktopCode(false);
+        type: 'wait_for_desktop_session',
+      });
     }
   }
 
@@ -319,24 +338,28 @@ export default function LoginBetterAuth({
 
     const bridge = getDesktopBridge();
     if (!bridge) {
-      setDesktopErrorMessage(
-        'Local mode is unavailable because the desktop bridge could not be loaded.',
-      );
+      dispatchFlow({
+        message:
+          'Local mode is unavailable because the desktop bridge could not be loaded.',
+        method: 'desktop',
+        type: 'fail',
+      });
       return;
     }
 
-    setDesktopErrorMessage(null);
-    setIsStartingLocalMode(true);
+    dispatchFlow({ method: 'local', type: 'submit' });
     try {
       await bridge.app.enableOfflineMode();
       window.location.assign(APP_ROUTES.DESKTOP.LOCAL);
     } catch (error) {
-      setDesktopErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Local mode could not start. Your local data is still safe.',
-      );
-      setIsStartingLocalMode(false);
+      dispatchFlow({
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Local mode could not start. Your local data is still safe.',
+        method: 'desktop',
+        type: 'fail',
+      });
     }
   }
 
@@ -346,8 +369,7 @@ export default function LoginBetterAuth({
   }
 
   async function sendMagicLink() {
-    setErrorMessage(null);
-    setSocialErrorMessage(null);
+    dispatchFlow({ method: 'magic_link', type: 'submit' });
 
     try {
       const result = await signIn.magicLink({
@@ -356,15 +378,22 @@ export default function LoginBetterAuth({
         fetchOptions: await getCaptchaFetchOptions(),
       });
       if (result?.error) {
-        setErrorMessage(
-          result.error.message ??
+        dispatchFlow({
+          message:
+            result.error.message ??
             'Failed to send sign-in link. Please try again.',
-        );
+          method: 'magic_link',
+          type: 'fail',
+        });
       } else {
-        setIsEmailSent(true);
+        dispatchFlow({ type: 'link_sent' });
       }
     } catch {
-      setErrorMessage('Failed to send sign-in link. Please try again.');
+      dispatchFlow({
+        message: 'Failed to send sign-in link. Please try again.',
+        method: 'magic_link',
+        type: 'fail',
+      });
     }
   }
 
@@ -374,8 +403,7 @@ export default function LoginBetterAuth({
   }
 
   async function signInWithPassword() {
-    setPasswordErrorMessage(null);
-    setSocialErrorMessage(null);
+    dispatchFlow({ method: 'password', type: 'submit' });
 
     try {
       const result = await signIn.email({
@@ -384,10 +412,13 @@ export default function LoginBetterAuth({
         password,
       });
       if (result?.error) {
-        setPasswordErrorMessage(
-          result.error.message ??
+        dispatchFlow({
+          message:
+            result.error.message ??
             'Failed to sign in with email and password. Please try again.',
-        );
+          method: 'password',
+          type: 'fail',
+        });
         return;
       }
 
@@ -397,17 +428,16 @@ export default function LoginBetterAuth({
       // Keep the form locked until the navigation lands.
       return SUBMIT_REDIRECTING;
     } catch {
-      setPasswordErrorMessage(
-        'Failed to sign in with email and password. Please try again.',
-      );
+      dispatchFlow({
+        message: 'Failed to sign in with email and password. Please try again.',
+        method: 'password',
+        type: 'fail',
+      });
     }
   }
 
   async function handleSocialSignIn(provider: 'google') {
-    setSocialErrorMessage(null);
-    setErrorMessage(null);
-    setPasswordErrorMessage(null);
-    setIsSocialSubmitting(true);
+    dispatchFlow({ method: 'social', type: 'submit' });
 
     try {
       const result = await signIn.social({
@@ -416,17 +446,23 @@ export default function LoginBetterAuth({
         provider,
       });
       if (result?.error) {
-        setSocialErrorMessage(
-          result.error.message ??
+        dispatchFlow({
+          message:
+            result.error.message ??
             'Failed to continue with Google. Please try again.',
-        );
+          method: 'social',
+          type: 'fail',
+        });
+        return;
       }
+      // Better Auth navigates to Google; until then the chooser is idle again.
+      dispatchFlow({ type: 'reset' });
     } catch {
-      setSocialErrorMessage(
-        'Failed to continue with Google. Please try again.',
-      );
-    } finally {
-      setIsSocialSubmitting(false);
+      dispatchFlow({
+        message: 'Failed to continue with Google. Please try again.',
+        method: 'social',
+        type: 'fail',
+      });
     }
   }
 
@@ -439,7 +475,7 @@ export default function LoginBetterAuth({
       >
         <AuthActionSurface
           actions={
-            isWaitingForDesktopSession ? (
+            isWaitingForDesktopCode ? (
               <Form
                 onSubmit={(event) => void handleDesktopCompleteWithCode(event)}
               >
@@ -521,7 +557,7 @@ export default function LoginBetterAuth({
           hideHeading
           supportingCopy={
             <div className="space-y-2">
-              {isWaitingForDesktopSession ? (
+              {isWaitingForDesktopCode ? (
                 <>
                   <p aria-live="polite">
                     {translate('loginForm.waitingForBrowser')}
@@ -544,7 +580,7 @@ export default function LoginBetterAuth({
     );
   }
 
-  if (mode === 'magic-link' && isEmailSent) {
+  if (mode === 'magic-link' && flow.status === 'link_sent') {
     return (
       <AuthFormLayout
         description={
