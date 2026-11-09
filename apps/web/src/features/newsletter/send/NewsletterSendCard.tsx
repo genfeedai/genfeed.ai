@@ -20,6 +20,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { Newsletter } from '@models/content/newsletter.model';
 import type { NewsletterModuleService } from '@services/content/newsletter-module.service';
 import { NewslettersService } from '@services/content/newsletters.service';
 import { logger } from '@services/core/logger.service';
@@ -49,6 +50,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import {
   NEWSLETTER_QUERY_KEY,
+  newsletterIssueQueryKey,
   useNewsletterService,
   useNewsletterSubscriberStats,
 } from '@/features/newsletter/hooks/use-newsletter-module';
@@ -87,11 +89,20 @@ export default function NewsletterSendCard({
   const [sendAt, setSendAt] = useState('');
   const [isBusy, setIsBusy] = useState(false);
   const [preview, setPreview] = useState<INewsletterEmailPreview | null>(null);
-  const [accessLevel, setAccessLevel] = useState<NewsletterAccessLevel>(
-    isNewsletterAccessLevel(newsletter.accessLevel)
-      ? newsletter.accessLevel
-      : 'public',
-  );
+  const issueAccessLevel: NewsletterAccessLevel = isNewsletterAccessLevel(
+    newsletter.accessLevel,
+  )
+    ? newsletter.accessLevel
+    : 'public';
+  const [accessLevel, setAccessLevel] =
+    useState<NewsletterAccessLevel>(issueAccessLevel);
+  // A refreshed copy of the issue (another tab, a reopened editor) moves the
+  // select to the saved level.
+  const [syncedAccessLevel, setSyncedAccessLevel] = useState(issueAccessLevel);
+  if (syncedAccessLevel !== issueAccessLevel) {
+    setSyncedAccessLevel(issueAccessLevel);
+    setAccessLevel(issueAccessLevel);
+  }
 
   const sendQuery = useQuery<INewsletterSend | null>({
     enabled: Boolean(brandId),
@@ -161,6 +172,10 @@ export default function NewsletterSendCard({
         if (isNewsletterAccessLevel(saved.accessLevel)) {
           setAccessLevel(saved.accessLevel);
         }
+        // Keep the cached issue in step so reopening it shows the saved level.
+        const issueKey = newsletterIssueQueryKey(newsletter.id);
+        await queryClient.cancelQueries({ queryKey: issueKey });
+        queryClient.setQueriesData<Newsletter>({ queryKey: issueKey }, saved);
       } catch (error) {
         setAccessLevel(previous);
         throw error;

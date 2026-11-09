@@ -126,6 +126,29 @@ describe('NewsletterSendCard', () => {
     expect(mocks.sendIssue).toHaveBeenCalledWith('newsletter-1', {});
   });
 
+  it('follows the access level of a refreshed copy of the issue', async () => {
+    const { rerender } = renderCard(issue({ accessLevel: 'public' }));
+    await screen.findByRole('button', { name: 'Preview email' });
+    expect(
+      screen.queryByRole('button', {
+        name: 'Preview what non-paying readers get',
+      }),
+    ).not.toBeInTheDocument();
+
+    rerender(
+      <NewsletterSendCard
+        isDirty={false}
+        newsletter={issue({ accessLevel: 'paid' })}
+      />,
+    );
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'Preview what non-paying readers get',
+      }),
+    ).toBeInTheDocument();
+  });
+
   it.each([
     [{ status: 'draft' }, false, 'Approve the issue before sending.'],
     [{ content: '  ' }, false, 'Add content before sending.'],

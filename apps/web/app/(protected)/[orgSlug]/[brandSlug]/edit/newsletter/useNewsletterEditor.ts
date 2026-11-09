@@ -6,6 +6,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { newsletterIssueQueryKey } from '@/features/newsletter/hooks/use-newsletter-module';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import type {
   NewsletterContextPreview,
@@ -18,10 +19,6 @@ export type { UseNewsletterEditorReturn } from '@/props/content/artifact-editor.
 
 /** Newsletters publish to the email/newsletter channel rather than a social platform. */
 const NEWSLETTER_PUBLISH_PLATFORM = 'newsletter';
-
-function newsletterQueryKey(newsletterId: string) {
-  return ['newsletter', newsletterId] as const;
-}
 
 function newsletterContextQueryKey(newsletterId: string) {
   return ['newsletter-context', newsletterId] as const;
@@ -77,7 +74,7 @@ export function useNewsletterEditor(
   const newsletterQuery = useAuthedQuery<NewslettersService, Newsletter>({
     enabled: Boolean(newsletterId),
     queryFn: (service, signal) => service.findOne(newsletterId, {}, signal),
-    queryKey: newsletterQueryKey(newsletterId),
+    queryKey: newsletterIssueQueryKey(newsletterId),
     service: createNewslettersService,
   });
   const contextQuery = useAuthedQuery<
@@ -161,10 +158,10 @@ export function useNewsletterEditor(
     async (next: Newsletter) => {
       // A read still in flight would land the older issue after this write.
       await queryClient.cancelQueries({
-        queryKey: newsletterQueryKey(next.id),
+        queryKey: newsletterIssueQueryKey(next.id),
       });
       queryClient.setQueriesData<Newsletter>(
-        { queryKey: newsletterQueryKey(next.id) },
+        { queryKey: newsletterIssueQueryKey(next.id) },
         next,
       );
     },
@@ -343,7 +340,7 @@ export function useNewsletterEditor(
   const handleDelivered = useCallback(async () => {
     await Promise.all([
       queryClient.invalidateQueries({
-        queryKey: newsletterQueryKey(newsletterId),
+        queryKey: newsletterIssueQueryKey(newsletterId),
       }),
       loadContext(newsletterId),
     ]);

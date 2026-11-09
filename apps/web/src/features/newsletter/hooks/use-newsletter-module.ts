@@ -21,6 +21,11 @@ import type {
 } from '@/features/newsletter/props/newsletter.props';
 
 export const NEWSLETTER_QUERY_KEY = 'newsletter-module';
+
+/** Cache key of one newsletter issue, shared by the editor and the send card. */
+export function newsletterIssueQueryKey(newsletterId: string) {
+  return ['newsletter', newsletterId] as const;
+}
 export const NEWSLETTER_SUBSCRIBERS_PAGE_SIZE = 50;
 
 const EMPTY_SUBSCRIBERS: IPaginatedResponse<BrandSubscriberRecord> = {
