@@ -3,6 +3,7 @@ import {
   createTestQueryClient,
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
+import { viewerKeyPart } from '@hooks/auth/use-authed-query/use-authed-query';
 import type { Newsletter } from '@models/content/newsletter.model';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   error: vi.fn(),
   getSubscriberStats: vi.fn(),
   listSends: vi.fn(),
+  patch: vi.fn(),
   sendIssue: vi.fn(),
   success: vi.fn(),
 }));
@@ -30,7 +32,7 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
-  const getService = async () => ({ patch: vi.fn() });
+  const getService = async () => ({ patch: mocks.patch });
   return { useAuthedService: () => getService };
 });
 
@@ -94,13 +96,21 @@ function issue(overrides: Partial<Newsletter> = {}): Newsletter {
   } as Newsletter;
 }
 
-function renderCard(newsletter: Newsletter, isDirty = false) {
+function renderCard(
+  newsletter: Newsletter,
+  isDirty = false,
+  queryClient = createTestQueryClient(),
+) {
   return render(
     <NewsletterSendCard isDirty={isDirty} newsletter={newsletter} />,
     {
-      wrapper: queryClientWrapper(createTestQueryClient()),
+      wrapper: queryClientWrapper(queryClient),
     },
   );
+}
+
+function issueKey(userId: string, orgId: string) {
+  return ['newsletter', 'newsletter-1', viewerKeyPart(userId, orgId)];
 }
 
 describe('NewsletterSendCard', () => {
@@ -124,6 +134,32 @@ describe('NewsletterSendCard', () => {
       expect(mocks.success).toHaveBeenCalledWith('Sending started.'),
     );
     expect(mocks.sendIssue).toHaveBeenCalledWith('newsletter-1', {});
+  });
+
+  it("saves the access level into this viewer's cached issue only", async () => {
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(issueKey('user-1', 'org-1'), issue());
+    queryClient.setQueryData(issueKey('user-2', 'org-1'), issue());
+    mocks.patch.mockResolvedValue(issue({ accessLevel: 'paid' }));
+    renderCard(issue(), false, queryClient);
+
+    fireEvent.click(
+      await screen.findByRole('combobox', {
+        name: 'Who can read the full issue',
+      }),
+    );
+    fireEvent.click(screen.getByRole('option', { name: 'Paid readers' }));
+
+    await waitFor(() =>
+      expect(
+        queryClient.getQueryData<Newsletter>(issueKey('user-1', 'org-1'))
+          ?.accessLevel,
+      ).toBe('paid'),
+    );
+    expect(
+      queryClient.getQueryData<Newsletter>(issueKey('user-2', 'org-1'))
+        ?.accessLevel,
+    ).toBe('public');
   });
 
   it('follows the access level of a refreshed copy of the issue', async () => {

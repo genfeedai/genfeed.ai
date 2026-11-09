@@ -18,6 +18,9 @@ import type {
   INewsletterEmailPreview,
   INewsletterSend,
 } from '@genfeedai/contracts/interfaces';
+import { updateCachedQueries } from '@hooks/auth/update-cached-queries/update-cached-queries';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { isViewerQueryKey } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Newsletter } from '@models/content/newsletter.model';
@@ -25,7 +28,7 @@ import type { NewsletterModuleService } from '@services/content/newsletter-modul
 import { NewslettersService } from '@services/content/newsletters.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { type Query, useQuery, useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -81,6 +84,7 @@ export default function NewsletterSendCard({
   const { brandId } = useBrand();
   const { href } = useOrgUrl();
   const queryClient = useQueryClient();
+  const { orgId, userId } = useAuthIdentity();
   const getService = useNewsletterService();
   const getNewslettersService = useAuthedService(
     useCallback((token: string) => NewslettersService.getInstance(token), []),
@@ -162,6 +166,9 @@ export default function NewsletterSendCard({
   function handleAccessLevel(value: string): void {
     if (!isNewsletterAccessLevel(value)) return;
     const previous = accessLevel;
+    // The viewer who made the change: an account signed in meanwhile keeps
+    // its own cached copy of the issue.
+    const viewer = { orgId, userId };
     setAccessLevel(value);
     void run(async () => {
       try {
@@ -173,9 +180,15 @@ export default function NewsletterSendCard({
           setAccessLevel(saved.accessLevel);
         }
         // Keep the cached issue in step so reopening it shows the saved level.
-        const issueKey = newsletterIssueQueryKey(newsletter.id);
-        await queryClient.cancelQueries({ queryKey: issueKey });
-        queryClient.setQueriesData<Newsletter>({ queryKey: issueKey }, saved);
+        await updateCachedQueries<Newsletter>(
+          queryClient,
+          {
+            predicate: (cached: Query) =>
+              isViewerQueryKey(cached.queryKey, viewer.userId, viewer.orgId),
+            queryKey: newsletterIssueQueryKey(newsletter.id),
+          },
+          () => saved,
+        );
       } catch (error) {
         setAccessLevel(previous);
         throw error;
