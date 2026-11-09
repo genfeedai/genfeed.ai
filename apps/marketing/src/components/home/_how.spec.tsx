@@ -16,14 +16,26 @@ describe('HomeHow', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the three-beat ask-to-growth lifecycle as an ordered list', () => {
+  it.each(['Connect', 'Ask', 'Review'])('names the %s step', (title) => {
     render(<HomeHow />);
 
-    for (const title of ['Ask', 'Create', 'Grow']) {
-      expect(
-        screen.getByRole('heading', { level: 3, name: title }),
-      ).toBeInTheDocument();
-    }
+    expect(
+      screen.getByRole('heading', { level: 3, name: title }),
+    ).toBeInTheDocument();
+  });
+
+  it('sends review and results to the dashboard', () => {
+    render(<HomeHow />);
+
+    expect(
+      screen.getByText(
+        'Open the dashboard to approve drafts, publish to your channels and see what worked.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the three steps as an ordered list', () => {
+    render(<HomeHow />);
 
     expect(screen.getByRole('list')).toHaveAttribute(
       'aria-labelledby',
