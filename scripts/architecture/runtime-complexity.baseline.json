@@ -384,12 +384,6 @@
     "symbol": "packages/actions/src/registry/contracts/workflow-node-action-contracts.ts"
   },
   {
-    "actual": 1076,
-    "file": "packages/actions/src/registry/mcp-input-documentation.ts",
-    "metric": "file-lines",
-    "symbol": "packages/actions/src/registry/mcp-input-documentation.ts"
-  },
-  {
     "actual": 1188,
     "file": "packages/agent/src/components/useAgentChatInput.ts",
     "metric": "file-lines",

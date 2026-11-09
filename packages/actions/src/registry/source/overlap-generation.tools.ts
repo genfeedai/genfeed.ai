@@ -6,7 +6,7 @@ import { MEDIA_TRANSFORM_OPERATIONS } from '../media-transform';
 /**
  * Turbo run definition split out of `overlap.tools.ts` to keep that
  * module under the per-file line budget (`source-tools.test.ts`). Its Agent/MCP
- * availability is declared only in `curated-action-catalog.ts`.
+ * availability is declared only in `curated-actions.catalog.ts`.
  */
 export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
   {
