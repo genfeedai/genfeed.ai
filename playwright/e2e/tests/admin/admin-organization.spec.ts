@@ -472,6 +472,88 @@ test.describe('Admin Organization', () => {
     ).toHaveCount(0);
   });
 
+  test('organization Community tab features a creator and takes media off community', async ({
+    adminPage,
+  }) => {
+    const writes: string[] = [];
+    await adminPage.route(
+      '**/v1/admin/organizations/qa-org/community**',
+      async (route) => {
+        const request = route.request();
+        if (request.method() !== 'GET') {
+          writes.push(
+            `${request.method()} ${new URL(request.url()).pathname.split('/community')[1]}`,
+          );
+          await route.fulfill({
+            body: JSON.stringify({ data: { id: 'x' } }),
+            contentType: 'application/json',
+            status: 200,
+          });
+          return;
+        }
+        await route.fulfill({
+          body: JSON.stringify({
+            data: {
+              creators: [
+                {
+                  createdAt: '2026-10-01T00:00:00.000Z',
+                  handle: 'qa-creator',
+                  id: 'qa-brand',
+                  isFeatured: false,
+                  label: 'QA Creator',
+                },
+              ],
+              media: [
+                {
+                  brandId: 'qa-brand',
+                  createdAt: '2026-11-01T00:00:00.000Z',
+                  id: 'qa-image',
+                  isFeatured: true,
+                  kind: 'image',
+                  label: 'QA sunset',
+                  url: 'https://cdn.genfeed.ai/mock/qa-sunset.jpg',
+                },
+              ],
+              mediaTotal: 1,
+            },
+          }),
+          contentType: 'application/json',
+          status: 200,
+        });
+      },
+    );
+
+    await assertRouteRenders(
+      adminPage,
+      `${APP_ROUTES.ADMIN.ORGANIZATIONS}/qa-org/community`,
+    );
+
+    const main = adminPage.getByRole('main');
+    const tabs = main.getByRole('navigation', { name: 'Organization' });
+    await expect(tabs.getByRole('link', { name: 'Community' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    await expect(
+      main.getByRole('link', { name: 'genfeed.ai/@qa-creator' }),
+    ).toBeVisible();
+
+    await main
+      .getByRole('button', { name: 'Feature QA Creator on community' })
+      .click();
+    await main
+      .getByRole('button', { name: 'Take QA sunset off community' })
+      .click();
+    await adminPage
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Take off community' })
+      .click();
+
+    await expect
+      .poll(() => writes)
+      .toEqual(['PUT /creators/qa-brand/featured', 'DELETE /media/qa-image']);
+  });
+
   test('folders view stays interactive', async ({ adminPage }) => {
     await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.FOLDERS);
 

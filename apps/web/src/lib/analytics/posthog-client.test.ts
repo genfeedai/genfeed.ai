@@ -912,6 +912,7 @@ describe('event taxonomy', () => {
         'first_successful_publish',
         'generation_completed',
         'generation_started',
+        'handle_claimed',
         'onboarding_completed',
         'post_published',
         'public_youtube_clipper_project_claimed',

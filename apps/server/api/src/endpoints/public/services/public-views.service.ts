@@ -3,7 +3,11 @@ import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-
 import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { AssetScope } from '@genfeedai/contracts';
+import {
+  AssetScope,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
@@ -12,14 +16,33 @@ import { Injectable } from '@nestjs/common';
 const VIEW_WINDOW_SECONDS = 24 * 60 * 60;
 const BOT_USER_AGENT_PATTERN =
   /bot|crawl|spider|slurp|preview|facebookexternalhit|headless|lighthouse/i;
-const PUBLIC_BRAND_SCOPE = CategoryPrismaUtil.toAssetScope(AssetScope.PUBLIC);
+const PUBLIC_SCOPE = CategoryPrismaUtil.toAssetScope(AssetScope.PUBLIC);
 
-/** The public pages that keep a view count. */
-export type PublicViewTarget = 'article' | 'profile';
+/** The most cards one gallery page shows; a view batch never counts more. */
+export const MAX_MEDIA_VIEW_BATCH = 48;
+
+/** The public things that keep a count, and the media Recreate clicks. */
+export type PublicViewTarget = 'article' | 'media' | 'profile' | 'recreate';
 
 export interface PublicVisitor {
   ip: string;
   userAgent: string;
+}
+
+/** Public, finished images and videos: the only media a gallery shows. */
+function publicMediaWhere(ids: readonly string[]): Prisma.IngredientWhereInput {
+  return {
+    category: {
+      in: [
+        CategoryPrismaUtil.toIngredientCategory(IngredientCategory.IMAGE),
+        CategoryPrismaUtil.toIngredientCategory(IngredientCategory.VIDEO),
+      ],
+    },
+    id: { in: [...ids] },
+    isDeleted: false,
+    scope: PUBLIC_SCOPE,
+    status: CategoryPrismaUtil.toIngredientStatus(IngredientStatus.GENERATED),
+  };
 }
 
 /** A visitor key that never stores the address or the browser string. */
@@ -45,10 +68,11 @@ export function isCountableVisitor(visitor: PublicVisitor): boolean {
 }
 
 /**
- * Counts views of public creator pages: a profile and an article. A visitor
- * counts once a day per page: the first view claims a key built from a hash
- * of their address and browser, and later views inside the window find it
- * taken. When the claim store is down nothing is counted, so the number never
+ * Counts views of public creator pages (a profile, an article), of public
+ * images and videos in the community gallery, and clicks on Recreate in
+ * Genfeed. A visitor counts once a day per item: the first view claims a key
+ * built from a hash of their address and browser, and later views inside the
+ * window find it taken. When the claim store is down nothing is counted, so the number never
  * runs ahead of real visits.
  */
 @Traced()
@@ -68,7 +92,7 @@ export class PublicViewsService {
     // tenant-scope-ignore: public profile read; only a live public brand is counted, and the write below is org-scoped.
     const brand = await this.prisma.brand.findFirst({
       select: { organizationId: true, profileViewCount: true },
-      where: { id: brandId, isDeleted: false, scope: PUBLIC_BRAND_SCOPE },
+      where: { id: brandId, isDeleted: false, scope: PUBLIC_SCOPE },
     });
     if (!brand) {
       return null;
@@ -112,6 +136,87 @@ export class PublicViewsService {
       where: scopedWhere(article.organizationId, { id: articleId }),
     });
     return article.viewCount + 1;
+  }
+
+  /**
+   * Records views of public images and videos shown in a gallery, and returns
+   * the count of each one that is public. An id that is not a public,
+   * finished image or video is left out.
+   */
+  async recordMediaViews(
+    ingredientIds: readonly string[],
+    visitor: PublicVisitor,
+    now: Date = new Date(),
+  ): Promise<Record<string, number>> {
+    const ids = [...new Set(ingredientIds)].slice(0, MAX_MEDIA_VIEW_BATCH);
+    if (ids.length === 0) {
+      return {};
+    }
+    // tenant-scope-ignore: public gallery read; only live, public, finished media is counted, and the writes below are org-scoped.
+    const media = await this.prisma.ingredient.findMany({
+      select: { id: true, organizationId: true, viewCount: true },
+      where: publicMediaWhere(ids),
+    });
+    const claims = await Promise.all(
+      media.map(async (item) => ({
+        ...item,
+        isClaimed:
+          item.organizationId !== null &&
+          (await this.claim('media', item.id, visitor, now)),
+      })),
+    );
+
+    const claimedByOrganization = new Map<string, string[]>();
+    for (const item of claims) {
+      if (item.isClaimed && item.organizationId) {
+        const claimed = claimedByOrganization.get(item.organizationId) ?? [];
+        claimed.push(item.id);
+        claimedByOrganization.set(item.organizationId, claimed);
+      }
+    }
+    await Promise.all(
+      [...claimedByOrganization].map(([organizationId, claimedIds]) =>
+        this.prisma.ingredient.updateMany({
+          data: { viewCount: { increment: 1 } },
+          where: scopedWhere(organizationId, { id: { in: claimedIds } }),
+        }),
+      ),
+    );
+
+    return Object.fromEntries(
+      claims.map((item) => [
+        item.id,
+        item.viewCount + (item.isClaimed ? 1 : 0),
+      ]),
+    );
+  }
+
+  /**
+   * Records a click on Recreate in Genfeed under a public image or video and
+   * returns its count, or null when the item is not public.
+   */
+  async recordRecreation(
+    ingredientId: string,
+    visitor: PublicVisitor,
+    now: Date = new Date(),
+  ): Promise<number | null> {
+    // tenant-scope-ignore: public gallery read; only live, public, finished media is counted, and the write below is org-scoped.
+    const item = await this.prisma.ingredient.findFirst({
+      select: { organizationId: true, recreateCount: true },
+      where: publicMediaWhere([ingredientId]),
+    });
+    if (!item?.organizationId) {
+      return null;
+    }
+    if (!(await this.claim('recreate', ingredientId, visitor, now))) {
+      return item.recreateCount;
+    }
+
+    await this.prisma.ingredient.updateMany({
+      data: { recreateCount: { increment: 1 } },
+      where: scopedWhere(item.organizationId, { id: ingredientId }),
+    });
+    return item.recreateCount + 1;
   }
 
   private async claim(

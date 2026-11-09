@@ -131,15 +131,6 @@ export class CreateBrandDto {
   @IsOptional()
   @ApiProperty({
     default: false,
-    description: 'Whether this brand is highlighted on the website',
-    required: false,
-  })
-  readonly isHighlighted?: boolean;
-
-  @IsBoolean()
-  @IsOptional()
-  @ApiProperty({
-    default: false,
     description: 'Whether this brand can access Fleet features and assets',
     required: false,
   })

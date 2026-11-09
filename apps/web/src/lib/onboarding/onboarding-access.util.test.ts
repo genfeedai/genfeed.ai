@@ -306,6 +306,20 @@ describe('persistOnboardingHandoffParams', () => {
     expect(parseReferralCode('x'.repeat(33))).toBeNull();
   });
 
+  it.each([
+    ['?handle=@Shayla', 'shayla'],
+    ['?handle=settings', undefined],
+  ])('stores the claimed handle from %s', (search, stored) => {
+    const storedValues = new Map<string, string>();
+
+    persistOnboardingHandoffParams(search, {
+      getItem: (key) => storedValues.get(key) ?? null,
+      setItem: (key, value) => storedValues.set(key, value),
+    });
+
+    expect(storedValues.get(ONBOARDING_STORAGE_KEYS.claimHandle)).toBe(stored);
+  });
+
   it('preserves the first valid referral code across later handoffs', () => {
     const storedValues = new Map<string, string>([
       [ONBOARDING_STORAGE_KEYS.referralCode, 'frend2345xyz'],

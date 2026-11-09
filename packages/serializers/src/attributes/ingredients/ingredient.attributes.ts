@@ -40,6 +40,8 @@ export const ingredientAttributes = createEntityAttributes([
   'isHighlighted',
   'isDefault',
   'isFavorite',
+  'viewCount',
+  'recreateCount',
   'width',
   'height',
   'model',

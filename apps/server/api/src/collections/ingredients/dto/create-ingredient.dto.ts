@@ -223,11 +223,6 @@ export class CreateIngredientDto {
   @ApiProperty({ enum: AssetScope, enumName: 'AssetScope', required: false })
   readonly scope?: AssetScope;
 
-  @IsBoolean()
-  @IsOptional()
-  @ApiProperty({ default: false, required: false })
-  readonly isHighlighted?: boolean;
-
   @IsNumber()
   @IsOptional()
   @ApiProperty({ required: false })
