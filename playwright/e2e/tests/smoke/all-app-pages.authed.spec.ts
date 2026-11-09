@@ -13,7 +13,7 @@ import {
 /**
  * Real-Better Auth authenticated route smoke.
  *
- * Unlike all-app-pages.spec.ts (fully-mocked auth via fake cookies + Better Auth
+ * Unlike all-app-pages/ (fully-mocked auth via fake cookies + Better Auth
  * FAPI mock + the __playwright_test bypass), this spec runs under a REAL Better
  * Auth session minted by playwright/e2e/auth.setup.ts against the job-local API
  * (sign-up + onboarding completion). It exercises the genuine proxy.ts /
