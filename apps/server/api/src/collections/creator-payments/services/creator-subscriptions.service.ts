@@ -291,7 +291,7 @@ export class CreatorSubscriptionsService {
     const readerName = await this.creatorDirectoryService.readerName(reader);
     const transfer = await this.creditTransfersService.transfer({
       amount: price,
-      idempotencyKey: `subscribe:${reader.userId}:${request.idempotencyKey}`,
+      idempotencyKey: `subscribe:${reader.userId}:${creator.id}:${request.idempotencyKey}`,
       kind: CreditTransferKind.SUBSCRIPTION,
       payeeBrandId: creator.id,
       payeeDescription: `Subscription from ${readerName}`,
@@ -303,12 +303,22 @@ export class CreatorSubscriptionsService {
     });
 
     const created = await this.inCreatorOrganization(creator, async () => {
+      // A replayed charge returns the subscription it already paid for, even
+      // one that has since ended; it never opens a second one.
+      const paidFor = await this.findByFirstCharge(
+        creator,
+        transfer.transferId,
+      );
+      if (paidFor) {
+        return paidFor;
+      }
       try {
         return await this.prisma.creatorSubscription.create({
           data: {
             brandId: creator.id,
             currentPeriodEnd: addOneMonth(now),
             currentPeriodStart: now,
+            firstChargeTransferId: transfer.transferId,
             lastChargeTransferId: transfer.transferId,
             organizationId: creator.organizationId,
             payerOrganizationId: reader.organizationId,
@@ -318,9 +328,13 @@ export class CreatorSubscriptionsService {
           select: SUBSCRIPTION_SELECT,
         });
       } catch (error: unknown) {
-        // A concurrent subscribe won the one live subscription per reader.
+        // A concurrent retry of this charge, or a concurrent subscribe that
+        // won the one live subscription per reader.
         if (!isPrismaUniqueConstraintError(error)) throw error;
-        return await this.findLiveSubscription(creator, reader.userId);
+        return (
+          (await this.findByFirstCharge(creator, transfer.transferId)) ??
+          (await this.findLiveSubscription(creator, reader.userId))
+        );
       }
     });
     if (!created) {
@@ -631,6 +645,18 @@ export class CreatorSubscriptionsService {
         brandId: creator.id,
         payerUserId: userId,
         status: { in: LIVE_STATUSES },
+      }),
+    });
+  }
+
+  private async findByFirstCharge(
+    creator: PublicCreator,
+    transferId: string,
+  ): Promise<SubscriptionRecord | null> {
+    return await this.prisma.creatorSubscription.findFirst({
+      select: SUBSCRIPTION_SELECT,
+      where: scopedWhere(creator.organizationId, {
+        firstChargeTransferId: transferId,
       }),
     });
   }

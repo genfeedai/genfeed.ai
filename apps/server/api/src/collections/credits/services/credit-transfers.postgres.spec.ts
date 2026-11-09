@@ -309,6 +309,19 @@ describe.skipIf(!connectionString)('credit transfers (PostgreSQL)', () => {
     expect(await transferRows(creator)).toHaveLength(1);
   });
 
+  it('refuses a key that was already used for a different payment', async () => {
+    await seedWorkspace(reader, { balance: 100, paid: true });
+    await seedWorkspace(creator, { balance: 0, paid: false });
+
+    await tip(40, 'tip-reused');
+    await expect(tip(10, 'tip-reused')).rejects.toThrow(
+      'This payment key was already used for a different payment',
+    );
+
+    expect(await wallet(reader)).toEqual({ balance: 60, earnedBalance: 0 });
+    expect(await transferRows(reader)).toHaveLength(1);
+  });
+
   it('never overdraws the reader under concurrent transfers', async () => {
     await seedWorkspace(reader, { balance: 100, paid: true });
     await seedWorkspace(creator, { balance: 0, paid: false });

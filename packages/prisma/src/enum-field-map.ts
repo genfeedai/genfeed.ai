@@ -3102,6 +3102,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'currentPeriodEnd',
       'currentPeriodStart',
       'endedAt',
+      'firstChargeTransferId',
       'id',
       'isDeleted',
       'lastChargeTransferId',

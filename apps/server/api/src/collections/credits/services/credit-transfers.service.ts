@@ -321,6 +321,7 @@ export class CreditTransfersService {
     // A committed transfer is returned as it was, before any eligibility
     // check, so a retry still gets its result after the wallets change.
     if (replay) {
+      this.assertReplayMatches(input, replay);
       return {
         payeeBalanceAfter: null,
         result: this.toReplayResult(input, replay),
@@ -455,6 +456,32 @@ export class CreditTransfersService {
       account.id,
     );
     return this.creditBalanceService.toSnapshot(balance);
+  }
+
+  /**
+   * A replayed key must name the same payment. Reusing a key for another
+   * creator, amount or subject would otherwise return the earlier charge as if
+   * this one had been paid.
+   */
+  private assertReplayMatches(
+    input: ICreditTransferInput,
+    replay: CreditTransaction,
+  ): void {
+    const metadata = readCreditTransferMetadata(replay.metadata);
+    const isSamePayment =
+      metadata !== null &&
+      metadata.counterpartyOrganizationId === input.payeeOrganizationId &&
+      metadata.grossAmount === input.amount &&
+      metadata.kind === input.kind &&
+      metadata.payeeBrandId === (input.payeeBrandId || undefined) &&
+      metadata.subjectId === (input.subjectId || undefined);
+    if (!isSamePayment) {
+      throw new BusinessLogicException(
+        'This payment key was already used for a different payment',
+        undefined,
+        'CREDIT_TRANSFER_KEY_REUSED',
+      );
+    }
   }
 
   private toReplayResult(

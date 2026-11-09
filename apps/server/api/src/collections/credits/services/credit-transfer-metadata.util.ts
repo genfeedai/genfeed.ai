@@ -15,6 +15,7 @@ export type CreditTransferMetadataRead = Partial<
     | 'kind'
     | 'message'
     | 'netAmount'
+    | 'payeeBrandId'
     | 'subjectId'
   >
 >;
@@ -44,6 +45,7 @@ export function readCreditTransferMetadata(
     ),
     message: readNonEmptyString(value.message),
     netAmount: readNumber(value.netAmount),
+    payeeBrandId: readNonEmptyString(value.payeeBrandId),
     subjectId: readNonEmptyString(value.subjectId),
   };
 }

@@ -392,6 +392,33 @@ describe.skipIf(!connectionString)(
       );
       expect(await hasAccess()).toBe(false);
       expect(await wallet(reader)).toEqual({ balance: 160, earnedBalance: 0 });
+
+      // Replaying the first charge's key returns the ended subscription and
+      // opens nothing; only a new charge subscribes again.
+      const replayed = await asReader(() =>
+        subscriptions.subscribe(
+          readerContext(),
+          { handle, idempotencyKey: 'sub-cancel' },
+          new Date('2026-12-10T10:00:00.000Z'),
+        ),
+      );
+      expect(replayed).toMatchObject({
+        id: subscribed.id,
+        status: CreatorSubscriptionStatus.ENDED,
+      });
+      expect(await hasAccess()).toBe(false);
+      expect(await wallet(reader)).toEqual({ balance: 160, earnedBalance: 0 });
+
+      const resubscribed = await asReader(() =>
+        subscriptions.subscribe(
+          readerContext(),
+          { handle, idempotencyKey: 'sub-again' },
+          new Date('2026-12-10T10:00:00.000Z'),
+        ),
+      );
+      expect(resubscribed.status).toBe(CreatorSubscriptionStatus.ACTIVE);
+      expect(await hasAccess()).toBe(true);
+      expect(await wallet(reader)).toEqual({ balance: 120, earnedBalance: 0 });
     });
 
     it('marks a reader who cannot pay as past due, then ends it after the grace period', async () => {

@@ -32,6 +32,7 @@ CREATE TABLE "creator_subscriptions" (
     "cancelAtPeriodEnd" BOOLEAN NOT NULL DEFAULT false,
     "pastDueSince" TIMESTAMP(3),
     "endedAt" TIMESTAMP(3),
+    "firstChargeTransferId" TEXT NOT NULL,
     "lastChargeTransferId" TEXT,
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -45,6 +46,9 @@ CREATE UNIQUE INDEX "creator_subscription_plans_brandId_key" ON "creator_subscri
 
 -- CreateIndex
 CREATE INDEX "creator_subscription_plans_organizationId_isDeleted_idx" ON "creator_subscription_plans"("organizationId", "isDeleted");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "creator_subscriptions_firstChargeTransferId_key" ON "creator_subscriptions"("firstChargeTransferId");
 
 -- CreateIndex
 CREATE INDEX "creator_subscriptions_organizationId_brandId_status_isDelet_idx" ON "creator_subscriptions"("organizationId", "brandId", "status", "isDeleted");

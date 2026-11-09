@@ -4455,6 +4455,9 @@ model CreatorSubscription {
   /// When the first failed renewal of the current past-due stretch happened.
   pastDueSince         DateTime?
   endedAt              DateTime?
+  /// Ledger transfer id of the first month's charge. One charge backs at most
+  /// one subscription, so a replayed charge never opens a second one.
+  firstChargeTransferId String                    @unique
   /// Ledger transfer id of the latest successful charge.
   lastChargeTransferId String?
   isDeleted            Boolean                   @default(false)
