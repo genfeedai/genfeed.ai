@@ -9,6 +9,7 @@ import { OrganizationModule } from '@api/common/organization-modules/organizatio
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import type {
   IBrandSubscriberImportSummary,
@@ -41,6 +42,7 @@ import type { Request } from 'express';
 export class BrandSubscribersController {
   constructor(private readonly subscribers: BrandSubscribersService) {}
 
+  @TenantReadPolicy('owner')
   @Get()
   async list(
     @Req() request: Request,
@@ -58,6 +60,7 @@ export class BrandSubscribersController {
     });
   }
 
+  @TenantReadPolicy('owner')
   @Get('stats')
   async stats(
     @CurrentUser() user: AuthenticatedUser,
@@ -66,6 +69,7 @@ export class BrandSubscribersController {
     return { data: await this.subscribers.stats(user, brandId) };
   }
 
+  @TenantReadPolicy('owner')
   @Get('export')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   @Header('Content-Disposition', 'attachment; filename="subscribers.csv"')

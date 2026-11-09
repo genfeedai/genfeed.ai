@@ -7,6 +7,7 @@ import { OrganizationModule } from '@api/common/organization-modules/organizatio
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type { INewsletterUsage } from '@genfeedai/contracts/interfaces';
 import { NewsletterSettingsSerializer } from '@genfeedai/serializers';
@@ -35,6 +36,7 @@ export class NewsletterSettingsController {
     private readonly usage: NewsletterUsageService,
   ) {}
 
+  @TenantReadPolicy('owner')
   @Get('settings')
   async get(
     @Req() request: Request,
@@ -64,6 +66,7 @@ export class NewsletterSettingsController {
     );
   }
 
+  @TenantReadPolicy('owner')
   @Get('usage')
   async getUsage(
     @CurrentUser() user: AuthenticatedUser,

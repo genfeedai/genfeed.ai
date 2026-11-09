@@ -6,6 +6,7 @@ import { OrganizationModule } from '@api/common/organization-modules/organizatio
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import {
   serializeCollection,
   serializeSingle,
@@ -55,6 +56,7 @@ export class NewsletterSendsController {
     );
   }
 
+  @TenantReadPolicy('owner')
   @Get('newsletters/:newsletterId/email-preview')
   async preview(
     @CurrentUser() user: AuthenticatedUser,
@@ -76,6 +78,7 @@ export class NewsletterSendsController {
     return { data: await this.sends.sendTest(user, newsletterId) };
   }
 
+  @TenantReadPolicy('owner')
   @Get('brands/:brandId/newsletter/sends')
   async list(
     @Req() request: Request,
