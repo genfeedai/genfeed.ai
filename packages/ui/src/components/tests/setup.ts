@@ -255,7 +255,9 @@ Object.defineProperty(window, 'scrollTo', {
 global.fetch = vi.fn();
 
 // Mock next/navigation
-vi.mock('next/navigation', () => ({
+vi.mock('next/navigation', async (importOriginal) => ({
+  unstable_rethrow: (await importOriginal<typeof import('next/navigation')>())
+    .unstable_rethrow,
   usePathname: () => '/',
   useParams: () => ({ brandSlug: 'brand-slug', orgSlug: 'acme' }),
   useRouter: () => ({

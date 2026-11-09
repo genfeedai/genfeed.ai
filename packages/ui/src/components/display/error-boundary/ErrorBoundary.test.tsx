@@ -79,23 +79,32 @@ describe('ErrorBoundary', () => {
   it.each([
     'NEXT_HTTP_ERROR_FALLBACK;404',
     'NEXT_REDIRECT;replace;/login;307;',
-  ])('hands the %s routing signal to the framework instead of showing an error', (digest) => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    pageError = Object.assign(new Error('routing signal'), { digest });
+  ])(
+    'hands the %s routing signal to the framework instead of showing an error',
+    (digest) => {
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      pageError = Object.assign(new Error('routing signal'), { digest });
 
-    render(
-      <FrameworkBoundary>
-        <ErrorBoundary>
-          <PageThrower />
-        </ErrorBoundary>
-      </FrameworkBoundary>,
-    );
+      render(
+        <FrameworkBoundary>
+          <ErrorBoundary>
+            <PageThrower />
+          </ErrorBoundary>
+        </FrameworkBoundary>,
+      );
 
-    expect(screen.getByText(`Framework handled ${digest}`)).toBeInTheDocument();
-    expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
-    expect(deferredLogger.error).not.toHaveBeenCalled();
-    consoleSpy.mockRestore();
-  });
+      expect(
+        screen.getByText(`Framework handled ${digest}`),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(/something went wrong/i),
+      ).not.toBeInTheDocument();
+      expect(deferredLogger.error).not.toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    },
+  );
 
   it('should catch errors and display fallback UI', () => {
     // Suppress console.error for this test
