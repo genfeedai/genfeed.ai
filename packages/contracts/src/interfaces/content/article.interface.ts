@@ -1,4 +1,5 @@
 import type { ArticleCategory, ArticleStatus, AssetScope } from '../..';
+import type { ArticleAccessLevel } from '../../constants/article-access.constant';
 import type {
   IBaseEntity,
   IBrand,
@@ -27,6 +28,10 @@ export interface IArticle extends IBaseEntity {
   publishedAt?: string;
   /** Live URL recorded when the article was published outside Genfeed. */
   externalUrl?: string | null;
+  /** Who reads it in full (#9718); everyone else gets a preview. */
+  accessLevel?: ArticleAccessLevel;
+  /** One-time unlock price of a paid article; null = subscribers only. */
+  unlockPriceCredits?: number | null;
   author?: string;
   readingTime?: number;
   wordCount?: number;
@@ -36,6 +41,13 @@ export interface IArticle extends IBaseEntity {
   seoScore?: number | null;
   seoBreakdown?: SeoScorecardSnapshot | null;
   xArticleMetadata?: IXArticleMetadata;
+}
+
+/** The editor's paid-article settings (#9718). */
+export interface IArticleAccessUpdate {
+  accessLevel: ArticleAccessLevel;
+  /** One-time unlock price; null = paying subscribers only. */
+  unlockPriceCredits: number | null;
 }
 
 export interface IArticleCreateInput {

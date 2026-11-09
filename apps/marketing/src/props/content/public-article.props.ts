@@ -1,3 +1,5 @@
+import type { ICreatorArticleAccess } from '@genfeedai/contracts/interfaces/billing';
+
 /** One h2 or h3 of an article body, anchored by `id`. */
 export interface ArticleSection {
   id: string;
@@ -63,4 +65,23 @@ export interface ArticleContentProps {
   sections?: ArticleSection[];
   slug?: string;
   resource?: ArticleResource | null;
+}
+
+/**
+ * What the paid-article island receives (#9718): the reader's access, and the
+ * full body sanitized and outlined on the server once they have it.
+ */
+export interface ArticleAccessView
+  extends Omit<ICreatorArticleAccess, 'content'> {
+  full: ArticleSections | null;
+}
+
+export interface GatedArticleBodyProps {
+  applyHref: string;
+  articleId: string;
+  handle: string;
+  /** The preview the website serves to everyone, sanitized on the server. */
+  preview: ArticleSections;
+  slug: string;
+  unlockPriceCredits: number | null;
 }

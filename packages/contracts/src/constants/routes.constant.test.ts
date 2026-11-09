@@ -359,6 +359,10 @@ describe('routes.constant', () => {
       }
     });
 
+    it('reserves the creator support page root', () => {
+      expect(isReservedAppRootSegment('support')).toBe(true);
+    });
+
     it('matches regardless of case and surrounding whitespace', () => {
       expect(isReservedAppRootSegment(' Turbo ')).toBe(true);
     });

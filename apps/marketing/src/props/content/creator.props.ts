@@ -115,3 +115,11 @@ export interface ProfileSubscribeProps {
 export interface CommunityCreatorCardProps {
   brand: Brand;
 }
+
+export interface SupportCreatorButtonProps {
+  /** The article the reader is on, when sent from an article page. */
+  articleId?: string;
+  /** Layout only (width, alignment); the button owns its look. */
+  className?: string;
+  handle: string;
+}

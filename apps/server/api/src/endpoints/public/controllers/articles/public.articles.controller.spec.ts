@@ -200,7 +200,10 @@ describe('PublicArticlesController', () => {
       expect(queryArg.where.OR).toEqual([
         { label: { mode: 'insensitive', contains: 'technology' } },
         { summary: { mode: 'insensitive', contains: 'technology' } },
-        { content: { mode: 'insensitive', contains: 'technology' } },
+        {
+          accessLevel: 'public',
+          content: { mode: 'insensitive', contains: 'technology' },
+        },
       ]);
     });
 

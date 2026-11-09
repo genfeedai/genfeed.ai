@@ -5,8 +5,9 @@ export interface ICreditTransferInput {
   /** Gross credits the payer sends. Positive whole number. */
   amount: number;
   /**
-   * Caller-chosen key. A retry with the same key and payer returns the first
-   * transfer instead of moving credits again.
+   * Caller-chosen key, unique across every payer: include the paying user.
+   * A retry with the same key returns the first transfer instead of moving
+   * credits again; the same key from another workspace is refused.
    */
   idempotencyKey: string;
   kind: CreditTransferKind;

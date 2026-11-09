@@ -19,6 +19,13 @@ export enum CreditTransferKind {
   UNLOCK = 'unlock',
 }
 
+/** A reader's paid subscription to a creator; values match Prisma's labels. */
+export enum CreatorSubscriptionStatus {
+  ACTIVE = 'ACTIVE',
+  PAST_DUE = 'PAST_DUE',
+  ENDED = 'ENDED',
+}
+
 export enum CreditEntityModel {
   ORGANIZATION = 'Organization',
   USER = 'User',

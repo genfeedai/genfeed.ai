@@ -25,6 +25,7 @@ import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import CopyLinkButton from '@web-components/creator/CopyLinkButton';
+import SupportCreatorButton from '@web-components/creator/SupportCreatorButton';
 import ProfileSubscribe from '@web-components/profile/ProfileSubscribe';
 import ArticleCover from '@website/(content)/articles/article-cover';
 import { ArrowRight } from 'lucide-react';
@@ -33,6 +34,7 @@ import { resolvePublicArticleAuthor } from './article-author';
 import ArticleContent from './article-content';
 import ArticleResource from './article-resource';
 import { buildArticleSections } from './article-sections';
+import GatedArticleBody from './gated-article-body';
 
 /**
  * The "apply this guide" agent link. Built here so the app's route table stays
@@ -241,6 +243,12 @@ export default function ArticleDetail({
   const articleUrl = `${EnvironmentService.apps.website}${creatorArticlePath(handle, article.slug || article.id)}`;
   // Sanitized here, on the server: the sanitizer never ships to readers, and
   // the client island only receives markup that already went through it.
+  // The API sent only the preview of a paid article (#9718); readers with
+  // access load the rest in the browser.
+  const isGated =
+    !isPreview &&
+    Boolean(article.accessLevel) &&
+    article.accessLevel !== 'public';
   const { html, sections } = buildArticleSections(
     createMarkup(article.content || '').__html,
   );
@@ -344,13 +352,24 @@ export default function ArticleDetail({
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)_15rem]">
           <div className="mx-auto w-full max-w-3xl min-w-0 space-y-12">
             <div>
-              <ArticleContent
-                applyHref={buildArticleApplyHref(article.label)}
-                sanitizedHtml={html}
-                sections={sections}
-                slug={article.slug}
-                resource={resource}
-              />
+              {isGated ? (
+                <GatedArticleBody
+                  applyHref={buildArticleApplyHref(article.label)}
+                  articleId={article.id}
+                  handle={handle}
+                  preview={{ html, sections }}
+                  slug={article.slug}
+                  unlockPriceCredits={article.unlockPriceCredits ?? null}
+                />
+              ) : (
+                <ArticleContent
+                  applyHref={buildArticleApplyHref(article.label)}
+                  sanitizedHtml={html}
+                  sections={sections}
+                  slug={article.slug}
+                  resource={resource}
+                />
+              )}
               {resource ? (
                 <ArticleResource
                   key={article.slug}
@@ -368,6 +387,9 @@ export default function ArticleDetail({
                   source="article"
                   sourceRef={article.id}
                 />
+              ) : null}
+              {brand && !isPreview && handle !== GENFEED_BRAND_HANDLE ? (
+                <SupportCreatorButton articleId={article.id} handle={handle} />
               ) : null}
               <ArticleAbout brand={brand} handle={handle} />
             </footer>

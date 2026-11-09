@@ -1,9 +1,18 @@
+import {
+  type CreatorSubscriptionRenewalTotals,
+  CreatorSubscriptionsService,
+} from '@api/collections/creator-payments/services/creator-subscriptions.service';
 import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
+import {
+  CREATOR_SUBSCRIPTION_RENEWAL_LOCK_KEY,
+  CREATOR_SUBSCRIPTION_RENEWAL_LOCK_TTL_SECONDS,
+  CREATOR_SUBSCRIPTION_RENEWAL_PAGE_SIZE,
+} from '@workers/crons/credits/creator-subscription-renewal.constants';
 import {
   FREE_TRIAL_EXPIRY_LOCK_KEY,
   FREE_TRIAL_EXPIRY_LOCK_TTL_SECONDS,
@@ -16,7 +25,10 @@ export type FreeTrialExpiryTotals = {
   organizations: number;
 };
 
-/** Platform-scheduled credit maintenance: referral rewards and trial expiry. */
+/**
+ * Platform-scheduled credit maintenance: referral rewards, trial expiry and
+ * paid creator subscription renewals.
+ */
 @Injectable()
 export class CronCreditsService {
   private readonly context = { service: CronCreditsService.name };
@@ -26,6 +38,7 @@ export class CronCreditsService {
     private readonly freeTrialService: FreeTrialService,
     private readonly cacheService: CacheService,
     private readonly logger: LoggerService,
+    private readonly creatorSubscriptionsService: CreatorSubscriptionsService,
   ) {}
 
   settleReferralRewards(): Promise<void> {
@@ -85,6 +98,65 @@ export class CronCreditsService {
       return totals;
     } finally {
       await this.cacheService.releaseLock(FREE_TRIAL_EXPIRY_LOCK_KEY);
+    }
+  }
+
+  /**
+   * Charges every paid creator subscription whose period has ended, marks a
+   * reader who cannot pay as past due, and ends cancelled or lapsed ones. One
+   * creator organization at a time, inside its tenant context; each change is
+   * fenced on the period it was read with, so a re-run changes nothing.
+   * Returns null when another worker holds the sweep.
+   */
+  async renewCreatorSubscriptions(
+    now: Date = new Date(),
+  ): Promise<CreatorSubscriptionRenewalTotals | null> {
+    const isAcquired = await this.cacheService.acquireLock(
+      CREATOR_SUBSCRIPTION_RENEWAL_LOCK_KEY,
+      CREATOR_SUBSCRIPTION_RENEWAL_LOCK_TTL_SECONDS,
+    );
+    if (!isAcquired) {
+      return null;
+    }
+    const totals: CreatorSubscriptionRenewalTotals = {
+      charged: 0,
+      ended: 0,
+      failed: 0,
+      'past-due': 0,
+      unchanged: 0,
+    };
+    try {
+      let cursor: string | undefined;
+      while (true) {
+        const organizationIds =
+          await this.creatorSubscriptionsService.findRenewalOrganizations(
+            now,
+            cursor,
+            CREATOR_SUBSCRIPTION_RENEWAL_PAGE_SIZE,
+          );
+        for (const organizationId of organizationIds) {
+          await this.creatorSubscriptionsService.renewOrganization(
+            organizationId,
+            now,
+            totals,
+          );
+        }
+        if (organizationIds.length < CREATOR_SUBSCRIPTION_RENEWAL_PAGE_SIZE) {
+          break;
+        }
+        cursor = organizationIds[organizationIds.length - 1];
+      }
+      if (totals.charged + totals.ended + totals['past-due'] + totals.failed) {
+        this.logger.log('Creator subscription renewals finished', {
+          ...this.context,
+          ...totals,
+        });
+      }
+      return totals;
+    } finally {
+      await this.cacheService.releaseLock(
+        CREATOR_SUBSCRIPTION_RENEWAL_LOCK_KEY,
+      );
     }
   }
 

@@ -87,6 +87,7 @@ describe('buildSettingsMenuItems', () => {
         'Credits',
         'Subscription',
         'Affiliates',
+        'Earnings',
         'Usage',
         'API Keys',
         'Integrations',

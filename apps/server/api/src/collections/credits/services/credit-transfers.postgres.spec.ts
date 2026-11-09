@@ -61,6 +61,7 @@ describe.skipIf(!connectionString)('credit transfers (PostgreSQL)', () => {
   let suffix: string;
   let reader: Workspace;
   let creator: Workspace;
+  let otherWorkspace: Workspace;
   let transfers: CreditTransfersService;
   let credits: CreditsUtilsService;
 
@@ -151,6 +152,7 @@ describe.skipIf(!connectionString)('credit transfers (PostgreSQL)', () => {
     suffix = randomUUID();
     reader = workspace('reader');
     creator = workspace('creator');
+    otherWorkspace = workspace('other');
     const prismaService = database() as unknown as PrismaService;
     const transaction = new TransactionUtil(prismaService, logger);
     const balance = new CreditBalanceService(prismaService, logger);
@@ -220,7 +222,11 @@ describe.skipIf(!connectionString)('credit transfers (PostgreSQL)', () => {
   afterEach(async () => {
     vi.unstubAllEnvs();
     const db = database();
-    const organizationIds = [reader.organizationId, creator.organizationId];
+    const organizationIds = [
+      reader.organizationId,
+      creator.organizationId,
+      otherWorkspace.organizationId,
+    ];
     await db.activity.deleteMany({
       where: { organizationId: { in: organizationIds } },
     });
@@ -238,11 +244,19 @@ describe.skipIf(!connectionString)('credit transfers (PostgreSQL)', () => {
     });
     await db.billingAccount.deleteMany({
       where: {
-        id: { in: [reader.billingAccountId, creator.billingAccountId] },
+        id: {
+          in: [
+            reader.billingAccountId,
+            creator.billingAccountId,
+            otherWorkspace.billingAccountId,
+          ],
+        },
       },
     });
     await db.user.deleteMany({
-      where: { id: { in: [reader.userId, creator.userId] } },
+      where: {
+        id: { in: [reader.userId, creator.userId, otherWorkspace.userId] },
+      },
     });
   });
 
@@ -307,6 +321,45 @@ describe.skipIf(!connectionString)('credit transfers (PostgreSQL)', () => {
     expect(await wallet(creator)).toEqual({ balance: 40, earnedBalance: 40 });
     expect(await transferRows(reader)).toHaveLength(1);
     expect(await transferRows(creator)).toHaveLength(1);
+  });
+
+  it('refuses a key that was already used for a different payment', async () => {
+    await seedWorkspace(reader, { balance: 100, paid: true });
+    await seedWorkspace(creator, { balance: 0, paid: false });
+
+    await tip(40, 'tip-reused');
+    await expect(tip(10, 'tip-reused')).rejects.toThrow(
+      'This payment key was already used for a different payment',
+    );
+
+    expect(await wallet(reader)).toEqual({ balance: 60, earnedBalance: 0 });
+    expect(await transferRows(reader)).toHaveLength(1);
+  });
+
+  it('pays a key once even when a second workspace sends it', async () => {
+    await seedWorkspace(reader, { balance: 100, paid: true });
+    await seedWorkspace(otherWorkspace, { balance: 100, paid: true });
+    await seedWorkspace(creator, { balance: 0, paid: false });
+
+    const [first, second] = await Promise.allSettled([
+      tip(40, 'unlock-once'),
+      transfers.transfer({
+        amount: 40,
+        idempotencyKey: 'unlock-once',
+        kind: CreditTransferKind.TIP,
+        payeeOrganizationId: creator.organizationId,
+        payerOrganizationId: otherWorkspace.organizationId,
+        payerUserId: otherWorkspace.userId,
+      }),
+    ]);
+
+    expect(
+      [first.status, second.status].filter((status) => status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(
+      (await wallet(reader)).balance + (await wallet(otherWorkspace)).balance,
+    ).toBe(160);
+    expect(await wallet(creator)).toEqual({ balance: 40, earnedBalance: 40 });
   });
 
   it('never overdraws the reader under concurrent transfers', async () => {

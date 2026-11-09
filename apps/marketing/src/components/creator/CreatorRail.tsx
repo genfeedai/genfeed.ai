@@ -1,4 +1,5 @@
 import { ButtonVariant } from '@genfeedai/contracts';
+import { GENFEED_BRAND_HANDLE } from '@genfeedai/contracts/constants';
 import { addUTMParameters } from '@helpers/utm/utm-builder.helper';
 import type { CreatorRailProps } from '@props/content/creator.props';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
@@ -8,6 +9,7 @@ import ProfileSocialLinks from '@web-components/profile/ProfileSocialLinks';
 import ProfileSubscribe from '@web-components/profile/ProfileSubscribe';
 import CopyLinkButton from './CopyLinkButton';
 import ProfileViewCount from './ProfileViewCount';
+import SupportCreatorButton from './SupportCreatorButton';
 
 const MEMBER_SINCE_FORMAT = new Intl.DateTimeFormat('en-US', {
   month: 'long',
@@ -74,6 +76,9 @@ export default function CreatorRail({
           brandLabel={label}
           source="profile"
         />
+        {handle === GENFEED_BRAND_HANDLE ? null : (
+          <SupportCreatorButton className="w-full" handle={handle} />
+        )}
         <CopyLinkButton className="w-full" url={profileUrl} />
       </div>
 

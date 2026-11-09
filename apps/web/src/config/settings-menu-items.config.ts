@@ -12,6 +12,7 @@ import {
   ChartColumnIncreasing,
   CircleCheck,
   CircleQuestionMark,
+  Coins,
   Cpu,
   CreditCard,
   Grip,
@@ -222,6 +223,14 @@ function buildOrganizationMenuItems(
             label: 'Affiliates',
             outline: HandHeart,
             solid: HandHeart,
+          },
+          {
+            group: 'Billing',
+            href: APP_ROUTES.SETTINGS.EARNINGS,
+            hrefScope: 'organization' as const,
+            label: 'Earnings',
+            outline: Coins,
+            solid: Coins,
           },
         ]
       : []),

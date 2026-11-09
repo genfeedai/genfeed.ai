@@ -4,6 +4,8 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { BALANCE_TX_OPTIONS } from '@api/collections/credits/services/credit-transaction-options';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import { readCreditTransferMetadata } from '@api/collections/credits/services/credit-transfer-metadata.util';
+import { isPrismaUniqueConstraintError } from '@api/collections/shared/slug-allocation.util';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
@@ -13,10 +15,7 @@ import {
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { usesMeteredCredits } from '@genfeedai/config';
-import {
-  CreditTransactionCategory,
-  CreditTransferKind,
-} from '@genfeedai/contracts';
+import { CreditTransactionCategory } from '@genfeedai/contracts';
 import {
   CREATOR_PAYMENT_FEE_BPS,
   CREATOR_PAYMENT_REFERENCE_TYPE,
@@ -35,7 +34,8 @@ import { Injectable } from '@nestjs/common';
 
 /** Largest single creator payment, in credits. */
 export const MAX_CREDIT_TRANSFER_AMOUNT = 100_000;
-const MAX_TRANSFER_ATTEMPTS = 3;
+const MAX_TRANSFER_ATTEMPTS = 5;
+const TRANSFER_RETRY_BACKOFF_MS = 25;
 const MAX_MESSAGE_LENGTH = 280;
 
 type TransferAmounts = {
@@ -215,6 +215,7 @@ export class CreditTransfersService {
           await tx.member.findFirst({
             select: { id: true },
             where: scopedWhere(payeeOrganizationId, {
+              isActive: true,
               userId: input.payerUserId,
             }),
           }),
@@ -291,12 +292,27 @@ export class CreditTransfersService {
           BALANCE_TX_OPTIONS,
         );
       } catch (error: unknown) {
+        // A taken key is retried once more: a concurrent retry by the same
+        // payer is then found as a replay. If it is still taken, another
+        // payer owns it.
+        const isKeyTaken = isPrismaUniqueConstraintError(error);
         if (
-          !isCreditTransactionConflict(error) ||
-          attempt >= MAX_TRANSFER_ATTEMPTS
+          attempt < MAX_TRANSFER_ATTEMPTS &&
+          (isKeyTaken || isCreditTransactionConflict(error))
         ) {
-          throw error;
+          // Stagger aborted wallet writers so concurrent payments can commit.
+          await new Promise((resolve) =>
+            setTimeout(
+              resolve,
+              TRANSFER_RETRY_BACKOFF_MS * attempt * (1 + Math.random()),
+            ),
+          );
+          continue;
         }
+        if (isKeyTaken) {
+          throw this.keyReusedError();
+        }
+        throw error;
       }
     }
   }
@@ -323,6 +339,7 @@ export class CreditTransfersService {
     // A committed transfer is returned as it was, before any eligibility
     // check, so a retry still gets its result after the wallets change.
     if (replay) {
+      this.assertReplayMatches(input, replay);
       return {
         payeeBalanceAfter: null,
         result: this.toReplayResult(input, replay),
@@ -438,11 +455,20 @@ export class CreditTransfersService {
   }
 
   /**
-   * Ledger idempotency keys are unique across every organization, so the
-   * caller's key is namespaced by payer and leg.
+   * Ledger idempotency keys are unique across every organization. The
+   * caller's key is not namespaced by payer, so one key pays once even when
+   * the same reader sends it from two workspaces.
    */
   private legKey(input: ICreditTransferInput, leg: TransferLeg): string {
-    return `credit-transfer:${input.payerOrganizationId}:${input.idempotencyKey.trim()}:${leg}`;
+    return `credit-transfer:${input.idempotencyKey.trim()}:${leg}`;
+  }
+
+  private keyReusedError(): BusinessLogicException {
+    return new BusinessLogicException(
+      'This payment key was already used for a different payment',
+      undefined,
+      'CREDIT_TRANSFER_KEY_REUSED',
+    );
   }
 
   private async walletSnapshot(
@@ -459,11 +485,33 @@ export class CreditTransfersService {
     return this.creditBalanceService.toSnapshot(balance);
   }
 
+  /**
+   * A replayed key must name the same payment. Reusing a key for another
+   * creator, amount or subject would otherwise return the earlier charge as if
+   * this one had been paid.
+   */
+  private assertReplayMatches(
+    input: ICreditTransferInput,
+    replay: CreditTransaction,
+  ): void {
+    const metadata = readCreditTransferMetadata(replay.metadata);
+    const isSamePayment =
+      metadata !== null &&
+      metadata.counterpartyOrganizationId === input.payeeOrganizationId &&
+      metadata.grossAmount === input.amount &&
+      metadata.kind === input.kind &&
+      metadata.payeeBrandId === (input.payeeBrandId || undefined) &&
+      metadata.subjectId === (input.subjectId || undefined);
+    if (!isSamePayment) {
+      throw this.keyReusedError();
+    }
+  }
+
   private toReplayResult(
     input: ICreditTransferInput,
     replay: CreditTransaction,
   ): ICreditTransferResult {
-    const metadata = readTransferMetadata(replay.metadata);
+    const metadata = readCreditTransferMetadata(replay.metadata);
     const grossAmount = metadata?.grossAmount ?? replay.amount;
     const feeAmount = metadata?.feeAmount ?? 0;
     return {
@@ -506,39 +554,4 @@ export class CreditTransfersService {
       ),
     ]);
   }
-}
-
-type TransferReplayMetadata = Partial<
-  Pick<
-    ICreditTransferLedgerMetadata,
-    | 'counterpartyOrganizationId'
-    | 'feeAmount'
-    | 'grossAmount'
-    | 'kind'
-    | 'netAmount'
-  >
->;
-
-function readNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value)
-    ? value
-    : undefined;
-}
-
-function readTransferMetadata(value: unknown): TransferReplayMetadata | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-  const kind = Reflect.get(value, 'kind');
-  const counterparty = Reflect.get(value, 'counterpartyOrganizationId');
-  return {
-    counterpartyOrganizationId:
-      typeof counterparty === 'string' ? counterparty : undefined,
-    feeAmount: readNumber(Reflect.get(value, 'feeAmount')),
-    grossAmount: readNumber(Reflect.get(value, 'grossAmount')),
-    kind: Object.values(CreditTransferKind).find(
-      (candidate) => candidate === kind,
-    ),
-    netAmount: readNumber(Reflect.get(value, 'netAmount')),
-  };
 }

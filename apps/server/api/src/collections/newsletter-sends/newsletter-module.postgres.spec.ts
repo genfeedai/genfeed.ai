@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
+import type { CreatorSubscriptionsService } from '@api/collections/creator-payments/services/creator-subscriptions.service';
 import {
   type NewsletterBrandLook,
   NewsletterEmailService,
@@ -185,7 +186,10 @@ describe.skipIf(!connectionString)(
         {} as NewslettersService,
         emails,
         usage,
-        new NewsletterRecipientAccessService(),
+        new NewsletterRecipientAccessService(
+          db,
+          {} as CreatorSubscriptionsService,
+        ),
         new NewsletterProviderEventsService(db),
         logger,
       );

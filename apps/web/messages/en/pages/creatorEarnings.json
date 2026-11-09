@@ -1,0 +1,57 @@
+{
+  "title": "Earnings",
+  "headline": "Credits readers sent your creators",
+  "description": "Tips, creator subscriptions and paid unlocks land here as earned credits. Earned credits never expire, and your team spends purchased credits first.",
+  "credits": "{amount, plural, one {# credit} other {# credits}}",
+  "loadErrorTitle": "Earnings did not load",
+  "loadErrorDescription": "Try again in a moment.",
+  "retry": "Retry",
+  "stats": {
+    "earnedBalance": "Earned credits in your balance",
+    "thisMonth": "Earned this month",
+    "totalEarned": "Earned all time"
+  },
+  "bySourceTitle": "By source",
+  "kind": {
+    "tip": "Tips",
+    "subscription": "Subscriptions",
+    "unlock": "Unlocks"
+  },
+  "sourceLabel": "{kind} · {count, plural, one {# payment} other {# payments}}",
+  "byArticleTitle": "Top articles",
+  "receivedTitle": "Received",
+  "receivedEmpty": "No payments yet. Readers can tip from your public profile and articles.",
+  "sentTitle": "Paid to creators",
+  "sentEmpty": "Your team has not paid any creator yet.",
+  "columns": {
+    "date": "Date",
+    "payment": "Payment",
+    "article": "Article",
+    "count": "Payments",
+    "gross": "Paid",
+    "fee": "Fee",
+    "net": "Received",
+    "amount": "Amount"
+  },
+  "plans": {
+    "title": "Paid subscriptions",
+    "description": "Let readers subscribe to a public profile for a monthly price in credits. Subscribers are charged each month until they cancel.",
+    "subscribers": "@{handle} · {count, plural, one {# paying subscriber} other {# paying subscribers}}",
+    "priceLabel": "Monthly price for {creator}",
+    "priceHelp": "Whole credits between {min} and {max}. A new price applies to new subscribers.",
+    "openLabel": "Open to new subscribers",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "saveFailed": "Could not save the price. Owners and admins can change it."
+  },
+  "mine": {
+    "title": "Your subscriptions",
+    "renews": "{creator} · renews {date} for {price, plural, one {# credit} other {# credits}}",
+    "ends": "{creator} · ends {date}",
+    "pastDue": "Renewal failed",
+    "cancel": "Cancel",
+    "keep": "Keep",
+    "updateFailed": "Could not update the subscription."
+  }
+}
