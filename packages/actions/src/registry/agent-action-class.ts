@@ -1,4 +1,5 @@
 import type { ToolMutationPolicy } from '../interfaces/tool-definition.interface';
+import { curatedActionNames } from './curated-action-catalog';
 import {
   getVisualMediaGenerationType,
   type VisualMediaGenerationType,
@@ -35,44 +36,18 @@ export type AgentActionClass =
   (typeof AGENT_ACTION_CLASS)[keyof typeof AGENT_ACTION_CLASS];
 
 /** Reaches people or external platforms — confirms in every mode. */
-const OUTBOUND_TOOL_NAMES = new Set<string>([
-  'send_social_dm',
-  'post_social_reply',
-  'approve_social_draft',
-  'schedule_post',
-  'create_scheduled_release',
-  'update_scheduled_release',
-  'control_scheduled_release',
-  'start_outreach_sequence',
-  'pause_outreach_sequence',
-]);
+const OUTBOUND_TOOL_NAMES = curatedActionNames(
+  (entry) => entry.actionClass === 'outbound',
+);
 
-/** Charges credits on execution — media generation and paid workflows. */
-const CREDIT_SPENDING_TOOL_NAMES = new Set<string>([
-  'generate_visual_code',
-  'revise_visual_code_project',
-  'export_visual_code_project',
-  'retry_visual_code_project',
-
-  'generate',
-  'generate_ad_pack',
-  'generate_as_identity',
-  'run_clipper',
-  'generate_turbo_content',
-  'generate_monthly_content',
-  'transform_media',
-  // Free, but it queues a render, so Manual mode asks before it builds.
-  'edit_clip',
-  // Free, but it queues a transcription and analysis job.
-  'start_clip_analysis',
-  'execute_workflow',
-  // Starts a quoted storyboard render; chat approves it outside Auto mode.
-  'start_storyboard_long_form',
-  // Starts the quoted slide images; chat approves it outside Auto mode.
-  'start_storyboard_slideshow',
-  // Starts one quoted realistic video stage; chat approves it outside Auto mode.
-  'start_storyboard_video',
-]);
+/**
+ * Charges credits on execution — media generation and paid workflows. Also
+ * covers free tools that queue a render or analysis job, so Manual mode asks
+ * before they build.
+ */
+const CREDIT_SPENDING_TOOL_NAMES = curatedActionNames(
+  (entry) => entry.actionClass === 'credit-spending',
+);
 
 /**
  * Visual `generate` calls (image or video) the docked `generation_action_card`
@@ -91,22 +66,9 @@ export function getVisualGenerationReviewType(
 }
 
 /** Creates or rewrites brand context the Agent should not silently change. */
-const BRAND_CONTEXT_TOOL_NAMES = new Set<string>([
-  'save_brand_voice_profile',
-  'save_content_agent',
-  'capture_memory',
-  'capture_knowledge',
-  'update_strategy_state',
-  'create_brand',
-  'create_brand_from_url',
-  'onboard_brand',
-  'rename_brand',
-  'submit_brand_interview_answer',
-  'scan_brand_url',
-  'save_onboarding_answers',
-  'skip_brand_interview_question',
-  'start_brand_interview',
-]);
+const BRAND_CONTEXT_TOOL_NAMES = curatedActionNames(
+  (entry) => entry.actionClass === 'brand-context',
+);
 
 /**
  * Classifies a write tool for the mode-aware confirmation matrix. Order
@@ -175,26 +137,25 @@ export function resolveEffectiveMutationPolicy(
  * Credit spenders a workflow can fan out from into publishing, so a missing
  * approval there would reach people, not only spend credits.
  */
-const MCP_APPROVAL_NEVER_SKIPPED_TOOL_NAMES = new Set<string>([
-  'execute_workflow',
-]);
+const MCP_APPROVAL_NEVER_SKIPPED_TOOL_NAMES = curatedActionNames(
+  (entry) => entry.isMcpApprovalNeverSkipped === true,
+);
 
 /**
  * Publishing tools the OUTBOUND class does not list: they put content in front
  * of an audience, so an MCP call waits for a reviewer.
  */
-const MCP_APPROVAL_POSTING_TOOL_NAMES = new Set<string>(['publish_article']);
+const MCP_APPROVAL_POSTING_TOOL_NAMES = curatedActionNames(
+  (entry) => entry.mcpApproval === 'posting',
+);
 
 /**
  * Media generation that is not in the CREDIT_SPENDING class: remix and
  * clipper runs render new media, so an MCP call waits for a reviewer.
  */
-const MCP_APPROVAL_GENERATION_TOOL_NAMES = new Set<string>([
-  'control_remix_generation',
-  'create_clipper_project_from_youtube',
-  'replace_storyboard_character',
-  'start_remix_generation',
-]);
+const MCP_APPROVAL_GENERATION_TOOL_NAMES = curatedActionNames(
+  (entry) => entry.mcpApproval === 'generation',
+);
 
 /**
  * Whether an MCP call to this tool can ever wait in the approvals queue. Only
