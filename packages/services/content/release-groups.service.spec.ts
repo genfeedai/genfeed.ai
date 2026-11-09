@@ -103,7 +103,7 @@ describe('ReleaseGroupsService', () => {
       },
     });
 
-    await service.preview(
+    const preview = await service.preview(
       {
         recurrence: {
           frequency: PostFrequency.WEEKLY,
@@ -117,6 +117,10 @@ describe('ReleaseGroupsService', () => {
       controller.signal,
     );
 
+    expect(preview).toMatchObject({
+      isExhausted: false,
+      occurrences: ['2026-08-10T09:00:00.000Z'],
+    });
     expect(instance.post).toHaveBeenCalledWith(
       '/recurrence/preview',
       expect.objectContaining({ timezone: 'UTC' }),
@@ -129,9 +133,13 @@ describe('ReleaseGroupsService', () => {
       data: { data: { id: 'release-1' } },
     });
 
-    await service.pauseFuture('release-1');
-    await service.resumeFuture('release-1');
-    await service.cancelFuture('release-1');
+    const paused = await service.pauseFuture('release-1');
+    const resumed = await service.resumeFuture('release-1');
+    const cancelled = await service.cancelFuture('release-1');
+
+    expect(paused).toMatchObject({ id: 'release-1' });
+    expect(resumed).toMatchObject({ id: 'release-1' });
+    expect(cancelled).toMatchObject({ id: 'release-1' });
 
     expect(instance.patch).toHaveBeenNthCalledWith(1, '/release-1', {
       action: 'series-pause',
@@ -149,9 +157,11 @@ describe('ReleaseGroupsService', () => {
       data: { data: { id: 'release-1' } },
     });
 
-    await service.editFuture('release-1', {
+    const edited = await service.editFuture('release-1', {
       scheduledDate: '2026-08-12T09:00:00.000Z',
     });
+
+    expect(edited).toMatchObject({ id: 'release-1' });
 
     expect(instance.patch).toHaveBeenCalledWith('/release-1/series/future', {
       scheduledDate: '2026-08-12T09:00:00.000Z',
