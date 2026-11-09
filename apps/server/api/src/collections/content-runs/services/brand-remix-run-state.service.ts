@@ -16,6 +16,7 @@ import {
   PersistedReviewDecision,
 } from '@genfeedai/contracts';
 import {
+  BRAND_REMIX_PHASE_RUN_STATUS,
   type BrandRemixExecution,
   type BrandRemixRunConfig,
   type BrandRemixRunView,
@@ -252,15 +253,7 @@ export class BrandRemixRunStateService {
               ? 'failed'
               : phase;
     }
-    status =
-      phase === 'failed'
-        ? ContentRunStatus.FAILED
-        : phase === 'ready_for_review' ||
-            phase === 'in_review' ||
-            phase === 'approved' ||
-            phase === 'paid_draft_ready'
-          ? ContentRunStatus.COMPLETED
-          : ContentRunStatus.RUNNING;
+    status = BRAND_REMIX_PHASE_RUN_STATUS[phase];
     const copyPartialReason =
       config.draft.output.kind === 'copy'
         ? actualCount < config.execution.requestedCount

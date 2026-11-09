@@ -1,3 +1,5 @@
+import { defineStateMachine } from './state-machine.util';
+
 /**
  * Post Scheduler domain enums.
  *
@@ -70,6 +72,36 @@ export enum TargetValidationState {
   WARNING = 'warning',
   INVALID = 'invalid',
 }
+
+/**
+ * `posts.targetValidationState` edges (#9740). A target starts PENDING; every
+ * validation run recomputes the state from its errors and warnings
+ * (`resolveValidationState`), so a validated target moves freely between
+ * VALID, WARNING and INVALID and never returns to PENDING.
+ */
+export const TARGET_VALIDATION_STATE_MACHINE =
+  defineStateMachine<TargetValidationState>({
+    terminal: [],
+    transitions: {
+      [TargetValidationState.PENDING]: [
+        TargetValidationState.VALID,
+        TargetValidationState.WARNING,
+        TargetValidationState.INVALID,
+      ],
+      [TargetValidationState.VALID]: [
+        TargetValidationState.WARNING,
+        TargetValidationState.INVALID,
+      ],
+      [TargetValidationState.WARNING]: [
+        TargetValidationState.VALID,
+        TargetValidationState.INVALID,
+      ],
+      [TargetValidationState.INVALID]: [
+        TargetValidationState.VALID,
+        TargetValidationState.WARNING,
+      ],
+    },
+  });
 
 /**
  * Lifecycle of analytics collection for one published channel target.
