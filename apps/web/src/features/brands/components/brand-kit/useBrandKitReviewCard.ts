@@ -13,7 +13,7 @@ import { logger } from '@services/core/logger.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import type { BrandKitFieldValues } from '@/features/brands/props/brand-kit-review.props';
 import {
   canApplyField,
@@ -23,6 +23,10 @@ import {
   parseSocialUrls,
   readApplyValue,
 } from './brand-kit-review.helpers';
+import {
+  brandKitReviewOperationsReducer,
+  INITIAL_BRAND_KIT_REVIEW_OPERATIONS,
+} from './brand-kit-review-operations';
 
 /** The claimed draft read the review was last seeded from, per brand. */
 interface ClaimedDraftSeed {
@@ -66,10 +70,10 @@ export function useBrandKitReviewCard({
   const [shouldReplaceExisting, setShouldReplaceExisting] = useState(false);
   const [assetImportResult, setAssetImportResult] =
     useState<IBrandKitAssetImportResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
-  const [isApplying, setIsApplying] = useState(false);
-  const [isImportingAssets, setIsImportingAssets] = useState(false);
+  const [operations, dispatchOperation] = useReducer(
+    brandKitReviewOperationsReducer,
+    INITIAL_BRAND_KIT_REVIEW_OPERATIONS,
+  );
   // The claimed Brand OS draft the review was seeded from, if it was.
   const [appliedHandoff, setAppliedHandoff] =
     useState<IBrandOsDraftHandoff | null>(null);
@@ -172,12 +176,15 @@ export function useBrandKitReviewCard({
     const url = websiteUrl.trim();
 
     if (!url) {
-      setError('Enter a website URL before scanning.');
+      dispatchOperation({
+        message: 'Enter a website URL before scanning.',
+        operation: 'scan',
+        type: 'fail',
+      });
       return;
     }
 
-    setIsScanning(true);
-    setError(null);
+    dispatchOperation({ operation: 'scan', type: 'start' });
     setApplyResult(null);
     setHasReviewEdits(true);
     setAppliedHandoff(null);
@@ -195,13 +202,21 @@ export function useBrandKitReviewCard({
         await onDraftCreated?.(nextDraft);
       } catch {
         logger.error('Failed to persist scanned Brand OS revision');
-        setError(brandOsTranslate('scanPersistenceFailed'));
+        dispatchOperation({
+          message: brandOsTranslate('scanPersistenceFailed'),
+          operation: 'scan',
+          type: 'fail',
+        });
       }
     } catch (scanError) {
       logger.error('Failed to crawl brand kit website', scanError);
-      setError('Failed to scan website for brand kit fields.');
+      dispatchOperation({
+        message: 'Failed to scan website for brand kit fields.',
+        operation: 'scan',
+        type: 'fail',
+      });
     } finally {
-      setIsScanning(false);
+      dispatchOperation({ operation: 'scan', type: 'finish' });
     }
   }, [
     brandId,
@@ -248,12 +263,15 @@ export function useBrandKitReviewCard({
 
   const handleImportAssets = useCallback(async () => {
     if (!draft || selectedCandidateIds.size === 0) {
-      setError('Select at least one asset to import.');
+      dispatchOperation({
+        message: 'Select at least one asset to import.',
+        operation: 'import-assets',
+        type: 'fail',
+      });
       return;
     }
 
-    setIsImportingAssets(true);
-    setError(null);
+    dispatchOperation({ operation: 'import-assets', type: 'start' });
 
     try {
       const assets = draft.assetCandidates
@@ -278,9 +296,13 @@ export function useBrandKitReviewCard({
       await onRefreshBrand();
     } catch (importError) {
       logger.error('Failed to import brand kit assets', importError);
-      setError('Failed to import the selected brand assets.');
+      dispatchOperation({
+        message: 'Failed to import the selected brand assets.',
+        operation: 'import-assets',
+        type: 'fail',
+      });
     } finally {
-      setIsImportingAssets(false);
+      dispatchOperation({ operation: 'import-assets', type: 'finish' });
     }
   }, [
     brandId,
@@ -326,12 +348,15 @@ export function useBrandKitReviewCard({
       }, {});
 
       if (Object.keys(fields).length === 0) {
-        setError('Select at least one supported field to apply.');
+        dispatchOperation({
+          message: 'Select at least one supported field to apply.',
+          operation: 'apply',
+          type: 'fail',
+        });
         return;
       }
 
-      setIsApplying(true);
-      setError(null);
+      dispatchOperation({ operation: 'apply', type: 'start' });
       // From here the review is the user's: a background refresh landing while
       // the apply is in flight must not re-seed the draft being applied.
       setHasReviewEdits(true);
@@ -397,9 +422,13 @@ export function useBrandKitReviewCard({
         await onRefreshBrand();
       } catch (applyError) {
         logger.error('Failed to apply brand kit draft', applyError);
-        setError('Failed to apply selected brand kit fields.');
+        dispatchOperation({
+          message: 'Failed to apply selected brand kit fields.',
+          operation: 'apply',
+          type: 'fail',
+        });
       } finally {
-        setIsApplying(false);
+        dispatchOperation({ operation: 'apply', type: 'finish' });
       }
     },
     [
@@ -428,10 +457,10 @@ export function useBrandKitReviewCard({
     shouldReplaceExisting,
     setShouldReplaceExisting,
     assetImportResult,
-    error,
-    isScanning,
-    isApplying,
-    isImportingAssets,
+    error: operations.error?.message ?? null,
+    isScanning: operations.pending.has('scan'),
+    isApplying: operations.pending.has('apply'),
+    isImportingAssets: operations.pending.has('import-assets'),
     handleScan,
     handleToggleField,
     handleToggleCandidate,

@@ -165,3 +165,20 @@ export interface BrandDeleteBlockedDialogProps {
   onClose: () => void;
   orgSlug?: string;
 }
+
+/** The character sheet wizard (#9744): describe, generate, review, create. */
+export interface CharacterSheetWizardState {
+  candidate: BrandCharacterCandidate | null;
+  isCreating: boolean;
+  isGenerating: boolean;
+  step: BrandCharacterSheetStep;
+}
+
+export type CharacterSheetWizardAction =
+  | { type: 'generate_started' }
+  | { type: 'generate_succeeded'; candidate: BrandCharacterCandidate }
+  | { type: 'generate_failed' }
+  | { type: 'discarded' }
+  | { type: 'approved' }
+  | { type: 'create_started' }
+  | { type: 'create_settled' };
