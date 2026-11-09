@@ -96,7 +96,6 @@ const PLATFORMS: { hex: string; name: string }[] = [
   { hex: '#96BF48', name: 'Shopify' },
   { hex: '#4A154B', name: 'Slack' },
   { hex: '#FFFC00', name: 'Snapchat' },
-  { hex: '#FF6719', name: 'Substack' },
   { hex: '#26A5E4', name: 'Telegram' },
   { hex: '#000000', name: 'Threads' },
   { hex: '#FE2C55', name: 'TikTok' },

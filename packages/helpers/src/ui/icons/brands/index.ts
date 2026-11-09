@@ -44,7 +44,6 @@ export { ShopifyIcon } from './shopify-icon';
 export { SiGoogleIcon } from './si-google-icon';
 export { SlackIcon } from './slack-icon';
 export { SnapchatIcon } from './snapchat-icon';
-export { SubstackIcon } from './substack-icon';
 export { TelegramIcon } from './telegram-icon';
 export { ThreadsIcon } from './threads-icon';
 export { TiktokIcon } from './tiktok-icon';

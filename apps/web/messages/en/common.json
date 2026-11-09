@@ -3003,10 +3003,7 @@
     "externalUrlSave": "Save link",
     "externalUrlClear": "Remove link",
     "externalUrlSaved": "Live link saved",
-    "externalUrlFailed": "Could not save the live link",
-    "substackTitle": "Import into Substack",
-    "substackHint": "Substack has no publishing API. In Substack, open Settings, choose Import, and paste this feed. It lists the brand’s published issues.",
-    "copyFeed": "Copy feed URL"
+    "externalUrlFailed": "Could not save the live link"
   },
   "taskComposer": {
     "title": "New Task",

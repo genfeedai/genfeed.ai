@@ -86,7 +86,6 @@ colors:
   shopify: "#96BF48"
   slack: "#4A154B"
   snapchat: "#FFFC00"
-  substack: "#FF6719"
   telegram: "#26A5E4"
   threads: "#000000"
   tiktok: "#FE2C55"
@@ -415,8 +414,6 @@ components:
     backgroundColor: "{colors.slack}"
   platform-snapchat:
     backgroundColor: "{colors.snapchat}"
-  platform-substack:
-    backgroundColor: "{colors.substack}"
   platform-telegram:
     backgroundColor: "{colors.telegram}"
   platform-threads:

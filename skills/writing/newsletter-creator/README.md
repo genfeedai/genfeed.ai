@@ -27,7 +27,7 @@ bunx skills add genfeedai/skills --skill newsletter-creator
 - Provides frequency and cadence guidance matched to content type
 - Includes subscriber growth tactics: referral programs, lead magnets, cross-promotion
 - Tracks key metrics with benchmarks: open rate, CTR, reply rate, growth rate
-- Adapts to platform specifics: Beehiiv, Ghost, Substack, ConvertKit, Mailchimp, Buttondown
+- Adapts to platform specifics: Beehiiv, Ghost, ConvertKit, Mailchimp, Buttondown
 
 ## License
 
