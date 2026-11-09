@@ -1,4 +1,5 @@
 import { stringifyJsonLd } from '@data/json-ld';
+import { buildModelCredits } from '@data/model-credits';
 import {
   type CreatorProfileTab,
   creatorProfilePath,
@@ -8,6 +9,7 @@ import type {
   CreatorProfileView,
   CreatorTabCounts,
 } from '@props/content/creator.props';
+import { getPublicModels } from '@public/models/models-loader';
 import { EnvironmentService } from '@services/core/environment.service';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import CreatorArticleGrid from '@web-components/creator/CreatorArticleGrid';
@@ -33,6 +35,16 @@ const TAB_TOTAL_LABELS: Record<CreatorProfileTab, string> = {
   posts: 'posts',
   videos: 'videos',
 };
+
+/** Catalog labels for the models behind the showcase's images and videos. */
+async function loadModelCredits(
+  showcase: CreatorShowcase,
+): Promise<Record<string, string>> {
+  return buildModelCredits(await getPublicModels(), [
+    ...showcase.images.items,
+    ...showcase.videos.items,
+  ]);
+}
 
 export function countShowcase(showcase: CreatorShowcase): CreatorTabCounts {
   return {
@@ -87,6 +99,7 @@ export async function CreatorOverview({
   const { brand, referralCode, showcase } = data;
   const canonicalHandle = brand.slug || handle;
   const counts = countShowcase(showcase);
+  const modelCredits = await loadModelCredits(showcase);
   const isEmpty = Object.values(counts).every((count) => count === 0);
 
   return (
@@ -118,14 +131,20 @@ export async function CreatorOverview({
               title="Videos"
               total={counts.videos}
             >
-              <ProfileVideos videos={showcase.videos.items} />
+              <ProfileVideos
+                modelCredits={modelCredits}
+                videos={showcase.videos.items}
+              />
             </CreatorSection>
             <CreatorSection
               href={creatorTabPath(canonicalHandle, 'images')}
               title="Images"
               total={counts.images}
             >
-              <ProfileImages images={showcase.images.items} />
+              <ProfileImages
+                images={showcase.images.items}
+                modelCredits={modelCredits}
+              />
             </CreatorSection>
             <CreatorSection
               href={creatorTabPath(canonicalHandle, 'posts')}
@@ -163,6 +182,7 @@ export async function CreatorTab({
   const { brand, referralCode, showcase } = data;
   const canonicalHandle = brand.slug || handle;
   const counts = countShowcase(showcase);
+  const modelCredits = await loadModelCredits(showcase);
   const tabPage = showcase[tab];
 
   return (
@@ -184,10 +204,16 @@ export async function CreatorTab({
             />
           ) : null}
           {tab === 'videos' ? (
-            <ProfileVideos videos={showcase.videos.items} />
+            <ProfileVideos
+              modelCredits={modelCredits}
+              videos={showcase.videos.items}
+            />
           ) : null}
           {tab === 'images' ? (
-            <ProfileImages images={showcase.images.items} />
+            <ProfileImages
+              images={showcase.images.items}
+              modelCredits={modelCredits}
+            />
           ) : null}
           {tab === 'posts' ? (
             <CreatorPostGrid

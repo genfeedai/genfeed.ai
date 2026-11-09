@@ -5,8 +5,12 @@ import type { IImage } from '@genfeedai/contracts/interfaces';
 import type { ProfileImagesProps } from '@props/content/profile.props';
 import Masonry from '@ui/display/masonry/Masonry';
 import { LazyMasonryImage } from '@ui/lazy/masonry/LazyMasonry';
+import ProfileMediaCredit from '@web-components/profile/ProfileMediaCredit';
 
-export default function ProfileImages({ images }: ProfileImagesProps) {
+export default function ProfileImages({
+  images,
+  modelCredits = {},
+}: ProfileImagesProps) {
   // The public API only returns generated assets. A failed one would render
   // its failure notice, which needs the app's translations; public profiles
   // mount no intl provider, so it is never shown here.
@@ -22,13 +26,18 @@ export default function ProfileImages({ images }: ProfileImagesProps) {
     <div>
       <Masonry columns={{ default: 1, lg: 3, md: 2 }}>
         {visibleImages.map((image: IImage) => (
-          <LazyMasonryImage
-            key={image.id}
-            image={image}
-            isActionsEnabled={false}
-            isPublicGallery={true}
-            isPublicProfile={true}
-          />
+          <div key={image.id}>
+            <LazyMasonryImage
+              image={image}
+              isActionsEnabled={false}
+              isPublicGallery={true}
+              isPublicProfile={true}
+            />
+            <ProfileMediaCredit
+              modelKey={image.model}
+              modelLabel={image.model ? modelCredits[image.model] : undefined}
+            />
+          </div>
         ))}
       </Masonry>
     </div>
