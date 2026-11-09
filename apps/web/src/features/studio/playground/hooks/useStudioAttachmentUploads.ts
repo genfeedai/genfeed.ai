@@ -12,7 +12,7 @@ import { useCallback } from 'react';
 
 const STUDIO_REFERENCE_TYPES = ['image/*', 'video/*'];
 
-export interface UseStudioAttachmentUploadsParams {
+interface UseStudioAttachmentUploadsParams {
   agentApiService: ReturnType<typeof useAgentApiService>;
   restoredAttachments: AttachmentItem[];
   settings: StudioPlaygroundSettings;
