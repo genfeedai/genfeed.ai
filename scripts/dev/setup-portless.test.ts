@@ -46,7 +46,7 @@ describe('Portless startup-service Node path', () => {
     expect(needsNodeRepin(null, stableNodePath)).toBe(false);
   });
 
-  it('rewrites the daemon program and reloads it the way Portless installs it', () => {
+  it('edits the daemon program only after launchd has unloaded it', () => {
     expect(buildNodeRepinCommands('/opt/homebrew/opt/node/bin/node')).toEqual([
       {
         args: [
@@ -56,7 +56,11 @@ describe('Portless startup-service Node path', () => {
           'system',
           PORTLESS_LAUNCH_DAEMON_PATH,
         ],
-        required: false,
+        expect: 'any',
+      },
+      {
+        args: ['sudo', 'launchctl', 'print', 'system/sh.portless.proxy'],
+        expect: 'failure',
       },
       {
         args: [
@@ -66,7 +70,7 @@ describe('Portless startup-service Node path', () => {
           'Set :ProgramArguments:0 /opt/homebrew/opt/node/bin/node',
           PORTLESS_LAUNCH_DAEMON_PATH,
         ],
-        required: true,
+        expect: 'success',
       },
       {
         args: [
@@ -76,11 +80,11 @@ describe('Portless startup-service Node path', () => {
           'system',
           PORTLESS_LAUNCH_DAEMON_PATH,
         ],
-        required: true,
+        expect: 'success',
       },
       {
         args: ['sudo', 'launchctl', 'enable', 'system/sh.portless.proxy'],
-        required: true,
+        expect: 'success',
       },
       {
         args: [
@@ -90,7 +94,7 @@ describe('Portless startup-service Node path', () => {
           '-k',
           'system/sh.portless.proxy',
         ],
-        required: true,
+        expect: 'success',
       },
     ]);
   });

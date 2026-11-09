@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { PORTLESS_PROXY_ENVIRONMENT } from './portless-env';
@@ -16,7 +17,8 @@ const HOMEBREW_CELLAR_NODE_PATTERN =
 
 type ServiceCommand = {
   args: string[];
-  required: boolean;
+  /** `failure` asserts the command exits non-zero, e.g. that a job is unloaded. */
+  expect: 'any' | 'success' | 'failure';
 };
 
 export const PORTLESS_SERVICE_INSTALL_ARGS = [
@@ -76,15 +78,25 @@ export function needsNodeRepin(
   return pinnedNodePath !== null && pinnedNodePath !== stableNodePath;
 }
 
-/** Mirrors the reload sequence Portless uses when it installs the daemon. */
+/**
+ * Mirrors the reload sequence Portless uses when it installs the daemon, and
+ * only edits the plist once launchd no longer has the job loaded. If the reload
+ * then fails, the job stays unloaded, so the next setup run reinstalls it.
+ */
 export function buildNodeRepinCommands(
   stableNodePath: string,
   plistPath = PORTLESS_LAUNCH_DAEMON_PATH,
 ): ServiceCommand[] {
+  const serviceTarget = `system/${PORTLESS_LAUNCH_DAEMON_LABEL}`;
+
   return [
     {
       args: ['sudo', 'launchctl', 'bootout', 'system', plistPath],
-      required: false,
+      expect: 'any',
+    },
+    {
+      args: ['sudo', 'launchctl', 'print', serviceTarget],
+      expect: 'failure',
     },
     {
       args: [
@@ -94,30 +106,19 @@ export function buildNodeRepinCommands(
         `Set :ProgramArguments:0 ${stableNodePath}`,
         plistPath,
       ],
-      required: true,
+      expect: 'success',
     },
     {
       args: ['sudo', 'launchctl', 'bootstrap', 'system', plistPath],
-      required: true,
+      expect: 'success',
     },
     {
-      args: [
-        'sudo',
-        'launchctl',
-        'enable',
-        `system/${PORTLESS_LAUNCH_DAEMON_LABEL}`,
-      ],
-      required: true,
+      args: ['sudo', 'launchctl', 'enable', serviceTarget],
+      expect: 'success',
     },
     {
-      args: [
-        'sudo',
-        'launchctl',
-        'kickstart',
-        '-k',
-        `system/${PORTLESS_LAUNCH_DAEMON_LABEL}`,
-      ],
-      required: true,
+      args: ['sudo', 'launchctl', 'kickstart', '-k', serviceTarget],
+      expect: 'success',
     },
   ];
 }
@@ -182,48 +183,50 @@ function installService(): void {
   }
 }
 
+/** Returns null only when no startup service is installed. */
 function readPinnedNodePath(): string | null {
-  if (process.platform !== 'darwin') {
+  if (
+    process.platform !== 'darwin' ||
+    !existsSync(PORTLESS_LAUNCH_DAEMON_PATH)
+  ) {
     return null;
   }
 
   const result = spawnSync(
     PLIST_BUDDY_PATH,
     ['-c', 'Print :ProgramArguments:0', PORTLESS_LAUNCH_DAEMON_PATH],
-    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
   );
-
-  return result.status === 0 ? result.stdout.trim() : null;
-}
-
-function readStableNodePath(): string {
-  const [executable] = buildPortlessCommand([]);
-  const result = spawnSync(executable, ['-p', 'process.execPath'], {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'inherit'],
-  });
 
   if (result.error) {
     throw result.error;
   }
   if (result.status !== 0) {
-    process.exit(result.status ?? 1);
+    throw new Error(
+      `Could not read the Node path from ${PORTLESS_LAUNCH_DAEMON_PATH}.`,
+    );
   }
 
-  return resolveStableNodePath(result.stdout.trim());
+  return result.stdout.trim();
 }
 
 function repinServiceNode(stableNodePath: string): void {
-  for (const { args, required } of buildNodeRepinCommands(stableNodePath)) {
+  for (const { args, expect } of buildNodeRepinCommands(stableNodePath)) {
     const [executable, ...commandArgs] = args;
     const result = spawnSync(executable, commandArgs, {
-      stdio: required ? 'inherit' : ['inherit', 'ignore', 'ignore'],
+      stdio: expect === 'success' ? 'inherit' : ['inherit', 'ignore', 'ignore'],
     });
 
     if (result.error) {
       throw result.error;
     }
-    if (required && result.status !== 0) {
+    if (expect === 'failure' && result.status === 0) {
+      console.error(
+        'The Portless service is still loaded, so its Node path was left unchanged. Run `bun run dev:setup` again.',
+      );
+      process.exit(1);
+    }
+    if (expect === 'success' && result.status !== 0) {
       process.exit(result.status ?? 1);
     }
   }
@@ -232,7 +235,8 @@ function repinServiceNode(stableNodePath: string): void {
 async function main(): Promise<void> {
   const currentStatus = readServiceStatus();
   const pinnedNodePath = readPinnedNodePath();
-  const stableNodePath = pinnedNodePath === null ? null : readStableNodePath();
+  const stableNodePath =
+    pinnedNodePath === null ? null : resolveStableNodePath(pinnedNodePath);
   const nodeRepinNeeded =
     stableNodePath !== null && needsNodeRepin(pinnedNodePath, stableNodePath);
 
@@ -272,7 +276,7 @@ async function main(): Promise<void> {
 
   const installedNodePath = readPinnedNodePath();
   if (installedNodePath !== null) {
-    const installedStableNodePath = stableNodePath ?? readStableNodePath();
+    const installedStableNodePath = resolveStableNodePath(installedNodePath);
     if (needsNodeRepin(installedNodePath, installedStableNodePath)) {
       console.log(
         `Pointing the Portless service at ${installedStableNodePath} so Node upgrades keep it running. Administrator approval may be required.`,
