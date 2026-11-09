@@ -230,6 +230,7 @@ export class InstagramAccountsService {
   }
 
   /** A profile read that must succeed: undefined when the token cannot read it. */
+  @Traced()
   private async readAccessibleProfile(
     accountId: string,
     username: string | undefined,
