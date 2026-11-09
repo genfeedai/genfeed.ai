@@ -1,9 +1,9 @@
 import { storyboardConfigHash } from '@api/collections/content-runs/services/storyboard-config-hash';
-import { storyboardShotCast } from '@api/collections/content-runs/services/storyboard-still-state';
 import type {
   StoryboardPlan,
   StoryboardShot,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import { compileStoryboardShotPrompt } from '@genfeedai/contracts/api-types/contracts/storyboard-shot-prompt.contract';
 import {
   type StoryboardShotRender,
   type StoryboardShotRenderStage,
@@ -19,6 +19,8 @@ import { z } from 'zod';
 export const SHOT_RENDER_JOURNAL_CAPACITY = 64;
 /** A dispatch that left no placeholder for this long never reached a provider. */
 export const SHOT_RENDER_ABANDONED_MS = 10 * 60_000;
+/** The longest video prompt a render journals and sends. */
+export const SHOT_RENDER_PROMPT_MAX_CHARACTERS = 8_000;
 
 export const shotRenderOperationSchema = z
   .object({
@@ -32,7 +34,7 @@ export const shotRenderOperationSchema = z
     billingMode: z.enum(['platform', 'byok']),
     /** The shot inputs the prompt and references were compiled from. */
     inputFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
-    prompt: z.string().min(1).max(8_000),
+    prompt: z.string().min(1).max(SHOT_RENDER_PROMPT_MAX_CHARACTERS),
     referenceAssetIds: z.array(z.string().min(1)).max(20),
     aspectRatio: z.string().min(1),
     durationSeconds: z.number().finite().positive().max(60),
@@ -108,71 +110,25 @@ export function appendShotRenderOperations(
 }
 
 /**
- * Every reference a shot can give its video model, most important first: the
- * shot's current still (the first frame on image-to-video models), the
- * speaker's avatar when on screen, the references of the cast it names, then
- * the style references. The caller caps the list at the model's limit.
- */
-export function storyboardShotRenderReferences(
-  plan: StoryboardPlan,
-  shot: StoryboardShot,
-): string[] {
-  const { speaker, cast } = storyboardShotCast(plan, shot);
-  return [
-    ...new Set([
-      ...(shot.stillFreshness === 'fresh' && shot.stillAssetId
-        ? [shot.stillAssetId]
-        : []),
-      ...(shot.onScreenSpeaker && speaker?.avatarAssetId
-        ? [speaker.avatarAssetId]
-        : []),
-      ...cast.flatMap((member) => member.referenceAssetIds),
-      ...plan.styleReferenceAssetIds,
-    ]),
-  ];
-}
-
-/**
- * The video prompt for a shot: its action, the spoken line when the model
- * renders native audio, and the shared look. Names mean nothing to the video
- * model; identity comes from the references.
- */
-export function storyboardShotRenderPrompt(
-  plan: StoryboardPlan,
-  shot: StoryboardShot,
-  options: { isAudioEnabled: boolean; hasCastReferences: boolean },
-): string {
-  return [
-    shot.action.trim(),
-    options.isAudioEnabled && shot.dialogue?.trim()
-      ? `Spoken line: "${shot.dialogue.trim()}"`
-      : '',
-    options.hasCastReferences
-      ? 'Keep every person consistent with the reference images.'
-      : '',
-    plan.styleLabel?.trim() ? `Visual style: ${plan.styleLabel.trim()}.` : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-}
-
-/**
- * Identifies the shot inputs a render of one stage is compiled from. Both
- * stages follow the chosen video model, since the draft model is its cheaper
- * sibling. Only the final follows the shot length: a draft always renders the
- * shortest clip. Notes and the transition are left out: they change the
- * edit, not the clip.
+ * Identifies the shot inputs a render of one stage is compiled from:
+ * everything that can enter its prompt or references, and the chosen video
+ * model, since the draft model is its cheaper sibling. Only the final follows
+ * the shot length: a draft renders the shortest clip that holds its cuts,
+ * and the cuts are already in the prompt. Notes and the transition are left
+ * out: they change the edit, not the clip.
  */
 export function shotRenderInputFingerprint(
   plan: StoryboardPlan,
   shot: StoryboardShot,
   stage: StoryboardShotRenderStage,
 ): string {
+  const compiled = compileStoryboardShotPrompt(plan, shot, {
+    isAudioEnabled: true,
+    maxReferences: Number.MAX_SAFE_INTEGER,
+  });
   return storyboardConfigHash({
-    action: shot.action.trim(),
-    dialogue: shot.dialogue?.trim() || undefined,
-    references: storyboardShotRenderReferences(plan, shot),
-    styleLabel: plan.styleLabel?.trim() || undefined,
+    prompt: compiled.prompt,
+    references: compiled.referenceAssetIds,
     format: plan.format,
     videoModelKey: plan.videoModelKey ?? undefined,
     durationSeconds:

@@ -93,7 +93,6 @@ import { TagSerializer } from '@serializers/server/management/tag.serializer';
 import { BrandSerializer } from '@serializers/server/organizations/brand.serializer';
 import {
   CredentialInstagramPagesSerializer,
-  CredentialLinkedinAccountsSerializer,
   CredentialOAuthSerializer,
   CredentialSerializer,
 } from '@serializers/server/organizations/credential.serializer';
@@ -451,28 +450,6 @@ describe('Server Serializers', () => {
       expect(typeof CredentialInstagramPagesSerializer.serialize).toBe(
         'function',
       );
-    });
-  });
-
-  describe('CredentialLinkedinAccountsSerializer', () => {
-    it('serializes the account kind so the picker can tell a page from a profile', () => {
-      const document = CredentialLinkedinAccountsSerializer.serialize([
-        {
-          id: 'urn:li:organization:42',
-          isAlreadyConnected: false,
-          kind: 'organization',
-          label: 'Acme Studio',
-          platform: 'linkedin',
-          username: 'acme',
-        },
-      ]) as { data: Array<{ attributes: Record<string, unknown> }> };
-
-      expect(document.data[0].attributes).toMatchObject({
-        kind: 'organization',
-        label: 'Acme Studio',
-        platform: 'linkedin',
-        username: 'acme',
-      });
     });
   });
 

@@ -3,16 +3,14 @@ import {
   isStoryboardSlideshow,
   type StoryboardCutaway,
   type StoryboardPlan,
-  type StoryboardShot,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import { storyboardShotCast } from '@genfeedai/contracts/api-types/contracts/storyboard-shot-prompt.contract';
 import {
   DRAFT_GENERATION_CONFIG,
   SLIDESHOW_GENERATION_CONFIG,
 } from '@genfeedai/contracts/constants';
 import { BadRequestException } from '@nestjs/common';
 import { z } from 'zod';
-
-const REGEX_SPECIAL_CHARS_PATTERN = /[.*+?^${}()|[\]\\]/g;
 
 /** Terminal operations beyond this are pruned oldest first; live ones never are. */
 export const STILL_JOURNAL_CAPACITY = 64;
@@ -64,26 +62,6 @@ export function appendStillOperations(
     excess -= 1;
     return false;
   });
-}
-
-function mentions(action: string, name: string): boolean {
-  const escaped = name.replace(REGEX_SPECIAL_CHARS_PATTERN, '\\$&');
-  return new RegExp(
-    `(^|[^\\p{L}\\p{N}])${escaped}($|[^\\p{L}\\p{N}])`,
-    'iu',
-  ).test(action);
-}
-
-/** The shot's speaker, then every other cast member its action names. */
-export function storyboardShotCast(plan: StoryboardPlan, shot: StoryboardShot) {
-  const speaker = plan.cast.find((member) => member.id === shot.speakerId);
-  const cast = [
-    ...(speaker ? [speaker] : []),
-    ...plan.cast.filter(
-      (member) => member !== speaker && mentions(shot.action, member.name),
-    ),
-  ];
-  return { speaker, cast };
 }
 
 /**

@@ -118,9 +118,7 @@ export const EnvironmentService = {
   CREDITS_LABEL: 'GEN',
   CREDITS_TRAINING_COST: 500,
 
-  calendly:
-    process.env.NEXT_PUBLIC_CALENDLY_URL ||
-    'https://calendar.app.google/S2Crg8uCe1dVnWRN6',
+  bookingUrl: 'https://calendar.app.google/S2Crg8uCe1dVnWRN6',
 
   get mcpConnectHref(): string {
     return `${this.apps.app}/connect`;

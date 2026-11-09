@@ -2913,6 +2913,24 @@ export async function setupApiMocks(
 
   await routeApi('/avatars/**', handleAvatarRoutes);
 
+  // The voices page and the voice studio read the connected ElevenLabs
+  // account. The collection fallback has no `connection`, so answer with
+  // the documented page shape: no account connected.
+  await routeApi('/voices/elevenlabs/account**', async (r) => {
+    await r.fulfill({
+      body: JSON.stringify({
+        data: {
+          connection: { status: 'disconnected' },
+          hasMore: false,
+          nextPageToken: null,
+          voices: [],
+        },
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
   await routeApi('/prompts/**', handlePromptRoutes);
 
   await routeApi('/trainings/**', handleTrainingRoutes);

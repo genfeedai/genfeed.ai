@@ -115,7 +115,6 @@ export interface WebsiteAnalyticsEventProperties {
 const BOOK_CALL_ACTIONS = new Set([
   'book_call',
   'book_demo',
-  'calendly',
   'demo',
   'schedule_call',
 ]);

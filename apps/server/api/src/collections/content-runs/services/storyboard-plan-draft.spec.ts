@@ -1,5 +1,6 @@
 import {
   assembleStoryboardDraft,
+  fitStoryboardCuts,
   fitStoryboardDurations,
   type StoryboardDraftOutput,
   type StoryboardDraftRequest,
@@ -40,6 +41,8 @@ function drafted(
     speakerId: null,
     isSpokenOnScreen: false,
     durationSeconds: 5,
+    cuts: [],
+    sfx: [],
     ...overrides,
   };
 }
@@ -60,6 +63,51 @@ function request(
     ...overrides,
   };
 }
+
+describe('fitStoryboardCuts', () => {
+  const cut = (
+    startSeconds: number,
+    endSeconds: number,
+    camera: string | null = null,
+  ) => ({
+    startSeconds,
+    endSeconds,
+    framing: 'Close-up',
+    camera,
+  });
+
+  it.each([
+    [
+      [cut(0, 2), cut(2, 6, ' slow push-in ')],
+      6,
+      [
+        { startSeconds: 0, endSeconds: 2, framing: 'Close-up' },
+        {
+          startSeconds: 2,
+          endSeconds: 6,
+          framing: 'Close-up',
+          camera: 'slow push-in',
+        },
+      ],
+    ],
+    [
+      [cut(2, 8), cut(0, 2)],
+      4,
+      [
+        { startSeconds: 0, endSeconds: 1, framing: 'Close-up' },
+        { startSeconds: 1, endSeconds: 4, framing: 'Close-up' },
+      ],
+    ],
+    [
+      [cut(0, 3), cut(2, 3)],
+      6,
+      [{ startSeconds: 0, endSeconds: 3, framing: 'Close-up' }],
+    ],
+    [[], 6, undefined],
+  ])('fits %j into %s seconds', (drafted, duration, expected) => {
+    expect(fitStoryboardCuts(drafted, duration)).toEqual(expected);
+  });
+});
 
 describe('fitStoryboardDurations', () => {
   it('snaps to supported lengths and lets the lower one win ties', () => {
@@ -191,6 +239,52 @@ describe('assembleStoryboardDraft', () => {
       }),
     ).toThrow();
   });
+
+  it.each([
+    ['keeps', 'the direction is unchanged', {}, 'Handheld, rain.'],
+    ['drops', 'the sound changes', { sfx: ['thunder'] }, undefined],
+    [
+      'drops',
+      'the cuts change',
+      {
+        cuts: [
+          { startSeconds: 0, endSeconds: 2, framing: 'Wide', camera: null },
+        ],
+      },
+      undefined,
+    ],
+    ['drops', 'the action changes', { action: 'A hand drops it.' }, undefined],
+  ])(
+    '%s a hand-written video prompt when %s',
+    (_verb, _when, change, expected) => {
+      const current: StoryboardPlan = {
+        ...emptyPlan,
+        shots: [
+          {
+            id: 'a',
+            ordinal: 1,
+            action: 'A hand lifts the product.',
+            onScreenSpeaker: false,
+            durationSeconds: 4,
+            stillFreshness: 'missing',
+            transition: 'cut',
+            videoPrompt: 'Handheld, rain.',
+          },
+        ],
+      };
+      const plan = assembleStoryboardDraft(
+        request({ current, mode: 'revise' }),
+        {
+          title: 'T',
+          logline: '',
+          shots: [
+            drafted({ existingShotId: 'a', durationSeconds: 4, ...change }),
+          ],
+        },
+      );
+      expect(plan.shots[0].videoPrompt).toBe(expected);
+    },
+  );
 
   it('keeps ids and notes of referenced shots when revising', () => {
     const current: StoryboardPlan = {

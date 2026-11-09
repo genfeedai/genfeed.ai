@@ -12,7 +12,7 @@ export interface ServiceOfferingProps {
   includes: string[];
   /** How it works — ordered steps */
   process: { step: string; description: string }[];
-  /** CTA link (Calendly) */
+  /** CTA link (booking page) */
   ctaHref: string;
 }
 
@@ -25,7 +25,7 @@ export interface TrainingPackageProps {
   includes: string[];
   /** Price label (e.g. "$499", "Custom") */
   priceLabel: string;
-  /** CTA link (Calendly) */
+  /** CTA link (booking page) */
   ctaHref: string;
 }
 

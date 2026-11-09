@@ -29,6 +29,10 @@ export const storyboardVideoModelCapabilitySchema = z
       ),
     defaultDurationSeconds: z.number().finite().positive().max(60).nullable(),
     hasInterpolation: z.boolean(),
+    /** Image references the model accepts per clip. */
+    maxReferences: z.number().int().nonnegative().optional(),
+    /** The model renders sound, so dialogue and sound effects reach it. */
+    hasAudio: z.boolean().optional(),
     supportedFormats: z.array(z.enum(['9:16', '16:9', '1:1', '4:5'])),
     capabilitySource: z.enum(['catalog', 'registry']),
   })

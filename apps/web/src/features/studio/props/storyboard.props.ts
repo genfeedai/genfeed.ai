@@ -14,6 +14,7 @@ import type { StoryboardCharacterReplacement } from '@genfeedai/contracts/api-ty
 import type {
   StoryboardCastMember,
   StoryboardCutaway,
+  StoryboardReferenceRole,
   StoryboardSegment,
   StoryboardShot,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
@@ -21,7 +22,10 @@ import type {
   StoryboardRun,
   StoryboardTranslationLanguage,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
-import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
+import type {
+  StoryboardRunCapabilities,
+  StoryboardVideoModelCapability,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import type { StoryboardRunSummary } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
 import type {
   StoryboardShotRender,
@@ -249,6 +253,22 @@ export interface StoryboardShotRenderActions {
   readonly start: (quote: StoryboardShotRenderQuote) => Promise<StoryboardRun>;
 }
 
+export interface StoryboardShotDirectionProps {
+  readonly plan: StoryboardEditablePlan;
+  readonly shot: StoryboardShot;
+  /** The storyboard's video model; the prompt compiles for its limits. */
+  readonly model?: Pick<
+    StoryboardVideoModelCapability,
+    'label' | 'maxReferences' | 'hasAudio'
+  >;
+  /** Thumbnail URLs of the shot's role references, by asset id. */
+  readonly referenceUrls: Readonly<Record<string, string | undefined>>;
+  readonly isDisabled: boolean;
+  readonly onPatch: (patch: Partial<StoryboardShot>) => void;
+  /** Picks images from the Library and gives them this role. */
+  readonly onAddReference: (role: StoryboardReferenceRole) => void;
+}
+
 export interface StoryboardShotRendersProps {
   readonly ordinal: number;
   readonly draft?: StoryboardShotRender;
@@ -403,6 +423,8 @@ export interface StoryboardShotCardProps {
   readonly startSeconds: number;
   readonly still?: StoryboardShotCardStill;
   readonly supportedDurations: readonly number[];
+  /** Cuts, sound effects, reference roles and the compiled video prompt. */
+  readonly direction?: ReactNode;
   /** The shot's draft and final video, once the storyboard is approved. */
   readonly renders?: ReactNode;
 }

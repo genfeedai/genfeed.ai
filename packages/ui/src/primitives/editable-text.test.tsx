@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EditableText } from '@ui/primitives/editable-text';
 import { describe, expect, it, vi } from 'vitest';
@@ -217,6 +217,47 @@ describe('EditableText', () => {
     expect(
       screen.getByRole('button', { name: 'Edit brand name' }),
     ).toHaveTextContent('Acme Labs');
+  });
+
+  it('does not save again when the editor blurs right after a save', async () => {
+    const user = userEvent.setup();
+    const saved: string[] = [];
+    const pendingSaves: Array<() => void> = [];
+    render(
+      <EditableText
+        ariaLabel="Edit brand description"
+        isMultiline
+        onSave={(next) => {
+          saved.push(next);
+          return new Promise<void>((resolve) => pendingSaves.push(resolve));
+        }}
+        value="Original"
+      />,
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: 'Edit brand description' }),
+    );
+    const editor = screen.getByRole('textbox', {
+      name: 'Edit brand description',
+    });
+    await user.clear(editor);
+    await user.type(editor, 'Geometric sans');
+    await user.keyboard('{Control>}{Enter}{/Control}');
+
+    // The browser can blur the editor after the save settles but before
+    // React re-renders it closed.
+    pendingSaves[0]?.();
+    await Promise.resolve();
+    await Promise.resolve();
+    fireEvent.blur(editor);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Edit brand description' }),
+      ).toBeInTheDocument(),
+    );
+    expect(saved).toEqual(['Geometric sans']);
   });
 
   it('reverts to the captured original when save fails', async () => {
