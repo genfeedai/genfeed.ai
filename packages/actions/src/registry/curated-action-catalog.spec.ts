@@ -2,10 +2,12 @@ import { GENERATE_CONTENT_TEXT_CREDITS } from '@genfeedai/contracts/constants/to
 import { describe, expect, it } from 'vitest';
 import {
   CURATED_ACTION_CATALOG,
+  type CuratedActionCatalogEntry,
   isActionOnSurface,
   isPublishingApprovalRequired,
 } from './curated-action-catalog';
 import { isMcpListedToolName } from './mcp-catalog-calls';
+import { isReadOnlyToolName } from './mutation-policy';
 import { SOURCE_TOOLS } from './source/index';
 import { ALL_TOOLS, getToolByName, getToolsForSurface } from './tool-registry';
 import { CORE_TOOLSET_NAME, isToolsetName } from './toolsets';
@@ -491,4 +493,75 @@ it('exposes explicit account recovery as a strict free agent-only direct action'
     (candidate) => candidate.name === 'link_external_publication_credential',
   );
   expect(entry && isPublishingApprovalRequired(entry)).toBe(false);
+});
+
+describe('curated action catalog policy fields', () => {
+  const surfaceNames = (entry: CuratedActionCatalogEntry): string[] => [
+    ...entry.surfaces,
+  ];
+
+  it('declares a mutation policy for every write tool and none for a read', () => {
+    const missing = CURATED_ACTION_CATALOG.filter(
+      (entry) =>
+        !isReadOnlyToolName(entry.name) && !('mutationPolicy' in entry),
+    ).map((entry) => entry.name);
+    const onReads = CURATED_ACTION_CATALOG.filter(
+      (entry) => isReadOnlyToolName(entry.name) && 'mutationPolicy' in entry,
+    ).map((entry) => entry.name);
+
+    expect(missing).toEqual([]);
+    expect(onReads).toEqual([]);
+  });
+
+  it('classifies only write tools into a confirmation class or MCP approval scope', () => {
+    const misplaced = CURATED_ACTION_CATALOG.filter(
+      (entry: CuratedActionCatalogEntry) =>
+        (entry.actionClass !== undefined ||
+          entry.mcpApproval !== undefined ||
+          entry.isMcpApprovalNeverSkipped === true) &&
+        !('mutationPolicy' in entry),
+    ).map((entry) => entry.name);
+
+    expect(misplaced).toEqual([]);
+  });
+
+  it('grants a Claude MCP tool only when it is listed on the MCP surface', () => {
+    const unreachable = CURATED_ACTION_CATALOG.filter(
+      (entry: CuratedActionCatalogEntry) =>
+        (entry.claudeAccess === 'mcp' || entry.claudeAccess === 'both') &&
+        !surfaceNames(entry).includes('mcp'),
+    ).map((entry) => entry.name);
+
+    expect(unreachable).toEqual([]);
+  });
+
+  it('puts MCP-only policy on tools that are on the MCP surface', () => {
+    const unreachable = CURATED_ACTION_CATALOG.filter(
+      (entry: CuratedActionCatalogEntry) =>
+        (entry.mcpBrandRequired === true || entry.mcpApproval !== undefined) &&
+        !surfaceNames(entry).includes('mcp'),
+    ).map((entry) => entry.name);
+
+    expect(unreachable).toEqual([]);
+  });
+
+  it('derives the published tool fields from the one catalog entry', () => {
+    expect(getToolByName('create_scheduled_release')).toMatchObject({
+      annotations: {
+        destructiveHint: true,
+        openWorldHint: true,
+        readOnlyHint: false,
+      },
+      mutationPolicy: 'approval-required',
+      surfaces: { agent: false, mcp: true },
+      toolset: 'scheduler',
+    });
+    expect(getToolByName('get_account')).toMatchObject({
+      uiActionType: 'credits_balance_card',
+    });
+    expect(getToolByName('fetch_x_posts')).toMatchObject({
+      dataSource: 'provider-paid',
+      mutationPolicy: 'direct',
+    });
+  });
 });

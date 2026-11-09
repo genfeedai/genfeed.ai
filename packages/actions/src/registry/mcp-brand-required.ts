@@ -1,17 +1,13 @@
 import type { ToolParameterSchema } from '../interfaces/tool-definition.interface';
+import { curatedActionNames } from './curated-action-catalog';
 
 /**
  * MCP generation tools that always run under one explicit brand (#5786).
  * Agent threads carry a validated brand scope, so only the MCP view of these
  * tools makes `brandId` required; the canonical definitions stay shared.
  */
-export const MCP_BRAND_REQUIRED_TOOL_NAMES: ReadonlySet<string> = new Set([
-  'enhance_prompt',
-  'generate',
-  'generate_content',
-  'generate_turbo_content',
-  'transform_media',
-]);
+export const MCP_BRAND_REQUIRED_TOOL_NAMES: ReadonlySet<string> =
+  curatedActionNames((entry) => entry.mcpBrandRequired === true);
 
 export const MCP_BRAND_ID_DESCRIPTION =
   'Brand that owns this generation. Required on MCP: call get_brands and pass one of its ids. A call without it is rejected with the list of your brands.';

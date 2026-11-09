@@ -347,7 +347,6 @@
       "version": "1.0.0",
       "dependencies": {
         "@anthropic-ai/sdk": "1.4.0",
-        "@aws-sdk/client-cloudfront": "3.1161.0",
         "@better-auth/infra": "0.4.26",
         "@genfeedai/actions": "workspace:*",
         "@genfeedai/agent": "workspace:*",
@@ -1324,8 +1323,6 @@
     "@augment-vir/test": ["@augment-vir/test@32.5.0", "", { "dependencies": { "@augment-vir/assert": "^32.5.0", "@augment-vir/common": "^32.5.0", "@date-vir/duration": "^9.2.0", "@virmator/test": "^14.36.3" }, "peerDependencies": { "@open-wc/testing-helpers": "*", "@playwright/test": "*", "@web/test-runner-commands": "*", "@web/test-runner-visual-regression": "*", "element-vir": "^27.0.0", "pixelmatch": ">=5", "pngjs": ">=7", "sharp": ">=0.34", "spa-router-vir": ">=6", "url-vir": ">=2" } }, "sha512-0bMWK+qJnDMv0IZcDD7/NJC5CGTxbK+GcB/fz1x6v/munFMJiGUcogaNgP9VeP1tBezD85OkTUAUuZr6oFZfmg=="],
 
     "@aws-sdk/checksums": ["@aws-sdk/checksums@3.1002.1", "", { "dependencies": { "@aws-sdk/core": "^3.979.1", "@aws-sdk/types": "^3.975.0", "@smithy/core": "^3.38.0", "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-CXNESwkQC9jdrUG6cKXBfudVt1frGcYQykcCYbNclVrsewuGMbo3PlFjRteMe4OftNAqhyc3xC2jTz7SUqLasQ=="],
-
-    "@aws-sdk/client-cloudfront": ["@aws-sdk/client-cloudfront@3.1161.0", "", { "dependencies": { "@aws-sdk/core": "^3.979.1", "@aws-sdk/credential-provider-node": "^3.972.92", "@aws-sdk/types": "^3.975.0", "@smithy/core": "^3.38.0", "@smithy/fetch-http-handler": "^5.8.0", "@smithy/node-http-handler": "^4.14.0", "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-HLNbMg3Mndt3NwEA+ZxUiy8NFafmx5IE5n4r/cY098oM7ba2vUK69R1SKs2CgtZbl2MlJPWXzQoeYQ1UYPpJlQ=="],
 
     "@aws-sdk/client-cloudwatch": ["@aws-sdk/client-cloudwatch@3.1161.0", "", { "dependencies": { "@aws-sdk/core": "^3.979.1", "@aws-sdk/credential-provider-node": "^3.972.92", "@aws-sdk/types": "^3.975.0", "@smithy/core": "^3.38.0", "@smithy/fetch-http-handler": "^5.8.0", "@smithy/middleware-compression": "^4.6.2", "@smithy/node-http-handler": "^4.14.0", "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-fJWxWOXrTUimcxOLdl8r3r3xUW7kwIsmmsklcdswMJDB3vFKNpD67oe9qea7YGh9fWAnBJqCvhJ2qE5+XyccGg=="],
 

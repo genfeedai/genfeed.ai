@@ -46,7 +46,12 @@ const config: KnipConfig = {
   workspaces: {
     // Root
     '.': {
-      entry: ['scripts/**/*.{ts,mts}'],
+      entry: [
+        'scripts/**/*.{ts,mts,mjs,cjs}',
+        // Loaded by vitest and playwright config files, not imported.
+        'tests/setup.ts',
+        'playwright/configs/*.ts',
+      ],
       ignore: [
         'dist/**',
         '.agents/**',
@@ -59,7 +64,16 @@ const config: KnipConfig = {
 
     // Backend services — NestJS apps
     'apps/server/api': {
-      entry: ['src/main.ts'],
+      entry: [
+        'src/main.ts',
+        // Run by webpack and vitest from their config files and package scripts.
+        '*.webpack.config.cjs',
+        'vitest.learning-runtime.config.ts',
+        'src/seeds/*.entrypoint.ts',
+        // `scripts/check-serializer-drift.ts` globs these to match each
+        // Prisma-backed schema with its serializer. Nothing imports them.
+        'src/**/schemas/*.schema.ts',
+      ],
       ignore: ['dist/**', 'scripts/**'],
     },
     'apps/server/discord': {
@@ -67,11 +81,13 @@ const config: KnipConfig = {
       ignore: ['dist/**'],
     },
     'apps/server/files': {
-      entry: ['src/main.ts'],
+      // Remotion bundles this by path in `remotion-renderer.service.ts`.
+      entry: ['src/main.ts', 'src/remotion/index.tsx'],
       ignore: ['dist/**'],
     },
     'apps/server/mcp': {
-      entry: ['src/main.ts'],
+      // `ui-bundle.cjs` bundles the preview UI from these paths.
+      entry: ['src/main.ts', 'src/ui/next-image.tsx', 'src/ui/preview.css'],
       ignore: ['dist/**'],
     },
     'apps/server/notifications': {
@@ -87,18 +103,52 @@ const config: KnipConfig = {
       ignore: ['dist/**'],
     },
     'apps/server/workers': {
-      entry: ['src/main.ts'],
+      entry: [
+        'src/main.ts',
+        '*.webpack.config.cjs',
+        'src/maintenance/*.entrypoint.ts',
+      ],
       ignore: ['dist/**'],
     },
 
     // Frontend apps — Next.js
     'apps/web': {
-      entry: ['app/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'],
+      entry: [
+        'app/**/*.{ts,tsx}',
+        'packages/**/*.{ts,tsx}',
+        // Aliased from `vitest.config.mts`.
+        'tests/*.stub.ts',
+      ],
       ignore: ['dist/**', '.next/**', 'node_modules/**'],
     },
     'apps/marketing': {
-      entry: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
+      entry: [
+        'app/**/*.{ts,tsx}',
+        'src/**/*.{ts,tsx}',
+        'vitest.setup.ts',
+        'scripts/*.ts',
+      ],
       ignore: ['dist/**', '.next/**', 'node_modules/**'],
+    },
+
+    // Browser extension, desktop shell, docs and Prisma tooling: files loaded
+    // from HTML pages, CSS imports and package scripts.
+    'apps/extension': {
+      entry: [
+        'scripts/*.mjs',
+        'src/tailwind.css',
+        'src/theme/theme-prepaint.ts',
+      ],
+    },
+    'apps/desktop': {
+      entry: ['scripts/*.cjs'],
+    },
+    'apps/docs': {
+      entry: ['content/**/_meta.ts'],
+    },
+    'packages/prisma': {
+      // `scripts/*.ts` are run by hand against a development database.
+      entry: ['src/index.ts', 'src/**/*.ts', 'scripts/*.ts'],
     },
 
     // Shared packages — barrel exports

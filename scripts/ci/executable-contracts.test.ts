@@ -23,6 +23,10 @@ const REPOSITORY_CONTRACTS = [
     name: 'untranslated string ratchet',
   },
   {
+    command: ['bun', 'run', 'check:dead-code'],
+    name: 'dead-code ratchet',
+  },
+  {
     command: ['bun', 'run', 'check:inline-types'],
     name: 'inline type ratchet',
   },
