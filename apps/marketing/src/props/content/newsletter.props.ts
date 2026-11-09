@@ -20,6 +20,8 @@ export interface NewsletterSubscribeFormProps {
   title?: string;
   description?: string;
   className?: string;
+  /** Field above the button at every width, for narrow columns. */
+  isStacked?: boolean;
 }
 
 export interface NewsletterIssueListProps {

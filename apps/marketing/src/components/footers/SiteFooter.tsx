@@ -163,6 +163,7 @@ export default function SiteFooter({
                 <NewsletterSubscribeForm
                   brandHandle={GENFEED_BRAND_HANDLE}
                   description="What we shipped and what worked, by email."
+                  isStacked
                   source="footer"
                 />
                 <Link

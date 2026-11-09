@@ -23,6 +23,7 @@ export default function NewsletterSubscribeForm({
   brandId,
   className,
   description,
+  isStacked = false,
   source,
   sourceRef,
   title,
@@ -78,7 +79,11 @@ export default function NewsletterSubscribeForm({
       ) : (
         <Form
           aria-label="Subscribe by email"
-          className="flex flex-col gap-2 sm:flex-row"
+          className={
+            isStacked
+              ? 'flex flex-col gap-2'
+              : 'flex flex-col gap-2 sm:flex-row'
+          }
           spacing="none"
           onSubmit={(event) => void handleSubmit(event)}
         >
