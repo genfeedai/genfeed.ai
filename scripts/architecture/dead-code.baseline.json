@@ -793,7 +793,7 @@
     "apps/web/src/features/studio/props/generation-setup.props.ts": 8,
     "apps/web/src/features/studio/props/storyboard-presets.props.ts": 2,
     "apps/web/src/features/studio/props/storyboard.props.ts": 8,
-    "apps/web/src/features/studio/props/studio-playground.props.ts": 2,
+    "apps/web/src/features/studio/props/studio-playground.props.ts": 1,
     "apps/web/src/features/studio/storyboard/hooks/use-storyboard-assets.ts": 1,
     "apps/web/src/features/studio/storyboard/hooks/use-storyboard-run.ts": 1,
     "apps/web/src/features/studio/storyboard/utils/storyboard-run.ts": 1,
