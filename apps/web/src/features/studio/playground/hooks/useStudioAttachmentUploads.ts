@@ -10,7 +10,7 @@ import type { AttachmentItem } from '@genfeedai/props/ui/attachments.props';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import { useCallback } from 'react';
 
-export const STUDIO_REFERENCE_TYPES = ['image/*', 'video/*'];
+const STUDIO_REFERENCE_TYPES = ['image/*', 'video/*'];
 
 export interface UseStudioAttachmentUploadsParams {
   agentApiService: ReturnType<typeof useAgentApiService>;
