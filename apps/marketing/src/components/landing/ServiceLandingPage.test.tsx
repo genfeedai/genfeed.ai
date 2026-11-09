@@ -31,7 +31,7 @@ vi.mock('@web-components/landing/LandingFooter', () => ({
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
     apps: { app: 'https://app.genfeed.ai' },
-    calendly: 'https://calendly.com/genfeed',
+    bookingUrl: 'https://example.com/book',
   },
 }));
 
@@ -80,7 +80,7 @@ describe('ServiceLandingPage', () => {
       }
       // Service calls open the configured booking page directly.
       for (const link of bookCall) {
-        expect(link).toHaveAttribute('href', 'https://calendly.com/genfeed');
+        expect(link).toHaveAttribute('href', 'https://example.com/book');
       }
       expect(screen.queryByText('Booking link')).not.toBeInTheDocument();
     },
@@ -96,7 +96,7 @@ describe('ServiceLandingPage', () => {
 
     expect(heroLinks.slice(0, 2)).toEqual(['Book a call', 'Start free']);
     for (const link of screen.getAllByRole('link', { name: 'Book a call' })) {
-      expect(link).toHaveAttribute('href', 'https://calendly.com/genfeed');
+      expect(link).toHaveAttribute('href', 'https://example.com/book');
     }
     expect(screen.getByText('Booking link')).toBeInTheDocument();
   });
@@ -107,7 +107,7 @@ describe('ServiceLandingPage', () => {
     const header = within(screen.getByRole('banner'));
     expect(header.getByRole('link', { name: 'Book a call' })).toHaveAttribute(
       'href',
-      'https://calendly.com/genfeed',
+      'https://example.com/book',
     );
     expect(
       screen.getByRole('heading', { name: 'What does pricing look like?' })

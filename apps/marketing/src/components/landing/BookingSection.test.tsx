@@ -4,7 +4,7 @@ import BookingSection from './BookingSection';
 
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
-    calendly: 'https://calendar.app.google/S2Crg8uCe1dVnWRN6',
+    bookingUrl: 'https://calendar.app.google/S2Crg8uCe1dVnWRN6',
   },
 }));
 
