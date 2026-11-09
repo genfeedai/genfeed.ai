@@ -125,6 +125,7 @@ function font(overrides: Partial<Asset> = {}): Asset {
     parentArticleId: null,
     category: 'FONT',
     referenceCategory: null,
+    kitSlot: null,
     externalId: null,
     localAssetId: null,
     cloudObjectKey: 'brands/brand/font.woff2',
