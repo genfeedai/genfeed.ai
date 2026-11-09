@@ -34,6 +34,7 @@ export default function ProfileImages({
               isPublicProfile={true}
             />
             <ProfileMediaCredit
+              mediaId={image.id}
               modelKey={image.model}
               modelLabel={image.model ? modelCredits[image.model] : undefined}
             />

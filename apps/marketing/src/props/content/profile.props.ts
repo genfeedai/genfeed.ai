@@ -23,6 +23,8 @@ export interface ProfileImagesProps {
 }
 
 export interface ProfileMediaCreditProps {
+  /** The asset's id, quoted in a report so support can find it. */
+  mediaId: string;
   /** The catalog label of the model that made the item, when it is listed. */
   modelLabel?: string;
   modelKey?: string;

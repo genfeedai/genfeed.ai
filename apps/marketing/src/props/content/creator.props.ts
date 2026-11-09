@@ -133,3 +133,23 @@ export interface SupportCreatorButtonProps {
   className?: string;
   handle: string;
 }
+
+/** A section of the community gallery, one per sub-nav link. */
+export type CommunitySection =
+  | 'articles'
+  | 'creators'
+  | 'discover'
+  | 'images'
+  | 'posts'
+  | 'videos';
+
+export interface CommunityNavProps {
+  active: CommunitySection;
+}
+
+export interface CommunitySectionLayoutProps {
+  active: CommunitySection;
+  children: ReactNode;
+  description: string;
+  title: string;
+}

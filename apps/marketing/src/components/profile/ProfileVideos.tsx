@@ -34,6 +34,7 @@ export default function ProfileVideos({
               isPublicProfile={true}
             />
             <ProfileMediaCredit
+              mediaId={video.id}
               modelKey={video.model}
               modelLabel={video.model ? modelCredits[video.model] : undefined}
             />

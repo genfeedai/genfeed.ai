@@ -3,8 +3,23 @@ import { modelCatalogHref } from '@data/model-credits';
 import type { ProfileMediaCreditProps } from '@props/content/profile.props';
 import Link from 'next/link';
 
-/** Under a profile image or video: what made it, and a way to make one. */
+const REPORT_EMAIL = 'support@genfeed.ai';
+
+/** A prefilled email to support that names the asset being reported. */
+export function buildReportHref(mediaId: string): string {
+  const params = new URLSearchParams({
+    body: `I want to report this asset on genfeed.ai (id ${mediaId}). Reason:`,
+    subject: 'Report content on genfeed.ai',
+  });
+  return `mailto:${REPORT_EMAIL}?${params.toString().replaceAll('+', '%20')}`;
+}
+
+/**
+ * Under a public image or video: what made it, a way to make one, and a way
+ * to report it.
+ */
 export default function ProfileMediaCredit({
+  mediaId,
   modelKey,
   modelLabel,
 }: ProfileMediaCreditProps): React.ReactElement {
@@ -26,6 +41,12 @@ export default function ProfileMediaCredit({
         href={getAppSignUpUrl()}
       >
         Make your own
+      </a>
+      <a
+        className="ml-auto hover:text-foreground"
+        href={buildReportHref(mediaId)}
+      >
+        Report
       </a>
     </p>
   );

@@ -10,6 +10,7 @@ import { getPublicModels } from '@public/models/models-loader';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import CommunityCreatorCard from '@web-components/creator/CommunityCreatorCard';
+import CommunityNav from '@web-components/creator/CommunityNav';
 import CreatorArticleGrid from '@web-components/creator/CreatorArticleGrid';
 import CreatorSection from '@web-components/creator/CreatorSection';
 import HomeFooter from '@web-components/home/_footer';
@@ -74,6 +75,8 @@ export default async function CommunityPage(): Promise<React.ReactElement> {
           </div>
         </header>
 
+        <CommunityNav active="discover" />
+
         <div className="space-y-16">
           <section aria-labelledby="community-creators" className="space-y-4">
             <h2
@@ -117,11 +120,19 @@ export default async function CommunityPage(): Promise<React.ReactElement> {
             <CreatorArticleGrid articles={articles} isBylineVisible />
           </CreatorSection>
 
-          <CreatorSection title="Latest videos" total={videos.length}>
+          <CreatorSection
+            href="/community/videos"
+            title="Latest videos"
+            total={videos.length}
+          >
             <ProfileVideos modelCredits={modelCredits} videos={videos} />
           </CreatorSection>
 
-          <CreatorSection title="Latest images" total={images.length}>
+          <CreatorSection
+            href="/community/images"
+            title="Latest images"
+            total={images.length}
+          >
             <ProfileImages images={images} modelCredits={modelCredits} />
           </CreatorSection>
         </div>

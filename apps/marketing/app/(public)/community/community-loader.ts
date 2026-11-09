@@ -6,10 +6,21 @@ import { PublicService } from '@services/external/public.service';
 import { cache } from 'react';
 
 export const COMMUNITY_CREATOR_LIMIT = 12;
+/** Every public creator the Creators page lists. */
+export const COMMUNITY_DIRECTORY_LIMIT = 48;
 const MEDIA_PER_CREATOR = 4;
 const MEDIA_CREATOR_LIMIT = 8;
+/** The Videos and Images pages read further than the Discover preview. */
+const GALLERY_MEDIA_PER_CREATOR = 6;
+const GALLERY_CREATOR_LIMIT = 24;
 const LATEST_MEDIA_LIMIT = 12;
+const GALLERY_MEDIA_LIMIT = 48;
 const LATEST_ARTICLE_LIMIT = 6;
+
+export interface CommunityMedia {
+  images: ImageModel[];
+  videos: Video[];
+}
 
 export interface CommunityPageData {
   articles: Article[];
@@ -23,6 +34,88 @@ function newestFirst<T extends { createdAt?: string }>(items: T[]): T[] {
     (right.createdAt ?? '').localeCompare(left.createdAt ?? ''),
   );
 }
+
+function withSlug(brands: Brand[]): Brand[] {
+  return brands.filter((brand) => Boolean(brand.slug));
+}
+
+/**
+ * The newest images and videos of the given creators, read per creator so
+ * only work from public profiles appears. A creator whose listing fails is
+ * skipped.
+ */
+async function loadCreatorMedia(
+  creators: Brand[],
+  perCreator: number,
+  limit: number,
+): Promise<CommunityMedia> {
+  const publicService = PublicService.getInstance();
+  const mediaQuery = (brandId: string) => ({
+    brand: brandId,
+    limit: perCreator,
+    page: 1,
+    sort: 'createdAt: -1',
+  });
+
+  const [videoPages, imagePages] = await Promise.all([
+    Promise.allSettled(
+      creators.map((brand) =>
+        publicService.findPublicVideosPage(mediaQuery(brand.id)),
+      ),
+    ),
+    Promise.allSettled(
+      creators.map((brand) =>
+        publicService.findPublicImagesPage(mediaQuery(brand.id)),
+      ),
+    ),
+  ]);
+
+  const videos = videoPages.flatMap((result) =>
+    result.status === 'fulfilled' ? result.value.items : [],
+  );
+  const images = imagePages.flatMap((result) =>
+    result.status === 'fulfilled' ? result.value.items : [],
+  );
+
+  return {
+    images: newestFirst(images).slice(0, limit),
+    videos: newestFirst(videos).slice(0, limit),
+  };
+}
+
+/** Every public creator with a handle, highlighted ones first. */
+export const getCommunityCreators = cache(async (): Promise<Brand[]> => {
+  const publicService = PublicService.getInstance();
+  const [highlighted, all] = await Promise.allSettled([
+    publicService.findPublicBrands({
+      isHighlighted: 'true',
+      limit: COMMUNITY_CREATOR_LIMIT,
+    }),
+    publicService.findPublicBrands({ limit: COMMUNITY_DIRECTORY_LIMIT }),
+  ]);
+  const ordered = [
+    ...(highlighted.status === 'fulfilled' ? highlighted.value : []),
+    ...(all.status === 'fulfilled' ? all.value : []),
+  ];
+  const seen = new Set<string>();
+  return withSlug(ordered).filter((brand) => {
+    if (seen.has(brand.id)) {
+      return false;
+    }
+    seen.add(brand.id);
+    return true;
+  });
+});
+
+/** The gallery behind the Videos and Images pages. */
+export const getCommunityMedia = cache(async (): Promise<CommunityMedia> => {
+  const creators = await getCommunityCreators();
+  return loadCreatorMedia(
+    creators.slice(0, GALLERY_CREATOR_LIMIT),
+    GALLERY_MEDIA_PER_CREATOR,
+    GALLERY_MEDIA_LIMIT,
+  );
+});
 
 /**
  * The community gallery: highlighted public creators, their newest
@@ -47,43 +140,21 @@ export const getCommunityPageData = cache(
       }),
     ]);
 
-    const creators = (
-      creatorsResult.status === 'fulfilled' ? creatorsResult.value : []
-    ).filter((brand) => Boolean(brand.slug));
-    const mediaCreators = creators.slice(0, MEDIA_CREATOR_LIMIT);
-    const mediaQuery = (brandId: string) => ({
-      brand: brandId,
-      limit: MEDIA_PER_CREATOR,
-      page: 1,
-      sort: 'createdAt: -1',
-    });
-
-    const [videoPages, imagePages] = await Promise.all([
-      Promise.allSettled(
-        mediaCreators.map((brand) =>
-          publicService.findPublicVideosPage(mediaQuery(brand.id)),
-        ),
-      ),
-      Promise.allSettled(
-        mediaCreators.map((brand) =>
-          publicService.findPublicImagesPage(mediaQuery(brand.id)),
-        ),
-      ),
-    ]);
-
-    const videos = videoPages.flatMap((result) =>
-      result.status === 'fulfilled' ? result.value.items : [],
+    const creators = withSlug(
+      creatorsResult.status === 'fulfilled' ? creatorsResult.value : [],
     );
-    const images = imagePages.flatMap((result) =>
-      result.status === 'fulfilled' ? result.value.items : [],
+    const { images, videos } = await loadCreatorMedia(
+      creators.slice(0, MEDIA_CREATOR_LIMIT),
+      MEDIA_PER_CREATOR,
+      LATEST_MEDIA_LIMIT,
     );
 
     return {
       articles:
         articlesResult.status === 'fulfilled' ? articlesResult.value.items : [],
       creators,
-      images: newestFirst(images).slice(0, LATEST_MEDIA_LIMIT),
-      videos: newestFirst(videos).slice(0, LATEST_MEDIA_LIMIT),
+      images,
+      videos,
     };
   },
 );
