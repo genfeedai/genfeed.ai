@@ -1,5 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@services/core/environment.service', () => ({
+  EnvironmentService: { apps: { app: 'https://app.example.test' } },
+}));
+
 import {
+  buildRecreateHref,
   buildRecreatePrompt,
   formatCompactCount,
   formatMediaDuration,
@@ -71,5 +77,13 @@ describe('buildRecreatePrompt', () => {
     ['video' as const, {}, 'Make a video like the one I saw on genfeed.ai'],
   ])('asks for a %s like the one seen', (kind, source, expected) => {
     expect(buildRecreatePrompt(kind, source)).toBe(expected);
+  });
+});
+
+describe('buildRecreateHref', () => {
+  it('opens the agent in manual mode with the prompt filled in', () => {
+    expect(buildRecreateHref('Make an image like the one I saw')).toBe(
+      'https://app.example.test/agent/new?agentMode=manual&prompt=Make+an+image+like+the+one+I+saw',
+    );
   });
 });

@@ -1,5 +1,5 @@
 import type { IBrand, IMetadata } from '@genfeedai/contracts/interfaces';
-import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
+import { buildUntrustedAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { EnvironmentService } from '@services/core/environment.service';
 
 /** A public image or video as the gallery reads it. */
@@ -76,7 +76,11 @@ export function buildRecreatePrompt(
   return `Make ${noun} like ${seenAt}${model}`;
 }
 
-/** Opens the Genfeed agent with the recreate prompt filled in. */
+/**
+ * Opens the Genfeed agent with the recreate prompt filled in. The prompt
+ * carries public creator data, so the agent runs in manual mode and asks
+ * before spending credits.
+ */
 export function buildRecreateHref(prompt: string): string {
-  return `${EnvironmentService.apps.app}${buildAgentPromptHref(prompt)}`;
+  return `${EnvironmentService.apps.app}${buildUntrustedAgentPromptHref(prompt)}`;
 }
