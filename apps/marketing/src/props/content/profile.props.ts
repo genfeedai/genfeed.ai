@@ -1,11 +1,13 @@
-import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
+import type {
+  IImage,
+  IPublicBrandSocial,
+  IVideo,
+} from '@genfeedai/contracts/interfaces';
 
 export interface ProfileSocialLinksProps {
+  /** The creator's Genfeed handle, carried as the UTM source. */
   handle: string;
-  youtubeUrl?: string;
-  tiktokUrl?: string;
-  instagramUrl?: string;
-  twitterUrl?: string;
+  socials?: IPublicBrandSocial[];
 }
 
 export interface ProfileVideosProps {

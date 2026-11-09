@@ -5,6 +5,7 @@ import { ImagesService } from '@api/collections/images/services/images.service';
 import { LinksService } from '@api/collections/links/services/links.service';
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { PublicBrandSocialsService } from '@api/endpoints/public/services/public-brand-socials.service';
 import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -74,6 +75,7 @@ export class PublicBrandsController {
     private readonly videosService: VideosService,
     private readonly logger: LoggerService,
     private readonly publicViewsService: PublicViewsService,
+    private readonly publicBrandSocialsService: PublicBrandSocialsService,
   ) {}
 
   /**
@@ -177,7 +179,7 @@ export class PublicBrandsController {
     return serializeSingle(
       request,
       PublicBrandSerializer,
-      await this.attachPublicBrandAsset(data),
+      await this.attachPublicProfile(data),
     );
   }
 
@@ -212,7 +214,7 @@ export class PublicBrandsController {
     return serializeSingle(
       request,
       PublicBrandSerializer,
-      await this.attachPublicBrandAsset(data),
+      await this.attachPublicProfile(data),
     );
   }
 
@@ -438,6 +440,13 @@ export class PublicBrandsController {
     );
 
     return brand ? null : 'Brand not found';
+  }
+
+  /** A public profile: the brand with its logo, banner and connected socials. */
+  private async attachPublicProfile(brand: BrandDocument) {
+    return this.publicBrandSocialsService.attach(
+      await this.attachPublicBrandAsset(brand),
+    );
   }
 
   /**

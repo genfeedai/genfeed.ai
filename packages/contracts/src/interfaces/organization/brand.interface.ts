@@ -1,4 +1,4 @@
-import type { AssetScope } from '../..';
+import type { AssetScope, CredentialPlatform } from '../..';
 import type {
   IAsset,
   IBaseEntity,
@@ -104,8 +104,20 @@ export interface IBrand extends IBaseEntity {
   scope: AssetScope;
   isActive: boolean;
   isHighlighted?: boolean;
+  /** The social accounts the brand connected, as public profile links. */
+  socials?: IPublicBrandSocial[];
 
   agentConfig?: IBrandAgentConfig;
+}
+
+/**
+ * A connected social account as a public profile shows it: the platform, the
+ * public handle and the profile link. Nothing about the credential itself.
+ */
+export interface IPublicBrandSocial {
+  handle: string;
+  platform: CredentialPlatform;
+  url: string;
 }
 
 export interface IBrandAgentVoice {

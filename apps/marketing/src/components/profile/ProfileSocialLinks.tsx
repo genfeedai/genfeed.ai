@@ -1,6 +1,12 @@
+import { CredentialPlatform } from '@genfeedai/contracts';
 import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
 import {
+  FacebookIcon,
   InstagramIcon,
+  LinkedinIcon,
+  PinterestIcon,
+  RedditIcon,
+  ThreadsIcon,
   TiktokIcon,
   XTwitterIcon,
   YoutubeIcon,
@@ -8,48 +14,49 @@ import {
 import { addUTMParameters } from '@helpers/utm/utm-builder.helper';
 import type { ProfileSocialLinksProps } from '@props/content/profile.props';
 
-interface SocialLinkConfig {
-  url: string | undefined;
-  icon: IconType;
-  label: string;
-}
+const SOCIAL_ICONS: Partial<
+  Record<CredentialPlatform, { icon: IconType; label: string }>
+> = {
+  [CredentialPlatform.FACEBOOK]: { icon: FacebookIcon, label: 'Facebook' },
+  [CredentialPlatform.INSTAGRAM]: { icon: InstagramIcon, label: 'Instagram' },
+  [CredentialPlatform.LINKEDIN]: { icon: LinkedinIcon, label: 'LinkedIn' },
+  [CredentialPlatform.PINTEREST]: { icon: PinterestIcon, label: 'Pinterest' },
+  [CredentialPlatform.REDDIT]: { icon: RedditIcon, label: 'Reddit' },
+  [CredentialPlatform.THREADS]: { icon: ThreadsIcon, label: 'Threads' },
+  [CredentialPlatform.TIKTOK]: { icon: TiktokIcon, label: 'TikTok' },
+  [CredentialPlatform.TWITTER]: { icon: XTwitterIcon, label: 'X' },
+  [CredentialPlatform.YOUTUBE]: { icon: YoutubeIcon, label: 'YouTube' },
+};
 
+/** The social accounts the creator connected, as links to their profiles. */
 export default function ProfileSocialLinks({
   handle,
-  youtubeUrl,
-  tiktokUrl,
-  instagramUrl,
-  twitterUrl,
+  socials = [],
 }: ProfileSocialLinksProps) {
-  const socialLinks: SocialLinkConfig[] = [
-    { icon: YoutubeIcon, label: 'YouTube', url: youtubeUrl },
-    { icon: TiktokIcon, label: 'TikTok', url: tiktokUrl },
-    { icon: InstagramIcon, label: 'Instagram', url: instagramUrl },
-    { icon: XTwitterIcon, label: 'Twitter', url: twitterUrl },
-  ];
+  const links = socials.flatMap((social) => {
+    const config = SOCIAL_ICONS[social.platform];
+    return config ? [{ ...social, ...config }] : [];
+  });
 
-  const activeLinks = socialLinks.filter(
-    (link): link is SocialLinkConfig & { url: string } => Boolean(link.url),
-  );
-
-  if (activeLinks.length === 0) {
+  if (links.length === 0) {
     return null;
   }
 
   return (
-    <div className="flex flex-wrap gap-4">
-      {activeLinks.map(({ url, icon: Icon, label }) => (
-        <a
-          key={label}
-          href={addUTMParameters(url, handle)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-foreground/60 hover:text-foreground transition-colors"
-          aria-label={label}
-        >
-          <Icon className="text-2xl" />
-        </a>
+    <ul aria-label="Socials" className="flex flex-wrap gap-4">
+      {links.map(({ handle: account, icon: Icon, label, platform, url }) => (
+        <li key={platform}>
+          <a
+            aria-label={`${label}: @${account}`}
+            className="text-foreground/60 transition-colors hover:text-foreground"
+            href={addUTMParameters(url, handle)}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            <Icon className="text-2xl" />
+          </a>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

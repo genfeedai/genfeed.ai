@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { CopyLinkButtonProps } from '@props/content/creator.props';
 import { deferredLogger } from '@services/core/deferred-logger';
 import { Button } from '@ui/primitives/button';
@@ -11,8 +11,9 @@ import { copyText } from './copy-text';
 const COPIED_RESET_MS = 2000;
 
 /**
- * Copies the page's canonical URL, never `window.location`: a reader who
- * arrived with tracking parameters or a preview token shares the clean link.
+ * An icon button that copies the page's canonical URL, never
+ * `window.location`: a reader who arrived with tracking parameters or a
+ * preview token shares the clean link.
  */
 export default function CopyLinkButton({
   className,
@@ -37,16 +38,18 @@ export default function CopyLinkButton({
 
   return (
     <Button
+      aria-label={isCopied ? 'Copied' : 'Copy link'}
       className={className}
-      variant={ButtonVariant.SECONDARY}
       onClick={handleCopy}
+      size={ButtonSize.ICON}
+      tooltip={isCopied ? 'Copied' : 'Copy link'}
+      variant={ButtonVariant.SECONDARY}
     >
       {isCopied ? (
         <Check className="size-4" aria-hidden="true" />
       ) : (
         <Link2 className="size-4" aria-hidden="true" />
       )}
-      {isCopied ? 'Copied' : 'Copy link'}
     </Button>
   );
 }

@@ -691,7 +691,7 @@ describe('ReferralsService', () => {
   });
 
   describe('findPublicCode', () => {
-    it('prefers the profile owner code and never creates one', async () => {
+    it('prefers the profile owner code', async () => {
       prisma.referralCode.findFirst.mockResolvedValue({ code: 'owner2345xyz' });
 
       await expect(
@@ -747,6 +747,44 @@ describe('ReferralsService', () => {
       expect(prisma.referralCode.create).not.toHaveBeenCalled();
     });
 
+    it('gives a profile owner without a code their primary code', async () => {
+      prisma.referralCode.findFirst.mockResolvedValue(null);
+      prisma.billingAccountMember.findFirst.mockResolvedValue({ id: 'm1' });
+      prisma.referralCode.create.mockImplementation(async ({ data }) => ({
+        ...data,
+        isActive: true,
+        isDeleted: false,
+      }));
+
+      const code = await service.findPublicCode({
+        organizationId: 'org_profile',
+        userId: 'user_owner',
+      });
+
+      expect(code).toMatch(/^[a-z0-9]+$/);
+      expect(prisma.referralCode.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          code,
+          isPrimary: true,
+          ownerUserId: 'user_owner',
+          rewardOrganizationId: 'org_profile',
+        }),
+      });
+    });
+
+    it('gives no code to an owner outside the billing account', async () => {
+      prisma.referralCode.findFirst.mockResolvedValue(null);
+      prisma.billingAccountMember.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.findPublicCode({
+          organizationId: 'org_profile',
+          userId: 'user_owner',
+        }),
+      ).resolves.toBeNull();
+      expect(prisma.referralCode.create).not.toHaveBeenCalled();
+    });
+
     it('returns null in community mode without querying', async () => {
       configMock.organizationBilling = false;
 
@@ -754,6 +792,23 @@ describe('ReferralsService', () => {
         service.findPublicCode({ organizationId: 'org_profile' }),
       ).resolves.toBeNull();
       expect(prisma.referralCode.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('leaves a primary code the owner paused or deleted as it is', async () => {
+      prisma.referralCode.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'code_deleted' });
+      prisma.billingAccountMember.findFirst.mockResolvedValue({ id: 'm1' });
+
+      await expect(
+        service.findPublicCode({
+          organizationId: 'org_profile',
+          userId: 'user_owner',
+        }),
+      ).resolves.toBeNull();
+      expect(prisma.referralCode.create).not.toHaveBeenCalled();
+      expect(prisma.referralCode.update).not.toHaveBeenCalled();
     });
   });
 
