@@ -4,6 +4,7 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { BALANCE_TX_OPTIONS } from '@api/collections/credits/services/credit-transaction-options';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import { readCreditTransferMetadata } from '@api/collections/credits/services/credit-transfer-metadata.util';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
@@ -13,10 +14,7 @@ import {
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { usesMeteredCredits } from '@genfeedai/config';
-import {
-  CreditTransactionCategory,
-  CreditTransferKind,
-} from '@genfeedai/contracts';
+import { CreditTransactionCategory } from '@genfeedai/contracts';
 import {
   CREATOR_PAYMENT_FEE_BPS,
   CREATOR_PAYMENT_REFERENCE_TYPE,
@@ -463,7 +461,7 @@ export class CreditTransfersService {
     input: ICreditTransferInput,
     replay: CreditTransaction,
   ): ICreditTransferResult {
-    const metadata = readTransferMetadata(replay.metadata);
+    const metadata = readCreditTransferMetadata(replay.metadata);
     const grossAmount = metadata?.grossAmount ?? replay.amount;
     const feeAmount = metadata?.feeAmount ?? 0;
     return {
@@ -506,39 +504,4 @@ export class CreditTransfersService {
       ),
     ]);
   }
-}
-
-type TransferReplayMetadata = Partial<
-  Pick<
-    ICreditTransferLedgerMetadata,
-    | 'counterpartyOrganizationId'
-    | 'feeAmount'
-    | 'grossAmount'
-    | 'kind'
-    | 'netAmount'
-  >
->;
-
-function readNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value)
-    ? value
-    : undefined;
-}
-
-function readTransferMetadata(value: unknown): TransferReplayMetadata | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-  const kind = Reflect.get(value, 'kind');
-  const counterparty = Reflect.get(value, 'counterpartyOrganizationId');
-  return {
-    counterpartyOrganizationId:
-      typeof counterparty === 'string' ? counterparty : undefined,
-    feeAmount: readNumber(Reflect.get(value, 'feeAmount')),
-    grossAmount: readNumber(Reflect.get(value, 'grossAmount')),
-    kind: Object.values(CreditTransferKind).find(
-      (candidate) => candidate === kind,
-    ),
-    netAmount: readNumber(Reflect.get(value, 'netAmount')),
-  };
 }

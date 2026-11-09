@@ -1,6 +1,10 @@
 import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import {
+  buildContentPreview,
+  isGatedContent,
+} from '@api/collections/articles/utils/article-preview.util';
 import type { CreateArticleDeliveryDto } from '@api/collections/long-form-deliveries/dto/create-article-delivery.dto';
 import type { CreateNewsletterDeliveryDto } from '@api/collections/long-form-deliveries/dto/create-newsletter-delivery.dto';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
@@ -18,6 +22,8 @@ import {
   ReleaseStatus,
 } from '@genfeedai/contracts';
 import {
+  articleHandle,
+  creatorArticlePath,
   isArticleDeliveryPlatform,
   isNewsletterDeliveryPlatform,
 } from '@genfeedai/contracts/constants';
@@ -26,6 +32,7 @@ import type {
   IReleaseGroup,
   PostGroupCreateProvenance,
 } from '@genfeedai/contracts/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -58,6 +65,7 @@ type DeliveryRelease = {
 };
 
 const NEWSLETTER_PUBLISHED_STATUS = 'published';
+const TRAILING_SLASH_PATTERN = /\/+$/;
 
 /**
  * Delivers composer Articles and Newsletters to the brand's connected
@@ -76,6 +84,7 @@ export class LongFormDeliveriesService {
     private readonly articlesService: ArticlesService,
     private readonly newslettersService: NewslettersService,
     private readonly brandAccess: BrandAccessService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -91,10 +100,13 @@ export class LongFormDeliveriesService {
   ): Promise<IReleaseGroup> {
     const article = await this.prisma.article.findFirst({
       select: {
+        accessLevel: true,
+        brand: { select: { slug: true } },
         brandId: true,
         content: true,
         id: true,
         label: true,
+        slug: true,
         status: true,
         updatedAt: true,
       },
@@ -126,7 +138,9 @@ export class LongFormDeliveriesService {
     );
 
     const release = await this.queueRelease(ctx, {
-      baseContent: html,
+      baseContent: isGatedContent(article)
+        ? this.gatedArticleBody(html, article.brand?.slug, article.slug)
+        : html,
       brandId: article.brandId,
       credentialId: dto.credentialId,
       // One delivery per account and article revision: a retried click returns
@@ -359,6 +373,28 @@ export class LongFormDeliveriesService {
       ctx.userId,
       release.id,
     );
+  }
+
+  /**
+   * A paid or subscriber-only article (#9718) goes out as its free preview
+   * plus a link to the full piece on genfeed.ai, where access is checked.
+   * Publishing the whole body elsewhere would give it away.
+   */
+  private gatedArticleBody(
+    html: string,
+    brandSlug: string | null | undefined,
+    slug: string | null,
+  ): string {
+    const preview = buildContentPreview(html);
+    const siteUrl = (
+      (this.configService.get('GENFEEDAI_PUBLIC_URL') as string | undefined) ??
+      ''
+    ).replace(TRAILING_SLASH_PATTERN, '');
+    if (!siteUrl || !slug) {
+      return preview;
+    }
+    const url = `${siteUrl}${creatorArticlePath(articleHandle(brandSlug), slug)}`;
+    return `${preview}<p><a href="${encodeURI(url)}">Read the full article on Genfeed</a></p>`;
   }
 
   private brandActor(ctx: LongFormDeliveryContext): BrandAccessActor {

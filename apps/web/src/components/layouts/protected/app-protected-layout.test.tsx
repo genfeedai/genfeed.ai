@@ -2288,6 +2288,7 @@ describe('Subscription runtime boundary', () => {
           '/settings/general',
           '/settings/memory',
           '/settings/referrals',
+          '/settings/earnings',
         ]),
       );
       unmount();
@@ -2326,6 +2327,7 @@ describe('Subscription runtime boundary', () => {
             '/settings/general',
             '/settings/memory',
             '/settings/referrals',
+            '/settings/earnings',
           ]),
         );
       }

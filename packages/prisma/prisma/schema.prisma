@@ -466,6 +466,14 @@ enum SubscriptionStatus {
   INCOMPLETE
 }
 
+/// A reader's paid subscription to a creator (#9717). Cancelling keeps the
+/// subscription ACTIVE until the period ends; the renewal job then ends it.
+enum CreatorSubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  ENDED
+}
+
 enum BillingAccountStatus {
   UNPROVISIONED
   ACTIVE
@@ -710,6 +718,8 @@ contentLearningOperations ContentLearningOperation[]
   articles                  Article[]
   articleAnalytics          ArticleAnalytics[]
   newsletters               Newsletter[]              @relation("newsletter_user")
+  creatorSubscriptionsPaid    CreatorSubscription[]        @relation("creator_subscription_payer_user")
+  articleUnlocksPaid          ArticleUnlock[]              @relation("article_unlock_payer_user")
   newsletterApprovals       Newsletter[]              @relation("newsletter_approved_by")
   newsletterPublishes       Newsletter[]              @relation("newsletter_published_by")
   trainings                 Training[]
@@ -882,6 +892,11 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   articles                      Article[]
   articleAnalytics              ArticleAnalytics[]
   newsletters                   Newsletter[]
+  creatorSubscriptionPlans      CreatorSubscriptionPlan[]
+  creatorSubscriptions          CreatorSubscription[]
+  creatorSubscriptionsPaid      CreatorSubscription[]          @relation("creator_subscription_payer_organization")
+  articleUnlocks                ArticleUnlock[]
+  articleUnlocksPaid            ArticleUnlock[]                @relation("article_unlock_payer_organization")
   trainings                     Training[]
   models                        Model[]
   personas                      Persona[]
@@ -1167,6 +1182,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   articles                   Article[]
   articleAnalytics           ArticleAnalytics[]
   newsletters                Newsletter[]
+  creatorSubscriptionPlan     CreatorSubscriptionPlan?
+  creatorSubscriptions        CreatorSubscription[]
   trainings                  Training[]
   personas                   Persona[]
   agentStrategies            AgentStrategy[]
@@ -4316,6 +4333,12 @@ model Article {
   publishedAt    DateTime?
   // Live URL recorded when the article was published outside Genfeed (#6753).
   externalUrl    String?
+  // Who reads it in full (#9718): public | paid. Everyone else
+  // gets the preview; the server withholds the rest.
+  accessLevel           String        @default("public")
+  // One-time unlock price in credits for a paid article; null = paying
+  // subscribers only.
+  unlockPriceCredits    Int?
   isDeleted      Boolean       @default(false)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -4325,6 +4348,7 @@ model Article {
   postEntities     Post[]             @relation("post_entity_article")
   articleAnalytics ArticleAnalytics[]
   newsletters      Newsletter[]       @relation("newsletter_articles")
+  unlocks          ArticleUnlock[]
 
   category String?
   scope    String?
@@ -4337,6 +4361,29 @@ model Article {
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([slug])
   @@map("articles")
+}
+
+/// A reader's one-time unlock of a paid article (#9718), paid through the
+/// credit transfer ledger. The row belongs to the creator's organization.
+model ArticleUnlock {
+  id                  String       @id @default(cuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  articleId           String
+  article             Article      @relation(fields: [articleId], references: [id])
+  payerOrganizationId String
+  payerOrganization   Organization @relation("article_unlock_payer_organization", fields: [payerOrganizationId], references: [id])
+  payerUserId         String
+  payerUser           User         @relation("article_unlock_payer_user", fields: [payerUserId], references: [id])
+  priceCredits        Int
+  transferId          String
+  isDeleted           Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@unique([articleId, payerUserId])
+  @@index([organizationId, isDeleted])
+  @@map("article_unlocks")
 }
 
 model ArticleAnalytics {
@@ -4363,6 +4410,61 @@ model ArticleAnalytics {
   @@index([organizationId, date(sort: Desc)])
   @@index([brandId, date(sort: Desc)])
   @@map("article_analytics")
+}
+
+/// A creator's paid subscription offer: one monthly price in credits per
+/// public brand (#9717). Turning it off keeps existing subscribers until their
+/// period ends; it only stops new sign-ups.
+model CreatorSubscriptionPlan {
+  id                  String       @id @default(cuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  brandId             String       @unique
+  brand               Brand        @relation(fields: [brandId], references: [id])
+  monthlyPriceCredits Int
+  isEnabled           Boolean      @default(true)
+  isDeleted           Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@index([organizationId, isDeleted])
+  @@map("creator_subscription_plans")
+}
+
+/// A reader paying a creator monthly in credits (#9717). The row belongs to
+/// the creator's organization (it is their subscriber list); the payer is a
+/// signed-in user paying from their own organization. Each period is charged
+/// through the credit transfer ledger. At most one ACTIVE or PAST_DUE row per
+/// reader and brand (partial unique index in the migration).
+model CreatorSubscription {
+  id                   String                    @id @default(cuid())
+  organizationId       String
+  organization         Organization              @relation(fields: [organizationId], references: [id])
+  brandId              String
+  brand                Brand                     @relation(fields: [brandId], references: [id])
+  payerOrganizationId  String
+  payerOrganization    Organization              @relation("creator_subscription_payer_organization", fields: [payerOrganizationId], references: [id])
+  payerUserId          String
+  payerUser            User                      @relation("creator_subscription_payer_user", fields: [payerUserId], references: [id])
+  /// Locked when the reader subscribes; a later plan price change applies to new subscribers.
+  priceCredits         Int
+  status               CreatorSubscriptionStatus @default(ACTIVE)
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean                   @default(false)
+  /// When the first failed renewal of the current past-due stretch happened.
+  pastDueSince         DateTime?
+  endedAt              DateTime?
+  /// Ledger transfer id of the latest successful charge.
+  lastChargeTransferId String?
+  isDeleted            Boolean                   @default(false)
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  @@index([organizationId, brandId, status, isDeleted])
+  @@index([payerUserId, isDeleted])
+  @@index([status, currentPeriodEnd])
+  @@map("creator_subscriptions")
 }
 
 model Newsletter {

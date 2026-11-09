@@ -36,6 +36,7 @@ import { ContentPlansModule } from '@api/collections/content-plans/content-plans
 import { ContentRunsModule } from '@api/collections/content-runs/content-runs.module';
 import { ContextsModule } from '@api/collections/contexts/contexts.module';
 import { CreativePatternsModule } from '@api/collections/creative-patterns/creative-patterns.module';
+import { CreatorPaymentsModule } from '@api/collections/creator-payments/creator-payments.module';
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { CustomersModule } from '@api/collections/customers/customers.module';
@@ -178,6 +179,7 @@ import { Module } from '@nestjs/common';
     CredentialsModule,
     BillingAccountsModule,
     CreditsModule,
+    CreatorPaymentsModule,
     DashboardLayoutsModule,
     DistributionsModule,
     CustomersModule,

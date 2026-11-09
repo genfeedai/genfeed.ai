@@ -1,0 +1,15 @@
+{
+  "unlockTitle": "Unlock “{article}”",
+  "unlockDescription": "One-time, {price, plural, one {# credit} other {# credits}} from your workspace credits. You keep access for good.",
+  "unlock": "Unlock for {price, plural, one {# credit} other {# credits}}",
+  "unlocking": "Unlocking…",
+  "subscribersTitle": "“{article}” is for subscribers",
+  "subscribersDescription": "Subscribe to this creator to read it and everything else they publish.",
+  "openTitle": "You can read “{article}”",
+  "openDescription": "The full article is open to you on genfeed.ai.",
+  "read": "Read the article",
+  "needCreditsTitle": "Not enough credits",
+  "needCreditsDescription": "Your workspace needs more credits to unlock this article.",
+  "buyCredits": "Buy credits",
+  "failed": "The article could not be unlocked. Try again."
+}

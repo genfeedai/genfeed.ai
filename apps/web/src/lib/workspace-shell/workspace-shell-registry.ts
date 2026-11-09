@@ -72,6 +72,7 @@ const RESERVED_SCOPED_ROUTE_PREFIXES = Object.freeze([
   'admin',
   'connect',
   'settings',
+  'support',
 ]);
 
 const ACCESS_POLICY_BY_SCOPE = Object.freeze({
@@ -258,11 +259,13 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/library/:type': ':type',
   '/:orgSlug/~/library/shelf/:shelf': ':shelf',
   '/:orgSlug/~/connect/social': 'Social account',
+  '/:orgSlug/~/support/:handle': 'Support a creator',
   '/:orgSlug/~/settings': 'Settings',
   '/:orgSlug/~/settings/general': 'General',
   '/:orgSlug/~/settings/credits': 'Credits',
   '/:orgSlug/~/settings/subscription': 'Subscription',
   '/:orgSlug/~/settings/referrals': 'Affiliates',
+  '/:orgSlug/~/settings/earnings': 'Earnings',
   '/:orgSlug/~/settings/usage': 'Usage',
   '/:orgSlug/~/settings/api-keys': 'API Keys',
   '/:orgSlug/~/settings/integrations': 'Integrations',
@@ -518,6 +521,14 @@ const PERSONAL_ROUTE_REGISTRATIONS = [
     surfaceKey: 'connect-genfeed-resolver',
     telemetryClass: 'management',
   }),
+  ...registerRoutes(['/support/:handle'], {
+    fallback: '/',
+    mode: 'canvas',
+    productClass: 'control-plane',
+    scope: 'personal',
+    surfaceKey: 'creator-support-resolver',
+    telemetryClass: 'management',
+  }),
   ...registerRoutes(
     [
       '/settings',
@@ -553,6 +564,14 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     productClass: 'control-plane',
     scope: 'organization',
     surfaceKey: 'connect-social',
+    telemetryClass: 'management',
+  }),
+  ...registerRoutes(['/:orgSlug/~/support/:handle'], {
+    fallback: '/:orgSlug/~',
+    mode: 'canvas',
+    productClass: 'control-plane',
+    scope: 'organization',
+    surfaceKey: 'creator-support',
     telemetryClass: 'management',
   }),
   ...registerRoutes(
@@ -702,6 +721,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/settings/credits',
       '/:orgSlug/~/settings/subscription',
       '/:orgSlug/~/settings/referrals',
+      '/:orgSlug/~/settings/earnings',
       '/:orgSlug/~/settings/api-keys',
       '/:orgSlug/~/settings/integrations',
       '/:orgSlug/~/settings/webhooks',
@@ -1399,6 +1419,7 @@ function hasRequiredPathScope(
       return (
         pathname === '/' ||
         pathname === '/connect' ||
+        pathname.startsWith('/support/') ||
         pathname.startsWith('/settings')
       );
     case 'platform-admin':

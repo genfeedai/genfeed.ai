@@ -15,6 +15,7 @@ import {
   Cpu,
   CreditCard,
   Grip,
+  HandCoins,
   HandHeart,
   IdCard,
   Key,
@@ -222,6 +223,14 @@ function buildOrganizationMenuItems(
             label: 'Affiliates',
             outline: HandHeart,
             solid: HandHeart,
+          },
+          {
+            group: 'Billing',
+            href: APP_ROUTES.SETTINGS.EARNINGS,
+            hrefScope: 'organization' as const,
+            label: 'Earnings',
+            outline: HandCoins,
+            solid: HandCoins,
           },
         ]
       : []),

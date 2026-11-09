@@ -1,3 +1,4 @@
+import type { IArticleAccessUpdate } from '@genfeedai/contracts/interfaces';
 import type { Article } from '@genfeedai/models/content/article.model';
 
 /**
@@ -16,4 +17,10 @@ export type ArticlePublicPageCardProps = {
   isPublished: boolean;
   summary: string;
   title: string;
+};
+
+export type ArticleAccessCardProps = {
+  article: Article;
+  isSaving: boolean;
+  onSave: (access: IArticleAccessUpdate) => Promise<void>;
 };

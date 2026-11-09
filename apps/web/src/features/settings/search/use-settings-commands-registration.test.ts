@@ -892,6 +892,7 @@ describe('Subscription runtime boundary', () => {
           'settings-catalog:organization:/settings/general',
           'settings-catalog:organization:/settings/memory',
           'settings-catalog:organization:/settings/referrals',
+          'settings-catalog:organization:/settings/earnings',
         ]),
       );
       unmount();
@@ -945,6 +946,7 @@ describe('Subscription runtime boundary', () => {
             'settings-catalog:organization:/settings/general',
             'settings-catalog:organization:/settings/memory',
             'settings-catalog:organization:/settings/referrals',
+            'settings-catalog:organization:/settings/earnings',
           ]),
         );
       }

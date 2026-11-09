@@ -9,6 +9,11 @@ async function externalUrlErrorsFor(externalUrl: unknown) {
   return errors.filter((error) => error.property === 'externalUrl');
 }
 
+async function accessErrorsFor(body: Record<string, unknown>) {
+  const errors = await validate(plainToInstance(UpdateArticleDto, body));
+  return errors.map((error) => error.property);
+}
+
 describe('UpdateArticleDto', () => {
   it('should be defined', () => {
     expect(UpdateArticleDto).toBeDefined();
@@ -32,6 +37,16 @@ describe('UpdateArticleDto', () => {
       await expect(
         externalUrlErrorsFor('javascript:alert(1)'),
       ).resolves.toHaveLength(1);
+    });
+
+    it.each([
+      [{ accessLevel: 'paid', unlockPriceCredits: 25 }, []],
+      [{ accessLevel: 'public', unlockPriceCredits: null }, []],
+      [{ accessLevel: 'subscribers' }, ['accessLevel']],
+      [{ unlockPriceCredits: 0 }, ['unlockPriceCredits']],
+      [{ unlockPriceCredits: 2.5 }, ['unlockPriceCredits']],
+    ])('validates paid access %o', async (body, expected) => {
+      await expect(accessErrorsFor(body)).resolves.toEqual(expected);
     });
   });
 });

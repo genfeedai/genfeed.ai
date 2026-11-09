@@ -14,6 +14,8 @@ export const articleAttributes = createEntityAttributes([
   'scope',
   'publishedAt',
   'externalUrl',
+  'accessLevel',
+  'unlockPriceCredits',
   // Persist the public artwork contract directly. Serializer attributes must
   // be backed by real Prisma columns or explicit computed projections.
   'coverImageUrl',
@@ -44,6 +46,9 @@ export const publicArticleAttributes = [
   'publishedAt',
   'externalUrl',
   'coverImageUrl',
+  // Gated articles (#9718) carry only their preview in `content`.
+  'accessLevel',
+  'unlockPriceCredits',
   'createdAt',
   'updatedAt',
 ];

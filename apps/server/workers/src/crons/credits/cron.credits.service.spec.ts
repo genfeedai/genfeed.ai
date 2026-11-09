@@ -79,6 +79,7 @@ function buildService(options: {
       error: record('error'),
       log: record('log'),
     } as unknown as ConstructorParameters<typeof CronCreditsService>[3],
+    {} as ConstructorParameters<typeof CronCreditsService>[4],
   );
   return { balances, locks, logs, pages, referralSettlements, service };
 }

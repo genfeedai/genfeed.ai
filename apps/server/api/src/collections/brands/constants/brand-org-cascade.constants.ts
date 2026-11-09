@@ -335,6 +335,20 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     brandField: 'brandId',
     orgField: 'organizationId',
   },
+  // A brand's paid subscription offer and its subscriber list move with the
+  // brand; renewals then pay the brand's new organization.
+  {
+    delegate: 'creatorSubscriptionPlan',
+    table: 'creator_subscription_plans',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
+    delegate: 'creatorSubscription',
+    table: 'creator_subscriptions',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
   {
     delegate: 'newsletter',
     table: 'newsletters',
@@ -814,6 +828,13 @@ const POST_PARENT: SecondOrderParentLink = {
  * sees the `uncertain` receipt in the post's new organization.
  */
 export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
+  // A reader's paid unlock follows its article, so a moved brand keeps its
+  // readers' access.
+  secondOrderChild('articleUnlock', 'article_unlocks', {
+    fkField: 'articleId',
+    parentBrandField: 'brandId',
+    parentDelegate: 'article',
+  }),
   // A send's per-recipient delivery rows and click log follow the send, so a
   // moved brand keeps its newsletter results.
   secondOrderChild('newsletterSendRecipient', 'newsletter_send_recipients', {
