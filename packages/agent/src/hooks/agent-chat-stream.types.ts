@@ -155,3 +155,24 @@ export interface AgentStreamEntry extends AgentStreamRuntime {
   controller: UseAgentChatStreamReturn | null;
   recover: (() => void) | null;
 }
+
+/**
+ * Where one thread's stream is (#9737). Derived from the stream entry's
+ * fields; see `docs/architecture/agent-chat-stream-phases.md`.
+ */
+export type AgentStreamPhase =
+  | 'idle'
+  | 'awaiting_run_id'
+  | 'streaming'
+  | 'awaiting_input'
+  | 'stalled'
+  | 'terminal';
+
+/** The entry fields that decide its phase. */
+export interface AgentStreamPhaseInput {
+  hasPendingCompletion: boolean;
+  hasPendingInputRequest: boolean;
+  isAwaitingRunId: boolean;
+  isRunStalled: boolean;
+  isTerminal: boolean;
+}
