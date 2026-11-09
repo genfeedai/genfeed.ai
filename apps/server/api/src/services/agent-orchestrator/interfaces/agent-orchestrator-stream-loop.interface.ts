@@ -30,10 +30,10 @@ export interface StreamLoopParams {
   turnCost: number;
 }
 
-export type StreamChatMessages = Parameters<
+type StreamChatMessages = Parameters<
   typeof buildAgentChatCompletionParams
 >[0]['messages'];
-export type StreamChatTools = Parameters<
+type StreamChatTools = Parameters<
   typeof buildAgentChatCompletionParams
 >[0]['tools'];
 export type StreamAssistantMessage =
