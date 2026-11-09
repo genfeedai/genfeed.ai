@@ -1,6 +1,6 @@
 [
   {
-    "actual": 1070,
+    "actual": 1052,
     "file": "apps/server/api/src/collections/agent-threads/services/agent-threads.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/agent-threads/services/agent-threads.service.ts"
