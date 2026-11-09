@@ -101,10 +101,60 @@ export function needsNodeRepin(
   return pinnedNodePath !== null && pinnedNodePath !== stableNodePath;
 }
 
+/** Reads `launchctl print-disabled system`, which prints `enabled`/`disabled` (older macOS: `false`/`true`). */
+export function isServiceDisabled(
+  printDisabledOutput: string,
+  label = PORTLESS_LAUNCH_DAEMON_LABEL,
+): boolean {
+  const escapedLabel = label.replaceAll('.', '\\.');
+  return new RegExp(
+    `^\\s*"${escapedLabel}"\\s*=>\\s*(?:disabled|true)\\s*$`,
+    'mu',
+  ).test(printDisabledOutput);
+}
+
+export type PortlessSetupPlan = {
+  /** A disabled override survives while the job runs, so a healthy service can still miss the next boot. */
+  enable: boolean;
+  install: boolean;
+  repinTo: string | null;
+};
+
+export function planPortlessSetup(
+  statusOutput: string | null,
+  pinnedNodePath: string | null,
+  serviceDisabled: boolean,
+): PortlessSetupPlan {
+  const stableNodePath =
+    pinnedNodePath === null ? null : resolveStableNodePath(pinnedNodePath);
+
+  return {
+    enable: serviceDisabled,
+    install: shouldInstallPortlessService(statusOutput),
+    repinTo:
+      stableNodePath !== null && needsNodeRepin(pinnedNodePath, stableNodePath)
+        ? stableNodePath
+        : null,
+  };
+}
+
+export function buildServiceEnableCommand(): ServiceCommand {
+  return {
+    args: [
+      'sudo',
+      'launchctl',
+      'enable',
+      `system/${PORTLESS_LAUNCH_DAEMON_LABEL}`,
+    ],
+    expect: 'success',
+  };
+}
+
 /**
  * Mirrors the reload sequence Portless uses when it installs the daemon, and
- * only edits the plist once launchd no longer has the job loaded. If the reload
- * then fails, the job stays unloaded, so the next setup run reinstalls it.
+ * only edits the plist once launchd no longer has the job loaded. A later
+ * failure is retried by the next setup run: an unloaded or unhealthy job is
+ * reinstalled, and a disabled one is re-enabled.
  */
 export function buildNodeRepinCommands(
   stableNodePath: string,
@@ -136,10 +186,7 @@ export function buildNodeRepinCommands(
       args: ['sudo', 'launchctl', 'bootstrap', 'system', plistPath],
       expect: 'success',
     },
-    {
-      args: ['sudo', 'launchctl', 'enable', serviceTarget],
-      expect: 'success',
-    },
+    buildServiceEnableCommand(),
     {
       args: ['sudo', 'launchctl', 'kickstart', '-k', serviceTarget],
       expect: 'success',
@@ -234,8 +281,28 @@ function readPinnedNodePath(): string | null {
   return result.stdout.trim();
 }
 
-function repinServiceNode(stableNodePath: string): void {
-  for (const { args, expect } of buildNodeRepinCommands(stableNodePath)) {
+function readServiceDisabled(): boolean {
+  if (process.platform !== 'darwin') {
+    return false;
+  }
+
+  const result = spawnSync('launchctl', ['print-disabled', 'system'], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'inherit'],
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.status !== 0) {
+    throw new Error('Could not read the launchd disabled-service list.');
+  }
+
+  return isServiceDisabled(result.stdout);
+}
+
+function runServiceCommands(commands: ServiceCommand[]): void {
+  for (const { args, expect } of commands) {
     const [executable, ...commandArgs] = args;
     const result = spawnSync(executable, commandArgs, {
       stdio: expect === 'success' ? 'inherit' : ['inherit', 'ignore', 'ignore'],
@@ -254,7 +321,7 @@ function repinServiceNode(stableNodePath: string): void {
     }
     if (outcome === 'failed') {
       console.error(
-        `\`${args.join(' ')}\` failed, so the Portless service Node path was left unchanged.`,
+        `\`${args.join(' ')}\` failed, so the Portless service setup did not finish. Run \`bun run dev:setup\` again.`,
       );
       process.exit(result.status || 1);
     }
@@ -262,23 +329,29 @@ function repinServiceNode(stableNodePath: string): void {
 }
 
 async function main(): Promise<void> {
-  const currentStatus = readServiceStatus();
   const pinnedNodePath = readPinnedNodePath();
-  const stableNodePath =
-    pinnedNodePath === null ? null : resolveStableNodePath(pinnedNodePath);
-  const nodeRepinNeeded =
-    stableNodePath !== null && needsNodeRepin(pinnedNodePath, stableNodePath);
+  const plan = planPortlessSetup(
+    readServiceStatus(),
+    pinnedNodePath,
+    readServiceDisabled(),
+  );
 
   if (process.argv.includes('--check')) {
-    if (shouldInstallPortlessService(currentStatus)) {
+    if (plan.install) {
       console.error(
         'Portless does not match the required local HTTPS contract. Run `bun run dev:setup`.',
       );
       process.exit(1);
     }
-    if (nodeRepinNeeded) {
+    if (plan.repinTo !== null) {
       console.error(
-        `The Portless service runs ${pinnedNodePath}, which a Node upgrade can remove. Run \`bun run dev:setup\` to use ${stableNodePath}.`,
+        `The Portless service runs ${pinnedNodePath}, which a Node upgrade can remove. Run \`bun run dev:setup\` to use ${plan.repinTo}.`,
+      );
+      process.exit(1);
+    }
+    if (plan.enable) {
+      console.error(
+        'The Portless service is disabled in launchd, so it will not start after a restart. Run `bun run dev:setup`.',
       );
       process.exit(1);
     }
@@ -289,14 +362,21 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (!shouldInstallPortlessService(currentStatus) && !nodeRepinNeeded) {
+  if (!plan.install && plan.repinTo === null && !plan.enable) {
     console.log(
       'Portless is already ready: HTTPS on 443 with .localhost routes and no LAN exposure.',
     );
     return;
   }
 
-  if (shouldInstallPortlessService(currentStatus)) {
+  if (plan.enable) {
+    console.log(
+      'Re-enabling the Portless service in launchd. Administrator approval may be required.',
+    );
+    runServiceCommands([buildServiceEnableCommand()]);
+  }
+
+  if (plan.install) {
     console.log(
       'Applying the Portless HTTPS startup-service configuration. Administrator approval may be required.',
     );
@@ -310,7 +390,7 @@ async function main(): Promise<void> {
       console.log(
         `Pointing the Portless service at ${installedStableNodePath} so Node upgrades keep it running. Administrator approval may be required.`,
       );
-      repinServiceNode(installedStableNodePath);
+      runServiceCommands(buildNodeRepinCommands(installedStableNodePath));
     }
   }
 

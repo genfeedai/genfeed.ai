@@ -4,9 +4,11 @@ import {
   buildPortlessCommand,
   evaluateServiceCommand,
   isPortlessServiceReady,
+  isServiceDisabled,
   needsNodeRepin,
   PORTLESS_LAUNCH_DAEMON_PATH,
   PORTLESS_SERVICE_INSTALL_ARGS,
+  planPortlessSetup,
   resolveStableNodePath,
   shouldInstallPortlessService,
   waitForPortlessServiceReady,
@@ -113,6 +115,52 @@ describe('Portless startup-service Node path', () => {
     expect(evaluateServiceCommand('success', 1)).toBe('failed');
     expect(evaluateServiceCommand('success', null)).toBe('failed');
     expect(evaluateServiceCommand('any', 1)).toBe('continue');
+  });
+
+  it('detects a disabled launchd override for the Portless job only', () => {
+    const list = (state: string) => `
+	disabled services = {
+		"com.openssh.sshd" => enabled
+		"sh.portless.proxy" => ${state}
+		"sh.portless.proxy.legacy" => disabled
+	}`;
+
+    expect(isServiceDisabled(list('disabled'))).toBe(true);
+    expect(isServiceDisabled(list('true'))).toBe(true);
+    expect(isServiceDisabled(list('enabled'))).toBe(false);
+    expect(isServiceDisabled(list('false'))).toBe(false);
+    expect(isServiceDisabled('disabled services = {\n}')).toBe(false);
+  });
+
+  it('re-enables a healthy service left disabled by a failed repin', () => {
+    const stableNodePath = '/opt/homebrew/opt/node/bin/node';
+    const healthyStatus = `
+        Manager state: running
+        Installed: yes
+        Proxy on 443: responding
+        HTTPS: yes
+        TLDs: .localhost
+        LAN mode: no
+        Wildcard: no
+      `;
+
+    expect(planPortlessSetup(healthyStatus, stableNodePath, true)).toEqual({
+      enable: true,
+      install: false,
+      repinTo: null,
+    });
+    expect(planPortlessSetup(healthyStatus, stableNodePath, false)).toEqual({
+      enable: false,
+      install: false,
+      repinTo: null,
+    });
+    expect(
+      planPortlessSetup(
+        healthyStatus,
+        '/opt/homebrew/Cellar/node/26.12.1/bin/node',
+        false,
+      ).repinTo,
+    ).toBe(stableNodePath);
   });
 });
 
