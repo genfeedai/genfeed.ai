@@ -179,7 +179,7 @@ test('enforces executable contracts through the aggregate suite', () => {
 
   assert.match(
     staticChecks,
-    /^ {8}run: bun run test:executable-contracts$/m,
+    /^ {8}run: bun run test:executable-contracts:parallel$/m,
     'the static-checks job must run the executable-contracts test script',
   );
   assert.match(
@@ -338,6 +338,59 @@ test('consolidates static validation into one runner slot', () => {
     workflow,
     /^ {10}STATIC_CHECKS_RESULT: \$\{\{ needs\.static-checks\.result \}\}$/m,
     'tests-gate must read the static-checks result directly',
+  );
+});
+
+test('static checks start with the plan, repeating its trust gate and diff base exactly', () => {
+  // Static Checks is the PR critical path. It reads no Plan output, so it must
+  // not queue behind the Plan job; instead it repeats the two Plan steps it
+  // depends on. A copy that drifts would weaken trust or the diff base.
+  const jobs = parseYaml(readWorkflow('_ci-validation.yml')).jobs;
+  const plan = jobs.plan;
+  const staticChecks = jobs['static-checks'];
+  const step = (job, name) => job.steps.find((entry) => entry.name === name);
+
+  assert.equal(
+    staticChecks.needs,
+    undefined,
+    'static-checks must not wait for plan',
+  );
+  assert.equal(
+    staticChecks.if,
+    plan.if,
+    'static-checks must skip drafts exactly as plan does',
+  );
+  assert.equal(
+    staticChecks.env?.CI_BASE_SHA,
+    undefined,
+    'static-checks resolves its own diff base instead of reading a plan output',
+  );
+  assert.doesNotMatch(
+    JSON.stringify(staticChecks),
+    /needs\.plan/,
+    'static-checks must not read any plan output',
+  );
+  assert.deepEqual(
+    step(staticChecks, 'Check contributor trust'),
+    step(plan, 'Check contributor trust'),
+    'the static-checks trust gate must stay identical to the plan trust gate',
+  );
+  assert.deepEqual(
+    step(staticChecks, 'Resolve diff base'),
+    step(plan, 'Resolve diff base'),
+    'the static-checks diff base must stay identical to the plan diff base',
+  );
+
+  const names = staticChecks.steps.map((entry) => entry.name ?? entry.uses);
+  assert.ok(
+    names.indexOf('Check contributor trust') <
+      names.findIndex((name) => name?.startsWith('actions/checkout')),
+    'untrusted pull requests must fail before anything is checked out',
+  );
+  assert.ok(
+    names.indexOf('Resolve diff base') <
+      names.indexOf('Scan fork pull request for secrets with gitleaks CLI'),
+    'the diff base must exist before the fork gitleaks scan reads it',
   );
 });
 

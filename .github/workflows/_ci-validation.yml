@@ -371,18 +371,88 @@ jobs:
   # Each separate job paid its own
   # checkout + Bun setup and held a queue slot while the runner pool was
   # saturated. The Tests Gate holds their failure semantics.
+  # Starts with the Plan job instead of behind it. Nothing here reads a Plan
+  # output: the diff base and the contributor trust gate are repeated below
+  # (scripts/ci/pr-validation-workflows.test.mjs keeps them identical to the
+  # Plan copies), which takes the Plan job's runner start, checkout and install
+  # off the critical path. A draft or untrusted pull request still skips or
+  # fails here exactly as it does in Plan, and the verdict reads this job.
   static-checks:
     name: Static Checks
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: plan
-    env:
-      CI_BASE_SHA: ${{ needs.plan.outputs.base }}
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     steps:
+      - name: Check contributor trust
+        id: check
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            const association = pr.author_association;
+            const trustedRoles = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            const isSameRepository =
+              pr.head.repo?.full_name === `${context.repo.owner}/${context.repo.repo}`;
+            const isTrusted = isSameRepository || trustedRoles.includes(association);
+            const hasLabel = pr.labels.some(l => l.name === 'run-ci');
+
+            // Trust decides *whether* CI runs; this decides *how much* of it.
+            // An external contributor stays external even once a maintainer
+            // adds `run-ci`: the label buys them a run, not the light tier.
+            core.setOutput('external', isTrusted ? 'false' : 'true');
+
+            if (isTrusted) {
+              const trustReason = isSameRepository
+                ? 'same-repo PR'
+                : `trusted contributor (${association})`;
+              core.info(`${trustReason} - CI allowed`);
+            } else if (hasLabel) {
+              core.info('External contributor with run-ci label - CI allowed');
+            } else {
+              core.setFailed(
+                `External contributor (${association}) - add the \`run-ci\` label to allow CI. ` +
+                'A maintainer must review the code and add the label.'
+              );
+            }
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
+      # A pull request checks out GitHub's merge commit, whose first parent is
+      # the base it was actually built on. The event payload's
+      # `pull_request.base.sha` can be far older: diffing against it drags every
+      # commit merged since into the "changed" set and escalated ordinary PRs
+      # to the full tier (e.g. a `.claude/launch.json` change on master forced
+      # a full spec typecheck on an unrelated website PR, 2026-09-27).
+      - name: Resolve diff base
+        id: base
+        env:
+          MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
+        run: |
+          set -euo pipefail
+          base=''
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            base="$(git rev-parse HEAD^1)"
+          elif [ "${GITHUB_EVENT_NAME}" = "merge_group" ]; then
+            base="${MERGE_GROUP_BASE_SHA}"
+            if ! [[ "${base}" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "::error::Invalid merge group base SHA"
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "${base}" HEAD; then
+              echo "::error::Merge group base is not an ancestor of HEAD"
+              exit 1
+            fi
+          fi
+          echo "sha=${base}" >>"${GITHUB_OUTPUT}"
+          echo "CI_BASE_SHA=${base}" >>"${GITHUB_ENV}"
+          echo "Diff base: ${base:-<none, full paths>}"
       # Pull requests scan their own commits; the release path scans history.
       # The Full Suite skips it: every master commit arrived through a
       # scanned pull request. Dependabot runs read the Dependabot secret store,
@@ -515,8 +585,10 @@ jobs:
       # when metadata-only changes select no affected typecheck build tasks.
       - name: Build contracts for executable imports
         run: bun run --cwd packages/contracts build
+      # The same commands as `test:executable-contracts`, four at a time: the
+      # suites are independent, so the job pays for the slowest ones, not the sum.
       - name: Run executable contracts
-        run: bun run test:executable-contracts
+        run: bun run test:executable-contracts:parallel
       - name: Check scoring provenance and optional calibration
         env:
           GITHUB_TOKEN: ${{ github.token }}
