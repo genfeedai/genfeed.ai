@@ -494,7 +494,7 @@ describe('InstagramController', () => {
 
       expect(
         instagramServiceMock.listAuthorizedInstagramAccounts,
-      ).toHaveBeenCalledWith('business-token', []);
+      ).toHaveBeenCalledWith('business-token', [], 'business-1');
       // Discovery happens before the token is ever persisted.
       const discoveryCallOrder =
         instagramServiceMock.listAuthorizedInstagramAccounts.mock
@@ -1368,7 +1368,7 @@ describe('InstagramController', () => {
 
       expect(
         instagramServiceMock.listAuthorizedInstagramAccounts,
-      ).toHaveBeenCalledWith('encrypted-token');
+      ).toHaveBeenCalledWith('encrypted-token', undefined, 'business-1');
       expect(result).toEqual([
         expect.objectContaining({
           externalId: 'ig-account-b',

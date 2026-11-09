@@ -906,6 +906,107 @@ describe('InstagramService', () => {
       expect(result).toEqual([]);
     });
 
+    it('finds accounts on a business edge when the assigned list and the grant name none', async () => {
+      (httpServiceMock.get as Mock).mockImplementation((url: string) => {
+        if (url.endsWith('/biz-1/owned_instagram_accounts')) {
+          return of({
+            data: {
+              data: [
+                { id: 'ig-shared', username: 'sharedone' },
+                { id: 'ig-unshared', username: 'unshared' },
+              ],
+            },
+          });
+        }
+        if (url.endsWith('/ig-shared')) {
+          return of({ data: { name: 'Shared One', username: 'sharedone' } });
+        }
+        if (url.endsWith('/ig-unshared')) {
+          return throwError(() => new Error('(#10) not authorized'));
+        }
+        if (url.endsWith('/debug_token')) {
+          return of({
+            data: { data: { granular_scopes: [], is_valid: true } },
+          });
+        }
+        return of({ data: { data: [] } });
+      });
+
+      const result = await service.listAuthorizedInstagramAccounts(
+        'token',
+        undefined,
+        'biz-1',
+      );
+
+      expect(result).toEqual([
+        {
+          id: 'ig-shared',
+          label: 'Shared One',
+          platform: 'instagram',
+          username: 'sharedone',
+        },
+      ]);
+    });
+
+    it('finds the Instagram account linked to a Page the token can list', async () => {
+      (httpServiceMock.get as Mock).mockImplementation((url: string) => {
+        if (url.endsWith('/me/accounts')) {
+          return of({
+            data: {
+              data: [
+                {
+                  id: 'page-1',
+                  instagram_business_account: { id: 'ig-linked' },
+                },
+                { id: 'page-2' },
+              ],
+            },
+          });
+        }
+        if (url.endsWith('/ig-linked')) {
+          return of({ data: { name: 'Linked', username: 'linkedone' } });
+        }
+        if (url.endsWith('/debug_token')) {
+          return of({ data: { data: { is_valid: true } } });
+        }
+        return of({ data: { data: [] } });
+      });
+
+      const result = await service.listAuthorizedInstagramAccounts(
+        'token',
+        undefined,
+        'biz-1',
+      );
+
+      expect(result).toEqual([
+        {
+          id: 'ig-linked',
+          label: 'Linked',
+          platform: 'instagram',
+          username: 'linkedone',
+        },
+      ]);
+    });
+
+    it('stays empty when every business edge fails or lists nothing', async () => {
+      (httpServiceMock.get as Mock).mockImplementation((url: string) => {
+        if (url.endsWith('/debug_token')) {
+          return of({ data: { data: { is_valid: true } } });
+        }
+        return url.includes('/biz-1/')
+          ? throwError(() => new Error('(#100) nonexisting field'))
+          : of({ data: { data: [] } });
+      });
+
+      const result = await service.listAuthorizedInstagramAccounts(
+        'token',
+        undefined,
+        'biz-1',
+      );
+
+      expect(result).toEqual([]);
+    });
+
     it('stops following pagination at the page cap instead of looping forever', async () => {
       (httpServiceMock.get as Mock).mockImplementation(() =>
         of({

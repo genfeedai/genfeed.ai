@@ -38,6 +38,8 @@ export interface InstagramTokenGrant {
   /** Permission names that carry chosen assets, for diagnosis. */
   scopedPermissions: string[];
   scopes: string[] | undefined;
+  /** Chosen-asset count per permission (counts only), for diagnosis. */
+  targetCountByPermission?: Record<string, number>;
 }
 
 /**

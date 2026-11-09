@@ -193,6 +193,7 @@ export class InstagramConnectionResolverService {
       await this.instagramService.listAuthorizedInstagramAccounts(
         access_token,
         grant?.instagramTargetIds,
+        businessId,
       );
 
     if (accounts.length === 0) {
@@ -207,6 +208,7 @@ export class InstagramConnectionResolverService {
           hasGrant: Boolean(grant),
           instagramTargetCount: grant?.instagramTargetIds.length ?? 0,
           scopedPermissions: grant?.scopedPermissions ?? [],
+          targetCountByPermission: grant?.targetCountByPermission ?? {},
         },
       );
       throw new HttpException(

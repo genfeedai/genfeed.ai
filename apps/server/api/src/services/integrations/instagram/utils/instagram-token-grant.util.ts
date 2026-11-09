@@ -35,7 +35,19 @@ export function toInstagramTokenGrant(
     ]),
   ];
 
+  // How many assets each permission carries (counts only, never ids), so a
+  // grant whose accounts sit under another permission is visible in the log.
+  const targetCountByPermission: Record<string, number> = {};
+  for (const entry of granular) {
+    if (typeof entry.scope === 'string') {
+      targetCountByPermission[entry.scope] =
+        (targetCountByPermission[entry.scope] ?? 0) +
+        (entry.target_ids?.length ?? 0);
+    }
+  }
+
   return {
+    targetCountByPermission,
     instagramTargetIds: [
       ...new Set(
         granular

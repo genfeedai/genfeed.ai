@@ -415,6 +415,8 @@ export class InstagramController {
       const authorized =
         await this.instagramService.listAuthorizedInstagramAccounts(
           accessToken,
+          undefined,
+          credential.externalBusinessId,
         );
       const authorizedById = new Map(
         authorized.map((account) => [account.id, account]),
