@@ -2,6 +2,7 @@ import type { CreatorProfileTab } from '@genfeedai/contracts/constants';
 import type { Article } from '@models/content/article.model';
 import type { Post } from '@models/content/post.model';
 import type { Brand } from '@models/organization/brand.model';
+import type { CreatorPostMediaItem } from '@web-components/creator/post-media';
 import type { ReactNode } from 'react';
 
 export interface CopyLinkButtonProps {
@@ -84,6 +85,12 @@ export interface CreatorArticleGridProps {
 export interface CreatorPostCardProps {
   handle: string;
   post: Post;
+}
+
+export interface CreatorPostMediaProps {
+  /** Alternative text for every item: the post's title. */
+  alt: string;
+  media: CreatorPostMediaItem[];
 }
 
 export interface CreatorPostGridProps {

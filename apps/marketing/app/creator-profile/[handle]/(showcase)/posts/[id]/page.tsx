@@ -13,6 +13,8 @@ import { PublicService } from '@services/external/public.service';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
 import CopyLinkButton from '@web-components/creator/CopyLinkButton';
+import CreatorPostMedia from '@web-components/creator/CreatorPostMedia';
+import { getPostMedia } from '@web-components/creator/post-media';
 import {
   postPlatformLabel,
   postTitle,
@@ -27,6 +29,25 @@ import { cache } from 'react';
 import { getPublicBrandBySlug } from '../../creator-loader';
 
 export const revalidate = 300;
+
+const signUpUrl = new URL('/sign-up', EnvironmentService.apps.app).toString();
+
+/** Where else the post went out: its own network link, then its cross-posts. */
+function listNetworkLinks(post: Post): { label: string; url: string }[] {
+  const links = [
+    { platform: post.platform, url: post.postUrl },
+    ...(post.crossPosts ?? []),
+  ];
+  const seen = new Set<string>();
+  return links.flatMap(({ platform, url }) => {
+    const label = postPlatformLabel(platform);
+    if (!label || !url || seen.has(label)) {
+      return [];
+    }
+    seen.add(label);
+    return [{ label, url }];
+  });
+}
 
 const postDateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
@@ -68,7 +89,11 @@ export async function generateMetadata({
   const title = postTitle(result.post.label, text);
   const description = text.slice(0, 200) || title;
   const url = `${EnvironmentService.apps.website}${creatorPostPath(result.handle, result.post.id)}`;
-  const image = result.brand.bannerUrl || metadata.cards.default;
+  const firstImage = getPostMedia(result.post.ingredients).find(
+    (item) => item.kind === 'image',
+  );
+  const image =
+    firstImage?.url || result.brand.bannerUrl || metadata.cards.default;
 
   return {
     alternates: { canonical: url },
@@ -104,10 +129,10 @@ export default async function CreatorPostPage({
   const { brand, handle, post } = result;
   const text = toPlainPostText(post.description);
   const title = postTitle(post.label, text);
-  const platform = postPlatformLabel(post.platform);
+  const media = getPostMedia(post.ingredients);
+  const networkLinks = listNetworkLinks(post);
   const publishedAt = post.publishedAt ?? post.createdAt;
   const url = `${EnvironmentService.apps.website}${creatorPostPath(handle, post.id)}`;
-  const originalUrl = post.postUrl;
   const name = brand.label?.trim() || `@${handle}`;
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -120,7 +145,10 @@ export default async function CreatorPostPage({
     ...(publishedAt ? { datePublished: publishedAt } : {}),
     headline: title,
     ...(text ? { articleBody: text } : {}),
-    ...(originalUrl ? { sameAs: originalUrl } : {}),
+    ...(media.length > 0 ? { image: media.map((item) => item.url) } : {}),
+    ...(networkLinks.length > 0
+      ? { sameAs: networkLinks.map((link) => link.url) }
+      : {}),
     url,
   };
 
@@ -181,16 +209,30 @@ export default async function CreatorPostPage({
         </p>
       ) : null}
 
+      {media.length > 0 ? (
+        <div className="mt-6">
+          <CreatorPostMedia alt={title} media={media} />
+        </div>
+      ) : null}
+
       <div className="mt-8 flex flex-wrap gap-3">
         <CopyLinkButton url={url} />
-        {originalUrl && platform ? (
-          <Button asChild variant={ButtonVariant.GHOST} withWrapper={false}>
-            <a href={originalUrl} rel="noopener noreferrer" target="_blank">
-              View on {platform}
+        {networkLinks.map((link) => (
+          <Button
+            asChild
+            key={link.label}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          >
+            <a href={link.url} rel="noopener noreferrer" target="_blank">
+              View on {link.label}
               <ArrowUpRight className="size-4" aria-hidden="true" />
             </a>
           </Button>
-        ) : null}
+        ))}
+        <Button asChild variant={ButtonVariant.GHOST} withWrapper={false}>
+          <a href={signUpUrl}>Make your own</a>
+        </Button>
       </div>
 
       <div className="mt-10">

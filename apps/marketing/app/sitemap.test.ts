@@ -1,15 +1,21 @@
 import { helpArticleSlugs } from '@data/help-articles.data';
 import { launchArticleSlugs } from '@data/launch-articles.data';
 import type { Article } from '@models/content/article.model';
+import type { Post } from '@models/content/post.model';
 import type { Brand } from '@models/organization/brand.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const findAllPublicArticles = vi.fn<() => Promise<Article[]>>();
 const findPublicBrands = vi.fn<() => Promise<Brand[]>>();
+const findPublicPosts = vi.fn<() => Promise<Post[]>>();
 
 vi.mock('@services/external/public.service', () => ({
   PublicService: {
-    getInstance: () => ({ findAllPublicArticles, findPublicBrands }),
+    getInstance: () => ({
+      findAllPublicArticles,
+      findPublicBrands,
+      findPublicPosts,
+    }),
   },
 }));
 
@@ -19,6 +25,8 @@ beforeEach(() => {
   findAllPublicArticles.mockReset();
   findPublicBrands.mockReset();
   findPublicBrands.mockResolvedValue([]);
+  findPublicPosts.mockReset();
+  findPublicPosts.mockResolvedValue([]);
 });
 
 describe('website sitemap', () => {
@@ -174,5 +182,39 @@ describe('website sitemap', () => {
 
     expect(urls.has('https://genfeed.ai/@genfeedai')).toBe(true);
     expect(urls.has('https://genfeed.ai/community')).toBe(true);
+  });
+
+  it('lists posts published to a Genfeed profile under their creator', async () => {
+    findAllPublicArticles.mockResolvedValue([]);
+    findPublicPosts.mockResolvedValue([
+      {
+        brand: { slug: 'shayla' },
+        id: 'p1',
+        updatedAt: '2026-11-08T10:00:00.000Z',
+      },
+      { brand: undefined, id: 'p2' },
+    ] as Post[]);
+
+    const routes = (await sitemap()).filter((route) =>
+      route.url.includes('/posts/'),
+    );
+
+    expect(routes).toEqual([
+      {
+        changeFrequency: 'monthly',
+        lastModified: new Date('2026-11-08T10:00:00.000Z'),
+        priority: 0.6,
+        url: 'https://genfeed.ai/@shayla/posts/p1',
+      },
+    ]);
+  });
+
+  it('keeps profiles listed when the post list is unavailable', async () => {
+    findAllPublicArticles.mockResolvedValue([]);
+    findPublicPosts.mockRejectedValue(new Error('API unavailable'));
+
+    const urls = new Set((await sitemap()).map((route) => route.url));
+
+    expect(urls.has('https://genfeed.ai/@genfeedai')).toBe(true);
   });
 });

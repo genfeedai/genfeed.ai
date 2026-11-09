@@ -5,6 +5,7 @@ import {
   DevIcon,
   DiscordIcon,
   FacebookIcon,
+  GenfeedIcon,
   GhostIcon,
   GoogleAdsIcon,
   GoogleIcon,
@@ -89,6 +90,14 @@ const PLATFORM_BRANDS: Record<string, IPlatformBadgeConfig> = {
     iconColor: 'text-platform-fanvue',
     label: label(Platform.FANVUE),
     solidBgColor: 'bg-platform-fanvue',
+    textColor: 'text-foreground',
+  },
+  [Platform.GENFEED]: {
+    bgColor: 'bg-primary/10',
+    icon: GenfeedIcon,
+    iconColor: 'text-primary',
+    label: label(Platform.GENFEED),
+    solidBgColor: 'bg-primary',
     textColor: 'text-foreground',
   },
   [Platform.GHOST]: {

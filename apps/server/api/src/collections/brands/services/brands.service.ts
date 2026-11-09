@@ -50,6 +50,10 @@ import { normalizeBrandIdentityDefaults } from '@api/collections/brands/utils/br
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
 import { toBrandSlugBase } from '@api/collections/brands/utils/brand-slug.util';
 import { resolveCreateAgentConfig } from '@api/collections/brands/utils/expert-brand-defaults.util';
+import {
+  createGenfeedProfileChannel,
+  syncGenfeedProfileHandle,
+} from '@api/collections/brands/utils/genfeed-profile-channel.util';
 import { withPersistedFontFamily } from '@api/collections/brands/utils/persisted-font-family';
 import {
   isSlugUniqueConstraintError,
@@ -246,6 +250,13 @@ export class BrandsService extends BaseService<
             'Unable to allocate a unique brand slug after concurrent retries',
           );
     }
+
+    await createGenfeedProfileChannel(this.prisma, this.logger, {
+      id: brand.id,
+      organizationId: resolvedOrganizationId,
+      slug: brand.slug,
+      userId: resolvedUserId,
+    });
 
     // Invalidate brand list cache so the new brand is immediately visible
     if (resolvedOrganizationId) {
@@ -444,6 +455,14 @@ export class BrandsService extends BaseService<
 
     if (!brand) {
       throw new NotFoundException('Brand', id);
+    }
+
+    if (typeof updateBrandDto.slug === 'string' && brand.organizationId) {
+      await syncGenfeedProfileHandle(this.prisma, {
+        id: brand.id,
+        organizationId: brand.organizationId,
+        slug: brand.slug,
+      });
     }
 
     // Invalidate single-brand cache key; list is busted by BaseService.patch()

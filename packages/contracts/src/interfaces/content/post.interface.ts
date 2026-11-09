@@ -25,6 +25,12 @@ import type { IChannelTargetError } from '../scheduler/channel-target.interface'
 import type { BrandedGenerationReceiptStateV1 } from './branded-generation.interface';
 import type { SeoScorecardSnapshot } from './seo-scorecard.interface';
 
+/** A network where a Genfeed profile post also went live. */
+export interface IPostCrossPost {
+  platform: CredentialPlatform | string;
+  url: string;
+}
+
 export interface IPost extends IBaseEntity {
   ingredients: IIngredient[];
   category: PostCategory;
@@ -42,6 +48,8 @@ export interface IPost extends IBaseEntity {
   groupId?: string;
   campaignId?: string | null;
   url?: string;
+  /** Public reads of a Genfeed profile post: the same post on each network. */
+  crossPosts?: IPostCrossPost[];
   label?: string;
   description?: string;
   tags?: ITag[];

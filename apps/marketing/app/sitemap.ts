@@ -8,9 +8,11 @@ import { getAllIntegrationSlugs } from '@data/integrations.data';
 import { launchArticleSlugs } from '@data/launch-articles.data';
 import { getAllProductSlugs } from '@data/products.data';
 import { getAllUseCaseSlugs } from '@data/use-cases.data';
+import { Platform } from '@genfeedai/contracts';
 import {
   articleHandle,
   creatorArticlePath,
+  creatorPostPath,
   creatorProfilePath,
   GENFEED_BRAND_HANDLE,
 } from '@genfeedai/contracts/constants';
@@ -22,6 +24,8 @@ export const dynamic = 'force-dynamic';
 const SITE_URL = 'https://genfeed.ai';
 /** The public brands endpoint caps a page at 100: the newest profiles. */
 const SITEMAP_PROFILE_LIMIT = 100;
+/** The newest posts published straight to Genfeed profiles. */
+const SITEMAP_NATIVE_POST_LIMIT = 100;
 
 function articleUrl(handle: string, slug: string): string {
   return `${SITE_URL}${creatorArticlePath(handle, slug)}`;
@@ -445,6 +449,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     profileRoute,
   );
 
+  // Posts published to a Genfeed profile have their own page there. Network
+  // posts link out to the network instead, so they are not listed.
+  let nativePostRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const posts = await PublicService.getInstance().findPublicPosts({
+      limit: SITEMAP_NATIVE_POST_LIMIT,
+      platform: Platform.GENFEED,
+    });
+    nativePostRoutes = posts.flatMap((post) => {
+      const handle = post.brand?.slug;
+      if (!handle) {
+        return [];
+      }
+      const lastModified = post.updatedAt ?? post.publishedAt;
+      return [
+        {
+          changeFrequency: 'monthly' as const,
+          ...(lastModified ? { lastModified: new Date(lastModified) } : {}),
+          priority: 0.6,
+          url: `${SITE_URL}${creatorPostPath(handle, post.id)}`,
+        },
+      ];
+    });
+  } catch {
+    // Profiles stay listed when the post list cannot be loaded.
+  }
+
   const allRoutes = [
     ...staticRoutes,
     ...agentClientRoutes,
@@ -458,6 +489,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...profileRoutes,
     ...articleRoutes,
     ...fallbackArticleRoutes,
+    ...nativePostRoutes,
   ];
 
   const seen = new Set<string>();
