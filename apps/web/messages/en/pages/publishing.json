@@ -637,6 +637,7 @@
       "empty": "No subscribers yet. Add readers, import a CSV, or share your profile so people can sign up.",
       "emptyFiltered": "No subscribers match these filters.",
       "loadError": "Subscribers could not be loaded.",
+      "statsError": "Subscriber counts could not be loaded.",
       "exportFailed": "The export did not finish. Try again.",
       "removed": "Removed {email}.",
       "removeFailed": "That subscriber could not be removed.",

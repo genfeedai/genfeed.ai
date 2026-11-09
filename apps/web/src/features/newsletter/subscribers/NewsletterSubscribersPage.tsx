@@ -194,6 +194,8 @@ export default function NewsletterSubscribersPage() {
       const service = await getService();
       if (!service) throw new Error('Newsletter service unavailable');
       await service.removeSubscriber(brandId, subscriber.id);
+      // Removing the last row of a later page steps back to a page that exists.
+      if (page > 1 && (data?.items.length ?? 0) <= 1) replacePage(page - 1);
       NotificationsService.getInstance().success(
         translate('subscribers.removed', { email: subscriber.email }),
       );
@@ -334,6 +336,7 @@ export default function NewsletterSubscribersPage() {
       }
     >
       <KPISection
+        error={stats.isError ? translate('subscribers.statsError') : null}
         gridCols={{ desktop: 4, mobile: 2 }}
         isLoading={stats.isLoading}
         items={[

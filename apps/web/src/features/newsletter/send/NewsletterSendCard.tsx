@@ -226,7 +226,11 @@ export default function NewsletterSendCard({
       </p>
 
       <Field htmlFor="newsletter-access-level" label={translate('access')}>
-        <Select value={accessLevel} onValueChange={handleAccessLevel}>
+        <Select
+          disabled={isBusy}
+          value={accessLevel}
+          onValueChange={handleAccessLevel}
+        >
           <SelectTrigger id="newsletter-access-level">
             <SelectValue />
           </SelectTrigger>

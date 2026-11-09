@@ -74,13 +74,17 @@ export default function NewsletterAnalyticsPage() {
         header: translate('analytics.columns.opens'),
         key: 'uniqueOpens',
         render: (send) =>
-          `${send.uniqueOpens} (${PERCENT_FORMAT.format(send.delivered ? send.uniqueOpens / send.delivered : 0)})`,
+          send.delivered
+            ? `${send.uniqueOpens} (${PERCENT_FORMAT.format(send.uniqueOpens / send.delivered)})`
+            : `${send.uniqueOpens} (—)`,
       },
       {
         header: translate('analytics.columns.clicks'),
         key: 'uniqueClicks',
         render: (send) =>
-          `${send.uniqueClicks} (${PERCENT_FORMAT.format(send.delivered ? send.uniqueClicks / send.delivered : 0)})`,
+          send.delivered
+            ? `${send.uniqueClicks} (${PERCENT_FORMAT.format(send.uniqueClicks / send.delivered)})`
+            : `${send.uniqueClicks} (—)`,
       },
       {
         header: translate('analytics.columns.unsubscribed'),
@@ -195,44 +199,46 @@ export default function NewsletterAnalyticsPage() {
       <p className="mb-6 text-sm text-muted-foreground">
         {translate('analytics.openNote')}
       </p>
-      <div className="flex flex-col gap-8">
-        <AppTable<INewsletterSendReport>
-          columns={sendColumns}
-          emptyLabel={translate('analytics.emptySends')}
-          getRowKey={(send) => send.id}
-          isLoading={analytics.isLoading}
-          items={data?.sends ?? []}
-          label={translate('analytics.sends')}
-        />
-        <AppTable<NewsletterLinkRow>
-          columns={linkColumns}
-          emptyLabel={translate('analytics.emptyLinks')}
-          getRowKey={(link) => link.id}
-          isLoading={analytics.isLoading}
-          items={links}
-          label={translate('analytics.topLinks')}
-        />
-        <div className="grid gap-8 lg:grid-cols-2">
-          <AppTable<INewsletterSourceCount>
-            columns={sourceColumns}
-            emptyLabel={translate('analytics.emptySources')}
-            getRowKey={(row) => row.source}
+      {analytics.isError ? null : (
+        <div className="flex flex-col gap-8">
+          <AppTable<INewsletterSendReport>
+            columns={sendColumns}
+            emptyLabel={translate('analytics.emptySends')}
+            getRowKey={(send) => send.id}
             isLoading={analytics.isLoading}
-            items={data?.sources ?? []}
-            label={translate('analytics.sources')}
+            items={data?.sends ?? []}
+            label={translate('analytics.sends')}
           />
-          <AppTable<INewsletterActivityItem>
-            columns={activityColumns}
-            emptyLabel={translate('analytics.emptyActivity')}
-            getRowKey={(item, index) =>
-              `${item.type}-${item.occurredAt}-${index}`
-            }
+          <AppTable<NewsletterLinkRow>
+            columns={linkColumns}
+            emptyLabel={translate('analytics.emptyLinks')}
+            getRowKey={(link) => link.id}
             isLoading={analytics.isLoading}
-            items={data?.recentActivity ?? []}
-            label={translate('analytics.activity')}
+            items={links}
+            label={translate('analytics.topLinks')}
           />
+          <div className="grid gap-8 lg:grid-cols-2">
+            <AppTable<INewsletterSourceCount>
+              columns={sourceColumns}
+              emptyLabel={translate('analytics.emptySources')}
+              getRowKey={(row) => row.source}
+              isLoading={analytics.isLoading}
+              items={data?.sources ?? []}
+              label={translate('analytics.sources')}
+            />
+            <AppTable<INewsletterActivityItem>
+              columns={activityColumns}
+              emptyLabel={translate('analytics.emptyActivity')}
+              getRowKey={(item, index) =>
+                `${item.type}-${item.occurredAt}-${index}`
+              }
+              isLoading={analytics.isLoading}
+              items={data?.recentActivity ?? []}
+              label={translate('analytics.activity')}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
