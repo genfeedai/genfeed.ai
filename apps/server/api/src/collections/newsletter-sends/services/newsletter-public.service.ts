@@ -1,15 +1,74 @@
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { NewsletterEmailService } from '@api/collections/newsletter-sends/services/newsletter-email.service';
-import { personalizeNewsletterEmail } from '@api/collections/newsletter-sends/utils/newsletter-email-template.util';
+import {
+  markdownToPlainText,
+  personalizeNewsletterEmail,
+  previewMarkdown,
+} from '@api/collections/newsletter-sends/utils/newsletter-email-template.util';
+import { renderNewsletterHtml } from '@api/collections/newsletters/utils/newsletter-html.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { creatorProfilePath } from '@genfeedai/contracts/constants';
+import {
+  creatorProfilePath,
+  isNewsletterAccessLevel,
+} from '@genfeedai/contracts/constants';
+import type {
+  IPublicNewsletterArchive,
+  IPublicNewsletterBrand,
+  IPublicNewsletterIssue,
+  IPublicNewsletterIssueSummary,
+} from '@genfeedai/contracts/interfaces';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const CLICK_SUBJECT_PATTERN = /^([a-z0-9]+)-(\d{1,4})$/;
 const ENTITY_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+const ARCHIVE_PAGE_SIZE = 20;
+const WORDS_PER_MINUTE = 220;
+const WORD_PATTERN = /\S+/g;
+
+const PUBLISHED_ISSUE_WHERE = {
+  content: { not: null },
+  isDeleted: false,
+  publishedAt: { not: null },
+  status: 'published',
+} as const;
+
+const ISSUE_SELECT = {
+  accessLevel: true,
+  content: true,
+  id: true,
+  label: true,
+  publishedAt: true,
+  summary: true,
+} as const;
+
+interface PublishedIssueRow {
+  accessLevel: string;
+  content: string | null;
+  id: string;
+  label: string;
+  publishedAt: Date | null;
+  summary: string | null;
+}
+
+function toIssueSummary(row: PublishedIssueRow): IPublicNewsletterIssueSummary {
+  const words = markdownToPlainText(row.content ?? '').match(WORD_PATTERN);
+  return {
+    accessLevel: isNewsletterAccessLevel(row.accessLevel)
+      ? row.accessLevel
+      : 'public',
+    id: row.id,
+    publishedAt: (row.publishedAt ?? new Date(0)).toISOString(),
+    readingMinutes: Math.max(
+      1,
+      Math.ceil((words?.length ?? 0) / WORDS_PER_MINUTE),
+    ),
+    subject: row.label,
+    summary: row.summary,
+  };
+}
 
 /**
  * Public, unauthenticated newsletter surfaces: tracked link redirects,
@@ -191,5 +250,79 @@ export class NewsletterPublicService {
       linkUrl: (index) => template.links[index] ?? '#',
       unsubscribeUrl: '#',
     }).html;
+  }
+
+  /** A brand's published issues, newest first, for its public archive (#9728). */
+  async getArchive(
+    brandId: string,
+    page = 1,
+  ): Promise<IPublicNewsletterArchive> {
+    const brand = await this.findPublicBrand(brandId);
+    const safePage = Number.isInteger(page) && page > 0 ? page : 1;
+    // tenant-scope-ignore: published issues are public; the organization is read from the brand row.
+    const rows = await this.prisma.newsletter.findMany({
+      orderBy: [{ publishedAt: 'desc' }, { id: 'asc' }],
+      select: ISSUE_SELECT,
+      skip: (safePage - 1) * ARCHIVE_PAGE_SIZE,
+      take: ARCHIVE_PAGE_SIZE + 1,
+      where: {
+        ...PUBLISHED_ISSUE_WHERE,
+        brandId: brand.id,
+        organizationId: brand.organizationId,
+      },
+    });
+    const issues = rows
+      .slice(0, ARCHIVE_PAGE_SIZE)
+      .filter((row) => row.content?.trim())
+      .map(toIssueSummary);
+    return {
+      brand: { id: brand.id, label: brand.label, slug: brand.slug },
+      hasMore: rows.length > ARCHIVE_PAGE_SIZE,
+      issues,
+    };
+  }
+
+  /**
+   * One published issue as sanitized HTML. Issues for subscribers or paid
+   * readers show only their free preview on the open web.
+   */
+  async getArchiveIssue(newsletterId: string): Promise<IPublicNewsletterIssue> {
+    if (!ENTITY_ID_PATTERN.test(newsletterId)) {
+      throw new NotFoundException('Newsletter', newsletterId);
+    }
+    // tenant-scope-ignore: only published issues are public; the organization is read from the row.
+    const row = await this.prisma.newsletter.findFirst({
+      select: { ...ISSUE_SELECT, brandId: true, organizationId: true },
+      where: { ...PUBLISHED_ISSUE_WHERE, id: newsletterId },
+    });
+    if (!row?.brandId || !row.content?.trim()) {
+      throw new NotFoundException('Newsletter', newsletterId);
+    }
+    const brand = await this.findPublicBrand(row.brandId);
+    const summary = toIssueSummary(row);
+    const isPreview = summary.accessLevel !== 'public';
+    return {
+      ...summary,
+      brand: { id: brand.id, label: brand.label, slug: brand.slug },
+      html: renderNewsletterHtml(
+        isPreview ? previewMarkdown(row.content) : row.content,
+      ),
+      isPreview,
+    };
+  }
+
+  private async findPublicBrand(
+    brandId: string,
+  ): Promise<IPublicNewsletterBrand & { organizationId: string }> {
+    if (!ENTITY_ID_PATTERN.test(brandId)) {
+      throw new NotFoundException('Newsletter', brandId);
+    }
+    // tenant-scope-ignore: a public archive names its brand; the organization is read from the row.
+    const brand = await this.prisma.brand.findFirst({
+      select: { id: true, label: true, organizationId: true, slug: true },
+      where: { id: brandId, isDeleted: false },
+    });
+    if (!brand) throw new NotFoundException('Newsletter', brandId);
+    return brand;
   }
 }

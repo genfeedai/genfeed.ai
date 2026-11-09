@@ -54,6 +54,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: 'https://genfeed.ai/changelog',
     },
     {
+      changeFrequency: 'weekly',
+      priority: 0.7,
+      url: 'https://genfeed.ai/newsletter',
+    },
+    {
       changeFrequency: 'daily',
       priority: 1,
       url: 'https://genfeed.ai',
