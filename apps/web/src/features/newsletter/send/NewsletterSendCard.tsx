@@ -20,6 +20,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { NewsletterModuleService } from '@services/content/newsletter-module.service';
 import { NewslettersService } from '@services/content/newsletters.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -126,6 +127,12 @@ export default function NewsletterSendCard({
     await queryClient.invalidateQueries({ queryKey: [NEWSLETTER_QUERY_KEY] });
   }
 
+  async function requireService(): Promise<NewsletterModuleService> {
+    const service = await getService();
+    if (!service) throw new Error('Newsletter service unavailable');
+    return service;
+  }
+
   async function run(
     task: () => Promise<void>,
     failure: string,
@@ -148,7 +155,12 @@ export default function NewsletterSendCard({
     void run(async () => {
       try {
         const service = await getNewslettersService();
-        await service.patch(newsletter.id, { accessLevel: value });
+        const saved = await service.patch(newsletter.id, {
+          accessLevel: value,
+        });
+        if (isNewsletterAccessLevel(saved.accessLevel)) {
+          setAccessLevel(saved.accessLevel);
+        }
       } catch (error) {
         setAccessLevel(previous);
         throw error;
@@ -158,21 +170,18 @@ export default function NewsletterSendCard({
 
   function handlePreview(isGated: boolean): void {
     void run(async () => {
-      const service = await getService();
-      if (service)
-        setPreview(await service.getEmailPreview(newsletter.id, isGated));
+      const service = await requireService();
+      setPreview(await service.getEmailPreview(newsletter.id, isGated));
     }, 'Newsletter preview failed');
   }
 
   function handleTest(): void {
     void run(async () => {
-      const service = await getService();
-      const result = await service?.sendTest(newsletter.id);
-      if (result) {
-        NotificationsService.getInstance().success(
-          translate('testSent', { email: result.to }),
-        );
-      }
+      const service = await requireService();
+      const result = await service.sendTest(newsletter.id);
+      NotificationsService.getInstance().success(
+        translate('testSent', { email: result.to }),
+      );
     }, 'Newsletter test send failed');
   }
 
@@ -188,8 +197,8 @@ export default function NewsletterSendCard({
       return;
     }
     void run(async () => {
-      const service = await getService();
-      await service?.sendIssue(
+      const service = await requireService();
+      await service.sendIssue(
         newsletter.id,
         scheduledFor ? { scheduledFor: scheduledFor.toISOString() } : {},
       );
@@ -203,8 +212,8 @@ export default function NewsletterSendCard({
   function handleControl(action: NewsletterSendAction): void {
     if (!send) return;
     void run(async () => {
-      const service = await getService();
-      await service?.controlSend(send.id, action);
+      const service = await requireService();
+      await service.controlSend(send.id, action);
       await refresh();
     }, 'Newsletter send control failed');
   }

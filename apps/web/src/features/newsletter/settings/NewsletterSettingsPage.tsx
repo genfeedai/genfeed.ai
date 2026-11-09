@@ -82,15 +82,18 @@ export default function NewsletterSettingsPage() {
   async function save(): Promise<void> {
     if (!brandId || isSaving) return;
     const price = form.paidPriceCredits.trim();
-    const paidPriceCredits = price ? Number.parseInt(price, 10) : null;
-    if (paidPriceCredits !== null && !(paidPriceCredits > 0)) {
+    const paidPriceCredits = price ? Number(price) : null;
+    if (
+      paidPriceCredits !== null &&
+      !(Number.isInteger(paidPriceCredits) && paidPriceCredits > 0)
+    ) {
       NotificationsService.getInstance().error(translate('priceInvalid'));
       return;
     }
     setIsSaving(true);
     try {
       const service = await getService();
-      if (!service) return;
+      if (!service) throw new Error('Newsletter service unavailable');
       await service.updateSettings(brandId, {
         footerText: orNull(form.footerText),
         isAttributionEnabled: form.isAttributionEnabled,
@@ -268,7 +271,7 @@ export default function NewsletterSettingsPage() {
 
         <div>
           <Button
-            isDisabled={settings.isLoading}
+            isDisabled={!settings.data}
             isLoading={isSaving}
             label={translate('save')}
             type="submit"

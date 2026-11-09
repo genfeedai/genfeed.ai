@@ -205,12 +205,13 @@ describe('runCheckProductRouteInventory', () => {
     // /@handle/invite/[token]. The voice studio is also served at the
     // organization level by the catch-all. Creator profiles, their tabs and
     // their articles live under /creator-profile/[handle] (served at /@handle),
-    // and the website gained /community.
+    // and the website gained /community. Newsletter added its audience,
+    // settings and analytics pages.
     expect(runCheckProductRouteInventory()).toMatchObject({
       appPublicRouteCount: 25,
       issues: [],
-      protectedPageCount: 246,
-      protectedRouteCount: 269,
+      protectedPageCount: 249,
+      protectedRouteCount: 274,
       publicRouteCount: 118,
       websitePublicRouteCount: 93,
     });
