@@ -1,5 +1,3 @@
-'use client';
-
 import { cn } from '@genfeedai/helpers';
 import { cva, type VariantProps } from 'class-variance-authority';
 import type { ComponentPropsWithoutRef } from 'react';

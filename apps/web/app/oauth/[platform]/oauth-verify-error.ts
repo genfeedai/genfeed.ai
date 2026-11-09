@@ -1,5 +1,6 @@
 import { YoutubeOAuthVerifyErrorCode } from '@genfeedai/contracts';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
+import { getErrorStatus } from '@utils/error/json-api-status.util';
 
 const GENERIC_VERIFY_FAILURE = {
   messageKey: 'error.description',
@@ -86,6 +87,11 @@ export function resolveOAuthPlatformVerifyFailure(input: {
     messageKey: GENERIC_VERIFY_FAILURE.messageKey,
     titleKey: GENERIC_VERIFY_FAILURE.titleKey,
   };
+}
+
+export function isReportableOAuthVerifyFailure(error: unknown): boolean {
+  const status = getErrorStatus(error);
+  return status === undefined || status >= 429;
 }
 
 export function isHttpsAuthorizationUrl(value: unknown): value is string {

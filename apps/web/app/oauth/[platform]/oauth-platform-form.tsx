@@ -32,6 +32,7 @@ import { resolveSameOriginReturnTo } from '@/lib/navigation/resolve-same-origin-
 import { navigateToReturnPath } from './oauth-return-navigation';
 import {
   isHttpsAuthorizationUrl,
+  isReportableOAuthVerifyFailure,
   resolveOAuthPlatformVerifyFailure,
 } from './oauth-verify-error';
 
@@ -169,7 +170,10 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
           name: credential?.externalName || credential?.externalHandle,
         });
       } catch (error) {
-        logger.error(`${url} failed`, error);
+        logger.error(`${url} failed`, {
+          error,
+          reportToSentry: isReportableOAuthVerifyFailure(error),
+        });
         const failure = resolveOAuthPlatformVerifyFailure({
           callbackSubmitted,
           error,
