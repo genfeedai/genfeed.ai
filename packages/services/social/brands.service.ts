@@ -14,6 +14,7 @@ import type {
   IBrandKitAssetImportRequest,
   IBrandKitAssetImportResponse,
   IBrandKitDraft,
+  IBrandKitLogoColor,
   IBrandKitManualInput,
   IBrandKitPlatformFillRequest,
   IBrandKitPlatformFillResult,
@@ -639,6 +640,18 @@ export class BrandsService extends BaseService<Brand> {
         `/${id}/kit/platform-images/from-master`,
         request,
       )
+      .then((res) => res.data.data);
+  }
+
+  /** Candidate palette colors read from the primary logo. Saves nothing. */
+  public async getLogoColorCandidates(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IBrandKitLogoColor[]> {
+    return this.instance
+      .get<{ data: IBrandKitLogoColor[] }>(`/${id}/kit/logo-colors`, {
+        signal,
+      })
       .then((res) => res.data.data);
   }
 

@@ -1153,6 +1153,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   primaryColor             String       @default("#000000")
   secondaryColor           String       @default("#FFFFFF")
   backgroundColor          String       @default("transparent")
+  colorPalette             Json         @default("[]")
+  fontRoles                Json         @default("{}")
   referenceImages          Json         @default("[]")
   scope                    AssetScope   @default(USER)
   isActive                 Boolean      @default(true)

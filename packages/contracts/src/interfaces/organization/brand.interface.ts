@@ -1,5 +1,9 @@
 import type { AssetScope } from '../..';
 import type {
+  BrandFontRoles,
+  BrandPaletteColor,
+} from '../../api-types/contracts/brand-kit-style.contract';
+import type {
   IAsset,
   IBaseEntity,
   ICredential,
@@ -69,6 +73,10 @@ export interface IBrand extends IBaseEntity {
   primaryColor: string;
   secondaryColor: string;
   backgroundColor: string;
+  /** Named colors beyond primary, secondary and background. */
+  colorPalette?: BrandPaletteColor[];
+  /** The font for headings, body text and captions. */
+  fontRoles?: BrandFontRoles;
 
   voice?: string;
   music?: string;

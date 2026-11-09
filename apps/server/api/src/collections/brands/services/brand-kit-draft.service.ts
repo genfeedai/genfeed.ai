@@ -11,6 +11,10 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { FontFamily } from '@genfeedai/contracts';
+import {
+  brandFontRolesSchema,
+  brandPaletteSchema,
+} from '@genfeedai/contracts/api-types/contracts/brand-kit-style.contract';
 import type {
   BrandKitFieldKey,
   BrandKitSourceType,
@@ -330,6 +334,24 @@ export class BrandKitDraftService {
           continue;
         }
         plan.socialLinks = links;
+        continue;
+      }
+
+      if (rawKey === 'colorPalette' || rawKey === 'fontRoles') {
+        const parsed = (
+          rawKey === 'colorPalette' ? brandPaletteSchema : brandFontRolesSchema
+        ).safeParse(decision.value);
+        if (!parsed.success) {
+          plan.diagnostics.push({
+            code: 'brand_kit_apply_invalid_value',
+            fieldKey: rawKey,
+            message: `${rawKey} did not include a supported value.`,
+            severity: 'error',
+          });
+          continue;
+        }
+        plan.updateData[rawKey] = parsed.data;
+        plan.appliedFields.push(rawKey);
         continue;
       }
 
