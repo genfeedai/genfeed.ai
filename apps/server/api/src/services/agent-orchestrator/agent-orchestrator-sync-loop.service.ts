@@ -10,8 +10,6 @@ import { AgentOrchestratorContextService } from '@api/services/agent-orchestrato
 import { AgentOrchestratorTurboRunService } from '@api/services/agent-orchestrator/agent-orchestrator-turbo-run.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import {
-  type AgentToolRoundState,
-  type AgentToolRoundStrategy,
   AgentTurnRoundRunnerService,
   assertAgentCreditBudget,
 } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
@@ -29,6 +27,10 @@ import type {
   SyncChatTools,
   SyncLoopState,
 } from '@api/services/agent-orchestrator/interfaces/agent-orchestrator-sync-loop.interface';
+import type {
+  AgentToolRoundState,
+  AgentToolRoundStrategy,
+} from '@api/services/agent-orchestrator/interfaces/agent-turn-round-runner.interface';
 import { resolveAgentAutoRoutingRound } from '@api/services/agent-orchestrator/utils/agent-auto-routing-round.util';
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';

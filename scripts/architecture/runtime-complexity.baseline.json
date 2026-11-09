@@ -60,12 +60,6 @@
     "symbol": "LearningReleaseService.control"
   },
   {
-    "actual": 254,
-    "file": "apps/server/api/src/collections/content-learning/services/learning-run.service.ts",
-    "metric": "method-lines",
-    "symbol": "LearningRunService.execute"
-  },
-  {
     "actual": 154,
     "file": "apps/server/api/src/collections/listening-topics/services/listening-topic-analysis.service.ts",
     "metric": "method-lines",
@@ -142,18 +136,6 @@
     "file": "apps/server/api/src/services/agent-orchestrator/agent-completion-card-builder.service.ts",
     "metric": "method-lines",
     "symbol": "AgentCompletionCardBuilderService.buildCompletionSuggestedActions"
-  },
-  {
-    "actual": 513,
-    "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-stream-loop.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentOrchestratorStreamLoopService.runStreamLoop"
-  },
-  {
-    "actual": 328,
-    "file": "apps/server/api/src/services/agent-orchestrator/agent-turn-round-runner.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentTurnRoundRunnerService.executeToolRound"
   },
   {
     "actual": 18,
@@ -274,12 +256,6 @@
     "file": "apps/server/workers/src/crons/ingredients/cron.ingredients.service.ts",
     "metric": "method-lines",
     "symbol": "CronIngredientsService.refreshMissingMetadataDimensions"
-  },
-  {
-    "actual": 33,
-    "file": "apps/server/workers/src/scheduling/platform-schedules.processor.ts",
-    "metric": "constructor-dependencies",
-    "symbol": "PlatformSchedulesProcessor.constructor"
   },
   {
     "actual": 1077,
