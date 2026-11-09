@@ -129,11 +129,7 @@ export default function AnalyticsOverview({
 
       <div className={cn(BLOCK_STACK_CLASS, showAgentDashboard && 'hidden')}>
         {heroContent && !isLoading ? (
-          <AnalyticsOverviewHero
-            dashboardState={dashboardState}
-            heroContent={heroContent}
-            connectAccountsHref={connectAccountsHref}
-          />
+          <AnalyticsOverviewHero heroContent={heroContent} />
         ) : null}
 
         <AnalyticsOverviewAlerts

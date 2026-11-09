@@ -284,7 +284,6 @@
     "apps/web/src/features/analytics/organization-overview/analytics-organization-overview.tsx": 15,
     "apps/web/src/features/analytics/overview/analytics-agent-dashboard.tsx": 2,
     "apps/web/src/features/analytics/overview/analytics-overview-alerts.tsx": 8,
-    "apps/web/src/features/analytics/overview/analytics-overview-hero.tsx": 1,
     "apps/web/src/features/analytics/overview/analytics-overview-leaderboards.tsx": 22,
     "apps/web/src/features/analytics/performance-lab/PatternCard.tsx": 3,
     "apps/web/src/features/analytics/performance-lab/PatternLabPage.tsx": 18,

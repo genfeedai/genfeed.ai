@@ -118,6 +118,14 @@
     "createPost": "Create a post",
     "emptyDescription": "Winners, trends, and rankings appear after a connected social account publishes and analytics syncs back.",
     "emptyTitle": "Connect accounts to see analytics",
+    "hero": {
+      "createContent": "Create content",
+      "manageConnections": "Manage connections",
+      "notConnectedBadge": "No accounts connected",
+      "notConnectedDescription": "No social accounts are connected yet. Connect one so published posts can report views and engagement.",
+      "warmingUpBadge": "Warming up",
+      "warmingUpDescription": "Accounts are connected, but there is not enough tracked performance yet. Keep publishing and check back after the next sync."
+    },
     "placeholderDescription": "After connected accounts publish content and analytics sync back, this chart will show which platforms are growing, flat, or underperforming.",
     "placeholderTitle": "Trend lines will appear here once performance data lands",
     "timeseriesTitle": "Posts views by platform over time"
