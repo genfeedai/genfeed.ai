@@ -58,6 +58,17 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
+/** What each logo variant must look like; the primary logo needs no note. */
+const LOGO_VARIANT_PROMPTS: Partial<Record<BrandKitSlot, string>> = {
+  [BrandKitSlot.LOGO_DARK]:
+    ', drawn in light tones to sit on a dark background',
+  [BrandKitSlot.LOGO_ICON]: ', as a compact icon mark with no text',
+  [BrandKitSlot.LOGO_LIGHT]:
+    ', drawn in dark tones to sit on a light background',
+  [BrandKitSlot.LOGO_MONOCHROME]: ', in a single solid color',
+  [BrandKitSlot.LOGO_WORDMARK]: ', as a wordmark of the brand name only',
+};
+
 function buildBrandAssetPrompt(
   brand: BrandDocument,
   promptPrefix: string,
@@ -182,7 +193,9 @@ export class AssetsOperationsController {
           } (${platformSpec.width}x${platformSpec.height})`
         : category === AssetCategory.BANNER
           ? 'Generate a professional wide banner (1500x500, 3:1)'
-          : 'Generate a professional logo (1024x1024)',
+          : `Generate a professional logo (1024x1024)${
+              kitSlot ? (LOGO_VARIANT_PROMPTS[kitSlot] ?? '') : ''
+            }`,
       text,
     );
 

@@ -15,6 +15,7 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import {
   AssetCategory,
   AssetParent,
+  BrandKitSlot,
   ModelCategory,
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
@@ -204,6 +205,27 @@ describe('AssetsOperationsController', () => {
         expect.objectContaining({
           prompt:
             'Generate a professional logo (1024x1024) for Test Brand. A compass over a mountain, flat vector. Brand description. Primary color: #111111. Secondary color: #222222. Style: modern, clean, professional',
+        }),
+        mockOrgId,
+      );
+    });
+
+    it('describes the logo variant the slot asks for', async () => {
+      await controller.generate(mockRequest, mockUser, {
+        category: AssetCategory.LOGO,
+        kitSlot: BrandKitSlot.LOGO_ICON,
+        model: 'test-model',
+        parentId: mockBrandId,
+        parentType: AssetParent.BRAND,
+        text: 'A compass',
+      });
+
+      expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          prompt: expect.stringMatching(
+            /^Generate a professional logo \(1024x1024\), as a compact icon mark with no text for Test Brand\. A compass\./,
+          ),
         }),
         mockOrgId,
       );
