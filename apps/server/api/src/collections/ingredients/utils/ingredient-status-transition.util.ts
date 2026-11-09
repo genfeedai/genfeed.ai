@@ -1,7 +1,8 @@
+import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import {
   INGREDIENT_STATE_MACHINE,
-  type IngredientStatus,
+  IngredientStatus,
 } from '@genfeedai/contracts';
 import { traced } from '@libs/tracing/traced';
 
@@ -15,6 +16,14 @@ export interface IngredientStatusTransition {
   /** Other columns that must still match, such as the timeout marker. */
   match?: Record<string, unknown>;
   /** Columns written together with the new status. */
+  data?: Record<string, unknown>;
+}
+
+export interface IngredientGenerationSettlement {
+  id: string;
+  organizationId?: string | null;
+  /** GENERATED, UPLOADED or FAILED. */
+  to: IngredientStatus;
   data?: Record<string, unknown>;
 }
 
@@ -50,5 +59,39 @@ export const transitionIngredientStatus = traced(
       { ...transition.data, status: transition.to },
     );
     return modifiedCount === 1;
+  },
+);
+
+/**
+ * Settles a generation that is still PROCESSING (#9735). A generation the
+ * stuck-ingredient cron timed out is reopened first, so a late result still
+ * lands; one the user cancelled or the provider failed stays as it is.
+ *
+ * @returns whether this call settled the generation.
+ */
+export const settleIngredientGeneration = traced(
+  'settleIngredientGeneration',
+  async (
+    ingredients: Pick<IngredientsService, 'patchAll'>,
+    settlement: IngredientGenerationSettlement,
+  ): Promise<boolean> => {
+    const claim = () =>
+      transitionIngredientStatus(ingredients, {
+        data: settlement.data,
+        from: IngredientStatus.PROCESSING,
+        id: settlement.id,
+        organizationId: settlement.organizationId,
+        to: settlement.to,
+      });
+    if (await claim()) return true;
+    const reopened = await transitionIngredientStatus(ingredients, {
+      data: { generationError: null },
+      from: IngredientStatus.FAILED,
+      id: settlement.id,
+      match: { generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR },
+      organizationId: settlement.organizationId,
+      to: IngredientStatus.PROCESSING,
+    });
+    return reopened && (await claim());
   },
 );
