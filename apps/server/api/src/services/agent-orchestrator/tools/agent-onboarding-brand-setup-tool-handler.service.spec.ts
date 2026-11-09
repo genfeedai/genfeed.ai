@@ -138,10 +138,11 @@ describe('saveOnboardingAnswers', () => {
         },
       },
     });
-    await handler.saveOnboardingAnswers(
+    const result = await handler.saveOnboardingAnswers(
       { platforms: [] },
       { ...CONTEXT, brandId: 'brand-1' },
     );
+    expect(result.success).toBe(true);
     expect(brandsService.updateAgentConfig).toHaveBeenCalledWith(
       'brand-1',
       CONTEXT.organizationId,
@@ -417,10 +418,12 @@ describe('saveOnboardingAnswers', () => {
     it('records an in-flow skip without credits', async () => {
       const { handler, brandsService, onboardingCreditGrantsService } =
         createHandler({ brand: askedBrand('thread-1') });
-      await handler.saveOnboardingAnswers(
+      const result = await handler.saveOnboardingAnswers(
         { skippedFields: ['audience'] },
         THREAD_CONTEXT,
       );
+      expect(result.success).toBe(true);
+      expect(result.data).toMatchObject({ creditsEarned: 0 });
       expect(brandsService.updateAgentConfig).toHaveBeenCalledWith(
         'brand-1',
         CONTEXT.organizationId,

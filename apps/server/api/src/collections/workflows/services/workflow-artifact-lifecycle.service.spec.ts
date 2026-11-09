@@ -108,7 +108,7 @@ describe('WorkflowArtifactLifecycleService', () => {
   afterEach(() => vi.useRealTimers());
 
   it('registers immutable trusted metadata with terminal retention by default', async () => {
-    await service.register({
+    const registered = await service.register({
       executionId: 'execution-1',
       kind: 'audio',
       metadata: {
@@ -123,6 +123,8 @@ describe('WorkflowArtifactLifecycleService', () => {
       storageKey: 'audio/execution-1.mp3',
     });
 
+    expect(registered.state).toBe('ACTIVE');
+    expect(registered.artifactId).toEqual(expect.any(String));
     expect(workflowArtifact.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
@@ -281,11 +283,12 @@ describe('WorkflowArtifactLifecycleService', () => {
     });
     workflowExecutionNodeResult.updateMany.mockResolvedValue({ count: 2 });
     workflowExecution.updateMany.mockResolvedValue({ count: 1 });
-    await service.applyTerminalRetention({
+    const isApplied = await service.applyTerminalRetention({
       executionId: 'execution-1',
       organizationId: 'org-1',
       userId: 'user-1',
     });
+    expect(isApplied).toBe(true);
     expect(workflowExecution.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
