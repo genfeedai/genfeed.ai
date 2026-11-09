@@ -2761,4 +2761,123 @@ describe('GenerationActionCard', () => {
       outputs: 1,
     });
   });
+
+  describe('card lifecycle (#9736)', () => {
+    const videoPilotAction = (id: string) => ({
+      generationParams: {
+        duration: 10,
+        prompt: 'A presenter walking through neon rain.',
+      },
+      generationType: 'video' as const,
+      id,
+      title: 'Generate Video',
+      type: 'generation_action_card' as const,
+    });
+    const videoModels = [
+      createModel({
+        category: ModelCategory.VIDEO,
+        durations: [5, 10],
+        key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_6,
+        label: 'Kling 2.6',
+      }),
+    ];
+
+    it('ends the full-length run after an accepted pilot as Done, not another pilot review', async () => {
+      const generateIngredient = vi
+        .fn()
+        .mockResolvedValueOnce({
+          id: 'video-pilot-1',
+          url: 'https://cdn.test/pilot.mp4',
+        })
+        .mockResolvedValueOnce({
+          id: 'video-full-1',
+          url: 'https://cdn.test/full.mp4',
+        });
+
+      renderGenerationActionCard(
+        <GenerationActionCard
+          action={videoPilotAction('action-video-full-run')}
+          apiService={createApiServiceMock({
+            generateIngredient,
+            models: videoModels,
+          })}
+        />,
+      );
+
+      await clickGenerate('video');
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: 'Accept the pilot and generate the full-length video',
+        }),
+      );
+      await clickGenerate('video');
+
+      expect(await screen.findByText(/^Done$/)).toBeInTheDocument();
+      expect(
+        screen.queryByText('Review this 5s pilot before the full-length run'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('settles a video pilot accepted by the thread runtime into pilot review', async () => {
+      const onUiAction = acceptingUiAction();
+      const card = () => (
+        <GenerationActionCard
+          action={videoPilotAction('action-video-pilot-pending')}
+          apiService={createApiServiceMock({ models: videoModels })}
+          onUiAction={onUiAction}
+        />
+      );
+      const { rerender } = renderGenerationActionCard(card());
+
+      await clickGenerate('video');
+      await act(async () => {
+        await onUiAction.mock.results[0]?.value;
+      });
+      expect(onUiAction).toHaveBeenCalledWith(
+        'confirm_generate_media',
+        expect.objectContaining({ duration: 5 }),
+      );
+
+      setGenerationRun(
+        'confirm_generate_media',
+        'action-video-pilot-pending',
+        'completed',
+      );
+      rerender(card());
+
+      expect(
+        await screen.findByText(
+          'Review this 5s pilot before the full-length run',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/^Done$/)).not.toBeInTheDocument();
+    });
+
+    it('returns a finished image to the form when it is used as input', async () => {
+      renderGenerationActionCard(
+        <GenerationActionCard
+          action={{
+            generationParams: { prompt: 'A lighthouse at dusk.' },
+            generationType: 'image',
+            id: 'action-use-as-input',
+            title: 'Generate Image',
+            type: 'generation_action_card',
+          }}
+          apiService={createApiServiceMock()}
+        />,
+      );
+
+      await clickGenerate('image');
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Use as input' }),
+      );
+
+      expect(screen.queryByText(/^Done$/)).not.toBeInTheDocument();
+      const generate = await screen.findByRole('button', {
+        name: /generate image/i,
+      });
+      // The result joins the references, so Generate waits for a fresh quote.
+      await waitFor(() => expect(generate).toBeEnabled());
+    });
+  });
 });

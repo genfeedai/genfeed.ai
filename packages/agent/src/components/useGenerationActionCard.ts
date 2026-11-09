@@ -4,6 +4,7 @@ import type {
   AgentUiActionHandler,
   AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
+import type { GenerationActionCardStatus } from '@genfeedai/agent/models/generation-action-card.model';
 import type {
   AgentApiService,
   GenerationModel,
@@ -16,6 +17,11 @@ import {
 import { buildDefaultAgentGenerationSetupValues } from '@genfeedai/agent/utils/agent-generation-setup.util';
 import { formatStructuredPrompt } from '@genfeedai/agent/utils/format-structured-prompt.util';
 import {
+  createGenerationCardState,
+  generationCardReducer,
+  getGenerationCardError,
+} from '@genfeedai/agent/utils/generation-card-state.util';
+import {
   buildAgentGenerationRequestBody,
   DEFAULT_AGENT_GENERATION_PRIORITY,
   getPromptCategoryForGenerationType,
@@ -25,11 +31,7 @@ import {
   resolveStudioHandoffIdentityFromSettings,
   resolveStudioHandoffType,
 } from '@genfeedai/agent/utils/studio-handoff-identity.util';
-import {
-  hasReachedVideoPilotRetryCeiling,
-  resolveVideoPilotDuration,
-  VIDEO_PILOT_PAID_RETRY_CEILING,
-} from '@genfeedai/agent/utils/video-pilot-gate.util';
+import { resolveVideoPilotDuration } from '@genfeedai/agent/utils/video-pilot-gate.util';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ModelCategory,
@@ -47,7 +49,6 @@ import {
   MODEL_KEYS,
   requiresFirstFrame,
 } from '@genfeedai/contracts/constants';
-import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
 import type { GenerationSetupValues } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import {
   getDefaultVideoResolution,
@@ -73,17 +74,12 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
 } from 'react';
 
-export type GenerationActionCardStatus =
-  | 'idle'
-  | 'generating'
-  | 'done'
-  | 'error'
-  | 'declined'
-  | 'pilot_review';
+export type { GenerationActionCardStatus };
 
 function isKnownInvalidModelVersionError(message: string): boolean {
   const normalized = message.toLowerCase();
@@ -217,28 +213,27 @@ export function useGenerationActionCard({
       ? Math.min(8, Math.round(requested))
       : 1;
   });
-  const [status, setStatus] = useState<GenerationActionCardStatus>(
-    action.data?.decision === 'declined' ? 'declined' : 'idle',
+  const [card, dispatchCard] = useReducer(
+    generationCardReducer,
+    action.data?.decision,
+    createGenerationCardState,
   );
-  const [hasStarted, setHasStarted] = useState(
-    action.data?.decision === 'approved',
-  );
-  const [isDeclining, setIsDeclining] = useState(false);
-  const [generationStartedAt, setGenerationStartedAt] = useState<
-    number | undefined
-  >();
-  const [paidRejectedCount, setPaidRejectedCount] = useState(0);
-  const [pilotDurationSeconds, setPilotDurationSeconds] = useState<
-    number | null
-  >(null);
-  const [isPilotCeilingReached, setIsPilotCeilingReached] = useState(false);
-  const [isFullRun, setIsFullRun] = useState(false);
-  const [generationHarness, setGenerationHarness] = useState<
-    GenerationHarnessReceipt | undefined
-  >();
-  const [resultUrl, setResultUrl] = useState<string | null>(null);
-  const [resultId, setResultId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const status: GenerationActionCardStatus = card.phase.status;
+  const error = getGenerationCardError(card);
+  const {
+    hasStarted,
+    isDeclining,
+    isFullRun,
+    isPilotCeilingReached,
+    paidRejectedCount,
+    pilotDurationSeconds,
+    startedAt: generationStartedAt,
+  } = card;
+  const {
+    harness: generationHarness,
+    id: resultId,
+    url: resultUrl,
+  } = card.result;
   const [prioritize, setPrioritize] = useState<RouterPriority>(
     preferredPriority ?? actionPriority ?? DEFAULT_AGENT_GENERATION_PRIORITY,
   );
@@ -271,7 +266,6 @@ export function useGenerationActionCard({
     sourcePayload,
   );
   const isDeclineRunPending = declineRun?.status === 'pending';
-  const isPilotRunRef = useRef(false);
   const setThreadUiBusy = useAgentChatStore((s) => s.setThreadUiBusy);
   const setComposerError = useAgentChatStore((s) => s.setError);
   const abortRef = useRef<AbortController | null>(null);
@@ -605,12 +599,6 @@ export function useGenerationActionCard({
     isAutoMode || Boolean(modelKey),
   );
 
-  const clearGenerationOutcome = useCallback(() => {
-    setResultUrl(null);
-    setResultId(null);
-    setError(null);
-  }, []);
-
   const handleGenerate = useCallback(async () => {
     if (
       isWorkObjectGenerationBlocked(
@@ -636,8 +624,10 @@ export function useGenerationActionCard({
       requiresFirstFrame(modelKey) &&
       !startFrameId
     ) {
-      setError('Start Frame is required for the selected model.');
-      setStatus('error');
+      dispatchCard({
+        message: 'Start Frame is required for the selected model.',
+        type: 'generation_blocked',
+      });
       return;
     }
     if (
@@ -646,8 +636,10 @@ export function useGenerationActionCard({
       resolution === '4k' &&
       videoReferenceIds.length > 0
     ) {
-      setError('Kling Omni video references require Pro quality, not 4K.');
-      setStatus('error');
+      dispatchCard({
+        message: 'Kling Omni video references require Pro quality, not 4K.',
+        type: 'generation_blocked',
+      });
       return;
     }
     if (
@@ -656,10 +648,11 @@ export function useGenerationActionCard({
       videoReferenceIds.length > 0 &&
       (startFrameId !== null || endFrameId !== null)
     ) {
-      setError(
-        'Seedance 2.5 accepts first/last frames or a video reference, not both.',
-      );
-      setStatus('error');
+      dispatchCard({
+        message:
+          'Seedance 2.5 accepts first/last frames or a video reference, not both.',
+        type: 'generation_blocked',
+      });
       return;
     }
 
@@ -673,15 +666,11 @@ export function useGenerationActionCard({
           ? duration
           : (pilotDuration ?? duration)
         : undefined;
-    if (!isFullRun && pilotDuration !== null) {
-      setPilotDurationSeconds(pilotDuration);
-    }
-
-    clearGenerationOutcome();
-    setGenerationStartedAt(Date.now());
-    setGenerationHarness(undefined);
-    setStatus('generating');
-    setHasStarted(true);
+    dispatchCard({
+      pilotDurationSeconds: pilotDuration,
+      startedAt: Date.now(),
+      type: 'generation_started',
+    });
     // Dismiss the sticky composer error stack so it cannot cover this card's
     // Generate control while the user retries from the card itself.
     setComposerError(null);
@@ -734,13 +723,9 @@ export function useGenerationActionCard({
         // Accepted: the run generates server side, and its settlement (see
         // the effect on `generateRun`) moves the card on.
         if (outcome === 'pending') {
-          isPilotRunRef.current = !isFullRun && pilotDuration !== null;
           return;
         }
-        setIsFullRun(false);
-        setStatus(
-          !isFullRun && pilotDuration !== null ? 'pilot_review' : 'done',
-        );
+        dispatchCard({ type: 'generation_succeeded' });
         return;
       }
 
@@ -790,25 +775,31 @@ export function useGenerationActionCard({
         },
         controller.signal,
       );
-      setResultId(result.id);
-      setGenerationHarness(result.generationHarness);
+      dispatchCard({
+        result: {
+          harness: result.generationHarness,
+          id: result.id,
+          url: result.url || null,
+        },
+        type: 'result_received',
+      });
       if (!result.url) {
         throw new Error(
           'Generation completed without a renderable asset preview.',
         );
       }
-      setResultUrl(result.url);
-      setIsFullRun(false);
-      setStatus(!isFullRun && pilotDuration !== null ? 'pilot_review' : 'done');
+      dispatchCard({ type: 'generation_succeeded' });
     } catch (err: unknown) {
       if (controller.signal.aborted) {
-        setStatus('idle');
+        dispatchCard({ type: 'generation_aborted' });
         return;
       }
       const rawMessage =
         err instanceof Error ? err.message : 'Generation failed';
-      setError(formatGenerationError(rawMessage, { isAutoMode }));
-      setStatus('error');
+      dispatchCard({
+        message: formatGenerationError(rawMessage, { isAutoMode }),
+        type: 'generation_failed',
+      });
       // Keep Generate reachable — the sticky composer stack covers the card
       // when this error also lives there.
       setComposerError(null);
@@ -838,7 +829,6 @@ export function useGenerationActionCard({
     generationType,
     isPilotCeilingReached,
     apiService,
-    clearGenerationOutcome,
     prioritize,
     referenceIds,
     resolution,
@@ -859,40 +849,17 @@ export function useGenerationActionCard({
     if (isPilotCeilingReached) {
       return;
     }
-    clearGenerationOutcome();
-    setStatus('idle');
+    dispatchCard({ type: 'retry' });
     await handleGenerate();
-  }, [clearGenerationOutcome, handleGenerate, isPilotCeilingReached]);
+  }, [handleGenerate, isPilotCeilingReached]);
 
   const handleAcceptPilot = useCallback(async () => {
-    if (status !== 'pilot_review' || isPilotCeilingReached) {
-      return;
-    }
-    setIsFullRun(true);
-    setStatus('idle');
-  }, [isPilotCeilingReached, status]);
+    dispatchCard({ type: 'pilot_accepted' });
+  }, []);
 
   const handleRejectPilot = useCallback(() => {
-    if (status !== 'pilot_review') {
-      return;
-    }
-
-    const nextRejected = paidRejectedCount + 1;
-    setPaidRejectedCount(nextRejected);
-    setIsFullRun(false);
-
-    if (hasReachedVideoPilotRetryCeiling(nextRejected)) {
-      setIsPilotCeilingReached(true);
-      setError(
-        `Stopped after ${VIDEO_PILOT_PAID_RETRY_CEILING} rejected paid candidates. No further video generation will run for this clip.`,
-      );
-      setStatus('error');
-      return;
-    }
-
-    clearGenerationOutcome();
-    setStatus('idle');
-  }, [clearGenerationOutcome, paidRejectedCount, status]);
+    dispatchCard({ type: 'pilot_rejected' });
+  }, []);
 
   const generateRunId = generateRun?.runId;
   const generateRunStatus = generateRun?.status;
@@ -903,41 +870,40 @@ export function useGenerationActionCard({
       return;
     }
     if (generateRunStatus === 'pending') {
-      setStatus('generating');
-      setHasStarted(true);
+      dispatchCard({ type: 'run_pending' });
       return;
     }
     if (generateRunStatus === 'completed') {
-      setIsFullRun(false);
-      setStatus(isPilotRunRef.current ? 'pilot_review' : 'done');
+      dispatchCard({ type: 'generation_succeeded' });
       return;
     }
-    setError(
-      formatGenerationError(generateRunError ?? 'Generation failed', {
+    dispatchCard({
+      message: formatGenerationError(generateRunError ?? 'Generation failed', {
         isAutoMode,
       }),
-    );
-    setStatus('error');
+      type: 'generation_failed',
+    });
   }, [generateRunId, generateRunStatus, generateRunError]);
 
   const declineRunId = declineRun?.runId;
   const declineRunStatus = declineRun?.status;
-  const declineRunError = declineRun?.error;
+  // A failed decline leaves the card as it was; the composer shows the error.
   // biome-ignore lint/correctness/useExhaustiveDependencies: settles once per run transition
   useEffect(() => {
     if (!declineRunStatus || declineRunStatus === 'pending') {
       return;
     }
-    if (declineRunStatus === 'completed') {
-      setStatus('declined');
-    } else {
-      setError(declineRunError ?? 'Failed to decline generation.');
-    }
-  }, [declineRunId, declineRunStatus, declineRunError]);
+    dispatchCard({
+      isDeclined: declineRunStatus === 'completed',
+      type: 'decline_finished',
+    });
+  }, [declineRunId, declineRunStatus]);
 
   useEffect(() => {
-    if (action.data?.decision === 'declined') setStatus('declined');
-    if (action.data?.decision === 'approved') setHasStarted(true);
+    const decision = action.data?.decision;
+    if (decision === 'declined' || decision === 'approved') {
+      dispatchCard({ decision, type: 'decision_restored' });
+    }
   }, [action.data?.decision]);
   // A decline the server accepted stays declining until its run settles.
   const isDeclineInFlight = isDeclining || isDeclineRunPending;
@@ -950,24 +916,18 @@ export function useGenerationActionCard({
   );
   const handleDecline = useCallback(async () => {
     if (!canDecline || !onUiAction) return;
-    setIsDeclining(true);
+    dispatchCard({ type: 'decline_started' });
+    let isDeclined = false;
     try {
       const outcome = await onUiAction('decline_generate_media', {
         sourceActionId: action.id,
       });
       if (outcome === false) throw new Error('Failed to decline generation.');
-      if (outcome !== 'pending') {
-        setStatus('declined');
-      }
-    } catch (failure) {
-      setError(
-        failure instanceof Error
-          ? failure.message
-          : 'Failed to decline generation.',
-      );
+      isDeclined = outcome !== 'pending';
+    } catch {
       setComposerError('Failed to decline generation. Try again.');
     } finally {
-      setIsDeclining(false);
+      dispatchCard({ isDeclined, type: 'decline_finished' });
     }
   }, [action.id, canDecline, onUiAction, setComposerError]);
 
@@ -1108,14 +1068,14 @@ export function useGenerationActionCard({
       }
       setVideoReferenceIds([resultId]);
       setReferenceNotice(null);
-      setStatus('idle');
+      dispatchCard({ type: 'result_used_as_input' });
       return;
     }
     setReferenceIds((current) =>
       current.includes(resultId) ? current : [...current, resultId],
     );
     // Return to idle so the user can re-generate with the result as input.
-    setStatus('idle');
+    dispatchCard({ type: 'result_used_as_input' });
   }, [generationType, resultId, supportsVideoReferences]);
 
   const handlePrioritizeChange = useCallback(
