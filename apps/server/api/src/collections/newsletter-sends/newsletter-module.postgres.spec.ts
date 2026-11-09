@@ -62,6 +62,7 @@ describe.skipIf(!connectionString)(
     let sends: NewsletterSendsService;
     /** Every email handed to the notifications app, in order. */
     let outbox: IEmailDeliveryRequest[];
+    let hasSubscriberCapacity = true;
 
     beforeAll(async () => {
       if (!connectionString)
@@ -151,6 +152,7 @@ describe.skipIf(!connectionString)(
       const usage = {
         assertSendCapacity: async () => undefined,
         assertSubscriberCapacity: async () => undefined,
+        hasSubscriberCapacity: async () => hasSubscriberCapacity,
       } as unknown as NewsletterUsageService;
       const logger = { warn: () => undefined } as unknown as LoggerService;
       const brandAccess = {
@@ -184,6 +186,7 @@ describe.skipIf(!connectionString)(
     });
 
     beforeEach(() => {
+      hasSubscriberCapacity = true;
       outbox = [];
     });
 
@@ -303,6 +306,20 @@ describe.skipIf(!connectionString)(
       });
       // The token is single use.
       expect(await subscribers.confirm(token ?? '')).toBeNull();
+    });
+
+    it('answers a public sign-up to a full list exactly like a listed address', async () => {
+      const brandId = await seedBrand();
+      hasSubscriberCapacity = false;
+
+      await expect(
+        subscribers.subscribePublic(
+          { brandId, email: 'new@example.com', source: 'profile' },
+          '203.0.113.9',
+        ),
+      ).resolves.toBeUndefined();
+      expect(await statusesOf(brandId)).toEqual({});
+      expect(outbox).toEqual([]);
     });
 
     it('sends each active subscriber exactly once and applies a bounce', async () => {

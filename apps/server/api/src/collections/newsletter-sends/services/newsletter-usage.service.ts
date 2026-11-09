@@ -45,22 +45,30 @@ export class NewsletterUsageService {
     return (await this.resolvePlan(organizationId)) !== 'free';
   }
 
+  /** Whether `incoming` more subscribers fit the plan cap. */
+  async hasSubscriberCapacity(
+    organizationId: string,
+    incoming: number,
+  ): Promise<boolean> {
+    if (incoming <= 0) return true;
+    const usage = await this.getUsage(organizationId);
+    return (
+      usage.subscriberLimit === null ||
+      usage.subscribers + incoming <= usage.subscriberLimit
+    );
+  }
+
   /** Refuse adding `incoming` subscribers past the plan cap. */
   async assertSubscriberCapacity(
     organizationId: string,
     incoming: number,
   ): Promise<void> {
-    if (incoming <= 0) return;
+    if (await this.hasSubscriberCapacity(organizationId, incoming)) return;
     const usage = await this.getUsage(organizationId);
-    if (
-      usage.subscriberLimit !== null &&
-      usage.subscribers + incoming > usage.subscriberLimit
-    ) {
-      throw new ForbiddenException({
-        code: 'NEWSLETTER_SUBSCRIBER_LIMIT',
-        message: `Your plan allows ${usage.subscriberLimit} subscribers. Upgrade to add more.`,
-      });
-    }
+    throw new ForbiddenException({
+      code: 'NEWSLETTER_SUBSCRIBER_LIMIT',
+      message: `Your plan allows ${usage.subscriberLimit} subscribers. Upgrade to add more.`,
+    });
   }
 
   /** Refuse a send that would exceed this month's email cap before it starts. */

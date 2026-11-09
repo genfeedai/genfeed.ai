@@ -331,8 +331,17 @@ export class BrandSubscribersService {
         return;
       }
     }
-    if (!existing || existing.isDeleted) {
-      await this.usage.assertSubscriberCapacity(orgId, 1);
+    // A full list answers like every other public request: a different
+    // response would tell a stranger whether an address is already listed.
+    if (
+      (!existing || existing.isDeleted) &&
+      !(await this.usage.hasSubscriberCapacity(orgId, 1))
+    ) {
+      this.logger.warn('Newsletter sign-up skipped: subscriber limit reached', {
+        brandId: brand.id,
+        organizationId: orgId,
+      });
+      return;
     }
     const fields = {
       consentIp: ipAddress?.slice(0, 64) ?? null,
