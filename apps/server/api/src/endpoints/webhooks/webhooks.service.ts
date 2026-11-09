@@ -8,6 +8,7 @@ import {
   brandKitSlotWhere,
   isBrandKitSlotCategory,
   resolveBrandKitSlot,
+  toBrandKitSlot,
 } from '@api/collections/assets/utils/brand-kit-slot.util';
 import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
@@ -28,7 +29,6 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import {
   AssetCategory,
   AssetParent,
-  type BrandKitSlot,
   categoryToMediaType,
   categoryToPlural,
   FileInputType,
@@ -806,7 +806,7 @@ export class WebhooksService {
   private async finalizeGeneratedAsset(asset: {
     category: string;
     id: string;
-    kitSlot?: BrandKitSlot | null;
+    kitSlot?: string | null;
     origin?: string | null;
     parentBrandId?: string | null;
     parentOrgId?: string | null;
@@ -843,7 +843,10 @@ export class WebhooksService {
       asset.parentBrandId
     ) {
       // Replaces only the logo variant or platform slot it was generated for.
-      const kitSlot = resolveBrandKitSlot(asset.category, asset.kitSlot);
+      const kitSlot = resolveBrandKitSlot(
+        asset.category,
+        toBrandKitSlot(asset.kitSlot),
+      );
       await this.assetsService.patchAll(
         {
           category: asset.category,

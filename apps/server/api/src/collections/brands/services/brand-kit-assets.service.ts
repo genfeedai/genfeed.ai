@@ -1,4 +1,5 @@
 import { ASSET_ORIGIN_GENERATION_PENDING } from '@api/collections/assets/constants/asset-origin.constant';
+import { toBrandKitSlot } from '@api/collections/assets/utils/brand-kit-slot.util';
 import {
   ASSET_UPLOAD_TYPE_BY_ROLE,
   BRAND_KIT_RESOLVED_REFERENCE_LIMIT,
@@ -112,10 +113,6 @@ const BRAND_KIT_SLOT_ORDER = new Map<string, number>(
     index,
   ]),
 );
-
-function toBrandKitSlot(value: unknown): BrandKitSlot | undefined {
-  return Object.values(BrandKitSlot).find((slot) => slot === value);
-}
 
 function compareBrandKitSlots(
   left: IBrandKitResolvedAsset,

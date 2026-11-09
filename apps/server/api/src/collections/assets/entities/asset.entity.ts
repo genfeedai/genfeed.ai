@@ -12,6 +12,7 @@ export class AssetEntity extends BaseEntity implements Asset {
   declare readonly referenceCategory: Asset['referenceCategory'];
   declare readonly externalId: string | null;
   declare readonly category: Asset['category'];
+  declare readonly kitSlot: Asset['kitSlot'];
   declare readonly localAssetId: string | null;
   declare readonly cloudObjectKey: string | null;
   declare readonly sha256: string | null;

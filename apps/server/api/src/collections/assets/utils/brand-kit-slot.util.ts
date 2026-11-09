@@ -47,3 +47,8 @@ export function brandKitSlotWhere(
     ? { OR: [{ kitSlot: slot }, { kitSlot: null }] }
     : { kitSlot: slot };
 }
+
+/** A stored slot label as the domain enum, or undefined when it is not one. */
+export function toBrandKitSlot(value: unknown): BrandKitSlot | undefined {
+  return Object.values(BrandKitSlot).find((slot) => slot === value);
+}
