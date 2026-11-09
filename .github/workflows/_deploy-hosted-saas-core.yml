@@ -11,6 +11,14 @@
 #
 # The caller validates the exact public source commit. This engine must use that
 # source SHA for application code/images and never the console repository SHA.
+#
+# Dry run (`dry_run: true`, used by the rollback rehearsal): only the read-only
+# steps run. They resolve the server image and run the migration compatibility
+# gate against the live serving images. Every step or job that writes (image
+# copy, task definitions, snapshot, migrations, service rolls, Vercel staging
+# and promotion, smoke issues, image promotion) carries `!inputs.dry_run` in its
+# `if`. deploy-workflow-contract.test.ts fails when a new step is neither
+# guarded nor listed as read-only.
 name: Deploy hosted SaaS core (reusable)
 
 on:
@@ -35,6 +43,11 @@ on:
         required: false
         default: false
         type: boolean
+      dry_run:
+        description: "rehearse only: resolve the image and run the migration compatibility gate, deploy nothing"
+        required: false
+        default: false
+        type: boolean
     secrets:
       VERCEL_TOKEN:
         required: true
@@ -49,8 +62,9 @@ on:
       CONTENT_HARNESS_BUNDLE_SHA256:
         required: false
 
+# A rehearsal never queues behind, or replaces a pending, real deploy.
 concurrency:
-  group: hosted-saas-core-production
+  group: ${{ inputs.dry_run && 'hosted-saas-core-dry-run' || 'hosted-saas-core-production' }}
   cancel-in-progress: false
 
 permissions:
@@ -321,12 +335,29 @@ jobs:
           exit 1
 
       - name: Prepare hosted server image
+        if: ${{ !inputs.dry_run }}
         id: copy-image
         env:
           IMAGE_SHA: ${{ steps.image.outputs.sha }}
           CONTENT_HARNESS_BUNDLE_URI: ${{ secrets.CONTENT_HARNESS_BUNDLE_URI }}
           CONTENT_HARNESS_BUNDLE_SHA256: ${{ secrets.CONTENT_HARNESS_BUNDLE_SHA256 }}
         run: bun ops/scripts/deploy/hosted-saas/prepare-server-image.ts
+
+      # Dry run stands in for the ECR copy above: it only reads the GHCR digest.
+      - name: Resolve server image digest (dry run)
+        id: dry-run-image
+        if: ${{ inputs.dry_run }}
+        env:
+          IMAGE_SHA: ${{ steps.image.outputs.sha }}
+        run: |
+          set -euo pipefail
+          digest="$(docker buildx imagetools inspect "${SERVER_IMAGE_REPOSITORY}:${IMAGE_SHA}" \
+            --format '{{json .Manifest.Digest}}' | jq -r .)"
+          if ! printf '%s' "${digest}" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+            echo "::error::Registry returned an invalid digest for ${SERVER_IMAGE_REPOSITORY}:${IMAGE_SHA}."
+            exit 1
+          fi
+          echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
 
       # OpenTofu, not Terraform — state is tofu in S3; mixing the two risks a
       # state-version mismatch.
@@ -344,6 +375,7 @@ jobs:
             -backend-config="region=${AWS_REGION}"
 
       - name: Register migration, backfill, and boot-smoke task definitions
+        if: ${{ !inputs.dry_run }}
         working-directory: ops/${{ env.TF_DIR }}
         env:
           TF_VAR_enable_dns_cutover: "true"
@@ -369,6 +401,7 @@ jobs:
             -target=aws_ecs_task_definition.harness_profile_seed
 
       - name: Verify serving image schemas before live migrations
+        if: ${{ !inputs.dry_run }}
         working-directory: ops/${{ env.TF_DIR }}
         env:
           CANDIDATE_DIGEST: ${{ steps.copy-image.outputs.image_digest }}
@@ -381,10 +414,47 @@ jobs:
             --cluster "$CLUSTER" --services "$SERVICES" --repository "$REPOSITORY" \
             --candidate-digest "$CANDIDATE_DIGEST" --cwd "${GITHUB_WORKSPACE}/source"
 
+      # Same gate as above, run against the GHCR image the real deploy would
+      # copy. Read-only: AWS describe/list calls, registry inspects, git reads.
+      - name: Verify serving image schemas (dry run)
+        id: dry-run-compat
+        if: ${{ inputs.dry_run }}
+        working-directory: ops/${{ env.TF_DIR }}
+        env:
+          CANDIDATE_IMAGE: ${{ vars.SERVER_IMAGE_REPOSITORY }}@${{ steps.dry-run-image.outputs.digest }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          IMAGE_TAG: ${{ steps.image.outputs.sha }}
+          IMAGE_DIGEST: ${{ steps.dry-run-image.outputs.digest }}
+        run: |
+          set -euo pipefail
+          CLUSTER=$(tofu output -raw cluster_name)
+          SERVICES=$(tofu output -json service_names)
+          REPOSITORY=$(aws ecr describe-repositories --repository-names "$ECR_REPOSITORY_NAME" --query 'repositories[0].repositoryUri' --output text)
+          {
+            echo "## Rollback dry run"
+            echo ""
+            echo "Nothing was deployed or changed."
+            echo ""
+            echo "- Release: \`${RELEASE_TAG:-unreleased}\`"
+            echo "- Commit: \`${SOURCE_SHA}\`"
+            echo "- Server image: \`${SERVER_IMAGE_REPOSITORY}:${IMAGE_TAG}\` (\`${IMAGE_DIGEST}\`)"
+          } >> "${GITHUB_STEP_SUMMARY}"
+          if ! result="$(node "${GITHUB_WORKSPACE}/ops/scripts/deploy/hosted-saas/verify-serving-schema.mjs" \
+            --cluster "$CLUSTER" --services "$SERVICES" --repository "$REPOSITORY" \
+            --candidate-image "$CANDIDATE_IMAGE" --cwd "${GITHUB_WORKSPACE}/source" 2>&1)"; then
+            echo "- Migration compatibility gate: **failed**. ${RELEASE_TAG:-This commit} cannot be rolled back to against the live schema." >> "${GITHUB_STEP_SUMMARY}"
+            echo "::error::Rollback dry run failed at the migration compatibility gate: ${result}"
+            exit 1
+          fi
+          echo "${result}"
+          echo "- Migration compatibility gate: passed. ${result}" >> "${GITHUB_STEP_SUMMARY}"
+
       # Fail before live migrations: a rejected image must leave the serving
       # release's schema intact. Candidates must boot on the expanded schema;
       # schema-dependent startup changes require an earlier expand release.
       - name: Boot API and workers before services roll
+        if: ${{ !inputs.dry_run }}
         id: boot-smoke
         working-directory: ops/${{ env.TF_DIR }}
         run: |
@@ -408,7 +478,7 @@ jobs:
           exit "$status"
 
       - name: Print boot-smoke logs on failure
-        if: ${{ failure() && steps.boot-smoke.outcome == 'failure' }}
+        if: ${{ !inputs.dry_run && failure() && steps.boot-smoke.outcome == 'failure' }}
         run: |
           for task in boot-smoke worker-boot-smoke; do
             aws logs tail "/ecs/${TF_VAR_project}-production/${task}" \
@@ -416,6 +486,7 @@ jobs:
           done
 
       - name: Snapshot RDS before migrations (fail-closed)
+        if: ${{ !inputs.dry_run }}
         env:
           RDS_INSTANCE_ID: ${{ vars.RDS_INSTANCE_ID }}
           # Read via env, never interpolate ${{ }} into the script body directly.
@@ -470,6 +541,7 @@ jobs:
           echo "Pre-migration snapshot ready: ${SNAP_ID}"
 
       - name: Run DB migrations (one-off task, gated before services roll)
+        if: ${{ !inputs.dry_run }}
         working-directory: ops/${{ env.TF_DIR }}
         run: |
           set -euo pipefail
@@ -489,6 +561,7 @@ jobs:
             --timeout-seconds 900
 
       - name: Run reference-data sync (gated before services roll)
+        if: ${{ !inputs.dry_run }}
         working-directory: ops/${{ env.TF_DIR }}
         run: |
           set -euo pipefail
@@ -506,6 +579,7 @@ jobs:
             --stop-on-timeout
 
       - name: Roll metadata clients before Files
+        if: ${{ !inputs.dry_run }}
         working-directory: ops/${{ env.TF_DIR }}
         env:
           TF_VAR_enable_dns_cutover: "true"
@@ -518,6 +592,7 @@ jobs:
             -exclude=aws_elasticache_replication_group.redis
 
       - name: Wait for metadata clients stable
+        if: ${{ !inputs.dry_run }}
         id: wait-metadata-clients
         working-directory: ops/${{ env.TF_DIR }}
         run: |
@@ -531,6 +606,7 @@ jobs:
             --poll-seconds 15
 
       - name: Roll Files after metadata clients
+        if: ${{ !inputs.dry_run }}
         working-directory: ops/${{ env.TF_DIR }}
         env:
           TF_VAR_enable_dns_cutover: "true"
@@ -540,6 +616,7 @@ jobs:
             -exclude=aws_elasticache_replication_group.redis
 
       - name: Wait for services stable
+        if: ${{ !inputs.dry_run }}
         id: wait-services
         working-directory: ops/${{ env.TF_DIR }}
         run: |
@@ -553,6 +630,7 @@ jobs:
             --poll-seconds 15
 
       - name: Require Redis TLS and AUTH
+        if: ${{ !inputs.dry_run }}
         working-directory: ops/${{ env.TF_DIR }}
         env:
           TF_VAR_enable_dns_cutover: "true"
@@ -580,7 +658,7 @@ jobs:
             -target=aws_elasticache_replication_group.redis
 
       - name: Print active service logs on rollout failure
-        if: ${{ failure() && (steps.wait-metadata-clients.outcome == 'failure' || steps.wait-services.outcome == 'failure') }}
+        if: ${{ !inputs.dry_run && failure() && (steps.wait-metadata-clients.outcome == 'failure' || steps.wait-services.outcome == 'failure') }}
         working-directory: ops/${{ env.TF_DIR }}
         run: |
           set -u
@@ -596,6 +674,7 @@ jobs:
           done
 
       - name: Run credential-encryption backfill (post-rollout, gated after services stable)
+        if: ${{ !inputs.dry_run }}
         # BLOCKING: encrypts legacy plaintext credential secrets at rest via the compiled
         # `migrate:credentials` target (dist/apps/api-credential-backfill/main), which now
         # ships in the production image. A real failure here
@@ -627,6 +706,7 @@ jobs:
   # that waits for the API/services rollout to succeed.
   deploy-vercel-frontends:
     name: Deploy Vercel frontends
+    if: ${{ !inputs.dry_run }}
     permissions:
       contents: read
     uses: ./.github/workflows/_deploy-hosted-saas-vercel.yml
@@ -645,7 +725,7 @@ jobs:
     # If either side fails nothing is promoted and production keeps serving the
     # previous frontend.
     needs: [deploy, deploy-vercel-frontends]
-    if: ${{ needs.deploy.result == 'success' && needs.deploy-vercel-frontends.result == 'success' }}
+    if: ${{ !inputs.dry_run && needs.deploy.result == 'success' && needs.deploy-vercel-frontends.result == 'success' }}
     permissions:
       contents: read
     uses: ./.github/workflows/_deploy-hosted-saas-vercel-promote.yml
@@ -658,7 +738,7 @@ jobs:
     # frontend failure must not SKIP this job (default needs-failure behavior),
     # otherwise an API regression ships unverified when a frontend deploy flakes.
     needs: [deploy, deploy-vercel-frontends, promote-vercel-frontends]
-    if: ${{ always() && needs.deploy.result == 'success' }}
+    if: ${{ !inputs.dry_run && always() && needs.deploy.result == 'success' }}
     runs-on: ubuntu-latest
     environment: production
     # Ceiling for the configured URL set. Per URL: (SMOKE_RETRY+1) attempts *
@@ -765,7 +845,7 @@ jobs:
   report-post-deploy-smoke-failure:
     name: Report post-deploy smoke failure
     needs: post-deploy-smoke
-    if: always() && needs.post-deploy-smoke.result == 'failure'
+    if: ${{ !inputs.dry_run && always() && needs.post-deploy-smoke.result == 'failure' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -852,6 +932,7 @@ jobs:
   promote-server-image:
     name: Promote verified server image
     needs: [deploy, deploy-vercel-frontends, promote-vercel-frontends, post-deploy-smoke]
+    if: ${{ !inputs.dry_run }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment: production
