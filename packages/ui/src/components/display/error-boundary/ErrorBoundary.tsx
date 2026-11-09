@@ -21,7 +21,10 @@ import { Component, type ErrorInfo } from 'react';
 const PAGE_MAX_RETRIES = 3;
 
 /** Digest prefixes Next puts on the errors `notFound()` and `redirect()` throw. */
-const FRAMEWORK_SIGNAL_DIGESTS = ['NEXT_HTTP_ERROR_FALLBACK;', 'NEXT_REDIRECT;'];
+const FRAMEWORK_SIGNAL_DIGESTS = [
+  'NEXT_HTTP_ERROR_FALLBACK;',
+  'NEXT_REDIRECT;',
+];
 
 /**
  * `notFound()` and `redirect()` work by throwing. They are routing signals for
