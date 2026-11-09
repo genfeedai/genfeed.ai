@@ -898,6 +898,7 @@ describe('BrandsController', () => {
           agentConfig: {},
           backgroundColor: 'transparent',
           brandOsRevisionVersion: 0,
+          profileViewCount: 0,
           createdAt: new Date(0),
           defaultImageModel: null,
           defaultImageToVideoModel: null,

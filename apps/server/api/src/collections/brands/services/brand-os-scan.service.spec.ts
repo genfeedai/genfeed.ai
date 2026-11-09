@@ -135,6 +135,7 @@ function harness(initial: BrandOsRevision[] = []) {
       scope: 'USER',
       isActive: true,
       isHighlighted: false,
+      profileViewCount: 0,
       isFleetEnabled: false,
       referenceImages: [],
       voiceIngredientId: null,

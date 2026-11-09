@@ -60,4 +60,5 @@ export class BrandEntity extends BaseEntity implements Brand {
   // Indicates if the brand is active and should be billed monthly
   isActive!: boolean;
   declare readonly isHighlighted: boolean;
+  declare readonly profileViewCount: BrandDocument['profileViewCount'];
 }
