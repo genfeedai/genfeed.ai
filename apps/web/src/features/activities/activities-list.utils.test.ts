@@ -339,6 +339,32 @@ describe('getActivityCreditsDelta', () => {
     ).toBe('+25');
   });
 
+  it.each([
+    {
+      category: 'transfer-in',
+      expected: '+15',
+      key: ActivityKey.CREDITS_ADD,
+      value: 15,
+    },
+    {
+      category: 'transfer-out',
+      expected: '\u221225',
+      key: ActivityKey.CREDITS_REMOVE,
+      value: 25,
+    },
+  ])(
+    'signs a $category credit payment as $expected',
+    ({ category, expected, key, value }) => {
+      expect(
+        getActivityCreditsDelta({
+          key,
+          source: 'tip',
+          value: JSON.stringify({ category, value }),
+        } as IActivity),
+      ).toBe(expected);
+    },
+  );
+
   it('has nothing for activities that move no credits', () => {
     expect(
       getActivityCreditsDelta({

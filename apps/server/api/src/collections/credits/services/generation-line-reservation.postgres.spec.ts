@@ -64,7 +64,7 @@ describe.skipIf(!connectionString)(
       );
       await pool.query(`CREATE TABLE "${schema}"."credit_balances" (
       "id" text PRIMARY KEY,"organizationId" text,"billingAccountId" text,"balance" double precision NOT NULL DEFAULT 0,
-      "heldAmount" double precision NOT NULL DEFAULT 0,"version" integer NOT NULL DEFAULT 0,"isDeleted" boolean NOT NULL DEFAULT false,
+      "heldAmount" double precision NOT NULL DEFAULT 0,"earnedBalance" double precision NOT NULL DEFAULT 0,"version" integer NOT NULL DEFAULT 0,"isDeleted" boolean NOT NULL DEFAULT false,
       "createdAt" timestamp(3) NOT NULL DEFAULT now(),"updatedAt" timestamp(3) NOT NULL DEFAULT now())`);
       await pool.query(`CREATE TABLE "${schema}"."credit_reservations" (
       "id" text PRIMARY KEY,"billingAccountId" text NOT NULL,"organizationId" text NOT NULL,"actorUserId" text,"brandId" text,

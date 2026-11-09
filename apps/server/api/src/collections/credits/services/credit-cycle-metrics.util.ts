@@ -13,6 +13,7 @@ const INFLOW_CATEGORIES = new Set<string>([
   CreditTransactionCategory.ADD,
   CreditTransactionCategory.REFUND,
   CreditTransactionCategory.ROLLOVER,
+  CreditTransactionCategory.TRANSFER_IN,
 ]);
 
 /**
@@ -22,7 +23,9 @@ const INFLOW_CATEGORIES = new Set<string>([
  * the wallet is one pool, so a top-up on top of the plan grant keeps the
  * balance above the plan size and would otherwise read as nothing spent. It
  * follows the shared usage definition (deductions net of refunds, referral
- * reward reversals excluded).
+ * reward reversals excluded) and adds credits sent to other organizations:
+ * a tip or creator payment leaves the cycle's credits just like a spend,
+ * mirroring credits received, which count as inflow.
  */
 export function computeCycleCredits(
   previousBalanceAfter: number,
@@ -57,9 +60,15 @@ export function computeCycleCredits(
         transaction.referenceType !== REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE,
     )
     .reduce((sum, transaction) => sum + signedCreditUsage(transaction), 0);
+  const sent = sinceReset
+    .filter(
+      (transaction) =>
+        transaction.category === CreditTransactionCategory.TRANSFER_OUT,
+    )
+    .reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0);
 
   return {
     cycleTotal: Math.max(0, baseBalance + inflows),
-    cycleUsed: Math.max(0, cycleUsed),
+    cycleUsed: Math.max(0, cycleUsed) + sent,
   };
 }

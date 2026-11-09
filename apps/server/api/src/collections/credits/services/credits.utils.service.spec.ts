@@ -120,6 +120,7 @@ describe('CreditsUtilsService', () => {
       (row: {
         balance: number;
         billingAccountId?: string;
+        earnedBalance?: number;
         heldAmount?: number;
         id: string;
         organizationId: string;
@@ -127,6 +128,7 @@ describe('CreditsUtilsService', () => {
       }) => ({
         available: row.balance - (row.heldAmount ?? 0),
         billingAccountId: row.billingAccountId ?? null,
+        earned: row.earnedBalance ?? 0,
         held: row.heldAmount ?? 0,
         id: row.id,
         organizationId: row.organizationId,

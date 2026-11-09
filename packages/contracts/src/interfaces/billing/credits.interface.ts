@@ -32,11 +32,15 @@ export interface ICreditWalletSnapshot {
   settled: number;
   held: number;
   available: number;
+  /** Part of `settled` received from other organizations; never expires. */
+  earned: number;
   version: number;
 }
 
 export interface IApplyCreditDeltaInput {
   balanceDelta?: number;
+  /** Change to the earned part of the balance; it is then clamped to the balance. */
+  earnedDelta?: number;
   heldDelta?: number;
   maxOverdraftCredits?: number;
   billingAccountId?: string | null;
