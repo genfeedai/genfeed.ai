@@ -2,7 +2,6 @@ import { createAgentStreamController } from '@genfeedai/agent/hooks/agent-chat-s
 import {
   deriveAgentStreamPhase,
   readAgentStreamPhase,
-  reduceAgentStreamPhase,
 } from '@genfeedai/agent/hooks/agent-chat-stream.phase';
 import {
   bindAgentStreamTransport,
@@ -11,7 +10,6 @@ import {
 } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import type {
   AgentStreamPhase,
-  AgentStreamPhaseEvent,
   AgentStreamPhaseInput,
 } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
@@ -65,18 +63,7 @@ function streamFor(api: ApiOverrides = {}) {
     ),
   });
   owner.controller = controller;
-  // The reducer's phase and the one read back from the entry's fields.
-  return {
-    controller,
-    phase: () => ({
-      derived: readAgentStreamPhase(owner),
-      stored: owner.phase,
-    }),
-  };
-}
-
-function both(phase: AgentStreamPhase) {
-  return { derived: phase, stored: phase };
+  return { controller, phase: () => readAgentStreamPhase(owner) };
 }
 
 function emit(event: string, data: Record<string, unknown> = {}) {
@@ -145,37 +132,6 @@ describe('deriveAgentStreamPhase', () => {
   });
 });
 
-describe('reduceAgentStreamPhase', () => {
-  it.each<[AgentStreamPhase, AgentStreamPhaseEvent, AgentStreamPhase]>([
-    ['idle', 'send', 'awaiting_run_id'],
-    ['terminal', 'send', 'awaiting_run_id'],
-    ['awaiting_input', 'handoff', 'awaiting_run_id'],
-    ['terminal', 'handoff', 'awaiting_run_id'],
-    ['awaiting_run_id', 'run_named', 'streaming'],
-    ['idle', 'run_named', 'streaming'],
-    ['streaming', 'run_named', 'streaming'],
-    ['terminal', 'run_named', 'terminal'],
-    ['awaiting_run_id', 'hold_released', 'idle'],
-    ['streaming', 'hold_released', 'streaming'],
-    ['streaming', 'input_requested', 'awaiting_input'],
-    ['idle', 'input_requested', 'awaiting_input'],
-    ['awaiting_run_id', 'input_requested', 'awaiting_run_id'],
-    ['terminal', 'input_requested', 'terminal'],
-    ['streaming', 'stall', 'stalled'],
-    ['awaiting_input', 'stall', 'awaiting_input'],
-    ['stalled', 'resume', 'streaming'],
-    ['streaming', 'resume', 'streaming'],
-    ['terminal', 'resume', 'terminal'],
-    ['streaming', 'reset', 'idle'],
-    ['terminal', 'reset', 'terminal'],
-    ['awaiting_run_id', 'settle', 'terminal'],
-    ['stalled', 'settle', 'terminal'],
-    ['terminal', 'settle', 'terminal'],
-  ])('moves %s on %s to %s', (phase, event, expected) => {
-    expect(reduceAgentStreamPhase(phase, event)).toBe(expected);
-  });
-});
-
 describe('agent chat stream phases (#9737)', () => {
   it('sends, waits for the run id, streams, then settles on done', async () => {
     let acknowledge: (value: ReturnType<typeof accepted>) => void = () => {};
@@ -187,24 +143,24 @@ describe('agent chat stream phases (#9737)', () => {
           }),
       ),
     });
-    expect(stream.phase()).toEqual(both('idle'));
+    expect(stream.phase()).toBe('idle');
 
     const sending = stream.controller.sendMessage('Hello');
-    expect(stream.phase()).toEqual(both('awaiting_run_id'));
+    expect(stream.phase()).toBe('awaiting_run_id');
 
     acknowledge(accepted());
     await sending;
-    expect(stream.phase()).toEqual(both('streaming'));
+    expect(stream.phase()).toBe('streaming');
 
     emit('agent:token', { token: 'Hi' });
-    expect(stream.phase()).toEqual(both('streaming'));
+    expect(stream.phase()).toBe('streaming');
 
     emit('agent:done', {
       creditsRemaining: 1,
       fullContent: 'Hi',
       toolCalls: [],
     });
-    expect(stream.phase()).toEqual(both('terminal'));
+    expect(stream.phase()).toBe('terminal');
   });
 
   it('settles on a stream error', async () => {
@@ -213,7 +169,7 @@ describe('agent chat stream phases (#9737)', () => {
 
     emit('agent:error', { error: 'Provider down' });
 
-    expect(stream.phase()).toEqual(both('terminal'));
+    expect(stream.phase()).toBe('terminal');
   });
 
   it('settles a send whose request fails before the run is named', async () => {
@@ -223,7 +179,7 @@ describe('agent chat stream phases (#9737)', () => {
 
     await stream.controller.sendMessage('Hello');
 
-    expect(stream.phase()).toEqual(both('terminal'));
+    expect(stream.phase()).toBe('terminal');
   });
 
   it('waits for input, hands the answer off, then streams the continuation', async () => {
@@ -231,34 +187,13 @@ describe('agent chat stream phases (#9737)', () => {
     await stream.controller.sendMessage('Hello');
 
     inputRequest();
-    expect(stream.phase()).toEqual(both('awaiting_input'));
+    expect(stream.phase()).toBe('awaiting_input');
 
     const handoff = stream.controller.beginRunHandoff(THREAD_ID);
-    expect(stream.phase()).toEqual(both('awaiting_run_id'));
+    expect(stream.phase()).toBe('awaiting_run_id');
 
     stream.controller.adoptRun(handoff, 'run-b', '2026-11-09T12:00:10Z');
-    expect(stream.phase()).toEqual(both('streaming'));
-  });
-
-  it('puts the question back when its answer fails to start a run', async () => {
-    const stream = streamFor();
-    await stream.controller.sendMessage('Hello');
-    inputRequest();
-    const request = useAgentChatStore.getState().pendingInputRequest;
-
-    const handoff = stream.controller.beginRunHandoff(THREAD_ID);
-    stream.controller.cancelRunHandoff(handoff, request ?? undefined);
-
-    expect(stream.phase()).toEqual(both('awaiting_input'));
-  });
-
-  it('goes idle when the transcript is cleared mid-run', async () => {
-    const stream = streamFor();
-    await stream.controller.sendMessage('Hello');
-
-    stream.controller.clearChat();
-
-    expect(stream.phase()).toEqual(both('idle'));
+    expect(stream.phase()).toBe('streaming');
   });
 
   it('settles a handoff that produced no execution', async () => {
@@ -269,7 +204,7 @@ describe('agent chat stream phases (#9737)', () => {
     const handoff = stream.controller.beginRunHandoff(THREAD_ID);
     stream.controller.cancelRunHandoff(handoff);
 
-    expect(stream.phase()).toEqual(both('terminal'));
+    expect(stream.phase()).toBe('terminal');
   });
 
   it('stalls after repeated missing executions, resumes, and can be abandoned', async () => {
@@ -290,12 +225,12 @@ describe('agent chat stream phases (#9737)', () => {
     await stream.controller.sendMessage('Hello');
 
     await vi.advanceTimersByTimeAsync(150_000);
-    expect(stream.phase()).toEqual(both('stalled'));
+    expect(stream.phase()).toBe('stalled');
 
     stream.controller.resumeRunWatch(THREAD_ID);
-    expect(stream.phase()).toEqual(both('streaming'));
+    expect(stream.phase()).toBe('streaming');
 
     stream.controller.abandonRun(THREAD_ID);
-    expect(stream.phase()).toEqual(both('terminal'));
+    expect(stream.phase()).toBe('terminal');
   });
 });

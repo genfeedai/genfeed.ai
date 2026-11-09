@@ -1,8 +1,4 @@
 import { isForeignRunEvent } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
-import {
-  isAgentStreamAwaitingRunId,
-  transitionAgentStreamPhase,
-} from '@genfeedai/agent/hooks/agent-chat-stream.phase';
 import { createProvisionalEventPool } from '@genfeedai/agent/hooks/agent-chat-stream.provisional';
 import type {
   AgentStreamEntry,
@@ -26,6 +22,7 @@ function blankRuntime(): AgentStreamRuntime {
     activeStreamThreadRef: { current: null },
     bufferedEventsRef: { current: [] },
     completionTimeoutRef: { current: null },
+    isAwaitingRunIdRef: { current: false },
     mountCount: 0,
     ownerGeneration: 0,
     pendingCompletionRef: { current: null },
@@ -207,7 +204,6 @@ export function createAgentStreamEntry(
     key: threadId ?? `request:${clientRequestId}`,
     clientRequestId,
     createdAt: ++runtime.nextEntryId,
-    phase: 'idle',
     terminalAt: null,
     revision: 0,
     bufferBytes: 0,
@@ -242,7 +238,7 @@ export function createAgentStreamEntry(
       if (
         !owner ||
         !isCurrentAgentStreamEntry(owner) ||
-        (!isAgentStreamAwaitingRunId(owner) &&
+        (!owner.isAwaitingRunIdRef.current &&
           (!nextRun.runId ||
             nextRun.runId !==
               (owner.activeStreamRunIdRef.current ??
@@ -335,7 +331,6 @@ export function settleAgentStreamEntry(entry: AgentStreamEntry) {
   entry.bufferedEventsRef.current = [];
   entry.handlers.clear();
   entry.presentation.disposeStreamTokens();
-  transitionAgentStreamPhase(entry, 'settle');
   entry.terminalAt = Date.now();
   pruneTerminalEntries();
 }

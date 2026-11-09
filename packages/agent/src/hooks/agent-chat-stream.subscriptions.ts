@@ -3,10 +3,7 @@ import {
   readRecordedRunFailure,
   takeSourceActionUpdate,
 } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
-import type {
-  AgentStreamPhaseEvent,
-  BufferedThreadEvent,
-} from '@genfeedai/agent/hooks/agent-chat-stream.types';
+import type { BufferedThreadEvent } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import type {
   AgentChatMessage,
   AgentInputRequest,
@@ -79,8 +76,7 @@ export type StreamSubscriptionDeps = {
     timestamp: string,
   ) => boolean;
   finalizeStream: (message: AgentChatMessage) => void;
-  /** True while a send or handoff waits for its run id (#9737). */
-  isAwaitingRunId: () => boolean;
+  isAwaitingRunIdRef: MutableRefObject<boolean>;
   isThreadVisible: (threadId: string) => boolean;
   markThreadRunning: (
     threadId: string,
@@ -117,7 +113,6 @@ export type StreamSubscriptionDeps = {
   ) => void;
   subscribe: <T>(event: string, handler: (payload: T) => void) => () => void;
   touchCompletionWatchdog: () => void;
-  transitionPhase: (event: AgentStreamPhaseEvent) => void;
   updateActiveToolCall: (
     toolCallId: string,
     patch: Record<string, unknown>,
@@ -175,7 +170,10 @@ export function attachAgentStreamSubscriptions(
         inputRequestId?: string;
       };
 
-      if (!deps.activeStreamThreadRef.current || deps.isAwaitingRunId()) {
+      if (
+        !deps.activeStreamThreadRef.current ||
+        deps.isAwaitingRunIdRef.current
+      ) {
         const bufferedEvent: BufferedThreadEvent = {
           data,
           handler,
@@ -510,8 +508,7 @@ export function attachAgentStreamSubscriptions(
             if (payload.uiAction)
               applyResultDashboardOperation(payload.metadata);
           }
-          if (pendingInput) deps.transitionPhase('input_requested');
-          else deps.cleanupSubscriptions();
+          if (!pendingInput) deps.cleanupSubscriptions();
         },
         false,
         settleQueuedUiActionRun,
@@ -644,7 +641,6 @@ export function attachAgentStreamSubscriptions(
         const payload = data as AgentInputRequestPayload;
         deps.pendingCompletionRef.current = null;
         deps.clearCompletionWatchdog();
-        deps.transitionPhase('input_requested');
         deps.updateThreadSummary(payload.threadId, {
           attentionState: 'needs-input',
           lastActivityAt: payload.timestamp,

@@ -5,10 +5,6 @@ import {
   isForeignRunEvent,
 } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
 import {
-  isAgentStreamAwaitingRunId,
-  transitionAgentStreamPhase,
-} from '@genfeedai/agent/hooks/agent-chat-stream.phase';
-import {
   bindAgentStreamEntry,
   claimProvisionalAgentEvents,
   getAgentStreamRuntime,
@@ -23,7 +19,6 @@ import type {
   AgentRunAdoptionOptions,
   AgentRunHandoff,
   AgentStreamEntry,
-  AgentStreamPhaseEvent,
   PendingStreamCompletion,
   SendStreamMessageOptions,
   UseAgentChatStreamOptions,
@@ -80,8 +75,6 @@ export function createAgentStreamController(
   options: UseAgentChatStreamOptions,
 ): UseAgentChatStreamReturn {
   const streamRuntime = entry;
-  const transitionPhase = (event: AgentStreamPhaseEvent) =>
-    transitionAgentStreamPhase(entry, event);
   const presentationStore = entry.presentation;
   const subscribe = <T>(event: string, handler: (payload: T) => void) =>
     subscribeAgentStreamEntry(entry, event, handler);
@@ -175,7 +168,7 @@ export function createAgentStreamController(
         )
       : [];
     streamRuntime.activeStreamRunIdRef.current = null;
-    transitionPhase('hold_released');
+    streamRuntime.isAwaitingRunIdRef.current = false;
   };
 
   const releaseCompletedSubscriptions = () => {
@@ -207,7 +200,7 @@ export function createAgentStreamController(
     }
     clearCompletionWatchdog();
     streamRuntime.activeStreamRunIdRef.current = next.runId;
-    transitionPhase('run_named');
+    streamRuntime.isAwaitingRunIdRef.current = false;
     streamRuntime.pendingCompletionRef.current = {
       initiatedAt: Date.now(),
       preAssistantIds: collectAssistantMessageIds(
@@ -395,7 +388,6 @@ export function createAgentStreamController(
       markRunStalled: (current) => {
         if (streamRuntime.pendingCompletionRef.current !== current) return;
         clearCompletionWatchdog();
-        transitionPhase('stall');
         presentationStore.setState((state) => ({
           stream: { ...state.stream, isRunStalled: true },
         }));
@@ -443,7 +435,7 @@ export function createAgentStreamController(
           (!entry.activeStreamThreadRef.current &&
             hasProvisionalAgentProgress(payload.threadId, payload.runId)) ||
           (entry.hasProgress &&
-            (!isAgentStreamAwaitingRunId(entry) ||
+            (!entry.isAwaitingRunIdRef.current ||
               entry.needsReconciliation ||
               entry.bufferedEventsRef.current.some(
                 (event) =>
@@ -527,7 +519,7 @@ export function createAgentStreamController(
           return resolved;
         },
         finalizeStream,
-        isAwaitingRunId: () => isAgentStreamAwaitingRunId(entry),
+        isAwaitingRunIdRef: streamRuntime.isAwaitingRunIdRef,
         isThreadVisible,
         markThreadRunning,
         pendingCompletionRef: streamRuntime.pendingCompletionRef,
@@ -544,7 +536,6 @@ export function createAgentStreamController(
         isActuallyVisible: (threadId) =>
           useAgentChatStore.getState().activeThreadId === threadId,
         touchCompletionWatchdog,
-        transitionPhase,
         updateActiveToolCall,
         updateThreadSummary,
       }),
@@ -605,7 +596,7 @@ export function createAgentStreamController(
     resetStreamState();
     cleanupSubscriptions();
     // Hold every event until acceptance names this turn's run.
-    transitionPhase('send');
+    streamRuntime.isAwaitingRunIdRef.current = true;
     streamRuntime.ownerGeneration += 1;
     const sendGeneration = streamRuntime.ownerGeneration;
 
@@ -700,7 +691,7 @@ export function createAgentStreamController(
       }));
       streamRuntime.activeStreamThreadRef.current = response.threadId;
       streamRuntime.activeStreamRunIdRef.current = response.executionId;
-      transitionPhase('run_named');
+      streamRuntime.isAwaitingRunIdRef.current = false;
       streamRuntime.pendingCompletionRef.current = {
         initiatedAt: Date.now(),
         preAssistantIds,
@@ -763,7 +754,7 @@ export function createAgentStreamController(
         if (
           isCurrentAgentStreamEntry(entry) &&
           streamRuntime.ownerGeneration === sendGeneration &&
-          isAgentStreamAwaitingRunId(entry)
+          streamRuntime.isAwaitingRunIdRef.current
         ) {
           streamRuntime.pendingCompletionRef.current = null;
           clearCompletionWatchdog();
@@ -828,7 +819,7 @@ export function createAgentStreamController(
     clearCompletionWatchdog();
     streamRuntime.activeStreamThreadRef.current = threadId;
     streamRuntime.activeStreamRunIdRef.current = null;
-    transitionPhase('handoff');
+    streamRuntime.isAwaitingRunIdRef.current = true;
     if (streamRuntime.unsubscribersRef.current.length === 0) {
       attachSubscriptions();
     }
@@ -852,7 +843,7 @@ export function createAgentStreamController(
     const { threadId } = handoff;
     streamRuntime.activeStreamThreadRef.current = threadId;
     streamRuntime.activeStreamRunIdRef.current = runId;
-    transitionPhase('run_named');
+    streamRuntime.isAwaitingRunIdRef.current = false;
     if (streamRuntime.unsubscribersRef.current.length === 0) {
       attachSubscriptions();
     }
@@ -887,7 +878,7 @@ export function createAgentStreamController(
       return;
     }
 
-    transitionPhase('hold_released');
+    streamRuntime.isAwaitingRunIdRef.current = false;
     if (
       failedRequest &&
       isThreadVisible(handoff.threadId) &&
@@ -917,7 +908,6 @@ export function createAgentStreamController(
     clearCompletionWatchdog();
     if (failedRequest) {
       cleanupSubscriptions(true);
-      transitionPhase('input_requested');
     } else {
       // No failed request and no continuation: nothing is pending for this
       // handoff, so settle the entry (sets terminalAt) instead of leaving it
@@ -956,7 +946,6 @@ export function createAgentStreamController(
     streamRuntime.pendingCompletionRef.current = null;
     clearCompletionWatchdog();
     cleanupSubscriptions();
-    transitionPhase('reset');
     resetStreamState();
     clearMessages();
   };
@@ -975,7 +964,6 @@ export function createAgentStreamController(
       stream: { ...state.stream, isRunStalled: false },
     }));
     if (!pending) return;
-    transitionPhase('resume');
     pending.missingExecutionPolls = 0;
     scheduleCompletionWatchdog();
   };
@@ -1086,7 +1074,6 @@ export function createAgentStreamController(
       startedAt: selectActiveRun(presentationStore.getState()).startedAt,
       threadId: entry.activeStreamThreadRef.current,
     };
-    transitionPhase('run_named');
     attachSubscriptions();
     markThreadRunning(entry.activeStreamThreadRef.current);
     scheduleCompletionWatchdog();
