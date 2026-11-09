@@ -1,6 +1,12 @@
 import { isEntityId } from '@genfeedai/contracts/api-types/helpers/entity-id';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
-import type { OAuthConnectContext } from '@/props/auth/oauth-connect-context.props';
+import type {
+  OAuthAuthorizationRedirect,
+  OAuthConnectContext,
+} from '@/props/auth/oauth-connect-context.props';
+
+/** sessionStorage key read by `/oauth/[platform]` after provider redirect. */
+export const OAUTH_RETURN_TO_STORAGE_KEY = 'oauth_return_to';
 
 /** sessionStorage key read by `/oauth/[platform]` to start a fresh connect. */
 export const OAUTH_CONNECT_CONTEXT_STORAGE_KEY = 'oauth_connect_context';
@@ -60,4 +66,36 @@ export function clearOAuthConnectContext(): void {
   } catch {
     // Private mode / blocked storage: nothing was stored to clear.
   }
+}
+
+/**
+ * Mirrors the return path into sessionStorage, because the fixed provider
+ * redirect URI drops query params before `/oauth/[platform]` reads it.
+ */
+export function rememberOAuthReturnTo(returnTo: string): void {
+  try {
+    sessionStorage.setItem(OAUTH_RETURN_TO_STORAGE_KEY, returnTo);
+  } catch {
+    // Private mode / blocked storage — the return_to query is best-effort.
+  }
+}
+
+/**
+ * The one way every connect entry point leaves for the provider (#9745):
+ * remember where to return and which brand and account the connect is for,
+ * then send this tab to the authorization URL with `return_to` appended.
+ */
+export function redirectToOAuthAuthorization(
+  redirect: OAuthAuthorizationRedirect,
+): Window | null {
+  rememberOAuthReturnTo(redirect.returnTo);
+  rememberOAuthConnectContext({
+    brandId: redirect.brandId,
+    credentialId: redirect.credentialId,
+  });
+  const separator = redirect.authorizationUrl.includes('?') ? '&' : '?';
+  return window.open(
+    `${redirect.authorizationUrl}${separator}return_to=${encodeURIComponent(redirect.returnTo)}`,
+    '_self',
+  );
 }

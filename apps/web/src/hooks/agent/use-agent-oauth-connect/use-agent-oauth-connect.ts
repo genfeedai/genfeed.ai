@@ -12,8 +12,7 @@ import { useRouteParams } from '@hooks/navigation/use-route-params';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
 import { useCallback } from 'react';
-import { rememberOAuthConnectContext } from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
-import { OAUTH_RETURN_TO_STORAGE_KEY } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
+import { redirectToOAuthAuthorization } from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
 
 /**
  * Shared handler for the agent `oauth_connect_card`. Kicks off a platform OAuth
@@ -67,20 +66,12 @@ export function useAgentOAuthConnect(): (platform: string) => Promise<void> {
         const returnTo = threadId
           ? href(`${APP_ROUTES.AGENT.ROOT}/${threadId}`)
           : href(APP_ROUTES.AGENT.NEW);
-        try {
-          sessionStorage.setItem(OAUTH_RETURN_TO_STORAGE_KEY, returnTo);
-        } catch {
-          // Private mode — the return_to query is best-effort only.
-        }
-        rememberOAuthConnectContext({
+        redirectToOAuthAuthorization({
+          authorizationUrl: credential.url,
           brandId: connectionBrand.id,
           credentialId: credential.id,
+          returnTo,
         });
-        const separator = credential.url.includes('?') ? '&' : '?';
-        window.open(
-          `${credential.url}${separator}return_to=${encodeURIComponent(returnTo)}`,
-          '_self',
-        );
       } catch (error) {
         if (error instanceof OAuthBrandRequiredError) {
           throw error;

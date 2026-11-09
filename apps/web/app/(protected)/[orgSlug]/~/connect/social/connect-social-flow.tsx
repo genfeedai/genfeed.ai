@@ -15,8 +15,7 @@ import { Button } from '@ui/primitives/button';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
-import { rememberOAuthConnectContext } from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
-import { OAUTH_RETURN_TO_STORAGE_KEY } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
+import { redirectToOAuthAuthorization } from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
 
 export default function ConnectSocialFlow() {
   const translate = useTranslations('pages.connectSocial');
@@ -51,25 +50,12 @@ export default function ConnectSocialFlow() {
         brandId,
         ...(connectionId ? { credentialId: connectionId } : {}),
       });
-      rememberOAuthConnectContext({
+      redirectToOAuthAuthorization({
+        authorizationUrl: credential.url,
         brandId,
         credentialId: credential.id || connectionId,
+        returnTo: orgHref(`${APP_ROUTES.CONNECT}/social`),
       });
-      const returnTo = orgHref(`${APP_ROUTES.CONNECT}/social`);
-      // Mirror usePlatformOAuthConnect: providers drop query params on
-      // redirect, so /oauth/[platform] reads return_to from sessionStorage.
-      try {
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem(OAUTH_RETURN_TO_STORAGE_KEY, returnTo);
-        }
-      } catch {
-        // Private mode — best-effort only.
-      }
-      const separator = credential.url.includes('?') ? '&' : '?';
-      window.open(
-        `${credential.url}${separator}return_to=${encodeURIComponent(returnTo)}`,
-        '_self',
-      );
     } catch (error) {
       logger.error('Social connection failed', error);
       NotificationsService.getInstance().error(translate('failed'));

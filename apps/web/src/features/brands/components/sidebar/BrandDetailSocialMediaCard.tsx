@@ -55,8 +55,10 @@ import {
 import { getHealthBadgeVariant } from '@/features/brands/components/integrations/account-health-badge-variant';
 import ConnectAccountModal from '@/features/brands/components/integrations/ConnectAccountModal';
 import SocialWarmupProgram from '@/features/brands/components/sidebar/social-warmup/SocialWarmupProgram';
-import { rememberOAuthConnectContext } from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
-import { OAUTH_RETURN_TO_STORAGE_KEY } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
+import {
+  rememberOAuthConnectContext,
+  rememberOAuthReturnTo,
+} from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
 
@@ -449,18 +451,11 @@ export default function BrandDetailSocialMediaCard({
         setReconnectingCredentialId(credentialId);
       }
       const token = (await resolveAuthToken(getToken)) ?? '';
-      // Mirror usePlatformOAuthConnect: provider redirects drop query params, so
-      // /oauth/[platform] reads return_to from sessionStorage after verify.
-      try {
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem(
-            OAUTH_RETURN_TO_STORAGE_KEY,
-            `${window.location.pathname}${window.location.search}`,
-          );
-        }
-      } catch {
-        // Private mode — best-effort only.
-      }
+      // Provider redirects drop query params, so /oauth/[platform] reads
+      // return_to from sessionStorage after verify.
+      rememberOAuthReturnTo(
+        `${window.location.pathname}${window.location.search}`,
+      );
       const service = new ServicesService(
         resolveOAuthServicePath(platform, item.servicePath),
         token,
