@@ -24,7 +24,6 @@ import {
   INGREDIENT_READY_STATUSES,
   INGREDIENT_UNUSABLE_STATUSES,
   IngredientCategory,
-  IngredientStatus,
   isTerminalWorkflowExecutionStatus,
   parseReviewDecision,
   ReviewDecision,
