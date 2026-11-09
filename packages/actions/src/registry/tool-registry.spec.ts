@@ -158,6 +158,9 @@ describe('tool registry catalog validation', () => {
 
     vi.doMock('./curated-action-catalog', () => ({
       CURATED_ACTION_CATALOG: catalog,
+      // Policy sets are derived from the catalog at load time.
+      curatedActionNames: () => new Set<string>(),
+      getCuratedAction: () => undefined,
       isActionOnSurface: (
         entry: CuratedActionCatalogEntry,
         surface: CuratedActionSurface,

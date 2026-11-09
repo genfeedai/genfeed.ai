@@ -140,6 +140,36 @@ describe('curated action catalog change reporter', () => {
     ]);
   });
 
+  it('reads the tracked fields from an entry that also carries policy fields', () => {
+    expect(
+      parseCatalogSource(
+        catalog(
+          `{
+            actionClass: 'outbound',
+            annotationOverride: {
+              destructiveHint: false,
+              idempotentHint: true,
+              openWorldHint: false,
+              readOnlyHint: true,
+            },
+            claudeAccess: 'both',
+            isPublishingApprovalRequired: true,
+            mutationPolicy: 'approval-required',
+            name: 'policy_action',
+            surfaces: ['mcp'],
+            toolset: 'scheduler',
+          }`,
+        ),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'policy_action',
+        surfaces: ['mcp'],
+        toolset: 'scheduler',
+      }),
+    ]);
+  });
+
   it('parses a multi-line publishing approval entry with a toolset', () => {
     expect(
       parseCatalogSource(

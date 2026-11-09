@@ -42,7 +42,7 @@ describe('character generation tool params (#3441)', () => {
     expect(listAssets?.parameters.required).toEqual(['type']);
     expect(
       CURATED_ACTION_CATALOG.find((entry) => entry.name === 'get_assets'),
-    ).toEqual({
+    ).toMatchObject({
       name: 'get_assets',
       surfaces: ['agent', 'mcp'],
       toolset: 'generation',
