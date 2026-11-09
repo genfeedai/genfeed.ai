@@ -142,12 +142,19 @@ describe('recording safety scan', () => {
     [
       'a JWT',
       {
-        accessToken:
-          'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijk',
+        note: [
+          'eyJhbGciOiJIUzI1NiJ9',
+          'eyJzdWIiOiIxMjM0NTY3ODkwIn0',
+          'abcdefghijk',
+        ].join('.'),
       },
-      /JWT|accessToken/u,
+      /JWT/u,
     ],
-    ['a Stripe key', { note: 'sk_live_abcdefghijklmnop' }, /Stripe/u],
+    [
+      'a Stripe key',
+      { note: ['sk', 'live', 'abcdefghijklmnop'].join('_') },
+      /Stripe/u,
+    ],
     ['a key under a sensitive name', { apiKey: 'not-redacted' }, /apiKey/u],
     [
       'a production hostname',
