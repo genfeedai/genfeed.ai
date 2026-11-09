@@ -23,6 +23,7 @@ vi.mock('@services/external/public.service', () => ({
       findPublicProfileBySlug,
       findPublicReferralCode,
       findPublicVideosPage,
+      trackAccountView: async () => null,
     }),
   },
 }));

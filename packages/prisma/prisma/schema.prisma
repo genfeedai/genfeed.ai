@@ -1138,6 +1138,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   isDeleted                Boolean      @default(false)
   isHighlighted            Boolean      @default(false)
   isFleetEnabled           Boolean      @default(false)
+  /// Distinct visitors to the public profile, at most one per visitor a day.
+  profileViewCount         Int          @default(0)
   defaultVideoModel        String?
   isPromptEnhancementEnabled Boolean?
   defaultImageModel        String?

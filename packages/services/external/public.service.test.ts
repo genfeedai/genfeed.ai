@@ -189,12 +189,16 @@ describe('PublicService', () => {
     expect(result[0]).toBeInstanceOf(Link);
   });
 
-  it('trackAccountView POSTs a view event', async () => {
-    http.post.mockResolvedValue(axiosResponse(undefined));
+  it('trackAccountView answers the profile view count', async () => {
+    http.post.mockResolvedValue(axiosResponse({ data: { views: 42 } }));
 
-    await service.trackAccountView('brand_1');
+    await expect(service.trackAccountView('brand_1')).resolves.toBe(42);
+  });
 
-    expect(http.post).toHaveBeenCalledWith('brands/brand_1/views');
+  it('trackAccountView answers null for a profile that is not public', async () => {
+    http.post.mockResolvedValue(axiosResponse({ data: null }));
+
+    await expect(service.trackAccountView('brand_1')).resolves.toBeNull();
   });
 
   describe('public collections', () => {

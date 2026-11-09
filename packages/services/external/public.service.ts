@@ -245,8 +245,16 @@ export class PublicService extends HTTPBaseService {
     return this.fetchMany(`brands/${brandId}/links`, Link);
   }
 
-  public async trackAccountView(brandId: string): Promise<void> {
-    await this.instance.post(`brands/${brandId}/views`);
+  /** Counts a visit to a creator profile and returns its view count. */
+  public async trackAccountView(
+    brandId: string,
+    signal?: AbortSignal,
+  ): Promise<number | null> {
+    const response = await this.instance.post<{
+      data: { views: number } | null;
+    }>(`brands/${encodeURIComponent(brandId)}/views`, undefined, { signal });
+    const views = response.data?.data?.views;
+    return typeof views === 'number' ? views : null;
   }
 
   public async findPublicBrands(query?: IQueryParams): Promise<Brand[]> {
