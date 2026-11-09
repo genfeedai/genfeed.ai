@@ -21,4 +21,6 @@ export const newsletterAttributes = createEntityAttributes([
   'publishedAt',
   'scheduledFor',
   'externalUrl',
+  'accessLevel',
+  'unlockPriceCredits',
 ]);

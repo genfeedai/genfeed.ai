@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { NewsletterProviderEventsService } from '@api/collections/newsletter-sends/services/newsletter-provider-events.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { writeNotificationOutbox } from '@api/services/activity-recording/notification-outbox.writer';
 import {
@@ -67,6 +68,7 @@ export class EmailPerformanceService {
     private readonly eligibility: SystemEmailEligibilityService,
     private readonly config: ConfigService,
     private readonly logger: LoggerService,
+    private readonly newsletterEvents: NewsletterProviderEventsService,
   ) {}
 
   async queueEmail(input: QueueSystemEmailInput): Promise<string> {
@@ -666,7 +668,11 @@ export class EmailPerformanceService {
       where: { providerMessageId, isDeleted: false },
       select: { id: true, organizationId: true, recipientHash: true },
     });
-    if (!message) return;
+    if (!message) {
+      // Not system mail: the receipt may belong to a newsletter recipient.
+      await this.newsletterEvents.reconcile(providerMessageId);
+      return;
+    }
     // tenant-scope-ignore: provider receipts are globally identified; only this verified message's receipts are read.
     const events = await this.prisma.emailProviderEvent.findMany({
       where: { providerMessageId, processedAt: null },

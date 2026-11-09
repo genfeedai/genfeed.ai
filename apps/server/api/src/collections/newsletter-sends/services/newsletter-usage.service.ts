@@ -1,0 +1,112 @@
+import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
+import { hasOrganizationBilling } from '@genfeedai/config';
+import {
+  NEWSLETTER_PLAN_LIMITS,
+  type NewsletterPlanKey,
+} from '@genfeedai/contracts/constants';
+import type { INewsletterUsage } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
+import { ForbiddenException, Injectable } from '@nestjs/common';
+
+const COUNTED_SUBSCRIBER_STATUSES = ['pending', 'active'];
+
+/**
+ * Plan caps on subscribers and monthly sends. A Cloud runtime gate: only a
+ * deployment that bills organizations applies them; self-hosted is unlimited.
+ */
+@Traced()
+@Injectable()
+export class NewsletterUsageService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly paidAccess: OrganizationPaidAccessService,
+  ) {}
+
+  async getUsage(organizationId: string): Promise<INewsletterUsage> {
+    const plan = await this.resolvePlan(organizationId);
+    const [subscribers, emailsThisMonth] = await Promise.all([
+      this.countSubscribers(organizationId),
+      this.countEmailsThisMonth(organizationId),
+    ]);
+    const limits = plan === 'unlimited' ? null : NEWSLETTER_PLAN_LIMITS[plan];
+    return {
+      emailLimit: limits?.emailsPerMonth ?? null,
+      emailsThisMonth,
+      plan,
+      subscriberLimit: limits?.subscribers ?? null,
+      subscribers,
+    };
+  }
+
+  /** Whether the "Sent with Genfeed" footer link may be turned off. */
+  async canRemoveAttribution(organizationId: string): Promise<boolean> {
+    return (await this.resolvePlan(organizationId)) !== 'free';
+  }
+
+  /** Refuse adding `incoming` subscribers past the plan cap. */
+  async assertSubscriberCapacity(
+    organizationId: string,
+    incoming: number,
+  ): Promise<void> {
+    if (incoming <= 0) return;
+    const usage = await this.getUsage(organizationId);
+    if (
+      usage.subscriberLimit !== null &&
+      usage.subscribers + incoming > usage.subscriberLimit
+    ) {
+      throw new ForbiddenException({
+        code: 'NEWSLETTER_SUBSCRIBER_LIMIT',
+        message: `Your plan allows ${usage.subscriberLimit} subscribers. Upgrade to add more.`,
+      });
+    }
+  }
+
+  /** Refuse a send that would exceed this month's email cap before it starts. */
+  async assertSendCapacity(
+    organizationId: string,
+    recipients: number,
+  ): Promise<void> {
+    const usage = await this.getUsage(organizationId);
+    if (
+      usage.emailLimit !== null &&
+      usage.emailsThisMonth + recipients > usage.emailLimit
+    ) {
+      throw new ForbiddenException({
+        code: 'NEWSLETTER_SEND_LIMIT',
+        message: `This send needs ${recipients} emails and your plan has ${Math.max(0, usage.emailLimit - usage.emailsThisMonth)} left this month.`,
+      });
+    }
+  }
+
+  private async resolvePlan(
+    organizationId: string,
+  ): Promise<NewsletterPlanKey | 'unlimited'> {
+    if (!hasOrganizationBilling()) return 'unlimited';
+    return (await this.paidAccess.isSubscriptionGated(organizationId))
+      ? 'free'
+      : 'paid';
+  }
+
+  private countSubscribers(organizationId: string): Promise<number> {
+    return this.prisma.brandSubscriber.count({
+      where: scopedWhere(organizationId, {
+        status: { in: COUNTED_SUBSCRIBER_STATUSES },
+      }),
+    });
+  }
+
+  private countEmailsThisMonth(organizationId: string): Promise<number> {
+    const now = new Date();
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
+    return this.prisma.newsletterSendRecipient.count({
+      where: scopedWhere(organizationId, {
+        sentAt: { gte: monthStart },
+        status: 'sent',
+      }),
+    });
+  }
+}

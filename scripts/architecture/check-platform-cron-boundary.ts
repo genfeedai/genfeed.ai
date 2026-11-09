@@ -252,6 +252,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform schedule handler that blocks branded generation receipts stuck in resolved past the #5786 dispatch window.',
   },
   {
+    file: 'apps/server/workers/src/crons/newsletter-sends/cron.newsletter-sends.service.ts',
+    id: 'newsletter-sends',
+    methodName: 'processDueSends',
+    reason:
+      'Platform schedule handler for #9726; claims due newsletter sends and delivers bounded, idempotent batches.',
+  },
+  {
     file: 'apps/server/workers/src/crons/oauth-client-cleanup/cron.oauth-client-cleanup.service.ts',
     id: 'oauth-client-cleanup',
     methodName: 'deleteAbandonedClients',

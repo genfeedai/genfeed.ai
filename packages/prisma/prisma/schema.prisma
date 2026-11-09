@@ -1229,6 +1229,9 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   agentUntrustedContentAudits AgentUntrustedContentAudit[]
   bookmarks                  Bookmark[]
   moodBoard                  MoodBoard?                 @relation("brand_moodboard")
+  subscribers                BrandSubscriber[]
+  newsletterSettings         NewsletterSettings?
+  newsletterSends            NewsletterSend[]
   dashboardLayouts           DashboardLayout[]          @relation("brand_dashboard_layout")
   brandInterviews            BrandInterview[]
   llmVendorCosts             LlmVendorCost[]            @relation("llm_vendor_cost_brand")
@@ -4387,6 +4390,10 @@ model Newsletter {
   scheduledFor         DateTime?
   // Live URL recorded when the issue was sent outside Genfeed (#6753).
   externalUrl          String?
+  /// Who may read the full issue (#9718): `public`, `subscribers` or `paid`.
+  accessLevel          String             @default("public")
+  /// One-time unlock price in credits for a `paid` issue (#9718).
+  unlockPriceCredits   Int?
   isDeleted            Boolean            @default(false)
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
@@ -4395,10 +4402,193 @@ model Newsletter {
   postEntities       Post[]       @relation("post_entity_newsletter")
   contextNewsletters Newsletter[] @relation("newsletter_context")
   contextOf          Newsletter[] @relation("newsletter_context")
+  sends              NewsletterSend[]
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([approvedVersionPinId], map: "newsletters_approvedVersionPinId_idx")
   @@map("newsletters")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NEWSLETTER MODULE (#9722): subscribers, settings, sends, tracking
+// ═══════════════════════════════════════════════════════════════
+
+/// A reader subscribed to one brand (#9665). The address is kept only for
+/// delivery; suppression and analytics use the one-way `emailHash`.
+model BrandSubscriber {
+  id               String                    @id @default(cuid())
+  organizationId   String
+  brandId          String
+  brand            Brand                     @relation(fields: [brandId], references: [id])
+  /// Set when the subscriber also has a Genfeed account.
+  userId           String?
+  email            String
+  emailHash        String
+  name             String?
+  tags             String[]                  @default([])
+  /// `pending | active | unsubscribed | bounced | complained`.
+  status           String                    @default("pending")
+  /// Where the subscriber came from: `profile`, `article`, `homepage`, `footer`, `manual`, `import`.
+  source           String                    @default("manual")
+  /// The article, post or issue that converted the subscriber.
+  sourceRef        String?
+  /// `double_opt_in` or `owner_attested` (manual add or CSV import).
+  consentMethod    String?
+  consentAt        DateTime?
+  consentIp        String?
+  importId         String?
+  confirmTokenHash String?                   @unique
+  confirmSentAt    DateTime?
+  confirmedAt      DateTime?
+  unsubscribedAt   DateTime?
+  bouncedAt        DateTime?
+  complainedAt     DateTime?
+  isDeleted        Boolean                   @default(false)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  recipients       NewsletterSendRecipient[]
+
+  @@unique([brandId, emailHash])
+  @@index([organizationId, brandId, isDeleted, status])
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)])
+  @@map("brand_subscribers")
+}
+
+/// One CSV import, with the owner's consent confirmation and its counts.
+model BrandSubscriberImport {
+  id                 String   @id @default(cuid())
+  organizationId     String
+  brandId            String
+  /// The member who confirmed they hold consent for every address.
+  userId             String
+  fileName           String?
+  consentConfirmedAt DateTime
+  totalRows          Int      @default(0)
+  addedCount         Int      @default(0)
+  duplicateCount     Int      @default(0)
+  invalidCount       Int      @default(0)
+  suppressedCount    Int      @default(0)
+  isDeleted          Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)])
+  @@map("brand_subscriber_imports")
+}
+
+/// Per-brand sending identity, footer and welcome email.
+model NewsletterSettings {
+  id                   String   @id @default(cuid())
+  organizationId       String
+  brandId              String   @unique
+  brand                Brand    @relation(fields: [brandId], references: [id])
+  senderName           String?
+  replyTo              String?
+  postalAddress        String?
+  footerText           String?
+  isWelcomeEnabled     Boolean  @default(false)
+  welcomeSubject       String?
+  welcomeBody          String?
+  /// "Sent with Genfeed" footer link; only a paid plan may turn it off.
+  isAttributionEnabled Boolean  @default(true)
+  /// Monthly paid tier price in credits (#9717).
+  paidPriceCredits     Int?
+  isDeleted            Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([organizationId, isDeleted])
+  @@map("newsletter_settings")
+}
+
+/// One delivery of an issue to the brand's subscribers. `idempotencyKey`
+/// makes an issue send once; the rendered snapshot keeps later edits out.
+model NewsletterSend {
+  id             String                    @id @default(cuid())
+  organizationId String
+  brandId        String
+  brand          Brand                     @relation(fields: [brandId], references: [id])
+  newsletterId   String
+  newsletter     Newsletter                @relation(fields: [newsletterId], references: [id])
+  userId         String
+  idempotencyKey String                    @unique
+  /// `scheduled | sending | paused | canceled | completed | failed`.
+  status         String                    @default("scheduled")
+  scheduledFor   DateTime
+  startedAt      DateTime?
+  completedAt    DateTime?
+  canceledAt     DateTime?
+  lockedAt       DateTime?
+  subject        String
+  html           String
+  text           String
+  /// Preview variant for readers without full access to a gated issue.
+  previewHtml    String?
+  previewText    String?
+  /// Tracked destinations, addressed by index from the click redirect.
+  links          Json                      @default("[]")
+  recipientCount Int                       @default(0)
+  sentCount      Int                       @default(0)
+  failedCount    Int                       @default(0)
+  skippedCount   Int                       @default(0)
+  lastError      String?
+  isDeleted      Boolean                   @default(false)
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  recipients     NewsletterSendRecipient[]
+
+  @@index([status, scheduledFor])
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, newsletterId, isDeleted])
+  @@map("newsletter_sends")
+}
+
+/// One subscriber's copy of a send, with its provider receipts.
+model NewsletterSendRecipient {
+  id                String          @id @default(cuid())
+  organizationId    String
+  sendId            String
+  send              NewsletterSend  @relation(fields: [sendId], references: [id])
+  subscriberId      String
+  subscriber        BrandSubscriber @relation(fields: [subscriberId], references: [id])
+  recipientHash     String
+  /// `pending | sent | skipped | failed`.
+  status            String          @default("pending")
+  attemptCount      Int             @default(0)
+  nextAttemptAt     DateTime?
+  providerMessageId String?         @unique
+  lastError         String?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  openedAt          DateTime?
+  clickedAt         DateTime?
+  bouncedAt         DateTime?
+  complainedAt      DateTime?
+  unsubscribedAt    DateTime?
+  openCount         Int             @default(0)
+  clickCount        Int             @default(0)
+  isDeleted         Boolean         @default(false)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@unique([sendId, subscriberId])
+  @@index([sendId, status, nextAttemptAt])
+  @@index([organizationId, subscriberId, isDeleted])
+  @@map("newsletter_send_recipients")
+}
+
+/// First-party click on a tracked newsletter link.
+model NewsletterLinkClick {
+  id             String   @id @default(cuid())
+  organizationId String
+  sendId         String
+  recipientId    String
+  linkIndex      Int
+  occurredAt     DateTime @default(now())
+  isDeleted      Boolean  @default(false)
+
+  @@index([organizationId, sendId, isDeleted, linkIndex])
+  @@index([recipientId])
+  @@map("newsletter_link_clicks")
 }
 
 // ═══════════════════════════════════════════════════════════════

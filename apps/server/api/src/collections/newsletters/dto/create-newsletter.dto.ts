@@ -1,6 +1,10 @@
 import { NewsletterSourceRefDto } from '@api/collections/newsletters/dto/newsletter-source-ref.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
+  NEWSLETTER_ACCESS_LEVELS,
+  type NewsletterAccessLevel,
+} from '@genfeedai/contracts/constants';
+import {
   NEWSLETTER_STATUSES,
   type NewsletterStatus,
 } from '@genfeedai/contracts/interfaces';
@@ -10,9 +14,12 @@ import {
   IsArray,
   IsDateString,
   IsIn,
+  IsInt,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
   ValidateNested,
 } from 'class-validator';
 
@@ -86,4 +93,24 @@ export class CreateNewsletterDto {
   @IsDateString()
   @ApiProperty({ description: 'Scheduled publication time', required: false })
   scheduledFor?: Date;
+
+  @IsOptional()
+  @IsIn(NEWSLETTER_ACCESS_LEVELS)
+  @ApiProperty({
+    description:
+      'Who reads the full issue: everyone, subscribers, or paying readers (#9718).',
+    enum: NEWSLETTER_ACCESS_LEVELS,
+    required: false,
+  })
+  accessLevel?: NewsletterAccessLevel;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(1_000_000)
+  @ApiProperty({
+    description: 'One-time unlock price in credits for a paid issue.',
+    required: false,
+  })
+  unlockPriceCredits?: number;
 }

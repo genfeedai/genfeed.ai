@@ -56,6 +56,7 @@ export * from './model-keys.constant';
 export * from './model-provider-offers.constant';
 export * from './native-apps.constant';
 export * from './native-host.constant';
+export * from './newsletter-module.constant';
 export * from './oauth.constant';
 export * from './onboarding.constant';
 export * from './organization-context.constant';

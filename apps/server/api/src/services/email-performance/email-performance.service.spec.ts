@@ -97,6 +97,7 @@ function fixture() {
     ),
   };
   const logger = { warn: vi.fn() };
+  const newsletterEvents = { reconcile: vi.fn().mockResolvedValue(false) };
   const service = new EmailPerformanceService(
     prisma as never,
     notifications as never,
@@ -105,6 +106,7 @@ function fixture() {
     eligibility as never,
     config as never,
     logger as never,
+    newsletterEvents as never,
   );
   return {
     service,

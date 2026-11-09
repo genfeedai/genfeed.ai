@@ -32,6 +32,7 @@ describe('PlatformSchedulesProcessor', () => {
   const mediaPerception = { queueDuePerceptions: handler() };
   const modelDeprecation = { deprecateSupersededModels: handler() };
   const replicateModels = { discoverNewModels: handler() };
+  const newsletterSends = { processDueSends: handler() };
   const notificationRecovery = { recover: handler() };
   const brandRelocations = { recover: handler() };
   const mediaDeliveryRecovery = { recoverMedia: handler() };
@@ -160,6 +161,10 @@ describe('PlatformSchedulesProcessor', () => {
         modelDeprecation.deprecateSupersededModels,
       ],
       [
+        PLATFORM_SCHEDULED_TASKS.NEWSLETTER_SENDS,
+        newsletterSends.processDueSends,
+      ],
+      [
         PLATFORM_SCHEDULED_TASKS.NOTIFICATION_DELIVERY_RECOVERY,
         notificationRecovery.recover,
       ],
@@ -278,6 +283,7 @@ describe('PlatformSchedulesProcessor', () => {
         contextEmbeddings as never,
         mediaDeliveryRecovery as never,
         knowledgeConflicts as never,
+        newsletterSends as never,
       ),
       patterns as never,
       posts as never,

@@ -1,3 +1,4 @@
+import { NewsletterProviderEventsService } from '@api/collections/newsletter-sends/services/newsletter-provider-events.service';
 import { SERVER_TOKENS } from '@api/server.dependencies';
 import { ActivityRecordingModule } from '@api/services/activity-recording/activity-recording.module';
 import { AgentReportDeliveryModule } from '@api/services/agent-reports/agent-report-delivery.module';
@@ -53,6 +54,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     EmailPerformanceService,
+    NewsletterProviderEventsService,
     EmailPerformanceReportService,
     SystemEmailEligibilityService,
     NotificationInboxService,
