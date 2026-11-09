@@ -15,6 +15,7 @@ import {
 } from '@testing-library/react';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { Button } from '@ui/primitives/button';
+import { Component, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const environment = vi.hoisted(() => ({ isProduction: false }));
@@ -40,6 +41,25 @@ function PageThrower() {
   return <div>Recovered</div>;
 }
 
+class FrameworkBoundary extends Component<
+  { children: ReactNode },
+  { digest: string | null }
+> {
+  state = { digest: null as string | null };
+
+  static getDerivedStateFromError(error: { digest?: string }) {
+    return { digest: error.digest ?? 'none' };
+  }
+
+  render() {
+    return this.state.digest === null ? (
+      this.props.children
+    ) : (
+      <p>Framework handled {this.state.digest}</p>
+    );
+  }
+}
+
 describe('ErrorBoundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -54,6 +74,27 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     );
     expect(screen.getByText('Child Content')).toBeInTheDocument();
+  });
+
+  it.each([
+    'NEXT_HTTP_ERROR_FALLBACK;404',
+    'NEXT_REDIRECT;replace;/login;307;',
+  ])('hands the %s routing signal to the framework instead of showing an error', (digest) => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    pageError = Object.assign(new Error('routing signal'), { digest });
+
+    render(
+      <FrameworkBoundary>
+        <ErrorBoundary>
+          <PageThrower />
+        </ErrorBoundary>
+      </FrameworkBoundary>,
+    );
+
+    expect(screen.getByText(`Framework handled ${digest}`)).toBeInTheDocument();
+    expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
+    expect(deferredLogger.error).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 
   it('should catch errors and display fallback UI', () => {

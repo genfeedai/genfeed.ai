@@ -16,9 +16,24 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { setErrorDebugInfo } from '@genfeedai/services/core/error-debug-store';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import { Button } from '@ui/primitives/button';
+import { unstable_rethrow } from 'next/navigation';
 import { Component, type ErrorInfo } from 'react';
 
 const PAGE_MAX_RETRIES = 3;
+
+/**
+ * `notFound()` and `redirect()` work by throwing. They are routing signals for
+ * the framework's own boundaries further up the tree, not failures, so this
+ * boundary must hand them on instead of showing "Something went wrong".
+ */
+function isFrameworkSignal(error: unknown): boolean {
+  try {
+    unstable_rethrow(error);
+    return false;
+  } catch {
+    return true;
+  }
+}
 
 export class ErrorBoundary extends Component<
   ErrorBoundaryProps,
@@ -31,6 +46,7 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    if (isFrameworkSignal(error)) return;
     if (this.props.reportError) {
       this.props.reportError(error, errorInfo, this.getFailure(error));
     } else if (this.props.presentation === 'inline') {
@@ -166,6 +182,7 @@ export class ErrorBoundary extends Component<
   render() {
     if (!this.state.hasError) return this.props.children;
     const error = this.state.error ?? new Error('An unexpected error occurred');
+    if (isFrameworkSignal(error)) throw error;
     return (
       <div data-testid="error-boundary-fallback">
         {this.renderFallback(error)}
