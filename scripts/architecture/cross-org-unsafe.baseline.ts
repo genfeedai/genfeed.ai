@@ -359,11 +359,11 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
       file: 'apps/server/api/src/endpoints/admin/announcements/announcements.service.ts',
       line: 166,
     },
-    // #6120: runAsPlatformAdmin for the IP-whitelisted, superadmin-guarded
-    // warm-up provisioning in the target customer organization.
+    // #6120: runAsPlatformAdmin for the superadmin-guarded warm-up
+    // provisioning in the target customer organization.
     {
       file: 'apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.controller.ts',
-      line: 294,
+      line: 295,
     },
     // #6120: superadmin all-organizations analytics when no organization is
     // named.
