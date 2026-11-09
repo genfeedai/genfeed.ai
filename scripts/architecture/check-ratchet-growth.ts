@@ -119,6 +119,27 @@ export function authorityFieldEntryKeys(content: string): string[] {
   });
 }
 
+/**
+ * The dead-code baseline is JSON. Every unused file and dependency is one
+ * entry, and each unused export in a file is one entry, so a file whose count
+ * rises counts as growth.
+ */
+export function deadCodeEntryKeys(content: string): string[] {
+  const parsed = JSON.parse(content) as {
+    unusedDependencies?: string[];
+    unusedExports?: Record<string, number>;
+    unusedFiles?: string[];
+  };
+
+  return [
+    ...(parsed.unusedFiles ?? []).map((file) => `file|${file}`),
+    ...(parsed.unusedDependencies ?? []).map((entry) => `dependency|${entry}`),
+    ...Object.entries(parsed.unusedExports ?? {}).flatMap(([file, count]) =>
+      Array.from({ length: count }, () => `exports|${file}`),
+    ),
+  ];
+}
+
 export const RATCHET_SOURCES: readonly RatchetSource[] = [
   {
     entryKeys: crossOrgEntryKeys,
@@ -140,6 +161,13 @@ export const RATCHET_SOURCES: readonly RatchetSource[] = [
     instead:
       'add organizationId and isDeleted: false to the query instead of baselining it',
     name: 'tenant-scope findings',
+  },
+  {
+    entryKeys: deadCodeEntryKeys,
+    file: 'scripts/architecture/dead-code.baseline.json',
+    instead:
+      'delete the unused file, export or dependency instead of baselining it',
+    name: 'dead code (knip)',
   },
 ];
 

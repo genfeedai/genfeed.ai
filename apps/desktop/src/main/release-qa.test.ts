@@ -95,16 +95,23 @@ describe('desktop release QA', () => {
     expect(hostedConfig.experimental?.inlineCss).toBe(true);
   });
 
-  it('drops build-time file-trace lists from the packaged app shell', () => {
+  it('prunes build-time traces and traced sources after copying the standalone output', () => {
     const copyShell = readText('apps/desktop/scripts/copy-app-shell.cjs');
-
-    // Every route ships a `page.js.nft.json` that only the build tracer reads;
-    // keeping them pushed the shell past its bundle budget.
-    expect(copyShell).toContain("entry.name.endsWith('.nft.json')");
-    expect(copyShell).toContain('pruneBuildTraceFiles(');
-    expect(copyShell.indexOf('pruneBuildTraceFiles(\n')).toBeGreaterThan(
-      copyShell.indexOf('copyDirectory(standaloneRoot, outputRoot)'),
+    const copyIndex = copyShell.indexOf(
+      'copyDirectory(standaloneRoot, outputRoot)',
     );
+
+    // Every route ships a `page.js.nft.json` that only the build tracer reads
+    // and a copy of the app's TypeScript source tree; keeping them pushed the
+    // shell past its bundle budget. The pruning itself is tested in
+    // prune-app-shell.test.ts.
+    for (const pruneCall of [
+      'pruneBuildTraceFiles(\n',
+      'pruneTracedSourceFiles(\n',
+      'pruneUnusedNextRuntimeFiles(',
+    ]) {
+      expect(copyShell.indexOf(pruneCall)).toBeGreaterThan(copyIndex);
+    }
   });
 
   it('packages the canonical app instead of a desktop-local renderer', () => {

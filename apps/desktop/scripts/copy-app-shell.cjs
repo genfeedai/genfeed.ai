@@ -2,6 +2,11 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const {
+  pruneBuildTraceFiles,
+  pruneTracedSourceFiles,
+  pruneUnusedNextRuntimeFiles,
+} = require('./prune-app-shell.cjs');
 
 const desktopRoot = path.resolve(__dirname, '..');
 // Electron embeds the canonical product app; no desktop-local Next app remains.
@@ -131,23 +136,6 @@ function pruneDisabledImageOptimizer(root) {
   fs.rmSync(sharpPackagesRoot, { force: true, recursive: true });
 }
 
-function pruneBuildTraceFiles(directory) {
-  let prunedBytes = 0;
-
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    const absolutePath = path.join(directory, entry.name);
-
-    if (entry.isDirectory()) {
-      prunedBytes += pruneBuildTraceFiles(absolutePath);
-    } else if (entry.isFile() && entry.name.endsWith('.nft.json')) {
-      prunedBytes += fs.statSync(absolutePath).size;
-      fs.rmSync(absolutePath, { force: true });
-    }
-  }
-
-  return prunedBytes;
-}
-
 function findServerDirectory(root) {
   const queue = [root];
 
@@ -184,6 +172,7 @@ compactStandaloneDependencies(outputRoot);
 // while the tree is compacted, so materialize Next's exact runtime dependency.
 copyNextRuntimeDependency(outputRoot, '@swc/helpers');
 pruneDisabledImageOptimizer(outputRoot);
+pruneUnusedNextRuntimeFiles(path.join(outputRoot, 'node_modules'));
 
 const serverDirectory = findServerDirectory(standaloneRoot);
 
@@ -201,6 +190,13 @@ const prunedTraceBytes = pruneBuildTraceFiles(
 );
 process.stdout.write(
   `[desktop] pruned ${(prunedTraceBytes / (1024 * 1024)).toFixed(1)} MiB of build trace files\n`,
+);
+
+const prunedSourceBytes = pruneTracedSourceFiles(
+  path.join(outputRoot, relativeServerDirectory),
+);
+process.stdout.write(
+  `[desktop] pruned ${(prunedSourceBytes / (1024 * 1024)).toFixed(1)} MiB of traced source files\n`,
 );
 
 if (fs.existsSync(staticRoot)) {
