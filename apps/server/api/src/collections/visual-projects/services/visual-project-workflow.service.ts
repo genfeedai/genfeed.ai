@@ -27,7 +27,10 @@ import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-w
 import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
 import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { VisualCodeStatus } from '@genfeedai/contracts';
+import {
+  VISUAL_CODE_TERMINAL_STATUSES,
+  VisualCodeStatus,
+} from '@genfeedai/contracts';
 import type {
   IVisualCodeReceipt,
   IVisualSandboxInput,
@@ -49,11 +52,8 @@ import { z } from 'zod';
 
 const SNAKE_CASE_WORD_PATTERN = /^[a-z_]+$/;
 
-const terminal = [
-  VisualCodeStatus.COMPLETED,
-  VisualCodeStatus.FAILED,
-  VisualCodeStatus.CANCELLED,
-] as string[];
+/** Revision statuses that end a visual run; no further write is applied. */
+const terminal: string[] = [...VISUAL_CODE_TERMINAL_STATUSES];
 const receiptSchema = z.object({
   id: z.string(),
   kind: z.enum([

@@ -17,7 +17,10 @@ import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-w
 import { runSerializableWithRetry } from '@api/collections/workflows/utils/serializable-retry.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { VISUAL_CODE_ACTION_ALIASES } from '@genfeedai/actions';
-import { VisualCodeStatus } from '@genfeedai/contracts';
+import {
+  VISUAL_CODE_TERMINAL_STATUSES,
+  VisualCodeStatus,
+} from '@genfeedai/contracts';
 import { VISUAL_CODE_RENDERER_VERSION } from '@genfeedai/contracts/constants';
 import type { IVisualCodeReceipt } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
@@ -35,11 +38,7 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 
-const terminal = [
-  VisualCodeStatus.COMPLETED,
-  VisualCodeStatus.FAILED,
-  VisualCodeStatus.CANCELLED,
-] as string[];
+const terminal: string[] = [...VISUAL_CODE_TERMINAL_STATUSES];
 @Traced()
 @Injectable()
 export class VisualProjectsService implements OnModuleInit {

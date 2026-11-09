@@ -5,7 +5,10 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { VisualCodeStatus } from '@genfeedai/contracts';
+import {
+  VISUAL_CODE_TERMINAL_STATUSES,
+  VisualCodeStatus,
+} from '@genfeedai/contracts';
 import { VISUAL_CODE_LIMITS } from '@genfeedai/contracts/constants';
 import type { IVisualCodeReceipt } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
@@ -13,11 +16,7 @@ import { toPrismaJson, type VisualRevision } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
-const terminal = [
-  VisualCodeStatus.COMPLETED,
-  VisualCodeStatus.FAILED,
-  VisualCodeStatus.CANCELLED,
-] as string[];
+const terminal: string[] = [...VISUAL_CODE_TERMINAL_STATUSES];
 @Traced()
 @Injectable()
 export class VisualProjectDispatchService {

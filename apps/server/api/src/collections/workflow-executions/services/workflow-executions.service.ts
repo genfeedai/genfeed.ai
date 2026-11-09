@@ -56,7 +56,10 @@ import {
 } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { formatAgentError } from '@genfeedai/agent/server';
-import { WorkflowExecutionStatus as SharedWorkflowExecutionStatus } from '@genfeedai/contracts';
+import {
+  WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
+  WORKFLOW_EXECUTION_STATE_MACHINE,
+} from '@genfeedai/contracts';
 import type {
   PopulateOption,
   WorkflowCostEstimate,
@@ -291,7 +294,8 @@ export class WorkflowExecutionsService extends BaseService<
    * first so the timeout sweep sees the longest-waiting gates first. The
    * RUNNING set is dominated by paused reviews (active runs are short-lived),
    * so a bounded scan + in-memory metadata parse is both correct and cheap and
-   * avoids brittle nested-JSON path operators.
+   * avoids brittle nested-JSON path operators. Awaiting review is a sub-state
+   * of RUNNING (`WORKFLOW_EXECUTION_SUB_STATE_PARENT` in contracts).
    */
   @HandleErrors('list pending review-gate executions', 'workflow-executions')
   async findPendingReviewGateExecutions(
@@ -439,7 +443,9 @@ export class WorkflowExecutionsService extends BaseService<
     executionId: string,
     organizationId: string,
   ): Promise<WorkflowExecutionDocument | null> {
-    const result = await this.prisma.workflowExecution.update({
+    // Compare-and-set: a fresh, resumed or retried run starts; an execution
+    // that completed or was cancelled meanwhile stays settled.
+    const transition = await this.prisma.workflowExecution.updateMany({
       data: {
         completedAt: null,
         durationMs: null,
@@ -450,9 +456,20 @@ export class WorkflowExecutionsService extends BaseService<
         startedAt: new Date(),
         status: PrismaWorkflowExecutionStatus.RUNNING,
       },
+      where: scopedWhere(organizationId, {
+        id: executionId,
+        status: {
+          in: WORKFLOW_EXECUTION_STATE_MACHINE.sourcesOf(
+            SharedWorkflowExecutionStatus.RUNNING,
+          ),
+        },
+      }),
+    });
+    if (transition.count !== 1) return null;
+
+    const result = await this.prisma.workflowExecution.findFirst({
       where: scopedWhere(organizationId, { id: executionId }),
     });
-
     return this.normalizeDocument(result);
   }
 
