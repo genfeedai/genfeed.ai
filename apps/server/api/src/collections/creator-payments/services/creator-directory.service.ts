@@ -155,17 +155,33 @@ export class CreatorDirectoryService {
     if (reader.organizationId === creator.organizationId) {
       return true;
     }
-    const membership = await runWithTenantContext(
-      { organizationId: creator.organizationId },
-      async () =>
-        await this.prisma.member.findFirst({
-          select: { id: true },
-          where: scopedWhere(creator.organizationId, {
-            userId: reader.userId,
+    return await this.isInOrganization(creator.organizationId, reader.userId);
+  }
+
+  /**
+   * Whether the user still belongs to the organization: its owner, or a live
+   * member. A deactivated member keeps their row but has lost access, so they
+   * count as outside.
+   */
+  async isInOrganization(
+    organizationId: string,
+    userId: string,
+  ): Promise<boolean> {
+    const [owned, membership] = await Promise.all([
+      this.prisma.organization.findFirst({
+        select: { id: true },
+        where: { id: organizationId, isDeleted: false, userId },
+      }),
+      runWithTenantContext(
+        { organizationId },
+        async () =>
+          await this.prisma.member.findFirst({
+            select: { id: true },
+            where: scopedWhere(organizationId, { isActive: true, userId }),
           }),
-        }),
-    );
-    return Boolean(membership);
+      ),
+    ]);
+    return Boolean(owned || membership);
   }
 
   /** How the reader is named on the creator's side of the ledger. */

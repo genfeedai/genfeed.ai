@@ -213,6 +213,7 @@ export class CreditTransfersService {
           await tx.member.findFirst({
             select: { id: true },
             where: scopedWhere(payeeOrganizationId, {
+              isActive: true,
               userId: input.payerUserId,
             }),
           }),

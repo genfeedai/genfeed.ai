@@ -6,13 +6,14 @@ import {
 } from '@api/collections/creator-payments/dto/creator-subscription.dto';
 import { CreatorSubscriptionsService } from '@api/collections/creator-payments/services/creator-subscriptions.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import type {
   ICreatorSubscriptionOffer,
   ICreatorSubscriptionPlan,
@@ -40,6 +41,7 @@ export class CreatorSubscriptionsController {
 
   /** The organization's public brands with their monthly price and subscribers. */
   @Get('plans')
+  @RequiredScopes(ApiKeyScope.CREDITS_READ)
   async listPlans(
     @CurrentUser() user: User,
     @Query() query: BrandScopeQueryDto,
@@ -50,6 +52,7 @@ export class CreatorSubscriptionsController {
 
   /** Set a public brand's monthly price; owners and admins only. */
   @Put('plans/:brandId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async updatePlan(
     @Param('brandId') brandId: string,
@@ -66,6 +69,7 @@ export class CreatorSubscriptionsController {
 
   /** The signed-in reader's paid subscriptions. */
   @Get('mine')
+  @RequiredScopes(ApiKeyScope.CREDITS_READ)
   async listMine(
     @CurrentUser() user: User,
   ): Promise<ICreatorSubscriptionSummary[]> {
@@ -91,6 +95,8 @@ export class CreatorSubscriptionsController {
 
   /** Subscribe and pay the first month from the reader's organization. */
   @Post()
+  // Spends the organization's credits: a person's session, or an admin key.
+  @RequiredScopes(ApiKeyScope.ADMIN)
   @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
   async subscribe(
     @Body() body: SubscribeToCreatorDto,
@@ -105,6 +111,7 @@ export class CreatorSubscriptionsController {
 
   /** Cancel at period end, or keep the subscription after all. */
   @Patch(':subscriptionId')
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async setCancelAtPeriodEnd(
     @Param('subscriptionId') subscriptionId: string,
     @Body() body: SetCreatorSubscriptionCancelDto,

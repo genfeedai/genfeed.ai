@@ -530,6 +530,16 @@ export class CreatorSubscriptionsService {
     if (subscription.cancelAtPeriodEnd) {
       return await this.end(subscription, now);
     }
+    // A reader who left or was removed from the paying workspace stops
+    // charging it; the workspace never pays for a former member.
+    if (
+      !(await this.creatorDirectoryService.isInOrganization(
+        subscription.payerOrganizationId,
+        subscription.payerUserId,
+      ))
+    ) {
+      return await this.end(subscription, now);
+    }
 
     let transferId: string;
     try {

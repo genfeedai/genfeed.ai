@@ -421,6 +421,28 @@ describe.skipIf(!connectionString)(
       expect(await wallet(reader)).toEqual({ balance: 120, earnedBalance: 0 });
     });
 
+    it('ends without charging once the reader no longer belongs to the paying workspace', async () => {
+      await offerPlan(40);
+      await asReader(() =>
+        subscriptions.subscribe(
+          readerContext(),
+          { handle, idempotencyKey: 'sub-left' },
+          new Date('2026-11-09T10:00:00.000Z'),
+        ),
+      );
+      // The reader hands the workspace over and keeps no membership in it.
+      await database().organization.update({
+        data: { userId: creator.userId },
+        where: { id: reader.organizationId },
+      });
+
+      expect(await renewAt(new Date('2026-12-09T10:05:00.000Z'))).toMatchObject(
+        { charged: 0, ended: 1 },
+      );
+      expect(await hasAccess()).toBe(false);
+      expect(await wallet(reader)).toEqual({ balance: 160, earnedBalance: 0 });
+    });
+
     it('marks a reader who cannot pay as past due, then ends it after the grace period', async () => {
       await offerPlan(150);
       const start = new Date('2026-11-09T10:00:00.000Z');
