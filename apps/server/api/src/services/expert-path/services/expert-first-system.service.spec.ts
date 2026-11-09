@@ -193,6 +193,7 @@ describe('ExpertFirstSystemService', () => {
           isConnected: true,
           isDeleted: false,
           organizationId: 'org-1',
+          platform: { not: 'GENFEED' },
         },
       });
     });

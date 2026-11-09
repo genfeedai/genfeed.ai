@@ -1,10 +1,11 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { buildGenfeedProfileReadiness } from '@api/collections/credentials/utils/genfeed-profile-readiness.util';
 import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
 import { scopedWhere } from '@api/index';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
-  type CredentialPlatform,
+  CredentialPlatform,
   fromPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
@@ -53,6 +54,8 @@ const READINESS_CREDENTIAL_SELECT = {
   accessToken: true,
   accessTokenExpiry: true,
   accessTokenSecret: true,
+  // The Genfeed profile channel is ready only while its brand is public.
+  brand: { select: { isDeleted: true, scope: true } },
   grantedScopes: true,
   grantedScopesCapturedAt: true,
   id: true,
@@ -68,6 +71,7 @@ type ReadinessCredentialRow = {
   accessToken: string | null;
   accessTokenExpiry: Date | null;
   accessTokenSecret: string | null;
+  brand?: { isDeleted: boolean; scope: string } | null;
   grantedScopes: string[];
   grantedScopesCapturedAt: Date | null;
   id: string;
@@ -141,6 +145,23 @@ export class CredentialPublishingReadinessService {
     const platform = requireDomainCredentialPlatform(params.platform);
     const credentialId = String(credential.id);
     const checkedAt = new Date().toISOString();
+
+    if (platform === CredentialPlatform.GENFEED) {
+      const brand = credential.brandId
+        ? await this.prisma.brand.findFirst({
+            select: { isDeleted: true, scope: true },
+            where: scopedWhere(params.organizationId, {
+              id: String(credential.brandId),
+            }),
+          })
+        : null;
+      return buildGenfeedProfileReadiness({
+        brand,
+        checkedAt,
+        credentialId,
+        isConnected: credential.isConnected === true,
+      });
+    }
 
     const setupSignals =
       this.publishingProviderSetupService.resolveProviderSignals(
@@ -262,6 +283,17 @@ export class CredentialPublishingReadinessService {
     const entries: [string, IPublishingProviderReadiness][] = rows.map(
       (row) => {
         const platform = requireDomainCredentialPlatform(row.platform);
+        if (platform === CredentialPlatform.GENFEED) {
+          return [
+            row.id,
+            buildGenfeedProfileReadiness({
+              brand: row.brand,
+              checkedAt,
+              credentialId: row.id,
+              isConnected: row.isConnected,
+            }),
+          ];
+        }
         const signals = resolveSignals(platform);
 
         const permissionSignals = this.resolvePermissionSignals(

@@ -73,6 +73,7 @@ export class Post extends BaseEntity implements IPost {
   declare public isShareToFeedSelected?: boolean;
   declare public seoScore?: number | null;
   declare public seoBreakdown?: SeoScorecardSnapshot | null;
+  declare public crossPosts?: IPost['crossPosts'];
 
   constructor(data: Partial<IPost> = {}) {
     super(data);

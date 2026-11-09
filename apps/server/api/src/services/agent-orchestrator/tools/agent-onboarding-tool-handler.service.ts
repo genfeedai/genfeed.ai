@@ -1,4 +1,5 @@
 import { AGENT_CREATED_BRAND_VISUAL_DEFAULTS } from '@api/collections/brands/constants/agent-created-brand.constant';
+import { NETWORK_ACCOUNT_WHERE } from '@api/collections/brands/utils/genfeed-profile-channel.util';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
@@ -290,6 +291,7 @@ export class AgentOnboardingToolHandler {
         }),
         this.credentialsService
           ? this.credentialsService.findOne({
+              ...NETWORK_ACCOUNT_WHERE,
               isConnected: true,
               organizationId,
             })

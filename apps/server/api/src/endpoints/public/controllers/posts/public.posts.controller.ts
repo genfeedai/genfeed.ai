@@ -1,5 +1,11 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { orderedPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import {
+  type CrossPostCandidate,
+  findCrossPostIds,
+  listCrossPosts,
+} from '@api/endpoints/public/utils/public-cross-posts.util';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -14,8 +20,10 @@ import {
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   AssetScope,
+  CredentialPlatform,
   IngredientCategory,
   IngredientStatus,
+  isPlatform,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -37,6 +45,48 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
+
+/** A public post renders with its media in order and links to its creator. */
+const PUBLIC_POST_INCLUDE = {
+  brand: { select: { id: true, label: true, slug: true } },
+  ingredientLinks: orderedPostIngredientLinks({
+    select: {
+      category: true,
+      height: true,
+      id: true,
+      isDeleted: true,
+      s3Key: true,
+      status: true,
+      width: true,
+    },
+  }),
+};
+
+/** Native posts compared when pairing a profile's cross-posts. */
+const CROSS_POST_NATIVE_LIMIT = 200;
+/** Network posts compared against them. */
+const CROSS_POST_NETWORK_LIMIT = 1000;
+
+const CROSS_POST_SELECT = {
+  createdAt: true,
+  description: true,
+  id: true,
+  platform: true,
+  publishedAt: true,
+  url: true,
+} as const;
+
+function publicPublishedWhere(brandId: string): PrismaWhereQuery {
+  return {
+    AND: [
+      postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+      postVisibilityReadFilter(PostVisibility.PUBLIC),
+    ],
+    brandId,
+    isDeleted: false,
+    parentId: null,
+  };
+}
 
 @AutoSwagger()
 @Public()
@@ -62,6 +112,7 @@ export class PublicPostsController {
     @Query('tag') tag?: string,
     @Query('brand') brand?: string,
     @Query('ingredient') ingredient?: string,
+    @Query('platform') platform?: string,
   ): Promise<JsonApiCollectionResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(url, { query });
@@ -88,9 +139,19 @@ export class PublicPostsController {
       ];
     }
 
-    // Filter by brand if provided
+    // Filter by brand if provided. A creator's profile lists each post once:
+    // a network copy of a post that also went to the Genfeed profile is
+    // shown through the native post.
     if (brand && isEntityId(brand)) {
       matchQuery.brandId = brand;
+      const crossPostIds = await this.findBrandCrossPostIds(brand);
+      if (crossPostIds.length > 0) {
+        matchQuery.id = { notIn: crossPostIds };
+      }
+    }
+
+    if (platform && isPlatform(platform)) {
+      matchQuery.platform = platform;
     }
 
     // Filter by related tag label.
@@ -100,7 +161,11 @@ export class PublicPostsController {
       };
     }
 
-    const aggregate = { where: matchQuery, orderBy: { createdAt: -1 } };
+    const aggregate = {
+      include: PUBLIC_POST_INCLUDE,
+      orderBy: { createdAt: -1 },
+      where: matchQuery,
+    };
 
     const data = await this.postsService.findAll(aggregate, options);
     return serializeCollection(request, PublicPostSerializer, data);
@@ -205,13 +270,73 @@ export class PublicPostsController {
         // answers 404 under the wrong handle.
         ...(brand && isEntityId(brand) ? { brandId: brand.trim() } : {}),
       },
-      [],
+      ['ingredients', 'brand'],
     );
 
     if (!post) {
       return returnNotFound(this.constructorName, postId);
     }
 
-    return serializeSingle(request, PublicPostSerializer, post);
+    const crossPosts =
+      post.platform === CredentialPlatform.GENFEED
+        ? await this.findCrossPosts(post)
+        : [];
+
+    return serializeSingle(request, PublicPostSerializer, {
+      ...post,
+      crossPosts,
+    });
+  }
+
+  /** Public network posts of a brand that copy one of its native posts. */
+  private async findBrandCrossPostIds(brandId: string): Promise<string[]> {
+    const natives: CrossPostCandidate[] =
+      // tenant-scope-ignore: public profile read; publicPublishedWhere pins one public brand and isDeleted: false.
+      await this.postsService.prisma.post.findMany({
+        orderBy: { createdAt: 'desc' },
+        select: CROSS_POST_SELECT,
+        take: CROSS_POST_NATIVE_LIMIT,
+        where: {
+          ...publicPublishedWhere(brandId),
+          platform: CredentialPlatform.GENFEED,
+        },
+      });
+    if (natives.length === 0) {
+      return [];
+    }
+    const networkPosts: CrossPostCandidate[] =
+      // tenant-scope-ignore: public profile read; publicPublishedWhere pins one public brand and isDeleted: false.
+      await this.postsService.prisma.post.findMany({
+        orderBy: { createdAt: 'desc' },
+        select: CROSS_POST_SELECT,
+        take: CROSS_POST_NETWORK_LIMIT,
+        where: {
+          ...publicPublishedWhere(brandId),
+          platform: { not: CredentialPlatform.GENFEED },
+        },
+      });
+    return findCrossPostIds(natives, networkPosts);
+  }
+
+  /** Where a native post also went live. */
+  private async findCrossPosts(
+    post: CrossPostCandidate & { brandId?: string },
+  ) {
+    if (!post.brandId) {
+      return [];
+    }
+    const networkPosts: CrossPostCandidate[] =
+      // tenant-scope-ignore: public profile read; publicPublishedWhere pins one public brand and isDeleted: false.
+      await this.postsService.prisma.post.findMany({
+        orderBy: { createdAt: 'desc' },
+        select: CROSS_POST_SELECT,
+        take: CROSS_POST_NETWORK_LIMIT,
+        where: {
+          ...publicPublishedWhere(post.brandId),
+          platform: { not: CredentialPlatform.GENFEED },
+          url: { not: null },
+        },
+      });
+    return listCrossPosts(post, networkPosts);
   }
 }

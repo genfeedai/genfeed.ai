@@ -50,6 +50,7 @@ import { normalizeBrandIdentityDefaults } from '@api/collections/brands/utils/br
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
 import { toBrandSlugBase } from '@api/collections/brands/utils/brand-slug.util';
 import { resolveCreateAgentConfig } from '@api/collections/brands/utils/expert-brand-defaults.util';
+import { createGenfeedProfileChannel } from '@api/collections/brands/utils/genfeed-profile-channel.util';
 import { withPersistedFontFamily } from '@api/collections/brands/utils/persisted-font-family';
 import {
   isSlugUniqueConstraintError,
@@ -247,6 +248,7 @@ export class BrandsService extends BaseService<
           );
     }
 
+    await createGenfeedProfileChannel(this.prisma, this.logger, brand);
     // Invalidate brand list cache so the new brand is immediately visible
     if (resolvedOrganizationId) {
       await this.cacheInvalidationService.invalidate(

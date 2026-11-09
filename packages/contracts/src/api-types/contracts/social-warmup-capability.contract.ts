@@ -565,6 +565,10 @@ export const SOCIAL_WARMUP_CAPABILITY_MATRIX = {
     CredentialPlatform.HACKER_NEWS,
     'Hacker News destination. No Genfeed credential warm-up path.',
   ),
+  [CredentialPlatform.GENFEED]: outOfSocialWarmupCatalog(
+    CredentialPlatform.GENFEED,
+    'The creator profile at genfeed.ai/@handle, a built-in destination.',
+  ),
 } as const satisfies Record<CredentialPlatform, SocialWarmupCapability>;
 
 export const SOCIAL_WARMUP_NAMED_CANDIDATE_PLATFORMS = [

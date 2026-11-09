@@ -65,7 +65,11 @@ describe('PublicPostsController', () => {
     query: {},
   } as Request;
 
+  const postFindMany = vi.fn();
+
   beforeEach(async () => {
+    postFindMany.mockReset();
+    postFindMany.mockResolvedValue([]);
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PublicPostsController],
       providers: [
@@ -74,6 +78,7 @@ describe('PublicPostsController', () => {
           useValue: {
             findAll: vi.fn(),
             findOne: vi.fn(),
+            prisma: { post: { findMany: postFindMany } },
           },
         },
         {
@@ -127,6 +132,44 @@ describe('PublicPostsController', () => {
 
       expect(postsService.findAll).toHaveBeenCalled();
       expect(result).toEqual({ data: mockPosts.docs });
+    });
+
+    it('lists a network copy of a Genfeed profile post only once', async () => {
+      const query = createBaseQuery();
+      const brandId = testId('brand');
+      postsService.findAll.mockResolvedValue({
+        docs: [],
+      } as unknown as AggregatePaginateResult<PostDocument>);
+      postFindMany
+        .mockResolvedValueOnce([
+          {
+            description: 'Shipped the new studio today',
+            id: 'native',
+            platform: 'genfeed',
+            publishedAt: new Date('2026-11-08T10:00:00.000Z'),
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            description: 'Shipped the new studio today',
+            id: 'x-copy',
+            platform: 'twitter',
+            publishedAt: new Date('2026-11-08T10:01:00.000Z'),
+          },
+          {
+            description: 'Something else',
+            id: 'x-other',
+            platform: 'twitter',
+            publishedAt: new Date('2026-11-08T10:01:00.000Z'),
+          },
+        ]);
+
+      await controller.findPublicPosts(mockRequest, query, undefined, brandId);
+
+      const callArgs = postsService.findAll.mock.calls[0][0] as {
+        where: Record<string, unknown>;
+      };
+      expect(callArgs.where.id).toEqual({ notIn: ['x-copy'] });
     });
 
     it('should filter by account when provided', async () => {
@@ -285,6 +328,39 @@ describe('PublicPostsController', () => {
   });
 
   describe('getPostMetadata', () => {
+    it('links a Genfeed profile post to its copies on the networks', async () => {
+      const postId = testId('post');
+      const brandId = testId('brand');
+      postsService.findOne.mockResolvedValue({
+        brandId,
+        createdAt: new Date('2026-11-08T10:00:00.000Z'),
+        description: 'Shipped the new studio today',
+        id: postId,
+        platform: 'genfeed',
+        publishedAt: new Date('2026-11-08T10:00:00.000Z'),
+      } as never);
+      postFindMany.mockResolvedValue([
+        {
+          createdAt: new Date('2026-11-08T10:01:00.000Z'),
+          description: 'Shipped the new studio today',
+          id: 'x-copy',
+          platform: 'twitter',
+          publishedAt: new Date('2026-11-08T10:01:00.000Z'),
+          url: 'https://x.com/acme/status/1',
+        },
+      ]);
+
+      const result = await controller.getPostMetadata(
+        mockRequest,
+        postId,
+        brandId,
+      );
+
+      expect(result.data).toHaveProperty('crossPosts', [
+        { platform: 'twitter', url: 'https://x.com/acme/status/1' },
+      ]);
+    });
+
     it('should return post metadata for valid id', async () => {
       const postId = testId('post');
 
@@ -306,10 +382,11 @@ describe('PublicPostsController', () => {
           brand: { is: { isDeleted: false, scope: 'PUBLIC' } },
           id: postId,
         },
-        [],
+        ['ingredients', 'brand'],
       );
       expect(result).toEqual({
         data: {
+          crossPosts: [],
           id: postId,
           targetExecutionState: TargetExecutionState.PUBLISHED,
           title: 'Test Post',
@@ -327,7 +404,7 @@ describe('PublicPostsController', () => {
 
       expect(postsService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({ brandId, id: postId }),
-        [],
+        ['ingredients', 'brand'],
       );
     });
 
@@ -392,7 +469,7 @@ describe('PublicPostsController', () => {
           brand: { is: { isDeleted: false, scope: 'PUBLIC' } },
           id: postId,
         },
-        [],
+        ['ingredients', 'brand'],
       );
       expect(returnNotFound).toHaveBeenCalledWith(
         'PublicPostsController',

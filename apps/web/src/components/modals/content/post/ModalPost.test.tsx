@@ -59,8 +59,12 @@ vi.mock('@ui/display/video-player/VideoPlayer', () => ({
 vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/main${path}` }),
 }));
+const brandContext = vi.hoisted(() => ({
+  brandId: 'brand-workspace',
+  selectedBrand: undefined as { scope: string } | undefined,
+}));
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ brandId: 'brand-workspace' }),
+  useBrand: () => brandContext,
 }));
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -333,6 +337,32 @@ describe('ModalPost', () => {
         screen.getByRole('radio', { name: 'Newsletter' }),
       ).toBeInTheDocument();
       expect(screen.queryByText('Channel')).not.toBeInTheDocument();
+    });
+
+    it('starts a public brand on its Genfeed profile', () => {
+      brandContext.selectedBrand = { scope: 'PUBLIC' };
+      const profile = {
+        id: 'cred-gf',
+        isConnected: true,
+        label: 'Genfeed profile',
+        platform: 'genfeed',
+      } as unknown as ICredential;
+      render(
+        <ModalPost
+          isComposer
+          credentials={[xAccount, profile]}
+          modalId={ModalEnum.POST_COMPOSE}
+        />,
+      );
+      brandContext.selectedBrand = undefined;
+
+      expect(
+        screen.getByRole('button', { name: 'Genfeed profile' }),
+      ).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: 'Acme on X' })).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      );
     });
 
     it('does not offer Restream as a post target', () => {

@@ -7,6 +7,7 @@ import { BeehiivPublisherService } from '@api/services/integrations/publishers/b
 import { DevtoPublisherService } from '@api/services/integrations/publishers/devto-publisher.service';
 import { FacebookPublisherService } from '@api/services/integrations/publishers/facebook-publisher.service';
 import { FanvuePublisherService } from '@api/services/integrations/publishers/fanvue-publisher.service';
+import { GenfeedPublisherService } from '@api/services/integrations/publishers/genfeed-publisher.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
 import { InstagramPublisherService } from '@api/services/integrations/publishers/instagram-publisher.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
@@ -125,6 +126,10 @@ describe('PublisherFactoryService', () => {
         {
           provide: DevtoPublisherService,
           useValue: mockPublisher(CredentialPlatform.DEV_TO),
+        },
+        {
+          provide: GenfeedPublisherService,
+          useValue: mockPublisher(CredentialPlatform.GENFEED),
         },
         {
           provide: GhostPublisherService,
@@ -408,6 +413,7 @@ describe('PublisherFactoryService', () => {
       CredentialPlatform.SNAPCHAT,
       CredentialPlatform.WHATSAPP,
       CredentialPlatform.MASTODON,
+      CredentialPlatform.GENFEED,
       CredentialPlatform.GHOST,
       CredentialPlatform.SHOPIFY,
       CredentialPlatform.BEEHIIV,
@@ -434,8 +440,8 @@ describe('PublisherFactoryService', () => {
       expect(Array.isArray(service.getSupportedPlatforms())).toBe(true);
     });
 
-    it('should include all 19 registered platforms', () => {
-      expect(service.getSupportedPlatforms()).toHaveLength(19);
+    it('should include all 20 registered platforms', () => {
+      expect(service.getSupportedPlatforms()).toHaveLength(20);
     });
 
     it('should include TWITTER', () => {

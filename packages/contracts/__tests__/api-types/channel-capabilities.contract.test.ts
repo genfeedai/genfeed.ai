@@ -40,6 +40,7 @@ describe('channel capability catalog', () => {
       CredentialPlatform.WORDPRESS,
       CredentialPlatform.MEDIUM,
       CredentialPlatform.DEV_TO,
+      CredentialPlatform.GENFEED,
     ]);
   });
 
