@@ -421,12 +421,15 @@ describe('BrandKitAssetsService.fillPlatformSlotsFromMaster', () => {
     asset.findFirst.mockResolvedValue({
       cloudObjectKey: 'banners/master',
       id: 'master',
-      mimeType: 'image/svg+xml',
+      // Stored as GIF, but the resize returns PNG bytes.
+      mimeType: 'image/gif',
     });
     asset.create
       .mockResolvedValueOnce({ id: 'x-header' })
       .mockResolvedValueOnce({ id: 'youtube' });
-    files.resizeImageFromUrl.mockResolvedValue(Buffer.from('png'));
+    files.resizeImageFromUrl.mockResolvedValue(
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    );
     service = new BrandKitAssetsService(
       { asset } as unknown as PrismaService,
       {
@@ -438,7 +441,7 @@ describe('BrandKitAssetsService.fillPlatformSlotsFromMaster', () => {
     );
   });
 
-  it('stores each filled slot as PNG when the master is SVG, and reports a failed slot', async () => {
+  it('records the resized bytes as PNG whatever the master is labeled, and reports a failed slot', async () => {
     files.uploadToS3
       .mockResolvedValueOnce({})
       .mockRejectedValueOnce(new Error('s3 down'));

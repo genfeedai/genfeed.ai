@@ -8,6 +8,7 @@ import {
 } from '@api/collections/brands/constants/brand-kit-assets.constant';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { resolveBrandLogoCdnUrls } from '@api/collections/brands/utils/brand-logo-urls.util';
+import { detectRasterImageMimeType } from '@api/collections/brands/utils/raster-image-mime.util';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
@@ -405,11 +406,6 @@ export class BrandKitAssetsService {
     const masterUrl = this.signForFetch(
       this.buildBrandAssetCdnUrl(master.id, 'banner', master.cloudObjectKey),
     );
-    // The resize keeps raster formats as they are and rasterizes SVG to PNG.
-    const filledMimeType =
-      master.mimeType && master.mimeType !== 'image/svg+xml'
-        ? master.mimeType
-        : 'image/png';
     const results: IBrandKitPlatformFillResult[] = [];
     for (const slot of new Set(slots)) {
       const spec = getBrandKitPlatformSlotSpec(slot);
@@ -423,6 +419,9 @@ export class BrandKitAssetsService {
           masterUrl,
           { height: spec.height, width: spec.width },
         );
+        // The type follows the resized bytes, not the master's stored label.
+        const filledMimeType =
+          detectRasterImageMimeType(resized) ?? 'image/png';
         // Created as pending so no read picks it before its image is stored.
         const asset = await this.prisma.asset.create({
           data: {
