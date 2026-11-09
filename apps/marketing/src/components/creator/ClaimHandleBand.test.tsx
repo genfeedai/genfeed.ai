@@ -1,9 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import ClaimHandleBand, {
-  buildClaimLoginHref,
-  buildClaimSignUpHref,
-} from './ClaimHandleBand';
+import ClaimHandleBand, { buildClaimSignUpHref } from './ClaimHandleBand';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -29,20 +26,19 @@ describe('ClaimHandleBand', () => {
     expect(url.searchParams.get('handle')).toBe('shayla');
   });
 
-  it('offers existing accounts a login that lands on the claim step', () => {
+  it('sends existing accounts to log in and set the handle themselves', () => {
     render(<ClaimHandleBand />);
 
     typeHandle('shayla');
 
     const url = new URL(
-      screen
-        .getByRole('link', { name: 'Log in to claim @shayla' })
-        .getAttribute('href') ?? '',
+      screen.getByRole('link', { name: 'Log in' }).getAttribute('href') ?? '',
     );
     expect(url.pathname).toBe('/login');
-    expect(url.searchParams.get('callbackUrl')).toBe(
-      '/onboarding/post-signup?handle=shayla',
-    );
+    expect(url.search).toBe('');
+    expect(
+      screen.getByText(/and set @shayla in your brand settings/),
+    ).toBeInTheDocument();
   });
 
   it.each([
@@ -57,10 +53,7 @@ describe('ClaimHandleBand', () => {
     expect(screen.getByText(new RegExp(message))).toBeInTheDocument();
   });
 
-  it('builds the sign-up and login links for a handle', () => {
+  it('builds the sign-up link for a handle', () => {
     expect(new URL(buildClaimSignUpHref('acme')).search).toBe('?handle=acme');
-    expect(
-      new URL(buildClaimLoginHref('acme')).searchParams.get('callbackUrl'),
-    ).toBe('/onboarding/post-signup?handle=acme');
   });
 });

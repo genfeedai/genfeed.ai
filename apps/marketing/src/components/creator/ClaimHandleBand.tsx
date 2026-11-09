@@ -17,22 +17,15 @@ import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { type FormEvent, useState } from 'react';
 
-const POST_SIGNUP_PATH = '/onboarding/post-signup';
-
 /** Where "Claim handle" goes: sign-up, carrying the handle to the brand. */
 export function buildClaimSignUpHref(handle: string): string {
   return getAppSignUpUrl(`?${new URLSearchParams({ handle })}`);
 }
 
-/** Existing accounts log in and land on the same claim step. */
-export function buildClaimLoginHref(handle: string): string {
-  const callbackUrl = `${POST_SIGNUP_PATH}?${new URLSearchParams({ handle })}`;
-  return getAppLoginUrl(`?${new URLSearchParams({ callbackUrl })}`);
-}
-
 /**
- * `genfeed.ai/@` plus a handle field. Claiming signs up (or logs in) and gives
- * the handle to the new account's brand. Whether it is free is only checked
+ * `genfeed.ai/@` plus a handle field. Claiming signs up and gives the handle
+ * to the new account's brand. Existing accounts change their handle in brand
+ * settings, so a link can never rename a signed-in owner's brand. Whether it is free is only checked
  * once signed in, so this never tells a visitor which handles are taken.
  */
 export default function ClaimHandleBand({
@@ -96,10 +89,11 @@ export default function ClaimHandleBand({
             Already on Genfeed?{' '}
             <a
               className="font-medium text-foreground hover:text-primary"
-              href={buildClaimLoginHref(handle)}
+              href={getAppLoginUrl()}
             >
-              Log in to claim @{handle}
-            </a>
+              Log in
+            </a>{' '}
+            and set @{handle} in your brand settings.
           </p>
         ) : null}
       </div>

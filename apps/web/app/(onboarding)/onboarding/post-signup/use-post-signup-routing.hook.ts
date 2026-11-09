@@ -307,8 +307,9 @@ export function usePostSignupRouting(): PostSignupRoutingState {
         }
       }
 
-      // A handle claimed on genfeed.ai goes to the brand before onboarding
-      // continues; a taken one leaves the brand's handle as it is.
+      // A handle claimed on genfeed.ai goes to a new account's brand before
+      // onboarding continues; a taken one leaves the brand's handle as it is.
+      // Existing accounts are never renamed from a link.
       const claimHandle =
         parseClaimHandle(requestedHandleParam) ??
         parseClaimHandle(
@@ -331,6 +332,9 @@ export function usePostSignupRouting(): PostSignupRoutingState {
               },
             },
             claimHandle,
+            {
+              isOnboardingCompleted: currentUser.isOnboardingCompleted === true,
+            },
           ).catch((error: unknown) => {
             logger.error('Failed to claim handle after auth', error);
             return 'unavailable' as const;

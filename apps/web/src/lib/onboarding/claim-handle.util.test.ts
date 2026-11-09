@@ -24,7 +24,24 @@ function clientsFor(world: World) {
   };
 }
 
+const NEW_ACCOUNT = { isOnboardingCompleted: false };
+
 describe('claimHandleAfterSignup', () => {
+  it('never renames the brand of an account that already finished onboarding', async () => {
+    const world: World = {
+      brands: [{ id: 'brand-1', slug: 'acme' }],
+      organizations: [{ id: 'org-1' }],
+      taken: [],
+    };
+
+    await expect(
+      claimHandleAfterSignup(clientsFor(world), 'shayla', {
+        isOnboardingCompleted: true,
+      }),
+    ).resolves.toBe('existing-account');
+    expect(world.brands[0]?.slug).toBe('acme');
+  });
+
   it('gives the claimed handle to the brand of the active organization', async () => {
     const world: World = {
       brands: [{ id: 'brand-1', slug: 'acme-1234' }],
@@ -33,7 +50,7 @@ describe('claimHandleAfterSignup', () => {
     };
 
     await expect(
-      claimHandleAfterSignup(clientsFor(world), 'shayla'),
+      claimHandleAfterSignup(clientsFor(world), 'shayla', NEW_ACCOUNT),
     ).resolves.toBe('claimed');
     expect(world.brands[0]?.slug).toBe('shayla');
   });
@@ -46,7 +63,7 @@ describe('claimHandleAfterSignup', () => {
     };
 
     await expect(
-      claimHandleAfterSignup(clientsFor(world), 'shayla'),
+      claimHandleAfterSignup(clientsFor(world), 'shayla', NEW_ACCOUNT),
     ).resolves.toBe('unavailable');
     expect(world.brands[0]?.slug).toBe('acme-1234');
   });
@@ -59,7 +76,7 @@ describe('claimHandleAfterSignup', () => {
     };
 
     await expect(
-      claimHandleAfterSignup(clientsFor(world), 'shayla'),
+      claimHandleAfterSignup(clientsFor(world), 'shayla', NEW_ACCOUNT),
     ).resolves.toBe('kept-public');
     expect(world.brands[0]?.slug).toBe('acme');
   });
@@ -75,7 +92,7 @@ describe('claimHandleAfterSignup', () => {
     };
 
     await expect(
-      claimHandleAfterSignup(clientsFor(world), 'shayla'),
+      claimHandleAfterSignup(clientsFor(world), 'shayla', NEW_ACCOUNT),
     ).resolves.toBe('several-brands');
     expect(world.brands.map((brand) => brand.slug)).toEqual([
       'acme',
@@ -102,7 +119,7 @@ describe('claimHandleAfterSignup', () => {
     };
 
     await expect(
-      claimHandleAfterSignup(clientsFor(world), 'shayla'),
+      claimHandleAfterSignup(clientsFor(world), 'shayla', NEW_ACCOUNT),
     ).resolves.toBe(outcome);
   });
 });

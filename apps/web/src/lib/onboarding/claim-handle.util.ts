@@ -1,12 +1,16 @@
 import { AssetScope } from '@genfeedai/contracts';
 import type {
+  ClaimHandleAccount,
   ClaimHandleClients,
   ClaimHandleOutcome,
 } from '@/features/onboarding/props/claim-handle.props';
 
 /**
- * Gives the handle someone claimed on genfeed.ai to the brand of their active
- * organization, once they are signed in. Taken or reserved handles fail on
+ * Gives the handle someone claimed on genfeed.ai to the brand of a new
+ * account's active organization, once they are signed in. An account that has
+ * finished onboarding is never renamed from a link: anyone can send a signed-in
+ * owner to the claim step, so existing owners change their handle in brand
+ * settings instead. Taken or reserved handles fail on
  * the API (it checks access first, so nothing leaks); the brand then keeps its
  * current handle. A brand whose public profile is already live keeps its
  * handle, so links shared to it never break without the owner choosing to.
@@ -16,7 +20,11 @@ import type {
 export async function claimHandleAfterSignup(
   clients: ClaimHandleClients,
   handle: string,
+  account: ClaimHandleAccount,
 ): Promise<ClaimHandleOutcome> {
+  if (account.isOnboardingCompleted) {
+    return 'existing-account';
+  }
   const organizations = await clients.findOrganizations();
   const organization =
     organizations.find((candidate) => candidate.isActive) ?? organizations[0];

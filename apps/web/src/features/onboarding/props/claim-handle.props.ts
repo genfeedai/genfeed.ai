@@ -9,9 +9,16 @@ export interface ClaimHandleClients {
   setHandle: (brandId: string, handle: string) => Promise<void>;
 }
 
+/** The signed-in account a claim would apply to. */
+export interface ClaimHandleAccount {
+  isOnboardingCompleted: boolean;
+}
+
 /**
  * - `claimed`: the brand now answers at `genfeed.ai/@<handle>`.
  * - `unchanged`: it already did.
+ * - `existing-account`: the account finished onboarding before this claim, so
+ *   no brand is renamed from a link; the owner changes it in brand settings.
  * - `kept-public`: the brand already has a live public profile, so its URL
  *   (and every link shared to it) stays; the owner renames it in settings.
  * - `several-brands`: the organization has more than one brand, so the owner
@@ -22,6 +29,7 @@ export interface ClaimHandleClients {
  */
 export type ClaimHandleOutcome =
   | 'claimed'
+  | 'existing-account'
   | 'kept-public'
   | 'no-brand'
   | 'several-brands'
