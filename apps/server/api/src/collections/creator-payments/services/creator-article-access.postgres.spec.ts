@@ -152,6 +152,52 @@ describe.skipIf(!connectionString)(
       organizationId: reader.organizationId,
       userId: reader.userId,
     });
+    /** A second workspace the same reader owns, with its own wallet. */
+    const secondWorkspace = () => ({
+      billingAccountId: `unlock-second-billing-${suffix}`,
+      organizationId: `unlock-second-org-${suffix}`,
+    });
+
+    async function seedSecondWorkspace(balance: number): Promise<void> {
+      const db = database();
+      const second = secondWorkspace();
+      await db.billingAccount.create({ data: { id: second.billingAccountId } });
+      await db.organization.create({
+        data: {
+          billingAccountId: second.billingAccountId,
+          id: second.organizationId,
+          label: second.organizationId,
+          slug: second.organizationId,
+          userId: reader.userId,
+        },
+      });
+      await db.creditBalance.create({
+        data: {
+          balance,
+          billingAccountId: second.billingAccountId,
+          organizationId: second.organizationId,
+        },
+      });
+      await db.creditTransaction.create({
+        data: {
+          amount: balance,
+          balanceAfter: balance,
+          billingAccountId: second.billingAccountId,
+          category: CreditTransactionCategory.ADD,
+          organizationId: second.organizationId,
+          source: ActivitySource.PAY_AS_YOU_GO,
+        },
+      });
+    }
+
+    const secondWallet = () =>
+      database().creditBalance.findFirstOrThrow({
+        select: { balance: true },
+        where: {
+          isDeleted: false,
+          organizationId: secondWorkspace().organizationId,
+        },
+      });
 
     async function publishArticle(options: {
       accessLevel: string;
@@ -237,7 +283,11 @@ describe.skipIf(!connectionString)(
     afterEach(async () => {
       vi.unstubAllEnvs();
       const db = database();
-      const organizationIds = [reader.organizationId, creator.organizationId];
+      const organizationIds = [
+        reader.organizationId,
+        creator.organizationId,
+        secondWorkspace().organizationId,
+      ];
       const scoped = { organizationId: { in: organizationIds } };
       await db.activity.deleteMany({ where: scoped });
       await db.articleUnlock.deleteMany({ where: scoped });
@@ -252,7 +302,13 @@ describe.skipIf(!connectionString)(
       });
       await db.billingAccount.deleteMany({
         where: {
-          id: { in: [reader.billingAccountId, creator.billingAccountId] },
+          id: {
+            in: [
+              reader.billingAccountId,
+              creator.billingAccountId,
+              secondWorkspace().billingAccountId,
+            ],
+          },
         },
       });
       await db.user.deleteMany({
@@ -292,6 +348,33 @@ describe.skipIf(!connectionString)(
       ).toMatchObject({ transferId: null, wasApplied: false });
 
       expect(await wallet(reader)).toEqual({ balance: 175, earnedBalance: 0 });
+      expect(await wallet(creator)).toEqual({ balance: 25, earnedBalance: 25 });
+      expect(
+        await asReader(() => access.getAccess(readerContext(), articleId)),
+      ).toMatchObject({ content: FULL_BODY, reason: 'unlocked' });
+    });
+
+    it('charges one workspace when the reader unlocks from two at once', async () => {
+      const articleId = await publishArticle({
+        accessLevel: 'paid',
+        unlockPriceCredits: 25,
+      });
+      await seedSecondWorkspace(200);
+      const second = secondWorkspace();
+
+      await Promise.allSettled([
+        asReader(() => access.unlock(readerContext(), articleId)),
+        runWithTenantContext({ organizationId: second.organizationId }, () =>
+          access.unlock(
+            { organizationId: second.organizationId, userId: reader.userId },
+            articleId,
+          ),
+        ),
+      ]);
+
+      expect(
+        (await wallet(reader)).balance + (await secondWallet()).balance,
+      ).toBe(375);
       expect(await wallet(creator)).toEqual({ balance: 25, earnedBalance: 25 });
       expect(
         await asReader(() => access.getAccess(readerContext(), articleId)),

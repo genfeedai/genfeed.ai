@@ -4,6 +4,7 @@ import {
   type PublicCreatorArticle,
 } from '@api/collections/creator-payments/services/creator-directory.service';
 import { CreatorSubscriptionsService } from '@api/collections/creator-payments/services/creator-subscriptions.service';
+import { isPaymentKeyTaken } from '@api/collections/creator-payments/utils/payment-key.util';
 import { CreditTransfersService } from '@api/collections/credits/services/credit-transfers.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -18,6 +19,7 @@ import {
 import type {
   CreatorArticleAccessReason,
   ICreatorArticleAccess,
+  ICreditTransferResult,
   IUnlockCreatorArticleResult,
 } from '@genfeedai/contracts/interfaces/billing';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
@@ -106,19 +108,32 @@ export class CreatorArticleAccessService {
 
     const { creator } = article;
     const readerName = await this.creatorDirectoryService.readerName(reader);
-    const transfer = await this.creditTransfersService.transfer({
-      amount: price,
-      // One unlock per reader and article, whichever client sent it.
-      idempotencyKey: `article-unlock:${article.id}:${reader.userId}`,
-      kind: CreditTransferKind.UNLOCK,
-      payeeBrandId: creator.id,
-      payeeDescription: `${readerName} unlocked "${article.label}"`,
-      payeeOrganizationId: creator.organizationId,
-      payerDescription: `Unlocked "${article.label}" by ${creator.label}`,
-      payerOrganizationId: reader.organizationId,
-      payerUserId: reader.userId,
-      subjectId: article.id,
-    });
+    let transfer: ICreditTransferResult;
+    try {
+      transfer = await this.creditTransfersService.transfer({
+        amount: price,
+        // One unlock per reader and article, whichever client sent it.
+        idempotencyKey: `article-unlock:${article.id}:${reader.userId}`,
+        kind: CreditTransferKind.UNLOCK,
+        payeeBrandId: creator.id,
+        payeeDescription: `${readerName} unlocked "${article.label}"`,
+        payeeOrganizationId: creator.organizationId,
+        payerDescription: `Unlocked "${article.label}" by ${creator.label}`,
+        payerOrganizationId: reader.organizationId,
+        payerUserId: reader.userId,
+        subjectId: article.id,
+      });
+    } catch (error: unknown) {
+      if (!isPaymentKeyTaken(error)) throw error;
+      // The reader's other workspace paid for this unlock at the same moment.
+      const after = await this.standing(reader, article);
+      if (!after.reason) throw error;
+      return {
+        access: this.toAccess(article, after),
+        transferId: null,
+        wasApplied: false,
+      };
+    }
 
     await runWithTenantContext(
       { organizationId: creator.organizationId },

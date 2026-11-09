@@ -5,6 +5,7 @@ import { isCreditTransactionConflict } from '@api/collections/credits/services/c
 import { BALANCE_TX_OPTIONS } from '@api/collections/credits/services/credit-transaction-options';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { readCreditTransferMetadata } from '@api/collections/credits/services/credit-transfer-metadata.util';
+import { isPrismaUniqueConstraintError } from '@api/collections/shared/slug-allocation.util';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
@@ -33,7 +34,8 @@ import { Injectable } from '@nestjs/common';
 
 /** Largest single creator payment, in credits. */
 export const MAX_CREDIT_TRANSFER_AMOUNT = 100_000;
-const MAX_TRANSFER_ATTEMPTS = 3;
+const MAX_TRANSFER_ATTEMPTS = 5;
+const TRANSFER_RETRY_BACKOFF_MS = 25;
 const MAX_MESSAGE_LENGTH = 280;
 
 type TransferAmounts = {
@@ -290,12 +292,27 @@ export class CreditTransfersService {
           BALANCE_TX_OPTIONS,
         );
       } catch (error: unknown) {
+        // A taken key is retried once more: a concurrent retry by the same
+        // payer is then found as a replay. If it is still taken, another
+        // payer owns it.
+        const isKeyTaken = isPrismaUniqueConstraintError(error);
         if (
-          !isCreditTransactionConflict(error) ||
-          attempt >= MAX_TRANSFER_ATTEMPTS
+          attempt < MAX_TRANSFER_ATTEMPTS &&
+          (isKeyTaken || isCreditTransactionConflict(error))
         ) {
-          throw error;
+          // Stagger aborted wallet writers so concurrent payments can commit.
+          await new Promise((resolve) =>
+            setTimeout(
+              resolve,
+              TRANSFER_RETRY_BACKOFF_MS * attempt * (1 + Math.random()),
+            ),
+          );
+          continue;
         }
+        if (isKeyTaken) {
+          throw this.keyReusedError();
+        }
+        throw error;
       }
     }
   }
@@ -438,11 +455,20 @@ export class CreditTransfersService {
   }
 
   /**
-   * Ledger idempotency keys are unique across every organization, so the
-   * caller's key is namespaced by payer and leg.
+   * Ledger idempotency keys are unique across every organization. The
+   * caller's key is not namespaced by payer, so one key pays once even when
+   * the same reader sends it from two workspaces.
    */
   private legKey(input: ICreditTransferInput, leg: TransferLeg): string {
-    return `credit-transfer:${input.payerOrganizationId}:${input.idempotencyKey.trim()}:${leg}`;
+    return `credit-transfer:${input.idempotencyKey.trim()}:${leg}`;
+  }
+
+  private keyReusedError(): BusinessLogicException {
+    return new BusinessLogicException(
+      'This payment key was already used for a different payment',
+      undefined,
+      'CREDIT_TRANSFER_KEY_REUSED',
+    );
   }
 
   private async walletSnapshot(
@@ -477,11 +503,7 @@ export class CreditTransfersService {
       metadata.payeeBrandId === (input.payeeBrandId || undefined) &&
       metadata.subjectId === (input.subjectId || undefined);
     if (!isSamePayment) {
-      throw new BusinessLogicException(
-        'This payment key was already used for a different payment',
-        undefined,
-        'CREDIT_TRANSFER_KEY_REUSED',
-      );
+      throw this.keyReusedError();
     }
   }
 

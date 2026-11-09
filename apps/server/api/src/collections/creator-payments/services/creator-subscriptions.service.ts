@@ -3,6 +3,7 @@ import {
   type CreatorPaymentReader,
   type PublicCreator,
 } from '@api/collections/creator-payments/services/creator-directory.service';
+import { isPaymentKeyTaken } from '@api/collections/creator-payments/utils/payment-key.util';
 import {
   addDays,
   addOneMonth,
@@ -26,6 +27,7 @@ import type {
   ICreatorSubscriptionOffer,
   ICreatorSubscriptionPlan,
   ICreatorSubscriptionSummary,
+  ICreditTransferResult,
   ISubscribeToCreatorRequest,
   IUpdateCreatorSubscriptionPlanRequest,
 } from '@genfeedai/contracts/interfaces/billing';
@@ -294,18 +296,30 @@ export class CreatorSubscriptionsService {
     }
 
     const readerName = await this.creatorDirectoryService.readerName(reader);
-    const transfer = await this.creditTransfersService.transfer({
-      amount: price,
-      idempotencyKey: `subscribe:${reader.userId}:${creator.id}:after:${latest?.id ?? 'none'}`,
-      kind: CreditTransferKind.SUBSCRIPTION,
-      payeeBrandId: creator.id,
-      payeeDescription: `Subscription from ${readerName}`,
-      payeeOrganizationId: creator.organizationId,
-      payerDescription: `Subscription to ${creator.label}`,
-      payerOrganizationId: reader.organizationId,
-      payerUserId: reader.userId,
-      subjectId: creator.id,
-    });
+    let transfer: ICreditTransferResult;
+    try {
+      transfer = await this.creditTransfersService.transfer({
+        amount: price,
+        idempotencyKey: `subscribe:${reader.userId}:${creator.id}:after:${latest?.id ?? 'none'}`,
+        kind: CreditTransferKind.SUBSCRIPTION,
+        payeeBrandId: creator.id,
+        payeeDescription: `Subscription from ${readerName}`,
+        payeeOrganizationId: creator.organizationId,
+        payerDescription: `Subscription to ${creator.label}`,
+        payerOrganizationId: reader.organizationId,
+        payerUserId: reader.userId,
+        subjectId: creator.id,
+      });
+    } catch (error: unknown) {
+      if (!isPaymentKeyTaken(error)) throw error;
+      // The reader's other workspace subscribed at the same moment.
+      const live = await this.inCreatorOrganization(
+        creator,
+        async () => await this.findLiveSubscription(creator, reader.userId),
+      );
+      if (!live) throw error;
+      return toSummary(live);
+    }
 
     const created = await this.inCreatorOrganization(creator, async () => {
       // A concurrent attempt that already opened this charge's subscription.
