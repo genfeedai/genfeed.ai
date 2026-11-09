@@ -154,3 +154,53 @@ export interface IBrandSubscriberListFilter {
   tag?: string;
   search?: string;
 }
+
+/** A brand subscriber as members of the owning organization see it. */
+export interface IBrandSubscriber {
+  id: string;
+  brandId: string;
+  email: string;
+  name: string | null;
+  tags: string[];
+  status: BrandSubscriberStatus;
+  source: string;
+  sourceRef: string | null;
+  consentMethod: string | null;
+  consentAt: string | null;
+  confirmedAt: string | null;
+  unsubscribedAt: string | null;
+  bouncedAt: string | null;
+  complainedAt: string | null;
+  createdAt: string;
+}
+
+/** One emailing of an issue to the brand's subscribers. */
+export interface INewsletterSend {
+  id: string;
+  brandId: string;
+  newsletterId: string;
+  status: NewsletterSendStatus;
+  scheduledFor: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  canceledAt: string | null;
+  subject: string;
+  recipientCount: number;
+  sentCount: number;
+  failedCount: number;
+  skippedCount: number;
+}
+
+/** A brand's sending settings; unsaved brands get defaults. */
+export interface INewsletterSettings {
+  brandId: string;
+  senderName: string | null;
+  replyTo: string | null;
+  postalAddress: string | null;
+  footerText: string | null;
+  isWelcomeEnabled: boolean;
+  welcomeSubject: string | null;
+  welcomeBody: string | null;
+  isAttributionEnabled: boolean;
+  paidPriceCredits: number | null;
+}

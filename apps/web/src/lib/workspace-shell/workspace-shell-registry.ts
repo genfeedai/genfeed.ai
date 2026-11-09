@@ -198,6 +198,8 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/publishing/approvals/:run/:item': 'Item',
   '/:orgSlug/:brandSlug/publishing/posts/:id': 'Content',
   '/:orgSlug/:brandSlug/publishing/campaigns': 'Campaigns',
+  '/:orgSlug/:brandSlug/publishing/newsletter': 'Newsletter',
+  '/:orgSlug/:brandSlug/publishing/newsletter/settings': 'Settings',
   '/:orgSlug/:brandSlug/publishing/campaigns/new': 'New Campaign',
   '/:orgSlug/:brandSlug/publishing/campaigns/compare': 'Compare',
   '/:orgSlug/:brandSlug/publishing/campaigns/:id': 'Campaign',
@@ -207,6 +209,8 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/publishing/campaigns/:id/ads': 'Ads',
   '/:orgSlug/:brandSlug/publishing/campaigns/:id/edit': 'Edit',
   '/:orgSlug/~/publishing/campaigns': 'Campaigns',
+  '/:orgSlug/~/publishing/newsletter': 'Newsletter',
+  '/:orgSlug/~/publishing/newsletter/settings': 'Settings',
   '/:orgSlug/~/publishing/campaigns/new': 'New Campaign',
   '/:orgSlug/~/publishing/campaigns/compare': 'Compare',
   '/:orgSlug/~/publishing/campaigns/:id': 'Campaign',
@@ -300,6 +304,8 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
+  '/:orgSlug/:brandSlug/publishing/newsletter/settings': 'Newsletter',
+  '/:orgSlug/~/publishing/newsletter/settings': 'Newsletter',
   // Content desk lives under Posts, not Overview.
   '/:orgSlug/:brandSlug/publishing/posts/:id': 'Posts',
   '/:orgSlug/~/publishing/posts/:id': 'Posts',
@@ -332,6 +338,9 @@ const BREADCRUMB_ROOT_HREF_OVERRIDES = Object.freeze({
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_PARENT_HREF_OVERRIDES = Object.freeze({
+  '/:orgSlug/:brandSlug/publishing/newsletter/settings':
+    '/publishing/newsletter',
+  '/:orgSlug/~/publishing/newsletter/settings': '/publishing/newsletter',
   '/:orgSlug/:brandSlug/publishing/posts/:id': '/publishing/posts',
   '/:orgSlug/~/publishing/posts/:id': '/publishing/posts',
   '/:orgSlug/:brandSlug/publishing/approvals/:run': '/publishing/approvals',
@@ -778,6 +787,8 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/publishing/campaigns/:id/performance',
       '/:orgSlug/~/publishing/campaigns/:id/ads',
       '/:orgSlug/~/publishing/campaigns/:id/edit',
+      '/:orgSlug/~/publishing/newsletter',
+      '/:orgSlug/~/publishing/newsletter/settings',
     ],
     {
       fallback: '/:orgSlug/~/publishing/overview',
@@ -983,6 +994,8 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/publishing/campaigns/:id/performance',
       '/:orgSlug/:brandSlug/publishing/campaigns/:id/ads',
       '/:orgSlug/:brandSlug/publishing/campaigns/:id/edit',
+      '/:orgSlug/:brandSlug/publishing/newsletter',
+      '/:orgSlug/:brandSlug/publishing/newsletter/settings',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/publishing/overview',
@@ -1020,6 +1033,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/analytics/outliers',
       '/:orgSlug/:brandSlug/analytics/performance-lab',
       '/:orgSlug/:brandSlug/analytics/streaks',
+      '/:orgSlug/:brandSlug/analytics/newsletter',
     ],
     {
       adapter: {

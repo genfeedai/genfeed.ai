@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { findLightBackgroundLogoId } from '@api/collections/brands/utils/brand-logo-variant.util';
 import {
   watermarkLogoIdFor,
   watermarkPlacementFor,
@@ -72,7 +73,13 @@ export class IngredientExportService {
     const text = brand.watermarkText?.trim();
     let logoStorageKey: string | undefined;
     let logoVersion: string | undefined;
-    const logoId = watermarkLogoIdFor(brand, variant);
+    const logoId = watermarkLogoIdFor(
+      brand,
+      variant,
+      variant === 'light'
+        ? await findLightBackgroundLogoId(this.prisma, brand.id, organizationId)
+        : null,
+    );
     if (logoId) {
       const logo = await this.prisma.asset.findFirst({
         where: {

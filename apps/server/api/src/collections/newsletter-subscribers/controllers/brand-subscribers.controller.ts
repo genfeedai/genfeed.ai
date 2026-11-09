@@ -55,8 +55,8 @@ export class BrandSubscribersController {
       docs: result.docs,
       limit: result.limit,
       page: result.page,
-      pages: Math.ceil(result.total / result.limit),
-      total: result.total,
+      totalDocs: result.total,
+      totalPages: Math.ceil(result.total / result.limit),
     });
   }
 

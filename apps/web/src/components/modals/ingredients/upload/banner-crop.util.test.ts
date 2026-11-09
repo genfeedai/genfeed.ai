@@ -40,4 +40,36 @@ describe('banner crop', () => {
   ])('recognises a %ix%i image as 3:1: %s', (width, height, expected) => {
     expect(isBannerRatio(width, height)).toBe(expected);
   });
+
+  it.each([
+    // [image width, image height, slot size, expected crop]
+    [
+      1920,
+      1080,
+      { height: 400, width: 400 },
+      { height: 1080, width: 1080, x: 420, y: 0 },
+    ],
+    [
+      3000,
+      3000,
+      { height: 1440, width: 2560 },
+      { height: 1688, width: 3000, x: 0, y: 656 },
+    ],
+  ])(
+    'crops a %ix%i image to the %o platform slot ratio',
+    (width, height, target, expected) => {
+      expect(
+        resolveCenterCropRect(width, height, target.width / target.height),
+      ).toEqual(expected);
+    },
+  );
+
+  it('scales a platform crop down to the slot size', () => {
+    expect(
+      resolveBannerOutputSize(
+        { height: 1080, width: 1080, x: 420, y: 0 },
+        { height: 400, width: 400 },
+      ),
+    ).toEqual({ height: 400, width: 400 });
+  });
 });

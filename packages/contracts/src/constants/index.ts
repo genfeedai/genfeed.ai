@@ -14,6 +14,7 @@ export * from './app-display.constant';
 export * from './article-access.constant';
 export * from './avatar-video-aspect-ratio.constant';
 export * from './brand-handle.constant';
+export * from './brand-kit-slots.constant';
 export * from './brand-media.constant';
 export * from './brand-vision-models.constant';
 export * from './character-references.constant';

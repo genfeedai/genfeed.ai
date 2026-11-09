@@ -82,6 +82,7 @@ function asset(data: Prisma.AssetCreateArgs['data']): Asset {
     parentArticleId: null,
     category: AssetCategory.FONT,
     referenceCategory: null,
+    kitSlot: null,
     externalId: null,
     localAssetId: null,
     cloudObjectKey:

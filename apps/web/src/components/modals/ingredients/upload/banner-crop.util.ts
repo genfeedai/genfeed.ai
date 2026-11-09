@@ -8,9 +8,10 @@ const JPEG_MIME_PATTERN = /^image\/jpe?g$/i;
 const FILE_EXTENSION_PATTERN = /\.[^.]+$/;
 
 /**
- * A brand banner is always the X header format (1500x500, 3:1). The upload
- * crops whatever the owner picked to that ratio, centered, so the stored file
- * is exactly what every surface displays and what X accepts on export.
+ * A brand banner defaults to the X header format (1500x500, 3:1); a platform
+ * image slot passes its own size. The upload crops whatever the owner picked
+ * to that ratio, centered, so the stored file is exactly what the platform
+ * displays and accepts.
  */
 export interface CropRect {
   height: number;
@@ -26,21 +27,29 @@ export interface BannerOutputSize {
 
 const BANNER_RATIO_TOLERANCE = 0.01;
 
-export function isBannerRatio(width: number, height: number): boolean {
+const DEFAULT_BANNER_SIZE: BannerOutputSize = {
+  height: BRAND_BANNER_HEIGHT,
+  width: BRAND_BANNER_WIDTH,
+};
+
+export function isBannerRatio(
+  width: number,
+  height: number,
+  ratio: number = BRAND_BANNER_ASPECT_RATIO,
+): boolean {
   return (
-    height > 0 &&
-    Math.abs(width / height - BRAND_BANNER_ASPECT_RATIO) <=
-      BANNER_RATIO_TOLERANCE
+    height > 0 && Math.abs(width / height - ratio) <= BANNER_RATIO_TOLERANCE
   );
 }
 
-/** The largest centered 3:1 rectangle inside an image. */
+/** The largest centered rectangle of the target ratio inside an image. */
 export function resolveCenterCropRect(
   imageWidth: number,
   imageHeight: number,
+  ratio: number = BRAND_BANNER_ASPECT_RATIO,
 ): CropRect {
-  if (imageWidth / imageHeight > BRAND_BANNER_ASPECT_RATIO) {
-    const width = Math.round(imageHeight * BRAND_BANNER_ASPECT_RATIO);
+  if (imageWidth / imageHeight > ratio) {
+    const width = Math.round(imageHeight * ratio);
     return {
       height: imageHeight,
       width,
@@ -48,7 +57,7 @@ export function resolveCenterCropRect(
       y: 0,
     };
   }
-  const height = Math.round(imageWidth / BRAND_BANNER_ASPECT_RATIO);
+  const height = Math.round(imageWidth / ratio);
   return {
     height,
     width: imageWidth,
@@ -57,13 +66,19 @@ export function resolveCenterCropRect(
   };
 }
 
-/** Scale down to 1500x500; a smaller crop keeps its size rather than upscale. */
-export function resolveBannerOutputSize(crop: CropRect): BannerOutputSize {
-  if (crop.width >= BRAND_BANNER_WIDTH) {
-    return { height: BRAND_BANNER_HEIGHT, width: BRAND_BANNER_WIDTH };
+/** Scale down to the target size; a smaller crop keeps its size rather than upscale. */
+export function resolveBannerOutputSize(
+  crop: CropRect,
+  target: BannerOutputSize = DEFAULT_BANNER_SIZE,
+): BannerOutputSize {
+  if (crop.width >= target.width) {
+    return target;
   }
   return {
-    height: Math.max(1, Math.round(crop.width / BRAND_BANNER_ASPECT_RATIO)),
+    height: Math.max(
+      1,
+      Math.round((crop.width * target.height) / target.width),
+    ),
     width: crop.width,
   };
 }
@@ -84,24 +99,37 @@ function loadImage(file: File): Promise<HTMLImageElement> {
   });
 }
 
-/** Crops an image upload to the banner frame. A file already 3:1 is returned as is. */
-export async function cropFileToBanner(file: File): Promise<File> {
+/**
+ * Crops an image upload to the banner frame, or to a platform slot's size when
+ * one is given. A file already at the ratio and no larger is returned as is.
+ */
+export async function cropFileToBanner(
+  file: File,
+  target: BannerOutputSize = DEFAULT_BANNER_SIZE,
+): Promise<File> {
+  const ratio = target.width / target.height;
   const image = await loadImage(file);
   if (
-    isBannerRatio(image.naturalWidth, image.naturalHeight) &&
-    image.naturalWidth <= BRAND_BANNER_WIDTH
+    isBannerRatio(image.naturalWidth, image.naturalHeight, ratio) &&
+    image.naturalWidth <= target.width
   ) {
     return file;
   }
 
-  const crop = resolveCenterCropRect(image.naturalWidth, image.naturalHeight);
-  const output = resolveBannerOutputSize(crop);
+  const crop = resolveCenterCropRect(
+    image.naturalWidth,
+    image.naturalHeight,
+    ratio,
+  );
+  const output = resolveBannerOutputSize(crop, target);
   const canvas = document.createElement('canvas');
   canvas.width = output.width;
   canvas.height = output.height;
   const context = canvas.getContext('2d');
   if (!context) {
-    throw new Error('This browser cannot crop images. Upload a 3:1 image.');
+    throw new Error(
+      `This browser cannot crop images. Upload a ${target.width}x${target.height} image.`,
+    );
   }
   context.drawImage(
     image,

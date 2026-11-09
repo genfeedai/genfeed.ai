@@ -1000,6 +1000,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'id',
       'isDeleted',
       'kind',
+      'kitSlot',
       'localAssetId',
       'mimeType',
       'origin',
@@ -1021,6 +1022,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: [],
     enumFields: {
       category: { enumType: 'AssetCategory', isRequired: true },
+      kitSlot: { enumType: 'BrandKitSlot', isRequired: false },
       parentType: { enumType: 'AssetParent', isRequired: true },
       referenceCategory: {
         enumType: 'ReferenceImageCategory',
@@ -1344,6 +1346,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'organization',
       'organizationId',
       'primaryColor',
+      'profileViewCount',
       'referenceImages',
       'scope',
       'secondaryColor',

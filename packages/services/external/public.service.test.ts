@@ -189,14 +189,6 @@ describe('PublicService', () => {
     expect(result[0]).toBeInstanceOf(Link);
   });
 
-  it('trackAccountView POSTs a view event', async () => {
-    http.post.mockResolvedValue(axiosResponse(undefined));
-
-    await service.trackAccountView('brand_1');
-
-    expect(http.post).toHaveBeenCalledWith('brands/brand_1/views');
-  });
-
   describe('public collections', () => {
     const collectionCases = [
       ['findPublicBrands', 'brands', Brand],

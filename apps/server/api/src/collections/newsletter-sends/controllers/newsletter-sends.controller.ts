@@ -86,6 +86,7 @@ export class NewsletterSendsController {
     @Param('brandId') brandId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+    @Query('newsletterId') newsletterId?: string,
   ) {
     const safeLimit = Math.min(Math.max(limit, 1), 100);
     const safePage = Math.max(page, 1);
@@ -94,13 +95,14 @@ export class NewsletterSendsController {
       brandId,
       safePage,
       safeLimit,
+      newsletterId,
     );
     return serializeCollection(request, NewsletterSendSerializer, {
       docs,
       limit: safeLimit,
       page: safePage,
-      pages: Math.ceil(total / safeLimit),
-      total,
+      totalDocs: total,
+      totalPages: Math.ceil(total / safeLimit),
     });
   }
 

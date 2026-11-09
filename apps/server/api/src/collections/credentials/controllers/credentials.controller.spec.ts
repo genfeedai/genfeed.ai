@@ -135,6 +135,7 @@ describe('CredentialsController', () => {
       credentialsService.findOne.mockResolvedValue({
         accessToken: 'encrypted-token',
         brandId: brandEntityId,
+        externalBusinessId: 'business-1',
         id: credId,
       });
       instagramService.listAuthorizedInstagramAccounts.mockResolvedValue([
@@ -150,7 +151,7 @@ describe('CredentialsController', () => {
 
       expect(
         instagramService.listAuthorizedInstagramAccounts,
-      ).toHaveBeenCalledWith('encrypted-token');
+      ).toHaveBeenCalledWith('encrypted-token', undefined, 'business-1');
     });
 
     it('rejects when the credential has no access token', async () => {

@@ -1,7 +1,7 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { AssetCategory, AssetParent } from '@genfeedai/contracts';
+import { AssetCategory, AssetParent, BrandKitSlot } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsIn, IsString } from 'class-validator';
+import { IsEnum, IsIn, IsOptional, IsString } from 'class-validator';
 
 export class GenerateAssetDto {
   @IsEntityId()
@@ -29,4 +29,15 @@ export class GenerateAssetDto {
   @IsString()
   @ApiProperty({ required: true })
   readonly model!: string;
+
+  @IsOptional()
+  @IsEnum(BrandKitSlot)
+  @ApiProperty({
+    description:
+      'Logo variant or platform image slot. Defaults to the primary logo or master banner; replaces only that slot.',
+    enum: BrandKitSlot,
+    enumName: 'BrandKitSlot',
+    required: false,
+  })
+  readonly kitSlot?: BrandKitSlot;
 }

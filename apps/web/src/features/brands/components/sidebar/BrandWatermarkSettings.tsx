@@ -75,8 +75,10 @@ export default function BrandWatermarkSettings({
   const getService = useAuthedService((token) =>
     BrandsService.getInstance(token),
   );
+  // Every logo variant can be a mark: a light-background logo for light
+  // footage, a monochrome one for livestreams.
   const assets = [
-    ...(brand.logo ? [brand.logo] : []),
+    ...(brand.logos ?? (brand.logo ? [brand.logo] : [])),
     ...(brand.references ?? []),
   ].filter(
     (asset, index, all) =>

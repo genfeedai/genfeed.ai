@@ -245,10 +245,6 @@ export class PublicService extends HTTPBaseService {
     return this.fetchMany(`brands/${brandId}/links`, Link);
   }
 
-  public async trackAccountView(brandId: string): Promise<void> {
-    await this.instance.post(`brands/${brandId}/views`);
-  }
-
   public async findPublicBrands(query?: IQueryParams): Promise<Brand[]> {
     return this.fetchMany('brands', Brand, query);
   }

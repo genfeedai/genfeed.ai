@@ -15,9 +15,11 @@ import {
 export const brandSerializerConfig = {
   attributes: brandAttributes,
   banner: ASSET_REL,
+  banners: ASSET_REL,
   credentials: rel('credential', credentialAttributes),
   links: rel('link', linkAttributes),
   logo: ASSET_REL,
+  logos: ASSET_REL,
   organization: ORGANIZATION_MINIMAL_REL,
   references: ASSET_REL,
   type: 'brand',
