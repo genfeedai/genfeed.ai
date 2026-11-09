@@ -13,7 +13,7 @@ Plasmo-based Chrome/Firefox extension for Genfeed.ai. React + TypeScript + Tailw
 **Start here:** `../../.agents/README.md`
 
 - `../../.agents/memory/system/ARCHITECTURE.md` - System architecture
-- `../../CLAUDE.md` - Coding standards
+- `../../AGENTS.md` - Coding standards
 - `../../.agents/memory/system/CROSS-PROJECT-RULES.md` - Project-wide rules
 - GitHub Issues - Extension tasks and requirements
 

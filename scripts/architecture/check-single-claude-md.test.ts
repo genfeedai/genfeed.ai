@@ -2,7 +2,10 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { findNestedClaudeMd } from './check-single-claude-md';
+import {
+  findNestedClaudeMd,
+  importsAgentsMd,
+} from './check-single-claude-md';
 
 const testDirs: string[] = [];
 
@@ -48,5 +51,19 @@ describe('single CLAUDE.md guard', () => {
       'apps/web/CLAUDE.md',
       'packages/ui/src/CLAUDE.md',
     ]);
+  });
+
+  it('requires the root CLAUDE.md to import AGENTS.md', () => {
+    const importing = fixture([]);
+    writeFileSync(
+      path.join(importing, 'CLAUDE.md'),
+      '# Rules\n\n@AGENTS.md\n@.agents/memory/MEMORY.md\n',
+    );
+    const standalone = fixture(['CLAUDE.md']);
+    const missing = fixture([]);
+
+    expect(importsAgentsMd(importing)).toBe(true);
+    expect(importsAgentsMd(standalone)).toBe(false);
+    expect(importsAgentsMd(missing)).toBe(false);
   });
 });
