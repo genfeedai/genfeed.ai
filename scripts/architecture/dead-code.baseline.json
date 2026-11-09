@@ -468,7 +468,6 @@
     "apps/server/api/src/services/agent-context-assembly/text-overlap.util.ts": 1,
     "apps/server/api/src/services/agent-generation-gateway/agent-endpoint.interface.ts": 1,
     "apps/server/api/src/services/agent-orchestrator/agent-auto-model-resolver.service.ts": 1,
-    "apps/server/api/src/services/agent-orchestrator/agent-turn-round-runner.service.ts": 5,
     "apps/server/api/src/services/agent-orchestrator/agent-untrusted-content-gate.service.ts": 1,
     "apps/server/api/src/services/agent-orchestrator/gateway/agent-generation-gateway.interface.ts": 1,
     "apps/server/api/src/services/agent-orchestrator/interfaces/agent-chat.interface.ts": 1,
