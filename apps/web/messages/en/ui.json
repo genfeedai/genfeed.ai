@@ -1135,5 +1135,12 @@
       "title": "No music tracks available",
       "description": "Generate some music first"
     }
+  },
+  "articleGenerationBlock": {
+    "insertImage": "Insert generated image",
+    "insertVideo": "Insert generated video",
+    "label": "Genfeed {kind, select, video {video} other {image}} · {id}",
+    "privateAssetWarning": "Readers only see public assets. Make the asset public in your Library to show it.",
+    "showPrompt": "Show prompt"
   }
 }

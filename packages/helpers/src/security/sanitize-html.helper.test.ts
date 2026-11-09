@@ -76,6 +76,15 @@ describe('sanitize-html', () => {
       expect(result).toBe('<div><p>Text</p></div>');
     });
 
+    it('should keep the generation block attributes on a figure only', () => {
+      const result = sanitizeHtml(
+        '<figure data-genfeed-generation="image" data-ingredient-id="abc" data-prompt="hidden" data-other="x"></figure><p data-prompt="hidden">Text</p>',
+      );
+      expect(result).toBe(
+        '<figure data-genfeed-generation="image" data-ingredient-id="abc" data-prompt="hidden"></figure><p>Text</p>',
+      );
+    });
+
     it('should handle empty string', () => {
       const result = sanitizeHtml('');
       expect(result).toBe('');

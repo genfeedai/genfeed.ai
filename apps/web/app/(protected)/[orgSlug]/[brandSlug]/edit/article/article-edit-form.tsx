@@ -93,6 +93,7 @@ export default function ArticleEditForm({
           onChange={(value: string) => setFormField('content', value)}
           placeholder="Start writing your article..."
           minHeight={{ desktop: 500, mobile: 300 }}
+          isGenerationInsertEnabled
         />
       </Card>
     </>

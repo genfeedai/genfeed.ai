@@ -18,4 +18,6 @@ export interface RichTextEditorProps {
    */
   minHeight?: number | { mobile: number; desktop: number };
   aiConfig?: RichTextEditorAiConfig;
+  /** Offers embedding library generations as blocks (articles only). */
+  isGenerationInsertEnabled?: boolean;
 }

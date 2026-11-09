@@ -26,6 +26,7 @@ export class ArticleEntity extends BaseEntity implements Article {
 
   seoScore!: Article['seoScore'];
   seoBreakdown!: Article['seoBreakdown'];
+  viewCount!: Article['viewCount'];
 
   // AI Generation metadata
   aiGeneration?: {

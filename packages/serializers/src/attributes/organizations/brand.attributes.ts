@@ -73,6 +73,7 @@ export const publicBrandAttributes = [
   'logo',
   'banner',
   'links',
+  'socials',
   'createdAt',
   'updatedAt',
 ];

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { PublicArticleSerializer } from './article.serializer';
+import {
+  PublicArticleGenerationSerializer,
+  PublicArticleSerializer,
+} from './article.serializer';
 
 const PUBLISHED_ARTICLE = {
   brand: {
@@ -64,6 +67,62 @@ describe('PublicArticleSerializer', () => {
           attributes: { label: 'Shayla', slug: 'shayla' },
           id: 'ckbrand000000000000000001',
           type: 'brand',
+        },
+      ],
+    });
+  });
+});
+
+describe('PublicArticleGenerationSerializer', () => {
+  it('serves the block: output kind, model and prompt, and nothing private', () => {
+    expect(
+      PublicArticleGenerationSerializer.serialize({
+        category: 'IMAGE',
+        generationCredits: 12,
+        id: 'ckingredient0000000000001',
+        metadata: {
+          description: 'A bear sheet for the cast.',
+          id: 'ckmetadata00000000000001',
+          label: 'Bear Sheet',
+          model: 'flux-2',
+          modelLabel: 'Flux 2',
+          result: 's3://private/key',
+        },
+        prompt: {
+          id: 'ckprompt0000000000000001',
+          original: 'A friendly bear, character sheet',
+          renderedPrompt: 'internal rendering',
+        },
+        s3Key: 'ingredients/private.jpg',
+        status: 'GENERATED',
+      }),
+    ).toEqual({
+      data: {
+        attributes: { category: 'IMAGE', status: 'GENERATED' },
+        id: 'ckingredient0000000000001',
+        relationships: {
+          metadata: {
+            data: { id: 'ckmetadata00000000000001', type: 'metadata' },
+          },
+          prompt: { data: { id: 'ckprompt0000000000000001', type: 'prompt' } },
+        },
+        type: 'ingredient',
+      },
+      included: [
+        {
+          attributes: {
+            description: 'A bear sheet for the cast.',
+            label: 'Bear Sheet',
+            model: 'flux-2',
+            modelLabel: 'Flux 2',
+          },
+          id: 'ckmetadata00000000000001',
+          type: 'metadata',
+        },
+        {
+          attributes: { original: 'A friendly bear, character sheet' },
+          id: 'ckprompt0000000000000001',
+          type: 'prompt',
         },
       ],
     });

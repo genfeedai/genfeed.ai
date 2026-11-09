@@ -17,9 +17,9 @@ const TAB_TITLES: Record<CreatorProfileTab, string> = {
 };
 
 /**
- * The head of a creator's profile or one of its tabs. The banner is the social
- * card when there is one; otherwise the site's default card, the only artwork
- * guaranteed to be live.
+ * The head of a creator's profile or one of its tabs. The social card is the
+ * profile's own 1200x630 card (`og/route.tsx`): the banner whole across the
+ * top, then the logo, name and handle.
  */
 export async function buildCreatorMetadata(
   handle: string,
@@ -51,13 +51,12 @@ export async function buildCreatorMetadata(
     const description =
       brand.description?.trim() ||
       `Articles, posts, images and videos by ${name} on ${metadata.name}.`;
-    const bannerUrl =
-      typeof brand.bannerUrl === 'string' && brand.bannerUrl.length > 0
-        ? brand.bannerUrl
-        : null;
-    const socialImage = bannerUrl
-      ? { height: 500, url: bannerUrl, width: 1500 }
-      : { height: 630, url: metadata.cards.default, width: 1200 };
+    const socialImage = {
+      height: 630,
+      type: 'image/png',
+      url: `${EnvironmentService.apps.website}${creatorProfilePath(canonicalHandle)}/og`,
+      width: 1200,
+    };
     const rssUrl = `${EnvironmentService.apiEndpoint}/public/rss/brands/${brand.id}`;
 
     return {

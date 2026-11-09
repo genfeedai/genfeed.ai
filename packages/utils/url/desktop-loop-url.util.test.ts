@@ -10,6 +10,7 @@ import {
   buildSourcePostVariationsHref,
   buildTrendAgentHref,
   buildTrendSourceAgentHref,
+  buildUntrustedAgentPromptHref,
   isSourcePostVariationPlatform,
 } from '@utils/url/desktop-loop-url.util';
 
@@ -17,6 +18,12 @@ describe('desktop-loop-url.util', () => {
   it('builds an agent prompt href', () => {
     expect(buildAgentPromptHref('Test prompt')).toBe(
       '/agent/new?prompt=Test+prompt',
+    );
+  });
+
+  it("opens someone else's prompt in manual mode", () => {
+    expect(buildUntrustedAgentPromptHref('Recreate this image: a fox')).toBe(
+      '/agent/new?agentMode=manual&prompt=Recreate+this+image%3A+a+fox',
     );
   });
 

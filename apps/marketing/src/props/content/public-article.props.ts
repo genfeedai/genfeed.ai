@@ -60,11 +60,42 @@ export interface ArticleResourceProps {
 
 export interface ArticleContentProps {
   applyHref: string;
+  /** The article's generation blocks, keyed by asset id. */
+  generations?: Record<string, ArticleGenerationBlockData>;
   sanitizedHtml: string;
   /** The body's outline, built on the server with the heading anchors. */
   sections?: ArticleSection[];
   slug?: string;
   resource?: ArticleResource | null;
+}
+
+export interface ArticleOutlineProps {
+  sections: ArticleSection[];
+}
+
+/** A Genfeed generation embedded in an article, ready to render. */
+export interface ArticleGenerationBlockData {
+  /** "What it does": the author's description of the asset. */
+  description: string | null;
+  height?: number;
+  id: string;
+  kind: 'image' | 'video';
+  label: string;
+  modelKey: string | null;
+  modelLabel: string | null;
+  /** Null when the author hid the prompt. */
+  prompt: string | null;
+  url: string;
+  width?: number;
+}
+
+/** An article body cut at its generation blocks, in reading order. */
+export type ArticleBodySegment =
+  | { html: string; key: string; kind: 'html' }
+  | { ingredientId: string; key: string; kind: 'generation' };
+
+export interface ArticleGenerationBlockProps {
+  generation: ArticleGenerationBlockData;
 }
 
 /**
@@ -79,6 +110,8 @@ export interface ArticleAccessView
 export interface GatedArticleBodyProps {
   applyHref: string;
   articleId: string;
+  /** Generations embedded in the body, keyed by ingredient id. */
+  generations?: Record<string, ArticleGenerationBlockData>;
   handle: string;
   /** The preview the website serves to everyone, sanitized on the server. */
   preview: ArticleSections;

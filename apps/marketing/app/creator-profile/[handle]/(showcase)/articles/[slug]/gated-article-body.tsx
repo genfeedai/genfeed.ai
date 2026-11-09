@@ -35,6 +35,7 @@ function paywallMessage(
 export default function GatedArticleBody({
   applyHref,
   articleId,
+  generations,
   handle,
   preview,
   slug,
@@ -78,6 +79,7 @@ export default function GatedArticleBody({
     <>
       <ArticleContent
         applyHref={applyHref}
+        generations={generations}
         sanitizedHtml={(full ?? preview).html}
         sections={(full ?? preview).sections}
         slug={slug}

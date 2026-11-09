@@ -11,7 +11,8 @@ import { LinksService } from '@api/collections/links/services/links.service';
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { PublicBrandsController } from '@api/endpoints/public/controllers/brands/public.brands.controller';
-import { PublicProfileViewsService } from '@api/endpoints/public/services/public-profile-views.service';
+import { PublicBrandSocialsService } from '@api/endpoints/public/services/public-brand-socials.service';
+import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { AssetScope } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -109,8 +110,23 @@ describe('PublicBrandsController', () => {
         { provide: VideosService, useValue: { findAll: vi.fn() } },
         { provide: LoggerService, useValue: { error: vi.fn(), log: vi.fn() } },
         {
-          provide: PublicProfileViewsService,
+          provide: PublicViewsService,
           useValue: { record: vi.fn().mockResolvedValue(12) },
+        },
+        {
+          provide: PublicBrandSocialsService,
+          useValue: {
+            attach: async (brand: object) =>
+              Object.assign(brand, {
+                socials: [
+                  {
+                    handle: 'itsshaylamonroe',
+                    platform: 'instagram',
+                    url: 'https://www.instagram.com/itsshaylamonroe',
+                  },
+                ],
+              }),
+          },
         },
       ],
     })
@@ -230,6 +246,24 @@ describe('PublicBrandsController', () => {
         'org_profile',
       );
       expect(result).toMatchObject({ logo });
+    });
+
+    it('lists the connected socials as profile links', async () => {
+      brandsService.findOneBySlug.mockResolvedValue({
+        ...mockBrand,
+      } as unknown as BrandEntity);
+
+      const result = await controller.findOneBySlug(mockReq, 'test-brand');
+
+      expect(result).toMatchObject({
+        socials: [
+          {
+            handle: 'itsshaylamonroe',
+            platform: 'instagram',
+            url: 'https://www.instagram.com/itsshaylamonroe',
+          },
+        ],
+      });
     });
 
     it('returns a brand stored with the PUBLIC scope value', async () => {

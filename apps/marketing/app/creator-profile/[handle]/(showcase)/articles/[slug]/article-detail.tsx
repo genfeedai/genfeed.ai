@@ -19,19 +19,22 @@ import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { Article } from '@models/content/article.model';
 import type { Brand } from '@models/organization/brand.model';
-import type { ArticleSection } from '@props/content/public-article.props';
+import type { ArticleGenerationBlockData } from '@props/content/public-article.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import CopyLinkButton from '@web-components/creator/CopyLinkButton';
+import MakeYourOwnBanner from '@web-components/creator/MakeYourOwnBanner';
 import SupportCreatorButton from '@web-components/creator/SupportCreatorButton';
+import ViewCount from '@web-components/creator/ViewCount';
 import ProfileSubscribe from '@web-components/profile/ProfileSubscribe';
 import ArticleCover from '@website/(content)/articles/article-cover';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { resolvePublicArticleAuthor } from './article-author';
 import ArticleContent from './article-content';
+import ArticleOutline from './article-outline';
 import ArticleResource from './article-resource';
 import { buildArticleSections } from './article-sections';
 import GatedArticleBody from './gated-article-body';
@@ -184,39 +187,6 @@ export function ArticleAbout({
   );
 }
 
-function ArticleOutline({
-  sections,
-}: {
-  sections: ArticleSection[];
-}): React.ReactElement | null {
-  if (sections.length === 0) {
-    return null;
-  }
-
-  return (
-    <nav aria-label="On this page" className="space-y-3 text-sm">
-      <p className="text-xs font-medium uppercase tracking-[0.14em] text-foreground/50">
-        On this page
-      </p>
-      <ol className="space-y-2 border-l border-foreground/10">
-        {sections.map((section) => (
-          <li
-            className={section.level === 3 ? 'pl-6' : 'pl-3'}
-            key={section.id}
-          >
-            <a
-              className="block text-foreground/60 hover:text-foreground"
-              href={`#${section.id}`}
-            >
-              {section.label}
-            </a>
-          </li>
-        ))}
-      </ol>
-    </nav>
-  );
-}
-
 /**
  * The article page: who wrote it and how to share it up top, then a centred
  * reading column with the outline parked beside it on wide screens.
@@ -224,13 +194,17 @@ function ArticleOutline({
 export default function ArticleDetail({
   article,
   brand = null,
+  generations = {},
   handle = GENFEED_BRAND_HANDLE,
   isPreview,
+  referralCode = null,
 }: {
   article: Article;
   brand?: Brand | null;
+  generations?: Record<string, ArticleGenerationBlockData>;
   handle?: string;
   isPreview: boolean;
+  referralCode?: string | null;
 }) {
   // The free skills belong to Genfeed's own guides, never to a customer's
   // article that happens to share a slug.
@@ -329,7 +303,12 @@ export default function ArticleDetail({
                 </span>
               </span>
             </Link>
-            <CopyLinkButton url={articleUrl} />
+            <div className="flex items-center gap-4">
+              {isPreview ? null : (
+                <ViewCount id={article.id} target="article" />
+              )}
+              <CopyLinkButton url={articleUrl} />
+            </div>
           </div>
         </header>
 
@@ -356,6 +335,7 @@ export default function ArticleDetail({
                 <GatedArticleBody
                   applyHref={buildArticleApplyHref(article.label)}
                   articleId={article.id}
+                  generations={generations}
                   handle={handle}
                   preview={{ html, sections }}
                   slug={article.slug}
@@ -364,6 +344,7 @@ export default function ArticleDetail({
               ) : (
                 <ArticleContent
                   applyHref={buildArticleApplyHref(article.label)}
+                  generations={generations}
                   sanitizedHtml={html}
                   sections={sections}
                   slug={article.slug}
@@ -380,6 +361,12 @@ export default function ArticleDetail({
             </div>
 
             <footer className="space-y-6">
+              {isPreview ? null : (
+                <MakeYourOwnBanner
+                  handle={handle}
+                  referralCode={referralCode}
+                />
+              )}
               {brand ? (
                 <ProfileSubscribe
                   brandId={brand.id}

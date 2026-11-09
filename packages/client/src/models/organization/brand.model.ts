@@ -7,6 +7,7 @@ import type {
   ICredential,
   ILink,
   IOrganization,
+  IPublicBrandSocial,
   IUser,
 } from '@genfeedai/contracts/interfaces';
 
@@ -53,6 +54,7 @@ export class Brand extends BaseEntity implements IBrand {
   declare public isDefault: boolean;
   declare public isFleetEnabled: boolean;
   declare public isHighlighted?: boolean;
+  declare public socials?: IPublicBrandSocial[];
   declare public agentConfig?: IBrandAgentConfig;
 
   constructor(data: Partial<IBrand> = {}) {

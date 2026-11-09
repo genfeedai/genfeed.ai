@@ -4360,6 +4360,8 @@ model Article {
   publishedAt    DateTime?
   // Live URL recorded when the article was published outside Genfeed (#6753).
   externalUrl    String?
+  // Readers of the public article page, counted once a day per visitor (#9663).
+  viewCount      Int           @default(0)
   // Who reads it in full (#9718): public | paid. Everyone else
   // gets the preview; the server withholds the rest.
   accessLevel           String        @default("public")

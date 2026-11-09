@@ -20,10 +20,19 @@ export function getProfileSignupHref(referralCode?: string | null): string {
   return signUpUrl.toString();
 }
 
+/**
+ * Sign-up from a creator's profile. With the owner's referral code the button
+ * says so and the link carries it; without one it is a plain sign-up.
+ */
 export default function ProfileSignupCta({
   handle,
   referralCode,
 }: ProfileSignupCtaProps) {
+  const isReferral = Boolean(normalizeSignupReferralCode(referralCode));
+  const label = isReferral
+    ? `Join Genfeed with @${handle}'s referral`
+    : 'Sign up to Genfeed';
+
   return (
     <ButtonTracked
       asChild
@@ -37,8 +46,8 @@ export default function ProfileSignupCta({
       trackingName="signup_cta_click"
       trackingData={{
         action: 'profile_signup_cta',
-        hasReferralCode: Boolean(normalizeSignupReferralCode(referralCode)),
-        label: 'Sign up to Genfeed',
+        hasReferralCode: isReferral,
+        label,
         profile: handle,
       }}
     >
@@ -47,8 +56,8 @@ export default function ProfileSignupCta({
         target="_blank"
         rel="noopener noreferrer"
       >
-        Sign up to Genfeed
-        <ArrowRight className="size-4" />
+        {label}
+        <ArrowRight aria-hidden="true" className="size-4" />
       </a>
     </ButtonTracked>
   );

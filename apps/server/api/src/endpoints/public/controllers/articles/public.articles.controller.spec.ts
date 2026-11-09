@@ -1,6 +1,8 @@
 import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { PublicArticlesController } from '@api/endpoints/public/controllers/articles/public.articles.controller';
+import { PublicArticleGenerationsService } from '@api/endpoints/public/services/public-article-generations.service';
+import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { createArticlePreviewToken } from '@api/helpers/utils/article-preview/article-preview-token.util';
 import {
@@ -128,6 +130,22 @@ describe('PublicArticlesController', () => {
         {
           provide: LoggerService,
           useValue: mockLoggerService,
+        },
+        {
+          provide: PublicArticleGenerationsService,
+          useValue: {
+            findForArticle: async (articleId: string) =>
+              articleId === mockArticle.id
+                ? [{ category: 'IMAGE', id: testId('ingredient') }]
+                : [],
+          },
+        },
+        {
+          provide: PublicViewsService,
+          useValue: {
+            recordArticle: async (articleId: string) =>
+              articleId === mockArticle.id ? 12 : null,
+          },
         },
       ],
     })
@@ -401,6 +419,46 @@ describe('PublicArticlesController', () => {
 
       expect(result).toBeDefined();
       expect(result).toHaveProperty('errors');
+    });
+  });
+
+  describe('recordView', () => {
+    const request = {
+      headers: { 'user-agent': 'Mozilla/5.0' },
+      ip: '203.0.113.7',
+    } as unknown as Request;
+
+    it('returns the article view count', async () => {
+      await expect(
+        controller.recordView(request, mockArticle.id),
+      ).resolves.toEqual({ data: { views: 12 } });
+    });
+
+    it.each([
+      ['an article that is not public', testId('article', 2)],
+      ['an id that is not an entity id', 'not-an-id'],
+    ])('returns nothing for %s', async (_label, articleId) => {
+      await expect(controller.recordView(request, articleId)).resolves.toEqual({
+        data: null,
+      });
+    });
+  });
+
+  describe('findArticleGenerations', () => {
+    const request = { originalUrl: '/public/articles' } as Request;
+
+    it('returns the generations the article embeds', async () => {
+      await expect(
+        controller.findArticleGenerations(request, mockArticle.id),
+      ).resolves.toEqual({
+        data: [{ category: 'IMAGE', id: testId('ingredient') }],
+      });
+    });
+
+    it('returns no generations for an id that is not an entity id', async () => {
+      await expect(
+        controller.findArticleGenerations(request, 'not-an-id'),
+      ).resolves.toEqual({ data: [] });
     });
   });
 });

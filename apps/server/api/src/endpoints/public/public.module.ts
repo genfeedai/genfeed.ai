@@ -26,8 +26,10 @@ import { PublicRSSController } from '@api/endpoints/public/controllers/rss/rss.c
 import { PublicVideosController } from '@api/endpoints/public/controllers/videos/public.videos.controller';
 import { PublicYoutubeClipperController } from '@api/endpoints/public/controllers/youtube-clipper/public-youtube-clipper.controller';
 import { PublicYoutubeLongFormController } from '@api/endpoints/public/controllers/youtube-long-form/public-youtube-long-form.controller';
+import { PublicArticleGenerationsService } from '@api/endpoints/public/services/public-article-generations.service';
+import { PublicBrandSocialsService } from '@api/endpoints/public/services/public-brand-socials.service';
 import { PublicMediaService } from '@api/endpoints/public/services/public-media.service';
-import { PublicProfileViewsService } from '@api/endpoints/public/services/public-profile-views.service';
+import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
 import { PublicYoutubeClipperService } from '@api/endpoints/public/services/public-youtube-clipper.service';
 import { RssService } from '@api/endpoints/public/services/rss.service';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
@@ -78,7 +80,9 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     PublicMediaService,
-    PublicProfileViewsService,
+    PublicArticleGenerationsService,
+    PublicBrandSocialsService,
+    PublicViewsService,
     PublicYoutubeClipperService,
     RssService,
   ],
