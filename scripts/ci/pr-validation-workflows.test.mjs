@@ -553,9 +553,7 @@ test('the full suite runs nightly, on demand and at release, never on push, and 
   assert.doesNotMatch(workflow, /^ {2}push:/m);
   assert.match(workflow, /^ {2}schedule:$/m);
   assert.deepEqual(
-    [...workflow.matchAll(/^ {4}- cron: '([^']+)'/gm)].map(
-      (match) => match[1],
-    ),
+    [...workflow.matchAll(/^ {4}- cron: '([^']+)'/gm)].map((match) => match[1]),
     ['37 3 * * *'],
   );
   assert.match(workflow, /^ {2}workflow_dispatch:$/m);
