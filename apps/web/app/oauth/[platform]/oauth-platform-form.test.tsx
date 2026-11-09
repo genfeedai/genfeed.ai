@@ -369,7 +369,7 @@ describe('OAuthPlatformForm', () => {
     await waitFor(() => {
       expect(mocks.loggerError).toHaveBeenCalledWith(
         'POST /services/youtube/verify failed',
-        expect.any(Error),
+        { error: expect.any(Error), reportToSentry: true },
       );
     });
 
@@ -394,6 +394,19 @@ describe('OAuthPlatformForm', () => {
     );
     expect(mocks.navigate).toHaveBeenCalledWith('/settings/api-keys');
     expect(mocks.postVerify).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows an expected 400 to the user without reporting it to Sentry', async () => {
+    const rejection = Object.assign(new Error('Bad Request'), { status: 400 });
+    mocks.postVerify.mockRejectedValueOnce(rejection);
+
+    render(<OAuthPlatformForm platform="instagram" />);
+
+    expect(await screen.findByText('Connection Failed')).toBeVisible();
+    expect(mocks.loggerError).toHaveBeenCalledWith(
+      'POST /services/instagram/verify failed',
+      { error: rejection, reportToSentry: false },
+    );
   });
 
   it('explains a missing YouTube channel and starts a fresh authorization', async () => {
