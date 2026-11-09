@@ -3,6 +3,7 @@ import type {
   BrandSubscriberPublicSource,
   CreatorProfileTab,
 } from '@genfeedai/contracts/constants';
+import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
 import type { Article } from '@models/content/article.model';
 import type { Post } from '@models/content/post.model';
 import type { Brand } from '@models/organization/brand.model';
@@ -152,4 +153,18 @@ export interface CommunitySectionLayoutProps {
   children: ReactNode;
   description: string;
   title: string;
+}
+
+/** The image or video an operator featured at the top of /community. */
+export interface CommunityFeaturedMedia {
+  /** The creator's handle; featured media shows only from public profiles. */
+  handle: string;
+  kind: 'image' | 'video';
+  media: IImage | IVideo;
+}
+
+export interface CommunityFeaturedHeroProps {
+  featured: CommunityFeaturedMedia;
+  /** Catalog labels of the models, by model key. */
+  modelCredits?: Record<string, string>;
 }

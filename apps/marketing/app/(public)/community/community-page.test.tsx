@@ -10,11 +10,13 @@ const findPublicArticlesPage =
   vi.fn<() => Promise<IPaginatedResponse<Article>>>();
 const findPublicVideosPage = vi.fn();
 const findPublicImagesPage = vi.fn();
+const findPublicBrand = vi.fn<() => Promise<Brand | null>>();
 
 vi.mock('@services/external/public.service', () => ({
   PublicService: {
     getInstance: () => ({
       findPublicArticlesPage,
+      findPublicBrand,
       findPublicBrands,
       findPublicImagesPage,
       findPublicVideosPage,
@@ -28,6 +30,11 @@ vi.mock('@public/models/models-loader', () => ({
 
 vi.mock('@web-components/home/_footer', () => ({
   default: () => null,
+}));
+
+vi.mock('@ui/lazy/masonry/LazyMasonry', () => ({
+  LazyMasonryImage: () => <span>image tile</span>,
+  LazyMasonryVideo: () => <span>video tile</span>,
 }));
 
 const { default: CommunityPage } = await import('./page');
@@ -91,6 +98,58 @@ describe('community page', () => {
     expect(
       screen.getByRole('link', { name: 'See @genfeedai' }),
     ).toHaveAttribute('href', '/@genfeedai');
+  });
+
+  it('leads with the video an operator featured, linked to its creator', async () => {
+    findPublicVideosPage.mockImplementation(
+      async (query?: { isHighlighted?: string }) =>
+        page(
+          query?.isHighlighted === 'true'
+            ? [{ brand: 'brand-1', id: 'v1', model: 'flux-video' }]
+            : [],
+        ),
+    );
+    findPublicBrand.mockResolvedValue(CREATOR);
+
+    await renderPage();
+
+    const hero = screen.getByRole('region', { name: 'Made by @shayla' });
+    expect(within(hero).getByText('Featured video')).toBeInTheDocument();
+    expect(within(hero).getByText('video tile')).toBeInTheDocument();
+    expect(within(hero).getByRole('link', { name: 'Watch' })).toHaveAttribute(
+      'href',
+      '/@shayla/videos',
+    );
+    expect(
+      within(hero)
+        .getByRole('link', { name: 'Recreate in Genfeed' })
+        .getAttribute('href'),
+    ).toContain(
+      encodeURIComponent(
+        'Make a video like the one featured on genfeed.ai/community',
+      ).replaceAll('%20', '+'),
+    );
+  });
+
+  it.each([
+    ['nothing is featured', [], CREATOR],
+    [
+      "the creator's profile is not public",
+      [{ brand: 'brand-9', id: 'v1' }],
+      null,
+    ],
+  ])('shows no featured hero when %s', async (_label, featured, creator) => {
+    findPublicVideosPage.mockImplementation(
+      async (query?: { isHighlighted?: string }) =>
+        page(query?.isHighlighted === 'true' ? featured : []),
+    );
+    findPublicBrand.mockResolvedValue(creator);
+
+    await renderPage();
+
+    expect(
+      screen.queryByText(/^Featured (video|image)$/),
+    ).not.toBeInTheDocument();
   });
 
   it('still renders the invitation when every listing fails', async () => {

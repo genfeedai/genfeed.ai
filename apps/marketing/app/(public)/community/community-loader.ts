@@ -2,6 +2,7 @@ import type { Article } from '@genfeedai/models/content/article.model';
 import type { Image as ImageModel } from '@genfeedai/models/ingredients/image.model';
 import type { Video } from '@genfeedai/models/ingredients/video.model';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
+import type { CommunityFeaturedMedia } from '@props/content/creator.props';
 import { PublicService } from '@services/external/public.service';
 import { cache } from 'react';
 
@@ -25,6 +26,7 @@ export interface CommunityMedia {
 export interface CommunityPageData {
   articles: Article[];
   creators: Brand[];
+  featured: CommunityFeaturedMedia | null;
   images: ImageModel[];
   videos: Video[];
 }
@@ -81,6 +83,45 @@ async function loadCreatorMedia(
     images: newestFirst(images).slice(0, limit),
     videos: newestFirst(videos).slice(0, limit),
   };
+}
+
+function brandIdOf(media: ImageModel | Video): string | undefined {
+  if (typeof media.brand === 'string') {
+    return media.brand;
+  }
+  return media.brand?.id ?? media.brandId ?? undefined;
+}
+
+/**
+ * The newest image or video an operator featured, a video first. It shows only
+ * when its creator's profile is public, and links to that profile.
+ */
+async function loadFeaturedMedia(): Promise<CommunityFeaturedMedia | null> {
+  const publicService = PublicService.getInstance();
+  const featuredQuery = {
+    isHighlighted: 'true',
+    limit: 1,
+    page: 1,
+    sort: 'createdAt: -1',
+  };
+  const [videoPage, imagePage] = await Promise.allSettled([
+    publicService.findPublicVideosPage(featuredQuery),
+    publicService.findPublicImagesPage(featuredQuery),
+  ]);
+  const video =
+    videoPage.status === 'fulfilled' ? videoPage.value.items[0] : undefined;
+  const image =
+    imagePage.status === 'fulfilled' ? imagePage.value.items[0] : undefined;
+  const media = video ?? image;
+  if (!media) {
+    return null;
+  }
+  const brandId = brandIdOf(media);
+  const creator = brandId ? await publicService.findPublicBrand(brandId) : null;
+  if (!creator?.slug) {
+    return null;
+  }
+  return { handle: creator.slug, kind: video ? 'video' : 'image', media };
 }
 
 /** Every public creator with a handle, highlighted ones first. */
@@ -143,16 +184,20 @@ export const getCommunityPageData = cache(
     const creators = withSlug(
       creatorsResult.status === 'fulfilled' ? creatorsResult.value : [],
     );
-    const { images, videos } = await loadCreatorMedia(
-      creators.slice(0, MEDIA_CREATOR_LIMIT),
-      MEDIA_PER_CREATOR,
-      LATEST_MEDIA_LIMIT,
-    );
+    const [{ images, videos }, featured] = await Promise.all([
+      loadCreatorMedia(
+        creators.slice(0, MEDIA_CREATOR_LIMIT),
+        MEDIA_PER_CREATOR,
+        LATEST_MEDIA_LIMIT,
+      ),
+      loadFeaturedMedia(),
+    ]);
 
     return {
       articles:
         articlesResult.status === 'fulfilled' ? articlesResult.value.items : [],
       creators,
+      featured,
       images,
       videos,
     };

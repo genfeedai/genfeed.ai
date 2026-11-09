@@ -10,6 +10,7 @@ import { getPublicModels } from '@public/models/models-loader';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import CommunityCreatorCard from '@web-components/creator/CommunityCreatorCard';
+import CommunityFeaturedHero from '@web-components/creator/CommunityFeaturedHero';
 import CommunityNav from '@web-components/creator/CommunityNav';
 import CreatorArticleGrid from '@web-components/creator/CreatorArticleGrid';
 import CreatorSection from '@web-components/creator/CreatorSection';
@@ -35,11 +36,13 @@ export const generateMetadata = createPageMetadataWithCanonical(
 );
 
 export default async function CommunityPage(): Promise<React.ReactElement> {
-  const [{ articles, creators, images, videos }, catalog] = await Promise.all([
-    getCommunityPageData(),
-    getPublicModels(),
+  const [{ articles, creators, featured, images, videos }, catalog] =
+    await Promise.all([getCommunityPageData(), getPublicModels()]);
+  const modelCredits = buildModelCredits(catalog, [
+    ...images,
+    ...videos,
+    ...(featured ? [featured.media] : []),
   ]);
-  const modelCredits = buildModelCredits(catalog, [...images, ...videos]);
 
   return (
     <>
@@ -78,6 +81,13 @@ export default async function CommunityPage(): Promise<React.ReactElement> {
         <CommunityNav active="discover" />
 
         <div className="space-y-16">
+          {featured ? (
+            <CommunityFeaturedHero
+              featured={featured}
+              modelCredits={modelCredits}
+            />
+          ) : null}
+
           <section aria-labelledby="community-creators" className="space-y-4">
             <h2
               className="text-lg font-semibold text-foreground"
