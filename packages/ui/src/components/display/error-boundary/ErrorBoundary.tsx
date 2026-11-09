@@ -16,10 +16,12 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { setErrorDebugInfo } from '@genfeedai/services/core/error-debug-store';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import { Button } from '@ui/primitives/button';
-import { unstable_rethrow } from 'next/navigation';
 import { Component, type ErrorInfo } from 'react';
 
 const PAGE_MAX_RETRIES = 3;
+
+/** Digest prefixes Next puts on the errors `notFound()` and `redirect()` throw. */
+const FRAMEWORK_SIGNAL_DIGESTS = ['NEXT_HTTP_ERROR_FALLBACK;', 'NEXT_REDIRECT;'];
 
 /**
  * `notFound()` and `redirect()` work by throwing. They are routing signals for
@@ -27,12 +29,11 @@ const PAGE_MAX_RETRIES = 3;
  * boundary must hand them on instead of showing "Something went wrong".
  */
 function isFrameworkSignal(error: unknown): boolean {
-  try {
-    unstable_rethrow(error);
-    return false;
-  } catch {
-    return true;
-  }
+  const digest = (error as { digest?: unknown } | null)?.digest;
+  return (
+    typeof digest === 'string' &&
+    FRAMEWORK_SIGNAL_DIGESTS.some((prefix) => digest.startsWith(prefix))
+  );
 }
 
 export class ErrorBoundary extends Component<
