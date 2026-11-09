@@ -2,8 +2,13 @@ import { renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useModalAutoOpen } from '@/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 
-const openModal = vi.fn();
-const closeModal = vi.fn();
+const openModals = new Set<string>();
+const openModal = vi.fn((id: string) => {
+  openModals.add(id);
+});
+const closeModal = vi.fn((id: string) => {
+  openModals.delete(id);
+});
 
 vi.mock('@helpers/ui/modal/modal.helper', () => ({
   closeModal: (...args: unknown[]) => closeModal(...args),
@@ -18,6 +23,7 @@ describe('useModalAutoOpen', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    openModals.clear();
     rafId = 0;
     originalRaf = globalThis.requestAnimationFrame;
     originalCancel = globalThis.cancelAnimationFrame;
@@ -50,12 +56,27 @@ describe('useModalAutoOpen', () => {
     renderHook(() => useModalAutoOpen('modal-id', { isOpen: true }));
 
     expect(openModal).toHaveBeenCalledWith('modal-id');
+    expect([...openModals]).toEqual(['modal-id']);
   });
 
   it('closes the modal when isOpen is false', () => {
+    openModals.add('modal-id');
     renderHook(() => useModalAutoOpen('modal-id', { isOpen: false }));
 
     expect(closeModal).toHaveBeenCalledWith('modal-id');
+    expect(openModals.size).toBe(0);
+  });
+
+  it('closes an open modal when isOpen turns false', () => {
+    const { rerender } = renderHook(
+      ({ isOpen }) => useModalAutoOpen('modal-id', { isOpen }),
+      { initialProps: { isOpen: true } },
+    );
+    expect(openModals.has('modal-id')).toBe(true);
+
+    rerender({ isOpen: false });
+
+    expect(openModals.has('modal-id')).toBe(false);
   });
 
   it('reopens the modal when openKey changes while open', () => {
@@ -69,6 +90,7 @@ describe('useModalAutoOpen', () => {
     rerender({ openKey: 1 });
 
     expect(openModal).toHaveBeenCalledTimes(2);
+    expect([...openModals]).toEqual(['modal-id']);
   });
 
   it('cancels animation frames on cleanup', () => {
