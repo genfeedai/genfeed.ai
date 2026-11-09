@@ -89,17 +89,25 @@ export const WORKFLOW_EXECUTION_STATE_MACHINE =
 export const WORKFLOW_EXECUTION_TERMINAL_STATUSES: ReadonlySet<WorkflowExecutionStatus> =
   WORKFLOW_EXECUTION_STATE_MACHINE.terminal;
 
+const WORKFLOW_EXECUTION_TERMINAL_VALUES: ReadonlySet<string> =
+  WORKFLOW_EXECUTION_TERMINAL_STATUSES;
+
+/**
+ * Accepts the contracts enum and the persisted Prisma label alike (both are
+ * SCREAMING_SNAKE). Lowercase wire values go through
+ * `parseWorkflowExecutionStatus` first.
+ */
 export function isTerminalWorkflowExecutionStatus(
-  status: WorkflowExecutionStatus,
+  status: WorkflowExecutionStatus | `${WorkflowExecutionStatus}`,
 ): boolean {
-  return WORKFLOW_EXECUTION_STATE_MACHINE.isTerminal(status);
+  return WORKFLOW_EXECUTION_TERMINAL_VALUES.has(status);
 }
 
 const WORKFLOW_EXECUTION_STATUS_VALUES: ReadonlySet<string> = new Set(
   Object.values(WorkflowExecutionStatus),
 );
 
-function isWorkflowExecutionStatus(
+export function isWorkflowExecutionStatus(
   value: string,
 ): value is WorkflowExecutionStatus {
   return WORKFLOW_EXECUTION_STATUS_VALUES.has(value);

@@ -1,21 +1,10 @@
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { TurboRunStatus } from '@genfeedai/contracts';
+import { isTurboRunSettled } from '@genfeedai/contracts';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { useEffect, useState } from 'react';
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_CONSECUTIVE_FAILURES = 5;
-
-const SETTLED_STATUSES: ReadonlySet<TurboRunStatus> = new Set([
-  TurboRunStatus.COMPLETED,
-  TurboRunStatus.PARTIAL,
-  TurboRunStatus.FAILED,
-  TurboRunStatus.CANCELLED,
-]);
-
-export function isTurboRunSettled(status: TurboRunStatus): boolean {
-  return SETTLED_STATUSES.has(status);
-}
 
 /**
  * Follows one run until it settles so its chat card shows real progress and

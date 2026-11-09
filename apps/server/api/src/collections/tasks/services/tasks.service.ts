@@ -25,14 +25,12 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
+import { WORKFLOW_EXECUTION_TERMINAL_STATUSES } from '@genfeedai/contracts';
 import type {
   PopulateOption,
   TaskStatus,
 } from '@genfeedai/contracts/interfaces';
-import {
-  type Prisma,
-  WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,
-} from '@genfeedai/prisma';
+import type { Prisma } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
@@ -434,11 +432,7 @@ export class TasksService extends BaseService<
               every: {
                 id: { in: input.expectedExecutionIds },
                 status: {
-                  in: [
-                    PrismaWorkflowExecutionStatus.COMPLETED,
-                    PrismaWorkflowExecutionStatus.FAILED,
-                    PrismaWorkflowExecutionStatus.CANCELLED,
-                  ],
+                  in: [...WORKFLOW_EXECUTION_TERMINAL_STATUSES],
                 },
               },
               some: {},
@@ -501,11 +495,7 @@ export class TasksService extends BaseService<
       linkedExecutions: {
         every: {
           status: {
-            in: [
-              PrismaWorkflowExecutionStatus.COMPLETED,
-              PrismaWorkflowExecutionStatus.FAILED,
-              PrismaWorkflowExecutionStatus.CANCELLED,
-            ],
+            in: [...WORKFLOW_EXECUTION_TERMINAL_STATUSES],
           },
         },
         some: {},

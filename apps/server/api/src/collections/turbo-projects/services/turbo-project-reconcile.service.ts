@@ -23,8 +23,10 @@ import {
   ContentFormat,
   IngredientCategory,
   IngredientStatus,
+  isTerminalWorkflowExecutionStatus,
   parseReviewDecision,
   ReviewDecision,
+  TURBO_PROJECT_ITEM_REVIEWABLE_STATUSES,
   TurboProjectItemStatus,
   TurboProjectKind,
   TurboProjectStatus,
@@ -74,16 +76,6 @@ const FAILED_INGREDIENT_STATUSES = new Set<string>([
   IngredientStatus.FAILED,
   IngredientStatus.REJECTED,
 ]);
-const TERMINAL_EXECUTION_STATUSES = new Set<string>([
-  WorkflowExecutionStatus.CANCELLED,
-  WorkflowExecutionStatus.COMPLETED,
-  WorkflowExecutionStatus.FAILED,
-]);
-const REVIEWABLE_ITEM_STATUSES = [
-  TurboProjectItemStatus.APPROVED,
-  TurboProjectItemStatus.READY,
-  TurboProjectItemStatus.REJECTED,
-];
 
 type ProjectWithItems = TurboProject & { items: TurboProjectItem[] };
 
@@ -627,7 +619,7 @@ export class TurboProjectReconcileService {
     const childByKey = new Map(
       children.map((child) => [child.idempotencyKey, child]),
     );
-    const isParentTerminal = TERMINAL_EXECUTION_STATUSES.has(parent.status);
+    const isParentTerminal = isTerminalWorkflowExecutionStatus(parent.status);
 
     const outcomes: ItemOutcome[] = [];
     for (const item of items) {
@@ -875,7 +867,7 @@ export class TurboProjectReconcileService {
       where: scopedWhere(organizationId, {
         projectId,
         reviewItemId: { not: null },
-        status: { in: REVIEWABLE_ITEM_STATUSES },
+        status: { in: [...TURBO_PROJECT_ITEM_REVIEWABLE_STATUSES] },
       }),
     });
     const reviewItemIds = items.flatMap((item) =>
