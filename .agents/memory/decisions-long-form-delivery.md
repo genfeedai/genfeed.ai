@@ -27,9 +27,9 @@ Dev.to publishing uses that same path (`DevtoPublisherService`).
   with `renderNewsletterHtml` before `article.create`. Dev.to is the
   Markdown-only target, so the Dev.to publisher converts stored HTML to
   Markdown at publish. Newsletters stay Markdown.
-- Newsletter Markdown renders through `renderNewsletterHtml`, shared with the
-  Substack import feed (`GET /public/rss/brands/:brandId/newsletters`).
-  Substack has no publishing API (#2087).
+- Newsletter Markdown renders through `renderNewsletterHtml`, shared by email
+  sends, the public archive (`/newsletter` on the website) and Beehiiv
+  delivery. The import feed for outside newsletter tools was removed (#9729).
 - Customer content never goes to genfeed.ai (`PublicArticleScope`).
   `publish_article` keeps its workspace/genfeed.ai publish semantics.
 - `externalUrl` on Article and Newsletter records a link published outside

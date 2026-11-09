@@ -71,7 +71,11 @@ export default function CreatorRail({
         <CopyLinkButton className="ml-auto" url={profileUrl} />
       </div>
 
-      <ProfileSubscribe brandId={brand.id} />
+      <ProfileSubscribe
+        brandId={brand.id}
+        brandLabel={label}
+        source="profile"
+      />
 
       {links.length > 0 ? (
         <ul className="space-y-2">

@@ -13,6 +13,7 @@ import {
 import {
   BRAND_BANNER_HEIGHT,
   BRAND_BANNER_WIDTH,
+  getBrandKitPlatformSlotSpec,
 } from '@genfeedai/contracts/constants';
 import type {
   IAsset,
@@ -58,6 +59,7 @@ type UseModalUploadParams = Pick<
   | 'category'
   | 'parentId'
   | 'parentModel'
+  | 'kitSlot'
   | 'onComplete'
   | 'width'
   | 'height'
@@ -75,6 +77,7 @@ export function useModalUpload({
   category,
   parentId,
   parentModel,
+  kitSlot,
   onComplete,
   width,
   height,
@@ -87,6 +90,11 @@ export function useModalUpload({
   formRef,
 }: UseModalUploadParams) {
   const { selectedBrand, fleetCapabilities } = useBrand();
+  // A platform image slot crops to, and checks against, that platform's size.
+  const slotSpec =
+    category === AssetCategory.BANNER && kitSlot
+      ? getBrandKitPlatformSlotSpec(kitSlot)
+      : undefined;
   const [error, setError] = useState<string | null>(null);
   const [dimensionWarning, setDimensionWarning] = useState<string | null>(null);
   const [fileStatuses, setFileStatuses] = useState<
@@ -238,7 +246,7 @@ export function useModalUpload({
       if (
         isHeicUpload(newFile) ||
         !newFile.type.startsWith('image/') ||
-        !((width && width > 0) || (height && height > 0))
+        !(slotSpec || (width && width > 0) || (height && height > 0))
       ) {
         return;
       }
@@ -266,7 +274,24 @@ export function useModalUpload({
         if (!isActive) {
           return;
         }
+        const minWidth = slotSpec?.minWidth ?? slotSpec?.width;
+        const minHeight = slotSpec?.minHeight ?? slotSpec?.height;
         if (
+          hasDimensions &&
+          image &&
+          slotSpec &&
+          minWidth &&
+          minHeight &&
+          (image.width < minWidth || image.height < minHeight)
+        ) {
+          // Said before saving: an undersized image still uploads, but the
+          // platform will show it soft or refuse it.
+          setDimensionWarning(
+            `Uploaded image is ${image.width}x${image.height}px; this slot needs at least ${minWidth}x${minHeight}px.`,
+          );
+        } else if (slotSpec) {
+          setDimensionWarning(null);
+        } else if (
           hasDimensions &&
           image &&
           ((width && image.width !== width) ||
@@ -297,6 +322,7 @@ export function useModalUpload({
       height,
       isLibraryImage,
       maxFiles,
+      slotSpec,
       width,
     ],
   );
@@ -454,12 +480,18 @@ export function useModalUpload({
             selectedFile = await rasterizeSvgFile(selectedFile);
           }
 
-          // A banner is always the X header format (1500x500, 3:1).
+          // A banner is the X header format (1500x500, 3:1) unless it fills
+          // a platform slot, which crops to that platform's size.
           if (
             category === AssetCategory.BANNER &&
             selectedFile.type.startsWith('image/')
           ) {
-            selectedFile = await cropFileToBanner(selectedFile);
+            selectedFile = await cropFileToBanner(
+              selectedFile,
+              slotSpec
+                ? { height: slotSpec.height, width: slotSpec.width }
+                : undefined,
+            );
           }
 
           const handleProgress = (
@@ -526,6 +558,9 @@ export function useModalUpload({
               );
               if (parentId) {
                 formData.append('parentId', parentId);
+              }
+              if (kitSlot) {
+                formData.append('kitSlot', kitSlot);
               }
               const assetsService = await getAssetsService();
               uploaded = await assetsService.postUpload(
@@ -667,8 +702,13 @@ export function useModalUpload({
     isAudioLike,
     isLibraryImage,
   );
-  const dimensionText =
-    category === AssetCategory.BANNER
+  const dimensionText = slotSpec
+    ? `Cropped to ${slotSpec.width}x${slotSpec.height}px${
+        slotSpec.safeArea
+          ? `; keep text and logos inside the centered ${slotSpec.safeArea.width}x${slotSpec.safeArea.height}px safe area`
+          : ''
+      }.`
+    : category === AssetCategory.BANNER
       ? `Cropped to ${BRAND_BANNER_WIDTH}x${BRAND_BANNER_HEIGHT}px (3:1), the X header size.`
       : getDimensionText(width, height);
   const selectedFileList = recordedFile ? [recordedFile] : files;

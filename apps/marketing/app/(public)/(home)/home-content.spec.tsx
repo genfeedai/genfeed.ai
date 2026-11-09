@@ -28,6 +28,10 @@ vi.mock('@web-components/proof/ProofWinners', () => ({
   default: () => <section data-testid="home-winners">Winners</section>,
 }));
 
+vi.mock('@web-components/home/_newsletter', () => ({
+  default: () => <section data-testid="home-newsletter">Newsletter</section>,
+}));
+
 vi.mock('@web-components/home/_cta', () => ({
   default: () => <section data-testid="home-cta">CTA</section>,
 }));
@@ -78,7 +82,14 @@ describe('HomeContent', () => {
 
     expect(sections[4]).toBe(screen.getByTestId('home-providers'));
     expect(sections[5]).toBe(screen.getByTestId('home-asks'));
-    expect(sections[6]).toBe(screen.getByTestId('home-cta'));
+  });
+
+  it('offers the newsletter just before the closing call to action', () => {
+    render(<HomeContent />);
+    const sections = Array.from(screen.getByTestId('home-reveal').children);
+
+    expect(sections[6]).toBe(screen.getByTestId('home-newsletter'));
+    expect(sections[7]).toBe(screen.getByTestId('home-cta'));
   });
 
   it('drops the sections that moved to pricing and the FAQ page', () => {

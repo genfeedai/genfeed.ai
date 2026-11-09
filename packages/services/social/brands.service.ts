@@ -1,4 +1,7 @@
-import type { ReferenceImageCategory } from '@genfeedai/contracts';
+import type {
+  BrandKitSlot,
+  ReferenceImageCategory,
+} from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   IActivity,
@@ -12,6 +15,8 @@ import type {
   IBrandKitAssetImportResponse,
   IBrandKitDraft,
   IBrandKitManualInput,
+  IBrandKitPlatformFillRequest,
+  IBrandKitPlatformFillResult,
   IBrandOnboardingScan,
   IBrandOnboardingScanRequest,
   IBrandOsDraftHandoff,
@@ -621,6 +626,20 @@ export class BrandsService extends BaseService<Brand> {
     return this.instance
       .patch<JsonApiResponseDocument>(`/${id}`, settings)
       .then((res) => this.mapOne(res.data));
+  }
+
+  /** Resize the master banner into the chosen platform image slots. */
+  public async fillPlatformImagesFromMaster(
+    id: string,
+    slots: BrandKitSlot[],
+  ): Promise<IBrandKitPlatformFillResult[]> {
+    const request: IBrandKitPlatformFillRequest = { slots };
+    return this.instance
+      .post<{ data: IBrandKitPlatformFillResult[] }>(
+        `/${id}/kit/platform-images/from-master`,
+        request,
+      )
+      .then((res) => res.data.data);
   }
 
   public async updateEndCard(

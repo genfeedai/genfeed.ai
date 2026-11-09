@@ -18,6 +18,7 @@ function toAssetRelation(
     ...(asset.referenceCategory
       ? { referenceCategory: asset.referenceCategory }
       : {}),
+    ...(asset.slot ? { kitSlot: asset.slot } : {}),
   };
 }
 
@@ -34,7 +35,9 @@ export function toBrandKitAssetRelations(
 ): IBrandKitAssetRelations {
   return {
     banner: resolved.banner ? toAssetRelation(resolved.banner) : undefined,
+    banners: (resolved.banners ?? []).map(toAssetRelation),
     logo: resolved.logo ? toAssetRelation(resolved.logo) : undefined,
+    logos: (resolved.logos ?? []).map(toAssetRelation),
     references: resolved.references.map(toAssetRelation),
   };
 }

@@ -2,6 +2,7 @@ import {
   ASSET_ORIGIN_GENERATED,
   ASSET_ORIGIN_GENERATION_PENDING,
 } from '@api/collections/assets/constants/asset-origin.constant';
+import { GENERATION_CANCELLED_BY_USER } from '@api/collections/ingredients/constants/generation-cancellation.constants';
 import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { WebhookGenerationSettlementService } from '@api/endpoints/webhooks/services/webhook-generation-settlement.service';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
@@ -35,6 +36,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import {
   AssetCategory,
   AssetParent,
+  BrandKitSlot,
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
@@ -188,6 +190,7 @@ describe('WebhooksService', () => {
           provide: FilesClientService,
           useValue: {
             generateThumbnail: vi.fn(),
+            resizeImageFromUrl: vi.fn(),
             uploadToS3: vi.fn(),
           },
         },
@@ -498,6 +501,25 @@ describe('WebhooksService', () => {
 
       expect(ingredientsService.patchAll).not.toHaveBeenCalled();
       expect(mediaUploadService.uploadAndUpdateMetadata).not.toHaveBeenCalled();
+    });
+
+    it('keeps a generation the user cancelled failed when the provider finishes late (#9735)', async () => {
+      ingredientsService.findOne.mockResolvedValue({
+        ...mockVideoIngredientDoc,
+        generationError: GENERATION_CANCELLED_BY_USER,
+        status: IngredientStatus.FAILED,
+      });
+
+      await service.processMediaForIngredient(
+        mockIngredientId.toString(),
+        IngredientCategory.AVATAR,
+        'https://example.com/avatar.mp4',
+        'provider-video-1',
+      );
+
+      expect(ingredientsService.patchAll).not.toHaveBeenCalled();
+      expect(mediaUploadService.uploadAndUpdateMetadata).not.toHaveBeenCalled();
+      expect(generationBilling.settleOutput).not.toHaveBeenCalled();
     });
 
     it('should process video from webhook successfully', async () => {
@@ -1134,6 +1156,29 @@ describe('WebhooksService', () => {
       );
     });
 
+    it('stores a platform banner at its slot size', async () => {
+      const resized = Buffer.from('resized');
+      assetsService.findOne.mockResolvedValue({
+        ...mockAsset,
+        category: AssetCategory.BANNER,
+        kitSlot: BrandKitSlot.YOUTUBE_BANNER,
+        mimeType: 'image/jpeg',
+      } as unknown as AssetDocument);
+      filesClientService.resizeImageFromUrl.mockResolvedValue(resized);
+
+      await service.processAssetFromWebhook(integration, assetId, url);
+
+      expect(filesClientService.resizeImageFromUrl).toHaveBeenCalledWith(url, {
+        height: 1440,
+        width: 2560,
+      });
+      expect(filesClientService.uploadToS3).toHaveBeenCalledWith(
+        assetId,
+        'banners',
+        { contentType: 'image/jpeg', data: resized, type: 'buffer' },
+      );
+    });
+
     it('should handle asset with user as string ID', async () => {
       const assetWithStringUser = {
         ...mockAsset,
@@ -1224,6 +1269,7 @@ describe('WebhooksService', () => {
           {
             category: AssetCategory.LOGO,
             id: { not: assetId },
+            OR: [{ kitSlot: 'LOGO_PRIMARY' }, { kitSlot: null }],
             parentBrandId: sharedId,
             parentType: AssetParent.BRAND,
           },

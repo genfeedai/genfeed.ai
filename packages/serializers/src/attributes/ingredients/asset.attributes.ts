@@ -9,6 +9,7 @@ export const assetAttributes = createEntityAttributes([
   'parentArticleId',
   'category',
   'referenceCategory',
+  'kitSlot',
   // Absolute URL for the stored object. Not a column — resolved from
   // `cloudObjectKey` by whoever attaches the asset (see brand kit assets).
   'cdnUrl',

@@ -51,6 +51,14 @@ export class Brand extends BaseBrand {
       this.banner = new Asset(partial.banner as IAsset);
     }
 
+    if (partial?.logos && Array.isArray(partial.logos)) {
+      this.logos = partial.logos.map((asset) => new Asset(asset as IAsset));
+    }
+
+    if (partial?.banners && Array.isArray(partial.banners)) {
+      this.banners = partial.banners.map((asset) => new Asset(asset as IAsset));
+    }
+
     if (partial?.references && Array.isArray(partial.references)) {
       this.references = partial.references.map((r) => new Asset(r as IAsset));
     }

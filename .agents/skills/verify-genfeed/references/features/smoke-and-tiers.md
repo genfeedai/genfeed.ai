@@ -9,8 +9,8 @@ and an expiring `reviewBy`; expired ones fail CI. `bun run test:e2e:routes` is a
 route-reference inventory, not coverage.
 
 ## How a user reaches it
-CI workflow: `playwright-full-nightly.yml` (reporting-only). Pull requests run no
-Playwright. Locally: the lane commands in SKILL.md.
+CI workflows: `playwright-master-core.yml` (core once per merge burst on master) and
+`playwright-full-nightly.yml`, both reporting-only. Pull requests run no Playwright. Locally: the lane commands in SKILL.md.
 
 ## How to drive it
 Specs under `playwright/e2e/tests/smoke/`: `safe`, `all-app-pages`,

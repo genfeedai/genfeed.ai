@@ -10,10 +10,7 @@ import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
-import { rememberOAuthConnectContext } from './oauth-connect-context';
-
-/** sessionStorage key read by `/oauth/[platform]` after provider redirect. */
-export const OAUTH_RETURN_TO_STORAGE_KEY = 'oauth_return_to';
+import { redirectToOAuthAuthorization } from './oauth-connect-context';
 
 export interface UsePlatformOAuthConnectOptions {
   /**
@@ -73,12 +70,6 @@ export function usePlatformOAuthConnect(
         }
         const returnTo = options.returnTo ?? defaultReturnTo;
 
-        try {
-          sessionStorage.setItem(OAUTH_RETURN_TO_STORAGE_KEY, returnTo);
-        } catch {
-          // Private mode / blocked storage — URL param is best-effort only.
-        }
-
         const service = new ServicesService(
           resolveOAuthServicePath(platform),
           token,
@@ -88,15 +79,12 @@ export function usePlatformOAuthConnect(
           brandId,
           ...(credentialId ? { credentialId } : {}),
         });
-        rememberOAuthConnectContext({
+        redirectToOAuthAuthorization({
+          authorizationUrl: credential.url,
           brandId,
           credentialId: credential.id || credentialId,
+          returnTo,
         });
-        const separator = credential.url.includes('?') ? '&' : '?';
-        window.open(
-          `${credential.url}${separator}return_to=${encodeURIComponent(returnTo)}`,
-          '_self',
-        );
       } catch (error) {
         if (error instanceof OAuthBrandRequiredError) {
           throw error;

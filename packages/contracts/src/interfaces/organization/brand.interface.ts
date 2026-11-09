@@ -55,6 +55,10 @@ export interface IBrand extends IBaseEntity {
 
   logo?: IAsset;
   banner?: IAsset;
+  /** Every live logo variant (see `kitSlot`), default logo included. */
+  logos?: IAsset[];
+  /** Every live banner and platform profile image (see `kitSlot`). */
+  banners?: IAsset[];
   references?: IAsset[];
 
   logoUrl?: string;

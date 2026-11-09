@@ -1,5 +1,8 @@
 import type { PublicViewTarget } from '@data/public-views';
-import type { CreatorProfileTab } from '@genfeedai/contracts/constants';
+import type {
+  BrandSubscriberPublicSource,
+  CreatorProfileTab,
+} from '@genfeedai/contracts/constants';
 import type { Article } from '@models/content/article.model';
 import type { Post } from '@models/content/post.model';
 import type { Brand } from '@models/organization/brand.model';
@@ -107,6 +110,9 @@ export interface CreatorPostGridProps {
 
 export interface ProfileSubscribeProps {
   brandId: string;
+  brandLabel?: string;
+  source: Extract<BrandSubscriberPublicSource, 'profile' | 'article' | 'post'>;
+  sourceRef?: string;
 }
 
 export interface CommunityCreatorCardProps {

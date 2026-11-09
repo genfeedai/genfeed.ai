@@ -1,0 +1,159 @@
+# Playwright core on master
+#
+# Runs the Playwright `core` tier (mocked app, see docs/e2e-tiers.md) once on
+# master after merges land, so a browser break is known within about 15 minutes
+# instead of at the nightly or the release run. Pull requests never run
+# Playwright.
+#
+# Debounced by concurrency, without cancelling: at most one run is in progress
+# and one is pending, and a newer push replaces the pending one before it
+# starts. A burst of merges therefore costs at most two runs, the second on the
+# latest master commit.
+#
+# Reporting only: master has no merge gate to block, and this workflow never
+# feeds full-suite.yml or release.yml. A red run opens (or comments on) one
+# tracking issue; the next green run closes it.
+
+name: Playwright Core on Master
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - ".agents/**"
+  workflow_dispatch:
+
+concurrency:
+  group: playwright-master-core
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TZ: UTC
+
+jobs:
+  core:
+    name: Playwright Core (master)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build app for Playwright
+        uses: ./.github/actions/setup-playwright-app
+        with:
+          better-auth-secret: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          better-auth-enabled: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
+
+      - name: Run core tier
+        run: bun run test:e2e:sharded
+        env:
+          CI: true
+          E2E_SHARD: 1/1
+          APP_BASE_URL: http://localhost:3000
+          E2E_EXPECT_TIMEOUT_MS: "15000"
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
+
+      # Artifact downloads are not always reachable from where failures are
+      # triaged, so surface the page snapshot Playwright wrote for each failure.
+      - name: Print failure snapshots
+        if: failure()
+        run: |
+          for f in playwright/artifacts/results/*/error-context.md; do
+            [ -f "$f" ] || continue
+            echo "::group::$f"
+            head -c 4000 "$f"
+            echo
+            echo "::endgroup::"
+          done
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-master-core-report
+          path: |
+            playwright/artifacts/report/
+            playwright/artifacts/results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  report:
+    name: Track master Playwright core result
+    needs: core
+    if: >-
+      !cancelled()
+      && (needs.core.result == 'success' || needs.core.result == 'failure')
+    concurrency:
+      group: playwright-master-core-tracker
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Open, update or close the tracking issue
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          CORE_RESULT: ${{ needs.core.result }}
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const title = 'Playwright core is red on master';
+            const { owner, repo } = context.repo;
+            const sha = process.env.SOURCE_SHA.slice(0, 9);
+            const runUrl = process.env.RUN_URL;
+            const open = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const tracker = open.find(
+              (issue) => !issue.pull_request && issue.title === title,
+            );
+
+            if (process.env.CORE_RESULT === 'success') {
+              if (!tracker) return;
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: tracker.number,
+                body: `Green again on \`${sha}\`: ${runUrl}`,
+              });
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: tracker.number,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+              return;
+            }
+
+            const body = `Playwright core failed on master at \`${sha}\`: ${runUrl}`;
+            if (tracker) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: tracker.number,
+                body,
+              });
+              return;
+            }
+            await github.rest.issues.create({
+              owner,
+              repo,
+              title,
+              body: `${body}\n\nThe failing specs and page snapshots are in the run log. This issue closes itself on the next green run.`,
+            });

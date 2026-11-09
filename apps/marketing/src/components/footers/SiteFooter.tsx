@@ -1,3 +1,4 @@
+import { GENFEED_BRAND_HANDLE } from '@genfeedai/contracts/constants';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
@@ -9,6 +10,7 @@ import {
 } from '@genfeedai/helpers/ui/icons/brands';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import CopyrightYear from '@web-components/footers/CopyrightYear';
+import NewsletterSubscribeForm from '@web-components/newsletter/NewsletterSubscribeForm';
 import { Mail } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -158,17 +160,17 @@ export default function SiteFooter({
                   <Mail className="size-4" />
                   Newsletter
                 </h3>
-                <p className="mb-4 text-sm leading-6 text-muted-foreground">
-                  AI content tips and product updates delivered weekly.
-                </p>
-
+                <NewsletterSubscribeForm
+                  brandHandle={GENFEED_BRAND_HANDLE}
+                  description="What we shipped and what worked, by email."
+                  isStacked
+                  source="footer"
+                />
                 <Link
-                  href={EnvironmentService.social.substack}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-foreground underline underline-offset-4 transition-colors hover:text-foreground/80"
+                  href="/newsletter"
+                  className="mt-3 inline-flex text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
                 >
-                  Subscribe on Substack
+                  Past issues
                 </Link>
               </div>
             )}

@@ -27,6 +27,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Eye, Heart, MessageSquare, TrendingUp, Zap } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  isPostDetailPublishBlocked,
+  type PostDetailOperation,
+  type PostDetailPendingOperations,
+  setPostDetailOperation,
+} from './post-detail-operations';
 
 export const GROK_FEEDBACK_QUESTIONS = [
   '@grok What are your thoughts on this thread?',
@@ -85,6 +91,8 @@ export interface UsePostDetailStateReturn {
   setFocusedPostId: (id: string | null) => void;
 
   // Status flags
+  /** Schedule and Publish are disabled while this holds (#9741). */
+  isPublishBlocked: boolean;
   isUpdating: boolean;
   setIsUpdating: React.Dispatch<React.SetStateAction<boolean>>;
   isSavingIngredients: boolean;
@@ -205,16 +213,48 @@ export function usePostDetailState({
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
   const [focusedPostId, setFocusedPostId] = useState<string | null>(null);
 
-  // Status flags
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [isSavingIngredients, setIsSavingIngredients] = useState(false);
-  const [isSavingDescription, setIsSavingDescription] = useState(false);
-  const [isSavingSchedule, setIsSavingSchedule] = useState(false);
+  // In-flight saves: one set, read back as the booleans call sites use.
+  const [pendingOperations, setPendingOperations] =
+    useState<PostDetailPendingOperations>(() => new Set());
+  const operationSetters = useMemo(() => {
+    const setterFor =
+      (
+        operation: PostDetailOperation,
+      ): React.Dispatch<React.SetStateAction<boolean>> =>
+      (value) =>
+        setPendingOperations((pending) =>
+          setPostDetailOperation(
+            pending,
+            operation,
+            typeof value === 'function' ? value(pending.has(operation)) : value,
+          ),
+        );
+    return {
+      expandToThread: setterFor('expand-to-thread'),
+      saveDescription: setterFor('save-description'),
+      saveIngredients: setterFor('save-ingredients'),
+      saveSchedule: setterFor('save-schedule'),
+      toggleFirstComment: setterFor('toggle-first-comment'),
+      toggleGrok: setterFor('toggle-grok'),
+      update: setterFor('update'),
+    };
+  }, []);
+  const isUpdating = pendingOperations.has('update');
+  const setIsUpdating = operationSetters.update;
+  const isSavingIngredients = pendingOperations.has('save-ingredients');
+  const setIsSavingIngredients = operationSetters.saveIngredients;
+  const isSavingDescription = pendingOperations.has('save-description');
+  const setIsSavingDescription = operationSetters.saveDescription;
+  const isSavingSchedule = pendingOperations.has('save-schedule');
+  const setIsSavingSchedule = operationSetters.saveSchedule;
   const [enhancingPostId, setEnhancingPostId] = useState<string | null>(null);
   const [enhancingAction, setEnhancingAction] = useState<string | null>(null);
-  const [isTogglingGrok, setIsTogglingGrok] = useState(false);
-  const [isTogglingFirstComment, setIsTogglingFirstComment] = useState(false);
-  const [isExpandingToThread, setIsExpandingToThread] = useState(false);
+  const isTogglingGrok = pendingOperations.has('toggle-grok');
+  const setIsTogglingGrok = operationSetters.toggleGrok;
+  const isTogglingFirstComment = pendingOperations.has('toggle-first-comment');
+  const setIsTogglingFirstComment = operationSetters.toggleFirstComment;
+  const isExpandingToThread = pendingOperations.has('expand-to-thread');
+  const setIsExpandingToThread = operationSetters.expandToThread;
   const [generatingChildPostIds, setGeneratingChildPostIds] = useState<
     Set<string>
   >(new Set());
@@ -472,6 +512,7 @@ export function usePostDetailState({
       isUpdating,
       getPostsService,
       notificationsService,
+      setIsUpdating,
       setPost,
       updateDescriptionRefs,
       updateLabelRefs,
@@ -519,6 +560,7 @@ export function usePostDetailState({
     isExpandingToThread,
     isLastChildGrokTweet,
     isLoading,
+    isPublishBlocked: isPostDetailPublishBlocked(pendingOperations),
     isPublished,
     isSavingDescription,
     isSavingIngredients,

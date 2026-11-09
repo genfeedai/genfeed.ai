@@ -1,8 +1,13 @@
-import type { AssetCategory, CredentialPlatform } from '@genfeedai/contracts';
+import type {
+  AssetCategory,
+  BrandKitSlot,
+  CredentialPlatform,
+} from '@genfeedai/contracts';
 import type {
   AccountHealthSummary,
   DirectMessageCapability,
   IArticle,
+  IAsset,
   IBrand,
   IBrandConversationStarter,
   IBrandKitAssetCandidate,
@@ -378,7 +383,10 @@ export interface UseBrandDetailReturn {
   ) => Promise<void>;
   handleUpdateHandle: (value: string) => Promise<void>;
   isUpdating: boolean;
-  handleOpenUploadModal: (category: AssetCategory) => void;
+  handleOpenUploadModal: (
+    category: AssetCategory,
+    kitSlot?: BrandKitSlot,
+  ) => void;
   handleRequestDeleteReference: (assetId: string) => void;
   handleCopy: (text?: string) => void;
   handleLinkConfirm: () => void;
@@ -401,7 +409,7 @@ export interface BrandLutSettingsProps {
 }
 
 export interface BrandWatermarkLogoSelectProps {
-  assets: Array<{ id: string }>;
+  assets: IAsset[];
   brand: IBrand;
   id: string;
   isDisabled: boolean;

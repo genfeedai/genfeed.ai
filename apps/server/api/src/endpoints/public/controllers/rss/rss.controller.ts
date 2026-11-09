@@ -1,6 +1,4 @@
-import { NewsletterImportFeedService } from '@api/endpoints/public/services/newsletter-import-feed.service';
 import { RssService } from '@api/endpoints/public/services/rss.service';
-import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { Public } from '@libs/decorators/public.decorator';
 import { Controller, Get, Header, Param } from '@nestjs/common';
@@ -9,10 +7,7 @@ import { Controller, Get, Header, Param } from '@nestjs/common';
 @Public()
 @Controller('public/rss')
 export class PublicRSSController {
-  constructor(
-    private readonly rssService: RssService,
-    private readonly newsletterImportFeedService: NewsletterImportFeedService,
-  ) {}
+  constructor(private readonly rssService: RssService) {}
 
   /**
    * Global RSS feed - all public published articles
@@ -42,23 +37,6 @@ export class PublicRSSController {
   @Header('Content-Type', 'application/rss+xml; charset=utf-8')
   getBrandFeed(@Param('brandId') brandId: string): Promise<string> {
     return this.rssService.generateBrandFeed(brandId);
-  }
-
-  /**
-   * Import-ready newsletter archive for generic RSS importers such as Substack.
-   * This is a feed surface, not a schedulable publishing adapter.
-   */
-  @Get('brands/:brandId/newsletters')
-  @Header('Cache-Control', 'public, max-age=600')
-  @Header('Content-Type', 'application/rss+xml; charset=utf-8')
-  @Cache({
-    keyGenerator: (req) =>
-      `public:rss:brand:${req.params?.brandId ?? 'unknown'}:newsletters`,
-    tags: ['newsletters', 'public'],
-    ttl: 600,
-  })
-  getBrandNewsletterFeed(@Param('brandId') brandId: string): Promise<string> {
-    return this.newsletterImportFeedService.generateBrandFeed(brandId);
   }
 
   /**

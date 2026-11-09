@@ -383,9 +383,7 @@ export function resolveReviewTurboRunItemFormat(
   platform?: string,
 ): ReviewTurboRunItemFormat {
   const normalizedPlatform = platform?.toLowerCase();
-  return normalizedPlatform === 'beehiiv' ||
-    normalizedPlatform === 'substack' ||
-    normalizedPlatform === 'email'
+  return normalizedPlatform === 'beehiiv' || normalizedPlatform === 'email'
     ? 'newsletter'
     : 'post';
 }

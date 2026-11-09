@@ -206,14 +206,14 @@ describe('runCheckProductRouteInventory', () => {
     // organization level by the catch-all. Creator profiles, their tabs and
     // their articles live under /creator-profile/[handle] (served at /@handle),
     // and the website gained /community. Newsletter added its audience,
-    // settings and analytics pages.
+    // settings and analytics pages, and the website its /newsletter archive.
     expect(runCheckProductRouteInventory()).toMatchObject({
       appPublicRouteCount: 25,
       issues: [],
       protectedPageCount: 249,
       protectedRouteCount: 274,
-      publicRouteCount: 118,
-      websitePublicRouteCount: 93,
+      publicRouteCount: 120,
+      websitePublicRouteCount: 95,
     });
   });
 });

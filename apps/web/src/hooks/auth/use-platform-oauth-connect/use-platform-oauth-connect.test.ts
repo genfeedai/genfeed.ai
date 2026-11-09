@@ -45,10 +45,8 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(searchString),
 }));
 
-import {
-  OAUTH_RETURN_TO_STORAGE_KEY,
-  usePlatformOAuthConnect,
-} from './use-platform-oauth-connect';
+import { OAUTH_RETURN_TO_STORAGE_KEY } from './oauth-connect-context';
+import { usePlatformOAuthConnect } from './use-platform-oauth-connect';
 
 describe('usePlatformOAuthConnect', () => {
   const openSpy = vi

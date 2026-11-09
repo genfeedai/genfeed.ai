@@ -353,9 +353,6 @@ export const EnvironmentService = {
     linkedin:
       process.env.NEXT_PUBLIC_SOCIAL_LINKEDIN ||
       'https://linkedin.com/company/genfeedai',
-    substack:
-      process.env.NEXT_PUBLIC_SOCIAL_SUBSTACK ||
-      'https://genfeedai.substack.com',
     tiktok:
       process.env.NEXT_PUBLIC_SOCIAL_TIKTOK || 'https://tiktok.com/@genfeedai',
     twitter:

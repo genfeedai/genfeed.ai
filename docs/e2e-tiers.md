@@ -41,9 +41,20 @@ that suite, and is re-dispatched otherwise.
 
 Pull requests do not run Playwright. A per-PR smoke ran from 2026-10-20 to
 2026-11-09 and was removed: it cost about 15 runner hours a day and slowed
-merging when many PRs are open. Browser regressions surface in the nightly
-`full` run and the release gate instead. To check a UI change before merging,
-run the `core` lane locally (see the `verify-genfeed` skill).
+merging when many PRs are open. `scripts/ci/pr-validation-workflows.test.mjs`
+fails if a pull request workflow, or one it calls, runs Playwright. To check a
+UI change before merging, run the `core` lane locally (see the `verify-genfeed`
+skill).
+
+## Core on master
+
+`playwright-master-core.yml` runs the `core` tier on one runner after merges
+land on master. Its concurrency group never cancels a run in progress; a newer
+push replaces the pending run before it starts, so a burst of merges costs at
+most two runs and the second covers the latest commit. Docs-only pushes skip it.
+It is reporting only: a red run opens or comments on the issue "Playwright core
+is red on master", and the next green run closes it. It never feeds
+`full-suite.yml` or `release.yml`.
 
 ## Same-PR spec rule
 

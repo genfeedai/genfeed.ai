@@ -20,7 +20,6 @@ export const PLATFORM_COLORS = {
   shopify: '#96BF48',
   slack: '#4A154B',
   snapchat: '#FFFC00',
-  substack: '#FF6719',
   telegram: '#26A5E4',
   threads: '#000000',
   tiktok: '#FE2C55',
