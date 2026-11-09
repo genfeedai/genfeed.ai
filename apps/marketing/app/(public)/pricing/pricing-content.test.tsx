@@ -46,7 +46,7 @@ vi.mock('@web-hooks/ui/use-marketing-entrance', () => ({
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
     apps: { app: 'https://app.genfeed.test' },
-    calendly: 'https://calendar.app.google/S2Crg8uCe1dVnWRN6',
+    bookingUrl: 'https://calendar.app.google/S2Crg8uCe1dVnWRN6',
   },
 }));
 

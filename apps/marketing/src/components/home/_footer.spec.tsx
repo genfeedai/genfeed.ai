@@ -27,7 +27,7 @@ vi.mock('next/link', () => ({
 
 vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
-    calendly: 'https://calendly.com/genfeed/demo',
+    bookingUrl: 'https://example.com/book',
     logoURL: 'https://genfeed.ai/logo.png',
     social: {
       discord: 'https://discord.gg/genfeed',

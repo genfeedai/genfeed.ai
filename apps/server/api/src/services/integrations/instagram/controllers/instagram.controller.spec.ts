@@ -615,6 +615,46 @@ describe('InstagramController', () => {
       expect(credentialsPatchMock).not.toHaveBeenCalled();
     });
 
+    it('reads permissions from granular_scopes when Meta leaves the scopes list empty', async () => {
+      mockGraphReads({
+        debugToken: () =>
+          of({
+            data: {
+              data: {
+                granular_scopes: [
+                  { scope: 'instagram_basic', target_ids: ['ig-granted'] },
+                  { scope: 'instagram_content_publish' },
+                ],
+                is_valid: true,
+                scopes: [],
+              },
+            },
+          }),
+      });
+
+      await controller.verify(mockRequest, { code: 'auth-code', state });
+
+      expect(credentialsPatchMock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          grantedScopes: ['instagram_basic', 'instagram_content_publish'],
+        }),
+      );
+    });
+
+    it('does not read an empty permission list as a missing permission', async () => {
+      mockGraphReads({
+        debugToken: () =>
+          of({ data: { data: { is_valid: true, scopes: [] } } }),
+      });
+
+      await controller.verify(mockRequest, { code: 'auth-code', state });
+
+      expect(
+        instagramServiceMock.listAuthorizedInstagramAccounts,
+      ).toHaveBeenCalled();
+    });
+
     it('takes granted permissions from the exchange response when Meta includes them', async () => {
       mockGraphReads({
         exchange: {
