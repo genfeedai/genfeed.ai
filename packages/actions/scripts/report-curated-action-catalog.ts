@@ -9,15 +9,17 @@ const QUOTED_SURFACE_PATTERN = /'(agent|mcp|workflow)'/gu;
 const CATALOG_PATH = 'packages/actions/src/registry/curated-action-catalog.ts';
 
 /**
- * Matches one catalog entry after its source lines have been collapsed to a
- * single whitespace-normalized string (see `readEntry`). This lets the same
- * pattern accept every shape Biome produces for an entry — a short one-liner,
- * a reflowed multi-line object once a longer field (like `toolset`) pushes it
- * past the print width, and the always-multi-line publishing-approval shape —
- * without caring where the line breaks or trailing commas land.
+ * An entry after its source lines have been collapsed to a single
+ * whitespace-normalized string (see `readEntry`). Entries carry policy fields
+ * (`mutationPolicy`, `claudeAccess`, `annotationOverride`, ...) beside the
+ * three this report tracks, in whatever order and line breaks Biome produces,
+ * so the tracked fields are read one at a time and the rest is ignored.
  */
-const ENTRY_PATTERN =
-  /^\{ (?:isPublishingApprovalRequired: true, )?name: '([a-z][a-z0-9_]*)', surfaces: \[((?:'(?:agent|mcp|workflow)'(?:, )?)*)\](?:, toolset: '([a-z][a-z0-9-]*)')?,? \},?$/u;
+const ENTRY_SHAPE_PATTERN = /^\{ .* \},?$/u;
+const NAME_PATTERN = /[{ ,]name: '([a-z][a-z0-9_]*)'/u;
+const SURFACES_PATTERN =
+  /[{ ,]surfaces: \[((?:'(?:agent|mcp|workflow)'(?:, )?)*)\]/u;
+const TOOLSET_PATTERN = /[{ ,]toolset: '([a-z][a-z0-9-]*)'/u;
 
 export type CatalogSurface = 'agent' | 'mcp' | 'workflow';
 
@@ -121,16 +123,17 @@ export function parseCatalogSource(
       .join(' ')
       .replace(WHITESPACE_RUNS_PATTERN, ' ')
       .trim();
-    const match = normalized.match(ENTRY_PATTERN);
-    if (!match) {
+    const name = normalized.match(NAME_PATTERN)?.[1];
+    const surfaceText = normalized.match(SURFACES_PATTERN)?.[1];
+    const toolset = normalized.match(TOOLSET_PATTERN)?.[1];
+    if (
+      !ENTRY_SHAPE_PATTERN.test(normalized) ||
+      !name ||
+      surfaceText === undefined
+    ) {
       throw new Error(
         `${fileName}:${entryLine} is not a canonical catalog entry`,
       );
-    }
-
-    const [, name, surfaceText, toolset] = match;
-    if (!name || surfaceText === undefined) {
-      throw new Error(`${fileName}:${entryLine} has an invalid catalog entry`);
     }
     const surfaces = [...surfaceText.matchAll(QUOTED_SURFACE_PATTERN)].map(
       (surface) => surface[1] as CatalogSurface,
