@@ -605,6 +605,7 @@ export function getActivityCreditsDelta(activity: IActivity): string | null {
     case 'add':
     case 'refund':
     case 'rollover':
+    case 'transfer_in':
       return `+${amount}`;
     default:
       return `\u2212${amount}`;

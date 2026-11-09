@@ -380,6 +380,45 @@ describe.skipIf(!connectionString)('credit transfers (PostgreSQL)', () => {
     expect(await wallet(reader)).toEqual({ balance: 100, earnedBalance: 0 });
   });
 
+  it('still returns a committed transfer after the two organizations start sharing a wallet', async () => {
+    await seedWorkspace(reader, { balance: 100, paid: true });
+    await seedWorkspace(creator, { balance: 0, paid: false });
+    const first = await tip(10, 'tip-before-link');
+    await database().organization.update({
+      data: { billingAccountId: reader.billingAccountId },
+      where: { id: creator.organizationId },
+    });
+
+    const retry = await tip(10, 'tip-before-link');
+
+    expect(retry).toMatchObject({
+      transferId: first.transferId,
+      wasApplied: false,
+    });
+    expect(await transferRows(reader)).toHaveLength(1);
+  });
+
+  it('rejects a brand that does not belong to the creator', async () => {
+    await seedWorkspace(reader, { balance: 100, paid: true });
+    await seedWorkspace(creator, { balance: 0, paid: false });
+
+    await expect(
+      transfers.transfer({
+        amount: 10,
+        idempotencyKey: 'tip-foreign-brand',
+        kind: CreditTransferKind.TIP,
+        payeeBrandId: `ct-foreign-brand-${suffix}`,
+        payeeOrganizationId: creator.organizationId,
+        payerOrganizationId: reader.organizationId,
+        payerUserId: reader.userId,
+      }),
+    ).rejects.toThrow(
+      'The brand does not belong to the receiving organization',
+    );
+    expect(await wallet(reader)).toEqual({ balance: 100, earnedBalance: 0 });
+    expect(await wallet(creator)).toEqual({ balance: 0, earnedBalance: 0 });
+  });
+
   it('rejects a payment to an organization the payer owns', async () => {
     await seedWorkspace(reader, { balance: 100, paid: true });
     await seedWorkspace(creator, { balance: 0, paid: false });

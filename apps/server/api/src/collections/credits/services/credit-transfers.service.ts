@@ -46,6 +46,12 @@ type TransferAmounts = {
 
 type TransferLeg = 'in' | 'out';
 
+/** The payer's result, plus the creator's balance to publish to the creator only. */
+type TransferOutcome = {
+  payeeBalanceAfter: number | null;
+  result: ICreditTransferResult;
+};
+
 /** Fee withheld from a gross amount, rounded down to whole credits. */
 export function creatorPaymentFee(grossAmount: number): number {
   return Math.floor((grossAmount * CREATOR_PAYMENT_FEE_BPS) / 10_000);
@@ -82,15 +88,13 @@ export class CreditTransfersService {
   async transfer(input: ICreditTransferInput): Promise<ICreditTransferResult> {
     this.assertTransferable(input);
     const amounts = this.toAmounts(input.amount);
-    await this.assertSeparateWallets(input);
-    await this.assertPayerHasPaid(input.payerOrganizationId);
 
-    const result = await this.runWithRetry((tx) =>
+    const { payeeBalanceAfter, result } = await this.runWithRetry((tx) =>
       this.transferCore(input, amounts, tx),
     );
 
     if (result.wasApplied) {
-      await this.publishBalances(result);
+      await this.publishBalances(result, payeeBalanceAfter);
       this.logger.log('credit transfer applied', {
         grossAmount: result.grossAmount,
         kind: result.kind,
@@ -226,6 +230,36 @@ export class CreditTransfersService {
   }
 
   /**
+   * The creator's ledger row is filed under `payeeBrandId`, so the brand must
+   * belong to the receiving organization.
+   */
+  private async assertPayeeBrand(
+    input: ICreditTransferInput,
+    tx: PrismaTransactionClient,
+  ): Promise<void> {
+    const payeeBrandId = input.payeeBrandId;
+    if (!payeeBrandId) {
+      return;
+    }
+    const payeeOrganizationId = input.payeeOrganizationId;
+    const brand = await runWithTenantContext(
+      { organizationId: payeeOrganizationId },
+      async () =>
+        await tx.brand.findFirst({
+          select: { id: true },
+          where: scopedWhere(payeeOrganizationId, { id: payeeBrandId }),
+        }),
+    );
+    if (!brand) {
+      throw new BusinessLogicException(
+        'The brand does not belong to the receiving organization',
+        undefined,
+        'INVALID_CREDIT_TRANSFER',
+      );
+    }
+  }
+
+  /**
    * Free trial credits cannot be moved to another organization: otherwise new
    * accounts could be farmed and their trial credits pooled into one wallet.
    * Only an organization that has paid for credits can send them.
@@ -248,8 +282,8 @@ export class CreditTransfersService {
   }
 
   private async runWithRetry(
-    work: (tx: PrismaTransactionClient) => Promise<ICreditTransferResult>,
-  ): Promise<ICreditTransferResult> {
+    work: (tx: PrismaTransactionClient) => Promise<TransferOutcome>,
+  ): Promise<TransferOutcome> {
     for (let attempt = 1; ; attempt += 1) {
       try {
         return await this.transactionUtil.runInTransaction(
@@ -271,11 +305,9 @@ export class CreditTransfersService {
     input: ICreditTransferInput,
     amounts: TransferAmounts,
     tx: PrismaTransactionClient,
-  ): Promise<ICreditTransferResult> {
+  ): Promise<TransferOutcome> {
     const payerOrganizationId = input.payerOrganizationId;
     const payeeOrganizationId = input.payeeOrganizationId;
-
-    await this.assertPayerOutsidePayee(input, tx);
 
     const replay = await runWithTenantContext(
       { organizationId: payerOrganizationId },
@@ -288,9 +320,19 @@ export class CreditTransfersService {
           }),
         }),
     );
+    // A committed transfer is returned as it was, before any eligibility
+    // check, so a retry still gets its result after the wallets change.
     if (replay) {
-      return this.toReplayResult(input, replay);
+      return {
+        payeeBalanceAfter: null,
+        result: this.toReplayResult(input, replay),
+      };
     }
+
+    await this.assertPayerOutsidePayee(input, tx);
+    await this.assertSeparateWallets(input);
+    await this.assertPayerHasPaid(payerOrganizationId);
+    await this.assertPayeeBrand(input, tx);
 
     const transferId = randomUUID();
     const metadata = (
@@ -343,7 +385,7 @@ export class CreditTransfersService {
       },
     );
 
-    await runWithTenantContext(
+    const payeeAfter = await runWithTenantContext(
       { organizationId: payeeOrganizationId },
       async () => {
         const before = await this.walletSnapshot(payeeOrganizationId, tx);
@@ -377,17 +419,21 @@ export class CreditTransfersService {
             referenceType: CREATOR_PAYMENT_REFERENCE_TYPE,
           },
         );
+        return after;
       },
     );
 
     return {
-      ...amounts,
-      kind: input.kind,
-      payeeOrganizationId,
-      payerBalanceAfter: payerAfter.available,
-      payerOrganizationId,
-      transferId,
-      wasApplied: true,
+      payeeBalanceAfter: payeeAfter.available,
+      result: {
+        ...amounts,
+        kind: input.kind,
+        payeeOrganizationId,
+        payerBalanceAfter: payerAfter.available,
+        payerOrganizationId,
+        transferId,
+        wasApplied: true,
+      },
     };
   }
 
@@ -434,10 +480,23 @@ export class CreditTransfersService {
     };
   }
 
-  private async publishBalances(result: ICreditTransferResult): Promise<void> {
-    await this.websocketService.emit(`/credits/${result.payerOrganizationId}`, {
-      balance: result.payerBalanceAfter,
-    });
+  private async publishBalances(
+    result: ICreditTransferResult,
+    payeeBalanceAfter: number | null,
+  ): Promise<void> {
+    await Promise.all([
+      this.websocketService.emit(`/credits/${result.payerOrganizationId}`, {
+        balance: result.payerBalanceAfter,
+      }),
+      ...(payeeBalanceAfter === null
+        ? []
+        : [
+            this.websocketService.emit(
+              `/credits/${result.payeeOrganizationId}`,
+              { balance: payeeBalanceAfter },
+            ),
+          ]),
+    ]);
     await Promise.all([
       this.accessBootstrapCacheService.invalidateForOrganization(
         result.payerOrganizationId,
