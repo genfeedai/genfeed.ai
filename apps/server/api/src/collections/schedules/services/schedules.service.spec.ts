@@ -101,6 +101,7 @@ describe('SchedulesService', () => {
         CredentialPlatform.WORDPRESS,
         CredentialPlatform.MEDIUM,
         CredentialPlatform.DEV_TO,
+        CredentialPlatform.GENFEED,
       ]);
     });
 
