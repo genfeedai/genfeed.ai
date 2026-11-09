@@ -20,10 +20,7 @@ import {
   toRequestKey,
 } from './recording';
 
-export const RECORDINGS_DIRECTORY = path.resolve(
-  __dirname,
-  '../../recordings',
-);
+export const RECORDINGS_DIRECTORY = path.resolve(__dirname, '../../recordings');
 
 export type RecordedApiMode = 'record' | 'replay';
 
