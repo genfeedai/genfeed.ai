@@ -18,6 +18,7 @@ import { MCP_SCHEDULER_TOOLS } from './scheduler.tools';
 import { MCP_SKILLS_PRO_TOOLS } from './skills-pro.tools';
 import { MCP_SOCIAL_TOOLS } from './social.tools';
 import { MCP_STORYBOARD_CAPABILITY_TOOLS } from './storyboard-capabilities.tools';
+import { MCP_STORYBOARD_VIDEO_TOOLS } from './storyboard-video.tools';
 import { MCP_WORKFLOW_TOOLS } from './workflow.tools';
 import { MCP_WORKSPACE_TOOLS } from './workspace.tools';
 
@@ -41,6 +42,7 @@ export const MCP_ONLY_TOOLS: SourceTool[] = [
   ...MCP_REMIX_TOOLS,
   ...MCP_PRESET_TOOLS,
   ...MCP_STORYBOARD_CAPABILITY_TOOLS,
+  ...MCP_STORYBOARD_VIDEO_TOOLS,
   ...MCP_SKILLS_PRO_TOOLS,
   ...MCP_WORKSPACE_TOOLS,
 ];

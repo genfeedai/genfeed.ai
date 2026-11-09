@@ -133,6 +133,7 @@ import { AgentReviewToolHandler } from '@api/services/agent-orchestrator/tools/a
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentSpawnToolHandler } from '@api/services/agent-orchestrator/tools/agent-spawn-tool-handler.service';
 import { AgentStoryboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-storyboard-tool-handler.service';
+import { AgentStoryboardVideoTool } from '@api/services/agent-orchestrator/tools/agent-storyboard-video-tool.service';
 import { AgentStrategyScheduleAuthorityService } from '@api/services/agent-orchestrator/tools/agent-strategy-schedule-authority.service';
 import { AgentThreadToolHandler } from '@api/services/agent-orchestrator/tools/agent-thread-tool-handler.service';
 import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
@@ -320,6 +321,7 @@ import { Module } from '@nestjs/common';
     AgentQualityToolHandler,
     AgentReviewToolHandler,
     AgentStoryboardToolHandler,
+    AgentStoryboardVideoTool,
     AgentTrendsToolHandler,
     AgentWorkspaceToolHandler,
     AgentOrchestratorTurboRunService,

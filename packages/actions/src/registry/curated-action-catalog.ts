@@ -575,6 +575,11 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'inspiration',
   },
   {
+    name: 'start_storyboard_video',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'inspiration',
+  },
+  {
     name: 'storyboard_long_form',
     surfaces: ['agent', 'mcp'],
     toolset: 'inspiration',
@@ -586,6 +591,11 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     name: 'storyboard_slideshow',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'inspiration',
+  },
+  {
+    name: 'storyboard_video',
     surfaces: ['agent', 'mcp'],
     toolset: 'inspiration',
   },

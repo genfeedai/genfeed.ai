@@ -140,6 +140,15 @@ describe('MCP catalog presentation through the public registry', () => {
       if (tool.name === 'start_storyboard_slideshow') {
         args.inputHash = 'a'.repeat(64);
       }
+      if (tool.name === 'storyboard_video') {
+        args.action = 'get';
+        args.runId = 'input-private';
+      }
+      if (tool.name === 'start_storyboard_video') {
+        args.stage = 'final';
+        args.shotIds = ['shot-1'];
+        args.inputHash = 'a'.repeat(64);
+      }
       if (tool.name === 'resolve_approval') args.decision = 'decline';
       // The listing fixture is the only organization the user can switch to.
       if (tool.name === 'switch_org') args.organization = fixture.id;

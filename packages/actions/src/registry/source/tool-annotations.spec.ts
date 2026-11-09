@@ -821,8 +821,17 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
     true,
   ],
+  [
+    'start_storyboard_video',
+    'Start Storyboard Video',
+    false,
+    true,
+    false,
+    true,
+  ],
   ['storyboard_long_form', 'Storyboard Long Form', false, true, false, false],
   ['storyboard_slideshow', 'Storyboard Slideshow', false, true, false, false],
+  ['storyboard_video', 'Storyboard Video', false, true, false, false],
   [
     'storyboard_run_capabilities',
     'Storyboard Run Capabilities',
@@ -929,7 +938,7 @@ describe('MCP tool annotations', () => {
         tool?.annotations?.openWorldHint,
       ]).toEqual(row);
     }
-    expect(rows).toHaveLength(163);
+    expect(rows).toHaveLength(165);
     expect(rows.map((row) => row[0])).toEqual(expected.map((row) => row[0]));
     expect(rows).toEqual(expected);
   });
@@ -1135,6 +1144,7 @@ describe('MCP tool annotations', () => {
         tool.name === 'replace_storyboard_character' ||
         tool.name === 'start_storyboard_long_form' ||
         tool.name === 'start_storyboard_slideshow' ||
+        tool.name === 'start_storyboard_video' ||
         publishing.has(tool.name);
       expect(tool.annotations?.openWorldHint, tool.name).toBe(isOpenWorld);
     }

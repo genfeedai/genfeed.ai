@@ -38,6 +38,7 @@ const QUOTE_TOOL_BY_NAME: Readonly<Record<string, string>> = {
   start_remix_generation: REMIX_QUOTE_TOOL,
   start_storyboard_long_form: 'storyboard_long_form',
   start_storyboard_slideshow: 'storyboard_slideshow',
+  start_storyboard_video: 'storyboard_video',
 };
 
 function floorBounds(): { maximum: number; minimum: number } {

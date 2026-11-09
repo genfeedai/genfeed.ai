@@ -81,6 +81,7 @@ export * from './storyboard-shot-render.contract';
 export * from './storyboard-slideshow-tool.contract';
 export * from './storyboard-source.contract';
 export * from './storyboard-still.contract';
+export * from './storyboard-video-tool.contract';
 export * from './studio-proposals.contract';
 export * from './task-decomposition.contract';
 export * from './template-ranking.contract';
