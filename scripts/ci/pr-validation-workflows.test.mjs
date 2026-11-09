@@ -179,7 +179,7 @@ test('enforces executable contracts through the aggregate suite', () => {
 
   assert.match(
     staticChecks,
-    /^ {8}run: bun run test:executable-contracts:parallel$/m,
+    /^ {8}run: bun run test:executable-contracts$/m,
     'the static-checks job must run the executable-contracts test script',
   );
   assert.match(

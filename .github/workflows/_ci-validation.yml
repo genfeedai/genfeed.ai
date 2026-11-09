@@ -585,10 +585,8 @@ jobs:
       # when metadata-only changes select no affected typecheck build tasks.
       - name: Build contracts for executable imports
         run: bun run --cwd packages/contracts build
-      # The same commands as `test:executable-contracts`, four at a time: the
-      # suites are independent, so the job pays for the slowest ones, not the sum.
       - name: Run executable contracts
-        run: bun run test:executable-contracts:parallel
+        run: bun run test:executable-contracts
       - name: Check scoring provenance and optional calibration
         env:
           GITHUB_TOKEN: ${{ github.token }}
