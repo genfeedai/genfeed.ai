@@ -48,8 +48,10 @@ export enum IngredientStatus {
  * - Curation: the library validates, rejects or archives usable media, and
  *   archives failed media.
  *
- * `PATCH /ingredients` does not compare the current status yet, so it can
- * write any edge; this table is what the product intends.
+ * In the API, `transitionIngredientStatus` checks an edge against this table
+ * and writes it as a compare-and-set. `PATCH /ingredients` does not compare
+ * the current status yet, so it can write any edge; this table is what the
+ * product intends.
  */
 export const INGREDIENT_STATE_MACHINE = defineStateMachine<IngredientStatus>({
   terminal: [

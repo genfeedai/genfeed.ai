@@ -1,6 +1,7 @@
 import { GENERATION_CANCELLED_BY_USER } from '@api/collections/ingredients/constants/generation-cancellation.constants';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { transitionIngredientStatus } from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { generationQuoteGroupReceiptSchema } from '@api/helpers/utils/credits/generation-quote-group.schema';
 import { persistQuoteGroupFailure } from '@api/helpers/utils/credits/persist-quote-group-failure.util';
@@ -80,20 +81,17 @@ export class IngredientGenerationCancellationService {
     if (isQuoteGroup && !confirmedCancellation) return ingredient;
     // Provider completion may win while cancellation is in flight. Only the
     // request that still owns PROCESSING may fail the row and publish failure.
-    const claimed = await this.ingredientsService.patchAll(
-      {
-        id: ingredient.id,
-        organizationId: input.organizationId,
-        isDeleted: false,
-        status: IngredientStatus.PROCESSING,
-      },
-      {
+    const claimed = await transitionIngredientStatus(this.ingredientsService, {
+      data: {
         generationError: GENERATION_CANCELLED_BY_USER,
-        status: IngredientStatus.FAILED,
         ...(isQuoteGroup ? { isGenerationFailureConfirmed: true } : {}),
       },
-    );
-    if (claimed.modifiedCount === 1) {
+      from: IngredientStatus.PROCESSING,
+      id: ingredient.id,
+      organizationId: input.organizationId,
+      to: IngredientStatus.FAILED,
+    });
+    if (claimed) {
       if (isQuoteGroup) {
         await persistQuoteGroupFailure(
           this.ingredientsService.prisma,
