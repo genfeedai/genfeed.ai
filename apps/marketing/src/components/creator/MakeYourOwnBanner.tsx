@@ -17,7 +17,7 @@ export default function MakeYourOwnBanner({
   return (
     <section
       aria-labelledby="make-your-own-heading"
-      className="flex flex-col gap-4 border border-primary/30 bg-primary/10 p-6 md:flex-row md:items-center md:justify-between"
+      className="flex flex-col gap-4 border border-primary/20 bg-primary/10 p-6 md:flex-row md:items-center md:justify-between"
     >
       <div className="min-w-0 space-y-1">
         <h2
