@@ -126,6 +126,25 @@ vi.mock('./IngredientLineageStrip', () => ({
   }) => <div data-testid={`lineage-${direction}`}>{ingredientId}</div>,
 }));
 
+vi.mock('@ui/display/model-viewer/ModelViewer', () => ({
+  default: ({
+    alt,
+    errorLabel,
+    src,
+  }: {
+    alt: string;
+    errorLabel: string;
+    src: string;
+  }) => (
+    <div
+      aria-label={alt}
+      data-error-label={errorLabel}
+      data-src={src}
+      role="group"
+    />
+  ),
+}));
+
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
@@ -234,6 +253,41 @@ describe('IngredientInspectorRail', () => {
     play.mockRestore();
     expect(player).not.toHaveAttribute('autoplay');
   });
+  it('previews a 3D model in the viewer through its authorized grant, without a full-size button', () => {
+    render(
+      <IngredientInspectorRail
+        ingredient={{
+          ...ingredient,
+          category: IngredientCategory.MODEL_3D,
+          ingredientUrl: 'https://cdn.genfeed.ai/chair.glb',
+          mediaDelivery: {
+            id: 'asset-1',
+            state: 'READY',
+            purpose: 'preview',
+            url: 'https://media.test/chair-signed.glb',
+            expiresAt: '2026-10-03T01:00:00Z',
+          },
+          metadataLabel: 'Chair',
+        }}
+        onOpenPreview={vi.fn()}
+      />,
+    );
+
+    const viewer = screen.getByRole('group', { name: 'Chair' });
+    expect(viewer).toHaveAttribute(
+      'data-src',
+      'https://media.test/chair-signed.glb',
+    );
+    expect(viewer).toHaveAttribute(
+      'data-error-label',
+      'This 3D model could not be loaded.',
+    );
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Open full-size preview' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('opens the lightbox from the preview only when a handler is given', () => {
     const onOpenPreview = vi.fn();
     const { rerender } = render(

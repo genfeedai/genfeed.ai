@@ -247,6 +247,13 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
     smoke: null,
   },
   {
+    enumRefs: { IngredientCategory: ['MODEL_3D'] },
+    id: 'model-3d',
+    note: 'A textured GLB stored and previewed in the library. Nothing in the app generates it yet; the render pipeline that does is added with its own row.',
+    path: 'exempt',
+    smoke: null,
+  },
+  {
     enumRefs: { IngredientCategory: ['INGREDIENT', 'TEXT', 'SOURCE'] },
     id: 'container-categories',
     note: 'Storage categories for references, text blobs and imported sources; nothing is generated under them.',

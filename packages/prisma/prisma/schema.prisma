@@ -63,6 +63,7 @@ enum IngredientCategory {
   INGREDIENT
   TEXT
   SOURCE
+  MODEL_3D
 }
 
 enum IngredientStatus {

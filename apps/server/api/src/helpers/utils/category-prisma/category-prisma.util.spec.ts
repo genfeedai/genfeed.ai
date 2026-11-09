@@ -53,6 +53,7 @@ const PRISMA_INGREDIENT_CATEGORY_MEMBERS = [
   'INGREDIENT',
   'TEXT',
   'SOURCE',
+  'MODEL_3D',
 ] as const;
 
 /**
@@ -138,6 +139,12 @@ describe('CategoryPrismaUtil', () => {
       expect(
         CategoryPrismaUtil.toIngredientCategory(IngredientCategory.SOURCE),
       ).toBe('SOURCE');
+    });
+
+    it('maps IngredientCategory.MODEL_3D to Prisma MODEL_3D', () => {
+      expect(
+        CategoryPrismaUtil.toIngredientCategory(IngredientCategory.MODEL_3D),
+      ).toBe('MODEL_3D');
     });
 
     it('passes through an already-Prisma-form value idempotently', () => {

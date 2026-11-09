@@ -34,9 +34,13 @@ import {
   getIngredientPreviewUrl,
   isRasterPreviewUrl,
 } from '@genfeedai/utils/media/ingredient-preview.util';
-import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
+import {
+  isModel3dIngredient,
+  isVideoIngredient,
+} from '@genfeedai/utils/media/ingredient-type.util';
 import { buildContextualRemixHref } from '@genfeedai/utils/url/contextual-remix-url.util';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
+import ModelViewer from '@ui/display/model-viewer/ModelViewer';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { Badge } from '@ui/primitives/badge';
@@ -215,6 +219,11 @@ export default function IngredientInspectorRail({
       ? (grant.url ?? undefined)
       : ingredient.ingredientUrl
     : undefined;
+  const modelUrl = isModel3dIngredient(ingredient)
+    ? grant
+      ? (grant.url ?? undefined)
+      : ingredient.ingredientUrl
+    : undefined;
   const fileSize = formatIngredientFileSize(
     ingredient.fileSize || ingredient.metadataSize,
   );
@@ -259,7 +268,10 @@ export default function IngredientInspectorRail({
           onUsePrompt={ingredient.promptText ? handleUsePrompt : undefined}
           selectedIngredient={ingredient}
         />
-        {onOpenPreview && !isAudio && shelf !== LibraryShelf.FAILED ? (
+        {onOpenPreview &&
+        !isAudio &&
+        !modelUrl &&
+        shelf !== LibraryShelf.FAILED ? (
           <Button
             ariaLabel={translate('openPreview')}
             data-testid="library-open-preview"
@@ -281,9 +293,17 @@ export default function IngredientInspectorRail({
           stopOnUnmount
         />
       ) : null}
-      {!isAudio && (previewUrl || videoUrl) ? (
+      {!isAudio && (previewUrl || videoUrl || modelUrl) ? (
         <div className="relative h-[clamp(12rem,35dvh,24rem)] w-full shrink-0 overflow-hidden rounded-lg bg-foreground/5">
-          {videoUrl ? (
+          {modelUrl ? (
+            <ModelViewer
+              key={ingredient.id}
+              alt={ingredient.metadataLabel || translate('untitled')}
+              errorLabel={translate('modelUnavailable')}
+              poster={previewUrl || undefined}
+              src={modelUrl}
+            />
+          ) : videoUrl ? (
             <VideoPlayer
               key={ingredient.id}
               src={videoUrl}
