@@ -143,20 +143,30 @@ test('a full-suite escalation shards each whole suite four ways', () => {
     assert.equal(surface.shards, 4);
     assert.deepEqual(surface.matrix, createShardMatrix(4));
   }
-  const packageLegs = plan.workspaceMatrix.include.filter(
-    ({ group }) => group === 'packages',
+  const workspaceLegs = plan.workspaceMatrix.include.filter(
+    ({ group }) => group === 'workspaces',
   );
-  assert.equal(packageLegs.length, 4);
+  assert.equal(workspaceLegs.length, 4);
   assert.deepEqual(
-    packageLegs.map(({ ui_shard }) => ui_shard),
+    workspaceLegs.map(({ ui_shard }) => ui_shard),
     ['1/4', '2/4', '3/4', '4/4'],
   );
-  const selected = packageLegs.flatMap(({ filters }) =>
-    filters
-      .split(' ')
-      .filter(Boolean)
-      .map((filter) => `${filter.slice('--filter='.length)}#test`),
+  const webFilters = [
+    '--filter=@genfeedai/marketing',
+    '--filter=@genfeedai/docs',
+    '--filter=@genfeedai/mobile',
+  ];
+  const filters = workspaceLegs.flatMap((leg) =>
+    leg.filters.split(' ').filter(Boolean),
   );
+  assert.deepEqual(
+    filters.filter((filter) => webFilters.includes(filter)).sort(),
+    [...webFilters].sort(),
+    'the web group runs exactly once, inside a shared leg',
+  );
+  const selected = filters
+    .filter((filter) => !webFilters.includes(filter))
+    .map((filter) => `${filter.slice('--filter='.length)}#test`);
   selected.push('@genfeedai/ui#test');
   assert.deepEqual(
     selected.sort(),
@@ -164,11 +174,16 @@ test('a full-suite escalation shards each whole suite four ways', () => {
       fileURLToPath(new URL('../..', import.meta.url)),
     ).sort(),
   );
+  assert.equal(
+    workspaceLegs.filter(({ extension }) => extension === 'true').length,
+    1,
+    'the browser extension runs exactly once, inside a shared leg',
+  );
   assert.deepEqual(
     plan.workspaceMatrix.include
-      .filter(({ group }) => group !== 'packages')
+      .filter(({ group }) => group !== 'workspaces')
       .map(({ group }) => group),
-    ['browser-extension', 'server', 'web'],
+    ['server'],
   );
 });
 
@@ -261,10 +276,16 @@ test('creates a fail-closed plan with explicit applicability', () => {
     server: false,
     web: true,
   });
-  assert.deepEqual(
-    plan.workspaceMatrix.include.map((leg) => leg.group),
-    ['packages', 'web'],
-  );
+  assert.deepEqual(plan.workspaceMatrix.include, [
+    {
+      group: 'workspaces',
+      name: 'workspaces-1/1',
+      filters:
+        '--filter=@genfeedai/marketing --filter=@genfeedai/docs --filter=@genfeedai/mobile --filter=@genfeedai/contracts',
+      extension: '',
+      ui_shard: '',
+    },
+  ]);
 });
 
 test('an empty affected plan runs no workspace or test shards', () => {
@@ -367,10 +388,11 @@ test('direct browser source and config changes fail closed with an empty task gr
     const plan = createPrTestPlan({ base: 'base-sha', changedFiles: [file] });
     assert.deepEqual(plan.workspaceMatrix.include, [
       {
-        group: 'browser-extension',
-        name: 'browser-extension',
+        group: 'workspaces',
+        name: 'workspaces-1/1',
+        filters: '',
+        extension: 'true',
         ui_shard: '',
-        filters: '--filter=@genfeedai/extension',
       },
     ]);
   }
@@ -384,10 +406,11 @@ test('affected browser dependencies activate only the browser workspace leg', ()
   });
   assert.deepEqual(plan.workspaceMatrix.include, [
     {
-      group: 'browser-extension',
-      name: 'browser-extension',
+      group: 'workspaces',
+      name: 'workspaces-1/1',
+      filters: '',
+      extension: 'true',
       ui_shard: '',
-      filters: '--filter=@genfeedai/extension',
     },
   ]);
 });
@@ -413,24 +436,35 @@ test('existing workspace groups retain affected-task applicability and declared 
     },
   });
   assert.deepEqual(
-    plan.workspaceMatrix.include.map(({ group }) => group),
-    ['browser-extension', 'packages', 'server', 'web'],
+    plan.workspaceMatrix.include.map(({ group, name }) => [group, name]),
+    [
+      ['workspaces', 'workspaces-1/1'],
+      ['server', 'server'],
+    ],
   );
 });
 
-test('browser workspace legs run the full filtered suite while other groups retain affected selection', () => {
+test('the browser extension runs in full while every other filter retains affected selection', () => {
   const workflow = readFileSync(
     new URL('../../.github/workflows/_ci-validation.yml', import.meta.url),
     'utf8',
   );
   const workspaceStep = workflow.slice(
     workflow.indexOf('      - name: Run workspace tests'),
-    workflow.indexOf('\n  # App tests.'),
+    workflow.indexOf('      - name: Run UI shard'),
   );
-  assert.match(workspaceStep, /WORKSPACE_GROUP: \$\{\{ matrix\.group \}\}/);
+  assert.match(workspaceStep, /WORKSPACE_FILTERS: \$\{\{ matrix\.filters \}\}/);
   assert.match(
     workspaceStep,
-    /if \[ "\$\{WORKSPACE_GROUP\}" = "browser-extension" \] \|\| \[ "\$\{FORCE_FULL\}" = "true" \] \|\| \[ -z "\$\{CI_BASE_SHA\}" \]; then\n {12}bunx turbo run test --continue --concurrency=1 \$\{WORKSPACE_FILTERS\}\n {10}else\n {12}TURBO_SCM_BASE="\$\{CI_BASE_SHA\}" bunx turbo run test --continue --concurrency=1 --affected \$\{WORKSPACE_FILTERS\}\n {10}fi/,
+    /if \[ "\$\{FORCE_FULL\}" = "true" \] \|\| \[ -z "\$\{CI_BASE_SHA\}" \]; then\n {12}bunx turbo run test --continue --concurrency=1 \$\{WORKSPACE_FILTERS\}\n {10}else\n {12}TURBO_SCM_BASE="\$\{CI_BASE_SHA\}" bunx turbo run test --continue --concurrency=1 --affected \$\{WORKSPACE_FILTERS\}\n {10}fi/,
+  );
+  assert.match(
+    workspaceStep,
+    /- name: Run browser extension tests\n {8}if: \$\{\{ !cancelled\(\) && matrix\.extension == 'true' \}\}\n {8}run: bunx turbo run test --continue --concurrency=1 --filter=@genfeedai\/extension\n/,
+  );
+  assert.doesNotMatch(
+    workspaceStep.slice(workspaceStep.indexOf('Run browser extension tests')),
+    /--affected/,
   );
 });
 

@@ -670,8 +670,10 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
-      # Four package pools plus server/web/browser. Bound simultaneous setup
-      # and test workers rather than allowing an unbounded package fan-out.
+      # Up to three balanced legs (packages, web and the extension) plus the
+      # server leg, or four package pools when UI shards are selected. Bound
+      # simultaneous setup and test workers rather than allowing an unbounded
+      # fan-out; the planner sizes the matrix so a run needs one wave of four.
       max-parallel: 4
       matrix: ${{ fromJSON(needs.plan.outputs.workspace_matrix) }}
     services:
@@ -722,19 +724,22 @@ jobs:
       - name: Run workspace tests
         env:
           FORCE_FULL: ${{ needs.plan.outputs.force_full }}
-          WORKSPACE_GROUP: ${{ matrix.group }}
           WORKSPACE_FILTERS: ${{ matrix.filters }}
         run: |
           set -euo pipefail
-          # UI-only pools have no ordinary Turbo test entrypoints. An empty
-          # filter would select the entire repository, so never invoke it.
+          # UI-only and extension-only legs have no ordinary Turbo filters. An
+          # empty filter would select the entire repository, so never invoke it.
           if [ -z "${WORKSPACE_FILTERS}" ]; then exit 0; fi
           # shellcheck disable=SC2086 # intentional word-splitting of --filter args
-          if [ "${WORKSPACE_GROUP}" = "browser-extension" ] || [ "${FORCE_FULL}" = "true" ] || [ -z "${CI_BASE_SHA}" ]; then
+          if [ "${FORCE_FULL}" = "true" ] || [ -z "${CI_BASE_SHA}" ]; then
             bunx turbo run test --continue --concurrency=1 ${WORKSPACE_FILTERS}
           else
             TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run test --continue --concurrency=1 --affected ${WORKSPACE_FILTERS}
           fi
+      # The extension always runs in full; --affected never narrows it.
+      - name: Run browser extension tests
+        if: ${{ !cancelled() && matrix.extension == 'true' }}
+        run: bunx turbo run test --continue --concurrency=1 --filter=@genfeedai/extension
       - name: Run UI shard
         if: ${{ !cancelled() && matrix.ui_shard != '' }}
         env:

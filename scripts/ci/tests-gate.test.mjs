@@ -410,8 +410,11 @@ test('browser-planned workspace failures, cancellations and skips fail the aggre
     changedFiles: ['apps/extension/package.json'],
   });
   assert.deepEqual(
-    plan.workspaceMatrix.include.map(({ group }) => group),
-    ['browser-extension'],
+    plan.workspaceMatrix.include.map(({ extension, group }) => [
+      group,
+      extension,
+    ]),
+    [['workspaces', 'true']],
   );
   for (const result of ['failure', 'cancelled', 'skipped']) {
     const evaluation = evaluate({
