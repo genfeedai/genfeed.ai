@@ -7,6 +7,7 @@ import { compileStoryboardShotPrompt } from '@genfeedai/contracts/api-types/cont
 import {
   type StoryboardShotRender,
   type StoryboardShotRenderStage,
+  storyboardShotQaSchema,
   storyboardShotRenderSchema,
   storyboardShotRenderStageSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-shot-render.contract';
@@ -48,6 +49,7 @@ export const shotRenderOperationSchema = z
     reservationId: z.string().min(1).optional(),
     billing: z.enum(['none', 'reserved', 'settled', 'released']),
     errorCode: z.string().max(200).optional(),
+    qa: storyboardShotQaSchema.optional(),
   })
   .strict();
 export const shotRenderJournalSchema = z
@@ -179,6 +181,7 @@ export function projectShotRenders(
             op.inputFingerprint ===
             shotRenderInputFingerprint(plan, shot, op.stage),
           errorCode: op.errorCode,
+          qa: op.qa,
           updatedAt: op.updatedAt,
         }),
       ];

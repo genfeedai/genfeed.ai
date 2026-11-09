@@ -627,7 +627,12 @@
     "quoteByok": "{count, plural, one {# shot} other {# shots}} on {model} with your own provider key. No credits are charged.",
     "promoteNote": "Promoted drafts keep their exact prompt and references.",
     "confirm": "Render",
-    "approveFirst": "Approve the storyboard to render its shots."
+    "approveFirst": "Approve the storyboard to render its shots.",
+    "qaChecking": "Checking the clip for decode errors, black frames and freezes.",
+    "qaPassed": "Clip checks passed.",
+    "qaUnavailable": "The clip could not be checked. It can still be assembled.",
+    "qaFailed": "This clip cannot be assembled: {reasons}. Render the final again.",
+    "qaContinuity": "Continuity note: {notes}"
   },
   "direction": {
     "title": "Video direction",

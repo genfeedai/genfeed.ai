@@ -46,6 +46,7 @@ import { StoryboardPlanDraftService } from '@api/collections/content-runs/servic
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
+import { StoryboardShotQaService } from '@api/collections/content-runs/services/storyboard-shot-qa.service';
 import { StoryboardShotRendersService } from '@api/collections/content-runs/services/storyboard-shot-renders.service';
 import { StoryboardSlideshowPostService } from '@api/collections/content-runs/services/storyboard-slideshow-post.service';
 import { StoryboardSourceService } from '@api/collections/content-runs/services/storyboard-source.service';
@@ -62,6 +63,7 @@ import { TrendsModule } from '@api/collections/trends/trends.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { VoicesModule } from '@api/collections/voices/voices.module';
+import { VideoQaContinuityResolverService } from '@api/collections/workflows/services/video-qa-continuity-resolver.service';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -72,6 +74,7 @@ import { FilesClientModule } from '@api/services/files-microservice/client/files
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
+import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { XAdsModule } from '@api/services/integrations/x-ads/x-ads.module';
@@ -96,6 +99,7 @@ import { Module } from '@nestjs/common';
     StoryboardStillsService,
     StoryboardShotRendersService,
     StoryboardAssetBibleService,
+    StoryboardShotQaService,
     StoryboardARollService,
     StoryboardLongFormAssemblyService,
     StoryboardLongFormEstimateService,
@@ -112,6 +116,7 @@ import { Module } from '@nestjs/common';
     PostsCoreModule,
     FileQueueModule,
     MediaUrlsModule,
+    LlmDispatcherModule,
     RouterModule,
     OpenRouterModule,
     WhisperModule,
@@ -150,6 +155,8 @@ import { Module } from '@nestjs/common';
     StoryboardStillsService,
     StoryboardShotRendersService,
     StoryboardAssetBibleService,
+    StoryboardShotQaService,
+    VideoQaContinuityResolverService,
     StoryboardARollService,
     StoryboardAnimaticVoiceService,
     StoryboardLongFormAssemblyService,
