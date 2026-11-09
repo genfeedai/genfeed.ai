@@ -167,6 +167,17 @@ export class InstagramConnectionResolverService {
       scope !== undefined &&
       !parseInstagramGrantedScopes(scope).includes(INSTAGRAM_BASIC_SCOPE)
     ) {
+      // Permission names are not secrets; they are what separates "Meta
+      // granted something else" from "Meta granted nothing" when a customer
+      // reports this failure.
+      this.loggerService.warn(
+        'InstagramConnectionResolverService - Grant lacks instagram_basic',
+        {
+          grantedScopes: parseInstagramGrantedScopes(scope),
+          scopedPermissions: grant?.scopedPermissions ?? [],
+          source: grant ? 'debug_token' : 'token_response',
+        },
+      );
       throw new HttpException(
         {
           detail:
