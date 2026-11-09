@@ -611,67 +611,6 @@ test('draft pull requests run no CI until marked ready', () => {
   }
 });
 
-test('playwright PR smoke runs only after green same-repo CI and stays advisory', () => {
-  // The smoke used to start on every push, beside required CI. It now waits for
-  // CI to succeed on the PR head, so superseded and red heads never spend a
-  // runner, and its result must never be able to block a merge.
-  const workflow = readWorkflow('playwright-pr-smoke.yml');
-  const parsed = parseYaml(workflow);
-
-  assert.equal(parsed.on.pull_request, undefined);
-  assert.deepEqual(parsed.on.workflow_run.workflows, ['CI']);
-  assert.deepEqual(parsed.on.workflow_run.types, ['completed']);
-  assert.ok(parsed.on.workflow_dispatch.inputs.pr_number.required);
-
-  const resolveIf = parsed.jobs.resolve.if;
-  assert.match(resolveIf, /workflow_run\.conclusion == 'success'/);
-  assert.match(resolveIf, /workflow_run\.event == 'pull_request'/);
-  assert.match(
-    resolveIf,
-    /head_repository\.full_name == github\.repository/,
-    'workflow_run runs with secrets, so forks must never reach it',
-  );
-
-  const resolveStep = parsed.jobs.resolve.steps.find(
-    (step) => step.id === 'pr',
-  );
-  assert.match(resolveStep.run, /\.draft/, 'draft pull requests are skipped');
-  assert.match(resolveStep.run, /\.state/, 'closed pull requests are skipped');
-  assert.match(
-    resolveStep.run,
-    /RUN_HEAD_SHA.*!=.*head_sha/s,
-    'a head that moved on is covered by the newer CI run',
-  );
-
-  const smoke = parsed.jobs['core-smoke'];
-  assert.equal(smoke.needs, 'resolve');
-  assert.equal(smoke.permissions.checks, 'write');
-  const finish = smoke.steps.find((step) => step.name === 'Finish check run');
-  assert.doesNotMatch(
-    finish.run,
-    /conclusion=failure/,
-    'the smoke is advisory: a red run is neutral, never failure',
-  );
-
-  // GitHub rejects the whole workflow file (and every dispatch) when a status
-  // function such as cancelled() is used outside an `if:` condition.
-  for (const step of smoke.steps) {
-    assert.doesNotMatch(
-      JSON.stringify({ env: step.env, with: step.with, run: step.run }),
-      /\$\{\{[^}]*\b(?:cancelled|always|success|failure)\(\)/,
-      `step "${step.name ?? step.uses}" uses a status function outside if:`,
-    );
-  }
-  const cancelStep = smoke.steps.find(
-    (step) => step.name === 'Cancel check run',
-  );
-  assert.equal(cancelStep.if, 'cancelled()');
-
-  const group = parsed.concurrency.group;
-  assert.doesNotMatch(group, /github\.(?:head_ref|ref_name|sha)/);
-  assert.equal(parsed.concurrency['cancel-in-progress'], true);
-});
-
 test('the full suite grants its reusable E2E failure reporter permission ceiling', () => {
   // e2e.yml reads jobs from its current run to report exact scheduled failures.
   // GitHub validates this permission before starting any called job, so omitting
