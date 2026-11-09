@@ -166,6 +166,7 @@ export class PersonasController extends BaseCRUDController<
       prompt: composeCharacterSheetPrompt({
         description: body.description,
         isNonHumanoid: body.isNonHumanoid,
+        environment: body.environment,
       }),
     };
   }

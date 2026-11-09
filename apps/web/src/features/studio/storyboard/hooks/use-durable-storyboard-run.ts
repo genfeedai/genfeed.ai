@@ -7,6 +7,10 @@ import type {
   StoryboardARollQuote,
   StoryboardPresenterTrack,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
+import type {
+  QuoteStoryboardAssets,
+  StoryboardAssetQuote,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-asset-bible.contract';
 import { storyboardPlanSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type {
   StoryboardRun,
@@ -45,6 +49,8 @@ import { sessionActiveOrganizationId } from '@/features/studio/storyboard/utils/
 const STILL_RECONCILE_MS = 4_000;
 /** Shot videos take a minute or more each. */
 const SHOT_RENDER_RECONCILE_MS = 8_000;
+/** Asset bible images take seconds to a minute. */
+const ASSET_RECONCILE_MS = 5_000;
 /** Presenter renders take minutes; the narration draft takes seconds. */
 const PRESENTER_RECONCILE_MS = 8_000;
 /** Cutaway stills are not marked on the plan; stop asking after this long. */
@@ -582,6 +588,53 @@ export function useDurableStoryboardRun(runId: string) {
     },
     [brandId, runId, getService, adopt, scope],
   );
+  const quoteAssets = useCallback(
+    async (
+      revision: number,
+      request: Omit<QuoteStoryboardAssets, 'expectedRevision'>,
+    ) => {
+      if (!brandId || activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      const service = await getService();
+      try {
+        return await service.quoteStoryboardAssets(brandId, runId, {
+          ...request,
+          expectedRevision: revision,
+        });
+      } catch (error) {
+        throw new Error(
+          getJsonApiErrorMessage(error, 'Could not price the images.'),
+        );
+      }
+    },
+    [brandId, runId, getService, scope],
+  );
+  const startAssets = useCallback(
+    async (
+      request: Omit<QuoteStoryboardAssets, 'expectedRevision'>,
+      quote: StoryboardAssetQuote,
+    ) => {
+      if (!brandId || activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      const service = await getService();
+      if (activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      let run: StoryboardRun;
+      try {
+        run = await service.startStoryboardAssets(brandId, runId, {
+          ...request,
+          expectedRevision: quote.revision,
+          inputHash: quote.inputHash,
+        });
+      } catch (error) {
+        throw new Error(
+          getJsonApiErrorMessage(error, 'Could not start the images.'),
+        );
+      }
+      return adopt(run);
+    },
+    [brandId, runId, getService, adopt, scope],
+  );
   /** Long-form cutaways asked for a still, until the still is attached. */
   const [pendingCutaways, setPendingCutaways] = useState<{
     ids: readonly string[];
@@ -800,6 +853,29 @@ export function useDurableStoryboardRun(runId: string) {
       clearInterval(timer);
     };
   }, [brandId, runId, isRenderingShots, getService, adopt]);
+  const isGeneratingAssets = Boolean(
+    currentRun?.config.assetGenerations?.some(
+      (item) => item.state === 'pending' || item.state === 'submitted',
+    ),
+  );
+  useEffect(() => {
+    if (!brandId || !isGeneratingAssets) return;
+    const controller = new AbortController();
+    const timer = setInterval(() => {
+      void getService()
+        .then((service) =>
+          service.reconcileStoryboardAssets(brandId, runId, controller.signal),
+        )
+        .then((run) => {
+          if (!controller.signal.aborted) adopt(run);
+        })
+        .catch(() => undefined);
+    }, ASSET_RECONCILE_MS);
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+    };
+  }, [brandId, runId, isGeneratingAssets, getService, adopt]);
   const isRenderingPresenter = hasLiveChunks(currentRun);
   useEffect(() => {
     if (!brandId || !isRenderingPresenter) return;
@@ -876,6 +952,7 @@ export function useDurableStoryboardRun(runId: string) {
     generateStills,
     slideshow: { createPost: createSlideshowPost },
     renders: { quote: quoteRenders, start: startRenders },
+    assets: { quote: quoteAssets, start: startAssets },
     longForm: {
       isDrawingCutaways,
       quoteCutaways,

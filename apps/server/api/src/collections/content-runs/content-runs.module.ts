@@ -3,6 +3,7 @@ import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { BrandRemixGenerationController } from '@api/collections/content-runs/controllers/brand-remix-generation.controller';
 import { ContentRunsController } from '@api/collections/content-runs/controllers/content-runs.controller';
+import { StoryboardAssetBibleController } from '@api/collections/content-runs/controllers/storyboard-asset-bible.controller';
 import { StoryboardRunsController } from '@api/collections/content-runs/controllers/storyboard-runs.controller';
 import { StoryboardShotRendersController } from '@api/collections/content-runs/controllers/storyboard-shot-renders.controller';
 import { BrandRemixGenerationService } from '@api/collections/content-runs/services/brand-remix-generation.service';
@@ -36,6 +37,7 @@ import { PausedMetaCampaignDraftService } from '@api/collections/content-runs/se
 import { PausedXAdsCampaignDraftService } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
 import { StoryboardARollService } from '@api/collections/content-runs/services/storyboard-a-roll.service';
 import { StoryboardAnimaticVoiceService } from '@api/collections/content-runs/services/storyboard-animatic-voice.service';
+import { StoryboardAssetBibleService } from '@api/collections/content-runs/services/storyboard-asset-bible.service';
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
 import { StoryboardLongFormAssemblyService } from '@api/collections/content-runs/services/storyboard-long-form-assembly.service';
 import { StoryboardLongFormEstimateService } from '@api/collections/content-runs/services/storyboard-long-form-estimate.service';
@@ -76,6 +78,7 @@ import { XAdsModule } from '@api/services/integrations/x-ads/x-ads.module';
 import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { RouterModule } from '@api/services/router/router.module';
 import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
+import { VideoRecipesModule } from '@api/services/video-recipes/video-recipes.module';
 import { VideoStitchModule } from '@api/services/video-stitch/video-stitch.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { Module } from '@nestjs/common';
@@ -84,6 +87,7 @@ import { Module } from '@nestjs/common';
   controllers: [
     StoryboardRunsController,
     StoryboardShotRendersController,
+    StoryboardAssetBibleController,
     BrandRemixGenerationController,
     ContentRunsController,
   ],
@@ -91,6 +95,7 @@ import { Module } from '@nestjs/common';
     StoryboardRunsService,
     StoryboardStillsService,
     StoryboardShotRendersService,
+    StoryboardAssetBibleService,
     StoryboardARollService,
     StoryboardLongFormAssemblyService,
     StoryboardLongFormEstimateService,
@@ -129,6 +134,7 @@ import { Module } from '@nestjs/common';
     TrendsModule,
     VideoGenerationModule,
     VideosModule,
+    VideoRecipesModule,
     VoicesModule,
     EditorProjectsModule,
     WorkflowsCoreModule,
@@ -143,6 +149,7 @@ import { Module } from '@nestjs/common';
     StoryboardSourceService,
     StoryboardStillsService,
     StoryboardShotRendersService,
+    StoryboardAssetBibleService,
     StoryboardARollService,
     StoryboardAnimaticVoiceService,
     StoryboardLongFormAssemblyService,

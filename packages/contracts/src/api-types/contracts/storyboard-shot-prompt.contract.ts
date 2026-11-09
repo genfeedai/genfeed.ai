@@ -3,6 +3,7 @@ import type {
   StoryboardReferenceRole,
   StoryboardShot,
   StoryboardShotCut,
+  StoryboardShotReferenceRole,
 } from './storyboard-plan.contract';
 
 const REGEX_SPECIAL_CHARS_PATTERN = /[.*+?^${}()|[\]\\]/g;
@@ -62,18 +63,53 @@ function cutLine(cut: StoryboardShotCut): string {
 }
 
 /**
+ * The asset bible images of the cast members in a shot (#9616): each one's
+ * chosen face and body, as role references labelled with their name.
+ */
+export function storyboardShotBibleReferences(
+  plan: StoryboardPlan,
+  shot: StoryboardShot,
+): StoryboardShotReferenceRole[] {
+  const { cast } = storyboardShotCast(plan, shot);
+  return cast.flatMap((member) =>
+    (plan.assetBible ?? []).flatMap((entry) =>
+      entry.castMemberId === member.id &&
+      entry.chosenAssetId &&
+      (entry.kind === 'character_face' || entry.kind === 'character_body')
+        ? [
+            {
+              assetId: entry.chosenAssetId,
+              role: entry.kind,
+              label: member.name,
+            },
+          ]
+        : [],
+    ),
+  );
+}
+
+/**
  * The references a shot names, in the order the video model receives them:
  * its current still (the first frame on image-to-video models), then the
- * images the person gave a role, by role.
+ * images the person gave a role and the asset bible images of its cast, by
+ * role.
  */
-export function storyboardShotNamedReferences(shot: StoryboardShot) {
+export function storyboardShotNamedReferences(
+  plan: StoryboardPlan,
+  shot: StoryboardShot,
+) {
+  const references = [
+    ...(shot.referenceRoles ?? []),
+    ...storyboardShotBibleReferences(plan, shot),
+  ];
   const roles = ROLE_ORDER.flatMap((role) =>
-    (shot.referenceRoles ?? [])
+    references
       .filter((reference) => reference.role === role)
       .map((reference) => ({
         assetId: reference.assetId,
         phrase: ROLE_PHRASES[role](reference.label?.trim() || undefined),
         hasRole: true,
+        isPerson: role === 'character_face' || role === 'character_body',
       })),
   );
   const stillId =
@@ -122,7 +158,7 @@ export function compileStoryboardShotPrompt(
   options: StoryboardShotPromptOptions,
 ): StoryboardCompiledShotPrompt {
   const limit = Math.max(0, options.maxReferences);
-  const named = storyboardShotNamedReferences(shot);
+  const named = storyboardShotNamedReferences(plan, shot);
   const { speaker, cast } = storyboardShotCast(plan, shot);
   const fill = [
     ...(shot.onScreenSpeaker && speaker?.avatarAssetId
@@ -137,12 +173,15 @@ export function compileStoryboardShotPrompt(
   const sent = named.filter((reference) =>
     referenceAssetIds.includes(reference.assetId),
   );
-  // The on-screen speaker's avatar is a cast reference too.
-  const hasCastReferences = cast.some((member) =>
-    [member.avatarAssetId, ...member.referenceAssetIds].some(
-      (id) => id !== undefined && referenceAssetIds.includes(id),
-    ),
-  );
+  // A person in the asset bible and the on-screen speaker's avatar are cast
+  // references too.
+  const hasCastReferences =
+    sent.some((reference) => 'isPerson' in reference && reference.isPerson) ||
+    cast.some((member) =>
+      [member.avatarAssetId, ...member.referenceAssetIds].some(
+        (id) => id !== undefined && referenceAssetIds.includes(id),
+      ),
+    );
   const customPrompt = shot.videoPrompt?.trim();
   const prompt =
     customPrompt ||
