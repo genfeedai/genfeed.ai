@@ -128,9 +128,11 @@ test('selects bounded adaptive shard counts', () => {
   assert.equal(selectShardCount(250), 2);
   assert.equal(selectShardCount(251), 4);
   assert.equal(selectShardCount(737), 4);
+  // The affected tier never exceeds four shards, however many files change.
+  assert.equal(selectShardCount(5000), 4);
 });
 
-test('a full-suite escalation shards each whole suite four ways', () => {
+test('a full-suite escalation shards the app suite four ways and the API suite eight ways', () => {
   const plan = createPrTestPlan({
     base: 'base-sha',
     changedFiles: ['bun.lock'],
@@ -138,11 +140,16 @@ test('a full-suite escalation shards each whole suite four ways', () => {
   });
 
   assert.equal(plan.forceFull, true);
-  for (const surface of [plan.appTests, plan.apiTests]) {
-    assert.equal(surface.applicable, true);
-    assert.equal(surface.shards, 4);
-    assert.deepEqual(surface.matrix, createShardMatrix(4));
-  }
+  assert.equal(plan.appTests.applicable, true);
+  assert.equal(plan.appTests.shards, 4);
+  assert.deepEqual(plan.appTests.matrix, createShardMatrix(4));
+  assert.equal(plan.apiTests.applicable, true);
+  assert.equal(plan.apiTests.shards, 8);
+  assert.deepEqual(plan.apiTests.matrix, createShardMatrix(8));
+  assert.deepEqual(
+    plan.apiTests.matrix.include.map(({ shard, total }) => `${shard}/${total}`),
+    ['1/8', '2/8', '3/8', '4/8', '5/8', '6/8', '7/8', '8/8'],
+  );
   const packageLegs = plan.workspaceMatrix.include.filter(
     ({ group }) => group === 'packages',
   );
@@ -191,6 +198,9 @@ test('creates deterministic matrix entries', () => {
       { shard: 4, total: 4 },
     ],
   });
+  assert.equal(createShardMatrix(8).include.length, 8);
+  assert.throws(() => createShardMatrix(3), RangeError);
+  assert.throws(() => createShardMatrix(16), RangeError);
 });
 
 test('deduplicates Vitest file manifests and rejects malformed output', () => {
@@ -496,6 +506,24 @@ test('UI shards retain the environment gate, dependency builds, distinct cache a
     workflow.indexOf('wait: formatting') <
       workflow.indexOf('- name: Run typecheck'),
   );
+});
+
+test('the API test job runs every full-tier shard at once and the gate still needs it', () => {
+  const workflow = readFileSync(
+    new URL('../../.github/workflows/_ci-validation.yml', import.meta.url),
+    'utf8',
+  );
+  const apiJob = workflow.slice(
+    workflow.indexOf('\n  test-api:\n'),
+    workflow.indexOf('\n  cloud-tenant-guard:\n'),
+  );
+  const maxParallel = Number(apiJob.match(/max-parallel: (\d+)/)?.[1]);
+  const fullPlan = createPrTestPlan({
+    changedFiles: ['bun.lock'],
+    runHeavy: true,
+  });
+  assert.ok(maxParallel >= fullPlan.apiTests.shards);
+  assert.match(workflow, /TEST_API_RESULT: \$\{\{ needs\.test-api\.result \}\}/);
 });
 
 test('benchmarks shared action changes alongside their conservative full coverage', () => {
