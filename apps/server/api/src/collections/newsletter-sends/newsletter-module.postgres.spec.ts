@@ -87,7 +87,10 @@ describe.skipIf(!connectionString)(
       try {
         await client.query(`SET search_path TO "${schema}"`);
         await client.query(
-          `CREATE TABLE "brands" ("id" text PRIMARY KEY, "organizationId" text NOT NULL, "label" text NOT NULL, "slug" text NOT NULL, "isDeleted" boolean NOT NULL DEFAULT false)`,
+          `CREATE TYPE "AssetScope" AS ENUM ('USER','BRAND','ORGANIZATION','PUBLIC')`,
+        );
+        await client.query(
+          `CREATE TABLE "brands" ("id" text PRIMARY KEY, "organizationId" text NOT NULL, "label" text NOT NULL, "slug" text NOT NULL, "scope" "AssetScope" NOT NULL DEFAULT 'PUBLIC', "isDeleted" boolean NOT NULL DEFAULT false)`,
         );
         await client.query(
           `CREATE TABLE "newsletters" ("id" text PRIMARY KEY, "organizationId" text NOT NULL, "brandId" text, "label" text NOT NULL, "content" text, "summary" text, "status" text NOT NULL DEFAULT 'draft', "publishedAt" timestamp(3), "isDeleted" boolean NOT NULL DEFAULT false)`,
@@ -443,6 +446,22 @@ describe.skipIf(!connectionString)(
       expect(paid.html).not.toContain('stays private');
 
       await expect(publicNewsletter.getArchiveIssue(draftId)).rejects.toThrow();
+    });
+
+    it('keeps the archive of a brand that is not public closed', async () => {
+      const brandId = await seedBrand();
+      const issueId = randomUUID();
+      await pool.query(
+        `UPDATE "${schema}"."brands" SET "scope"='USER' WHERE "id"=$1`,
+        [brandId],
+      );
+      await pool.query(
+        `INSERT INTO "${schema}"."newsletters" ("id","organizationId","brandId","label","content","status","publishedAt","accessLevel") VALUES ($1,$2,$3,'Open issue','Workspace only.','published',now(),'public')`,
+        [issueId, organizationId, brandId],
+      );
+
+      await expect(publicNewsletter.getArchive(brandId)).rejects.toThrow();
+      await expect(publicNewsletter.getArchiveIssue(issueId)).rejects.toThrow();
     });
 
     it('sends each active subscriber exactly once and applies a bounce', async () => {

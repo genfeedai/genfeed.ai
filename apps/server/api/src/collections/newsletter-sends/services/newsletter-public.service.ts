@@ -7,6 +7,7 @@ import {
 } from '@api/collections/newsletter-sends/utils/newsletter-email-template.util';
 import { renderNewsletterHtml } from '@api/collections/newsletters/utils/newsletter-html.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { PUBLIC_BRAND_WHERE } from '@api/helpers/utils/public-brand/public-brand-filter.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
@@ -318,9 +319,10 @@ export class NewsletterPublicService {
       throw new NotFoundException('Newsletter', brandId);
     }
     // tenant-scope-ignore: a public archive names its brand; the organization is read from the row.
+    // Only a public brand has an open archive, like its other public content.
     const brand = await this.prisma.brand.findFirst({
       select: { id: true, label: true, organizationId: true, slug: true },
-      where: { id: brandId, isDeleted: false },
+      where: { ...PUBLIC_BRAND_WHERE, id: brandId },
     });
     if (!brand) throw new NotFoundException('Newsletter', brandId);
     return brand;
