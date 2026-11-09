@@ -161,7 +161,7 @@ The changes:
 5. The merge queue and its plumbing (merge-group triggers, the external-status
    republisher, and the zombie-run janitor) are gone.
 6. The observation-only changed-code coverage was removed after two months
-   without promotion; full-repository coverage stays in the weekly Coverage
+   without promotion; full-repository coverage stays in the nightly Coverage
    workflow.
 7. The shared Bun setup no longer restores a ~1 GB lockfile-keyed `.turbo`
    snapshot on every job; the Turbo remote cache serves task outputs.
