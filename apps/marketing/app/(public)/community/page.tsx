@@ -1,9 +1,12 @@
 import { getAppSignUpUrl } from '@data/app-links';
+import { stringifyJsonLd } from '@data/json-ld';
+import { buildModelCredits } from '@data/model-credits';
 import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import {
   creatorProfilePath,
   GENFEED_BRAND_HANDLE,
 } from '@genfeedai/contracts/constants';
+import { getPublicModels } from '@public/models/models-loader';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import CommunityCreatorCard from '@web-components/creator/CommunityCreatorCard';
@@ -15,21 +18,33 @@ import ProfileImages from '@web-components/profile/ProfileImages';
 import ProfileVideos from '@web-components/profile/ProfileVideos';
 import Link from 'next/link';
 import '@styles/masonry.css';
+import {
+  buildCommunityJsonLd,
+  COMMUNITY_DESCRIPTION,
+  COMMUNITY_PATH,
+} from './community-json-ld';
 import { getCommunityPageData } from './community-loader';
 
 export const revalidate = 300;
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Community: Creators Publishing on Genfeed',
-  'See what creators publish on Genfeed: articles, videos and images from public profiles at genfeed.ai/@handle. Claim your handle and turn Genfeed into your portfolio.',
-  '/community',
+  COMMUNITY_DESCRIPTION,
+  COMMUNITY_PATH,
 );
 
 export default async function CommunityPage(): Promise<React.ReactElement> {
-  const { articles, creators, images, videos } = await getCommunityPageData();
+  const [{ articles, creators, images, videos }, catalog] = await Promise.all([
+    getCommunityPageData(),
+    getPublicModels(),
+  ]);
+  const modelCredits = buildModelCredits(catalog, [...images, ...videos]);
 
   return (
     <>
+      <script type="application/ld+json">
+        {stringifyJsonLd(buildCommunityJsonLd({ articles, creators }))}
+      </script>
       <div className="mx-auto w-full max-w-7xl px-4 pb-24 pt-12 sm:px-6">
         <header className="mx-auto mb-16 max-w-3xl text-center">
           <p className="mb-3 text-sm font-medium uppercase tracking-widest text-foreground/50">
@@ -103,11 +118,11 @@ export default async function CommunityPage(): Promise<React.ReactElement> {
           </CreatorSection>
 
           <CreatorSection title="Latest videos" total={videos.length}>
-            <ProfileVideos videos={videos} />
+            <ProfileVideos modelCredits={modelCredits} videos={videos} />
           </CreatorSection>
 
           <CreatorSection title="Latest images" total={images.length}>
-            <ProfileImages images={images} />
+            <ProfileImages images={images} modelCredits={modelCredits} />
           </CreatorSection>
         </div>
       </div>

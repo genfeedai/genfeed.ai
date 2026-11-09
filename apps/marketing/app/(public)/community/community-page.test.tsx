@@ -22,6 +22,10 @@ vi.mock('@services/external/public.service', () => ({
   },
 }));
 
+vi.mock('@public/models/models-loader', () => ({
+  getPublicModels: async () => null,
+}));
+
 vi.mock('@web-components/home/_footer', () => ({
   default: () => null,
 }));
