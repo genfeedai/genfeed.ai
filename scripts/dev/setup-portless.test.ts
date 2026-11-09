@@ -1,11 +1,100 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildNodeRepinCommands,
   buildPortlessCommand,
   isPortlessServiceReady,
+  needsNodeRepin,
+  PORTLESS_LAUNCH_DAEMON_PATH,
   PORTLESS_SERVICE_INSTALL_ARGS,
+  resolveStableNodePath,
   shouldInstallPortlessService,
   waitForPortlessServiceReady,
 } from './setup-portless';
+
+describe('Portless startup-service Node path', () => {
+  it('maps a versioned Homebrew Node to the link that follows upgrades', () => {
+    expect(
+      resolveStableNodePath('/opt/homebrew/Cellar/node/26.13.0_2/bin/node'),
+    ).toBe('/opt/homebrew/opt/node/bin/node');
+    expect(
+      resolveStableNodePath('/usr/local/Cellar/node/26.12.1/bin/node'),
+    ).toBe('/usr/local/opt/node/bin/node');
+  });
+
+  it('keeps a pinned Homebrew major on its own formula link', () => {
+    expect(
+      resolveStableNodePath('/opt/homebrew/Cellar/node@24/24.11.0/bin/node'),
+    ).toBe('/opt/homebrew/opt/node@24/bin/node');
+  });
+
+  it('leaves Node from outside Homebrew unchanged', () => {
+    expect(
+      resolveStableNodePath('/Users/dev/.nvm/versions/node/v24.1.0/bin/node'),
+    ).toBe('/Users/dev/.nvm/versions/node/v24.1.0/bin/node');
+  });
+
+  it('re-pins only an installed service that runs another Node', () => {
+    const stableNodePath = '/opt/homebrew/opt/node/bin/node';
+
+    expect(
+      needsNodeRepin(
+        '/opt/homebrew/Cellar/node/26.12.1/bin/node',
+        stableNodePath,
+      ),
+    ).toBe(true);
+    expect(needsNodeRepin(stableNodePath, stableNodePath)).toBe(false);
+    expect(needsNodeRepin(null, stableNodePath)).toBe(false);
+  });
+
+  it('rewrites the daemon program and reloads it the way Portless installs it', () => {
+    expect(buildNodeRepinCommands('/opt/homebrew/opt/node/bin/node')).toEqual([
+      {
+        args: [
+          'sudo',
+          'launchctl',
+          'bootout',
+          'system',
+          PORTLESS_LAUNCH_DAEMON_PATH,
+        ],
+        required: false,
+      },
+      {
+        args: [
+          'sudo',
+          '/usr/libexec/PlistBuddy',
+          '-c',
+          'Set :ProgramArguments:0 /opt/homebrew/opt/node/bin/node',
+          PORTLESS_LAUNCH_DAEMON_PATH,
+        ],
+        required: true,
+      },
+      {
+        args: [
+          'sudo',
+          'launchctl',
+          'bootstrap',
+          'system',
+          PORTLESS_LAUNCH_DAEMON_PATH,
+        ],
+        required: true,
+      },
+      {
+        args: ['sudo', 'launchctl', 'enable', 'system/sh.portless.proxy'],
+        required: true,
+      },
+      {
+        args: [
+          'sudo',
+          'launchctl',
+          'kickstart',
+          '-k',
+          'system/sh.portless.proxy',
+        ],
+        required: true,
+      },
+    ]);
+  });
+});
 
 describe('Portless developer setup', () => {
   it('runs the pinned Portless CLI with Node instead of the Bun parent runtime', () => {
