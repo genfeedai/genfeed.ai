@@ -1,3 +1,4 @@
+import { ASSET_ORIGIN_GENERATION_PENDING } from '@api/collections/assets/constants/asset-origin.constant';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AssetCategory, AssetParent, BrandKitSlot } from '@genfeedai/contracts';
 import { traced } from '@libs/tracing/traced';
@@ -21,6 +22,11 @@ export const findBrandLogoVariantId = traced(
         category: AssetCategory.LOGO,
         isDeleted: false,
         kitSlot: slot,
+        // A variant still generating has no image yet.
+        OR: [
+          { origin: null },
+          { origin: { not: ASSET_ORIGIN_GENERATION_PENDING } },
+        ],
         parentBrandId: brandId,
         parentOrgId: organizationId,
         parentType: AssetParent.BRAND,

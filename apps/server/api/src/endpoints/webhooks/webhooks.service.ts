@@ -29,6 +29,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import {
   AssetCategory,
   AssetParent,
+  BrandKitSlot,
   categoryToMediaType,
   categoryToPlural,
   FileInputType,
@@ -36,6 +37,7 @@ import {
   IngredientStatus,
   normalizeCategory,
 } from '@genfeedai/contracts';
+import { getBrandKitPlatformSlotSpec } from '@genfeedai/contracts/constants';
 import type { IFileMetadata } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -751,11 +753,38 @@ export class WebhooksService {
         { assetId, category: asset.category, url },
       );
 
-      await this.filesClientService.uploadToS3(
-        assetId,
-        categoryToPlural(asset.category),
-        { type: FileInputType.URL, url },
-      );
+      // Image models stop near one megapixel, below what platforms such as
+      // YouTube accept, so a platform image is stored at its slot's size.
+      const platformSlot =
+        asset.parentType === AssetParent.BRAND &&
+        asset.category === AssetCategory.BANNER
+          ? toBrandKitSlot(asset.kitSlot)
+          : undefined;
+      const platformSpec =
+        platformSlot && platformSlot !== BrandKitSlot.BANNER_MASTER
+          ? getBrandKitPlatformSlotSpec(platformSlot)
+          : undefined;
+      if (platformSpec) {
+        const resized = await this.filesClientService.resizeImageFromUrl(url, {
+          height: platformSpec.height,
+          width: platformSpec.width,
+        });
+        await this.filesClientService.uploadToS3(
+          assetId,
+          categoryToPlural(asset.category),
+          {
+            contentType: asset.mimeType ?? 'image/png',
+            data: resized,
+            type: FileInputType.BUFFER,
+          },
+        );
+      } else {
+        await this.filesClientService.uploadToS3(
+          assetId,
+          categoryToPlural(asset.category),
+          { type: FileInputType.URL, url },
+        );
+      }
 
       await this.finalizeGeneratedAsset(asset);
 

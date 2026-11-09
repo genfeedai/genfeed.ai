@@ -62,9 +62,8 @@ export default function BrandKitSlotsCard({
   const getService = useAuthedService((token) =>
     BrandsService.getInstance(token),
   );
-  const [fillingSlots, setFillingSlots] = useState<ReadonlySet<BrandKitSlot>>(
-    new Set(),
-  );
+  // One fill at a time: overlapping fills would race on the same slots.
+  const [isFilling, setIsFilling] = useState(false);
   const [fillStatus, setFillStatus] = useState<{
     filled: number;
     failed: string[];
@@ -85,8 +84,8 @@ export default function BrandKitSlotsCard({
   ).map((spec) => spec.slot);
 
   async function fillFromMaster(slots: BrandKitSlot[]) {
-    if (slots.length === 0) return;
-    setFillingSlots(new Set(slots));
+    if (slots.length === 0 || isFilling) return;
+    setIsFilling(true);
     setFillStatus(null);
     try {
       const service = await getService();
@@ -107,7 +106,7 @@ export default function BrandKitSlotsCard({
         filled: 0,
       });
     } finally {
-      setFillingSlots(new Set());
+      setIsFilling(false);
     }
   }
 
@@ -151,7 +150,7 @@ export default function BrandKitSlotsCard({
             {isManager && hasMaster && emptyPlatformSlots.length > 0 ? (
               <Button
                 variant={ButtonVariant.SECONDARY}
-                isDisabled={fillingSlots.size > 0}
+                isDisabled={isFilling}
                 onClick={() => fillFromMaster(emptyPlatformSlots)}
               >
                 {t('fillEmptyFromMaster')}
@@ -197,7 +196,7 @@ export default function BrandKitSlotsCard({
                   asset={asset}
                   imageUrl={assetUrl(asset)}
                   isDefault={isMaster}
-                  isFilling={fillingSlots.has(spec.slot)}
+                  isFilling={isFilling}
                   isManager={isManager}
                   onUpload={() => onUpload(spec.slot)}
                   onFillFromMaster={

@@ -119,6 +119,72 @@ describe('BrandKitSlotsCard', () => {
     ]);
   });
 
+  it('locks every fill control while a fill is running', async () => {
+    fillPlatformImagesFromMaster.mockReturnValue(new Promise(() => {}));
+    render(
+      <BrandKitSlotsCard
+        brand={brandWith({
+          banners: [
+            asset('master', AssetCategory.BANNER, BrandKitSlot.BANNER_MASTER),
+          ],
+        } as Partial<IBrand>)}
+        brandId="brand-1"
+        isManager
+        onRefreshBrand={vi.fn()}
+        onUpload={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'fillFromMaster slot.YOUTUBE_BANNER',
+      }),
+    );
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'fillFromMaster slot.X_HEADER',
+      }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'fillEmptyFromMaster' }),
+    ).toBeDisabled();
+  });
+
+  it('shows a replacement image after the previous preview failed', () => {
+    const props = {
+      brandId: 'brand-1',
+      isManager: true,
+      onRefreshBrand: vi.fn(),
+      onUpload: vi.fn(),
+    };
+    const { rerender } = render(
+      <BrandKitSlotsCard
+        brand={brandWith({
+          logos: [asset('broken', AssetCategory.LOGO, null)],
+        } as Partial<IBrand>)}
+        {...props}
+      />,
+    );
+    const primary = screen.getByRole('figure', { name: 'slot.LOGO_PRIMARY' });
+    fireEvent.error(within(primary).getByRole('img'));
+    expect(within(primary).queryByRole('img')).not.toBeInTheDocument();
+
+    rerender(
+      <BrandKitSlotsCard
+        brand={brandWith({
+          logos: [asset('fresh', AssetCategory.LOGO, null)],
+        } as Partial<IBrand>)}
+        {...props}
+      />,
+    );
+
+    expect(within(primary).getByRole('img')).toHaveAttribute(
+      'src',
+      'https://cdn.test/fresh',
+    );
+  });
+
   it('asks for a master banner before offering to fill from it', () => {
     render(
       <BrandKitSlotsCard

@@ -28,13 +28,14 @@ export default function BrandKitSlotTile({
   onFillFromMaster,
 }: BrandKitSlotTileProps) {
   const t = useTranslations('pages.brandKitSettings.slots');
-  const [hasPreviewError, setHasPreviewError] = useState(false);
+  // Keyed by URL, so a replacement image gets its own chance to load.
+  const [failedUrl, setFailedUrl] = useState<string>();
   const label = t(`slot.${spec.slot}`);
   const platformSpec = 'width' in spec ? spec : undefined;
   const ratio = platformSpec
     ? Math.min(platformSpec.width / platformSpec.height, MAX_PREVIEW_RATIO)
     : 1;
-  const hasPreview = Boolean(imageUrl) && !hasPreviewError;
+  const hasPreview = Boolean(imageUrl) && imageUrl !== failedUrl;
 
   return (
     <figure
@@ -58,7 +59,7 @@ export default function BrandKitSlotTile({
             sizes="320px"
             src={imageUrl}
             unoptimized
-            onError={() => setHasPreviewError(true)}
+            onError={() => setFailedUrl(imageUrl)}
           />
         ) : (
           <span className="flex flex-col items-center gap-1 p-2 text-center text-2xs text-muted-foreground">

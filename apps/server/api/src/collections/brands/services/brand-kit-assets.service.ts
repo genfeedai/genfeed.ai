@@ -235,6 +235,7 @@ export class BrandKitAssetsService {
           categorized."mimeType",
           categorized."parentBrandId",
           categorized."referenceCategory",
+          categorized."updatedAt",
           ROW_NUMBER() OVER (
             PARTITION BY
               categorized."parentBrandId",
@@ -300,7 +301,11 @@ export class BrandKitAssetsService {
           THEN ${BRAND_KIT_RESOLVED_REFERENCE_LIMIT}::int
         ELSE 1
       END
-      ORDER BY ranked."parentBrandId" ASC, ranked."roleRank" ASC
+      ORDER BY
+        ranked."parentBrandId" ASC,
+        ranked."roleRank" ASC,
+        ranked."updatedAt" DESC,
+        ranked."id" ASC
     `;
 
     for (const row of rows) {
@@ -324,15 +329,19 @@ export class BrandKitAssetsService {
     }
 
     for (const kit of resolved.values()) {
+      // Rows arrive newest first, so the fallback alias is the newest asset,
+      // matching the logo the leaderboards resolve.
+      const newestLogo = kit.logos?.[0];
+      const newestBanner = kit.banners?.[0];
       kit.logos?.sort(compareBrandKitSlots);
       kit.banners?.sort(compareBrandKitSlots);
       kit.logo =
         kit.logos?.find((asset) => asset.slot === BrandKitSlot.LOGO_PRIMARY) ??
-        kit.logos?.[0];
+        newestLogo;
       kit.banner =
         kit.banners?.find(
           (asset) => asset.slot === BrandKitSlot.BANNER_MASTER,
-        ) ?? kit.banners?.[0];
+        ) ?? newestBanner;
       if (!kit.logo) delete kit.logo;
       if (!kit.banner) delete kit.banner;
     }
@@ -378,7 +387,15 @@ export class BrandKitAssetsService {
         parentBrandId: brandId,
         parentOrgId: organizationId,
         parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
-        NOT: { origin: ASSET_ORIGIN_GENERATION_PENDING },
+        // An uploaded banner has no origin; only a pending generation is left out.
+        AND: [
+          {
+            OR: [
+              { origin: null },
+              { origin: { not: ASSET_ORIGIN_GENERATION_PENDING } },
+            ],
+          },
+        ],
       },
     });
     if (!master) {
@@ -395,24 +412,27 @@ export class BrandKitAssetsService {
         results.push({ slot, status: 'failed', error: 'not_a_platform_slot' });
         continue;
       }
-      const asset = await this.prisma.asset.create({
-        data: {
-          category: PRISMA_ASSET_CATEGORY_BY_ROLE.banner,
-          kitSlot: slot,
-          mimeType: master.mimeType,
-          origin: `brand-kit:master:${master.id}`,
-          parentBrandId: brandId,
-          parentOrgId: organizationId,
-          parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
-          userId,
-        },
-        select: { id: true },
-      });
+      let assetId: string | undefined;
       try {
         const resized = await this.filesClientService.resizeImageFromUrl(
           masterUrl,
           { height: spec.height, width: spec.width },
         );
+        // Created as pending so no read picks it before its image is stored.
+        const asset = await this.prisma.asset.create({
+          data: {
+            category: PRISMA_ASSET_CATEGORY_BY_ROLE.banner,
+            kitSlot: slot,
+            mimeType: master.mimeType,
+            origin: ASSET_ORIGIN_GENERATION_PENDING,
+            parentBrandId: brandId,
+            parentOrgId: organizationId,
+            parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
+            userId,
+          },
+          select: { id: true },
+        });
+        assetId = asset.id;
         await this.filesClientService.uploadToS3(
           asset.id,
           ASSET_UPLOAD_TYPE_BY_ROLE.banner,
@@ -422,6 +442,10 @@ export class BrandKitAssetsService {
             type: FileInputType.BUFFER,
           },
         );
+        await this.prisma.asset.update({
+          data: { origin: `brand-kit:master:${master.id}` },
+          where: { id: asset.id },
+        });
         await this.prisma.asset.updateMany({
           data: { isDeleted: true },
           where: {
@@ -436,7 +460,7 @@ export class BrandKitAssetsService {
         });
         results.push({ assetId: asset.id, slot, status: 'filled' });
       } catch (error: unknown) {
-        await this.markImportedAssetDeleted(asset.id);
+        if (assetId) await this.markImportedAssetDeleted(assetId);
         results.push({
           error: error instanceof Error ? error.message : 'resize_failed',
           slot,
@@ -888,6 +912,12 @@ export class BrandKitAssetsService {
       where: {
         category: PRISMA_ASSET_CATEGORY_BY_ROLE[role],
         isDeleted: false,
+        // Only the default slot conflicts: an import never replaces a logo
+        // variant or platform image.
+        OR: [
+          { kitSlot: BRAND_KIT_DEFAULT_SLOT_BY_ROLE[role] },
+          { kitSlot: null },
+        ],
         parentBrandId: brandId,
         parentOrgId: organizationId,
         parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],

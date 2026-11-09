@@ -146,7 +146,7 @@ describe('AssetIngestionService', () => {
     expect(ingredientsService.findOne).not.toHaveBeenCalled();
     expect(websocketService.publishBrandRefresh).not.toHaveBeenCalled();
   });
-  it('uploads the asset after replacing the prior brand image and invalidating caches', async () => {
+  it('retires the prior brand image only after the replacement is stored', async () => {
     await expect(service.createUpload(user, file, uploadDto)).resolves.toBe(
       asset,
     );
@@ -154,6 +154,7 @@ describe('AssetIngestionService', () => {
     expect(assetsService.patchAll).toHaveBeenCalledWith(
       {
         category: AssetCategory.LOGO,
+        id: { not: assetId },
         OR: [{ kitSlot: BrandKitSlot.LOGO_PRIMARY }, { kitSlot: null }],
         parentBrandId: brandId,
         parentType: AssetParent.BRAND,
@@ -210,6 +211,18 @@ describe('AssetIngestionService', () => {
       userId,
       { assetId, category: AssetCategory.LOGO },
     );
+  });
+
+  it('keeps the prior brand image and drops the new row when the upload fails', async () => {
+    filesClientService.uploadToS3.mockRejectedValueOnce(new Error('s3 down'));
+
+    await expect(service.createUpload(user, file, uploadDto)).rejects.toThrow(
+      's3 down',
+    );
+
+    expect(assetsService.remove).toHaveBeenCalledWith(assetId);
+    expect(assetsService.patchAll).not.toHaveBeenCalled();
+    expect(websocketService.publishAssetStatus).not.toHaveBeenCalled();
   });
 
   it('verifies the brand belongs to the caller organization before writing', async () => {
@@ -335,6 +348,7 @@ describe('AssetIngestionService', () => {
     expect(assetsService.patchAll).toHaveBeenCalledWith(
       {
         category: AssetCategory.LOGO,
+        id: { not: assetId },
         OR: [{ kitSlot: BrandKitSlot.LOGO_PRIMARY }, { kitSlot: null }],
         parentBrandId: brandId,
         parentType: AssetParent.BRAND,

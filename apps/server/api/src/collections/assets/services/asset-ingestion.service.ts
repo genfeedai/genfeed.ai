@@ -146,25 +146,6 @@ export class AssetIngestionService {
         },
       });
 
-      // A brand keeps one live asset per logo variant or platform slot: the
-      // upload replaces only the slot it fills.
-      if (
-        isBrandKitSlotCategory(uploadDto.category) &&
-        kitSlot &&
-        entityData.parentId &&
-        uploadDto.parentType === AssetParent.BRAND
-      ) {
-        await this.assetsService.patchAll(
-          {
-            category: uploadDto.category,
-            parentBrandId: entityData.parentId,
-            parentType: AssetParent.BRAND,
-            ...brandKitSlotWhere(uploadDto.category, kitSlot),
-          },
-          { isDeleted: true },
-        );
-      }
-
       // One logo per organization: the new upload replaces the previous one.
       if (
         uploadDto.category === AssetCategory.LOGO &&
@@ -191,15 +172,41 @@ export class AssetIngestionService {
         parentType: assetData.parentType,
       });
 
-      await this.filesClientService.uploadToS3(
-        assetData.id,
-        categoryToPlural(uploadDto.category),
-        {
-          contentType: file.mimetype,
-          data: file.buffer,
-          type: FileInputType.BUFFER,
-        },
-      );
+      try {
+        await this.filesClientService.uploadToS3(
+          assetData.id,
+          categoryToPlural(uploadDto.category),
+          {
+            contentType: file.mimetype,
+            data: file.buffer,
+            type: FileInputType.BUFFER,
+          },
+        );
+      } catch (error: unknown) {
+        // The slot keeps its current image when the new one never stored.
+        await this.assetsService.remove(assetData.id);
+        throw error;
+      }
+
+      // A brand keeps one live asset per logo variant or platform slot: once
+      // stored, the upload replaces only the slot it fills.
+      if (
+        isBrandKitSlotCategory(uploadDto.category) &&
+        kitSlot &&
+        entityData.parentId &&
+        uploadDto.parentType === AssetParent.BRAND
+      ) {
+        await this.assetsService.patchAll(
+          {
+            category: uploadDto.category,
+            id: { not: assetData.id },
+            parentBrandId: entityData.parentId,
+            parentType: AssetParent.BRAND,
+            ...brandKitSlotWhere(uploadDto.category, kitSlot),
+          },
+          { isDeleted: true },
+        );
+      }
 
       const brandParentId =
         uploadDto.parentType === AssetParent.BRAND &&
@@ -307,18 +314,6 @@ export class AssetIngestionService {
       createFromIngredientDto.kitSlot,
     );
 
-    if (isBrandKitSlotCategory(validatedCategory) && kitSlot) {
-      await this.assetsService.patchAll(
-        {
-          category: validatedCategory,
-          parentBrandId: validatedParent,
-          parentType: AssetParent.BRAND,
-          ...brandKitSlotWhere(validatedCategory, kitSlot),
-        },
-        { isDeleted: true },
-      );
-    }
-
     const assetData = await this.assetsService.create({
       category: validatedCategory,
       kitSlot,
@@ -353,6 +348,20 @@ export class AssetIngestionService {
 
       throw new ValidationException(
         'Failed to copy ingredient file. The source file may not exist or there was an S3 error.',
+      );
+    }
+
+    // Retire the slot's previous image only once the copy is stored.
+    if (isBrandKitSlotCategory(validatedCategory) && kitSlot) {
+      await this.assetsService.patchAll(
+        {
+          category: validatedCategory,
+          id: { not: assetData.id },
+          parentBrandId: validatedParent,
+          parentType: AssetParent.BRAND,
+          ...brandKitSlotWhere(validatedCategory, kitSlot),
+        },
+        { isDeleted: true },
       );
     }
 

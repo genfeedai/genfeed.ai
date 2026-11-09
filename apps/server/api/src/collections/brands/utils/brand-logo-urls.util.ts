@@ -1,3 +1,4 @@
+import { ASSET_ORIGIN_GENERATION_PENDING } from '@api/collections/assets/constants/asset-origin.constant';
 import {
   ASSET_UPLOAD_TYPE_BY_ROLE,
   PRISMA_ASSET_CATEGORY_BY_ROLE,
@@ -43,6 +44,15 @@ export async function resolveBrandLogoCdnUrls(
       parentBrandId: true,
     },
     where: {
+      // A logo still generating has no image yet.
+      AND: [
+        {
+          OR: [
+            { origin: null },
+            { origin: { not: ASSET_ORIGIN_GENERATION_PENDING } },
+          ],
+        },
+      ],
       category: PRISMA_ASSET_CATEGORY_BY_ROLE.logo,
       isDeleted: false,
       OR: organizationScopes,

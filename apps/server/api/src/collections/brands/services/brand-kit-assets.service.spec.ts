@@ -262,6 +262,21 @@ describe('BrandKitAssetsService.resolveBrandKitAssetsForBrands', () => {
     expect(kit?.banner?.id).toBe('x-header');
   });
 
+  it('uses the newest variant as the logo when there is no primary', async () => {
+    // Rows arrive newest first.
+    queryRaw.mockResolvedValueOnce([
+      rankedRow({ id: 'dark', kitSlot: 'LOGO_DARK' }),
+      rankedRow({ id: 'icon', kitSlot: 'LOGO_ICON' }),
+    ]);
+
+    const kit = (
+      await service.resolveBrandKitAssetsForBrands(['brand-1'], 'org-1')
+    ).get('brand-1');
+
+    expect(kit?.logos?.map((logo) => logo.id)).toEqual(['icon', 'dark']);
+    expect(kit?.logo?.id).toBe('dark');
+  });
+
   it('ignores rows for a brand that was never requested', async () => {
     queryRaw.mockResolvedValueOnce([
       rankedRow({ id: 'logo-foreign', parentBrandId: 'brand-foreign' }),

@@ -35,6 +35,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import {
   AssetCategory,
   AssetParent,
+  BrandKitSlot,
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
@@ -188,6 +189,7 @@ describe('WebhooksService', () => {
           provide: FilesClientService,
           useValue: {
             generateThumbnail: vi.fn(),
+            resizeImageFromUrl: vi.fn(),
             uploadToS3: vi.fn(),
           },
         },
@@ -1131,6 +1133,29 @@ describe('WebhooksService', () => {
         assetId,
         'banners',
         { type: 'url', url },
+      );
+    });
+
+    it('stores a platform banner at its slot size', async () => {
+      const resized = Buffer.from('resized');
+      assetsService.findOne.mockResolvedValue({
+        ...mockAsset,
+        category: AssetCategory.BANNER,
+        kitSlot: BrandKitSlot.YOUTUBE_BANNER,
+        mimeType: 'image/jpeg',
+      } as unknown as AssetDocument);
+      filesClientService.resizeImageFromUrl.mockResolvedValue(resized);
+
+      await service.processAssetFromWebhook(integration, assetId, url);
+
+      expect(filesClientService.resizeImageFromUrl).toHaveBeenCalledWith(url, {
+        height: 1440,
+        width: 2560,
+      });
+      expect(filesClientService.uploadToS3).toHaveBeenCalledWith(
+        assetId,
+        'banners',
+        { contentType: 'image/jpeg', data: resized, type: 'buffer' },
       );
     });
 
