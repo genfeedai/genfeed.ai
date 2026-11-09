@@ -404,18 +404,18 @@ export class CreatorSubscriptionsService {
     const updated = await runWithTenantContext(
       { organizationId: owner.id },
       async () => {
-        const where = scopedWhere(owner.id, {
+        const filter = {
           id: subscriptionId,
           payerUserId: reader.userId,
           status: { in: LIVE_STATUSES },
-        });
+        };
         await this.prisma.creatorSubscription.updateMany({
           data: { cancelAtPeriodEnd },
-          where,
+          where: scopedWhere(owner.id, filter),
         });
         return await this.prisma.creatorSubscription.findFirst({
           select: SUBSCRIPTION_SELECT,
-          where,
+          where: scopedWhere(owner.id, filter),
         });
       },
     );
