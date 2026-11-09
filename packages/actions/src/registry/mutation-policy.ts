@@ -44,7 +44,10 @@ const READ_ONLY_PREFIXES = [
   'verify_',
 ] as const;
 
-const WRITE_NAMES_WITH_READ_PREFIX = new Set(['present_work_object']);
+const WRITE_NAMES_WITH_READ_PREFIX = new Set([
+  'present_work_object',
+  'render_3d',
+]);
 
 const READ_ONLY_NAMES: ReadonlySet<string> = curatedActionNames(
   (entry) => entry.isReadOnly === true,

@@ -111,6 +111,8 @@ const resolveMetadataExtension = (
       return MetadataExtension.MP3;
     case IngredientCategory.VIDEO:
       return MetadataExtension.MP4;
+    case IngredientCategory.MODEL_3D:
+      return MetadataExtension.GLB;
     default:
       return MetadataExtension.JPEG;
   }

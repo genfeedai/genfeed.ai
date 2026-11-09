@@ -786,6 +786,12 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['mcp'],
     toolset: 'ads',
   },
+  {
+    isReadOnly: true,
+    name: 'get_model3d',
+    surfaces: ['mcp'],
+    toolset: 'models3d',
+  },
   { name: 'get_orgs', surfaces: ['mcp'], toolset: 'onboarding' },
   { name: 'get_outlier_posts', surfaces: ['agent'], toolset: 'analytics' },
   {
@@ -1145,6 +1151,16 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent'],
     toolset: 'onboarding',
     uiActionType: 'brand_identity_confirmation_card',
+  },
+  {
+    actionClass: 'credit-spending',
+    isMcpApprovalNeverSkipped: true,
+    isOpenWorld: true,
+    mcpApproval: 'generation',
+    mutationPolicy: 'approval-required',
+    name: 'render_3d',
+    surfaces: ['mcp'],
+    toolset: 'models3d',
   },
   { name: 'render_dashboard', surfaces: ['agent'], toolset: 'ui' },
   {

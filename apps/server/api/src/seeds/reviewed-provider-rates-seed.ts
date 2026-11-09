@@ -5,6 +5,7 @@ import {
 import { ELEVENLABS_SCHEMA_FIXTURES } from '@api/seeds/fixtures/elevenlabs-rate-schemas';
 import { FAL_REALTIME_SCHEMA_FIXTURES } from '@api/seeds/fixtures/fal-realtime-rate-schemas';
 import { HEYGEN_SCHEMA_FIXTURES } from '@api/seeds/fixtures/heygen-rate-schemas';
+import { TRELLIS_SCHEMA_FIXTURES } from '@api/seeds/fixtures/trellis-rate-schemas';
 import { KIE_KLING_INPUT_SCHEMA } from '@api/seeds/model-provider-offers.seed';
 import type { SchemaFixture } from '@api/seeds/reviewed-provider-rates-seed.types';
 import flux3Openapi from '@api/services/prompt-builder/builders/replicate/fixtures/flux-3-image.schema.json';
@@ -90,6 +91,7 @@ const SCHEMA_FIXTURES: Readonly<Record<string, SchemaFixture>> = {
   ...ELEVENLABS_SCHEMA_FIXTURES,
   ...FAL_REALTIME_SCHEMA_FIXTURES,
   ...HEYGEN_SCHEMA_FIXTURES,
+  ...TRELLIS_SCHEMA_FIXTURES,
 };
 
 function conditionalDimensions(

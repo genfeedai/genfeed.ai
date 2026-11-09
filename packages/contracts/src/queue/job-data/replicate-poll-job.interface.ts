@@ -17,4 +17,14 @@ export interface ReplicatePollJobData {
   isByok?: boolean;
   organizationId: string;
   outputIndex?: number;
+  /**
+   * Key of the file inside an object-shaped prediction output (for example
+   * `model_file` on image-to-3D models). Absent for URL or URL-array outputs.
+   */
+  outputKey?: string;
+  /**
+   * Work to start once this prediction's output is stored. `models3d-build`
+   * starts the 3D build from the finished view sheet.
+   */
+  chain?: { kind: 'models3d-build' };
 }

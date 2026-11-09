@@ -144,6 +144,7 @@ enum MetadataExtension {
   AVI
   MP3
   WAV
+  GLB
 }
 
 enum PromptCategory {

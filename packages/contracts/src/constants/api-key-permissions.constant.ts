@@ -110,6 +110,19 @@ export const API_KEY_PERMISSION_GROUPS: readonly IApiKeyPermissionGroup[] = [
     ],
   },
   {
+    id: 'models3d',
+    label: '3D models',
+    resources: [
+      {
+        id: 'models3d',
+        label: '3D model renders',
+        levels: ['none', 'read', 'write'],
+        readScopes: ['models3d:read'],
+        writeScopes: ['models3d:write'],
+      },
+    ],
+  },
+  {
     id: 'insights',
     label: 'Insights',
     resources: [
