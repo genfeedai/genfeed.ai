@@ -1,4 +1,4 @@
-import { AssetCategory, type BrandKitSlot } from '@genfeedai/contracts';
+import { AssetCategory, BrandKitSlot } from '@genfeedai/contracts';
 import {
   getDefaultBrandKitSlot,
   isBrandKitSlotForCategory,
