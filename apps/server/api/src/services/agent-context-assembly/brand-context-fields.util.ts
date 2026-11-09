@@ -3,7 +3,13 @@ import {
   BRAND_FONT_ROLES,
   readBrandFontRoles,
 } from '@genfeedai/contracts/api-types/contracts/brand-kit-style.contract';
-import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
+import { getBrandKitPlatformSlotSpec } from '@genfeedai/contracts/constants';
+import type {
+  IBrandKitFontRoleEntry,
+  IBrandKitResolvedAsset,
+  IBrandKitResolvedAssets,
+  IBrandKitSlotImage,
+} from '@genfeedai/contracts/interfaces';
 import type { BrandKitSourceBrand } from '@genfeedai/helpers';
 
 /**
@@ -41,7 +47,7 @@ export function readNonDefaultColor(
 /** The family each text role uses, in heading, body, caption order. */
 export function readBrandFontRoleFamilies(
   value: unknown,
-): Array<{ role: string; family: string }> {
+): IBrandKitFontRoleEntry[] {
   const roles = readBrandFontRoles(value);
   return BRAND_FONT_ROLES.flatMap((role) => {
     const assignment = roles[role];
@@ -52,7 +58,29 @@ export function readBrandFontRoleFamilies(
           assignment.source === 'upload'
             ? assignment.family
             : FONT_FAMILY_METADATA[assignment.fontFamily].label,
+        ...(assignment.source === 'upload'
+          ? { fontAssetId: assignment.assetId }
+          : {}),
         role,
+      },
+    ];
+  });
+}
+
+/** Logo variants or platform images with their slot and, for platforms, size. */
+export function toSlotImages(
+  assets: readonly IBrandKitResolvedAsset[] | undefined,
+): IBrandKitSlotImage[] {
+  return (assets ?? []).flatMap((asset) => {
+    if (!asset.slot) return [];
+    const spec = getBrandKitPlatformSlotSpec(asset.slot);
+    return [
+      {
+        assetId: asset.id,
+        ...(asset.mimeType ? { mimeType: asset.mimeType } : {}),
+        slot: asset.slot,
+        url: asset.url,
+        ...(spec ? { height: spec.height, width: spec.width } : {}),
       },
     ];
   });

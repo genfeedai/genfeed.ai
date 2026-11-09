@@ -375,6 +375,78 @@ export interface IBrandKitPlatformFillResult {
   error?: string;
 }
 
+/** A named palette color, as the agent, MCP and kit readers see it. */
+export interface IBrandKitColorEntry {
+  name: string;
+  hex: string;
+  usage?: string;
+}
+
+/** The font family one text role uses. */
+export interface IBrandKitFontRoleEntry {
+  role: string;
+  family: string;
+  /** The uploaded brand font file, when the role uses one. */
+  fontAssetId?: string;
+}
+
+/** A logo variant or platform image, by its slot. */
+export interface IBrandKitSlotImage {
+  /** The asset id; API responses sign `url` for this asset. */
+  assetId: string;
+  slot: BrandKitSlot;
+  url: string;
+  mimeType?: string;
+  /** The size the platform asks for; logos have none. */
+  width?: number;
+  height?: number;
+}
+
+/** An uploaded brand font file. Its bytes come from the brand fonts API. */
+export interface IBrandKitFontFile {
+  fontAssetId: string;
+  name: string;
+  contentHash: string;
+}
+
+/**
+ * The whole brand kit in one read (#9710): colors, the named palette, fonts by
+ * role, every logo variant and every platform image.
+ */
+export interface IBrandKitView {
+  brandId: string;
+  label: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    background: string;
+  };
+  /** The built-in font the brand uses when no role names another. */
+  fontFamily: string;
+  palette: IBrandKitColorEntry[];
+  fontRoles: IBrandKitFontRoleEntry[];
+  fonts: IBrandKitFontFile[];
+  logos: IBrandKitSlotImage[];
+  banners: IBrandKitSlotImage[];
+}
+
+/** A file the kit import left out, and why. */
+export interface IBrandKitImportSkip {
+  file: string;
+  reason: string;
+}
+
+/** What importing a brand kit ZIP wrote to the brand. */
+export interface IBrandKitImportResult {
+  logos: BrandKitSlot[];
+  banners: BrandKitSlot[];
+  fontCount: number;
+  hasColors: boolean;
+  hasPalette: boolean;
+  hasFontRoles: boolean;
+  skipped: IBrandKitImportSkip[];
+}
+
 /** A candidate palette color read from the brand's primary logo. */
 export interface IBrandKitLogoColor {
   hex: string;

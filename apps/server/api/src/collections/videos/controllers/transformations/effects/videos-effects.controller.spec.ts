@@ -32,6 +32,10 @@ import type { FileQueueService } from '@api/services/files-microservice/queue/fi
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { SharedService } from '@api/shared/services/shared/shared.service';
 import {
+  type IngredientWorldRow,
+  ingredientRowWorld,
+} from '@api-test/fixtures/ingredient-row.world';
+import {
   IngredientStatus,
   TransformationCategory,
   WebSocketEventType,
@@ -66,7 +70,7 @@ interface Harness {
   createdMedia: Array<Record<string, unknown>>;
   errors: string[];
   failures: string[];
-  ingredientPatches: Array<{ id: string; update: Record<string, unknown> }>;
+  ingredients: IngredientWorldRow[];
   issuedUrls: Array<{ ids: string[]; organizationId: string }>;
   jobs: Array<Record<string, unknown>>;
   published: Array<{ eventType: string; id: string }>;
@@ -74,6 +78,8 @@ interface Harness {
 
 function makeHarness(options: {
   authorizedUrl?: string | Error;
+  /** Runs while the files worker processes the job, e.g. a user cancel. */
+  duringJob?: (ingredients: IngredientWorldRow[]) => void;
   failMediaCreation?: boolean;
   videos?: Array<{
     brandId: string;
@@ -89,7 +95,7 @@ function makeHarness(options: {
     createdMedia: [],
     errors: [],
     failures: [],
-    ingredientPatches: [],
+    ingredients: [],
     issuedUrls: [],
     jobs: [],
     published: [],
@@ -113,14 +119,31 @@ function makeHarness(options: {
       harness.jobs.push(job);
       return { jobId: `job-${harness.jobs.length}` };
     },
-    waitForJob: async () => ({ outputPath: OUTPUT_PATH }),
+    waitForJob: async () => {
+      options.duringJob?.(harness.ingredients);
+      return { outputPath: OUTPUT_PATH };
+    },
   };
   const filesClientService = {
     uploadToS3: async (id: string) => ({ s3Key: `videos/${id}.mp4` }),
   };
   const ingredientsService = {
     patch: async (id: string, update: Record<string, unknown>) => {
-      harness.ingredientPatches.push({ id, update });
+      for (const row of harness.ingredients) {
+        await ingredientRowWorld(row).patch(id, update);
+      }
+    },
+    patchAll: async (
+      filter: Record<string, unknown>,
+      update: Record<string, unknown>,
+    ) => {
+      let modifiedCount = 0;
+      for (const row of harness.ingredients) {
+        modifiedCount += (
+          await ingredientRowWorld(row).patchAll(filter, update)
+        ).modifiedCount;
+      }
+      return { modifiedCount };
     },
   };
   const loggerService = {
@@ -140,6 +163,12 @@ function makeHarness(options: {
       }
       harness.createdMedia.push(input);
       const n = harness.createdMedia.length;
+      harness.ingredients.push({
+        id: `ingredient-${n}`,
+        isDeleted: false,
+        organizationId: input.organizationId,
+        status: input.status,
+      });
       return {
         ingredientData: { id: `ingredient-${n}` },
         metadataData: { id: `metadata-${n}` },
@@ -209,16 +238,41 @@ describe('VideosEffectsController', () => {
         { eventType: WebSocketEventType.VIDEO_REVERSED, id: 'ingredient-1' },
       ]),
     );
-    expect(harness.ingredientPatches).toEqual([
+    expect(harness.ingredients).toEqual([
       {
         id: 'ingredient-1',
-        update: {
-          s3Key: 'videos/ingredient-1.mp4',
-          status: IngredientStatus.GENERATED,
-          transformations: [TransformationCategory.REVERSED],
-        },
+        isDeleted: false,
+        organizationId,
+        s3Key: 'videos/ingredient-1.mp4',
+        status: IngredientStatus.GENERATED,
+        transformations: [TransformationCategory.REVERSED],
       },
     ]);
+  });
+
+  it('keeps a reversal the user cancelled while it ran failed and silent (#9735)', async () => {
+    const harness = makeHarness({
+      duringJob: ([ingredient]) => {
+        Object.assign(ingredient, {
+          generationError: 'Cancelled by user',
+          status: IngredientStatus.FAILED,
+        });
+      },
+    });
+
+    await harness.controller.reverseVideo(mockRequest, mockUser, videoId);
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(harness.ingredients).toEqual([
+      {
+        generationError: 'Cancelled by user',
+        id: 'ingredient-1',
+        isDeleted: false,
+        organizationId,
+        status: IngredientStatus.FAILED,
+      },
+    ]);
+    expect(harness.published).toEqual([]);
   });
 
   it('mirrors a video into a new generated ingredient and announces it', async () => {
@@ -236,7 +290,7 @@ describe('VideosEffectsController', () => {
         { eventType: WebSocketEventType.VIDEO_MIRRORED, id: 'ingredient-1' },
       ]),
     );
-    expect(harness.ingredientPatches[0]?.update).toMatchObject({
+    expect(harness.ingredients[0]).toMatchObject({
       status: IngredientStatus.GENERATED,
       transformations: [TransformationCategory.MIRRORED],
     });

@@ -49,6 +49,7 @@ import {
   readNonDefaultColor,
   readTextField,
   toBrandKitSourceBrand,
+  toSlotImages,
 } from './brand-context-fields.util';
 import { rankByQueryOverlap } from './text-overlap.util';
 
@@ -438,6 +439,8 @@ export class AgentContextAssemblyService {
     const fontFamily = readTextField(brand.fontFamily);
     const palette = readBrandPalette(brand.colorPalette);
     const fontRoles = readBrandFontRoleFamilies(brand.fontRoles);
+    const logos = toSlotImages(brandKitAssets.logos);
+    const banners = toSlotImages(brandKitAssets.banners);
     const hasVisualIdentity = Boolean(
       primaryColor ||
         secondaryColor ||
@@ -462,6 +465,8 @@ export class AgentContextAssemblyService {
     if (fontFamily) context.visualIdentity.fontFamily = fontFamily;
     if (palette.length > 0) context.visualIdentity.palette = palette;
     if (fontRoles.length > 0) context.visualIdentity.fontRoles = fontRoles;
+    if (logos.length > 0) context.visualIdentity.logos = logos;
+    if (banners.length > 0) context.visualIdentity.banners = banners;
     if (logoUrl) context.visualIdentity.logoUrl = logoUrl;
     if (bannerUrl) context.visualIdentity.bannerUrl = bannerUrl;
     if (referenceImages.length > 0) {

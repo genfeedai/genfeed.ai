@@ -1,7 +1,8 @@
+import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import {
   INGREDIENT_STATE_MACHINE,
-  type IngredientStatus,
+  IngredientStatus,
 } from '@genfeedai/contracts';
 import { traced } from '@libs/tracing/traced';
 
@@ -15,6 +16,14 @@ export interface IngredientStatusTransition {
   /** Other columns that must still match, such as the timeout marker. */
   match?: Record<string, unknown>;
   /** Columns written together with the new status. */
+  data?: Record<string, unknown>;
+}
+
+export interface IngredientGenerationSettlement {
+  id: string;
+  organizationId?: string | null;
+  /** GENERATED, UPLOADED or FAILED. */
+  to: IngredientStatus;
   data?: Record<string, unknown>;
 }
 
@@ -48,6 +57,71 @@ export const transitionIngredientStatus = traced(
         status: transition.from,
       },
       { ...transition.data, status: transition.to },
+    );
+    return modifiedCount === 1;
+  },
+);
+
+/**
+ * Settles a generation that is still PROCESSING (#9735). A generation the
+ * stuck-ingredient cron timed out is reopened first, so a late result still
+ * lands; one the user cancelled or the provider failed stays as it is.
+ *
+ * @returns whether this call settled the generation.
+ */
+export const settleIngredientGeneration = traced(
+  'settleIngredientGeneration',
+  async (
+    ingredients: Pick<IngredientsService, 'patchAll'>,
+    settlement: IngredientGenerationSettlement,
+  ): Promise<boolean> => {
+    const claim = () =>
+      transitionIngredientStatus(ingredients, {
+        data: settlement.data,
+        from: IngredientStatus.PROCESSING,
+        id: settlement.id,
+        organizationId: settlement.organizationId,
+        to: settlement.to,
+      });
+    if (await claim()) return true;
+    const reopened = await transitionIngredientStatus(ingredients, {
+      data: { generationError: null },
+      from: IngredientStatus.FAILED,
+      id: settlement.id,
+      match: { generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR },
+      organizationId: settlement.organizationId,
+      to: IngredientStatus.PROCESSING,
+    });
+    return reopened && (await claim());
+  },
+);
+
+/**
+ * Settles a generation that two writers report, such as the files worker's
+ * completion event and the request that queued the job (#9735). Whichever
+ * report lands second finds the row already in `to`; it still counts and
+ * writes its `data`. A generation the user stopped, or one the other writer
+ * settled the other way, is left as it is.
+ *
+ * @returns whether the generation is now settled as `to`.
+ */
+export const settleSharedIngredientGeneration = traced(
+  'settleSharedIngredientGeneration',
+  async (
+    ingredients: Pick<IngredientsService, 'patchAll'>,
+    settlement: IngredientGenerationSettlement,
+  ): Promise<boolean> => {
+    if (await settleIngredientGeneration(ingredients, settlement)) return true;
+    const { modifiedCount } = await ingredients.patchAll(
+      {
+        id: settlement.id,
+        ...(settlement.organizationId
+          ? { organizationId: settlement.organizationId }
+          : {}),
+        isDeleted: false,
+        status: settlement.to,
+      },
+      { ...settlement.data, status: settlement.to },
     );
     return modifiedCount === 1;
   },

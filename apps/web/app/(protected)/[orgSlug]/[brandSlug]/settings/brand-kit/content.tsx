@@ -38,6 +38,7 @@ import {
 } from '@/features/brands/components/brand-kit/BrandKitReviewApplyBar';
 import BrandKitReviewCard from '@/features/brands/components/brand-kit/BrandKitReviewCard';
 import BrandKitSlotsCard from '@/features/brands/components/brand-kit/BrandKitSlotsCard';
+import BrandKitTransferCard from '@/features/brands/components/brand-kit/BrandKitTransferCard';
 import BrandKitWorkspace from '@/features/brands/components/brand-kit/BrandKitWorkspace';
 import BrandOsSettingsCard from '@/features/brands/components/brand-kit/BrandOsSettingsCard';
 import BrandWritingVoiceEditor from '@/features/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor';
@@ -198,6 +199,16 @@ export default function BrandKitPage() {
                   }
                 />
                 <BrandFontsCard brandId={brandId} isManager={canManage} />
+                {canManage ? (
+                  <BrandKitTransferCard
+                    brandId={brandId}
+                    downloadName={`${brand.slug || 'brand'}-brand-kit.zip`}
+                    onImported={() => {
+                      void handleRefreshBrand();
+                      setRefreshKey((value) => value + 1);
+                    }}
+                  />
+                ) : null}
                 <BrandWatermarkSettings
                   brand={brand}
                   brandId={brandId}
