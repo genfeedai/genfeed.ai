@@ -1069,6 +1069,11 @@ describe('BrandsService', () => {
         },
       );
 
+      // Only the primary slot conflicts; logo variants never block an import.
+      expect(assetDelegate.findFirst.mock.calls[1]?.[0]?.where?.OR).toEqual([
+        { kitSlot: 'LOGO_PRIMARY' },
+        { kitSlot: null },
+      ]);
       expect(assetDelegate.create).not.toHaveBeenCalled();
       expect(filesClientService.uploadToS3).not.toHaveBeenCalled();
       expect(result.status).toBe('blocked');

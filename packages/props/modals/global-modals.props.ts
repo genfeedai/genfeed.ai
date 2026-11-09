@@ -1,4 +1,5 @@
 import type {
+  BrandKitSlot,
   IngredientCategory,
   Platform,
   PostRepurposeMode,
@@ -22,6 +23,8 @@ export interface GlobalModalUploadConfig {
   category: IngredientCategory | string;
   parentId?: string;
   parentModel?: string;
+  /** Brand logo variant or platform image slot the upload fills. */
+  kitSlot?: BrandKitSlot;
   width?: number;
   height?: number;
   isResizeEnabled?: boolean;

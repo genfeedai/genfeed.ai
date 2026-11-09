@@ -26,8 +26,6 @@
   "saveDraft": "Save draft",
   "createManualDraft": "Create manual draft",
   "capturedDraft": "Website scan & captured draft",
-  "replaceLogo": "Replace logo",
-  "replaceBanner": "Replace banner",
   "preview": {
     "label": "Local brand preview",
     "title": "Preview · {source}",
@@ -43,5 +41,41 @@
     "sample": "Your next idea starts here.",
     "description": "Add your brand description to see it here.",
     "brand": "Brand"
+  },
+  "slots": {
+    "logosTitle": "Logo variants",
+    "logosDescription": "Keep every version of your logo. The primary logo is your brand avatar. Watermarks on light footage use the light-background version when there is one.",
+    "platformTitle": "Platform banners and profile images",
+    "platformDescription": "One image per platform, at the size that platform asks for. Uploads are cropped to fit.",
+    "upload": "Upload",
+    "replace": "Replace",
+    "empty": "Empty",
+    "default": "Default",
+    "size": "{width} × {height} px",
+    "safeArea": "Keep text inside {width} × {height} px",
+    "sizeSource": "Size from the platform's help page",
+    "fillFromMaster": "Fill from master",
+    "fillEmptyFromMaster": "Fill empty slots from master banner",
+    "fillHelp": "Filled slots are resized and cropped from your master banner. Upload a dedicated image for the sharpest result.",
+    "filled": "{count, plural, one {# slot filled} other {# slots filled}}",
+    "fillFailed": "Could not fill: {slots}",
+    "noMaster": "Upload a master banner to fill the platform slots from it.",
+    "slot": {
+      "LOGO_PRIMARY": "Primary",
+      "LOGO_ICON": "Icon or mark",
+      "LOGO_WORDMARK": "Wordmark",
+      "LOGO_LIGHT": "For light backgrounds",
+      "LOGO_DARK": "For dark backgrounds",
+      "LOGO_MONOCHROME": "Monochrome",
+      "BANNER_MASTER": "Master banner",
+      "X_HEADER": "X header",
+      "X_PROFILE": "X profile photo",
+      "YOUTUBE_BANNER": "YouTube channel banner",
+      "YOUTUBE_PROFILE": "YouTube profile picture",
+      "LINKEDIN_COVER": "LinkedIn Page cover",
+      "LINKEDIN_LOGO": "LinkedIn Page logo",
+      "FACEBOOK_COVER": "Facebook Page cover",
+      "FACEBOOK_PROFILE": "Facebook profile picture"
+    }
   }
 }

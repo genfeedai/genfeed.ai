@@ -4,6 +4,7 @@ import { BrandKitAssetsService } from '@api/collections/brands/services/brand-ki
 import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BrandKitSlot } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -12,6 +13,7 @@ type RankedAssetRow = {
   cloudObjectKey: string | null;
   displayName: string | null;
   id: string;
+  kitSlot: string | null;
   mimeType: string | null;
   parentBrandId: string | null;
   referenceCategory: string | null;
@@ -32,6 +34,7 @@ function rankedRow(overrides: Partial<RankedAssetRow>): RankedAssetRow {
     cloudObjectKey: null,
     displayName: null,
     id: 'asset-1',
+    kitSlot: null,
     mimeType: null,
     parentBrandId: 'brand-1',
     referenceCategory: null,
@@ -190,9 +193,8 @@ describe('BrandKitAssetsService.resolveBrandKitAssetsForBrands', () => {
     );
 
     const sql = readSql(queryRaw.mock.calls[0]);
-    expect(sql).toContain(
-      'PARTITION BY categorized."parentBrandId", categorized."category"',
-    );
+    expect(sql).toContain('categorized."slotKey"');
+    expect(sql).toContain('COALESCE(asset."kitSlot"::text, \'LOGO_PRIMARY\')');
     expect(sql).toContain(
       'COALESCE(asset."referenceCategory"::text, \'STYLE\')',
     );
@@ -238,6 +240,42 @@ describe('BrandKitAssetsService.resolveBrandKitAssetsForBrands', () => {
         referenceCategory: 'PRODUCT',
       }),
     ]);
+  });
+
+  it('keeps every logo variant and platform slot, and picks the defaults', async () => {
+    queryRaw.mockResolvedValueOnce([
+      rankedRow({ id: 'icon', kitSlot: 'LOGO_ICON' }),
+      rankedRow({ id: 'primary', kitSlot: 'LOGO_PRIMARY' }),
+      rankedRow({ category: 'BANNER', id: 'x-header', kitSlot: 'X_HEADER' }),
+    ]);
+
+    const kit = (
+      await service.resolveBrandKitAssetsForBrands(['brand-1'], 'org-1')
+    ).get('brand-1');
+
+    expect(kit?.logos?.map((logo) => [logo.id, logo.slot])).toEqual([
+      ['primary', 'LOGO_PRIMARY'],
+      ['icon', 'LOGO_ICON'],
+    ]);
+    expect(kit?.logo?.id).toBe('primary');
+    expect(kit?.banners?.map((banner) => banner.slot)).toEqual(['X_HEADER']);
+    // No master banner: the newest platform banner stands in.
+    expect(kit?.banner?.id).toBe('x-header');
+  });
+
+  it('uses the newest variant as the logo when there is no primary', async () => {
+    // Rows arrive newest first.
+    queryRaw.mockResolvedValueOnce([
+      rankedRow({ id: 'dark', kitSlot: 'LOGO_DARK' }),
+      rankedRow({ id: 'icon', kitSlot: 'LOGO_ICON' }),
+    ]);
+
+    const kit = (
+      await service.resolveBrandKitAssetsForBrands(['brand-1'], 'org-1')
+    ).get('brand-1');
+
+    expect(kit?.logos?.map((logo) => logo.id)).toEqual(['icon', 'dark']);
+    expect(kit?.logo?.id).toBe('dark');
   });
 
   it('ignores rows for a brand that was never requested', async () => {
@@ -362,5 +400,70 @@ describe('BrandKitAssetsService.resolveBrandLogoUrls', () => {
     );
     expect(findMany).not.toHaveBeenCalled();
     expect(empty.size).toBe(0);
+  });
+});
+
+describe('BrandKitAssetsService.fillPlatformSlotsFromMaster', () => {
+  const asset = {
+    create: vi.fn(),
+    findFirst: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+  };
+  const files = {
+    resizeImageFromUrl: vi.fn(),
+    uploadToS3: vi.fn(),
+  };
+  let service: BrandKitAssetsService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    asset.findFirst.mockResolvedValue({
+      cloudObjectKey: 'banners/master',
+      id: 'master',
+      // Stored as GIF, but the resize returns PNG bytes.
+      mimeType: 'image/gif',
+    });
+    asset.create
+      .mockResolvedValueOnce({ id: 'x-header' })
+      .mockResolvedValueOnce({ id: 'youtube' });
+    files.resizeImageFromUrl.mockResolvedValue(
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    );
+    service = new BrandKitAssetsService(
+      { asset } as unknown as PrismaService,
+      {
+        invalidate: vi.fn(),
+        invalidateByTags: vi.fn(),
+      } as unknown as CacheInvalidationService,
+      files as unknown as FilesClientService,
+      { cdnUrl: 'https://cdn.example.com' } as unknown as ConfigService,
+    );
+  });
+
+  it('records the resized bytes as PNG whatever the master is labeled, and reports a failed slot', async () => {
+    files.uploadToS3
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(new Error('s3 down'));
+
+    const results = await service.fillPlatformSlotsFromMaster(
+      'brand-1',
+      'org-1',
+      'user-1',
+      [BrandKitSlot.X_HEADER, BrandKitSlot.YOUTUBE_BANNER],
+    );
+
+    expect(results).toEqual([
+      { assetId: 'x-header', slot: 'X_HEADER', status: 'filled' },
+      { error: 's3 down', slot: 'YOUTUBE_BANNER', status: 'failed' },
+    ]);
+    expect(asset.create.mock.calls[0]?.[0]?.data).toMatchObject({
+      kitSlot: 'X_HEADER',
+      mimeType: 'image/png',
+      origin: ASSET_ORIGIN_GENERATION_PENDING,
+    });
+    expect(files.uploadToS3.mock.calls[0]?.[2]).toMatchObject({
+      contentType: 'image/png',
+    });
   });
 });

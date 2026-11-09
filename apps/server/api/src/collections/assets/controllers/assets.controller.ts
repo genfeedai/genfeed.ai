@@ -7,6 +7,11 @@ import {
   getAssetParentId,
   getAssetParentIdField,
 } from '@api/collections/assets/utils/asset-parent.util';
+import {
+  brandKitSlotWhere,
+  isBrandKitSlotCategory,
+  resolveBrandKitSlot,
+} from '@api/collections/assets/utils/brand-kit-slot.util';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -215,16 +220,30 @@ export class AssetsController {
       updateAssetDto.parentId &&
       updateAssetDto.parentType === AssetParent.BRAND;
 
-    if (isSettingAsLogoOrBanner) {
-      await this.assetsService.patchAll(
-        {
-          id: { not: validatedId },
-          category: updateAssetDto.category,
-          parentBrandId: updateAssetDto.parentId,
-          parentType: AssetParent.BRAND,
-        },
-        { isDeleted: true },
+    // A brand keeps one live asset per logo variant or platform slot, so
+    // setting an asset as a logo or banner replaces only the slot it fills.
+    if (
+      isSettingAsLogoOrBanner &&
+      updateAssetDto.category &&
+      isBrandKitSlotCategory(updateAssetDto.category)
+    ) {
+      const kitSlot = resolveBrandKitSlot(
+        updateAssetDto.category,
+        updateAssetDto.kitSlot,
       );
+      if (kitSlot) {
+        sanitizedUpdate.kitSlot = kitSlot;
+        await this.assetsService.patchAll(
+          {
+            id: { not: validatedId },
+            category: updateAssetDto.category,
+            parentBrandId: updateAssetDto.parentId,
+            parentType: AssetParent.BRAND,
+            ...brandKitSlotWhere(updateAssetDto.category, kitSlot),
+          },
+          { isDeleted: true },
+        );
+      }
     }
 
     const updatedAsset = await this.assetsService.patch(

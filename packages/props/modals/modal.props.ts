@@ -5,6 +5,7 @@ import type {
   PromptTextareaSchema,
 } from '@genfeedai/client/schemas';
 import type {
+  BrandKitSlot,
   ComponentSize,
   IngredientCategory,
   ModalEnum,
@@ -474,6 +475,8 @@ export interface ModalUploadProps extends ModalVisibilityProps {
   category: string;
   parentId?: string;
   parentModel?: string;
+  /** Brand logo variant or platform image slot the upload fills. */
+  kitSlot?: BrandKitSlot;
   width?: number;
   height?: number;
 

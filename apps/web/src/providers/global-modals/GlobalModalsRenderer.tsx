@@ -109,6 +109,7 @@ export default function GlobalModalsRenderer({
             category={uploadConfig.category}
             parentId={uploadConfig.parentId}
             parentModel={uploadConfig.parentModel}
+            kitSlot={uploadConfig.kitSlot}
             width={uploadConfig.width}
             height={uploadConfig.height}
             isResizeEnabled={uploadConfig.isResizeEnabled}

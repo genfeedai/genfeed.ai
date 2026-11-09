@@ -1,6 +1,7 @@
 import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { BrandFontAssetsController } from '@api/collections/brands/controllers/brand-font-assets.controller';
+import { BrandKitController } from '@api/collections/brands/controllers/brand-kit.controller';
 import { BrandLutController } from '@api/collections/brands/controllers/brand-lut.controller';
 import { BrandOsRevisionsController } from '@api/collections/brands/controllers/brand-os-revisions.controller';
 import { BrandOsScanController } from '@api/collections/brands/controllers/brand-os-scan.controller';
@@ -98,6 +99,11 @@ const BRAND_WRITE_ROUTES: ReadonlyArray<
     'DELETE /brands/:brandId/font-assets/:assetId',
     BrandFontAssetsController,
     BrandFontAssetsController.prototype.remove,
+  ],
+  [
+    'POST /brands/:brandId/kit/platform-images/from-master',
+    BrandKitController,
+    BrandKitController.prototype.fillPlatformImagesFromMaster,
   ],
   [
     'PUT /brands/:brandId/lut',
@@ -265,6 +271,7 @@ const BRAND_READ_ROUTES: ReadonlyArray<
 
 const BRAND_CONTROLLERS: readonly ControllerClass[] = [
   BrandFontAssetsController,
+  BrandKitController,
   BrandLutController,
   BrandOsRevisionsController,
   BrandOsScanController,
