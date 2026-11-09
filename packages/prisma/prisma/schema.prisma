@@ -3102,6 +3102,7 @@ learningCheckpoints ContentLearningCheckpoint[]
   lastAttemptAt                  DateTime?
   targetSettings                 Json               @default("{}")
   targetAttachments              Json               @default("[]")
+  // TargetValidationState; the posts_targetValidationState_check CHECK pins it.
   targetValidationState          String             @default("pending")
   targetValidationIssues         String[]           @default([])
   targetReadiness                Json?
@@ -3340,6 +3341,7 @@ model Campaign {
   endDate        DateTime?
   // Drifted enum collapsed to String: ContentCampaignStatus (@genfeedai/contracts)
   // is lowercase product language, matching PostStatus and WorkflowStatus.
+  // The campaigns_status_check CHECK pins it.
   status         String       @default("draft")
   idempotencyKey String?
   isDeleted      Boolean      @default(false)
@@ -6131,6 +6133,7 @@ model ContentRun {
   brandId        String?
   brand          Brand?       @relation(fields: [brandId], references: [id])
   config         Json         @default("{}")
+  // ContentRunStatus; the content_runs_status_check CHECK pins it.
   status         String?
 
   /// Keys copied out of `config` so run lookups never read or detoast it. The
