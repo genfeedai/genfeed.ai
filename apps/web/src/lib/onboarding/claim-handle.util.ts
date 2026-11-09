@@ -10,6 +10,8 @@ import type {
  * the API (it checks access first, so nothing leaks); the brand then keeps its
  * current handle. A brand whose public profile is already live keeps its
  * handle, so links shared to it never break without the owner choosing to.
+ * When the organization has several brands, none is picked for the owner:
+ * they choose which one takes the handle in brand settings.
  */
 export async function claimHandleAfterSignup(
   clients: ClaimHandleClients,
@@ -21,12 +23,16 @@ export async function claimHandleAfterSignup(
   if (!organization) {
     return 'no-brand';
   }
-  const [brand] = await clients.findBrands(organization.id);
+  const brands = await clients.findBrands(organization.id);
+  if (brands.some((candidate) => candidate.slug === handle)) {
+    return 'unchanged';
+  }
+  const [brand] = brands;
   if (!brand) {
     return 'no-brand';
   }
-  if (brand.slug === handle) {
-    return 'unchanged';
+  if (brands.length > 1) {
+    return 'several-brands';
   }
   if (brand.scope === AssetScope.PUBLIC) {
     return 'kept-public';

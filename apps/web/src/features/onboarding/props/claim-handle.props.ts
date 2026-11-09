@@ -14,6 +14,8 @@ export interface ClaimHandleClients {
  * - `unchanged`: it already did.
  * - `kept-public`: the brand already has a live public profile, so its URL
  *   (and every link shared to it) stays; the owner renames it in settings.
+ * - `several-brands`: the organization has more than one brand, so the owner
+ *   picks which one takes the handle in brand settings.
  * - `unavailable`: taken, reserved, or the write failed; the brand keeps its
  *   handle and the owner can pick another in brand settings.
  * - `no-brand`: the account has no brand yet to take the handle.
@@ -22,5 +24,6 @@ export type ClaimHandleOutcome =
   | 'claimed'
   | 'kept-public'
   | 'no-brand'
+  | 'several-brands'
   | 'unavailable'
   | 'unchanged';

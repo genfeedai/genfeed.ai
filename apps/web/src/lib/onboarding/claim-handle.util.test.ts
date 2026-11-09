@@ -64,8 +64,35 @@ describe('claimHandleAfterSignup', () => {
     expect(world.brands[0]?.slug).toBe('acme');
   });
 
+  it('leaves every handle alone when the organization has several brands', async () => {
+    const world: World = {
+      brands: [
+        { id: 'brand-1', slug: 'acme' },
+        { id: 'brand-2', slug: 'acme-studio' },
+      ],
+      organizations: [{ id: 'org-1' }],
+      taken: [],
+    };
+
+    await expect(
+      claimHandleAfterSignup(clientsFor(world), 'shayla'),
+    ).resolves.toBe('several-brands');
+    expect(world.brands.map((brand) => brand.slug)).toEqual([
+      'acme',
+      'acme-studio',
+    ]);
+  });
+
   it.each([
     ['the brand already has it', [{ id: 'b', slug: 'shayla' }], 'unchanged'],
+    [
+      'another of its brands already has it',
+      [
+        { id: 'a', slug: 'acme' },
+        { id: 'b', slug: 'shayla' },
+      ],
+      'unchanged',
+    ],
     ['there is no brand yet', [], 'no-brand'],
   ])('answers when %s', async (_label, brands, outcome) => {
     const world: World = {
