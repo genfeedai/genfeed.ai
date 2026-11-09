@@ -265,7 +265,8 @@ describe('WorkflowMediaProcessingExecutorRegistrarService', () => {
         ingredientId: 'output-1',
         metadataId: 'metadata-1',
       }),
-      patchIngredient: vi.fn().mockResolvedValue(undefined),
+      completeOutput: vi.fn().mockResolvedValue(undefined),
+      failOutput: vi.fn().mockResolvedValue(undefined),
       wrapEngineExecutor,
     } as unknown as WorkflowEngineExecutorHelperService;
     const issuer = {
