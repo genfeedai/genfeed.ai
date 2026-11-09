@@ -101,6 +101,11 @@ const BRAND_WRITE_ROUTES: ReadonlyArray<
     BrandFontAssetsController.prototype.remove,
   ],
   [
+    'POST /brands/:brandId/kit/import',
+    BrandKitController,
+    BrandKitController.prototype.importKit,
+  ],
+  [
     'POST /brands/:brandId/kit/platform-images/from-master',
     BrandKitController,
     BrandKitController.prototype.fillPlatformImagesFromMaster,
@@ -245,6 +250,16 @@ const BRAND_READ_ROUTES: ReadonlyArray<
     'GET /brands/:brandId/font-assets/:assetId/file',
     BrandFontAssetsController,
     BrandFontAssetsController.prototype.file,
+  ],
+  [
+    'GET /brands/:brandId/kit',
+    BrandKitController,
+    BrandKitController.prototype.kit,
+  ],
+  [
+    'GET /brands/:brandId/kit/export',
+    BrandKitController,
+    BrandKitController.prototype.exportKit,
   ],
   [
     'GET /brands/:brandId/kit/logo-colors',

@@ -93,5 +93,24 @@
     "upload": "Upload WOFF2 font",
     "uploadFailed": "The font could not be uploaded.",
     "uploaded": "Font uploaded."
+  },
+  "transfer": {
+    "description": "Download the whole kit as one ZIP file: logos, platform images, fonts, colors, the palette and font roles. Import a kit ZIP to copy a kit into this brand.",
+    "download": "Download kit",
+    "downloadFailed": "The kit could not be downloaded.",
+    "import": "Import kit ZIP",
+    "importFailed": "The kit could not be imported. Choose a ZIP file downloaded from a brand kit.",
+    "importHelp": "Each logo and platform image in the kit replaces the one in the same slot. Slots the kit leaves out keep their image. Kit files can be up to 64 MB.",
+    "imported": "Kit imported: {logos, plural, =0 {no logos} one {# logo} other {# logos}}, {banners, plural, =0 {no platform images} one {# platform image} other {# platform images}} and {fonts, plural, =0 {no fonts} one {# font} other {# fonts}}.",
+    "notZip": "Choose a ZIP file downloaded from a brand kit.",
+    "skipReason": {
+      "invalid_font": "the font file is not a valid WOFF2 font",
+      "missing_file": "the file is missing from the ZIP",
+      "unsupported_image": "the image is not a PNG, JPEG, WebP or GIF",
+      "upload_failed": "the image could not be saved"
+    },
+    "skipped": "Left out {file}: {reason}.",
+    "title": "Kit file",
+    "tooLarge": "Kit files can be at most 64 MB."
   }
 }

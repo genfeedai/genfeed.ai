@@ -1,4 +1,9 @@
 import type {
+  IBrandKitColorEntry,
+  IBrandKitFontRoleEntry,
+  IBrandKitSlotImage,
+} from '../organization/brand-kit.interface';
+import type {
   IBrandConversationStarter,
   IBrandPromptSeed,
 } from '../organization/brand-profile.interface';
@@ -68,8 +73,16 @@ export interface IAgentBrandContextStrategy {
 export interface IAgentBrandContextVisualIdentity {
   backgroundColor?: string;
   bannerUrl?: string;
+  /** Every live banner and platform image, by slot. */
+  banners?: IBrandKitSlotImage[];
   fontFamily?: string;
+  /** The font each text role uses. */
+  fontRoles?: IBrandKitFontRoleEntry[];
   logoUrl?: string;
+  /** Every live logo variant, by slot. */
+  logos?: IBrandKitSlotImage[];
+  /** Named colors beyond primary, secondary and background. */
+  palette?: IBrandKitColorEntry[];
   primaryColor?: string;
   referenceImageCount: number;
   secondaryColor?: string;

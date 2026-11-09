@@ -1,11 +1,15 @@
 import { ASSET_ORIGIN_GENERATION_PENDING } from '@api/collections/assets/constants/asset-origin.constant';
-import { toBrandKitSlot } from '@api/collections/assets/utils/brand-kit-slot.util';
+import {
+  brandKitSlotWhere,
+  toBrandKitSlot,
+} from '@api/collections/assets/utils/brand-kit-slot.util';
 import {
   ASSET_UPLOAD_TYPE_BY_ROLE,
   BRAND_KIT_RESOLVED_REFERENCE_LIMIT,
   BRAND_KIT_ROLE_BY_PRISMA_CATEGORY,
   PRISMA_ASSET_CATEGORY_BY_ROLE,
 } from '@api/collections/brands/constants/brand-kit-assets.constant';
+import type { BrandKitSlotImageWrite } from '@api/collections/brands/interfaces/brand-kit-bundle.interface';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import {
   BRAND_KIT_IMPORT_MAX_BYTES,
@@ -26,6 +30,7 @@ import { scopedWhere } from '@api/index';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  AssetCategory,
   BrandKitSlot,
   FileInputType,
   ReferenceImageCategory,
@@ -397,7 +402,6 @@ export class BrandKitAssetsService {
         results.push({ slot, status: 'failed', error: 'not_a_platform_slot' });
         continue;
       }
-      let assetId: string | undefined;
       try {
         const resized = await this.filesClientService.resizeImageFromUrl(
           masterUrl,
@@ -406,49 +410,18 @@ export class BrandKitAssetsService {
         // The type follows the resized bytes, not the master's stored label.
         const filledMimeType =
           detectRasterImageMimeType(resized) ?? 'image/png';
-        // Created as pending so no read picks it before its image is stored.
-        const asset = await this.prisma.asset.create({
-          data: {
-            category: PRISMA_ASSET_CATEGORY_BY_ROLE.banner,
-            kitSlot: slot,
-            mimeType: filledMimeType,
-            origin: ASSET_ORIGIN_GENERATION_PENDING,
-            parentBrandId: brandId,
-            parentOrgId: organizationId,
-            parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
-            userId,
-          },
-          select: { id: true },
+        const assetId = await this.replaceSlotImage({
+          brandId,
+          bytes: resized,
+          mimeType: filledMimeType,
+          organizationId,
+          origin: `brand-kit:master:${master.id}`,
+          role: 'banner',
+          slot,
+          userId,
         });
-        assetId = asset.id;
-        await this.filesClientService.uploadToS3(
-          asset.id,
-          ASSET_UPLOAD_TYPE_BY_ROLE.banner,
-          {
-            contentType: filledMimeType,
-            data: resized,
-            type: FileInputType.BUFFER,
-          },
-        );
-        await this.prisma.asset.update({
-          data: { origin: `brand-kit:master:${master.id}` },
-          where: { id: asset.id },
-        });
-        await this.prisma.asset.updateMany({
-          data: { isDeleted: true },
-          where: {
-            category: PRISMA_ASSET_CATEGORY_BY_ROLE.banner,
-            id: { not: asset.id },
-            isDeleted: false,
-            kitSlot: slot,
-            parentBrandId: brandId,
-            parentOrgId: organizationId,
-            parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
-          },
-        });
-        results.push({ assetId: asset.id, slot, status: 'filled' });
+        results.push({ assetId, slot, status: 'filled' });
       } catch (error: unknown) {
-        if (assetId) await this.markImportedAssetDeleted(assetId);
         results.push({
           error: error instanceof Error ? error.message : 'resize_failed',
           slot,
@@ -459,6 +432,65 @@ export class BrandKitAssetsService {
 
     await this.invalidateBrandAssetCaches(brandId, organizationId);
     return results;
+  }
+
+  /**
+   * Store `bytes` as the brand's image for one logo variant or platform slot,
+   * then retire the asset the slot held before. When the upload fails the new
+   * row is soft-deleted again and the slot keeps its current image. Callers
+   * refresh the brand caches once they are done writing.
+   */
+  async replaceSlotImage(input: BrandKitSlotImageWrite): Promise<string> {
+    const category = PRISMA_ASSET_CATEGORY_BY_ROLE[input.role];
+    const parentType = 'BRAND' as Prisma.AssetCreateInput['parentType'];
+    const asset = await this.prisma.asset.create({
+      data: {
+        category,
+        kitSlot: input.slot,
+        mimeType: input.mimeType,
+        // Pending until its image is stored, so no read picks it early.
+        origin: ASSET_ORIGIN_GENERATION_PENDING,
+        parentBrandId: input.brandId,
+        parentOrgId: input.organizationId,
+        parentType,
+        userId: input.userId,
+      },
+      select: { id: true },
+    });
+    try {
+      await this.filesClientService.uploadToS3(
+        asset.id,
+        ASSET_UPLOAD_TYPE_BY_ROLE[input.role],
+        {
+          contentType: input.mimeType,
+          data: input.bytes,
+          type: FileInputType.BUFFER,
+        },
+      );
+    } catch (error: unknown) {
+      await this.markImportedAssetDeleted(asset.id);
+      throw error;
+    }
+    await this.prisma.asset.update({
+      data: { origin: input.origin },
+      where: { id: asset.id },
+    });
+    await this.prisma.asset.updateMany({
+      data: { isDeleted: true },
+      where: {
+        ...brandKitSlotWhere(
+          input.role === 'logo' ? AssetCategory.LOGO : AssetCategory.BANNER,
+          input.slot,
+        ),
+        category,
+        id: { not: asset.id },
+        isDeleted: false,
+        parentBrandId: input.brandId,
+        parentOrgId: input.organizationId,
+        parentType,
+      },
+    });
+    return asset.id;
   }
 
   /** A CDN URL the files service can fetch: signed when media is private. */
@@ -848,7 +880,7 @@ export class BrandKitAssetsService {
     });
   }
 
-  private async invalidateBrandAssetCaches(
+  async invalidateBrandAssetCaches(
     brandId: string,
     organizationId: string,
   ): Promise<void> {
