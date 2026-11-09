@@ -69,12 +69,13 @@ describe('WorkflowNodeContinuationService', () => {
       externalId: null,
       status: WorkflowNodeContinuationStatus.PENDING_SUBMISSION,
     });
+    workflowNodeContinuation.updateMany.mockResolvedValue({ count: 1 });
     await service.markProviderSubmitted({
       continuationId: 'continuation-1',
       organizationId: 'org-1',
       externalId: 'https://fal.example/output.mp4',
     });
-    expect(workflowNodeContinuation.update).toHaveBeenCalledWith(
+    expect(workflowNodeContinuation.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           status: WorkflowNodeContinuationStatus.WAITING_PROVIDER,
@@ -254,7 +255,7 @@ describe('WorkflowNodeContinuationService', () => {
       providerResult: { externalId: 'provider-1' },
       status: WorkflowNodeContinuationStatus.PROVIDER_SUCCEEDED,
     });
-    workflowNodeContinuation.update.mockResolvedValue(undefined);
+    workflowNodeContinuation.updateMany.mockResolvedValue({ count: 1 });
 
     await expect(
       service.attachInitialOutput({
@@ -279,6 +280,119 @@ describe('WorkflowNodeContinuationService', () => {
       },
       kind: 'provider-settled',
       succeeded: true,
+    });
+  });
+
+  describe('a provider callback racing the submitting process (#9734)', () => {
+    const attachInput = {
+      actionId: 'imageGen',
+      creditsUsed: 5,
+      executionId: 'execution-1',
+      initialOutput: {
+        id: 'ingredient-1',
+        model: 'flux',
+        provider: 'replicate',
+        status: 'PROCESSING',
+      },
+      nodeId: 'generate',
+      organizationId: 'org-1',
+      workflowVersionId: 'version-1',
+    };
+    const movedAt = new Date('2026-08-29T10:00:05.000Z');
+
+    it('resumes from a success recorded between reading and attaching the output', async () => {
+      workflowNodeContinuation.findFirst
+        .mockResolvedValueOnce(baseContinuation)
+        .mockResolvedValueOnce({
+          ...baseContinuation,
+          status: WorkflowNodeContinuationStatus.PROVIDER_SUCCEEDED,
+          updatedAt: movedAt,
+        });
+      workflowNodeContinuation.updateMany
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValueOnce({ count: 1 });
+
+      await expect(
+        service.attachInitialOutput(attachInput),
+      ).resolves.toMatchObject({
+        finalOutput: { id: 'ingredient-1', status: 'GENERATED' },
+        kind: 'provider-settled',
+        succeeded: true,
+      });
+      expect(workflowNodeContinuation.updateMany.mock.lastCall?.[0]).toEqual(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: WorkflowNodeContinuationStatus.RESUMING,
+          }),
+          where: expect.objectContaining({
+            status: WorkflowNodeContinuationStatus.PROVIDER_SUCCEEDED,
+            updatedAt: movedAt,
+          }),
+        }),
+      );
+    });
+
+    it.each([
+      WorkflowNodeContinuationStatus.RESUMING,
+      WorkflowNodeContinuationStatus.COMPLETED,
+      WorkflowNodeContinuationStatus.FAILED,
+    ])(
+      'leaves a %s continuation to the process that claimed it',
+      async (status) => {
+        workflowNodeContinuation.findFirst.mockResolvedValue({
+          ...baseContinuation,
+          status,
+        });
+
+        await expect(service.attachInitialOutput(attachInput)).resolves.toEqual(
+          {
+            kind: 'settled-elsewhere',
+          },
+        );
+        expect(workflowNodeContinuation.updateMany).not.toHaveBeenCalled();
+      },
+    );
+
+    it('gives up when the continuation keeps moving under the attach', async () => {
+      workflowNodeContinuation.findFirst.mockResolvedValue(baseContinuation);
+      workflowNodeContinuation.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(service.attachInitialOutput(attachInput)).rejects.toThrow(
+        'changed during every attempt to attach its initial output',
+      );
+    });
+
+    it('keeps a callback answer recorded before the submission is acknowledged', async () => {
+      workflowNodeContinuation.findFirst
+        .mockResolvedValueOnce({
+          ...baseContinuation,
+          externalId: null,
+          status: WorkflowNodeContinuationStatus.PENDING_SUBMISSION,
+        })
+        .mockResolvedValueOnce({
+          ...baseContinuation,
+          status: WorkflowNodeContinuationStatus.PROVIDER_SUCCEEDED,
+          updatedAt: movedAt,
+        });
+      workflowNodeContinuation.updateMany
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValueOnce({ count: 1 });
+
+      await service.markProviderSubmitted({
+        continuationId: 'continuation-1',
+        externalId: 'provider-1',
+        organizationId: 'org-1',
+      });
+
+      expect(workflowNodeContinuation.updateMany.mock.lastCall?.[0]).toEqual({
+        data: { externalId: 'provider-1' },
+        where: {
+          id: 'continuation-1',
+          organizationId: 'org-1',
+          status: WorkflowNodeContinuationStatus.PROVIDER_SUCCEEDED,
+          updatedAt: movedAt,
+        },
+      });
     });
   });
 
