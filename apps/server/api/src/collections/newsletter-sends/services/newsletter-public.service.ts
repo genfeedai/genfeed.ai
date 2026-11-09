@@ -318,8 +318,8 @@ export class NewsletterPublicService {
     if (!ENTITY_ID_PATTERN.test(brandId)) {
       throw new NotFoundException('Newsletter', brandId);
     }
-    // tenant-scope-ignore: a public archive names its brand; the organization is read from the row.
     // Only a public brand has an open archive, like its other public content.
+    // tenant-scope-ignore: a public archive names its brand; the organization is read from the row.
     const brand = await this.prisma.brand.findFirst({
       select: { id: true, label: true, organizationId: true, slug: true },
       where: { ...PUBLIC_BRAND_WHERE, id: brandId },
