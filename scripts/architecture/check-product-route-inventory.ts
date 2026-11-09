@@ -253,6 +253,8 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/creator-profile/:handle/posts',
     '/creator-profile/:handle/posts/:id',
     '/creator-profile/:handle/videos',
+    '/newsletter',
+    '/newsletter/:id',
     '/posts',
     '/posts/:id',
   ] as const),

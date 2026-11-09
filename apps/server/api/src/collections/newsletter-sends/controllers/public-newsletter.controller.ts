@@ -75,6 +75,24 @@ export class PublicNewsletterController {
     });
   }
 
+  /**
+   * A brand's published issues for its public archive page (#9728). Declared
+   * before `brands/:brandId/:role` so that route does not swallow it.
+   */
+  @Get('brands/:brandId/archive')
+  @Header('Cache-Control', 'public, max-age=300')
+  async archive(
+    @Param('brandId') brandId: string,
+    @Query('page') page?: string,
+  ): Promise<{ data: IPublicNewsletterArchive }> {
+    return {
+      data: await this.publicNewsletter.getArchive(
+        brandId,
+        page ? Number.parseInt(page, 10) : 1,
+      ),
+    };
+  }
+
   @Get('brands/:brandId/:role')
   async brandImage(
     @Param('brandId') brandId: string,
@@ -95,21 +113,6 @@ export class PublicNewsletterController {
   @Header('Content-Type', 'text/html; charset=utf-8')
   issuePage(@Param('newsletterId') newsletterId: string): Promise<string> {
     return this.publicNewsletter.renderIssuePage(newsletterId);
-  }
-
-  /** A brand's published issues for its public archive page (#9728). */
-  @Get('brands/:brandId/archive')
-  @Header('Cache-Control', 'public, max-age=300')
-  async archive(
-    @Param('brandId') brandId: string,
-    @Query('page') page?: string,
-  ): Promise<{ data: IPublicNewsletterArchive }> {
-    return {
-      data: await this.publicNewsletter.getArchive(
-        brandId,
-        page ? Number.parseInt(page, 10) : 1,
-      ),
-    };
   }
 
   /** One published issue for its archive page; gated issues show a preview. */

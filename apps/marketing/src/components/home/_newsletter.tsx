@@ -69,7 +69,7 @@ export default function HomeNewsletter(): React.ReactElement {
 
         <aside
           aria-label="Latest issue"
-          className="rounded-xl border border-foreground/10 bg-foreground/[0.02] p-6"
+          className="rounded-xl border border-foreground/10 bg-foreground/5 p-6"
           data-reveal="up"
         >
           <p className="text-xs text-muted-foreground">
