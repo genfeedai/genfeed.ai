@@ -29,6 +29,9 @@ vi.mock('@services/core/environment.service', () => ({
     },
   },
 }));
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useIsAppAvailable: () => true,
+}));
 vi.mock('next/image', () => ({
   default: ({ src, alt, width, height, className }: ImageProps) => (
     // biome-ignore lint/performance/noImgElement: Test boundary exposes the original Next Image props.
