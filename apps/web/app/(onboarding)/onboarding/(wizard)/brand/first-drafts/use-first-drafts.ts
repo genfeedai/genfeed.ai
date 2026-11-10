@@ -34,6 +34,35 @@ import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util
 import { useCompleteOnboarding } from '../../_expert/use-complete-onboarding.hook';
 import { isValidOnboardingLink, toOnboardingLink } from './first-drafts.util';
 
+const RESUMABLE_PHASES: readonly FirstDraftsPhase[] = [
+  'agent',
+  'channels',
+  'prompt',
+];
+
+/**
+ * The step a member left from or was sent back to (an account provider's
+ * return URL, a link from the workspace). Only the steps after the drafts can
+ * resume, and only once a run exists.
+ */
+function resolveResumePhase(
+  step: string | null,
+  view: unknown,
+): FirstDraftsPhase | null {
+  const saved =
+    typeof view === 'object' &&
+    view !== null &&
+    'phase' in view &&
+    typeof view.phase === 'string'
+      ? view.phase
+      : null;
+  return (
+    RESUMABLE_PHASES.find((phase) => phase === step) ??
+    RESUMABLE_PHASES.find((phase) => phase === saved) ??
+    null
+  );
+}
+
 export function useFirstDrafts(): FirstDraftsState {
   const { getToken } = useAuthIdentity();
   const { brandId, organizationId, isBrandScopeResolved } = useBrand();
@@ -148,15 +177,8 @@ export function useFirstDrafts(): FirstDraftsState {
         if (controller.signal.aborted || liveScope.current !== epoch) return;
         if (run) {
           acceptRun(run, true);
-          if (
-            run.result &&
-            (searchParams.get('step') === 'schedule' ||
-              (typeof view === 'object' &&
-                view !== null &&
-                'phase' in view &&
-                view.phase === 'schedule'))
-          )
-            setPhase('schedule');
+          const resumed = resolveResumePhase(searchParams.get('step'), view);
+          if (run.result && resumed) setPhase(resumed);
         }
       } catch (caught) {
         if (controller.signal.aborted || liveScope.current !== epoch) return;
@@ -430,6 +452,13 @@ export function useFirstDrafts(): FirstDraftsState {
     steps.length,
   ]);
 
+  const onStart = () => {
+    if (result) setPhase('review');
+    else if (isGenerating) setPhase('working');
+    else if (!isValidOnboardingLink(url)) setError('invalidUrl');
+    else void startGeneration();
+  };
+
   return {
     canRetry: round < ONBOARDING_MAX_DRAFT_ROUNDS,
     canRetryMedia:
@@ -452,39 +481,52 @@ export function useFirstDrafts(): FirstDraftsState {
     onNotRight: () => setPhase('context'),
     onNavigate: (step) => {
       if (isRestoring || isContinuing || resolvedScope !== scopeKey) return;
-      const next =
+      const next: FirstDraftsPhase | null =
         step === 0
-          ? 'url'
-          : step === 1 && isGenerating && !result
-            ? 'working'
+          ? result
+            ? 'review'
+            : isGenerating
+              ? 'working'
+              : 'url'
+          : step === 1 && result
+            ? 'agent'
             : step === 2 && result
-              ? 'review'
+              ? 'channels'
               : step === 3 && result
-                ? 'schedule'
+                ? 'prompt'
                 : null;
       if (!next) return;
-      if (next !== 'schedule' && searchParams.get('step') === 'schedule')
+      if (searchParams.get('step') && next !== searchParams.get('step'))
         replace(APP_ROUTES.ONBOARDING.BRAND);
       setPhase(next);
     },
     onBack: () => {
-      if (phase === 'schedule' && searchParams.get('step') === 'schedule')
-        replace(APP_ROUTES.ONBOARDING.BRAND);
-      setPhase((current) => (current === 'schedule' ? 'review' : 'url'));
+      if (searchParams.get('step')) replace(APP_ROUTES.ONBOARDING.BRAND);
+      setPhase((current) =>
+        current === 'prompt'
+          ? 'channels'
+          : current === 'channels'
+            ? 'agent'
+            : current === 'agent'
+              ? 'review'
+              : 'url',
+      );
     },
-    onSchedule: () => {
+    onAdvance: () => {
+      if (phase === 'url') {
+        onStart();
+        return;
+      }
       if (!brandId || !result) return;
-      setPhase('schedule');
+      if (phase === 'review') setPhase('agent');
+      else if (phase === 'agent') setPhase('channels');
+      else if (phase === 'channels') setPhase('prompt');
+      else if (phase === 'prompt') onContinue();
     },
     onRetryMedia: () => void retryMedia(),
     onVerdict,
     onSkipLink: () => setPhase('context'),
-    onStart: () => {
-      if (result) setPhase('review');
-      else if (isGenerating) setPhase('working');
-      else if (!isValidOnboardingLink(url)) setError('invalidUrl');
-      else void startGeneration();
-    },
+    onStart,
     onSubmitContext: (context) => {
       void startGeneration(context);
     },
