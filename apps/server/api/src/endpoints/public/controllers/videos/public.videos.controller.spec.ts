@@ -150,6 +150,32 @@ describe('PublicVideosController', () => {
     },
   );
 
+  it('ranks across public creators only when hasPublicCreator is true', async () => {
+    await controller.findPublicVideos(
+      mockRequest,
+      {} as never,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'views',
+      'true',
+    );
+    const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as {
+      orderBy?: unknown;
+      where?: Record<string, unknown>;
+    };
+    expect(aggregateArg.where).toMatchObject({
+      brand: { is: { isDeleted: false, scope: AssetScope.PUBLIC } },
+      category: IngredientCategory.VIDEO,
+      scope: AssetScope.PUBLIC,
+    });
+    expect(aggregateArg.orderBy).toEqual([
+      { viewCount: 'desc' },
+      { createdAt: 'desc' },
+    ]);
+  });
+
   it('should pass tag filter as regex when provided', async () => {
     await controller.findPublicVideos(mockRequest, {} as never, 'funny');
     const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as {
@@ -202,7 +228,14 @@ describe('PublicVideosController', () => {
     expect(aggregateArg.orderBy).toEqual(expected);
     expect(aggregateArg.include).toEqual({
       metadata: {
-        select: { duration: true, id: true, label: true, model: true },
+        select: {
+          duration: true,
+          height: true,
+          id: true,
+          label: true,
+          model: true,
+          width: true,
+        },
       },
     });
   });

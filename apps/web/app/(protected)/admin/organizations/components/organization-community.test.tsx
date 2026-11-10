@@ -5,6 +5,8 @@ import OrganizationCommunity from './organization-community';
 
 const state = vi.hoisted(() => ({
   applied: [] as unknown[],
+  /** The overview the API answers for a page, when it differs by page. */
+  overviewOfPage: null as null | ((page: number) => unknown),
   confirm: null as null | { label: string; onConfirm: () => void },
   value: {
     data: undefined as unknown,
@@ -47,8 +49,9 @@ vi.mock('@ui/display/video-player/VideoPlayer', () => ({
 }));
 
 vi.mock('../hooks/use-organization-community', () => ({
-  useOrganizationCommunity: () => ({
+  useOrganizationCommunity: (_organizationId: string, page: number) => ({
     ...state.value,
+    ...(state.overviewOfPage ? { data: state.overviewOfPage(page) } : {}),
     apply: async (action: unknown) => {
       state.applied.push(action);
     },
@@ -84,6 +87,7 @@ describe('OrganizationCommunity', () => {
   beforeEach(() => {
     state.applied = [];
     state.confirm = null;
+    state.overviewOfPage = null;
     state.value = {
       data: overview,
       isError: false,
@@ -141,6 +145,31 @@ describe('OrganizationCommunity', () => {
         { id: 'video-1', kind: 'unpublish', target: 'media' },
       ]),
     );
+  });
+
+  it('steps back a page when the last item of the last page goes', async () => {
+    const clip = (id: string) => ({ ...overview.media[0], id, label: id });
+    state.overviewOfPage = (page) =>
+      page === 1
+        ? { creators: [], media: [clip('Clip 1')], mediaTotal: 25 }
+        : { creators: [], media: [clip('Clip 25')], mediaTotal: 25 };
+    const { rerender } = render(
+      <OrganizationCommunity organizationId="org-1" />,
+    );
+    fireEvent.click(screen.getByRole('link', { name: '2' }));
+    expect(screen.getByText('Clip 25')).toBeInTheDocument();
+
+    // Taking Clip 25 off community leaves 24 items: one page.
+    state.overviewOfPage = (page) =>
+      page === 1
+        ? { creators: [], media: [clip('Clip 1')], mediaTotal: 24 }
+        : { creators: [], media: [], mediaTotal: 24 };
+    rerender(<OrganizationCommunity organizationId="org-1" />);
+
+    await vi.waitFor(() =>
+      expect(screen.getByText('Clip 1')).toBeInTheDocument(),
+    );
+    expect(screen.queryByText('Clip 25')).not.toBeInTheDocument();
   });
 
   it('says when the organization has nothing on community', () => {

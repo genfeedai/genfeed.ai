@@ -11,7 +11,6 @@ vi.mock('@api/endpoints/public/services/public-media.service', () => ({
   PublicMediaService: class {},
 }));
 vi.mock('@api/endpoints/public/services/public-views.service', () => ({
-  MAX_MEDIA_VIEW_BATCH: 48,
   PublicViewsService: class {},
 }));
 

@@ -103,7 +103,7 @@ export class PublicBrandsController {
   @Get()
   @Cache({
     keyGenerator: (req) =>
-      `public:brands:highlighted:${req.query.isHighlighted ?? 'false'}:limit:${req.query.limit ?? '10'}`,
+      `public:brands:highlighted:${req.query.isHighlighted ?? 'false'}:limit:${req.query.limit ?? '10'}:page:${req.query.page ?? '1'}:sort:${req.query.sortBy === 'highlighted' ? 'highlighted' : 'newest'}`,
     tags: ['brands', 'public'],
     ttl: 1800, // 30 minutes
   })
@@ -111,6 +111,8 @@ export class PublicBrandsController {
     @Req() request: Request,
     @Query('isHighlighted') isHighlighted?: string,
     @Query('limit') limit: string = '10',
+    @Query('page') page: string = '1',
+    @Query('sortBy') sortBy?: string,
   ): Promise<JsonApiCollectionResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -124,19 +126,26 @@ export class PublicBrandsController {
       filter.isHighlighted = true;
     }
 
-    this.logger.log(url, { query: { isHighlighted, limit } });
+    this.logger.log(url, { query: { isHighlighted, limit, page, sortBy } });
 
     const parsedLimit = Math.trunc(Number(limit));
     const pageSize = Math.min(
       Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 10,
       100,
     ); // Cap at 100
-    const aggregate = { where: filter, orderBy: { createdAt: -1 } };
+    const parsedPage = Math.trunc(Number(page));
+    // `highlighted` puts featured creators first across every page, so a
+    // directory can page through everyone without listing anyone twice.
+    const orderBy =
+      sortBy === 'highlighted'
+        ? [{ isHighlighted: 'desc' }, { createdAt: 'desc' }]
+        : { createdAt: -1 };
+    const aggregate = { where: filter, orderBy };
 
     const options = {
       customLabels,
       limit: pageSize,
-      page: 1,
+      page: Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1,
       pagination: true,
     };
 

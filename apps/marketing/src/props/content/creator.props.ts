@@ -169,6 +169,10 @@ export interface CommunityGalleryRouteProps {
   searchParams: Promise<{ sort?: string | string[] }>;
 }
 
+export interface CommunityCreatorsRouteProps {
+  searchParams: Promise<{ page?: string | string[] }>;
+}
+
 /** The image or video an operator featured at the top of /community. */
 export interface CommunityFeaturedMedia {
   /** The creator's handle; featured media shows only from public profiles. */

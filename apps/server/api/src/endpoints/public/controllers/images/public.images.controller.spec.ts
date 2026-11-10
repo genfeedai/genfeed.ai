@@ -215,6 +215,31 @@ describe('PublicImagesController', () => {
       },
     );
 
+    it('ranks across public creators only when hasPublicCreator is true', async () => {
+      imagesService.findAll.mockResolvedValue(createPaginatedFixture([]));
+      const query = tenantReadQuery(BaseQueryDto, { limit: 48, page: 1 });
+
+      await controller.findPublicImages(
+        mockRequest,
+        query,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        'recreations',
+        'true',
+      );
+
+      const aggregateArg = imagesService.findAll.mock.calls[0][0] as {
+        where?: Record<string, unknown>;
+      };
+      expect(aggregateArg.where).toMatchObject({
+        brand: { is: { isDeleted: false, scope: AssetScope.PUBLIC } },
+        category: IngredientCategory.IMAGE,
+        scope: AssetScope.PUBLIC,
+      });
+    });
+
     it('should filter by tag when provided', async () => {
       const tag = 'nature';
       const mockImages = createPaginatedFixture([]);

@@ -8,6 +8,7 @@ import {
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/contracts';
+import { MAX_MEDIA_VIEW_BATCH } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
@@ -17,9 +18,6 @@ const VIEW_WINDOW_SECONDS = 24 * 60 * 60;
 const BOT_USER_AGENT_PATTERN =
   /bot|crawl|spider|slurp|preview|facebookexternalhit|headless|lighthouse/i;
 const PUBLIC_SCOPE = CategoryPrismaUtil.toAssetScope(AssetScope.PUBLIC);
-
-/** The most cards one gallery page shows; a view batch never counts more. */
-export const MAX_MEDIA_VIEW_BATCH = 48;
 
 /** The public things that keep a count, and the media Recreate clicks. */
 export type PublicViewTarget = 'article' | 'media' | 'profile' | 'recreate';
