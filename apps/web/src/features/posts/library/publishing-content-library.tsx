@@ -102,7 +102,7 @@ export default function PublishingContentLibrary() {
   });
   const { setLeadingNode, setIsRefreshing, setRefresh, setViewToggleNode } =
     usePostsLayout();
-  const { href } = useOrgUrl();
+  const { href, orgHref } = useOrgUrl();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -768,7 +768,7 @@ export default function PublishingContentLibrary() {
         release={selectedRelease}
         error={drawerError}
         pendingAction={pendingAction}
-        reconnectHref={href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}
+        reconnectHref={orgHref(APP_ROUTES.CONNECTORS.CHANNELS)}
         onClose={() => replaceQueryParam('release', '')}
         onRescheduleRelease={(scheduledDate) => {
           if (selectedRelease)

@@ -61,7 +61,7 @@ const RESERVED_GLOBAL_ROOT_SEGMENTS = new Set(
     ...Object.values(APP_ROUTE_PREFIXES).map(
       (prefix) => prefix.replace(LEADING_SLASH_PATTERN, '').split('/')[0] ?? '',
     ),
-    APP_ROUTES.CONNECT.replace(/^\//, ''),
+    APP_ROUTES.CONNECTORS.ROOT.replace(/^\//, ''),
     APP_ROUTES.LOGIN.replace(/^\//, ''),
     APP_ROUTES.LOGOUT.replace(/^\//, ''),
     APP_ROUTES.SIGN_UP.replace(/^\//, ''),

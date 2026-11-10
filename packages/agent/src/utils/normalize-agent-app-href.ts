@@ -64,6 +64,7 @@ export function normalizeAgentAppHref(
       APP_ROUTE_PREFIXES.ANALYTICS,
       APP_ROUTE_PREFIXES.AUTOMATION,
       APP_ROUTE_PREFIXES.DISCOVERY,
+      APP_ROUTES.CONNECTORS.ROOT,
       ...STUDIO_APP_ROUTE_PREFIXES,
     ];
     if (
@@ -71,7 +72,9 @@ export function normalizeAgentAppHref(
       routeScope?.orgSlug &&
       scopedRoots.some((root) => root === `/${firstSegment}`)
     ) {
-      const isOrganizationSurface = firstSegment === 'agent';
+      const isOrganizationSurface =
+        firstSegment === 'agent' ||
+        `/${firstSegment}` === APP_ROUTES.CONNECTORS.ROOT;
       return `${
         !isOrganizationSurface && routeScope.brandSlug
           ? createBrandAppRoute(routeScope.orgSlug, routeScope.brandSlug, path)

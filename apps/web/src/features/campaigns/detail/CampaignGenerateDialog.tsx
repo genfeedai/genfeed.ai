@@ -33,7 +33,7 @@ export default function CampaignGenerateDialog({
   onClose,
 }: CampaignGenerateDialogProps) {
   const t = useTranslations('pages.publishing.campaigns');
-  const { href } = useOrgUrl();
+  const { href, orgHref } = useOrgUrl();
   const queryClient = useQueryClient();
   const { eligibleAccounts, isPending, isError, refetch } = useCampaignAccounts(
     campaign.brandId,
@@ -141,7 +141,7 @@ export default function CampaignGenerateDialog({
           <p>{t('accounts.empty')}</p>
         )}
         <Button asChild variant={ButtonVariant.LINK}>
-          <Link href={href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}>
+          <Link href={orgHref(APP_ROUTES.CONNECTORS.CHANNELS)}>
             {t('accounts.manage')}
           </Link>
         </Button>

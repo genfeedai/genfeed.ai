@@ -120,7 +120,7 @@ function nextStepUrl(code: McpToolErrorCode): string | undefined {
     case 'plan_required':
       return appUrl(APP_ROUTES.SETTINGS.SUBSCRIPTION);
     case 'unauthorized':
-      return appUrl(APP_ROUTES.CONNECT);
+      return appUrl(APP_ROUTES.CONNECTORS.ROOT);
     default:
       return undefined;
   }

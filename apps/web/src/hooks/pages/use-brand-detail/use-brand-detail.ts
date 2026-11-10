@@ -77,7 +77,17 @@ function brandDetailQueryKey(brandSlug: string) {
   return ['brand-detail', brandSlug] as const;
 }
 
-export function useBrandDetail(): UseBrandDetailReturn {
+interface UseBrandDetailOptions {
+  /**
+   * Brand to read when the route names none, as on organization pages that
+   * follow the brand selected in the top bar (Connectors → Channels).
+   */
+  fallbackBrandSlug?: string;
+}
+
+export function useBrandDetail({
+  fallbackBrandSlug,
+}: UseBrandDetailOptions = {}): UseBrandDetailReturn {
   const params = useRouteParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -110,7 +120,8 @@ export function useBrandDetail(): UseBrandDetailReturn {
       ),
     [brands, routeBrandParam],
   );
-  const brandSlug = matchedRouteBrand?.slug ?? routeBrandParam;
+  const brandSlug =
+    matchedRouteBrand?.slug ?? (routeBrandParam || fallbackBrandSlug || '');
   const hasBrandId = Boolean(brandSlug);
 
   const queryClient = useQueryClient();

@@ -123,12 +123,12 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/web/app/(protected)/[orgSlug]/~/connect/connect-genfeed-flow.tsx',
+    'apps/web/app/(protected)/[orgSlug]/~/connectors/agents/connect-genfeed-flow.tsx',
     'to-locale-string',
     1,
   ),
   legacyUiAllowance(
-    'apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/organization/api-keys/content.tsx',
+    'apps/web/app/(protected)/[orgSlug]/~/connectors/api-keys/content.tsx',
     'to-locale-string',
     1,
   ),
@@ -138,7 +138,7 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     3,
   ),
   legacyUiAllowance(
-    'apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/organization/webhooks/content.tsx',
+    'apps/web/app/(protected)/[orgSlug]/~/connectors/webhooks/content.tsx',
     'to-locale-string',
     1,
   ),

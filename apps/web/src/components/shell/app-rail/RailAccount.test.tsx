@@ -101,6 +101,22 @@ describe('RailAccount', () => {
     expect(screen.queryByText('vincent@genfeed.ai')).not.toBeInTheDocument();
   });
 
+  it('opens Connectors from the rail and marks it current on every section', () => {
+    const { rerender } = render(<RailAccount />);
+
+    const link = screen.getByRole('link', { name: 'Connectors' });
+    expect(link).toHaveAttribute('href', '/acme/~/connectors/agents');
+    expect(link).not.toHaveAttribute('aria-current');
+
+    route.pathname = '/acme/~/connectors/api-keys';
+    rerender(<RailAccount />);
+
+    expect(screen.getByRole('link', { name: 'Connectors' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
   it('pins Settings above Help and links it to the organization settings', () => {
     render(<RailAccount />);
 

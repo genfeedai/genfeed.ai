@@ -253,7 +253,7 @@ describe('DiscoveryDesk', () => {
     );
     expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
       'data-publishing-href',
-      '/org-1/brand-1/settings/accounts',
+      '/org-1/~/connectors/channels',
     );
     expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
       'data-source-health-href',

@@ -2,6 +2,7 @@
 
 import { clearClientProtectedBootstrapCache } from '@contexts/providers/protected-bootstrap/client-protected-bootstrap';
 import { ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ConnectionAccount } from '@genfeedai/props/ui/feedback/connection-success.props';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -39,7 +40,7 @@ import {
 const OAUTH1_PLATFORMS = ['x-ads'];
 
 const REDIRECT_DELAY_MS = 3000;
-const DEFAULT_RETURN_PATH = '/settings/api-keys';
+const DEFAULT_RETURN_PATH = APP_ROUTES.CONNECTORS.API_KEYS;
 
 const INITIAL_STATE: VerifyResult = { status: 'loading' };
 

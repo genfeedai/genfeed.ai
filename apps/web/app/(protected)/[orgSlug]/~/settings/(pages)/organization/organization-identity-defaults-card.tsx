@@ -2,6 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   buildDefaultVoiceRefFromVoice,
   type DefaultVoiceRef,
@@ -339,7 +340,7 @@ export default function OrganizationIdentityDefaultsCard() {
             variant={ButtonVariant.SECONDARY}
             className="w-fit"
           >
-            <Link href={orgHref('/settings/integrations')}>
+            <Link href={orgHref(APP_ROUTES.CONNECTORS.PROVIDERS)}>
               {translate('reconnectHeygen')}
             </Link>
           </Button>

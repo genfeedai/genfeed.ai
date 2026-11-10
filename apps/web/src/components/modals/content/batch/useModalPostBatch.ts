@@ -10,6 +10,7 @@ import {
   PostVisibility,
 } from '@genfeedai/contracts';
 import type { CreatePostRequest } from '@genfeedai/contracts/api-types';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   ICredential,
   IIngredient,
@@ -116,7 +117,7 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
 
   const { organizationId, refreshBrands, selectedBrand } = useBrand();
   const { push } = useRouter();
-  const { activeHref, brandSlug, orgHref } = useOrgUrl();
+  const { brandSlug, orgHref } = useOrgUrl();
   const hasActiveBrand = Boolean(brandSlug || selectedBrand?.slug);
   const [error, setError] = useState<string | null>(null);
 
@@ -268,15 +269,16 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     }, 300);
   }, [form]);
 
-  // Account connections live on the brand's accounts settings page.
-  // Without an active brand, fall back to the org-level brands list.
+  // Account connections live on Connectors → Channels, which follows the
+  // brand selected in the top bar. Without an active brand, fall back to the
+  // org-level brands list.
   const openCredentials = useCallback(() => {
     push(
       hasActiveBrand
-        ? activeHref('/settings/accounts')
-        : orgHref('/settings/brands'),
+        ? orgHref(APP_ROUTES.CONNECTORS.CHANNELS)
+        : orgHref(APP_ROUTES.SETTINGS.BRANDS),
     );
-  }, [activeHref, hasActiveBrand, orgHref, push]);
+  }, [hasActiveBrand, orgHref, push]);
 
   const handleSubmit = useCallback(async () => {
     if (view !== 'compose' || isPublishingRef.current) {

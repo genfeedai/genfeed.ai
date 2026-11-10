@@ -348,7 +348,7 @@ function LibraryVoicesContent() {
       </div>
 
       <VoiceCreateCallout
-        connectHref={orgHref(APP_ROUTES.SETTINGS.INTEGRATIONS)}
+        connectHref={orgHref(APP_ROUTES.CONNECTORS.PROVIDERS)}
         onUploadSample={handleOpenCloneModal}
         recordHref={href(APP_ROUTES.LIBRARY.VOICE_STUDIO)}
         twinHref={href(APP_ROUTES.LIBRARY.AVATAR_TWIN)}
@@ -356,7 +356,7 @@ function LibraryVoicesContent() {
 
       {isAccountImportOpen ? (
         <ElevenLabsAccountVoicesDialog
-          connectHref={orgHref(APP_ROUTES.SETTINGS.INTEGRATIONS)}
+          connectHref={orgHref(APP_ROUTES.CONNECTORS.PROVIDERS)}
           onClose={() => setIsAccountImportOpen(false)}
           onImported={handleAccountVoiceImported}
         />

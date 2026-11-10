@@ -162,9 +162,6 @@ describe('operator-shell helpers', () => {
     expect(resolveOrganizationScopePath('/settings/skills')).toBe(
       '/settings/brands',
     );
-    expect(resolveOrganizationScopePath('/settings/accounts')).toBe(
-      '/settings/brands',
-    );
     expect(resolveOrganizationScopePath('/settings/brand-kit')).toBe(
       '/settings/brands',
     );

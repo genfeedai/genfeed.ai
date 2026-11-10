@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   connectPlatform: vi.fn(),
   hasBrandId: true,
   href: (path: string) => `/acme/moonrise${path}`,
+  orgHref: (path: string) => `/acme/~${path}`,
   isLoading: false,
   socialConnections: [] as BrandDetailSocialConnection[],
 }));
@@ -42,6 +43,7 @@ vi.mock('@/hooks/pages/use-brand-detail/use-brand-detail', () => ({
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     href: mocks.href,
+    orgHref: mocks.orgHref,
   }),
 }));
 
@@ -208,7 +210,7 @@ describe('PlatformHomePage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open Social settings' }),
-    ).toHaveAttribute('href', '/acme/moonrise/settings/accounts');
+    ).toHaveAttribute('href', '/acme/~/connectors/channels');
   });
 
   it('composes existing destination links when the platform is connected', () => {
@@ -232,7 +234,7 @@ describe('PlatformHomePage', () => {
     );
     expect(
       screen.getByRole('link', { name: 'Open Connection' }),
-    ).toHaveAttribute('href', '/acme/moonrise/settings/accounts');
+    ).toHaveAttribute('href', '/acme/~/connectors/channels');
     expect(
       screen.getByRole('link', { name: 'Open Top posts' }),
     ).toHaveAttribute(

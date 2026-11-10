@@ -15,7 +15,7 @@ describe('normalizeAgentAppHref', () => {
     expect(normalizeAgentAppHref('   ')).toBeUndefined();
   });
 
-  it.each(['accounts', 'agent', 'publishing', 'skills', 'knowledge'])(
+  it.each(['agent', 'publishing', 'skills', 'knowledge'])(
     'repairs brand-only settings %s using actual route context',
     (page) => {
       expect(
@@ -35,16 +35,16 @@ describe('normalizeAgentAppHref', () => {
 
   it('keeps explicit brands and falls back to Brands without inventing a brand', () => {
     expect(
-      normalizeAgentAppHref('/acme/other/settings/accounts', {
+      normalizeAgentAppHref('/acme/other/settings/skills', {
         orgSlug: 'acme',
         brandSlug: 'launch',
       }),
-    ).toBe('/acme/other/settings/accounts');
+    ).toBe('/acme/other/settings/skills');
     expect(
-      normalizeAgentAppHref('/acme/~/settings/accounts?platform=x#top'),
+      normalizeAgentAppHref('/acme/~/settings/skills?platform=x#top'),
     ).toBe('/acme/~/settings/brands?platform=x#top');
     expect(
-      normalizeAgentAppHref('/foreign/~/settings/accounts', {
+      normalizeAgentAppHref('/foreign/~/settings/skills', {
         orgSlug: 'acme',
         brandSlug: 'launch',
       }),
@@ -66,6 +66,9 @@ describe('normalizeAgentAppHref', () => {
     expect(normalizeAgentAppHref('/agent/new', scope)).toBe(
       '/acme/~/agent/new',
     );
+    expect(
+      normalizeAgentAppHref('/connectors/channels?platform=x', scope),
+    ).toBe('/acme/~/connectors/channels?platform=x');
     expect(normalizeAgentAppHref('/settings/subscription', scope)).toBe(
       '/acme/~/settings/subscription',
     );
@@ -73,8 +76,8 @@ describe('normalizeAgentAppHref', () => {
       '/settings/personal',
     );
     expect(
-      normalizeAgentAppHref('https://example.com/settings/accounts', scope),
-    ).toBe('https://example.com/settings/accounts');
+      normalizeAgentAppHref('https://example.com/settings/skills', scope),
+    ).toBe('https://example.com/settings/skills');
     expect(normalizeAgentAppHref('//example.com/overview', scope)).toBe(
       '//example.com/overview',
     );

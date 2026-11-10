@@ -53,8 +53,8 @@ points at addresses your browser can reach; see
 Point the client at the standard `http://localhost:3014/mcp` endpoint with a
 scoped API key. Create the key in your web app under **Settings → API keys**
 using the **MCP** preset (for the default seeded organization,
-`http://localhost:3000/default/~/settings/api-keys`), or use the guided
-**Connect** page at `/connect` in your web app, which creates an MCP-scoped key
+`http://localhost:3000/default/~/connectors/api-keys`), or use the guided
+**Agents** section of Connectors (`/connectors/agents`) in your web app, which creates an MCP-scoped key
 and runs a verification check. Export the key in the MCP client's environment,
 not in the Genfeed container's `.env`:
 
@@ -421,7 +421,7 @@ shared `RateLimitService` window). JSON-RPC `error.code` stays numeric.
 
 | `code` | When | `nextStepUrl` | Extra fields |
 | --- | --- | --- | --- |
-| `unauthorized` | Missing or rejected bearer credential (`401`) | `/connect` on your app origin | |
+| `unauthorized` | Missing or rejected bearer credential (`401`) | `/connectors/agents` on your app origin | |
 | `rate_limited` | `RateLimitService`, or an upstream `429` | none | `retryAfterSeconds` when the limiter reported a wait |
 | `validation_failed` | REST `ValidationPipe` / `ErrorResponse.validationFailed` field errors, or a missing required tool argument | none | `errors[]` of `{ field, message }` |
 | `approval_pending` | `mutationPolicy: 'approval-required'` queued the write instead of running it | `/publishing/review` | `approvalId`, `toolName`, `approvalStatus`, `canResolveApproval` |

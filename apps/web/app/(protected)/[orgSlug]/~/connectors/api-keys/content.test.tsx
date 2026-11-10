@@ -100,7 +100,7 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
 }));
 vi.mock('next/navigation', () => ({
   useParams: () => ({ orgSlug: mocks.routeSlug }),
-  usePathname: () => '/acme/~/settings/organization/api-keys',
+  usePathname: () => '/acme/~/connectors/api-keys',
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   useSearchParams: () => mocks.searchParams,
 }));

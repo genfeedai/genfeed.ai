@@ -38,6 +38,7 @@ const ROUTE_HREF_KEYS = new Set(['href', 'ctaHref', 'editorUrl']);
 const ORG_LEVEL_ROUTE_PREFIXES = new Set([
   'agent',
   'chat',
+  'connectors',
   'overview',
   'settings',
 ]);

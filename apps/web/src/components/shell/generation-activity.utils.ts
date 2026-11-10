@@ -58,7 +58,8 @@ export function getGenerationActivityHref(
     );
   const path =
     getActivityDestinationPath(activity) ?? APP_ROUTES.WORKSPACE.ACTIVITY;
-  return brand
+  // Connectors is organization scope; every other destination is a brand page.
+  return brand && !path.startsWith(APP_ROUTES.CONNECTORS.ROOT)
     ? createBrandAppRoute(scope.orgSlug, brand.slug, path)
     : createOrganizationAppRoute(scope.orgSlug, path);
 }

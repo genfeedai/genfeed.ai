@@ -203,7 +203,7 @@ export default function SummaryContent() {
 
     setPendingMode('byok');
     await persistAccessMode('byok');
-    push(APP_ROUTES.SETTINGS.API_KEYS);
+    push(APP_ROUTES.CONNECTORS.API_KEYS);
   };
 
   const handleContinueSelfHosted = async () => {
@@ -323,7 +323,7 @@ export default function SummaryContent() {
                 <CurrentBadge />
               ) : null}
               <Link
-                href={APP_ROUTES.SETTINGS.API_KEYS}
+                href={APP_ROUTES.CONNECTORS.API_KEYS}
                 onClick={(event) => {
                   void handleByokClick(event);
                 }}

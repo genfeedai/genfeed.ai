@@ -1,0 +1,12 @@
+{
+  "title": "Connectors",
+  "sections": {
+    "agents": "Agents",
+    "channels": "Channels",
+    "providers": "AI providers",
+    "apiKeys": "API keys",
+    "webhooks": "Webhooks"
+  },
+  "sectionErrorTitle": "This section could not load",
+  "sectionErrorDescription": "Your other Connectors sections still work."
+}

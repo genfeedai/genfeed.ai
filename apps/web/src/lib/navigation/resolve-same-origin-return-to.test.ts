@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveSameOriginReturnTo } from './resolve-same-origin-return-to';
 
-const DEFAULT_PATH = '/settings/api-keys';
+const DEFAULT_PATH = '/connectors/api-keys';
 
 describe('resolveSameOriginReturnTo', () => {
   it('rejects a protocol-relative URL', () => {
@@ -55,7 +55,7 @@ describe('resolveSameOriginReturnTo', () => {
   });
 
   it('rejects a value without a leading slash', () => {
-    expect(resolveSameOriginReturnTo('settings/api-keys', DEFAULT_PATH)).toBe(
+    expect(resolveSameOriginReturnTo('connectors/api-keys', DEFAULT_PATH)).toBe(
       DEFAULT_PATH,
     );
   });

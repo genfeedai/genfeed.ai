@@ -3,7 +3,21 @@ const QUERY_OR_HASH_PATTERN = /[?#]/u;
 
 export const APP_ROUTES = {
   ROOT: '/',
-  CONNECT: '/connect',
+  /**
+   * Everything an organization connects, on one page (#9905). The section is
+   * part of the path; the bare root opens Agents. Channels follow the brand
+   * selected in the top bar, the other sections are per organization.
+   */
+  CONNECTORS: {
+    AGENTS: '/connectors/agents',
+    API_KEYS: '/connectors/api-keys',
+    CHANNELS: '/connectors/channels',
+    PROVIDERS: '/connectors/providers',
+    ROOT: '/connectors',
+    WEBHOOKS: '/connectors/webhooks',
+  },
+  /** Organization page an external client opens to finish connecting an account. */
+  CONNECT_SOCIAL: '/connect/social',
   DESKTOP: {
     LOCAL: '/desktop/local',
   },
@@ -304,13 +318,10 @@ export const APP_ROUTES = {
     BRAND_KIT_STRATEGY: '/settings/brand-kit/strategy',
     BRAND_KIT_VISUAL: '/settings/brand-kit/visual',
     BRAND_KIT_VOICE: '/settings/brand-kit/voice',
-    API_KEYS: '/settings/api-keys',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',
     /** What creators earned from readers, and what the organization paid. */
     EARNINGS: '/settings/earnings',
-    /** Provider BYOK keys (OpenAI, Replicate, …) — not Genfeed product API keys. */
-    INTEGRATIONS: '/settings/integrations',
     /**
      * Brand Knowledge: saved sources generations cite. Lives next to Brand
      * Kit, separate from the asset library.
@@ -353,16 +364,9 @@ export const APP_ROUTES = {
      */
     GENERAL: '/settings/general',
     ROOT: '/settings',
-    /**
-     * Brand-scoped social + ad OAuth connect surface (Facebook → Meta Ads,
-     * Google Ads, Twitter, etc.). Canonical home for "connect accounts".
-     * Brand-only destination; organization BYOK settings use INTEGRATIONS.
-     */
-    CONNECTED_ACCOUNTS: '/settings/accounts',
     /** Brand-enabled agent skills and organization-owned skill variants. */
     SKILLS: '/settings/skills',
     USAGE: '/settings/usage',
-    WEBHOOKS: '/settings/webhooks',
   },
   /** #5502 native app catalog; installation is per organization membership. */
   APPS: {
@@ -516,7 +520,7 @@ export const RESERVED_APP_ROOT_SEGMENTS: ReadonlySet<string> = new Set(
     ...Object.values(APP_ROUTE_PREFIXES).map(
       (prefix) => prefix.replace(LEADING_SLASH_PATTERN, '').split('/')[0] ?? '',
     ),
-    APP_ROUTES.CONNECT.replace(/^\//, ''),
+    APP_ROUTES.CONNECTORS.ROOT.replace(/^\//, ''),
     APP_ROUTES.LOGIN.replace(/^\//, ''),
     APP_ROUTES.LOGOUT.replace(/^\//, ''),
     APP_ROUTES.SIGN_UP.replace(/^\//, ''),
@@ -575,7 +579,7 @@ export function parseScopedAppPath(pathname: string): {
 
 const AUTH_CONTINUATION_ROUTE_PREFIXES = [
   ...Object.values(APP_ROUTE_PREFIXES),
-  APP_ROUTES.CONNECT,
+  APP_ROUTES.CONNECTORS.ROOT,
   APP_ROUTES.OAUTH,
   APP_ROUTES.ONBOARDING.ROOT,
   '/agent-auth',
@@ -690,7 +694,6 @@ const BRAND_ONLY_SETTINGS_PREFIXES = [
   APP_ROUTES.SETTINGS.AGENT,
   APP_ROUTES.SETTINGS.PUBLISHING,
   APP_ROUTES.SETTINGS.SKILLS,
-  APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
   APP_ROUTES.SETTINGS.KNOWLEDGE,
   '/settings/brand-kit/setup',
   '/settings/agent/context',

@@ -5,8 +5,8 @@ describe('buildExternalAppUrl', () => {
   const authEndpoint = 'https://app.genfeed.ai/oauth/cli';
 
   it('builds same-origin app URLs from relative paths', () => {
-    expect(buildExternalAppUrl('/settings/api-keys', authEndpoint)).toBe(
-      'https://app.genfeed.ai/settings/api-keys',
+    expect(buildExternalAppUrl('/connectors/api-keys', authEndpoint)).toBe(
+      'https://app.genfeed.ai/connectors/api-keys',
     );
   });
 

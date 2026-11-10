@@ -2870,6 +2870,7 @@
     "reordered": "{app} moved to position {position} of {total}.",
     "navigation": "App navigation",
     "goTo": "Go to {app}",
+    "connectors": "Connectors",
     "help": "Help",
     "settings": "Settings",
     "opening": "Opening app.",

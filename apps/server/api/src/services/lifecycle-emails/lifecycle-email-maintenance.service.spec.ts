@@ -152,8 +152,8 @@ describe('system recap policy', () => {
     expect(html).toContain('Created this week');
   });
   it.each([
-    [false, 'settings/accounts', 'connect_account'],
-    [true, 'playground', 'publish_content'],
+    [false, 'studio/~/connectors/channels', 'connect_account'],
+    [true, 'studio/brand/playground', 'publish_content'],
   ] as const)(
     'links the recap to the canonical next step when connected=%s',
     async (isConnected, route, goal) => {
@@ -161,7 +161,7 @@ describe('system recap policy', () => {
       await service.recaps(request);
       expect(queueEmail).toHaveBeenCalledWith(
         expect.objectContaining({
-          destinationUrl: `https://app.genfeed.ai/studio/brand/${route}`,
+          destinationUrl: `https://app.genfeed.ai/${route}`,
           goal,
         }),
       );

@@ -13,7 +13,7 @@ import {
   CardPadding,
   CardVariant,
 } from '@genfeedai/contracts';
-import { parseScopedAppPath } from '@genfeedai/contracts/constants';
+import { APP_ROUTES, parseScopedAppPath } from '@genfeedai/contracts/constants';
 import { collectConnectPlatforms } from '@genfeedai/contracts/interfaces';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -66,8 +66,11 @@ function GenericOAuthConnectCard({
     action.description ??
     'Connect Instagram, X, LinkedIn, TikTok, YouTube, or another supported platform to continue.';
   const rawIntegrationHref =
-    action.ctas?.find((cta) => cta.href)?.href ?? '/settings/api-keys';
-  const integrationHref = rawIntegrationHref.startsWith('/settings/api-keys')
+    action.ctas?.find((cta) => cta.href)?.href ??
+    APP_ROUTES.CONNECTORS.API_KEYS;
+  const integrationHref = rawIntegrationHref.startsWith(
+    APP_ROUTES.CONNECTORS.API_KEYS,
+  )
     ? orgHref(rawIntegrationHref)
     : rawIntegrationHref;
 

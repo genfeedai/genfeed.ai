@@ -108,7 +108,10 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ href: (path: string) => `/acme/main${path}` }),
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/main${path}`,
+    orgHref: (path: string) => `/acme/~${path}`,
+  }),
 }));
 
 vi.mock('@/features/posts/list/captured-posts-list', () => ({

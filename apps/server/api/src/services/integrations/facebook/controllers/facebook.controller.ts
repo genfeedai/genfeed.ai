@@ -201,7 +201,7 @@ export class FacebookController {
   @Get('callback')
   handleCallback() {
     return {
-      url: `${this.configService.get('GENFEEDAI_APP_URL')}${APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS}?facebook=connected`,
+      url: `${this.configService.get('GENFEEDAI_APP_URL')}${APP_ROUTES.CONNECTORS.CHANNELS}?facebook=connected`,
     };
   }
 

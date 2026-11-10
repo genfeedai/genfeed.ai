@@ -38,6 +38,7 @@ import brandPublishingSettings from './pages/brandPublishingSettings.json';
 import brandSocialMedia from './pages/brandSocialMedia.json';
 import brandWatermark from './pages/brandWatermark.json';
 import connectGenfeed from './pages/connectGenfeed.json';
+import connectors from './pages/connectors.json';
 import connectSocial from './pages/connectSocial.json';
 import costUsage from './pages/costUsage.json';
 import creatorArticleUnlock from './pages/creatorArticleUnlock.json';
@@ -119,6 +120,7 @@ const pages = {
   brandSocialMedia,
   brandWatermark,
   connectGenfeed,
+  connectors,
   connectSocial,
   costUsage,
   creatorArticleUnlock,

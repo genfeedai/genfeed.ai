@@ -2,6 +2,8 @@
 
 import { AssetCategory, AssetScope, ModalEnum } from '@genfeedai/contracts';
 import {
+  APP_ROUTES,
+  createOrganizationAppRoute,
   creatorProfilePath,
   GENFEED_BRAND_HANDLE,
   MODEL_KEYS,
@@ -32,7 +34,7 @@ import BrandDetailLatestVideos from './BrandDetailLatestVideos';
 /**
  * Brand public profile surface — banner, logo, name/description, visibility,
  * external links (inline + modal), and latest public content.
- * OAuth accounts live on /settings/accounts.
+ * OAuth accounts live on Connectors → Channels.
  */
 export default function BrandDetail() {
   const {
@@ -64,12 +66,9 @@ export default function BrandDetail() {
 
   const params = useRouteParams();
   const orgSlug = typeof params?.orgSlug === 'string' ? params.orgSlug : '';
-  const brandSlug =
-    typeof params?.brandSlug === 'string' ? params.brandSlug : '';
-  const manageSocialHref =
-    orgSlug && brandSlug
-      ? `/${orgSlug}/${brandSlug}/settings/accounts`
-      : '/settings/accounts';
+  const manageSocialHref = orgSlug
+    ? createOrganizationAppRoute(orgSlug, APP_ROUTES.CONNECTORS.CHANNELS)
+    : APP_ROUTES.CONNECTORS.CHANNELS;
 
   const handleOpenLinkModal = useCallback(
     (link?: ILink) => {

@@ -176,7 +176,7 @@ describe('AvatarTwinWizard', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open Integrations' }),
-    ).toHaveAttribute('href', '/acme/settings/integrations');
+    ).toHaveAttribute('href', '/acme/connectors/providers');
     expect(
       screen.queryByRole('button', { name: 'Turn on camera' }),
     ).not.toBeInTheDocument();
