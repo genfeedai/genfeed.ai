@@ -1,11 +1,11 @@
 'use client';
 
-import type { AgentDockContextValue } from '@contexts/ui/agent-dock-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   APP_ROUTES,
   isReleaseItemVisible,
 } from '@genfeedai/contracts/constants';
+import type { AgentDockContextValue } from '@props/ui/agent-dock.props';
 import { useCallback, useMemo } from 'react';
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import { buildAgentThreadHref } from '@/lib/navigation/operator-shell';
