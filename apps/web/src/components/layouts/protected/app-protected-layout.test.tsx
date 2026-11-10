@@ -1738,6 +1738,8 @@ describe('AppProtectedLayout', () => {
     mockStudioNav.appsWithSecondPage.add('storyboard');
     mockPathname.value = '/storyboard';
     mockBrandState.settings.hasOrganizationBilling = true;
+    // Release preview isolates the nav from the Storyboard release.
+    mockBrandState.settings.isReleasePreviewEnabled = true;
     render(
       <AppProtectedLayout>
         <div>Existing storyboard</div>
@@ -1790,7 +1792,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it.each([true, false])(
-    'keeps a credit-only Studio app nav while preferences are unknown (loading=%s)',
+    'lists no Studio app nav until preferences are known (loading=%s)',
     (settingsLoading) => {
       mockStudioNav.appsWithSecondPage.add('storyboard');
       mockPathname.value = '/storyboard';
@@ -1801,11 +1803,12 @@ describe('AppProtectedLayout', () => {
           <div>Existing storyboard</div>
         </AppProtectedLayout>,
       );
+      expect(screen.getByText('Existing storyboard')).toBeInTheDocument();
       expect(
-        appSidebarSpy.mock.lastCall?.[0].items.map(
+        (appSidebarSpy.mock.lastCall?.[0].items ?? []).map(
           (item: MenuItemConfig) => item.href,
         ),
-      ).toEqual(['/storyboard', '/storyboard/archive']);
+      ).toEqual([]);
     },
   );
 

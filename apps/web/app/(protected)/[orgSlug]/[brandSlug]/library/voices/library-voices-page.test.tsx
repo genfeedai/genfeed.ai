@@ -251,6 +251,12 @@ function createVoice(overrides: Partial<Voice> = {}): Voice {
   } as Voice;
 }
 
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useHasAppsBeyondDashboard: () => true,
+  useIsAppAvailable: () => true,
+  useIsHrefAvailable: () => () => true,
+}));
+
 describe('LibraryVoicesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();

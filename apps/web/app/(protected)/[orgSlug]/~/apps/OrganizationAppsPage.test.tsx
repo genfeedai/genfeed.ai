@@ -91,11 +91,13 @@ function OrganizationAppsPage() {
   );
 }
 
-/** Admin → Flags as the release migration leaves it. */
+/** Admin → Flags as the release migration leaves it, plus Playground and Storyboard an operator released. */
 const RELEASED_FLAGS = {
   release_analytics: true,
   release_discovery: true,
+  release_playground: true,
   release_publishing: true,
+  release_storyboard: true,
   release_turbo: true,
 };
 

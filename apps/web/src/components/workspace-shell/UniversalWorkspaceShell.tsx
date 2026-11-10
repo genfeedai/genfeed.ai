@@ -116,6 +116,7 @@ import AgentDock from './AgentDock';
 import AgentDockHistory from './AgentDockHistory';
 import AgentThreadsPanel from './AgentThreadsPanel';
 import { useAgentDockThreads } from './use-agent-dock-threads';
+import { useAgentFullPage } from './use-agent-full-page';
 import { useIsCompactViewport } from './use-compact-viewport';
 import { useConversationScopeControls } from './use-conversation-scope-controls';
 import WorkspaceAgentContext from './WorkspaceAgentContext';
@@ -637,24 +638,13 @@ function UniversalWorkspaceShellContent({
     hasOverlayReturnFocusRef.current = false;
   }, [normalizedPathname, overlayRegistration, state]);
 
-  // Brand-scoped full agent surface — keeps the selected brand in the URL so
-  // the expanded conversation does not lose topbar/brand context.
-  const fullConversationHref = useMemo(() => {
-    const destinationThreadId = effectiveThreadId ?? activeThreadId;
-    return activeHref(
-      destinationThreadId
-        ? buildAgentThreadHref(destinationThreadId, { isFull: true })
-        : APP_ROUTES.AGENT.NEW,
-    );
-  }, [activeHref, activeThreadId, effectiveThreadId]);
-
-  const handleOpenFullConversation = useCallback(() => {
-    pendingTransitionRef.current = 'conversation_return';
-    // The full page is the conversation; the dock closes as it hands off
-    // (arriving on `/agent` by any other way closes it once the route mounts).
-    agentDock?.close();
-    push(fullConversationHref);
-  }, [agentDock, fullConversationHref, push]);
+  const { openFullConversation } = useAgentFullPage({
+    activeHref,
+    agentDock,
+    destinationThreadId: effectiveThreadId ?? activeThreadId,
+    pendingTransitionRef,
+    push,
+  });
 
   // The dock is the conversation on product routes. `/agent/*` is the
   // conversation itself, so arriving there closes the dock; it stays closed
@@ -1229,7 +1219,7 @@ function UniversalWorkspaceShellContent({
         dockThreads.startThread();
         handleSelectPanelTab('agent');
       }}
-      onOpenFullPage={handleOpenFullConversation}
+      onOpenFullPage={openFullConversation}
       onSelectView={handleSelectPanelTab}
     />
   );
@@ -1292,13 +1282,15 @@ function UniversalWorkspaceShellContent({
       onCloseContext: () => setIsOutputContextOpen(false),
       onNewThread: dockThreads.startThread,
       onOpenContext: () => setIsOutputContextOpen(true),
-      onOpenFullPage: handleOpenFullConversation,
+      onOpenFullPage: openFullConversation,
       threadsPanel: (
         <AgentThreadsPanel
           apiService={agentApiService}
           getThreadHref={getFullThreadHref}
           isLoading={dockThreads.isThreadListLoading}
-          onOpenFullThread={openFullThreadFromPage}
+          onOpenFullThread={
+            openFullConversation ? openFullThreadFromPage : undefined
+          }
           threads={threads}
         />
       ),
@@ -1310,7 +1302,7 @@ function UniversalWorkspaceShellContent({
     dockThreads.isThreadListLoading,
     dockThreads.startThread,
     getFullThreadHref,
-    handleOpenFullConversation,
+    openFullConversation,
     isAgentOutputSurface,
     isOutputContextOpen,
     openFullThreadFromPage,

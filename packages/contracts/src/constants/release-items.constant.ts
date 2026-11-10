@@ -8,10 +8,15 @@
  * A release only decides what the web app shows. The API and MCP admit work
  * in an unreleased item, so an agent can use every app.
  *
- * Playground and Storyboard are not release items: they stay visible so the
- * generation surfaces are never hidden by accident.
+ * Playground, Storyboard and the Agent app are release items too. Hiding
+ * them never shuts generation off: Playground carries every generation
+ * endpoint, and the API admits that work whether or not the app is released.
+ * The agent sidebar does not depend on the Agent app's release.
  */
 export const RELEASE_ITEM_IDS = [
+  'playground',
+  'storyboard',
+  'agent',
   'publishing',
   'analytics',
   'turbo',

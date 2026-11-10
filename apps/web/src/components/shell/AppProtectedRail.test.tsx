@@ -110,6 +110,7 @@ vi.mock('@genfeedai/contracts/constants', async () => ({
   ...(await import(
     '@genfeedai/contracts/constants/organization-modules.constant'
   )),
+  ...(await import('@genfeedai/contracts/constants/release-items.constant')),
   ...(await import('@genfeedai/contracts/constants/route-manifest.constant')),
   APP_DISPLAY_LABELS: {
     admin: 'Admin',
@@ -344,9 +345,10 @@ describe('AppProtectedRail', () => {
       expect.objectContaining({
         surface: 'drawer',
         pinnedAppIds: ['playground'],
+        releaseVisibility: expect.objectContaining({ agent: false }),
         modulePreferences: expect.objectContaining({
-          playground: true,
-          storyboard: true,
+          playground: false,
+          storyboard: false,
           publishing: true,
           analytics: true,
           automation: false,
@@ -372,7 +374,7 @@ describe('AppProtectedRail', () => {
       expect.objectContaining({
         installedAppIds: ['playground', 'turbo'],
         moduleAccess: expect.objectContaining({
-          playground: { isAllowed: true, reason: null },
+          playground: { isAllowed: false, reason: 'unreleased' },
           clipper: { isAllowed: false, reason: 'unreleased' },
         }),
       }),
@@ -397,6 +399,11 @@ describe('AppProtectedRail', () => {
     render(<AppProtectedRail orgSlug="acme" />);
     expect(appRailSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
+        releaseVisibility: expect.objectContaining({
+          agent: true,
+          playground: true,
+          storyboard: true,
+        }),
         moduleAccess: expect.objectContaining({
           clipper: { isAllowed: true, reason: null },
         }),

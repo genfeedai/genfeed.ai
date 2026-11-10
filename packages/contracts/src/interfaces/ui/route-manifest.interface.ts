@@ -1,5 +1,6 @@
 import type { AppRailFeatureFlagKey } from '../../constants/feature-flags.constant';
 import type { OrganizationModuleId } from '../../constants/organization-modules.constant';
+import type { ReleaseItemId } from '../../constants/release-items.constant';
 import type {
   WorkspaceShellAdapterSeam,
   WorkspaceShellProductClass,
@@ -54,6 +55,8 @@ export interface RouteManifestApp {
   /** Platform module switch behind the app. */
   flag?: AppRailFeatureFlagKey;
   organizationModule?: OrganizationModuleId;
+  /** Release item for an app with no organization module (the Agent app). */
+  releaseItemId?: ReleaseItemId;
   isBrandAware?: boolean;
   /**
    * Bare `/<app>` permanently redirects here, unscoped, brand-scoped and

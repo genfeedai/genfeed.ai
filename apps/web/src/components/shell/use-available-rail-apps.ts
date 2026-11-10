@@ -2,9 +2,12 @@
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
+  isReleaseItemVisible,
   ORGANIZATION_MODULE_IDS,
   type OrganizationModuleAccess,
   type OrganizationModuleId,
+  RELEASE_ITEM_IDS,
+  type ReleaseItemId,
   ROUTE_MANIFEST_APPS,
   resolveOrganizationModulePreferences,
   resolveOrganizationModulePresentationAccess,
@@ -57,8 +60,29 @@ function useOrganizationModuleView() {
           ),
     [platformFlags, settings, settingsLoading],
   );
+  // Null while settings load: the rail waits instead of guessing.
+  const releaseVisibility = useMemo<Partial<
+    Record<ReleaseItemId, boolean>
+  > | null>(
+    () =>
+      settingsLoading
+        ? null
+        : Object.fromEntries(
+            RELEASE_ITEM_IDS.map((itemId) => [
+              itemId,
+              isReleaseItemVisible(itemId, settings, platformFlags),
+            ]),
+          ),
+    [platformFlags, settings, settingsLoading],
+  );
 
-  return { moduleAccess, modulePreferences, platformFlags, settingsLoading };
+  return {
+    moduleAccess,
+    modulePreferences,
+    platformFlags,
+    releaseVisibility,
+    settingsLoading,
+  };
 }
 
 /**
@@ -68,7 +92,7 @@ function useOrganizationModuleView() {
  * they install. False while organization settings load.
  */
 export function useHasAppsBeyondDashboard(): boolean {
-  const { moduleAccess, modulePreferences, platformFlags } =
+  const { moduleAccess, modulePreferences, platformFlags, releaseVisibility } =
     useOrganizationModuleView();
   return useMemo(
     () =>
@@ -76,8 +100,9 @@ export function useHasAppsBeyondDashboard(): boolean {
         flags: platformFlags,
         moduleAccess,
         modulePreferences,
+        releaseVisibility,
       }),
-    [moduleAccess, modulePreferences, platformFlags],
+    [moduleAccess, modulePreferences, platformFlags, releaseVisibility],
   );
 }
 
@@ -89,7 +114,7 @@ export function useHasAppsBeyondDashboard(): boolean {
  * before it is known to lead somewhere.
  */
 function useOrganizationAppIds(): ReadonlySet<string> {
-  const { moduleAccess, modulePreferences, platformFlags } =
+  const { moduleAccess, modulePreferences, platformFlags, releaseVisibility } =
     useOrganizationModuleView();
   return useMemo(
     () =>
@@ -98,9 +123,10 @@ function useOrganizationAppIds(): ReadonlySet<string> {
           flags: platformFlags,
           moduleAccess,
           modulePreferences,
+          releaseVisibility,
         }).map((app) => app.id),
       ),
-    [moduleAccess, modulePreferences, platformFlags],
+    [moduleAccess, modulePreferences, platformFlags, releaseVisibility],
   );
 }
 
@@ -140,8 +166,13 @@ export function useIsHrefAvailable(): (href: string) => boolean {
  * hidden instead of guessing.
  */
 export function useAvailableRailApps() {
-  const { moduleAccess, modulePreferences, platformFlags, settingsLoading } =
-    useOrganizationModuleView();
+  const {
+    moduleAccess,
+    modulePreferences,
+    platformFlags,
+    releaseVisibility,
+    settingsLoading,
+  } = useOrganizationModuleView();
   const installedApps = useInstalledApps();
   const installedAppIds =
     installedApps.status === 'ready'
@@ -154,8 +185,15 @@ export function useAvailableRailApps() {
         installedAppIds,
         moduleAccess,
         modulePreferences,
+        releaseVisibility,
       }),
-    [installedAppIds, moduleAccess, modulePreferences, platformFlags],
+    [
+      installedAppIds,
+      moduleAccess,
+      modulePreferences,
+      platformFlags,
+      releaseVisibility,
+    ],
   );
 
   return {
@@ -164,5 +202,6 @@ export function useAvailableRailApps() {
     isReady: !settingsLoading && installedApps.status !== 'loading',
     moduleAccess,
     modulePreferences,
+    releaseVisibility,
   };
 }

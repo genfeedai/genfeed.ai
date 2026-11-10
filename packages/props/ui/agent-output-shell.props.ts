@@ -81,7 +81,8 @@ export interface AgentOutputHostValue {
   /** Brings Context forward, for a record the operator just picked. */
   readonly onOpenContext: () => void;
   readonly onNewThread: () => void;
-  readonly onOpenFullPage: () => void;
+  /** Absent while the Agent app is not released: there is no full page to open. */
+  readonly onOpenFullPage?: () => void;
   readonly threadsPanel: ReactNode;
 }
 

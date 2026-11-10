@@ -36,6 +36,12 @@ function mockStreak(overrides: Partial<ReturnType<typeof useStreak>> = {}) {
   } as unknown as ReturnType<typeof useStreak>);
 }
 
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useHasAppsBeyondDashboard: () => true,
+  useIsAppAvailable: () => true,
+  useIsHrefAvailable: () => () => true,
+}));
+
 describe('StreaksPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();

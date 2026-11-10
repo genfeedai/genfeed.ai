@@ -73,6 +73,7 @@ export const ROUTE_MANIFEST_APPS: readonly RouteManifestApp[] = [
     homePath: '/agent',
     id: 'agent',
     isBrandAware: true,
+    releaseItemId: 'agent',
   },
   // Studio apps need a brand. Their org routes pick the member's last-used
   // brand, or hand one-off generation to Agent when there is none.

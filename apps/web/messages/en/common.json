@@ -1231,6 +1231,10 @@
       "unavailable": "Module settings are unavailable. Reload before making changes.",
       "retry": "Retry loading",
       "modules": {
+        "agent": {
+          "label": "Agent",
+          "description": "Chat with your agent on a full page."
+        },
         "playground": {
           "label": "Playground",
           "description": "Generate and refine images, videos, audio and text using credits."
