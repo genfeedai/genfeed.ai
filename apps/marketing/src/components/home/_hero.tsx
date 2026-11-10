@@ -1,9 +1,6 @@
-import { getAppSignUpUrl } from '@data/app-links';
-import { ButtonSize } from '@genfeedai/contracts';
-import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
+import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import {
   HOME_HERO_VIDEO,
   HOME_OUTPUT_CAROUSEL_ASSETS,
@@ -40,7 +37,9 @@ export default function HomeHero(): React.ReactElement {
           as="p"
           className="animate-gen-stagger-in mx-auto mt-7 max-w-2xl text-base leading-7 text-foreground/80 [--gen-stagger-delay:180ms] md:text-lg"
         >
-          {metadata.description}
+          Run Genfeed from the agent you already use. Brief it in Claude,
+          ChatGPT, Codex or Cursor, then review, publish and track your on-brand
+          videos, images and posts in the dashboard.
         </Text>
 
         <div
@@ -49,17 +48,10 @@ export default function HomeHero(): React.ReactElement {
           data-testid="home-hero-actions"
         >
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <ButtonTracked
-              asChild
-              size={ButtonSize.PUBLIC}
-              trackingData={{ action: 'start_signup' }}
-              trackingName="home_hero_click"
-            >
-              <a href={getAppSignUpUrl()}>Start for $0</a>
-            </ButtonTracked>
+            <AgentFirstActions trackingName="home_hero_click" />
           </div>
           <Text as="p" className="mt-5 text-center text-sm text-foreground/80">
-            Create your free account with Google or email. No card required.
+            Connecting takes one sign-in. Free account, no card required.
           </Text>
         </div>
       </div>

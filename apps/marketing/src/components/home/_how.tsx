@@ -4,17 +4,19 @@ import { Text } from '@ui/typography/text';
 
 const HOW_STEPS: HowStep[] = [
   {
-    description: 'Say what you want, or drop in a reference.',
-    title: 'Ask',
-  },
-  {
-    description: 'Create videos, images and posts using your brand context.',
-    title: 'Create',
+    description:
+      'Add Genfeed to Claude, ChatGPT, Codex, Cursor or any MCP client. One sign-in.',
+    title: 'Connect',
   },
   {
     description:
-      'Review, publish and use the results to plan your next campaign.',
-    title: 'Grow',
+      'Brief your agent in your own words, or drop in a reference. It works from your brand context.',
+    title: 'Ask',
+  },
+  {
+    description:
+      'Open the dashboard to approve drafts, publish to your channels and see what worked.',
+    title: 'Review',
   },
 ];
 
@@ -34,8 +36,8 @@ export default function HomeHow(): React.ReactElement {
             Watch it work.
           </Heading>
           <Text className="max-w-2xl text-base leading-7 gen-text-muted">
-            Brand memory, drafts and results live in one workspace. Approve the
-            drafts, then schedule them for your connected channels.
+            Your agent does the work. Brand memory, drafts and results live in
+            one dashboard, where you approve what goes out.
           </Text>
         </div>
 
