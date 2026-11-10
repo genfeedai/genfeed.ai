@@ -1,5 +1,6 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
+import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
 import MarketingEntrance from '@web-components/MarketingEntrance';
@@ -7,10 +8,10 @@ import PageLayout from '@web-components/PageLayout';
 import AppProductScreenshot from '@web-components/products/AppProductScreenshot';
 import {
   ArrowRight,
-  Cpu,
-  Database,
-  MonitorPlay,
-  ShieldCheck,
+  BarChart3,
+  LayoutDashboard,
+  Plug,
+  TrendingUp,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -18,35 +19,35 @@ import Link from 'next/link';
 const FEATURES = [
   {
     description:
-      'Every photo, video, and file organized and searchable. Find what you need in seconds, not minutes.',
-    icon: Database,
-    label: 'Asset Library',
+      'Connect Claude, ChatGPT, Codex, Cursor or any MCP client. Your agent drafts, schedules and reads results with your brand context.',
+    icon: Plug,
+    label: 'Your agent',
     number: '01',
-    title: 'Find Any Asset Instantly',
+    title: 'Work Where You Already Work',
   },
   {
     description:
-      'Use the current image, video, voice, music, and language models published in the live product registry.',
-    icon: Cpu,
-    label: 'AI Engine',
+      'See what is working in your market, as observed samples, so every brief starts from what people are responding to.',
+    icon: TrendingUp,
+    label: 'Trends',
     number: '02',
-    title: 'Live Models, One Prompt',
+    title: 'Start From What Is Working',
   },
   {
     description:
-      'Enterprise-grade security. Your brand assets, custom models, and content stay private and protected.',
-    icon: ShieldCheck,
-    label: 'Security',
+      'Videos, images and posts land in one library with your brand attached. Review them, then publish to your connected channels.',
+    icon: LayoutDashboard,
+    label: 'Dashboard',
     number: '03',
-    title: 'Your Brand, Your Data',
+    title: 'Review And Publish In One Place',
   },
   {
     description:
-      'Create finished video, image, voice, and written assets, then refine and package them in the same workflow.',
-    icon: MonitorPlay,
-    label: 'Quality',
+      'Post performance in one view, and your top posts come back as examples for the next brief.',
+    icon: BarChart3,
+    label: 'Analytics',
     number: '04',
-    title: 'Finished Outputs, One Workflow',
+    title: 'See What Worked',
   },
 ];
 
@@ -69,8 +70,8 @@ export default function FeaturesPage(): React.ReactElement {
         }
         compact
         heroVisual={HERO_VISUAL}
-        title={<>What Genfeed Does For You</>}
-        description="Every feature saves you time and eliminates busywork. Here is exactly what you get."
+        title={<>What Genfeed Does</>}
+        description="Run Genfeed from the agent you already use. Trends in, finished videos, images and posts out, then publishing and analytics in the dashboard."
       >
         <section className="gsap-hero py-16 md:py-32">
           <div className="container mx-auto px-6">
@@ -112,8 +113,8 @@ export default function FeaturesPage(): React.ReactElement {
                 The output is the proof.
               </h2>
               <p className="mt-5 max-w-2xl text-base leading-7 text-foreground/60">
-                Campaign systems, short-form video, and finished creative made
-                inside the same product shown above.
+                Short-form video, images and campaign creative, made with
+                Genfeed and ready to review.
               </p>
             </div>
             <div className="grid gap-3 md:grid-cols-3">
@@ -170,25 +171,19 @@ export default function FeaturesPage(): React.ReactElement {
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto">
               <h2 className="text-6xl font-semibold mb-10">
-                Start Creating Today
+                Start in your agent.
               </h2>
               <p className="text-foreground/70 text-xl mb-12 font-medium">
-                Start creating in minutes. Choose the plan that fits your team.
+                Connecting takes one sign-in. Free account, no card required.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Button
-                  asChild
-                  variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.PUBLIC}
-                >
-                  <Link href="/pricing">View Plans</Link>
-                </Button>
+                <AgentFirstActions trackingName="features_cta_click" />
                 <Button
                   asChild
                   variant={ButtonVariant.GHOST}
                   size={ButtonSize.PUBLIC}
                 >
-                  <Link href="/agent">See How It Works</Link>
+                  <Link href="/pricing">View Plans</Link>
                 </Button>
               </div>
             </div>

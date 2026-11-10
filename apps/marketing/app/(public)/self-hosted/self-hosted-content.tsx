@@ -46,7 +46,7 @@ const PROVIDER_KEYS = [
 const WHY_SELF_HOST = [
   {
     description:
-      'Run Genfeed on your own servers with Docker Compose: one container plus PostgreSQL. Your storage, your network, no vendor lock-in.',
+      'Run Genfeed on your own servers with Docker Compose: one container plus PostgreSQL. Your storage, your network, and an MCP endpoint your agent connects to.',
     icon: Server,
     title: 'Own Your Infrastructure',
   },
@@ -101,7 +101,7 @@ export default function SelfHostedContent() {
       <PageLayout
         heroMedia={<MarketingArtwork page="/self-hosted" kind="integration" />}
         title={<>Open source. Self-host on your own infra.</>}
-        description="Genfeed is open source under AGPL-3.0. Install it with one command or a checksummed release bundle, run it with Docker Compose, and add your own model provider keys. Or skip the ops and start free on managed cloud."
+        description="Genfeed is open source under AGPL-3.0. Install it with one command or a checksummed release bundle, run it with Docker Compose, then point your agent at your own MCP endpoint. Add your own model provider keys. Or skip the ops and start free on managed cloud."
       >
         <WebSection maxWidth="lg" py="md">
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">

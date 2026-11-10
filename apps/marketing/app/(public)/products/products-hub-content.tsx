@@ -1,6 +1,6 @@
 import {
   APP_PRODUCT_ACCESS_LABELS,
-  APP_PRODUCT_GROUPS,
+  type AppProductGroup,
   getAppProductsByGroup,
 } from '@data/app-products.data';
 import { Heading } from '@ui/typography/heading';
@@ -13,20 +13,28 @@ import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-const GROUP_DESCRIPTIONS: Record<(typeof APP_PRODUCT_GROUPS)[number], string> =
-  {
-    Create: 'Generate, plan and edit images, video and sequences.',
-    Operate: 'Ask an agent, run workflows and keep every asset in one library.',
-    'Publish & grow':
-      'Publish, measure, research what works and keep up with your audience.',
-  };
+// The dashboard apps come first: they are where the work from your agent is
+// reviewed, published and measured. The creative apps come last.
+const HUB_GROUP_ORDER: readonly AppProductGroup[] = [
+  'Publish & grow',
+  'Operate',
+  'Create',
+];
+
+const GROUP_DESCRIPTIONS: Record<AppProductGroup, string> = {
+  Create: 'Generate, plan and edit images, video and sequences in the app.',
+  Operate:
+    'Keep every asset in one library, and run workflows and recurring tasks.',
+  'Publish & grow':
+    'Publish, measure, research what works and keep up with your audience.',
+};
 
 export default function ProductsHubContent() {
   return (
     <MarketingEntrance>
       <PageLayout
         compact
-        description="One workspace, one app per job. Every Genfeed product below is a real page of the app, from generating a first image to publishing and measuring it."
+        description="Your agent does the work. The dashboard is where you review it, publish it and see what worked. Every Genfeed app below is a real page of the app."
         heroActions={<AgentFirstActions trackingName="products_hero_click" />}
         heroVisual={
           <AppProductScreenshot
@@ -37,7 +45,7 @@ export default function ProductsHubContent() {
         }
         title="Genfeed Products"
       >
-        {APP_PRODUCT_GROUPS.map((group) => (
+        {HUB_GROUP_ORDER.map((group) => (
           <section
             className="gsap-section mx-auto max-w-6xl px-6 pb-24"
             key={group}
@@ -97,12 +105,13 @@ export default function ProductsHubContent() {
             as="h2"
             className="text-3xl font-semibold tracking-[-0.02em] text-foreground"
           >
-            Build your workspace
+            Start in your agent
           </Heading>
           <Text className="mx-auto mt-4 max-w-xl text-base leading-7 text-foreground/70">
-            Playground, Storyboard, Publishing, Analytics, Discovery, Agent and
-            Library are ready from the start. Add Clipper, Motion, Turbo,
-            Editor, Automation and Messages from Apps when you need them.
+            Connect Claude, ChatGPT, Codex or Cursor first. Library, Publishing,
+            Analytics and Discovery are where its drafts, posts and results show
+            up. The creative apps are there when you want to work in the app
+            too.
           </Text>
           <div className="mt-8 flex flex-row flex-wrap items-center justify-center gap-4">
             <AgentFirstActions trackingName="products_cta_click" />

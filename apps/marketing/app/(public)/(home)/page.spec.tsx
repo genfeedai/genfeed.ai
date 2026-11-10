@@ -17,7 +17,7 @@ describe('homepage metadata', () => {
 
     expect(result.title).toBe('Genfeed.ai | From brief to feed.');
     expect(result.description).toBe(
-      'Genfeed is an open-source content agent. Create on-brand videos, images and posts, then review and publish to your connected channels.',
+      'Genfeed is an open-source content studio you run from your own agent. Connect Claude, ChatGPT, Codex or Cursor, then review, publish and track on-brand videos, images and posts.',
     );
     expect(result.openGraph?.description).toBe(result.description);
     expect(result.twitter?.description).toBe(result.description);

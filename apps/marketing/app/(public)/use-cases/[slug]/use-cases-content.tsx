@@ -2,7 +2,7 @@ import type { UseCase } from '@data/use-cases.data';
 import { getPlanLabel } from '@genfeedai/pricing';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
+import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import HeroProofRail from '@web-components/marketing/HeroProofRail';
 import PageLayout from '@web-components/PageLayout';
@@ -19,7 +19,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
       variant="proof"
       heroActions={
         <>
-          <ButtonRequestAccess label={useCase.cta} />
+          <AgentFirstActions trackingName="use_case_hero_click" />
           <Link href="/pricing" className="link block self-center">
             View All Pricing
           </Link>
@@ -125,7 +125,9 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
             {recommendedPlan}
           </Heading>
           <Text className="text-foreground/70 mb-6">{useCase.pricing.why}</Text>
-          <ButtonRequestAccess />
+          <div className="flex flex-row flex-wrap items-center justify-center gap-4">
+            <AgentFirstActions trackingName="use_case_cta_click" />
+          </div>
           <Link href="/pricing" className="link mt-4 block">
             View All Pricing
           </Link>
