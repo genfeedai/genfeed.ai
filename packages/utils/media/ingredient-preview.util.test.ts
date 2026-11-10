@@ -21,6 +21,9 @@ describe('isRasterPreviewUrl', () => {
       false,
     );
     expect(isRasterPreviewUrl('https://cdn.example/line.mp3')).toBe(false);
+    expect(isRasterPreviewUrl('https://cdn.example/chair.glb?sig=1')).toBe(
+      false,
+    );
   });
 
   it('accepts image URLs', () => {
@@ -72,5 +75,23 @@ describe('getIngredientPreviewUrl', () => {
         thumbnailUrl: 'https://cdn.example/hero-thumb.jpg',
       } as IIngredient),
     ).toBe('https://cdn.example/hero.png');
+  });
+
+  it('uses the thumbnail for a 3D model and never the GLB', () => {
+    expect(
+      getIngredientPreviewUrl({
+        category: IngredientCategory.MODEL_3D,
+        id: 'model-1',
+        ingredientUrl: 'https://cdn.example/chair.glb',
+        thumbnailUrl: 'https://cdn.example/chair.jpg',
+      } as IIngredient),
+    ).toBe('https://cdn.example/chair.jpg');
+    expect(
+      getIngredientPreviewUrl({
+        category: IngredientCategory.MODEL_3D,
+        id: 'model-2',
+        ingredientUrl: 'https://cdn.example/chair.glb',
+      } as IIngredient),
+    ).toBeUndefined();
   });
 });

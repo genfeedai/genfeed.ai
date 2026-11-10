@@ -13,6 +13,7 @@ export const BRAND_INTERVIEW_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description: `Start a brand context interview for the given brand. Charges ${BRAND_INTERVIEW_CREDIT_COST} credits once (idempotent — resuming an active session does not re-charge). Returns the first question to ask the user, plus progress and completeness info.`,
+    mcpDescription: `Start/resume a brand context interview. Costs ${BRAND_INTERVIEW_CREDIT_COST} credits once; resuming active session is free. Return first question, progress and completeness.`,
     name: 'start_brand_interview',
     parameters: {
       properties: {
@@ -30,6 +31,8 @@ export const BRAND_INTERVIEW_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       "Submit the user's answer to the current interview question. Pass the interviewId from start_brand_interview. Returns the next question (if any) and updated progress.",
+    mcpDescription:
+      'Submit current answer with interviewId from start_brand_interview; return next question, if any, and progress.',
     name: 'submit_brand_interview_answer',
     parameters: {
       properties: {
@@ -71,6 +74,8 @@ export const BRAND_INTERVIEW_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Get the current brand context completeness score and a list of fields that still have gaps. Read-only, no credits charged.',
+    mcpDescription:
+      'Read brand context completeness score and missing fields. Free/read-only.',
     name: 'get_brand_completeness',
     parameters: {
       properties: {
@@ -88,6 +93,8 @@ export const BRAND_INTERVIEW_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Read structured brand context for writing or reviewing on-brand content: identity, guidelines, the visual kit (colors, named palette, fonts by role, logo variants and platform banners with their URLs), voice, strategy, topics, persona, prompt seeds, performance insights, knowledge, recent posts, saved memories and active skills. Includes context diagnostics and model metadata. Rendered system and memory prompts are omitted unless explicitly requested for diagnostics. Read-only, no credits charged.',
+    mcpDescription:
+      'Read brand identity, guidelines, visual kit (palette, fonts by role, logo variants, platform banners), voice, strategy, topics, persona, prompt seeds, performance insights, Knowledge, recent posts, memories and active skills, plus diagnostics/model metadata. Rendered system/memory prompts require explicit diagnostics request. Free/read-only.',
     name: 'get_brand_context',
     parameters: {
       properties: {

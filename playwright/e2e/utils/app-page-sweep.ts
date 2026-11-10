@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { createServer, type Server, type ServerResponse } from 'node:http';
 import path from 'node:path';
 import type { SocialTimelineResponse } from '@genfeedai/contracts/interfaces';
@@ -6,18 +6,18 @@ import type { Page, Response } from '@playwright/test';
 import {
   createPlaywrightMockApiRoutePattern,
   playwrightApiEndpoint,
-} from '../../config/environment';
-import { expect, test } from '../../fixtures/auth.fixture';
+} from '../config/environment';
+import { expect, test } from '../fixtures/auth.fixture';
 import {
   buildReferralProgramMockBody,
   buildUnhandledApiMockBody,
-} from '../../utils/api-interceptor';
+} from './api-interceptor';
 import {
   assertNoErrorBoundaryFallback,
   FRAMEWORK_ERROR_OVERLAY_SELECTOR,
-} from '../../utils/route-assertions';
+} from './route-assertions';
 
-const appRoot = path.join(process.cwd(), 'apps/web/app');
+export const appRoot = path.join(process.cwd(), 'apps/web/app');
 const routeFilter = process.env.GENFEED_E2E_ROUTE_FILTER;
 
 const dynamicValues: Record<string, string> = {
@@ -74,12 +74,12 @@ function pageFileToRoute(filePath: string): string {
   return `/${segments.join('/')}`.replace(/\/+$/, '') || '/';
 }
 
-const routes = listPageFiles(appRoot)
+export const routes = listPageFiles(appRoot)
   .map(pageFileToRoute)
   .filter((route, index, allRoutes) => allRoutes.indexOf(route) === index)
   .sort();
 
-const publicRoutes = routes.filter(
+export const publicRoutes = routes.filter(
   (route) =>
     route.startsWith('/agent-auth') ||
     route.startsWith('/forgot-password') ||
@@ -92,19 +92,19 @@ const publicRoutes = routes.filter(
     route.startsWith('/sign-up'),
 );
 
-const oauthRoutes = routes.filter((route) => route.startsWith('/oauth'));
+export const oauthRoutes = routes.filter((route) => route.startsWith('/oauth'));
 
-const onboardingRoutes = routes.filter((route) =>
+export const onboardingRoutes = routes.filter((route) =>
   route.startsWith('/onboarding'),
 );
 
-const adminRoutes = routes.filter((route) => route.startsWith('/admin'));
+export const adminRoutes = routes.filter((route) => route.startsWith('/admin'));
 
 const runtimeOwnedRoutes = routes.filter(
   (route) => route === '/desktop/local' || route === '/~offline',
 );
 
-const protectedRoutes = routes.filter(
+export const protectedRoutes = routes.filter(
   (route) =>
     !publicRoutes.includes(route) &&
     !oauthRoutes.includes(route) &&
@@ -113,7 +113,7 @@ const protectedRoutes = routes.filter(
     !runtimeOwnedRoutes.includes(route),
 );
 
-interface RouteBucket {
+export interface RouteBucket {
   name: string;
   routes: string[];
 }
@@ -126,7 +126,7 @@ function routeBucket(
   return { name, routes: routeList.filter(matches) };
 }
 
-function expectAllRoutesBucketed(
+export function expectAllRoutesBucketed(
   sourceRoutes: string[],
   buckets: RouteBucket[],
 ): void {
@@ -138,7 +138,7 @@ function expectAllRoutesBucketed(
   expect(missingRoutes, missingRoutes.join('\n')).toEqual([]);
 }
 
-const protectedRouteBuckets: RouteBucket[] = [
+export const protectedRouteBuckets: RouteBucket[] = [
   routeBucket(
     'protected root',
     protectedRoutes,
@@ -181,7 +181,7 @@ const protectedRouteBuckets: RouteBucket[] = [
   ),
 ];
 
-const adminRouteBuckets: RouteBucket[] = [
+export const adminRouteBuckets: RouteBucket[] = [
   routeBucket('admin core', adminRoutes, (route) =>
     /^\/admin(\/agent(\/|$)|$)/.test(route),
   ),
@@ -216,11 +216,11 @@ function jsonResponse(response: ServerResponse, body: unknown) {
   response.end(JSON.stringify(body));
 }
 
-function socialTimelinePayload(): SocialTimelineResponse {
+export function socialTimelinePayload(): SocialTimelineResponse {
   return { accounts: [] };
 }
 
-async function mockSocialTimelines(page: Page): Promise<void> {
+export async function mockSocialTimelines(page: Page): Promise<void> {
   // This endpoint returns raw account data, not a JSON:API document.
   await page.route(
     createPlaywrightMockApiRoutePattern('social-timelines/?(?:\\?.*)?$'),
@@ -465,7 +465,7 @@ async function startMockApiServer(): Promise<Server | null> {
   });
 }
 
-async function assertRouteLoads(
+export async function assertRouteLoads(
   page: Page,
   route: string,
   options: { allowRedirectToLogin?: boolean } = {},
@@ -559,7 +559,7 @@ async function assertRouteLoads(
   ).toBeGreaterThan(0);
 }
 
-async function sweepRoutes(
+export async function sweepRoutes(
   page: Page,
   routesToCheck: string[],
   options: { allowRedirectToLogin?: boolean } = {},
@@ -595,9 +595,38 @@ async function sweepRoutes(
   expect(failures, failures.join('\n\n')).toEqual([]);
 }
 
-test.describe('All App Pages', () => {
-  test.setTimeout(900_000);
+export function bucketNamed(buckets: RouteBucket[], name: string): RouteBucket {
+  const bucket = buckets.find((candidate) => candidate.name === name);
+  if (!bucket) {
+    throw new Error(`Unknown route bucket: ${name}`);
+  }
 
+  return bucket;
+}
+
+export async function sweepProtectedBucket(
+  page: Page,
+  bucketName: string,
+): Promise<void> {
+  await mockSocialTimelines(page);
+  await sweepRoutes(
+    page,
+    bucketNamed(protectedRouteBuckets, bucketName).routes,
+  );
+}
+
+export async function sweepAdminBucket(
+  page: Page,
+  bucketName: string,
+): Promise<void> {
+  await sweepRoutes(page, bucketNamed(adminRouteBuckets, bucketName).routes);
+}
+
+/**
+ * Registers the mock API lifecycle for one spec file. Call it inside the
+ * `All App Pages` describe block of each sweep spec.
+ */
+export function useMockApiServer(): void {
   let mockApiServer: Server | null = null;
 
   test.beforeAll(async () => {
@@ -620,71 +649,30 @@ test.describe('All App Pages', () => {
       });
     });
   });
+}
 
-  test('Following shows the empty raw-timeline response without an error boundary', async ({
-    authenticatedPage,
-  }) => {
-    await mockSocialTimelines(authenticatedPage);
-    const timelineResponse = authenticatedPage.waitForResponse((response) =>
-      /\/social-timelines\/?$/.test(new URL(response.url()).pathname),
+/**
+ * The route sweep is split across the spec files in
+ * `tests/smoke/all-app-pages/` so the nightly full tier can spread it over
+ * shards (one file is one scheduling unit). Every route bucket must be named by
+ * exactly one of those files; adding a bucket without a test fails here.
+ */
+export function expectEveryBucketHasOneTest(): void {
+  const sweepDirectory = path.join(
+    process.cwd(),
+    'playwright/e2e/tests/smoke/all-app-pages',
+  );
+  const sources = readdirSync(sweepDirectory)
+    .filter((file) => file.endsWith('.spec.ts'))
+    .map((file) => readFileSync(path.join(sweepDirectory, file), 'utf8'));
+
+  for (const bucket of [...protectedRouteBuckets, ...adminRouteBuckets]) {
+    const owners = sources.filter((source) =>
+      source.includes(`'${bucket.name}'`),
     );
-    await assertRouteLoads(
-      authenticatedPage,
-      '/test-org/brand-1/discovery/following',
-    );
-    const body: unknown = await (await timelineResponse).json();
-    expect(body).toEqual(socialTimelinePayload());
-    await test.info().attach('raw-timeline-response', {
-      body: JSON.stringify(body),
-      contentType: 'application/json',
-    });
-    await expect(
-      authenticatedPage.getByRole('button', { name: 'Refresh feeds' }),
-    ).toBeDisabled();
-    await expect(
-      authenticatedPage.getByText('Connect an account'),
-    ).toBeVisible();
-  });
-
-  test('public pages render', async ({ unauthenticatedPage }) => {
-    await sweepRoutes(unauthenticatedPage, publicRoutes, {
-      allowRedirectToLogin: true,
-    });
-  });
-
-  test('oauth callback pages render', async ({ authenticatedPage }) => {
-    await authenticatedPage.route('**/services/*/verify**', async (route) => {
-      await route.fulfill({
-        body: JSON.stringify({ success: true }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    });
-
-    await sweepRoutes(authenticatedPage, oauthRoutes);
-  });
-
-  test('onboarding pages render', async ({ authenticatedPage }) => {
-    await sweepRoutes(authenticatedPage, onboardingRoutes);
-  });
-
-  for (const bucket of protectedRouteBuckets) {
-    test(`${bucket.name} pages render`, async ({ authenticatedPage }) => {
-      await mockSocialTimelines(authenticatedPage);
-      await sweepRoutes(authenticatedPage, bucket.routes);
-    });
+    expect(
+      owners,
+      `${bucket.name} must be swept by exactly one file`,
+    ).toHaveLength(1);
   }
-
-  for (const bucket of adminRouteBuckets) {
-    test(`${bucket.name} pages render`, async ({ adminPage }) => {
-      await sweepRoutes(adminPage, bucket.routes);
-    });
-  }
-
-  test('route discovery found app pages', () => {
-    expect(existsSync(appRoot)).toBe(true);
-    expect(routes.length).toBeGreaterThan(100);
-    expectAllRoutesBucketed(protectedRoutes, protectedRouteBuckets);
-    expectAllRoutesBucketed(adminRoutes, adminRouteBuckets);
-  });
-});
+}

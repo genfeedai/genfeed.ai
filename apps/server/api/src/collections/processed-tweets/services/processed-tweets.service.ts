@@ -1,7 +1,4 @@
-import type {
-  ProcessedTweet,
-  ProcessedTweetDocument,
-} from '@api/collections/processed-tweets/schemas/processed-tweet.schema';
+import type { ProcessedTweet } from '@api/collections/processed-tweets/schemas/processed-tweet.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { ReplyBotType } from '@genfeedai/contracts';
@@ -12,7 +9,7 @@ import { Injectable } from '@nestjs/common';
 @Traced()
 @Injectable()
 export class ProcessedTweetsService extends BaseService<
-  ProcessedTweetDocument,
+  ProcessedTweet,
   Partial<ProcessedTweet>,
   Partial<ProcessedTweet>
 > {
@@ -47,7 +44,7 @@ export class ProcessedTweetsService extends BaseService<
     processedBy: ReplyBotType,
     replyBotConfigId?: string,
     botActivityId?: string,
-  ): Promise<ProcessedTweetDocument> {
+  ): Promise<ProcessedTweet> {
     try {
       const result = await this.prisma.processedTweet.create({
         data: {
@@ -59,7 +56,7 @@ export class ProcessedTweetsService extends BaseService<
           tweetId,
         },
       });
-      return result as unknown as ProcessedTweetDocument;
+      return result as unknown as ProcessedTweet;
     } catch (error: unknown) {
       // Handle duplicate key error (tweet already processed)
       if ((error as { code?: string })?.code === 'P2002') {
@@ -71,7 +68,7 @@ export class ProcessedTweetsService extends BaseService<
             `Failed to find existing processed tweet after duplicate key error: ${tweetId}`,
           );
         }
-        return existing as unknown as ProcessedTweetDocument;
+        return existing as unknown as ProcessedTweet;
       }
       throw error;
     }

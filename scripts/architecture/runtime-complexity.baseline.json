@@ -108,7 +108,7 @@
     "symbol": "StripeCheckoutWebhookHandler.constructor"
   },
   {
-    "actual": 1219,
+    "actual": 1216,
     "file": "apps/server/api/src/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler.ts"
@@ -318,12 +318,6 @@
     "symbol": "apps/web/src/features/research/remix/RemixBriefInspector.tsx"
   },
   {
-    "actual": 1437,
-    "file": "apps/web/src/features/studio/playground/components/StudioPlaygroundComposer.tsx",
-    "metric": "file-lines",
-    "symbol": "apps/web/src/features/studio/playground/components/StudioPlaygroundComposer.tsx"
-  },
-  {
     "actual": 1051,
     "file": "apps/web/src/features/studio/playground/components/StudioPlaygroundInspector.tsx",
     "metric": "file-lines",
@@ -352,12 +346,6 @@
     "file": "packages/actions/src/registry/contracts/workflow-node-action-contracts.ts",
     "metric": "file-lines",
     "symbol": "packages/actions/src/registry/contracts/workflow-node-action-contracts.ts"
-  },
-  {
-    "actual": 1076,
-    "file": "packages/actions/src/registry/mcp-input-documentation.ts",
-    "metric": "file-lines",
-    "symbol": "packages/actions/src/registry/mcp-input-documentation.ts"
   },
   {
     "actual": 1188,

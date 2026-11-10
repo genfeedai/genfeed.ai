@@ -21,8 +21,8 @@ describe('api-key.enum', () => {
   });
 
   describe('ApiKeyScope', () => {
-    it('should have 27 members', () => {
-      expect(Object.values(ApiKeyScope)).toHaveLength(27);
+    it('should have 29 members', () => {
+      expect(Object.values(ApiKeyScope)).toHaveLength(29);
     });
 
     it('should have correct values', () => {
@@ -54,6 +54,8 @@ describe('api-key.enum', () => {
       expect(ApiKeyScope.POSTS_APPROVE).toBe('posts:approve');
       expect(ApiKeyScope.POSTS_PUBLISH).toBe('posts:publish');
       expect(ApiKeyScope.ANALYTICS_READ).toBe('analytics:read');
+      expect(ApiKeyScope.MODELS3D_READ).toBe('models3d:read');
+      expect(ApiKeyScope.MODELS3D_WRITE).toBe('models3d:write');
       expect(ApiKeyScope.ADMIN).toBe('admin');
     });
   });

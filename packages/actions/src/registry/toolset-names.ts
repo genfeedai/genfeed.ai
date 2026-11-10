@@ -36,6 +36,7 @@ export const TOOLSET_NAMES = [
   'inspiration',
   'knowledge',
   'memory',
+  'models3d',
   'onboarding',
   'outreach',
   'scheduler',
@@ -150,6 +151,12 @@ export const TOOLSETS: readonly ToolsetDefinition[] = [
       'Save reusable content, preferences, and examples to agent memory.',
     isAlwaysOn: false,
     name: 'memory',
+  },
+  {
+    description:
+      'Side-output 3D renders: turn a photo into an angle sheet and a GLB model, and check render status.',
+    isAlwaysOn: false,
+    name: 'models3d',
   },
   {
     description:

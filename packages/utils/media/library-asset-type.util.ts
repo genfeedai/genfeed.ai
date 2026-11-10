@@ -14,7 +14,8 @@ export type LibraryAssetTypeId =
   | 'avatar'
   | 'audio'
   | 'voice'
-  | 'text';
+  | 'text'
+  | 'model3d';
 
 export type LibraryAssetBadgeVariant =
   | 'default'
@@ -71,6 +72,12 @@ export const LIBRARY_ASSET_TYPES: readonly LibraryAssetType[] = [
     categories: [IngredientCategory.TEXT],
     id: 'text',
     label: 'Text',
+  },
+  {
+    badgeVariant: 'info',
+    categories: [IngredientCategory.MODEL_3D],
+    id: 'model3d',
+    label: '3D model',
   },
 ];
 

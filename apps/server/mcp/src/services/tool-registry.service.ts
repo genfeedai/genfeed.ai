@@ -1,6 +1,4 @@
 import {
-  describeCreditPricing,
-  estimateToolCreditCost,
   getMcpCatalogOperations,
   getToolByName,
   getToolsetNames,
@@ -40,6 +38,10 @@ import {
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import {
+  pendingApprovalResult,
+  settleApprovalAnswer,
+} from '@mcp/services/mcp-approval-answer.util';
+import {
   isMcpApprovalRedeemable,
   requiresMcpToolApproval,
 } from '@mcp/services/mcp-approval-gate.util';
@@ -62,7 +64,10 @@ import {
   markdownResource,
 } from '@mcp/services/mcp-resource-contents.util';
 import { finalizeMcpToolResult } from '@mcp/services/mcp-tool-result.util';
-import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
+import type {
+  McpApprovalAnswer,
+  McpApprovalResource,
+} from '@mcp/shared/interfaces/approval.interface';
 import type { McpResource } from '@mcp/shared/interfaces/mcp-resource.interface';
 import {
   accountToolText,
@@ -83,12 +88,14 @@ import { CONTENT_TOOL_NAMES, handleContentTool } from '@mcp/tools/content.tool';
 import { EDITOR_TOOL_NAMES, handleEditorTool } from '@mcp/tools/editor.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import {
-  approvalPendingToolResult,
-  generateApprovalCostEstimate,
   mcpToolErrorResult,
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
+import {
+  handleModels3dTool,
+  MODELS3D_TOOL_NAMES,
+} from '@mcp/tools/models3d.tool';
 import {
   ONBOARDING_TOOL_NAMES,
   resolveOnboardBrandCall,
@@ -143,6 +150,8 @@ import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 interface ToolCallParams {
   name: string;
   arguments: Record<string, unknown>;
+  /** The requester's answer to this call's approval prompt (#9647). */
+  approvalAnswer?: McpApprovalAnswer;
 }
 
 interface ResourceReadParams {
@@ -220,6 +229,7 @@ type ExecutorKind =
   | 'workspace-app'
   | 'storyboard-capabilities'
   | 'presets'
+  | 'models3d'
   | 'remix'
   | 'scheduler'
   | 'skills-pro'
@@ -442,6 +452,23 @@ export class ToolRegistryService implements OnModuleInit {
         return await this.brandRequiredResult();
       }
 
+      // The requester answered this call's approval prompt (#9647). Settle it
+      // against that approval before the current policy, so a decline holds.
+      if (params.approvalAnswer) {
+        const settled = await settleApprovalAnswer(
+          this.clientService,
+          this.logger,
+          name,
+          params.approvalAnswer,
+        );
+        if (settled.kind === 'run') {
+          return await this.runApprovedApproval(settled.approval);
+        }
+        return settled.kind === 'pending'
+          ? withApprovalCard(this.pendingResult(settled.approval, args ?? {}))
+          : this.textResult(settled.message);
+      }
+
       // Declared approvals and credit spenders wait for confirmation, unless the
       // organization and member both waived a credit spender (mcp-approval-gate.util).
       if (await requiresMcpToolApproval(this.clientService, name, args)) {
@@ -535,6 +562,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (WORKSPACE_APP_TOOL_NAMES.has(name)) return 'workspace-app';
     if (STORYBOARD_TOOL_NAMES.has(name)) return 'storyboard-capabilities';
     if (PRESET_TOOL_NAMES.has(name)) return 'presets';
+    if (MODELS3D_TOOL_NAMES.has(name)) return 'models3d';
     if (REMIX_TOOL_NAMES.has(name)) return 'remix';
     if (SCHEDULER_TOOL_NAMES.has(name)) return 'scheduler';
     if (SKILLS_PRO_TOOL_NAMES.has(name)) return 'skills-pro';
@@ -624,6 +652,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleStoryboardTool(this.clientService, name, args);
       case 'presets':
         return handlePresetTool(this.clientService, name, args);
+      case 'models3d':
+        return handleModels3dTool(this.clientService, name, args);
       case 'remix':
         return handleRemixTool(this.clientService, name, args);
       case 'scheduler':
@@ -779,35 +809,10 @@ export class ToolRegistryService implements OnModuleInit {
     approval: McpApprovalResource,
     args: Record<string, unknown>,
   ) {
-    const tool = getToolByName(approval.toolName);
     const canResolveApproval = this.getTools().some(
       (candidate) => candidate.name === 'resolve_approval',
     );
-    if (approval.toolName === 'generate') {
-      return approvalPendingToolResult(
-        approval,
-        generateApprovalCostEstimate(approval, args),
-        canResolveApproval,
-      );
-    }
-    if (!tool?.creditPricing)
-      return approvalPendingToolResult(approval, undefined, canResolveApproval);
-    const estimatedCredits = estimateToolCreditCost(
-      approval.toolName,
-      args,
-      tool.creditPricing,
-    );
-    return approvalPendingToolResult(
-      approval,
-      {
-        estimatedCredits,
-        pricingSummary:
-          estimatedCredits === null
-            ? describeCreditPricing(tool.creditPricing)
-            : undefined,
-      },
-      canResolveApproval,
-    );
+    return pendingApprovalResult(approval, args, canResolveApproval);
   }
 
   private textResult(text: string) {

@@ -1188,6 +1188,26 @@ function directPrismaExportName(
   return null;
 }
 
+/**
+ * A schema file may re-export its Prisma row type directly
+ * (`export type { Member } from '@genfeedai/prisma'`) without an `XDocument`
+ * alias. The model is then the re-export named after the file.
+ */
+function reexportedPrismaModelName(
+  content: string,
+  modelName: string,
+): string | null {
+  for (const match of content.matchAll(PRISMA_TYPE_REEXPORTS_PATTERN)) {
+    for (const rawSpecifier of match[1]?.split(',') ?? []) {
+      const specifier = IMPORT_SPECIFIER_PATTERN.exec(rawSpecifier.trim());
+      if (specifier?.[1] === modelName) {
+        return modelName;
+      }
+    }
+  }
+  return null;
+}
+
 function typeAliasExpression(
   content: string,
   symbolName: string,
@@ -1405,11 +1425,11 @@ function collectSchemas(
           documentName === primaryDocumentName
             ? fileBasename
             : toKebabCase(documentName.slice(0, -'Document'.length));
-        const modelName = resolvePrismaModelName(
-          content,
-          documentName,
-          imports,
-        );
+        const modelName =
+          resolvePrismaModelName(content, documentName, imports) ??
+          (documentName === primaryDocumentName
+            ? reexportedPrismaModelName(content, toPascalCase(fileBasename))
+            : null);
         if (!modelName) {
           unresolved.push({
             basename,

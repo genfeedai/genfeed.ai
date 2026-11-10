@@ -22,6 +22,8 @@ export const WORKFLOW_CONTROL_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Duplicate a workflow into the current organization and brand scope so the copy can be edited or scheduled without mutating the source workflow.',
+    mcpDescription:
+      'Copy a workflow into this organization/brand for editing or scheduling; source unchanged.',
     name: 'duplicate_workflow',
     parameters: {
       properties: {
@@ -39,6 +41,8 @@ export const WORKFLOW_CONTROL_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Enable, disable, or update the schedule on an editable workflow duplicate. Disabling requires no new cron expression when the workflow already has one.',
+    mcpDescription:
+      "Enable/disable/update an editable workflow copy's schedule. Disabling an existing schedule needs no new cron.",
     name: 'set_workflow_schedule',
     parameters: {
       properties: {
@@ -103,6 +107,8 @@ export const WORKFLOW_CONTROL_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'List the code-owned Genfeed system workflow catalog with per-organization install state. Use this to discover official automations before installing one.',
+    mcpDescription:
+      'Discover official code-owned automations and organization install state before installing.',
     name: 'get_system_workflow_catalog',
     parameters: {
       properties: {
@@ -144,6 +150,8 @@ export const WORKFLOW_CONTROL_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Install one system workflow catalog entry into the current organization as an editable, schedulable copy. Installing the same entry twice returns the existing workflow.',
+    mcpDescription:
+      'Install an official workflow as an editable/schedulable organization copy. Reinstall returns existing copy.',
     name: 'install_system_workflow',
     parameters: {
       properties: {

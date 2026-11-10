@@ -9,15 +9,8 @@ import {
   withRequiredMcpBrandId,
 } from '../registry/mcp-brand-required';
 import { isMcpListedToolName } from '../registry/mcp-catalog-calls';
-import {
-  compactMcpInputDocumentation,
-  compactMcpToolDescription,
-} from '../registry/mcp-input-documentation';
+import { compactMcpInputDocumentation } from '../registry/mcp-input-documentation';
 import { getMcpToolOutputSchema } from '../registry/mcp-output-schema';
-import {
-  projectMcpDescription,
-  projectMcpParameters,
-} from '../registry/mcp-schema-projection';
 import { deriveMcpToolPresentation } from '../registry/source/tool-annotations';
 import {
   appendCreditPricingDescription,
@@ -71,6 +64,28 @@ export interface McpToolOutput {
   _meta: Record<string, unknown>;
 }
 
+/** The parameter schema without the fields MCP callers cannot use (#7178). */
+function withoutHiddenParameters(
+  parameters: ToolParameterSchema,
+  hidden: readonly string[] | undefined,
+): ToolParameterSchema {
+  if (!hidden?.length) return parameters;
+  const hiddenNames = new Set(hidden);
+  return {
+    ...parameters,
+    properties: Object.fromEntries(
+      Object.entries(parameters.properties).filter(
+        ([key]) => !hiddenNames.has(key),
+      ),
+    ),
+    ...(parameters.required
+      ? {
+          required: parameters.required.filter((key) => !hiddenNames.has(key)),
+        }
+      : {}),
+  };
+}
+
 export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
   return tools
     .filter((tool) => tool.surfaces.mcp && isMcpListedToolName(tool.name))
@@ -82,14 +97,14 @@ export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
       const creditPricing =
         tool.creditPricing ?? fixedCreditPricing(tool.creditCost);
       const requiresBrand = isMcpBrandRequiredTool(tool.name);
-      const projected = projectMcpParameters(tool.name, tool.parameters);
+      const projected = withoutHiddenParameters(
+        tool.parameters,
+        tool.mcpHiddenParameters,
+      );
       const parameters = requiresBrand
         ? withRequiredMcpBrandId(projected)
         : projected;
-      const description = compactMcpToolDescription(
-        tool.name,
-        projectMcpDescription(tool.name, tool.description),
-      );
+      const description = tool.mcpDescription ?? tool.description;
       return {
         _meta: {
           [MCP_CREDIT_COST_META_KEY]: tool.creditCost,
