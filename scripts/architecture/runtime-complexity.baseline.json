@@ -150,7 +150,7 @@
     "symbol": "AgentAnalyticsToolHandler.getAnalytics"
   },
   {
-    "actual": 1083,
+    "actual": 1077,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts"
