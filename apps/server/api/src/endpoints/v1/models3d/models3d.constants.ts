@@ -27,8 +27,6 @@ export const MODELS3D_BUILD_OUTPUT_KEY = 'model_file';
 
 export const MODELS3D_SHEET_ASPECT_RATIO = '1:1';
 
-export const MODELS3D_GLB_CONTENT_TYPE = 'model/gltf-binary';
-
 /** Longest a single source upload may be, in bytes. */
 export const MODELS3D_MAX_SOURCE_BYTES = 10 * 1024 * 1024;
 
