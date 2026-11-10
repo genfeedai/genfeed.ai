@@ -16,7 +16,7 @@ const MODEL_CATEGORY_BADGE_COLORS: Record<ModelCategory, ModelBadgeColors> = {
   [ModelCategory.IMAGE]: tint('var(--color-info)'),
   [ModelCategory.IMAGE_EDIT]: tint('var(--accent-pink)'),
   [ModelCategory.IMAGE_UPSCALE]: tint('var(--accent-rose)'),
-  [ModelCategory.MODEL_3D]: tint('var(--accent-violet)'),
+  [ModelCategory.MODEL_3D]: tint('#14B8A6'),
   [ModelCategory.MUSIC]: tint('var(--color-warning)'),
   [ModelCategory.TEXT]: tint('var(--color-success)'),
   [ModelCategory.VIDEO]: tint('var(--accent-violet)'),
