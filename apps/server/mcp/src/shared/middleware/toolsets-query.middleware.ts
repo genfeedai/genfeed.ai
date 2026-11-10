@@ -140,7 +140,7 @@ export function buildUnknownProfileMessage(profile: string): string {
   return `Unknown profile: ${shown}. Valid profiles: ${MCP_PROFILE_NAMES.join(', ')}.`;
 }
 
-export function buildUnknownToolsetsJsonRpcError(unknown: readonly string[]) {
+function buildUnknownToolsetsJsonRpcError(unknown: readonly string[]) {
   return jsonRpcInvalidParams(buildUnknownToolsetsMessage(unknown));
 }
 
@@ -154,11 +154,11 @@ export function buildUnknownAppsMessage(unknown: readonly string[]): string {
   return `Unknown app(s): ${shownList}. Valid apps: ${MCP_APP_NAMES.join(', ')}.`;
 }
 
-export function buildUnknownAppsJsonRpcError(unknown: readonly string[]) {
+function buildUnknownAppsJsonRpcError(unknown: readonly string[]) {
   return jsonRpcInvalidParams(buildUnknownAppsMessage(unknown));
 }
 
-export function buildUnknownProfileJsonRpcError(profile: string) {
+function buildUnknownProfileJsonRpcError(profile: string) {
   return jsonRpcInvalidParams(buildUnknownProfileMessage(profile));
 }
 

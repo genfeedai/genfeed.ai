@@ -10,7 +10,7 @@ export const ALLOW_PLAINTEXT_STORAGE_ENV =
 
 const SECURE_STORAGE_UNAVAILABLE_MESSAGE = `Genfeed Desktop cannot store your sign-in because this computer has no OS keychain to encrypt it. Install or unlock a keyring (for example gnome-keyring or KWallet), or set ${ALLOW_PLAINTEXT_STORAGE_ENV}=1 to store it unencrypted.`;
 
-export class SecureStorageUnavailableError extends Error {
+class SecureStorageUnavailableError extends Error {
   constructor() {
     super(SECURE_STORAGE_UNAVAILABLE_MESSAGE);
     this.name = 'SecureStorageUnavailableError';

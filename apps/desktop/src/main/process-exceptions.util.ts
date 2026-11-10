@@ -23,7 +23,7 @@ const IGNORABLE_IO_CODES = new Set([
   'ERR_STREAM_DESTROYED',
 ]);
 
-export function isIgnorableDesktopIoException(error: unknown): boolean {
+function isIgnorableDesktopIoException(error: unknown): boolean {
   if (!error || typeof error !== 'object') {
     return false;
   }
