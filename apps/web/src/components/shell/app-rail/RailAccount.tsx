@@ -4,15 +4,19 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@ui/primitives/tooltip';
-import { CircleQuestionMark } from 'lucide-react';
+import { CircleQuestionMark, Settings } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import UserDropdown from '@/components/menus/user-dropdown/UserDropdown';
+
+const SETTINGS_PATH_PATTERN = /\/settings(?:\/|$)/;
 
 function resolveDisplayName(
   fullName: string | null | undefined,
@@ -36,14 +40,17 @@ function resolveDisplayName(
 }
 
 /**
- * Bottom of the app rail, Codex-style: Help and the signed-in avatar. The
- * avatar opens the account menu; name and email live in that menu, not beside
- * the avatar.
+ * Bottom of the app rail, Codex-style: Settings, Help and the signed-in
+ * avatar. The avatar opens the account menu; name and email live in that menu,
+ * not beside the avatar.
  */
 export default function RailAccount() {
   const translate = useTranslations('common.appRail');
   const { isSignedIn } = useAuthIdentity();
   const { user } = useAuthUser();
+  const pathname = usePathname();
+  const { orgHref, orgSlug } = useOrgUrl();
+  const isSettingsActive = SETTINGS_PATH_PATTERN.test(pathname ?? '');
 
   const emailAddress = user?.primaryEmailAddress?.emailAddress ?? '';
 
@@ -52,6 +59,28 @@ export default function RailAccount() {
       className="flex flex-col items-center gap-1"
       data-testid="app-rail-account"
     >
+      {orgSlug ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+              aria-current={isSettingsActive ? 'page' : undefined}
+              aria-label={translate('settings')}
+              className={cn(
+                'inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-foreground/50 transition-[background-color,color] duration-150',
+                'hover:bg-foreground/5 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                isSettingsActive && 'bg-foreground/10 text-foreground',
+              )}
+              data-testid="app-rail-settings"
+              href={orgHref(APP_ROUTES.SETTINGS.GENERAL)}
+            >
+              <Settings aria-hidden="true" className="size-4" />
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={10}>
+            {translate('settings')}
+          </TooltipContent>
+        </Tooltip>
+      ) : null}
       <Tooltip>
         <TooltipTrigger asChild>
           <Link

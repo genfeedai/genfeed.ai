@@ -52,7 +52,8 @@ export interface BrandDetailLatestContentCardProps {
   viewAllLink: ReactNode;
   emptyTitle: string;
   createLabel: string;
-  createHref: string;
+  /** The create action, absent while the organization lacks the app behind it. */
+  createHref?: string;
   children: ReactNode;
 }
 

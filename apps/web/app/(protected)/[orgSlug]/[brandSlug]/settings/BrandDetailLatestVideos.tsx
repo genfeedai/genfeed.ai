@@ -4,6 +4,7 @@ import type { BrandDetailLatestVideosProps } from '@props/pages/brand-detail.pro
 import { EnvironmentService } from '@services/core/environment.service';
 import { LazyMasonryVideo } from '@ui/lazy/masonry/LazyMasonry';
 import Link from 'next/link';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import BrandDetailLatestContentCard from './BrandDetailLatestContentCard';
 
 export default function BrandDetailLatestVideos({
@@ -11,7 +12,10 @@ export default function BrandDetailLatestVideos({
 }: BrandDetailLatestVideosProps) {
   const { href } = useOrgUrl();
   // One-off generation is Agent-first — Studio no longer has a media prompt bar.
-  const createHref = `${EnvironmentService.apps.app}${href(APP_ROUTES.AGENT.NEW)}`;
+  const isAgentAvailable = useIsAppAvailable('agent');
+  const createHref = isAgentAvailable
+    ? `${EnvironmentService.apps.app}${href(APP_ROUTES.AGENT.NEW)}`
+    : undefined;
 
   return (
     <BrandDetailLatestContentCard

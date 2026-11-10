@@ -10,10 +10,12 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import NextLink from 'next/link';
 import { useTranslations } from 'next-intl';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import type { ReviewLineagePanelProps } from '@/features/posts/props/review-lineage-panel.props';
 
 export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
   const { href } = useOrgUrl();
+  const isAutomationAvailable = useIsAppAvailable('automation');
   const translate = useTranslations('pages.publishing.review.lineage');
   const notRecorded = translate('notRecorded');
 
@@ -85,7 +87,7 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
         </div>
       </DefinitionList>
 
-      {item.workflowExecutionId ? (
+      {item.workflowExecutionId && isAutomationAvailable ? (
         <Button
           asChild
           className="h-8 px-0"

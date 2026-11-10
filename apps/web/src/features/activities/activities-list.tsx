@@ -28,6 +28,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
+import { useIsHrefAvailable } from '@/components/shell/use-available-rail-apps';
 import type { ActivitiesListProps } from '@/features/activities/props/activities.props';
 import { useActivities } from '@/hooks/data/activities/use-activities/use-activities';
 import { useIngredientSidebar } from '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
@@ -109,15 +110,17 @@ export default function ActivitiesList({
     [openIngredientSidebar],
   );
 
+  const isHrefAvailable = useIsHrefAvailable();
   const getActivityHref = useCallback(
     (activity: IActivity): string | undefined => {
       if (isAdminScope) {
         return undefined;
       }
       const path = getActivityDestinationPath(activity);
-      return path ? href(path) : undefined;
+      // An activity about a workflow or run points into Automation.
+      return path && isHrefAvailable(path) ? href(path) : undefined;
     },
-    [href, isAdminScope],
+    [href, isAdminScope, isHrefAvailable],
   );
 
   const columns = useMemo(

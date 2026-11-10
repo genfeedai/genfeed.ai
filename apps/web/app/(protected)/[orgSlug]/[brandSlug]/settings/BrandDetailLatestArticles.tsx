@@ -8,6 +8,7 @@ import CollectionGrid from '@ui/collection/CollectionGrid';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import NextLink from 'next/link';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import BrandDetailLatestContentCard from './BrandDetailLatestContentCard';
 
 // Writing starts in the Agent; the artifact editor takes over once a draft exists.
@@ -20,6 +21,7 @@ export default function BrandDetailLatestArticles({
   publicHandle,
 }: BrandDetailLatestArticlesProps) {
   const { href } = useOrgUrl();
+  const isAgentAvailable = useIsAppAvailable('agent');
 
   return (
     <BrandDetailLatestContentCard
@@ -31,7 +33,11 @@ export default function BrandDetailLatestArticles({
       }
       emptyTitle="No articles yet"
       createLabel="Create an article"
-      createHref={`${EnvironmentService.apps.app}${href(WRITE_ARTICLE_AGENT_HREF)}`}
+      createHref={
+        isAgentAvailable
+          ? `${EnvironmentService.apps.app}${href(WRITE_ARTICLE_AGENT_HREF)}`
+          : undefined
+      }
     >
       {articles && articles.length > 0 ? (
         <CollectionGrid maxColumns={3}>

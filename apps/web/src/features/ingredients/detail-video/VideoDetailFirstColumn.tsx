@@ -19,6 +19,7 @@ import { Film, Scissors } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode, RefObject } from 'react';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 
 type VideoDetailFirstColumnProps = {
   currentVideo: IVideo;
@@ -94,6 +95,8 @@ export default function VideoDetailFirstColumn({
   isAddingTextOverlay,
 }: VideoDetailFirstColumnProps) {
   const { href } = useOrgUrl();
+  const isEditorAvailable = useIsAppAvailable('editor');
+  const isClipperAvailable = useIsAppAvailable('clipper');
   const translate = useTranslations('pages.library.videoDetail');
 
   return (
@@ -196,22 +199,32 @@ export default function VideoDetailFirstColumn({
       {/* Artifact-first entries into Studio's Editor timeline and Clips. The
           links must stay org/brand-scoped — unscoped Studio routes 404 outside
           the shell. */}
-      <div className="flex flex-wrap gap-2">
-        <Link
-          href={href(`${APP_ROUTES.STUDIO.EDITOR}?video=${currentVideo.id}`)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
-        >
-          <Film className="size-4" />
-          {translate('editInStudio')}
-        </Link>
-        <Link
-          href={href(`${APP_ROUTES.STUDIO.CLIPPER}?video=${currentVideo.id}`)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
-        >
-          <Scissors className="size-4" />
-          {translate('makeClips')}
-        </Link>
-      </div>
+      {isEditorAvailable || isClipperAvailable ? (
+        <div className="flex flex-wrap gap-2">
+          {isEditorAvailable ? (
+            <Link
+              href={href(
+                `${APP_ROUTES.STUDIO.EDITOR}?video=${currentVideo.id}`,
+              )}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
+            >
+              <Film className="size-4" />
+              {translate('editInStudio')}
+            </Link>
+          ) : null}
+          {isClipperAvailable ? (
+            <Link
+              href={href(
+                `${APP_ROUTES.STUDIO.CLIPPER}?video=${currentVideo.id}`,
+              )}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
+            >
+              <Scissors className="size-4" />
+              {translate('makeClips')}
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* Quick Actions */}
       <IngredientQuickActions

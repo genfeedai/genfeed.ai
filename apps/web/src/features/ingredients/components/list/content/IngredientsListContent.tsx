@@ -1,7 +1,6 @@
 'use client';
 import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.context';
 import { useContextSidebar } from '@genfeedai/contexts/ui/context-sidebar-context';
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ButtonVariant,
   categoryToString,
@@ -15,7 +14,6 @@ import {
   APP_ROUTES,
   createAdminIngredientRoute,
   EMPTY_STATES,
-  resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
@@ -76,10 +74,10 @@ import {
 } from '@/components/ingredients/list/media-grid/ingredient-tile-kind.util';
 import IngredientTimeGroupHeading from '@/components/ingredients/list/media-grid/ingredient-time-group-heading';
 import { groupIngredientsByTime } from '@/components/ingredients/list/media-grid/ingredient-time-groups.util';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import FailedIngredientsRecovery from '@/features/ingredients/components/ingredients/list/recovery/FailedIngredientsRecovery';
 import IngredientSound from '@/features/ingredients/components/ingredients/sound/IngredientSound';
 import type { IngredientsListContentProps } from '@/features/ingredients/props/ingredients-list.props';
-import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import type { IngredientTimeGroupHeadingProps } from '@/props/content/ingredient.props';
 
 const IMAGE_URL_EXTENSION_PATTERN = /\.(avif|gif|jpe?g|png|webp)(?:$|[?#])/i;
@@ -373,15 +371,8 @@ export default function IngredientsListContent({
   const translateActions = useTranslations('ui.quickActions');
   const storyboardEntry = useStoryboardEntry();
   const { href } = useOrgUrl();
-  const { settings, settingsLoading } = useBrand();
-  const { flags: platformFlags } = useFeatureFlagContext();
-  // Cloud organizations start without Playground; only point at it when the
-  // organization can open it.
-  const isPlaygroundAvailable = resolveOrganizationModulePresentationAccess(
-    settingsLoading ? null : settings,
-    'playground',
-    platformFlags,
-  ).isAllowed;
+  // Only point at Playground when the organization has it.
+  const isPlaygroundAvailable = useIsAppAvailable('playground');
   const translateRetry = useTranslations('common.libraryRetry');
   // This full-card layout is reserved for a route whose *type* is dedicated
   // to audio (the legacy per-category admin pages) — every Library route's

@@ -295,6 +295,54 @@ test.describe('Shell — navigation interactions', () => {
     await assertHealthy(authenticatedPage);
   });
 
+  test('app rail opens with the core apps in order and pins Settings at the bottom', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await settle(authenticatedPage);
+
+    const desktopRail = authenticatedPage.getByTestId('desktop-app-rail');
+    const rail = desktopRail.getByRole('navigation', { name: 'Apps' });
+    await expect(rail).toBeVisible({ timeout: 10_000 });
+
+    // The rail items are icon-only links named by aria-label.
+    await expect
+      .poll(() =>
+        rail
+          .getByRole('link')
+          .evaluateAll((links) =>
+            links.map((link) => link.getAttribute('aria-label') ?? ''),
+          ),
+      )
+      .toEqual([
+        expect.stringMatching(/^Workspace/),
+        'Trends',
+        'Library',
+        'Publishing',
+        'Analytics',
+        'Agent',
+      ]);
+    await expect(rail.getByRole('link', { name: 'Discovery' })).toHaveCount(0);
+
+    const settings = desktopRail
+      .getByTestId('app-rail-account')
+      .getByRole('link', { name: 'Settings' });
+    await expect(settings).toBeVisible();
+    await settings.click();
+    await authenticatedPage.waitForURL(/\/settings(?:[/?#]|$)/, {
+      timeout: 30_000,
+    });
+    await expect(
+      desktopRail
+        .getByTestId('app-rail-account')
+        .getByRole('link', { name: 'Settings' }),
+    ).toHaveAttribute('aria-current', 'page');
+
+    await assertHealthy(authenticatedPage);
+  });
+
   test('app rail keeps one active highlight that follows the clicked app', async ({
     authenticatedPage,
   }) => {
