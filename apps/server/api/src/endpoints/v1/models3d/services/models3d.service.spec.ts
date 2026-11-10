@@ -191,6 +191,53 @@ describe('Models3dService', () => {
       );
     });
 
+    it('quotes and funds a high-tier build on Rodin and remembers the tier', async () => {
+      const ctx = setup();
+      ctx.billing.quote.mockResolvedValue({
+        build: 134,
+        sheet: 50,
+        total: 184,
+      });
+      renderState(
+        ctx,
+        IngredientStatus.PROCESSING,
+        IngredientStatus.PROCESSING,
+      );
+
+      await ctx.service.create(ACTOR, {
+        build: true,
+        imageUrl: 'https://x.test/a.png',
+        quality: 'high',
+      });
+
+      const [sheetRow, buildRow] =
+        ctx.shared.createMediaDocumentsInternal.mock.calls.map(
+          ([row]) => row as Record<string, unknown>,
+        );
+      expect(ctx.billing.quote.mock.calls[0]).toEqual(['org-1', 'high']);
+      expect(ctx.billing.hold.mock.calls[1]?.[0]).toMatchObject({
+        credits: 134,
+        step: 'build',
+      });
+      expect(sheetRow?.providerData).toMatchObject({
+        models3d: { quality: 'high' },
+      });
+      expect(buildRow?.model).toBe('hyper3d/rodin');
+    });
+
+    it('reports the tier a render was started with', async () => {
+      const ctx = setup();
+      ctx.ingredients.findOne.mockResolvedValue(
+        row('ing-1', IngredientStatus.GENERATED, {
+          providerData: { models3d: { credits: 50, quality: 'high' } },
+        }),
+      );
+
+      await expect(ctx.service.get(ACTOR, 'ing-1')).resolves.toMatchObject({
+        quality: 'high',
+      });
+    });
+
     it('stores an uploaded photo and sends its signed URL to the model', async () => {
       const ctx = setup();
       renderState(ctx, IngredientStatus.PROCESSING);
@@ -386,7 +433,11 @@ describe('Models3dService', () => {
       const result = await ctx.service.startBuild(ACTOR, 'ing-1');
 
       expect(result).toMatchObject({ id: 'ing-1' });
-      expect(ctx.billing.quoteStep).toHaveBeenCalledWith('build', 'org-1');
+      expect(ctx.billing.quoteStep).toHaveBeenCalledWith(
+        'build',
+        'org-1',
+        'standard',
+      );
       expect(ctx.billing.hold).toHaveBeenCalledWith(
         expect.objectContaining({ credits: 27, step: 'build' }),
       );
