@@ -151,7 +151,7 @@ export class Models3dService {
             prompt: dto.prompt,
             sourceS3Key,
           }),
-        } as never);
+        });
       }
 
       const externalId = await this.replicate.runModel(
@@ -289,7 +289,7 @@ export class Models3dService {
       if (!id) continue;
       await this.billing.release(id, actor.organizationId);
       try {
-        await this.ingredients.patch(id, { isDeleted: true } as never);
+        await this.ingredients.patch(id, { isDeleted: true });
       } catch (error: unknown) {
         this.loggerService.error(`${this.logContext} discard failed`, error, {
           id,
