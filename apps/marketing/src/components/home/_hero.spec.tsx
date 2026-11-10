@@ -83,7 +83,7 @@ describe('HomeHero', () => {
     expect(heading).toBeInTheDocument();
     expect(
       screen.getByText(
-        /run genfeed from the agent you already use\. brief it in claude, chatgpt, codex or cursor, then review, publish and track your on-brand videos, images and posts in the dashboard\./i,
+        /video, images, posts, articles, newsletters and voice\. briefed from your own agent, made on your brand, then published and tracked in one dashboard\./i,
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/— on brand —/)).not.toBeInTheDocument();
@@ -160,10 +160,30 @@ describe('HomeHero', () => {
       screen.getByRole('link', { name: /start for \$0/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
     expect(
-      screen.getByText(
-        /connecting takes one sign-in\. free account, no card required\./i,
-      ),
+      screen.getByText('Connecting takes one sign-in.'),
     ).toBeInTheDocument();
+  });
+
+  it('names the category and covers every content type, not just video', () => {
+    render(<HomeHero />);
+
+    expect(screen.getByTestId('home-hero-eyebrow')).toHaveTextContent(
+      'The content studio for everything you publish',
+    );
+    for (const type of ['articles', 'newsletters', 'voice']) {
+      expect(
+        screen.getByText(new RegExp(`\\b${type}\\b`, 'i'), {
+          selector: 'p',
+        }),
+      ).toBeInTheDocument();
+    }
+  });
+
+  it('sells: no open-source pitch and no card claims', () => {
+    render(<HomeHero />);
+
+    expect(screen.queryByText(/open.source/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no card|credit card/i)).not.toBeInTheDocument();
   });
 
   it('never offers a sales demo', () => {

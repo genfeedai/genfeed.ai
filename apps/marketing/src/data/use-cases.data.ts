@@ -22,13 +22,11 @@ export interface UseCase {
     recommended: PlanTier;
     why: string;
   };
-  cta: string;
 }
 
 export const useCases: UseCase[] = [
   {
     audience: 'Brands, agencies, personal brands launching virtual influencers',
-    cta: 'Get Started',
     description:
       'Create a virtual persona, generate on-brand images and videos, then review and schedule posts for your connected channels.',
     headline: 'Create Content for Your Virtual Influencer',
@@ -92,7 +90,6 @@ export const useCases: UseCase[] = [
   },
   {
     audience: 'YouTube creators, TikTokers, Instagram influencers',
-    cta: 'Get Started',
     description:
       'Turn your ideas into video drafts, thumbnails and clips. Review them, publish to connected channels and compare available performance data.',
     headline: 'Create Content for Your Channels',
@@ -111,12 +108,12 @@ export const useCases: UseCase[] = [
       'Create variations from the same brief',
       'Compare available performance data across published posts',
       'Reuse references and brand context across drafts',
-      'Find winning content formats faster',
+      'Find the content formats that worked for you',
     ],
     slug: 'creators',
     solutions: [
       'Generate AI videos in minutes, not hours',
-      'See trending topics before they blow up',
+      'See what is trending in your niche',
       'Compare available performance data for published content',
       'Publish to supported channels from one dashboard',
       'All content types in one platform (no tool switching)',
@@ -125,20 +122,21 @@ export const useCases: UseCase[] = [
     title: 'Genfeed for Content Creators',
     workflow: [
       {
-        description: "AI detects what's trending in your niche",
+        description: 'Start from the trends Genfeed has observed in your niche',
         example: 'Trending: "AI voice cloning tutorial"',
         step: 1,
         title: 'See Trending Topics',
       },
       {
-        description: 'Create video, thumbnail, and caption in 3 clicks',
-        example: 'AI video (8s) + thumbnail + optimized caption',
+        description:
+          'Create the video and thumbnail in Genfeed Studio, and draft the caption with your agent',
+        example: 'A short video, a thumbnail and a caption, ready for review',
         step: 2,
         title: 'Generate Content',
       },
       {
-        description: 'Post to TikTok, YouTube Shorts, Instagram Reels at once',
-        example: 'One click → 3 platforms',
+        description: 'Schedule to TikTok, YouTube Shorts and Instagram Reels',
+        example: 'One video, scheduled to three platforms',
         step: 3,
         title: 'Publish Everywhere',
       },
@@ -150,7 +148,7 @@ export const useCases: UseCase[] = [
         title: 'Track Performance',
       },
       {
-        description: 'AI tells you what to post next',
+        description: 'Pick the next brief from what worked',
         example: 'Use the stronger-performing format as the next brief',
         step: 5,
         title: 'Optimize',
@@ -160,7 +158,6 @@ export const useCases: UseCase[] = [
   {
     audience:
       'Creative agencies, content teams, paid-social agencies and social media managers',
-    cta: 'Get Started',
     description:
       'Create content and ad variations for your clients, keep each client’s brand context and assets organized and review the work before publishing. Build a repeatable production workflow for your team.',
     headline: 'Produce More Client-Ready Creative With Your Team',
@@ -231,7 +228,6 @@ export const useCases: UseCase[] = [
   },
   {
     audience: 'E-commerce brands, DTC companies, Shopify stores',
-    cta: 'Get Started',
     description:
       'Generate product videos, lifestyle shots and social ad drafts. Compare available views and engagement after publishing.',
     headline: 'Product Content at Scale',
@@ -264,14 +260,15 @@ export const useCases: UseCase[] = [
     title: 'Genfeed for E-Commerce',
     workflow: [
       {
-        description: 'Upload product images, AI generates lifestyle content',
-        example: 'Upload 10 product shots → 50 lifestyle videos',
+        description:
+          'Add your product images in Genfeed Studio, create the lifestyle videos and images there, and brief your agent on the campaign',
+        example: 'Product shots in, lifestyle videos and images out',
         step: 1,
         title: 'Upload Products',
       },
       {
         description: 'AI creates videos, images, and ads for each product',
-        example: 'Product video + carousel + story ad in minutes',
+        example: 'A product video, a carousel and a story ad for review',
         step: 2,
         title: 'Generate Content',
       },
@@ -299,7 +296,6 @@ export const useCases: UseCase[] = [
   },
   {
     audience: 'Marketing managers, CMOs, brand marketers, growth teams',
-    cta: 'Get Started',
     description:
       'Create campaign drafts, publish approved content and compare available performance data to plan your next brief.',
     headline: 'Create Content for Your Campaign',
@@ -338,14 +334,15 @@ export const useCases: UseCase[] = [
         title: 'Content Ideation',
       },
       {
-        description: 'Generate 10 variations, test in market',
-        example: '10 video hooks → test on LinkedIn → find winner',
+        description:
+          'Ask your agent for ten variations and test them in market',
+        example: 'Ten video hooks to test on LinkedIn',
         step: 2,
         title: 'Rapid Testing',
       },
       {
         description: 'Post to LinkedIn, YouTube, X, newsletter',
-        example: 'One video → 4 platforms in one click',
+        example: 'One video, scheduled to four platforms',
         step: 3,
         title: 'Multi-Channel Distribution',
       },
@@ -366,7 +363,6 @@ export const useCases: UseCase[] = [
   },
   {
     audience: 'Developers, indie founders and small product teams',
-    cta: 'Get Started',
     description:
       'Turn product updates, demos and expertise into content that gives people a reason to follow your work. Review drafts, publish consistently and join relevant conversations while you keep building.',
     headline: 'Build An Audience Around What You Ship',

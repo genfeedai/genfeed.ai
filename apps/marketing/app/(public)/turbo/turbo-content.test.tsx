@@ -6,7 +6,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 const COPY = [
   'Tell Genfeed about your business once. Turbo drafts images, video and captions that sound like you.',
-  'No credit card needed.',
   'Sign up',
   'Create your Genfeed account in a minute.',
   'Tell us about your business',

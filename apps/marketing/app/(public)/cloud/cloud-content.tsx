@@ -46,7 +46,7 @@ const BENEFITS = [
 const TEAMS = [
   {
     description:
-      'Create, review, and publish content across shared workspaces.',
+      'Brief from your agents, then review and publish across shared workspaces.',
     title: 'Marketing Teams',
   },
   {
@@ -68,8 +68,8 @@ export default function CloudContent() {
     <MarketingEntrance>
       <PageLayout
         heroMedia={<MarketingArtwork page="/cloud" kind="workflow" />}
-        title="One studio for your team"
-        description="Shared workspaces, a brand library, roles, and approvals. The studio your whole team creates in."
+        title="One workspace for your team’s agents"
+        description="Every teammate connects their own agent to the same brand library, roles, approvals and credit pool. The dashboard is where the team reviews, publishes and measures."
       >
         {/* Benefits */}
         <WebSection maxWidth="xl">
@@ -161,7 +161,7 @@ export default function CloudContent() {
 
         {/* Pricing CTA */}
         <CtaSection
-          title="Bring your team into the studio."
+          title="Connect your team’s agents."
           description="Every teammate connects their own agent to the same workspace, brand library, and approvals."
         >
           <AgentFirstActions

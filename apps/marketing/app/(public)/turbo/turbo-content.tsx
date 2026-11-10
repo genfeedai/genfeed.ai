@@ -75,9 +75,6 @@ export default function TurboContent() {
         heroActions={
           <div className="flex flex-col items-start gap-3">
             <TurboSignupButton />
-            <Text className="text-sm text-foreground/70">
-              No credit card needed.
-            </Text>
           </div>
         }
         heroMedia={
