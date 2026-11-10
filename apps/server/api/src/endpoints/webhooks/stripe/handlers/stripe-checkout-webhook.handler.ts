@@ -12,7 +12,6 @@ import {
 } from '@api/collections/organizations/utils/organization-membership.util';
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { UserEntity } from '@api/collections/users/entities/user.entity';
-import type { UserDocument } from '@api/collections/users/schemas/user.schema';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
@@ -45,7 +44,7 @@ import {
   SUBSCRIPTIONS_SERVICE,
   USER_SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/contracts/interfaces/billing';
-import { toPrismaJson } from '@genfeedai/prisma';
+import { toPrismaJson, type User } from '@genfeedai/prisma';
 import { buildSystemEmailHtml } from '@helpers/email/system-email.helper';
 import { buildSkillsProReceiptEmailBody } from '@helpers/email/system-email-templates.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -55,7 +54,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { nanoid } from 'nanoid';
 
 type ManagedCheckoutUser = {
-  dbUser: UserDocument;
+  dbUser: User;
   isNewUser: boolean;
 };
 
@@ -602,9 +601,7 @@ export class StripeCheckoutWebhookHandler {
    * is org billing and is persisted to the org's `customers` row by the
    * caller — users."stripeCustomerId" stays reserved for the consumer lane.
    */
-  private buildManagedCheckoutUserPatch(
-    dbUser: UserDocument,
-  ): Record<string, unknown> {
+  private buildManagedCheckoutUserPatch(dbUser: User): Record<string, unknown> {
     return {
       isOnboardingCompleted: true,
       onboardingCompletedAt: dbUser.isOnboardingCompleted
@@ -684,7 +681,7 @@ export class StripeCheckoutWebhookHandler {
 
   /** Resolve (or defensively initialize) the user's org, brand, and settings. */
   private async resolveManagedCheckoutResources(
-    dbUser: UserDocument,
+    dbUser: User,
   ): Promise<ManagedCheckoutResources> {
     let organization = await this.organizationsService.findOne({
       userId: String(dbUser.id),
@@ -1105,7 +1102,7 @@ export class StripeCheckoutWebhookHandler {
   private async resolveSkillsProBuyer(
     session: StripeCheckoutSession,
     email: string,
-  ): Promise<UserDocument> {
+  ): Promise<User> {
     const { dbUser } = await this.resolveManagedCheckoutUser(session, email);
 
     // The user-created listener swallows provisioning errors and only fires

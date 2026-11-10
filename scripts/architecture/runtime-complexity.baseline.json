@@ -108,7 +108,7 @@
     "symbol": "StripeCheckoutWebhookHandler.constructor"
   },
   {
-    "actual": 1219,
+    "actual": 1216,
     "file": "apps/server/api/src/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler.ts"
