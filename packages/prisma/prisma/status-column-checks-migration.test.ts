@@ -53,7 +53,7 @@ describePostgres('status column checks migration', () => {
   let client: PoolClient;
   const schema = `status_checks_${randomUUID().replaceAll('-', '')}`;
 
-  const valueOf = async (table: string, column: string, id: string) => {
+  const readValue = async (table: string, column: string, id: string) => {
     const { rows } = await client.query(
       `SELECT "${column}" AS "value" FROM "${table}" WHERE "id" = $1`,
       [id],
@@ -114,7 +114,7 @@ describePostgres('status column checks migration', () => {
     ['campaigns', 'status', 'legacy', 'paused'],
     ['campaigns', 'status', 'current', 'active'],
   ])('repairs %s.%s row %s to %s', async (table, column, id, expected) => {
-    expect(await valueOf(table, column, id)).toBe(expected);
+    expect(await readValue(table, column, id)).toBe(expected);
   });
 
   it.each(ACCEPTED)('accepts %s.%s = %s', async (table, column, value) => {
@@ -123,7 +123,7 @@ describePostgres('status column checks migration', () => {
       `INSERT INTO "${table}" ("id", "${column}") VALUES ($1, $2)`,
       [id, value],
     );
-    expect(await valueOf(table, column, id)).toBe(value);
+    expect(await readValue(table, column, id)).toBe(value);
   });
 
   it.each(REFUSED)(
