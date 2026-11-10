@@ -241,6 +241,25 @@ async function lockCredentialSources(
     );
   plan.rows = current.rows;
 }
+function credentialSnapshot(row: CredentialRow): CredentialSnapshot {
+  return {
+    brandId: row.brandId,
+    id: row.id,
+    isConnected: row.isConnected,
+    isDeleted: row.isDeleted,
+    organizationId: row.organizationId,
+    platform: row.platform,
+  };
+}
+/**
+ * The rows were read again under the account and source locks, so they are the
+ * state the mutation starts from; no further read is needed.
+ */
+function plannedCredentialSnapshots(
+  plan: CredentialMutationPlan,
+): CredentialSnapshot[] {
+  return plan.rows.map(credentialSnapshot);
+}
 async function credentialSnapshots(
   tx: Prisma.TransactionClient,
   plan: CredentialMutationPlan,
@@ -262,8 +281,9 @@ async function finishCredentialMutation(
   tx: Prisma.TransactionClient,
   plan: CredentialMutationPlan,
   before: CredentialSnapshot[],
+  persisted?: CredentialSnapshot[],
 ): Promise<void> {
-  const after = await credentialSnapshots(tx, plan),
+  const after = persisted ?? (await credentialSnapshots(tx, plan)),
     changed = new Set<string>();
   for (let index = 0; index < before.length; index++) {
     const original = before[index];
@@ -353,7 +373,7 @@ export async function patchCredentialsWithLearning(
   data: Prisma.CredentialUncheckedUpdateInput,
 ): Promise<{ modifiedCount: number; affectedOrganizationIds: string[] }> {
   const plan = await prepareCredentialMutation(tx, where, data),
-    before = await credentialSnapshots(tx, plan);
+    before = plannedCredentialSnapshots(plan);
   let modifiedCount = 0;
   for (const row of plan.rows) {
     // tenant-scope-ignore: explicit tombstone bulk selectors retain their exact original-org selected state.
@@ -403,14 +423,16 @@ export async function patchCredentialWithLearning(
     { fenceScope, id },
   );
   if (plan.rows.length !== 1) throw new NotFoundException('Credential', id);
-  const before = await credentialSnapshots(tx, plan),
+  const before = plannedCredentialSnapshots(plan),
     row = plan.rows[0];
   const updated = await tx.credential.update({
     ...(populate ? { include: populate } : {}),
     where: { id, organizationId: row.organizationId, isDeleted: false },
     data,
   });
-  await finishCredentialMutation(tx, plan, before);
+  await finishCredentialMutation(tx, plan, before, [
+    credentialSnapshot(updated),
+  ]);
   return context.normalizeDocument(updated);
 }
 export async function removeCredentialWithLearning(
@@ -427,13 +449,15 @@ export async function removeCredentialWithLearning(
     { fenceScope, id },
   );
   if (!plan.rows.length) return null;
-  const before = await credentialSnapshots(tx, plan),
+  const before = plannedCredentialSnapshots(plan),
     row = plan.rows[0];
   const deleted = await tx.credential.update({
     where: { id, organizationId: row.organizationId, isDeleted: false },
     data,
   });
-  await finishCredentialMutation(tx, plan, before);
+  await finishCredentialMutation(tx, plan, before, [
+    credentialSnapshot(deleted),
+  ]);
   return context.normalizeDocument(deleted);
 }
 async function discoverReconcileWhere(
@@ -557,7 +581,7 @@ export async function reconcileCredentialWithLearning(
     throw new ConflictException(
       'Credential connection selection changed during mutation.',
     );
-  const before = await credentialSnapshots(tx, plan);
+  const before = plannedCredentialSnapshots(plan);
   const survivor = await settleCredentialReconciliation(
     tx,
     context,
