@@ -99,7 +99,7 @@ export default function AgentContent() {
           <MarketingArtwork page="/agent" isCompact kind="integration" />
         }
         compact
-        description="Add Genfeed to the agent you already use. Brief it and draft with your brand context, create images, video and audio in Genfeed Studio, then review, publish and track in the dashboard."
+        description="Add Genfeed to the agent you already use. Brief it and draft with your brand context, generate images, video and audio on the full Genfeed connector, then review, publish and track in the dashboard."
         heroActions={<AgentFirstActions trackingName="agent_hero_click" />}
         heroVisual={HERO_VISUAL}
         title="Use Genfeed from your agent"

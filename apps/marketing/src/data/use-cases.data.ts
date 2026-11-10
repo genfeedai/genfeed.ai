@@ -129,7 +129,7 @@ export const useCases: UseCase[] = [
       },
       {
         description:
-          'Create the video and thumbnail in Genfeed Studio, and draft the caption with your agent',
+          'Ask your agent for the video and thumbnail on the full Genfeed connector, then draft the caption with it',
         example: 'A short video, a thumbnail and a caption, ready for review',
         step: 2,
         title: 'Generate Content',
@@ -261,7 +261,7 @@ export const useCases: UseCase[] = [
     workflow: [
       {
         description:
-          'Add your product images in Genfeed Studio, create the lifestyle videos and images there, and brief your agent on the campaign',
+          'Give your agent the product images and brief it on the campaign; it creates the lifestyle videos and images on the full Genfeed connector',
         example: 'Product shots in, lifestyle videos and images out',
         step: 1,
         title: 'Upload Products',
