@@ -682,6 +682,31 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.081,
   },
   /**
+   * Rodin Gen-2 image-to-3D on Replicate, the high quality tier of the 3D
+   * models API. $0.40 per output (replicate.com/hyper3d/rodin, read
+   * 2026-11-10), 134 credits at the platform margin, so a full high-quality
+   * photo-to-GLB run is 50 + 134 = 184 credits. Reached only through the 3D
+   * models API and MCP (`quality: high`), never the generation prompt bar.
+   */
+  {
+    category: ModelCategory.MODEL_3D,
+    cost: 134,
+    costTier: CostTier.HIGH,
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.SLOW,
+    description:
+      'Rodin Gen-2 — the high quality tier for photo-to-3D builds, textured GLB with PBR materials. 134 credits per build.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.REPLICATE_HYPER3D_RODIN,
+    label: 'Rodin Gen-2 3D',
+    lifecycle: ModelLifecycle.AVAILABLE,
+    pricingType: PricingType.FLAT,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'rodin', owner: 'hyper3d' },
+    providerCostUsd: 0.4,
+  },
+  /**
    * HeyGen photo animation: `POST /v3/videos` with `type: image`, which
    * Avatar IV renders from an arbitrary image. HeyGen's API price table has no
    * separate image row, so it bills at the Avatar IV photo-avatar rate of

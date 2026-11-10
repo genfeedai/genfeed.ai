@@ -8,6 +8,7 @@ import {
   type IngredientCategory,
   PageScope,
 } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IActivity, IIngredient } from '@genfeedai/contracts/interfaces';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
@@ -28,6 +29,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
+import { useIsHrefAvailable } from '@/components/shell/use-available-rail-apps';
 import type { ActivitiesListProps } from '@/features/activities/props/activities.props';
 import { useActivities } from '@/hooks/data/activities/use-activities/use-activities';
 import { useIngredientSidebar } from '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
@@ -88,7 +90,7 @@ export default function ActivitiesList({
     toggleActivityRead,
   } = useActivities({ limit: 20, page, scope, search });
 
-  const { href } = useOrgUrl();
+  const { href, orgHref } = useOrgUrl();
   const { openIngredientSidebar } = useIngredientSidebar();
   const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
   const [isMarkingRead, setIsMarkingRead] = useState(false);
@@ -109,15 +111,22 @@ export default function ActivitiesList({
     [openIngredientSidebar],
   );
 
+  const isHrefAvailable = useIsHrefAvailable();
   const getActivityHref = useCallback(
     (activity: IActivity): string | undefined => {
       if (isAdminScope) {
         return undefined;
       }
       const path = getActivityDestinationPath(activity);
-      return path ? href(path) : undefined;
+      if (!path || !isHrefAvailable(path)) {
+        return undefined;
+      }
+      // Connectors is organization scope; every other destination is a brand page.
+      return path.startsWith(APP_ROUTES.CONNECTORS.ROOT)
+        ? orgHref(path)
+        : href(path);
     },
-    [href, isAdminScope],
+    [href, isAdminScope, isHrefAvailable, orgHref],
   );
 
   const columns = useMemo(

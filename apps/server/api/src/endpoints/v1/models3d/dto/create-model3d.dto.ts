@@ -1,7 +1,13 @@
+import {
+  MODELS3D_DEFAULT_QUALITY,
+  MODELS3D_QUALITIES,
+  type Models3dQuality,
+} from '@api/endpoints/v1/models3d/models3d.constants';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsBoolean,
+  IsIn,
   IsOptional,
   IsString,
   IsUrl,
@@ -42,4 +48,14 @@ export class CreateModel3dDto {
   )
   @IsBoolean()
   build?: boolean;
+
+  @ApiPropertyOptional({
+    default: MODELS3D_DEFAULT_QUALITY,
+    description:
+      'Build tier for the GLB: standard (TRELLIS) or high (Rodin Gen-2, higher price). The angle sheet is the same for both.',
+    enum: MODELS3D_QUALITIES,
+  })
+  @IsOptional()
+  @IsIn(MODELS3D_QUALITIES)
+  quality?: Models3dQuality;
 }

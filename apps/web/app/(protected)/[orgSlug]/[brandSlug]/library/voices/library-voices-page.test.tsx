@@ -251,6 +251,12 @@ function createVoice(overrides: Partial<Voice> = {}): Voice {
   } as Voice;
 }
 
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useHasAppsBeyondDashboard: () => true,
+  useIsAppAvailable: () => true,
+  useIsHrefAvailable: () => () => true,
+}));
+
 describe('LibraryVoicesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -747,7 +753,7 @@ describe('LibraryVoicesPage', () => {
 
     expect(screen.getByTestId('account-voices-dialog')).toHaveAttribute(
       'data-connect-href',
-      '/demo/~/settings/integrations',
+      '/demo/~/connectors/providers',
     );
   });
   it('renders the server total rather than the number of voices on this page', () => {

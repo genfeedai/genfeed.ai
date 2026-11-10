@@ -92,7 +92,14 @@ vi.mock('@genfeedai/contracts/constants', async (importOriginal) => ({
       NEW: '/agent/new',
       ROOT: '/agent',
     },
-    CONNECT: '/connect',
+    CONNECTORS: {
+      AGENTS: '/connectors/agents',
+      API_KEYS: '/connectors/api-keys',
+      CHANNELS: '/connectors/channels',
+      PROVIDERS: '/connectors/providers',
+      ROOT: '/connectors',
+      WEBHOOKS: '/connectors/webhooks',
+    },
     LOGIN: '/login',
     LOGOUT: '/logout',
     OAUTH: '/oauth',
@@ -237,6 +244,10 @@ vi.mock('next-intl', () => ({
         },
       }) as Record<string, Record<string, string>>
     )[namespace]?.[key] ?? key,
+}));
+
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useHasAppsBeyondDashboard: () => true,
 }));
 
 vi.mock(

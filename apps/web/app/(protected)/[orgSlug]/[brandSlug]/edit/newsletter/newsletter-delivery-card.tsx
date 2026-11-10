@@ -66,7 +66,7 @@ export default function NewsletterDeliveryCard({
 }: NewsletterDeliveryCardProps) {
   const translate = useTranslations('common.longFormDelivery');
   const { credentials } = useBrand();
-  const { href } = useOrgUrl();
+  const { orgHref } = useOrgUrl();
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
@@ -248,7 +248,7 @@ export default function NewsletterDeliveryCard({
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
-            <NextLink href={href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}>
+            <NextLink href={orgHref(APP_ROUTES.CONNECTORS.CHANNELS)}>
               <PlugZap className="size-4" />
               {translate('connectAccounts')}
             </NextLink>

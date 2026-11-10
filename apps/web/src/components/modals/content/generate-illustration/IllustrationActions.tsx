@@ -7,6 +7,7 @@ import ModalActions from '@ui/modals/actions/ModalActions';
 import { Button } from '@ui/primitives/button';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 
 type Props = {
   generatedImageId: string | null;
@@ -26,16 +27,19 @@ export default function IllustrationActions({
   onClose,
 }: Props) {
   const { href } = useOrgUrl();
+  const isAgentAvailable = useIsAppAvailable('agent');
 
   return (
     <ModalActions>
       {/* One-off generation is Agent-first — Studio has no image prompt bar. */}
-      <Button variant={ButtonVariant.SECONDARY} asChild>
-        <Link href={href(APP_ROUTES.AGENT.NEW)}>
-          <ExternalLink className="size-4" />
-          Agent
-        </Link>
-      </Button>
+      {isAgentAvailable ? (
+        <Button variant={ButtonVariant.SECONDARY} asChild>
+          <Link href={href(APP_ROUTES.AGENT.NEW)}>
+            <ExternalLink className="size-4" />
+            Agent
+          </Link>
+        </Button>
+      ) : null}
 
       <div className="flex-1" />
 

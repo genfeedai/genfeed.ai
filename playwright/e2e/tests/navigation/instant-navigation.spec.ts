@@ -208,11 +208,7 @@ for (const appId of [
     await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
     await mockLibraryData(page);
     await page.goto(
-      createBrandAppRoute(
-        'test-org',
-        'brand-1',
-        APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
-      ),
+      createBrandAppRoute('test-org', 'brand-1', APP_ROUTES.SETTINGS.BRAND_KIT),
     );
 
     const target = page.getByTestId(`app-rail-item-${appId}`);

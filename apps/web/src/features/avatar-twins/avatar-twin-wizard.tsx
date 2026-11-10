@@ -10,6 +10,7 @@ import { Stepper } from '@ui/primitives/stepper';
 import { UserRound } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import { AVATAR_TWIN_DEFAULT_NAME } from '@/features/avatar-twins/avatar-twin.constants';
 import AvatarTwinConnectStep from '@/features/avatar-twins/avatar-twin-connect-step';
 import AvatarTwinProgress from '@/features/avatar-twins/avatar-twin-progress';
@@ -27,6 +28,7 @@ export default function AvatarTwinWizard() {
   const translate = useTranslations('pages.library.avatarTwin');
   const pathname = usePathname();
   const { href, orgHref } = useOrgUrl();
+  const isPlaygroundAvailable = useIsAppAvailable('playground');
   const {
     applyToBrand,
     brandUsage,
@@ -72,7 +74,7 @@ export default function AvatarTwinWizard() {
     if (!isConnected)
       return (
         <AvatarTwinConnectStep
-          connectHref={orgHref(APP_ROUTES.SETTINGS.INTEGRATIONS)}
+          connectHref={orgHref(APP_ROUTES.CONNECTORS.PROVIDERS)}
           isInvalid={connectionState === 'invalid'}
           onRecheck={() => {
             void recheckConnection();
@@ -99,7 +101,9 @@ export default function AvatarTwinWizard() {
         brandUsage={brandUsage}
         libraryHref={href(APP_ROUTES.LIBRARY.AVATARS)}
         onApplyToBrand={(voice) => applyToBrand(twin, voice)}
-        studioHref={href(APP_ROUTES.STUDIO.PLAYGROUND)}
+        studioHref={
+          isPlaygroundAvailable ? href(APP_ROUTES.STUDIO.PLAYGROUND) : undefined
+        }
         onOpenConsent={() => openConsent(twin.id, pathname)}
         onRemove={() => remove(twin.id)}
         onRetake={() => setIsRetaking(true)}

@@ -38,7 +38,7 @@ const FAQ_ITEMS_GENERAL: FAQItem[] = [
   },
   {
     answer:
-      'Agents other than Claude, Claude Code and Claude Cowork can generate images and video through MCP. The Claude connector drafts, schedules and reads analytics; you create images, video and audio in Genfeed Studio and bring them back to your content.',
+      'Agents other than Claude, Claude Code and Claude Cowork can generate images and video through MCP. The Claude connector drafts, schedules and reads analytics; to generate images, video and audio in Claude, add the full Genfeed server as a second connector.',
     question: 'Can my agent create images and video?',
   },
   {

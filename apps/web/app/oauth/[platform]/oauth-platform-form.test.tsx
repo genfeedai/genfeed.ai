@@ -187,7 +187,7 @@ describe('OAuthPlatformForm', () => {
     });
     window.sessionStorage.setItem(
       'oauth_return_to',
-      '/demo/acme/settings/accounts',
+      '/demo/~/connectors/channels',
     );
 
     render(<OAuthPlatformForm platform="twitter" />);
@@ -199,7 +199,7 @@ describe('OAuthPlatformForm', () => {
       });
     });
 
-    expect(mocks.navigate).toHaveBeenCalledWith('/demo/acme/settings/accounts');
+    expect(mocks.navigate).toHaveBeenCalledWith('/demo/~/connectors/channels');
     expect(window.sessionStorage.getItem('oauth_return_to')).toBeNull();
   });
 
@@ -219,7 +219,7 @@ describe('OAuthPlatformForm', () => {
       });
     });
 
-    expect(mocks.navigate).toHaveBeenCalledWith('/settings/api-keys');
+    expect(mocks.navigate).toHaveBeenCalledWith('/connectors/api-keys');
     expect(mocks.navigate).not.toHaveBeenCalledWith(
       expect.stringContaining('evil.com'),
     );
@@ -241,7 +241,7 @@ describe('OAuthPlatformForm', () => {
       });
     });
 
-    expect(mocks.navigate).toHaveBeenCalledWith('/settings/api-keys');
+    expect(mocks.navigate).toHaveBeenCalledWith('/connectors/api-keys');
     expect(mocks.navigate).not.toHaveBeenCalledWith(
       expect.stringContaining('evil.com'),
     );
@@ -379,7 +379,7 @@ describe('OAuthPlatformForm', () => {
     ).toBeVisible();
     expect(screen.getByText('Go back')).toHaveAttribute(
       'href',
-      '/settings/api-keys',
+      '/connectors/api-keys',
     );
     expect(
       screen.queryByRole('button', { name: 'Try again' }),
@@ -392,7 +392,7 @@ describe('OAuthPlatformForm', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Restart authorization' }),
     );
-    expect(mocks.navigate).toHaveBeenCalledWith('/settings/api-keys');
+    expect(mocks.navigate).toHaveBeenCalledWith('/connectors/api-keys');
     expect(mocks.postVerify).toHaveBeenCalledTimes(1);
   });
 

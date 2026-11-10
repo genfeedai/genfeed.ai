@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   init: vi.fn(),
   initAnalytics: vi.fn(),
+  recordHydrationEntryContext: vi.fn(),
   replayIntegration: vi.fn(() => ({ name: 'Replay' })),
 }));
 
@@ -14,6 +15,10 @@ vi.mock('@sentry/nextjs', () => ({
 
 vi.mock('@/lib/analytics', () => ({
   initAnalytics: mocks.initAnalytics,
+}));
+
+vi.mock('@/lib/sentry/hydration-entry-context', () => ({
+  recordHydrationEntryContext: mocks.recordHydrationEntryContext,
 }));
 
 vi.mock('@/lib/sentry/drop-json-api-object-rejection', () => ({
@@ -51,5 +56,6 @@ describe('app Sentry instrumentation', () => {
       }),
     );
     expect(mocks.initAnalytics).toHaveBeenCalledTimes(1);
+    expect(mocks.recordHydrationEntryContext).toHaveBeenCalledTimes(1);
   });
 });

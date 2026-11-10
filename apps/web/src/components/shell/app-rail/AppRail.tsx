@@ -189,6 +189,7 @@ export function AppRail({
   isAssetGateLocked = false,
   moduleAccess,
   modulePreferences,
+  releaseVisibility,
   onNavigate,
   onNavigationEvent,
   onOpenAdminExternally,
@@ -223,6 +224,7 @@ export function AppRail({
       installedAppIds,
       moduleAccess,
       modulePreferences,
+      releaseVisibility,
     });
     return showAdmin ? [...visible, ADMIN_RAIL_APP] : visible;
   }, [
@@ -231,6 +233,7 @@ export function AppRail({
     isAdminChrome,
     moduleAccess,
     modulePreferences,
+    releaseVisibility,
     showAdmin,
   ]);
   const activeAppId = getActiveAppId(

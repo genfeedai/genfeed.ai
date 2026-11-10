@@ -47,7 +47,7 @@ describe('MCP tool error contract', () => {
       code: 'unauthorized',
       message:
         'Unauthorized. Authorize this client with Genfeed OAuth, or send a Genfeed API key as a bearer token.',
-      nextStepUrl: appUrl(APP_ROUTES.CONNECT),
+      nextStepUrl: appUrl(APP_ROUTES.CONNECTORS.ROOT),
     });
     expect(
       mcpJsonRpcError(null, -32001, error as McpToolError).error.data,
@@ -185,7 +185,7 @@ describe('MCP tool error contract', () => {
       title: 'Unauthorized',
       detail: 'Sign in again',
       code: 'unauthorized',
-      route: APP_ROUTES.CONNECT,
+      route: APP_ROUTES.CONNECTORS.ROOT,
     },
     {
       status: 403,

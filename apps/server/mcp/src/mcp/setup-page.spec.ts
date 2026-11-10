@@ -143,7 +143,7 @@ describe('MCP setup page', () => {
     expect(html).toContain('aria-label="Copy agent setup prompt"');
     expect(html).toContain('claude mcp add --transport http genfeed');
     expect(html).toContain('codex mcp add genfeed --url');
-    expect(html).toContain('https://app.genfeed.ai/connect');
+    expect(html).toContain('https://app.genfeed.ai/connectors');
     expect(html).toContain('Start guided setup');
     expect(html).toContain('Read MCP docs');
     expect(html).toContain('OAuth setup guide');
@@ -320,7 +320,7 @@ describe('MCP setup page', () => {
     expect(promptHtml).toContain('list my Genfeed brands');
     expect(html).toContain('/api-reference/mcp#connect-via-oauth');
     expect(promptHtml).toContain(
-      'Guided connection flow: https://app.genfeed.ai/connect',
+      'Guided connection flow: https://app.genfeed.ai/connectors',
     );
     expect(promptHtml).toContain(
       'Never request tokens or passwords in this chat',

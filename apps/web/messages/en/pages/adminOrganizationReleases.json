@@ -9,6 +9,7 @@
   "releasedForEveryone": "Released for everyone",
   "earlyAccess": "Early access",
   "items": {
+    "agent": "Agent",
     "campaigns": "Campaigns",
     "analytics_brands": "Brands",
     "analytics_streaks": "Streaks",

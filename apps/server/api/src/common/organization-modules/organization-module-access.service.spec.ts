@@ -132,17 +132,18 @@ describe('OrganizationModuleAccessService', () => {
     expect(paidAccess.isSubscriptionGatedFresh).not.toHaveBeenCalled();
   });
 
-  it('always admits Playground and Storyboard: they are never release items', async () => {
-    const { service } = createService(false, {});
-    await expect(
-      service.assertAccess('org-1', 'playground'),
-    ).resolves.toBeUndefined();
-    await expect(
-      service.assertAccess('org-1', 'storyboard'),
-    ).resolves.toBeUndefined();
-  });
+  it.each(['playground', 'storyboard'] as const)(
+    'admits %s generation work while it is not released',
+    async (moduleId) => {
+      const { service } = createService(false, {});
+      await expect(
+        service.assertAccess('org-1', moduleId),
+      ).resolves.toBeUndefined();
+      await expect(service.canStartWork('org-1', moduleId)).resolves.toBe(true);
+    },
+  );
 
-  it.each(['motion', 'clipper', 'editor'] as const)(
+  it.each(['playground', 'storyboard', 'motion', 'clipper', 'editor'] as const)(
     'admits new %s work on cloud while it is not released',
     async (moduleId) => {
       const { service } = createService();

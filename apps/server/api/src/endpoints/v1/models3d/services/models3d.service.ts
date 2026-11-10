@@ -9,10 +9,12 @@ import type {
 } from '@api/endpoints/v1/models3d/interfaces/models3d.interfaces';
 import {
   buildModels3dSheetPrompt,
-  MODELS3D_BUILD_MODEL_KEY,
+  MODELS3D_BUILD_TIERS,
+  MODELS3D_DEFAULT_QUALITY,
   MODELS3D_SHEET_ASPECT_RATIO,
   MODELS3D_SHEET_MODEL_KEY,
   MODELS3D_SHEET_RESOLUTION,
+  type Models3dQuality,
 } from '@api/endpoints/v1/models3d/models3d.constants';
 import { Models3dBillingService } from '@api/endpoints/v1/models3d/services/models3d-billing.service';
 import { Models3dBuildService } from '@api/endpoints/v1/models3d/services/models3d-build.service';
@@ -83,9 +85,10 @@ export class Models3dService {
       throw new BadRequestException('Provide exactly one of imageUrl or file');
     }
     const withBuild = dto.build === true;
+    const quality = dto.quality ?? MODELS3D_DEFAULT_QUALITY;
 
     // Price first: unavailable pricing returns 503 before any row exists.
-    const quote = await this.billing.quote(actor.organizationId);
+    const quote = await this.billing.quote(actor.organizationId, quality);
 
     const sheet = await this.shared.createMediaDocumentsInternal({
       brandId: actor.brandId ?? '',
@@ -99,6 +102,7 @@ export class Models3dService {
       providerData: this.providerData({
         credits: quote.sheet,
         prompt: dto.prompt,
+        quality,
         sourceImageUrl: dto.imageUrl,
       }),
       status: IngredientStatus.PROCESSING,
@@ -118,7 +122,12 @@ export class Models3dService {
         userId: actor.userId,
       });
       if (withBuild) {
-        childId = await this.createFundedChild(actor, sheetId, quote.build);
+        childId = await this.createFundedChild(
+          actor,
+          sheetId,
+          quote.build,
+          quality,
+        );
       }
     } catch (error: unknown) {
       await this.discard(actor, [sheetId, childId]);
@@ -149,6 +158,7 @@ export class Models3dService {
           providerData: this.providerData({
             credits: quote.sheet,
             prompt: dto.prompt,
+            quality,
             sourceS3Key,
           }),
         });
@@ -223,8 +233,13 @@ export class Models3dService {
       throw new ConflictException('The angle sheet did not render');
     }
 
-    const credits = await this.billing.quoteStep('build', actor.organizationId);
-    await this.createFundedChild(actor, id, credits);
+    const quality = this.qualityOf(sheet);
+    const credits = await this.billing.quoteStep(
+      'build',
+      actor.organizationId,
+      quality,
+    );
+    await this.createFundedChild(actor, id, credits, quality);
     await this.build.startBuild(id);
     return this.get(actor, id);
   }
@@ -248,17 +263,18 @@ export class Models3dService {
     actor: Models3dActor,
     sheetId: string,
     credits: number,
+    quality: Models3dQuality,
   ): Promise<string> {
     const child = await this.shared.createMediaDocumentsInternal({
       brandId: actor.brandId ?? '',
       category: IngredientCategory.MODEL_3D,
       extension: MetadataExtension.GLB,
       generationSource: 'models3d:build',
-      model: MODELS3D_BUILD_MODEL_KEY,
+      model: MODELS3D_BUILD_TIERS[quality].modelKey,
       organizationId: actor.organizationId,
       origin: IngredientOrigin.GENERATED,
       parentId: sheetId,
-      providerData: this.providerData({ credits }),
+      providerData: this.providerData({ credits, quality }),
       sourceIds: [sheetId],
       status: IngredientStatus.PROCESSING,
       userId: actor.userId,
@@ -296,6 +312,11 @@ export class Models3dService {
         });
       }
     }
+  }
+
+  private qualityOf(sheet: SheetRow): Models3dQuality {
+    const data = sheet.providerData as Partial<Models3dProviderData> | null;
+    return data?.models3d?.quality ?? MODELS3D_DEFAULT_QUALITY;
   }
 
   private providerData(
@@ -372,6 +393,7 @@ export class Models3dService {
         sheet: sheetData?.credits ?? 0,
       },
       id: sheet.id.toString(),
+      quality: this.qualityOf(sheet),
       status,
     };
     if (status === 'failed') {

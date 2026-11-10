@@ -39,19 +39,21 @@ describe('Models3dClient', () => {
     expect(result).toEqual({ id: 'm-1', status: 'sheet_pending' });
   });
 
-  it('forwards build and prompt when set', async () => {
+  it('forwards build, prompt and quality when set', async () => {
     post.mockResolvedValue({ data: { id: 'm-2' } });
 
     await client.render3d({
       build: true,
       imageUrl: 'https://example.com/house.png',
       prompt: 'a modern house',
+      quality: 'high',
     });
 
     expect(post).toHaveBeenCalledWith('/models3d', {
       build: true,
       imageUrl: 'https://example.com/house.png',
       prompt: 'a modern house',
+      quality: 'high',
     });
   });
 

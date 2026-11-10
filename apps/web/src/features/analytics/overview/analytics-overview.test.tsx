@@ -489,8 +489,8 @@ describe('AnalyticsOverview', () => {
     const markup = renderToStaticMarkup(
       <AnalyticsOverview scope={PageScope.SUPERADMIN} basePath="/admin" />,
     );
-    expect(markup).toContain('/acme/~/settings/integrations');
-    expect(markup).not.toContain('/acme/brand-x/settings/accounts');
+    expect(markup).toContain('/acme/~/connectors/providers');
+    expect(markup).not.toContain('/acme/~/connectors/channels');
     expect(markup).not.toContain('/acme/brand-x/publishing');
     expect(markup).toContain('href="/publishing');
     expect(markup).toContain('/admin/brands');
@@ -502,7 +502,7 @@ describe('AnalyticsOverview', () => {
     const markup = renderOverview();
     mockRoute.brandSlug = 'brand-x';
     expect(markup).toContain('/acme/~/settings/brands');
-    expect(markup).not.toContain('/acme/~/settings/integrations');
+    expect(markup).not.toContain('/acme/~/connectors/providers');
   });
 
   it('renders warming-up messaging when setup exists but performance is still sparse', () => {
@@ -523,8 +523,8 @@ describe('AnalyticsOverview', () => {
     expect(markup).toContain('Create content');
     expect(markup).toContain('Manage connections');
     expect(markup).toContain('/acme/brand-x/publishing');
-    expect(markup).toContain('/acme/brand-x/settings/accounts');
-    expect(markup).not.toContain('/settings/api-keys');
+    expect(markup).toContain('/acme/~/connectors/channels');
+    expect(markup).not.toContain('/connectors/api-keys');
     expect(markup).not.toContain('Data is starting to come through');
     expect(markup).not.toContain('Coverage so far');
     expect(markup).not.toContain('Setup progress');
@@ -548,7 +548,7 @@ describe('AnalyticsOverview', () => {
     );
     expect(markup).not.toContain('Accounts are connected');
     expect(markup).not.toContain('Warming up');
-    expect(markup).toContain('href="/acme/brand-x/settings/accounts"');
+    expect(markup).toContain('href="/acme/~/connectors/channels"');
     expect(markup).toContain('Connect accounts');
     expect(markup).toContain('Create content');
   });

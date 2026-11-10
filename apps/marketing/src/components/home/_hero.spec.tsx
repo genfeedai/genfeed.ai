@@ -55,7 +55,7 @@ vi.mock('@services/core/environment.service', () => ({
       app: 'https://app.genfeed.ai',
     },
     bookingUrl: 'https://example.com/book',
-    mcpConnectHref: 'https://app.genfeed.ai/connect',
+    mcpConnectHref: 'https://app.genfeed.ai/connectors',
   },
 }));
 

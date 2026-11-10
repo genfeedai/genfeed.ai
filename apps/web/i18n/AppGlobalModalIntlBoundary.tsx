@@ -72,6 +72,7 @@ export function resolveModalCatalogScope(
     return 'personal-settings';
   }
   if (area === 'tasks') return 'workspace';
+  if (area === 'connectors') return 'connect';
   if (
     area === 'edit' ||
     STUDIO_APP_ROUTE_PREFIXES.some((prefix) => prefix === `/${area}`)

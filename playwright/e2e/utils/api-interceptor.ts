@@ -118,6 +118,7 @@ interface MockOrganizationSettings {
   hasPaidModuleSubscription: boolean;
   isReleasePreviewEnabled: boolean;
   moduleOverrides: Record<string, boolean>;
+  releasedItemIds: string[];
   id: string;
   isFleetNsfwVisible: boolean;
   defaultAvatarIngredientId: string | null;
@@ -266,6 +267,7 @@ export function generateMockOrganizationSettings(
       automation: true,
       messages: true,
     },
+    releasedItemIds: [],
     isFleetNsfwVisible: false,
     ...overrides,
   };
@@ -1210,7 +1212,7 @@ function createMockAccountAnalytics(credentialId: string): IAccountAnalytics {
       firstTrackedAt: null,
       isConnected: true,
       label: 'Mock account',
-      manageHref: `${APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS}?credential=${credentialId}`,
+      manageHref: `${APP_ROUTES.CONNECTORS.CHANNELS}?credential=${credentialId}`,
       platform:
         credentialId === MOCK_X_ACCOUNT_ID ? Platform.TWITTER : Platform.TIKTOK,
     },

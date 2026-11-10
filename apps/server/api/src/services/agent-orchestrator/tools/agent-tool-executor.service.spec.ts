@@ -2113,7 +2113,7 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         ctas: [
           expect.objectContaining({
-            href: '/settings/api-keys?returnTo=%2Fagent',
+            href: '/connectors/api-keys?returnTo=%2Fagent',
             label: 'Open integrations',
           }),
         ],
@@ -2146,7 +2146,7 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         ctas: [
           expect.objectContaining({
-            href: '/settings/api-keys?returnTo=%2Fagent',
+            href: '/connectors/api-keys?returnTo=%2Fagent',
             label: 'Open integrations',
           }),
         ],
@@ -2176,7 +2176,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
     expect(result.nextActions?.[0].ctas).toEqual([
       expect.objectContaining({
-        href: '/genfeed-ai/~/settings/api-keys?returnTo=%2Fagent',
+        href: '/genfeed-ai/~/connectors/api-keys?returnTo=%2Fagent',
         label: 'Open integrations',
       }),
     ]);

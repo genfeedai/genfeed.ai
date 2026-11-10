@@ -761,7 +761,7 @@ describe('AgentChatMessage', () => {
               {
                 ctas: [
                   {
-                    href: '/settings/api-keys?returnTo=/agent',
+                    href: '/connectors/api-keys?returnTo=/agent',
                     label: 'Open integrations',
                   },
                 ],
@@ -772,7 +772,7 @@ describe('AgentChatMessage', () => {
               {
                 ctas: [
                   {
-                    href: '/settings/api-keys?returnTo=/agent',
+                    href: '/connectors/api-keys?returnTo=/agent',
                     label: 'Open integrations',
                   },
                 ],
@@ -783,7 +783,7 @@ describe('AgentChatMessage', () => {
               {
                 ctas: [
                   {
-                    href: '/settings/api-keys?returnTo=/agent',
+                    href: '/connectors/api-keys?returnTo=/agent',
                     label: 'Open integrations',
                   },
                 ],
@@ -800,7 +800,10 @@ describe('AgentChatMessage', () => {
     expect(screen.getAllByText('Choose an integration')).toHaveLength(1);
     expect(
       screen.getByRole('link', { name: 'Open integrations' }),
-    ).toHaveAttribute('href', '/test-org/~/settings/api-keys?returnTo=/agent');
+    ).toHaveAttribute(
+      'href',
+      '/test-org/~/connectors/api-keys?returnTo=/agent',
+    );
     expect(screen.queryByText('Unknown')).toBeNull();
   });
 

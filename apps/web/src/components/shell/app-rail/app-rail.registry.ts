@@ -92,6 +92,7 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] =
     route: createScopedAppRoute({ brandPath: app.homePath }),
     isBrandAware: app.isBrandAware,
     organizationModule: app.organizationModule,
+    releaseItemId: app.releaseItemId,
     visibilityFlagKey: app.flag,
   }));
 

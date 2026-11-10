@@ -13,7 +13,7 @@ function makeAction(): AgentUiActionOf<'onboarding_checklist_card'> {
         rewardCredits: 25,
       },
       {
-        ctaHref: '/settings/api-keys',
+        ctaHref: '/connectors/api-keys',
         ctaLabel: 'Add keys',
         id: 'providers',
         isCompleted: false,

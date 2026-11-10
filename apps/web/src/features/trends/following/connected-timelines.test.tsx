@@ -51,7 +51,10 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
     scope.isReady && Boolean(scope.organizationId && scope.brandId),
 }));
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ href: (path: string) => `/org/brand${path}` }),
+  useOrgUrl: () => ({
+    href: (path: string) => `/org/brand${path}`,
+    orgHref: (path: string) => `/org/~${path}`,
+  }),
 }));
 vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
   useSidebarNavigation: () => ({ hasCanonicalBreadcrumb: true }),

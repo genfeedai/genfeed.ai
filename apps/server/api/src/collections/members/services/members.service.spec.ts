@@ -384,14 +384,14 @@ describe('MembersService installed apps (#5502)', () => {
   it('removes only the uninstalled app', async () => {
     tx.$queryRaw.mockResolvedValue([{ id: 'member-1' }]);
     tx.member.findFirst.mockResolvedValue({
-      installedAppIds: ['playground', 'turbo', 'discovery'],
+      installedAppIds: ['playground', 'turbo', 'motion'],
     });
 
     await expect(
       service.setAppInstalled('org-1', 'user-1', 'turbo', false),
-    ).resolves.toEqual(['playground', 'discovery']);
+    ).resolves.toEqual(['playground', 'motion']);
     expect(tx.member.update).toHaveBeenCalledWith({
-      data: { installedAppIds: ['playground', 'discovery'] },
+      data: { installedAppIds: ['playground', 'motion'] },
       where: { id: 'member-1', isDeleted: false, organizationId: 'org-1' },
     });
   });

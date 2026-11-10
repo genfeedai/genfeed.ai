@@ -49,6 +49,14 @@ const navigation = vi.hoisted(() => ({
   pathname: '/acme/~/agent/thread-1',
   searchParams: new URLSearchParams(),
 }));
+// Organization settings the shell reads to decide whether the Agent app is
+// released; a cloud organization without release preview has not got it.
+const organization = vi.hoisted(() => ({
+  settings: {
+    hasOrganizationBilling: true,
+    isReleasePreviewEnabled: true,
+  } as { hasOrganizationBilling: boolean; isReleasePreviewEnabled?: boolean },
+}));
 const router = vi.hoisted(() => ({
   back: vi.fn(),
   push: vi.fn(),
@@ -281,6 +289,8 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
       },
     ],
     organizationId: 'org-1',
+    settings: organization.settings,
+    settingsLoading: false,
   }),
 }));
 
@@ -698,6 +708,10 @@ describe('UniversalWorkspaceShell', () => {
   beforeEach(() => {
     navigation.pathname = '/acme/~/agent/thread-1';
     navigation.searchParams = new URLSearchParams();
+    organization.settings = {
+      hasOrganizationBilling: true,
+      isReleasePreviewEnabled: true,
+    };
     agentState.activeThreadId = 'thread-1';
     agentState.threads[0].brandId = 'brand-1';
     agentState.threads[0].contextVersion = 3;
@@ -2081,6 +2095,22 @@ describe('UniversalWorkspaceShell', () => {
       expect(router.push).toHaveBeenCalledWith(
         expect.stringMatching(/^\/acme\/moonrise\/agent\//),
       );
+    });
+
+    it('keeps the dock and hides Open full page while the Agent app is not released', async () => {
+      organization.settings = {
+        hasOrganizationBilling: true,
+        isReleasePreviewEnabled: false,
+      };
+      navigation.pathname = '/acme/moonrise/workspace';
+      renderWithDock();
+      await waitFor(() => expect(dock?.isAvailable).toBe(true));
+      act(() => dock?.open());
+
+      expect(screen.getByRole('button', { name: 'New thread' })).toBeVisible();
+      expect(
+        screen.queryByRole('button', { name: 'Open full page' }),
+      ).toBeNull();
     });
 
     it('attaches a record to the dock draft with its brand and opens the dock', async () => {

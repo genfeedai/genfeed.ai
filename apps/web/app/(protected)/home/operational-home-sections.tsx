@@ -77,6 +77,7 @@ import { useActivities } from '@/hooks/data/activities/use-activities/use-activi
 import { useOverviewBootstrap } from '@/hooks/data/overview/use-overview-bootstrap';
 import { useWorkflowExecutions } from '@/hooks/data/workflow-executions/use-workflow-executions';
 import { useActivityMessageFormatter } from '@/hooks/i18n/useActivityMessageFormatter';
+import OpenRunButton from './open-run-button';
 import {
   getActivityBadge,
   getCredentialBadge,
@@ -262,11 +263,7 @@ function NeedsYouSurface({
         )
       : brandSetupHref;
   const credentialsHref = brandSlug
-    ? createBrandAppRoute(
-        orgSlug,
-        brandSlug,
-        APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
-      )
+    ? createOrganizationAppRoute(orgSlug, APP_ROUTES.CONNECTORS.CHANNELS)
     : brandSetupHref;
   const needsYouItems = buildNeedsYouItems({
     credentials,
@@ -439,15 +436,10 @@ function NeedsYouSurface({
                     WORKFLOW_UNAVAILABLE_LABEL,
                   )}
                   trailing={
-                    <Button
-                      asChild
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.GHOST}
-                    >
-                      <Link href={runHref(execution.id)}>
-                        {translate('home.approvals.openItem')}
-                      </Link>
-                    </Button>
+                    <OpenRunButton
+                      href={runHref(execution.id)}
+                      label={translate('home.approvals.openItem')}
+                    />
                   }
                 />
               );
@@ -745,11 +737,7 @@ function CredentialHealthSurface({
     APP_ROUTES.SETTINGS.BRANDS,
   );
   const settingsHref = brandSlug
-    ? createBrandAppRoute(
-        orgSlug,
-        brandSlug,
-        APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
-      )
+    ? createOrganizationAppRoute(orgSlug, APP_ROUTES.CONNECTORS.CHANNELS)
     : brandSetupHref;
 
   return (

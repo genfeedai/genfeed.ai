@@ -1,4 +1,5 @@
 import {
+  isCoreAppId,
   isNativeAppLaunchable,
   isNativeSecondaryAppId,
   NATIVE_SECONDARY_APP_IDS,
@@ -40,7 +41,7 @@ export function isLauncherAppAvailable(
 
 interface ResolveAvailableRailAppsInput
   extends LauncherAvailabilityInput,
-    Pick<AppRailProps, 'modulePreferences'> {
+    Pick<AppRailProps, 'modulePreferences' | 'releaseVisibility'> {
   flags: Readonly<Record<string, unknown>>;
 }
 
@@ -55,9 +56,18 @@ export function resolveAvailableRailApps({
   installedAppIds,
   moduleAccess,
   modulePreferences,
+  releaseVisibility,
 }: ResolveAvailableRailAppsInput): AppRailItemConfig[] {
   return APP_RAIL_REGISTRY.filter((app) => {
     if (!isAppRailItemEnabled(app, flags)) {
+      return false;
+    }
+    // A release-only app (Agent) shows once released to the organization.
+    if (
+      app.releaseItemId &&
+      releaseVisibility !== undefined &&
+      releaseVisibility?.[app.releaseItemId] !== true
+    ) {
       return false;
     }
     if (app.group === 'app') {
@@ -67,10 +77,53 @@ export function resolveAvailableRailApps({
         moduleAccess,
       });
     }
+    if (!app.organizationModule) {
+      return true;
+    }
+    // Trends needs a paid plan: an organization without one does not get a
+    // rail item that opens a locked page.
+    if (
+      moduleAccess?.[app.organizationModule]?.reason === 'subscription-required'
+    ) {
+      return false;
+    }
     return (
-      !app.organizationModule ||
       modulePreferences === undefined ||
       modulePreferences?.[app.organizationModule] === true
     );
   });
+}
+
+/**
+ * The apps the organization offers its members, whatever each member installed:
+ * platform switches on, released and shown by the organization. Entry points on
+ * other pages use it, so none points at an app the organization does not have.
+ */
+export function resolveOrganizationApps({
+  flags,
+  moduleAccess,
+  modulePreferences,
+  releaseVisibility,
+}: Omit<
+  ResolveAvailableRailAppsInput,
+  'installedAppIds'
+>): AppRailItemConfig[] {
+  return resolveAvailableRailApps({
+    flags,
+    installedAppIds: NATIVE_SECONDARY_APP_IDS,
+    moduleAccess,
+    modulePreferences,
+    releaseVisibility,
+  });
+}
+
+/**
+ * Whether the organization has an app beyond the core set (Workspace, Trends,
+ * Library, Publishing, Analytics and Agent). The Apps link and the Modules
+ * settings page exist for choosing among those apps, so they show only then.
+ */
+export function hasAppsBeyondDashboard(
+  input: Omit<ResolveAvailableRailAppsInput, 'installedAppIds'>,
+): boolean {
+  return resolveOrganizationApps(input).some((app) => !isCoreAppId(app.id));
 }

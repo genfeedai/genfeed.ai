@@ -84,7 +84,7 @@ describe('NextStepsCard', () => {
             {
               ctas: [
                 {
-                  href: '/settings/accounts',
+                  href: '/connectors/channels',
                   label: 'Open connections',
                 },
               ],
@@ -202,7 +202,7 @@ describe('NextStepsCard', () => {
     expect(action.nextSteps?.[0]?.ctas[0]?.label).toBe('Open brand settings');
   });
 
-  it('repairs a saved organization-only Connections link using the current brand route', () => {
+  it('repairs a saved brand-only Skills link using the current brand route', () => {
     routeScope.orgSlug = 'acme';
     routeScope.brandSlug = 'launch';
     renderCard(
@@ -214,7 +214,7 @@ describe('NextStepsCard', () => {
               title: 'Connect social accounts',
               ctas: [
                 {
-                  href: '/acme/~/settings/accounts?platform=x#accounts',
+                  href: '/acme/~/settings/skills?platform=x#accounts',
                   label: 'Open connections',
                 },
               ],
@@ -227,7 +227,7 @@ describe('NextStepsCard', () => {
       screen.getByRole('link', { name: /Open connections/ }),
     ).toHaveAttribute(
       'href',
-      '/acme/launch/settings/accounts?platform=x#accounts',
+      '/acme/launch/settings/skills?platform=x#accounts',
     );
   });
 

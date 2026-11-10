@@ -8,6 +8,7 @@ export const models3dToolSchemas = {
       build: z.boolean().optional(),
       imageUrl: z.string().url().max(2048),
       prompt: z.string().trim().min(1).max(500).optional(),
+      quality: z.enum(['standard', 'high']).optional(),
     })
     .strict(),
   get_model3d: z

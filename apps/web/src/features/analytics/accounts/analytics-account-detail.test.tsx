@@ -68,7 +68,7 @@ const getService = async () => ({
               firstTrackedAt: null,
               isConnected: true,
               label: 'Account',
-              manageHref: '/settings/accounts?credential=cred-1',
+              manageHref: '/connectors/channels?credential=cred-1',
               platform: 'instagram',
             },
             metrics: requestState.hasMetrics

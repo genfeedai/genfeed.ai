@@ -232,7 +232,7 @@ may request through the public endpoint. Privileged scopes (`admin`,
 those are minted server-side for managed and system keys only.
 
 Keys are created in organization settings, through the guided
-[Connect Genfeed](https://app.genfeed.ai/connect) flow, with `gf keys create`, or
+[Connect Genfeed](https://app.genfeed.ai/connectors) flow, with `gf keys create`, or
 through the REST API.
 
 ## CLI

@@ -18,7 +18,11 @@ import type {
  * old entry, never alias it.
  */
 
-/** Product apps on the rail, in rail order. */
+/**
+ * Product apps on the rail, in rail order: the dashboard (Workspace, Trends,
+ * Library, Publishing, Analytics), then Agent, then the apps a member opens
+ * from the launcher.
+ */
 export const ROUTE_MANIFEST_APPS: readonly RouteManifestApp[] = [
   {
     rootPath: '/workspace',
@@ -29,12 +33,12 @@ export const ROUTE_MANIFEST_APPS: readonly RouteManifestApp[] = [
     id: 'workspace',
   },
   {
-    rootPath: '/agent',
-    flag: 'agent',
+    rootPath: '/discovery',
+    flag: 'discovery',
     group: 'daily',
-    homePath: '/agent',
-    id: 'agent',
-    isBrandAware: true,
+    homePath: '/discovery/overview',
+    id: 'discovery',
+    organizationModule: 'discovery',
   },
   {
     rootPath: '/library',
@@ -61,6 +65,15 @@ export const ROUTE_MANIFEST_APPS: readonly RouteManifestApp[] = [
     homePath: '/analytics/overview',
     id: 'analytics',
     organizationModule: 'analytics',
+  },
+  {
+    rootPath: '/agent',
+    flag: 'agent',
+    group: 'daily',
+    homePath: '/agent',
+    id: 'agent',
+    isBrandAware: true,
+    releaseItemId: 'agent',
   },
   // Studio apps need a brand. Their org routes pick the member's last-used
   // brand, or hand one-off generation to Agent when there is none.
@@ -134,14 +147,6 @@ export const ROUTE_MANIFEST_APPS: readonly RouteManifestApp[] = [
     homePath: '/messages',
     id: 'messages',
     organizationModule: 'messages',
-  },
-  {
-    rootPath: '/discovery',
-    flag: 'discovery',
-    group: 'app',
-    homePath: '/discovery/overview',
-    id: 'discovery',
-    organizationModule: 'discovery',
   },
 ];
 
@@ -642,15 +647,6 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
   },
   {
     scopes: ['personal'],
-    surfaceKey: 'connect-genfeed-resolver',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    telemetryClass: 'management',
-    fallback: '/connect',
-    pages: ['/connect'],
-  },
-  {
-    scopes: ['personal'],
     surfaceKey: 'creator-support-resolver',
     mode: 'canvas',
     productClass: 'control-plane',
@@ -676,12 +672,19 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
   },
   {
     scopes: ['organization'],
-    surfaceKey: 'connect-genfeed',
+    surfaceKey: 'connectors',
     mode: 'canvas',
     productClass: 'control-plane',
     telemetryClass: 'management',
-    fallback: '/connect',
-    pages: ['/connect'],
+    fallback: '/connectors/agents',
+    pages: [
+      { path: '/connectors', title: 'Agents' },
+      { path: '/connectors/agents', title: 'Agents' },
+      { path: '/connectors/channels', title: 'Channels' },
+      { path: '/connectors/providers', title: 'AI providers' },
+      { path: '/connectors/api-keys', title: 'API keys' },
+      { path: '/connectors/webhooks', title: 'Webhooks' },
+    ],
   },
   {
     scopes: ['organization'],
@@ -933,9 +936,6 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
       '/settings/subscription',
       { path: '/settings/referrals', title: 'Affiliates' },
       '/settings/earnings',
-      '/settings/api-keys',
-      '/settings/integrations',
-      '/settings/webhooks',
       '/settings/agents',
       '/settings/memory',
       '/settings/usage',
@@ -1237,7 +1237,6 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
       '/settings/brand-kit',
       '/settings/knowledge',
       '/settings/agent/receipts',
-      { path: '/settings/accounts', title: 'Accounts' },
       '/settings/brand-kit/rules',
       '/settings/brand-kit/setup',
       '/settings/brand-kit/:tab',
@@ -1255,7 +1254,7 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
     mode: 'canvas',
     productClass: 'control-plane',
     telemetryClass: 'product',
-    fallback: '/settings/accounts',
+    fallback: '/settings',
     switcherItems: ['publishing', 'messages'],
     pages: [{ path: '/platforms/:platform', title: ':platform' }],
   },

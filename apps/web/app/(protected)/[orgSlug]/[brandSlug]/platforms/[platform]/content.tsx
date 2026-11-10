@@ -28,6 +28,7 @@ import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import OverviewLayout from '@/components/overview/OverviewLayout';
+import { useIsHrefAvailable } from '@/components/shell/use-available-rail-apps';
 import type {
   PlatformConnectionHealth,
   PlatformHomeContentProps,
@@ -55,12 +56,13 @@ export default function PlatformHomePage({
   platform,
 }: PlatformHomeContentProps) {
   const translate = useTranslations('pages.platforms.home');
-  const { href } = useOrgUrl();
+  const { href, orgHref } = useOrgUrl();
   const { brand, brandId, hasBrandId, isLoading, socialConnections } =
     useBrandDetail();
   const connectPlatform = usePlatformOAuthConnect({ brandId });
   const [isConnecting, setIsConnecting] = useState(false);
   const platformLabel = formatPlatformLabel(platform) ?? platform;
+  const isHrefAvailable = useIsHrefAvailable();
 
   const connections = useMemo(
     () => filterConnectionsForPlatform(socialConnections, platform),
@@ -127,7 +129,7 @@ export default function PlatformHomePage({
             size={ButtonSize.SM}
             withWrapper={false}
           >
-            <Link href={href(destinations.settingsSocial)}>
+            <Link href={orgHref(destinations.settingsSocial)}>
               {translate('empty.manage')}
             </Link>
           </Button>
@@ -173,7 +175,7 @@ export default function PlatformHomePage({
       color: 'bg-categorical-emerald/10 text-categorical-emerald',
       cta: connectionCta,
       description: connectionDescription,
-      href: href(destinations.settingsSocial),
+      href: orgHref(destinations.settingsSocial),
       icon: Plug,
       id: 'connection',
       label: translate('connection.label'),
@@ -247,7 +249,8 @@ export default function PlatformHomePage({
     <OverviewLayout
       label={translate('title', { platform: platformLabel })}
       actionsTitle={translate('actionsTitle')}
-      cards={cards}
+      // Create, Engage, Replies and Live open Agent, Messages or Automation.
+      cards={cards.filter((card) => !card.href || isHrefAvailable(card.href))}
       header={
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">

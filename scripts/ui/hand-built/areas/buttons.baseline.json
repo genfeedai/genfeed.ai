@@ -174,9 +174,6 @@
     "apps/web/app/(protected)/[orgSlug]/~/agent/journey/journey-page-content.tsx": {
       "button-restyle": 2
     },
-    "apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/organization/api-keys/byok-provider-card.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/organization/organization-identity-card.tsx": {
       "button-restyle": 2
     },

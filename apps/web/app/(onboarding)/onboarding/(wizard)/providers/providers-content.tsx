@@ -271,7 +271,7 @@ export default function ProvidersContent() {
     setPendingMode('byok');
     await persistAccessMode('byok');
     await handleStepComplete('providers');
-    push(APP_ROUTES.SETTINGS.API_KEYS);
+    push(APP_ROUTES.CONNECTORS.API_KEYS);
   };
 
   const handleDesktopContinue = () => {

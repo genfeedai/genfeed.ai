@@ -82,7 +82,7 @@ describe('workspace shell trusted registry', () => {
   });
 
   it.each([
-    ['/acme/~/settings/api-keys', 'Settings', 'API Keys'],
+    ['/acme/~/connectors/api-keys', 'Connectors', 'API keys'],
     ['/acme/~/automation', 'Automation', 'Overview'],
     ['/acme/moonrise/discovery/overview', 'Discovery', 'Overview'],
     ['/acme/moonrise/discovery/ads', 'Discovery', 'Ads'],
@@ -336,8 +336,8 @@ describe('workspace shell trusted registry', () => {
       '/acme/moonrise/automation/runs/run-1',
       '/acme/moonrise/settings/publishing',
       '/acme/moonrise/settings/usage',
-      '/acme/moonrise/settings/accounts',
-      '/acme/~/settings/api-keys',
+      '/acme/~/connectors/channels',
+      '/acme/~/connectors/api-keys',
       '/acme/~/settings/usage',
       '/acme/~/settings/subscription',
       '/admin/overview',
@@ -453,20 +453,22 @@ describe('workspace shell trusted registry', () => {
     });
   });
 
-  it('registers the Connect Genfeed resolver and organization flow explicitly', () => {
-    expect(resolveWorkspaceShellRoute('/connect')).toMatchObject({
-      accessPolicy: 'authenticated',
-      canonicalUrl: '/connect',
-      safeFallback: '/connect',
-      scope: 'personal',
-      surfaceKey: 'connect-genfeed-resolver',
-    });
-    expect(resolveWorkspaceShellRoute('/acme/~/connect')).toMatchObject({
+  it('registers every Connectors section explicitly', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/~/connectors/channels'),
+    ).toMatchObject({
       accessPolicy: 'organization-member',
-      canonicalUrl: '/:orgSlug/~/connect',
-      safeFallback: '/:orgSlug/~/connect',
+      breadcrumb: { leafLabel: 'Channels', rootLabel: 'Connectors' },
+      canonicalUrl: '/:orgSlug/~/connectors/channels',
+      safeFallback: '/:orgSlug/~/connectors/agents',
       scope: 'organization',
-      surfaceKey: 'connect-genfeed',
+      surfaceKey: 'connectors',
+    });
+    expect(
+      resolveWorkspaceShellRoute('/acme/~/connectors/providers'),
+    ).toMatchObject({
+      breadcrumb: { leafLabel: 'AI providers', rootLabel: 'Connectors' },
+      surfaceKey: 'connectors',
     });
     expect(resolveWorkspaceShellRoute('/acme/~/connect/social')).toMatchObject({
       accessPolicy: 'organization-member',
@@ -478,9 +480,9 @@ describe('workspace shell trusted registry', () => {
   });
 
   it('does not treat reserved application prefixes as scoped routes', () => {
-    expect(resolveWorkspaceShellRoute('/connect/~/overview')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/connectors/~/overview')).toBeNull();
     expect(
-      resolveWorkspaceShellRoute('/connect/example/publishing'),
+      resolveWorkspaceShellRoute('/connectors/example/publishing'),
     ).toBeNull();
     expect(resolveWorkspaceShellRoute('/settings/~/overview')).toBeNull();
     expect(

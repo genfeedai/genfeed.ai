@@ -222,7 +222,7 @@ export default function ConnectedTimelines() {
   const translate = useTranslations('ui.discovery');
   const scope = useCollectionScope();
   const brandId = scope.brandId ?? '';
-  const { href } = useOrgUrl();
+  const { orgHref } = useOrgUrl();
   const client = useQueryClient();
   const getService = useAuthedService((token: string) =>
     SocialTimelinesService.getInstance(token),
@@ -253,7 +253,7 @@ export default function ConnectedTimelines() {
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SM}
               >
-                <Link href={href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}>
+                <Link href={orgHref(APP_ROUTES.CONNECTORS.CHANNELS)}>
                   {translate('connectedAccounts')}
                 </Link>
               </Button>

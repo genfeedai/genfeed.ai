@@ -90,7 +90,7 @@ const URL_RESTORATION_POLICY = Object.freeze({
 
 const RESERVED_SCOPED_ROUTE_PREFIXES = Object.freeze([
   'admin',
-  'connect',
+  'connectors',
   'settings',
   'support',
 ]);
@@ -487,7 +487,6 @@ function hasRequiredPathScope(
     case 'personal':
       return (
         pathname === '/' ||
-        pathname === '/connect' ||
         pathname.startsWith('/support/') ||
         pathname.startsWith('/settings')
       );

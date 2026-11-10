@@ -26,6 +26,7 @@ import { Button } from '@ui/primitives/button';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import IngredientsLayout from '@/features/ingredients/layout/ingredients-layout';
 import type { SelectedBrandState } from '@/features/library/props/library-voices-page.props';
 import { useVoiceCatalog } from '@/features/library/voices/hooks/use-voice-catalog';
@@ -55,6 +56,7 @@ function LibraryVoicesContent() {
   const searchParamsString = searchParams.toString();
   const { closeUpload, openUpload } = useUploadModal();
   const { href, orgHref } = useOrgUrl();
+  const isAgentAvailable = useIsAppAvailable('agent');
   const translateAccountVoices = useTranslations('pages.library.accountVoices');
   const { organizationId, refreshBrands, selectedBrand } = useBrand();
   const { brandId } = useCollectionScope();
@@ -346,7 +348,7 @@ function LibraryVoicesContent() {
       </div>
 
       <VoiceCreateCallout
-        connectHref={orgHref(APP_ROUTES.SETTINGS.INTEGRATIONS)}
+        connectHref={orgHref(APP_ROUTES.CONNECTORS.PROVIDERS)}
         onUploadSample={handleOpenCloneModal}
         recordHref={href(APP_ROUTES.LIBRARY.VOICE_STUDIO)}
         twinHref={href(APP_ROUTES.LIBRARY.AVATAR_TWIN)}
@@ -354,7 +356,7 @@ function LibraryVoicesContent() {
 
       {isAccountImportOpen ? (
         <ElevenLabsAccountVoicesDialog
-          connectHref={orgHref(APP_ROUTES.SETTINGS.INTEGRATIONS)}
+          connectHref={orgHref(APP_ROUTES.CONNECTORS.PROVIDERS)}
           onClose={() => setIsAccountImportOpen(false)}
           onImported={handleAccountVoiceImported}
         />
@@ -379,7 +381,9 @@ function LibraryVoicesContent() {
         <VoiceLibrarySkeleton />
       ) : !voicesError ? (
         <VoiceCatalogList
-          generateHref={href(APP_ROUTES.AGENT.NEW)}
+          generateHref={
+            isAgentAvailable ? href(APP_ROUTES.AGENT.NEW) : undefined
+          }
           hasActiveFilters={hasActiveFilters}
           onClearFilters={handleClearFilters}
           onCloneVoice={handleOpenCloneModal}

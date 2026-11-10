@@ -1,5 +1,6 @@
 import type { AppRailFeatureFlagKey } from '../../constants/feature-flags.constant';
 import type { OrganizationModuleId } from '../../constants/organization-modules.constant';
+import type { ReleaseItemId } from '../../constants/release-items.constant';
 import type { IconComponent } from '../../types/icon';
 import type { AppContext, MenuItemConfig } from './menu-config.interface';
 import type { AdminRailCategoryId } from './route-manifest.interface';
@@ -32,6 +33,8 @@ export interface AppRailItemConfig {
   activePathRoots: readonly string[];
   visibilityFlagKey?: AppRailFeatureFlagKey;
   organizationModule?: OrganizationModuleId;
+  /** Release item for an app with no organization module (the Agent app). */
+  releaseItemId?: ReleaseItemId;
   isBrandAware?: boolean;
   route: (orgSlug: string, brandSlug?: string) => string;
 }

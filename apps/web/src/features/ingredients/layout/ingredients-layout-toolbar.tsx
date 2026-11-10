@@ -11,6 +11,7 @@ import { Button as PrimitiveButton } from '@ui/primitives/button';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import FiltersButton from '@/components/content/filters-button/FiltersButton';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 
 import type { IngredientsLayoutConfig } from './ingredients-layout.config';
 import LibraryAssetTypeFilter from './library-asset-type-filter';
@@ -27,6 +28,7 @@ export default function IngredientsLayoutToolbar({
   onFiltersChange,
 }: IngredientsLayoutToolbarProps) {
   const { href } = useOrgUrl();
+  const isAgentAvailable = useIsAppAvailable('agent');
 
   return (
     <div className="flex w-full min-w-0 items-center justify-between gap-3">
@@ -46,7 +48,7 @@ export default function IngredientsLayoutToolbar({
 
         {/* One-off generation is Agent-first — the standalone Studio
             image/video/avatar/music prompt bars are retired. */}
-        {config.showGenerateLink ? (
+        {config.showGenerateLink && isAgentAvailable ? (
           <PrimitiveButton asChild variant={ButtonVariant.DEFAULT}>
             <Link href={href(APP_ROUTES.AGENT.NEW)}>
               <ExternalLink />

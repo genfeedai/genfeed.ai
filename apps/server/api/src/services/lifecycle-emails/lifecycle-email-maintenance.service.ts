@@ -574,13 +574,18 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     const organizationPath = encodeURIComponent(organizationSlug);
     return {
       destinationUrl: destinationBrand
-        ? `${this.appUrl()}${createBrandAppRoute(
-            organizationPath,
-            encodeURIComponent(destinationBrand.slug),
+        ? `${this.appUrl()}${
             missingConnection
-              ? APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS
-              : APP_ROUTES.STUDIO.PLAYGROUND,
-          )}`
+              ? createOrganizationAppRoute(
+                  organizationPath,
+                  APP_ROUTES.CONNECTORS.CHANNELS,
+                )
+              : createBrandAppRoute(
+                  organizationPath,
+                  encodeURIComponent(destinationBrand.slug),
+                  APP_ROUTES.STUDIO.PLAYGROUND,
+                )
+          }`
         : `${this.appUrl()}/${organizationPath}`,
       missingConnection,
     };
@@ -649,7 +654,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         select: { slug: true, label: true },
       });
       if (!brand) continue;
-      const destinationUrl = `${this.appUrl()}${createBrandAppRoute(encodeURIComponent(organizationSlug), encodeURIComponent(brand.slug), APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}`;
+      const destinationUrl = `${this.appUrl()}${createOrganizationAppRoute(encodeURIComponent(organizationSlug), APP_ROUTES.CONNECTORS.CHANNELS)}`;
       const waitingWhere = {
         ...GENERATED_CONTENT_FILTER,
         brandId: item.brandId,

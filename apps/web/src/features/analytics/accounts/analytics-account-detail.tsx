@@ -108,8 +108,7 @@ export default function AnalyticsAccountDetail() {
           variant={ButtonVariant.SECONDARY}
           onClick={() =>
             router.push(
-              detail?.identity.manageHref ??
-                APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
+              detail?.identity.manageHref ?? APP_ROUTES.CONNECTORS.CHANNELS,
             )
           }
         />

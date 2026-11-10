@@ -63,7 +63,7 @@ vi.mock('@services/ingredients/heygen.service', () => ({
 function renderCallout(onUploadSample = vi.fn()) {
   render(
     <VoiceCreateCallout
-      connectHref="/acme/settings/integrations"
+      connectHref="/acme/~/connectors/providers"
       onUploadSample={onUploadSample}
       recordHref="/acme/main/library/voices/record"
       twinHref="/acme/main/library/avatars/twin"
@@ -87,7 +87,7 @@ describe('VoiceCreateCallout', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Connect your account' }),
-    ).toHaveAttribute('href', '/acme/settings/integrations');
+    ).toHaveAttribute('href', '/acme/~/connectors/providers');
     expect(
       screen.queryByRole('link', { name: 'Record my voice' }),
     ).not.toBeInTheDocument();
