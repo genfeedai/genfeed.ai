@@ -441,6 +441,19 @@ export async function scheduleAgentPost(
   }
 }
 
+/**
+ * The post text a tool call carries. `create_post` advertises it as `content`,
+ * `textContent` and `caption`, and models use all three.
+ */
+export function readAgentPostText(
+  params: Record<string, unknown>,
+): string | undefined {
+  const text = [params.caption, params.content, params.textContent].find(
+    (value) => typeof value === 'string',
+  );
+  return typeof text === 'string' ? text.trim() : undefined;
+}
+
 export async function createAgentTextDraft(
   postsService: PostsService,
   params: Record<string, unknown>,
@@ -457,6 +470,14 @@ export async function createAgentTextDraft(
   if (media.error !== undefined) {
     return { creditsUsed: 0, error: media.error, success: false };
   }
+  const text = readAgentPostText(params) ?? '';
+  if (!text && media.ingredientIds.length === 0) {
+    return {
+      creditsUsed: 0,
+      error: 'A post draft needs text in content, or media to attach.',
+      success: false,
+    };
+  }
 
   const post = await postsService.create({
     ...(ctx.runId ? { workflowExecutionId: ctx.runId } : {}),
@@ -465,10 +486,10 @@ export async function createAgentTextDraft(
     agentContextVersion: ctx.validatedScope?.contextVersion,
     agentThreadId: ctx.validatedScope?.threadId,
     brandId: ctx.validatedScope?.brandId,
-    description: params.content as string,
+    description: text,
     ingredients: media.ingredientIds,
     ...(media.category ? { category: media.category } : {}),
-    label: ((params.content as string) || '').substring(0, 100),
+    label: text.substring(0, 100),
     organizationId: ctx.organizationId,
     source: 'agent',
     targetExecutionState: TargetExecutionState.DRAFT,

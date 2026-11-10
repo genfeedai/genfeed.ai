@@ -4,17 +4,24 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
-import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@ui/primitives/tooltip';
-import { CircleQuestionMark, type LucideIcon, Plug } from 'lucide-react';
+import {
+  CircleQuestionMark,
+  type LucideIcon,
+  Plug,
+  Settings,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import UserDropdown from '@/components/menus/user-dropdown/UserDropdown';
+
+const SETTINGS_PATH_PATTERN = /\/settings(?:\/|$)/;
 
 function resolveDisplayName(
   fullName: string | null | undefined,
@@ -78,19 +85,19 @@ function RailLink({
 }
 
 /**
- * Bottom of the app rail, Codex-style: Connectors, Help and the signed-in
- * avatar. Connectors is where everything an organization connects lives
- * (agents, channels, AI providers, API keys, webhooks). The
- * avatar opens the account menu; name and email live in that menu, not beside
- * the avatar.
+ * Bottom of the app rail, Codex-style: Connectors, Settings, Help and the
+ * signed-in avatar. Connectors is where everything an organization connects
+ * lives (agents, channels, AI providers, API keys, webhooks). The avatar opens
+ * the account menu; name and email live in that menu, not beside the avatar.
  */
 export default function RailAccount() {
   const translate = useTranslations('common.appRail');
   const pathname = usePathname();
-  const { orgHref } = useOrgUrl();
+  const { orgHref, orgSlug } = useOrgUrl();
   const isConnectorsActive = Boolean(pathname?.includes('/~/connectors'));
   const { isSignedIn } = useAuthIdentity();
   const { user } = useAuthUser();
+  const isSettingsActive = SETTINGS_PATH_PATTERN.test(pathname ?? '');
 
   const emailAddress = user?.primaryEmailAddress?.emailAddress ?? '';
 
@@ -106,6 +113,15 @@ export default function RailAccount() {
         label={translate('connectors')}
         testId="app-rail-connectors"
       />
+      {orgSlug ? (
+        <RailLink
+          href={orgHref(APP_ROUTES.SETTINGS.GENERAL)}
+          icon={Settings}
+          isActive={isSettingsActive}
+          label={translate('settings')}
+          testId="app-rail-settings"
+        />
+      ) : null}
       <RailLink
         href={APP_ROUTES.SETTINGS.HELP}
         icon={CircleQuestionMark}

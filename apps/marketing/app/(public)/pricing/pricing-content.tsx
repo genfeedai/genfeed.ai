@@ -91,7 +91,7 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'Yes. Connect Claude, ChatGPT, Codex, Cursor or any MCP client. Your agent drafts and schedules with your brand context, and you review and publish in the dashboard. What an agent can do depends on its client; the Claude connector cannot create images or video, so those are made in Genfeed Studio.',
+      'Yes. Connect Claude, ChatGPT, Codex, Cursor or any MCP client. Your agent drafts and schedules with your brand context, and you review and publish in the dashboard. What an agent can do depends on its client; the Claude connector cannot create images or video, so add the full Genfeed server as a second connector to generate images, video and audio.',
     question: 'Can I use my own agent?',
   },
   {

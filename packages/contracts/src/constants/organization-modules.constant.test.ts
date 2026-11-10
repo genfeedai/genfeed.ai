@@ -14,7 +14,6 @@ const cloud: OrganizationModuleAccessInput = {
   isSettingsLoaded: true,
   hasOrganizationBilling: true,
   hasPaidSubscription: false,
-  isReleased: true,
   operation: 'write',
 };
 
@@ -34,28 +33,46 @@ const UNRELEASED_MODULE_IDS = [
   'messages',
 ] as const;
 
-describe('release gate', () => {
+describe('release is presentation only', () => {
   it.each(UNRELEASED_MODULE_IDS)(
-    'refuses new %s work while unreleased, even when paid',
+    'admits new %s work for a paid organization',
     (moduleId) => {
       expect(
         resolveOrganizationModuleAccess({
           ...cloud,
           moduleId,
           hasPaidSubscription: true,
-          isReleased: false,
         }),
-      ).toEqual({ isAllowed: false, reason: 'unreleased' });
+      ).toEqual({ isAllowed: true, reason: null });
     },
   );
 
-  it('keeps reads, exports and cancellation of unreleased modules available', () => {
+  it.each(['motion', 'clipper', 'editor'] as const)(
+    'admits new %s work without a subscription',
+    (moduleId) => {
+      expect(resolveOrganizationModuleAccess({ ...cloud, moduleId })).toEqual({
+        isAllowed: true,
+        reason: null,
+      });
+    },
+  );
+
+  it.each(['automation', 'messages'] as const)(
+    'still requires a paid subscription for %s',
+    (moduleId) => {
+      expect(resolveOrganizationModuleAccess({ ...cloud, moduleId })).toEqual({
+        isAllowed: false,
+        reason: 'subscription-required',
+      });
+    },
+  );
+
+  it('keeps reads, exports and cancellation available', () => {
     for (const operation of ['read', 'export', 'cancel'] as const) {
       expect(
         resolveOrganizationModuleAccess({
           ...cloud,
           moduleId: 'automation',
-          isReleased: false,
           operation,
         }),
       ).toEqual({ isAllowed: true, reason: null });
@@ -261,7 +278,6 @@ describe('organization module admission', () => {
             moduleId,
             isSettingsLoaded: false,
             hasPaidSubscription: null,
-            isReleased: false,
             operation,
           }).isAllowed,
         ).toBe(true);
@@ -404,12 +420,11 @@ describe('module presentation', () => {
 });
 
 describe('existing work cancellation', () => {
-  it('allows stopping existing work while new Motion work is unreleased', () => {
+  it('allows stopping existing Motion work', () => {
     expect(
       resolveOrganizationModuleAccess({
         ...cloud,
         moduleId: 'motion',
-        isReleased: false,
         operation: 'cancel',
       }),
     ).toEqual({ isAllowed: true, reason: null });

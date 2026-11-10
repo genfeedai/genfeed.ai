@@ -185,7 +185,7 @@ const UI_TEST_MESSAGES = {
         description: 'Reply to audience.',
       },
       discovery: {
-        label: 'Discovery',
+        label: 'Trends',
         description: 'Find winners.',
       },
       analytics: {

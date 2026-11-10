@@ -10,8 +10,9 @@ import {
 /**
  * Modules an organization shows or hides for its members. A switch only
  * hides the module's app: the API and MCP never refuse work because of it.
- * New work is gated by the module's release (Admin → Flags `release_<id>`)
- * and, on cloud, the subscription for paid modules. The platform kill switch
+ * Neither does a module's release (Admin → Flags `release_<id>`): it hides
+ * the app in the web app only. New work is gated, on cloud, by the
+ * subscription for paid modules. The platform kill switch
  * (`platformFlagKey`) answers every module route with 404, except
  * Playground (see `isOrganizationModuleSwitchedOff`).
  */
@@ -202,31 +203,33 @@ export function resolveOrganizationModulePreferences(
   ) as OrganizationModulePreferences;
 }
 
-export type OrganizationModuleAccess =
+/** What the server decides for one module operation. */
+export type OrganizationModuleAdmission =
   | { isAllowed: true; reason: null }
   | {
       isAllowed: false;
-      reason:
-        | 'disabled'
-        | 'subscription-required'
-        | 'unreleased'
-        | 'unavailable';
+      reason: 'subscription-required' | 'unavailable';
     };
+
+/** Admission, or why the app shell hides the module. */
+export type OrganizationModuleAccess =
+  | OrganizationModuleAdmission
+  | { isAllowed: false; reason: 'disabled' | 'unreleased' };
 
 export interface OrganizationModuleAccessInput {
   moduleId: OrganizationModuleId;
   isSettingsLoaded: boolean;
   hasOrganizationBilling: boolean;
   hasPaidSubscription: boolean | null;
-  /** From `isReleaseItemVisible` for this organization. */
-  isReleased: boolean;
   operation: 'read' | 'export' | 'cancel' | 'write';
 }
 
 /**
  * What the app shell shows for a module: hidden by the organization
- * (`disabled`), or the admission the server would decide. The server still
- * rechecks every write and ignores the organization's switch.
+ * (`disabled`), hidden because it is not released (`unreleased`), or the
+ * admission the server would decide. Release is presentation only: the
+ * server admits writes to an unreleased module for API and MCP callers, and
+ * ignores the organization's switch.
  */
 export function resolveOrganizationModulePresentationAccess(
   settings: OrganizationModulePreferenceInput | null | undefined,
@@ -237,9 +240,10 @@ export function resolveOrganizationModulePresentationAccess(
     return { isAllowed: false, reason: 'unavailable' };
   const overrides = parseOrganizationModuleOverrides(settings.moduleOverrides);
   if (!overrides) return { isAllowed: false, reason: 'unavailable' };
-  const isReleased = isReleaseItemVisible(moduleId, settings, flags);
+  if (!isReleaseItemVisible(moduleId, settings, flags)) {
+    return { isAllowed: false, reason: 'unreleased' };
+  }
   if (
-    isReleased &&
     !isOrganizationModuleShown(
       moduleId,
       overrides,
@@ -257,26 +261,24 @@ export function resolveOrganizationModulePresentationAccess(
       typeof settings.hasPaidModuleSubscription === 'boolean'
         ? settings.hasPaidModuleSubscription
         : null,
-    isReleased,
   });
 }
 
 /**
- * Admission only: authorization, platform flags and credits still apply.
- * The organization's module switches only hide apps, so they never refuse
- * work here; API and MCP callers keep working with a module's app hidden.
+ * Admission only: authorization, platform flags, the subscription for paid
+ * modules and credits still apply. Neither the organization's module
+ * switches nor a module's release refuse work here: they only hide the app,
+ * so API and MCP callers keep working in a module the web app does not show.
  */
 export function resolveOrganizationModuleAccess({
   moduleId,
   isSettingsLoaded,
   hasOrganizationBilling,
   hasPaidSubscription,
-  isReleased,
   operation,
-}: OrganizationModuleAccessInput): OrganizationModuleAccess {
+}: OrganizationModuleAccessInput): OrganizationModuleAdmission {
   if (operation !== 'write') return { isAllowed: true, reason: null };
   if (!isSettingsLoaded) return { isAllowed: false, reason: 'unavailable' };
-  if (!isReleased) return { isAllowed: false, reason: 'unreleased' };
   if (
     hasOrganizationBilling &&
     ORGANIZATION_MODULES[moduleId].requiresSubscription

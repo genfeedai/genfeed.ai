@@ -98,6 +98,7 @@ export const MODEL_KEYS = {
   MUREKA_V9: 'mureka/v9',
   ARGIL_ATOM: 'argil/atom',
   REPLICATE_FIRTOZ_TRELLIS: 'firtoz/trellis',
+  REPLICATE_HYPER3D_RODIN: 'hyper3d/rodin',
   HEYGEN_AVATAR: 'heygen/avatar',
   HEYGEN_AVATAR_IV: 'heygen/avatar-iv',
   HEYGEN_AVATAR_V: 'heygen/avatar-v',

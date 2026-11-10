@@ -40,6 +40,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { applyLibraryAssetMetadataChange } from '@/components/ingredients/inspector/library-asset-metadata-event';
 import { LazyModalImageToVideo } from '@/components/lazy/modal/LazyModal';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import {
   applyLibraryAssetTagsChange,
   applyLibraryTagUpdate,
@@ -151,6 +152,8 @@ export default function IngredientsList({
     fontFamilies,
     blacklists,
   } = useIngredientsList({ folderNavigation, scope, type });
+  // Reviewing a failed asset opens it in Playground.
+  const isPlaygroundAvailable = useIsAppAvailable('playground');
   // The folders column only exists for brand/org scopes; the admin scope
   // renders no sidebar, so reserving its column squeezes the list into 14rem.
   const hasFoldersSidebar =
@@ -379,7 +382,9 @@ export default function IngredientsList({
                       retriedIds: failedRecovery.retriedIds,
                       onDelete: failedRecovery.handleDeleteFailedIngredients,
                       onRetry: failedRecovery.handleRetryFailedIngredients,
-                      onReview: failedRecovery.handleReviewFailedIngredient,
+                      onReview: isPlaygroundAvailable
+                        ? failedRecovery.handleReviewFailedIngredient
+                        : undefined,
                     }
                   : undefined
               }

@@ -157,12 +157,7 @@ describe('OrganizationAppsPage (#7842)', () => {
       screen
         .getAllByTestId(/^apps-app-(?!detail)/)
         .map((element) => element.dataset.testid),
-    ).toEqual([
-      'apps-app-playground',
-      'apps-app-storyboard',
-      'apps-app-turbo',
-      'apps-app-discovery',
-    ]);
+    ).toEqual(['apps-app-playground', 'apps-app-storyboard', 'apps-app-turbo']);
   });
 
   it('shows the search and the grid without filters or a view toggle', () => {
@@ -251,7 +246,7 @@ describe('OrganizationAppsPage (#7842)', () => {
     };
     render(<OrganizationAppsPage />);
 
-    expect(screen.getAllByTestId(/^apps-app-(?!detail)/)).toHaveLength(9);
+    expect(screen.getAllByTestId(/^apps-app-(?!detail)/)).toHaveLength(8);
   });
 
   it('opens an installed app and installs one that is not installed', async () => {
@@ -304,7 +299,8 @@ describe('OrganizationAppsPage (#7842)', () => {
     mocks.brand.settings = {
       hasOrganizationBilling: true,
       hasPaidModuleSubscription: false,
-      moduleOverrides: { turbo: false },
+      isReleasePreviewEnabled: true,
+      moduleOverrides: { automation: true, turbo: false },
     };
     render(<OrganizationAppsPage />);
 
@@ -320,8 +316,8 @@ describe('OrganizationAppsPage (#7842)', () => {
         name: 'Organization settings',
       }),
     ).toHaveAttribute('href', '/acme/~/settings/modules');
-    await selectApp(user, 'discovery');
-    expect(appState('discovery')).toBe('subscription-required');
+    await selectApp(user, 'automation');
+    expect(appState('automation')).toBe('subscription-required');
     expect(
       within(detail()).getByRole('link', {
         name: 'View plans',
@@ -411,7 +407,7 @@ describe('OrganizationAppsPage (#7842)', () => {
     await user.click(screen.getByRole('button', { name: 'Show all apps' }));
 
     expect(screen.queryByTestId('apps-empty')).toBeNull();
-    expect(screen.getAllByTestId(/^apps-app-(?!detail)/)).toHaveLength(4);
+    expect(screen.getAllByTestId(/^apps-app-(?!detail)/)).toHaveLength(3);
   });
 
   it('blocks repeat installs and removals while saving', async () => {
@@ -492,7 +488,7 @@ describe('OrganizationAppsPage (#7842)', () => {
     };
     render(<OrganizationAppsPage />);
     const rows = screen.getAllByTestId(/^apps-app-(?!detail)/);
-    expect(rows).toHaveLength(9);
+    expect(rows).toHaveLength(8);
     for (const row of rows) {
       await user.click(within(row).getByRole('button', { name: /^Select / }));
       expect(

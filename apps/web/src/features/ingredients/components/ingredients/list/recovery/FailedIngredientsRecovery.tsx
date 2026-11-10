@@ -81,6 +81,10 @@ function FailedIngredientRow({
   const t = useTranslations('pages.library.recovery');
   const formatter = useFormatter();
   const recovery = getIngredientRecovery(ingredient);
+  // Every action except retry and details opens Playground; without it the row
+  // opens the asset's details instead.
+  const action =
+    recovery.action !== 'retry' && !onReview ? 'viewDetails' : recovery.action;
   const label = getIngredientDisplayLabel(ingredient) || t('untitled');
   const prompt = getIngredientPromptText(ingredient) || ingredient.text;
   const model = getIngredientModelLabel(ingredient);
@@ -150,7 +154,7 @@ function FailedIngredientRow({
       </SimpleTooltip>
       <div className="flex shrink-0 items-center gap-2 lg:justify-end">
         <Button
-          label={hasRetried ? t('started') : t(`actions.${recovery.action}`)}
+          label={hasRetried ? t('started') : t(`actions.${action}`)}
           className="w-20 shrink-0"
           withWrapper={false}
           size={ButtonSize.SM}
@@ -158,12 +162,12 @@ function FailedIngredientRow({
           isDisabled={
             isRecovering ||
             hasRetried ||
-            (!isActionsEnabled && recovery.action === 'retry')
+            (!isActionsEnabled && action === 'retry')
           }
           onClick={() =>
-            recovery.action === 'retry'
+            action === 'retry'
               ? onRetry([ingredient])
-              : recovery.action === 'viewDetails'
+              : action === 'viewDetails' || !onReview
                 ? onInspect(ingredient)
                 : onReview(ingredient)
           }

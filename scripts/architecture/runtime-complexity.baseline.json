@@ -150,7 +150,7 @@
     "symbol": "AgentAnalyticsToolHandler.getAnalytics"
   },
   {
-    "actual": 1083,
+    "actual": 1077,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts"
@@ -276,7 +276,7 @@
     "symbol": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/skills/content.tsx"
   },
   {
-    "actual": 1065,
+    "actual": 1061,
     "file": "apps/web/app/(protected)/home/operational-home-sections.tsx",
     "metric": "file-lines",
     "symbol": "apps/web/app/(protected)/home/operational-home-sections.tsx"
@@ -306,7 +306,7 @@
     "symbol": "apps/web/src/features/brands/components/sidebar/BrandDetailSocialMediaCard.tsx"
   },
   {
-    "actual": 1012,
+    "actual": 1003,
     "file": "apps/web/src/features/ingredients/components/list/content/IngredientsListContent.tsx",
     "metric": "file-lines",
     "symbol": "apps/web/src/features/ingredients/components/list/content/IngredientsListContent.tsx"

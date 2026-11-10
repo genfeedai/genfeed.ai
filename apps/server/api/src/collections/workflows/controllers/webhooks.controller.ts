@@ -174,7 +174,6 @@ export class WebhooksController {
           [
             'ORGANIZATION_MODULE_SUBSCRIPTION_REQUIRED',
             'ORGANIZATION_MODULE_UNAVAILABLE',
-            'ORGANIZATION_MODULE_UNRELEASED',
           ].includes(response.code)
         ) {
           throw error;

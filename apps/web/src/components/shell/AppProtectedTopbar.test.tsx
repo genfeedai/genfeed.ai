@@ -246,6 +246,10 @@ vi.mock('next-intl', () => ({
     )[namespace]?.[key] ?? key,
 }));
 
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useHasAppsBeyondDashboard: () => true,
+}));
+
 vi.mock(
   '@/components/menus/organization-switcher/OrganizationSwitcher',
   () => ({

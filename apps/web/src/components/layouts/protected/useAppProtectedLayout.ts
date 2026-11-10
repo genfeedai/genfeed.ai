@@ -30,6 +30,7 @@ import {
   getActiveAppId,
   isAppRailPathEnabled,
 } from '@/components/shell/app-rail/app-rail.registry';
+import { useHasAppsBeyondDashboard } from '@/components/shell/use-available-rail-apps';
 import {
   ADMIN_MENU_ITEMS,
   withCollapsibleAdminGroups,
@@ -403,6 +404,7 @@ export function useAppProtectedLayout(
   // drives the sidebar menu, not switcher visibility). See the helper's doc.
   const isPersonalSettingsPage = computeIsPersonalSettingsPage(rawPathname);
 
+  const hasAppsBeyondDashboard = useHasAppsBeyondDashboard();
   const settingsMenuItems = useMemo(
     () =>
       buildSettingsMenuItems({
@@ -415,6 +417,10 @@ export function useAppProtectedLayout(
             isSubscriptionAvailable ||
             item.href !== APP_ROUTES.SETTINGS.SUBSCRIPTION,
         )
+        .filter(
+          (item) =>
+            hasAppsBeyondDashboard || item.href !== APP_ROUTES.SETTINGS.MODULES,
+        )
         .map(
           (item): MenuItemConfig => ({
             ...item,
@@ -422,6 +428,7 @@ export function useAppProtectedLayout(
           }),
         ),
     [
+      hasAppsBeyondDashboard,
       isSubscriptionAvailable,
       settingsScope,
       showCredits,

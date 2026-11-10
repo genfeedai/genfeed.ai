@@ -3,10 +3,6 @@ import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const navigation = vi.hoisted(() => ({
-  pathname: '/acme/~/workspace/overview',
-}));
-
 const auth = vi.hoisted(() => ({
   isSignedIn: true,
   user: null as {
@@ -26,12 +22,21 @@ vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({
   useAuthUser: () => ({ user: auth.user }),
 }));
 
-vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ orgHref: (href: string) => `/acme/~${href}` }),
+const orgScope = vi.hoisted(() => ({
+  orgSlug: 'acme' as string | undefined,
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    orgHref: (href: string) => `/${orgScope.orgSlug}/~${href}`,
+    orgSlug: orgScope.orgSlug,
+  }),
+}));
+
+const route = vi.hoisted(() => ({ pathname: '/acme/~/workspace/overview' }));
+
 vi.mock('next/navigation', () => ({
-  usePathname: () => navigation.pathname,
+  usePathname: () => route.pathname,
 }));
 
 vi.mock('next-intl', async () => {
@@ -72,7 +77,8 @@ import RailAccount from './RailAccount';
 
 describe('RailAccount', () => {
   beforeEach(() => {
-    navigation.pathname = '/acme/~/workspace/overview';
+    orgScope.orgSlug = 'acme';
+    route.pathname = '/acme/~/workspace/overview';
     auth.isSignedIn = true;
     auth.user = {
       fullName: 'Vincent Tellier',
@@ -98,19 +104,50 @@ describe('RailAccount', () => {
   it('opens Connectors from the rail and marks it current on every section', () => {
     const { rerender } = render(<RailAccount />);
 
-    const link = screen.getByRole('link', {
-      name: 'Connectors',
-    });
+    const link = screen.getByRole('link', { name: 'Connectors' });
     expect(link).toHaveAttribute('href', '/acme/~/connectors/agents');
     expect(link).not.toHaveAttribute('aria-current');
 
-    navigation.pathname = '/acme/~/connectors/api-keys';
+    route.pathname = '/acme/~/connectors/api-keys';
     rerender(<RailAccount />);
 
     expect(screen.getByRole('link', { name: 'Connectors' })).toHaveAttribute(
       'aria-current',
       'page',
     );
+  });
+
+  it('pins Settings above Help and links it to the organization settings', () => {
+    render(<RailAccount />);
+
+    const settings = screen.getByRole('link', { name: 'Settings' });
+    expect(settings).toHaveAttribute('href', '/acme/~/settings/general');
+    expect(settings).not.toHaveAttribute('aria-current');
+    expect(
+      settings.compareDocumentPosition(screen.getByTestId('app-rail-help')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('marks Settings current on a settings page', () => {
+    route.pathname = '/acme/~/settings/brands';
+
+    render(<RailAccount />);
+
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('has no Settings link without an organization', () => {
+    orgScope.orgSlug = undefined;
+
+    render(<RailAccount />);
+
+    expect(
+      screen.queryByRole('link', { name: 'Settings' }),
+    ).not.toBeInTheDocument();
   });
 
   it('keeps Help but drops the avatar when signed out', () => {

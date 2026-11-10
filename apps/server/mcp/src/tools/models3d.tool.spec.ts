@@ -49,6 +49,18 @@ describe('3D render MCP tools', () => {
         prompt: 'a house',
       }).success,
     ).toBe(true);
+    expect(
+      render.safeParse({
+        imageUrl: 'https://example.com/a.png',
+        quality: 'high',
+      }).success,
+    ).toBe(true);
+    expect(
+      render.safeParse({
+        imageUrl: 'https://example.com/a.png',
+        quality: 'ultra',
+      }).success,
+    ).toBe(false);
     expect(get.safeParse({ id: '../etc' }).success).toBe(false);
     expect(get.safeParse({ id: '' }).success).toBe(false);
     expect(get.safeParse({ id: 'abc123' }).success).toBe(true);

@@ -20,6 +20,7 @@ import { Flame, Gift, ShieldCheck, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import CreationHeatmap from '@/components/analytics/creation-heatmap/CreationHeatmap';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import StreakCelebrationBurst from '@/features/streaks/components/feedback/streak-celebration/StreakCelebrationBurst';
 import { rewardLabel } from '@/features/streaks/reward-label';
 import { useStreak } from '@/hooks/data/streaks/use-streak/use-streak';
@@ -29,9 +30,13 @@ export default function StreaksPage() {
   const { calendar, isLoading, streak } = useStreak();
   const { setToolbarNode } = useAnalyticsContext();
   const [isCelebrating, setIsCelebrating] = useState(false);
+  const isAgentAvailable = useIsAppAvailable('agent');
   const createHref = href(APP_ROUTES.AGENT.NEW);
 
   useEffect(() => {
+    if (!isAgentAvailable) {
+      return;
+    }
     setToolbarNode(
       <Button asChild variant={ButtonVariant.DEFAULT}>
         {/* One-off generation is Agent-first. */}
@@ -42,7 +47,7 @@ export default function StreaksPage() {
       </Button>,
     );
     return () => setToolbarNode(null);
-  }, [createHref, setToolbarNode]);
+  }, [createHref, isAgentAvailable, setToolbarNode]);
 
   useEffect(() => {
     const handleCelebration = (_event: Event) => {

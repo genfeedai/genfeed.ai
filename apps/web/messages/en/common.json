@@ -2824,13 +2824,6 @@
         "highlightTwo": "Reply in place",
         "highlightThree": "Keep up with your audience"
       },
-      "discovery": {
-        "description": "Find trends and content opportunities in your niche.",
-        "summary": "Research what is trending on social platforms for your brand’s niche and turn it into content ideas.",
-        "highlightOne": "Trending topics ranked by niche match",
-        "highlightTwo": "Spot what is working on each platform",
-        "highlightThree": "Turn a trend into a post idea"
-      },
       "automation": {
         "description": "Run workflows and recurring tasks.",
         "summary": "Build or install workflows that generate, schedule and publish content on their own, so recurring work happens without you starting it.",
@@ -2879,6 +2872,7 @@
     "goTo": "Go to {app}",
     "connectors": "Connectors",
     "help": "Help",
+    "settings": "Settings",
     "opening": "Opening app.",
     "locked": "{app} — locked. Generate your first asset to unlock.",
     "workspaceBadge": "{count, plural, one {# unread task needing attention} other {# unread tasks needing attention}}",
@@ -2927,7 +2921,7 @@
       "description": "Reply to audience."
     },
     "discovery": {
-      "label": "Discovery",
+      "label": "Trends",
       "description": "Find winners."
     },
     "analytics": {
