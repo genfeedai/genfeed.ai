@@ -18,22 +18,41 @@ test.describe('Output-first onboarding', () => {
       await expect(page.getByText(`Round 1 ${platform} draft`)).toBeVisible();
     await expect(page.getByTestId('preview-account-header')).toHaveCount(4);
     await expect(
-      page.getByRole('button', { name: 'Review drafts' }),
+      page.getByRole('button', { name: 'See your output' }),
     ).toHaveAttribute('aria-current', 'step');
     await expect(page.getByRole('button', { name: /edit/i })).toHaveCount(0);
     await page.reload();
     await expect(page.getByText('Round 1 twitter draft')).toBeVisible();
     expect(draftRequests).toHaveLength(1);
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Connect your agent' }),
+    ).toBeVisible();
+    await expect(
+      page.getByText('claude mcp add --transport http genfeed', {
+        exact: false,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText('Waiting for Claude Code to connect'),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Connect your agent' }),
+    ).toHaveAttribute('aria-current', 'step');
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
     for (const platform of ['instagram', 'tiktok', 'twitter', 'linkedin'])
       await expect(page.getByTestId(`connect-card-${platform}`)).toBeVisible();
     await expect(
-      page.getByRole('button', { name: 'Connect accounts' }),
+      page.getByRole('button', { name: 'Connect your channels' }),
     ).toHaveAttribute('aria-current', 'step');
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Connect your agent' }),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Back', exact: true }).click();
     await expect(page.getByText('Round 1 twitter draft')).toBeVisible();
     await expect(
-      page.getByRole('button', { name: 'Review drafts' }),
+      page.getByRole('button', { name: 'See your output' }),
     ).toHaveAttribute('aria-current', 'step');
     expect(draftRequests).toHaveLength(1);
   });
@@ -64,7 +83,7 @@ test.describe('Output-first onboarding', () => {
     expect(draftRequests).toHaveLength(0);
   });
 
-  test('finishes onto the drafts that were just reviewed', async ({
+  test('ends on a copyable first prompt and finishes onto the reviewed drafts', async ({
     onboardingPage: page,
   }) => {
     await setupOnboardingFirstDraftsMocks(page);
@@ -72,11 +91,61 @@ test.describe('Output-first onboarding', () => {
     await page.getByRole('button', { name: 'Submit brand link' }).click();
     await expect(page.getByText('Round 1 twitter draft')).toBeVisible();
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await expect(page.getByTestId('connect-card-twitter')).toBeVisible();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Now go to your agent' }),
+    ).toBeVisible();
+    await expect(
+      page.getByText('Draft three posts for', { exact: false }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Copy first prompt' }),
+    ).toBeVisible();
+    await expect(page.getByText('Your credits')).toBeVisible();
     await page.getByRole('button', { name: 'Finish', exact: true }).click();
     await expect(page).toHaveURL(
       /\/test-org\/brand-1\/publishing\/posts\?status=draft$/,
     );
+  });
+
+  test('lets the agent and channel steps be skipped and finished later', async ({
+    onboardingPage: page,
+  }) => {
+    await setupOnboardingFirstDraftsMocks(page);
+    await page.reload();
+    await page.getByRole('button', { name: 'Submit brand link' }).click();
+    await expect(page.getByText('Round 1 twitter draft')).toBeVisible();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.getByRole('button', { name: 'Skip for now' }).click();
+    await expect(page.getByTestId('connect-card-twitter')).toBeVisible();
+    await page.getByRole('button', { name: 'Skip for now' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Now go to your agent' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Finish', exact: true }).click();
+    await expect(page).toHaveURL(
+      /\/test-org\/brand-1\/publishing\/posts\?status=draft$/,
+    );
+  });
+
+  test('comes back to the step it was left on', async ({
+    onboardingPage: page,
+  }) => {
+    const { draftRequests } = await setupOnboardingFirstDraftsMocks(page);
+    await page.reload();
+    await page.getByRole('button', { name: 'Submit brand link' }).click();
+    await expect(page.getByText('Round 1 twitter draft')).toBeVisible();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Connect your agent' }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { name: 'Connect your agent' }),
+    ).toBeVisible();
+    expect(draftRequests).toHaveLength(1);
   });
 
   test('falls back to brand context when a public profile is blocked', async ({

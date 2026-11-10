@@ -79,7 +79,7 @@ export default function JourneyPageContent() {
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
-            <Link href={APP_ROUTES.ONBOARDING.PROVIDERS}>
+            <Link href={APP_ROUTES.ONBOARDING.ROOT}>
               {translate('backToOnboarding')}
             </Link>
           </Button>

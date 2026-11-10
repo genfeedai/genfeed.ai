@@ -282,17 +282,18 @@
       }
     },
     "steps": {
-      "brand": "Your brand",
-      "create": "Create content",
-      "review": "Review drafts",
-      "connect": "Connect accounts"
+      "output": "See your output",
+      "agent": "Connect your agent",
+      "channels": "Connect your channels",
+      "prompt": "Go to your agent"
     },
     "actions": {
       "label": "Onboarding actions",
       "back": "Back",
       "skip": "Skip onboarding",
       "continue": "Continue",
-      "finish": "Finish"
+      "finish": "Finish",
+      "skipStep": "Skip for now"
     },
     "skip": {
       "title": "Skip onboarding?",
@@ -308,6 +309,53 @@
     "gettingStarted": "Getting started",
     "brandFallback": "Your brand",
     "masterAlt": "Campaign image for {brand}",
-    "appName": "Genfeed"
+    "appName": "Genfeed",
+    "agent": {
+      "title": "Connect your agent",
+      "description": "From here on your agent does the making. Pick the one you already use.",
+      "clientLabel": "Agent client",
+      "clients": {
+        "claude-code": {
+          "label": "Claude Code",
+          "description": "Run one command, then sign in from /mcp."
+        },
+        "codex": {
+          "label": "Codex",
+          "description": "Run one command, then sign in from your browser."
+        },
+        "generic": {
+          "label": "Another MCP client",
+          "description": "Paste the server address into any client that supports remote MCP."
+        }
+      },
+      "copyCommand": "Copy command",
+      "copyAddress": "Copy address",
+      "copied": "Copied",
+      "copyFailed": "We couldn’t copy that. Select the text and copy it by hand.",
+      "waiting": "Waiting for {client} to connect",
+      "connectedTitle": "{client} is connected",
+      "connectedDescription": "It can see your brand, its voice and your library.",
+      "statusError": "We couldn’t check the connection. We’ll keep trying."
+    },
+    "channels": {
+      "title": "Connect your channels",
+      "description": "So your agent can publish to them. You can add more later."
+    },
+    "prompt": {
+      "title": "Now go to your agent",
+      "description": "Paste this into {client}. What it makes shows up in your workspace.",
+      "agentFallback": "your agent",
+      "copy": "Copy first prompt",
+      "textDrafts": "Look at my Genfeed brand and this week’s trends. Draft three posts for {brand} and save them for my review. Do not publish them.",
+      "textWithImages": "Look at my Genfeed brand and this week’s trends. Draft three posts for {brand}, generate an image for each, and save them for my review. Do not publish them.",
+      "credits": {
+        "label": "Your credits",
+        "balance": "{count, plural, one {# credit} other {# credits}}",
+        "unavailable": "Your balance isn’t available right now.",
+        "empty": "You are out of credits. Add credits so your agent can keep making.",
+        "topUp": "Add credits",
+        "note": "Your agent spends from the same balance. Free credits expire after 3 days on an account that never paid."
+      }
+    }
   }
 }

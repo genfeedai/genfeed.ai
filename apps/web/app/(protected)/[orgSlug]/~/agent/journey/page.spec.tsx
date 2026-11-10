@@ -89,7 +89,7 @@ describe('ChatJourneyPage', () => {
     expect(screen.getByText('Recommended next')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /back to onboarding/i }),
-    ).toHaveAttribute('href', '/onboarding/providers');
+    ).toHaveAttribute('href', '/onboarding');
   });
 
   it('renders chrome and placeholder stats while organization settings load', () => {
@@ -106,7 +106,7 @@ describe('ChatJourneyPage', () => {
     ).toHaveClass('sr-only');
     expect(
       screen.getByRole('link', { name: /back to onboarding/i }),
-    ).toHaveAttribute('href', '/onboarding/providers');
+    ).toHaveAttribute('href', '/onboarding');
     expect(screen.getByText('Available to unlock')).toBeInTheDocument();
     expect(screen.getByText('Journey unlocked')).toBeInTheDocument();
     expect(
