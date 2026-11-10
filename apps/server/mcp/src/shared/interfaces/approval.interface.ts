@@ -17,3 +17,24 @@ export interface McpApprovalResource {
 }
 
 export type McpApprovalDecision = 'approve' | 'decline';
+
+/**
+ * The requester's own answer to an approval prompt their MCP client showed
+ * them (#9647). It arrives as the client's elicitation response, which the
+ * model cannot write, bound to one approval by signed request state.
+ * `cancel` means the person dismissed the prompt: nothing runs and the
+ * approval stays where it is.
+ */
+export interface McpApprovalAnswer {
+  approvalId: string;
+  decision: McpApprovalDecision | 'cancel';
+}
+
+/**
+ * What a requester's in-conversation answer settled: run the approved action,
+ * keep it pending (the API refused the answer), or report a final message.
+ */
+export type McpApprovalAnswerOutcome =
+  | { kind: 'run'; approval: McpApprovalResource }
+  | { kind: 'pending'; approval: McpApprovalResource }
+  | { kind: 'message'; message: string };

@@ -133,6 +133,10 @@ export function toolCreditPricingFor(
       unit: 'second of HeyGen avatar clip',
     };
   }
+  if (name === 'render_3d') {
+    // Frozen quotes: angle sheet 50, GLB build 27, both 77 (#9835).
+    return { maximum: 77, minimum: 50, mode: 'variable', unit: '3D render' };
+  }
   if (name === 'start_brand_interview') {
     return fixedCreditPricing(BRAND_INTERVIEW_CREDIT_COST);
   }

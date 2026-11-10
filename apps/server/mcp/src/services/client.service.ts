@@ -42,6 +42,7 @@ import {
 import { LinkedInClient } from '@mcp/services/client/linkedin.client';
 import type { LinkedInConnectionStatus } from '@mcp/services/client/linkedin.client.types';
 import { MediaClient } from '@mcp/services/client/media.client';
+import { Models3dClient } from '@mcp/services/client/models3d.client';
 import { PresetsClient } from '@mcp/services/client/presets.client';
 import { RemixClient } from '@mcp/services/client/remix.client';
 import {
@@ -118,6 +119,7 @@ import type {
   WorkflowScheduleResponse,
   WorkflowTemplate,
 } from '@mcp/shared/interfaces/workflow.interface';
+import type { Models3dToolInput } from '@mcp/tools/models3d.schemas';
 import type { RemixToolInput } from '@mcp/tools/remix.schemas';
 import {
   type StoryboardToolInput,
@@ -127,14 +129,9 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 
 /**
- * Composition root for the MCP → Genfeed API client.
- *
- * The HTTP surface is decomposed into per-domain clients (media, content,
- * workflows, ads, analytics, workspace, agent, LinkedIn) that all
- * share a single {@link BaseApiClient} — and therefore a single axios instance,
- * so {@link setBearerToken} propagates to every sub-client. This class is a thin
- * aggregator: it owns no request logic and only delegates, preserving the exact
- * public method surface every MCP tool/resource consumes.
+ * Composition root for the MCP → Genfeed API client. Per-domain clients share
+ * one {@link BaseApiClient} (one axios instance), so {@link setBearerToken}
+ * reaches all of them. This class only delegates; it owns no request logic.
  */
 @Injectable()
 export class ClientService {
@@ -149,6 +146,7 @@ export class ClientService {
   private readonly scheduler: SchedulerClient;
   private readonly campaigns: CampaignClient;
   private readonly presets: PresetsClient;
+  private readonly models3d: Models3dClient;
   private readonly remix: RemixClient;
   private readonly workflows: WorkflowClient;
   private readonly workspace: WorkspaceClient;
@@ -175,6 +173,7 @@ export class ClientService {
     this.scheduler = new SchedulerClient(this.base);
     this.campaigns = new CampaignClient(this.base);
     this.presets = new PresetsClient(this.base);
+    this.models3d = new Models3dClient(this.base);
     this.remix = new RemixClient(this.base);
     this.workflows = new WorkflowClient(this.base);
     this.workspace = new WorkspaceClient(this.base);
@@ -288,6 +287,10 @@ export class ClientService {
     result?: Record<string, unknown>,
   ): Promise<McpApprovalResource> {
     return this.agent.resolveApproval(approvalId, decision, result);
+  }
+
+  confirmApproval(approvalId: string, decision: McpApprovalDecision) {
+    return this.agent.confirmApproval(approvalId, decision);
   }
 
   claimApprovalExecution(approvalId: string): Promise<boolean> {
@@ -507,6 +510,12 @@ export class ClientService {
     );
   }
 
+  render3d(input: Models3dToolInput<'render_3d'>) {
+    return this.models3d.render3d(input);
+  }
+  getModel3d(input: Models3dToolInput<'get_model3d'>) {
+    return this.models3d.getModel3d(input);
+  }
   getRemixRun(input: RemixToolInput<'get_remix_run'>) {
     return this.remix.getRemixRun(input);
   }
@@ -626,10 +635,7 @@ export class ClientService {
     return this.workspace.createChat();
   }
 
-  sendChatMessage(
-    threadId: string,
-    message: string,
-  ): Promise<Record<string, unknown>> {
+  sendChatMessage(threadId: string, message: string) {
     return this.workspace.sendChatMessage(threadId, message);
   }
 
@@ -710,17 +716,11 @@ export class ClientService {
     return this.socialMessages.listMessages(conversationId, params);
   }
 
-  createSocialReplyDraft(
-    conversationId: string,
-    params: SocialActionParams,
-  ): Promise<Record<string, unknown>> {
+  createSocialReplyDraft(conversationId: string, params: SocialActionParams) {
     return this.socialMessages.createDraft(conversationId, params);
   }
 
-  approveSocialDraft(
-    conversationId: string,
-    messageId: string,
-  ): Promise<Record<string, unknown>> {
+  approveSocialDraft(conversationId: string, messageId: string) {
     return this.socialMessages.approveDraft(conversationId, messageId);
   }
 
@@ -732,24 +732,15 @@ export class ClientService {
     return this.socialMessages.rejectDraft(conversationId, messageId, reason);
   }
 
-  postSocialReply(
-    conversationId: string,
-    params: SocialActionParams,
-  ): Promise<Record<string, unknown>> {
+  postSocialReply(conversationId: string, params: SocialActionParams) {
     return this.socialMessages.postReply(conversationId, params);
   }
 
-  sendSocialDm(
-    conversationId: string,
-    params: SocialActionParams,
-  ): Promise<Record<string, unknown>> {
+  sendSocialDm(conversationId: string, params: SocialActionParams) {
     return this.socialMessages.sendDm(conversationId, params);
   }
 
-  updateSocialTags(
-    conversationId: string,
-    tags: string[],
-  ): Promise<Record<string, unknown>> {
+  updateSocialTags(conversationId: string, tags: string[]) {
     return this.socialMessages.updateTags(conversationId, tags);
   }
 

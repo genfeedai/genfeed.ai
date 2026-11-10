@@ -31,6 +31,7 @@ const INGREDIENT_CATEGORIES = new Set([
   'AUDIO',
   'IMAGE_EDIT',
   'VIDEO_EDIT',
+  'MODEL_3D',
 ]);
 
 const BRAND_ASSET_CATEGORIES = new Set(['LOGO', 'BANNER', 'REFERENCE']);

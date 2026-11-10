@@ -488,6 +488,9 @@ export function useQuickActions({
     const isProcessing =
       selectedIngredient.status === IngredientStatus.PROCESSING;
     const isGif = selectedIngredient.category === IngredientCategory.GIF;
+    // A GLB has no channel to publish to; it is previewed, downloaded and shared.
+    const isModel3d =
+      selectedIngredient.category === IngredientCategory.MODEL_3D;
 
     const openAction = !isGif
       ? createSeeDetailsAction(selectedIngredient, handlers.onSeeDetails)
@@ -571,7 +574,7 @@ export function useQuickActions({
       compactActions([
         resolvedOpenAction,
         resolvedDownloadAction,
-        resolvedPublishAction,
+        isModel3d ? null : resolvedPublishAction,
         ...generatedActions,
       ]),
     );
@@ -599,6 +602,15 @@ export function useQuickActions({
         ['see-details', 'download', 'share'],
         null,
         ['favorite', 'publish'],
+      );
+    }
+
+    if (isModel3d) {
+      return selectPrimaryActions(
+        actionMap,
+        ['see-details', 'download', 'share'],
+        null,
+        ['favorite'],
       );
     }
 
@@ -630,11 +642,13 @@ export function useQuickActions({
         handlers.onDownload,
         loadingStates.isDownloading,
       ),
-      createPublishAction(
-        selectedIngredient,
-        handlers.onPublish,
-        loadingStates.isPublishing,
-      ),
+      selectedIngredient.category === IngredientCategory.MODEL_3D
+        ? null
+        : createPublishAction(
+            selectedIngredient,
+            handlers.onPublish,
+            loadingStates.isPublishing,
+          ),
     ]);
   }, [
     handlers.onDownload,

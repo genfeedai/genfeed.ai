@@ -172,7 +172,7 @@ test('enforces executable contracts through the aggregate suite', () => {
   const packageJson = JSON.parse(
     readFileSync(path.join(REPOSITORY_ROOT, 'package.json'), 'utf8'),
   );
-  const script = packageJson.scripts['test:executable-contracts'];
+  const script = packageJson.scripts['test:executable-contracts:static'];
   const contracts = readFileSync(
     path.join(REPOSITORY_ROOT, 'scripts/ci/executable-contracts.test.ts'),
     'utf8',
@@ -180,7 +180,7 @@ test('enforces executable contracts through the aggregate suite', () => {
 
   assert.match(
     staticChecks,
-    /^ {8}run: bun run test:executable-contracts$/m,
+    /^ {8}run: bun run test:executable-contracts:static$/m,
     'the static-checks job must run the executable-contracts test script',
   );
   assert.match(
@@ -340,6 +340,69 @@ test('consolidates static validation into one runner slot', () => {
     /^ {10}STATIC_CHECKS_RESULT: \$\{\{ needs\.static-checks\.result \}\}$/m,
     'tests-gate must read the static-checks result directly',
   );
+  assert.match(
+    workflow,
+    /^ {10}SOURCE_CONTRACTS_RESULT: \$\{\{ needs\.source-contracts\.result \}\}$/m,
+    'tests-gate must read the source-contracts result directly',
+  );
+});
+
+test('the repository contracts run in their own job, beside static checks', () => {
+  // #5950: the repository contracts were the longest, CPU-bound step of
+  // Static Checks. They run on their own runner; no contract is dropped, and
+  // the full local script still runs both halves.
+  const jobs = parseYaml(readWorkflow('_ci-validation.yml')).jobs;
+  const plan = jobs.plan;
+  const sourceContracts = jobs['source-contracts'];
+  const step = (job, name) => job.steps.find((entry) => entry.name === name);
+  const packageJson = JSON.parse(
+    readFileSync(path.join(REPOSITORY_ROOT, 'package.json'), 'utf8'),
+  );
+  const scripts = packageJson.scripts;
+
+  assert.equal(sourceContracts.name, 'Source Contracts');
+  assert.equal(sourceContracts.needs, undefined, 'it must not wait for plan');
+  assert.equal(sourceContracts.if, plan.if, 'drafts are skipped as plan does');
+  assert.doesNotMatch(
+    JSON.stringify(sourceContracts),
+    /needs\.plan/,
+    'it must not read any plan output',
+  );
+  assert.deepEqual(
+    step(sourceContracts, 'Check contributor trust'),
+    step(plan, 'Check contributor trust'),
+    'the source-contracts trust gate must stay identical to the plan trust gate',
+  );
+  const names = sourceContracts.steps.map((entry) => entry.name ?? entry.uses);
+  assert.ok(
+    names.indexOf('Check contributor trust') <
+      names.findIndex((name) => name?.startsWith('actions/checkout')),
+    'untrusted pull requests must fail before anything is checked out',
+  );
+  assert.equal(
+    step(sourceContracts, 'Run repository contracts').run,
+    'bun run test:repository-contracts',
+  );
+  assert.ok(
+    names.indexOf('Build contracts for executable imports') <
+      names.indexOf('Run repository contracts'),
+    'contracts build must precede the repository contracts',
+  );
+
+  assert.equal(
+    scripts['test:executable-contracts'],
+    'bun run test:executable-contracts:static && bun run test:repository-contracts',
+    'the local aggregate must run both halves',
+  );
+  assert.match(
+    scripts['test:executable-contracts:static'],
+    /^bunx vitest run --config scripts\/ci\/vitest\.config\.ts --exclude executable-contracts\.test\.ts && /,
+    'the static half must leave the repository contracts to their own job',
+  );
+  assert.equal(
+    scripts['test:repository-contracts'],
+    'bunx vitest run --config scripts/ci/vitest.config.ts executable-contracts.test.ts',
+  );
 });
 
 test('static checks start with the plan, repeating its trust gate and diff base exactly', () => {
@@ -497,7 +560,10 @@ test('adopts a fair pull-request validation budget with a stricter ratchet targe
   );
 });
 
-test('caps the recursively reachable CI runnable inventory at nineteen jobs', () => {
+// Nineteen until the repository contracts moved out of Static Checks into the
+// Source Contracts job (#5950, approved on the project decision card
+// 2026-11-09): one more runner per pull request for a shorter critical path.
+test('caps the recursively reachable CI runnable inventory at twenty jobs', () => {
   const graph = new Map([
     ['ci.yml', new Set(['_ci-validation.yml', '_ci-frontend.yml'])],
     ['_ci-validation.yml', new Set()],
@@ -522,7 +588,7 @@ test('caps the recursively reachable CI runnable inventory at nineteen jobs', ()
     }
     return runners;
   }
-  assert.equal(count('ci.yml'), 19);
+  assert.equal(count('ci.yml'), 20);
   assert.equal(seen.size, 4);
 });
 
@@ -2479,6 +2545,7 @@ test('link routing preserves ready direct PRs across fork trust and heavy caller
   assert.deepEqual(core.jobs['tests-gate'].needs, [
     'plan',
     'static-checks',
+    'source-contracts',
     'spec-typecheck',
     'test-workspaces',
     'test-app',

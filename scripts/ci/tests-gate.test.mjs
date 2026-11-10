@@ -20,6 +20,7 @@ const ALL_SUCCESS_ENV = {
   PLAN_WORKSPACE_TESTS: 'true',
   PLAN_SPEC_TYPECHECK: 'true',
   STATIC_CHECKS_RESULT: 'success',
+  SOURCE_CONTRACTS_RESULT: 'success',
   SPEC_TYPECHECK_RESULT: 'success',
   TEST_WORKSPACES_RESULT: 'success',
   TEST_APP_RESULT: 'success',
@@ -47,6 +48,7 @@ const CANCELLED_RUN_ENV = {
   PLAN_WORKSPACE_TESTS: '',
   PLAN_SPEC_TYPECHECK: '',
   STATIC_CHECKS_RESULT: 'cancelled',
+  SOURCE_CONTRACTS_RESULT: 'cancelled',
   SPEC_TYPECHECK_RESULT: 'cancelled',
   TEST_WORKSPACES_RESULT: 'cancelled',
   TEST_APP_RESULT: 'cancelled',
@@ -289,9 +291,10 @@ test('exits zero and names the newer commit for a superseded run', () => {
   assert.match(result.stdout, /Superseded by commit 0ffd495866a8/);
 });
 
-test('static checks and build can never be skipped past the gate', () => {
+test('static checks, source contracts and build can never be skipped past the gate', () => {
   for (const [key, name] of [
     ['STATIC_CHECKS_RESULT', 'Static checks'],
+    ['SOURCE_CONTRACTS_RESULT', 'Source contracts'],
     ['BUILD_RESULT', 'Build'],
   ]) {
     const result = evaluate({ [key]: 'skipped' });
@@ -325,6 +328,7 @@ test('a plan that never finished fails the gate on its own row', () => {
     TEST_API_RESULT: 'skipped',
     CLOUD_TENANT_GUARD_RESULT: 'skipped',
     STATIC_CHECKS_RESULT: 'skipped',
+    SOURCE_CONTRACTS_RESULT: 'skipped',
     BUILD_RESULT: 'skipped',
   });
 
@@ -332,6 +336,7 @@ test('a plan that never finished fails the gate on its own row', () => {
   assert.deepEqual(result.failures, [
     'Plan failure',
     'Static checks was applicable but skipped',
+    'Source contracts was applicable but skipped',
     'Build was applicable but skipped',
   ]);
 });
@@ -362,6 +367,7 @@ test('keeps the workflow contract stable', () => {
   for (const job of [
     'plan',
     'static-checks',
+    'source-contracts',
     'spec-typecheck',
     'test-workspaces',
     'test-app',
@@ -410,8 +416,11 @@ test('browser-planned workspace failures, cancellations and skips fail the aggre
     changedFiles: ['apps/extension/package.json'],
   });
   assert.deepEqual(
-    plan.workspaceMatrix.include.map(({ group }) => group),
-    ['browser-extension'],
+    plan.workspaceMatrix.include.map(({ extension, group }) => [
+      group,
+      extension,
+    ]),
+    [['workspaces', 'true']],
   );
   for (const result of ['failure', 'cancelled', 'skipped']) {
     const evaluation = evaluate({

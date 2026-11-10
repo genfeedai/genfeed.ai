@@ -535,6 +535,9 @@ test('required E2E gate rejects skipped and cancelled evidence as well as failur
         /\$\{\{ inputs\.run_runtime_acceptance == true \}\}/g,
         runtimeEnabled ? 'true' : 'false',
       )
+      // Only master-merge-check.yml skips the browser matrix; the required
+      // gate checked here always runs it.
+      .replace(/\$\{\{ inputs\.skip_frontend == true \}\}/g, 'false')
       .replace(
         /\$\{\{ needs\.runtime-acceptance\.outputs\.result \}\}/g,
         runtime.output ?? '',

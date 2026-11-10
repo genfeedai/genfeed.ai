@@ -8,6 +8,7 @@ import {
 import {
   BRAND_KIT_LOGO_SLOTS,
   BRAND_KIT_PLATFORM_SLOTS,
+  type BrandLogoDownloadFormat,
 } from '@genfeedai/contracts/constants';
 import type { IAsset } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -69,6 +70,12 @@ export default function BrandKitSlotsCard({
     failed: string[];
   } | null>(null);
 
+  // One logo download at a time; a failure is reported under the logos.
+  const [downloadingSlot, setDownloadingSlot] = useState<BrandKitSlot | null>(
+    null,
+  );
+  const [hasDownloadFailed, setHasDownloadFailed] = useState(false);
+
   const logos = assetsBySlot(
     brand.logos ?? (brand.logo ? [brand.logo] : []),
     BrandKitSlot.LOGO_PRIMARY,
@@ -110,6 +117,30 @@ export default function BrandKitSlotsCard({
     }
   }
 
+  async function downloadLogo(
+    slot: BrandKitSlot,
+    format: BrandLogoDownloadFormat,
+    size: number,
+  ) {
+    if (downloadingSlot) return;
+    setDownloadingSlot(slot);
+    setHasDownloadFailed(false);
+    try {
+      const service = await getService();
+      const blob = await service.downloadKitLogo(brandId, slot, format, size);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${brand.slug || 'brand'}-${slot.toLowerCase().replaceAll('_', '-')}.${format}`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setHasDownloadFailed(true);
+    } finally {
+      setDownloadingSlot(null);
+    }
+  }
+
   return (
     <>
       <Card>
@@ -130,12 +161,21 @@ export default function BrandKitSlotsCard({
                   asset={asset}
                   imageUrl={assetUrl(asset)}
                   isDefault={spec.slot === BrandKitSlot.LOGO_PRIMARY}
+                  isDownloading={downloadingSlot !== null}
                   isManager={isManager}
                   onUpload={() => onUpload(spec.slot)}
+                  onDownload={(format, size) =>
+                    void downloadLogo(spec.slot, format, size)
+                  }
                 />
               );
             })}
           </Masonry>
+          {hasDownloadFailed ? (
+            <p role="status" className="text-xs text-destructive">
+              {t('downloadFailed')}
+            </p>
+          ) : null}
         </div>
       </Card>
       <Card>
