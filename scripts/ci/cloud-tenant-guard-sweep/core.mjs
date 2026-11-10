@@ -96,6 +96,14 @@ export const GET_SKIPS = new Map([
   ['/v1/public/musics/{musicId}/audio.mp3', 'Binary audio response'],
   ['/v1/videos/{videoId}/thumbnail', 'Binary thumbnail response'],
   [
+    '/v1/models3d/{id}',
+    'API-key-only route: session and superadmin actors cannot authenticate',
+  ],
+  [
+    '/v1/models3d/{id}/file',
+    'API-key-only route: session and superadmin actors cannot authenticate',
+  ],
+  [
     '/v1/visual-projects/{id}/revisions/{number}/source',
     'Source file attachment',
   ],
