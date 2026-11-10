@@ -197,7 +197,7 @@ export function useAnalyticsOverview({ scope }: UseAnalyticsOverviewParams) {
 
     return [
       {
-        label: 'Connected Accounts',
+        label: 'Accounts',
         value: analytics?.totalCredentialsConnected || 0,
       },
       {
@@ -307,7 +307,7 @@ export function useAnalyticsOverview({ scope }: UseAnalyticsOverviewParams) {
     };
 
     // Posts can exist before any account is connected. The banner must then
-    // match the zero on the Connected Accounts tile and point at connecting.
+    // match the zero on the Accounts tile and point at connecting.
     if (!hasConnectedAccounts) {
       return {
         badge: translate('hero.notConnectedBadge'),

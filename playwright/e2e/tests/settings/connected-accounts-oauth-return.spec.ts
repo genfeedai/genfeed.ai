@@ -61,7 +61,7 @@ async function mockXVerify(page: Page): Promise<void> {
   });
 }
 
-test.describe('Connected accounts after the OAuth redirect', () => {
+test.describe('Accounts after the OAuth redirect', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
       credits: 1000,
@@ -90,7 +90,7 @@ test.describe('Connected accounts after the OAuth redirect', () => {
       { timeout: 30000 },
     );
     const table = authenticatedPage.getByRole('table', {
-      name: 'Connected accounts',
+      name: 'Accounts',
     });
     await expect(table).toBeVisible({ timeout: 20000 });
     await expect(table.getByText('@GenfeedAI')).toBeVisible();

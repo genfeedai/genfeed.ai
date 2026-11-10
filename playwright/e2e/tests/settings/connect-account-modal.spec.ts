@@ -7,7 +7,7 @@ import { brandPath } from '../../utils/app-chrome';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
- * E2E tests for the Connect account modal on brand Connected accounts.
+ * E2E tests for the Connect account modal on brand Accounts.
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur during tests.

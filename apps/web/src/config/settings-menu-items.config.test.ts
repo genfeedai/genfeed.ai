@@ -193,7 +193,7 @@ describe('buildSettingsMenuItems', () => {
         ['Brand profile', 'Brand', APP_ROUTES.SETTINGS.ROOT],
         ['Brand Kit', 'Brand', APP_ROUTES.SETTINGS.BRAND_KIT],
         ['Knowledge', 'Brand', APP_ROUTES.SETTINGS.KNOWLEDGE],
-        ['Connected accounts', 'Brand', APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS],
+        ['Accounts', 'Brand', APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS],
         ['Agent settings', 'Automation', APP_ROUTES.SETTINGS.AGENT],
         ['Publishing', 'Automation', APP_ROUTES.SETTINGS.PUBLISHING],
         ['Skills', 'Automation', APP_ROUTES.SETTINGS.SKILLS],
