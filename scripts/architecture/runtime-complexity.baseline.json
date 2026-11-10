@@ -294,7 +294,7 @@
     "symbol": "apps/web/src/components/prompt-bars/base/use-prompt-bar-state.tsx"
   },
   {
-    "actual": 1629,
+    "actual": 1621,
     "file": "apps/web/src/components/workspace-shell/UniversalWorkspaceShell.tsx",
     "metric": "file-lines",
     "symbol": "apps/web/src/components/workspace-shell/UniversalWorkspaceShell.tsx"

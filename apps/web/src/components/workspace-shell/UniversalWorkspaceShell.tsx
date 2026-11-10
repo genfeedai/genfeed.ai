@@ -24,10 +24,7 @@ import {
   buildConversationComposerDraftScopeKey,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import { ButtonVariant } from '@genfeedai/contracts';
-import {
-  APP_ROUTES,
-  isReleaseItemVisible,
-} from '@genfeedai/contracts/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   AgentArtifactReference,
   WorkspaceShellOverlayRequest,
@@ -65,6 +62,7 @@ import {
   SIDEBAR_TRANSITION_EASING,
 } from '@/components/layouts/app/app-layout.utils';
 import NotificationInboxPanel from '@/components/shell/NotificationInboxPanel';
+
 import {
   AnalyticsWorkspaceSurfaceAdapterProvider,
   useActiveAnalyticsWorkspaceSurfaceAdapter,
@@ -77,7 +75,6 @@ import {
 import type { WorkflowSummary } from '@/features/workflows/services/workflow-api';
 import { WorkflowPickerOverlay } from '@/features/workflows/workspace/WorkflowPickerOverlay';
 import { resolveWorkflowSurfaceRoute } from '@/features/workflows/workspace/workflow-surface-routing';
-import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import {
   appendSearchParamsToHref,
   buildAgentThreadHref,
@@ -119,6 +116,7 @@ import AgentDock from './AgentDock';
 import AgentDockHistory from './AgentDockHistory';
 import AgentThreadsPanel from './AgentThreadsPanel';
 import { useAgentDockThreads } from './use-agent-dock-threads';
+import { useAgentFullPage } from './use-agent-full-page';
 import { useIsCompactViewport } from './use-compact-viewport';
 import { useConversationScopeControls } from './use-conversation-scope-controls';
 import WorkspaceAgentContext from './WorkspaceAgentContext';
@@ -190,22 +188,7 @@ function UniversalWorkspaceShellContent({
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const { back, push, replace } = useRouter();
-  const {
-    brandId,
-    brands,
-    organizationId,
-    selectedBrand,
-    settings: organizationSettings,
-    settingsLoading,
-  } = useBrand();
-  const { flags: platformFlags } = useFeatureFlagContext();
-  // The sidebar works whether or not the Agent app is released; only its
-  // "Open full page" hand-off needs the app to exist for this organization.
-  const isAgentAppReleased = isReleaseItemVisible(
-    'agent',
-    settingsLoading ? null : organizationSettings,
-    platformFlags,
-  );
+  const { brandId, brands, organizationId, selectedBrand } = useBrand();
   useResetAgentOnOrganizationChange(organizationId);
   const { activeHref, brandSlug, href, orgHref, orgSlug } = useOrgUrl();
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
@@ -655,24 +638,13 @@ function UniversalWorkspaceShellContent({
     hasOverlayReturnFocusRef.current = false;
   }, [normalizedPathname, overlayRegistration, state]);
 
-  // Brand-scoped full agent surface — keeps the selected brand in the URL so
-  // the expanded conversation does not lose topbar/brand context.
-  const fullConversationHref = useMemo(() => {
-    const destinationThreadId = effectiveThreadId ?? activeThreadId;
-    return activeHref(
-      destinationThreadId
-        ? buildAgentThreadHref(destinationThreadId, { isFull: true })
-        : APP_ROUTES.AGENT.NEW,
-    );
-  }, [activeHref, activeThreadId, effectiveThreadId]);
-
-  const handleOpenFullConversation = useCallback(() => {
-    pendingTransitionRef.current = 'conversation_return';
-    // The full page is the conversation; the dock closes as it hands off
-    // (arriving on `/agent` by any other way closes it once the route mounts).
-    agentDock?.close();
-    push(fullConversationHref);
-  }, [agentDock, fullConversationHref, push]);
+  const { openFullConversation } = useAgentFullPage({
+    activeHref,
+    agentDock,
+    destinationThreadId: effectiveThreadId ?? activeThreadId,
+    pendingTransitionRef,
+    push,
+  });
 
   // The dock is the conversation on product routes. `/agent/*` is the
   // conversation itself, so arriving there closes the dock; it stays closed
@@ -1247,9 +1219,7 @@ function UniversalWorkspaceShellContent({
         dockThreads.startThread();
         handleSelectPanelTab('agent');
       }}
-      onOpenFullPage={
-        isAgentAppReleased ? handleOpenFullConversation : undefined
-      }
+      onOpenFullPage={openFullConversation}
       onSelectView={handleSelectPanelTab}
     />
   );
@@ -1312,16 +1282,14 @@ function UniversalWorkspaceShellContent({
       onCloseContext: () => setIsOutputContextOpen(false),
       onNewThread: dockThreads.startThread,
       onOpenContext: () => setIsOutputContextOpen(true),
-      onOpenFullPage: isAgentAppReleased
-        ? handleOpenFullConversation
-        : undefined,
+      onOpenFullPage: openFullConversation,
       threadsPanel: (
         <AgentThreadsPanel
           apiService={agentApiService}
           getThreadHref={getFullThreadHref}
           isLoading={dockThreads.isThreadListLoading}
           onOpenFullThread={
-            isAgentAppReleased ? openFullThreadFromPage : undefined
+            openFullConversation ? openFullThreadFromPage : undefined
           }
           threads={threads}
         />
@@ -1334,8 +1302,7 @@ function UniversalWorkspaceShellContent({
     dockThreads.isThreadListLoading,
     dockThreads.startThread,
     getFullThreadHref,
-    handleOpenFullConversation,
-    isAgentAppReleased,
+    openFullConversation,
     isAgentOutputSurface,
     isOutputContextOpen,
     openFullThreadFromPage,
