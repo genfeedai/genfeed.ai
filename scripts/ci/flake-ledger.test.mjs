@@ -517,3 +517,82 @@ test('gate-only failures sit in their own section after every test entry', async
     /## Failed only at an aggregate gate[\s\S]*Tests Gate \| Qualify verdict \| 2 \|/u,
   );
 });
+
+function failingReads(github, { status, times, onlyRunId }) {
+  const original = github.rest.actions.listJobsForWorkflowRun;
+  let remaining = times;
+  github.rest.actions.listJobsForWorkflowRun = async (params) => {
+    if (
+      (onlyRunId === undefined || params.run_id === onlyRunId) &&
+      remaining > 0
+    ) {
+      remaining -= 1;
+      throw Object.assign(new Error('Server Error'), { status });
+    }
+    return original(params);
+  };
+}
+
+function oneFlakeFixture() {
+  return fakeGithub({
+    runs: { 'ci.yml': [rerunRun(1), rerunRun(2)] },
+    attemptJobs: {
+      '1:1': [failedJob(11, 'Test API (shard 3/4)', 'Run API tests')],
+      '2:1': [failedJob(12, 'Test App (shard 1/4)', 'Run app tests')],
+    },
+    latestJobs: {
+      1: [{ conclusion: 'success', name: 'Test API (shard 3/4)' }],
+      2: [{ conclusion: 'success', name: 'Test App (shard 1/4)' }],
+    },
+  });
+}
+
+async function collectWithoutWaiting(github) {
+  return collectFlakeOccurrences({
+    github,
+    owner: OWNER,
+    repo: REPO,
+    now: NOW,
+    wait: async () => {},
+    core: { info() {}, warning() {} },
+  });
+}
+
+test('a server error on one read is repeated and the ledger stays complete', async () => {
+  const github = oneFlakeFixture();
+  failingReads(github, { status: 502, times: 2, onlyRunId: 1 });
+
+  const collected = await collectWithoutWaiting(github);
+
+  assert.deepEqual(collected.unreadable, []);
+  assert.deepEqual(
+    collected.occurrences.map((entry) => entry.runId).sort(),
+    [1, 2],
+  );
+});
+
+test('a run that keeps answering with a server error is reported, not allowed to fail the whole ledger', async () => {
+  const github = oneFlakeFixture();
+  failingReads(github, { status: 502, times: 99, onlyRunId: 1 });
+
+  const collected = await collectWithoutWaiting(github);
+  const markdown = renderFlakeLedger(collected);
+
+  assert.deepEqual(
+    collected.occurrences.map((entry) => entry.runId),
+    [2],
+  );
+  assert.deepEqual(collected.unreadable, [rerunRun(1).html_url]);
+  assert.match(
+    markdown,
+    /Incomplete: GitHub kept answering with a server error/u,
+  );
+  assert.ok(markdown.includes(rerunRun(1).html_url));
+});
+
+test('a missing permission fails the scan instead of hiding behind the incomplete note', async () => {
+  const github = oneFlakeFixture();
+  failingReads(github, { status: 403, times: 1 });
+
+  await assert.rejects(collectWithoutWaiting(github), { status: 403 });
+});
