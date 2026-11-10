@@ -15,6 +15,7 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { Library } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import { useLibraryTags } from '@/components/tags/library-tag-picker/use-library-tags';
 import { useLibrarySummary } from '@/features/library/hooks/use-library-summary';
 import type { LibraryBrowserProps } from '@/features/library/props/library-browser.props';
@@ -90,8 +91,11 @@ export default function LibraryBrowser({
   // brand-scoped views only.
   const { brandId } = useCollectionScope();
   const { href } = useOrgUrl();
+  const isAgentAvailable = useIsAppAvailable('agent');
   const reviewUnsortedHref =
-    shelf === LibraryShelf.UNSORTED && scope === PageScope.BRAND
+    isAgentAvailable &&
+    shelf === LibraryShelf.UNSORTED &&
+    scope === PageScope.BRAND
       ? href(
           `${APP_ROUTES.AGENT.NEW}?agentMode=manual&prompt=${encodeURIComponent(`Use get_assets with shelf=unsorted and origin=GENERATED, paginating each supported media type for the current brand. Review those unsorted generated assets. Check the actual media against the approved brand kit, especially logo fidelity. Suggest approve/reject decisions with reasons and folders or tags for sorting. Use the available review tools; disclose any unavailable checks. Do not approve, reject, move, delete, publish, generate, or change learning settings. Return suggestions for me to review.`)}`,
         )

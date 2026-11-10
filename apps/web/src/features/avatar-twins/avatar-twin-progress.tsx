@@ -275,13 +275,15 @@ export default function AvatarTwinProgress({
       <div className="flex flex-wrap items-center gap-2">
         {twin.status === AvatarTwinStatus.READY ? (
           <>
-            <Button
-              asChild
-              variant={ButtonVariant.SECONDARY}
-              withWrapper={false}
-            >
-              <Link href={studioHref}>{translate('done.studio')}</Link>
-            </Button>
+            {studioHref ? (
+              <Button
+                asChild
+                variant={ButtonVariant.SECONDARY}
+                withWrapper={false}
+              >
+                <Link href={studioHref}>{translate('done.studio')}</Link>
+              </Button>
+            ) : null}
             <Button
               asChild
               variant={ButtonVariant.SECONDARY}

@@ -24,6 +24,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 
 export type DiscoveryRemixStatus =
   | 'idle'
@@ -56,6 +57,7 @@ export function DiscoveryRemixProvider({
   const brandId = useBrandId();
   const { activeHref } = useOrgUrl();
   const router = useRouter();
+  const isStoryboardAvailable = useIsAppAvailable('storyboard');
   const getContentRunsService = useAuthedService((token: string) =>
     ContentRunsService.getInstance(token),
   );
@@ -227,11 +229,15 @@ export function DiscoveryRemixProvider({
         if (requestVersionRef.current !== requestVersion) return;
         setRun(started);
         setStatus('ready');
-        router.push(
-          activeHref(
-            `${APP_ROUTES.STUDIO.STORYBOARD}/${encodeURIComponent(started.id)}`,
-          ),
-        );
+        // The run is under way either way; only open it in Storyboard when
+        // the organization has that app.
+        if (isStoryboardAvailable) {
+          router.push(
+            activeHref(
+              `${APP_ROUTES.STUDIO.STORYBOARD}/${encodeURIComponent(started.id)}`,
+            ),
+          );
+        }
       } catch (caughtError) {
         if (requestVersionRef.current !== requestVersion) return;
         setError(
@@ -248,6 +254,7 @@ export function DiscoveryRemixProvider({
       activeHref,
       getContentRunsService,
       isBusy,
+      isStoryboardAvailable,
       persistEdits,
       router,
       run,

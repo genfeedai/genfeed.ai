@@ -54,6 +54,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 import IngredientOriginBadge from '@/components/ingredients/ingredient-origin-badge';
 import LibraryAssetTypeBadge from '@/components/ingredients/library-asset-type-badge';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import type { IngredientInspectorRailProps } from '@/props/content/ingredient.props';
 import IngredientLineageStrip from './IngredientLineageStrip';
 import IngredientMetadataFields from './IngredientMetadataFields';
@@ -156,6 +157,8 @@ export default function IngredientInspectorRail({
   const grant = useAuthorizedMediaPreview(ingredient);
   const { push } = useRouter();
   const { href } = useOrgUrl();
+  const isPlaygroundAvailable = useIsAppAvailable('playground');
+  const isAgentAvailable = useIsAppAvailable('agent');
   // The rail is a full detail surface, so Publish, Download and Share run the
   // same handlers the asset cards do. Without them the quick actions render as
   // locked placeholders.
@@ -257,6 +260,7 @@ export default function IngredientInspectorRail({
             return undefined;
           }}
           onCreateVariation={
+            isPlaygroundAvailable &&
             ingredient.category === IngredientCategory.IMAGE
               ? handleCreateVariation
               : undefined
@@ -265,7 +269,11 @@ export default function IngredientInspectorRail({
           onRename={handleRename}
           onSeeDetails={detailHref ? handleSeeDetails : undefined}
           onShare={handlers.handleShare}
-          onUsePrompt={ingredient.promptText ? handleUsePrompt : undefined}
+          onUsePrompt={
+            isAgentAvailable && ingredient.promptText
+              ? handleUsePrompt
+              : undefined
+          }
           selectedIngredient={ingredient}
         />
         {onOpenPreview &&

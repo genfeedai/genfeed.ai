@@ -7,11 +7,13 @@ import { Button } from '@ui/primitives/button';
 import { Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import type { UsePatternButtonProps } from '@/props/analytics/performance-lab.props';
 
 export default function UsePatternButton({ pattern }: UsePatternButtonProps) {
   const { push } = useRouter();
   const { href } = useOrgUrl();
+  const isAutomationAvailable = useIsAppAvailable('automation');
 
   const createWorkflowFromPattern = useCallback(() => {
     const params = new URLSearchParams({
@@ -20,6 +22,11 @@ export default function UsePatternButton({ pattern }: UsePatternButtonProps) {
     });
     push(href(`${APP_ROUTES.AUTOMATION.WORKFLOWS_NEW}?${params.toString()}`));
   }, [pattern.formula, pattern.patternType, push, href]);
+
+  // The remix opens a new workflow in Automation.
+  if (!isAutomationAvailable) {
+    return null;
+  }
 
   return (
     <Button

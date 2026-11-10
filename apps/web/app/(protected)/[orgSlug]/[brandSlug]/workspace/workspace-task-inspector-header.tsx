@@ -13,6 +13,7 @@ import {
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { useIsHrefAvailable } from '@/components/shell/use-available-rail-apps';
 import type { WorkspaceTaskInspectorHeaderProps } from '@/features/workspace/props/workspace-task-inspector-header.props';
 import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
 import {
@@ -34,6 +35,13 @@ export function WorkspaceTaskInspectorHeader({
 }: WorkspaceTaskInspectorHeaderProps) {
   const statusLabel = useTaskStatusLabel(task);
   const translate = useTranslations('pages.workspaceOverview.actions');
+  const isHrefAvailable = useIsHrefAvailable();
+  const writeHref = buildTaskLaunchHref(task, 'write');
+  // Planning next steps opens the task in the Agent app.
+  const isAgentAvailable = isHrefAvailable(writeHref);
+  const generateHref = buildTaskLaunchHref(task, 'generate');
+  const editorHref = buildTaskLaunchHref(task, 'editor');
+  const automationHref = buildTaskLaunchHref(task, 'automation');
   return (
     <div className="px-4 pt-4">
       <div className="flex flex-col gap-4">
@@ -55,20 +63,22 @@ export function WorkspaceTaskInspectorHeader({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-            disabled={isBusy}
-            onClick={() =>
-              void (showReviewActions
-                ? onApprove(task.id)
-                : onPlanNextSteps(task))
-            }
-          >
-            {showReviewActions
-              ? translate('approve')
-              : translate('planNextSteps')}
-          </Button>
+          {showReviewActions || isAgentAvailable ? (
+            <Button
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DEFAULT}
+              disabled={isBusy}
+              onClick={() =>
+                void (showReviewActions
+                  ? onApprove(task.id)
+                  : onPlanNextSteps(task))
+              }
+            >
+              {showReviewActions
+                ? translate('approve')
+                : translate('planNextSteps')}
+            </Button>
+          ) : null}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -90,12 +100,14 @@ export function WorkspaceTaskInspectorHeader({
                   >
                     {translate('requestChanges')}
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    disabled={isBusy}
-                    onSelect={() => void onPlanNextSteps(task)}
-                  >
-                    {translate('planNextSteps')}
-                  </DropdownMenuItem>
+                  {isAgentAvailable ? (
+                    <DropdownMenuItem
+                      disabled={isBusy}
+                      onSelect={() => void onPlanNextSteps(task)}
+                    >
+                      {translate('planNextSteps')}
+                    </DropdownMenuItem>
+                  ) : null}
                 </>
               ) : null}
               <DropdownMenuItem
@@ -105,26 +117,28 @@ export function WorkspaceTaskInspectorHeader({
                 {translate('dismiss')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href={buildTaskLaunchHref(task, 'write')}>
-                  {translate('openInWrite')}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href={buildTaskLaunchHref(task, 'generate')}>
-                  {translate('openInGenerate')}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href={buildTaskLaunchHref(task, 'editor')}>
-                  {translate('openInEditor')}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href={buildTaskLaunchHref(task, 'automation')}>
-                  {translate('openInAutomation')}
-                </Link>
-              </DropdownMenuItem>
+              {isHrefAvailable(writeHref) ? (
+                <DropdownMenuItem asChild>
+                  <Link href={writeHref}>{translate('openInWrite')}</Link>
+                </DropdownMenuItem>
+              ) : null}
+              {isHrefAvailable(generateHref) ? (
+                <DropdownMenuItem asChild>
+                  <Link href={generateHref}>{translate('openInGenerate')}</Link>
+                </DropdownMenuItem>
+              ) : null}
+              {isHrefAvailable(editorHref) ? (
+                <DropdownMenuItem asChild>
+                  <Link href={editorHref}>{translate('openInEditor')}</Link>
+                </DropdownMenuItem>
+              ) : null}
+              {isHrefAvailable(automationHref) ? (
+                <DropdownMenuItem asChild>
+                  <Link href={automationHref}>
+                    {translate('openInAutomation')}
+                  </Link>
+                </DropdownMenuItem>
+              ) : null}
               {linkedIssueSummary.href ? (
                 <DropdownMenuItem asChild>
                   <Link href={linkedIssueSummary.href}>
@@ -132,9 +146,11 @@ export function WorkspaceTaskInspectorHeader({
                   </Link>
                 </DropdownMenuItem>
               ) : null}
-              <DropdownMenuItem asChild>
-                <Link href={taskToolHref}>{taskToolLabel}</Link>
-              </DropdownMenuItem>
+              {isHrefAvailable(taskToolHref) ? (
+                <DropdownMenuItem asChild>
+                  <Link href={taskToolHref}>{taskToolLabel}</Link>
+                </DropdownMenuItem>
+              ) : null}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

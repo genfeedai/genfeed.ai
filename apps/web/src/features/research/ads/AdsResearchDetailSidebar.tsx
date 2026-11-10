@@ -28,6 +28,7 @@ import { Bookmark, ExternalLink, Rocket, Sparkles, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 
 import { formatMetric } from './ads-metric.helpers';
 
@@ -157,6 +158,7 @@ type LaunchPrepPanelProps = {
 
 function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
   const { href } = useOrgUrl();
+  const isAutomationAvailable = useIsAppAvailable('automation');
 
   return (
     // ui-guard-allow:notice-tone-box -- tinted result panel that holds a whole launch plan, not a notice
@@ -214,7 +216,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
         </ul>
       </div>
 
-      {prep.workflowId && (
+      {prep.workflowId && isAutomationAvailable && (
         <Link
           href={href(`${APP_ROUTES.AUTOMATION.WORKFLOWS}/${prep.workflowId}`)}
           className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
@@ -265,6 +267,7 @@ export function DetailSidebar({
   savedMutating,
 }: DetailSidebarProps) {
   const translate = useTranslations('pages.adsResearch.swipeFile');
+  const isAutomationAvailable = useIsAppAvailable('automation');
   const [note, setNote] = useState('');
 
   useEffect(() => {
@@ -465,7 +468,7 @@ export function DetailSidebar({
             >
               Remix for my brand
             </Button>
-            {!detail.isSavedSnapshot ? (
+            {!detail.isSavedSnapshot && isAutomationAvailable ? (
               <Button
                 variant={ButtonVariant.DEFAULT}
                 size={ButtonSize.SM}
@@ -489,7 +492,7 @@ export function DetailSidebar({
             ) : null}
           </div>
 
-          {workflowResult && (
+          {workflowResult && isAutomationAvailable && (
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
               <div className="mb-2 flex items-center gap-2">
                 <Badge variant="default">Workflow Created</Badge>

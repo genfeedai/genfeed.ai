@@ -97,13 +97,15 @@ export default function SkillDetailPanel({
                 variant={ButtonVariant.SECONDARY}
               />
             ) : null}
-            <Button
-              icon={<MessageSquare className="size-4" />}
-              label={translate('actions.openSamplePrompt')}
-              disabled={savingSkill || customizing}
-              onClick={onOpenSamplePrompt}
-              variant={ButtonVariant.SECONDARY}
-            />
+            {onOpenSamplePrompt ? (
+              <Button
+                icon={<MessageSquare className="size-4" />}
+                label={translate('actions.openSamplePrompt')}
+                disabled={savingSkill || customizing}
+                onClick={onOpenSamplePrompt}
+                variant={ButtonVariant.SECONDARY}
+              />
+            ) : null}
           </div>
           {error ? <Alert variant="destructive">{error}</Alert> : null}
           <SkillDetailCard

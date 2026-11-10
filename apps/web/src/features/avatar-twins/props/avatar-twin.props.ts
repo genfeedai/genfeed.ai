@@ -67,8 +67,8 @@ export interface AvatarTwinRecorderProps {
 export interface AvatarTwinProgressProps {
   twin: IAvatarTwin;
   libraryHref: string;
-  /** Where the person makes a video with the twin. */
-  studioHref: string;
+  /** Where the person makes a video with the twin; absent without Playground. */
+  studioHref?: string;
   brandUsage: AvatarTwinBrandUsage | null;
   onApplyToBrand: (voice: AvatarTwinVoiceChoice) => Promise<void>;
   /** Resolves to the consent page URL. */

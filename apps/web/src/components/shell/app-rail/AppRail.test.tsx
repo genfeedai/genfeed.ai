@@ -1,6 +1,7 @@
 import {
   ORGANIZATION_MODULE_IDS,
   type OrganizationModulePreferenceInput,
+  resolveOrganizationModulePreferences,
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
 import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
@@ -122,7 +123,7 @@ vi.mock('@genfeedai/contracts/constants', async (importOriginal) => {
       agent: 'Agent',
       analytics: 'Analytics',
       automation: 'Automation',
-      discovery: 'Discovery',
+      discovery: 'Trends',
       library: 'Library',
       messages: 'Messages',
       publishing: 'Publishing',
@@ -201,15 +202,15 @@ const LAUNCHER_APP_IDS = [
   'editor',
   'automation',
   'messages',
-  'discovery',
 ];
 
 const CORE_APP_IDS = [
   'workspace',
-  'agent',
+  'discovery',
   'library',
   'publishing',
   'analytics',
+  'agent',
 ];
 
 // The launcher apps that rendered as rail items, in rail order.
@@ -259,10 +260,11 @@ describe('AppRail', () => {
     const registered = commands.registerCommands.mock.lastCall?.[0] ?? [];
     expect(registered.map((entry) => entry.label)).toEqual([
       'Go to Workspace',
-      'Go to Agent',
+      'Go to Trends',
       'Go to Library',
       'Go to Publishing',
       'Go to Analytics',
+      'Go to Agent',
       'Go to Playground',
       'Go to Storyboard',
       'Go to Turbo',
@@ -271,10 +273,10 @@ describe('AppRail', () => {
       'Go to Editor',
       'Go to Automation',
       'Go to Messages',
-      'Go to Discovery',
     ]);
     expect(registered[2].shortcut).toEqual(['G', '3']);
-    expect(registered[5].shortcut).toBeUndefined();
+    expect(registered[5].shortcut).toEqual(['G', '6']);
+    expect(registered[6].shortcut).toBeUndefined();
     act(() => {
       registered[2].action();
     });
@@ -487,7 +489,7 @@ describe('AppRail', () => {
     );
     expect(commands.registerCommands).toHaveBeenCalledTimes(1);
     fireEvent.keyDown(document, { code: 'KeyG', key: 'g' });
-    fireEvent.keyDown(document, { code: 'Digit2', key: '2' });
+    fireEvent.keyDown(document, { code: 'Digit6', key: '6' });
     expect(router.push).toHaveBeenCalledExactlyOnceWith('/acme/~/agent');
     expect(onNavigate).toHaveBeenCalledOnce();
     expect(onNavigationEvent).toHaveBeenCalledExactlyOnceWith({
@@ -557,7 +559,14 @@ describe('AppRail', () => {
       screen.getByRole('navigation', { name: 'Apps' }),
     ).toBeInTheDocument();
 
-    const labels = ['Workspace', 'Agent', 'Library', 'Publishing', 'Analytics'];
+    const labels = [
+      'Workspace',
+      'Trends',
+      'Library',
+      'Publishing',
+      'Analytics',
+      'Agent',
+    ];
     expect(
       screen
         .getAllByRole('link')
@@ -595,10 +604,11 @@ describe('AppRail', () => {
         .map((item) => item.dataset.testid),
     ).toEqual([
       'app-rail-item-workspace',
-      'app-rail-item-agent',
+      'app-rail-item-discovery',
       'app-rail-item-library',
       'app-rail-item-publishing',
       'app-rail-item-analytics',
+      'app-rail-item-agent',
       'app-rail-item-playground',
     ]);
   });
@@ -616,18 +626,19 @@ describe('AppRail', () => {
         pinnedAppIds={['clipper', 'discovery', 'storyboard', 'playground']}
       />,
     );
-    // Clips and Automation are unreleased, Discovery needs a plan and
-    // Storyboard is not installed: only Playground can be pinned or launched.
+    // Clips and Automation are unreleased and Storyboard is not installed: only
+    // Playground can be pinned or launched. Trends needs a plan, so the
+    // dashboard shows it only once the organization has one.
     expect(
       screen
         .getAllByTestId(/^app-rail-item-/)
         .map((item) => item.dataset.testid),
     ).toEqual([
       'app-rail-item-workspace',
-      'app-rail-item-agent',
       'app-rail-item-library',
       'app-rail-item-publishing',
       'app-rail-item-analytics',
+      'app-rail-item-agent',
       'app-rail-item-playground',
     ]);
   });
@@ -756,7 +767,7 @@ describe('AppRail', () => {
       .map((link) => link.getAttribute('aria-label'));
 
     expect(labels.at(-1)).toBe('Admin');
-    expect(labels.at(-2)).toBe('Analytics');
+    expect(labels.at(-2)).toBe('Agent');
   });
 
   it('locks gated apps behind the first asset but keeps their own route for the teaser', () => {
@@ -848,7 +859,7 @@ describe('AppRail', () => {
     expect(
       screen.getByRole('link', { name: 'Playground' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Discovery' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Trends' })).toBeInTheDocument();
     for (const label of ['Automation', 'Messages', 'Clipper', 'Turbo']) {
       expect(
         screen.queryByRole('link', { name: label }),
@@ -858,13 +869,13 @@ describe('AppRail', () => {
       commands.registerCommands.mock.lastCall?.[0].map((entry) => entry.label),
     ).toEqual([
       'Go to Workspace',
-      'Go to Agent',
+      'Go to Trends',
       'Go to Library',
       'Go to Publishing',
       'Go to Analytics',
+      'Go to Agent',
       'Go to Playground',
       'Go to Storyboard',
-      'Go to Discovery',
     ]);
   });
 
@@ -909,22 +920,27 @@ describe('AppRail', () => {
   });
 
   it('hides subscription apps until the organization has a paid plan', () => {
+    const unpaid = {
+      hasOrganizationBilling: true,
+      hasPaidModuleSubscription: false,
+      moduleOverrides: {},
+    };
     render(
       <AppRail
         orgSlug="acme"
         pinnedAppIds={LAUNCHER_APP_IDS}
-        moduleAccess={moduleAccessFor({
-          hasOrganizationBilling: true,
-          hasPaidModuleSubscription: false,
-          moduleOverrides: {},
-        })}
+        moduleAccess={moduleAccessFor(unpaid)}
+        modulePreferences={resolveOrganizationModulePreferences(
+          unpaid,
+          RELEASED_FLAGS,
+        )}
       />,
     );
     expect(
       screen.getByRole('link', { name: 'Playground' }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('link', { name: 'Discovery' }),
+      screen.queryByRole('link', { name: 'Trends' }),
     ).not.toBeInTheDocument();
   });
 
@@ -956,7 +972,6 @@ describe('AppRail', () => {
       'app-rail-item-playground',
       'app-rail-item-storyboard',
       'app-rail-item-turbo',
-      'app-rail-item-discovery',
     ]);
   });
   it('keeps fixed and neutral navigation while verified preferences are unavailable', () => {
@@ -991,11 +1006,11 @@ describe('AppRail', () => {
       />,
     );
     expect(
-      screen.queryByRole('link', { name: 'Discovery' }),
+      screen.queryByRole('link', { name: 'Trends' }),
     ).not.toBeInTheDocument();
     expect(
       commands.registerCommands.mock.lastCall?.[0].some(
-        (entry) => entry.label === 'Go to Discovery',
+        (entry) => entry.label === 'Go to Trends',
       ),
     ).toBe(false);
   });
@@ -1063,7 +1078,7 @@ describe('AppRail', () => {
     for (const label of [
       'Messages',
       'Automation',
-      'Discovery',
+      'Trends',
       'Library',
       'Analytics',
     ]) {
@@ -1396,7 +1411,7 @@ describe('AppRail', () => {
       'Playground',
       'Clipper',
       'Library',
-      'Discovery',
+      'Trends',
       'Publishing',
       'Analytics',
       'Automation',
@@ -1517,7 +1532,6 @@ describe('AppRail', () => {
       ['turbo', '/turbo/project-1'],
       ['automation', '/automation/runs/run-1'],
       ['messages', '/messages/thread-1'],
-      ['discovery', '/discovery/ads/ad-1'],
     ])(
       'shows nested %s selection only while the app is pinned to the rail',
       (appId, path) => {
@@ -1552,6 +1566,20 @@ describe('AppRail', () => {
       },
     );
 
+    it('selects Trends on its nested pages without pinning', () => {
+      render(
+        <AppRail
+          orgSlug="acme"
+          brandSlug="my-brand"
+          currentPath="/acme/my-brand/discovery/ads/ad-1"
+        />,
+      );
+      expect(screen.getByRole('link', { name: 'Trends' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      );
+    });
+
     it('recognizes nested organization-scope pinned app pages', () => {
       render(
         <AppRail
@@ -1578,12 +1606,7 @@ describe('AppRail', () => {
           pinnedAppIds={LAUNCHER_APP_IDS}
         />,
       );
-      for (const appId of [
-        'playground',
-        'automation',
-        'messages',
-        'discovery',
-      ]) {
+      for (const appId of ['playground', 'automation', 'messages']) {
         expect(
           screen.getByTestId(`app-rail-item-${appId}`),
         ).not.toHaveAttribute('aria-current');
@@ -1677,7 +1700,7 @@ describe('AppRail', () => {
         ['Turbo', '/acme/~/turbo'],
         ['Editor', '/acme/~/editor'],
         ['Library', '/acme/~/library/assets'],
-        ['Discovery', '/acme/~/discovery/overview'],
+        ['Trends', '/acme/~/discovery/overview'],
         ['Publishing', '/acme/~/publishing/overview'],
         ['Analytics', '/acme/~/analytics/overview'],
         ['Automation', '/acme/~/automation/overview'],
@@ -1692,7 +1715,7 @@ describe('AppRail', () => {
 
     it('links to correct route for workspace app', () => {
       render(<AppRail orgSlug="acme" pinnedAppIds={LAUNCHER_APP_IDS} />);
-      expect(screen.getByRole('link', { name: 'Discovery' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Trends' })).toHaveAttribute(
         'href',
         '/acme/~/discovery/overview',
       );
@@ -1706,7 +1729,7 @@ describe('AppRail', () => {
           pinnedAppIds={LAUNCHER_APP_IDS}
         />,
       );
-      expect(screen.getByRole('link', { name: 'Discovery' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Trends' })).toHaveAttribute(
         'href',
         '/acme/my-brand/discovery/overview',
       );
@@ -1739,7 +1762,7 @@ describe('AppRail', () => {
         />,
       );
 
-      expect(screen.getByRole('link', { name: 'Discovery' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Trends' })).toHaveAttribute(
         'href',
         '/acme/my-brand/discovery/overview',
       );
@@ -1756,7 +1779,7 @@ describe('AppRail', () => {
     it('falls brand-only module surfaces back to org-level defaults', () => {
       render(<AppRail orgSlug="acme" pinnedAppIds={LAUNCHER_APP_IDS} />);
 
-      expect(screen.getByRole('link', { name: 'Discovery' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Trends' })).toHaveAttribute(
         'href',
         '/acme/~/discovery/overview',
       );
@@ -1840,6 +1863,7 @@ describe('AppRail', () => {
         'messages',
         'agent',
         'workspace',
+        'discovery',
         'library',
         'publishing',
         'analytics',
@@ -1911,9 +1935,10 @@ describe('AppRail', () => {
       expect(onRailAppOrderChange).toHaveBeenCalledWith([
         'analytics',
         'workspace',
-        'agent',
+        'discovery',
         'library',
         'publishing',
+        'agent',
       ]);
     });
 
@@ -1923,20 +1948,21 @@ describe('AppRail', () => {
         <AppRail orgSlug="acme" onRailAppOrderChange={onRailAppOrderChange} />,
       );
 
-      fireEvent.keyDown(screen.getByTestId('app-rail-item-agent'), {
+      fireEvent.keyDown(screen.getByTestId('app-rail-item-library'), {
         altKey: true,
         key: 'ArrowDown',
       });
 
       expect(onRailAppOrderChange).toHaveBeenCalledWith([
         'workspace',
-        'library',
-        'agent',
+        'discovery',
         'publishing',
+        'library',
         'analytics',
+        'agent',
       ]);
       expect(screen.getByRole('status')).toHaveTextContent(
-        'Agent moved to position 3 of 5.',
+        'Library moved to position 4 of 6.',
       );
     });
 
@@ -1969,7 +1995,7 @@ describe('AppRail', () => {
       );
 
       expect(screen.queryByTestId('app-rail-item-menu')).toBeNull();
-      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-agent'), {
+      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-library'), {
         clientX: 40,
         clientY: 120,
       });
@@ -1977,11 +2003,12 @@ describe('AppRail', () => {
 
       fireEvent.click(screen.getByTestId('app-rail-item-menu-move-up'));
       expect(onRailAppOrderChange).toHaveBeenLastCalledWith([
-        'agent',
         'workspace',
         'library',
+        'discovery',
         'publishing',
         'analytics',
+        'agent',
       ]);
       expect(screen.queryByTestId('app-rail-item-menu')).toBeNull();
 
@@ -1997,11 +2024,11 @@ describe('AppRail', () => {
     it('returns focus to the rail item after the menu closes', async () => {
       render(<AppRail orgSlug="acme" onRailAppOrderChange={vi.fn()} />);
 
-      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-agent'));
+      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-library'));
       fireEvent.click(screen.getByTestId('app-rail-item-menu-move-down'));
 
       await waitFor(() =>
-        expect(screen.getByTestId('app-rail-item-agent')).toHaveFocus(),
+        expect(screen.getByTestId('app-rail-item-library')).toHaveFocus(),
       );
     });
 
@@ -2016,7 +2043,7 @@ describe('AppRail', () => {
         key: 'Escape',
       });
 
-      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-analytics'));
+      fireEvent.contextMenu(screen.getByTestId('app-rail-slot-agent'));
       expect(
         screen.getByTestId('app-rail-item-menu-move-down'),
       ).toHaveAttribute('data-disabled');
@@ -2052,22 +2079,22 @@ describe('AppRail', () => {
       const onTogglePin = vi.fn();
       render(
         <AppRail
-          hiddenAppIds={['agent']}
+          hiddenAppIds={['discovery']}
           onTogglePin={onTogglePin}
           orgSlug="acme"
         />,
       );
 
-      expect(screen.queryByTestId('app-rail-item-agent')).toBeNull();
+      expect(screen.queryByTestId('app-rail-item-discovery')).toBeNull();
       expect(
         within(screen.getByTestId('app-rail-slot-library')).getByTestId(
           'rail-tooltip',
         ),
       ).toHaveTextContent('⌘ 2');
       fireEvent.click(screen.getByTestId('app-rail-more'));
-      expect(screen.getByTestId('app-rail-more-item-agent')).toBeVisible();
-      fireEvent.click(screen.getByTestId('app-rail-more-pin-agent'));
-      expect(onTogglePin).toHaveBeenCalledWith('agent');
+      expect(screen.getByTestId('app-rail-more-item-discovery')).toBeVisible();
+      fireEvent.click(screen.getByTestId('app-rail-more-pin-discovery'));
+      expect(onTogglePin).toHaveBeenCalledWith('discovery');
     });
 
     it('leaves the reset to personal settings', () => {
@@ -2088,16 +2115,16 @@ describe('AppRail', () => {
         />,
       );
 
-      fireEvent.keyDown(screen.getByTestId('app-rail-item-agent'), {
+      fireEvent.keyDown(screen.getByTestId('app-rail-item-library'), {
         altKey: true,
         key: 'ArrowDown',
       });
 
       expect(onReorderEvent).toHaveBeenCalledWith({
-        app: 'agent',
-        from_index: 1,
+        app: 'library',
+        from_index: 2,
         surface: 'desktop',
-        to_index: 2,
+        to_index: 3,
       });
     });
 

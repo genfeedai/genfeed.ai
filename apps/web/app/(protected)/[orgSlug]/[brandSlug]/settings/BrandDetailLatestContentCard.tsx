@@ -38,15 +38,17 @@ export default function BrandDetailLatestContentCard({
             <p className="text-sm font-medium text-foreground/70">
               {emptyTitle}
             </p>
-            <Button
-              asChild
-              className="mt-2"
-              size={ButtonSize.SM}
-              variant={ButtonVariant.DEFAULT}
-              withWrapper={false}
-            >
-              <Link href={createHref}>{createLabel}</Link>
-            </Button>
+            {createHref ? (
+              <Button
+                asChild
+                className="mt-2"
+                size={ButtonSize.SM}
+                variant={ButtonVariant.DEFAULT}
+                withWrapper={false}
+              >
+                <Link href={createHref}>{createLabel}</Link>
+              </Button>
+            ) : null}
           </div>
         </Card>
       )}

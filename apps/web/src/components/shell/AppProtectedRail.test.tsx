@@ -116,7 +116,7 @@ vi.mock('@genfeedai/contracts/constants', async () => ({
     agent: 'Agent',
     analytics: 'Analytics',
     automation: 'Automation',
-    discovery: 'Discovery',
+    discovery: 'Trends',
     library: 'Library',
     messages: 'Messages',
     publishing: 'Publishing',
