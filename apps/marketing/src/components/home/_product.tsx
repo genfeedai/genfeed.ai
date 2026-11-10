@@ -203,7 +203,7 @@ export default function HomeProduct(): React.ReactElement {
 
               <TextPiece destination="X, LinkedIn, Threads" label="Posts">
                 <span className="flex items-center gap-2">
-                  <span className="size-6 rounded-full bg-foreground/15" />
+                  <span className="size-6 rounded-full bg-foreground/10" />
                   <Line width="5rem" />
                 </span>
                 <Text className="text-sm leading-6 text-foreground">
@@ -265,7 +265,7 @@ export default function HomeProduct(): React.ReactElement {
                     <span
                       // biome-ignore lint/suspicious/noArrayIndexKey: a fixed decorative waveform
                       key={index}
-                      className="w-full rounded-full bg-foreground/25"
+                      className="w-full rounded-full bg-foreground/20"
                       style={{ height: `${height}%` }}
                     />
                   ))}

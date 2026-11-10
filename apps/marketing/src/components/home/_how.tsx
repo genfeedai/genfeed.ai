@@ -2,7 +2,7 @@ import {
   AGENT_CLIENT_FAMILIES,
   getAgentClient,
 } from '@data/agent-clients.data';
-import { CardPadding, CardVariant } from '@genfeedai/contracts';
+import { CardGap, CardPadding, CardVariant } from '@genfeedai/contracts';
 import type { HomeReviewRow, HowStep } from '@props/website/home.props';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
@@ -41,9 +41,11 @@ function ConnectMock(): React.ReactElement {
   return (
     <ul className="flex flex-col gap-2">
       {CONNECT_FAMILIES.map((family, index) => (
-        <li
+        <Card
+          as="li"
           key={family.name}
-          className="flex items-center justify-between gap-3 rounded-md bg-card px-3 py-2"
+          bodyClassName="flex-row items-center justify-between"
+          padding={CardPadding.SM}
         >
           <span className="flex items-center gap-3">
             <AgentClientLogo
@@ -61,7 +63,7 @@ function ConnectMock(): React.ReactElement {
               Connect
             </Badge>
           )}
-        </li>
+        </Card>
       ))}
     </ul>
   );
@@ -73,7 +75,7 @@ function AskMock(): React.ReactElement {
       <Text className="ml-auto block max-w-[85%] rounded-md bg-foreground/10 px-3 py-2 text-sm text-foreground">
         Turn this video into an article and a week of posts.
       </Text>
-      <div className="flex max-w-[92%] flex-col gap-2 rounded-md bg-card px-3 py-2">
+      <Card className="max-w-[92%]" gap={CardGap.SM} padding={CardPadding.SM}>
         <Text className="text-sm text-foreground/80">
           Done. One article and five posts are waiting in your dashboard.
         </Text>
@@ -88,7 +90,7 @@ function AskMock(): React.ReactElement {
             1 cover image
           </Badge>
         </span>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -97,15 +99,17 @@ function ReviewMock(): React.ReactElement {
   return (
     <ul className="flex flex-col gap-2">
       {REVIEW_ROWS.map((row) => (
-        <li
+        <Card
+          as="li"
           key={row.label}
-          className="flex items-center justify-between gap-3 rounded-md bg-card px-3 py-2"
+          bodyClassName="flex-row items-center justify-between"
+          padding={CardPadding.SM}
         >
           <Text className="text-sm text-foreground">{row.label}</Text>
           <Badge casing="normal" variant={row.variant}>
             {row.state}
           </Badge>
-        </li>
+        </Card>
       ))}
     </ul>
   );
