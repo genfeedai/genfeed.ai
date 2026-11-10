@@ -96,17 +96,17 @@ export const GET_SKIPS = new Map([
   ['/v1/public/musics/{musicId}/audio.mp3', 'Binary audio response'],
   ['/v1/videos/{videoId}/thumbnail', 'Binary thumbnail response'],
   [
-    '/v1/models3d/{id}',
-    'API-key-only route: session and superadmin actors cannot authenticate',
-  ],
-  [
-    '/v1/models3d/{id}/file',
-    'API-key-only route: session and superadmin actors cannot authenticate',
-  ],
-  [
     '/v1/visual-projects/{id}/revisions/{number}/source',
     'Source file attachment',
   ],
+]);
+
+// Routes that authenticate with an API key only. Every session and superadmin
+// actor must be denied with exactly one 401, so they are counted as expected
+// denials, not as completions, and are not waived like an arbitrary 401.
+export const API_KEY_ONLY_TEMPLATES = Object.freeze([
+  '/v1/models3d/{id}',
+  '/v1/models3d/{id}/file',
 ]);
 
 export function normalizePath(path) {
@@ -568,6 +568,14 @@ export function coverageErrors(
   const errors = [];
   if (templates !== undefined)
     errors.push(...machineCoverage(requests, templates, true).failures);
+  const hasApiKeyOnlyInventory =
+    templates !== undefined &&
+    API_KEY_ONLY_TEMPLATES.every(
+      (template) =>
+        templates.filter((value) => value === template).length === 1,
+    );
+  if (templates !== undefined && !hasApiKeyOnlyInventory)
+    errors.push('API-key-only route inventory incomplete');
   if (routeCount < 100)
     errors.push(`Only ${routeCount} GET routes discovered (minimum 100)`);
   if (toolCount < 20)
@@ -610,7 +618,20 @@ export function coverageErrors(
           templates.filter((value) => value === template).length === 1,
       )
         ? 4
-        : 0);
+        : 0) -
+      (hasApiKeyOnlyInventory ? API_KEY_ONLY_TEMPLATES.length : 0);
+    if (hasApiKeyOnlyInventory)
+      for (const template of API_KEY_ONLY_TEMPLATES) {
+        const denials = attempted.filter((result) => result.route === template);
+        if (
+          denials.length !== 1 ||
+          denials[0].status !== 401 ||
+          denials[0].isTimeout
+        )
+          errors.push(
+            `${actor}: ${template} must be denied with exactly one 401`,
+          );
+      }
     if (completed.length < requiredCompleted)
       errors.push(
         `${actor}: only ${completed.length} GET requests reached the API without auth/throttle/transport failure (minimum ${requiredCompleted}; ${timedOut} timeouts reported separately)`,
