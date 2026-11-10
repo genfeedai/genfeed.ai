@@ -54,7 +54,12 @@ function InternalLink(props: ComponentProps<typeof Link>) {
 const SERVICES = [
   {
     description:
-      'Generate video, images, voiceovers, and articles from one brief. The Genfeed router sends each job to the best model for the format, so you never pick from a model menu, and every job shows its credit price before it runs.',
+      'Connect Claude, ChatGPT, Codex, Cursor or any MCP client and brief Genfeed from where you already work. Every plan includes API access at the same credit price.',
+    title: 'Use it from your agent',
+  },
+  {
+    description:
+      'Generate video, images, voiceovers, and articles from one brief. Pick a model or let the Genfeed router choose one for the format, and every job shows its credit price before it runs.',
     title: 'Create',
   },
   {
@@ -71,11 +76,6 @@ const SERVICES = [
     description:
       'Analytics show how each post performs across your channels. The next brief starts from what worked instead of guesswork.',
     title: 'Measure',
-  },
-  {
-    description:
-      'Every plan includes API access at the same credit price. The MCP server lets AI agents such as Claude and ChatGPT run Genfeed directly.',
-    title: 'Build on it',
   },
 ] as const;
 
@@ -297,7 +297,7 @@ export default function AboutContent() {
         <WebSection maxWidth="xl" className="gsap-section">
           <SectionHeader
             title="What Genfeed does"
-            description="One agent that makes the content, gets it out, and shows you what worked."
+            description="Use it from your agent. It makes the content, gets it out, and shows you what worked."
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 

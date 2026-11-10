@@ -17,20 +17,23 @@ import {
   Building2,
   ChartColumn,
   Clapperboard,
+  Code,
   Compass,
   Cpu,
   Film,
   HeartHandshake,
+  Layers,
   Library,
   Megaphone,
   MessageSquare,
   MonitorDown,
+  Plug,
   Rocket,
   Scissors,
   Send,
-  ShieldCheck,
   ShoppingBag,
   Sparkles,
+  SquareTerminal,
   Terminal,
   UserRound,
   Users,
@@ -52,14 +55,14 @@ const USE_CASE_LINKS = [
     label: 'Creators',
   },
   {
-    description: 'Grow an audience while you build',
+    description: 'Share what you ship, in your own voice',
     group: 'Solo',
     href: '/use-cases/founders',
     icon: Rocket,
     label: 'Founders',
   },
   {
-    description: 'Personas that post and engage on their own',
+    description: 'One face and one voice across every post',
     group: 'Solo',
     href: '/use-cases/ai-influencers',
     icon: UserRound,
@@ -73,7 +76,7 @@ const USE_CASE_LINKS = [
     label: 'Agencies',
   },
   {
-    description: 'Test messages fast, track what converts',
+    description: 'Test messages fast, compare what worked',
     group: 'Teams',
     href: '/use-cases/marketers',
     icon: Megaphone,
@@ -92,7 +95,127 @@ const USE_CASE_LINKS = [
  * What the platform is: one entry per app surface, in the order the app's rail
  * and Apps page group them. Every surface has a page at /products/<slug>.
  */
+/**
+ * Where the work starts: the agent the visitor already has open. First in the
+ * bar, because the homepage leads with "Connect your agent" and the menu under
+ * it should not sell the app instead.
+ */
+const AGENT_LINKS = [
+  {
+    description: 'Chat, Cowork or Code',
+    group: 'Connect an agent',
+    href: '/claude',
+    icon: Bot,
+    label: 'Claude',
+  },
+  {
+    description: 'Connect from a chat',
+    group: 'Connect an agent',
+    href: '/chatgpt',
+    icon: MessageSquare,
+    label: 'ChatGPT',
+  },
+  {
+    description: 'Add it with one command',
+    group: 'Connect an agent',
+    href: '/codex',
+    icon: SquareTerminal,
+    label: 'Codex',
+  },
+  {
+    description: 'Connect in your editor',
+    group: 'Connect an agent',
+    href: '/cursor',
+    icon: Code,
+    label: 'Cursor',
+  },
+  {
+    description: 'Every client, MCP and the CLI',
+    group: 'Build on it',
+    href: '/agent',
+    icon: Plug,
+    label: 'All agents',
+  },
+  {
+    description: 'Connect any MCP client',
+    group: 'Build on it',
+    href: '/mcp',
+    icon: Terminal,
+    label: 'MCP Server',
+  },
+];
+
 const PRODUCT_LINKS = [
+  {
+    description: 'Review, schedule, and publish everywhere',
+    group: 'Publish & measure',
+    href: '/products/publishing',
+    icon: Send,
+    label: 'Publishing',
+  },
+  {
+    description: 'Review views and engagement',
+    group: 'Publish & measure',
+    href: '/products/analytics',
+    icon: ChartColumn,
+    label: 'Analytics',
+  },
+  {
+    description: 'Find trends and content opportunities',
+    group: 'Publish & measure',
+    href: '/products/discovery',
+    icon: Compass,
+    label: 'Discovery',
+  },
+  {
+    description: 'Read and reply in one inbox',
+    group: 'Publish & measure',
+    href: '/products/messages',
+    icon: MessageSquare,
+    label: 'Messages',
+  },
+  {
+    description: 'Every asset, saved once and reusable',
+    group: 'Operate',
+    href: '/products/library',
+    icon: Library,
+    label: 'Library',
+  },
+  {
+    description: 'Ask for the work. The agent does it',
+    group: 'Operate',
+    href: '/products/agent',
+    icon: Bot,
+    label: 'Agent',
+  },
+  {
+    description: 'Run workflows and recurring tasks',
+    group: 'Operate',
+    href: '/products/automation',
+    icon: Workflow,
+    label: 'Automation',
+  },
+  {
+    description: 'Browse the live generation catalog',
+    group: 'Operate',
+    href: '/models',
+    icon: Cpu,
+    label: 'Models',
+  },
+  {
+    description: 'A native app with a local workspace',
+    group: 'Operate',
+    href: '/desktop',
+    icon: MonitorDown,
+    label: 'Desktop',
+  },
+  {
+    description: 'What Genfeed does, from your agent to analytics',
+    group: 'Operate',
+    href: '/features',
+    icon: Layers,
+    label: 'Features',
+  },
   {
     description: 'Generate images, video, audio and text',
     group: 'Create',
@@ -134,83 +257,6 @@ const PRODUCT_LINKS = [
     href: '/products/editor',
     icon: Video,
     label: 'Editor',
-  },
-  {
-    description: 'Review, schedule, and publish everywhere',
-    group: 'Publish & grow',
-    href: '/products/publishing',
-    icon: Send,
-    label: 'Publishing',
-  },
-  {
-    description: 'Review views and engagement',
-    group: 'Publish & grow',
-    href: '/products/analytics',
-    icon: ChartColumn,
-    label: 'Analytics',
-  },
-  {
-    description: 'Find trends and content opportunities',
-    group: 'Publish & grow',
-    href: '/products/discovery',
-    icon: Compass,
-    label: 'Discovery',
-  },
-  {
-    description: 'Read and reply in one inbox',
-    group: 'Publish & grow',
-    href: '/products/messages',
-    icon: MessageSquare,
-    label: 'Messages',
-  },
-  {
-    description: 'Ask for the work. The agent does it',
-    group: 'Operate',
-    href: '/products/agent',
-    icon: Bot,
-    label: 'Agent',
-  },
-  {
-    description: 'Run workflows and recurring tasks',
-    group: 'Operate',
-    href: '/products/automation',
-    icon: Workflow,
-    label: 'Automation',
-  },
-  {
-    description: 'Every asset, saved once and reusable',
-    group: 'Operate',
-    href: '/products/library',
-    icon: Library,
-    label: 'Library',
-  },
-  {
-    description: 'Browse the live generation catalog',
-    group: 'Operate',
-    href: '/models',
-    icon: Cpu,
-    label: 'Models',
-  },
-  {
-    description: 'A native app with a local workspace',
-    group: 'Operate',
-    href: '/desktop',
-    icon: MonitorDown,
-    label: 'Desktop',
-  },
-  {
-    description: 'Approvals, assets, integrations, and audit',
-    group: 'Operate',
-    href: '/features',
-    icon: ShieldCheck,
-    label: 'Control Plane',
-  },
-  {
-    description: 'Connect agents and MCP clients',
-    group: 'Operate',
-    href: '/mcp',
-    icon: Terminal,
-    label: 'MCP Server',
   },
 ];
 
@@ -292,6 +338,16 @@ export default function WebsiteTopbar() {
       dropdowns={[
         {
           footer: {
+            description:
+              'Add Genfeed over MCP and work where you already work.',
+            href: '/agent',
+            label: 'See every way to connect',
+          },
+          items: AGENT_LINKS,
+          label: 'Agents',
+        },
+        {
+          footer: {
             description: 'Every audience runs the same system, its own way.',
             href: '/use-cases',
             label: 'Browse all use cases',
@@ -301,8 +357,7 @@ export default function WebsiteTopbar() {
         },
         {
           footer: {
-            description:
-              'One content system from first brief to verified result.',
+            description: 'One content system from first brief to what worked.',
             href: '/products',
             label: 'Browse all products',
           },
@@ -332,14 +387,14 @@ export default function WebsiteTopbar() {
             >
               <a
                 href={getAppLoginUrl()}
-                className="hidden text-xs font-bold uppercase tracking-[0.1em] text-foreground/60 transition-colors hover:text-foreground lg:block"
+                className="hidden whitespace-nowrap text-xs font-bold uppercase tracking-[0.1em] text-foreground/60 transition-colors hover:text-foreground lg:block"
               >
                 Log in
               </a>
               <ConnectAgentButton
                 label="Connect your agent"
                 variant={ButtonVariant.SECONDARY}
-                className="hidden h-9 px-5 text-sm uppercase xl:inline-flex"
+                className="hidden h-9 px-5 text-sm uppercase 2xl:inline-flex"
                 trackingAction="connect_agent_topbar"
                 trackingName="topbar_cta_click"
               />

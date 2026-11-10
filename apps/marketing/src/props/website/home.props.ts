@@ -69,3 +69,28 @@ export interface AgentPrompt {
   /** Short label for the destination link. */
   hrefLabel: string;
 }
+
+/** One media piece on the homepage output board: what it is, where it goes. */
+export interface HomeBoardMediaProps {
+  asset: HomeOutputAsset;
+  className?: string;
+  destination: string;
+  detail?: string;
+  isPlayable?: boolean;
+  label: string;
+}
+
+/** One written piece on the homepage output board, drawn as the thing itself. */
+export interface HomeBoardTextProps {
+  children: React.ReactNode;
+  className?: string;
+  destination: string;
+  label: string;
+}
+
+/** One row in the "Review" mock: a draft and the state it is in. */
+export interface HomeReviewRow {
+  label: string;
+  state: string;
+  variant: 'outline' | 'success' | 'info';
+}

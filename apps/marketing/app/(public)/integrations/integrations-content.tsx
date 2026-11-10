@@ -1,5 +1,4 @@
 import { integrations } from '@data/integrations.data';
-import { ButtonSize } from '@genfeedai/contracts';
 import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
 import {
   DiscordIcon,
@@ -25,7 +24,7 @@ import {
 } from '@genfeedai/helpers/ui/icons/brands';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
+import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import EditorialPoster from '@web-components/marketing/EditorialPoster';
@@ -71,12 +70,11 @@ const HERO_PROOF = (
       {
         label: 'Workflow',
         value:
-          'Generate, optimize, schedule, and publish without leaving one system.',
+          'Your agent drafts and schedules. Publishing and analytics stay in one dashboard.',
       },
       {
         label: 'Focus',
-        value:
-          'One operating layer for distribution instead of disconnected tools.',
+        value: 'One set of connected channels for every agent you use.',
       },
     ]}
     title="Channel proof"
@@ -107,23 +105,13 @@ export default function IntegrationsContent() {
           <MarketingArtwork page="/integrations" isCompact kind="publishing" />
         }
         heroActions={
-          <ButtonTracked
-            asChild
-            size={ButtonSize.PUBLIC}
-            trackingName="integrations_hero_click"
-            trackingData={{ action: 'core_cta' }}
-          >
-            <Link href="/pricing">
-              Get Started Free
-              <ArrowRight className="size-4" />
-            </Link>
-          </ButtonTracked>
+          <AgentFirstActions trackingName="integrations_hero_click" />
         }
         heroProof={HERO_PROOF}
         heroVisual={HERO_VISUAL}
         compact
         title="Integrations"
-        description="Connect Genfeed to your favorite platforms. Generate and publish AI content everywhere."
+        description="Connect the channels your agent publishes to. It drafts and schedules, you review, and Genfeed publishes to the platforms you connect."
       >
         {/* Platform Grid */}
         <section className="gsap-hero max-w-6xl mx-auto py-16 px-6">
@@ -170,23 +158,15 @@ export default function IntegrationsContent() {
               as="h3"
               className="text-2xl font-bold mb-2 text-foreground"
             >
-              One Platform, Every Channel
+              Your agent, every channel
             </Heading>
             <Text as="p" className="text-foreground/70 mb-6 max-w-lg mx-auto">
-              Generate AI content and publish to all your platforms from a
-              single dashboard. Start free with Core.
+              Connect your agent, then connect your channels. Review drafts and
+              publish to your platforms from one dashboard.
             </Text>
-            <ButtonTracked
-              asChild
-              size={ButtonSize.PUBLIC}
-              trackingName="integrations_cta_click"
-              trackingData={{ action: 'core_cta' }}
-            >
-              <Link href="/pricing">
-                Get Started Free
-                <ArrowRight className="size-4" />
-              </Link>
-            </ButtonTracked>
+            <div className="flex flex-row flex-wrap items-center justify-center gap-4">
+              <AgentFirstActions trackingName="integrations_cta_click" />
+            </div>
           </div>
         </section>
       </PageLayout>

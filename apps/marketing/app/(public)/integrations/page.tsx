@@ -2,8 +2,8 @@ import IntegrationsContent from '@public/integrations/integrations-content';
 import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Integrations: Publish AI Content Anywhere',
-  'Connect Genfeed to YouTube, TikTok, Instagram, LinkedIn, and more. Generate and publish AI content directly to your favorite platforms.',
+  'Integrations: Channels Your Agent Publishes To',
+  'Connect YouTube, TikTok, Instagram, LinkedIn and more to Genfeed. Your agent drafts and schedules, you review, and Genfeed publishes to the channels you connect.',
   '/integrations',
 );
 

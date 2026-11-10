@@ -35,8 +35,8 @@ const FEATURES = [
 const STEPS = [
   {
     icon: Users,
-    label: 'Hire',
-    sublabel: 'Choose research, creative, and publishing agents',
+    label: 'Connect',
+    sublabel: 'Connect your agent, or choose Genfeed’s own agents',
   },
   {
     icon: Sparkles,
@@ -71,7 +71,7 @@ const HERO_VISUAL = (
       },
       {
         label: 'Workflow',
-        value: 'Hire -> brief -> review -> autopilot.',
+        value: 'Connect -> brief -> review -> autopilot.',
       },
       {
         label: 'Outcome',
@@ -103,7 +103,7 @@ export default function HireAgentsContent() {
         heroVisual={HERO_VISUAL}
         compact
         title="Hire Agents"
-        description="A content team of agents that works on schedule. Review every post, or switch on auto-publish."
+        description="Put agents to work on a content schedule, yours over MCP or Genfeed’s own. Review every post, or switch on auto-publish."
       >
         {/* Highlight Card */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
@@ -119,9 +119,10 @@ export default function HireAgentsContent() {
                   A Content Team on Your Terms
                 </Heading>
                 <Text as="p" className="text-foreground/70">
-                  Hire agents for research, creative, and publishing. Set goals
-                  and guardrails, then let them execute campaigns on schedule
-                  while you stay in control of approvals.
+                  Connect the agent you already use, or hire Genfeed’s agents
+                  for research, creative, and publishing. Set goals and
+                  guardrails, then let them execute campaigns on schedule while
+                  you review the work in the dashboard.
                 </Text>
               </div>
             </div>

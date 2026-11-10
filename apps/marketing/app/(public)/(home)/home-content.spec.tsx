@@ -13,7 +13,7 @@ vi.mock('@web-components/home/_agents', () => ({
 }));
 
 vi.mock('@web-components/home/_how', () => ({
-  default: () => <section data-testid="home-distribution-loop">Loop</section>,
+  default: () => <section data-testid="home-how">How</section>,
 }));
 
 vi.mock('@web-components/home/_product', () => ({
@@ -28,12 +28,12 @@ vi.mock('@web-components/home/_asks', () => ({
   default: () => <section data-testid="home-asks">Asks</section>,
 }));
 
-vi.mock('@web-components/proof/ProofWinners', () => ({
-  default: () => <section data-testid="home-winners">Winners</section>,
+vi.mock('@web-components/home/_loop', () => ({
+  default: () => <section data-testid="home-loop">Loop</section>,
 }));
 
-vi.mock('@web-components/home/_newsletter', () => ({
-  default: () => <section data-testid="home-newsletter">Newsletter</section>,
+vi.mock('@web-components/home/_faq', () => ({
+  default: () => <section data-testid="home-faq">FAQ</section>,
 }));
 
 vi.mock('@web-components/home/_cta', () => ({
@@ -61,47 +61,51 @@ describe('HomeContent', () => {
     );
   });
 
-  it('shows output first, the agent entry second and the product third', () => {
+  it('shows output first, then what it makes, then what it manages', () => {
     render(<HomeContent />);
     const sections = Array.from(screen.getByTestId('home-reveal').children);
 
     expect(sections[0]).toBe(screen.getByTestId('home-hero'));
-    expect(sections[1]).toBe(screen.getByTestId('home-agents'));
-    expect(sections[2]).toBe(screen.getByTestId('home-product'));
+    expect(sections[1]).toBe(screen.getByTestId('home-product'));
+    expect(sections[2]).toBe(screen.getByTestId('home-loop'));
   });
 
-  it('places verified proof after product and before explanation', () => {
+  it('puts the agent entry and how it works before the examples', () => {
     render(<HomeContent />);
     const sections = Array.from(screen.getByTestId('home-reveal').children);
 
-    expect(sections[3]).toBe(screen.getByTestId('home-winners'));
-    expect(sections[4]).toBe(screen.getByTestId('home-distribution-loop'));
+    expect(sections[3]).toBe(screen.getByTestId('home-agents'));
+    expect(sections[4]).toBe(screen.getByTestId('home-how'));
+    expect(sections[5]).toBe(screen.getByTestId('home-asks'));
   });
 
-  // The providers wall is supporting depth, not part of the opening claim, so
-  // it follows the explanation rather than separating the product from its
-  // proof.
-  it('places the providers wall after the explanation', () => {
+  // The providers wall is supporting depth, not part of the opening claim.
+  it('places the providers wall and the questions after the examples, then the close', () => {
     render(<HomeContent />);
     const sections = Array.from(screen.getByTestId('home-reveal').children);
 
-    expect(sections[5]).toBe(screen.getByTestId('home-providers'));
-    expect(sections[6]).toBe(screen.getByTestId('home-asks'));
-  });
-
-  it('offers the newsletter just before the closing call to action', () => {
-    render(<HomeContent />);
-    const sections = Array.from(screen.getByTestId('home-reveal').children);
-
-    expect(sections[7]).toBe(screen.getByTestId('home-newsletter'));
+    expect(sections[6]).toBe(screen.getByTestId('home-providers'));
+    expect(sections[7]).toBe(screen.getByTestId('home-faq'));
     expect(sections[8]).toBe(screen.getByTestId('home-cta'));
   });
 
-  it('drops the sections that moved to pricing and the FAQ page', () => {
+  it('keeps the newsletter in the footer, not as a page section', () => {
+    render(<HomeContent />);
+
+    expect(screen.queryByTestId('home-newsletter')).not.toBeInTheDocument();
+    expect(screen.queryByText(/newsletter/i)).not.toBeInTheDocument();
+  });
+
+  it('carries no proof section built on a single post', () => {
+    render(<HomeContent />);
+
+    expect(screen.queryByTestId('home-winners')).not.toBeInTheDocument();
+  });
+
+  it('drops the sections that moved to pricing', () => {
     render(<HomeContent />);
 
     expect(screen.queryByText(/audiences/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/credits/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/faq/i)).not.toBeInTheDocument();
   });
 });

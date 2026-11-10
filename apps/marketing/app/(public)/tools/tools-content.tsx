@@ -10,7 +10,7 @@ export default function ToolsContent(): React.ReactElement {
     <PageLayout
       heroMedia={<MarketingArtwork page="/tools" kind="creator" />}
       compact
-      description="Choose an AI model or turn a public YouTube video into useful content. Get a result before signup, then continue in the full Genfeed workspace."
+      description="Choose an AI model or turn a public YouTube video into useful content. Get a result before signup, then connect your agent to keep going in Genfeed."
       title="Free AI tools for models and content"
     >
       <section className="container mx-auto px-6 py-20">

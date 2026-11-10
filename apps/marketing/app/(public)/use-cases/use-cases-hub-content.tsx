@@ -11,7 +11,7 @@ export default function UseCasesHubContent() {
       <PageLayout
         heroMedia={<MarketingArtwork page="/use-cases" kind="campaign" />}
         title="Genfeed Use Cases"
-        description="See how creators, agencies, e-commerce brands, and founders put Genfeed to work."
+        description="What creators, agencies, e-commerce brands, marketers and founders ask their agent to make with Genfeed, and where they review and publish it."
       >
         <section className="container mx-auto px-6 py-20 gsap-hero">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 gsap-grid">

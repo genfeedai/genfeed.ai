@@ -361,7 +361,10 @@ export function buildLlmsFull(
   s.push('');
   s.push('Key capabilities:');
   s.push(
-    '- **AI Studio**: Generate content with models from Google, OpenAI, Black Forest Labs, Kling, and more',
+    '- **Your agent**: Connect Claude, ChatGPT, Codex, Cursor or any MCP client; the dashboard is where you review, publish and track',
+  );
+  s.push(
+    '- **Generation**: Generate content with models from Google, OpenAI, Black Forest Labs, Kling, and more',
   );
   s.push(
     '- **Multi-platform publishing**: Review and publish to supported channels connected in Genfeed',

@@ -61,7 +61,7 @@ describe('WebsiteTopbar', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('leads with the audience question, then what it is and how to buy it', () => {
+  it('leads with the agent, then the audience, what it is and how to buy it', () => {
     render(<WebsiteTopbar />);
 
     // Scoped to the desktop nav: the mobile menu toggle also reports
@@ -70,7 +70,31 @@ describe('WebsiteTopbar', () => {
       .getAllByRole('button', { expanded: false })
       .map((trigger) => trigger.textContent?.trim());
 
-    expect(menus).toEqual(['Use Cases', 'Product', 'Solutions']);
+    expect(menus).toEqual(['Agents', 'Use Cases', 'Product', 'Solutions']);
+  });
+
+  it('puts the agents first, with a page for each client and the MCP server', () => {
+    render(<WebsiteTopbar />);
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /^agents/i }));
+
+    for (const group of ['Connect an agent', 'Build on it']) {
+      expect(screen.getByText(group)).toBeInTheDocument();
+    }
+
+    for (const [label, href] of [
+      ['Claude', '/claude'],
+      ['ChatGPT', '/chatgpt'],
+      ['Codex', '/codex'],
+      ['Cursor', '/cursor'],
+      ['All agents', '/agent'],
+      ['MCP Server', '/mcp'],
+      ['See every way to connect', '/agent'],
+    ]) {
+      expect(
+        screen.getByRole('link', { name: new RegExp(`^${label}`, 'i') }),
+      ).toHaveAttribute('href', href);
+    }
   });
 
   it('groups delivery shapes under solutions', () => {
@@ -121,7 +145,7 @@ describe('WebsiteTopbar', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('exposes every app product, models, control plane, and MCP server', () => {
+  it('exposes every app product, models and the features page', () => {
     render(<WebsiteTopbar />);
 
     fireEvent.mouseEnter(screen.getByRole('button', { name: /product/i }));
@@ -130,7 +154,7 @@ describe('WebsiteTopbar', () => {
       'aria-expanded',
       'true',
     );
-    for (const group of ['Create', 'Publish & grow', 'Operate']) {
+    for (const group of ['Create', 'Publish & measure', 'Operate']) {
       expect(screen.getByText(group)).toBeInTheDocument();
     }
 
@@ -149,14 +173,30 @@ describe('WebsiteTopbar', () => {
       ['Automation', '/products/automation'],
       ['Library', '/products/library'],
       ['Models', '/models'],
-      ['Control Plane', '/features'],
-      ['MCP Server', '/mcp'],
+      ['Features', '/features'],
       ['Browse all products', '/products'],
     ]) {
       expect(
         screen.getByRole('link', { name: new RegExp(`^${destination}`, 'i') }),
       ).toHaveAttribute('href', href);
     }
+  });
+
+  it('lists the dashboard apps before the creative ones', () => {
+    render(<WebsiteTopbar />);
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /product/i }));
+
+    const hrefs = screen
+      .getAllByRole('link')
+      .map((link) => link.getAttribute('href'));
+
+    expect(hrefs.indexOf('/products/publishing')).toBeLessThan(
+      hrefs.indexOf('/products/playground'),
+    );
+    expect(hrefs.indexOf('/products/library')).toBeLessThan(
+      hrefs.indexOf('/products/playground'),
+    );
   });
 
   it('opens the product menu inside the topbar instead of as a second bar', () => {
