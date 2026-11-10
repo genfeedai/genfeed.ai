@@ -8,6 +8,7 @@ import { ReferralsService } from '@api/collections/referrals/services/referrals.
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { PublicBrandSocialsService } from '@api/endpoints/public/services/public-brand-socials.service';
 import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
+import { publicBrandListing } from '@api/endpoints/public/utils/public-brand-listing.util';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { customLabels } from '@api/helpers/utils/pagination.util';
@@ -34,7 +35,6 @@ import {
   VideoSerializer,
 } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
-import { PublicApiFilter } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
@@ -103,7 +103,7 @@ export class PublicBrandsController {
   @Get()
   @Cache({
     keyGenerator: (req) =>
-      `public:brands:highlighted:${req.query.isHighlighted ?? 'false'}:limit:${req.query.limit ?? '10'}`,
+      `public:brands:highlighted:${req.query.isHighlighted ?? 'false'}:limit:${req.query.limit ?? '10'}:page:${req.query.page ?? '1'}:sort:${req.query.sortBy === 'highlighted' ? 'highlighted' : 'newest'}`,
     tags: ['brands', 'public'],
     ttl: 1800, // 30 minutes
   })
@@ -111,35 +111,18 @@ export class PublicBrandsController {
     @Req() request: Request,
     @Query('isHighlighted') isHighlighted?: string,
     @Query('limit') limit: string = '10',
+    @Query('page') page: string = '1',
+    @Query('sortBy') sortBy?: string,
   ): Promise<JsonApiCollectionResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    this.logger.log(url, { query: { isHighlighted, limit, page, sortBy } });
 
-    const filter: PublicApiFilter = {
-      isDeleted: false,
-      scope: AssetScope.PUBLIC,
-    };
-
-    // Filter by isHighlighted if provided
-    if (isHighlighted === 'true') {
-      filter.isHighlighted = true;
-    }
-
-    this.logger.log(url, { query: { isHighlighted, limit } });
-
-    const parsedLimit = Math.trunc(Number(limit));
-    const pageSize = Math.min(
-      Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 10,
-      100,
-    ); // Cap at 100
-    const aggregate = { where: filter, orderBy: { createdAt: -1 } };
-
-    const options = {
-      customLabels,
-      limit: pageSize,
-      page: 1,
-      pagination: true,
-    };
-
+    const { aggregate, options } = publicBrandListing({
+      isHighlighted,
+      limit,
+      page,
+      sortBy,
+    });
     const data = await this.brandsService.findAll(aggregate, options);
     data.docs = await this.attachPublicBrandAssets(data.docs);
 

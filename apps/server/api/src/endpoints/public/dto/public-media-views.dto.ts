@@ -1,4 +1,4 @@
-import { MAX_MEDIA_VIEW_BATCH } from '@api/endpoints/public/services/public-views.service';
+import { MAX_MEDIA_VIEW_BATCH } from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import { ArrayMaxSize, IsArray, IsString, MaxLength } from 'class-validator';
 

@@ -26,7 +26,7 @@ import { ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type {
   OrganizationCommunityAction,
@@ -88,6 +88,19 @@ export default function OrganizationCommunity({
   const [page, setPage] = useState(1);
   const { apply, data, isError, isLoading, isSaving, refetch } =
     useOrganizationCommunity(organizationId, page);
+  const mediaTotal = data?.mediaTotal ?? 0;
+  const lastPage = Math.max(
+    1,
+    Math.ceil(mediaTotal / ADMIN_COMMUNITY_MEDIA_PAGE_SIZE),
+  );
+
+  // Taking the last item of the last page off community leaves that page
+  // empty: step back to the page that is now last, which loads it.
+  useEffect(() => {
+    if (data && page > lastPage) {
+      setPage(lastPage);
+    }
+  }, [data, lastPage, page]);
 
   async function run(action: OrganizationCommunityAction, success: string) {
     const notifications = NotificationsService.getInstance();
@@ -226,7 +239,6 @@ export default function OrganizationCommunity({
 
   const creators = data?.creators ?? [];
   const media = data?.media ?? [];
-  const mediaTotal = data?.mediaTotal ?? 0;
 
   if (!isLoading && creators.length === 0 && mediaTotal === 0) {
     return (
@@ -260,10 +272,7 @@ export default function OrganizationCommunity({
           currentPage={page}
           onPageChange={setPage}
           totalItems={mediaTotal}
-          totalPages={Math.max(
-            1,
-            Math.ceil(mediaTotal / ADMIN_COMMUNITY_MEDIA_PAGE_SIZE),
-          )}
+          totalPages={lastPage}
         />
       </CollectionSection>
     </div>

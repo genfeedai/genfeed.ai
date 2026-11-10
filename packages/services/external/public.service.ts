@@ -293,6 +293,12 @@ export class PublicService extends HTTPBaseService {
     return this.fetchMany('brands', Brand, query);
   }
 
+  public async findPublicBrandsPage(
+    query?: IQueryParams,
+  ): Promise<IPaginatedResponse<Brand>> {
+    return this.fetchPage('brands', Brand, query);
+  }
+
   public async findPublicVideos(query?: IQueryParams): Promise<Video[]> {
     return this.fetchMany('videos', Video, query);
   }

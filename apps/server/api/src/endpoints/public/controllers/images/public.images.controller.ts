@@ -1,6 +1,6 @@
 import { ImagesService } from '@api/collections/images/services/images.service';
 import {
-  PUBLIC_MEDIA_INCLUDE,
+  publicMediaListing,
   publicMediaOrderBy,
 } from '@api/endpoints/public/utils/public-media-listing.util';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
@@ -66,6 +66,7 @@ export class PublicImagesController {
     @Query('format') _format?: string,
     @Query('isHighlighted') isHighlighted?: string,
     @Query('sortBy') sortBy?: string,
+    @Query('hasPublicCreator') hasPublicCreator?: string,
   ): Promise<JsonApiCollectionResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(url, { query });
@@ -75,7 +76,9 @@ export class PublicImagesController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
+    const listing = publicMediaListing(hasPublicCreator);
     const matchQuery: PrismaWhereQuery = {
+      ...listing.where,
       category: IngredientCategory.IMAGE,
       isDeleted: false,
       scope: AssetScope.PUBLIC,
@@ -102,7 +105,7 @@ export class PublicImagesController {
     }
 
     const aggregate = {
-      include: PUBLIC_MEDIA_INCLUDE,
+      include: listing.include,
       orderBy: publicMediaOrderBy(sortBy),
       where: matchQuery,
     };

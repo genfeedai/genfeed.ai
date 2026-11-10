@@ -4,15 +4,21 @@ import { render, screen, within } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const findPublicBrands =
-  vi.fn<(query: { isHighlighted?: string }) => Promise<Brand[]>>();
+const findPublicBrandsPage =
+  vi.fn<
+    (query: {
+      limit: number;
+      page: number;
+      sortBy?: string;
+    }) => Promise<IPaginatedResponse<Brand>>
+  >();
 const findPublicVideosPage = vi.fn();
 const findPublicImagesPage = vi.fn();
 
 vi.mock('@services/external/public.service', () => ({
   PublicService: {
     getInstance: () => ({
-      findPublicBrands,
+      findPublicBrandsPage,
       findPublicImagesPage,
       findPublicVideosPage,
     }),
@@ -49,31 +55,78 @@ function emptyPage<T>(): IPaginatedResponse<T> {
 
 const SHAYLA = { id: 'brand-1', label: 'Shayla', slug: 'shayla' } as Brand;
 const ACME = { id: 'brand-2', label: 'Acme', slug: 'acme' } as Brand;
-const NO_HANDLE = { id: 'brand-3', label: 'No handle' } as Brand;
+const NOVA = { id: 'brand-3', label: 'Nova', slug: 'nova' } as Brand;
+
+/**
+ * Like the API: highlighted creators first, then the rest, two a page.
+ * Shayla is highlighted.
+ */
+const DIRECTORY = [SHAYLA, ACME, NOVA];
+const DIRECTORY_PAGE_SIZE = 2;
 
 beforeEach(() => {
   vi.clearAllMocks();
-  findPublicBrands.mockImplementation(async (query) =>
-    query.isHighlighted === 'true' ? [SHAYLA] : [ACME, SHAYLA, NO_HANDLE],
-  );
+  findPublicBrandsPage.mockImplementation(async ({ page }) => {
+    const totalPages = Math.ceil(DIRECTORY.length / DIRECTORY_PAGE_SIZE);
+    return {
+      hasNext: page < totalPages,
+      hasPrevious: page > 1,
+      items: DIRECTORY.slice(
+        (page - 1) * DIRECTORY_PAGE_SIZE,
+        page * DIRECTORY_PAGE_SIZE,
+      ),
+      page,
+      pageSize: DIRECTORY_PAGE_SIZE,
+      total: DIRECTORY.length,
+      totalPages,
+    };
+  });
   findPublicVideosPage.mockResolvedValue(emptyPage());
   findPublicImagesPage.mockResolvedValue(emptyPage());
 });
 
-describe('community creators page', () => {
-  it('lists every public creator once, highlighted creators first', async () => {
-    render((await CommunityCreatorsPage()) as ReactElement);
+async function renderCreators(page?: string): Promise<void> {
+  render(
+    (await CommunityCreatorsPage({
+      searchParams: Promise.resolve(page ? { page } : {}),
+    })) as ReactElement,
+  );
+}
 
-    const names = screen
-      .getAllByRole('heading', { level: 3 })
-      .map((heading) => heading.textContent);
-    expect(names).toEqual(['Shayla', 'Acme']);
+function creatorNames(): (string | null)[] {
+  return screen
+    .getAllByRole('heading', { level: 3 })
+    .map((heading) => heading.textContent);
+}
+
+describe('community creators page', () => {
+  it('lists the first page of creators, highlighted creators first', async () => {
+    await renderCreators();
+
+    expect(creatorNames()).toEqual(['Shayla', 'Acme']);
+    expect(screen.getByText('3 creators')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /next/i })).toHaveAttribute(
+      'href',
+      '?page=2',
+    );
     expect(
       within(screen.getByRole('navigation', { name: 'Community' })).getByRole(
         'link',
         { name: 'Creators' },
       ),
     ).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('reaches the creators past the first page', async () => {
+    await renderCreators('2');
+
+    expect(creatorNames()).toEqual(['Nova']);
+  });
+
+  it.each([['abc'], ['0']])('reads page %j as the first page', async (page) => {
+    await renderCreators(page);
+
+    expect(creatorNames()).toEqual(['Shayla', 'Acme']);
   });
 });
 
@@ -85,7 +138,7 @@ function videosOf(
     ...emptyPage(),
     items: videos.map((video) => ({
       ...video,
-      brandId: brand.id,
+      brand: { id: brand.id, slug: brand.slug },
       status: 'generated',
     })),
   };
@@ -100,28 +153,29 @@ async function renderVideos(sort?: string): Promise<void> {
 }
 
 describe('community videos page', () => {
-  it('orders videos from every creator by views, naming who made each', async () => {
-    findPublicVideosPage.mockImplementation(async ({ brand }) =>
-      brand === SHAYLA.id
-        ? videosOf(SHAYLA, [
-            { createdAt: '2026-11-01', id: 'video-a', viewCount: 5 },
-          ])
-        : videosOf(ACME, [
-            { createdAt: '2026-11-08', id: 'video-b', viewCount: 40 },
-            { createdAt: '2026-11-09', id: 'video-c', viewCount: 5 },
-          ]),
-    );
+  it('shows the videos the API ranked across every creator, naming who made each', async () => {
+    findPublicVideosPage.mockResolvedValue({
+      ...emptyPage(),
+      items: [
+        ...videosOf(ACME, [
+          { createdAt: '2026-11-08', id: 'video-b', viewCount: 40 },
+        ]).items,
+        ...videosOf(SHAYLA, [
+          { createdAt: '2026-11-01', id: 'video-a', viewCount: 5 },
+        ]).items,
+      ],
+    });
 
     await renderVideos('views');
 
     expect(findPublicVideosPage).toHaveBeenCalledWith(
-      expect.objectContaining({ sortBy: 'views' }),
+      expect.objectContaining({ hasPublicCreator: 'true', sortBy: 'views' }),
     );
     expect(
       screen
         .getAllByRole('link', { name: /^@/ })
         .map((link) => link.textContent),
-    ).toEqual(['@acme', '@acme', '@shayla']);
+    ).toEqual(['@acme', '@shayla']);
     expect(screen.getByRole('button', { name: 'Most viewed' })).toBeVisible();
   });
 

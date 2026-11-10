@@ -191,6 +191,41 @@ describe('PublicBrandsController', () => {
     });
   });
 
+  describe('findPublicBrands pages', () => {
+    it.each([
+      ['2', 2],
+      [undefined, 1],
+      ['0', 1],
+      ['abc', 1],
+    ])('reads page %j as page %i', async (page, expected) => {
+      brandsService.findAll.mockResolvedValue({ docs: [] } as never);
+
+      await controller.findPublicBrands(mockReq, undefined, '24', page);
+
+      const options = brandsService.findAll.mock.calls[0][1] as {
+        page?: number;
+      };
+      expect(options.page).toBe(expected);
+    });
+  });
+
+  describe('findPublicBrands order', () => {
+    it.each([
+      ['highlighted', [{ isHighlighted: 'desc' }, { createdAt: 'desc' }]],
+      [undefined, { createdAt: -1 }],
+      ['views', { createdAt: -1 }],
+    ])('orders sortBy %j by %j', async (sortBy, expected) => {
+      brandsService.findAll.mockResolvedValue({ docs: [] } as never);
+
+      await controller.findPublicBrands(mockReq, undefined, '24', '1', sortBy);
+
+      const aggregate = brandsService.findAll.mock.calls[0][0] as {
+        orderBy?: unknown;
+      };
+      expect(aggregate.orderBy).toEqual(expected);
+    });
+  });
+
   describe('findPublicBrands assets', () => {
     it('attaches assets once per organization', async () => {
       brandsService.findAll.mockResolvedValue({
