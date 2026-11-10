@@ -44,7 +44,7 @@ export function buildDesktopToolPath(
   ].join(':');
 }
 
-export function isDesktopLocalToolCommandAvailable(
+function isDesktopLocalToolCommandAvailable(
   command: string,
   spawnCommand: typeof spawnSync = spawnSync,
 ): boolean {

@@ -94,7 +94,7 @@ export interface IDesktopSession extends IDesktopContractSession {
   sessionCookie: IDesktopSessionCookie;
 }
 
-export interface IDesktopAuthCallbackError {
+interface IDesktopAuthCallbackError {
   code: 'exchange-failed' | 'invalid-callback' | 'session-cookie-unavailable';
   message: string;
 }

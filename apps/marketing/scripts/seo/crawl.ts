@@ -28,7 +28,7 @@ export interface FetchResult {
   readonly body: string | null;
 }
 
-export interface CrawledPage {
+interface CrawledPage {
   readonly path: string;
   readonly status: number;
   readonly isHtml: boolean;

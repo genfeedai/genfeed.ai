@@ -30,7 +30,7 @@ export interface CliAgentParsedResult {
   usage?: IDesktopCliAgentUsage;
 }
 
-export interface CliAgentResultEvent {
+interface CliAgentResultEvent {
   result: CliAgentParsedResult;
   type: 'result';
 }
