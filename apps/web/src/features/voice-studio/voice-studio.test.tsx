@@ -193,7 +193,7 @@ describe('VoiceStudio', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open Integrations' }),
-    ).toHaveAttribute('href', '/acme/settings/integrations');
+    ).toHaveAttribute('href', '/acme/~/connectors/providers');
   });
 
   it('offers a retry when the connected accounts cannot be read', async () => {

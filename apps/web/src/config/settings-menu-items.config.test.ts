@@ -63,9 +63,6 @@ describe('buildSettingsMenuItems', () => {
         'Agents',
         'Credits',
         'Usage',
-        'API Keys',
-        'Integrations',
-        'Webhooks',
       ]);
     });
 
@@ -89,13 +86,10 @@ describe('buildSettingsMenuItems', () => {
         'Affiliates',
         'Earnings',
         'Usage',
-        'API Keys',
-        'Integrations',
-        'Webhooks',
       ]);
     });
 
-    it('uses Organization, Billing, and Developer groups', () => {
+    it('uses Organization and Billing groups', () => {
       expect(
         buildSettingsMenuItems({ scope: SettingsSurface.ORGANIZATION }).map(
           (item) => [item.label, item.group],
@@ -110,9 +104,6 @@ describe('buildSettingsMenuItems', () => {
         ['Agents', 'Organization'],
         ['Credits', 'Billing'],
         ['Usage', 'Billing'],
-        ['API Keys', 'Developer'],
-        ['Integrations', 'Developer'],
-        ['Webhooks', 'Developer'],
       ]);
     });
 
@@ -141,9 +132,9 @@ describe('buildSettingsMenuItems', () => {
       );
       expect(items.find((i) => i.label === 'Subscription')).toBeUndefined();
       expect(items.find((i) => i.label === 'Affiliates')).toBeUndefined();
-      expect(items.find((i) => i.label === 'API Keys')?.href).toBe(
-        '/settings/api-keys',
-      );
+      expect(items.find((i) => i.label === 'API Keys')).toBeUndefined();
+      expect(items.find((i) => i.label === 'Integrations')).toBeUndefined();
+      expect(items.find((i) => i.label === 'Webhooks')).toBeUndefined();
     });
 
     it('keeps Credits and Usage separate and points Brands and Models at their hubs', () => {
@@ -188,12 +179,11 @@ describe('buildSettingsMenuItems', () => {
 
   describe('brand scope', () => {
     const items = buildSettingsMenuItems({ scope: SettingsSurface.BRAND });
-    it('keeps eight focused destinations and moves workflow editors out of the menu', () => {
+    it('keeps seven focused destinations and moves workflow editors out of the menu', () => {
       expect(items.map((item) => [item.label, item.group, item.href])).toEqual([
         ['Brand profile', 'Brand', APP_ROUTES.SETTINGS.ROOT],
         ['Brand Kit', 'Brand', APP_ROUTES.SETTINGS.BRAND_KIT],
         ['Knowledge', 'Brand', APP_ROUTES.SETTINGS.KNOWLEDGE],
-        ['Accounts', 'Brand', APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS],
         ['Agent settings', 'Automation', APP_ROUTES.SETTINGS.AGENT],
         ['Publishing', 'Automation', APP_ROUTES.SETTINGS.PUBLISHING],
         ['Skills', 'Automation', APP_ROUTES.SETTINGS.SKILLS],
@@ -233,7 +223,7 @@ describe('collapsible sidebar groups', () => {
     items.filter((item, index) => items[index - 1]?.group !== item.group);
 
   it.each([
-    [SettingsSurface.ORGANIZATION, ['Organization', 'Billing', 'Developer']],
+    [SettingsSurface.ORGANIZATION, ['Organization', 'Billing']],
     [SettingsSurface.BRAND, ['Brand', 'Automation', 'Usage']],
   ])('lets every %s group header collapse', (scope, groups) => {
     const items = buildSettingsMenuItems({ isEnterprise: true, scope });

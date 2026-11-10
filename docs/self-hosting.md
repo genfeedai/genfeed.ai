@@ -278,7 +278,7 @@ The Community seed creates organization slug `default`
 (`apps/server/api/src/seeds/self-hosted-seed.service.ts`). After the stack is
 up:
 
-1. Open `http://localhost:3000/default/~/settings/api-keys`.
+1. Open `http://localhost:3000/default/~/connectors/api-keys`.
 2. Create a Genfeed API key and pick the **MCP** preset.
 3. Copy the key once. Export it in the **MCP client** environment (your shell,
    Codex or another non-Claude client). Do not put this user key in the Genfeed container

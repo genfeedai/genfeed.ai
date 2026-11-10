@@ -144,7 +144,7 @@ function renderDrawer(
       brandId="brand-1"
       error={null}
       pendingAction={pending}
-      reconnectHref="/acme-org/acme-creator/settings/accounts"
+      reconnectHref="/acme-org/~/connectors/channels"
       release={release(overrides)}
       {...handlers}
     />,
@@ -228,7 +228,7 @@ describe('ReleaseDetailDrawer', () => {
         brandId="brand-1"
         error={null}
         pendingAction={null}
-        reconnectHref="/settings/accounts"
+        reconnectHref="/connectors/channels"
         release={release({
           status: ReleaseStatus.PAUSED,
           targets: [target({ executionState: TargetExecutionState.PAUSED })],
@@ -343,7 +343,7 @@ describe('ReleaseDetailDrawer', () => {
     ).toBeDisabled();
     expect(
       screen.getByRole('link', { name: 'Reconnect Instagram' }),
-    ).toHaveAttribute('href', '/acme-org/acme-creator/settings/accounts');
+    ).toHaveAttribute('href', '/acme-org/~/connectors/channels');
   });
 
   it('lists the validation issues that produced an invalid target', () => {
@@ -381,7 +381,7 @@ describe('ReleaseDetailDrawer', () => {
         onRescheduleTarget={vi.fn()}
         onRetryTarget={vi.fn()}
         pendingAction={null}
-        reconnectHref="/acme-org/acme-creator/settings/accounts"
+        reconnectHref="/acme-org/~/connectors/channels"
         release={release()}
       />,
     );
@@ -409,7 +409,7 @@ describe('ReleaseDetailDrawer', () => {
         onRescheduleTarget={vi.fn()}
         onRetryTarget={vi.fn()}
         pendingAction={null}
-        reconnectHref="/acme-org/acme-creator/settings/accounts"
+        reconnectHref="/acme-org/~/connectors/channels"
         release={null}
       />,
     );
@@ -491,7 +491,7 @@ describe('ReleaseDetailDrawer', () => {
     });
     expect(reconnect).toHaveAttribute(
       'href',
-      '/acme-org/acme-creator/settings/accounts',
+      '/acme-org/~/connectors/channels',
     );
   });
 
@@ -517,7 +517,7 @@ describe('ReleaseDetailDrawer', () => {
         onRescheduleTarget={vi.fn()}
         onRetryTarget={vi.fn()}
         pendingAction={null}
-        reconnectHref="/acme-org/acme-creator/settings/accounts"
+        reconnectHref="/acme-org/~/connectors/channels"
         release={release()}
       />,
     );
@@ -550,7 +550,7 @@ describe('ReleaseDetailDrawer', () => {
           error={error}
           onAddChannel={props.onAddChannel}
           pendingAction={pending}
-          reconnectHref="/acme-org/acme-creator/settings/accounts"
+          reconnectHref="/acme-org/~/connectors/channels"
           release={release}
           {...handlers}
         />
@@ -795,7 +795,7 @@ describe('ReleaseDetailDrawer', () => {
           onResumeRelease={onResumeRelease}
           onRetryTarget={vi.fn()}
           pendingAction={null}
-          reconnectHref="/acme-org/acme-creator/settings/accounts"
+          reconnectHref="/acme-org/~/connectors/channels"
           release={release({
             status: ReleaseStatus.PAUSED,
             targets: [
@@ -818,7 +818,7 @@ describe('ReleaseDetailDrawer', () => {
       ).toBeEnabled();
       expect(
         await screen.findByRole('link', { name: 'Reconnect Instagram' }),
-      ).toHaveAttribute('href', '/acme-org/acme-creator/settings/accounts');
+      ).toHaveAttribute('href', '/acme-org/~/connectors/channels');
     });
   });
 });

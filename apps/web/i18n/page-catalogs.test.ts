@@ -46,6 +46,7 @@ const ORIGINAL_NAMES = [
   'brandWatermark',
   'connectGenfeed',
   'connectSocial',
+  'connectors',
   'costUsage',
   'creatorArticleUnlock',
   'creatorEarnings',

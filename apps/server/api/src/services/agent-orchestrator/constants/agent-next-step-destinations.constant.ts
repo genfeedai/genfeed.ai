@@ -45,7 +45,7 @@ export const AGENT_NEXT_STEP_DESTINATIONS = {
   },
   connect_accounts: {
     ctaLabel: 'Open connections',
-    href: APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
+    href: APP_ROUTES.CONNECTORS.CHANNELS,
     label: 'Connected accounts',
   },
   credits: {
@@ -80,7 +80,7 @@ export const AGENT_NEXT_STEP_DESTINATIONS = {
   },
   provider_keys: {
     ctaLabel: 'Open provider keys',
-    href: APP_ROUTES.SETTINGS.INTEGRATIONS,
+    href: APP_ROUTES.CONNECTORS.PROVIDERS,
     label: 'Provider API keys',
   },
   publishing_settings: {

@@ -287,10 +287,7 @@ export class AgentConnectionRequestService {
     const appUrl = String(
       this.configService.get('GENFEEDAI_APP_URL') ?? 'https://app.genfeed.ai',
     ).replace(TRAILING_SLASHES_PATTERN, '');
-    const path = createOrganizationAppRoute(
-      slug,
-      `${APP_ROUTES.CONNECT}/social`,
-    );
+    const path = createOrganizationAppRoute(slug, APP_ROUTES.CONNECT_SOCIAL);
     const query = new URLSearchParams({
       brandId: input.brandId,
       connectionId: input.connectionId,

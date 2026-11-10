@@ -197,10 +197,10 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
       ),
     ).toEqual({
       complete_company_info: '/onboarding/brand',
-      connect_social_account: '/settings/brands',
-      generate_first_image: '/settings/api-keys',
-      generate_first_video: '/settings/api-keys',
-      publish_first_post: '/connect',
+      connect_social_account: '/connectors/channels',
+      generate_first_image: '/connectors/api-keys',
+      generate_first_video: '/connectors/api-keys',
+      publish_first_post: '/connectors/agents',
     });
   });
 
@@ -356,7 +356,7 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
       isReady: true,
     });
     expect(imageStep).toMatchObject({
-      ctaHref: '/settings/api-keys',
+      ctaHref: '/connectors/api-keys',
       isCompleted: false,
     });
     expect(imageStep?.description).toContain(
@@ -382,7 +382,7 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
       isReady: false,
     });
     expect(imageStep).toMatchObject({
-      ctaHref: '/settings/api-keys',
+      ctaHref: '/connectors/api-keys',
       isCompleted: false,
       rewardCredits: 0,
     });

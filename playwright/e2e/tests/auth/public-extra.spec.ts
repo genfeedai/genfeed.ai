@@ -92,8 +92,8 @@ test.describe('Public Routes (Unauthenticated)', () => {
 test.describe('Connect (Authenticated)', () => {
   test.setTimeout(60_000);
 
-  test('renders /connect', async ({ authenticatedPage }) => {
-    await assertRouteRenders(authenticatedPage, APP_ROUTES.CONNECT);
+  test('renders Connectors', async ({ authenticatedPage }) => {
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.CONNECTORS.AGENTS);
   });
 });
 

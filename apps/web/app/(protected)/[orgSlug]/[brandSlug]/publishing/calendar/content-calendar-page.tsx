@@ -63,7 +63,7 @@ export default function ContentCalendarPage({
   const globalFilterQuery = embedded ? searchParams.toString() : '';
   const { brandId, credentials, selectedBrand } = useBrand();
   const { push } = useRouter();
-  const { href } = useOrgUrl();
+  const { href, orgHref } = useOrgUrl();
   const translate = useTranslations('pages.publishing.calendar');
   const { openConfirm } = useConfirmModal();
 
@@ -431,7 +431,7 @@ export default function ContentCalendarPage({
         onResumeRelease={handleResumeRelease}
         onRetryTarget={handleRetryTarget}
         pendingAction={pendingAction}
-        reconnectHref={href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}
+        reconnectHref={orgHref(APP_ROUTES.CONNECTORS.CHANNELS)}
         release={selectedRelease}
       />
       {selectedRelease ? (

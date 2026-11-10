@@ -1235,7 +1235,7 @@ describe('AdsResearchPageClient', () => {
       screen.getByRole('link', { name: 'Manage ad connections' }),
     ).toHaveAttribute(
       'href',
-      '/moonrise-org/moonrise-studio/settings/accounts',
+      '/moonrise-org/~/connectors/channels',
     );
     expect(
       screen.getByRole('button', { name: 'Competitors' }),

@@ -158,7 +158,10 @@ const BRAND_SCOPED_PREFIXES = [
   APP_ROUTE_PREFIXES.WORKSPACE.slice(1),
 ] as const;
 
-const ORG_SCOPED_PREFIXES = [APP_ROUTE_PREFIXES.SETTINGS.slice(1)] as const;
+const ORG_SCOPED_PREFIXES = [
+  APP_ROUTE_PREFIXES.SETTINGS.slice(1),
+  APP_ROUTES.CONNECTORS.ROOT.slice(1),
+] as const;
 
 const FLAT_PATH_REDIRECTS = new Map<string, string>([
   [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
@@ -859,6 +862,7 @@ type CanonicalResolution = {
 const ORG_ROOT_APP_PREFIXES = [
   'analytics',
   'agent',
+  APP_ROUTES.CONNECTORS.ROOT.slice(1),
   'discovery',
   'library',
   'publishing',
@@ -1527,7 +1531,7 @@ export const config = {
     },
     {
       source:
-        '/(analytics|agent|library|automation|overview|publishing|discovery|playground|storyboard|turbo|motion|clipper|editor|workspace|settings)(.*)',
+        '/(analytics|agent|library|automation|overview|publishing|discovery|playground|storyboard|turbo|motion|clipper|editor|workspace|settings|connectors)(.*)',
       has: [{ type: 'header', key: 'next-router-prefetch' }],
     },
     '/(api|trpc)(.*)',

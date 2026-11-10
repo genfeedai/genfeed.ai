@@ -107,7 +107,7 @@ export interface BrandDetailSidebarProps {
   connectedPlatformsCount: number;
   deletingRefId: string | null;
   isUpdatingPublicProfile?: boolean;
-  /** When set, the sidebar lists connected accounts as rows with a Manage link to /settings/accounts. */
+  /** When set, the sidebar lists connected accounts as rows with a Manage link to Connectors → Channels. */
   manageSocialHref?: string;
   onTogglePublicProfile: (isPublic: boolean) => void;
   onRefreshBrand: () => Promise<void>;
@@ -148,14 +148,14 @@ export interface BrandDetailSocialMediaCardProps {
   onConnectAccountModalOpenChange?: (isOpen: boolean) => void;
   /**
    * `compact` — summary card + connect modal (sidebar / embed).
-   * `page` — full accounts table + Connect account modal (settings/accounts).
+   * `page` — full accounts table + Connect account modal (Connectors → Channels).
    */
   variant?: 'compact' | 'page';
 }
 
 export interface BrandDetailConnectedAccountsSectionProps {
   connections: BrandDetailSocialConnection[];
-  /** Link to /settings/accounts, where accounts are managed. */
+  /** Link to Connectors → Channels, where accounts are managed. */
   manageHref: string;
 }
 

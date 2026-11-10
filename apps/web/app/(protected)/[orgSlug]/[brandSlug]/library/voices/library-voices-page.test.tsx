@@ -747,7 +747,7 @@ describe('LibraryVoicesPage', () => {
 
     expect(screen.getByTestId('account-voices-dialog')).toHaveAttribute(
       'data-connect-href',
-      '/demo/~/settings/integrations',
+      '/demo/~/connectors/providers',
     );
   });
   it('renders the server total rather than the number of voices on this page', () => {

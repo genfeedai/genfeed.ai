@@ -302,7 +302,7 @@ describe('ProvidersContent behavior', () => {
       );
     });
 
-    expect(pushMock).toHaveBeenCalledWith('/settings/api-keys');
+    expect(pushMock).toHaveBeenCalledWith('/connectors/api-keys');
     expect(handleStepCompleteMock).toHaveBeenCalledWith('providers');
   });
 

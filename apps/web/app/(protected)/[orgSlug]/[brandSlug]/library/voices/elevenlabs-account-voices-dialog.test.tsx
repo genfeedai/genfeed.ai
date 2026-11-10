@@ -133,7 +133,7 @@ function renderDialog(
 ) {
   const view = render(
     <ElevenLabsAccountVoicesDialog
-      connectHref="/demo/~/settings/integrations"
+      connectHref="/demo/~/connectors/providers"
       onClose={vi.fn()}
       onImported={onImported}
     />,
@@ -159,7 +159,7 @@ describe('ElevenLabsAccountVoicesDialog', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open Integrations' }),
-    ).toHaveAttribute('href', '/demo/~/settings/integrations');
+    ).toHaveAttribute('href', '/demo/~/connectors/providers');
   });
 
   it('explains a rejected key', async () => {

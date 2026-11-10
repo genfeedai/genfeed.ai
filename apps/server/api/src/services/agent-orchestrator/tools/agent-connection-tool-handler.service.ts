@@ -191,7 +191,7 @@ export class AgentConnectionToolHandler {
       return {
         ctas: [
           {
-            href: `/settings/api-keys?returnTo=${encodeURIComponent(returnTo)}`,
+            href: `${APP_ROUTES.CONNECTORS.API_KEYS}?returnTo=${encodeURIComponent(returnTo)}`,
             label: 'Open integrations',
           },
         ],
@@ -202,7 +202,7 @@ export class AgentConnectionToolHandler {
       };
     }
 
-    const connectHref = `/settings/api-keys?connect=${normalizedPlatform}&returnTo=${encodeURIComponent(returnTo)}`;
+    const connectHref = `${APP_ROUTES.CONNECTORS.API_KEYS}?connect=${normalizedPlatform}&returnTo=${encodeURIComponent(returnTo)}`;
     const label = normalizedPlatform;
 
     return {

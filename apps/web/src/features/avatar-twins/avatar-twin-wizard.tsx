@@ -72,7 +72,7 @@ export default function AvatarTwinWizard() {
     if (!isConnected)
       return (
         <AvatarTwinConnectStep
-          connectHref={orgHref(APP_ROUTES.SETTINGS.INTEGRATIONS)}
+          connectHref={orgHref(APP_ROUTES.CONNECTORS.PROVIDERS)}
           isInvalid={connectionState === 'invalid'}
           onRecheck={() => {
             void recheckConnection();

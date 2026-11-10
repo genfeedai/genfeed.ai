@@ -1117,7 +1117,7 @@ describe('AppProtectedLayout', () => {
   );
 
   it.each([
-    ['/org-123/~/settings/api-keys', 'Settings', 'API Keys'],
+    ['/org-123/~/connectors/api-keys', 'Connectors', 'API keys'],
     ['/org-123/brand-123/discovery/ads', 'Discovery', 'Ads'],
     ['/org-123/brand-123/library', 'Library', 'Overview'],
     ['/org-123/brand-123/library/videos', 'Library', 'Assets'],
@@ -1165,9 +1165,6 @@ describe('AppProtectedLayout', () => {
       };
       expect(layoutProps.breadcrumb).toEqual({
         leafLabel,
-        ...(pathname === '/org-123/~/settings/api-keys'
-          ? { parentLabel: 'Org 123' }
-          : {}),
         rootLabel,
       });
     },

@@ -336,7 +336,7 @@ export default function BrandDetailIdentityCard({
             variant={ButtonVariant.SECONDARY}
             className="w-fit"
           >
-            <Link href={orgHref('/settings/integrations')}>
+            <Link href={orgHref(APP_ROUTES.CONNECTORS.PROVIDERS)}>
               {translate('reconnectHeygen')}
             </Link>
           </Button>

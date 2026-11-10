@@ -8,6 +8,7 @@ import {
   type IngredientCategory,
   PageScope,
 } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IActivity, IIngredient } from '@genfeedai/contracts/interfaces';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
@@ -88,7 +89,7 @@ export default function ActivitiesList({
     toggleActivityRead,
   } = useActivities({ limit: 20, page, scope, search });
 
-  const { href } = useOrgUrl();
+  const { href, orgHref } = useOrgUrl();
   const { openIngredientSidebar } = useIngredientSidebar();
   const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
   const [isMarkingRead, setIsMarkingRead] = useState(false);
@@ -115,9 +116,15 @@ export default function ActivitiesList({
         return undefined;
       }
       const path = getActivityDestinationPath(activity);
-      return path ? href(path) : undefined;
+      if (!path) {
+        return undefined;
+      }
+      // Connectors is organization scope; every other destination is a brand page.
+      return path.startsWith(APP_ROUTES.CONNECTORS.ROOT)
+        ? orgHref(path)
+        : href(path);
     },
-    [href, isAdminScope],
+    [href, isAdminScope, orgHref],
   );
 
   const columns = useMemo(

@@ -150,7 +150,7 @@ describe('AgentRouteRewriteService', () => {
       {
         nextActions: [
           {
-            ctas: [{ href: '/settings/api-keys', label: 'Settings' }],
+            ctas: [{ href: '/connectors/api-keys', label: 'Settings' }],
             id: 'connect',
             title: 'Connect',
             type: 'oauth_connect_card',
@@ -163,7 +163,7 @@ describe('AgentRouteRewriteService', () => {
     );
 
     expect(scoped.nextActions?.[0].ctas?.[0]).toMatchObject({
-      href: '/genfeed-ai/~/settings/api-keys',
+      href: '/genfeed-ai/~/connectors/api-keys',
     });
   });
 
@@ -282,17 +282,31 @@ describe('AgentRouteRewriteService', () => {
         creditsUsed: 0,
         success: true,
         data: {
-          href: '/genfeed-ai/~/settings/accounts?platform=x#top',
-          ctaHref: '/genfeed-ai/other/settings/accounts',
+          href: '/genfeed-ai/~/settings/skills?platform=x#top',
+          ctaHref: '/genfeed-ai/other/settings/skills',
           editorUrl: '/genfeed-ai/launch-brand/settings',
         },
       },
       context,
     );
     expect(scoped.data).toEqual({
-      href: '/genfeed-ai/launch-brand/settings/accounts?platform=x#top',
-      ctaHref: '/genfeed-ai/other/settings/accounts',
+      href: '/genfeed-ai/launch-brand/settings/skills?platform=x#top',
+      ctaHref: '/genfeed-ai/other/settings/skills',
       editorUrl: '/genfeed-ai/launch-brand/settings',
+    });
+  });
+
+  it('keeps Connectors on the organization even when a brand is available', async () => {
+    const scoped = await createService().scopeToolResultHrefs(
+      {
+        creditsUsed: 0,
+        success: true,
+        data: { href: '/connectors/channels?platform=x' },
+      },
+      context,
+    );
+    expect(scoped.data).toEqual({
+      href: '/genfeed-ai/~/connectors/channels?platform=x',
     });
   });
 
@@ -302,7 +316,7 @@ describe('AgentRouteRewriteService', () => {
       {
         creditsUsed: 0,
         success: true,
-        data: { href: '/settings/accounts' },
+        data: { href: '/settings/skills' },
       },
       context,
     );
@@ -400,7 +414,7 @@ describe('AgentRouteRewriteService', () => {
     const result: AgentToolResult = {
       nextActions: [
         {
-          ctas: [{ href: '/settings/api-keys', label: 'Settings' }],
+          ctas: [{ href: '/connectors/api-keys', label: 'Settings' }],
           id: 'connect',
           title: 'Connect',
           type: 'oauth_connect_card',

@@ -144,7 +144,7 @@ describe('useSetupCard', () => {
     expect(preferences?.isCompleted).toBe(true);
     expect(preferences?.href).toBe('/acme/~/settings/brands');
     expect(platforms?.isCompleted).toBe(false);
-    expect(platforms?.href).toBe('/acme/coffee/settings/accounts');
+    expect(platforms?.href).toBe('/acme/~/connectors/channels');
     expect(result.current.completedCount).toBe(1);
   });
 
@@ -159,8 +159,8 @@ describe('useSetupCard', () => {
     );
 
     expect(platforms?.href).toBe('/acme/~/settings/brands');
-    expect(platforms?.href).not.toBe('/settings/accounts');
-    expect(platforms?.href).not.toBe('/settings/api-keys');
+    expect(platforms?.href).not.toBe('/connectors/channels');
+    expect(platforms?.href).not.toBe('/connectors/api-keys');
   });
 
   it('updates account hrefs when the selected scope changes', () => {
@@ -170,7 +170,7 @@ describe('useSetupCard', () => {
     const hrefFor = (key: string) =>
       result.current.steps.find((step) => step.key === key)?.href;
 
-    expect(hrefFor('platforms')).toBe('/acme/coffee/settings/accounts');
+    expect(hrefFor('platforms')).toBe('/acme/~/connectors/channels');
 
     mockScope.brandSlug = '';
     rerender();

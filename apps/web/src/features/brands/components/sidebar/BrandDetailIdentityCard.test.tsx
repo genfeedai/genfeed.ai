@@ -221,7 +221,7 @@ describe('BrandDetailIdentityCard.tsx', () => {
       screen.getByRole('link', { name: 'Reconnect HeyGen' }),
     ).toHaveAttribute(
       'href',
-      expect.stringContaining('/settings/integrations'),
+      expect.stringContaining('/connectors/providers'),
     );
   });
 

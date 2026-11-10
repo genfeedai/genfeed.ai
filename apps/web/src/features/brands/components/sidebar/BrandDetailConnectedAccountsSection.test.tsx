@@ -29,7 +29,7 @@ describe('BrandDetailConnectedAccountsSection', () => {
     render(
       <BrandDetailConnectedAccountsSection
         connections={[]}
-        manageHref="/org/brand/settings/accounts"
+        manageHref="/org/~/connectors/channels"
       />,
     );
 
@@ -38,7 +38,7 @@ describe('BrandDetailConnectedAccountsSection', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Manage' })).toHaveAttribute(
       'href',
-      '/org/brand/settings/accounts',
+      '/org/~/connectors/channels',
     );
     expect(screen.getByText('No accounts connected yet.')).toBeInTheDocument();
   });
@@ -56,7 +56,7 @@ describe('BrandDetailConnectedAccountsSection', () => {
             platform: CredentialPlatform.TWITTER,
           }),
         ]}
-        manageHref="/settings/accounts"
+        manageHref="/connectors/channels"
       />,
     );
 

@@ -18,17 +18,13 @@ import {
   Grip,
   HandHeart,
   IdCard,
-  Key,
   Palette,
-  PlugZap,
   Settings,
   SlidersHorizontal,
   Smile,
   User,
   Users,
-  UsersRound,
   Wallet,
-  Webhook,
 } from 'lucide-react';
 
 // Brand settings resolve against the current brandSlug via the sidebar's
@@ -55,8 +51,9 @@ export interface BuildSettingsMenuItemsParams {
 /**
  * Menu grouping rules (keep meaningful headers per scope):
  * - Never add a top-level "Settings" shell label — the route/scope already says that.
- * - Org: Organization (who/what + Agents defaults) · Billing (money) ·
- *   Developer (keys/webhooks)
+ * - Org: Organization (who/what + Agents defaults) · Billing (money).
+ *   Connections (agents, channels, providers, keys, webhooks) live on the
+ *   Connectors page, not in Settings.
  * - Brand: Brand (public + identity) · Automation (how content runs) ·
  *   Billing (cost attribution)
  * - Personal: Account (Personal, Notifications, Chat, Progress, Help).
@@ -242,30 +239,6 @@ function buildOrganizationMenuItems(
       outline: ChartColumnIncreasing,
       solid: ChartColumnIncreasing,
     },
-    {
-      group: 'Developer',
-      href: APP_ROUTES.SETTINGS.API_KEYS,
-      hrefScope: 'organization',
-      label: 'API Keys',
-      outline: Key,
-      solid: Key,
-    },
-    {
-      group: 'Developer',
-      href: APP_ROUTES.SETTINGS.INTEGRATIONS,
-      hrefScope: 'organization',
-      label: 'Integrations',
-      outline: PlugZap,
-      solid: PlugZap,
-    },
-    {
-      group: 'Developer',
-      href: APP_ROUTES.SETTINGS.WEBHOOKS,
-      hrefScope: 'organization',
-      label: 'Webhooks',
-      outline: Webhook,
-      solid: Webhook,
-    },
   ];
 }
 
@@ -295,14 +268,6 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       label: 'Knowledge',
       outline: BookText,
       solid: BookText,
-    },
-    {
-      group: 'Brand',
-      href: APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
-      hrefScope: 'brand',
-      label: 'Accounts',
-      outline: UsersRound,
-      solid: UsersRound,
     },
     {
       group: 'Automation',

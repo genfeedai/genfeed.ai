@@ -64,7 +64,14 @@ vi.mock('@genfeedai/contracts/constants', () => ({
       NEW: '/agent/new',
       ROOT: '/agent',
     },
-    CONNECT: '/connect',
+    CONNECTORS: {
+      AGENTS: '/connectors/agents',
+      API_KEYS: '/connectors/api-keys',
+      CHANNELS: '/connectors/channels',
+      PROVIDERS: '/connectors/providers',
+      ROOT: '/connectors',
+      WEBHOOKS: '/connectors/webhooks',
+    },
     LOGIN: '/login',
     LOGOUT: '/logout',
     OAUTH: '/oauth',
@@ -289,7 +296,7 @@ describe('AppProtectedBrandSwitcher', () => {
   });
 
   it('hides the brand switcher on organization settings routes', () => {
-    mockPathname.value = '/acme/~/settings/api-keys';
+    mockPathname.value = '/acme/~/connectors/api-keys';
 
     render(<AppProtectedBrandSwitcher orgSlug="acme" />);
 

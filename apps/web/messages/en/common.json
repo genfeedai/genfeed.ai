@@ -2877,6 +2877,7 @@
     "reordered": "{app} moved to position {position} of {total}.",
     "navigation": "App navigation",
     "goTo": "Go to {app}",
+    "connectors": "Connectors",
     "help": "Help",
     "opening": "Opening app.",
     "locked": "{app} — locked. Generate your first asset to unlock.",

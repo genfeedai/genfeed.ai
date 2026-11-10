@@ -3,6 +3,6 @@ import ConnectGenfeedFlow from './connect-genfeed-flow';
 
 export const generateMetadata = createPageMetadata('Connect Genfeed');
 
-export default function ConnectGenfeedPage() {
+export default function ConnectorsAgentsPage() {
   return <ConnectGenfeedFlow />;
 }

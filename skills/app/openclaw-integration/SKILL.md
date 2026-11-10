@@ -35,7 +35,7 @@ That's it. Once connected, your agent can create videos, images, articles, avata
 
 ### Getting an API Key
 
-1. Go to [app.genfeed.ai/settings/api-keys](https://app.genfeed.ai/settings/api-keys)
+1. Go to [app.genfeed.ai/connectors/api-keys](https://app.genfeed.ai/connectors/api-keys)
 2. Click **Create API Key**
 3. Copy the key (format: `gf_live_xxx`)
 4. Store it securely -- it is shown only once
@@ -164,7 +164,7 @@ its documented commands. CLI commands and MCP tool names are separate interfaces
 }
 ```
 
-**Resolution:** Verify the API key at [app.genfeed.ai/settings/api-keys](https://app.genfeed.ai/settings/api-keys). Ensure the key has the required scopes for the operation.
+**Resolution:** Verify the API key at [app.genfeed.ai/connectors/api-keys](https://app.genfeed.ai/connectors/api-keys). Ensure the key has the required scopes for the operation.
 
 ### Generation Failures
 
