@@ -5,6 +5,7 @@ import {
   toNavigationType,
 } from '@/lib/navigation/navigation-events';
 import { dropUnhandledJsonApiObjectRejection } from '@/lib/sentry/drop-json-api-object-rejection';
+import { recordHydrationEntryContext } from '@/lib/sentry/hydration-entry-context';
 
 Sentry.init({
   beforeSend(event, hint) {
@@ -48,6 +49,8 @@ Sentry.init({
   // Sentry is used for error reporting only; performance spans are disabled.
   tracesSampleRate: 0,
 });
+
+recordHydrationEntryContext();
 
 const REPLAY_IDLE_TIMEOUT_MS = 5000;
 const REPLAY_IDLE_FALLBACK_MS = 2000;
