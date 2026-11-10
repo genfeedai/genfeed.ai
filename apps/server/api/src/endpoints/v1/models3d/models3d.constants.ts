@@ -4,8 +4,58 @@ import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 export const MODELS3D_SHEET_MODEL_KEY =
   MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO;
 
-/** Image-to-3D model that builds the GLB from the photo and the sheet views. */
-export const MODELS3D_BUILD_MODEL_KEY = MODEL_KEYS.REPLICATE_FIRTOZ_TRELLIS;
+export const MODELS3D_QUALITIES = ['standard', 'high'] as const;
+export type Models3dQuality = (typeof MODELS3D_QUALITIES)[number];
+export const MODELS3D_DEFAULT_QUALITY: Models3dQuality = 'standard';
+
+export interface Models3dBuildTier {
+  /** Fixed provider input, merged with the source photo and the sheet views. */
+  input: Record<string, boolean | number | string>;
+  /** Image-to-3D model that builds the GLB from the photo and the sheet views. */
+  modelKey: string;
+  /** Key of the GLB file inside the prediction output; absent when the output is the file URL. */
+  outputKey?: string;
+  /** Whether the model's input requires a text prompt beside the images. */
+  isPromptRequired?: boolean;
+  /** Indexes into the cropped sheet views to send, in order; absent sends them all. */
+  viewIndexes?: readonly number[];
+}
+
+/** Subject line for tiers whose input requires a prompt. */
+export const MODELS3D_DEFAULT_SUBJECT = 'the object shown in the images';
+
+export const MODELS3D_BUILD_TIERS: Record<Models3dQuality, Models3dBuildTier> =
+  {
+    standard: {
+      input: {
+        generate_model: true,
+        mesh_simplify: 0.95,
+        randomize_seed: false,
+        seed: 42,
+        texture_size: 2048,
+      },
+      modelKey: MODEL_KEYS.REPLICATE_FIRTOZ_TRELLIS,
+      outputKey: 'model_file',
+    },
+    high: {
+      input: {
+        geometry_file_format: 'glb',
+        material: 'PBR',
+        mesh_mode: 'Quad',
+        quality: 'high',
+        seed: 42,
+        tier: 'Gen-2',
+      },
+      isPromptRequired: true,
+      modelKey: MODEL_KEYS.REPLICATE_HYPER3D_RODIN,
+      // Rodin takes at most five images: the photo plus the left, right, back and top views.
+      viewIndexes: [2, 3, 6, 8],
+    },
+  };
+
+/** Standard-tier build model, kept for callers that price or label the default. */
+export const MODELS3D_BUILD_MODEL_KEY =
+  MODELS3D_BUILD_TIERS[MODELS3D_DEFAULT_QUALITY].modelKey;
 
 export const MODELS3D_GRID_SIZE = 3;
 
@@ -13,17 +63,6 @@ export const MODELS3D_GRID_SIZE = 3;
 export const MODELS3D_GRID_CENTER_INDEX = 4;
 
 export const MODELS3D_SHEET_RESOLUTION = '2K';
-
-export const MODELS3D_BUILD_INPUT = {
-  generate_model: true,
-  mesh_simplify: 0.95,
-  randomize_seed: false,
-  seed: 42,
-  texture_size: 2048,
-} as const;
-
-/** Key of the GLB file inside the TRELLIS prediction output. */
-export const MODELS3D_BUILD_OUTPUT_KEY = 'model_file';
 
 export const MODELS3D_SHEET_ASPECT_RATIO = '1:1';
 

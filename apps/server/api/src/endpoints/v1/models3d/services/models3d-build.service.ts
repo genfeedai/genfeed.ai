@@ -3,9 +3,9 @@ import { MetadataEntity } from '@api/collections/metadata/entities/metadata.enti
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type { Models3dProviderData } from '@api/endpoints/v1/models3d/interfaces/models3d.interfaces';
 import {
-  MODELS3D_BUILD_INPUT,
-  MODELS3D_BUILD_MODEL_KEY,
-  MODELS3D_BUILD_OUTPUT_KEY,
+  MODELS3D_BUILD_TIERS,
+  MODELS3D_DEFAULT_QUALITY,
+  MODELS3D_DEFAULT_SUBJECT,
 } from '@api/endpoints/v1/models3d/models3d.constants';
 import { cropAngleSheet } from '@api/endpoints/v1/models3d/utils/grid-tiles.util';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
@@ -62,7 +62,18 @@ export class Models3dBuildService {
       const sheetUrl =
         await this.filesClient.getPresignedDownloadUrlForObjectKey(sheet.s3Key);
       const sheetBuffer = await this.download(sheetUrl);
-      const tiles = await cropAngleSheet(sheetBuffer);
+      const source = (
+        sheet.providerData as Partial<Models3dProviderData> | null
+      )?.models3d;
+      const tier =
+        MODELS3D_BUILD_TIERS[source?.quality ?? MODELS3D_DEFAULT_QUALITY];
+      const views = tier.viewIndexes;
+      const allTiles = await cropAngleSheet(sheetBuffer);
+      const tiles = views
+        ? views.flatMap((index) =>
+            allTiles.filter((tile) => tile.index === index),
+          )
+        : allTiles;
 
       const tileUrls: string[] = [];
       for (const tile of tiles) {
@@ -87,8 +98,14 @@ export class Models3dBuildService {
 
       const sourceUrl = await this.resolveSourceUrl(sheet.providerData);
       const externalId = await this.replicate.runModel(
-        MODELS3D_BUILD_MODEL_KEY,
-        { ...MODELS3D_BUILD_INPUT, images: [sourceUrl, ...tileUrls] },
+        tier.modelKey,
+        {
+          ...tier.input,
+          images: [sourceUrl, ...tileUrls],
+          ...(tier.isPromptRequired
+            ? { prompt: source?.prompt?.trim() || MODELS3D_DEFAULT_SUBJECT }
+            : {}),
+        },
         undefined,
         undefined,
         undefined,
@@ -105,7 +122,7 @@ export class Models3dBuildService {
         externalId,
         ingredientId: child.id,
         organizationId: child.organizationId,
-        outputKey: MODELS3D_BUILD_OUTPUT_KEY,
+        ...(tier.outputKey ? { outputKey: tier.outputKey } : {}),
       });
       if (!jobId) {
         throw new Error('The build poll could not be scheduled');

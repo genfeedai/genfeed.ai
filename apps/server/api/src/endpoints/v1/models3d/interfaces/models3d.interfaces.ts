@@ -1,3 +1,4 @@
+import type { Models3dQuality } from '@api/endpoints/v1/models3d/models3d.constants';
 import type { Request } from 'express';
 
 interface Models3dRequestUser {
@@ -25,6 +26,8 @@ export interface Models3dResponse {
   status: Models3dStatus;
   /** Credits held for the steps this render has paid for so far. */
   credits: { build: number | null; sheet: number };
+  /** Build tier this render was started with. */
+  quality: Models3dQuality;
   error?: string;
   /** Signed URL of the angle sheet, once rendered. */
   sheetUrl?: string;
@@ -40,6 +43,8 @@ export interface Models3dProviderData {
     /** Credits frozen for the step this ingredient produces. */
     credits?: number;
     prompt?: string;
+    /** Build tier chosen when the render started; absent means standard. */
+    quality?: Models3dQuality;
     sourceImageUrl?: string;
     sourceS3Key?: string;
   };

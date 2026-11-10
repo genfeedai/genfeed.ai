@@ -5,7 +5,12 @@ import type { Models3dToolInput } from '@mcp/tools/models3d.schemas';
 export class Models3dClient {
   constructor(private readonly base: BaseApiClient) {}
 
-  render3d({ build, imageUrl, prompt }: Models3dToolInput<'render_3d'>) {
+  render3d({
+    build,
+    imageUrl,
+    prompt,
+    quality,
+  }: Models3dToolInput<'render_3d'>) {
     return this.base.request(
       'creating a 3D render',
       async (http) =>
@@ -14,6 +19,7 @@ export class Models3dClient {
             ...(build === undefined ? {} : { build }),
             imageUrl,
             ...(prompt === undefined ? {} : { prompt }),
+            ...(quality === undefined ? {} : { quality }),
           }),
         ),
       this.base.failWithDetail('Failed to create the 3D render'),
