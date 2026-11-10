@@ -2,7 +2,10 @@ import type {
   BrandKitSlot,
   ReferenceImageCategory,
 } from '@genfeedai/contracts';
-import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import {
+  API_ENDPOINTS,
+  type BrandLogoDownloadFormat,
+} from '@genfeedai/contracts/constants';
 import type {
   IActivity,
   IAnalytics,
@@ -674,6 +677,27 @@ export class BrandsService extends BaseService<Brand> {
         responseType: 'blob',
         signal,
         timeout: 120000,
+      })
+      .then((res) => res.data);
+  }
+
+  /**
+   * One logo variant as PNG, WEBP or SVG. PNG and WEBP render at `size` px on
+   * the longest side; SVG is only there for a logo uploaded as an SVG.
+   */
+  public async downloadKitLogo(
+    id: string,
+    slot: BrandKitSlot,
+    format: BrandLogoDownloadFormat,
+    size: number,
+    signal?: AbortSignal,
+  ): Promise<Blob> {
+    return this.instance
+      .get<Blob>(`/${id}/kit/logos/${slot}/download`, {
+        params: format === 'svg' ? { format } : { format, size },
+        responseType: 'blob',
+        signal,
+        timeout: 60000,
       })
       .then((res) => res.data);
   }

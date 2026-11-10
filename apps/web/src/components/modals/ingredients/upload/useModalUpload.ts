@@ -178,6 +178,10 @@ export function useModalUpload({
     category === AssetCategory.REFERENCE;
 
   const isLibraryImage = category === IngredientCategory.IMAGE;
+  // A brand logo goes up as the SVG itself: the API sanitizes it and keeps the
+  // vector beside the PNG it renders (#9706). Other SVGs are rasterized here.
+  const isBrandLogo =
+    category === AssetCategory.LOGO && parentModel === 'Brand';
 
   const isVideoLike = category === IngredientCategory.VIDEO;
 
@@ -476,7 +480,7 @@ export function useModalUpload({
           : null;
 
         try {
-          if (isSvgUpload(selectedFile)) {
+          if (isSvgUpload(selectedFile) && !isBrandLogo) {
             selectedFile = await rasterizeSvgFile(selectedFile);
           }
 
@@ -669,6 +673,7 @@ export function useModalUpload({
           'image/heif': ['.heif'],
           'image/svg+xml': ['.svg'],
         }),
+        ...(isBrandLogo && { 'image/svg+xml': ['.svg'] }),
       }),
       ...(isVideoLike && {
         'video/*': ['.mp4', '.avi', '.mov', '.mkv', '.webm'],

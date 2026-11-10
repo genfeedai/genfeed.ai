@@ -2886,6 +2886,12 @@ model Asset {
   residency          String?
   uploadPolicy       String?
   originalFileName   String?
+  /// The uploaded file's format (svg, png, jpeg, webp, gif) and nominal size.
+  originalFormat     String?
+  originalWidth      Int?
+  originalHeight     Int?
+  /// Storage key of the sanitized SVG original. Never served from the media CDN.
+  vectorObjectKey    String?
   displayName        String?
   isDeleted          Boolean                 @default(false)
   createdAt          DateTime                @default(now())

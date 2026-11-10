@@ -1006,6 +1006,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'mimeType',
       'origin',
       'originalFileName',
+      'originalFormat',
+      'originalHeight',
+      'originalWidth',
       'parentArticleId',
       'parentBrandId',
       'parentIngredientId',
@@ -1019,6 +1022,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'uploadPolicy',
       'user',
       'userId',
+      'vectorObjectKey',
     ],
     listFields: [],
     enumFields: {

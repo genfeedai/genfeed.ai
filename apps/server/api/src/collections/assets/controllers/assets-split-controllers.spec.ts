@@ -109,6 +109,7 @@ describe('Assets split controllers', () => {
       'png',
       'webp',
       'gif',
+      'svg',
     ]);
     expect([...uploadPipe.allowedMimeTypes]).toEqual([
       'image/jpeg',
@@ -116,6 +117,7 @@ describe('Assets split controllers', () => {
       'image/png',
       'image/webp',
       'image/gif',
+      'image/svg+xml',
     ]);
   });
 
