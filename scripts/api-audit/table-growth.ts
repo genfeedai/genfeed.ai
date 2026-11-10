@@ -14,7 +14,8 @@
  *
  * The split is a judgement about expected row counts, not a measurement.
  * `bun run audit:api:sql` prints findings grouped by it so `growing` reads are
- * fixed first. A model missing from this table fails the audit's own test.
+ * fixed first. A model with an unbounded read that is missing from this table
+ * fails the audit's regression test.
  */
 
 export type TableGrowth = 'catalog' | 'config' | 'growing';
