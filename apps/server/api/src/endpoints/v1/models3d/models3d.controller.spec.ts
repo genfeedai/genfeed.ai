@@ -32,8 +32,11 @@ describe('Models3dController', () => {
   it('creates for the key organization, user and brand', async () => {
     const { controller, models3d } = setup();
 
-    await controller.create(REQUEST, { imageUrl: 'https://x.test/a.png' });
+    const created = await controller.create(REQUEST, {
+      imageUrl: 'https://x.test/a.png',
+    });
 
+    expect(created).toEqual({ id: 'r1', status: 'sheet_pending' });
     expect(models3d.create).toHaveBeenCalledWith(
       { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
       { imageUrl: 'https://x.test/a.png' },
@@ -45,11 +48,12 @@ describe('Models3dController', () => {
     const { controller, models3d } = setup();
     const buffer = Buffer.from('x');
 
-    await controller.create(REQUEST, {}, {
+    const created = await controller.create(REQUEST, {}, {
       buffer,
       mimetype: 'image/png',
     } as never);
 
+    expect(created).toEqual({ id: 'r1', status: 'sheet_pending' });
     expect(models3d.create).toHaveBeenCalledWith(
       expect.anything(),
       {},
@@ -71,9 +75,11 @@ describe('Models3dController', () => {
   it('starts a build and reads status for the caller', async () => {
     const { controller, models3d } = setup();
 
-    await controller.build(REQUEST, 'r1');
-    await controller.get(REQUEST, 'r1');
+    const build = await controller.build(REQUEST, 'r1');
+    const status = await controller.get(REQUEST, 'r1');
 
+    expect(build).toEqual({ id: 'r1', status: 'building' });
+    expect(status).toEqual({ id: 'r1', status: 'ready' });
     expect(models3d.startBuild).toHaveBeenCalledWith(expect.anything(), 'r1');
     expect(models3d.get).toHaveBeenCalledWith(expect.anything(), 'r1');
   });
@@ -89,11 +95,12 @@ describe('Models3dController', () => {
   it('accepts the id fallback for the user', async () => {
     const { controller, models3d } = setup();
 
-    await controller.get(
+    const status = await controller.get(
       { user: { id: 'u2', organizationId: 'org-1' } } as never,
       'r1',
     );
 
+    expect(status).toEqual({ id: 'r1', status: 'ready' });
     expect(models3d.get).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'u2' }),
       'r1',

@@ -14,7 +14,7 @@ export const models3dToolSchemas = {
     .object({ id: z.string().min(1).max(255).regex(MODEL3D_ID_PATTERN) })
     .strict(),
 };
-export type Models3dToolName = keyof typeof models3dToolSchemas;
+type Models3dToolName = keyof typeof models3dToolSchemas;
 export type Models3dToolInput<Name extends Models3dToolName> = z.infer<
   (typeof models3dToolSchemas)[Name]
 >;

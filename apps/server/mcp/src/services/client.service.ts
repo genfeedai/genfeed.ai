@@ -635,10 +635,7 @@ export class ClientService {
     return this.workspace.createChat();
   }
 
-  sendChatMessage(
-    threadId: string,
-    message: string,
-  ): Promise<Record<string, unknown>> {
+  sendChatMessage(threadId: string, message: string) {
     return this.workspace.sendChatMessage(threadId, message);
   }
 
@@ -719,17 +716,11 @@ export class ClientService {
     return this.socialMessages.listMessages(conversationId, params);
   }
 
-  createSocialReplyDraft(
-    conversationId: string,
-    params: SocialActionParams,
-  ): Promise<Record<string, unknown>> {
+  createSocialReplyDraft(conversationId: string, params: SocialActionParams) {
     return this.socialMessages.createDraft(conversationId, params);
   }
 
-  approveSocialDraft(
-    conversationId: string,
-    messageId: string,
-  ): Promise<Record<string, unknown>> {
+  approveSocialDraft(conversationId: string, messageId: string) {
     return this.socialMessages.approveDraft(conversationId, messageId);
   }
 
@@ -741,24 +732,15 @@ export class ClientService {
     return this.socialMessages.rejectDraft(conversationId, messageId, reason);
   }
 
-  postSocialReply(
-    conversationId: string,
-    params: SocialActionParams,
-  ): Promise<Record<string, unknown>> {
+  postSocialReply(conversationId: string, params: SocialActionParams) {
     return this.socialMessages.postReply(conversationId, params);
   }
 
-  sendSocialDm(
-    conversationId: string,
-    params: SocialActionParams,
-  ): Promise<Record<string, unknown>> {
+  sendSocialDm(conversationId: string, params: SocialActionParams) {
     return this.socialMessages.sendDm(conversationId, params);
   }
 
-  updateSocialTags(
-    conversationId: string,
-    tags: string[],
-  ): Promise<Record<string, unknown>> {
+  updateSocialTags(conversationId: string, tags: string[]) {
     return this.socialMessages.updateTags(conversationId, tags);
   }
 

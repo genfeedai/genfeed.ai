@@ -85,7 +85,7 @@ describe('Models3dBillingService', () => {
     it('holds, binds the hold to the ingredient and releases the pool', async () => {
       const { generationBilling, service } = setup();
 
-      await service.hold(HOLD);
+      await expect(service.hold(HOLD)).resolves.toBeUndefined();
 
       expect(generationBilling.holdForService).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -157,7 +157,7 @@ describe('Models3dBillingService', () => {
     it('refunds the ingredient hold', async () => {
       const { generationBilling, service } = setup();
 
-      await service.release('ing-1', 'org-1');
+      await expect(service.release('ing-1', 'org-1')).resolves.toBeUndefined();
 
       expect(generationBilling.releaseOutput).toHaveBeenCalledWith(
         'ing-1',

@@ -1,6 +1,6 @@
 import type { Request } from 'express';
 
-export interface Models3dRequestUser {
+interface Models3dRequestUser {
   id?: string;
   brandId?: string;
   isApiKey?: boolean;
