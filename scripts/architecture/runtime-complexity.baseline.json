@@ -378,7 +378,7 @@
     "symbol": "packages/agent/src/dashboard/dashboard-openui.ts"
   },
   {
-    "actual": 1091,
+    "actual": 1059,
     "file": "packages/agent/src/hooks/agent-chat-stream.entry.ts",
     "metric": "file-lines",
     "symbol": "packages/agent/src/hooks/agent-chat-stream.entry.ts"
