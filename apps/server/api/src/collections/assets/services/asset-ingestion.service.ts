@@ -1,7 +1,9 @@
+import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BRAND_ASSET_CACHE_TAGS } from '@api/collections/assets/constants/asset-cache-tags.constant';
 import type { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
 import type { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
+import type { ILogoUploadIntake } from '@api/collections/assets/interfaces/logo-upload-intake.interface';
 import type { AssetDocument } from '@api/collections/assets/schemas/asset.schema';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { getAssetParentId } from '@api/collections/assets/utils/asset-parent.util';
@@ -10,6 +12,7 @@ import {
   isBrandKitSlotCategory,
   resolveBrandKitSlot,
 } from '@api/collections/assets/utils/brand-kit-slot.util';
+import { readLogoUploadIntake } from '@api/collections/assets/utils/logo-upload-intake.util';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -28,6 +31,7 @@ import {
   FileInputType,
   IngredientCategory,
 } from '@genfeedai/contracts';
+import { assertSafeObjectKey, createStorageProvider } from '@genfeedai/storage';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -35,6 +39,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 
 const INGREDIENT_PATH_PATTERN = /ingredients\/([^/]+)\/(.+)$/;
@@ -44,6 +49,7 @@ const INGREDIENT_PATH_PREFIX_PATTERN = /^ingredients\/[^/]+\//;
 @Injectable()
 export class AssetIngestionService {
   private readonly constructorName = String(this.constructor.name);
+  private readonly storage = createStorageProvider();
 
   constructor(
     private readonly assetsService: AssetsService,
@@ -130,9 +136,24 @@ export class AssetIngestionService {
         uploadDto.parentType === AssetParent.BRAND
           ? resolveBrandKitSlot(uploadDto.category, uploadDto.kitSlot)
           : resolveBrandKitSlot(AssetCategory.REFERENCE, uploadDto.kitSlot);
+      // Only a brand logo keeps an SVG original (#9706); read before the row
+      // exists, so a refused file leaves nothing behind.
+      const intake = await readLogoUploadIntake(
+        file,
+        uploadDto.category === AssetCategory.LOGO &&
+          uploadDto.parentType === AssetParent.BRAND &&
+          Boolean(parentId && organizationId),
+      );
       const entityData = {
         category: uploadDto.category,
         ...(kitSlot ? { kitSlot } : {}),
+        ...(intake.originalFormat
+          ? {
+              originalFormat: intake.originalFormat,
+              originalHeight: intake.originalHeight,
+              originalWidth: intake.originalWidth,
+            }
+          : {}),
         parentId,
         parentOrgId: organizationId,
         parentType: uploadDto.parentType,
@@ -175,10 +196,11 @@ export class AssetIngestionService {
 
       await this.storeUploadInSlot(
         assetData.id,
-        file,
+        intake,
         uploadDto,
         kitSlot,
         entityData.parentId,
+        organizationId,
       );
 
       const brandParentId =
@@ -231,21 +253,30 @@ export class AssetIngestionService {
    */
   private async storeUploadInSlot(
     assetId: string,
-    file: Express.Multer.File,
+    intake: ILogoUploadIntake,
     uploadDto: CreateAssetDto,
     kitSlot: BrandKitSlot | undefined,
     parentId: string | undefined,
+    organizationId: string | undefined,
   ): Promise<void> {
     try {
       await this.filesClientService.uploadToS3(
         assetId,
         categoryToPlural(uploadDto.category),
         {
-          contentType: file.mimetype,
-          data: file.buffer,
+          contentType: intake.contentType,
+          data: intake.body,
           type: FileInputType.BUFFER,
         },
       );
+      if (intake.vector && parentId && organizationId) {
+        await this.storeVectorOriginal(
+          assetId,
+          intake.vector,
+          parentId,
+          organizationId,
+        );
+      }
     } catch (error: unknown) {
       await this.assetsService.remove(assetId);
       throw error;
@@ -268,6 +299,32 @@ export class AssetIngestionService {
         { isDeleted: true },
       );
     }
+  }
+
+  /**
+   * Keep a sanitized SVG logo beside its raster. It is stored as an opaque
+   * download, never as `image/svg+xml`, so the media origin cannot render it;
+   * the brand kit download route serves it with a locked-down policy.
+   */
+  private async storeVectorOriginal(
+    assetId: string,
+    vector: Buffer,
+    brandId: string,
+    organizationId: string,
+  ): Promise<void> {
+    const key = assertSafeObjectKey(
+      `brand-vectors/${organizationId}/${brandId}/${assetId}/${randomUUID()}.svg`,
+      () => new BadRequestException('svg_logo_unstorable'),
+    );
+    try {
+      await this.storage.upload(vector, key, 'application/octet-stream');
+    } catch {
+      throw new ServiceUnavailableException('svg_logo_unstorable');
+    }
+    await this.prisma.asset.updateMany({
+      data: { vectorObjectKey: key },
+      where: { id: assetId, isDeleted: false, parentOrgId: organizationId },
+    });
   }
 
   async createFromIngredient(

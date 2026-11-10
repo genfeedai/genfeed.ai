@@ -21,7 +21,24 @@ import {
 } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { ForbiddenException, HttpException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  HttpException,
+} from '@nestjs/common';
+
+const { storedObjects } = vi.hoisted(() => ({
+  storedObjects: [] as { body: string; contentType?: string; key: string }[],
+}));
+vi.mock('@genfeedai/storage', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/storage')>()),
+  createStorageProvider: () => ({
+    upload: async (body: Buffer, key: string, contentType?: string) => {
+      storedObjects.push({ body: body.toString('utf8'), contentType, key });
+      return key;
+    },
+  }),
+}));
 
 describe('AssetIngestionService', () => {
   const userId = testId('user');
@@ -94,6 +111,7 @@ describe('AssetIngestionService', () => {
     publishBrandRefresh: vi.fn(),
   };
   const prisma = {
+    asset: { updateMany: vi.fn() },
     brand: { findFirst: vi.fn() },
   };
   const service = new AssetIngestionService(
@@ -124,6 +142,97 @@ describe('AssetIngestionService', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    storedObjects.length = 0;
+  });
+
+  describe('SVG brand logos (#9706)', () => {
+    const svgFile = {
+      buffer: Buffer.from(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="20"><script>alert(1)</script><rect width="80" height="20"/></svg>',
+      ),
+      mimetype: 'image/svg+xml',
+      originalname: 'mark.svg',
+      size: 128,
+    } as Express.Multer.File;
+    const sanitized =
+      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="80" height="20"><rect width="80" height="20"></rect></svg>';
+
+    it('stores the sanitized SVG for rasterizing and keeps it as an opaque vector original', async () => {
+      const created: unknown[] = [];
+      const sentToFiles: unknown[] = [];
+      const assetUpdates: unknown[] = [];
+      assetsService.create.mockImplementation(async (data: unknown) => {
+        created.push(data);
+        return asset;
+      });
+      filesClientService.uploadToS3.mockImplementation(
+        async (key: string, folder: string, source: { data: Buffer }) => {
+          sentToFiles.push({
+            ...source,
+            data: source.data.toString('utf8'),
+            folder,
+            key,
+          });
+          return {};
+        },
+      );
+      prisma.asset.updateMany.mockImplementation(async (args: unknown) => {
+        assetUpdates.push(args);
+        return { count: 1 };
+      });
+
+      await service.createUpload(user, svgFile, uploadDto);
+
+      expect(created).toEqual([
+        expect.objectContaining({
+          originalFormat: 'svg',
+          originalHeight: 20,
+          originalWidth: 80,
+        }),
+      ]);
+      expect(sentToFiles).toEqual([
+        {
+          contentType: 'image/svg+xml',
+          data: sanitized,
+          folder: 'logos',
+          key: assetId,
+          type: FileInputType.BUFFER,
+        },
+      ]);
+      expect(storedObjects).toEqual([
+        {
+          body: sanitized,
+          contentType: 'application/octet-stream',
+          key: expect.stringMatching(
+            new RegExp(
+              `^brand-vectors/${user.organizationId}/${brandId}/${assetId}/[0-9a-f-]+\\.svg$`,
+            ),
+          ),
+        },
+      ]);
+      expect(assetUpdates).toEqual([
+        {
+          data: { vectorObjectKey: storedObjects[0].key },
+          where: {
+            id: assetId,
+            isDeleted: false,
+            parentOrgId: user.organizationId,
+          },
+        },
+      ]);
+    });
+
+    it('refuses an SVG banner before creating anything', async () => {
+      await expect(
+        service.createUpload(user, svgFile, {
+          ...uploadDto,
+          category: AssetCategory.BANNER,
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(assetsService.create).not.toHaveBeenCalled();
+      expect(storedObjects).toEqual([]);
+    });
   });
 
   it('rejects FONT direct callers before legacy upload or ingredient side effects', async () => {

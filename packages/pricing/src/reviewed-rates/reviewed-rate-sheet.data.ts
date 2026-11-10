@@ -4146,4 +4146,18 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     sourceUrl: 'https://api.fal.ai/v1/models/pricing',
     verifiedAt: '2026-10-25T19:29:00.000Z',
   },
+  {
+    endpoint: 'firtoz/trellis',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.081,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/firtoz/trellis',
+    verifiedAt: '2026-11-09T00:00:00.000Z',
+  },
 ];

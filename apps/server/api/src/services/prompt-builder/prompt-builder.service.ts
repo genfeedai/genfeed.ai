@@ -53,6 +53,7 @@ export class PromptBuilderService {
       [ModelCategory.VIDEO_UPSCALE]: '',
       [ModelCategory.VOICE]: '',
       [ModelCategory.AVATAR]: '',
+      [ModelCategory.MODEL_3D]: '',
       [ModelCategory.EMBEDDING]: '',
     };
 

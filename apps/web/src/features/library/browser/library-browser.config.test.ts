@@ -33,6 +33,7 @@ describe('LIBRARY_TYPE_CHIPS', () => {
       'Audio',
       'Voice',
       'Text',
+      '3D model',
     ]);
   });
 });

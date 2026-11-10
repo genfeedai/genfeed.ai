@@ -13,6 +13,7 @@ export const IngredientEndpoints = {
     IMAGE: 'images',
     IMAGE_EDIT: 'images',
     INGREDIENT: 'ingredients',
+    MODEL_3D: 'ingredients',
     MUSIC: 'musics',
     SOURCE: 'sources',
     TEXT: 'texts',

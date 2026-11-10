@@ -1,3 +1,4 @@
+import { runWithActionOrigin } from '@api/action-origin/action-origin.context';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { testMcpApprovalPricing } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.fixture';
@@ -7,7 +8,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ActivityKey, ApiKeyScope } from '@genfeedai/contracts';
+import { ActionOrigin, ActivityKey, ApiKeyScope } from '@genfeedai/contracts';
 import { type McpApproval, Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
@@ -506,6 +507,7 @@ describe('McpApprovalsService', () => {
           data: {
             status: decision === 'approve' ? 'APPROVED' : 'DECLINED',
             resolvedAt: expect.any(Date),
+            resolvedOrigin: ActionOrigin.UNKNOWN,
             result: { ok: true },
           },
         });
@@ -586,6 +588,27 @@ describe('McpApprovalsService', () => {
       });
       expect(result).toEqual(updated);
     });
+
+    it.each([
+      [ActionOrigin.UI, 'approve'],
+      [ActionOrigin.MCP, 'approve'],
+      [ActionOrigin.MCP, 'decline'],
+    ] as const)(
+      'records a %s %s as the deciding surface and member',
+      async (origin, decision) => {
+        mcpApproval.updateMany.mockResolvedValue({ count: 1 });
+        mcpApproval.findFirst.mockResolvedValue({ id: 'approval-4' });
+
+        await runWithActionOrigin({ actorUserId: 'user-7', origin }, () =>
+          service.resolve('approval-4', 'org-1', decision),
+        );
+
+        expect(mcpApproval.updateMany.mock.calls[0]?.[0]?.data).toMatchObject({
+          resolvedByUserId: 'user-7',
+          resolvedOrigin: origin,
+        });
+      },
+    );
 
     it('requires approve scope before claiming a deferred publishing tool', async () => {
       mcpApproval.findFirst.mockResolvedValue({
@@ -959,6 +982,8 @@ describe('McpApprovalsService', () => {
       status: 'PENDING',
       result: null,
       resolvedAt: null,
+      resolvedOrigin: null,
+      resolvedByUserId: null,
       executedAt: null,
       executionClaimedAt: null,
       isDeleted: false,

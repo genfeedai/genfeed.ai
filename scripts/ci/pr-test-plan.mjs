@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import {
   allPackageTestTasks,
-  buildPackageTestMatrix,
+  buildWorkspaceTestMatrix,
 } from './workspace-test-matrix.mjs';
 
 const WEB_APP_PATH_PATTERN = /^apps\/web(?:\/|$)/;
@@ -276,23 +276,20 @@ export function createPrTestPlan({
     },
     turboTasks: normalizedTurboTasks,
     workspaceGroups,
-    // Package pools preserve the selected union; UI uses four distinct shards.
-    // Other surfaces keep their existing applicability and coverage.
+    // Packages, web and the extension share balanced legs, the server group
+    // keeps its own, and UI uses four distinct shards. The selected union is
+    // preserved; only the number of runners changes.
     workspaceMatrix: {
-      include: Object.entries(workspaceGroups)
-        .filter(([, applies]) => applies)
-        .flatMap(([group]) =>
-          group === 'packages'
-            ? buildPackageTestMatrix(normalizedTurboTasks.packages)
-            : [
-                {
-                  group,
-                  name: group,
-                  filters: TURBO_TEST_GROUPS[group].join(' '),
-                  ui_shard: '',
-                },
-              ],
-        ),
+      include: buildWorkspaceTestMatrix({
+        packageTasks: workspaceGroups.packages
+          ? normalizedTurboTasks.packages
+          : [],
+        serverFilters: workspaceGroups.server
+          ? TURBO_TEST_GROUPS.server.join(' ')
+          : '',
+        webFilters: workspaceGroups.web ? TURBO_TEST_GROUPS.web.join(' ') : '',
+        browserExtension: workspaceGroups['browser-extension'],
+      }),
     },
   };
 }

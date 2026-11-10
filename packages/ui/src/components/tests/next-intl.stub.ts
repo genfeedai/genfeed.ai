@@ -1047,6 +1047,7 @@ const UI_TEST_MESSAGES = {
         lineageError: 'This could not be loaded right now.',
         madeFrom: 'Made from',
         model: 'Model',
+        modelUnavailable: 'This 3D model could not be loaded.',
         openPreview: 'Open full-size preview',
         origin: 'Origin',
         prompt: 'Prompt',

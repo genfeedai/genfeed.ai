@@ -128,6 +128,8 @@ describe('ToolRegistryService.classify', () => {
     ['analyze_clipper_project', 'clipper-projects'],
     ['run_clipper', 'clipper-projects'],
     ['get_clipper_project', 'clipper-projects'],
+    ['render_3d', 'models3d'],
+    ['get_model3d', 'models3d'],
     ['import_source_post', 'remix'],
     ['create_remix_concept', 'remix'],
     ['get_remix_run', 'remix'],

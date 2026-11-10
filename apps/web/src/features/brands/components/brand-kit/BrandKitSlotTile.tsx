@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ASSET_ORIGINAL_FORMAT_SVG } from '@genfeedai/contracts/constants';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ImageOff } from 'lucide-react';
@@ -8,6 +9,7 @@ import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { BrandKitSlotTileProps } from '@/features/brands/props/brand-kit-slots.props';
+import BrandLogoDownloadMenu from './BrandLogoDownloadMenu';
 
 /** Widest preview ratio; a 6:1 cover still reads as a picture, not a line. */
 const MAX_PREVIEW_RATIO = 4;
@@ -26,6 +28,8 @@ export default function BrandKitSlotTile({
   isFilling = false,
   onUpload,
   onFillFromMaster,
+  onDownload,
+  isDownloading = false,
 }: BrandKitSlotTileProps) {
   const t = useTranslations('pages.brandKitSettings.slots');
   // Keyed by URL, so a replacement image gets its own chance to load.
@@ -87,17 +91,27 @@ export default function BrandKitSlotTile({
               : ''}
           </span>
         ) : null}
-        {isManager ? (
+        {isManager || (asset && onDownload) ? (
           <span className="flex flex-wrap gap-1">
-            <Button
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-              ariaLabel={`${asset ? t('replace') : t('upload')} ${label}`}
-              onClick={onUpload}
-            >
-              {asset ? t('replace') : t('upload')}
-            </Button>
-            {onFillFromMaster ? (
+            {isManager ? (
+              <Button
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+                ariaLabel={`${asset ? t('replace') : t('upload')} ${label}`}
+                onClick={onUpload}
+              >
+                {asset ? t('replace') : t('upload')}
+              </Button>
+            ) : null}
+            {asset && onDownload ? (
+              <BrandLogoDownloadMenu
+                label={label}
+                hasVector={asset.originalFormat === ASSET_ORIGINAL_FORMAT_SVG}
+                isDisabled={isDownloading}
+                onDownload={onDownload}
+              />
+            ) : null}
+            {isManager && onFillFromMaster ? (
               <Button
                 size={ButtonSize.SM}
                 variant={ButtonVariant.GHOST}
