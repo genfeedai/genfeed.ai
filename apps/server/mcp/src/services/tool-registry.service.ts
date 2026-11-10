@@ -1,6 +1,4 @@
 import {
-  describeCreditPricing,
-  estimateToolCreditCost,
   getMcpCatalogOperations,
   getToolByName,
   getToolsetNames,
@@ -40,6 +38,10 @@ import {
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import {
+  pendingApprovalResult,
+  settleApprovalAnswer,
+} from '@mcp/services/mcp-approval-answer.util';
+import {
   isMcpApprovalRedeemable,
   requiresMcpToolApproval,
 } from '@mcp/services/mcp-approval-gate.util';
@@ -62,7 +64,10 @@ import {
   markdownResource,
 } from '@mcp/services/mcp-resource-contents.util';
 import { finalizeMcpToolResult } from '@mcp/services/mcp-tool-result.util';
-import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
+import type {
+  McpApprovalAnswer,
+  McpApprovalResource,
+} from '@mcp/shared/interfaces/approval.interface';
 import type { McpResource } from '@mcp/shared/interfaces/mcp-resource.interface';
 import {
   accountToolText,
@@ -83,8 +88,6 @@ import { CONTENT_TOOL_NAMES, handleContentTool } from '@mcp/tools/content.tool';
 import { EDITOR_TOOL_NAMES, handleEditorTool } from '@mcp/tools/editor.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import {
-  approvalPendingToolResult,
-  generateApprovalCostEstimate,
   mcpToolErrorResult,
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
@@ -147,6 +150,8 @@ import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 interface ToolCallParams {
   name: string;
   arguments: Record<string, unknown>;
+  /** The requester's answer to this call's approval prompt (#9647). */
+  approvalAnswer?: McpApprovalAnswer;
 }
 
 interface ResourceReadParams {
@@ -445,6 +450,23 @@ export class ToolRegistryService implements OnModuleInit {
       // Rejected before any approval or charge: a generation always names its brand.
       if (isMcpBrandRequiredTool(name) && !readMcpBrandId(args)) {
         return await this.brandRequiredResult();
+      }
+
+      // The requester answered this call's approval prompt (#9647). Settle it
+      // against that approval before the current policy, so a decline holds.
+      if (params.approvalAnswer) {
+        const settled = await settleApprovalAnswer(
+          this.clientService,
+          this.logger,
+          name,
+          params.approvalAnswer,
+        );
+        if (settled.kind === 'run') {
+          return await this.runApprovedApproval(settled.approval);
+        }
+        return settled.kind === 'pending'
+          ? withApprovalCard(this.pendingResult(settled.approval, args ?? {}))
+          : this.textResult(settled.message);
       }
 
       // Declared approvals and credit spenders wait for confirmation, unless the
@@ -787,35 +809,10 @@ export class ToolRegistryService implements OnModuleInit {
     approval: McpApprovalResource,
     args: Record<string, unknown>,
   ) {
-    const tool = getToolByName(approval.toolName);
     const canResolveApproval = this.getTools().some(
       (candidate) => candidate.name === 'resolve_approval',
     );
-    if (approval.toolName === 'generate') {
-      return approvalPendingToolResult(
-        approval,
-        generateApprovalCostEstimate(approval, args),
-        canResolveApproval,
-      );
-    }
-    if (!tool?.creditPricing)
-      return approvalPendingToolResult(approval, undefined, canResolveApproval);
-    const estimatedCredits = estimateToolCreditCost(
-      approval.toolName,
-      args,
-      tool.creditPricing,
-    );
-    return approvalPendingToolResult(
-      approval,
-      {
-        estimatedCredits,
-        pricingSummary:
-          estimatedCredits === null
-            ? describeCreditPricing(tool.creditPricing)
-            : undefined,
-      },
-      canResolveApproval,
-    );
+    return pendingApprovalResult(approval, args, canResolveApproval);
   }
 
   private textResult(text: string) {
