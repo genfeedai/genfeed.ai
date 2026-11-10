@@ -154,7 +154,6 @@ describe('PersonaPublisherService', () => {
   });
 
   it.each([
-    ['unreleased', 'ORGANIZATION_MODULE_UNRELEASED', HttpStatus.FORBIDDEN],
     [
       'unavailable',
       'ORGANIZATION_MODULE_UNAVAILABLE',

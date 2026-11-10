@@ -5,8 +5,11 @@
  * `release_<id>`, never a code constant. An item without a stored release is
  * preview-only, so new work ships hidden until an operator releases it.
  *
- * Playground and Storyboard are not release items: Playground admits every
- * generation (including MCP), so it can never be unreleased by accident.
+ * A release only decides what the web app shows. The API and MCP admit work
+ * in an unreleased item, so an agent can use every app.
+ *
+ * Playground and Storyboard are not release items: they stay visible so the
+ * generation surfaces are never hidden by accident.
  */
 export const RELEASE_ITEM_IDS = [
   'publishing',
@@ -56,7 +59,7 @@ export interface ReleaseAudienceInput {
 }
 
 /**
- * Whether the organization may see and start work in `itemId`: everything on
+ * Whether the web app shows `itemId` to the organization: everything on
  * self-hosted, everything for a cloud organization on release preview, the
  * items an operator opened for that organization, and otherwise only what an
  * operator released for everyone. Unknown settings hide it.
