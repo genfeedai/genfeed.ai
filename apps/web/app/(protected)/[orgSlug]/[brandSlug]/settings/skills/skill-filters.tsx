@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import SearchField from '@/components/content/search-field/SearchField';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import type {
   SkillAgentActionProps,
   SkillSearchProps,
@@ -102,6 +103,11 @@ export function SkillSearch({
 
 export default function SkillAgentAction({ agentHref }: SkillAgentActionProps) {
   const translate = useTranslations('common.settings.skills');
+  const isAgentAvailable = useIsAppAvailable('agent');
+
+  if (!isAgentAvailable) {
+    return null;
+  }
 
   return (
     <Button

@@ -449,6 +449,13 @@ function getSourceSelect() {
   return screen.getByRole('group', { name: 'Source' });
 }
 
+// Every app is on offer, so no entry point is hidden.
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useHasAppsBeyondDashboard: () => true,
+  useIsAppAvailable: () => true,
+  useIsHrefAvailable: () => () => true,
+}));
+
 describe('AdsResearchPageClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -12,7 +12,7 @@ test('organization Apps browser keeps scope, search and previews usable on deskt
     '[data-testid^="apps-app-"]:not([data-testid="apps-app-detail"])',
   );
   const detail = page.getByTestId('apps-app-detail');
-  await expect(apps).toHaveCount(9);
+  await expect(apps).toHaveCount(8);
   await expect(detail).toHaveCount(0);
   await expect(
     page.getByText('Plan a story scene by scene, then generate it.'),
@@ -55,13 +55,13 @@ test('organization Apps browser keeps scope, search and previews usable on deskt
     )
     .toBe(true);
 
-  await page.getByPlaceholder('Search apps').fill('trending');
+  await page.getByPlaceholder('Search apps').fill('inbox');
   await expect(apps).toHaveCount(1);
   await expect(detail).toHaveCount(0);
   await page.getByPlaceholder('Search apps').fill('nothing-matches');
   await expect(page.getByTestId('apps-empty')).toBeVisible();
   await page.getByRole('button', { name: 'Show all apps' }).click();
-  await expect(apps).toHaveCount(9);
+  await expect(apps).toHaveCount(8);
 
   await page.screenshot({
     path: testInfo.outputPath('apps-desktop.png'),
@@ -69,9 +69,9 @@ test('organization Apps browser keeps scope, search and previews usable on deskt
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page
-    .getByRole('button', { name: 'Select Discovery', exact: true })
+    .getByRole('button', { name: 'Select Messages', exact: true })
     .click();
-  await expect(detail).toContainText('Research what is trending');
+  await expect(detail).toContainText('See comments and messages');
   // On mobile the detail opens in the Context sheet, a modal that hides the
   // page behind it until it is closed.
   await expect(page.getByRole('dialog', { name: 'Agent' })).toBeVisible();

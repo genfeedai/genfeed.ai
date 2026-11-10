@@ -5,8 +5,9 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { useIsHrefAvailable } from '@/components/shell/use-available-rail-apps';
 import type { WorkspaceTaskCardProps } from '@/features/workspace/props/workspace-task-card.props';
-
+import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
 import {
   getAdvancedToolHref,
   getTaskBadgeStatus,
@@ -27,6 +28,9 @@ export function WorkspaceTaskCard({
   const showReviewActions = task.reviewState === 'pending_approval';
   const statusLabel = useTaskStatusLabel(task);
   const timestamp = useTaskTimestamp(task);
+  const isHrefAvailable = useIsHrefAvailable();
+  const advancedToolHref = getAdvancedToolHref(task);
+  const isAgentAvailable = isHrefAvailable(buildTaskLaunchHref(task, 'write'));
 
   return (
     <article className="grid gap-4 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
@@ -89,17 +93,25 @@ export function WorkspaceTaskCard({
         >
           {translate('dismiss')}
         </Button>
-        <Button
-          size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
-          disabled={isBusy}
-          onClick={() => void onPlanNextSteps(task)}
-        >
-          {translate('planNextSteps')}
-        </Button>
-        <Button asChild variant={ButtonVariant.SECONDARY} size={ButtonSize.SM}>
-          <Link href={getAdvancedToolHref(task)}>{translate('openTool')}</Link>
-        </Button>
+        {isAgentAvailable ? (
+          <Button
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+            disabled={isBusy}
+            onClick={() => void onPlanNextSteps(task)}
+          >
+            {translate('planNextSteps')}
+          </Button>
+        ) : null}
+        {isHrefAvailable(advancedToolHref) ? (
+          <Button
+            asChild
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.SM}
+          >
+            <Link href={advancedToolHref}>{translate('openTool')}</Link>
+          </Button>
+        ) : null}
       </div>
     </article>
   );

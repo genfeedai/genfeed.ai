@@ -18,7 +18,11 @@ import type {
  * old entry, never alias it.
  */
 
-/** Product apps on the rail, in rail order. */
+/**
+ * Product apps on the rail, in rail order: the dashboard (Workspace, Trends,
+ * Library, Publishing, Analytics), then Agent, then the apps a member opens
+ * from the launcher.
+ */
 export const ROUTE_MANIFEST_APPS: readonly RouteManifestApp[] = [
   {
     rootPath: '/workspace',
@@ -29,13 +33,12 @@ export const ROUTE_MANIFEST_APPS: readonly RouteManifestApp[] = [
     id: 'workspace',
   },
   {
-    rootPath: '/agent',
-    flag: 'agent',
+    rootPath: '/discovery',
+    flag: 'discovery',
     group: 'daily',
-    homePath: '/agent',
-    id: 'agent',
-    isBrandAware: true,
-    releaseItemId: 'agent',
+    homePath: '/discovery/overview',
+    id: 'discovery',
+    organizationModule: 'discovery',
   },
   {
     rootPath: '/library',
@@ -62,6 +65,15 @@ export const ROUTE_MANIFEST_APPS: readonly RouteManifestApp[] = [
     homePath: '/analytics/overview',
     id: 'analytics',
     organizationModule: 'analytics',
+  },
+  {
+    rootPath: '/agent',
+    flag: 'agent',
+    group: 'daily',
+    homePath: '/agent',
+    id: 'agent',
+    isBrandAware: true,
+    releaseItemId: 'agent',
   },
   // Studio apps need a brand. Their org routes pick the member's last-used
   // brand, or hand one-off generation to Agent when there is none.
@@ -135,14 +147,6 @@ export const ROUTE_MANIFEST_APPS: readonly RouteManifestApp[] = [
     homePath: '/messages',
     id: 'messages',
     organizationModule: 'messages',
-  },
-  {
-    rootPath: '/discovery',
-    flag: 'discovery',
-    group: 'app',
-    homePath: '/discovery/overview',
-    id: 'discovery',
-    organizationModule: 'discovery',
   },
 ];
 
