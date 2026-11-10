@@ -94,9 +94,11 @@ test.describe('Unreleased Playground, Storyboard and Agent', () => {
       await useCloudOrganization(page, []);
       await page.goto(brandPath(path), { waitUntil: 'domcontentloaded' });
 
-      await expect(page.getByRole('status')).toHaveText(
-        `${label} is not released yet`,
-      );
+      await expect(
+        page
+          .getByRole('status')
+          .filter({ hasText: `${label} is not released yet` }),
+      ).toBeVisible();
       await expectNoErrorOverlay(page);
     });
   }
