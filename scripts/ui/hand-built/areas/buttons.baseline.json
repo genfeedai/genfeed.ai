@@ -476,9 +476,6 @@
     "apps/web/src/features/studio/playground/components/StudioPlaygroundFocusedPreview.tsx": {
       "button-restyle": 1
     },
-    "apps/web/src/features/studio/playground/components/StudioPlaygroundInspector.tsx": {
-      "unstyled-look": 1
-    },
     "apps/web/src/features/studio/storyboard/components/StoryboardAnimatic.tsx": {
       "unstyled-look": 1
     },

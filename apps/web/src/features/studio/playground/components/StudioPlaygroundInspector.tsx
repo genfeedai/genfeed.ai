@@ -1,113 +1,36 @@
 'use client';
 
-import { useAgentDock } from '@contexts/ui/agent-dock-context';
 import { ContextSidebarHeaderSlot } from '@contexts/ui/context-sidebar-context';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { attachContentToNewConversationDraft } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import {
   ButtonSize,
   ButtonVariant,
   IngredientStatus,
-  isLibraryReferenceOrigin,
 } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
-import type { IngredientContinuationOperation } from '@genfeedai/props/content/masonry.props';
 import type { ViewOption } from '@genfeedai/props/ui/navigation/view-option.props';
-import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
-import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
-import { useAuthorizedMediaPreview } from '@hooks/media/use-authorized-media-preview';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { logger } from '@services/core/logger.service';
-import { ImagesService } from '@services/ingredients/images.service';
-import { VideosService } from '@services/ingredients/videos.service';
-import VideoPlayer from '@ui/display/video-player/VideoPlayer';
-import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
-import { useIngredientDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
-import MediaPlayer from '@ui/media-player/MediaPlayer';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
-import { buttonVariants } from '@ui/primitives/button.variants';
-import {
-  DefinitionDetail,
-  DefinitionList,
-  DefinitionRow,
-  DefinitionTerm,
-} from '@ui/primitives/definition-list';
 import { PanelTabs } from '@ui/primitives/tabs';
-import {
-  Download,
-  FileText,
-  GitBranch,
-  History,
-  ImagePlus,
-  Link2,
-  Maximize2,
-  MessageSquare,
-  Pencil,
-  RotateCcw,
-  Scissors,
-  Send,
-  Sparkles,
-  Trash2,
-} from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { FileText, History, Link2, Maximize2, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import {
-  type ReactElement,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
-import { useIngredientGenerationCost } from '@/components/ingredients/inspector/use-ingredient-generation-cost';
-import {
-  resolveStudioAssetFacts,
-  resolveStudioAssetUrl,
-} from '@/features/studio/playground/utils/studio-playground-asset';
+import { type ReactElement, useState } from 'react';
+import StudioInspectorActions from '@/features/studio/playground/components/StudioInspectorActions';
+import StudioInspectorFacts from '@/features/studio/playground/components/StudioInspectorFacts';
+import StudioInspectorHistoryPanel from '@/features/studio/playground/components/StudioInspectorHistoryPanel';
+import StudioInspectorPreview from '@/features/studio/playground/components/StudioInspectorPreview';
+import StudioInspectorRecipePanel from '@/features/studio/playground/components/StudioInspectorRecipePanel';
+import StudioInspectorUsedInPanel from '@/features/studio/playground/components/StudioInspectorUsedInPanel';
+import { useStudioInspectorAsset } from '@/features/studio/playground/hooks/useStudioInspectorAsset';
+import { useStudioInspectorPreview } from '@/features/studio/playground/hooks/useStudioInspectorPreview';
+import { useStudioInspectorRelations } from '@/features/studio/playground/hooks/useStudioInspectorRelations';
 import { readStoredPrompt } from '@/features/studio/playground/utils/studio-playground-prompt-slots';
 import {
   formatStudioRecipePrompt,
   resolveRecipeForJob,
   studioAssetAccessibleLabel,
-  studioIngredientAccessibleLabel,
 } from '@/features/studio/playground/utils/studio-playground-recipe';
 import { getStudioPlaygroundTypeConfig } from '@/features/studio/playground/utils/studio-playground-types';
 import type { StudioPlaygroundInspectorProps } from '@/features/studio/props/studio-playground.props';
-
-type InspectorTab = 'history' | 'recipe' | 'used-in';
-
-const AUDIO_TYPES = new Set(['music', 'voice']);
-
-const CREDITS_FORMAT = new Intl.NumberFormat('en-US', {
-  maximumFractionDigits: 2,
-});
-
-const EMPTY_POSTS: IPost[] = [];
-const EMPTY_CHILDREN: IIngredient[] = [];
-
-interface ReceiptServices {
-  images: ImagesService;
-  videos: VideosService;
-}
-
-function createReceiptServices(token: string): ReceiptServices {
-  return {
-    images: ImagesService.getInstance(token),
-    videos: VideosService.getInstance(token),
-  };
-}
-
-function createIngredientsService(token: string): IngredientsService {
-  return IngredientsService.getInstance(token);
-}
+import type { InspectorTab } from '@/features/studio/props/studio-playground-inspector.props';
 
 function isInspectorTab(value: string): value is InspectorTab {
   return value === 'history' || value === 'recipe' || value === 'used-in';
@@ -139,140 +62,29 @@ export default function StudioPlaygroundInspector({
   runJobs,
 }: StudioPlaygroundInspectorProps): ReactElement {
   const translate = useTranslations('pages.studioPlayground');
-  const availabilityId = useId();
-  const translateAction = useTranslations(
-    'common.videoCreativeActions.inspector',
-  );
-  const downloadIngredient = useIngredientDownloadHandler();
-  const { href, orgSlug } = useOrgUrl();
-  const { push } = useRouter();
-  const agentDock = useAgentDock();
-  const { brandId } = useBrand();
-  const { orgId, sessionId, userId } = useAuthIdentity();
   const { label } = getStudioPlaygroundTypeConfig(job.type);
-  const siblingJobs = useMemo(
-    () => runJobs.filter((candidate) => candidate.id !== job.id),
-    [job.id, runJobs],
-  );
-  const ingredientId = job.ingredientId;
-  const ingredient =
-    job.ingredient?.brandId === brandId &&
-    !job.ingredient.isDeleted &&
-    (!orgId ||
-      !job.ingredient.organizationId ||
-      job.ingredient.organizationId === orgId)
-      ? job.ingredient
-      : null;
-  const isSourceUnavailable = Boolean(job.ingredient && !ingredient);
-  const previewScope = [
-    job.id,
+  const asset = useStudioInspectorAsset({ job, runJobs });
+  const {
+    continuationJob,
+    currentReceipt,
+    ingredient,
     ingredientId,
-    brandId,
-    orgId,
-    sessionId,
-    userId,
-  ].join('\u0001');
-  const [previewAttempt, setPreviewAttempt] = useState({
-    scope: previewScope,
-    revision: 0,
-  });
-  const previewRevision =
-    previewAttempt.scope === previewScope ? previewAttempt.revision : 0;
-  const [failedPreviewScope, setFailedPreviewScope] = useState<string | null>(
-    null,
-  );
-  const [loadingPreviewScope, setLoadingPreviewScope] = useState<string | null>(
-    null,
-  );
-  const [loadedMedia, setLoadedMedia] = useState<{
-    height: number;
-    scope: string;
-    width: number;
-  } | null>(null);
-  const handleMediaMeasured = (width: number, height: number) => {
-    if (width > 0 && height > 0) {
-      setLoadedMedia({ height, scope: previewScope, width });
-    }
-  };
-  const facts = resolveStudioAssetFacts(
+    isSourceUnavailable,
+    siblingJobs,
+  } = asset;
+  const preview = useStudioInspectorPreview({
+    currentReceipt,
+    ingredient,
+    isOwnReceipt: asset.isOwnReceipt,
+    isReceiptReadEnabled: asset.isReceiptReadEnabled,
     job,
-    loadedMedia?.scope === previewScope ? loadedMedia : undefined,
-  );
-  const mediaPreview = useAuthorizedMediaPreview(ingredient, previewRevision);
+    onPreviewRecovered,
+    refetchReceipt: asset.refetchReceipt,
+  });
   const isReady =
     job.status === IngredientStatus.GENERATED ||
     job.status === IngredientStatus.UPLOADED ||
     job.status === IngredientStatus.VALIDATED;
-  // Only image and video generations carry a harness receipt, and the API
-  // reads a single asset through its category route; there is no generic
-  // single-ingredient read.
-  const receiptCategory =
-    job.type === 'image' || job.type === 'image-edit'
-      ? 'image'
-      : job.type === 'video' || job.type === 'avatar'
-        ? 'video'
-        : null;
-  const isReceiptReadEnabled =
-    Boolean(ingredientId) && receiptCategory !== null && !isSourceUnavailable;
-  // Cached per asset and brand: reopening an asset paints its receipt at once
-  // while it refreshes in the background.
-  const receiptQuery = useAuthedQuery<ReceiptServices, IIngredient>({
-    enabled: isReceiptReadEnabled,
-    queryFn: async (services, signal) => {
-      if (!ingredientId || !receiptCategory) {
-        throw new Error('studio_inspector_receipt_unavailable');
-      }
-      const service =
-        receiptCategory === 'image' ? services.images : services.videos;
-      return await service.findOne(ingredientId, undefined, signal);
-    },
-    queryKey: [
-      'studio-inspector-receipt',
-      receiptCategory,
-      ingredientId ?? null,
-      brandId ?? null,
-    ],
-    service: createReceiptServices,
-  });
-  const isOwnReceipt = (asset: IIngredient | undefined): boolean =>
-    asset !== undefined &&
-    asset.id === ingredientId &&
-    asset.brandId === brandId &&
-    (!orgId || !asset.organizationId || asset.organizationId === orgId) &&
-    !asset.isDeleted;
-  const currentReceipt =
-    isReceiptReadEnabled && receiptQuery.data && isOwnReceipt(receiptQuery.data)
-      ? receiptQuery.data
-      : null;
-  // A failed background refresh keeps the receipt on screen; the error only
-  // shows when there is nothing valid to show.
-  const receiptError =
-    isReceiptReadEnabled &&
-    !currentReceipt &&
-    (receiptQuery.isError || receiptQuery.data !== undefined);
-  // Uploads and imports were never charged; an asset may not carry its origin
-  // yet, so only a known reference origin skips the read. A job that only has
-  // an ingredient id is priced from the receipt asset once it loads.
-  const costAsset = ingredient ?? currentReceipt;
-  const generationCost = useIngredientGenerationCost(
-    costAsset?.id ?? '',
-    Boolean(costAsset) && !isLibraryReferenceOrigin(costAsset?.origin),
-  );
-  const isPreviewLoading =
-    loadingPreviewScope === previewScope || mediaPreview?.state === 'PENDING';
-  const hasPreviewError =
-    failedPreviewScope === previewScope || mediaPreview?.state === 'FAILED';
-  const isPreviewUnsupported = mediaPreview?.state === 'UNSUPPORTED';
-  const previewUrl =
-    isPreviewLoading || hasPreviewError || isPreviewUnsupported
-      ? ''
-      : mediaPreview
-        ? (mediaPreview.url ?? '')
-        : (resolveStudioAssetUrl(currentReceipt ?? ingredient) ??
-          (job.ingredient ? '' : job.url));
-  const continuationJob = currentReceipt
-    ? { ...job, ingredient: currentReceipt }
-    : job;
   const recipe = resolveRecipeForJob(continuationJob);
   const recipeText = recipe ? formatStudioRecipePrompt(recipe) : '';
   const promptText = recipeText || job.prompt.trim();
@@ -283,625 +95,15 @@ export default function StudioPlaygroundInspector({
     job.type,
     recipe?.isAudioEnabled === true,
   );
-  const isRelationsReadEnabled = Boolean(ingredientId) && !isSourceUnavailable;
-  // The same per-ingredient caches the library's Posts and Children tabs use.
-  const postsQuery = useAuthedQuery({
-    enabled: isRelationsReadEnabled,
-    queryFn: async (service) => {
-      if (!ingredientId) {
-        throw new Error('studio_inspector_ingredient_required');
-      }
-      return await service.getPosts(ingredientId);
-    },
-    queryKey: ['ingredient-posts', ingredientId ?? null],
-    service: createIngredientsService,
-  });
-  const childrenQuery = useAuthedQuery({
-    enabled: isRelationsReadEnabled,
-    queryFn: async (service) => {
-      if (!ingredientId) {
-        throw new Error('studio_inspector_ingredient_required');
-      }
-      return await service.findChildren(ingredientId);
-    },
-    queryKey: ['ingredient-children', ingredientId ?? null],
-    service: createIngredientsService,
-  });
-  const posts: IPost[] = isRelationsReadEnabled
-    ? (postsQuery.data ?? EMPTY_POSTS)
-    : EMPTY_POSTS;
-  const children: IIngredient[] = isRelationsReadEnabled
-    ? (childrenQuery.data ?? EMPTY_CHILDREN)
-    : EMPTY_CHILDREN;
-  const isLoadingUsedIn = isRelationsReadEnabled && postsQuery.isLoading;
-  const isLoadingHistory = isRelationsReadEnabled && childrenQuery.isLoading;
-  const postsError = postsQuery.error;
-  const childrenError = childrenQuery.error;
-  useEffect(() => {
-    if (postsError) {
-      logger.error('Failed to load Studio inspector posts', postsError);
-    }
-  }, [postsError]);
-  useEffect(() => {
-    if (childrenError) {
-      logger.error('Failed to load Studio inspector history', childrenError);
-    }
-  }, [childrenError]);
+  const relations = useStudioInspectorRelations(
+    ingredientId,
+    isSourceUnavailable,
+  );
   const [tabSelection, setTabSelection] = useState<{
     jobId: string;
     tab: InspectorTab;
   }>({ jobId: job.id, tab: 'recipe' });
   const activeTab = tabSelection.jobId === job.id ? tabSelection.tab : 'recipe';
-
-  // Report each successful retry once, so the gallery card for the same asset
-  // leaves its own "Preview unavailable" state instead of staying stale.
-  const reportedRecoveryRef = useRef<string | null>(null);
-  const handlePreviewLoaded = () => {
-    if (previewRevision === 0 || !onPreviewRecovered) return;
-    const recovery = `${previewScope}\u0001${previewRevision}`;
-    if (reportedRecoveryRef.current === recovery) return;
-    reportedRecoveryRef.current = recovery;
-    onPreviewRecovered(
-      job,
-      ingredient?.mediaDelivery
-        ? undefined
-        : resolveStudioAssetUrl(currentReceipt),
-    );
-  };
-
-  const previewScopeRef = useRef(previewScope);
-  previewScopeRef.current = previewScope;
-  const { refetch: refetchReceipt } = receiptQuery;
-  const handleRetryPreview = () => {
-    if (!ingredient || isPreviewLoading || isPreviewUnsupported) return;
-    setFailedPreviewScope(null);
-    setPreviewAttempt({ scope: previewScope, revision: previewRevision + 1 });
-    // Legacy media refreshes through its category read; signed delivery uses
-    // the existing grant endpoint. Neither path starts or retries a generation.
-    if (ingredient.mediaDelivery || !isReceiptReadEnabled) return;
-    const retryScope = previewScope;
-    setLoadingPreviewScope(retryScope);
-    void refetchReceipt().then((result) => {
-      setLoadingPreviewScope((current) =>
-        current === retryScope ? null : current,
-      );
-      // A retry superseded by another selection never touches its preview.
-      if (previewScopeRef.current !== retryScope) return;
-      setFailedPreviewScope(
-        result.isError || !isOwnReceipt(result.data) ? retryScope : null,
-      );
-    });
-  };
-
-  // The asset rides the agent's attachment tray; nothing is sent until the
-  // operator writes the question. The dock hosts it in place; without one the
-  // next new conversation on `/agent` picks it up.
-  const handleAskAgent = useCallback(() => {
-    if (!ingredient) {
-      return;
-    }
-
-    const reference = {
-      ...(ingredient.brandId ? { brandId: ingredient.brandId } : {}),
-      contentTitle: job.prompt.trim() || label,
-      contentType: job.type,
-      id: ingredient.id,
-      kind: 'ingredient' as const,
-      ...(ingredient.thumbnailUrl
-        ? { thumbnailUrl: ingredient.thumbnailUrl }
-        : {}),
-    };
-    if (agentDock?.attachContent(reference)) {
-      return;
-    }
-
-    attachContentToNewConversationDraft(orgSlug, reference);
-    push(href(APP_ROUTES.AGENT.NEW));
-  }, [agentDock, href, ingredient, job.prompt, job.type, label, orgSlug, push]);
-
-  const factRows = [
-    { key: 'type', label: translate('inspector.facts.type'), value: label },
-    {
-      key: 'model',
-      label: translate('inspector.facts.model'),
-      value: facts.modelLabel || translate('inspector.autoModel'),
-    },
-    ...(facts.aspectRatio
-      ? [
-          {
-            key: 'aspect',
-            label: translate('inspector.facts.aspect'),
-            value: facts.aspectRatio,
-          },
-        ]
-      : []),
-    ...(facts.durationSeconds
-      ? [
-          {
-            key: 'duration',
-            label: translate('inspector.facts.duration'),
-            value: translate('inspector.durationSeconds', {
-              seconds: Math.round(facts.durationSeconds),
-            }),
-          },
-        ]
-      : []),
-    ...(generationCost?.credits == null
-      ? []
-      : [
-          {
-            key: 'credits',
-            label: translate('inspector.facts.credits'),
-            value:
-              generationCost.status === 'reserved'
-                ? translate('inspector.facts.creditsReserved', {
-                    count: CREDITS_FORMAT.format(generationCost.credits),
-                  })
-                : CREDITS_FORMAT.format(generationCost.credits),
-          },
-        ]),
-    ...(facts.createdAt
-      ? [
-          {
-            key: 'created',
-            label: translate('inspector.facts.created'),
-            value: formatDate(facts.createdAt, DATE_FORMATS.DISPLAY_DATETIME),
-          },
-        ]
-      : []),
-    ...(facts.brandLabel
-      ? [
-          {
-            key: 'brand',
-            label: translate('inspector.facts.brand'),
-            value: facts.brandLabel,
-          },
-        ]
-      : []),
-  ];
-
-  let preview: ReactNode = null;
-  if (isReady && previewUrl) {
-    if (AUDIO_TYPES.has(job.type)) {
-      preview = (
-        <MediaPlayer
-          src={previewUrl}
-          className="w-full"
-          variant="inspector"
-          label={studioAssetAccessibleLabel(continuationJob)}
-        />
-      );
-    } else if (job.type === 'image' || job.type === 'image-edit') {
-      preview = (
-        <div
-          className={`relative w-full overflow-hidden rounded-md bg-foreground/5 ${isFocused ? 'h-[min(62vh,42rem)] min-h-56' : 'aspect-video'}`}
-        >
-          <Image
-            key={`${previewScope}:${previewRevision}`}
-            alt={translate('inspector.previewAlt', { label })}
-            className="object-contain"
-            fill
-            sizes={isFocused ? '(min-width: 1024px) 65vw, 100vw' : '480px'}
-            src={previewUrl}
-            onError={() => setFailedPreviewScope(previewScope)}
-            onLoad={(event) => {
-              handleMediaMeasured(
-                event.currentTarget.naturalWidth,
-                event.currentTarget.naturalHeight,
-              );
-              handlePreviewLoaded();
-            }}
-          />
-        </div>
-      );
-    } else {
-      preview = (
-        <VideoPlayer
-          key={`${previewScope}:${previewRevision}`}
-          ariaLabel={translate('inspector.previewAlt', { label })}
-          className={`w-full overflow-hidden rounded-md bg-foreground/5 ${isFocused ? 'h-[min(62vh,42rem)] min-h-56' : 'aspect-video'}`}
-          config={{
-            controls: true,
-            loop: false,
-            muted: true,
-            playsInline: true,
-            preload: 'metadata',
-          }}
-          src={previewUrl}
-          mediaProps={{
-            onError: () => setFailedPreviewScope(previewScope),
-            onLoadedData: handlePreviewLoaded,
-            onLoadedMetadata: (event) =>
-              handleMediaMeasured(
-                event.currentTarget.videoWidth,
-                event.currentTarget.videoHeight,
-              ),
-          }}
-          onPlaybackError={() => setFailedPreviewScope(previewScope)}
-          thumbnail={ingredient?.thumbnailUrl}
-        />
-      );
-    }
-  }
-  if (
-    isReady &&
-    (hasPreviewError || isPreviewUnsupported || isPreviewLoading)
-  ) {
-    preview = (
-      <div className="flex aspect-video flex-col items-center justify-center gap-2 rounded-md bg-foreground/5 px-4 text-center">
-        <p role="status" className="text-xs text-muted-foreground">
-          {translate(
-            isPreviewLoading
-              ? 'inspector.previewLoading'
-              : isPreviewUnsupported
-                ? 'inspector.previewUnsupported'
-                : 'inspector.previewFailed',
-          )}
-        </p>
-        {!isPreviewUnsupported ? (
-          <Button
-            icon={<RotateCcw className="size-3.5" />}
-            isDisabled={isPreviewLoading || !ingredient}
-            label={translate('inspector.retryPreview')}
-            onClick={handleRetryPreview}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-            withWrapper={false}
-          />
-        ) : null}
-      </div>
-    );
-  }
-
-  const recipePanel = (
-    <div className="flex flex-col gap-3 px-4 py-3">
-      <p className="text-xs font-medium">
-        {translate('continuation.originalPrompt')}
-      </p>
-      <p className="whitespace-pre-wrap text-xs text-muted-foreground">
-        {recipe?.originalText ?? translate('continuation.originalUnavailable')}
-      </p>
-      {storedPrompt && storedPrompt.slots.length > 0 ? (
-        <section
-          aria-label={translate('inspector.promptSlots.title')}
-          className="flex flex-col gap-2"
-          data-testid="studio-inspector-prompt-slots"
-        >
-          <p className="text-xs font-medium">
-            {translate('inspector.promptSlots.title')}
-          </p>
-          <DefinitionList variant="properties">
-            {storedPrompt.slots.map((slot) => (
-              <DefinitionRow key={slot.key}>
-                <DefinitionTerm variant="muted">
-                  {translate(`inspector.promptSlots.labels.${slot.key}`)}
-                </DefinitionTerm>
-                <DefinitionDetail
-                  className="whitespace-pre-wrap break-words"
-                  variant="compact"
-                >
-                  {slot.value}
-                </DefinitionDetail>
-              </DefinitionRow>
-            ))}
-          </DefinitionList>
-          <Button
-            className="self-start"
-            icon={<Pencil className="size-3.5" />}
-            label={translate('inspector.promptSlots.edit')}
-            onClick={() => onVary(continuationJob)}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          />
-        </section>
-      ) : null}
-      {storedPrompt?.renderedPrompt ? (
-        <section
-          aria-label={translate('inspector.sentText.title')}
-          className="flex flex-col gap-1.5"
-          data-testid="studio-inspector-sent-text"
-        >
-          <p className="text-xs font-medium">
-            {translate('inspector.sentText.title')}
-          </p>
-          {storedPrompt.renderTarget ? (
-            <p className="text-2xs text-muted-foreground">
-              {translate('inspector.sentText.renderedFor', {
-                target: storedPrompt.renderTarget,
-              })}
-            </p>
-          ) : null}
-          <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed text-foreground/80">
-            {storedPrompt.renderedPrompt}
-          </pre>
-        </section>
-      ) : null}
-      <p className="text-xs font-medium">
-        {translate('continuation.effectiveRecipe')}
-      </p>
-      {currentReceipt?.generationHarness ? (
-        <GenerationHarnessReceipt receipt={currentReceipt.generationHarness} />
-      ) : null}
-      {receiptError ? (
-        <p role="status" className="text-xs text-muted-foreground">
-          {translate('inspector.receiptLoadError')}
-        </p>
-      ) : null}
-      {promptText ? (
-        <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed text-foreground/80">
-          {promptText}
-        </pre>
-      ) : (
-        <p className="text-xs text-muted-foreground">
-          {translate('inspector.emptyRecipe')}
-        </p>
-      )}
-    </div>
-  );
-
-  const usedInPanel = (
-    <div className="px-4 py-3">
-      {isLoadingUsedIn ? (
-        <p className="text-xs text-muted-foreground">
-          {translate('inspector.loading')}
-        </p>
-      ) : posts.length === 0 ? (
-        <p className="text-xs text-muted-foreground">
-          {translate('inspector.emptyUsedIn')}
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {posts.map((post) => (
-            <li key={post.id}>
-              <Link
-                className="block truncate text-xs text-foreground hover:underline"
-                href={href(`${APP_ROUTES.PUBLISHING.POSTS}/${post.id}`)}
-              >
-                {post.label || post.id}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-
-  const historyPanel = (
-    <div className="px-4 py-3">
-      {siblingJobs.length === 0 &&
-      children.length === 0 &&
-      !isLoadingHistory ? (
-        <p className="text-xs text-muted-foreground">
-          {translate('inspector.emptyHistory')}
-        </p>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {siblingJobs.length > 0 ? (
-            <div className="flex flex-col gap-1.5">
-              <p className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
-                {translate('inspector.runSiblings')}
-              </p>
-              <ul className="flex flex-col gap-1">
-                {siblingJobs.map((sibling) => (
-                  <li key={sibling.id}>
-                    <Button
-                      className="h-auto w-full justify-start truncate px-0 text-xs text-foreground hover:underline"
-                      label={studioAssetAccessibleLabel(sibling)}
-                      onClick={() => onSelect(sibling)}
-                      variant={ButtonVariant.UNSTYLED}
-                      withWrapper={false}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-          {isLoadingHistory ? (
-            <p className="text-xs text-muted-foreground">
-              {translate('inspector.loading')}
-            </p>
-          ) : children.length > 0 ? (
-            <div className="flex flex-col gap-1.5">
-              <p className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
-                {translate('inspector.childAssets')}
-              </p>
-              <ul className="flex flex-col gap-1">
-                {children.map((child) => (
-                  <li
-                    className="truncate text-xs text-foreground/80"
-                    key={child.id}
-                  >
-                    {studioIngredientAccessibleLabel(child)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </div>
-      )}
-    </div>
-  );
-
-  const renderContinuationAction = (
-    operation: IngredientContinuationOperation,
-    label: string,
-    onPrepare: (source: IIngredient) => void | Promise<void>,
-  ) => {
-    if (!ingredient) return null;
-    const availability = transformActions?.getAvailability(
-      ingredient,
-      operation,
-    ) ?? { isAvailable: true };
-    const reason =
-      !availability.isAvailable && availability.reason
-        ? translateAction(`availability.${availability.reason}`)
-        : undefined;
-    const descriptionId = `${availabilityId}-${operation}`;
-    return (
-      <div className="flex min-w-0 flex-col gap-1">
-        <Button
-          className="w-full"
-          label={label}
-          onClick={() => {
-            void onPrepare(ingredient);
-          }}
-          isDisabled={!availability.isAvailable}
-          aria-describedby={reason ? descriptionId : undefined}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
-          withWrapper={false}
-        />
-        {reason ? (
-          <p className="text-2xs text-muted-foreground" id={descriptionId}>
-            {reason}
-          </p>
-        ) : null}
-      </div>
-    );
-  };
-
-  const actions = isReady ? (
-    <div
-      aria-label={translate('inspector.actions')}
-      className="grid shrink-0 grid-cols-2 gap-2 border-t border-border px-4 py-3"
-      role="group"
-    >
-      <Button
-        className="w-full"
-        icon={<Sparkles className="size-3.5" />}
-        label={translateAction('generateAgain')}
-        onClick={() => onVary(continuationJob)}
-        size={ButtonSize.SM}
-        variant={ButtonVariant.SECONDARY}
-        withWrapper={false}
-      />
-      {ingredient && (job.type === 'image' || job.type === 'image-edit') ? (
-        <>
-          {onEdit
-            ? renderContinuationAction(
-                'edit',
-                translate('editImage.label'),
-                () => onEdit(job),
-              )
-            : null}
-          {renderContinuationAction(
-            'variation',
-            translateAction('createVariation'),
-            () => onRemix(job),
-          )}
-          {onAnimate
-            ? renderContinuationAction(
-                'animate',
-                translateAction('animate'),
-                onAnimate,
-              )
-            : null}
-        </>
-      ) : null}
-      {ingredient && transformActions ? (
-        <>
-          {renderContinuationAction(
-            'upscale',
-            translateAction('upscale'),
-            transformActions.onUpscale,
-          )}
-          {job.type === 'video'
-            ? renderContinuationAction(
-                'extend',
-                translateAction('extend'),
-                transformActions.onExtend,
-              )
-            : null}
-        </>
-      ) : null}
-      {ingredient && job.type === 'video' && onOpenInEditor
-        ? renderContinuationAction(
-            'editor',
-            translateAction('editor'),
-            onOpenInEditor,
-          )
-        : null}
-      {onUseAsReference &&
-      isUseAsReferenceEnabled !== false &&
-      (job.type === 'image' ||
-        job.type === 'image-edit' ||
-        job.type === 'video' ||
-        job.type === 'avatar') ? (
-        <Button
-          ariaLabel={translate('useAsReferenceAria', {
-            prompt: studioAssetAccessibleLabel(job),
-            type: label.toLowerCase(),
-          })}
-          className="w-full"
-          icon={<ImagePlus className="size-3.5" />}
-          label={translate('useAsReference')}
-          onClick={() => onUseAsReference(job)}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
-          withWrapper={false}
-        />
-      ) : null}
-      {ingredient && job.type === 'video' ? (
-        <Link
-          className={buttonVariants({
-            className: 'w-full',
-            size: ButtonSize.SM,
-            variant: ButtonVariant.SECONDARY,
-          })}
-          href={href(`${APP_ROUTES.STUDIO.CLIPPER}?video=${ingredient.id}`)}
-        >
-          <Scissors aria-hidden="true" className="size-3.5" />
-          {translate('makeClips')}
-        </Link>
-      ) : null}
-      {parentJob ? (
-        <Button
-          ariaLabel={translate('sourceAssetAria', {
-            type: label.toLowerCase(),
-          })}
-          className="w-full"
-          icon={<GitBranch className="size-3.5" />}
-          label={translate('sourceAsset')}
-          onClick={() => onSelect(parentJob)}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
-          withWrapper={false}
-        />
-      ) : null}
-      {ingredient ? (
-        <>
-          <Button
-            className="w-full"
-            icon={<Send className="size-3.5" />}
-            label={translate('inspector.useInPost')}
-            onClick={() => onUseInPost(ingredient)}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-            withWrapper={false}
-          />
-          <Button
-            className="w-full"
-            icon={<Download className="size-3.5" />}
-            label={translate('inspector.download')}
-            onClick={() => void downloadIngredient(ingredient)}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-            withWrapper={false}
-          />
-          <Button
-            className="col-span-2 w-full"
-            icon={<MessageSquare className="size-3.5" />}
-            label={translate('inspector.askAgent')}
-            onClick={handleAskAgent}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          />
-        </>
-      ) : null}
-    </div>
-  ) : null;
 
   if (isSourceUnavailable) {
     return (
@@ -911,22 +113,89 @@ export default function StudioPlaygroundInspector({
     );
   }
 
+  const previewNode = (
+    <StudioInspectorPreview
+      hasPreviewError={preview.hasPreviewError}
+      ingredient={ingredient}
+      isFocused={isFocused}
+      isPreviewLoading={preview.isPreviewLoading}
+      isPreviewUnsupported={preview.isPreviewUnsupported}
+      isReady={isReady}
+      job={continuationJob}
+      label={label}
+      onMediaMeasured={preview.handleMediaMeasured}
+      onPreviewFailed={preview.handlePreviewFailed}
+      onPreviewLoaded={preview.handlePreviewLoaded}
+      onRetry={preview.handleRetryPreview}
+      previewRevision={preview.previewRevision}
+      previewScope={preview.previewScope}
+      previewUrl={preview.previewUrl}
+    />
+  );
+  const factList = (
+    <StudioInspectorFacts
+      facts={preview.facts}
+      generationCost={asset.generationCost}
+      label={label}
+    />
+  );
+  const actions = isReady ? (
+    <StudioInspectorActions
+      continuationJob={continuationJob}
+      ingredient={ingredient}
+      isUseAsReferenceEnabled={isUseAsReferenceEnabled}
+      job={job}
+      label={label}
+      onAnimate={onAnimate}
+      onEdit={onEdit}
+      onOpenInEditor={onOpenInEditor}
+      onRemix={onRemix}
+      onSelect={onSelect}
+      onUseAsReference={onUseAsReference}
+      onUseInPost={onUseInPost}
+      onVary={onVary}
+      parentJob={parentJob}
+      transformActions={transformActions}
+    />
+  ) : null;
+
   const isFailed = job.status === IngredientStatus.FAILED;
   const tabItems = [
     {
-      content: recipePanel,
+      content: (
+        <StudioInspectorRecipePanel
+          currentReceipt={currentReceipt}
+          onEditSlots={() => onVary(continuationJob)}
+          promptText={promptText}
+          receiptError={asset.receiptError}
+          recipe={recipe}
+          storedPrompt={storedPrompt}
+        />
+      ),
       id: 'recipe',
       isOpen: true,
       label: translate('inspector.recipe'),
     },
     {
-      content: usedInPanel,
+      content: (
+        <StudioInspectorUsedInPanel
+          isLoading={relations.isLoadingUsedIn}
+          posts={relations.posts}
+        />
+      ),
       id: 'used-in',
       isOpen: true,
       label: translate('inspector.usedIn'),
     },
     {
-      content: historyPanel,
+      content: (
+        <StudioInspectorHistoryPanel
+          childAssets={relations.children}
+          isLoading={relations.isLoadingHistory}
+          onSelect={onSelect}
+          siblingJobs={siblingJobs}
+        />
+      ),
       id: 'history',
       isOpen: true,
       label: translate('inspector.history'),
@@ -938,19 +207,6 @@ export default function StudioPlaygroundInspector({
     }
   };
 
-  const factList = (
-    <DefinitionList variant="properties">
-      {factRows.map((row) => (
-        <DefinitionRow key={row.key}>
-          <DefinitionTerm variant="muted">{row.label}</DefinitionTerm>
-          <DefinitionDetail className="truncate text-right" variant="compact">
-            {row.value}
-          </DefinitionDetail>
-        </DefinitionRow>
-      ))}
-    </DefinitionList>
-  );
-
   if (isFocused) {
     return (
       <div
@@ -958,7 +214,7 @@ export default function StudioPlaygroundInspector({
         data-testid="studio-playground-inspector"
       >
         <div className="flex min-w-0 flex-col gap-3">
-          {preview}
+          {previewNode}
           {factList}
         </div>
 
@@ -1039,7 +295,7 @@ export default function StudioPlaygroundInspector({
       </ContextSidebarHeaderSlot>
 
       <div className="flex shrink-0 flex-col gap-3 border-b border-border px-4 py-4">
-        {preview}
+        {previewNode}
         {factList}
       </div>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
