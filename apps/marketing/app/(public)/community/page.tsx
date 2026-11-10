@@ -27,7 +27,11 @@ import {
 } from './community-json-ld';
 import { getCommunityPageData } from './community-loader';
 
-export const revalidate = 300;
+/**
+ * Rendered on every visit from the API's cache, which an operator's feature or
+ * unpublish clears, so the change shows on the next load.
+ */
+export const dynamic = 'force-dynamic';
 
 const CLAIM_HANDLE_ID = 'claim-handle';
 

@@ -4,11 +4,11 @@ import { buildCreatorMetadata } from './creator-metadata';
 import { CreatorOverview } from './creator-view';
 
 /**
- * Profiles are edited from the app (logo, banner, links), so the cached page
- * must expire on its own; without a window a first render is served until the
- * next deploy.
+ * Rendered on every visit from the API's cache, which a profile edit or an
+ * operator taking the profile off community clears, so the change shows on the
+ * next load.
  */
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({
   params,
