@@ -2,7 +2,6 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
-import { WebsiteRevalidationService } from '@api/services/website-revalidation/website-revalidation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AssetScope,
@@ -20,9 +19,9 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
- * What the community pages and profiles cache. A write here has to show on
- * genfeed.ai at once, above all a removal, so the website's page cache is
- * cleared too.
+ * What the community pages and profiles cache. Those genfeed.ai pages render
+ * from these caches on every visit, so clearing them shows a write here, above
+ * all a removal, on the next page load.
  */
 const COMMUNITY_CACHE_TAGS = ['brands', 'images', 'public', 'slugs', 'videos'];
 
@@ -63,7 +62,6 @@ export class AdminCommunityService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cacheService: CacheService,
-    private readonly websiteRevalidation: WebsiteRevalidationService,
   ) {}
 
   /** The organization's public creators and one page of its public media. */
@@ -192,7 +190,7 @@ export class AdminCommunityService {
     if (count === 0) {
       throw new NotFoundException('Public media', ingredientId);
     }
-    await this.refreshPublicPages();
+    await this.cacheService.invalidateByTags(COMMUNITY_CACHE_TAGS);
   }
 
   private async writeCreator(
@@ -212,12 +210,6 @@ export class AdminCommunityService {
     if (count === 0) {
       throw new NotFoundException('Public profile', brandId);
     }
-    await this.refreshPublicPages();
-  }
-
-  /** API caches first, so the website rebuilds its pages from fresh data. */
-  private async refreshPublicPages(): Promise<void> {
     await this.cacheService.invalidateByTags(COMMUNITY_CACHE_TAGS);
-    await this.websiteRevalidation.revalidatePublicPages();
   }
 }

@@ -6,7 +6,8 @@ import { createPageMetadataWithCanonical } from '@web-components/og/marketing-me
 import { getCommunityCreatorsPage } from '../community-loader';
 import CommunitySectionLayout from '../community-section-layout';
 
-export const revalidate = 300;
+// Reads `?sort`/`?page`, so it renders on every visit from the API's cache.
+export const dynamic = 'force-dynamic';
 
 const DESCRIPTION =
   'Creators publishing on Genfeed, each with a public profile of their articles, videos and images at genfeed.ai/@handle.';

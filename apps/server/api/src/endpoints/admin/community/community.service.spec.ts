@@ -81,7 +81,6 @@ function createWorld({
   media?: MediaRow[];
 }) {
   const invalidated: string[][] = [];
-  const website = { revalidations: 0 };
   const service = new AdminCommunityService(
     { brand: table(brands), ingredient: table(media) } as never,
     {
@@ -90,14 +89,8 @@ function createWorld({
         return 0;
       },
     } as never,
-    {
-      revalidatePublicPages: async () => {
-        website.revalidations += 1;
-        return true;
-      },
-    } as never,
   );
-  return { invalidated, service, website };
+  return { invalidated, service };
 }
 
 function video(overrides: Partial<MediaRow> = {}): MediaRow {
@@ -210,7 +203,7 @@ describe('AdminCommunityService', () => {
 
   it('takes a featured video off community and leaves it with the organization', async () => {
     const row = video({ isHighlighted: true });
-    const { service, website } = createWorld({ media: [row] });
+    const { service } = createWorld({ media: [row] });
 
     await expect(service.unpublishMedia('org-1', 'video-1')).resolves.toEqual({
       id: 'video-1',
@@ -224,7 +217,6 @@ describe('AdminCommunityService', () => {
       media: [],
       mediaTotal: 0,
     });
-    expect(website.revalidations).toBe(1);
   });
 
   it.each([
@@ -235,7 +227,7 @@ describe('AdminCommunityService', () => {
     ['in another organization', { organizationId: 'org-2' }],
   ])('refuses media that is %s', async (_label, change) => {
     const row = video(change);
-    const { invalidated, service, website } = createWorld({ media: [row] });
+    const { invalidated, service } = createWorld({ media: [row] });
 
     await expect(
       service.setMediaFeatured('org-1', 'video-1', true),
@@ -243,12 +235,11 @@ describe('AdminCommunityService', () => {
     await expect(service.unpublishMedia('org-1', 'video-1')).rejects.toThrow();
     expect(row).toMatchObject({ isHighlighted: false, ...change });
     expect(invalidated).toEqual([]);
-    expect(website.revalidations).toBe(0);
   });
 
   it('features a public creator, then takes the profile off genfeed.ai', async () => {
     const row = creator();
-    const { service, website } = createWorld({ brands: [row] });
+    const { service } = createWorld({ brands: [row] });
 
     await expect(
       service.setCreatorFeatured('org-1', 'brand-1', true),
@@ -261,7 +252,6 @@ describe('AdminCommunityService', () => {
       isHighlighted: false,
       scope: 'ORGANIZATION',
     });
-    expect(website.revalidations).toBe(2);
   });
 
   it.each([
