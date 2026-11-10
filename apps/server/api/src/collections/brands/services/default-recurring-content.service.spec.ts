@@ -336,7 +336,7 @@ function createFakePrisma(options: FakePrismaOptions) {
       },
     },
     workflowExecution: {
-      findMany: async () => [],
+      findFirst: async () => null,
     },
   } as unknown as PrismaService;
 
@@ -431,6 +431,46 @@ function buildStoredWorkflow(
 describe('DefaultRecurringContentService', () => {
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('getStatus', () => {
+    it('reports each default workflow with the status of its newest execution', async () => {
+      const workflows = (['post', 'newsletter', 'image'] as const).map(
+        (contentType) => ({
+          id: `workflow_${contentType}`,
+          metadata: { defaultRecurringContent: { contentType } },
+          recurrence: { nextRunAt: null },
+          status: 'ACTIVE',
+        }),
+      );
+      const newestStatusByWorkflowId: Record<string, string> = {
+        workflow_newsletter: 'FAILED',
+        workflow_post: 'COMPLETED',
+      };
+      const prisma = {
+        workflow: { findMany: async () => workflows },
+        workflowExecution: {
+          findFirst: async ({ where }: { where: { workflowId: string } }) => {
+            const status = newestStatusByWorkflowId[where.workflowId];
+            return status ? { status, workflowId: where.workflowId } : null;
+          },
+        },
+      } as unknown as PrismaService;
+
+      const status = await createService(prisma).getStatus(
+        ORGANIZATION_ID,
+        BRAND_ID,
+      );
+
+      expect(status.isConfigured).toBe(true);
+      expect(
+        status.items.map((item) => [item.contentType, item.status]),
+      ).toEqual([
+        ['post', 'COMPLETED'],
+        ['newsletter', 'FAILED'],
+        ['image', 'ACTIVE'],
+      ]);
+    });
   });
 
   describe('installContentEngineOnOptIn', () => {

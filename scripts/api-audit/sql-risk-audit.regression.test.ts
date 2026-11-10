@@ -51,6 +51,20 @@ describe('sql risk audit — real codebase regression gate', () => {
     ).toHaveLength(0);
   });
 
+  it('classifies the table growth of every unbounded read', () => {
+    const unclassified = result.findings.filter(
+      (finding) =>
+        finding.category === 'unbounded-read' &&
+        finding.growth === 'unclassified',
+    );
+    expect(
+      unclassified,
+      `Add these models to scripts/api-audit/table-growth.ts:\n${unclassified
+        .map((finding) => `  - ${finding.file}:${finding.line}`)
+        .join('\n')}`,
+    ).toHaveLength(0);
+  });
+
   it('does not report reviewed trend reference corpus lookup queries', () => {
     const trendReferenceCorpusFindings = result.findings.filter(
       (finding) =>

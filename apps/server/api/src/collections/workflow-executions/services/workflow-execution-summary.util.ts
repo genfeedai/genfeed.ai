@@ -68,30 +68,31 @@ export async function readWorkflowExecutionStats(
   failed: number;
   avgDurationMs: number;
 }> {
-  const executions = await prisma.workflowExecution.findMany({
-    select: { durationMs: true, status: true },
-    where: scopedWhere(
-      organizationId,
-      buildCustomerExecutionWhere(organizationId, { workflowId }),
-    ),
-  });
-  const total = executions.length;
-  const completed = executions.filter(
-    (execution) => execution.status === WorkflowExecutionStatus.COMPLETED,
-  ).length;
-  const failed = executions.filter(
-    (execution) => execution.status === WorkflowExecutionStatus.FAILED,
-  ).length;
-  const durationsWithValue = executions
-    .map((execution) => execution.durationMs)
-    .filter((duration): duration is number => {
-      return typeof duration === 'number' && duration > 0;
-    });
-  const avgDurationMs =
-    durationsWithValue.length > 0
-      ? durationsWithValue.reduce((sum, duration) => sum + duration, 0) /
-        durationsWithValue.length
-      : 0;
+  const where = scopedWhere(
+    organizationId,
+    buildCustomerExecutionWhere(organizationId, { workflowId }),
+  );
+  // A workflow runs for as long as the customer keeps it, so its execution
+  // history is unbounded. Count and average in SQL instead of loading every row.
+  const [byStatus, duration] = await Promise.all([
+    prisma.workflowExecution.groupBy({
+      _count: { _all: true },
+      by: ['status'],
+      where,
+    }),
+    prisma.workflowExecution.aggregate({
+      _avg: { durationMs: true },
+      where: { AND: [where, { durationMs: { gt: 0 } }] },
+    }),
+  ]);
+  const countFor = (status: WorkflowExecutionStatus): number =>
+    byStatus.find((group) => group.status === status)?._count._all ?? 0;
+  const total = byStatus.reduce((sum, group) => sum + group._count._all, 0);
 
-  return { avgDurationMs, completed, failed, total };
+  return {
+    avgDurationMs: duration._avg.durationMs ?? 0,
+    completed: countFor(WorkflowExecutionStatus.COMPLETED),
+    failed: countFor(WorkflowExecutionStatus.FAILED),
+    total,
+  };
 }
