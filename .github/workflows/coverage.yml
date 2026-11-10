@@ -3,7 +3,7 @@ name: Coverage
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 6 * * 1" # Weekly Monday 6am UTC
+    - cron: "47 5 * * *" # Nightly 05:47 UTC — after e2e-selfhosted-release (05:23), the last nightly
 
 concurrency:
   group: coverage-${{ github.ref }}
@@ -397,7 +397,7 @@ jobs:
   # ── Frontend E2E coverage — sharded 4-way (V8 → monocart) ──
   # Lives here, NOT in e2e.yml, so a slow/cancelled coverage run can never turn
   # the E2E gate red. Inherits this workflow's triggers (workflow_dispatch +
-  # weekly Mon 6am UTC) and runs the mocked app-core suite only. Each shard is an
+  # nightly 05:47 UTC) and runs the mocked app-core suite only. Each shard is an
   # isolated machine publishing its own lcov artifact (e2e-coverage-shard-N).
   coverage-e2e:
     name: Coverage — apps/web E2E (shard ${{ matrix.shard }}/4)
