@@ -65,7 +65,7 @@ describe('OrganizationModuleAccessService', () => {
     );
   });
 
-  it('opens only the items granted to one organization', async () => {
+  it('opens only the items granted to one organization in the web app, while admitting every item', async () => {
     const { service, prisma } = createService(false, {});
     prisma.organizationSetting.findUnique.mockResolvedValue({
       isReleasePreviewEnabled: false,
@@ -76,7 +76,9 @@ describe('OrganizationModuleAccessService', () => {
     await expect(
       service.assertAccess('org-1', 'turbo'),
     ).resolves.toBeUndefined();
-    await expect(service.assertAccess('org-1', 'motion')).rejects.toThrow();
+    await expect(
+      service.assertAccess('org-1', 'motion'),
+    ).resolves.toBeUndefined();
   });
 
   it('releases everything to an organization on release preview', async () => {
@@ -127,10 +129,6 @@ describe('OrganizationModuleAccessService', () => {
       where: { id: 'org-1', isDeleted: false },
       select: { id: true },
     });
-    expect(prisma.organizationSetting.findUnique).toHaveBeenCalledWith({
-      where: { organizationId: 'org-1' },
-      select: { isReleasePreviewEnabled: true, releasedItemIds: true },
-    });
     expect(paidAccess.isSubscriptionGatedFresh).not.toHaveBeenCalled();
   });
 
@@ -144,43 +142,64 @@ describe('OrganizationModuleAccessService', () => {
     ).resolves.toBeUndefined();
   });
 
-  it.each(['motion', 'clipper', 'editor', 'automation', 'messages'] as const)(
-    'refuses new %s work on cloud until it is released',
+  it.each(['motion', 'clipper', 'editor'] as const)(
+    'admits new %s work on cloud while it is not released',
     async (moduleId) => {
-      const { service, paidAccess } = createService();
+      const { service } = createService();
+      await expect(
+        service.assertAccess('org-1', moduleId),
+      ).resolves.toBeUndefined();
+      await expect(service.canStartWork('org-1', moduleId)).resolves.toBe(true);
+    },
+  );
+
+  it.each(['automation', 'messages'] as const)(
+    'admits new %s work for a subscribed cloud organization while it is not released',
+    async (moduleId) => {
+      const { service } = createService();
+      await expect(
+        service.assertAccess('org-1', moduleId),
+      ).resolves.toBeUndefined();
+      await expect(service.canStartWork('org-1', moduleId)).resolves.toBe(true);
+    },
+  );
+
+  it.each(['automation', 'messages'] as const)(
+    'refuses new %s work without a subscription, released or not',
+    async (moduleId) => {
+      const { service, paidAccess } = createService(false, {
+        [`release_${moduleId}`]: true,
+      });
+      paidAccess.isSubscriptionGatedFresh.mockResolvedValue(true);
       await expect(
         service.assertAccess('org-1', moduleId),
       ).rejects.toMatchObject({
         response: expect.objectContaining({
-          code: 'ORGANIZATION_MODULE_UNRELEASED',
-          moduleId,
+          code: 'ORGANIZATION_MODULE_SUBSCRIPTION_REQUIRED',
         }),
         status: 403,
       });
-      await expect(service.canStartWork('org-1', moduleId)).resolves.toBe(
-        false,
-      );
-      expect(paidAccess.isSubscriptionGatedFresh).not.toHaveBeenCalled();
+      const unreleased = createService();
+      unreleased.paidAccess.isSubscriptionGatedFresh.mockResolvedValue(true);
+      await expect(
+        unreleased.service.assertAccess('org-1', moduleId),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'ORGANIZATION_MODULE_SUBSCRIPTION_REQUIRED',
+        }),
+        status: 403,
+      });
     },
   );
 
-  it('reads the current release for each admission, including after an unrelease', async () => {
-    const { service, platformSettings } = createService(false, {
-      release_motion: true,
-    });
-    await expect(
-      service.assertAccess('org-1', 'motion'),
-    ).resolves.toBeUndefined();
-    platformSettings.getFeatureSettingsState.mockResolvedValueOnce({
-      isResolved: true,
-      settings: { flags: { release_motion: false } },
-    });
+  it('answers an unreleased module with 404 while its kill switch is off', async () => {
+    const { service } = createService(false, { motion: false });
     await expect(service.assertAccess('org-1', 'motion')).rejects.toMatchObject(
-      { status: 403 },
+      { status: 404 },
     );
   });
 
-  it('fails closed while the platform releases have never been read', async () => {
+  it('fails closed while the platform flags have never been read', async () => {
     const { service, platformSettings } = createService();
     platformSettings.getFeatureSettingsState.mockResolvedValueOnce({
       isResolved: false,
@@ -194,7 +213,7 @@ describe('OrganizationModuleAccessService', () => {
     });
   });
 
-  it('keeps reads and exports of unreleased modules available', async () => {
+  it('keeps reads and exports available without reading settings', async () => {
     const { service, prisma } = createService();
     await expect(
       service.assertAccess('org-1', 'automation', 'read'),
@@ -205,7 +224,7 @@ describe('OrganizationModuleAccessService', () => {
     expect(prisma.organizationSetting.findUnique).not.toHaveBeenCalled();
   });
 
-  it('does not apply the release gate to self-hosted deployments', async () => {
+  it('admits unreleased modules on self-hosted deployments', async () => {
     config.hasOrganizationBilling.mockReturnValue(false);
     const { service, paidAccess } = createService(false, {});
     await expect(
@@ -308,21 +327,24 @@ describe('OrganizationModuleAccessService', () => {
     },
   );
 
-  it('lets a superadmin through a switched-off module without lifting the release gate', async () => {
-    const { service } = createService(false, {
+  it('lets a superadmin through a switched-off module without lifting the subscription gate', async () => {
+    const { service, paidAccess } = createService(false, {
+      automation: false,
       storyboard: false,
-      motion: false,
     });
     await expect(
       service.assertAccess('org-1', 'storyboard', 'write', {
         isSuperAdmin: true,
       }),
     ).resolves.toBeUndefined();
+    paidAccess.isSubscriptionGatedFresh.mockResolvedValue(true);
     await expect(
-      service.assertAccess('org-1', 'motion', 'write', { isSuperAdmin: true }),
+      service.assertAccess('org-1', 'automation', 'write', {
+        isSuperAdmin: true,
+      }),
     ).rejects.toMatchObject({
       response: expect.objectContaining({
-        code: 'ORGANIZATION_MODULE_UNRELEASED',
+        code: 'ORGANIZATION_MODULE_SUBSCRIPTION_REQUIRED',
       }),
       status: 403,
     });
