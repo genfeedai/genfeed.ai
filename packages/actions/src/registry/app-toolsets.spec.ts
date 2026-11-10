@@ -19,6 +19,7 @@ const TOOLSETS_WITHOUT_APP = [
   'brand',
   'engagement',
   'knowledge',
+  'models3d',
   'skills-pro',
 ] as const;
 

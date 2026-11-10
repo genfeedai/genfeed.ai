@@ -656,6 +656,32 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.05,
   },
   /**
+   * TRELLIS image-to-3D on Replicate. Builds a textured GLB from a photo plus
+   * the eight cropped views of its angle sheet. Flat $0.081 per prediction
+   * (replicate.com/firtoz/trellis, read 2026-11-09), 27 credits at the
+   * platform margin. The angle sheet itself is billed as a Nano Banana Pro
+   * render, so a full photo-to-GLB run is 50 + 27 = 77 credits. Reached only
+   * through the 3D models API and MCP, never the generation prompt bar.
+   */
+  {
+    category: ModelCategory.MODEL_3D,
+    cost: 27,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.SLOW,
+    description:
+      'TRELLIS — turns a photo and its multi-angle sheet into a textured GLB. 27 credits per build.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.REPLICATE_FIRTOZ_TRELLIS,
+    label: 'TRELLIS 3D',
+    lifecycle: ModelLifecycle.AVAILABLE,
+    pricingType: PricingType.FLAT,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'trellis', owner: 'firtoz' },
+    providerCostUsd: 0.081,
+  },
+  /**
    * HeyGen photo animation: `POST /v3/videos` with `type: image`, which
    * Avatar IV renders from an arbitrary image. HeyGen's API price table has no
    * separate image row, so it bills at the Avatar IV photo-avatar rate of

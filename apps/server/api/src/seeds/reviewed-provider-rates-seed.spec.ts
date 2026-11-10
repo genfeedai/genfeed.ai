@@ -623,6 +623,32 @@ describe('direct-provider (HeyGen, ElevenLabs) rate sheet entries', () => {
       ),
     ).toMatchObject({ status: 'unresolved' });
   });
+
+  it('seeds TRELLIS from the shipped schema fixtures and quotes the build at 27 credits', async () => {
+    const { create, profile } = await seededProfile('firtoz/trellis');
+
+    expect(create).toMatchObject({
+      endpoint: 'firtoz/trellis',
+      provider: 'replicate',
+      reviewStatus: 'approved',
+      reviewedBy: RATE_SHEET_REVIEWER,
+    });
+    expect(create.inputSchema).toHaveProperty('properties.images');
+    expect(create.outputSchema).toBeDefined();
+    expect(
+      quoteModelBillablePricing(
+        profile,
+        { modelKey: 'firtoz/trellis', provider: 'replicate' },
+        3.33,
+        NOW,
+      ),
+    ).toMatchObject({
+      snapshot: { credits: 27, providerCostUsd: 0.081 },
+      status: 'priced',
+    });
+    expect(applyMargin(0.081, 3.33)).toBe(27);
+  });
+
   describe('HeyGen avatar engines', () => {
     const quote = (
       profile: Awaited<ReturnType<typeof seededProfile>>['profile'],

@@ -25,10 +25,10 @@ describe('curated action catalog', () => {
     },
   );
   it('retains internal targets while listing only the two consolidated MCP envelopes', () => {
-    expect(ALL_TOOLS).toHaveLength(243);
-    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(169);
+    expect(ALL_TOOLS).toHaveLength(245);
+    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(171);
     const listed = getToolsForSurface('mcp').map((tool) => tool.name);
-    expect(listed).toHaveLength(165);
+    expect(listed).toHaveLength(167);
     expect(listed).toContain('check_channel');
     expect(listed).toContain('upload_media');
     for (const name of [
