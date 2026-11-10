@@ -149,6 +149,14 @@ function renderWizard() {
   return render(<AvatarTwinWizard />, { wrapper: queryClientWrapper() });
 }
 
+// Every app is on offer, so no entry point is hidden.
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useHasAppsBeyondDashboard: () => true,
+  useIsAppAvailable: () => true,
+  useIsHrefAvailable: () => () => true,
+  useOrganizationAppIds: () => new Set<string>(),
+}));
+
 describe('AvatarTwinWizard', () => {
   beforeEach(() => {
     api.connection.state = 'connected';

@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PlatformHomePage from './content';
 
 const mocks = vi.hoisted(() => ({
+  hiddenAppPaths: [] as string[],
   brand: { id: 'brand-1', slug: 'moonrise' } as {
     id: string;
     slug: string;
@@ -157,6 +158,15 @@ function connectedInstagram(): BrandDetailSocialConnection {
   };
 }
 
+// Every app is on offer, so no entry point is hidden.
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useHasAppsBeyondDashboard: () => true,
+  useIsAppAvailable: () => true,
+  useIsHrefAvailable: () => (href: string) =>
+    !mocks.hiddenAppPaths.some((path) => href.includes(path)),
+  useOrganizationAppIds: () => new Set<string>(),
+}));
+
 describe('PlatformHomePage catalog', () => {
   it('reads copy from the pages.platforms.home catalog', async () => {
     const { readFileSync } = await import('node:fs');
@@ -178,6 +188,7 @@ describe('PlatformHomePage catalog', () => {
 
 describe('PlatformHomePage', () => {
   beforeEach(() => {
+    mocks.hiddenAppPaths = [];
     mocks.brand = { id: 'brand-1', slug: 'moonrise' };
     mocks.brandId = 'brand-1';
     mocks.hasBrandId = true;
@@ -297,5 +308,28 @@ describe('PlatformHomePage', () => {
       'href',
       '/acme/moonrise/messages/replies',
     );
+  });
+
+  it('leaves out the shortcuts that open an app the organization does not offer', () => {
+    mocks.hiddenAppPaths = ['/agent', '/messages', '/automation'];
+    mocks.socialConnections = [
+      {
+        ...connectedInstagram(),
+        credentialId: 'cred-yt-1',
+        platform: Platform.YOUTUBE,
+      },
+    ];
+
+    render(<PlatformHomePage platform={Platform.YOUTUBE} />);
+
+    expect(
+      screen.queryByRole('link', { name: 'Open Create' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Open Live' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Open Replies' }),
+    ).not.toBeInTheDocument();
   });
 });

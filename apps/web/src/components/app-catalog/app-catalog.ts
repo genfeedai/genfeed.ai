@@ -36,6 +36,12 @@ export const APP_CATALOG: Record<OrganizationModuleId, AppCatalogPresentation> =
       category: 'create',
       tone: 'warning',
     },
+    discovery: {
+      thumbnailSrc: '/app-catalog/discovery.webp',
+      art: 'trend',
+      category: 'publish',
+      tone: 'success',
+    },
     editor: {
       thumbnailSrc: '/app-catalog/editor.webp',
       art: 'timeline',

@@ -157,11 +157,7 @@ describe('OrganizationAppsPage (#7842)', () => {
       screen
         .getAllByTestId(/^apps-app-(?!detail)/)
         .map((element) => element.dataset.testid),
-    ).toEqual([
-      'apps-app-playground',
-      'apps-app-storyboard',
-      'apps-app-turbo',
-    ]);
+    ).toEqual(['apps-app-playground', 'apps-app-storyboard', 'apps-app-turbo']);
   });
 
   it('shows the search and the grid without filters or a view toggle', () => {

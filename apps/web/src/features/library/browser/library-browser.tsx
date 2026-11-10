@@ -217,13 +217,11 @@ export default function LibraryBrowser({
             )
           }
           topbarFooter={
-            <>
-              <div
-                className="empty:hidden"
-                data-testid="library-selection-slot"
-                ref={setSelectionSlot}
-              />
-            </>
+            <div
+              className="empty:hidden"
+              data-testid="library-selection-slot"
+              ref={setSelectionSlot}
+            />
           }
         >
           {children}
