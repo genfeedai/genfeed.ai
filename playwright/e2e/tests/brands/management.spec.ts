@@ -98,7 +98,7 @@ test.describe('Brand Management', () => {
       await brandsPage.gotoBrandDetail('brand-1');
       await brandsPage.waitForPageLoad();
 
-      // Connected accounts section or account cards
+      // Accounts section or account cards
       const hasAccounts = await brandsPage.connectedAccounts
         .isVisible()
         .catch(() => false);
