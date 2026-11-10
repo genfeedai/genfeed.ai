@@ -27,7 +27,7 @@ export function publicMediaOrderBy(
  * the frame and, for a video, its length. Nothing else from the metadata row
  * leaves the API.
  */
-export const PUBLIC_MEDIA_INCLUDE = {
+const PUBLIC_MEDIA_INCLUDE = {
   metadata: {
     select: {
       duration: true,
