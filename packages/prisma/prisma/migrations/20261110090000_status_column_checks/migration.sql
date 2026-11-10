@@ -3,9 +3,37 @@
 -- The contracts tables from #9740 stop a bad write in code; these stop it in
 -- the database.
 --
--- Repair first, so the checks hold on every database this runs on, including
--- self-hosted ones nobody can query beforehand. A CHECK is evaluated on every
--- UPDATE, so one stray row left behind would refuse every later write to it.
+-- Each check is added NOT VALID first: from then on every new write must pass
+-- it, and the ADD CONSTRAINT lock holds off other writers until this migration
+-- commits, so no stray value can land after the repair. NOT VALID skips the
+-- scan of existing rows; 20261110090100_status_column_checks_validate does it.
+
+-- ContentCampaignStatus in @genfeedai/contracts.
+ALTER TABLE "campaigns"
+  ADD CONSTRAINT "campaigns_status_check"
+  CHECK (
+    "status" IN (
+      'draft', 'scheduled', 'active', 'paused', 'completed', 'archived'
+    )
+  ) NOT VALID;
+
+-- TargetValidationState in @genfeedai/contracts.
+ALTER TABLE "posts"
+  ADD CONSTRAINT "posts_targetValidationState_check"
+  CHECK (
+    "targetValidationState" IN ('pending', 'valid', 'warning', 'invalid')
+  ) NOT VALID;
+
+-- ContentRunStatus in @genfeedai/contracts. The column stays nullable.
+ALTER TABLE "content_runs"
+  ADD CONSTRAINT "content_runs_status_check"
+  CHECK ("status" IN ('pending', 'running', 'completed', 'failed'))
+  NOT VALID;
+
+-- Then repair existing rows, so the checks hold on every database this runs
+-- on, including self-hosted ones nobody can query beforehand. A CHECK is
+-- evaluated on every UPDATE, so one stray row left behind would refuse every
+-- later write to it. Each repair writes a value the new check accepts.
 
 -- Onboarding draft runs once wrote 'complete' and 'interrupted'; readers still
 -- treated them as completed and failed. Any other stray value is a run that
@@ -31,28 +59,3 @@ UPDATE "campaigns"
   WHERE "status" NOT IN (
     'draft', 'scheduled', 'active', 'paused', 'completed', 'archived'
   );
-
--- NOT VALID enforces each check on new writes immediately without scanning the
--- existing rows; 20261110090100_status_column_checks_validate scans them.
-
--- ContentCampaignStatus in @genfeedai/contracts.
-ALTER TABLE "campaigns"
-  ADD CONSTRAINT "campaigns_status_check"
-  CHECK (
-    "status" IN (
-      'draft', 'scheduled', 'active', 'paused', 'completed', 'archived'
-    )
-  ) NOT VALID;
-
--- TargetValidationState in @genfeedai/contracts.
-ALTER TABLE "posts"
-  ADD CONSTRAINT "posts_targetValidationState_check"
-  CHECK (
-    "targetValidationState" IN ('pending', 'valid', 'warning', 'invalid')
-  ) NOT VALID;
-
--- ContentRunStatus in @genfeedai/contracts. The column stays nullable.
-ALTER TABLE "content_runs"
-  ADD CONSTRAINT "content_runs_status_check"
-  CHECK ("status" IN ('pending', 'running', 'completed', 'failed'))
-  NOT VALID;
