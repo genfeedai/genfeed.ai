@@ -19,9 +19,10 @@ import Link from 'next/link';
 const FEATURES = [
   {
     description:
-      'Connect Claude, ChatGPT, Codex, Cursor or any MCP client. Your agent drafts, schedules and reads results with your brand context.',
+      'Connect Claude, ChatGPT, Codex, Cursor or any MCP client. Your agent drafts and schedules with your brand context, and results land in the dashboard.',
     icon: Plug,
     label: 'Your agent',
+    href: '/agent',
     number: '01',
     title: 'Work Where You Already Work',
   },
@@ -30,6 +31,7 @@ const FEATURES = [
       'See what is working in your market, as observed samples, so every brief starts from what people are responding to.',
     icon: TrendingUp,
     label: 'Trends',
+    href: '/products/discovery',
     number: '02',
     title: 'Start From What Is Working',
   },
@@ -38,6 +40,7 @@ const FEATURES = [
       'Videos, images and posts land in one library with your brand attached. Review them, then publish to your connected channels.',
     icon: LayoutDashboard,
     label: 'Dashboard',
+    href: '/products/publishing',
     number: '03',
     title: 'Review And Publish In One Place',
   },
@@ -46,6 +49,7 @@ const FEATURES = [
       'Post performance in one view, and your top posts come back as examples for the next brief.',
     icon: BarChart3,
     label: 'Analytics',
+    href: '/products/analytics',
     number: '04',
     title: 'See What Worked',
   },
@@ -71,7 +75,7 @@ export default function FeaturesPage(): React.ReactElement {
         compact
         heroVisual={HERO_VISUAL}
         title={<>What Genfeed Does</>}
-        description="Run Genfeed from the agent you already use. Trends in, finished videos, images and posts out, then publishing and analytics in the dashboard."
+        description="Brief Genfeed from the agent you already use. Start from trends, create videos, images and posts in Genfeed Studio, then publish and see what worked in the dashboard."
       >
         <section className="gsap-hero py-16 md:py-32">
           <div className="container mx-auto px-6">
@@ -93,9 +97,12 @@ export default function FeaturesPage(): React.ReactElement {
                     <p className="text-foreground/70 text-sm leading-relaxed mb-8">
                       {feature.description}
                     </p>
-                    <span className="mt-auto text-2xs font-black uppercase tracking-widest flex items-center gap-2 hover:gap-4 transition-all cursor-pointer">
-                      Learn More <ArrowRight className="size-3.5" />
-                    </span>
+                    <Link
+                      className="mt-auto flex items-center gap-2 text-2xs font-black uppercase tracking-widest transition-all hover:gap-4"
+                      href={feature.href}
+                    >
+                      Learn more <ArrowRight className="size-3.5" />
+                    </Link>
                   </div>
                 );
               })}
@@ -174,7 +181,7 @@ export default function FeaturesPage(): React.ReactElement {
                 Start in your agent.
               </h2>
               <p className="text-foreground/70 text-xl mb-12 font-medium">
-                Connecting takes one sign-in. Free account, no card required.
+                Connecting takes one sign-in.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <AgentFirstActions trackingName="features_cta_click" />

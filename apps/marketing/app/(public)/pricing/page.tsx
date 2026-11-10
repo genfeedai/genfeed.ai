@@ -40,7 +40,7 @@ export function buildPricingJsonLd() {
       '@type': 'Product',
       brand: { '@type': 'Organization', name: 'Genfeed' },
       description:
-        'An open-source content studio you run from your own agent: create, review, publish, and track videos, images, voice, and marketing content.',
+        'The content studio you run from your own agent: create, review, publish, and track videos, images, voice, and marketing content.',
       image: metadata.cards.default,
       name: 'Genfeed',
       // Enterprise is quote-only. A schema.org Offer needs a price or a

@@ -28,6 +28,11 @@ const FAQ_ITEMS_GENERAL: FAQItem[] = [
     question: 'What is Genfeed?',
   },
   {
+    answer:
+      'No. Genfeed makes and manages everything you publish: short-form video, images, ads, posts and threads, articles, newsletters, presenter video and voice. It also covers what comes before and after the file: trends, scheduling, publishing and analytics.',
+    question: 'Is Genfeed only for video?',
+  },
+  {
     answer: `Genfeed has MCP setup guides for ${agentClients.map((client) => client.name).join(', ')}. Each agent has its own setup page on this site, and the dashboard shows what your agent made.`,
     question: 'Which agents work with Genfeed?',
   },
@@ -46,6 +51,11 @@ const FAQ_ITEMS_GENERAL: FAQItem[] = [
     question: 'How do I get started?',
   },
 ];
+
+/** The homepage preview: scope first, then the agent questions, then the way in. */
+export const FAQ_ITEMS_HOME: FAQItem[] = FAQ_ITEMS_GENERAL.filter(
+  (item) => item.question !== 'Who is Genfeed for?',
+);
 
 /**
  * Core FAQ items for home page and quick previews

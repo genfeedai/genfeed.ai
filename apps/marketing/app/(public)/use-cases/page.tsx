@@ -9,7 +9,7 @@ import type { Metadata, ResolvingMetadata } from 'next';
 // to 404. The hub also gives the six use-case pages an internal index.
 
 const useCasesDescription =
-  'See what AI influencer brands, creators, agencies, e-commerce teams, marketers and founders ask their agent to make with Genfeed, then review, publish and track in the dashboard.';
+  'See what creators, agencies, e-commerce teams, marketers, founders and AI influencer brands ask their agent for, then review and publish in the dashboard.';
 
 const useCasesUrl = `${metadata.url}/use-cases`;
 

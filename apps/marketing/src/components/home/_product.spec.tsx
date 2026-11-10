@@ -1,5 +1,4 @@
 import { render, screen } from '@testing-library/react';
-import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
 import type { ImgHTMLAttributes } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import HomeProduct from './_product';
@@ -18,27 +17,39 @@ vi.mock('next/image', () => ({
 }));
 
 describe('HomeProduct', () => {
-  it('explains the one-prompt product mechanism after the output showcase', () => {
+  it('says Genfeed covers all content, not only video', () => {
     render(<HomeProduct />);
 
+    expect(screen.getByText('Not just video')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: /one prompt\. every feed\./i,
+        name: 'One agent for all your content.',
       }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('home-product-workspace')).toBeInTheDocument();
-    expect(screen.getByText('5 outputs ready')).toBeInTheDocument();
+    expect(screen.getByText('8 drafts ready for review')).toBeInTheDocument();
   });
 
-  it('uses existing generated media without adding another preload', () => {
+  it.each([
+    ['Short-form video', 'Reels, TikTok, Shorts'],
+    ['Posts', 'X, LinkedIn, Threads'],
+    ['Images', 'Instagram, Pinterest, your store'],
+    ['Presenter video', 'One face, one voice'],
+    ['Articles', 'Your blog'],
+    ['Newsletters', 'Your list'],
+    ['Ads', 'Every ratio, ready for the ad account'],
+    ['Voice', 'Voice-overs and podcasts'],
+  ])('shows %s and where it ships', (label, destination) => {
     render(<HomeProduct />);
 
-    expect(screen.getAllByRole('img')).toHaveLength(5);
-    expect(
-      screen.getAllByRole('img').map((image) => image.getAttribute('data-src')),
-    ).toEqual(
-      HOME_OUTPUT_CAROUSEL_ASSETS.slice(0, 5).map(({ poster }) => poster),
-    );
+    expect(screen.getByText(label)).toBeInTheDocument();
+    expect(screen.getByText(destination)).toBeInTheDocument();
+  });
+
+  it('uses the existing generated stills for the media pieces', () => {
+    render(<HomeProduct />);
+
+    expect(screen.getAllByRole('img')).toHaveLength(4);
   });
 });

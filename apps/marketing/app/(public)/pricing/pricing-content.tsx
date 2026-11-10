@@ -85,8 +85,14 @@ const FAQ_ITEMS = [
   },
   ...LAUNCH_PRICE_FAQ_ITEMS,
   {
-    answer: 'No. Genfeed picks the best model for every job.',
+    answer:
+      'You can choose a model in the app, let your agent pick one, or leave it to automatic routing where supported.',
     question: 'Do I choose the AI model?',
+  },
+  {
+    answer:
+      'Yes. Connect Claude, ChatGPT, Codex, Cursor or any MCP client. Your agent drafts and schedules with your brand context, and you review and publish in the dashboard. What an agent can do depends on its client; the Claude connector cannot create images or video, so those are made in Genfeed Studio.',
+    question: 'Can I use my own agent?',
   },
   {
     answer: `Yes, on every plan. ${PLAN_COPY.pro.name} and ${PLAN_COPY.scale.name} have higher limits.`,

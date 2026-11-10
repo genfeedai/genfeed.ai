@@ -8,7 +8,7 @@ export const metadata = {
   },
   // Shared product description for marketing metadata, copy and agent discovery.
   description:
-    'Genfeed is an open-source content studio you run from your own agent. Connect Claude, ChatGPT, Codex or Cursor, then review, publish and track on-brand videos, images and posts.',
+    'Genfeed is the content studio you run from your own agent. Video, images, posts, articles, newsletters and voice, made on your brand, published and tracked.',
   keywords: [
     'genfeed',
     'genfeed.ai',

@@ -8,7 +8,7 @@ import ProductsHubContent from '@public/products/products-hub-content';
 import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 
 const DESCRIPTION =
-  'Where the work from your agent lands: Library, Publishing, Analytics and Discovery, plus the creative apps Playground, Storyboard, Clipper, Motion, Turbo and Editor, Agent, Automation and Messages.';
+  'Where your agent’s work lands: Library, Publishing, Analytics and Discovery, plus the creative apps Playground, Storyboard, Clipper, Motion, Turbo and Editor.';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Products: Every Genfeed App',

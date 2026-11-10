@@ -3,7 +3,7 @@ import { createPageMetadataWithCanonical } from '@web-components/og/marketing-me
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Use Genfeed From Your Agent: MCP, CLI and Skills',
-  'Add Genfeed to Claude, ChatGPT, Codex, Cursor or any MCP client. Brief your agent, then review, publish and track in the dashboard. Or run the Genfeed agent in your terminal.',
+  'Add Genfeed to Claude, ChatGPT, Codex, Cursor or any MCP client. Brief your agent, then review, publish and track in the dashboard. Or use the CLI.',
   '/agent',
 );
 

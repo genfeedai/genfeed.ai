@@ -108,12 +108,12 @@ export const useCases: UseCase[] = [
       'Create variations from the same brief',
       'Compare available performance data across published posts',
       'Reuse references and brand context across drafts',
-      'Find winning content formats faster',
+      'Find the content formats that worked for you',
     ],
     slug: 'creators',
     solutions: [
       'Generate AI videos in minutes, not hours',
-      'See trending topics before they blow up',
+      'See what is trending in your niche',
       'Compare available performance data for published content',
       'Publish to supported channels from one dashboard',
       'All content types in one platform (no tool switching)',
@@ -122,13 +122,14 @@ export const useCases: UseCase[] = [
     title: 'Genfeed for Content Creators',
     workflow: [
       {
-        description: "AI detects what's trending in your niche",
+        description: 'Start from the trends Genfeed has observed in your niche',
         example: 'Trending: "AI voice cloning tutorial"',
         step: 1,
         title: 'See Trending Topics',
       },
       {
-        description: 'Ask your agent for a video, a thumbnail and a caption',
+        description:
+          'Create the video and thumbnail in Genfeed Studio, and draft the caption with your agent',
         example: 'A short video, a thumbnail and a caption, ready for review',
         step: 2,
         title: 'Generate Content',
@@ -147,7 +148,7 @@ export const useCases: UseCase[] = [
         title: 'Track Performance',
       },
       {
-        description: 'AI tells you what to post next',
+        description: 'Pick the next brief from what worked',
         example: 'Use the stronger-performing format as the next brief',
         step: 5,
         title: 'Optimize',
@@ -260,7 +261,7 @@ export const useCases: UseCase[] = [
     workflow: [
       {
         description:
-          'Share your product images and ask your agent for lifestyle content',
+          'Add your product images in Genfeed Studio and brief your agent on the campaign',
         example: 'Product shots in, lifestyle videos and images out',
         step: 1,
         title: 'Upload Products',

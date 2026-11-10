@@ -16,7 +16,7 @@ import Link from 'next/link';
 // The dashboard apps come first: they are where the work from your agent is
 // reviewed, published and measured. The creative apps come last.
 const HUB_GROUP_ORDER: readonly AppProductGroup[] = [
-  'Publish & grow',
+  'Publish & measure',
   'Operate',
   'Create',
 ];
@@ -25,7 +25,7 @@ const GROUP_DESCRIPTIONS: Record<AppProductGroup, string> = {
   Create: 'Generate, plan and edit images, video and sequences in the app.',
   Operate:
     'Keep every asset in one library, and run workflows and recurring tasks.',
-  'Publish & grow':
+  'Publish & measure':
     'Publish, measure, research what works and keep up with your audience.',
 };
 

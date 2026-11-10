@@ -27,6 +27,13 @@ export default function HomeHero(): React.ReactElement {
       />
 
       <div className="container relative mx-auto px-6 text-center">
+        <Text
+          as="p"
+          className="animate-gen-stagger-in mb-6 text-xs font-bold uppercase tracking-[0.16em] text-foreground/80"
+          data-testid="home-hero-eyebrow"
+        >
+          The content studio for everything you publish
+        </Text>
         <Heading
           as="h1"
           className="animate-gen-stagger-rise mx-auto max-w-5xl text-[clamp(2.25rem,10.5vw,3rem)] font-semibold leading-[0.95] tracking-[-0.02em] text-foreground [--gen-stagger-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
@@ -37,9 +44,9 @@ export default function HomeHero(): React.ReactElement {
           as="p"
           className="animate-gen-stagger-in mx-auto mt-7 max-w-2xl text-base leading-7 text-foreground/80 [--gen-stagger-delay:180ms] md:text-lg"
         >
-          Run Genfeed from the agent you already use. Brief it in Claude,
-          ChatGPT, Codex or Cursor, then review, publish and track your on-brand
-          videos, images and posts in the dashboard.
+          Video, images, posts, articles, newsletters and voice. Briefed from
+          your own agent, made on your brand, then published and tracked in one
+          dashboard.
         </Text>
 
         <div
@@ -51,7 +58,7 @@ export default function HomeHero(): React.ReactElement {
             <AgentFirstActions trackingName="home_hero_click" />
           </div>
           <Text as="p" className="mt-5 text-center text-sm text-foreground/80">
-            Connecting takes one sign-in. Free account, no card required.
+            Connecting takes one sign-in.
           </Text>
         </div>
       </div>

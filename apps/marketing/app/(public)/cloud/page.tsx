@@ -3,7 +3,7 @@ import { createPageMetadataWithCanonical } from '@web-components/og/marketing-me
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Genfeed for Teams: One Shared Workspace',
-  'One workspace for your whole team’s agents: a shared brand library, roles, approvals and a credit pool. Start free and connect every teammate’s agent.',
+  'One workspace for your team’s agents: a shared brand library, roles, approvals and credits. Each teammate connects an agent; shared seats start on Scale.',
   '/cloud',
 );
 
