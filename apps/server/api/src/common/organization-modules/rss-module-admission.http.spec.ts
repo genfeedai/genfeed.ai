@@ -24,28 +24,66 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
+interface ScopeContext {
+  organizationId: string;
+}
+
+interface RssWork {
+  operation: 'create' | 'update' | 'remove' | 'read' | 'poll';
+  organizationId: string;
+  sourceId?: string;
+}
+
 describe('RSS HTTP Publishing module admission', () => {
   let app: INestApplication;
   let settingsByOrganization: Map<string, { id: string } | null>;
   let isKillSwitchOn: boolean;
   let actorFlags: { isApiKey?: boolean; isSuperAdmin?: boolean };
+  let work: RssWork[];
   const service = {
-    createScoped: vi.fn(),
-    updateScoped: vi.fn(),
-    removeScoped: vi.fn(),
-    findOneScoped: vi.fn(),
-    findAllScoped: vi.fn(),
+    createScoped: async (_body: unknown, context: ScopeContext) => {
+      work.push({
+        operation: 'create',
+        organizationId: context.organizationId,
+      });
+      return { id: 'rss-1' };
+    },
+    updateScoped: async (id: string, _body: unknown, context: ScopeContext) => {
+      work.push({
+        operation: 'update',
+        organizationId: context.organizationId,
+        sourceId: id,
+      });
+      return { id };
+    },
+    removeScoped: async (id: string, context: ScopeContext) => {
+      work.push({
+        operation: 'remove',
+        organizationId: context.organizationId,
+        sourceId: id,
+      });
+    },
+    findOneScoped: async (id: string, context: ScopeContext) => {
+      work.push({
+        operation: 'read',
+        organizationId: context.organizationId,
+        sourceId: id,
+      });
+      return { id };
+    },
+    findAllScoped: async () => [{ id: 'rss-1' }],
   };
-  const enqueueSource = vi.fn();
+  const enqueueSource = async (job: ScopeContext & { sourceId: string }) => {
+    work.push({
+      operation: 'poll',
+      organizationId: job.organizationId,
+      sourceId: job.sourceId,
+    });
+    return 'rss-job';
+  };
 
   beforeEach(async () => {
-    vi.clearAllMocks();
-    service.createScoped.mockResolvedValue({ id: 'rss-1' });
-    service.updateScoped.mockResolvedValue({ id: 'rss-1' });
-    service.removeScoped.mockResolvedValue(undefined);
-    service.findOneScoped.mockResolvedValue({ id: 'rss-1' });
-    service.findAllScoped.mockResolvedValue([{ id: 'rss-1' }]);
-    enqueueSource.mockResolvedValue('rss-job');
+    work = [];
     settingsByOrganization = new Map([
       ['org-1', { id: 'settings-1' }],
       ['org-2', { id: 'settings-2' }],
@@ -112,11 +150,9 @@ describe('RSS HTTP Publishing module admission', () => {
     await app?.close();
   });
 
-  function expectNoNewWork(): void {
-    expect(service.createScoped).not.toHaveBeenCalled();
-    expect(service.updateScoped).not.toHaveBeenCalled();
-    expect(service.removeScoped).not.toHaveBeenCalled();
-    expect(enqueueSource).not.toHaveBeenCalled();
+  /** Mutations and polls that reached the service; reads are recorded as `read`. */
+  function newWork(): RssWork[] {
+    return work.filter((entry) => entry.operation !== 'read');
   }
 
   it.each([{}, { isApiKey: true }, { isSuperAdmin: true }])(
@@ -151,9 +187,12 @@ describe('RSS HTTP Publishing module admission', () => {
       for (const call of calls) {
         expect((await call.send()).status).toBe(call.status);
       }
-      expect(enqueueSource).toHaveBeenCalledWith(
-        expect.objectContaining({ organizationId: 'org-1', sourceId: 'rss-1' }),
-      );
+      expect(newWork()).toEqual([
+        { operation: 'create', organizationId: 'org-1' },
+        { operation: 'update', organizationId: 'org-1', sourceId: 'rss-1' },
+        { operation: 'remove', organizationId: 'org-1', sourceId: 'rss-1' },
+        { operation: 'poll', organizationId: 'org-1', sourceId: 'rss-1' },
+      ]);
     },
   );
 
@@ -170,7 +209,7 @@ describe('RSS HTTP Publishing module admission', () => {
     ]) {
       expect((await call()).status).toBe(404);
     }
-    expectNoNewWork();
+    expect(work).toEqual([]);
   });
 
   it('refuses a privileged target org whose settings cannot be read', async () => {
@@ -194,8 +233,7 @@ describe('RSS HTTP Publishing module admission', () => {
       expect(response.status).toBe(503);
       expect(response.body.code).toBe('ORGANIZATION_MODULE_UNAVAILABLE');
     }
-    expectNoNewWork();
-    expect(service.findOneScoped).not.toHaveBeenCalled();
+    expect(work).toEqual([]);
   });
 
   it('keeps saved-source reads available while Publishing is unreleased', async () => {
@@ -205,11 +243,9 @@ describe('RSS HTTP Publishing module admission', () => {
     expect(
       (await request(app.getHttpServer()).get('/rss-sources/rss-1')).status,
     ).toBe(200);
-    expect(service.findOneScoped).toHaveBeenCalledWith(
-      'rss-1',
-      expect.objectContaining({ organizationId: 'org-1' }),
-    );
-    expectNoNewWork();
+    expect(work).toEqual([
+      { operation: 'read', organizationId: 'org-1', sourceId: 'rss-1' },
+    ]);
   });
 
   it('rejects a normal actor target-org override before persistence', async () => {
@@ -220,20 +256,16 @@ describe('RSS HTTP Publishing module admission', () => {
           .send({ label: 'updated' })
       ).status,
     ).toBe(403);
-    expectNoNewWork();
+    expect(work).toEqual([]);
   });
 
   it('polls for a privileged target org that has settings, without a subscription', async () => {
     actorFlags = { isSuperAdmin: true };
     const url = '/rss-sources/rss-1/poll?organizationId=org-2';
     expect((await request(app.getHttpServer()).post(url)).status).toBe(201);
-    expect(enqueueSource).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sourceId: 'rss-1',
-        organizationId: 'org-2',
-        userId: 'user-1',
-      }),
-    );
-    expect(service.findOneScoped).toHaveBeenCalledTimes(1);
+    expect(work).toEqual([
+      { operation: 'read', organizationId: 'org-2', sourceId: 'rss-1' },
+      { operation: 'poll', organizationId: 'org-2', sourceId: 'rss-1' },
+    ]);
   });
 });
