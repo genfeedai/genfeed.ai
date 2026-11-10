@@ -91,7 +91,7 @@ describe('replay matching', () => {
 describe('normalization', () => {
   it('gives the same id the same placeholder across text and JSON', () => {
     const normalizer = createNormalizer();
-    const id = '64b7f0c2a1d3e4f5a6b7c8d9';
+    const id = '0000000000000000000000a1';
     expect(normalizer.normalizeText(`/runs/${id}`)).toBe('/runs/id-1');
     expect(
       normalizer.normalizeJson({
