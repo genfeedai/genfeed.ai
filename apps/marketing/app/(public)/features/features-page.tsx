@@ -75,7 +75,7 @@ export default function FeaturesPage(): React.ReactElement {
         compact
         heroVisual={HERO_VISUAL}
         title={<>What Genfeed Does</>}
-        description="Brief Genfeed from the agent you already use. Start from trends, create videos, images and posts in Genfeed Studio, then publish and see what worked in the dashboard."
+        description="Brief Genfeed from the agent you already use. Start from trends, create videos, images and posts, then publish and see what worked in the dashboard."
       >
         <section className="gsap-hero py-16 md:py-32">
           <div className="container mx-auto px-6">

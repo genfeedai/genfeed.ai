@@ -3,7 +3,7 @@ import { createPageMetadataWithCanonical } from '@web-components/og/marketing-me
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Features: Your Agent, Trends, Publishing, Analytics',
-  'Run Genfeed from your own agent. Start from trends, create videos, images and posts in Genfeed Studio, then publish and see what worked.',
+  'Run Genfeed from your own agent. Start from trends, create videos, images and posts, then publish and see what worked.',
   '/features',
 );
 
