@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
@@ -224,8 +224,8 @@ export default function ByokProviderCard({
             ) : null}
             <PrimitiveButton
               asChild
+              size={ButtonSize.INLINE}
               variant={ButtonVariant.LINK}
-              className="h-auto px-0 text-xs"
             >
               <a
                 href={providerStatus.docsUrl}
