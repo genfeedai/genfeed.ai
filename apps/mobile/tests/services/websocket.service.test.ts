@@ -45,13 +45,35 @@ describe('websocketService', () => {
     websocketService.disconnect();
   });
 
+  it('is connected once the socket opens', () => {
+    expect(websocketService.getConnectionState()).toBe('connected');
+    expect(websocketService.isConnected()).toBe(true);
+  });
+
+  it('delivers parsed messages to listeners of the message type', () => {
+    const received: unknown[] = [];
+    const typed: unknown[] = [];
+    websocketService.on('message', (message) => received.push(message));
+    websocketService.on('notification', (data) => typed.push(data));
+    const message = {
+      data: { title: 'Ready' },
+      timestamp: '2026-11-09T10:00:00.000Z',
+      type: 'notification',
+    };
+
+    socket.onmessage?.({ data: JSON.stringify(message) } as MessageEvent);
+
+    expect(received).toEqual([message]);
+    expect(typed).toEqual([{ title: 'Ready' }]);
+  });
+
   it('reports malformed messages without dispatching them', () => {
-    const message = vi.fn();
-    websocketService.on('message', message);
+    const received: unknown[] = [];
+    websocketService.on('message', (message) => received.push(message));
 
     socket.onmessage?.({ data: 'not-json' } as MessageEvent);
 
-    expect(message).not.toHaveBeenCalled();
+    expect(received).toEqual([]);
     expect(sentry.captureException).toHaveBeenCalledWith(
       expect.any(SyntaxError),
       { operation: 'parseWebSocketMessage' },
@@ -59,12 +81,16 @@ describe('websocketService', () => {
   });
 
   it('reports connection failures without emitting the reserved error event', () => {
-    const connectionError = vi.fn();
-    websocketService.on('connectionError', connectionError);
+    const connectionErrors: Error[] = [];
+    websocketService.on('connectionError', (error: Error) =>
+      connectionErrors.push(error),
+    );
 
     expect(() => socket.onerror?.()).not.toThrow();
 
-    expect(connectionError).toHaveBeenCalledWith(expect.any(Error));
+    expect(connectionErrors.map((error) => error.message)).toEqual([
+      'WebSocket connection error',
+    ]);
     expect(sentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
       connectionState: 'connected',
       operation: 'connectWebSocket',

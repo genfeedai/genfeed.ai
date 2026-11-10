@@ -151,9 +151,24 @@ describe('tool registry catalog validation', () => {
       };
     }
     const catalog: CuratedActionCatalogEntry[] = [
-      { name: 'duplicated_action', surfaces: ['agent'], toolset: 'core' },
-      { name: 'duplicated_action', surfaces: ['mcp'], toolset: 'core' },
-      { name: 'missing_action', surfaces: ['mcp'], toolset: 'core' },
+      {
+        category: 'other',
+        name: 'duplicated_action',
+        surfaces: ['agent'],
+        toolset: 'core',
+      },
+      {
+        category: 'other',
+        name: 'duplicated_action',
+        surfaces: ['mcp'],
+        toolset: 'core',
+      },
+      {
+        category: 'other',
+        name: 'missing_action',
+        surfaces: ['mcp'],
+        toolset: 'core',
+      },
     ];
 
     vi.doMock('./curated-action-catalog', () => ({

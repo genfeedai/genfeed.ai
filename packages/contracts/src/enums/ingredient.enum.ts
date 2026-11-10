@@ -19,6 +19,8 @@ export enum IngredientCategory {
   INGREDIENT = 'INGREDIENT',
   TEXT = 'TEXT',
   SOURCE = 'SOURCE',
+  /** A textured 3D model (GLB). Previewed in the app, rendered through the API. */
+  MODEL_3D = 'MODEL_3D',
 }
 
 /**

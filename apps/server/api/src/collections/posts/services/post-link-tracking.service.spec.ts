@@ -125,7 +125,9 @@ describe('post link import', () => {
   it('falls back from a failed brand credential read to the app client', async () => {
     const f = await fixture();
     f.twitter.getTweetById.mockRejectedValueOnce(new Error('expired token'));
-    await f.service.trackLink(input, scope);
+    const tracked = await f.service.trackLink(input, scope);
+    expect(tracked).toMatchObject({ credentialId: credential.id });
+    expect(tracked.analyticsAvailability).toBe('eligible');
     expect(f.twitter.getTweetById).toHaveBeenNthCalledWith(1, '123', {
       organizationId: scope.organizationId,
       brandId: scope.brandId,
@@ -235,13 +237,14 @@ describe('post link import', () => {
     const f = await fixture();
     const date = new Date('2026-02-03T04:05:06.000Z');
     const id = (BigInt(date.getTime()) << 22n).toString();
-    await f.service.trackLink(
+    const tracked = await f.service.trackLink(
       {
         ...input,
         url: `https://linkedin.com/posts/alice_topic-activity-${id}-xyz`,
       },
       scope,
     );
+    expect(tracked).toMatchObject({ credentialId: credential.id });
     expect(f.tx.post.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         publishedAt: date,

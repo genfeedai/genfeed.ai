@@ -8,7 +8,6 @@ import { CreatePromptDto } from '@api/collections/prompts/dto/create-prompt.dto'
 import { PromptQueryDto } from '@api/collections/prompts/dto/prompt-query.dto';
 import { UpdatePromptDto } from '@api/collections/prompts/dto/update-prompt.dto';
 import { enhanceCreatedPrompt } from '@api/collections/prompts/enhance-created-prompt';
-import { type PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { toPromptBrandContext } from '@api/collections/prompts/utils/prompt-text.util';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
@@ -46,6 +45,7 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
+import type { Prompt } from '@genfeedai/prisma';
 import { PromptSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -65,15 +65,15 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
-type PromptWithIngredients = PromptDocument & {
+type PromptWithIngredients = Prompt & {
   ingredients?: IngredientDocument[];
 };
 
-function toMarketplacePromptText(prompt: PromptDocument): string {
+function toMarketplacePromptText(prompt: Prompt): string {
   return prompt.enhanced?.trim() || prompt.original.trim() || 'Untitled Prompt';
 }
 
-function toMarketplacePromptTitle(prompt: PromptDocument): string {
+function toMarketplacePromptTitle(prompt: Prompt): string {
   const promptText = toMarketplacePromptText(prompt);
 
   return promptText.length > 80 ? `${promptText.slice(0, 77)}...` : promptText;
@@ -234,7 +234,7 @@ export class PromptsController {
 
     const aggregate = { where: match, orderBy: handleQuerySort(query.sort) };
 
-    const data: AggregatePaginateResult<PromptDocument> =
+    const data: AggregatePaginateResult<Prompt> =
       await this.promptsService.findAll(aggregate, options);
     return serializeCollection(request, PromptSerializer, data);
   }

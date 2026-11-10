@@ -56,6 +56,22 @@ It is reporting only: a red run opens or comments on the issue "Playwright core
 is red on master", and the next green run closes it. It never feeds
 `full-suite.yml` or `release.yml`.
 
+## API tiers and acceptance on master
+
+`master-merge-check.yml` runs the API E2E core and full tiers and the acceptance
+suites (proactive production turn, brand, context embedding) on master after
+merges land. It calls `e2e.yml` with `run_api_full` on and `skip_frontend` on:
+the browser is already covered by Playwright Core on Master, so no browser job
+runs. The serial final runtime acceptance stays a nightly and release lane.
+Concurrency works as for core on master: a run in progress is never cancelled
+and a newer push replaces the pending run, so a burst of merges costs at most
+two runs. Docs-only pushes skip it. It is reporting only: a red run opens or
+comments on the issue "Master merge check is red" and lists the failed jobs, and
+the next green run closes it. `skip_frontend` turns the E2E gate's browser
+requirement into "must be skipped", so only this workflow sets it
+(`scripts/ci/pr-validation-workflows.test.mjs` enforces that) and it never feeds
+`full-suite.yml` or `release.yml`.
+
 ## Same-PR spec rule
 
 A pull request that removes or rewrites UI copy, preset ids or fixture values
@@ -102,6 +118,19 @@ Studio Generate video actions and drafts. Changed and failed-only
 commands apply their Playwright filters to this same selector set. Missing files
 or emptied selector directories fail before Playwright starts. The changed
 command compares against `origin/master` by default.
+
+The full tier splits its selected specs across the 8 nightly shards by recorded
+duration, not by Playwright's `--shard` (which splits by test count and left one
+shard nearly twice as slow). `scripts/playwright-e2e-durations.json` holds the
+median test seconds per spec file; `assignSpecsToShards` places the longest
+specs first on the lightest shard, and a spec with no recorded duration costs the
+median. Every shard computes the same partition, so together they run exactly the
+selected files, once each: no spec is skipped, quarantined or moved. To refresh
+the durations, copy the `playwright-full-durations` artifact of a green nightly
+over that file (or run `node scripts/playwright-e2e-tiers.mjs
+--playwright-reports-dir=<dir of results.json files>
+--write-durations=scripts/playwright-e2e-durations.json`). The core tier still
+uses Playwright's `--shard`.
 
 `PLAYWRIGHT_E2E_LANE_EXCLUSIONS` records specs assigned to real-auth, cross-app,
 release-install, and Cloud execution. The `cloud` lane (`playwright/e2e/tests/cloud/`)

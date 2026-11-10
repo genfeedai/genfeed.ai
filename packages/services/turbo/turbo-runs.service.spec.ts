@@ -172,7 +172,9 @@ describe('TurboRunsService', () => {
     };
     mockInstance.post.mockResolvedValue({ data: { data: makeMockTurboRun() } });
 
-    await service.itemAction('run-1', req);
+    const result = await service.itemAction('run-1', req);
+
+    expect(result).toMatchObject({ id: 'run-1' });
 
     expect(mockInstance.post).toHaveBeenCalledWith('/run-1/items/action', req);
   });
@@ -180,7 +182,9 @@ describe('TurboRunsService', () => {
   it('assignItem POSTs to /:turboRunId/items/:itemId/assign', async () => {
     mockInstance.post.mockResolvedValue({ data: { data: makeMockTurboRun() } });
 
-    await service.assignItem('run-1', 'item-1', 'user-1');
+    const result = await service.assignItem('run-1', 'item-1', 'user-1');
+
+    expect(result).toMatchObject({ id: 'run-1' });
 
     expect(mockInstance.post).toHaveBeenCalledWith(
       '/run-1/items/item-1/assign',
@@ -191,7 +195,9 @@ describe('TurboRunsService', () => {
   it('unassignItem POSTs to /:turboRunId/items/:itemId/unassign', async () => {
     mockInstance.post.mockResolvedValue({ data: { data: makeMockTurboRun() } });
 
-    await service.unassignItem('run-1', 'item-1');
+    const result = await service.unassignItem('run-1', 'item-1');
+
+    expect(result).toMatchObject({ id: 'run-1' });
 
     expect(mockInstance.post).toHaveBeenCalledWith(
       '/run-1/items/item-1/unassign',
@@ -200,10 +206,12 @@ describe('TurboRunsService', () => {
 
   it('cancelTurboRun PATCHes /:id with status cancelled', async () => {
     mockInstance.patch.mockResolvedValue({
-      data: { data: makeMockTurboRun() },
+      data: { data: makeMockTurboRun('run-99') },
     });
 
-    await service.cancelTurboRun('run-99');
+    const result = await service.cancelTurboRun('run-99');
+
+    expect(result).toMatchObject({ id: 'run-99' });
 
     expect(mockInstance.patch).toHaveBeenCalledWith('/run-99', {
       status: 'CANCELLED',

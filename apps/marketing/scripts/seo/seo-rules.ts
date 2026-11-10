@@ -19,13 +19,13 @@ import type { PageFacts } from './page-parser';
 
 const TRAILING_SLASH_PATTERN = /\/$/;
 
-export const TITLE_MIN_LENGTH = 30;
-export const TITLE_MAX_LENGTH = 60;
-export const DESCRIPTION_MIN_LENGTH = 110;
-export const DESCRIPTION_MAX_LENGTH = 160;
-export const MIN_WORD_COUNT = 200;
+const TITLE_MIN_LENGTH = 30;
+const TITLE_MAX_LENGTH = 60;
+const DESCRIPTION_MIN_LENGTH = 110;
+const DESCRIPTION_MAX_LENGTH = 160;
+const MIN_WORD_COUNT = 200;
 
-export type Severity = 'error' | 'warning';
+type Severity = 'error' | 'warning';
 
 export interface Finding {
   readonly rule: string;
@@ -110,7 +110,7 @@ export function checkSoftNotFound(input: PageInput): Finding[] {
   ];
 }
 
-export function checkTitle(input: PageInput): Finding[] {
+function checkTitle(input: PageInput): Finding[] {
   const { facts, path } = input;
   if (facts.title === null || facts.title === '') {
     return [finding('title-missing', 'error', path, 'No <title>.')];
@@ -139,7 +139,7 @@ export function checkTitle(input: PageInput): Finding[] {
   return [];
 }
 
-export function checkDescription(input: PageInput): Finding[] {
+function checkDescription(input: PageInput): Finding[] {
   const { facts, path } = input;
   if (facts.description === null || facts.description === '') {
     return [
@@ -170,7 +170,7 @@ export function checkDescription(input: PageInput): Finding[] {
   return [];
 }
 
-export function checkHeadings(input: PageInput): Finding[] {
+function checkHeadings(input: PageInput): Finding[] {
   const { facts, path } = input;
   if (facts.h1s.length === 0) {
     return [finding('h1-missing', 'error', path, 'No <h1> on the page.')];
@@ -188,7 +188,7 @@ export function checkHeadings(input: PageInput): Finding[] {
   return [];
 }
 
-export function checkCanonical(input: PageInput): Finding[] {
+function checkCanonical(input: PageInput): Finding[] {
   const { expectedCanonical, facts, path } = input;
   if (facts.canonical === null || facts.canonical === '') {
     return [
@@ -247,7 +247,7 @@ export function checkSocialTags(input: PageInput): Finding[] {
   return findings;
 }
 
-export function checkContent(input: PageInput): Finding[] {
+function checkContent(input: PageInput): Finding[] {
   const { facts, path } = input;
   const findings: Finding[] = [];
 
@@ -321,7 +321,7 @@ function typesOf(node: Record<string, unknown>): string[] {
 }
 
 /** Depth-first walk over every typed node in a JSON-LD document. */
-export function collectTypedNodes(
+function collectTypedNodes(
   value: unknown,
   accumulator: Record<string, unknown>[] = [],
 ): Record<string, unknown>[] {

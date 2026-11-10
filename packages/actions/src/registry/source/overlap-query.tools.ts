@@ -5,7 +5,7 @@ import type { ToolParameterSchema } from '../../interfaces/tool-definition.inter
 /**
  * Read/list overlap definitions split out of `overlap.tools.ts` to keep that
  * module under the per-file line budget (`source-tools.test.ts`). Surface
- * availability is declared only in `curated-action-catalog.ts`.
+ * availability is declared only in `curated-actions.catalog.ts`.
  */
 export const REQUEST_MEDIA_UPLOAD_PARAMETERS: ToolParameterSchema = {
   properties: {
@@ -45,6 +45,8 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Get account details in one call: profile (user, organization, scoped brand, role, isOnboardingCompleted), credits (current balance) and usage (balance, 7 and 30 day credit spend, trend and spend breakdown by source). Defaults to all three; pass include to fetch fewer.',
+    mcpDescription:
+      'Read profile (user, organization, scoped brand, role, isOnboardingCompleted), credits balance and usage (balance, 7/30-day spend, trend, source breakdown). include selects sections; default all three.',
     name: 'get_account',
     parameters: {
       properties: {
@@ -87,6 +89,8 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       "Read the organization's brands. Without brand it lists every brand with name, description and tone profile. With brand it returns that one brand, matched by id, slug, name or label. When more than one brand exists, pass the chosen brand's id as brandId to other tools; the first brand is never used implicitly.",
+    mcpDescription:
+      'Read organization brands with name, description and tone. brand selects one by id/slug/name/label; omit for all. With multiple brands, pass the chosen id as brandId to other tools; never implicitly use the first.',
     name: 'get_brands',
     parameters: {
       properties: {
@@ -109,6 +113,8 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Read posts. postId returns one post (exclusive with the other fields). days returns the content calendar for the coming days: scheduled and draft posts with gap analysis showing days without content. With neither, lists recent posts, optionally filtered by executionState and capped by limit. Post items carry channel target, execution state, media, and timestamps.',
+    mcpDescription:
+      'Read postId alone for one post; days for upcoming draft/scheduled calendar and gaps; otherwise recent posts filtered by executionState/limit. Items include channel target, state, media and timestamps.',
     name: 'get_posts',
     parameters: {
       properties: {
@@ -152,6 +158,8 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       "List library assets of one type, newest first, for one brand: brandId, else the thread brand, else your current brand; with none of those it lists the whole organization. Failed, archived and rejected assets are left out. Types image, video, music and avatar return id, category, status, url, label or prompt, origin, tags (id and label) and createdAt. Type character lists the active named characters the brand can use, including characters another organization granted to yours for use only (handle, label, description, whether a reference image exists, and who granted it). A revoked grant disappears on the next call. Type voice lists the organization's own saved personal voices (id, name, provider, previewUrl, isBrandDefault); pass that id as generate.voiceId. With source account it browses the voices of the ElevenLabs account the organization connected, with search and paging, and reports connection status (connected, disconnected or invalid): personal voices need the customer's own connected account and never fall back to a platform account. Stock catalog voices are not listed here. Type digital_twin lists the digital twins the caller recorded of themselves (newest first, or one with twinId), after re-reading training and consent at HeyGen: id, name, status (UPLOADING, TRAINING, AWAITING_CONSENT, CONSENT_REJECTED, READY or FAILED), consent (pending, accepted or rejected), consentLinkExpiresAt, failure, previewImageUrl, voiceId, isBrandDefault and nextStep. Only READY twins can be used; relay nextStep, and never call a twin ready before status is READY.",
+    mcpDescription:
+      "List Library assets newest-first. Brand scope: brandId, thread brand, current brand, else organization. Excludes failed/archived/rejected. image/video/music/avatar return id, category, status, url, label/prompt, origin, tags (id/label), createdAt. character returns active usable characters, including use-only grants from other organizations: handle, label, description, reference-image presence, grantor. Revocations disappear next call. Type voice lists the organization's own saved personal voices (id, name, provider, previewUrl, isBrandDefault); pass that id as generate.voiceId. With source account it browses the voices of the ElevenLabs account the organization connected, with search and paging, and reports connection status (connected, disconnected or invalid): personal voices need the customer's own connected account and never fall back to a platform account. Stock catalog voices are not listed here. Type digital_twin lists the digital twins the caller recorded of themselves (newest first, or one with twinId), after re-reading training and consent at HeyGen: id, name, status (UPLOADING, TRAINING, AWAITING_CONSENT, CONSENT_REJECTED, READY or FAILED), consent (pending, accepted or rejected), consentLinkExpiresAt, failure, previewImageUrl, voiceId, isBrandDefault and nextStep. Only READY twins can be used; relay nextStep, and never call a twin ready before status is READY.",
     name: 'get_assets',
     parameters: {
       properties: {

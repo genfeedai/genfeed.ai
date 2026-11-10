@@ -89,6 +89,7 @@ export type {
 } from './registry/curated-action-catalog';
 export {
   CURATED_ACTION_CATALOG,
+  getMcpCardKind,
   isActionOnSurface,
   isCuratedActionName,
   isPublishingApprovalRequired,

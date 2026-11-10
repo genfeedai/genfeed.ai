@@ -43,6 +43,8 @@ export enum ModelCategory {
   VOICE = 'voice',
   /** Talking-avatar video (HeyGen Avatar IV / Avatar V). */
   AVATAR = 'avatar',
+  /** Photo to textured GLB (angle sheet, then image-to-3D). */
+  MODEL_3D = 'model-3d',
 }
 
 export enum QualityTier {

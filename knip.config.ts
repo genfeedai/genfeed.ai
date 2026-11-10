@@ -42,6 +42,9 @@ const config: KnipConfig = {
     // Serwist compiles apps/web/app/sw.ts through esbuild at request time
     // (`useNativeEsbuild: true`), so esbuild is never imported from source.
     'esbuild',
+    // Peer dependency of @google/model-viewer (packages/ui ModelViewer); the
+    // viewer imports it itself, so nothing in this repo does.
+    'three',
   ],
   workspaces: {
     // Root

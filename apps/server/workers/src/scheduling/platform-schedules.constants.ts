@@ -9,6 +9,7 @@ import { NEWSLETTER_SENDS_SCHEDULE } from '@workers/crons/newsletter-sends/cron.
 import { OAUTH_CLIENT_CLEANUP_SCHEDULE } from '@workers/crons/oauth-client-cleanup/oauth-client-cleanup.constants';
 import { TRANSCRIPT_PURGE_SCHEDULE } from '@workers/crons/transcript-purge/transcript-purge.constants';
 import { X_REPLY_WATCH_SCHEDULE } from '@workers/crons/x-replies/x-reply-watch.constants';
+import type { Job } from 'bullmq';
 
 /**
  * One code-owned catalog for deployment-global recurring work.
@@ -80,6 +81,8 @@ export const PLATFORM_SCHEDULED_TASKS = {
 
 export type PlatformScheduledTaskName =
   (typeof PLATFORM_SCHEDULED_TASKS)[keyof typeof PLATFORM_SCHEDULED_TASKS];
+
+export type PlatformTaskHandler = (job: Job) => Promise<unknown>;
 
 export type PlatformSchedule = {
   pattern: string;

@@ -21,7 +21,7 @@ const PROCESSING_STATE_ENUM = [
  * Brand Knowledge actions shared by the in-app Agent and the MCP server.
  * Every executor resolves the tenant and brand from the authenticated
  * request; ids in parameters never widen scope. Surface intent lives in
- * `curated-action-catalog.ts`.
+ * `curated-actions.catalog.ts`.
  */
 export const OVERLAP_KNOWLEDGE_TOOLS: SourceTool[] = [
   {
@@ -166,6 +166,8 @@ export const OVERLAP_KNOWLEDGE_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Save a page, document, feed, media or pasted text into the brand Knowledge library and start ingestion. Pass sourceId to refresh an existing URL or RSS source. Default purpose is INSPIRATION; pass BRAND_TRUTH only for material the brand owns and vouches for.',
+    mcpDescription:
+      'Save page, document, feed, media or text to brand Knowledge and ingest it. sourceId refreshes an existing URL/RSS source. Default INSPIRATION; BRAND_TRUTH requires brand-owned, vouched-for material.',
     name: 'capture_knowledge',
     parameters: {
       properties: {

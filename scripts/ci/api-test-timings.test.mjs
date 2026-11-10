@@ -298,7 +298,7 @@ test('CI retains affected selection and connected fixtures and uploads after fai
     readFileSync(path.join(ROOT, 'package.json'), 'utf8'),
   );
   assert.ok(
-    manifest.scripts['test:executable-contracts'].includes(
+    manifest.scripts['test:executable-contracts:static'].includes(
       'scripts/ci/api-test-timings.test.mjs',
     ),
   );

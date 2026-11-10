@@ -48,6 +48,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/content-runs/controllers/storyboard-runs.controller.ts',
     prefix: 'brands/:brandId/storyboard-runs',
   },
+  models3d: {
+    file: 'endpoints/v1/models3d/models3d.controller.ts',
+    prefix: 'models3d',
+  },
   remixRuns: {
     file: 'collections/content-runs/controllers/content-runs.controller.ts',
     prefix: '',
@@ -233,6 +237,8 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     controller: 'storyboardRuns',
     tools: ['storyboard_run_capabilities'],
   },
+  { method: 'Post', sub: '', controller: 'models3d', tools: ['render_3d'] },
+  { method: 'Get', sub: ':id', controller: 'models3d', tools: ['get_model3d'] },
   {
     method: 'Post',
     sub: 'import-post',

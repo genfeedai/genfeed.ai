@@ -109,6 +109,17 @@ describe('PromptBarFrameControls', () => {
     expect(screen.getByTestId('end-frame-button')).toBeInTheDocument();
   });
 
+  it('omits the end frame button when the model has no end frame', () => {
+    render(<PromptBarFrameControls {...defaultProps} hasEndFrame={false} />);
+    expect(screen.queryByTestId('end-frame-button')).not.toBeInTheDocument();
+    expect(screen.getByTestId('reference-button')).toBeInTheDocument();
+  });
+
+  it('disables the reference button while the prompt bar is disabled', () => {
+    render(<PromptBarFrameControls {...defaultProps} disabled />);
+    expect(screen.getByTestId('reference-button')).toBeDisabled();
+  });
+
   it('should call openGallery when start frame button is clicked', () => {
     render(<PromptBarFrameControls {...defaultProps} />);
 

@@ -1,0 +1,150 @@
+# Master merge check
+#
+# Runs the API E2E tiers and the acceptance suites once on master after merges
+# land, so a break in them is known within about 20 minutes instead of at the
+# nightly or the release run. These suites run in no pull request and in no
+# merge: before this workflow, 18 of 36 failed Full Suite runs and 12 of 50
+# failed release runs died in them (CI/CD audit, 2026-11-09, epic #8614).
+#
+# It calls e2e.yml with the full API tier on and the browser off (skip_frontend):
+# Playwright Core on Master already covers the browser, and Playwright stays a
+# release and nightly gate, never a pull request check.
+#
+# Debounced by concurrency, without cancelling: at most one run is in progress
+# and one is pending, and a newer push replaces the pending one before it
+# starts. A burst of merges therefore costs at most two runs, the second on the
+# latest master commit.
+#
+# Reporting only: master has no merge gate to block, and this workflow never
+# feeds full-suite.yml or release.yml (a skipped browser matrix is not release
+# evidence). A red run opens (or comments on) one tracking issue; the next green
+# run closes it.
+
+name: Master Merge Check
+run-name: Master Merge Check · ${{ github.sha }}
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - ".agents/**"
+  workflow_dispatch:
+
+concurrency:
+  group: master-merge-check
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: E2E Suite
+    # Same token ceiling full-suite.yml grants the reusable e2e.yml: it reads its
+    # own run's jobs and its nightly reporter needs issue access at startup.
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+    uses: ./.github/workflows/e2e.yml
+    with:
+      run_api_full: true
+      skip_frontend: true
+    secrets: inherit
+
+  report:
+    name: Track master merge check result
+    needs: e2e
+    if: >-
+      !cancelled()
+      && (needs.e2e.result == 'success' || needs.e2e.result == 'failure')
+    concurrency:
+      group: master-merge-check-tracker
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+    steps:
+      - name: Open, update or close the tracking issue
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          CHECK_RESULT: ${{ needs.e2e.result }}
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const title = 'Master merge check is red';
+            const { owner, repo } = context.repo;
+            const sha = process.env.SOURCE_SHA.slice(0, 9);
+            const runUrl = process.env.RUN_URL;
+            const open = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const tracker = open.find(
+              (issue) => !issue.pull_request && issue.title === title,
+            );
+
+            if (process.env.CHECK_RESULT === 'success') {
+              if (!tracker) return;
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: tracker.number,
+                body: `Green again on \`${sha}\`: ${runUrl}`,
+              });
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: tracker.number,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+              return;
+            }
+
+            // Name the failed jobs so the issue says what broke without a trip
+            // to the run. Best effort: the run link alone is still enough.
+            let failed = '';
+            try {
+              const jobs = await github.paginate(
+                github.rest.actions.listJobsForWorkflowRun,
+                {
+                  owner,
+                  repo,
+                  run_id: context.runId,
+                  filter: 'latest',
+                  per_page: 100,
+                },
+              );
+              const names = jobs
+                .filter((job) => job.conclusion === 'failure')
+                .map((job) => `- ${job.name}`);
+              if (names.length > 0) failed = `\n\nFailed jobs:\n${names.join('\n')}`;
+            } catch (error) {
+              core.warning(`Could not list failed jobs: ${error.message}`);
+            }
+
+            const body = `Master merge check failed on \`${sha}\`: ${runUrl}${failed}`;
+            if (tracker) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: tracker.number,
+                body,
+              });
+              return;
+            }
+            await github.rest.issues.create({
+              owner,
+              repo,
+              title,
+              body: `${body}\n\nThe check runs the API E2E full tier and the acceptance suites on master after merges (the browser is covered by Playwright Core on Master). This issue closes itself on the next green run.`,
+            });

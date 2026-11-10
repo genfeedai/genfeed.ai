@@ -109,12 +109,15 @@ test('fails closed on missing tasks, service failures, and mutable image referen
   }
 });
 
+const ghcrImage = `ghcr.io/genfeedai/genfeed.ai/server@${digest}`;
+
 function verifyFixture({
   direction = 'forward',
   sql = retirement,
   activeSchema = schema,
   candidateSchema = schema,
   revisions = [candidate],
+  candidateOptions = { candidateDigest: digest },
 } = {}) {
   const commands = [];
   const file =
@@ -128,7 +131,9 @@ function verifyFixture({
           config: {
             Labels: {
               'org.opencontainers.image.revision':
-                args[3] === `${repository}@${digest}` ? sha : active,
+                args[3] === `${repository}@${digest}` || args[3] === ghcrImage
+                  ? sha
+                  : active,
             },
           },
         })),
@@ -157,7 +162,7 @@ function verifyFixture({
         cluster: 'cluster',
         services: ['api', 'workers'],
         repository,
-        candidateDigest: digest,
+        ...candidateOptions,
         cwd: '/fixture',
         execute,
       }),
@@ -214,4 +219,47 @@ test('requires exact OCI revision metadata and performs only read operations', (
         command === 'git' && args[0] === 'fetch' && args[3] === active,
     ),
   );
+});
+
+test('a rollback rehearsal checks the GHCR image the deploy would copy, without an ECR copy', () => {
+  const candidateOptions = { candidateImage: ghcrImage };
+  const sql = 'ALTER TABLE "examples" ADD COLUMN "optional" TEXT;';
+  const fixture = verifyFixture({ candidateOptions, sql });
+  assert.equal(fixture.run().candidate, candidate);
+  assert.ok(
+    fixture.commands.some(
+      ({ command, args }) => command === 'docker' && args.includes(ghcrImage),
+    ),
+  );
+  assert.ok(
+    fixture.commands.every(
+      ({ command, args }) =>
+        command === 'git' ||
+        (command === 'docker' && args.includes('inspect')) ||
+        (command === 'aws' && /^(describe-|list-)/.test(args[1])),
+    ),
+  );
+});
+
+test('a rehearsal fails at the gate when the target client reads fields the live release contracted', () => {
+  const candidateOptions = { candidateImage: ghcrImage };
+  assert.throws(
+    verifyFixture({ candidateOptions, direction: 'rollback' }).run,
+    /incompatible/,
+  );
+  assert.throws(verifyFixture({ candidateOptions }).run, /incompatible/);
+});
+
+test('names exactly one candidate: a copied digest or a GHCR image', () => {
+  for (const candidateOptions of [
+    {},
+    { candidateDigest: digest, candidateImage: ghcrImage },
+    { candidateImage: `${repository}@${digest}` },
+    { candidateImage: 'ghcr.io/genfeedai/genfeed.ai/server:latest' },
+    { candidateImage: ghcrImage.replace('/server@', '/other@') },
+  ])
+    assert.throws(
+      verifyFixture({ candidateOptions }).run,
+      /Invalid serving-schema verification inputs/,
+    );
 });

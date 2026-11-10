@@ -15,7 +15,7 @@ const WHITESPACE_RUN_PATTERN = /\s+/;
  * nothing. Everything here is pure so the rule layer stays unit-testable.
  */
 
-export interface JsonLdBlock {
+interface JsonLdBlock {
   /** Parsed value, or null when the block is not valid JSON. */
   readonly value: unknown;
   readonly raw: string;
@@ -76,14 +76,14 @@ export function decodeEntities(text: string): string {
 }
 
 /** Collapse a fragment of markup down to its visible text. */
-export function toText(html: string): string {
+function toText(html: string): string {
   return decodeEntities(html.replace(HTML_TAGS_PATTERN, ' '))
     .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
 }
 
 /** Pull the attributes off a single tag string such as `<meta name="x" …>`. */
-export function parseAttributes(tag: string): Record<string, string> {
+function parseAttributes(tag: string): Record<string, string> {
   const attributes: Record<string, string> = {};
   const pattern =
     /([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/g;

@@ -21,6 +21,7 @@ export * from './platform-badge-config.interface';
 export * from './provider-brand.interface';
 export * from './quick-actions.interface';
 export * from './quick-actions-submenu.interface';
+export * from './route-manifest.interface';
 export * from './skeleton.interface';
 export * from './success-animation.interface';
 export * from './surface-summary-item.interface';

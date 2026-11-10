@@ -585,13 +585,73 @@ jobs:
       # when metadata-only changes select no affected typecheck build tasks.
       - name: Build contracts for executable imports
         run: bun run --cwd packages/contracts build
+      # The repository contracts run in the Source Contracts job.
       - name: Run executable contracts
-        run: bun run test:executable-contracts
+        run: bun run test:executable-contracts:static
       - name: Check scoring provenance and optional calibration
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: bun scripts/ci/calibration-gate.ts
+
+  # The repository contracts (architecture guards, ratchets, UI and design
+  # checks, import cycles) are CPU bound and were the longest step of Static
+  # Checks. They read the checked-out tree and nothing from Plan, so they run
+  # beside it on their own runner. The gate reads this job directly, so a red
+  # contract still fails the verdict.
+  source-contracts:
+    name: Source Contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    steps:
+      - name: Check contributor trust
+        id: check
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            const association = pr.author_association;
+            const trustedRoles = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            const isSameRepository =
+              pr.head.repo?.full_name === `${context.repo.owner}/${context.repo.repo}`;
+            const isTrusted = isSameRepository || trustedRoles.includes(association);
+            const hasLabel = pr.labels.some(l => l.name === 'run-ci');
+
+            // Trust decides *whether* CI runs; this decides *how much* of it.
+            // An external contributor stays external even once a maintainer
+            // adds `run-ci`: the label buys them a run, not the light tier.
+            core.setOutput('external', isTrusted ? 'false' : 'true');
+
+            if (isTrusted) {
+              const trustReason = isSameRepository
+                ? 'same-repo PR'
+                : `trusted contributor (${association})`;
+              core.info(`${trustReason} - CI allowed`);
+            } else if (hasLabel) {
+              core.info('External contributor with run-ci label - CI allowed');
+            } else {
+              core.setFailed(
+                `External contributor (${association}) - add the \`run-ci\` label to allow CI. ` +
+                'A maintainer must review the code and add the label.'
+              );
+            }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+      # Real workspace imports resolve the contracts package dist exports.
+      - name: Build contracts for executable imports
+        run: bun run --cwd packages/contracts build
+      - name: Run repository contracts
+        run: bun run test:repository-contracts
 
   # Typechecks spec/test files against each workspace's compiler options and
   # ratchets the pre-existing debt. The Plan job decides the scope and splits
@@ -670,8 +730,10 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
-      # Four package pools plus server/web/browser. Bound simultaneous setup
-      # and test workers rather than allowing an unbounded package fan-out.
+      # Up to three balanced legs (packages, web and the extension) plus the
+      # server leg, or four package pools when UI shards are selected. Bound
+      # simultaneous setup and test workers rather than allowing an unbounded
+      # fan-out; the planner sizes the matrix so a run needs one wave of four.
       max-parallel: 4
       matrix: ${{ fromJSON(needs.plan.outputs.workspace_matrix) }}
     services:
@@ -722,19 +784,22 @@ jobs:
       - name: Run workspace tests
         env:
           FORCE_FULL: ${{ needs.plan.outputs.force_full }}
-          WORKSPACE_GROUP: ${{ matrix.group }}
           WORKSPACE_FILTERS: ${{ matrix.filters }}
         run: |
           set -euo pipefail
-          # UI-only pools have no ordinary Turbo test entrypoints. An empty
-          # filter would select the entire repository, so never invoke it.
+          # UI-only and extension-only legs have no ordinary Turbo filters. An
+          # empty filter would select the entire repository, so never invoke it.
           if [ -z "${WORKSPACE_FILTERS}" ]; then exit 0; fi
           # shellcheck disable=SC2086 # intentional word-splitting of --filter args
-          if [ "${WORKSPACE_GROUP}" = "browser-extension" ] || [ "${FORCE_FULL}" = "true" ] || [ -z "${CI_BASE_SHA}" ]; then
+          if [ "${FORCE_FULL}" = "true" ] || [ -z "${CI_BASE_SHA}" ]; then
             bunx turbo run test --continue --concurrency=1 ${WORKSPACE_FILTERS}
           else
             TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run test --continue --concurrency=1 --affected ${WORKSPACE_FILTERS}
           fi
+      # The extension always runs in full; --affected never narrows it.
+      - name: Run browser extension tests
+        if: ${{ !cancelled() && matrix.extension == 'true' }}
+        run: bunx turbo run test --continue --concurrency=1 --filter=@genfeedai/extension
       - name: Run UI shard
         if: ${{ !cancelled() && matrix.ui_shard != '' }}
         env:
@@ -811,7 +876,9 @@ jobs:
             --shard=${{ matrix.shard }}/${{ matrix.total }}
 
   # API tests mirror the app job: the planner's matrix, changed selection on
-  # the affected tier, the whole suite on the full tier.
+  # the affected tier, the whole suite on the full tier. The full tier uses
+  # eight shards (the affected tier never exceeds four), so max-parallel
+  # must cover all eight or the extra shards just queue behind the first four.
   test-api:
     name: Test API (shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
@@ -863,7 +930,7 @@ jobs:
     if: needs.plan.outputs.api_tests == 'true'
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 8
       matrix: ${{ fromJSON(needs.plan.outputs.api_matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1159,6 +1226,7 @@ jobs:
     needs:
       - plan
       - static-checks
+      - source-contracts
       - spec-typecheck
       - test-workspaces
       - test-app
@@ -1212,6 +1280,7 @@ jobs:
           PLAN_WORKSPACE_TESTS: ${{ needs.plan.outputs.workspace_tests }}
           PLAN_SPEC_TYPECHECK: ${{ needs.plan.outputs.spec_run }}
           STATIC_CHECKS_RESULT: ${{ needs.static-checks.result }}
+          SOURCE_CONTRACTS_RESULT: ${{ needs.source-contracts.result }}
           SPEC_TYPECHECK_RESULT: ${{ needs.spec-typecheck.result }}
           TEST_WORKSPACES_RESULT: ${{ needs.test-workspaces.result }}
           TEST_APP_RESULT: ${{ needs.test-app.result }}

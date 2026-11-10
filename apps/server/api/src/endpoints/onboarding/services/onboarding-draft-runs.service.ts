@@ -199,13 +199,11 @@ export class OnboardingDraftRunsService {
       result: config.result,
       verdicts,
       status:
-        (row.status === ContentRunStatus.COMPLETED ||
-          row.status === 'complete') &&
+        row.status === ContentRunStatus.COMPLETED &&
         !isImageProcessing &&
         !hasPendingCampaignImage
           ? 'complete'
           : row.status === ContentRunStatus.FAILED ||
-              row.status === 'interrupted' ||
               Date.now() - row.updatedAt.getTime() > 10 * 60_000
             ? 'interrupted'
             : 'running',
@@ -562,8 +560,7 @@ export class OnboardingDraftRunsService {
       });
       const config = configSchema.safeParse(existing?.config);
       if (
-        (existing?.status === ContentRunStatus.COMPLETED ||
-          existing?.status === 'complete') &&
+        existing?.status === ContentRunStatus.COMPLETED &&
         config.success &&
         config.data.result
       )

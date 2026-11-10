@@ -192,7 +192,12 @@ describe('PostsService', () => {
     it('should enhance post with prompt and tone', async () => {
       mockInstance.post.mockResolvedValue({ data: mockPostData });
 
-      await service.enhance('post-123', 'Improve this', 'professional');
+      const result = await service.enhance(
+        'post-123',
+        'Improve this',
+        'professional',
+      );
+      expect(result).toBeInstanceOf(Post);
 
       expect(mockInstance.post).toHaveBeenCalledWith('/post-123/enhancements', {
         prompt: 'Improve this',
@@ -269,7 +274,8 @@ describe('PostsService', () => {
         topic: 'Tech news',
       };
 
-      await service.generateTweets(data);
+      const result = await service.generateTweets(data);
+      expect(result[0]).toBeInstanceOf(Post);
 
       expect(mockInstance.post).toHaveBeenCalledWith(
         'https://api.genfeed.ai/posts/account-generations',
@@ -289,7 +295,8 @@ describe('PostsService', () => {
         trendId: testId('trend'),
       };
 
-      await service.generateTweets(data);
+      const result = await service.generateTweets(data);
+      expect(result[0]).toBeInstanceOf(Post);
 
       expect(mockInstance.post).toHaveBeenCalledWith(
         'https://api.genfeed.ai/posts/account-generations',
@@ -327,7 +334,8 @@ describe('PostsService', () => {
         topic: 'Startup tips',
       };
 
-      await service.generateThread(data);
+      const result = await service.generateThread(data);
+      expect(result[0]).toBeInstanceOf(Post);
 
       expect(mockInstance.post).toHaveBeenCalledWith(
         'https://api.genfeed.ai/posts/account-generations',
@@ -347,7 +355,8 @@ describe('PostsService', () => {
         trendId: testId('trend'),
       };
 
-      await service.generateThread(data);
+      const result = await service.generateThread(data);
+      expect(result[0]).toBeInstanceOf(Post);
 
       expect(mockInstance.post).toHaveBeenCalledWith(
         'https://api.genfeed.ai/posts/account-generations',
@@ -375,7 +384,8 @@ describe('PostsService', () => {
     it('should expand post to thread with count 3', async () => {
       mockInstance.post.mockResolvedValue({ data: mockPostsData });
 
-      await service.expandToThread('post-123', 3, 'casual');
+      const result = await service.expandToThread('post-123', 3, 'casual');
+      expect(result[0]).toBeInstanceOf(Post);
 
       expect(mockInstance.post).toHaveBeenCalledWith(
         '/post-123/thread-expansions',
@@ -389,7 +399,8 @@ describe('PostsService', () => {
     it('should expand post to thread with count 5', async () => {
       mockInstance.post.mockResolvedValue({ data: mockPostsData });
 
-      await service.expandToThread('post-123', 5, 'humorous');
+      const result = await service.expandToThread('post-123', 5, 'humorous');
+      expect(result[0]).toBeInstanceOf(Post);
 
       expect(mockInstance.post).toHaveBeenCalledWith(
         '/post-123/thread-expansions',
@@ -446,7 +457,8 @@ describe('PostsService', () => {
         ],
       };
 
-      await service.batchScheduleTweets(data);
+      const result = await service.batchScheduleTweets(data);
+      expect(result[0]).toBeInstanceOf(Post);
 
       expect(mockInstance.patch).toHaveBeenCalledWith(
         'https://api.genfeed.ai/posts/batch',
@@ -471,7 +483,12 @@ describe('PostsService', () => {
     it('should create remix with description and label', async () => {
       mockInstance.post.mockResolvedValue({ data: mockPostData });
 
-      await service.createRemix('post-123', 'Add emojis', 'Emoji Version');
+      const result = await service.createRemix(
+        'post-123',
+        'Add emojis',
+        'Emoji Version',
+      );
+      expect(result).toBeInstanceOf(Post);
 
       expect(mockInstance.post).toHaveBeenCalledWith('/post-123/remixes', {
         description: 'Add emojis',

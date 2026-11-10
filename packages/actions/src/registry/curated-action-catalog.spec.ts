@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CURATED_ACTION_CATALOG,
   type CuratedActionCatalogEntry,
+  getMcpCardKind,
   isActionOnSurface,
   isPublishingApprovalRequired,
 } from './curated-action-catalog';
@@ -25,10 +26,10 @@ describe('curated action catalog', () => {
     },
   );
   it('retains internal targets while listing only the two consolidated MCP envelopes', () => {
-    expect(ALL_TOOLS).toHaveLength(243);
-    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(169);
+    expect(ALL_TOOLS).toHaveLength(245);
+    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(171);
     const listed = getToolsForSurface('mcp').map((tool) => tool.name);
-    expect(listed).toHaveLength(165);
+    expect(listed).toHaveLength(167);
     expect(listed).toContain('check_channel');
     expect(listed).toContain('upload_media');
     for (const name of [
@@ -543,6 +544,33 @@ describe('curated action catalog policy fields', () => {
     ).map((entry) => entry.name);
 
     expect(unreachable).toEqual([]);
+  });
+
+  it('names an existing tool as the quote tool and a card only for MCP tools', () => {
+    const names = new Set<string>(
+      CURATED_ACTION_CATALOG.map((entry) => entry.name),
+    );
+    const unknownQuote = CURATED_ACTION_CATALOG.filter(
+      (entry: CuratedActionCatalogEntry) =>
+        entry.quoteTool !== undefined && !names.has(entry.quoteTool),
+    ).map((entry) => entry.name);
+    const cardOffMcp = CURATED_ACTION_CATALOG.filter(
+      (entry: CuratedActionCatalogEntry) =>
+        entry.mcpCardKind !== undefined && !surfaceNames(entry).includes('mcp'),
+    ).map((entry) => entry.name);
+
+    expect(unknownQuote).toEqual([]);
+    expect(cardOffMcp).toEqual([]);
+  });
+
+  it('reads quote pricing and card kind from the catalog entry', () => {
+    expect(getToolByName('start_remix_generation')?.creditPricing).toEqual({
+      mode: 'quote',
+      quoteTool: 'quote_remix_generation',
+    });
+    expect(getMcpCardKind('get_posts')).toBe('post');
+    expect(getMcpCardKind('create_scheduled_release')).toBe('summary');
+    expect(getMcpCardKind('get_trends')).toBeUndefined();
   });
 
   it('derives the published tool fields from the one catalog entry', () => {

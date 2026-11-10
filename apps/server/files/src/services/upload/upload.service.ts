@@ -74,6 +74,7 @@ const CDN_ROOT_UPLOAD_TYPES = new Set(['banners', 'logos', 'references']);
 const REMOTE_DOWNLOAD_MAX_BYTES = 200 * 1024 * 1024;
 const REMOTE_DOWNLOAD_IDLE_TIMEOUT_MS = 60_000;
 const SVG_CONTENT_TYPE = 'image/svg+xml';
+const GLB_CONTENT_TYPE = 'model/gltf-binary';
 // Rasterize SVG at up to 4x its nominal 72 dpi size so a small logo stays
 // crisp, but never past a longest side of 2048px so a huge viewBox cannot
 // produce an enormous PNG (or trip the pixel limit).
@@ -764,6 +765,8 @@ export class UploadService {
         return '.svg';
       case 'image/webp':
         return '.webp';
+      case GLB_CONTENT_TYPE:
+        return '.glb';
       case 'video/mp4':
       case 'video/quicktime':
       case 'video/webm':
@@ -817,6 +820,17 @@ export class UploadService {
   }
 
   private resolveContentType(headerValue?: string, url?: string): string {
+    const fromUrl = url ? this.getExtensionFromUrl(url) : '';
+    // Model hosts serve GLB as octet-stream; the extension is the better signal.
+    if (
+      fromUrl === '.glb' &&
+      (!headerValue ||
+        headerValue.split(';')[0]?.trim().toLowerCase() ===
+          'application/octet-stream')
+    ) {
+      return GLB_CONTENT_TYPE;
+    }
+
     if (headerValue && typeof headerValue === 'string') {
       return headerValue;
     }
@@ -853,6 +867,8 @@ export class UploadService {
         return 'audio/ogg';
       case '.zip':
         return 'application/zip';
+      case '.glb':
+        return GLB_CONTENT_TYPE;
       default:
         return 'application/octet-stream';
     }

@@ -151,6 +151,9 @@ describe('AgentPanel', () => {
     // Default mode is CLI — AgentCliTerminal renders instead of AgentChatContainer
     expect(screen.getByTestId('agent-cli-terminal')).toBeInTheDocument();
     expect(screen.getByTestId('agent-outputs-panel')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('agent-chat-container'),
+    ).not.toBeInTheDocument();
   });
 
   it('renders terminal toggle button that calls toggleOpen from store', async () => {
@@ -168,6 +171,10 @@ describe('AgentPanel', () => {
       expect(apiService.getCreditsInfo).toHaveBeenCalledTimes(1);
     });
 
+    expect(
+      screen.getByTestId('agent-cli-terminal-controls'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Collapse terminal')).toBeVisible();
     fireEvent.click(screen.getByLabelText('Collapse terminal'));
     expect(mockToggleOpen).toHaveBeenCalledTimes(1);
   });

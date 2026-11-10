@@ -18,9 +18,6 @@ on:
   workflow_dispatch:
   workflow_call:
     inputs:
-      # The publisher builds the image it ships with the same build arguments,
-      # so every layer is a cache hit and the release does not compile the web
-      # app a second time. Both default to the build this workflow always did.
       checkout_ref:
         description: "Commit to build and verify; empty builds the caller's commit"
         required: false
@@ -31,6 +28,25 @@ on:
         required: false
         default: ""
         type: string
+      # The publisher ships the exact image this workflow boots. With
+      # stage_image the single build is pushed to GHCR by digest, with no tag,
+      # and the boot check pulls that digest back. Nothing is tagged here, so a
+      # failed check leaves no public tag behind; the publisher retags the
+      # digest this workflow returns. Without it the build stays local.
+      stage_image:
+        description: "Push the build by digest (untagged) and boot that exact digest"
+        required: false
+        default: false
+        type: boolean
+      image_tag:
+        description: "Version baked into the image labels; only read with stage_image"
+        required: false
+        default: ""
+        type: string
+    outputs:
+      image_digest:
+        description: "Registry digest of the image the boot check and release E2E ran against; empty without stage_image"
+        value: ${{ jobs.build-and-boot.outputs.image_digest }}
 
 concurrency:
   # Release and recovery callers write the same selfhosted cache scope. Queue
@@ -55,6 +71,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      image_digest: ${{ steps.stage.outputs.image_digest }}
     env:
       APP_BASE_URL: http://localhost:3000
       API_BASE_URL: http://localhost:3010
@@ -80,25 +98,62 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - name: Build self-hosted image (no push)
+      - name: Extract image labels
+        id: meta
+        if: ${{ inputs.stage_image }}
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ghcr.io/${{ github.repository }}
+          labels: |
+            org.opencontainers.image.version=${{ inputs.image_tag }}
+            org.opencontainers.image.revision=${{ inputs.checkout_ref }}
+
+      # The one self-hosted image build of a release. RELEASE_TAG and BUILD_ID
+      # are read by the web build, and the labels are part of the image config,
+      # so they are final here: the publisher retags this digest and never
+      # rebuilds it. Staged, it is pushed by digest with no tag; otherwise it
+      # is loaded into the local daemon only.
+      - name: Build self-hosted image
+        id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: docker/Dockerfile.selfhosted
-          # RELEASE_TAG and BUILD_ID are read by the web build, so they must
-          # match the publisher's build-args exactly or its web layer is rebuilt.
           build-args: |
             NODE_VERSION=${{ steps.node.outputs.version }}
             RELEASE_TAG=${{ inputs.release_tag }}
             BUILD_ID=${{ inputs.checkout_ref || 'dev' }}
-          push: false
-          load: true
-          tags: ${{ env.IMAGE_NAME }}:test
-          # Shares the gha cache scope with _publish-selfhosted-core.yml so a
-          # real release publish warms this guard and vice-versa.
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: ${{ inputs.stage_image && format('type=image,name=ghcr.io/{0},push-by-digest=true,name-canonical=true,push=true', github.repository) || 'type=docker' }}
+          tags: ${{ !inputs.stage_image && format('{0}:test', env.IMAGE_NAME) || '' }}
           cache-from: type=gha,scope=selfhosted
           cache-to: type=gha,mode=max,scope=selfhosted
           platforms: linux/amd64
+
+      - name: Boot the staged image by digest
+        id: stage
+        if: ${{ inputs.stage_image }}
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          [[ "${IMAGE_DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::The staged self-hosted build did not return a sha256 digest: '${IMAGE_DIGEST}'"
+            exit 1
+          }
+          ref="ghcr.io/${GITHUB_REPOSITORY}@${IMAGE_DIGEST}"
+          docker pull "${ref}"
+          pulled="$(
+            docker image inspect "${ref}" --format '{{json .RepoDigests}}' |
+              jq -r --arg ref "${ref}" 'index($ref) // empty'
+          )"
+          [ -n "${pulled}" ] || {
+            echo "::error::Pulled image does not carry the staged digest ${IMAGE_DIGEST}."
+            exit 1
+          }
+          # Every later step, the boot check and release E2E, runs this tag.
+          docker tag "${ref}" "${IMAGE_NAME}:test"
+          echo "image_digest=${IMAGE_DIGEST}" >>"${GITHUB_OUTPUT}"
 
       - name: Verify build outputs exist
         run: |
@@ -149,11 +204,11 @@ jobs:
       # two days AFTER v0.5.0) sailed through this pre-publish gate and shipped
       # red for days. Booting here makes that class of regression fail BEFORE the
       # image is pushed, not in the next nightly.
-      - name: Prepare compose env (LOCAL mode, pin the freshly built image)
+      - name: Prepare compose env (LOCAL mode, pin the built image)
         run: |
           set -euo pipefail
-          # Retag the loaded verify image under the repo the compose file expects
-          # so the stack runs THIS build with no registry pull.
+          # Retag the verify image under the repo the compose file expects so
+          # the stack runs THIS build with no further registry pull.
           docker tag "${IMAGE_NAME}:test" "ghcr.io/${GITHUB_REPOSITORY}:selfhosted-verify"
           # Exercise the same environment template shipped in release bundles.
           # This catches optional values represented as blank strings before
@@ -265,10 +320,16 @@ jobs:
 
       - name: Build summary
         if: success()
+        env:
+          IMAGE_DIGEST: ${{ steps.stage.outputs.image_digest }}
         run: |
           {
             echo "## ✅ Self-Hosted Build + Boot Verification Passed"
             echo ""
-            echo "\`docker/Dockerfile.selfhosted\` built (no push); services, Next.js, Redis, tini, and CA bundle verified."
-            echo "The freshly built image booted with Postgres and passed real signup, authenticated bootstrap, login-boundary, health, and workspace-shell E2E."
+            echo "\`docker/Dockerfile.selfhosted\` built once; services, Next.js, Redis, tini, and CA bundle verified."
+            echo "The built image booted with Postgres and passed real signup, authenticated bootstrap, login-boundary, health, and workspace-shell E2E."
+            if [ -n "${IMAGE_DIGEST}" ]; then
+              echo ""
+              echo "Tested image digest: \`${IMAGE_DIGEST}\` (pushed untagged; the publisher retags this exact digest)."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"

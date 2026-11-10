@@ -24,6 +24,9 @@ const font = {
 };
 
 test.describe('Brand kit fonts', () => {
+  // Slot, font and kit-file controls are manager-only.
+  test.use({ memberRole: 'admin' });
+
   test('lists uploaded fonts and explains how to supply a TTF font', async ({
     authenticatedPage,
   }) => {
@@ -68,8 +71,10 @@ test.describe('Brand kit fonts', () => {
       name: 'Acme.ttf',
     });
 
-    await expect(authenticatedPage.getByRole('alert')).toContainText(
-      'Only WOFF2 files can be uploaded',
-    );
+    await expect(
+      authenticatedPage
+        .getByRole('alert')
+        .filter({ hasText: 'Only WOFF2 files can be uploaded' }),
+    ).toBeVisible();
   });
 });

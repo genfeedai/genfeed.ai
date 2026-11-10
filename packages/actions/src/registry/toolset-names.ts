@@ -2,10 +2,10 @@
  * Fixed, kebab-case toolset names and their static definitions.
  *
  * This module is a true leaf: it imports nothing from the rest of the
- * package. `curated-action-catalog.ts`, `tool-definition.interface.ts`, and
+ * package. `curated-actions.catalog.ts`, `tool-definition.interface.ts`, and
  * `toolsets.ts` all depend on it, and `toolsets.ts` depends on
  * `tool-assembly.ts` (via `ALL_TOOLS`), which depends on
- * `curated-action-catalog.ts`. Keeping the name/definition data here — with
+ * `curated-actions.catalog.ts`. Keeping the name/definition data here — with
  * no imports back into that graph — avoids a circular import that madge
  * (and the `check:import-cycles` static analysis, which also counts
  * type-only imports) would otherwise flag between `toolsets.ts` and
@@ -36,6 +36,7 @@ export const TOOLSET_NAMES = [
   'inspiration',
   'knowledge',
   'memory',
+  'models3d',
   'onboarding',
   'outreach',
   'scheduler',
@@ -150,6 +151,12 @@ export const TOOLSETS: readonly ToolsetDefinition[] = [
       'Save reusable content, preferences, and examples to agent memory.',
     isAlwaysOn: false,
     name: 'memory',
+  },
+  {
+    description:
+      'Side-output 3D renders: turn a photo into an angle sheet and a GLB model, and check render status.',
+    isAlwaysOn: false,
+    name: 'models3d',
   },
   {
     description:

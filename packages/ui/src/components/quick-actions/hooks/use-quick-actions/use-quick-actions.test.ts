@@ -256,6 +256,28 @@ describe('useQuickActions', () => {
     ]);
   });
 
+  it('offers a 3D model details, download and share, and never publish', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient({
+          category: IngredientCategory.MODEL_3D,
+        }),
+      }),
+    );
+
+    expect(result.current.primaryActions.map((action) => action.id)).toEqual([
+      'see-details',
+      'download',
+      'share',
+    ]);
+    expect(result.current.actions.map((action) => action.id)).not.toContain(
+      'publish',
+    );
+  });
+
   it('keeps convert-to-video as the image fallback when storyboard is unavailable', () => {
     const { onUseAsVideoReference: _unused, ...handlers } = mockHandlers;
 

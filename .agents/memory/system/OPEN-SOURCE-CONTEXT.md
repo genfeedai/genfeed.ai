@@ -23,7 +23,7 @@ This means:
 
 ## Contribution Model
 
-See `CONTRIBUTING.md` at repo root for contribution guidelines. All contributions land in the one AGPL codebase and follow `CLAUDE.md`.
+See `CONTRIBUTING.md` at repo root for contribution guidelines. All contributions land in the one AGPL codebase and follow `AGENTS.md`.
 
 ## Package Scope
 

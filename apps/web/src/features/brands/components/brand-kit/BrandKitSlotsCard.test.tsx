@@ -4,7 +4,8 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandKitSlotsCard from './BrandKitSlotsCard';
 
-const { fillPlatformImagesFromMaster } = vi.hoisted(() => ({
+const { downloadKitLogo, fillPlatformImagesFromMaster } = vi.hoisted(() => ({
+  downloadKitLogo: vi.fn(),
   fillPlatformImagesFromMaster: vi.fn(),
 }));
 vi.mock('next-intl', () => ({
@@ -13,7 +14,10 @@ vi.mock('next-intl', () => ({
       values ? `${key} ${JSON.stringify(values)}` : key,
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({ fillPlatformImagesFromMaster }),
+  useAuthedService: () => async () => ({
+    downloadKitLogo,
+    fillPlatformImagesFromMaster,
+  }),
 }));
 vi.mock('@services/social/brands.service', () => ({
   BrandsService: { getInstance: vi.fn() },
@@ -26,7 +30,14 @@ const asset = (
   id: string,
   category: AssetCategory,
   kitSlot: BrandKitSlot | null,
-) => ({ category, cdnUrl: `https://cdn.test/${id}`, id, kitSlot });
+  originalFormat?: string,
+) => ({
+  category,
+  cdnUrl: `https://cdn.test/${id}`,
+  id,
+  kitSlot,
+  originalFormat,
+});
 
 function brandWith(overrides: Partial<IBrand>): IBrand {
   return { id: 'brand-1', label: 'Brand', ...overrides } as IBrand;
@@ -35,6 +46,109 @@ function brandWith(overrides: Partial<IBrand>): IBrand {
 describe('BrandKitSlotsCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  function renderLogos() {
+    render(
+      <BrandKitSlotsCard
+        brand={brandWith({
+          logos: [
+            asset(
+              'vector',
+              AssetCategory.LOGO,
+              BrandKitSlot.LOGO_PRIMARY,
+              'svg',
+            ),
+            asset('raster', AssetCategory.LOGO, BrandKitSlot.LOGO_ICON, 'png'),
+          ],
+          slug: 'acme',
+        } as Partial<IBrand>)}
+        brandId="brand-1"
+        isManager={false}
+        onRefreshBrand={vi.fn()}
+        onUpload={vi.fn()}
+      />,
+    );
+  }
+
+  it('offers the SVG download only for a logo uploaded as an SVG', () => {
+    renderLogos();
+
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'download slot.LOGO_PRIMARY' }),
+    );
+    expect(
+      screen.getByRole('menuitem', { name: 'downloadVector' }),
+    ).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'download slot.LOGO_ICON' }),
+    );
+    expect(
+      screen.queryByRole('menuitem', { name: 'downloadVector' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole('menuitem').map((item) => item.textContent),
+    ).toEqual([
+      'downloadSize {"format":"downloadPng","size":512}',
+      'downloadSize {"format":"downloadPng","size":1024}',
+      'downloadSize {"format":"downloadPng","size":2048}',
+      'downloadSize {"format":"downloadPng","size":4096}',
+      'downloadSize {"format":"downloadWebp","size":512}',
+      'downloadSize {"format":"downloadWebp","size":1024}',
+      'downloadSize {"format":"downloadWebp","size":2048}',
+      'downloadSize {"format":"downloadWebp","size":4096}',
+    ]);
+  });
+
+  it('saves the chosen format and size under the brand and slot name', async () => {
+    const requests: unknown[][] = [];
+    const saved: string[] = [];
+    downloadKitLogo.mockImplementation(async (...args: unknown[]) => {
+      requests.push(args);
+      return new Blob(['png']);
+    });
+    const { createObjectURL, revokeObjectURL } = URL;
+    URL.createObjectURL = () => 'blob:logo';
+    URL.revokeObjectURL = () => undefined;
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      saved.push(this.download);
+    });
+    renderLogos();
+
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'download slot.LOGO_ICON' }),
+    );
+    fireEvent.click(
+      screen.getByRole('menuitem', {
+        name: 'downloadSize {"format":"downloadPng","size":2048}',
+      }),
+    );
+
+    await vi.waitFor(() => expect(saved).toEqual(['acme-logo-icon.png']));
+    expect(requests).toEqual([
+      ['brand-1', BrandKitSlot.LOGO_ICON, 'png', 2048],
+    ]);
+    URL.createObjectURL = createObjectURL;
+    URL.revokeObjectURL = revokeObjectURL;
+    vi.restoreAllMocks();
+  });
+
+  it('says so when a logo download fails', async () => {
+    downloadKitLogo.mockRejectedValueOnce(new Error('down'));
+    renderLogos();
+
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'download slot.LOGO_PRIMARY' }),
+    );
+    fireEvent.click(screen.getByRole('menuitem', { name: 'downloadVector' }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'downloadFailed',
+    );
   });
 
   it('shows a slotless logo as the primary variant', () => {

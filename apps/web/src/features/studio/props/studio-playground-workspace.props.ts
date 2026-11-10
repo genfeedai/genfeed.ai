@@ -21,12 +21,12 @@ import type { UseStudioPlaygroundSettingsReturn } from '@/features/studio/playgr
 import type { StudioContentReference } from '@/features/studio/playground/utils/studio-content-references';
 
 /** `next-intl` translator scoped to the Studio Playground messages. */
-export type StudioTranslate = ReturnType<
+type StudioTranslate = ReturnType<
   typeof useTranslations<'pages.studioPlayground'>
 >;
 
 /** Lazily authenticated ingredients client shared by the playground hooks. */
-export type StudioIngredientsServiceGetter = ReturnType<
+type StudioIngredientsServiceGetter = ReturnType<
   typeof useAuthedService<IngredientsService>
 >;
 

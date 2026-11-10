@@ -658,7 +658,7 @@ test('recovery skips proved-green gates and reuses the exact immutable image', (
   const deploySaas = jobBlock(releaseWorkflow, 'deploy-saas', 'release.yml');
   const imageBuild = jobBlock(
     selfHostedWorkflow,
-    'build-and-push',
+    'tag-verified-image',
     '_publish-selfhosted-core.yml',
   );
 
@@ -1630,7 +1630,7 @@ test('npm-source-noop revalidates assets without rebuilding, redeploying, or pub
     /inputs\.validated_historical_recovery != true && inputs\.dry_run == false && inputs\.trusted_release_call == true && needs\.plan\.outputs\.has_packages == 'true'/,
   );
   assert.match(
-    rootPackage.scripts['test:executable-contracts'],
+    rootPackage.scripts['test:executable-contracts:static'],
     /scripts\/ci\/recovered-release-assets\.test\.mjs/,
   );
   assert.throws(

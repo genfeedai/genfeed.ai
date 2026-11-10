@@ -99,6 +99,14 @@ const CATEGORY_TIER_MAP: Record<string, ICategoryTierConfig> = {
     high: 200,
     standard: 135,
   },
+  [ModelCategory.MODEL_3D]: {
+    basic: 27,
+    defaultCostPerUnit: 27,
+    defaultMinCost: 27,
+    defaultPricingType: PricingType.FLAT,
+    high: 77,
+    standard: 50,
+  },
 };
 
 /** Default fallback config for unknown categories */

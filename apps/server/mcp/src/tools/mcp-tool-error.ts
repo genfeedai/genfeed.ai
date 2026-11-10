@@ -20,7 +20,7 @@ const VALIDATION_FAILED_ERROR_PATTERN = /validation failed/i;
  * RateLimitService window) put the same object on JSON-RPC `error.data`.
  * Tool results put it on `structuredContent`.
  */
-export const MCP_TOOL_ERROR_CODES = [
+const MCP_TOOL_ERROR_CODES = [
   'unavailable_in_connector',
   'unauthorized',
   'plan_required',
@@ -31,14 +31,14 @@ export const MCP_TOOL_ERROR_CODES = [
   'brand_required',
 ] as const;
 
-export type McpToolErrorCode = (typeof MCP_TOOL_ERROR_CODES)[number];
+type McpToolErrorCode = (typeof MCP_TOOL_ERROR_CODES)[number];
 
-export interface McpToolFieldError {
+interface McpToolFieldError {
   field: string;
   message: string;
 }
 
-export interface McpToolBrandOption {
+interface McpToolBrandOption {
   id: string;
   label: string;
 }
@@ -52,6 +52,8 @@ export interface McpToolError {
   nextStepUrl?: string;
   errors?: McpToolFieldError[];
   estimatedCredits?: number;
+  /** The price range, when a pending approval's cost has no estimate. */
+  pricingSummary?: string;
   approvalId?: string;
   toolName?: string;
   approvalStatus?: string;
@@ -147,6 +149,7 @@ function compactToolError(error: McpToolError): McpToolError {
     ...(error.estimatedCredits !== undefined
       ? { estimatedCredits: error.estimatedCredits }
       : {}),
+    ...(error.pricingSummary ? { pricingSummary: error.pricingSummary } : {}),
   };
 }
 
@@ -254,7 +257,7 @@ export function approvalPendingToolResult(
     ...(estimate?.estimatedCredits !== null &&
     estimate?.estimatedCredits !== undefined
       ? { estimatedCredits: estimate.estimatedCredits }
-      : {}),
+      : { pricingSummary: estimate?.pricingSummary }),
     message:
       `This action requires approval before it runs. ` +
       'Review the pending action in Genfeed before continuing.' +
@@ -401,9 +404,7 @@ function readHttpExceptionSignals(
   };
 }
 
-export function readMcpToolFailureSignals(
-  error: unknown,
-): McpToolFailureSignals {
+function readMcpToolFailureSignals(error: unknown): McpToolFailureSignals {
   if (error instanceof ZodError) {
     return {
       domainCode: 'VALIDATION_FAILED',

@@ -3,7 +3,7 @@ import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { McpResourceUri } from '@mcp/mcp/resource-catalog';
 import { jsonResource } from '@mcp/services/mcp-resource-contents.util';
 
-export interface BrandContextResourceBrand {
+interface BrandContextResourceBrand {
   id: string;
   label: string;
 }

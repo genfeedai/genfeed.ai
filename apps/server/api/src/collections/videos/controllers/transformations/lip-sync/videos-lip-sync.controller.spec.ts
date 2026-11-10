@@ -256,7 +256,12 @@ describe('VideosLipSyncController', () => {
   });
 
   it('holds the per-second photo quote before HeyGen accepts the job', async () => {
-    await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+    const result = await controller.createLipSyncVideo(
+      mockReq,
+      mockUser,
+      mockDto,
+    );
+    expect(result).toEqual(mockIngredientData);
 
     expect(avatarBilling.fundLipSync).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -296,7 +301,15 @@ describe('VideosLipSyncController', () => {
       heygenConnection('byok'),
     );
 
-    await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+    const result = await controller.createLipSyncVideo(
+      mockReq,
+
+      mockUser,
+
+      mockDto,
+    );
+
+    expect(result).toEqual(mockIngredientData);
 
     expect(avatarBilling.fundLipSync).toHaveBeenCalledWith(
       expect.objectContaining({ useCustomerKey: true }),
@@ -313,7 +326,15 @@ describe('VideosLipSyncController', () => {
         heygenConnection('byok'),
       );
 
-      await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+      const result = await controller.createLipSyncVideo(
+        mockReq,
+
+        mockUser,
+
+        mockDto,
+      );
+
+      expect(result).toEqual(mockIngredientData);
 
       expect(heygenService.resolveOrganizationConnection).toHaveBeenCalledTimes(
         1,
@@ -349,7 +370,12 @@ describe('VideosLipSyncController', () => {
     });
 
     it('renders a platform-billed job on the platform key it priced', async () => {
-      await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+      const result = await controller.createLipSyncVideo(
+        mockReq,
+        mockUser,
+        mockDto,
+      );
+      expect(result).toEqual(mockIngredientData);
 
       expect(heygenService.generatePhotoAvatarVideo).toHaveBeenCalledWith(
         ingredientDataId,
@@ -438,7 +464,15 @@ describe('VideosLipSyncController', () => {
         personaIdByAssetId: new Map(),
       });
 
-      await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+      const result = await controller.createLipSyncVideo(
+        mockReq,
+
+        mockUser,
+
+        mockDto,
+      );
+
+      expect(result).toEqual(mockIngredientData);
 
       expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         mockUser,
@@ -460,7 +494,12 @@ describe('VideosLipSyncController', () => {
       });
 
       it('should inherit ownership from the image ingredient brandId', async () => {
-        await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+        const result = await controller.createLipSyncVideo(
+          mockReq,
+          mockUser,
+          mockDto,
+        );
+        expect(result).toEqual(mockIngredientData);
 
         expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
           mockUser,
@@ -469,7 +508,12 @@ describe('VideosLipSyncController', () => {
       });
 
       it('should call HeyGen with resolved photo and audio URLs', async () => {
-        await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+        const result = await controller.createLipSyncVideo(
+          mockReq,
+          mockUser,
+          mockDto,
+        );
+        expect(result).toEqual(mockIngredientData);
 
         expect(heygenService.generatePhotoAvatarVideo).toHaveBeenCalledWith(
           mockIngredientData.id,
@@ -482,7 +526,12 @@ describe('VideosLipSyncController', () => {
       });
 
       it('should update metadata with HeyGen video ID', async () => {
-        await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+        const result = await controller.createLipSyncVideo(
+          mockReq,
+          mockUser,
+          mockDto,
+        );
+        expect(result).toEqual(mockIngredientData);
 
         expect(metadataService.patch).toHaveBeenCalledWith(
           mockMetadataData.id,
@@ -491,7 +540,12 @@ describe('VideosLipSyncController', () => {
       });
 
       it('should publish websocket processing status', async () => {
-        await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+        const result = await controller.createLipSyncVideo(
+          mockReq,
+          mockUser,
+          mockDto,
+        );
+        expect(result).toEqual(mockIngredientData);
 
         expect(websocketService.publishVideoProgress).toHaveBeenCalledWith(
           WebSocketPaths.video(ingredientDataId),
@@ -507,7 +561,15 @@ describe('VideosLipSyncController', () => {
           heygenConnection('byok'),
         );
 
-        await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+        const result = await controller.createLipSyncVideo(
+          mockReq,
+
+          mockUser,
+
+          mockDto,
+        );
+
+        expect(result).toEqual(mockIngredientData);
 
         expect(heygenService.generatePhotoAvatarVideo).toHaveBeenCalledWith(
           expect.any(String),
@@ -530,7 +592,15 @@ describe('VideosLipSyncController', () => {
           .mockResolvedValueOnce(mockImageIngredient)
           .mockResolvedValueOnce(videoAudioIngredient);
 
-        await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+        const result = await controller.createLipSyncVideo(
+          mockReq,
+
+          mockUser,
+
+          mockDto,
+        );
+
+        expect(result).toEqual(mockIngredientData);
 
         expect(heygenService.generatePhotoAvatarVideo).toHaveBeenCalledWith(
           expect.any(String),
@@ -556,7 +626,12 @@ describe('VideosLipSyncController', () => {
         ingredientsService.findOne.mockReset().mockResolvedValue(null);
 
         try {
-          await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+          const result = await controller.createLipSyncVideo(
+            mockReq,
+            mockUser,
+            mockDto,
+          );
+          expect(result).toEqual(mockIngredientData);
         } catch (err) {
           expect(err).toBeInstanceOf(HttpException);
           expect((err as HttpException).getStatus()).toBe(404);

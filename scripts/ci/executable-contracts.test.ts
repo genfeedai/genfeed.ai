@@ -75,6 +75,26 @@ const REPOSITORY_CONTRACTS = [
   },
   { command: ['bun', 'run', 'audit:api:sql:ci'], name: 'SQL risk audit' },
   {
+    command: ['bun', 'run', 'check:mcp-tool-references'],
+    name: 'MCP tool references',
+  },
+  {
+    command: ['bun', 'run', 'check:test-collection'],
+    name: 'test collection',
+  },
+  {
+    command: ['bun', 'run', 'check:nested-node-modules'],
+    name: 'nested node_modules',
+  },
+  {
+    command: ['bun', 'run', 'check:desktop-schema-drift'],
+    name: 'desktop schema drift',
+  },
+  {
+    command: ['bun', 'run', 'check:generated-source'],
+    name: 'generated source artifacts',
+  },
+  {
     command: ['bun', 'run', 'check:public-packages'],
     name: 'public package manifests',
   },

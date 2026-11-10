@@ -1,4 +1,14 @@
-import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
+import {
+  APP_DISPLAY_LABELS,
+  ROUTE_MANIFEST,
+} from '@genfeedai/contracts/constants';
+import type {
+  RouteManifest,
+  RouteManifestAdminPage,
+  RouteManifestGroup,
+  RouteManifestPage,
+  RouteManifestScope,
+} from '@genfeedai/contracts/interfaces/ui/route-manifest.interface';
 import type {
   ResolvedWorkspaceShellRoute,
   WorkspaceShellAccessPolicy,
@@ -13,6 +23,12 @@ import type {
   WorkspaceShellScopeRequirement,
   WorkspaceShellSurfaceKey,
 } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
+import {
+  compilePathPattern,
+  listManifestPages,
+  toScopedHref,
+  toScopedPattern,
+} from './route-manifest.util';
 import { parseInternalHref } from './workspace-shell-url.util';
 
 export type {
@@ -34,8 +50,12 @@ export type {
 } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 
 const ROUTE_PARAMS_PATTERN = /:([A-Za-z][A-Za-z0-9]*)/g;
-const REGEX_SPECIAL_CHARS_PATTERN = /[.*+?^${}()|[\]\\]/g;
-const ROOT_PATH_PATTERN = /^\/$/;
+const SCOPE_ORDER = [
+  'personal',
+  'organization',
+  'brand',
+] as const satisfies readonly RouteManifestScope[];
+const ADMIN_FALLBACK = '/admin/overview';
 
 type RouteGroupConfig = {
   readonly adapterStatus?: WorkspaceShellRouteRegistration['adapter']['status'];
@@ -140,237 +160,6 @@ const BREADCRUMB_WORD_LABELS = Object.freeze({
   id: 'ID',
 } as const satisfies Readonly<Record<string, string>>);
 
-const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
-  '/': 'Workspace',
-  '/:orgSlug': 'Overview',
-  '/:orgSlug/:brandSlug': 'Overview',
-  '/:orgSlug/:brandSlug/agent': 'New Conversation',
-  '/:orgSlug/:brandSlug/agent/:id': 'Conversation',
-  '/:orgSlug/:brandSlug/agent/threads': 'Threads',
-  '/:orgSlug/:brandSlug/agent/new': 'New Conversation',
-  '/:orgSlug/:brandSlug/analytics/brands/:id': 'Brand Details',
-  '/:orgSlug/:brandSlug/analytics/brands/:id/platforms/:platform': ':platform',
-  '/:orgSlug/:brandSlug/analytics': 'Overview',
-  '/:orgSlug/:brandSlug/analytics/accounts': 'Accounts',
-  '/:orgSlug/:brandSlug/analytics/accounts/:id': 'Account',
-  '/:orgSlug/:brandSlug/discovery/trends/detail/:id': 'Trend Detail',
-  '/:orgSlug/:brandSlug/discovery/trends/platforms/:platform':
-    ':platform Trends',
-  '/:orgSlug/:brandSlug/library': 'Overview',
-  '/:orgSlug/:brandSlug/library/assets': 'Assets',
-  '/:orgSlug/:brandSlug/library/imported': 'Imported',
-  '/:orgSlug/:brandSlug/library/overview': 'Overview',
-  '/:orgSlug/:brandSlug/library/references': 'References',
-  '/:orgSlug/:brandSlug/settings/brand-kit': 'Brand Kit',
-  '/:orgSlug/:brandSlug/settings/accounts': 'Connected accounts',
-  '/:orgSlug/:brandSlug/settings/agent': 'Agent settings',
-  '/:orgSlug/:brandSlug/library/avatars': 'Assets',
-  '/:orgSlug/:brandSlug/library/avatars/twin': 'Digital twin',
-  '/:orgSlug/:brandSlug/library/voices/record': 'Record your voice',
-  '/:orgSlug/:brandSlug/library/captions': 'Assets',
-  '/:orgSlug/:brandSlug/library/gifs': 'Assets',
-  '/:orgSlug/:brandSlug/library/images': 'Assets',
-  '/:orgSlug/:brandSlug/library/music': 'Assets',
-  '/:orgSlug/:brandSlug/library/shelf/:shelf': ':shelf',
-  '/:orgSlug/:brandSlug/library/recent': 'Recent',
-  '/:orgSlug/:brandSlug/library/starred': 'Starred',
-  '/:orgSlug/:brandSlug/library/trash': 'Trash',
-  '/:orgSlug/:brandSlug/library/videos': 'Assets',
-  '/:orgSlug/:brandSlug/library/voices': 'Assets',
-  '/:orgSlug/:brandSlug/automation': 'Overview',
-  '/:orgSlug/:brandSlug/workspace': 'Overview',
-  '/:orgSlug/~/workspace': 'Overview',
-  '/:orgSlug/~/workspace/overview': 'Overview',
-  '/:orgSlug/~/analytics': 'Overview',
-  '/:orgSlug/~/analytics/accounts': 'Accounts',
-  '/:orgSlug/~/analytics/accounts/:id': 'Account',
-  '/:orgSlug/~/analytics/brands/:id': 'Brand Details',
-  '/:orgSlug/~/automation': 'Overview',
-  '/:orgSlug/~/apps': 'Apps',
-  '/:orgSlug/:brandSlug/automation/agents': 'Agents',
-  '/:orgSlug/:brandSlug/automation/agents/:agentId': 'Agent',
-  '/:orgSlug/:brandSlug/automation/content-runs/:runId': 'Content Run',
-  '/:orgSlug/:brandSlug/automation/library/:type': ':type',
-  '/:orgSlug/:brandSlug/publishing/posts': 'Posts',
-  '/:orgSlug/:brandSlug/publishing/calendar': 'Calendar',
-  '/:orgSlug/:brandSlug/publishing/approvals': 'Approvals',
-  '/:orgSlug/:brandSlug/publishing/approvals/:run': 'Run',
-  '/:orgSlug/:brandSlug/publishing/approvals/:run/:item': 'Item',
-  '/:orgSlug/:brandSlug/publishing/posts/:id': 'Content',
-  '/:orgSlug/:brandSlug/publishing/campaigns': 'Campaigns',
-  '/:orgSlug/:brandSlug/publishing/newsletter': 'Newsletter',
-  '/:orgSlug/:brandSlug/publishing/newsletter/settings': 'Settings',
-  '/:orgSlug/:brandSlug/publishing/campaigns/new': 'New Campaign',
-  '/:orgSlug/:brandSlug/publishing/campaigns/compare': 'Compare',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id': 'Campaign',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id/content': 'Content',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id/calendar': 'Calendar',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id/performance': 'Performance',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id/ads': 'Ads',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id/edit': 'Edit',
-  '/:orgSlug/~/publishing/campaigns': 'Campaigns',
-  '/:orgSlug/~/publishing/newsletter': 'Newsletter',
-  '/:orgSlug/~/publishing/newsletter/settings': 'Settings',
-  '/:orgSlug/~/publishing/campaigns/new': 'New Campaign',
-  '/:orgSlug/~/publishing/campaigns/compare': 'Compare',
-  '/:orgSlug/~/publishing/campaigns/:id': 'Campaign',
-  '/:orgSlug/~/publishing/campaigns/:id/content': 'Content',
-  '/:orgSlug/~/publishing/campaigns/:id/calendar': 'Calendar',
-  '/:orgSlug/~/publishing/campaigns/:id/performance': 'Performance',
-  '/:orgSlug/~/publishing/campaigns/:id/ads': 'Ads',
-  '/:orgSlug/~/publishing/campaigns/:id/edit': 'Edit',
-  '/:orgSlug/~/publishing/posts': 'Posts',
-  '/:orgSlug/~/publishing/calendar': 'Calendar',
-  '/:orgSlug/~/publishing/approvals': 'Approvals',
-  '/:orgSlug/~/publishing/approvals/:run': 'Run',
-  '/:orgSlug/~/publishing/approvals/:run/:item': 'Item',
-  '/:orgSlug/~/publishing/posts/:id': 'Content',
-  '/:orgSlug/:brandSlug/automation/campaigns': 'Programs',
-  '/:orgSlug/:brandSlug/automation/campaigns/new': 'New Program',
-  '/:orgSlug/:brandSlug/automation/campaigns/:id': 'Program',
-  '/:orgSlug/:brandSlug/messages/outreach': 'Outreach sequences',
-  '/:orgSlug/:brandSlug/messages/outreach/new': 'New outreach sequence',
-  '/:orgSlug/:brandSlug/messages/outreach/:id': 'Outreach sequence',
-  '/:orgSlug/:brandSlug/platforms/:platform': ':platform',
-  '/:orgSlug/:brandSlug/settings': 'General',
-  '/:orgSlug/:brandSlug/settings/knowledge': 'Knowledge',
-  '/:orgSlug/:brandSlug/settings/usage': 'Usage',
-  // Studio tools are apps (#5502): the app is the root, its home the leaf.
-  '/:orgSlug/:brandSlug/playground': 'Canvas',
-  '/:orgSlug/:brandSlug/storyboard': 'Runs',
-  '/:orgSlug/:brandSlug/motion': 'Projects',
-  '/:orgSlug/:brandSlug/clipper': 'Projects',
-  '/:orgSlug/:brandSlug/turbo': 'Projects',
-  '/:orgSlug/:brandSlug/storyboard/:runId': 'Run',
-  '/:orgSlug/:brandSlug/clipper/:projectId': 'Project',
-  '/:orgSlug/:brandSlug/motion/:projectId': 'Project',
-  '/:orgSlug/:brandSlug/editor': 'Projects',
-  '/:orgSlug/:brandSlug/editor/:id': 'Project',
-  '/:orgSlug/:brandSlug/workspace/tasks/:id': 'Task',
-  '/:orgSlug/:brandSlug/automation/workflows/:id': 'Workflow',
-  '/:orgSlug/:brandSlug/automation/runs/:id': 'Run',
-  '/:orgSlug/:brandSlug/automation/workflows/new': 'New Workflow',
-  '/:orgSlug/:brandSlug/automation/workflows': 'Workflows',
-  '/:orgSlug/:brandSlug/automation/workflows/templates': 'Templates',
-  '/:orgSlug/:brandSlug/messages/reply-drip': 'Reply drip',
-  '/:orgSlug/:brandSlug/messages/replies': 'Replies',
-  '/:orgSlug/:brandSlug/automation/runs': 'Runs',
-  '/:orgSlug/~/agent': 'New Conversation',
-  '/:orgSlug/~/agent/:id': 'Conversation',
-  '/:orgSlug/~/agent/threads': 'Threads',
-  '/:orgSlug/~/agent/new': 'New Conversation',
-  '/:orgSlug/~/library/voices/record': 'Record your voice',
-  '/:orgSlug/~/library/:type': ':type',
-  '/:orgSlug/~/library/shelf/:shelf': ':shelf',
-  '/:orgSlug/~/connect/social': 'Social account',
-  '/:orgSlug/~/support/:handle': 'Support a creator',
-  '/:orgSlug/~/settings': 'Settings',
-  '/:orgSlug/~/settings/general': 'General',
-  '/:orgSlug/~/settings/credits': 'Credits',
-  '/:orgSlug/~/settings/subscription': 'Subscription',
-  '/:orgSlug/~/settings/referrals': 'Affiliates',
-  '/:orgSlug/~/settings/earnings': 'Earnings',
-  '/:orgSlug/~/settings/usage': 'Usage',
-  '/:orgSlug/~/settings/api-keys': 'API Keys',
-  '/:orgSlug/~/settings/integrations': 'Integrations',
-  '/:orgSlug/~/settings/models/:type': ':type',
-  '/:orgSlug/~/editor': 'Projects',
-  '/:orgSlug/~/editor/:id': 'Project',
-
-  '/admin': 'Overview',
-  '/admin/settings/ai': 'AI',
-  '/admin/users/:id': 'User',
-  '/admin/automation/models/:type': ':type Models',
-  '/admin/automation/models/:type/:modelId': 'Model Details',
-  '/admin/automation/trainings/:id': 'Training Images',
-  '/admin/automation/trainings/:id/sources': 'Training Sources',
-  '/admin/configuration/tags/:filter': ':filter Tags',
-  '/admin/content/ingredients/:type': ':type Ingredients',
-  '/admin/content/ingredients/:type/:id': ':type Ingredient',
-  '/admin/content/posts/:id': 'Post',
-  '/admin/content/templates/:id': 'Template',
-  '/admin/organizations/:id': 'Organization Details',
-  '/admin/organizations/:id/community': 'Organization Community',
-  '/admin/organizations/:id/learning': 'Organization Learning',
-  '/admin/organizations/:id/library': 'Organization Library',
-  '/admin/organizations/:id/settings': 'Organization Settings',
-  '/admin/organizations/:id/spending': 'Organization Spending',
-  '/admin/brands/:id': 'Brand Details',
-  '/admin/brands/:id/platforms/:platform': ':platform',
-  '/settings': 'Settings',
-  '/settings/personal': 'Personal',
-  '/settings/help': 'Help',
-  '/settings/notifications': 'Notifications',
-  '/settings/progress': 'Progress',
-} as const satisfies Readonly<Record<string, string>>);
-
-const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
-  '/:orgSlug/:brandSlug/publishing/newsletter/settings': 'Newsletter',
-  '/:orgSlug/~/publishing/newsletter/settings': 'Newsletter',
-  // Content desk lives under Posts, not Overview.
-  '/:orgSlug/:brandSlug/publishing/posts/:id': 'Posts',
-  '/:orgSlug/~/publishing/posts/:id': 'Posts',
-  '/:orgSlug/:brandSlug/publishing/approvals/:run': 'Approvals',
-  '/:orgSlug/:brandSlug/publishing/approvals/:run/:item': 'Approvals',
-  '/:orgSlug/~/publishing/approvals/:run': 'Approvals',
-  '/:orgSlug/~/publishing/approvals/:run/:item': 'Approvals',
-  '/:orgSlug/:brandSlug/publishing/campaigns/new': 'Campaigns',
-  '/:orgSlug/:brandSlug/publishing/campaigns/compare': 'Campaigns',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id': 'Campaigns',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id/content': 'Campaigns',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id/calendar': 'Campaigns',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id/performance': 'Campaigns',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id/ads': 'Campaigns',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id/edit': 'Campaigns',
-  '/:orgSlug/~/publishing/campaigns/new': 'Campaigns',
-  '/:orgSlug/~/publishing/campaigns/compare': 'Campaigns',
-  '/:orgSlug/~/publishing/campaigns/:id': 'Campaigns',
-  '/:orgSlug/~/publishing/campaigns/:id/content': 'Campaigns',
-  '/:orgSlug/~/publishing/campaigns/:id/calendar': 'Campaigns',
-  '/:orgSlug/~/publishing/campaigns/:id/performance': 'Campaigns',
-  '/:orgSlug/~/publishing/campaigns/:id/ads': 'Campaigns',
-  '/:orgSlug/~/publishing/campaigns/:id/edit': 'Campaigns',
-  '/:orgSlug/:brandSlug/automation/agents/:agentId': 'Team',
-} as const satisfies Readonly<Record<string, string>>);
-
-const BREADCRUMB_ROOT_HREF_OVERRIDES = Object.freeze({
-  '/:orgSlug/:brandSlug/publishing/posts/:id': '/publishing/overview',
-  '/:orgSlug/~/publishing/posts/:id': '/publishing/overview',
-} as const satisfies Readonly<Record<string, string>>);
-
-const BREADCRUMB_PARENT_HREF_OVERRIDES = Object.freeze({
-  '/:orgSlug/:brandSlug/publishing/newsletter/settings':
-    '/publishing/newsletter',
-  '/:orgSlug/~/publishing/newsletter/settings': '/publishing/newsletter',
-  '/:orgSlug/:brandSlug/publishing/posts/:id': '/publishing/posts',
-  '/:orgSlug/~/publishing/posts/:id': '/publishing/posts',
-  '/:orgSlug/:brandSlug/publishing/approvals/:run': '/publishing/approvals',
-  '/:orgSlug/:brandSlug/publishing/approvals/:run/:item':
-    '/publishing/approvals',
-  '/:orgSlug/~/publishing/approvals/:run': '/publishing/approvals',
-  '/:orgSlug/~/publishing/approvals/:run/:item': '/publishing/approvals',
-  '/:orgSlug/:brandSlug/publishing/campaigns/new': '/publishing/campaigns',
-  '/:orgSlug/:brandSlug/publishing/campaigns/compare': '/publishing/campaigns',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id': '/publishing/campaigns',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id/content':
-    '/publishing/campaigns',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id/calendar':
-    '/publishing/campaigns',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id/performance':
-    '/publishing/campaigns',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id/ads': '/publishing/campaigns',
-  '/:orgSlug/:brandSlug/publishing/campaigns/:id/edit': '/publishing/campaigns',
-  '/:orgSlug/~/publishing/campaigns/new': '/publishing/campaigns',
-  '/:orgSlug/~/publishing/campaigns/compare': '/publishing/campaigns',
-  '/:orgSlug/~/publishing/campaigns/:id': '/publishing/campaigns',
-  '/:orgSlug/~/publishing/campaigns/:id/content': '/publishing/campaigns',
-  '/:orgSlug/~/publishing/campaigns/:id/calendar': '/publishing/campaigns',
-  '/:orgSlug/~/publishing/campaigns/:id/performance': '/publishing/campaigns',
-  '/:orgSlug/~/publishing/campaigns/:id/ads': '/publishing/campaigns',
-  '/:orgSlug/~/publishing/campaigns/:id/edit': '/publishing/campaigns',
-  '/:orgSlug/:brandSlug/automation/agents/:agentId': '/automation/agents',
-} as const satisfies Readonly<Record<string, string>>);
-
 function humanizeBreadcrumbLabel(value: string): string {
   return value
     .split('-')
@@ -421,34 +210,20 @@ function getDefaultBreadcrumbLeafLabel(canonicalUrl: string): string {
 
 function getRouteBreadcrumbMetadata(
   canonicalUrl: string,
+  overrides: Partial<WorkspaceShellBreadcrumbMetadata>,
 ): WorkspaceShellBreadcrumbMetadata {
   const appSegment = getCanonicalRootSegment(canonicalUrl);
   const rootLabel =
     BREADCRUMB_ROOT_LABELS[appSegment as keyof typeof BREADCRUMB_ROOT_LABELS] ??
     humanizeBreadcrumbLabel(appSegment);
-  const leafLabel =
-    BREADCRUMB_LEAF_OVERRIDES[
-      canonicalUrl as keyof typeof BREADCRUMB_LEAF_OVERRIDES
-    ] ?? getDefaultBreadcrumbLeafLabel(canonicalUrl);
-  const parentLabel =
-    BREADCRUMB_PARENT_OVERRIDES[
-      canonicalUrl as keyof typeof BREADCRUMB_PARENT_OVERRIDES
-    ];
-  const rootHref =
-    BREADCRUMB_ROOT_HREF_OVERRIDES[
-      canonicalUrl as keyof typeof BREADCRUMB_ROOT_HREF_OVERRIDES
-    ];
-  const parentHref =
-    BREADCRUMB_PARENT_HREF_OVERRIDES[
-      canonicalUrl as keyof typeof BREADCRUMB_PARENT_HREF_OVERRIDES
-    ];
 
   return Object.freeze({
-    leafLabel,
-    ...(parentLabel ? { parentLabel } : {}),
-    ...(parentHref ? { parentHref } : {}),
+    leafLabel:
+      overrides.leafLabel ?? getDefaultBreadcrumbLeafLabel(canonicalUrl),
+    ...(overrides.parentLabel ? { parentLabel: overrides.parentLabel } : {}),
+    ...(overrides.parentHref ? { parentHref: overrides.parentHref } : {}),
     rootLabel,
-    ...(rootHref ? { rootHref } : {}),
+    ...(overrides.rootHref ? { rootHref: overrides.rootHref } : {}),
   });
 }
 
@@ -477,6 +252,7 @@ function resolveBreadcrumbMetadata(
 function freezeRouteRegistration(
   canonicalUrl: string,
   config: RouteGroupConfig,
+  breadcrumb: WorkspaceShellBreadcrumbMetadata,
 ): WorkspaceShellRouteRegistration {
   return Object.freeze({
     accessPolicy: ACCESS_POLICY_BY_SCOPE[config.scope],
@@ -488,7 +264,7 @@ function freezeRouteRegistration(
     ),
     allowedShellModes: Object.freeze([config.mode] as const),
     availability: AVAILABILITY_BY_MODE[config.mode],
-    breadcrumb: getRouteBreadcrumbMetadata(canonicalUrl),
+    breadcrumb,
     canonicalUrl,
     deployments: ALL_DEPLOYMENTS,
     key: `route:${canonicalUrl}`,
@@ -505,763 +281,79 @@ function freezeRouteRegistration(
   });
 }
 
-function registerRoutes(
-  canonicalUrls: readonly string[],
-  config: RouteGroupConfig,
-): readonly WorkspaceShellRouteRegistration[] {
-  return canonicalUrls.map((canonicalUrl) =>
-    freezeRouteRegistration(canonicalUrl, config),
+function registerManifestPage(
+  scope: RouteManifestScope,
+  group: RouteManifestGroup,
+  page: RouteManifestPage,
+): WorkspaceShellRouteRegistration {
+  const canonicalUrl = toScopedPattern(scope, page.path);
+  const parentHref = page.parent?.href;
+
+  return freezeRouteRegistration(
+    canonicalUrl,
+    {
+      adapter: group.adapter,
+      adapterStatus: group.adapterStatus,
+      fallback: toScopedHref(scope, group.fallback),
+      mode: group.mode,
+      productClass: group.productClass,
+      scope,
+      surfaceKey: group.surfaceKey,
+      switcherItems: group.switcherItems,
+      telemetryClass: group.telemetryClass,
+    },
+    getRouteBreadcrumbMetadata(canonicalUrl, {
+      ...(page.title ? { leafLabel: page.title } : {}),
+      ...(page.parent ? { parentLabel: page.parent.label } : {}),
+      ...(parentHref ? { parentHref } : {}),
+      ...(page.rootHref ? { rootHref: page.rootHref } : {}),
+    }),
   );
 }
 
-const PERSONAL_ROUTE_REGISTRATIONS = [
-  ...registerRoutes(['/'], {
-    fallback: '/',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'personal',
-    surfaceKey: 'protected-bootstrap',
-    telemetryClass: 'management',
-  }),
-  ...registerRoutes(['/connect'], {
-    fallback: '/connect',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'personal',
-    surfaceKey: 'connect-genfeed-resolver',
-    telemetryClass: 'management',
-  }),
-  ...registerRoutes(['/support/:handle'], {
-    fallback: '/',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'personal',
-    surfaceKey: 'creator-support-resolver',
-    telemetryClass: 'management',
-  }),
-  ...registerRoutes(
-    [
-      '/settings',
-      '/settings/personal',
-      '/settings/about',
-      '/settings/help',
-      '/settings/notifications',
-      '/settings/progress',
-    ],
+function registerAdminPage(
+  page: RouteManifestAdminPage,
+  path: string,
+  title: string | undefined,
+): WorkspaceShellRouteRegistration {
+  return freezeRouteRegistration(
+    path,
     {
-      fallback: '/settings/personal',
+      fallback: ADMIN_FALLBACK,
       mode: 'canvas',
-      productClass: 'control-plane',
-      scope: 'personal',
-      surfaceKey: 'personal-settings',
+      productClass: page.productClass ?? 'control-plane',
+      scope: 'platform-admin',
+      surfaceKey: 'platform-admin',
+      switcherItems: ['admin'],
       telemetryClass: 'management',
     },
-  ),
-] as const;
+    getRouteBreadcrumbMetadata(path, title ? { leafLabel: title } : {}),
+  );
+}
 
-const ORGANIZATION_ROUTE_REGISTRATIONS = [
-  ...registerRoutes(['/:orgSlug/~/connect'], {
-    fallback: '/:orgSlug/~/connect',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'organization',
-    surfaceKey: 'connect-genfeed',
-    telemetryClass: 'management',
-  }),
-  ...registerRoutes(['/:orgSlug/~/connect/social'], {
-    fallback: '/:orgSlug/~/connect/social',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'organization',
-    surfaceKey: 'connect-social',
-    telemetryClass: 'management',
-  }),
-  ...registerRoutes(['/:orgSlug/~/support/:handle'], {
-    fallback: '/:orgSlug/~',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'organization',
-    surfaceKey: 'creator-support',
-    telemetryClass: 'management',
-  }),
-  ...registerRoutes(
-    ['/:orgSlug/~/workspace', '/:orgSlug/~/workspace/overview'],
-    {
-      adapter: {
-        key: 'organization-workspace-overview',
-        status: 'embedded',
-      },
-      fallback: '/:orgSlug/~/workspace/overview',
-      mode: 'canvas',
-      productClass: 'control-plane',
-      scope: 'organization',
-      surfaceKey: 'organization-overview',
-      switcherItems: ['workspace'],
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/~/workspace/inbox',
-      '/:orgSlug/~/workspace/activity',
-      '/:orgSlug/~/workspace/tasks',
-      '/:orgSlug/~/workspace/tasks/:id',
-    ],
-    {
-      fallback: '/:orgSlug/~/workspace/overview',
-      mode: 'canvas',
-      productClass: 'control-plane',
-      scope: 'organization',
-      surfaceKey: 'workspace',
-      switcherItems: ['workspace'],
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(['/:orgSlug/~/apps'], {
-    fallback: '/:orgSlug/~/apps',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'organization',
-    surfaceKey: 'apps',
-    telemetryClass: 'product',
-  }),
-  ...registerRoutes(['/:orgSlug/~/automation'], {
-    fallback: '/:orgSlug/~/automation',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'organization',
-    surfaceKey: 'automation',
-    switcherItems: ['automation'],
-    telemetryClass: 'product',
-  }),
-  ...registerRoutes(['/:orgSlug'], {
-    fallback: '/:orgSlug/~/workspace/overview',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'organization',
-    surfaceKey: 'organization-landing',
-    telemetryClass: 'product',
-  }),
-  ...registerRoutes(
-    [
-      '/:orgSlug/~/analytics',
-      '/:orgSlug/~/analytics/overview',
-      '/:orgSlug/~/analytics/accounts',
-      '/:orgSlug/~/analytics/accounts/:id',
-      '/:orgSlug/~/analytics/outliers',
-      '/:orgSlug/~/analytics/brands/:id',
-    ],
-    {
-      fallback: '/:orgSlug/~/analytics',
-      mode: 'canvas',
-      productClass: 'visual-data',
-      scope: 'organization',
-      surfaceKey: 'analytics',
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(['/:orgSlug/~/messages'], {
-    adapter: {
-      key: 'messages',
-      status: 'embedded',
-    },
-    fallback: '/:orgSlug/~/messages',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'organization',
-    surfaceKey: 'messages',
-    switcherItems: ['messages'],
-    telemetryClass: 'product',
-  }),
-  ...registerRoutes(
-    [
-      '/:orgSlug/~/discovery/overview',
-      '/:orgSlug/~/discovery/following',
-      '/:orgSlug/~/discovery/trends',
-      '/:orgSlug/~/discovery/trend-turnover',
-      '/:orgSlug/~/discovery/ads',
-    ],
-    {
-      adapter: { key: 'discovery', status: 'embedded' },
-      fallback: '/:orgSlug/~/discovery/overview',
-      mode: 'canvas',
-      productClass: 'visual-data',
-      scope: 'organization',
-      surfaceKey: 'discovery',
-      switcherItems: ['discovery'],
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/~/agent',
-      '/:orgSlug/~/agent/new',
-      '/:orgSlug/~/agent/threads',
-      '/:orgSlug/~/agent/:id',
-    ],
-    {
-      fallback: '/:orgSlug/~/agent',
-      mode: 'conversation',
-      productClass: 'contextual-action',
-      scope: 'organization',
-      surfaceKey: 'agent-conversation',
-      switcherItems: ['agent'],
-      telemetryClass: 'agent',
-    },
-  ),
-  ...registerRoutes(['/:orgSlug/~/agent/journey'], {
-    fallback: '/:orgSlug/~/agent',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'organization',
-    surfaceKey: 'agent-journey',
-    telemetryClass: 'management',
-  }),
-  ...registerRoutes(
-    [
-      '/:orgSlug/~/settings',
-      '/:orgSlug/~/settings/general',
-      '/:orgSlug/~/settings/personal',
-      '/:orgSlug/~/settings/help',
-      '/:orgSlug/~/settings/notifications',
-      '/:orgSlug/~/settings/progress',
-      '/:orgSlug/~/settings/members',
-      '/:orgSlug/~/settings/modules',
-      '/:orgSlug/~/settings/preferences',
-      '/:orgSlug/~/settings/credits',
-      '/:orgSlug/~/settings/subscription',
-      '/:orgSlug/~/settings/referrals',
-      '/:orgSlug/~/settings/earnings',
-      '/:orgSlug/~/settings/api-keys',
-      '/:orgSlug/~/settings/integrations',
-      '/:orgSlug/~/settings/webhooks',
-      '/:orgSlug/~/settings/agents',
-      '/:orgSlug/~/settings/memory',
-      '/:orgSlug/~/settings/usage',
-      '/:orgSlug/~/settings/brands',
-      '/:orgSlug/~/settings/models',
-      '/:orgSlug/~/settings/models/:type',
-      '/:orgSlug/~/settings/elements/scenes',
-    ],
-    {
-      fallback: '/:orgSlug/~/settings/general',
-      mode: 'canvas',
-      productClass: 'control-plane',
-      scope: 'organization',
-      surfaceKey: 'organization-settings',
-      telemetryClass: 'management',
-    },
-  ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/~/library',
-      '/:orgSlug/~/library/voices/record',
-      '/:orgSlug/~/library/:type',
-      '/:orgSlug/~/library/shelf/:shelf',
-    ],
-    {
-      fallback: '/:orgSlug/~/library',
-      mode: 'canvas',
-      productClass: 'control-plane',
-      scope: 'organization',
-      surfaceKey: 'library',
-      switcherItems: ['library'],
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/~/publishing',
-      '/:orgSlug/~/publishing/overview',
-      '/:orgSlug/~/publishing/posts',
-      '/:orgSlug/~/publishing/posts/:id',
-      '/:orgSlug/~/publishing/calendar',
-      '/:orgSlug/~/publishing/approvals',
-      '/:orgSlug/~/publishing/approvals/:run',
-      '/:orgSlug/~/publishing/approvals/:run/:item',
-      '/:orgSlug/~/publishing/campaigns',
-      '/:orgSlug/~/publishing/campaigns/new',
-      '/:orgSlug/~/publishing/campaigns/compare',
-      '/:orgSlug/~/publishing/campaigns/:id',
-      '/:orgSlug/~/publishing/campaigns/:id/content',
-      '/:orgSlug/~/publishing/campaigns/:id/calendar',
-      '/:orgSlug/~/publishing/campaigns/:id/performance',
-      '/:orgSlug/~/publishing/campaigns/:id/ads',
-      '/:orgSlug/~/publishing/campaigns/:id/edit',
-      '/:orgSlug/~/publishing/newsletter',
-      '/:orgSlug/~/publishing/newsletter/settings',
-    ],
-    {
-      fallback: '/:orgSlug/~/publishing/overview',
-      mode: 'canvas',
-      productClass: 'control-plane',
-      scope: 'organization',
-      surfaceKey: 'publishing',
-      switcherItems: ['publishing'],
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/~/editor',
-      '/:orgSlug/~/editor/projects',
-      '/:orgSlug/~/editor/:id',
-    ],
-    {
-      fallback: '/:orgSlug/~/editor',
-      mode: 'canvas',
-      productClass: 'contextual-action',
-      scope: 'organization',
-      surfaceKey: 'studio-editor',
-      switcherItems: ['editor'],
-      telemetryClass: 'management',
-    },
-  ),
-] as const;
+/**
+ * The shell registrations of a route manifest: personal, organization and
+ * brand pages in group order, then the admin pages.
+ */
+export function buildProtectedRouteInventory(
+  manifest: RouteManifest = ROUTE_MANIFEST,
+): readonly WorkspaceShellRouteRegistration[] {
+  const scopedRegistrations = SCOPE_ORDER.flatMap((scope) =>
+    listManifestPages(manifest)
+      .filter((entry) => entry.scopes.includes(scope))
+      .map(({ group, page }) => registerManifestPage(scope, group, page)),
+  );
+  const adminRegistrations = manifest.adminPages.flatMap((page) => [
+    registerAdminPage(page, page.path, page.title),
+    ...(page.subpaths ?? []).map((subpath) =>
+      typeof subpath === 'string'
+        ? registerAdminPage(page, subpath, undefined)
+        : registerAdminPage(page, subpath.path, subpath.title),
+    ),
+  ]);
 
-const BRAND_ROUTE_REGISTRATIONS = [
-  ...registerRoutes(['/:orgSlug/:brandSlug'], {
-    fallback: '/:orgSlug/:brandSlug/workspace',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'brand',
-    surfaceKey: 'workspace-overview',
-    telemetryClass: 'product',
-  }),
-  ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/workspace',
-      '/:orgSlug/:brandSlug/workspace/overview',
-    ],
-    {
-      adapter: {
-        key: 'brand-workspace-overview',
-        status: 'embedded',
-      },
-      fallback: '/:orgSlug/:brandSlug/workspace',
-      mode: 'canvas',
-      productClass: 'control-plane',
-      scope: 'brand',
-      surfaceKey: 'workspace-overview',
-      switcherItems: ['workspace'],
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/workspace/inbox',
-      '/:orgSlug/:brandSlug/workspace/activity',
-      '/:orgSlug/:brandSlug/workspace/tasks',
-      '/:orgSlug/:brandSlug/workspace/tasks/:id',
-    ],
-    {
-      fallback: '/:orgSlug/:brandSlug/workspace',
-      mode: 'canvas',
-      productClass: 'control-plane',
-      scope: 'brand',
-      surfaceKey: 'workspace',
-      switcherItems: ['workspace'],
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/agent',
-      '/:orgSlug/:brandSlug/agent/new',
-      '/:orgSlug/:brandSlug/agent/threads',
-      '/:orgSlug/:brandSlug/agent/:id',
-    ],
-    {
-      fallback: '/:orgSlug/:brandSlug/agent',
-      mode: 'conversation',
-      productClass: 'contextual-action',
-      scope: 'brand',
-      surfaceKey: 'agent-conversation',
-      switcherItems: ['agent'],
-      telemetryClass: 'agent',
-    },
-  ),
-  ...registerRoutes(['/:orgSlug/:brandSlug/agent/journey'], {
-    fallback: '/:orgSlug/:brandSlug/agent',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'brand',
-    surfaceKey: 'agent-journey',
-    telemetryClass: 'management',
-  }),
-  ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/discovery/overview',
-      '/:orgSlug/:brandSlug/discovery/following',
-      '/:orgSlug/:brandSlug/discovery/trends',
-      '/:orgSlug/:brandSlug/discovery/trends/detail/:id',
-      '/:orgSlug/:brandSlug/discovery/trends/platforms/:platform',
-      '/:orgSlug/:brandSlug/discovery/trend-turnover',
-      '/:orgSlug/:brandSlug/discovery/ads',
-    ],
-    {
-      adapter: { key: 'discovery', status: 'embedded' },
-      fallback: '/:orgSlug/:brandSlug/discovery/overview',
-      mode: 'canvas',
-      productClass: 'visual-data',
-      scope: 'brand',
-      surfaceKey: 'discovery',
-      switcherItems: ['discovery'],
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/turbo',
-      '/:orgSlug/:brandSlug/turbo/:projectId',
-      '/:orgSlug/:brandSlug/clipper',
-      '/:orgSlug/:brandSlug/clipper/:projectId',
-      '/:orgSlug/:brandSlug/playground',
-      '/:orgSlug/:brandSlug/motion',
-      '/:orgSlug/:brandSlug/motion/:projectId',
-      '/:orgSlug/:brandSlug/storyboard',
-      '/:orgSlug/:brandSlug/storyboard/:runId',
-    ],
-    {
-      adapterStatus: 'ready',
-      fallback: '/:orgSlug/:brandSlug/playground',
-      mode: 'canvas',
-      productClass: 'contextual-action',
-      scope: 'brand',
-      surfaceKey: 'studio-specialized',
-      switcherItems: ['playground', 'storyboard', 'turbo', 'motion', 'clipper'],
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(
-    ['/:orgSlug/:brandSlug/editor', '/:orgSlug/:brandSlug/editor/:id'],
-    {
-      fallback: '/:orgSlug/:brandSlug/editor',
-      mode: 'canvas',
-      productClass: 'contextual-action',
-      scope: 'brand',
-      surfaceKey: 'studio-editor',
-      switcherItems: ['editor'],
-      telemetryClass: 'management',
-    },
-  ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/library',
-      '/:orgSlug/:brandSlug/library/assets',
-      '/:orgSlug/:brandSlug/library/imported',
-      '/:orgSlug/:brandSlug/library/overview',
-      '/:orgSlug/:brandSlug/library/references',
-      '/:orgSlug/:brandSlug/library/recent',
-      '/:orgSlug/:brandSlug/library/starred',
-      '/:orgSlug/:brandSlug/library/trash',
-      '/:orgSlug/:brandSlug/library/shelf/:shelf',
-      '/:orgSlug/:brandSlug/library/videos',
-      '/:orgSlug/:brandSlug/library/images',
-      '/:orgSlug/:brandSlug/library/gifs',
-      '/:orgSlug/:brandSlug/library/avatars',
-      '/:orgSlug/:brandSlug/library/avatars/twin',
-      '/:orgSlug/:brandSlug/library/voices/record',
-      '/:orgSlug/:brandSlug/library/voices',
-      '/:orgSlug/:brandSlug/library/music',
-      '/:orgSlug/:brandSlug/library/captions',
-    ],
-    {
-      fallback: '/:orgSlug/:brandSlug/library',
-      mode: 'canvas',
-      productClass: 'control-plane',
-      scope: 'brand',
-      surfaceKey: 'library',
-      switcherItems: ['library'],
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/publishing',
-      '/:orgSlug/:brandSlug/publishing/overview',
-      '/:orgSlug/:brandSlug/publishing/posts',
-      '/:orgSlug/:brandSlug/publishing/posts/:id',
-      '/:orgSlug/:brandSlug/publishing/calendar',
-      '/:orgSlug/:brandSlug/publishing/approvals',
-      '/:orgSlug/:brandSlug/publishing/approvals/:run',
-      '/:orgSlug/:brandSlug/publishing/approvals/:run/:item',
-      '/:orgSlug/:brandSlug/publishing/campaigns',
-      '/:orgSlug/:brandSlug/publishing/campaigns/new',
-      '/:orgSlug/:brandSlug/publishing/campaigns/compare',
-      '/:orgSlug/:brandSlug/publishing/campaigns/:id',
-      '/:orgSlug/:brandSlug/publishing/campaigns/:id/content',
-      '/:orgSlug/:brandSlug/publishing/campaigns/:id/calendar',
-      '/:orgSlug/:brandSlug/publishing/campaigns/:id/performance',
-      '/:orgSlug/:brandSlug/publishing/campaigns/:id/ads',
-      '/:orgSlug/:brandSlug/publishing/campaigns/:id/edit',
-      '/:orgSlug/:brandSlug/publishing/newsletter',
-      '/:orgSlug/:brandSlug/publishing/newsletter/settings',
-    ],
-    {
-      fallback: '/:orgSlug/:brandSlug/publishing/overview',
-      mode: 'canvas',
-      productClass: 'control-plane',
-      scope: 'brand',
-      surfaceKey: 'publishing',
-      switcherItems: ['publishing'],
-      telemetryClass: 'product',
-    },
-  ),
-  // Remix is a Discovery/Library action deep-link, not a Publishing nav surface.
-  ...registerRoutes(['/:orgSlug/:brandSlug/publishing/remix'], {
-    fallback: '/:orgSlug/:brandSlug/discovery/overview',
-    mode: 'canvas',
-    productClass: 'contextual-action',
-    scope: 'brand',
-    surfaceKey: 'publishing',
-    switcherItems: ['discovery', 'publishing'],
-    telemetryClass: 'product',
-  }),
-  ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/analytics',
-      '/:orgSlug/:brandSlug/analytics/overview',
-      '/:orgSlug/:brandSlug/analytics/accounts',
-      '/:orgSlug/:brandSlug/analytics/accounts/:id',
-      '/:orgSlug/:brandSlug/analytics/posts',
-      '/:orgSlug/:brandSlug/analytics/brands',
-      '/:orgSlug/:brandSlug/analytics/brands/:id',
-      '/:orgSlug/:brandSlug/analytics/brands/:id/platforms/:platform',
-      '/:orgSlug/:brandSlug/analytics/insights',
-      '/:orgSlug/:brandSlug/analytics/hooks',
-      '/:orgSlug/:brandSlug/analytics/breakouts',
-      '/:orgSlug/:brandSlug/analytics/outliers',
-      '/:orgSlug/:brandSlug/analytics/performance-lab',
-      '/:orgSlug/:brandSlug/analytics/streaks',
-      '/:orgSlug/:brandSlug/analytics/newsletter',
-    ],
-    {
-      adapter: {
-        key: 'analytics',
-        status: 'ready',
-      },
-      fallback: '/:orgSlug/:brandSlug/analytics',
-      mode: 'canvas',
-      productClass: 'visual-data',
-      scope: 'brand',
-      surfaceKey: 'analytics',
-      switcherItems: ['analytics'],
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/automation',
-      '/:orgSlug/:brandSlug/automation/agents/:agentId',
-      '/:orgSlug/:brandSlug/automation/overview',
-      '/:orgSlug/:brandSlug/automation/runs',
-      '/:orgSlug/:brandSlug/automation/runs/:id',
-      '/:orgSlug/:brandSlug/automation/campaigns',
-      '/:orgSlug/:brandSlug/automation/campaigns/new',
-      '/:orgSlug/:brandSlug/automation/campaigns/:id',
-      '/:orgSlug/:brandSlug/automation/content-runs',
-      '/:orgSlug/:brandSlug/automation/content-runs/:runId',
-      '/:orgSlug/:brandSlug/automation/workflows',
-      '/:orgSlug/:brandSlug/automation/workflows/templates',
-    ],
-    {
-      fallback: '/:orgSlug/:brandSlug/automation',
-      mode: 'canvas',
-      productClass: 'control-plane',
-      scope: 'brand',
-      surfaceKey: 'automation',
-      switcherItems: ['automation'],
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/messages',
-      '/:orgSlug/:brandSlug/messages/outreach',
-      '/:orgSlug/:brandSlug/messages/outreach/new',
-      '/:orgSlug/:brandSlug/messages/outreach/:id',
-      '/:orgSlug/:brandSlug/messages/replies',
-      '/:orgSlug/:brandSlug/messages/reply-drip',
-    ],
-    {
-      adapter: {
-        key: 'messages',
-        status: 'embedded',
-      },
-      fallback: '/:orgSlug/:brandSlug/messages',
-      mode: 'canvas',
-      productClass: 'control-plane',
-      scope: 'brand',
-      surfaceKey: 'messages',
-      switcherItems: ['messages'],
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/automation/workflows/new',
-      '/:orgSlug/:brandSlug/automation/workflows/:id',
-    ],
-    {
-      fallback: '/:orgSlug/:brandSlug/automation/workflows',
-      mode: 'canvas',
-      productClass: 'control-plane',
-      scope: 'brand',
-      surfaceKey: 'automation-workflows-editor',
-      switcherItems: ['automation'],
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/automation/agents',
-      '/:orgSlug/:brandSlug/automation/library/:type',
-    ],
-    {
-      fallback: '/:orgSlug/:brandSlug/automation',
-      mode: 'canvas',
-      productClass: 'control-plane',
-      scope: 'brand',
-      surfaceKey: 'automation-management',
-      switcherItems: ['automation'],
-      telemetryClass: 'management',
-    },
-  ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/settings',
-      '/:orgSlug/:brandSlug/settings/brand-kit',
-      '/:orgSlug/:brandSlug/settings/knowledge',
-      '/:orgSlug/:brandSlug/settings/agent/receipts',
-      '/:orgSlug/:brandSlug/settings/accounts',
-      '/:orgSlug/:brandSlug/settings/brand-kit/rules',
-      '/:orgSlug/:brandSlug/settings/brand-kit/setup',
-      '/:orgSlug/:brandSlug/settings/brand-kit/:tab',
-      '/:orgSlug/:brandSlug/settings/agent/context',
-      '/:orgSlug/:brandSlug/settings/agent/learning',
-      '/:orgSlug/:brandSlug/settings/publishing',
-      '/:orgSlug/:brandSlug/settings/agent',
-      '/:orgSlug/:brandSlug/settings/skills',
-      '/:orgSlug/:brandSlug/settings/usage',
-    ],
-    {
-      fallback: '/:orgSlug/:brandSlug/settings',
-      mode: 'canvas',
-      productClass: 'control-plane',
-      scope: 'brand',
-      surfaceKey: 'brand-settings',
-      telemetryClass: 'management',
-    },
-  ),
-  ...registerRoutes(['/:orgSlug/:brandSlug/platforms/:platform'], {
-    fallback: '/:orgSlug/:brandSlug/settings/accounts',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'brand',
-    surfaceKey: 'platforms',
-    switcherItems: ['publishing', 'messages'],
-    telemetryClass: 'product',
-  }),
-] as const;
-
-const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
-  '/admin',
-  '/admin/overview',
-  '/admin/overview/activities',
-  '/admin/content/posts',
-  '/admin/content/posts/:id',
-  '/admin/content/templates',
-  '/admin/content/templates/:id',
-  '/admin/content/generations',
-  '/admin/content/ingredients',
-  '/admin/content/ingredients/:type',
-  '/admin/content/ingredients/:type/:id',
-  '/admin/content/voices',
-  '/admin/folders',
-  '/admin/automation/agents',
-  '/admin/automation/bots',
-  '/admin/automation/failures',
-  '/admin/automation/models',
-  '/admin/automation/models/:type',
-  '/admin/automation/models/:type/:modelId',
-  '/admin/automation/trainings',
-  '/admin/automation/trainings/:id',
-  '/admin/automation/trainings/:id/sources',
-  '/admin/automation/workflows',
-  '/admin/configuration/elements/blacklists',
-  '/admin/configuration/elements/camera-movements',
-  '/admin/configuration/elements/cameras',
-  '/admin/configuration/elements/lenses',
-  '/admin/configuration/elements/lightings',
-  '/admin/configuration/elements/moods',
-  '/admin/configuration/elements/scenes',
-  '/admin/configuration/elements/sounds',
-  '/admin/configuration/elements/styles',
-  '/admin/configuration/fonts',
-  '/admin/configuration/presets',
-  '/admin/configuration/tags',
-  '/admin/configuration/tags/:filter',
-  '/admin/organizations',
-  '/admin/organizations/:id',
-  '/admin/organizations/:id/community',
-  '/admin/organizations/:id/learning',
-  '/admin/organizations/:id/library',
-  '/admin/organizations/:id/settings',
-  '/admin/organizations/:id/spending',
-  '/admin/administration',
-  '/admin/users',
-  '/admin/users/:id',
-  '/admin/administration/roles',
-  '/admin/administration/subscriptions',
-  '/admin/economics',
-  '/admin/economics/overview',
-  '/admin/economics/revenue',
-  '/admin/economics/costs',
-  '/admin/economics/organizations',
-  '/admin/administration/referrals',
-  '/admin/administration/announcements',
-  '/admin/administration/learning',
-  '/admin/administration/emails',
-  '/admin/flags',
-  '/admin/settings',
-  '/admin/settings/billing',
-  '/admin/settings/ai',
-  '/admin/settings/agent',
-  '/admin/settings/media',
-  '/admin/settings/providers',
-  '/admin/settings/accounts',
-  '/admin/settings/notifications',
-] as const;
-
-const ADMIN_ANALYTICS_ROUTE_PATTERNS = [
-  '/admin/brands',
-  '/admin/brands/:id',
-  '/admin/brands/:id/platforms/:platform',
-  '/admin/overview/analytics/all',
-  '/admin/overview/analytics/business',
-] as const;
-
-const ADMIN_ROUTE_REGISTRATIONS = [
-  ...registerRoutes(ADMIN_CONTROL_PLANE_ROUTE_PATTERNS, {
-    fallback: '/admin/overview',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'platform-admin',
-    surfaceKey: 'platform-admin',
-    switcherItems: ['admin'],
-    telemetryClass: 'management',
-  }),
-  ...registerRoutes(ADMIN_ANALYTICS_ROUTE_PATTERNS, {
-    fallback: '/admin/overview',
-    mode: 'canvas',
-    productClass: 'visual-data',
-    scope: 'platform-admin',
-    surfaceKey: 'platform-admin',
-    switcherItems: ['admin'],
-    telemetryClass: 'management',
-  }),
-] as const;
+  return [...scopedRegistrations, ...adminRegistrations];
+}
 
 /**
  * Canonical application-owned inventory for the protected route patterns
@@ -1271,12 +363,9 @@ const ADMIN_ROUTE_REGISTRATIONS = [
  * treat that slug as a live agent. Org Workspace lives at
  * `/:orgSlug/~/workspace/*`.
  */
-export const PROTECTED_ROUTE_INVENTORY = Object.freeze([
-  ...PERSONAL_ROUTE_REGISTRATIONS,
-  ...ORGANIZATION_ROUTE_REGISTRATIONS,
-  ...BRAND_ROUTE_REGISTRATIONS,
-  ...ADMIN_ROUTE_REGISTRATIONS,
-]);
+export const PROTECTED_ROUTE_INVENTORY = Object.freeze(
+  buildProtectedRouteInventory(),
+);
 
 export const WORKSPACE_SHELL_OVERLAY_REGISTRY = Object.freeze([
   Object.freeze({
@@ -1347,46 +436,10 @@ export const WORKSPACE_SHELL_OVERLAY_REGISTRY = Object.freeze([
 // Kept local: `check-product-route-inventory` loads this module straight from
 // source in a bare Node process, where only workspace packages resolve, not
 // the app's `@helpers/*` alias or the unbuilt helpers `dist`.
-function escapeRegExp(value: string): string {
-  return value.replace(REGEX_SPECIAL_CHARS_PATTERN, '\\$&');
-}
-
 function compileRoutePattern(
   registration: WorkspaceShellRouteRegistration,
 ): CompiledRouteRegistration {
-  if (registration.canonicalUrl === '/') {
-    return {
-      matcher: ROOT_PATH_PATTERN,
-      parameterNames: [],
-      registration,
-      specificity: 10_000,
-    };
-  }
-
-  const parameterNames: string[] = [];
-  let staticSegments = 0;
-  const matcherSegments = registration.canonicalUrl
-    .split('/')
-    .filter(Boolean)
-    .map((segment) => {
-      if (segment.startsWith(':')) {
-        parameterNames.push(segment.slice(1));
-        return '([^/]+)';
-      }
-
-      staticSegments += 1;
-      return escapeRegExp(segment);
-    });
-
-  return {
-    matcher: new RegExp(`^/${matcherSegments.join('/')}/?$`),
-    parameterNames,
-    registration,
-    specificity:
-      staticSegments * 1_000 +
-      matcherSegments.length * 10 -
-      parameterNames.length,
-  };
+  return { ...compilePathPattern(registration.canonicalUrl), registration };
 }
 
 const COMPILED_ROUTE_INVENTORY = Object.freeze(

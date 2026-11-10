@@ -358,7 +358,8 @@ describe('active cadence workflow execution', () => {
         return { summary: 'Held' };
       },
     );
-    await s.service.tryExecute(state);
+    const result = await s.service.tryExecute(state);
+    expect(result).toMatchObject({ creditsUsed: 0, summary: 'Held' });
     expect(generated).toEqual({
       creditsUsed: 0,
       heldReason: expect.stringContaining('video quote of 30 credits'),
@@ -379,7 +380,8 @@ describe('active cadence workflow execution', () => {
         return { summary: 'Held' };
       },
     );
-    await s.service.tryExecute(state);
+    const result = await s.service.tryExecute(state);
+    expect(result).toMatchObject({ creditsUsed: 0, summary: 'Held' });
     expect(generated).toEqual({
       creditsUsed: 0,
       heldReason: 'No authoritative image quote is available.',
@@ -399,10 +401,11 @@ describe('active cadence workflow execution', () => {
         return { summary: 'Held' };
       },
     );
-    await s.service.tryExecute({
+    const result = await s.service.tryExecute({
       ...state,
       request: { ...state.request, brandId: undefined },
     });
+    expect(result).toMatchObject({ creditsUsed: 0, summary: 'Held' });
     expect(generated?.heldReason).toContain('requires a brand');
     expect(s.media.quote).not.toHaveBeenCalled();
   });
@@ -445,7 +448,8 @@ describe('active cadence workflow execution', () => {
         return { summary: 'Held' };
       },
     );
-    await s.service.tryExecute(state);
+    const result = await s.service.tryExecute(state);
+    expect(result).toMatchObject({ summary: 'Held' });
     expect(s.text.generateContent).not.toHaveBeenCalled();
   });
   it('preserves legacy turns and prevents foreign-scope or recorded execution dispatch', async () => {

@@ -616,7 +616,7 @@ describe('TrendSourcePreviewService', () => {
     it('claims the cooldown before refreshing saved content', async () => {
       vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([]);
 
-      await service.getTrendContent(
+      const content = await service.getTrendContent(
         { organizationId: 'org-1' },
         { refresh: true },
         vi.fn().mockResolvedValue({
@@ -626,6 +626,7 @@ describe('TrendSourcePreviewService', () => {
         }),
       );
 
+      expect(content.totalTrends).toBe(1);
       expect(cache.claimOnce).toHaveBeenCalledTimes(1);
       const [key, ttl] = cache.claimOnce.mock.calls[0];
       expect(key).toContain('org-1');
@@ -633,7 +634,7 @@ describe('TrendSourcePreviewService', () => {
     });
 
     it('does not claim a cooldown for a plain read', async () => {
-      await service.getTrendContent(
+      const content = await service.getTrendContent(
         { organizationId: 'org-1' },
         {},
         vi.fn().mockResolvedValue({
@@ -642,6 +643,8 @@ describe('TrendSourcePreviewService', () => {
           trends: [],
         }),
       );
+
+      expect(content.totalTrends).toBe(0);
 
       expect(cache.claimOnce).not.toHaveBeenCalled();
     });

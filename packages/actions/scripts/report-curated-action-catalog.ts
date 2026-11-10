@@ -6,7 +6,7 @@ import type { ToolsetName } from '../src/registry/toolset-names';
 const WHITESPACE_RUNS_PATTERN = /\s+/gu;
 const QUOTED_SURFACE_PATTERN = /'(agent|mcp|workflow)'/gu;
 
-const CATALOG_PATH = 'packages/actions/src/registry/curated-action-catalog.ts';
+const CATALOG_PATH = 'packages/actions/src/registry/curated-actions.catalog.ts';
 
 /**
  * An entry after its source lines have been collapsed to a single

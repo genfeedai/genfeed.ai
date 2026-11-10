@@ -264,7 +264,7 @@ test('the existing executable-contract aggregate includes focused scheduled repo
   const packageJson = JSON.parse(
     readFileSync(path.join(REPOSITORY_ROOT, 'package.json'), 'utf8'),
   );
-  const aggregate = packageJson.scripts['test:executable-contracts'];
+  const aggregate = packageJson.scripts['test:executable-contracts:static'];
   const adjacentContract = readFileSync(
     path.join(REPOSITORY_ROOT, 'scripts/ci/pr-validation-workflows.test.mjs'),
     'utf8',

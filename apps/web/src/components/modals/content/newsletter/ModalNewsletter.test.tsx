@@ -56,6 +56,7 @@ describe('ModalNewsletter', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Topic' }), {
       target: { value: ' AI tools ' },
     });
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
     fireEvent.change(screen.getByRole('textbox', { name: 'Angle' }), {
       target: { value: 'For founders' },
     });
@@ -70,6 +71,7 @@ describe('ModalNewsletter', () => {
       instructions: 'Keep it practical',
     });
     expect(mocks.close).toHaveBeenCalledWith(ModalEnum.NEWSLETTER);
+    expect(screen.getByRole('textbox', { name: 'Angle' })).toHaveValue('');
   });
   it('retains input and stays open on a generation error', async () => {
     mocks.generateDraft.mockRejectedValue(new Error('offline'));
@@ -82,6 +84,10 @@ describe('ModalNewsletter', () => {
     expect(screen.getByRole('textbox', { name: 'Topic' })).toHaveValue(
       'AI tools',
     );
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled(),
+    );
+    expect(screen.getByTestId(ModalEnum.NEWSLETTER)).toBeInTheDocument();
     expect(onCreated).not.toHaveBeenCalled();
     expect(mocks.close).not.toHaveBeenCalled();
   });
