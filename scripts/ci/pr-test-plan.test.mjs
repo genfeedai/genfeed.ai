@@ -364,7 +364,7 @@ test('keeps the workflow wired to the planner matrices and outputs', () => {
   );
   assert.match(workflow, /git merge-base --is-ancestor "\$\{base\}" HEAD/);
   // PR runs carry no coverage instrumentation; full-repository coverage
-  // stays in the weekly Coverage workflow.
+  // stays in the nightly Coverage workflow.
   assert.doesNotMatch(workflow, /--coverage/);
 });
 

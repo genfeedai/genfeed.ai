@@ -342,12 +342,6 @@
     "symbol": "apps/web/src/features/studio/storyboard/components/StoryboardPlanEditor.tsx"
   },
   {
-    "actual": 1532,
-    "file": "apps/web/src/lib/workspace-shell/workspace-shell-registry.ts",
-    "metric": "file-lines",
-    "symbol": "apps/web/src/lib/workspace-shell/workspace-shell-registry.ts"
-  },
-  {
     "actual": 2873,
     "file": "packages/actions/src/registry/action-registry.ts",
     "metric": "file-lines",

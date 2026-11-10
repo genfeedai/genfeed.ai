@@ -110,6 +110,7 @@ vi.mock('@genfeedai/contracts/constants', async () => ({
   ...(await import(
     '@genfeedai/contracts/constants/organization-modules.constant'
   )),
+  ...(await import('@genfeedai/contracts/constants/route-manifest.constant')),
   APP_DISPLAY_LABELS: {
     admin: 'Admin',
     agent: 'Agent',

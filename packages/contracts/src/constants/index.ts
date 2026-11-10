@@ -84,6 +84,7 @@ export * from './publishing-quota.constant';
 export * from './release-items.constant';
 export * from './reply-queue.constant';
 export * from './retry-credit-back.constant';
+export * from './route-manifest.constant';
 export * from './routes.constant';
 export * from './self-hosted-models.constant';
 export * from './settings-scope.constant';
