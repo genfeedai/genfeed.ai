@@ -9,6 +9,14 @@ import {
 } from './admin-menu-items.config';
 
 describe('ADMIN_MENU_ITEMS', () => {
+  it('gives every sidebar entry an icon', () => {
+    expect(
+      ADMIN_MENU_ITEMS.filter((item) => !item.outline || !item.solid).map(
+        (item) => item.label,
+      ),
+    ).toEqual([]);
+  });
+
   it('exposes the platform admin surface with Overview as the home', () => {
     expect(ADMIN_MENU_ITEMS[0]?.href).toBe('/admin/overview');
     expect(

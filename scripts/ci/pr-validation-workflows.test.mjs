@@ -12,6 +12,7 @@ import { RECOVERY_GREEN_THRESHOLD } from './scheduled-failure-tracker.mjs';
 import './install-visual-runtime-deps.test.mjs';
 import './coverage-failure-reporter.test.mjs';
 import './cla-status-recovery.test.mjs';
+import './flake-ledger.test.mjs';
 import './full-suite-evidence.test.mjs';
 import './nightly-e2e-failure-reporter.test.mjs';
 import './nightly-playwright-full-failure-reporter.test.mjs';
@@ -543,14 +544,19 @@ test('reusable CI callers grant the failure tracker permission ceiling', () => {
   }
 });
 
-test('the full suite runs on demand and at release, never on push, and never cancels a run', () => {
+test('the full suite runs nightly, on demand and at release, never on push, and never cancels a run', () => {
   const workflow = readWorkflow('full-suite.yml');
 
-  // It competed with pull-request CI for runners on every merge (2026-10-03).
-  // A cron cadence was tried earlier and dropped: this repository's scheduled
-  // workflows start hours late.
+  // It competed with pull-request CI for runners on every merge (2026-10-03),
+  // so it never runs on push. One nightly run in the quiet hours (after the
+  // 02:17/02:47/03:23 nightlies) gives the heavy tier a daily verdict
+  // (CI/CD audit 2026-11-09); release.yml reuses it for the exact SHA.
   assert.doesNotMatch(workflow, /^ {2}push:/m);
-  assert.doesNotMatch(workflow, /^ {2}schedule:/m);
+  assert.match(workflow, /^ {2}schedule:$/m);
+  assert.deepEqual(
+    [...workflow.matchAll(/^ {4}- cron: '([^']+)'/gm)].map((match) => match[1]),
+    ['37 3 * * *'],
+  );
   assert.match(workflow, /^ {2}workflow_dispatch:$/m);
   assert.match(workflow, /^ {2}workflow_call:$/m);
   assert.match(
@@ -711,6 +717,80 @@ test('playwright core on master runs once per merge burst and never on a pull re
     'a newer push replaces the pending run; it must not cancel one in progress',
   );
   assert.equal(parsed.jobs.report.permissions.issues, 'write');
+});
+
+test('master merge check runs the API tiers once per merge burst and skips the browser', () => {
+  const parsed = parseYaml(readWorkflow('master-merge-check.yml'));
+
+  assert.deepEqual(Object.keys(parsed.on).sort(), [
+    'push',
+    'workflow_dispatch',
+  ]);
+  assert.deepEqual(parsed.on.push.branches, ['master']);
+  assert.equal(parsed.concurrency.group, 'master-merge-check');
+  assert.equal(
+    parsed.concurrency['cancel-in-progress'],
+    false,
+    'a newer push replaces the pending run; it must not cancel one in progress',
+  );
+  assert.equal(parsed.jobs.e2e.uses, './.github/workflows/e2e.yml');
+  assert.equal(parsed.jobs.e2e.with.run_api_full, true);
+  assert.equal(parsed.jobs.e2e.with.skip_frontend, true);
+  assert.equal(
+    parsed.jobs.e2e.with.run_runtime_acceptance,
+    undefined,
+    'the serial final acceptance stays a nightly and release lane',
+  );
+  assert.equal(parsed.jobs.e2e.permissions.actions, 'read');
+  assert.equal(parsed.jobs.report.permissions.issues, 'write');
+});
+
+test('only the master merge check may skip the browser jobs of e2e.yml', () => {
+  // skip_frontend turns the E2E gate's browser requirement into "must be
+  // skipped". It is reporting-only, so no release or deploy path may set it.
+  const callers = readdirSync(WORKFLOWS_DIRECTORY)
+    .filter((fileName) => /\.ya?ml$/.test(fileName))
+    .filter((fileName) => /skip_frontend/.test(readWorkflow(fileName)))
+    .sort();
+  assert.deepEqual(callers, ['e2e.yml', 'master-merge-check.yml']);
+
+  const workflow = readWorkflow('e2e.yml');
+  for (const jobId of [
+    'e2e-frontend',
+    'e2e-merge-reports',
+    'e2e-frontend-authed',
+  ]) {
+    assert.match(
+      jobBlock(workflow, jobId, 'e2e.yml'),
+      /^ {4}if: .*inputs\.skip_frontend != true/m,
+      `${jobId} must skip when skip_frontend is set`,
+    );
+  }
+
+  // Run the gate's frontend check as bash: a skipped matrix passes only when
+  // skip_frontend asked for it, and a default run still needs every shard green.
+  const gate = jobBlock(workflow, 'e2e-gate', 'e2e.yml');
+  const script = gate.match(/run: \|\n((?: {10}.*\n)+)/)[1];
+  const evaluate = (skip, frontend) => {
+    const resolved = script
+      .replaceAll('${{ inputs.skip_frontend == true }}', String(skip))
+      .replaceAll('${{ needs.e2e-frontend.result }}', frontend)
+      .replaceAll('${{ needs.e2e-route-coverage.result }}', 'success')
+      .replaceAll('${{ needs.e2e-api.result }}', 'success')
+      .replaceAll('${{ inputs.run_runtime_acceptance == true }}', 'false')
+      .replaceAll('${{ needs.runtime-acceptance.result }}', 'skipped')
+      .replaceAll(
+        '${{ needs.context-embedding-acceptance.result }}',
+        'success',
+      );
+    // GitHub runs steps as `bash -e`, so a failing `test` stops the gate.
+    return spawnSync('bash', ['-e', '-c', resolved]).status;
+  };
+  assert.equal(evaluate(false, 'success'), 0);
+  assert.notEqual(evaluate(false, 'skipped'), 0);
+  assert.notEqual(evaluate(false, 'failure'), 0);
+  assert.equal(evaluate(true, 'skipped'), 0);
+  assert.notEqual(evaluate(true, 'success'), 0);
 });
 
 test('the full suite grants its reusable E2E failure reporter permission ceiling', () => {
@@ -1191,38 +1271,66 @@ test('serializes reusable build verification without cancelling another caller',
   }
 });
 
-test('self-hosted release publish reuses the layers the verify build just tested', () => {
-  // The web layer reads RELEASE_TAG and BUILD_ID, so a verify build that omits
-  // them leaves the publisher to compile the web app a second time (~12 min).
+test('self-hosted release builds the image once and publishes the digest it tested', () => {
   const verify = readWorkflow('build-verify-selfhosted.yml');
   const publisher = readWorkflow('_publish-selfhosted-core.yml');
+  const tagJob = jobBlock(
+    publisher,
+    'tag-verified-image',
+    '_publish-selfhosted-core.yml',
+  );
+  const installJob = jobBlock(
+    publisher,
+    'publish-install-artifact',
+    '_publish-selfhosted-core.yml',
+  );
 
+  // The only image build lives in the verify workflow; the publisher has none.
+  assert.equal(verify.match(/uses: docker\/build-push-action@/g)?.length, 1);
+  assert.doesNotMatch(publisher, /docker\/build-push-action|docker build /);
   assert.match(verify, /^ {12}RELEASE_TAG=\$\{\{ inputs\.release_tag \}\}$/m);
   assert.match(
     verify,
     /^ {12}BUILD_ID=\$\{\{ inputs\.checkout_ref \|\| 'dev' \}\}$/m,
   );
   assert.match(verify, /^ {10}ref: \$\{\{ inputs\.checkout_ref \}\}$/m);
+  assert.match(verify, /cache-from: type=gha,scope=selfhosted\n/);
+
+  // Staged, the build is pushed by digest with no tag, and the boot check
+  // pulls that digest back, so a failed check leaves no public tag behind.
+  assert.match(verify, /push-by-digest=true,name-canonical=true,push=true/);
+  assert.doesNotMatch(verify, /^ {10}tags: .*image_tag/m);
+  assert.match(verify, /docker pull "\$\{ref\}"/);
+  assert.match(
+    verify,
+    /org\.opencontainers\.image\.version=\$\{\{ inputs\.image_tag \}\}\n {12}org\.opencontainers\.image\.revision=\$\{\{ inputs\.checkout_ref \}\}/,
+  );
+  assert.match(
+    verify,
+    /value: \$\{\{ jobs\.build-and-boot\.outputs\.image_digest \}\}/,
+  );
+
+  // The publisher verifies the exact commit and version it publishes, stages
+  // the build, and retags only the digest the verify job returned.
   assert.match(
     publisher,
-    /^ {12}RELEASE_TAG=\$\{\{ inputs\.release_tag \}\}$/m,
+    /uses: \.\/\.github\/workflows\/build-verify-selfhosted\.yml\n {4}with:\n {6}checkout_ref: \$\{\{ inputs\.checkout_ref \}\}\n {6}release_tag: \$\{\{ inputs\.release_tag \}\}\n {6}stage_image: true\n {6}image_tag: \$\{\{ inputs\.image_tag \}\}/,
   );
-  assert.match(publisher, /^ {12}BUILD_ID=\$\{\{ inputs\.checkout_ref \}\}$/m);
   assert.match(
-    publisher,
-    /uses: \.\/\.github\/workflows\/build-verify-selfhosted\.yml\n {4}with:\n {6}checkout_ref: \$\{\{ inputs\.checkout_ref \}\}\n {6}release_tag: \$\{\{ inputs\.release_tag \}\}/,
-    'the publisher must verify the exact commit and tag it publishes',
+    tagJob,
+    /VERIFIED_DIGEST: \$\{\{ needs\.verify-selfhosted\.outputs\.image_digest \}\}/,
   );
-  for (const [name, workflow] of [
-    ['verify', verify],
-    ['publisher', publisher],
-  ]) {
-    assert.match(
-      workflow,
-      /cache-from: type=gha,scope=selfhosted\n/,
-      `${name} build must read the shared selfhosted cache scope`,
-    );
-  }
+  assert.match(
+    tagJob,
+    /docker buildx imagetools create "\$\{tag_args\[@\]\}" "\$\{IMAGE\}@\$\{VERIFIED_DIGEST\}"/,
+  );
+  assert.match(tagJob, /\[ "\$\{published\}" != "\$\{VERIFIED_DIGEST\}" \]/);
+  assert.match(tagJob, /Tested \(boot check and release E2E\)/);
+  assert.match(installJob, /TESTED_IMAGE_DIGEST: .*tag-verified-image/);
+  assert.match(
+    installJob,
+    /"\$\{image_digest\}" != "\$\{TESTED_IMAGE_DIGEST\}"/,
+  );
 });
 
 test('release preflight is read-only and reuses the release evidence scripts', () => {
@@ -1516,16 +1624,23 @@ test('dataset job freezes inspected control before the exact candidate checkout'
   assert.doesNotMatch(workflow, /path:.*\*|path:.*raw\//);
 });
 
-test('final connected Full Suite is an explicit opt-in with all receipt outputs required', () => {
+// Final connected acceptance is an explicit opt-in for manual dispatch and the
+// release call, and always on for the nightly schedule (whose run has no inputs).
+const CONNECTED_EXPRESSION =
+  "inputs\\.run_runtime_acceptance == true \\|\\| github\\.event_name == 'schedule'";
+
+test('final connected Full Suite is an explicit opt-in (always on nightly) with all receipt outputs required', () => {
   const suite = readWorkflow('full-suite.yml');
   assert.equal((suite.match(/run_runtime_acceptance:/g) ?? []).length, 3);
   assert.equal((suite.match(/default: false/g) ?? []).length, 2);
   assert.match(
     jobBlock(suite, 'e2e', 'full-suite.yml'),
-    /run_runtime_acceptance: \$\{\{ inputs\.run_runtime_acceptance == true \}\}/,
+    new RegExp(
+      `run_runtime_acceptance: \\$\\{\\{ ${CONNECTED_EXPRESSION} \\}\\}`,
+    ),
   );
   const visual = jobBlock(suite, 'visual-connected', 'full-suite.yml');
-  assert.match(visual, /if: inputs\.run_runtime_acceptance == true/);
+  assert.match(visual, new RegExp(`if: ${CONNECTED_EXPRESSION}\n`));
   assert.match(
     visual,
     /uses: \.\/\.github\/workflows\/visual-code-isolation\.yml/,
@@ -1535,7 +1650,7 @@ test('final connected Full Suite is an explicit opt-in with all receipt outputs 
   const gate = jobBlock(suite, 'runtime-acceptance-gate', 'full-suite.yml');
   assert.match(
     gate,
-    /if: always\(\) && inputs\.run_runtime_acceptance == true/,
+    new RegExp(`if: always\\(\\) && \\(${CONNECTED_EXPRESSION}\\)`),
   );
   assert.match(gate, /needs: \[ci, build-verify, e2e, visual-connected\]/);
   for (const output of [
@@ -1717,11 +1832,13 @@ test('final Full Suite forwards full API discovery only with explicit runtime ac
   );
   assert.match(
     suite,
-    /run_api_full: \$\{\{ inputs\.run_runtime_acceptance == true \}\}/,
+    new RegExp(`run_api_full: \\$\\{\\{ ${CONNECTED_EXPRESSION} \\}\\}`),
   );
   assert.match(
     suite,
-    /run_runtime_acceptance: \$\{\{ inputs\.run_runtime_acceptance == true \}\}/,
+    new RegExp(
+      `run_runtime_acceptance: \\$\\{\\{ ${CONNECTED_EXPRESSION} \\}\\}`,
+    ),
   );
   const inputDefaults = readWorkflow('full-suite.yml').matchAll(
     /run_runtime_acceptance:\n\s+description:[^\n]*\n\s+type: boolean\n\s+required: false\n\s+default: false/g,

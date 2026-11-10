@@ -644,9 +644,7 @@ describe('useAgentChatStream', () => {
       });
     });
 
-    expect(findAgentStreamEntry('thread-1')?.isAwaitingRunIdRef.current).toBe(
-      false,
-    );
+    expect(findAgentStreamEntry('thread-1')?.phase).not.toBe('awaiting_run_id');
     expect(
       findAgentStreamEntry('thread-1')?.unsubscribersRef.current,
     ).toHaveLength(0);
@@ -871,8 +869,8 @@ describe('useAgentChatStream', () => {
         }
         result.current.cancelRunHandoff(handoff, request);
       });
-      expect(findAgentStreamEntry('thread-a')?.isAwaitingRunIdRef.current).toBe(
-        false,
+      expect(findAgentStreamEntry('thread-a')?.phase).not.toBe(
+        'awaiting_run_id',
       );
       expect(
         findAgentStreamEntry('thread-a')?.activeStreamRunIdRef.current,
@@ -1448,7 +1446,7 @@ describe('useAgentChatStream', () => {
       });
     });
     expect(findAgentStreamEntry(null)?.ownerGeneration).toBe(1);
-    expect(findAgentStreamEntry(null)?.isAwaitingRunIdRef.current).toBe(true);
+    expect(findAgentStreamEntry(null)?.phase).toBe('awaiting_run_id');
     expect(
       findAgentStreamEntry(null)?.activeStreamThreadRef.current,
     ).toBeNull();

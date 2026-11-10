@@ -234,9 +234,10 @@ describe('VideosReframeController', () => {
 
   it('should create a prompt with the video format text', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.reframeVideo(mockReq, videoId, mockUser, {
+    const result = await controller.reframeVideo(mockReq, videoId, mockUser, {
       format: 'square',
     });
+    expect(result).toMatchObject({ id: 'cingredient00000000000001' });
     expect(mockServices.promptsService.create).toHaveBeenCalledWith(
       expect.objectContaining({ original: 'Reframe video to square format' }),
     );
@@ -259,9 +260,10 @@ describe('VideosReframeController', () => {
 
   it('should leave credit deduction to the interceptor', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.reframeVideo(mockReq, videoId, mockUser, {
+    const result = await controller.reframeVideo(mockReq, videoId, mockUser, {
       format: 'portrait',
     });
+    expect(result).toMatchObject({ id: 'cingredient00000000000001' });
     expect(
       mockServices.creditsUtilsService.deductCreditsFromOrganization,
     ).not.toHaveBeenCalled();
@@ -274,9 +276,10 @@ describe('VideosReframeController', () => {
         if (metadata.externalId) throw new Error('metadata unavailable');
       },
     );
-    await controller.reframeVideo(mockReq, videoId, mockUser, {
+    const result = await controller.reframeVideo(mockReq, videoId, mockUser, {
       format: 'portrait',
     });
+    expect(result).toMatchObject({ id: 'cingredient00000000000001' });
     expect(generationBilling.rememberAcceptedOutput).toHaveBeenCalledWith(
       expect.objectContaining({
         ingredientId,
@@ -295,9 +298,10 @@ describe('VideosReframeController', () => {
     mockServices.replicateService.generateTextToVideo.mockResolvedValueOnce(
       null,
     );
-    await controller.reframeVideo(mockReq, videoId, mockUser, {
+    const result = await controller.reframeVideo(mockReq, videoId, mockUser, {
       format: 'landscape',
     });
+    expect(result).toMatchObject({ id: 'cingredient00000000000001' });
     expect(
       mockServices.failedGenerationService.handleFailedVideoGeneration,
     ).toHaveBeenCalled();
@@ -320,9 +324,10 @@ describe('VideosReframeController', () => {
 
   it('should publish background task update on reframe start', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.reframeVideo(mockReq, videoId, mockUser, {
+    const result = await controller.reframeVideo(mockReq, videoId, mockUser, {
       format: 'portrait',
     });
+    expect(result).toMatchObject({ id: 'cingredient00000000000001' });
     expect(
       mockServices.websocketService.publishBackgroundTaskUpdate,
     ).toHaveBeenCalledWith(
@@ -336,11 +341,12 @@ describe('VideosReframeController', () => {
 
   it('should cap portrait dimensions to 1080x1920', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.reframeVideo(mockReq, videoId, mockUser, {
+    const result = await controller.reframeVideo(mockReq, videoId, mockUser, {
       format: 'portrait',
       height: 8000,
       width: 4000,
     });
+    expect(result).toMatchObject({ id: 'cingredient00000000000001' });
     expect(
       mockServices.sharedService.createMediaDocuments,
     ).toHaveBeenCalledWith(
@@ -361,9 +367,10 @@ describe('VideosReframeController', () => {
       value: { issueServerPublish },
     });
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.reframeVideo(mockReq, videoId, mockUser, {
+    const result = await controller.reframeVideo(mockReq, videoId, mockUser, {
       format: 'portrait',
     });
+    expect(result).toMatchObject({ id: 'cingredient00000000000001' });
     expect(issueServerPublish).toHaveBeenCalledWith(organizationId, [videoId]);
     expect(mockServices.promptBuilderService.buildPrompt).toHaveBeenCalledWith(
       expect.any(String),
@@ -383,9 +390,10 @@ describe('VideosReframeController', () => {
       },
     });
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.reframeVideo(mockReq, videoId, mockUser, {
+    const result = await controller.reframeVideo(mockReq, videoId, mockUser, {
       format: 'portrait',
     });
+    expect(result).toMatchObject({ id: 'cingredient00000000000001' });
     expect(
       mockServices.replicateService.generateTextToVideo,
     ).not.toHaveBeenCalled();

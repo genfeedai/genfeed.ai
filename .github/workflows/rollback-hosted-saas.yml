@@ -1,5 +1,5 @@
 name: Rollback hosted SaaS
-run-name: Rollback hosted SaaS | ${{ inputs.target_tag || 'previous stable release' }}
+run-name: ${{ inputs.dry_run && format('Rollback dry run | {0} | {1}', inputs.target_tag || 'previous stable release', inputs.reason) || format('Rollback hosted SaaS | {0}', inputs.target_tag || 'previous stable release') }}
 
 # One-click production rollback. It redeploys an earlier stable release through
 # the same Deploy hosted SaaS lane, so the API image, workers, and the three
@@ -10,6 +10,11 @@ run-name: Rollback hosted SaaS | ${{ inputs.target_tag || 'previous stable relea
 #
 # Dispatch from master. Leave target_tag empty to roll back to the stable
 # release published immediately before the current latest one.
+#
+# dry_run rehearses the rollback without deploying. It resolves the target the
+# same way, then runs only the read-only parts of the deploy lane: the server
+# image lookup and the migration compatibility gate against the live serving
+# images. Release.yml dispatches it after every published release.
 on:
   workflow_dispatch:
     inputs:
@@ -22,9 +27,15 @@ on:
         description: "why production is being rolled back (kept in the run title and summary)"
         required: true
         type: string
+      dry_run:
+        description: "rehearse only: resolve the target, check the image and migration compatibility, deploy nothing"
+        required: false
+        default: false
+        type: boolean
 
+# A rehearsal never queues behind, or replaces a pending, real rollback.
 concurrency:
-  group: rollback-hosted-saas
+  group: ${{ inputs.dry_run && 'rollback-hosted-saas-dry-run' || 'rollback-hosted-saas' }}
   cancel-in-progress: false
 
 permissions:
@@ -54,6 +65,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REQUESTED_TAG: ${{ inputs.target_tag }}
           REASON: ${{ inputs.reason }}
+          HEADING: ${{ inputs.dry_run && 'Rollback dry run (nothing is deployed)' || 'Rollback hosted SaaS' }}
         run: |
           set -euo pipefail
 
@@ -105,7 +117,7 @@ jobs:
             echo "source_sha=${source_sha}"
           } >>"${GITHUB_OUTPUT}"
           {
-            echo "## Rollback hosted SaaS"
+            echo "## ${HEADING}"
             echo ""
             echo "- Rolling back from: \`${latest_tag}\`"
             echo "- Restoring: \`${target_tag}\` at \`${source_sha}\`"
@@ -124,7 +136,8 @@ jobs:
     with:
       release_tag: ${{ needs.resolve-target.outputs.release_tag }}
       source_sha: ${{ needs.resolve-target.outputs.source_sha }}
-      correlation_id: rollback-${{ github.run_id }}-${{ github.run_attempt }}-${{ needs.resolve-target.outputs.source_sha }}
+      dry_run: ${{ inputs.dry_run }}
+      correlation_id: ${{ inputs.dry_run && 'rollback-dry-run' || 'rollback' }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ needs.resolve-target.outputs.source_sha }}
     secrets:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}

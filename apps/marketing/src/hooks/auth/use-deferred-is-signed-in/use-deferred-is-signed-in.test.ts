@@ -57,8 +57,9 @@ describe('useDeferredIsSignedIn', () => {
     vi.stubGlobal('requestIdleCallback', requestIdle);
     vi.stubGlobal('cancelIdleCallback', cancelIdle);
 
-    const { unmount } = renderHook(() => useDeferredIsSignedIn());
+    const { result, unmount } = renderHook(() => useDeferredIsSignedIn());
 
+    expect(result.current).toBe(false);
     expect(requestIdle).toHaveBeenCalledWith(expect.any(Function), {
       timeout: 3000,
     });
@@ -88,5 +89,6 @@ describe('useDeferredIsSignedIn', () => {
     unmount();
     document.dispatchEvent(new Event('visibilitychange'));
     expect(getSession).toHaveBeenCalledTimes(2);
+    expect(result.current).toBe(true);
   });
 });

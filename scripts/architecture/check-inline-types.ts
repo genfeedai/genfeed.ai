@@ -1,7 +1,7 @@
 /**
  * Inline type ratchet for app route files.
  *
- * CLAUDE.md: "No inline interfaces — use packages/props/ or
+ * AGENTS.md: "No inline interfaces — use packages/props/ or
  * packages/contracts/src/interfaces/". This scans production .ts and .tsx
  * files under apps/web/app for top-level interfaces and type aliases containing
  * object literals, including unions and wrappers. Move those declarations into

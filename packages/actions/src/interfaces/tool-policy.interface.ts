@@ -66,3 +66,6 @@ export type ToolCategory =
   | 'identity'
   | 'agent-control'
   | 'other';
+
+/** The card the MCP app renders a tool's result as. */
+export type ToolMcpCardKind = 'article' | 'media' | 'post' | 'summary';

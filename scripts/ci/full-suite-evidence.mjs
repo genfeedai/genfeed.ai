@@ -33,9 +33,12 @@ function exactReleaseRun(run, releaseSha, currentRunId) {
         run.status === 'completed' &&
         run.conclusion === 'success')) &&
     run?.head_branch === 'master' &&
-    // A master push run or a manual dispatch; a release's own nested call
+    // A master push run, the nightly schedule (it runs the same connected
+    // acceptance) or a manual dispatch; a release's own nested call
     // (`workflow_call`) is not independent evidence.
-    (run?.event === 'push' || run?.event === 'workflow_dispatch')
+    (run?.event === 'push' ||
+      run?.event === 'schedule' ||
+      run?.event === 'workflow_dispatch')
   );
 }
 

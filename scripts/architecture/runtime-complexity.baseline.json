@@ -60,12 +60,6 @@
     "symbol": "LearningReleaseService.control"
   },
   {
-    "actual": 254,
-    "file": "apps/server/api/src/collections/content-learning/services/learning-run.service.ts",
-    "metric": "method-lines",
-    "symbol": "LearningRunService.execute"
-  },
-  {
     "actual": 154,
     "file": "apps/server/api/src/collections/listening-topics/services/listening-topic-analysis.service.ts",
     "metric": "method-lines",
@@ -114,7 +108,7 @@
     "symbol": "StripeCheckoutWebhookHandler.constructor"
   },
   {
-    "actual": 1219,
+    "actual": 1216,
     "file": "apps/server/api/src/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler.ts"
@@ -142,18 +136,6 @@
     "file": "apps/server/api/src/services/agent-orchestrator/agent-completion-card-builder.service.ts",
     "metric": "method-lines",
     "symbol": "AgentCompletionCardBuilderService.buildCompletionSuggestedActions"
-  },
-  {
-    "actual": 513,
-    "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-stream-loop.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentOrchestratorStreamLoopService.runStreamLoop"
-  },
-  {
-    "actual": 328,
-    "file": "apps/server/api/src/services/agent-orchestrator/agent-turn-round-runner.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentTurnRoundRunnerService.executeToolRound"
   },
   {
     "actual": 18,
@@ -276,12 +258,6 @@
     "symbol": "CronIngredientsService.refreshMissingMetadataDimensions"
   },
   {
-    "actual": 33,
-    "file": "apps/server/workers/src/scheduling/platform-schedules.processor.ts",
-    "metric": "constructor-dependencies",
-    "symbol": "PlatformSchedulesProcessor.constructor"
-  },
-  {
     "actual": 1077,
     "file": "apps/server/workers/src/services/scheduled-post-delivery.service.ts",
     "metric": "file-lines",
@@ -342,12 +318,6 @@
     "symbol": "apps/web/src/features/research/remix/RemixBriefInspector.tsx"
   },
   {
-    "actual": 1437,
-    "file": "apps/web/src/features/studio/playground/components/StudioPlaygroundComposer.tsx",
-    "metric": "file-lines",
-    "symbol": "apps/web/src/features/studio/playground/components/StudioPlaygroundComposer.tsx"
-  },
-  {
     "actual": 1051,
     "file": "apps/web/src/features/studio/playground/components/StudioPlaygroundInspector.tsx",
     "metric": "file-lines",
@@ -366,12 +336,6 @@
     "symbol": "apps/web/src/features/studio/storyboard/components/StoryboardPlanEditor.tsx"
   },
   {
-    "actual": 1532,
-    "file": "apps/web/src/lib/workspace-shell/workspace-shell-registry.ts",
-    "metric": "file-lines",
-    "symbol": "apps/web/src/lib/workspace-shell/workspace-shell-registry.ts"
-  },
-  {
     "actual": 2873,
     "file": "packages/actions/src/registry/action-registry.ts",
     "metric": "file-lines",
@@ -382,12 +346,6 @@
     "file": "packages/actions/src/registry/contracts/workflow-node-action-contracts.ts",
     "metric": "file-lines",
     "symbol": "packages/actions/src/registry/contracts/workflow-node-action-contracts.ts"
-  },
-  {
-    "actual": 1076,
-    "file": "packages/actions/src/registry/mcp-input-documentation.ts",
-    "metric": "file-lines",
-    "symbol": "packages/actions/src/registry/mcp-input-documentation.ts"
   },
   {
     "actual": 1188,
@@ -408,7 +366,7 @@
     "symbol": "packages/agent/src/dashboard/dashboard-openui.ts"
   },
   {
-    "actual": 1091,
+    "actual": 1059,
     "file": "packages/agent/src/hooks/agent-chat-stream.entry.ts",
     "metric": "file-lines",
     "symbol": "packages/agent/src/hooks/agent-chat-stream.entry.ts"

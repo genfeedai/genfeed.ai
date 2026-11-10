@@ -106,7 +106,7 @@ describe('Threading AgentThreadRuntimeController', () => {
       threadId,
     });
 
-    await controller.respondToUiAction(
+    const res109 = await controller.respondToUiAction(
       threadId,
       { action: 'confirm_install_official_workflow', payload: {} },
       {
@@ -116,6 +116,11 @@ describe('Threading AgentThreadRuntimeController', () => {
         scopes: ['posts:schedule'],
       } as User,
     );
+    expect(res109).toEqual({
+      executionId: 'run-1',
+      status: 'queued',
+      threadId: 'thread_current',
+    });
 
     expect(agentOrchestratorService.handleThreadUiAction).toHaveBeenCalledWith(
       expect.anything(),
@@ -139,12 +144,17 @@ describe('Threading AgentThreadRuntimeController', () => {
       }
     ).resumeRecurringTaskDraftFromInput = resume;
 
-    await controller.respondToInputRequest(
+    const res142 = await controller.respondToInputRequest(
       threadId,
       'recurring-workflow:schedule',
       { answer: 'Every weekday at 9' },
       mockUser,
     );
+    expect(res142).toMatchObject({
+      requestId: 'req-1',
+      status: 'resolved',
+      threadId: 'thread_current',
+    });
 
     expect(resume).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -166,12 +176,17 @@ describe('Threading AgentThreadRuntimeController', () => {
       fieldId: 'brandUrl',
       status: 'resolved',
     });
-    await controller.respondToInputRequest(
+    const res169 = await controller.respondToInputRequest(
       threadId,
       'onboarding-url:thread_current',
       { answer: 'Use acme.com', optionIds: ['https://acme.com'] },
       mockUser,
     );
+    expect(res169).toMatchObject({
+      fieldId: 'brandUrl',
+      requestId: 'onboarding-url:thread_current',
+      status: 'resolved',
+    });
     expect(agentOrchestratorService.acceptChatStream).toHaveBeenCalledWith(
       expect.objectContaining({ content: 'https://acme.com' }),
       {
@@ -208,12 +223,17 @@ describe('Threading AgentThreadRuntimeController', () => {
   });
 
   it('threads selected option ids to the engine while continuing with visible labels', async () => {
-    await controller.respondToInputRequest(
+    const res211 = await controller.respondToInputRequest(
       threadId,
       'req-1',
       { answer: 'Awareness, Sales', optionIds: ['a', 'b'] },
       mockUser,
     );
+    expect(res211).toMatchObject({
+      requestId: 'req-1',
+      status: 'resolved',
+      threadId: 'thread_current',
+    });
     expect(resolveInputRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         answer: 'Awareness, Sales',
@@ -239,7 +259,7 @@ describe('Threading AgentThreadRuntimeController', () => {
       channel: GenerationEntryChannel.DESKTOP,
       attribution: GenerationEntryAttribution.CLIENT_REPORTED,
     };
-    await runWithActionOrigin(
+    const response = await runWithActionOrigin(
       { origin: ActionOrigin.UI, generationEntry },
       () =>
         controller.respondToInputRequest(
@@ -261,6 +281,7 @@ describe('Threading AgentThreadRuntimeController', () => {
         }),
       },
     );
+    expect(response).toMatchObject({ threadId, requestId: 'req-1' });
   });
 
   it('returns the execution that continues an answered input request', async () => {
@@ -316,7 +337,7 @@ describe('Threading AgentThreadRuntimeController', () => {
       toolCalls: [],
     });
 
-    await controller.respondToUiAction(
+    const res319 = await controller.respondToUiAction(
       threadId,
       {
         action: 'confirm_install_official_workflow',
@@ -324,6 +345,10 @@ describe('Threading AgentThreadRuntimeController', () => {
       },
       mockUser,
     );
+    expect(res319).toMatchObject({
+      message: { content: 'Official workflow installed.', role: 'assistant' },
+      toolCalls: [],
+    });
 
     expect(agentOrchestratorService.handleThreadUiAction).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -360,7 +385,7 @@ describe('Threading AgentThreadRuntimeController', () => {
       toolCalls: [],
     });
 
-    await controller.respondToUiAction(
+    const res363 = await controller.respondToUiAction(
       threadId,
       {
         action: 'confirm_generate_media',
@@ -368,6 +393,10 @@ describe('Threading AgentThreadRuntimeController', () => {
       },
       mockUser,
     );
+    expect(res363).toMatchObject({
+      message: { content: 'Confirmed image generation.', role: 'assistant' },
+      toolCalls: [],
+    });
 
     expect(agentOrchestratorService.handleThreadUiAction).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'confirm_generate_media' }),

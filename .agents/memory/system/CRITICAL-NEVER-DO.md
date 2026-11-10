@@ -1,6 +1,6 @@
 # CRITICAL: NEVER DO THIS
 
-Violations that break builds, lose data, or violate architecture. For positive coding standards, see the repo's CLAUDE.md.
+Violations that break builds, lose data, or violate architecture. For positive coding standards, see the repo's `AGENTS.md`.
 
 ## Project-Specific Highlights
 
@@ -33,7 +33,7 @@ Pattern: `.agents/sessions/YYYY-MM-DD.md`. Multiple sessions same day -> add to 
 
 ## Coding Violations
 
-Most of these are stated once in the repo's `CLAUDE.md` and are now guard-enforced in CI; kept here
+Most of these are stated once in the repo's `AGENTS.md` and are now guard-enforced in CI; kept here
 as a one-line index, not restated in full.
 
 - **Organization scoping + `isDeleted: false` on every tenant-scoped query** — enforced by
@@ -43,7 +43,7 @@ as a one-line index, not restated in full.
 - **Serializers live only in `packages/serializers/`, never in API modules; never return a raw DB record**
   — see `context/system-patterns.md` (Serializer triplet); cross-checked by `bun run check:serializer-drift`.
 - **Soft delete is `isDeleted: boolean`; there is no `deletedAt`.**
-- **AbortController in every async `useEffect`** — not currently guard-checked; see `CLAUDE.md`.
+- **AbortController in every async `useEffect`** — not currently guard-checked; see `AGENTS.md`.
 - **No dynamic `import('...')` inline in type definitions; no backward-compatibility wrappers/aliases/re-exports**
-  — not guard-checked; green-field policy, fix at the source (`CLAUDE.md` Philosophy).
+  — not guard-checked; green-field policy, fix at the source (`AGENTS.md` Project Overview).
 - **Compound indexes live in Prisma schema `@@index` or explicit migrations**, close to the owning model.

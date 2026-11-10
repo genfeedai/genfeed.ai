@@ -811,7 +811,9 @@ jobs:
             --shard=${{ matrix.shard }}/${{ matrix.total }}
 
   # API tests mirror the app job: the planner's matrix, changed selection on
-  # the affected tier, the whole suite on the full tier.
+  # the affected tier, the whole suite on the full tier. The full tier uses
+  # eight shards (the affected tier never exceeds four), so max-parallel
+  # must cover all eight or the extra shards just queue behind the first four.
   test-api:
     name: Test API (shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
@@ -863,7 +865,7 @@ jobs:
     if: needs.plan.outputs.api_tests == 'true'
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 8
       matrix: ${{ fromJSON(needs.plan.outputs.api_matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
