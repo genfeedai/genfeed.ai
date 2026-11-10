@@ -274,6 +274,127 @@ describe('sql risk audit', () => {
   });
 });
 
+describe('sql risk audit — unbounded read classification', () => {
+  let originalCwd = '';
+  let testDir = '';
+
+  beforeEach(() => {
+    originalCwd = process.cwd();
+    testDir = mkdtempSync(path.join(tmpdir(), 'sql-risk-audit-growth-'));
+    process.chdir(testDir);
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    rmSync(testDir, { force: true, recursive: true });
+  });
+
+  it('treats an id: { in } lookup as a key-set read, not an unbounded read', () => {
+    writeFixture(
+      'apps/server/api/src/posts/posts.service.ts',
+      `
+      export class PostsService {
+        constructor(private readonly prisma: PrismaService) {}
+
+        byIds(organizationId: string, ids: string[]) {
+          return this.prisma.post.findMany({
+            where: scopedWhere(organizationId, { id: { in: ids } }),
+          });
+        }
+
+        byIdsSpread(organizationId: string, ids: string[]) {
+          return this.prisma.post.findMany({
+            where: { organizationId, ...{ id: { in: ids } } },
+          });
+        }
+
+        byOrganization(organizationId: string) {
+          return this.prisma.post.findMany({ where: { organizationId } });
+        }
+
+        byParent(organizationId: string, postIds: string[]) {
+          return this.prisma.post.findMany({
+            where: { organizationId, parentId: { in: postIds } },
+          });
+        }
+      }
+      `,
+    );
+
+    const { findings } = runSqlRiskAudit({ rootDir: testDir });
+    const byCategory = (category: string) =>
+      findings
+        .filter((finding) => finding.category === category)
+        .map((finding) => finding.line);
+
+    expect(byCategory('key-set-read')).toEqual([6, 12]);
+    expect(byCategory('unbounded-read')).toEqual([18, 22]);
+  });
+
+  it('ranks an unbounded read by the growth of its table', () => {
+    writeFixture(
+      'apps/server/api/src/mixed/mixed.service.ts',
+      `
+      export class MixedService {
+        constructor(private readonly prisma: PrismaService) {}
+
+        posts(organizationId: string) {
+          return this.prisma.post.findMany({ where: { organizationId } });
+        }
+
+        brands(organizationId: string) {
+          return this.prisma.brand.findMany({ where: { organizationId } });
+        }
+
+        models() {
+          return this.prisma.model.findMany({ where: { isDeleted: false } });
+        }
+
+        invented(organizationId: string) {
+          return this.prisma.notYetClassified.findMany({
+            where: { organizationId },
+          });
+        }
+      }
+      `,
+    );
+
+    const { findings } = runSqlRiskAudit({ rootDir: testDir });
+
+    expect(findings.map((finding) => [finding.model, finding.growth])).toEqual([
+      ['post', 'growing'],
+      ['brand', 'config'],
+      ['model', 'catalog'],
+      ['notYetClassified', 'unclassified'],
+    ]);
+  });
+
+  it('accepts an unbounded-read suppression that gives a reason', () => {
+    writeFixture(
+      'apps/server/api/src/seed/seed.service.ts',
+      `
+      export class SeedService {
+        constructor(private readonly prisma: PrismaService) {}
+
+        withReason(organizationId: string) {
+          // sql-risk-audit: ignore unbounded-read -- one row per brand, capped at 10 by plan
+          return this.prisma.brand.findMany({ where: { organizationId } });
+        }
+
+        withoutReason(organizationId: string) {
+          // sql-risk-audit: ignore unbounded-read
+          return this.prisma.brand.findMany({ where: { organizationId } });
+        }
+      }
+      `,
+    );
+
+    const { findings } = runSqlRiskAudit({ rootDir: testDir });
+
+    expect(findings.map((finding) => finding.line)).toEqual([12]);
+  });
+});
+
 function writeFixture(relativePath: string, content: string): void {
   const filePath = path.join(process.cwd(), relativePath);
   mkdirSync(path.dirname(filePath), { recursive: true });

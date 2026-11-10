@@ -1,7 +1,6 @@
 vi.unmock('@genfeedai/prisma');
 
 import { runWithActionOrigin } from '@api/index';
-import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   ActionOrigin,
   ActivityKey,
@@ -14,7 +13,6 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
 import { WORKFLOW_EXECUTION_TERMINAL_EVENT } from '../constants/workflow-execution-events.constants';
-import { buildCustomerExecutionWhere } from './workflow-execution-query.util';
 import { WorkflowExecutionsService } from './workflow-executions.service';
 
 describe('WorkflowExecutionsService', () => {
@@ -29,6 +27,7 @@ describe('WorkflowExecutionsService', () => {
     closeTerminal: ReturnType<typeof vi.fn>;
   }) => {
     const workflowExecution = {
+      aggregate: vi.fn().mockResolvedValue({ _avg: { durationMs: null } }),
       create: vi.fn().mockResolvedValue({ id: 'execution-1' }),
       findFirst: vi.fn().mockResolvedValue({
         organizationId: 'org-1',
@@ -44,6 +43,7 @@ describe('WorkflowExecutionsService', () => {
         workflowId: 'workflow-1',
       }),
       findMany: vi.fn().mockResolvedValue([]),
+      groupBy: vi.fn().mockResolvedValue([]),
       update: vi.fn().mockResolvedValue({ id: 'execution-1' }),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       upsert: vi.fn().mockResolvedValue({ id: 'execution-idempotent' }),
@@ -489,22 +489,19 @@ describe('WorkflowExecutionsService', () => {
     );
   });
 
-  it('counts execution stats from scalar duration columns', async () => {
+  it('counts execution stats in SQL, averaging only positive durations', async () => {
     const { prisma, service } = makeService();
-    prisma.workflowExecution.findMany.mockResolvedValue([
+    prisma.workflowExecution.groupBy.mockResolvedValue([
       {
-        durationMs: 1000,
+        _count: { _all: 2 },
         status: PrismaWorkflowExecutionStatus.COMPLETED,
       },
-      {
-        durationMs: 3000,
-        status: PrismaWorkflowExecutionStatus.COMPLETED,
-      },
-      {
-        durationMs: null,
-        status: PrismaWorkflowExecutionStatus.FAILED,
-      },
+      { _count: { _all: 1 }, status: PrismaWorkflowExecutionStatus.FAILED },
+      { _count: { _all: 4 }, status: PrismaWorkflowExecutionStatus.CANCELLED },
     ]);
+    prisma.workflowExecution.aggregate.mockResolvedValue({
+      _avg: { durationMs: 2000 },
+    });
 
     await expect(
       service.getExecutionStats('workflow-1', 'org-1'),
@@ -512,15 +509,34 @@ describe('WorkflowExecutionsService', () => {
       avgDurationMs: 2000,
       completed: 2,
       failed: 1,
-      total: 3,
+      total: 7,
     });
-    expect(prisma.workflowExecution.findMany).toHaveBeenCalledWith({
-      select: { durationMs: true, status: true },
-      where: scopedWhere(
-        'org-1',
-        buildCustomerExecutionWhere('org-1', { workflowId: 'workflow-1' }),
-      ),
+    expect(prisma.workflowExecution.findMany).not.toHaveBeenCalled();
+    const scope = expect.objectContaining({
+      isDeleted: false,
+      organizationId: 'org-1',
+      workflowId: 'workflow-1',
     });
+    expect(prisma.workflowExecution.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({ by: ['status'], where: scope }),
+    );
+    expect(prisma.workflowExecution.aggregate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { AND: [scope, { durationMs: { gt: 0 } }] },
+      }),
+    );
+  });
+
+  it('reports a zero average when no execution has a recorded duration', async () => {
+    const { prisma, service } = makeService();
+    prisma.workflowExecution.groupBy.mockResolvedValue([]);
+    prisma.workflowExecution.aggregate.mockResolvedValue({
+      _avg: { durationMs: null },
+    });
+
+    await expect(
+      service.getExecutionStats('workflow-1', 'org-1'),
+    ).resolves.toEqual({ avgDurationMs: 0, completed: 0, failed: 0, total: 0 });
   });
 
   it('completes executions with scalar progress and ETA columns, not result JSON', async () => {
