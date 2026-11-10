@@ -224,6 +224,30 @@ Judgment, no check: one PR per change, no new env vars, name the root cause, CI 
 - Do not create local task markdown files.
 - Before opening an issue: `gh issue list --state all --search "<keywords>" --repo genfeedai/genfeed.ai`.
 
+## Pull Requests — draft until ready
+
+**Open every PR as a draft, iterate while it is a draft, mark it ready once.** CI does not run
+on a draft: Plan, Static Checks and the test jobs are skipped, and `Validation Verdict` fails
+until the PR is ready, so a draft cannot merge by accident. A push to a draft costs no runner
+time. A push to a ready PR starts a full run and cancels the one before it, and those cancelled
+runs were 35% of PR runner time (242 of 691 runner-hours, 2026-11-04 to 11-06; issue #8614).
+
+- Create the PR with `gh pr create --draft` (or `draft: true` in the GitHub tool).
+- While it is a draft, push as often as you like. Run `bun run preflight` before you mark it
+  ready; it runs the checks that fail most often in CI (executable contracts, spec typecheck
+  ratchet, Biome, affected typecheck) for the files you changed.
+- Merge `master` into the branch before marking ready, so the one run tests the head that will
+  merge. Resolve conflicts and re-run preflight first if the merge touched your files.
+- Mark it ready (`gh pr ready`, or `draft: false`) only when the branch is finished. That
+  starts the single run.
+- After it is ready, push only to fix a red check or a review comment. Batch review fixes into
+  one push. Do not push partial work, formatting or follow-up tests to a ready PR; each push
+  cancels the run in progress.
+- If a ready PR needs more than a fix (new scope, a rework), convert it back to draft, push
+  there, and mark it ready once more. A run already in progress keeps running until it ends
+  or a newer ready push replaces it.
+- Squash-merge a green ready PR right away.
+
 ## Documentation
 
 - `.agents/README.md` — Navigation hub for all project docs
