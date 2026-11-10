@@ -42,7 +42,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import type {
   SkillsPageAction as PageAction,
   SkillsPageState as PageState,
@@ -302,7 +301,6 @@ export default function BrandSettingsSkillsPage() {
   const searchParamsString = searchParams.toString();
   const currentPage = Number(searchParams.get('page')) || 1;
   const { href } = useOrgUrl();
-  const isAgentAvailable = useIsAppAvailable('agent');
   const { getToken, userId, sessionId, isSignedIn } = useAuthIdentity();
   const routedOrganization = useRoutedOrganization();
   const { brandId, isReady, selectedBrand } = useBrand();
@@ -1019,11 +1017,7 @@ export default function BrandSettingsSkillsPage() {
         />
       }
       refresh={<ButtonRefresh onClick={() => void refreshCatalog()} />}
-      right={
-        isAgentAvailable ? (
-          <SkillAgentAction agentHref={href(APP_ROUTES.AGENT.ROOT)} />
-        ) : undefined
-      }
+      right={<SkillAgentAction agentHref={href(APP_ROUTES.AGENT.ROOT)} />}
       titleVisibility="sr-only"
     >
       {error && !selectedSkill ? (
@@ -1160,9 +1154,7 @@ export default function BrandSettingsSkillsPage() {
         onClose={handleCloseDetail}
         onExportSkill={() => void handleExportSkill()}
         onCustomize={() => void handleCustomize()}
-        onOpenSamplePrompt={
-          isAgentAvailable ? handleOpenSamplePrompt : undefined
-        }
+        onOpenSamplePrompt={handleOpenSamplePrompt}
         onSaveSkill={() => void handleSaveSkill()}
         onSkillDraftChange={(updater) =>
           isScopeMatch &&

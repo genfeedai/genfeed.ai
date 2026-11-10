@@ -88,7 +88,7 @@ export function useHasAppsBeyondDashboard(): boolean {
  * launcher app is absent while organization settings load, so no link flashes
  * before it is known to lead somewhere.
  */
-export function useOrganizationAppIds(): ReadonlySet<string> {
+function useOrganizationAppIds(): ReadonlySet<string> {
   const { moduleAccess, modulePreferences, platformFlags } =
     useOrganizationModuleView();
   return useMemo(

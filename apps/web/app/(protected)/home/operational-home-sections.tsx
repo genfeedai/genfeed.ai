@@ -51,7 +51,6 @@ import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
-import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
   getActivityDescription,
@@ -78,6 +77,7 @@ import { useActivities } from '@/hooks/data/activities/use-activities/use-activi
 import { useOverviewBootstrap } from '@/hooks/data/overview/use-overview-bootstrap';
 import { useWorkflowExecutions } from '@/hooks/data/workflow-executions/use-workflow-executions';
 import { useActivityMessageFormatter } from '@/hooks/i18n/useActivityMessageFormatter';
+import OpenRunButton from './open-run-button';
 import {
   getActivityBadge,
   getCredentialBadge,
@@ -235,7 +235,6 @@ function NeedsYouSurface({
   reviewInbox: OverviewBootstrapPayload['reviewInbox'];
 }) {
   const translate = useTranslations('common');
-  const isAutomationAvailable = useIsAppAvailable('automation');
   const [approvingItemId, setApprovingItemId] = useState<string | null>(null);
   const brandSetupHref = createOrganizationAppRoute(
     orgSlug,
@@ -441,17 +440,10 @@ function NeedsYouSurface({
                     WORKFLOW_UNAVAILABLE_LABEL,
                   )}
                   trailing={
-                    isAutomationAvailable ? (
-                      <Button
-                        asChild
-                        size={ButtonSize.SM}
-                        variant={ButtonVariant.GHOST}
-                      >
-                        <Link href={runHref(execution.id)}>
-                          {translate('home.approvals.openItem')}
-                        </Link>
-                      </Button>
-                    ) : undefined
+                    <OpenRunButton
+                      href={runHref(execution.id)}
+                      label={translate('home.approvals.openItem')}
+                    />
                   }
                 />
               );

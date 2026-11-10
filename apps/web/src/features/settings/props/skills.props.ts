@@ -46,8 +46,7 @@ export type SkillDetailPanelProps = SkillDetailCardProps & {
   onArchiveSkill?: () => void;
   onClose: () => void;
   onExportSkill?: () => void;
-  /** Absent while the organization does not have the Agent app. */
-  onOpenSamplePrompt?: () => void;
+  onOpenSamplePrompt: () => void;
 };
 
 export type SkillImportFields = {
