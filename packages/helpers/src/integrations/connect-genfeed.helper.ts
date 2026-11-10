@@ -15,6 +15,8 @@ const ENVIRONMENT_VARIABLE = 'GENFEED_API_KEY';
 /** Codex needs generation tools, so its install URL selects the studio profile. */
 export const GENFEED_CODEX_MCP_PROFILE = 'studio';
 export const GENFEED_SKILLS_INSTALL_COMMAND = 'npx skills add genfeedai/agent';
+/** Name of the second server a Claude client adds to get generation tools. */
+export const GENFEED_CLAUDE_MEDIA_SERVER_NAME = 'genfeed-media';
 
 function normalizeEndpoint(endpoint: string): string {
   const url = new URL(endpoint);
@@ -44,6 +46,47 @@ function withCodexProfile(endpoint: string): string {
   return `${endpoint}?profile=${GENFEED_CODEX_MCP_PROFILE}`;
 }
 
+function toShellArgument(value: string): string {
+  return SAFE_URL_CHARS_PATTERN.test(value)
+    ? value
+    : `'${value.replace(SINGLE_QUOTES_PATTERN, `'"'"'`)}'`;
+}
+
+/** The standard endpoint for a URL that may point at the Claude connector. */
+function toStandardEndpoint(endpoint: string): string {
+  const url = new URL(normalizeEndpoint(endpoint));
+  if (
+    url.pathname
+      .replace(TRAILING_SLASHES_PATTERN, '')
+      .toLowerCase()
+      .endsWith('/mcp/claude')
+  ) {
+    url.pathname = url.pathname.replace(CLAUDE_MCP_PATH_SUFFIX_PATTERN, '/mcp');
+    url.search = '';
+    url.hash = '';
+  }
+  return normalizeEndpoint(url.toString());
+}
+
+/**
+ * The standard endpoint with its default tools: a picked profile or toolset
+ * could leave generation out.
+ */
+export function toDefaultStandardEndpoint(endpoint: string): string {
+  const url = new URL(toStandardEndpoint(endpoint));
+  url.search = '';
+  url.hash = '';
+  return normalizeEndpoint(url.toString());
+}
+
+/**
+ * Claude Code command that adds the standard server, which carries image,
+ * video and audio generation, beside the Claude connector.
+ */
+export function buildClaudeCodeMediaMcpCommand(endpoint: string): string {
+  return `claude mcp add --transport http ${GENFEED_CLAUDE_MEDIA_SERVER_NAME} --scope user ${toShellArgument(toDefaultStandardEndpoint(endpoint))}`;
+}
+
 /**
  * A message the user pastes into a chat agent that builds its own connectors
  * from a remote MCP URL (Meta Muse, Grok Bot). The agent adds the server,
@@ -68,21 +111,8 @@ export function buildGenfeedAgentSetupPrompt(
   endpoint: string,
   clientName = 'the local agent I am using',
 ): string {
-  const standardUrl = new URL(normalizeEndpoint(endpoint));
-  if (
-    standardUrl.pathname
-      .replace(TRAILING_SLASHES_PATTERN, '')
-      .toLowerCase()
-      .endsWith('/mcp/claude')
-  ) {
-    standardUrl.pathname = standardUrl.pathname.replace(
-      CLAUDE_MCP_PATH_SUFFIX_PATTERN,
-      '/mcp',
-    );
-    standardUrl.search = '';
-    standardUrl.hash = '';
-  }
-  const mcpEndpoint = normalizeEndpoint(standardUrl.toString());
+  const mcpEndpoint = toStandardEndpoint(endpoint);
+  const standardUrl = new URL(mcpEndpoint);
   const claude = buildConnectGenfeedInstructions('claude-code', mcpEndpoint);
   standardUrl.search = '';
   standardUrl.hash = '';
@@ -94,8 +124,8 @@ export function buildGenfeedAgentSetupPrompt(
   return `Set up the Genfeed MCP server on this machine, with its agent playbook, for ${clientName}.
 
 Endpoint: ${mcpEndpoint}
-Claude endpoint: ${claudeEndpoint} (use this for every Claude client).
-Claude supports brands, drafts, scheduling and analytics. Create media in Genfeed Studio.
+Claude endpoint: ${claudeEndpoint} (the connector for every Claude client).
+The Claude endpoint covers brands, drafts, scheduling and analytics. For image, video and audio generation in a Claude client, add the standard endpoint above as a second server named ${GENFEED_CLAUDE_MEDIA_SERVER_NAME}.
 Authentication: browser OAuth (no API key required)
 Setup reference: https://github.com/genfeedai/agent/blob/main/llms-install.md
 
@@ -109,7 +139,7 @@ Do this end to end:
 
 ${codex.configuration}
 
-For other clients, follow their supported remote MCP configuration. Claude and Cowork must use the Claude endpoint; other clients use the standard endpoint above. Do not duplicate a server provided by an installed plugin.
+For other clients, follow their supported remote MCP configuration. Claude and Cowork use the Claude endpoint, and add the standard endpoint above as a second server named ${GENFEED_CLAUDE_MEDIA_SERVER_NAME} only when the user asks for image, video or audio generation; other clients use the standard endpoint above. Do not duplicate a server provided by an installed plugin.
 4. Only for Claude Code: ${claude.authorizationInstruction}
    Only for Codex: ${codex.authorizationInstruction}
    For other clients, open their OAuth connection flow. Authenticate only the selected client.
@@ -141,9 +171,7 @@ export function buildConnectGenfeedInstructions(
     : client === 'codex'
       ? withCodexProfile(normalizeEndpoint(endpoint))
       : normalizeEndpoint(endpoint);
-  const shellEndpoint = SAFE_URL_CHARS_PATTERN.test(mcpEndpoint)
-    ? mcpEndpoint
-    : `'${mcpEndpoint.replace(SINGLE_QUOTES_PATTERN, `'"'"'`)}'`;
+  const shellEndpoint = toShellArgument(mcpEndpoint);
 
   if (authMethod === 'oauth') {
     const authorizationInstruction =

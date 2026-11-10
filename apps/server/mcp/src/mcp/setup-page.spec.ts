@@ -771,6 +771,25 @@ describe('MCP setup page', () => {
       );
     });
 
+    it('offers Claude clients the full server for image, video and audio generation', () => {
+      const dom = new JSDOM(renderSetupPage());
+      const text = (id: string): string =>
+        dom.window.document.getElementById(id)?.textContent ?? '';
+
+      expect(text('claude-code-command')).toBe(
+        'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude',
+      );
+      expect(text('claude-code-media-command')).toBe(
+        'claude mcp add --transport http genfeed-media --scope user https://mcp.genfeed.ai/mcp',
+      );
+      expect(text('claude-chat-url')).toBe('https://mcp.genfeed.ai/mcp/claude');
+      expect(text('claude-chat-media-url')).toBe('https://mcp.genfeed.ai/mcp');
+      expect(dom.window.document.body.textContent).not.toContain(
+        'Genfeed Studio',
+      );
+      dom.window.close();
+    });
+
     it('keeps Claude Code and Claude & Cowork as separate tabs', () => {
       const document = new JSDOM(renderSetupPage()).window.document;
 

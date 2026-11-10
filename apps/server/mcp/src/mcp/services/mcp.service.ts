@@ -82,7 +82,7 @@ bearer_token_env_var = "GENFEED_API_KEY"`,
         steps: [
           '1. Add the dedicated /mcp/claude endpoint to Claude Code and complete browser OAuth through /mcp',
           '2. For Codex or other clients using manual authentication, create a scoped key and export GENFEED_API_KEY in the client environment',
-          '3. Claude supports brands, drafts, existing assets, scheduling and analytics; create media in Genfeed Studio',
+          '3. Claude supports brands, drafts, existing assets, scheduling and analytics; for image, video and audio generation, add the standard /mcp endpoint as a second server',
           '4. Verify authorization by asking your client to list Genfeed brands',
         ],
       },

@@ -1,4 +1,5 @@
 import {
+  buildClaudeCodeMediaMcpCommand,
   buildConnectGenfeedChatPrompt,
   buildConnectGenfeedInstructions,
   buildGenfeedAgentSetupPrompt,
@@ -69,6 +70,35 @@ describe('Claude setup endpoint separation', () => {
       expect(prompt).toContain('For non-Claude clients, install');
     },
   );
+});
+
+describe('generation for Claude clients', () => {
+  it.each([
+    ['https://mcp.genfeed.ai/mcp'],
+    ['https://mcp.genfeed.ai/mcp/'],
+    ['https://mcp.genfeed.ai/mcp/claude'],
+    ['https://mcp.genfeed.ai/MCP/Claude/?profile=full'],
+    ['https://mcp.genfeed.ai/mcp?toolsets=content'],
+  ])('adds the standard server with its default tools from %s', (endpoint) => {
+    expect(buildClaudeCodeMediaMcpCommand(endpoint)).toBe(
+      'claude mcp add --transport http genfeed-media --scope user https://mcp.genfeed.ai/mcp',
+    );
+  });
+
+  it('tells a Claude client where generation lives in the setup prompt', () => {
+    const prompt = buildGenfeedAgentSetupPrompt(
+      'https://mcp.genfeed.ai/mcp',
+      'Claude Code',
+    );
+
+    expect(prompt).toContain(
+      'For image, video and audio generation in a Claude client, add the standard endpoint above as a second server named genfeed-media.',
+    );
+    expect(prompt).toContain(
+      'add the standard endpoint above as a second server named genfeed-media only when the user asks for image, video or audio generation',
+    );
+    expect(prompt).not.toContain('Genfeed Studio');
+  });
 });
 
 describe('buildConnectGenfeedChatPrompt', () => {

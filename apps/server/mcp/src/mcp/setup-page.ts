@@ -10,11 +10,13 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { McpResourceIdentifierResolution } from '@genfeedai/contracts/interfaces';
 import {
+  buildClaudeCodeMediaMcpCommand,
   buildConnectGenfeedChatPrompt,
   buildConnectGenfeedInstructions,
   buildGenfeedAgentSetupPrompt,
   GENFEED_CODEX_MCP_PROFILE,
   GENFEED_SKILLS_INSTALL_COMMAND,
+  toDefaultStandardEndpoint,
 } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import {
   deriveClaudeMcpResourceIdentifier,
@@ -469,6 +471,10 @@ export function renderSetupPage(
   const chatPrompt = buildConnectGenfeedChatPrompt(mcpUrl);
 
   const claudeCommandSafe = escapeHtml(claude.primaryCommand ?? '');
+  const claudeMediaCommandSafe = escapeHtml(
+    buildClaudeCodeMediaMcpCommand(mcpUrl),
+  );
+  const claudeMediaUrlSafe = escapeHtml(toDefaultStandardEndpoint(mcpUrl));
   const codexCommandSafe = escapeHtml(codex.primaryCommand ?? '');
   const genericConfigSafe = escapeHtml(generic.configuration);
   const genericAuthSafe = escapeHtml(generic.authorizationInstruction);
@@ -951,7 +957,7 @@ ${postHogSnippet}
   <header class="hero">
     <p class="eyebrow">MCP server</p>
     <h1>Connect any AI agent to Genfeed.</h1>
-    <p class="lede">Draft, schedule and measure content through your AI client. Claude uses your brands and existing assets; create images, video and audio in Genfeed Studio. Other clients can also generate through MCP.</p>
+    <p class="lede">Draft, schedule and measure content through your AI client. The Claude connector covers brands, drafts, scheduling and analytics; add the full server below as a second connector to generate images, video and audio from Claude. Other clients generate through MCP directly.</p>
     <div class="hero-endpoint">
       <div class="${ui.codeBlock} endpoint-code" id="mcp-url">${mcpUrlSafe}</div>
       <button class="${ui.buttonSecondary} copy" type="button" id="mcp-url-copy" data-copy="${mcpUrlSafe}" aria-label="Copy MCP endpoint">Copy</button>
@@ -986,15 +992,23 @@ ${postHogSnippet}
             <span class="step-number">01</span>
             <div>
               <p class="step-title">Add the MCP server</p>
-              <p class="step-copy">Registers the Claude connector in user scope with browser OAuth. Use brands, drafts, scheduling and analytics here; create media in Genfeed Studio.</p>
+              <p class="step-copy">Registers the Claude connector in user scope with browser OAuth. It covers brands, drafts, scheduling and analytics.</p>
               ${renderCommandBlock({ id: 'claude-code-command', label: 'Copy Claude Code command', textSafe: claudeCommandSafe, ui })}
             </div>
           </li>
           <li class="step">
             <span class="step-number">02</span>
             <div>
+              <p class="step-title">Add image, video and audio generation</p>
+              <p class="step-copy">Optional. Registers the full Genfeed server as a second server, with the generation tools the Claude connector does not carry.</p>
+              ${renderCommandBlock({ id: 'claude-code-media-command', label: 'Copy Claude Code generation command', textSafe: claudeMediaCommandSafe, ui })}
+            </div>
+          </li>
+          <li class="step">
+            <span class="step-number">03</span>
+            <div>
               <p class="step-title">Authorize and verify</p>
-              <p class="step-copy">Open <code class="${ui.inlineCode}">/mcp</code> in Claude Code, select genfeed, and sign in. Then ask it to list your Genfeed brands.</p>
+              <p class="step-copy">Open <code class="${ui.inlineCode}">/mcp</code> in Claude Code, select each Genfeed server you added, and sign in. Then ask it to list your Genfeed brands.</p>
             </div>
           </li>
         </ol>
@@ -1002,8 +1016,10 @@ ${postHogSnippet}
 
       <section class="${panelClass('claude-chat')}" id="panel-claude-chat" role="tabpanel" aria-labelledby="tab-claude-chat" data-panel="claude-chat">
         <h3 class="instruction-title">Claude and Cowork setup</h3>
-        <p class="step-copy">Add a custom connector in Claude with the URL below and complete browser OAuth. Use it for brands, drafts, scheduling and analytics. Create images, video and audio in Genfeed Studio. Reconnect existing installations with this URL. Genfeed is not yet listed in the public Claude directory.</p>
+        <p class="step-copy">Add a custom connector in Claude with the URL below and complete browser OAuth. Use it for brands, drafts, scheduling and analytics. Reconnect existing installations with this URL. Genfeed is not yet listed in the public Claude directory.</p>
         ${renderCommandBlock({ id: 'claude-chat-url', label: 'Copy Claude connector URL', textSafe: claudeUrlSafe, ui })}
+        <p class="step-copy">To generate images, video and audio from Claude, add the full Genfeed server as a second custom connector with this URL.</p>
+        ${renderCommandBlock({ id: 'claude-chat-media-url', label: 'Copy full Genfeed server URL', textSafe: claudeMediaUrlSafe, ui })}
       </section>
 
       <section class="${panelClass('codex')}" id="panel-codex" role="tabpanel" aria-labelledby="tab-codex" data-panel="codex">

@@ -43,7 +43,13 @@ select `genfeed`, and complete browser OAuth:
 claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp/claude
 ```
 
-Media creation happens separately in Genfeed Studio in your instance's web app.
+This connector does not generate media. To generate images, video and audio
+from Claude Code, add the standard endpoint as a second server:
+
+```bash
+claude mcp add --transport http genfeed-media --scope user http://localhost:3014/mcp
+```
+
 Configure your deployment's public app, API, and MCP URLs so OAuth discovery
 points at addresses your browser can reach; see
 [Configuration](/self-host/configuration#public-urls).
@@ -673,14 +679,15 @@ account cookies.
 
 Connect to `http://localhost:3014/mcp/claude` with browser OAuth (see
 [Claude Code](#claude-code) above). This connector supports brands, drafts,
-existing assets, scheduling and analytics. Create images, video and audio in
-Genfeed Studio in your instance's web app, then return to Claude to manage your
-content. Opening Studio does not start generation.
+existing assets, scheduling and analytics. It does not generate media. To
+generate images, video and audio from a Claude client, add the standard
+endpoint (`http://localhost:3014/mcp`) as a second custom connector; it
+authorizes separately and carries the generation tools.
 
 This is a custom connector; Genfeed is not yet submitted or published in the public Claude directory.
 Existing connections to `/mcp` retain their original capabilities.
 
-The restriction is bound to the OAuth resource, persists across token refresh and is enforced on execution and discovery. Changing the toolset/profile or using the Claude token on `/mcp` does not enable generation. Workflows, Turbo runs, remix, arbitrary agent calls and approval redemption are unavailable through this connector. Other clients use the standard `/mcp` connector.
+The restriction is bound to the OAuth resource, persists across token refresh and is enforced on execution and discovery. Changing the toolset/profile or using the Claude token on `/mcp` does not enable generation; a separate connection to `/mcp` has its own grant. Workflows, Turbo runs, remix, arbitrary agent calls and approval redemption are unavailable through this connector. Other clients use the standard `/mcp` connector.
 
 ## Troubleshooting
 
