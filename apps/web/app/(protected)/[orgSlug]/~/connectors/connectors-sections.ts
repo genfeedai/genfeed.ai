@@ -1,21 +1,10 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type {
+  ConnectorsSection,
+  ConnectorsSectionConfig,
+} from '@genfeedai/props/pages/connectors.props';
 import type { LucideIcon } from 'lucide-react';
 import { Bot, Key, Plug, PlugZap, UsersRound, Webhook } from 'lucide-react';
-
-export type ConnectorsSection =
-  | 'agents'
-  | 'api-keys'
-  | 'channels'
-  | 'providers'
-  | 'webhooks';
-
-interface ConnectorsSectionConfig {
-  icon: LucideIcon;
-  /** Key under `pages.connectors.sections`. */
-  labelKey: 'agents' | 'apiKeys' | 'channels' | 'providers' | 'webhooks';
-  path: string;
-  section: ConnectorsSection;
-}
 
 /** The Connectors sections, in the order the section menu lists them. */
 export const CONNECTORS_SECTIONS: readonly ConnectorsSectionConfig[] = [

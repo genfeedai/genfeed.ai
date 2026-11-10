@@ -276,7 +276,7 @@
     "symbol": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/skills/content.tsx"
   },
   {
-    "actual": 1061,
+    "actual": 1053,
     "file": "apps/web/app/(protected)/home/operational-home-sections.tsx",
     "metric": "file-lines",
     "symbol": "apps/web/app/(protected)/home/operational-home-sections.tsx"

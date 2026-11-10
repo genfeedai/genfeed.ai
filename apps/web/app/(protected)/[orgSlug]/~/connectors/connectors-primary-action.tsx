@@ -1,15 +1,10 @@
 'use client';
 
+import type {
+  ConnectorsPrimaryAction,
+  ConnectorsPrimaryActionContextValue,
+} from '@genfeedai/props/pages/connectors.props';
 import { createContext, useContext, useEffect } from 'react';
-
-export interface ConnectorsPrimaryAction {
-  label: string;
-  onClick: () => void;
-}
-
-interface ConnectorsPrimaryActionContextValue {
-  setPrimaryAction: (action: ConnectorsPrimaryAction | null) => void;
-}
 
 export const ConnectorsPrimaryActionContext =
   createContext<ConnectorsPrimaryActionContextValue>({

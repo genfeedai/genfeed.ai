@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import type { ConnectorsSection } from '@genfeedai/props/pages/connectors.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { LayoutProps } from '@props/layout/layout.props';
 import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
@@ -17,7 +18,6 @@ import {
 import {
   CONNECTORS_ICON,
   CONNECTORS_SECTIONS,
-  type ConnectorsSection,
   isConnectorsSection,
 } from './connectors-sections';
 

@@ -158,10 +158,7 @@ const BRAND_SCOPED_PREFIXES = [
   APP_ROUTE_PREFIXES.WORKSPACE.slice(1),
 ] as const;
 
-const ORG_SCOPED_PREFIXES = [
-  APP_ROUTE_PREFIXES.SETTINGS.slice(1),
-  APP_ROUTES.CONNECTORS.ROOT.slice(1),
-] as const;
+const ORG_SCOPED_PREFIXES = ['settings', 'connectors'] as const;
 
 const FLAT_PATH_REDIRECTS = new Map<string, string>([
   [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
@@ -862,11 +859,10 @@ type CanonicalResolution = {
 const ORG_ROOT_APP_PREFIXES = [
   'analytics',
   'agent',
-  APP_ROUTES.CONNECTORS.ROOT.slice(1),
   'discovery',
   'library',
   'publishing',
-  'settings',
+  ...ORG_SCOPED_PREFIXES,
   'workspace',
   ...STUDIO_APP_ROUTE_PREFIXES.map((prefix) => prefix.slice(1)),
 ] as const;

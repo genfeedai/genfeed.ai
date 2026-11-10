@@ -2,11 +2,8 @@ import {
   APP_ROUTES,
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
+import type { ConnectorsRootPageProps } from '@genfeedai/props/pages/connectors.props';
 import { redirect } from 'next/navigation';
-
-interface ConnectorsRootPageProps {
-  params: Promise<{ orgSlug: string }>;
-}
 
 /** The bare Connectors path opens its first section. */
 export default async function ConnectorsRootPage({
