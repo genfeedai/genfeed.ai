@@ -512,6 +512,19 @@ describe('WorkflowExecutionsService', () => {
       total: 7,
     });
     expect(prisma.workflowExecution.findMany).not.toHaveBeenCalled();
+    const scope = expect.objectContaining({
+      isDeleted: false,
+      organizationId: 'org-1',
+      workflowId: 'workflow-1',
+    });
+    expect(prisma.workflowExecution.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({ by: ['status'], where: scope }),
+    );
+    expect(prisma.workflowExecution.aggregate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { AND: [scope, { durationMs: { gt: 0 } }] },
+      }),
+    );
   });
 
   it('reports a zero average when no execution has a recorded duration', async () => {
