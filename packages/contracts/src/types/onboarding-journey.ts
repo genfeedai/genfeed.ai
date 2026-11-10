@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '../constants/routes.constant';
 import type { OnboardingAnswerFieldId } from '../interfaces/onboarding/onboarding-answers.interface';
 import type {
   IOnboardingJourneyMissionDefinition,
@@ -46,10 +47,10 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
         'Better company context gives GenFeed better prompts, voice, and visual direction.',
     },
     {
-      ctaHref: '/onboarding/providers',
-      ctaLabel: 'Configure providers',
+      ctaHref: APP_ROUTES.CONNECT,
+      ctaLabel: 'Connect your agent',
       description:
-        'Generate your first image right away from the context you just shared.',
+        'Ask your agent for your first image, made from the brand context you just shared.',
       id: 'generate_first_image',
       label: 'Generate your first image',
       rewardCredits: 15,
@@ -58,8 +59,8 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
         'Your first image proves the workflow works and gives the agent a concrete artifact to build on.',
     },
     {
-      ctaHref: '/onboarding/providers',
-      ctaLabel: 'Configure providers',
+      ctaHref: '/settings/brands',
+      ctaLabel: 'Connect channels',
       description:
         'Connect your first social account so GenFeed can tailor content to real channels.',
       id: 'connect_social_account',
@@ -73,10 +74,10 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
         'Connected channels unlock platform-aware workflows and publishing.',
     },
     {
-      ctaHref: '/onboarding/providers',
-      ctaLabel: 'Configure providers',
+      ctaHref: APP_ROUTES.CONNECT,
+      ctaLabel: 'Connect your agent',
       description:
-        'Generate your first video to unlock richer content creation.',
+        'Ask your agent for your first video to unlock richer content creation.',
       id: 'generate_first_video',
       label: 'Generate your first video',
       rewardCredits: 20,
@@ -85,14 +86,14 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
         'Video is a higher-value content path and a stronger activation milestone.',
     },
     {
-      ctaHref: '/onboarding/providers',
-      ctaLabel: 'Configure providers',
+      ctaHref: APP_ROUTES.CONNECT,
+      ctaLabel: 'Connect your agent',
       description:
         'Publish your first post to complete the journey and claim the final reward.',
       id: 'publish_first_post',
       label: 'Publish your first post',
       rewardCredits: 70,
-      selfHostedCtaHref: '/agent/new',
+      selfHostedCtaHref: APP_ROUTES.CONNECT,
       whyItMatters:
         'Publishing closes the loop from setup to real output and proves time-to-value.',
     },

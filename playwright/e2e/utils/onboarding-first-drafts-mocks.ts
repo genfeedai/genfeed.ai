@@ -1,5 +1,6 @@
 import type { IOnboardingDraftRun } from '@genfeedai/contracts/interfaces';
 import type { Page } from '@playwright/test';
+import { createPlaywrightMockApiRoutePattern } from '../config/environment';
 
 interface FirstDraftsMockOptions {
   /** Called once when the draft request resolves, so a test can record progress. */
@@ -11,8 +12,8 @@ interface FirstDraftsMockOptions {
 const PLATFORMS = ['twitter', 'instagram', 'tiktok', 'linkedin'] as const;
 
 /**
- * Mocks the two onboarding endpoints behind the output-first page: the link
- * scan and the first drafts. Registered per page, so a test sees only its own
+ * Mocks the onboarding endpoints behind the output-first page: the link scan,
+ * the first drafts and the empty API key list the agent step polls. Registered per page, so a test sees only its own
  * requests.
  */
 export async function setupOnboardingFirstDraftsMocks(
@@ -21,6 +22,23 @@ export async function setupOnboardingFirstDraftsMocks(
 ): Promise<{ draftRequests: Array<Record<string, unknown>> }> {
   const draftRequests: Array<Record<string, unknown>> = [];
   let saved: IOnboardingDraftRun | null = null;
+
+  // The agent step reads the organization's API keys to see whether an agent
+  // has connected; a new member has none, so it waits.
+  await page.route(
+    createPlaywrightMockApiRoutePattern('api-keys(?:[/?]|$)'),
+    async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.fallback();
+        return;
+      }
+      await route.fulfill({
+        body: JSON.stringify({ data: [], meta: { totalCount: 0 } }),
+        contentType: 'application/json',
+        status: 200,
+      });
+    },
+  );
 
   await page.route('**/v1/onboarding/brands/*/scan', async (route) => {
     await route.fulfill({
