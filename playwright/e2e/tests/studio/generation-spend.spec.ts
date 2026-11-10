@@ -304,6 +304,16 @@ async function mountPlayground(
     .getByTestId('studio-playground-prompt')
     .getByRole('textbox');
   await expect(editor).toBeVisible();
+  // The edit entry loads the source after the saved draft; typing before it
+  // lands would ask "Replace your draft?" and block the page.
+  const editSourceId = new URL(path, 'http://localhost').searchParams.get(
+    'editImage',
+  );
+  if (editSourceId) {
+    await expect(
+      page.getByRole('group', { name: `Editing target: ${editSourceId}` }),
+    ).toBeVisible();
+  }
   return { editor, generationBodies, generationWrites, wallet };
 }
 
