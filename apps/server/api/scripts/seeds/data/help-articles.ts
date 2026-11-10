@@ -103,7 +103,7 @@ details are in
 
 <h2>3. Connect an account</h2>
 <p>To publish, connect at least one channel to your brand. Open the brand's
-settings, choose <strong>Connected accounts</strong>, then
+settings, choose <strong>Accounts</strong>, then
 <strong>Connect account</strong> and pick a platform. You can skip this step and
 still save drafts. The full walkthrough is in
 <a href="${articleUrl(SLUGS.connectAccounts)}">Connect your social accounts</a>.</p>
@@ -412,7 +412,7 @@ selected.</p>
   <li><strong>Brand Kit:</strong> visual identity, writing voice and strategy.
   </li>
   <li><strong>Knowledge:</strong> saved sources generations can cite.</li>
-  <li><strong>Connected accounts:</strong> the channels this brand publishes to.
+  <li><strong>Accounts:</strong> the channels this brand publishes to.
   </li>
   <li><strong>Agent settings:</strong> what the agent is given about the brand.
   </li>
@@ -428,7 +428,7 @@ and <a href="${articleUrl(SLUGS.approvalQueue)}">The approval queue</a>.</p>
 
 <h2>Credentials and security</h2>
 <p>Provider keys and social credentials are secrets. Add them only through the
-Integrations and Connected accounts pages, and never paste them into chats,
+Integrations and Accounts pages, and never paste them into chats,
 screenshots or public issues. Report a suspected security problem through the
 <a href="https://github.com/genfeedai/genfeed.ai/security/policy">Security
 Policy</a>.</p>
@@ -517,7 +517,7 @@ to a brand, so each brand can publish to its own accounts.</p>
 <h2>Connect an account</h2>
 <ol>
   <li>Select your brand, then open its settings and choose
-  <strong>Connected accounts</strong>
+  <strong>Accounts</strong>
   (<code>/{orgSlug}/{brandSlug}/settings/accounts</code>).</li>
   <li>Choose <strong>Connect account</strong>.</li>
   <li>Search or browse the platform list, grouped as <strong>Social

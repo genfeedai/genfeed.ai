@@ -36,7 +36,6 @@ const ORIGINAL_NAMES = [
   'brandDetailOverview',
   'brandEndCard',
   'brandHarnessSettings',
-  'brandIntegrations',
   'brandKitReview',
   'brandKitSettings',
   'brandLinks',

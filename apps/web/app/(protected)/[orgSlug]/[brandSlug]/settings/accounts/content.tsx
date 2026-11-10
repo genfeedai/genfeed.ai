@@ -13,13 +13,12 @@ import BrandDetailSocialMediaCard from '@/features/brands/components/sidebar/Bra
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 
 /**
- * Brand Integrations settings — connected accounts. Each account's posting
+ * Brand Accounts settings. Each account's posting
  * times, history import and health live in its Settings dialog.
  * External website links live on Brand Profile via ModalBrandLink.
  */
 export default function BrandConnectedAccountsPage() {
   const translate = useTranslations('pages.brandSocialMedia');
-  const translateIntegrations = useTranslations('pages.brandIntegrations');
   const [isConnectAccountModalOpen, setIsConnectAccountModalOpen] =
     useState(false);
   const {
@@ -56,7 +55,7 @@ export default function BrandConnectedAccountsPage() {
   return (
     <Container
       icon={Plug}
-      label={translateIntegrations('title')}
+      label={translate('connectedAccounts')}
       right={
         <Button
           icon={<Plus className="size-4" />}
