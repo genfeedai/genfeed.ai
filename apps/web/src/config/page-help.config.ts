@@ -1,59 +1,12 @@
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { derivePageHelpRoutes } from '@/lib/workspace-shell/route-manifest.util';
 import type { PageHelpRoute } from '@/props/layout/page-help-route.props';
 
 /**
- * Route prefix → `pages.help.<key>` catalog entry. Longest prefix wins, so
- * nested pages (e.g. workflows/new) inherit their section help unless listed.
+ * Route prefix → `pages.help.<key>` catalog entry, declared as `help` on a
+ * page of the route manifest. Longest prefix wins, so nested pages (e.g.
+ * workflows/new) inherit their section help unless listed.
  */
-export const PAGE_HELP_ROUTES: PageHelpRoute[] = [
-  { key: 'workspaceOverview', prefix: APP_ROUTES.WORKSPACE.OVERVIEW },
-  { key: 'workspaceInbox', prefix: APP_ROUTES.WORKSPACE.INBOX },
-  { key: 'workspaceTasks', prefix: APP_ROUTES.WORKSPACE.TASKS },
-  { key: 'workspaceActivity', prefix: APP_ROUTES.WORKSPACE.ACTIVITY },
-  { key: 'automationOverview', prefix: APP_ROUTES.AUTOMATION.OVERVIEW },
-  { key: 'automationWorkflows', prefix: APP_ROUTES.AUTOMATION.WORKFLOWS },
-  { key: 'automationRuns', prefix: APP_ROUTES.AUTOMATION.RUNS },
-  { key: 'automationAgents', prefix: APP_ROUTES.AUTOMATION.AGENTS },
-  { key: 'automationPrograms', prefix: APP_ROUTES.AUTOMATION.CAMPAIGNS },
-  { key: 'automationContentRuns', prefix: APP_ROUTES.AUTOMATION.CONTENT_RUNS },
-  { key: 'publishingOverview', prefix: APP_ROUTES.PUBLISHING.OVERVIEW },
-  { key: 'publishingPosts', prefix: APP_ROUTES.PUBLISHING.POSTS },
-  { key: 'publishingCalendar', prefix: APP_ROUTES.PUBLISHING.CALENDAR },
-  { key: 'publishingApprovalQueue', prefix: APP_ROUTES.PUBLISHING.APPROVALS },
-  { key: 'publishingCampaigns', prefix: APP_ROUTES.PUBLISHING.CAMPAIGNS },
-  { key: 'publishingRemix', prefix: APP_ROUTES.PUBLISHING.REMIX },
-  { key: 'analyticsOverview', prefix: APP_ROUTES.ANALYTICS.OVERVIEW },
-  { key: 'analyticsAccounts', prefix: APP_ROUTES.ANALYTICS.ACCOUNTS },
-  { key: 'analyticsPosts', prefix: APP_ROUTES.ANALYTICS.POSTS },
-  { key: 'analyticsBrands', prefix: APP_ROUTES.ANALYTICS.BRANDS },
-  { key: 'analyticsStreaks', prefix: APP_ROUTES.ANALYTICS.STREAKS },
-  { key: 'analyticsInsights', prefix: APP_ROUTES.ANALYTICS.INSIGHTS },
-  { key: 'analyticsHooks', prefix: APP_ROUTES.ANALYTICS.HOOKS },
-  { key: 'analyticsOutliers', prefix: APP_ROUTES.ANALYTICS.OUTLIERS },
-  {
-    key: 'analyticsPerformanceLab',
-    prefix: APP_ROUTES.ANALYTICS.PERFORMANCE_LAB,
-  },
-  { key: 'library', prefix: APP_ROUTES.LIBRARY.ROOT },
-  { key: 'libraryTrash', prefix: APP_ROUTES.LIBRARY.TRASH },
-  { key: 'settingsModules', prefix: APP_ROUTES.SETTINGS.MODULES },
-  { key: 'studioPlayground', prefix: APP_ROUTES.STUDIO.PLAYGROUND },
-  { key: 'studioStoryboard', prefix: APP_ROUTES.STUDIO.STORYBOARD },
-  { key: 'studioClipper', prefix: APP_ROUTES.STUDIO.CLIPPER },
-  { key: 'studioTurbo', prefix: APP_ROUTES.STUDIO.TURBO },
-  { key: 'studioEditor', prefix: APP_ROUTES.STUDIO.EDITOR },
-  { key: 'messagesInbox', prefix: APP_ROUTES.MESSAGES.ROOT },
-  { key: 'messagesOutreach', prefix: APP_ROUTES.MESSAGES.OUTREACH },
-  { key: 'messagesReplies', prefix: APP_ROUTES.MESSAGES.REPLIES },
-  { key: 'messagesReplyDrip', prefix: APP_ROUTES.MESSAGES.REPLY_DRIP },
-  { key: 'discoveryOverview', prefix: APP_ROUTES.DISCOVERY.OVERVIEW },
-  { key: 'discoveryTrends', prefix: APP_ROUTES.DISCOVERY.TRENDS },
-  {
-    key: 'discoveryTrendTurnover',
-    prefix: APP_ROUTES.DISCOVERY.TREND_TURNOVER,
-  },
-  { key: 'discoveryAds', prefix: APP_ROUTES.DISCOVERY.ADS },
-];
+export const PAGE_HELP_ROUTES: PageHelpRoute[] = derivePageHelpRoutes();
 
 /** Drop the `/orgSlug/brandSlug` (or `/orgSlug/~`) prefix from an app path. */
 export function stripScopePrefix(pathname: string): string {
@@ -69,8 +22,6 @@ export function resolvePageHelpKey(
   _search = '',
 ): string | null {
   const path = stripScopePrefix(pathname);
-  if (path === APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES)
-    return 'automationTemplates';
   let match: PageHelpRoute | null = null;
   for (const route of PAGE_HELP_ROUTES) {
     const isMatch =
