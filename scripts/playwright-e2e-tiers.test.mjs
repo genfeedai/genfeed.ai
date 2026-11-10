@@ -531,6 +531,7 @@ test('required E2E gate rejects skipped and cancelled evidence as well as failur
     runtime = { result: 'skipped', output: '' },
   ) {
     const resolved = script
+      .replace(/\$\{\{ inputs\.skip_frontend == true \}\}/g, 'false')
       .replace(
         /\$\{\{ inputs\.run_runtime_acceptance == true \}\}/g,
         runtimeEnabled ? 'true' : 'false',
