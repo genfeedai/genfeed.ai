@@ -9,6 +9,7 @@ const read = (folder: string) =>
     'utf8',
   );
 const checksMigration = read('20261110090000_status_column_checks');
+const repairMigration = read('20261110090050_status_column_checks_repair');
 const validateMigration = read('20261110090100_status_column_checks_validate');
 const databaseUrl = process.env.DATABASE_URL;
 const describePostgres = databaseUrl ? describe : describe.skip;
@@ -93,6 +94,7 @@ describePostgres('status column checks migration', () => {
         ('current', 'active');
     `);
     await client.query(checksMigration);
+    await client.query(repairMigration);
   });
 
   afterAll(async () => {

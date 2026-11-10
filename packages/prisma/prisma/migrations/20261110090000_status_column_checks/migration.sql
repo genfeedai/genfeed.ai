@@ -3,10 +3,14 @@
 -- The contracts tables from #9740 stop a bad write in code; these stop it in
 -- the database.
 --
--- Each check is added NOT VALID first: from then on every new write must pass
--- it, and the ADD CONSTRAINT lock holds off other writers until this migration
--- commits, so no stray value can land after the repair. NOT VALID skips the
--- scan of existing rows; 20261110090100_status_column_checks_validate does it.
+-- Three migrations, so no table scan runs under the ACCESS EXCLUSIVE lock that
+-- ADD CONSTRAINT takes:
+-- 1. This one adds each check NOT VALID. Nothing is scanned, so the lock is
+--    short, and from commit on every new write must pass the check.
+-- 2. 20261110090050_status_column_checks_repair rewrites stray rows under
+--    ordinary row locks. The checks already refuse new stray values, so none
+--    can land after the repair.
+-- 3. 20261110090100_status_column_checks_validate scans the repaired rows.
 
 -- ContentCampaignStatus in @genfeedai/contracts.
 ALTER TABLE "campaigns"
@@ -29,33 +33,3 @@ ALTER TABLE "content_runs"
   ADD CONSTRAINT "content_runs_status_check"
   CHECK ("status" IN ('pending', 'running', 'completed', 'failed'))
   NOT VALID;
-
--- Then repair existing rows, so the checks hold on every database this runs
--- on, including self-hosted ones nobody can query beforehand. A CHECK is
--- evaluated on every UPDATE, so one stray row left behind would refuse every
--- later write to it. Each repair writes a value the new check accepts.
-
--- Onboarding draft runs once wrote 'complete' and 'interrupted'; readers still
--- treated them as completed and failed. Any other stray value is a run that
--- can no longer be followed, so it is failed.
-UPDATE "content_runs"
-  SET "status" = 'completed'
-  WHERE "status" = 'complete';
-
-UPDATE "content_runs"
-  SET "status" = 'failed'
-  WHERE "status" IS NOT NULL
-    AND "status" NOT IN ('pending', 'running', 'completed', 'failed');
-
--- Every validation run recomputes the state, so pending is always safe.
-UPDATE "posts"
-  SET "targetValidationState" = 'pending'
-  WHERE "targetValidationState" NOT IN ('pending', 'valid', 'warning', 'invalid');
-
--- A campaign in an unknown state is paused: it stops acting until an operator
--- resumes it.
-UPDATE "campaigns"
-  SET "status" = 'paused'
-  WHERE "status" NOT IN (
-    'draft', 'scheduled', 'active', 'paused', 'completed', 'archived'
-  );
