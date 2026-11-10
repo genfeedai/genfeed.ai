@@ -406,9 +406,12 @@ export class CreditBalanceService {
     const settled = typeof balance.balance === 'number' ? balance.balance : 0;
     const held =
       typeof balance.heldAmount === 'number' ? balance.heldAmount : 0;
+    const earned =
+      typeof balance.earnedBalance === 'number' ? balance.earnedBalance : 0;
     return {
       available: settled - held,
       billingAccountId: balance.billingAccountId ?? null,
+      earned,
       held,
       id: balance.id,
       organizationId: balance.organizationId ?? '',
@@ -421,6 +424,10 @@ export class CreditBalanceService {
    * Conditional balance mutation. Rejects the write when it would make
    * available credits (settled - held) drop below `-maxOverdraftCredits`,
    * or when it would make held amount negative.
+   *
+   * The earned part of the balance moves by `earnedDelta` and is then clamped
+   * to `[0, balance]`: every spend draws on purchased and granted credits
+   * first and only reaches earned credits once those are gone.
    */
   async applyDelta(
     organizationId: string,
@@ -429,6 +436,7 @@ export class CreditBalanceService {
     reservationId?: string,
   ): Promise<ICreditWalletSnapshot> {
     const balanceDelta = input.balanceDelta ?? 0;
+    const earnedDelta = input.earnedDelta ?? 0;
     const heldDelta = input.heldDelta ?? 0;
     const maxOverdraftCredits = Math.max(0, input.maxOverdraftCredits ?? 0);
     const balance = await this.getOrCreateBalance(
@@ -443,6 +451,10 @@ export class CreditBalanceService {
         UPDATE "credit_balances"
         SET
           "balance" = "balance" + ${balanceDelta},
+          "earnedBalance" = GREATEST(
+            0,
+            LEAST("earnedBalance" + ${earnedDelta}, "balance" + ${balanceDelta})
+          ),
           "heldAmount" = "heldAmount" + ${heldDelta},
           "version" = "version" + 1,
           "updatedAt" = CURRENT_TIMESTAMP

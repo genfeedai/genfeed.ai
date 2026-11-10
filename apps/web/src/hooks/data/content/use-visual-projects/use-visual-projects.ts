@@ -1,4 +1,5 @@
 'use client';
+import { isTerminalVisualCodeStatus } from '@genfeedai/contracts';
 import type {
   IVisualProject,
   VisualCodeQuoteRequest,
@@ -91,9 +92,7 @@ export function useVisualProjects({
       (await getService()).get(projectId ?? '', undefined, signal),
     refetchInterval: (query) => {
       const status = query.state.data?.revisions[0]?.status;
-      return status && !['completed', 'failed', 'cancelled'].includes(status)
-        ? 2000
-        : false;
+      return status && !isTerminalVisualCodeStatus(status) ? 2000 : false;
     },
   });
   const quote = useCallback(

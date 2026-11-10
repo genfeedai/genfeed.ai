@@ -35,6 +35,7 @@ describe('platform.enum', () => {
         'PRODUCT_HUNT',
         'HACKER_NEWS',
         'RESTREAM',
+        'GENFEED',
       ]);
     });
 
@@ -69,6 +70,7 @@ describe('platform.enum', () => {
       expect(Platform.PRODUCT_HUNT).toBe('product_hunt');
       expect(Platform.HACKER_NEWS).toBe('hacker_news');
       expect(Platform.RESTREAM).toBe('restream');
+      expect(Platform.GENFEED).toBe('genfeed');
     });
   });
 });

@@ -45,6 +45,7 @@ export * from '@serializers/attributes/content/media-readiness-diagnostic.attrib
 export * from '@serializers/attributes/content/mood-board.attributes';
 export * from '@serializers/attributes/content/news.attributes';
 export * from '@serializers/attributes/content/newsletter.attributes';
+export * from '@serializers/attributes/content/newsletter-module.attributes';
 export * from '@serializers/attributes/content/optimization.attributes';
 export * from '@serializers/attributes/content/performance-summary.attributes';
 export * from '@serializers/attributes/content/persona.attributes';

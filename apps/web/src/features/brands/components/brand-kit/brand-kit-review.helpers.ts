@@ -47,6 +47,8 @@ export const DEFERRED_REVIEW_FIELDS = new Set<BrandKitFieldKey>([
   'references',
 ]);
 const STRUCTURED_APPLY_FIELDS = new Set<BrandKitFieldKey>([
+  'colorPalette',
+  'fontRoles',
   'logo',
   'socialLinks',
 ]);
@@ -182,7 +184,24 @@ function hasObjectValue(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+/** Palette, font role and other structured values are not edited as text. */
+export function isStructuredReviewField(key: BrandKitFieldKey): boolean {
+  return STRUCTURED_APPLY_FIELDS.has(key);
+}
+
 function formatBrandKitObject(value: Record<string, unknown>): string {
+  if (typeof value.hex === 'string') {
+    const name = typeof value.name === 'string' ? value.name : '';
+    const usage = typeof value.usage === 'string' ? `(${value.usage})` : '';
+    return [name, value.hex, usage].filter(Boolean).join(' ');
+  }
+  if (typeof value.source === 'string') {
+    return typeof value.family === 'string'
+      ? value.family
+      : typeof value.fontFamily === 'string'
+        ? value.fontFamily
+        : '';
+  }
   const label = typeof value.label === 'string' ? value.label : '';
   const url = typeof value.url === 'string' ? value.url : '';
   const platform = typeof value.platform === 'string' ? value.platform : '';
@@ -192,7 +211,17 @@ function formatBrandKitObject(value: Record<string, unknown>): string {
       ? `${value.width}x${value.height}`
       : '';
 
-  return [label, platform, role, dimensions, url].filter(Boolean).join(' ');
+  const summary = [label, platform, role, dimensions, url]
+    .filter(Boolean)
+    .join(' ');
+  if (summary) return summary;
+  return Object.entries(value)
+    .filter(([, entry]) => hasObjectValue(entry))
+    .map(
+      ([key, entry]) =>
+        `${key}: ${formatBrandKitObject(entry as Record<string, unknown>)}`,
+    )
+    .join('\n');
 }
 
 export function formatBrandKitValue(value: unknown): string {

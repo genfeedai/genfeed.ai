@@ -89,10 +89,12 @@ describe('FreeTrialService', () => {
         applyDelta,
         toSnapshot: (wallet: {
           balance: number;
+          earnedBalance?: number;
           heldAmount: number;
           version: number;
         }) => ({
           available: wallet.balance - wallet.heldAmount,
+          earned: wallet.earnedBalance ?? 0,
           held: wallet.heldAmount,
           settled: wallet.balance,
           version: wallet.version,
@@ -442,6 +444,29 @@ describe('FreeTrialService', () => {
       );
       expect(emit).toHaveBeenCalledWith('/credits/org_1', { balance: 0 });
       expect(invalidateForOrganization).toHaveBeenCalledWith('org_1');
+    });
+
+    it('keeps credits earned from other organizations when the trial ends', async () => {
+      walletFindFirst.mockResolvedValue({
+        balance: 60,
+        billingAccountId: 'ba_1',
+        earnedBalance: 25,
+        heldAmount: 0,
+        version: 7,
+      });
+      applyDelta.mockResolvedValue({ available: 25 });
+
+      const expired = await buildService().expireTrialCredits(
+        'org_1',
+        PAST_WINDOW,
+      );
+
+      expect(expired).toBe(35);
+      expect(applyDelta).toHaveBeenCalledWith(
+        'org_1',
+        { balanceDelta: -35, billingAccountId: 'ba_1' },
+        prisma,
+      );
     });
 
     it('leaves credits held by an in-flight generation for it to settle', async () => {

@@ -89,6 +89,7 @@ export type {
 } from './registry/curated-action-catalog';
 export {
   CURATED_ACTION_CATALOG,
+  getMcpCardKind,
   isActionOnSurface,
   isCuratedActionName,
   isPublishingApprovalRequired,
@@ -135,8 +136,12 @@ export {
   type VisualMediaGenerationType,
 } from './registry/media-generation';
 export {
+  DIGITAL_TWIN_TRANSFORM_OPERATIONS,
+  type DigitalTwinTransformOperation,
   findInapplicableMediaTransformParameters,
   getMediaTransformOperation,
+  isDigitalTwinTransformOperation,
+  isFreeMediaTransformOperation,
   isMediaTransformOperation,
   MEDIA_MERGE_TRANSITION_EASE_UNSUPPORTED,
   MEDIA_MERGE_ZOOM_UNSUPPORTED,
@@ -145,6 +150,7 @@ export {
   MEDIA_TRANSFORM_OPERATIONS,
   MEDIA_TRANSFORM_RESULT_KINDS,
   MEDIA_TRANSFORM_TOOL_NAME,
+  type MediaOutputTransformOperation,
   type MediaTransformOperation,
 } from './registry/media-transform';
 export type {

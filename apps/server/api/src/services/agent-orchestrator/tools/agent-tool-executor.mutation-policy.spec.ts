@@ -189,6 +189,7 @@ describe('AgentToolExecutorService mutation policy', () => {
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
       voiceHandler: { handlesList: vi.fn().mockReturnValue(false) },
+      avatarTwinHandler: { handlesList: vi.fn().mockReturnValue(false) },
       threadHandler,
     });
     service.onModuleInit();

@@ -11,14 +11,34 @@ export const MEDIA_TRANSFORM_OPERATIONS = [
   'reframe',
   'upscale',
   'merge',
+  'digital_twin',
+  'digital_twin_consent',
 ] as const;
 
 export type MediaTransformOperation =
   (typeof MEDIA_TRANSFORM_OPERATIONS)[number];
 
+/**
+ * Operations that turn the person's own Library recording into a digital
+ * twin in their connected HeyGen account (#9688). They render no media here
+ * and charge no Genfeed credits; HeyGen bills the account that owns the twin.
+ */
+export const DIGITAL_TWIN_TRANSFORM_OPERATIONS = [
+  'digital_twin',
+  'digital_twin_consent',
+] as const satisfies readonly MediaTransformOperation[];
+
+export type DigitalTwinTransformOperation =
+  (typeof DIGITAL_TWIN_TRANSFORM_OPERATIONS)[number];
+
+export type MediaOutputTransformOperation = Exclude<
+  MediaTransformOperation,
+  DigitalTwinTransformOperation
+>;
+
 /** Result card kind per operation: edits, reframes and upscales yield images. */
 export const MEDIA_TRANSFORM_RESULT_KINDS: Readonly<
-  Record<MediaTransformOperation, 'image' | 'video'>
+  Record<MediaOutputTransformOperation, 'image' | 'video'>
 > = {
   edit: 'image',
   merge: 'video',
@@ -81,6 +101,13 @@ export const MEDIA_TRANSFORM_OPERATION_PARAMETERS: Readonly<
   ]),
   reframe: new Set([...SHARED_PARAMETERS, 'aspectRatio', 'imageId']),
   upscale: new Set([...SHARED_PARAMETERS, 'imageUrl']),
+  digital_twin: new Set([
+    ...SHARED_PARAMETERS,
+    'isRecordingKept',
+    'name',
+    'videoId',
+  ]),
+  digital_twin_consent: new Set([...SHARED_PARAMETERS, 'twinId']),
 };
 
 /** Supplied parameters (non-null) that the given operation does not accept. */
@@ -98,6 +125,29 @@ export function findInapplicableMediaTransformParameters(
 const MEDIA_TRANSFORM_OPERATION_SET: ReadonlySet<string> = new Set(
   MEDIA_TRANSFORM_OPERATIONS,
 );
+
+const DIGITAL_TWIN_TRANSFORM_OPERATION_SET: ReadonlySet<string> = new Set(
+  DIGITAL_TWIN_TRANSFORM_OPERATIONS,
+);
+
+export function isDigitalTwinTransformOperation(
+  value: unknown,
+): value is DigitalTwinTransformOperation {
+  return (
+    typeof value === 'string' && DIGITAL_TWIN_TRANSFORM_OPERATION_SET.has(value)
+  );
+}
+
+/**
+ * Operations that never charge Genfeed credits and need no brand: merge runs
+ * on the local files queue, and a digital twin lives in the organization's own
+ * HeyGen account, not in a brand.
+ */
+export function isFreeMediaTransformOperation(
+  operation: MediaTransformOperation | undefined,
+): boolean {
+  return operation === 'merge' || isDigitalTwinTransformOperation(operation);
+}
 
 export function isMediaTransformOperation(
   value: unknown,

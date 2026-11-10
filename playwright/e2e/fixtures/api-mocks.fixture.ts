@@ -6059,3 +6059,118 @@ export async function mockAdsResearchResults(page: Page): Promise<void> {
     });
   });
 }
+
+export interface MockAvatarTwinEnrollment {
+  /** Bodies the app sent to `POST /avatar-twins`, in order. */
+  startRequests: Array<Record<string, unknown>>;
+  /** Number of PUTs the recording made to the presigned upload URL. */
+  uploads: () => number;
+}
+
+/**
+ * The digital twin page (#9684) with a connected personal HeyGen account and
+ * no twin yet. Uploading a take goes through the presigned video upload, then
+ * `POST /avatar-twins` starts training and the twin list returns it.
+ */
+export async function mockAvatarTwinEnrollment(
+  page: Page,
+): Promise<MockAvatarTwinEnrollment> {
+  const uploadUrl = 'https://cdn.genfeed.ai/e2e-uploads/twin-take.webm';
+  const startRequests: Array<Record<string, unknown>> = [];
+  let uploadCount = 0;
+  let twin: Record<string, unknown> | null = null;
+
+  const json = (route: Route, body: unknown) =>
+    route.fulfill({
+      body: JSON.stringify(body),
+      contentType: 'application/json',
+      status: 200,
+    });
+  const twinResource = (attributes: Record<string, unknown>) => ({
+    attributes,
+    id: String(attributes.id),
+    type: 'avatar-twins',
+  });
+
+  await routeApiPattern(page, '/heygen/status**', (route) =>
+    json(route, {
+      data: {
+        attributes: {
+          hasCustomKey: true,
+          isConnected: true,
+          provider: 'heygen',
+          state: 'connected',
+        },
+        id: 'heygen',
+        type: 'service-status',
+      },
+    }),
+  );
+
+  await routeApiPattern(page, '/videos/upload/presigned**', (route) =>
+    json(route, {
+      data: {
+        attributes: {
+          expiresIn: 900,
+          publicUrl: uploadUrl,
+          s3Key: 'ingredients/videos/twin-take.webm',
+          uploadUrl,
+        },
+        id: 'twin-take-1',
+        type: 'uploads',
+      },
+    }),
+  );
+
+  await page.route(uploadUrl, async (route) => {
+    uploadCount += 1;
+    await route.fulfill({ body: '', status: 200 });
+  });
+
+  await routeApiPattern(page, '/videos/upload/confirm/**', (route) =>
+    json(route, {
+      data: {
+        attributes: { category: 'video', status: 'uploaded' },
+        id: 'twin-take-1',
+        type: 'ingredients',
+      },
+    }),
+  );
+
+  await routeApiPattern(page, '/avatar-twins**', async (route) => {
+    const request = route.request();
+    if (request.method() === 'POST') {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      startRequests.push(body);
+      const now = new Date().toISOString();
+      twin = {
+        consentLinkExpiresAt: null,
+        createdAt: now,
+        failureCode: null,
+        failureMessage: null,
+        id: 'twin-1',
+        name: String(body.name),
+        previewImageUrl: null,
+        providerGroupId: 'grp_1',
+        providerLookId: 'look_1',
+        readyAt: null,
+        status: 'TRAINING',
+        supportedEngines: ['avatar_iv'],
+        updatedAt: now,
+        voiceId: 'voice_1',
+      };
+      await json(route, { data: twinResource(twin) });
+      return;
+    }
+    const isCollection = new URL(request.url()).pathname.endsWith(
+      '/avatar-twins',
+    );
+    if (isCollection) {
+      await json(route, { data: twin ? [twinResource(twin)] : [] });
+      return;
+    }
+    await json(route, { data: twin ? twinResource(twin) : null });
+  });
+
+  return { startRequests, uploads: () => uploadCount };
+}

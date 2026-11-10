@@ -247,6 +247,13 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
     smoke: null,
   },
   {
+    enumRefs: { IngredientCategory: ['MODEL_3D'] },
+    id: 'model-3d',
+    note: 'A textured GLB stored and previewed in the library. The API-key render pipeline (POST /v1/models3d, MCP render_3d) reconstructs a supplied photo: a fixed angle-sheet instruction produces nine consistent views, then a GLB is built from them. It is a faithful transform of the source image, not creative generation, so brand context is deliberately not applied; it is not a prompt-bar feature.',
+    path: 'exempt',
+    smoke: null,
+  },
+  {
     enumRefs: { IngredientCategory: ['INGREDIENT', 'TEXT', 'SOURCE'] },
     id: 'container-categories',
     note: 'Storage categories for references, text blobs and imported sources; nothing is generated under them.',

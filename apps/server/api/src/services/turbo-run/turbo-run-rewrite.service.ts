@@ -3,7 +3,6 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
-  isTerminalRewriteStatus,
   NON_REWRITABLE_POST_STATES,
   TURBO_REWRITE_TASK_LABEL,
   type TurboRewriteJob,
@@ -16,6 +15,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
   ActivitySource,
+  isTerminalTurboRewriteJobStatus,
   TurboRewriteJobStatus,
   TurboRunItemStatus,
 } from '@genfeedai/contracts';
@@ -155,7 +155,10 @@ export class TurboRunRewriteService {
   ): Promise<ITurboRewriteJob> {
     const job = await this.getOwnedJob(turboRunId, jobId, organizationId);
     const current = await toTurboRewriteJob(job);
-    if (isTerminalRewriteStatus(current.status) || current.isCancelRequested) {
+    if (
+      isTerminalTurboRewriteJobStatus(current.status) ||
+      current.isCancelRequested
+    ) {
       return current;
     }
     await job.updateData({ ...job.data, isCancelRequested: true });
@@ -172,7 +175,7 @@ export class TurboRunRewriteService {
     const job = jobId ? await this.queue.getJob(jobId) : undefined;
     if (!job || job.data.organizationId !== organizationId) return null;
     const current = await toTurboRewriteJob(job);
-    return isTerminalRewriteStatus(current.status) ? null : current;
+    return isTerminalTurboRewriteJobStatus(current.status) ? null : current;
   }
 
   /** Job ids are global in Redis; the tenant check is what scopes them. */

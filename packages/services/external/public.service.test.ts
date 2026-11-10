@@ -189,12 +189,26 @@ describe('PublicService', () => {
     expect(result[0]).toBeInstanceOf(Link);
   });
 
-  it('trackAccountView POSTs a view event', async () => {
-    http.post.mockResolvedValue(axiosResponse(undefined));
+  it('findArticleGenerations GETs the article blocks as ingredients', async () => {
+    http.get.mockResolvedValue(
+      axiosResponse({
+        data: [
+          {
+            attributes: { category: 'image', status: 'generated' },
+            id: 'ingredient_1',
+            type: 'ingredient',
+          },
+        ],
+      }),
+    );
 
-    await service.trackAccountView('brand_1');
+    const generations = await service.findArticleGenerations('article_1');
 
-    expect(http.post).toHaveBeenCalledWith('brands/brand_1/views');
+    expect(http.get).toHaveBeenCalledWith('articles/article_1/generations', {
+      params: undefined,
+    });
+    expect(generations).toHaveLength(1);
+    expect(generations[0]).toBeInstanceOf(Ingredient);
   });
 
   describe('public collections', () => {
@@ -377,6 +391,7 @@ describe('PublicService', () => {
 
   describe('public single resources', () => {
     const resourceCases = [
+      ['findPublicBrand', 'brands/v_1', Brand],
       ['getPublicVideo', 'videos/v_1', Video],
       ['getPublicImage', 'images/v_1', Image],
       ['getPublicMusic', 'musics/v_1', Music],

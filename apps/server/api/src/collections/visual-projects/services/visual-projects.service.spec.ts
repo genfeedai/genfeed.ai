@@ -129,7 +129,13 @@ function fixture() {
 describe('visual cancellation queue ownership', () => {
   it('settles a definitely unstarted revision after withdrawing its deterministic job', async () => {
     const f = fixture();
-    await f.service.cancel(f.user, 'project', { revision: 1 });
+    const cancelled = await f.service.cancel(f.user, 'project', {
+      revision: 1,
+    });
+    expect(cancelled.revisions[0]).toMatchObject({
+      diagnostics: ['visual_cancelled'],
+      status: VisualCodeStatus.CANCELLED,
+    });
     expect(f.queue.withdrawUnstartedSystemWorkflowJob).toHaveBeenCalledWith(
       'system-workflow-execution',
     );
@@ -139,7 +145,10 @@ describe('visual cancellation queue ownership', () => {
   it('leaves a started queue owner responsible for confirmed pending provider costs', async () => {
     const f = fixture();
     f.queue.withdrawUnstartedSystemWorkflowJob.mockResolvedValue('started');
-    await f.service.cancel(f.user, 'project', { revision: 1 });
+    const cancelled = await f.service.cancel(f.user, 'project', {
+      revision: 1,
+    });
+    expect(cancelled.revisions[0].status).toBe(VisualCodeStatus.QUEUED);
     expect(f.revision.cancelRequestedAt).toBeInstanceOf(Date);
     expect(f.revision.status).toBe(VisualCodeStatus.QUEUED);
     expect(f.billing.reconcileStopped).not.toHaveBeenCalled();
@@ -149,7 +158,10 @@ describe('visual cancellation queue ownership', () => {
     f.prisma.workflowNodeClaim.findFirst.mockResolvedValue({
       leaseOwnerId: 'owner',
     });
-    await f.service.cancel(f.user, 'project', { revision: 1 });
+    const cancelled = await f.service.cancel(f.user, 'project', {
+      revision: 1,
+    });
+    expect(cancelled.revisions[0].status).toBe(VisualCodeStatus.QUEUED);
     expect(f.billing.reconcileStopped).not.toHaveBeenCalled();
   });
   it('keeps bookkeeping retryable when queue ownership cannot be read', async () => {
@@ -277,7 +289,10 @@ describe('durable visual dispatch admission', () => {
         expect.objectContaining({ kind: 'admission', state: 'started' }),
       ]),
     );
-    await f.service.cancel(f.user, 'project', { revision: 1 });
+    const cancelled = await f.service.cancel(f.user, 'project', {
+      revision: 1,
+    });
+    expect(cancelled.revisions[0].cancelRequestedAt).toBeInstanceOf(Date);
     expect(f.billing.recoverReservation).toHaveBeenCalled();
     finish('hold');
     await rejected;

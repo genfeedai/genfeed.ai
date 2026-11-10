@@ -24,7 +24,8 @@ export type PrismaIngredientCategoryValue =
   | 'VOICE'
   | 'INGREDIENT'
   | 'TEXT'
-  | 'SOURCE';
+  | 'SOURCE'
+  | 'MODEL_3D';
 
 /**
  * Prisma UPPERCASE enum values for OrganizationCategory.
@@ -87,6 +88,7 @@ const APP_TO_PRISMA_INGREDIENT_CATEGORY: Record<
   [IngredientCategory.INGREDIENT]: 'INGREDIENT',
   [IngredientCategory.TEXT]: 'TEXT',
   [IngredientCategory.SOURCE]: 'SOURCE',
+  [IngredientCategory.MODEL_3D]: 'MODEL_3D',
 };
 
 /**

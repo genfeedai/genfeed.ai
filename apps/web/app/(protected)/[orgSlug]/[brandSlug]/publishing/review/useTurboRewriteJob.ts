@@ -1,4 +1,5 @@
 import {
+  isTerminalTurboRewriteJobStatus,
   TurboRewriteItemFailureReason,
   TurboRewriteJobStatus,
 } from '@genfeedai/contracts';
@@ -19,13 +20,6 @@ import type {
 } from '@/props/publishing/review-rewrite-progress.props';
 
 const REFRESH_DEBOUNCE_MS = 250;
-
-function isTerminal(job: ITurboRewriteJob): boolean {
-  return (
-    job.status !== TurboRewriteJobStatus.QUEUED &&
-    job.status !== TurboRewriteJobStatus.PROCESSING
-  );
-}
 
 /**
  * Tracks the Review batch rewrite that runs as a background job (#5365). The
@@ -87,7 +81,7 @@ export function useTurboRewriteJob({
       const hasNewRewrites =
         next.completedItemIds.length > seenCompletedCount.current;
       seenCompletedCount.current = next.completedItemIds.length;
-      if (isTerminal(next)) {
+      if (isTerminalTurboRewriteJobStatus(next.status)) {
         setJob((current) => (current?.id === next.id ? null : current));
         setIsCancelling(false);
         if (!announcedJobIds.current.has(next.id)) {

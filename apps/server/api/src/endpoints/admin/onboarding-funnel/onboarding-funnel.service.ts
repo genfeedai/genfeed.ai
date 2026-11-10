@@ -15,11 +15,15 @@ import { CredentialPlatform } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
-/** Advertising and search connections cannot publish a post. */
+/**
+ * Advertising and search connections cannot publish a post, and the built-in
+ * Genfeed profile channel every brand starts with is not a connection.
+ */
 const NON_PUBLISHING_PLATFORMS = [
   CredentialPlatform.GOOGLE_ADS,
   CredentialPlatform.X_ADS,
   CredentialPlatform.GOOGLE_SEARCH_CONSOLE,
+  CredentialPlatform.GENFEED,
 ];
 
 const DAY_MS = 86_400_000;

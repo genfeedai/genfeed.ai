@@ -1,5 +1,6 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
+import { AgentAvatarTwinToolHandler } from '@api/services/agent-orchestrator/tools/agent-avatar-twin-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentVoiceToolHandler } from '@api/services/agent-orchestrator/tools/agent-voice-tool-handler.service';
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
@@ -20,6 +21,7 @@ export class AgentGenerationSettingsToolHandler {
     private readonly settings: GenerationHarnessSettingsService,
     private readonly enhancement: MediaPromptEnhancementService,
     private readonly voices: AgentVoiceToolHandler,
+    private readonly avatarTwins: AgentAvatarTwinToolHandler,
     @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
   ) {}
 
@@ -114,6 +116,14 @@ export class AgentGenerationSettingsToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    if (params.defaultAvatar !== undefined) {
+      if (params.isEnabled !== undefined || params.defaultVoice !== undefined) {
+        throw new BadRequestException(
+          'Set defaultAvatar on its own; use isTwinVoiceUsed for its voice.',
+        );
+      }
+      return this.avatarTwins.setBrandDefault(params, ctx);
+    }
     if (params.defaultVoice !== undefined) {
       if (params.isEnabled !== undefined) {
         throw new BadRequestException(

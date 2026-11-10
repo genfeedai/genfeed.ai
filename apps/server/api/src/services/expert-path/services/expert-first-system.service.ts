@@ -1,4 +1,5 @@
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
+import { NETWORK_ACCOUNT_WHERE } from '@api/collections/brands/utils/genfeed-profile-channel.util';
 import type { ContentPlanItemDocument } from '@api/collections/content-plan-items/schemas/content-plan-item.schema';
 import { ContentPlanItemsService } from '@api/collections/content-plan-items/services/content-plan-items.service';
 import type { ContentPlanDocument } from '@api/collections/content-plans/schemas/content-plan.schema';
@@ -445,7 +446,11 @@ export class ExpertFirstSystemService {
   ): Promise<{ isUsingInterviewPlatforms: boolean; platforms: string[] }> {
     const credentials = await this.prisma.credential.findMany({
       select: { platform: true },
-      where: scopedWhere(organizationId, { brandId, isConnected: true }),
+      where: scopedWhere(organizationId, {
+        ...NETWORK_ACCOUNT_WHERE,
+        brandId,
+        isConnected: true,
+      }),
     });
     const connected = Array.from(
       new Set(

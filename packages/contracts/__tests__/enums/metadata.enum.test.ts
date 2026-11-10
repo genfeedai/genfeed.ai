@@ -56,8 +56,8 @@ describe('metadata.enum', () => {
   });
 
   describe('MetadataExtension', () => {
-    it('should have 11 members', () => {
-      expect(Object.values(MetadataExtension)).toHaveLength(11);
+    it('should have 12 members', () => {
+      expect(Object.values(MetadataExtension)).toHaveLength(12);
     });
 
     it('should have correct values', () => {
@@ -72,6 +72,7 @@ describe('metadata.enum', () => {
       expect(MetadataExtension.AVI).toBe('AVI');
       expect(MetadataExtension.MP3).toBe('MP3');
       expect(MetadataExtension.WAV).toBe('WAV');
+      expect(MetadataExtension.GLB).toBe('GLB');
     });
   });
 });

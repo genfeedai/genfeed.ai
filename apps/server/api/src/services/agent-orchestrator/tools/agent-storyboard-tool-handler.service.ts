@@ -6,6 +6,7 @@ import { StoryboardRunsService } from '@api/collections/content-runs/services/st
 import { StoryboardSlideshowPostService } from '@api/collections/content-runs/services/storyboard-slideshow-post.service';
 import { StoryboardStillsService } from '@api/collections/content-runs/services/storyboard-stills.service';
 import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
+import { AgentStoryboardVideoTool } from '@api/services/agent-orchestrator/tools/agent-storyboard-video-tool.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type { StoryboardPresenterTrack } from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
 import {
@@ -25,6 +26,10 @@ import {
   startStoryboardSlideshowToolSchema,
   storyboardSlideshowToolSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-slideshow-tool.contract';
+import {
+  startStoryboardVideoToolSchema,
+  storyboardVideoToolSchema,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-video-tool.contract';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { Traced } from '@libs/tracing/traced';
 import { HttpException, Injectable } from '@nestjs/common';
@@ -36,6 +41,8 @@ export function isAgentStoryboardTool(toolName: string): boolean {
     case 'start_storyboard_long_form':
     case 'storyboard_slideshow':
     case 'start_storyboard_slideshow':
+    case 'storyboard_video':
+    case 'start_storyboard_video':
       return true;
     default:
       return false;
@@ -66,6 +73,7 @@ export class AgentStoryboardToolHandler {
     private readonly assembly: StoryboardLongFormAssemblyService,
     private readonly moduleAccess: OrganizationModuleAccessService,
     private readonly slideshowPosts: StoryboardSlideshowPostService,
+    private readonly video: AgentStoryboardVideoTool,
   ) {}
 
   async execute(
@@ -93,9 +101,33 @@ export class AgentStoryboardToolHandler {
         return this.slideshow(params, ctx);
       case 'start_storyboard_slideshow':
         return this.renderSlides(params, ctx);
+      case 'storyboard_video':
+        return this.realisticVideo(params, ctx);
+      case 'start_storyboard_video':
+        return this.renderVideo(params, ctx);
       default:
         return this.work(params, ctx);
     }
+  }
+
+  /** Shot-by-shot realistic video (#9622): plan, assets, renders, assembly. */
+  private async realisticVideo(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<Record<string, unknown>> {
+    const input = parseOrThrow(storyboardVideoToolSchema, params);
+    if (input.action !== 'get')
+      await this.moduleAccess.assertAccess(ctx.organizationId, 'storyboard');
+    return this.video.work(input, ctx);
+  }
+
+  private async renderVideo(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<Record<string, unknown>> {
+    const input = parseOrThrow(startStoryboardVideoToolSchema, params);
+    await this.moduleAccess.assertAccess(ctx.organizationId, 'storyboard');
+    return this.video.start(input, ctx);
   }
 
   private async slideshow(

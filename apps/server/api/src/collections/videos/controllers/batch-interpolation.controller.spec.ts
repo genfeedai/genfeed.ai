@@ -185,7 +185,7 @@ describe('BatchInterpolationController', () => {
     create: ReturnType<typeof vi.fn>;
     patchOneWhere: ReturnType<typeof vi.fn>;
   };
-  let patchOneWhere: ReturnType<typeof vi.fn>;
+  let patchAll: ReturnType<typeof vi.fn>;
   let promptBuilderService: { buildPrompt: ReturnType<typeof vi.fn> };
   let replicateService: { generateTextToVideo: ReturnType<typeof vi.fn> };
   let ingredientsService: {
@@ -235,7 +235,7 @@ describe('BatchInterpolationController', () => {
       create: vi.fn().mockResolvedValue(mockPrompt),
       patchOneWhere: vi.fn().mockResolvedValue(undefined),
     };
-    patchOneWhere = vi.fn().mockResolvedValue(undefined);
+    patchAll = vi.fn().mockResolvedValue({ modifiedCount: 1 });
     promptBuilderService = {
       buildPrompt: vi.fn().mockResolvedValue({
         input: { prompt: 'cinematic' },
@@ -311,7 +311,7 @@ describe('BatchInterpolationController', () => {
         { provide: SharedService, useValue: sharedService },
         {
           provide: VideosService,
-          useValue: { findOne: vi.fn(), patchOneWhere },
+          useValue: { findOne: vi.fn(), patchAll },
         },
         {
           provide: NotificationsPublisherService,
@@ -1221,17 +1221,13 @@ describe('BatchInterpolationController', () => {
       });
 
       async function expectPairCleanedUp(): Promise<void> {
-        const [videosAdapter, failedId, , , , activityMetadata] =
+        const [, failedId, failedOrganizationId, , , , activityMetadata] =
           failedGenerationService.handleFailedVideoGeneration.mock.calls[0];
         expect(failedId).toBe(ingredientId);
+        expect(failedOrganizationId).toBe(organizationId);
         expect(activityMetadata).toEqual(failedActivity);
         expect(JSON.parse(activityMetadata.value).ingredientId).toBe(
           ingredientId,
-        );
-        await videosAdapter.patch(ingredientId, { status: 'FAILED' });
-        expect(patchOneWhere).toHaveBeenCalledWith(
-          { id: ingredientId, isDeleted: false, organizationId },
-          { status: 'FAILED' },
         );
         expect(promptsService.patchOneWhere).toHaveBeenCalledWith(
           { id: promptId, isDeleted: false, organizationId },
@@ -1382,11 +1378,17 @@ describe('BatchInterpolationController', () => {
           }),
           expect.objectContaining({ id: ingredientIds[1], status: 'failed' }),
         ]);
-        expect(patchOneWhere).toHaveBeenCalledTimes(1);
-        expect(patchOneWhere).toHaveBeenCalledWith(
-          { id: ingredientIds[1], isDeleted: false, organizationId },
-          expect.objectContaining({ status: 'FAILED' }),
-        );
+        expect(patchAll.mock.calls).toEqual([
+          [
+            {
+              id: ingredientIds[1],
+              isDeleted: false,
+              organizationId,
+              status: 'PROCESSING',
+            },
+            expect.objectContaining({ status: 'FAILED' }),
+          ],
+        ]);
         expect(promptsService.patchOneWhere).toHaveBeenCalledTimes(1);
         expect(promptsService.patchOneWhere).toHaveBeenCalledWith(
           { id: promptIds[1], isDeleted: false, organizationId },

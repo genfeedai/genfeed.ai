@@ -95,12 +95,17 @@ const PREPARE_MEDIA_TOOLS: CuratedActionName[] = [
   'prepare_voice_clone',
 ];
 
-/** Voice note or idea dump to a long presenter video in the Storyboard (#8218). */
+/**
+ * Storyboard flows in chat: long presenter videos (#8218), slideshows, and
+ * realistic shot-by-shot videos (#9622).
+ */
 const LONG_FORM_STORYBOARD_TOOLS: CuratedActionName[] = [
   'storyboard_long_form',
   'start_storyboard_long_form',
   'storyboard_slideshow',
   'start_storyboard_slideshow',
+  'storyboard_video',
+  'start_storyboard_video',
 ];
 
 const LONG_FORM_STORYBOARD_PROMPT = `
@@ -109,6 +114,15 @@ For a voice note, transcript or idea dump that should become a long talking-head
 
 ## Slideshows
 For an idea that should become a swipeable photo post (Instagram, TikTok or LinkedIn carousel), use storyboard_slideshow: create (pass styleReferenceAssetIds and cast reference images to keep every slide consistent), draft_plan, edit_slides (text, order, removals), then quote the slide images and start them with start_storyboard_slideshow using the quote's inputHash. reconcile picks up finished images. Show the user all slides side by side, regenerate outliers with quote slideIds, approve_plan, then save_draft_post makes one draft post with the slides in order. Never schedule or publish it unless the user asks.
+
+## Realistic videos
+For a realistic short video (people, products and places that must look the same in every shot), use storyboard_video and follow the video-realism method:
+1. create from the idea or shot list, then draft_plan. Keep each shot to one clip; put camera changes inside it as timed cuts, and name sounds as sfx.
+2. Build the asset bible with the assets action: a face and a body entry for each person (real photos go in sourceAssetIds), then the props and places. Quote stage assets for each entry (variants first, then angles or costume), start it with start_storyboard_video, reconcile, and let the user pick each chosenAssetId.
+3. Tag each shot's referenceRoles with the chosen images, approve_plan, then estimate the stills, drafts and finals.
+4. Quote and start the drafts, show them, fix the shots that drift (edit_shots, or an exact videoPrompt), then quote the finals. A final that follows a current draft reuses its prompt and references.
+5. reconcile checks every final. A final that fails (black frames, freezes, no decode) must be rendered again; continuity notes are for the user to judge. assemble opens the finals as an Editor project. Publishing goes through create_post, only when the user asks.
+Quote one stage at a time and start it only after the user accepts the price.
 `;
 
 const WORKFLOW_FIRST_PROMPT = `

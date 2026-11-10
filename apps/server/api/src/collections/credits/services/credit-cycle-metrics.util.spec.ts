@@ -29,6 +29,17 @@ describe('computeCycleCredits', () => {
     ).toBe(100);
   });
 
+  it('counts credits sent to another organization as used this cycle', () => {
+    expect(
+      computeCycleCredits(0, [
+        { amount: 100, balanceAfter: 100, category: 'reset' },
+        { amount: 10, balanceAfter: 90, category: 'deduct' },
+        { amount: 25, balanceAfter: 65, category: 'transfer-out' },
+        { amount: 15, balanceAfter: 80, category: 'transfer-in' },
+      ]),
+    ).toEqual({ cycleTotal: 115, cycleUsed: 35 });
+  });
+
   it('falls back to the balance before the cycle when there was no reset', () => {
     expect(
       computeCycleCredits(700, [

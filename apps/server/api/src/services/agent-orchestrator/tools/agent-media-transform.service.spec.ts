@@ -51,6 +51,7 @@ function createService() {
   const service = new AgentMediaTransformService(
     assetGeneration as never,
     gateway as never,
+    {} as never,
   );
   return { assetGeneration, gateway, service };
 }

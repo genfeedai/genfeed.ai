@@ -28,12 +28,15 @@ import type {
   BrandOsRevisionFieldsProps,
   BrandOsValueEditorProps,
 } from '@/features/brands/props/brand-os-settings.props';
+import BrandFontRolesEditor from './BrandFontRolesEditor';
+import BrandPaletteEditor from './BrandPaletteEditor';
 import {
   isBrandKitHexColor,
   toColorPickerValue,
 } from './brand-kit-color-value';
 
 function ValueEditor({
+  brandId,
   label,
   fieldKey,
   value,
@@ -139,6 +142,19 @@ function ValueEditor({
           <p className="text-xs text-muted-foreground">{String(asset.id)}</p>
         ) : null}
       </div>
+    );
+  }
+  if (valueKind === 'palette' || valueKind === 'fontRoles') {
+    const Editor =
+      valueKind === 'palette' ? BrandPaletteEditor : BrandFontRolesEditor;
+    return (
+      <Editor
+        brandId={brandId ?? ''}
+        label={label}
+        value={value}
+        isDisabled={isDisabled}
+        onChange={onChange}
+      />
     );
   }
   if (fieldKey === 'fontFamily') {
@@ -302,6 +318,7 @@ export default function BrandOsRevisionFields({
                   {valueKind === 'string[]' ? ` · ${t('onePerLine')}` : ''}
                 </p>
                 <ValueEditor
+                  brandId={content.brandId}
                   label={label}
                   fieldKey={key}
                   value={value}

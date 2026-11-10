@@ -39,6 +39,7 @@ describe('ReplicatePollProcessor', () => {
     }),
   };
   const logger = { error: vi.fn(), warn: vi.fn() };
+  const models3dBuild = { abandonBuild: vi.fn(), startBuild: vi.fn() };
   const pollQueue = { schedule: vi.fn() };
   const replicate = { getPrediction: vi.fn() };
   const webhooks = {
@@ -56,6 +57,7 @@ describe('ReplicatePollProcessor', () => {
       byok as never,
       ingredients as never,
       logger as never,
+      models3dBuild as never,
       pollQueue as never,
       replicate as never,
       webhooks as never,
@@ -346,5 +348,76 @@ describe('ReplicatePollProcessor', () => {
     await processor.process(buildJob());
 
     expect(replicate.getPrediction).not.toHaveBeenCalled();
+  });
+  describe('3D build chain', () => {
+    const chain = { kind: 'models3d-build' as const };
+
+    it('reads a keyed output and starts the build once the sheet is stored', async () => {
+      replicate.getPrediction.mockResolvedValue({
+        output: { model_file: 'https://replicate.delivery/pbxt/model.glb' },
+        status: 'succeeded',
+      });
+      ingredients.findOne
+        .mockResolvedValueOnce({ status: IngredientStatus.PROCESSING })
+        .mockResolvedValueOnce({ status: IngredientStatus.GENERATED });
+
+      await processor.process(
+        buildJob({
+          category: IngredientCategory.MODEL_3D,
+          chain,
+          outputKey: 'model_file',
+        }),
+      );
+
+      expect(webhooks.processMediaForIngredient).toHaveBeenCalledWith(
+        'ingredient-1',
+        IngredientCategory.MODEL_3D,
+        'https://replicate.delivery/pbxt/model.glb',
+        'prediction-1',
+      );
+      expect(models3dBuild.startBuild).toHaveBeenCalledWith('ingredient-1');
+    });
+
+    it('abandons the build when the sheet did not store', async () => {
+      replicate.getPrediction.mockResolvedValue({
+        output: 'https://replicate.delivery/pbxt/sheet.png',
+        status: 'succeeded',
+      });
+      ingredients.findOne
+        .mockResolvedValueOnce({ status: IngredientStatus.PROCESSING })
+        .mockResolvedValueOnce({ status: IngredientStatus.FAILED });
+
+      await processor.process(
+        buildJob({ category: IngredientCategory.IMAGE, chain }),
+      );
+
+      expect(models3dBuild.startBuild).not.toHaveBeenCalled();
+      expect(models3dBuild.abandonBuild).toHaveBeenCalledWith('ingredient-1');
+    });
+
+    it('abandons the build when the sheet prediction fails', async () => {
+      replicate.getPrediction.mockResolvedValue({
+        error: 'boom',
+        status: 'failed',
+      });
+
+      await processor.process(
+        buildJob({ category: IngredientCategory.IMAGE, chain }),
+      );
+
+      expect(models3dBuild.abandonBuild).toHaveBeenCalledWith('ingredient-1');
+    });
+
+    it('never chains a job without a chain marker', async () => {
+      replicate.getPrediction.mockResolvedValue({
+        output: 'https://replicate.delivery/pbxt/sheet.png',
+        status: 'succeeded',
+      });
+
+      await processor.process(buildJob({ category: IngredientCategory.IMAGE }));
+
+      expect(models3dBuild.startBuild).not.toHaveBeenCalled();
+      expect(models3dBuild.abandonBuild).not.toHaveBeenCalled();
+    });
   });
 });

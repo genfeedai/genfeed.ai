@@ -1,7 +1,6 @@
 import { runWithActionOrigin } from '@api/action-origin/action-origin.context';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
-import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
 import { testMcpApprovalPricing } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.fixture';
 import type { McpApprovalPricingService } from '@api/collections/mcp-approvals/services/mcp-approval-pricing.service';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
@@ -10,7 +9,7 @@ import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActionOrigin, ActivityKey, ApiKeyScope } from '@genfeedai/contracts';
-import { Prisma } from '@genfeedai/prisma';
+import { type McpApproval, Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -862,7 +861,7 @@ describe('McpApprovalsService', () => {
       vi.spyOn(service, 'findOwned').mockResolvedValue({
         id: 'approval-claim',
         userId: 'requester',
-      } as McpApprovalDocument);
+      } as McpApproval);
       mcpApproval.updateMany.mockResolvedValue({ count: 1 });
 
       await expect(
@@ -879,7 +878,7 @@ describe('McpApprovalsService', () => {
       vi.spyOn(service, 'findOwned').mockResolvedValue({
         id: 'approval-claim',
         userId: 'requester',
-      } as McpApprovalDocument);
+      } as McpApproval);
       mcpApproval.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(
@@ -896,7 +895,7 @@ describe('McpApprovalsService', () => {
       vi.spyOn(service, 'findOwned').mockResolvedValue({
         id: 'approval-claim',
         userId: 'requester',
-      } as McpApprovalDocument);
+      } as McpApproval);
 
       await expect(
         service.claimExecutionForActor(
@@ -914,7 +913,7 @@ describe('McpApprovalsService', () => {
       vi.spyOn(service, 'findOwned').mockResolvedValue({
         id: 'approval-result',
         userId: 'requester',
-      } as McpApprovalDocument);
+      } as McpApproval);
     });
 
     it('lets the requester record the outcome of a claimed run only', async () => {
@@ -972,7 +971,7 @@ describe('McpApprovalsService', () => {
   });
 
   describe('replacePending', () => {
-    const original: McpApprovalDocument = {
+    const original: McpApproval = {
       id: 'old-approval',
       organizationId: 'org-1',
       userId: 'user-1',
@@ -1029,7 +1028,7 @@ describe('McpApprovalsService', () => {
     it('retains frozen pricing and logical identity when replacing a preview', async () => {
       const pricingQuote = testMcpApprovalPricing();
       await service.replacePending(
-        { ...original, pricingQuote } as McpApprovalDocument,
+        { ...original, pricingQuote } as McpApproval,
         { mcpApproval } as unknown as Prisma.TransactionClient,
       );
       expect(mcpApproval.create).toHaveBeenCalledWith({

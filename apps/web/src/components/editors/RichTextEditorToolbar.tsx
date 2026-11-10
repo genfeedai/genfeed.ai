@@ -25,6 +25,7 @@ import {
   Strikethrough,
 } from 'lucide-react';
 import type { RichTextEditorAiConfig } from '@/props/components/rich-text-editor.props';
+import GenerationInsertButton from './GenerationInsertButton';
 
 const AI_EDITOR_ACTIONS = [
   AiActionType.GRAMMAR_CHECK,
@@ -43,6 +44,7 @@ type RichTextEditorToolbarProps = {
   activeAiAction: string | null;
   handleAiAction: (action: AiActionType) => Promise<void>;
   aiConfig: RichTextEditorAiConfig | undefined;
+  isGenerationInsertEnabled?: boolean;
   value: string;
 };
 
@@ -57,6 +59,7 @@ export default function RichTextEditorToolbar({
   activeAiAction,
   handleAiAction,
   aiConfig,
+  isGenerationInsertEnabled = false,
   value,
 }: RichTextEditorToolbarProps) {
   return (
@@ -204,6 +207,13 @@ export default function RichTextEditorToolbar({
         >
           {'</>'}
         </Button>
+      )}
+
+      {isGenerationInsertEnabled && (
+        <>
+          <div className="w-px h-6 bg-border mx-1" />
+          <GenerationInsertButton editor={editor} />
+        </>
       )}
 
       {/* AI Actions */}

@@ -21,10 +21,13 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
   ContentFormat,
+  INGREDIENT_READY_STATUSES,
+  INGREDIENT_UNUSABLE_STATUSES,
   IngredientCategory,
-  IngredientStatus,
+  isTerminalWorkflowExecutionStatus,
   parseReviewDecision,
   ReviewDecision,
+  TURBO_PROJECT_ITEM_REVIEWABLE_STATUSES,
   TurboProjectItemStatus,
   TurboProjectKind,
   TurboProjectStatus,
@@ -64,26 +67,10 @@ function wait(milliseconds: number): Promise<void> {
 }
 
 const OUTPUT_CATEGORIES = [IngredientCategory.IMAGE, IngredientCategory.VIDEO];
-const READY_INGREDIENT_STATUSES = new Set<string>([
-  IngredientStatus.GENERATED,
-  IngredientStatus.UPLOADED,
-  IngredientStatus.VALIDATED,
-]);
-const FAILED_INGREDIENT_STATUSES = new Set<string>([
-  IngredientStatus.ARCHIVED,
-  IngredientStatus.FAILED,
-  IngredientStatus.REJECTED,
-]);
-const TERMINAL_EXECUTION_STATUSES = new Set<string>([
-  WorkflowExecutionStatus.CANCELLED,
-  WorkflowExecutionStatus.COMPLETED,
-  WorkflowExecutionStatus.FAILED,
-]);
-const REVIEWABLE_ITEM_STATUSES = [
-  TurboProjectItemStatus.APPROVED,
-  TurboProjectItemStatus.READY,
-  TurboProjectItemStatus.REJECTED,
-];
+const READY_INGREDIENT_STATUSES = new Set<string>(INGREDIENT_READY_STATUSES);
+const FAILED_INGREDIENT_STATUSES = new Set<string>(
+  INGREDIENT_UNUSABLE_STATUSES,
+);
 
 type ProjectWithItems = TurboProject & { items: TurboProjectItem[] };
 
@@ -627,7 +614,7 @@ export class TurboProjectReconcileService {
     const childByKey = new Map(
       children.map((child) => [child.idempotencyKey, child]),
     );
-    const isParentTerminal = TERMINAL_EXECUTION_STATUSES.has(parent.status);
+    const isParentTerminal = isTerminalWorkflowExecutionStatus(parent.status);
 
     const outcomes: ItemOutcome[] = [];
     for (const item of items) {
@@ -875,7 +862,7 @@ export class TurboProjectReconcileService {
       where: scopedWhere(organizationId, {
         projectId,
         reviewItemId: { not: null },
-        status: { in: REVIEWABLE_ITEM_STATUSES },
+        status: { in: [...TURBO_PROJECT_ITEM_REVIEWABLE_STATUSES] },
       }),
     });
     const reviewItemIds = items.flatMap((item) =>

@@ -243,19 +243,24 @@ export class FreeTrialService {
       return null;
     }
     const before = this.creditBalanceService.toSnapshot(wallet);
-    if (!(before.available > 0)) {
+    // Earned credits (tips, creator payments) never expire with the trial.
+    const expiringCredits = Math.min(
+      before.available,
+      before.settled - before.earned,
+    );
+    if (!(expiringCredits > 0)) {
       return null;
     }
     const billingAccountId = wallet.billingAccountId ?? undefined;
     const after = await this.creditBalanceService.applyDelta(
       organizationId,
-      { balanceDelta: -before.available, billingAccountId },
+      { balanceDelta: -expiringCredits, billingAccountId },
       tx,
     );
     await this.creditTransactionsService.createTransactionEntry(
       organizationId,
       CreditTransactionCategory.EXPIRE,
-      before.available,
+      expiringCredits,
       before.available,
       after.available,
       ActivitySource.TRIAL_EXPIRED,
@@ -270,7 +275,7 @@ export class FreeTrialService {
         referenceType: TRIAL_REFERENCE_TYPE,
       },
     );
-    return { balance: after.available, expiredCredits: before.available };
+    return { balance: after.available, expiredCredits: expiringCredits };
   }
 
   private async findExpiredTrialEnd(

@@ -20,6 +20,7 @@ import type {
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
+import { AgentAvatarTwinToolHandler } from '@api/services/agent-orchestrator/tools/agent-avatar-twin-tool-handler.service';
 import { AgentBrandContentToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
 import { AgentBrandContextToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-context-tool-handler.service';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
@@ -90,6 +91,7 @@ import {
   getToolByName,
   getToolsForSurface,
   getVisualMediaGenerationType,
+  isFreeMediaTransformOperation,
   VISUAL_CODE_ACTION_ALIASES,
 } from '@genfeedai/actions';
 import {
@@ -132,8 +134,14 @@ export function agentToolCreditEstimate(
 ): number | undefined {
   // Batch preparation enforces its authoritative quote against the remaining cap before reserving credits.
   if (toolName === 'generate_turbo_content') return 0;
-  // Merging clips runs on the local files queue and is never charged.
-  if (getMediaTransformOperation(toolName, parameters) === 'merge') return 0;
+  // Merging clips runs on the local files queue, and a digital twin trains in
+  // the organization's own HeyGen account: neither is charged.
+  if (
+    isFreeMediaTransformOperation(
+      getMediaTransformOperation(toolName, parameters),
+    )
+  )
+    return 0;
   if (UNQUOTED_PAID_AGENT_TOOLS.has(toolName)) return undefined;
   if (
     toolName === 'generate_content' &&
@@ -288,7 +296,8 @@ const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
 /**
  * Whether a call needs an explicit thread brand. Image and video generation
  * resolve a brand themselves; voice and music need one. Merging clips is
- * brand-agnostic: the clips are scoped by organization.
+ * brand-agnostic: the clips are scoped by organization. A digital twin lives
+ * in the organization's own HeyGen account, not in a brand.
  */
 function isBrandRequiredTool(
   toolName: CuratedActionName,
@@ -297,7 +306,9 @@ function isBrandRequiredTool(
   return (
     !BRANDLESS_AGENT_TOOLS.has(toolName) &&
     !getVisualMediaGenerationType(toolName, parameters) &&
-    getMediaTransformOperation(toolName, parameters) !== 'merge'
+    !isFreeMediaTransformOperation(
+      getMediaTransformOperation(toolName, parameters),
+    )
   );
 }
 
@@ -323,6 +334,9 @@ export class AgentToolExecutorService implements OnModuleInit {
 
   @Inject(AgentVoiceToolHandler)
   private readonly voiceHandler!: AgentVoiceToolHandler;
+
+  @Inject(AgentAvatarTwinToolHandler)
+  private readonly avatarTwinHandler!: AgentAvatarTwinToolHandler;
 
   @Inject(AgentThreadToolHandler)
   private readonly threadHandler!: AgentThreadToolHandler;
@@ -763,6 +777,9 @@ export class AgentToolExecutorService implements OnModuleInit {
     }
     if (this.voiceHandler.handlesList(toolName, parameters)) {
       return this.voiceHandler.list(parameters, context);
+    }
+    if (this.avatarTwinHandler.handlesList(toolName, parameters)) {
+      return this.avatarTwinHandler.list(parameters, context);
     }
     if (this.generationSettingsHandler.handles(toolName)) {
       return this.generationSettingsHandler.execute(

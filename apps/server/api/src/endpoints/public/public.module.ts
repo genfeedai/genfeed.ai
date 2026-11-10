@@ -7,7 +7,6 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { LinksModule } from '@api/collections/links/links.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
-import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { ReferralsModule } from '@api/collections/referrals/referrals.module';
@@ -20,7 +19,6 @@ import { PublicImagesController } from '@api/endpoints/public/controllers/images
 import { PublicMediaController } from '@api/endpoints/public/controllers/media/public-media.controller';
 import { PublicModelsController } from '@api/endpoints/public/controllers/models/public.models.controller';
 import { PublicMusicsController } from '@api/endpoints/public/controllers/musics/public.musics.controller';
-import { PublicNewslettersController } from '@api/endpoints/public/controllers/newsletters/public.newsletters.controller';
 import { PublicPlatformFlagsController } from '@api/endpoints/public/controllers/platform-flags/public.platform-flags.controller';
 import { PublicPostsController } from '@api/endpoints/public/controllers/posts/public.posts.controller';
 import { PublicPreviewsController } from '@api/endpoints/public/controllers/previews/public.previews.controller';
@@ -28,8 +26,10 @@ import { PublicRSSController } from '@api/endpoints/public/controllers/rss/rss.c
 import { PublicVideosController } from '@api/endpoints/public/controllers/videos/public.videos.controller';
 import { PublicYoutubeClipperController } from '@api/endpoints/public/controllers/youtube-clipper/public-youtube-clipper.controller';
 import { PublicYoutubeLongFormController } from '@api/endpoints/public/controllers/youtube-long-form/public-youtube-long-form.controller';
-import { NewsletterImportFeedService } from '@api/endpoints/public/services/newsletter-import-feed.service';
+import { PublicArticleGenerationsService } from '@api/endpoints/public/services/public-article-generations.service';
+import { PublicBrandSocialsService } from '@api/endpoints/public/services/public-brand-socials.service';
 import { PublicMediaService } from '@api/endpoints/public/services/public-media.service';
+import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
 import { PublicYoutubeClipperService } from '@api/endpoints/public/services/public-youtube-clipper.service';
 import { RssService } from '@api/endpoints/public/services/rss.service';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
@@ -48,7 +48,6 @@ import { Module } from '@nestjs/common';
     PublicMediaController,
     PublicModelsController,
     PublicMusicsController,
-    PublicNewslettersController,
     PublicPlatformFlagsController,
     PublicPostsController,
     PublicPreviewsController,
@@ -72,7 +71,6 @@ import { Module } from '@nestjs/common';
     LinksModule,
     ModelsModule,
     MusicsModule,
-    NewslettersModule,
     PlatformSettingsModule,
     PostsModule,
     ReferralsModule,
@@ -81,8 +79,10 @@ import { Module } from '@nestjs/common';
     WorkflowsModule,
   ],
   providers: [
-    NewsletterImportFeedService,
     PublicMediaService,
+    PublicArticleGenerationsService,
+    PublicBrandSocialsService,
+    PublicViewsService,
     PublicYoutubeClipperService,
     RssService,
   ],

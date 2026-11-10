@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
-import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { assertApiKeyAgentPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
@@ -21,7 +20,7 @@ import {
   type AgentUiActionOf,
   readAgentMutationApprovalData,
 } from '@genfeedai/contracts/interfaces';
-import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { type McpApproval, type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
@@ -184,7 +183,7 @@ export class AgentOrchestratorUiActionMutationService {
   }
 
   private async reprepareMutation(
-    approval: McpApprovalDocument,
+    approval: McpApproval,
     args: Record<string, unknown>,
     params: ThreadUiActionExecutionParams,
   ) {
@@ -303,7 +302,7 @@ export class AgentOrchestratorUiActionMutationService {
   }
 
   private async executeApprovedMutation(
-    approval: McpApprovalDocument,
+    approval: McpApproval,
     args: Record<string, unknown>,
     params: ThreadUiActionExecutionParams,
     scope: NonNullable<ThreadUiActionExecutionParams['context']['scope']>,
@@ -459,7 +458,7 @@ export class AgentOrchestratorUiActionMutationService {
     status: 'approved' | 'declined',
     result: AgentToolResult | undefined,
     params: ThreadUiActionExecutionParams,
-    approval?: McpApprovalDocument,
+    approval?: McpApproval,
   ): Promise<AgentUiAction> {
     const { context, threadId } = params;
     return this.prisma.$transaction(async (transaction) => {
@@ -564,7 +563,7 @@ export class AgentOrchestratorUiActionMutationService {
     result: AgentToolResult | undefined,
     params: ThreadUiActionExecutionParams,
     scope: Awaited<ReturnType<typeof this.lockProposalThread>>,
-    approval?: McpApprovalDocument,
+    approval?: McpApproval,
   ): AgentUiActionOf<'mutation_approval_card'> {
     const data = readAgentMutationApprovalData(card.data);
     if (

@@ -20,9 +20,27 @@ export const publicPostAttributes = [
   'totalShares',
   'totalSaves',
   'avgEngagementRate',
+  'crossPosts',
   'createdAt',
   'updatedAt',
 ];
+
+/**
+ * The media a public post renders with. Only what drawing it needs: never the
+ * prompt, model settings or other generation inputs.
+ */
+export const publicPostMediaAttributes = [
+  'category',
+  'status',
+  'width',
+  'height',
+  'cdnUrl',
+  'mediaDelivery',
+  's3Key',
+];
+
+/** Enough of the brand to link the post to its creator profile. */
+export const publicPostBrandAttributes = ['slug', 'label'];
 
 export const postAttributes = createEntityAttributes([
   'agentStrategyId',

@@ -1,5 +1,5 @@
 import type { Article } from '@models/content/article.model';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ArticleDetail, {
   ArticleAbout,
@@ -9,6 +9,10 @@ import ArticleDetail, {
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
+}));
+
+vi.mock('@data/public-views', () => ({
+  trackPublicView: async () => 1284,
 }));
 
 vi.mock('./article-content', () => ({
@@ -106,6 +110,41 @@ describe('ArticleDetail', () => {
     ).toHaveAttribute('href', '#stage-1-build-the-cast');
     const sticky = container.querySelector('.lg\\:sticky');
     expect(sticky).toHaveClass('lg:top-24');
+  });
+
+  it('shows how many people read the article', async () => {
+    render(
+      <ArticleDetail article={article} handle="genfeedai" isPreview={false} />,
+    );
+
+    expect(await screen.findByText('1,284')).toBeInTheDocument();
+  });
+
+  it('ends with an invitation to make your own, carrying the referral code', () => {
+    render(
+      <ArticleDetail
+        article={article}
+        handle="genfeedai"
+        isPreview={false}
+        referralCode="frend2345xyz"
+      />,
+    );
+
+    const href = screen
+      .getByRole('link', { name: 'Start creating' })
+      .getAttribute('href');
+    expect(new URL(href ?? '').searchParams.get('ref')).toBe('frend2345xyz');
+  });
+
+  it('keeps the view count and the invitation out of previews', async () => {
+    render(<ArticleDetail article={article} handle="genfeedai" isPreview />);
+    // Let any count request settle before asserting it never showed.
+    await act(async () => undefined);
+
+    expect(
+      screen.queryByRole('link', { name: 'Start creating' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('1,284')).not.toBeInTheDocument();
   });
 
   it('offers a copy of the canonical article link', () => {

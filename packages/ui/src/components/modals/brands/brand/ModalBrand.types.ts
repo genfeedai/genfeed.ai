@@ -1,3 +1,4 @@
+import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   IBrand,
   ICredential,
@@ -157,8 +158,14 @@ export function buildSocialConnections(
     return [];
   }
 
+  // The built-in Genfeed profile channel is not a connected account: it
+  // comes with the brand and follows the profile's visibility.
   return (brand.credentials ?? [])
-    .filter((credential) => isVisibleCredentialRow(credential))
+    .filter(
+      (credential) =>
+        credential.platform !== CredentialPlatform.GENFEED &&
+        isVisibleCredentialRow(credential),
+    )
     .map(credentialToSocialConnection);
 }
 

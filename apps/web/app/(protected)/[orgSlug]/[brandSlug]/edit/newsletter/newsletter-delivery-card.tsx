@@ -16,7 +16,6 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { NewslettersService } from '@services/content/newsletters.service';
 import { ClipboardService } from '@services/core/clipboard.service';
-import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
@@ -55,8 +54,8 @@ function accountLabel(credential: ICredential): string {
 }
 
 /**
- * Newsletter → connected Beehiiv publication, plus the brand's Substack
- * import feed (Substack has no publishing API, #2087).
+ * Newsletter → a connected Beehiiv publication. Sending to the brand's own
+ * subscribers lives in the Newsletter send card.
  */
 export default function NewsletterDeliveryCard({
   isDirty,
@@ -66,7 +65,7 @@ export default function NewsletterDeliveryCard({
   onSaveExternalUrl,
 }: NewsletterDeliveryCardProps) {
   const translate = useTranslations('common.longFormDelivery');
-  const { brandId, credentials } = useBrand();
+  const { credentials } = useBrand();
   const { href } = useOrgUrl();
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
   const notificationsService = useMemo(
@@ -108,9 +107,6 @@ export default function NewsletterDeliveryCard({
     : hasContent
       ? null
       : translate('addContentFirst');
-  const feedUrl = brandId
-    ? `${EnvironmentService.apiEndpoint}/public/rss/brands/${brandId}/newsletters`
-    : null;
 
   const handleDeliver = useCallback(async () => {
     const scheduledDate =
@@ -271,25 +267,6 @@ export default function NewsletterDeliveryCard({
       )}
 
       <LongFormDeliveryHistory credentials={credentials} targets={targets} />
-
-      {feedUrl ? (
-        <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wider text-foreground/60">
-            {translate('substackTitle')}
-          </p>
-          <p className="text-xs text-foreground/60">
-            {translate('substackHint')}
-          </p>
-          <p className="break-all text-sm font-medium">{feedUrl}</p>
-          <Button
-            label={translate('copyFeed')}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-            icon={<Clipboard className="size-4" />}
-            onClick={() => void clipboardService.copyToClipboard(feedUrl)}
-          />
-        </div>
-      ) : null}
 
       <ExternalUrlField
         id="newsletter-external-url"

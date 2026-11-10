@@ -1,7 +1,10 @@
 'use client';
 
 import { AssetCategory, ButtonVariant, MemberRole } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  BRAND_KIT_LOGO_SLOTS,
+} from '@genfeedai/contracts/constants';
 import type {
   BrandKitFieldGroup,
   IBrandKitDraft,
@@ -28,11 +31,14 @@ import {
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import BrandFontsCard from '@/features/brands/components/brand-kit/BrandFontsCard';
 import {
   BrandKitReviewActionsProvider,
   BrandKitReviewApplyBar,
 } from '@/features/brands/components/brand-kit/BrandKitReviewApplyBar';
 import BrandKitReviewCard from '@/features/brands/components/brand-kit/BrandKitReviewCard';
+import BrandKitSlotsCard from '@/features/brands/components/brand-kit/BrandKitSlotsCard';
+import BrandKitTransferCard from '@/features/brands/components/brand-kit/BrandKitTransferCard';
 import BrandKitWorkspace from '@/features/brands/components/brand-kit/BrandKitWorkspace';
 import BrandOsSettingsCard from '@/features/brands/components/brand-kit/BrandOsSettingsCard';
 import BrandWritingVoiceEditor from '@/features/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor';
@@ -178,20 +184,31 @@ export default function BrandKitPage() {
             }
             assets={
               <>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={ButtonVariant.SECONDARY}
-                    onClick={() => handleOpenUploadModal(AssetCategory.LOGO)}
-                  >
-                    {t('replaceLogo')}
-                  </Button>
-                  <Button
-                    variant={ButtonVariant.SECONDARY}
-                    onClick={() => handleOpenUploadModal(AssetCategory.BANNER)}
-                  >
-                    {t('replaceBanner')}
-                  </Button>
-                </div>
+                <BrandKitSlotsCard
+                  brand={brand}
+                  brandId={brandId}
+                  isManager={canManage}
+                  onRefreshBrand={() => handleRefreshBrand()}
+                  onUpload={(slot) =>
+                    handleOpenUploadModal(
+                      BRAND_KIT_LOGO_SLOTS.some((spec) => spec.slot === slot)
+                        ? AssetCategory.LOGO
+                        : AssetCategory.BANNER,
+                      slot,
+                    )
+                  }
+                />
+                <BrandFontsCard brandId={brandId} isManager={canManage} />
+                {canManage ? (
+                  <BrandKitTransferCard
+                    brandId={brandId}
+                    downloadName={`${brand.slug || 'brand'}-brand-kit.zip`}
+                    onImported={() => {
+                      void handleRefreshBrand();
+                      setRefreshKey((value) => value + 1);
+                    }}
+                  />
+                ) : null}
                 <BrandWatermarkSettings
                   brand={brand}
                   brandId={brandId}

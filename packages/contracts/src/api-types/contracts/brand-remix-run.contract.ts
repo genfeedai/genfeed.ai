@@ -120,6 +120,28 @@ export const brandRemixPhaseValues = [
   'failed',
 ] as const;
 
+export type BrandRemixPhase = (typeof brandRemixPhaseValues)[number];
+
+/**
+ * `content_runs.status` a brand-remix run shows for each phase (#9740). The
+ * phase in the run config is the real lifecycle; state sync projects it onto
+ * the status column with this table. A new run is stored PENDING until its
+ * first sync.
+ */
+export const BRAND_REMIX_PHASE_RUN_STATUS: Readonly<
+  Record<BrandRemixPhase, ContentRunStatus>
+> = {
+  approved: ContentRunStatus.COMPLETED,
+  failed: ContentRunStatus.FAILED,
+  generating: ContentRunStatus.RUNNING,
+  in_review: ContentRunStatus.COMPLETED,
+  paid_draft_creating: ContentRunStatus.RUNNING,
+  paid_draft_ready: ContentRunStatus.COMPLETED,
+  partially_ready: ContentRunStatus.RUNNING,
+  prefilled: ContentRunStatus.RUNNING,
+  ready_for_review: ContentRunStatus.COMPLETED,
+};
+
 export const trendReferenceRemixSourceSelectorSchema = z
   .object({
     kind: z.literal('trend_reference'),

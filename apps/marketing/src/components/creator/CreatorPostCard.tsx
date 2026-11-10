@@ -3,6 +3,7 @@ import { creatorPostPath } from '@genfeedai/contracts/constants';
 import type { CreatorPostCardProps } from '@props/content/creator.props';
 import Card from '@ui/card/Card';
 import Link from 'next/link';
+import { getPostMedia } from './post-media';
 import { postPlatformLabel, postTitle, toPlainPostText } from './post-text';
 
 const postDateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -12,7 +13,7 @@ const postDateFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
 });
 
-/** A text post: its copy, where it went out, and when. */
+/** A post: its first image, its copy, where it went out, and when. */
 export default function CreatorPostCard({
   handle,
   post,
@@ -21,6 +22,9 @@ export default function CreatorPostCard({
   const title = postTitle(post.label, text);
   const platform = postPlatformLabel(post.platform);
   const publishedAt = post.publishedAt ?? post.createdAt;
+  const cover = getPostMedia(post.ingredients).find(
+    (item) => item.kind === 'image',
+  );
 
   return (
     <Link
@@ -28,6 +32,15 @@ export default function CreatorPostCard({
       href={creatorPostPath(handle, post.id)}
     >
       <Card isInteractive variant={CardVariant.BORDERED} className="h-full">
+        {cover ? (
+          // biome-ignore lint/performance/noImgElement: media URLs are signed per request, so next/image cannot cache them.
+          <img
+            alt=""
+            className="mb-3 aspect-video w-full rounded-md object-cover"
+            loading="lazy"
+            src={cover.url}
+          />
+        ) : null}
         <h3 className="mb-2 line-clamp-2 text-base font-semibold text-foreground transition-colors group-hover:text-primary">
           {title}
         </h3>

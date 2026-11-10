@@ -7,6 +7,7 @@ import type { PostGroupsService } from '@api/collections/post-groups/services/po
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ArticleStatus, ReleaseStatus } from '@genfeedai/contracts';
+import type { ConfigService } from '@libs/config/config.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
 const ctx = {
@@ -103,10 +104,31 @@ describe('LongFormDeliveriesService', () => {
       articlesService as unknown as ArticlesService,
       newslettersService as unknown as NewslettersService,
       brandAccess as unknown as BrandAccessService,
+      { get: () => 'https://genfeed.ai/' } as unknown as ConfigService,
     );
   });
 
   describe('deliverArticle', () => {
+    it('sends only the preview and a link for a paid article', async () => {
+      prisma.article.findFirst.mockResolvedValue(
+        makeArticle({
+          accessLevel: 'paid',
+          brand: { slug: 'acme' },
+          content: '<p>Free opening.</p><p>Second part.</p><p>Paid secret.</p>',
+          slug: 'launch-notes',
+        }),
+      );
+
+      await service.deliverArticle(ctx, 'article-1', {
+        credentialId: 'credential-1',
+      });
+
+      const [, , release] = postGroupsService.create.mock.calls[0];
+      expect(release.baseContent).toBe(
+        '<p>Free opening.</p><p><a href="https://genfeed.ai/@acme/articles/launch-notes">Read the full article on Genfeed</a></p>',
+      );
+    });
+
     it('queues a one-target release linked to the article, then marks it published', async () => {
       const release = await service.deliverArticle(ctx, 'article-1', {
         credentialId: 'credential-1',

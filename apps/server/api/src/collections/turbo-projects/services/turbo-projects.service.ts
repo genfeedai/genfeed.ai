@@ -39,6 +39,7 @@ import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-resu
 import {
   IngredientCategory,
   TargetExecutionState,
+  TURBO_PROJECT_ITEM_REVIEWABLE_STATUSES,
   TurboProjectItemStatus,
   TurboProjectKind,
   TurboProjectStatus,
@@ -69,11 +70,9 @@ const RECONCILED_STATUSES = new Set<string>([
   TurboProjectStatus.REVIEWING,
   TurboProjectStatus.SCHEDULED,
 ]);
-const REVIEWABLE_STATUSES = new Set<string>([
-  TurboProjectItemStatus.APPROVED,
-  TurboProjectItemStatus.READY,
-  TurboProjectItemStatus.REJECTED,
-]);
+const REVIEWABLE_STATUSES = new Set<string>(
+  TURBO_PROJECT_ITEM_REVIEWABLE_STATUSES,
+);
 
 /**
  * Studio Turbo projects (#5463): one persisted surface for idea projects and

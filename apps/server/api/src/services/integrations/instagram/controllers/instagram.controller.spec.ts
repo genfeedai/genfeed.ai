@@ -494,7 +494,7 @@ describe('InstagramController', () => {
 
       expect(
         instagramServiceMock.listAuthorizedInstagramAccounts,
-      ).toHaveBeenCalledWith('business-token', []);
+      ).toHaveBeenCalledWith('business-token', [], 'business-1');
       // Discovery happens before the token is ever persisted.
       const discoveryCallOrder =
         instagramServiceMock.listAuthorizedInstagramAccounts.mock
@@ -613,6 +613,46 @@ describe('InstagramController', () => {
         instagramServiceMock.listAuthorizedInstagramAccounts,
       ).not.toHaveBeenCalled();
       expect(credentialsPatchMock).not.toHaveBeenCalled();
+    });
+
+    it('reads permissions from granular_scopes when Meta leaves the scopes list empty', async () => {
+      mockGraphReads({
+        debugToken: () =>
+          of({
+            data: {
+              data: {
+                granular_scopes: [
+                  { scope: 'instagram_basic', target_ids: ['ig-granted'] },
+                  { scope: 'instagram_content_publish' },
+                ],
+                is_valid: true,
+                scopes: [],
+              },
+            },
+          }),
+      });
+
+      await controller.verify(mockRequest, { code: 'auth-code', state });
+
+      expect(credentialsPatchMock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          grantedScopes: ['instagram_basic', 'instagram_content_publish'],
+        }),
+      );
+    });
+
+    it('does not read an empty permission list as a missing permission', async () => {
+      mockGraphReads({
+        debugToken: () =>
+          of({ data: { data: { is_valid: true, scopes: [] } } }),
+      });
+
+      await controller.verify(mockRequest, { code: 'auth-code', state });
+
+      expect(
+        instagramServiceMock.listAuthorizedInstagramAccounts,
+      ).toHaveBeenCalled();
     });
 
     it('takes granted permissions from the exchange response when Meta includes them', async () => {
@@ -1328,7 +1368,7 @@ describe('InstagramController', () => {
 
       expect(
         instagramServiceMock.listAuthorizedInstagramAccounts,
-      ).toHaveBeenCalledWith('encrypted-token');
+      ).toHaveBeenCalledWith('encrypted-token', undefined, 'business-1');
       expect(result).toEqual([
         expect.objectContaining({
           externalId: 'ig-account-b',

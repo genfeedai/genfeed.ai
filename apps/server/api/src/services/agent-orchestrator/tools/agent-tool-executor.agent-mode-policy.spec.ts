@@ -159,6 +159,7 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
       voiceHandler: { handlesList: vi.fn().mockReturnValue(false) },
+      avatarTwinHandler: { handlesList: vi.fn().mockReturnValue(false) },
       threadHandler: { handles: vi.fn().mockReturnValue(false) },
     });
     service.onModuleInit();

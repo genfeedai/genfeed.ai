@@ -1,4 +1,8 @@
-import type { AssetScope } from '../..';
+import type { AssetScope, CredentialPlatform } from '../..';
+import type {
+  BrandFontRoles,
+  BrandPaletteColor,
+} from '../../api-types/contracts/brand-kit-style.contract';
 import type {
   IAsset,
   IBaseEntity,
@@ -55,6 +59,10 @@ export interface IBrand extends IBaseEntity {
 
   logo?: IAsset;
   banner?: IAsset;
+  /** Every live logo variant (see `kitSlot`), default logo included. */
+  logos?: IAsset[];
+  /** Every live banner and platform profile image (see `kitSlot`). */
+  banners?: IAsset[];
   references?: IAsset[];
 
   logoUrl?: string;
@@ -65,6 +73,10 @@ export interface IBrand extends IBaseEntity {
   primaryColor: string;
   secondaryColor: string;
   backgroundColor: string;
+  /** Named colors beyond primary, secondary and background. */
+  colorPalette?: BrandPaletteColor[];
+  /** The font for headings, body text and captions. */
+  fontRoles?: BrandFontRoles;
 
   voice?: string;
   music?: string;
@@ -104,8 +116,20 @@ export interface IBrand extends IBaseEntity {
   scope: AssetScope;
   isActive: boolean;
   isHighlighted?: boolean;
+  /** The social accounts the brand connected, as public profile links. */
+  socials?: IPublicBrandSocial[];
 
   agentConfig?: IBrandAgentConfig;
+}
+
+/**
+ * A connected social account as a public profile shows it: the platform, the
+ * public handle and the profile link. Nothing about the credential itself.
+ */
+export interface IPublicBrandSocial {
+  handle: string;
+  platform: CredentialPlatform;
+  url: string;
 }
 
 export interface IBrandAgentVoice {

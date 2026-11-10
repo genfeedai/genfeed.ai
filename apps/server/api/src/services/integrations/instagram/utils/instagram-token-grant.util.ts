@@ -20,7 +20,34 @@ export function toInstagramTokenGrant(
     ? data.granular_scopes
     : [];
 
+  const scopedPermissions = granular
+    .map((entry) => entry.scope)
+    .filter((name): name is string => typeof name === 'string');
+  // A Business Integration System User token can list its permissions only
+  // under `granular_scopes` and leave `scopes` empty. An empty list is Meta
+  // saying nothing, not Meta saying "none", so it must not read as a missing
+  // permission: the grant is the union of both lists, and unknown when both
+  // are empty.
+  const grantedScopes = [
+    ...new Set([
+      ...(Array.isArray(data?.scopes) ? data.scopes : []),
+      ...scopedPermissions,
+    ]),
+  ];
+
+  // How many assets each permission carries (counts only, never ids), so a
+  // grant whose accounts sit under another permission is visible in the log.
+  const targetCountByPermission: Record<string, number> = {};
+  for (const entry of granular) {
+    if (typeof entry.scope === 'string') {
+      targetCountByPermission[entry.scope] =
+        (targetCountByPermission[entry.scope] ?? 0) +
+        (entry.target_ids?.length ?? 0);
+    }
+  }
+
   return {
+    targetCountByPermission,
     instagramTargetIds: [
       ...new Set(
         granular
@@ -28,9 +55,7 @@ export function toInstagramTokenGrant(
           .flatMap((entry) => entry.target_ids ?? []),
       ),
     ],
-    scopedPermissions: granular
-      .map((entry) => entry.scope)
-      .filter((name): name is string => typeof name === 'string'),
-    scopes: Array.isArray(data?.scopes) ? data.scopes : undefined,
+    scopedPermissions,
+    scopes: grantedScopes.length > 0 ? grantedScopes : undefined,
   };
 }

@@ -1,6 +1,9 @@
 import type {
   ContextCoverage,
+  IBrandKitColorEntry,
+  IBrandKitFontRoleEntry,
   IBrandKitReadiness,
+  IBrandKitSlotImage,
   IMissingBrandContext,
   KnowledgeRetrievalCitation,
 } from '@genfeedai/contracts/interfaces';
@@ -158,6 +161,14 @@ export interface AssembledBrandContext {
     secondaryColor?: string;
     backgroundColor?: string;
     fontFamily?: string;
+    /** Named colors beyond primary, secondary and background. */
+    palette?: IBrandKitColorEntry[];
+    /** The font family the brand uses for each text role. */
+    fontRoles?: IBrandKitFontRoleEntry[];
+    /** Every live logo variant, by slot. */
+    logos?: IBrandKitSlotImage[];
+    /** Every live banner and platform image, by slot. */
+    banners?: IBrandKitSlotImage[];
     logoUrl?: string;
     bannerUrl?: string;
     referenceImages?: Array<{

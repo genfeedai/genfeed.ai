@@ -8,6 +8,9 @@ import type {
   IBrandOsPreviewRequest,
   IPaginatedResponse,
   IPlatformFlags,
+  IPublicNewsletterArchive,
+  IPublicNewsletterIssue,
+  IPublicNewsletterSubscribeRequest,
   IPublicYoutubeClipperToolSession,
   IPublicYoutubeLongFormToolResult,
   IQueryParams,
@@ -171,11 +174,52 @@ export class PublicService extends HTTPBaseService {
       });
   }
 
+  /** A creator by id, or null when the brand is missing or not public. */
+  public async findPublicBrand(brandId: string): Promise<Brand | null> {
+    return this.fetchOne(`brands/${encodeURIComponent(brandId)}`, Brand);
+  }
+
   /** The profile owner's referral code, or null when the brand has none. */
   public async findPublicReferralCode(brandId: string): Promise<string | null> {
     return await this.instance
       .get<{ data?: { code?: string | null } }>(`brands/${brandId}/referral`)
       .then((res) => res.data?.data?.code ?? null);
+  }
+
+  /**
+   * Ask for a brand's newsletter by email (double opt-in). The answer is the
+   * same whether or not the address was already listed.
+   */
+  public async subscribeToNewsletter(
+    input: IPublicNewsletterSubscribeRequest,
+  ): Promise<void> {
+    await this.instance.post('newsletter/subscribe', input);
+  }
+
+  /** A brand's published newsletter issues, newest first, or null if unknown. */
+  public async findNewsletterArchive(
+    brandId: string,
+    page = 1,
+  ): Promise<IPublicNewsletterArchive | null> {
+    const response = await this.instance.get<{
+      data?: IPublicNewsletterArchive;
+    }>(`newsletter/brands/${encodeURIComponent(brandId)}/archive`, {
+      params: page > 1 ? { page } : undefined,
+      validateStatus: isSuccessOrNotFound,
+    });
+    return response.status === 404 ? null : (response.data.data ?? null);
+  }
+
+  /** One published issue as sanitized HTML, or null if it is not public. */
+  public async findNewsletterIssue(
+    newsletterId: string,
+  ): Promise<IPublicNewsletterIssue | null> {
+    const response = await this.instance.get<{
+      data?: IPublicNewsletterIssue;
+    }>(`newsletter/archive/${encodeURIComponent(newsletterId)}`, {
+      validateStatus: isSuccessOrNotFound,
+    });
+    return response.status === 404 ? null : (response.data.data ?? null);
   }
 
   public async previewBrandOs(
@@ -243,10 +287,6 @@ export class PublicService extends HTTPBaseService {
 
   public async findPublicAccountLinks(brandId: string): Promise<Link[]> {
     return this.fetchMany(`brands/${brandId}/links`, Link);
-  }
-
-  public async trackAccountView(brandId: string): Promise<void> {
-    await this.instance.post(`brands/${brandId}/views`);
   }
 
   public async findPublicBrands(query?: IQueryParams): Promise<Brand[]> {
@@ -371,6 +411,19 @@ export class PublicService extends HTTPBaseService {
    * 404 is let through `validateStatus` so it never reaches the response
    * interceptor, whose error shape differs between development and production.
    */
+  /**
+   * The generations a published article embeds as blocks, with their output,
+   * model and (unless the author hid it) prompt. Empty when there are none.
+   */
+  public async findArticleGenerations(
+    articleId: string,
+  ): Promise<Ingredient[]> {
+    return this.fetchMany(
+      `articles/${encodeURIComponent(articleId)}/generations`,
+      Ingredient,
+    );
+  }
+
   public async getPublicArticleBySlug(
     slug: string,
     previewToken?: string,

@@ -1,4 +1,15 @@
-import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
+import { FONT_FAMILY_METADATA } from '@genfeedai/contracts';
+import {
+  BRAND_FONT_ROLES,
+  readBrandFontRoles,
+} from '@genfeedai/contracts/api-types/contracts/brand-kit-style.contract';
+import { getBrandKitPlatformSlotSpec } from '@genfeedai/contracts/constants';
+import type {
+  IBrandKitFontRoleEntry,
+  IBrandKitResolvedAsset,
+  IBrandKitResolvedAssets,
+  IBrandKitSlotImage,
+} from '@genfeedai/contracts/interfaces';
 import type { BrandKitSourceBrand } from '@genfeedai/helpers';
 
 /**
@@ -31,6 +42,48 @@ export function readNonDefaultColor(
   return value.trim().toLowerCase() === defaultValue.toLowerCase()
     ? undefined
     : value;
+}
+
+/** The family each text role uses, in heading, body, caption order. */
+export function readBrandFontRoleFamilies(
+  value: unknown,
+): IBrandKitFontRoleEntry[] {
+  const roles = readBrandFontRoles(value);
+  return BRAND_FONT_ROLES.flatMap((role) => {
+    const assignment = roles[role];
+    if (!assignment) return [];
+    return [
+      {
+        family:
+          assignment.source === 'upload'
+            ? assignment.family
+            : FONT_FAMILY_METADATA[assignment.fontFamily].label,
+        ...(assignment.source === 'upload'
+          ? { fontAssetId: assignment.assetId }
+          : {}),
+        role,
+      },
+    ];
+  });
+}
+
+/** Logo variants or platform images with their slot and, for platforms, size. */
+export function toSlotImages(
+  assets: readonly IBrandKitResolvedAsset[] | undefined,
+): IBrandKitSlotImage[] {
+  return (assets ?? []).flatMap((asset) => {
+    if (!asset.slot) return [];
+    const spec = getBrandKitPlatformSlotSpec(asset.slot);
+    return [
+      {
+        assetId: asset.id,
+        ...(asset.mimeType ? { mimeType: asset.mimeType } : {}),
+        slot: asset.slot,
+        url: asset.url,
+        ...(spec ? { height: spec.height, width: spec.width } : {}),
+      },
+    ];
+  });
 }
 
 export function readReferenceImages(value: unknown): Array<{
@@ -110,7 +163,9 @@ export function toBrandKitSourceBrand(
     backgroundColor: readTextField(brand.backgroundColor),
     bannerUrl: assets.banner?.url,
     description: readTextField(brand.description),
+    colorPalette: brand.colorPalette,
     fontFamily: readTextField(brand.fontFamily),
+    fontRoles: brand.fontRoles,
     id: readTextField(brand.id) ?? 'unknown-brand',
     label: readTextField(brand.label),
     logoUrl: assets.logo?.url,

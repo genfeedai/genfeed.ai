@@ -11,10 +11,12 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { StoryboardInspectorProps } from '@/features/studio/props/storyboard.props';
 
-type InspectorTab = 'shots' | 'details' | 'references' | 'cast';
+type InspectorTab = 'shots' | 'details' | 'references' | 'cast' | 'assets';
 
 /** Body of the shell's context sidebar for a storyboard run. */
 export default function StoryboardInspector({
+  assets,
+  assetCount = 0,
   cast,
   castCount,
   details,
@@ -55,6 +57,15 @@ export default function StoryboardInspector({
             label: translate('cast'),
             badge: <span className="tabular-nums">{castCount}</span>,
           },
+          ...(assets
+            ? [
+                {
+                  id: 'assets',
+                  label: translate('assets'),
+                  badge: <span className="tabular-nums">{assetCount}</span>,
+                },
+              ]
+            : []),
         ]}
         activeTab={tab}
         onTabChange={(next) => setTab(next as InspectorTab)}
@@ -153,6 +164,7 @@ export default function StoryboardInspector({
       {tab === 'details' ? details : null}
       {tab === 'references' ? references : null}
       {tab === 'cast' ? cast : null}
+      {tab === 'assets' ? assets : null}
     </div>
   );
 }

@@ -2,7 +2,6 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { CreateMcpApprovalDto } from '@api/collections/mcp-approvals/dto/create-mcp-approval.dto';
 import { UpdateMcpApprovalDto } from '@api/collections/mcp-approvals/dto/update-mcp-approval.dto';
-import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
 import {
   approvalGenerationQuote,
   readMcpApprovalPricing,
@@ -30,7 +29,12 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { getToolByName } from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
 import { ActivityKey, ActivitySource, MemberRole } from '@genfeedai/contracts';
-import { McpApprovalStatus, Prisma, toPrismaJson } from '@genfeedai/prisma';
+import {
+  type McpApproval,
+  McpApprovalStatus,
+  Prisma,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -52,7 +56,7 @@ const MAX_PENDING_APPROVALS_PER_ORG = 100;
 @Traced()
 @Injectable()
 export class McpApprovalsService extends BaseService<
-  McpApprovalDocument,
+  McpApproval,
   CreateMcpApprovalDto,
   UpdateMcpApprovalDto
 > {
@@ -82,7 +86,7 @@ export class McpApprovalsService extends BaseService<
         | 'attachmentUrls'
       >;
     },
-  ): Promise<McpApprovalDocument> {
+  ): Promise<McpApproval> {
     const needsGenerationQuote =
       toolName === 'generate' &&
       (args.type === 'image' || args.type === 'video');
@@ -102,7 +106,7 @@ export class McpApprovalsService extends BaseService<
         },
       }),
       orderBy: { createdAt: 'desc' },
-    })) as McpApprovalDocument | null;
+    })) as McpApproval | null;
     if (existing) {
       if (
         needsGenerationQuote &&
@@ -135,7 +139,7 @@ export class McpApprovalsService extends BaseService<
       organizationId,
       userId,
     });
-    let approval: McpApprovalDocument;
+    let approval: McpApproval;
     try {
       approval = (await this.delegate.create({
         data: {
@@ -147,7 +151,7 @@ export class McpApprovalsService extends BaseService<
           userId,
           ...(pricingQuote ? { pricingQuote: toPrismaJson(pricingQuote) } : {}),
         },
-      })) as McpApprovalDocument;
+      })) as McpApproval;
     } catch (error: unknown) {
       if (
         error !== null &&
@@ -205,9 +209,9 @@ export class McpApprovalsService extends BaseService<
    * Invalidating the old ID prevents stale clients from approving the renewal.
    */
   async replacePending(
-    approval: McpApprovalDocument,
+    approval: McpApproval,
     transaction: Prisma.TransactionClient,
-  ): Promise<McpApprovalDocument> {
+  ): Promise<McpApproval> {
     const { count } = await transaction.mcpApproval.updateMany({
       where: scopedWhere(approval.organizationId, {
         id: approval.id,
@@ -237,13 +241,13 @@ export class McpApprovalsService extends BaseService<
         toolName: approval.toolName,
         status: McpApprovalStatus.PENDING,
       },
-    })) as McpApprovalDocument;
+    })) as McpApproval;
   }
 
   async findByOrganization(
     organizationId: string,
     options: { limit: number; page: number; status?: McpApprovalStatus },
-  ): Promise<PaginatedResult<McpApprovalDocument>> {
+  ): Promise<PaginatedResult<McpApproval>> {
     const { limit, page, status } = options;
     const where = scopedWhere(organizationId, {
       ...(status ? { status } : {}),
@@ -258,25 +262,20 @@ export class McpApprovalsService extends BaseService<
       this.delegate.count({ where }),
     ]);
 
-    return buildPaginatedResult(
-      docs as McpApprovalDocument[],
-      totalDocs,
-      page,
-      limit,
-    );
+    return buildPaginatedResult(docs as McpApproval[], totalDocs, page, limit);
   }
 
   async findStatusForActor(
     id: string,
     user: AuthenticatedUser,
-  ): Promise<McpApprovalDocument> {
+  ): Promise<McpApproval> {
     const userId = user.userId || user.id;
     const { organizationId } = resolveTenantReadScope(user);
     if (!userId || !organizationId || !this.brandAccess)
       throw new ForbiddenException();
     const approval = (await this.delegate.findFirst({
       where: scopedWhere(organizationId, { id, userId }),
-    })) as McpApprovalDocument | null;
+    })) as McpApproval | null;
     if (!approval) throw new NotFoundException('MCP approval');
 
     const tool = getToolByName(approval.toolName);
@@ -337,7 +336,7 @@ export class McpApprovalsService extends BaseService<
     result?: Record<string, unknown>,
     apiKeyContext?: ApiKeyPublishingContext,
     transaction?: Prisma.TransactionClient,
-  ): Promise<McpApprovalDocument> {
+  ): Promise<McpApproval> {
     const delegate = transaction?.mcpApproval ?? this.delegate;
     const findOwned = async () => {
       if (!transaction) return this.findOneWithOrganization(id, organizationId);
@@ -396,7 +395,7 @@ export class McpApprovalsService extends BaseService<
 
     return (await delegate.findFirst({
       where: scopedWhere(organizationId, { id }),
-    })) as McpApprovalDocument;
+    })) as McpApproval;
   }
 
   async claimExecution(id: string, organizationId: string): Promise<boolean> {
@@ -481,10 +480,7 @@ export class McpApprovalsService extends BaseService<
     });
   }
 
-  async findOwned(
-    id: string,
-    organizationId: string,
-  ): Promise<McpApprovalDocument> {
+  async findOwned(id: string, organizationId: string): Promise<McpApproval> {
     return this.findOneWithOrganization(id, organizationId);
   }
 
@@ -495,7 +491,7 @@ export class McpApprovalsService extends BaseService<
    * organization, resolves to an organization-level link.
    */
   async findLinkScope(
-    approval: Pick<McpApprovalDocument, 'arguments' | 'organizationId'>,
+    approval: Pick<McpApproval, 'arguments' | 'organizationId'>,
   ): Promise<{ brandSlug: string | null; organizationSlug: string | null }> {
     const args = isRecord(approval.arguments) ? approval.arguments : {};
     const brandId =
@@ -523,7 +519,7 @@ export class McpApprovalsService extends BaseService<
   async findActiveByIdempotencyKey(
     organizationId: string,
     idempotencyKey: string,
-  ): Promise<McpApprovalDocument | null> {
+  ): Promise<McpApproval | null> {
     return (await this.delegate.findFirst({
       where: scopedWhere(organizationId, {
         idempotencyKey,
@@ -532,6 +528,6 @@ export class McpApprovalsService extends BaseService<
         },
       }),
       orderBy: { createdAt: 'desc' },
-    })) as McpApprovalDocument | null;
+    })) as McpApproval | null;
   }
 }

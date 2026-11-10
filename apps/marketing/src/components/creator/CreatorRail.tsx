@@ -1,4 +1,5 @@
 import { ButtonVariant } from '@genfeedai/contracts';
+import { GENFEED_BRAND_HANDLE } from '@genfeedai/contracts/constants';
 import { addUTMParameters } from '@helpers/utm/utm-builder.helper';
 import type { CreatorRailProps } from '@props/content/creator.props';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
@@ -7,12 +8,8 @@ import ProfileSignupCta from '@web-components/profile/ProfileSignupCta';
 import ProfileSocialLinks from '@web-components/profile/ProfileSocialLinks';
 import ProfileSubscribe from '@web-components/profile/ProfileSubscribe';
 import CopyLinkButton from './CopyLinkButton';
-
-const MEMBER_SINCE_FORMAT = new Intl.DateTimeFormat('en-US', {
-  month: 'long',
-  timeZone: 'UTC',
-  year: 'numeric',
-});
+import SupportCreatorButton from './SupportCreatorButton';
+import ViewCount from './ViewCount';
 
 const STAT_LABELS = [
   ['articles', 'articles'],
@@ -36,21 +33,25 @@ export default function CreatorRail({
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <BrandAvatar
-          alt={`${label} logo`}
-          name={label}
-          size="2xl"
-          src={brand.logoUrl}
-        />
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">{label}</h1>
-          <p className="text-sm text-foreground/60">@{handle}</p>
+        <div className="flex items-start gap-4">
+          <BrandAvatar
+            alt={`${label} logo`}
+            name={label}
+            size="xl"
+            src={brand.logoUrl}
+          />
+          <div className="min-w-0 space-y-1">
+            <h1 className="text-xl font-semibold leading-tight text-foreground">
+              {label}
+            </h1>
+            <p className="text-sm text-foreground/60">@{handle}</p>
+            {brand.description ? (
+              <p className="pt-1 text-sm leading-6 text-foreground/80">
+                {brand.description}
+              </p>
+            ) : null}
+          </div>
         </div>
-        {brand.description ? (
-          <p className="text-sm leading-6 text-foreground/80">
-            {brand.description}
-          </p>
-        ) : null}
         {stats.length > 0 ? (
           <p className="text-sm text-foreground/60">
             {stats.map(([key, noun], index) => (
@@ -64,20 +65,24 @@ export default function CreatorRail({
             ))}
           </p>
         ) : null}
+        <ViewCount id={brand.id} target="profile" />
+      </div>
+
+      <div className="flex items-center gap-4">
+        <ProfileSocialLinks handle={handle} socials={brand.socials} />
+        <CopyLinkButton className="ml-auto" url={profileUrl} />
       </div>
 
       <div className="space-y-3">
-        <ProfileSubscribe brandId={brand.id} />
-        <CopyLinkButton className="w-full" url={profileUrl} />
+        <ProfileSubscribe
+          brandId={brand.id}
+          brandLabel={label}
+          source="profile"
+        />
+        {handle === GENFEED_BRAND_HANDLE ? null : (
+          <SupportCreatorButton className="w-full" handle={handle} />
+        )}
       </div>
-
-      <ProfileSocialLinks
-        handle={handle}
-        instagramUrl={brand.instagramUrl}
-        tiktokUrl={brand.tiktokUrl}
-        twitterUrl={brand.twitterUrl}
-        youtubeUrl={brand.youtubeUrl}
-      />
 
       {links.length > 0 ? (
         <ul className="space-y-2">
@@ -103,13 +108,6 @@ export default function CreatorRail({
       ) : null}
 
       <ProfileSignupCta handle={handle} referralCode={referralCode} />
-
-      {brand.createdAt ? (
-        <p className="text-xs text-foreground/50">
-          On Genfeed since{' '}
-          {MEMBER_SINCE_FORMAT.format(new Date(brand.createdAt))}
-        </p>
-      ) : null}
     </div>
   );
 }

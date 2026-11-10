@@ -100,5 +100,44 @@ describe('RootLayout', () => {
       id: 'user_123',
       organizationId: 'org_123',
     });
+    expect(
+      screen.getByTestId('navigation-theme').getAttribute('data-dark'),
+    ).toBe('true');
+    expect(screen.getByTestId('status-bar').getAttribute('data-style')).toBe(
+      'light',
+    );
+  });
+
+  it('keeps the themed shell when push registration fails', async () => {
+    notificationsServiceMock.registerForPushNotifications.mockRejectedValue(
+      new Error('permission denied'),
+    );
+    vi.mocked(useMobileAuth).mockReturnValue({
+      getToken: vi.fn(),
+      isLoaded: true,
+      isSignedIn: true,
+      refreshSession: vi.fn(),
+      signInWithEmail: vi.fn(),
+      signOut: vi.fn(),
+      user: {
+        email: 'qa@genfeed.ai',
+        id: 'user_123',
+        image: null,
+        name: null,
+        organizationId: 'org_123',
+      },
+    } as unknown as ReturnType<typeof useMobileAuth>);
+
+    render(<RootLayout />);
+
+    await waitFor(() => {
+      expect(sentryServiceMock.captureException).toHaveBeenCalled();
+    });
+    expect(
+      screen.getByTestId('navigation-theme').getAttribute('data-dark'),
+    ).toBe('true');
+    expect(screen.getByTestId('status-bar').getAttribute('data-style')).toBe(
+      'light',
+    );
   });
 });

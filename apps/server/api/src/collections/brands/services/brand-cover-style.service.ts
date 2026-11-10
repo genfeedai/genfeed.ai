@@ -1,3 +1,4 @@
+import { findLightBackgroundLogoId } from '@api/collections/brands/utils/brand-logo-variant.util';
 import {
   type BrandWatermarkSettings,
   watermarkLogoIdFor,
@@ -124,7 +125,13 @@ export class BrandCoverStyleService {
     });
     if (!brand) return undefined;
 
-    const logoId = watermarkLogoIdFor(brand, variant);
+    const logoId = watermarkLogoIdFor(
+      brand,
+      variant,
+      variant === 'light'
+        ? await findLightBackgroundLogoId(this.prisma, brandId, organizationId)
+        : null,
+    );
     const logo = logoId
       ? await this.prisma.asset.findFirst({
           select: {

@@ -1456,6 +1456,62 @@ describe('WorkflowExecutorService', () => {
       expect(executionsService.createExecution).not.toHaveBeenCalled();
     });
 
+    it('runs no node when the execution is cancelled between the retry read and its start', async () => {
+      const executableWorkflow: ExecutableWorkflow = {
+        edges: [],
+        id: 'workflow-1',
+        lockedNodeIds: [],
+        nodes: [
+          createExecutableActionNode({
+            actionId: 'publish',
+            id: 'publish-node',
+            label: 'Publish',
+          }),
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+        versionId: WORKFLOW_VERSION_ID,
+      };
+      const failedRow = {
+        id: 'exec-race',
+        userId: 'user-1',
+        status: WorkflowExecutionStatus.FAILED,
+        workflowId: 'workflow-1',
+        workflowVersionId: WORKFLOW_VERSION_ID,
+      };
+      executionsService.findOne
+        .mockResolvedValueOnce(failedRow)
+        .mockResolvedValue({
+          ...failedRow,
+          completedAt: new Date('2026-08-12T10:05:00.000Z'),
+          status: WorkflowExecutionStatus.CANCELLED,
+        });
+      prisma.workflowVersion.findFirst.mockResolvedValue(
+        pinnedVersion({ id: 'workflow-1', label: 'Cancelled retry' }),
+      );
+      engineAdapter.convertToExecutableWorkflow.mockReturnValue(
+        executableWorkflow,
+      );
+      engineAdapter.applyRuntimeInputValues.mockReturnValue(executableWorkflow);
+      // The compare-and-set start found the row already CANCELLED.
+      executionsService.startExecution.mockResolvedValue(null);
+
+      const result = await service.continueExistingExecution(
+        'exec-race',
+        triggerEvent,
+      );
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          executionId: 'exec-race',
+          nodeResults: [],
+          status: WorkflowExecutionStatus.CANCELLED,
+        }),
+      );
+      expect(engineAdapter.executeNode).not.toHaveBeenCalled();
+      expect(executionsService.completeExecution).not.toHaveBeenCalled();
+    });
+
     it('re-enters a PENDING prior execution under the same id', async () => {
       const executableWorkflow: ExecutableWorkflow = {
         edges: [],

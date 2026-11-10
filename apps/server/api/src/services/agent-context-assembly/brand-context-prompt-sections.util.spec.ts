@@ -5,6 +5,7 @@ import {
   buildVoicePromptSections,
 } from '@api/services/agent-context-assembly/brand-context-prompt-sections.util';
 import type { AssembledBrandContext } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
+import { BrandKitSlot } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 function context(): AssembledBrandContext {
@@ -59,6 +60,76 @@ describe('brand prompt section contributions', () => {
         '- social references: url2',
       ].join('\n'),
     });
+  });
+
+  it('lists the named palette after the core colors and each font role after the font', () => {
+    const value = {
+      ...context(),
+      visualIdentity: {
+        primaryColor: '#000000',
+        fontFamily: 'MONTSERRAT_BLACK',
+        palette: [
+          { name: 'Accent', hex: '#FF6600', usage: 'Buttons' },
+          { name: 'Text', hex: '#111111' },
+        ],
+        fontRoles: [
+          { role: 'heading', family: 'Acme Display' },
+          { role: 'caption', family: 'Bebas Neue' },
+        ],
+      },
+    };
+    expect(buildVisualIdentityPrompt(value)?.content).toBe(
+      [
+        '- Primary color: #000000',
+        '- Accent color: #FF6600 (Buttons)',
+        '- Text color: #111111',
+        '- Font: MONTSERRAT_BLACK',
+        '- heading font: Acme Display',
+        '- caption font: Bebas Neue',
+      ].join('\n'),
+    );
+  });
+
+  it('names the logo variants and the platform image sizes', () => {
+    const value = {
+      ...context(),
+      visualIdentity: {
+        logoUrl: 'https://cdn.test/logos/primary',
+        logos: [
+          {
+            assetId: 'logo-1',
+            slot: BrandKitSlot.LOGO_PRIMARY,
+            url: 'https://cdn.test/logos/primary',
+          },
+          {
+            assetId: 'logo-2',
+            slot: BrandKitSlot.LOGO_ICON,
+            url: 'https://cdn.test/logos/icon',
+          },
+        ],
+        banners: [
+          {
+            assetId: 'banner-1',
+            slot: BrandKitSlot.BANNER_MASTER,
+            url: 'https://cdn.test/banners/master',
+          },
+          {
+            assetId: 'banner-2',
+            height: 500,
+            slot: BrandKitSlot.X_HEADER,
+            url: 'https://cdn.test/banners/x',
+            width: 1500,
+          },
+        ],
+      },
+    };
+    expect(buildVisualIdentityPrompt(value)?.content).toBe(
+      [
+        '- Logo reference: https://cdn.test/logos/primary',
+        '- Logo variants: LOGO_PRIMARY, LOGO_ICON',
+        '- Platform images: X_HEADER 1500x500',
+      ].join('\n'),
+    );
   });
 
   it('preserves voice ordering, examples and exact authored exemplar instructions', () => {

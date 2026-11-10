@@ -16,6 +16,36 @@ for that commit, so the API, workers, and the app, website, and docs frontends
 all return to the same release together. It then runs the same live
 post-deploy smoke as a release.
 
+## Rehearse it first: dry run
+
+Run the same workflow with `dry_run` ticked to prove a rollback would work
+without deploying anything. It resolves the target exactly as a real rollback
+does, finds that release's server image, and runs the migration compatibility
+gate against the images serving production now. Its summary names the resolved
+tag, commit and image digest, and says whether the gate passed.
+
+- **Nothing is written.** Every step that deploys, migrates, snapshots, copies
+  an image, stages or promotes a frontend, opens an issue, or promotes an image
+  is skipped. The only steps that run read the registry, the OpenTofu state, and
+  ECS metadata. `deploy-workflow-contract.test.ts` fails if a step that writes
+  can run when `dry_run` is true.
+- **It runs after every release.** At the end of a successful Release run, the
+  **Rehearse hosted rollback** job dispatches a dry run against the stable
+  release published just before it and adds the result and a link to the
+  release summary. It runs as its own workflow run: a red rehearsal never fails
+  or undoes the release. Treat a red rehearsal as "a rollback would not work
+  today" and fix the cause before you need it.
+- **A target the live schema cannot serve fails at the gate**, for example a
+  release whose client still reads a column the live release has dropped. The
+  error says the rollback dry run failed at the migration compatibility gate and
+  names the incompatibility.
+- It has its own concurrency groups, so it never queues behind or replaces a
+  real deploy or rollback.
+
+A rehearsal still signs in to AWS with the production deploy role, as the
+production environment requires, but it only calls read APIs. A real rollback
+drill in production is a production write and needs the owner's go.
+
 ## What it does not do
 
 - It does not touch the database. The deploy lane takes an RDS snapshot before

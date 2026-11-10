@@ -103,6 +103,7 @@ export class OssCreditsUtilsService implements ICreditsUtilsService {
     return {
       available: Number.POSITIVE_INFINITY,
       billingAccountId: null,
+      earned: 0,
       held: 0,
       id: 'oss',
       organizationId: _organizationId,

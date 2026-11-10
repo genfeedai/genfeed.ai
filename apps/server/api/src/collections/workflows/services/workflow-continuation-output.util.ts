@@ -1,6 +1,6 @@
 import { getActionDefinition } from '@genfeedai/actions';
 import { IngredientStatus } from '@genfeedai/contracts';
-import { WorkflowNodeContinuationStatus } from '@genfeedai/prisma';
+import { Prisma, WorkflowNodeContinuationStatus } from '@genfeedai/prisma';
 import {
   type ActionContractJsonSchema,
   compileActionContract,
@@ -61,6 +61,8 @@ export type ContinuationSettlement =
 
 export type AttachedContinuationOutput =
   | { kind: 'waiting' }
+  /** A provider failure was claimed before the output arrived; its claimant drives the node. */
+  | { kind: 'settled-elsewhere' }
   | {
       continuationId: string;
       error?: string;
@@ -68,6 +70,23 @@ export type AttachedContinuationOutput =
       kind: 'provider-settled';
       succeeded: boolean;
     };
+
+export type InitialOutputAttachPlan =
+  | { kind: 'settled-elsewhere' }
+  | {
+      kind: 'write';
+      result: AttachedContinuationOutput;
+      status: WorkflowNodeContinuationStatus;
+    };
+
+export type ProviderSubmission = {
+  completionQuantities?: {
+    duration?: number;
+    height?: number;
+    width?: number;
+  };
+  externalId: string;
+};
 
 export type ContinuationReconciliationCandidate = {
   continuationId: string;
@@ -190,4 +209,143 @@ export function assertSameIdentity(
       `Workflow continuation ${existing.id} identity does not match its immutable execution node`,
     );
   }
+}
+
+/**
+ * What attaching the node's initial output does to the continuation, by its
+ * current status (#9734). Before the provider answers the node waits; once it
+ * answered, the attaching process takes the resume lease. A continuation that
+ * is already resuming or finished belongs to whoever claimed it.
+ */
+export function planInitialOutputAttach(
+  continuation: ContinuationRow,
+  initialOutput: unknown,
+): InitialOutputAttachPlan {
+  switch (continuation.status) {
+    case WorkflowNodeContinuationStatus.PENDING_SUBMISSION:
+    case WorkflowNodeContinuationStatus.WAITING_PROVIDER:
+      return {
+        kind: 'write',
+        result: { kind: 'waiting' },
+        status: WorkflowNodeContinuationStatus.WAITING_PROVIDER,
+      };
+    case WorkflowNodeContinuationStatus.PROVIDER_SUCCEEDED: {
+      const finalOutput = buildFinalOutput(
+        continuation.actionId,
+        initialOutput,
+      );
+      if (finalOutput !== undefined) {
+        validateActionOutput(continuation.actionId, finalOutput);
+      }
+      return {
+        kind: 'write',
+        result: {
+          continuationId: continuation.id,
+          ...(finalOutput === undefined ? {} : { finalOutput }),
+          kind: 'provider-settled',
+          succeeded: true,
+        },
+        status: WorkflowNodeContinuationStatus.RESUMING,
+      };
+    }
+    case WorkflowNodeContinuationStatus.PROVIDER_FAILED: {
+      const finalOutput = buildFailedOutput(
+        continuation.actionId,
+        initialOutput,
+      );
+      if (finalOutput !== undefined) {
+        validateActionOutput(continuation.actionId, finalOutput);
+      }
+      return {
+        kind: 'write',
+        result: {
+          continuationId: continuation.id,
+          ...(continuation.error ? { error: continuation.error } : {}),
+          ...(finalOutput === undefined ? {} : { finalOutput }),
+          kind: 'provider-settled',
+          succeeded: false,
+        },
+        status: WorkflowNodeContinuationStatus.RESUMING,
+      };
+    }
+    case WorkflowNodeContinuationStatus.RESUMING:
+    case WorkflowNodeContinuationStatus.COMPLETED:
+    case WorkflowNodeContinuationStatus.FAILED:
+      return { kind: 'settled-elsewhere' };
+  }
+}
+
+function readJsonObject(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+/**
+ * The write that records the provider accepting a submission. Throws when the
+ * provider identity, or an accepted Fal output, changed. Only a
+ * PENDING_SUBMISSION continuation moves to WAITING_PROVIDER; a callback that
+ * already answered keeps its status.
+ */
+export function buildProviderSubmittedUpdate(
+  continuation: ContinuationRow,
+  submission: ProviderSubmission,
+  requiresPoll: boolean,
+): Prisma.WorkflowNodeContinuationUpdateManyMutationInput {
+  if (
+    continuation.externalId &&
+    continuation.externalId !== submission.externalId
+  ) {
+    throw new Error(
+      `Workflow continuation ${continuation.id} provider identity changed`,
+    );
+  }
+
+  const previousResult = readJsonObject(continuation.providerResult);
+  const previousAccepted = readJsonObject(previousResult.acceptedFalOutput);
+  const previousQuantities = readJsonObject(
+    previousAccepted.completionQuantities,
+  );
+  if (
+    continuation.provider === 'fal' &&
+    previousResult.acceptedFalOutput !== undefined
+  ) {
+    if (previousAccepted.externalId !== submission.externalId)
+      throw new Error('Fal accepted output identity changed');
+    for (const key of ['width', 'height', 'duration'] as const) {
+      if (
+        submission.completionQuantities?.[key] !== undefined &&
+        previousQuantities[key] !== submission.completionQuantities[key]
+      )
+        throw new Error(`Fal accepted ${key} changed`);
+    }
+  }
+
+  return {
+    externalId: submission.externalId,
+    ...(continuation.provider === 'fal'
+      ? {
+          providerResult: {
+            ...previousResult,
+            acceptedFalOutput: previousResult.acceptedFalOutput ?? {
+              externalId: submission.externalId,
+              ...(submission.completionQuantities
+                ? { completionQuantities: submission.completionQuantities }
+                : {}),
+            },
+          } as Prisma.InputJsonValue,
+        }
+      : {}),
+    ...(continuation.provider === 'heygen' && requiresPoll
+      ? {
+          pollAttempt: continuation.pollAttempt ?? 1,
+          pollDispatchClaimedAt: null,
+          pollDispatchedAt: null,
+        }
+      : {}),
+    ...(continuation.status ===
+    WorkflowNodeContinuationStatus.PENDING_SUBMISSION
+      ? { status: WorkflowNodeContinuationStatus.WAITING_PROVIDER }
+      : {}),
+  };
 }

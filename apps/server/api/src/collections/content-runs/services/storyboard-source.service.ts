@@ -131,6 +131,10 @@ export class StoryboardSourceService {
           ...(shot.stillAssetId ? [shot.stillAssetId] : []),
           ...(shot.referenceRoles ?? []).map((reference) => reference.assetId),
         ]),
+        ...(plan.assetBible ?? []).flatMap((entry) => [
+          ...entry.sourceAssetIds,
+          ...entry.variantAssetIds,
+        ]),
       ]),
     ];
     if (!ids.length) return;

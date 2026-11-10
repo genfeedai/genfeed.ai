@@ -140,6 +140,36 @@ describe('curated action catalog change reporter', () => {
     ]);
   });
 
+  it('reads the tracked fields from an entry that also carries policy fields', () => {
+    expect(
+      parseCatalogSource(
+        catalog(
+          `{
+            actionClass: 'outbound',
+            annotationOverride: {
+              destructiveHint: false,
+              idempotentHint: true,
+              openWorldHint: false,
+              readOnlyHint: true,
+            },
+            claudeAccess: 'both',
+            isPublishingApprovalRequired: true,
+            mutationPolicy: 'approval-required',
+            name: 'policy_action',
+            surfaces: ['mcp'],
+            toolset: 'scheduler',
+          }`,
+        ),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'policy_action',
+        surfaces: ['mcp'],
+        toolset: 'scheduler',
+      }),
+    ]);
+  });
+
   it('parses a multi-line publishing approval entry with a toolset', () => {
     expect(
       parseCatalogSource(
@@ -231,7 +261,7 @@ describe('curated action catalog change reporter', () => {
     }
 
     expect(formatWarningAnnotation(change)).toContain(
-      '::warning file=packages/actions/src/registry/curated-action-catalog.ts',
+      '::warning file=packages/actions/src/registry/curated-actions.catalog.ts',
     );
     expect(formatStepSummary([change])).toContain(
       '| action-added | `new_action` | mcp |',
@@ -383,7 +413,7 @@ describe('curated action catalog change reporter CLI', () => {
 
     const logged = logSpy.mock.calls.map((call) => call.join(' ')).join('\n');
     expect(logged).toContain(
-      '::warning file=packages/actions/src/registry/curated-action-catalog.ts',
+      '::warning file=packages/actions/src/registry/curated-actions.catalog.ts',
     );
     expect(logged).toContain('Curated action added: added_action (mcp)');
     expect(readFileSync(summaryPath, 'utf8')).toContain(

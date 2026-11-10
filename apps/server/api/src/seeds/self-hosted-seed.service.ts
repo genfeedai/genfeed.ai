@@ -7,6 +7,7 @@
  * for workspaces created before Member became the authorization source of truth.
  */
 
+import { createGenfeedProfileChannel } from '@api/collections/brands/utils/genfeed-profile-channel.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
@@ -99,6 +100,12 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
       },
     });
 
+    await createGenfeedProfileChannel(this.prisma, this.logger, {
+      id: brand.id,
+      organizationId: org.id,
+      slug: brand.slug,
+      userId: user.id,
+    });
     await this.ensureDefaultRoles();
     await this.ensureOwnerMembership(org.id, user.id, brand.id);
 

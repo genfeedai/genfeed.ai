@@ -25,11 +25,17 @@ const WORD_INITIALS_PATTERN = /\b\w/g;
  * `formatActivityMessage` fallback below.
  */
 const BYOK_USAGE_SELECTOR = 'byok_usage';
+const TRANSFER_IN_SELECTOR = 'transfer_in';
+const TRANSFER_OUT_SELECTOR = 'transfer_out';
+
+const ICU_CREDIT_CATEGORY_SELECTORS: Readonly<Record<string, string>> = {
+  [CreditTransactionCategory.BYOK_USAGE]: BYOK_USAGE_SELECTOR,
+  [CreditTransactionCategory.TRANSFER_IN]: TRANSFER_IN_SELECTOR,
+  [CreditTransactionCategory.TRANSFER_OUT]: TRANSFER_OUT_SELECTOR,
+};
 
 function toIcuSafeCreditCategory(category: string): string {
-  return category === CreditTransactionCategory.BYOK_USAGE
-    ? BYOK_USAGE_SELECTOR
-    : category;
+  return ICU_CREDIT_CATEGORY_SELECTORS[category] ?? category;
 }
 
 /** Lifecycle phase of an activity event (template axis). */
@@ -645,10 +651,12 @@ export function getCreditActivityKey(
     case CreditTransactionCategory.ADD:
     case CreditTransactionCategory.REFUND:
     case CreditTransactionCategory.ROLLOVER:
+    case CreditTransactionCategory.TRANSFER_IN:
       return ActivityKey.CREDITS_ADD;
     case CreditTransactionCategory.DEDUCT:
     case CreditTransactionCategory.EXPIRE:
     case CreditTransactionCategory.BYOK_USAGE:
+    case CreditTransactionCategory.TRANSFER_OUT:
       return ActivityKey.CREDITS_REMOVE;
     case CreditTransactionCategory.RESET:
       return ActivityKey.CREDITS_RESET;
@@ -852,11 +860,13 @@ export function formatActivityMessage(
       if (creditCategory === BYOK_USAGE_SELECTOR) return 'No credits charged';
       if (creditCategory === CreditTransactionCategory.RESET)
         return `Balance set to ${amount} ${units}`;
-      const isAddition = [
-        CreditTransactionCategory.ADD,
-        CreditTransactionCategory.REFUND,
-        CreditTransactionCategory.ROLLOVER,
-      ].includes(creditCategory as CreditTransactionCategory);
+      const isAddition =
+        creditCategory === TRANSFER_IN_SELECTOR ||
+        [
+          CreditTransactionCategory.ADD,
+          CreditTransactionCategory.REFUND,
+          CreditTransactionCategory.ROLLOVER,
+        ].includes(creditCategory as CreditTransactionCategory);
       return `${isAddition ? '+' : '−'}${amount} ${units}`;
     }
     case 'activity.credits.add':
@@ -881,6 +891,10 @@ export function formatActivityMessage(
             : 'Credit balance reset';
         case BYOK_USAGE_SELECTOR:
           return `${reason ?? 'AI usage'} (your API key)`;
+        case TRANSFER_IN_SELECTOR:
+          return reason ? `Credits received: ${reason}` : 'Credits received';
+        case TRANSFER_OUT_SELECTOR:
+          return reason ? `Credits sent: ${reason}` : 'Credits sent';
         default:
           if (reason) return reason;
           if (descriptor.id === 'activity.credits.add') return 'Credits added';

@@ -1,6 +1,7 @@
 'use client';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAgentChatStore } from '@genfeedai/agent';
+import { isTerminalVisualCodeStatus } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   resolveOrganizationModulePreferences,
@@ -34,7 +35,6 @@ import type { VisualCodeQuoteReview } from '@/props/studio/visual-code.props';
 
 const TRAILING_HIGH_SURROGATE_PATTERN = /[\uD800-\uDBFF]$/;
 
-const SETTLED_STATUSES = ['completed', 'failed', 'cancelled'];
 /** The project name takes at most this many characters. */
 const MAX_LABEL_LENGTH = 120;
 
@@ -135,7 +135,7 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
     revisions.find((item) => item.number === selectedRevision) ?? revisions[0];
   const current = project?.revisions[0];
   const isActive = Boolean(
-    current && !SETTLED_STATUSES.includes(current.status),
+    current && !isTerminalVisualCodeStatus(current.status),
   );
   const catalog = api.catalog.data;
   const catalogModels = catalog?.models ?? [];

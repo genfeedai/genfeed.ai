@@ -1,6 +1,7 @@
 import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { BrandFontAssetsController } from '@api/collections/brands/controllers/brand-font-assets.controller';
+import { BrandKitController } from '@api/collections/brands/controllers/brand-kit.controller';
 import { BrandLutController } from '@api/collections/brands/controllers/brand-lut.controller';
 import { BrandOsRevisionsController } from '@api/collections/brands/controllers/brand-os-revisions.controller';
 import { BrandOsScanController } from '@api/collections/brands/controllers/brand-os-scan.controller';
@@ -98,6 +99,16 @@ const BRAND_WRITE_ROUTES: ReadonlyArray<
     'DELETE /brands/:brandId/font-assets/:assetId',
     BrandFontAssetsController,
     BrandFontAssetsController.prototype.remove,
+  ],
+  [
+    'POST /brands/:brandId/kit/import',
+    BrandKitController,
+    BrandKitController.prototype.importKit,
+  ],
+  [
+    'POST /brands/:brandId/kit/platform-images/from-master',
+    BrandKitController,
+    BrandKitController.prototype.fillPlatformImagesFromMaster,
   ],
   [
     'PUT /brands/:brandId/lut',
@@ -236,6 +247,31 @@ const BRAND_READ_ROUTES: ReadonlyArray<
     BrandFontAssetsController.prototype.list,
   ],
   [
+    'GET /brands/:brandId/font-assets/:assetId/file',
+    BrandFontAssetsController,
+    BrandFontAssetsController.prototype.file,
+  ],
+  [
+    'GET /brands/:brandId/kit',
+    BrandKitController,
+    BrandKitController.prototype.kit,
+  ],
+  [
+    'GET /brands/:brandId/kit/export',
+    BrandKitController,
+    BrandKitController.prototype.exportKit,
+  ],
+  [
+    'GET /brands/:brandId/kit/logos/:slot/download',
+    BrandKitController,
+    BrandKitController.prototype.downloadLogo,
+  ],
+  [
+    'GET /brands/:brandId/kit/logo-colors',
+    BrandKitController,
+    BrandKitController.prototype.logoColorCandidates,
+  ],
+  [
     'GET /brands/:id/brand-os/revisions',
     BrandOsRevisionsController,
     BrandOsRevisionsController.prototype.list,
@@ -265,6 +301,7 @@ const BRAND_READ_ROUTES: ReadonlyArray<
 
 const BRAND_CONTROLLERS: readonly ControllerClass[] = [
   BrandFontAssetsController,
+  BrandKitController,
   BrandLutController,
   BrandOsRevisionsController,
   BrandOsScanController,

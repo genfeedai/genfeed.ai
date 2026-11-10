@@ -88,3 +88,20 @@ export interface BrandKitReviewAssetsProps {
   handleImportAssets: () => Promise<void>;
   assetImportResult: IBrandKitAssetImportResponse | null;
 }
+
+/** An async step of the Brand Kit review flow (#9743). */
+export type BrandKitReviewOperation = 'scan' | 'apply' | 'import-assets';
+
+/**
+ * Which review steps are in flight, and the last error with the step that
+ * raised it. Steps may overlap, as before; each start clears the error.
+ */
+export interface BrandKitReviewOperationsState {
+  error: { message: string; operation: BrandKitReviewOperation } | null;
+  pending: ReadonlySet<BrandKitReviewOperation>;
+}
+
+export type BrandKitReviewOperationsAction =
+  | { type: 'start'; operation: BrandKitReviewOperation }
+  | { type: 'finish'; operation: BrandKitReviewOperation }
+  | { type: 'fail'; operation: BrandKitReviewOperation; message: string };

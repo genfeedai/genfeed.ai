@@ -11,6 +11,8 @@ export interface ResendEmailPayload {
   readonly html: string;
   readonly text?: string;
   readonly from?: string;
+  readonly fromName?: string;
+  readonly headers?: Record<string, string>;
   readonly replyTo?: string;
   readonly idempotencyKey?: string;
 }
@@ -83,6 +85,25 @@ export function resolveResendFromAddress(options: {
   return explicit || RESEND_DEFAULT_FROM;
 }
 
+const FROM_ADDRESS_PATTERN = /<([^<>]+)>\s*$/;
+const DISPLAY_NAME_UNSAFE_PATTERN = /["<>\r\n\\]/g;
+
+/**
+ * Put a display name in front of the resolved sending address, keeping the
+ * address itself (and so the verified domain) unchanged.
+ */
+export function withResendDisplayName(
+  from: string,
+  displayName: string | undefined,
+): string {
+  const name = displayName?.replace(DISPLAY_NAME_UNSAFE_PATTERN, '').trim();
+  if (!name) {
+    return from;
+  }
+  const address = FROM_ADDRESS_PATTERN.exec(from)?.[1]?.trim() ?? from.trim();
+  return `"${name.slice(0, 80)}" <${address}>`;
+}
+
 function isRetryableResendFailure(error: ErrorResponse): boolean {
   const override = RESEND_RETRYABILITY_OVERRIDES[error.name];
   if (override !== undefined) {
@@ -126,12 +147,17 @@ export class ResendService {
       const resend = new Resend(this.configService.get('RESEND_API_KEY') || '');
       const response = await resend.emails.send(
         {
-          from: resolveResendFromAddress({
-            configuredFrom:
-              (await this.runtimeSettings.get()).emailFromAddress ?? undefined,
-            isDevelopment: this.configService.isDevelopment,
-            payloadFrom: payload.from,
-          }),
+          from: withResendDisplayName(
+            resolveResendFromAddress({
+              configuredFrom:
+                (await this.runtimeSettings.get()).emailFromAddress ??
+                undefined,
+              isDevelopment: this.configService.isDevelopment,
+              payloadFrom: payload.from,
+            }),
+            payload.from ? undefined : payload.fromName,
+          ),
+          ...(payload.headers ? { headers: payload.headers } : {}),
           html: payload.html,
           replyTo:
             payload.replyTo ||

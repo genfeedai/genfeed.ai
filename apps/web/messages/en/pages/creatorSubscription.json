@@ -1,0 +1,19 @@
+{
+  "title": "Subscribe to {creator}",
+  "description": "{price, plural, one {# credit} other {# credits}} a month from your workspace credits. Cancel any time; you keep access until the paid month ends.",
+  "subscribe": "Subscribe for {price, plural, one {# credit} other {# credits}} a month",
+  "subscribing": "Subscribing…",
+  "subscribedTitle": "You subscribe to {creator}",
+  "renews": "Renews on {date} for {price, plural, one {# credit} other {# credits}}.",
+  "ends": "Ends on {date}. You keep access until then.",
+  "pastDueTitle": "Renewal failed",
+  "pastDueDescription": "Your workspace did not have enough credits for this month. Add credits and we will retry automatically.",
+  "cancel": "Cancel at the end of the month",
+  "keep": "Keep my subscription",
+  "updating": "Saving…",
+  "needCreditsTitle": "Not enough credits",
+  "needCreditsDescription": "Subscribing uses purchased credits. Free trial credits cannot be sent.",
+  "buyCredits": "Buy credits",
+  "ownTeam": "You cannot subscribe to a creator whose workspace you belong to.",
+  "failed": "That did not work. Try again in a moment."
+}

@@ -1,8 +1,11 @@
+import { Readable, type Writable } from 'node:stream';
+import { finished } from 'node:stream/promises';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { PublicImagesController } from '@api/endpoints/public/controllers/images/public.images.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { createRecordedResponse } from '@api/shared/testing/recorded-response.fixture';
 import {
   createIngredientDocumentFixture,
   createPaginatedFixture,
@@ -19,10 +22,7 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import type {
-  Request as ExpressRequest,
-  Response as ExpressResponse,
-} from 'express';
+import type { Request as ExpressRequest } from 'express';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
@@ -38,10 +38,6 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 // Mock stream for S3 file downloads
-const mockStream = {
-  pipe: vi.fn(),
-};
-
 describe('PublicImagesController', () => {
   let controller: PublicImagesController;
   let filesClientService: vi.Mocked<FilesClientService>;
@@ -55,13 +51,6 @@ describe('PublicImagesController', () => {
     originalUrl: '/api/public/images',
     query: {},
   } as unknown as ExpressRequest;
-
-  const mockResponse = {
-    json: vi.fn().mockReturnThis(),
-    sendFile: vi.fn().mockReturnThis(),
-    set: vi.fn().mockReturnThis(),
-    status: vi.fn().mockReturnThis(),
-  } as unknown as ExpressResponse;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -182,8 +171,14 @@ describe('PublicImagesController', () => {
         page: 1,
       });
 
-      await controller.findPublicImages(mockRequest, query, undefined, brandId);
+      const result = await controller.findPublicImages(
+        mockRequest,
+        query,
+        undefined,
+        brandId,
+      );
 
+      expect(result).toEqual({ data: [] });
       expect(imagesService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -193,6 +188,32 @@ describe('PublicImagesController', () => {
         expect.any(Object),
       );
     });
+
+    it.each([
+      ['true', true],
+      [undefined, undefined],
+      ['false', undefined],
+    ])(
+      'filters featured images only when isHighlighted is %s',
+      async (flag, expected) => {
+        imagesService.findAll.mockResolvedValue(createPaginatedFixture([]));
+        const query = tenantReadQuery(BaseQueryDto, { limit: 10, page: 1 });
+
+        await controller.findPublicImages(
+          mockRequest,
+          query,
+          undefined,
+          undefined,
+          undefined,
+          flag,
+        );
+
+        const aggregateArg = imagesService.findAll.mock.calls[0][0] as {
+          where?: { isHighlighted?: boolean };
+        };
+        expect(aggregateArg.where?.isHighlighted).toBe(expected);
+      },
+    );
 
     it('should filter by tag when provided', async () => {
       const tag = 'nature';
@@ -205,8 +226,9 @@ describe('PublicImagesController', () => {
         page: 1,
       });
 
-      await controller.findPublicImages(mockRequest, query, tag);
+      const result = await controller.findPublicImages(mockRequest, query, tag);
 
+      expect(result).toEqual({ data: [] });
       expect(imagesService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -307,10 +329,12 @@ describe('PublicImagesController', () => {
 
       imagesService.findOne.mockResolvedValue(mockImage);
       filesClientService.getFileFromS3.mockResolvedValue(
-        mockStream as unknown as NodeJS.ReadableStream,
+        Readable.from(['jpeg-bytes']),
       );
+      const { recorded, res } = createRecordedResponse();
 
-      await controller.getImage(imageId, mockResponse);
+      await controller.getImage(imageId, res);
+      await finished(res as unknown as Writable);
 
       expect(imagesService.findOne).toHaveBeenCalledWith({
         id: imageId,
@@ -322,18 +346,19 @@ describe('PublicImagesController', () => {
         imageId,
         'images',
       );
-      expect(mockStream.pipe).toHaveBeenCalledWith(mockResponse);
+      expect(recorded.status).toBe(200);
+      expect(recorded.body).toBe('jpeg-bytes');
     });
 
     it('should return 404 for non-existent image', async () => {
       imagesService.findOne.mockResolvedValue(null);
 
-      await controller.getImage(imageId, mockResponse);
+      const { recorded, res } = createRecordedResponse();
 
-      expect(mockResponse.status).toHaveBeenCalledWith(404);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        error: 'Image not found',
-      });
+      await controller.getImage(imageId, res);
+
+      expect(recorded.status).toBe(404);
+      expect(recorded.json).toEqual({ error: 'Image not found' });
     });
 
     it('should return 404 when S3 file not found', async () => {
@@ -350,12 +375,12 @@ describe('PublicImagesController', () => {
         new Error('File not found in S3'),
       );
 
-      await controller.getImage(imageId, mockResponse);
+      const { recorded, res } = createRecordedResponse();
 
-      expect(mockResponse.status).toHaveBeenCalledWith(404);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        error: 'Image file not found',
-      });
+      await controller.getImage(imageId, res);
+
+      expect(recorded.status).toBe(404);
+      expect(recorded.json).toEqual({ error: 'Image file not found' });
     });
   });
 });

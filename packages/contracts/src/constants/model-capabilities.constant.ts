@@ -14,7 +14,8 @@ export type ModelCapabilityCategory =
   | ModelCategory.VIDEO_UPSCALE
   | ModelCategory.MUSIC
   | ModelCategory.VOICE
-  | ModelCategory.AVATAR;
+  | ModelCategory.AVATAR
+  | ModelCategory.MODEL_3D;
 
 export interface BaseModelCapability {
   category: ModelCapabilityCategory;

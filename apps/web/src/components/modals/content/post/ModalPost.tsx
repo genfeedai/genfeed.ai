@@ -48,6 +48,7 @@ import {
 } from 'react';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 import { useModalAutoOpen } from '@/hooks/ui/use-modal-auto-open/use-modal-auto-open';
+import { defaultComposerCredentialIds } from './genfeed-profile-default.helper';
 import ModalPostComposerStepper from './ModalPostComposerStepper';
 import ModalPostSimpleActions from './ModalPostSimpleActions';
 import ModalPostSimpleFields from './ModalPostSimpleFields';
@@ -94,7 +95,7 @@ export default function ModalPost({
       ),
     [allCredentials],
   );
-  const { brandId } = useBrand();
+  const { brandId, selectedBrand } = useBrand();
   const notificationsService = NotificationsService.getInstance();
   const composerTranslate = useTranslations('ui.postComposer');
 
@@ -143,6 +144,25 @@ export default function ModalPost({
   );
   const selectedCredentialsRef = useRef(selectedCredentials);
   selectedCredentialsRef.current = selectedCredentials;
+  // A new post starts on the brand's Genfeed profile once per opening.
+  const defaultChannelsOpenVersionRef = useRef<number | null>(null);
+  const brandScope = selectedBrand?.scope;
+  useEffect(() => {
+    if (
+      !isDestinationComposer ||
+      defaultChannelsOpenVersionRef.current === openVersion
+    ) {
+      return;
+    }
+    const defaultIds = defaultComposerCredentialIds(credentials, brandScope);
+    if (defaultIds.length === 0) {
+      return;
+    }
+    defaultChannelsOpenVersionRef.current = openVersion;
+    setSelectedCredentialIds((current) =>
+      current.length > 0 ? current : defaultIds,
+    );
+  }, [brandScope, credentials, isDestinationComposer, openVersion]);
   const isThreadRef = useRef(isThread);
   isThreadRef.current = isThread;
 

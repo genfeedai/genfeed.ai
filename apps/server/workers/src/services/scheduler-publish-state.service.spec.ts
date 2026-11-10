@@ -146,7 +146,7 @@ describe('SchedulerPublishStateService', () => {
     );
     const publishedAt = new Date('2026-07-16T00:10:00.000Z');
 
-    await service.transition({
+    const isApplied = await service.transition({
       groupId: 'group-1',
       organizationId: 'org-1',
       postId: 'target-1',
@@ -159,6 +159,7 @@ describe('SchedulerPublishStateService', () => {
         visibility: PostVisibility.PRIVATE,
       },
     });
+    expect(isApplied).toBe(true);
 
     expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -219,7 +220,7 @@ describe('SchedulerPublishStateService', () => {
       postLifecycleService as never,
     );
 
-    await service.transition({
+    const isApplied = await service.transition({
       groupId: 'group-1',
       organizationId: 'org-1',
       postId: 'target-1',
@@ -228,6 +229,7 @@ describe('SchedulerPublishStateService', () => {
         visibility: PostVisibility.PUBLIC,
       },
     });
+    expect(isApplied).toBe(true);
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(2);
     expect(logger.warn).toHaveBeenCalledWith(
@@ -264,7 +266,7 @@ describe('SchedulerPublishStateService', () => {
       createLifecycleService() as never,
     );
 
-    await service.transition({
+    const isApplied = await service.transition({
       groupId: 'group-1',
       organizationId: 'org-1',
       postId: 'target-1',
@@ -272,6 +274,7 @@ describe('SchedulerPublishStateService', () => {
         executionState: TargetExecutionState.FAILED,
       },
     });
+    expect(isApplied).toBe(true);
 
     expect(postGroup.updateMany).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalledWith(
@@ -339,7 +342,7 @@ describe('SchedulerPublishStateService', () => {
       createLifecycleService() as never,
     );
 
-    await service.transitionPost(
+    const isApplied = await service.transitionPost(
       { id: 'post-1', organizationId: 'org-1' },
       {
         executionState: TargetExecutionState.PUBLISHED,
@@ -360,6 +363,7 @@ describe('SchedulerPublishStateService', () => {
         source: 'CronTiktokStatusService.applyStatusTransition',
       },
     );
+    expect(isApplied).toBe(true);
 
     expect(postPublishFinalization.create).toHaveBeenCalledWith({
       data: {
@@ -600,7 +604,7 @@ describe('SchedulerPublishStateService', () => {
         .spyOn(service, 'transition')
         .mockResolvedValue(true);
 
-      await service.transitionPost(
+      const isApplied = await service.transitionPost(
         {
           groupId: { id: 'group-9' },
           id: 42,
@@ -610,6 +614,7 @@ describe('SchedulerPublishStateService', () => {
           executionState: TargetExecutionState.PUBLISHED,
         },
       );
+      expect(isApplied).toBe(true);
 
       expect(transition).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -788,7 +793,7 @@ describe('SchedulerPublishStateService', () => {
       postLifecycleService as never,
     );
 
-    await service.transition({
+    const isApplied = await service.transition({
       groupId: 'group-1',
       organizationId: 'org-1',
       postId: 'target-1',
@@ -802,6 +807,7 @@ describe('SchedulerPublishStateService', () => {
         executionState: TargetExecutionState.FAILED,
       },
     });
+    expect(isApplied).toBe(true);
 
     expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -131,8 +131,11 @@ jobs:
               '.assets[] | select(.name == $name) | .browser_download_url' \
               "${install_root}/release.json")"
             # No Authorization header: this must work exactly as it does for a
-            # public user following the README.
-            curl -fsSL "${asset_url}" -o "${install_root}/${asset_name}"
+            # public user following the README. Retry transient CDN errors
+            # (curl retries 408/429/5xx and timeouts): a single 504 on
+            # 2026-11-08 failed this gate with no product change (#9698).
+            curl -fsSL --retry 3 --retry-delay 10 --max-time 90 \
+              "${asset_url}" -o "${install_root}/${asset_name}"
           done
 
           (

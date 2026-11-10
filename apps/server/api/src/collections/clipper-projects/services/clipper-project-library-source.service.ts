@@ -9,7 +9,10 @@ import type { ClipperProjectAnalysisResult } from '@api/collections/clipper-proj
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  INGREDIENT_READY_STATUSES,
+  IngredientCategory,
+} from '@genfeedai/contracts';
 import {
   CLIPPER_SOURCE_MAX_DURATION_SECONDS,
   CLIPPER_SOURCE_MIN_DURATION_SECONDS,
@@ -27,11 +30,9 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 const DEFAULT_CLIP_SOURCE_MAX_RETRIES = 3;
 
 /** Library statuses whose media is present and final. */
-const READY_LIBRARY_SOURCE_STATUSES: ReadonlySet<string> = new Set([
-  IngredientStatus.GENERATED,
-  IngredientStatus.UPLOADED,
-  IngredientStatus.VALIDATED,
-]);
+const READY_LIBRARY_SOURCE_STATUSES: ReadonlySet<string> = new Set(
+  INGREDIENT_READY_STATUSES,
+);
 
 interface LibraryClipperSourceMedia {
   contentType: string;

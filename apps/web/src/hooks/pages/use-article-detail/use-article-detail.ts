@@ -7,6 +7,7 @@ import {
   createArtifactEditorRoute,
   normalizeArticleSlug,
 } from '@genfeedai/contracts/constants';
+import type { IArticleAccessUpdate } from '@genfeedai/contracts/interfaces';
 import type { Article } from '@genfeedai/models/content/article.model';
 import { ArticlesService } from '@genfeedai/services/content/articles.service';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -43,6 +44,8 @@ export interface UseArticleDetailReturn {
   handleScoreSeo: () => Promise<void>;
   handleArticleDelivered: () => void;
   handleSaveExternalUrl: (externalUrl: string | null) => Promise<void>;
+  handleSaveAccess: (access: IArticleAccessUpdate) => Promise<void>;
+  isSavingAccess: boolean;
   pathname: string;
   notificationsService: NotificationsService;
   getArticlesService: () => Promise<ArticlesService>;
@@ -178,6 +181,7 @@ export function useArticleDetail({
   const [isSaving, setIsSaving] = useState(false);
   const [isScoringSeo, setIsScoringSeo] = useState(false);
   const [isSavingExternalUrl, setIsSavingExternalUrl] = useState(false);
+  const [isSavingAccess, setIsSavingAccess] = useState(false);
 
   const isDirty = !isSameForm(form, initialFormRef.current);
 
@@ -290,6 +294,32 @@ export function useArticleDetail({
     [resolvedId, getArticlesService, notificationsService, writeArticle],
   );
 
+  const handleSaveAccess = useCallback(
+    async (access: IArticleAccessUpdate) => {
+      if (!resolvedId) {
+        return;
+      }
+
+      setIsSavingAccess(true);
+      try {
+        const service = await getArticlesService();
+        const updated = await service.patch(resolvedId, { ...access });
+        writeArticle(resolvedId, updated);
+        notificationsService.success(
+          access.accessLevel === 'paid'
+            ? 'Readers now pay for the full article'
+            : 'Everyone can read the full article',
+        );
+      } catch (err) {
+        logger.error('Failed to save article access', err);
+        notificationsService.error('Failed to save who can read the article');
+      } finally {
+        setIsSavingAccess(false);
+      }
+    },
+    [resolvedId, getArticlesService, notificationsService, writeArticle],
+  );
+
   const handleArchive = useCallback(async () => {
     if (!resolvedId) {
       return;
@@ -370,10 +400,12 @@ export function useArticleDetail({
     handleDelete,
     handlePublish,
     handleSave,
+    handleSaveAccess,
     handleSaveExternalUrl,
     handleScoreSeo,
     isDirty,
     isLoading,
+    isSavingAccess,
     isSavingExternalUrl,
     isScoringSeo,
     isSaving,

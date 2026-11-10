@@ -278,6 +278,13 @@ export const ANIMATED_ICON_LOADERS: ReadonlyArray<
       })),
   ],
   [
+    'Coins',
+    () =>
+      import('./icons/coins').then((module) => ({
+        default: module.CoinsIcon,
+      })),
+  ],
+  [
     'Cog',
     () => import('./icons/cog').then((module) => ({ default: module.CogIcon })),
   ],

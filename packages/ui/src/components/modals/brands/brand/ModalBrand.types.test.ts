@@ -87,6 +87,23 @@ describe('buildSocialConnections', () => {
     ]);
   });
 
+  it('leaves out the built-in Genfeed profile channel', () => {
+    const connections = buildSocialConnections({
+      credentials: [
+        buildCredential({ externalId: 'ext-1', id: 'cred-live' }),
+        buildCredential({
+          externalId: 'brand-1',
+          id: 'cred-profile',
+          platform: CredentialPlatform.GENFEED,
+        }),
+      ],
+    });
+
+    expect(connections.map((connection) => connection.credentialId)).toEqual([
+      'cred-live',
+    ]);
+  });
+
   it('keeps a lapsed connection and carries isConnected/externalId/accessTokenExpiry through', () => {
     const connections = buildSocialConnections({
       credentials: [

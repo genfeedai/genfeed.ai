@@ -1174,6 +1174,7 @@ describe('AgentToolExecutorService', () => {
       new AgentMediaTransformService(
         assetGenerationService,
         generationGateway as never,
+        {} as never,
       ),
     );
     const qualityHandler = new AgentQualityToolHandler(
@@ -1276,6 +1277,7 @@ describe('AgentToolExecutorService', () => {
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
       voiceHandler: { handlesList: vi.fn().mockReturnValue(false) },
+      avatarTwinHandler: { handlesList: vi.fn().mockReturnValue(false) },
       threadHandler: { handles: vi.fn().mockReturnValue(false) },
     });
     service.onModuleInit();
@@ -6536,6 +6538,7 @@ describe('AgentToolExecutorService', () => {
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
       generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
       voiceHandler: { handlesList: vi.fn().mockReturnValue(false) },
+      avatarTwinHandler: { handlesList: vi.fn().mockReturnValue(false) },
       threadHandler: { handles: vi.fn().mockReturnValue(false) },
     });
     serviceWithoutScorer.onModuleInit();

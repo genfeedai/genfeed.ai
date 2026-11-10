@@ -48,6 +48,11 @@ export const ID_DERIVED_MEDIA_URL_ALLOWANCES: IdDerivedMediaUrlAllowance[] = [
   },
   {
     count: 1,
+    file: 'apps/server/api/src/collections/content-runs/services/storyboard-video-assembly.service.ts',
+    reason: `${RESPONSE_ONLY} The shot-by-shot video's edit clips carry ingredientId, so the renderer never trusts this value.`,
+  },
+  {
+    count: 1,
     file: 'apps/server/api/src/collections/editor-projects/services/editor-render.service.ts',
     reason: FLAG_OFF,
   },

@@ -668,6 +668,7 @@ const FROZEN_MCP_PRESENTATIONS = [
   ['get_meta_ad_accounts', 'Get Meta Ad Accounts', true, false, true, true],
   ['get_meta_ad_creatives', 'Get Meta Ad Creatives', true, false, true, true],
   ['get_meta_campaigns', 'Get Meta Campaigns', true, false, true, true],
+  ['get_model3d', 'Get Model3d', true, false, true, false],
   ['get_orgs', 'Get Orgs', true, false, true, false],
   [
     'get_social_conversations',
@@ -739,6 +740,7 @@ const FROZEN_MCP_PRESENTATIONS = [
   ],
   ['read_knowledge_source', 'Read Knowledge Source', true, false, true, false],
   ['reject_social_draft', 'Reject Social Draft', false, true, false, false],
+  ['render_3d', 'Render 3d', false, true, false, true],
   [
     'replace_storyboard_character',
     'Replace Storyboard Character',
@@ -821,8 +823,17 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
     true,
   ],
+  [
+    'start_storyboard_video',
+    'Start Storyboard Video',
+    false,
+    true,
+    false,
+    true,
+  ],
   ['storyboard_long_form', 'Storyboard Long Form', false, true, false, false],
   ['storyboard_slideshow', 'Storyboard Slideshow', false, true, false, false],
+  ['storyboard_video', 'Storyboard Video', false, true, false, false],
   [
     'storyboard_run_capabilities',
     'Storyboard Run Capabilities',
@@ -929,7 +940,7 @@ describe('MCP tool annotations', () => {
         tool?.annotations?.openWorldHint,
       ]).toEqual(row);
     }
-    expect(rows).toHaveLength(163);
+    expect(rows).toHaveLength(167);
     expect(rows.map((row) => row[0])).toEqual(expected.map((row) => row[0]));
     expect(rows).toEqual(expected);
   });
@@ -1130,11 +1141,13 @@ describe('MCP tool annotations', () => {
         tool.name.startsWith('generate_') ||
         tool.name === 'transform_media' ||
         tool.name === 'import_source_post' ||
+        tool.name === 'render_3d' ||
         tool.name === 'start_remix_generation' ||
         tool.name === 'control_remix_generation' ||
         tool.name === 'replace_storyboard_character' ||
         tool.name === 'start_storyboard_long_form' ||
         tool.name === 'start_storyboard_slideshow' ||
+        tool.name === 'start_storyboard_video' ||
         publishing.has(tool.name);
       expect(tool.annotations?.openWorldHint, tool.name).toBe(isOpenWorld);
     }

@@ -1,12 +1,15 @@
 import { PROVIDER_PRICE_SYNC_TASKS } from '@genfeedai/contracts/queue';
 import { AVATAR_TWIN_TRACKING_SCHEDULE } from '@workers/crons/avatar-twins/cron.avatar-twins.service';
 import { BRANDED_DISPATCH_RECOVERY_SCHEDULE } from '@workers/crons/branded-dispatch-recovery/branded-dispatch-recovery.constants';
+import { CREATOR_SUBSCRIPTION_RENEWAL_SCHEDULE } from '@workers/crons/credits/creator-subscription-renewal.constants';
 import { FREE_TRIAL_EXPIRY_SCHEDULE } from '@workers/crons/credits/free-trial-expiry.constants';
 import { MEDIA_DELIVERY_RECOVERY_SCHEDULE } from '@workers/crons/media-delivery-recovery/media-delivery-recovery.constants';
 import { MEDIA_PERCEPTION_SWEEP_SCHEDULE } from '@workers/crons/media-perception/media-perception.constants';
+import { NEWSLETTER_SENDS_SCHEDULE } from '@workers/crons/newsletter-sends/cron.newsletter-sends.service';
 import { OAUTH_CLIENT_CLEANUP_SCHEDULE } from '@workers/crons/oauth-client-cleanup/oauth-client-cleanup.constants';
 import { TRANSCRIPT_PURGE_SCHEDULE } from '@workers/crons/transcript-purge/transcript-purge.constants';
 import { X_REPLY_WATCH_SCHEDULE } from '@workers/crons/x-replies/x-reply-watch.constants';
+import type { Job } from 'bullmq';
 
 /**
  * One code-owned catalog for deployment-global recurring work.
@@ -33,6 +36,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
     'turbo-run-credit-settlement-reconcile',
   TURBO_RUN_RECONCILE: 'turbo-run-reconcile',
   TURBO_PROJECT_RECONCILE: 'turbo-project-reconcile',
+  CREATOR_SUBSCRIPTION_RENEWAL: 'creator-subscription-renewal',
   CREDENTIAL_TOKEN_REFRESH: 'credential-token-refresh',
   CRUN_TASK_RECONCILE: 'crun-task-reconcile',
   CRUN_CONTRACT_SYNC: 'crun-contract-sync',
@@ -47,6 +51,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   MEDIA_DELIVERY_RECOVERY: 'media-delivery-recovery',
   MEDIA_PERCEPTION_SWEEP: 'media-perception-sweep',
   MODEL_DEPRECATION: 'model-deprecation',
+  NEWSLETTER_SENDS: 'newsletter-sends',
   NOTIFICATION_DELIVERY_RECOVERY: 'notification-delivery-recovery',
   OAUTH_CLIENT_CLEANUP: 'oauth-client-cleanup',
   PATTERN_EXTRACTION: 'pattern-extraction',
@@ -76,6 +81,8 @@ export const PLATFORM_SCHEDULED_TASKS = {
 
 export type PlatformScheduledTaskName =
   (typeof PLATFORM_SCHEDULED_TASKS)[keyof typeof PLATFORM_SCHEDULED_TASKS];
+
+export type PlatformTaskHandler = (job: Job) => Promise<unknown>;
 
 export type PlatformSchedule = {
   pattern: string;
@@ -160,6 +167,11 @@ export const PLATFORM_SCHEDULE_CATALOG = {
     pattern: '0 7 * * 0',
     timezone: 'UTC',
   },
+  // Monthly periods; a 15-minute cadence charges close to the period end.
+  [PLATFORM_SCHEDULED_TASKS.CREATOR_SUBSCRIPTION_RENEWAL]: {
+    pattern: CREATOR_SUBSCRIPTION_RENEWAL_SCHEDULE,
+    timezone: 'UTC',
+  },
   // Admission already refuses an expired trial; this only removes the
   // leftover free credits, so a 15-minute cadence is enough.
   [PLATFORM_SCHEDULED_TASKS.FREE_TRIAL_EXPIRY]: {
@@ -188,6 +200,12 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.MODEL_DEPRECATION]: {
     pattern: '0 3 * * 0',
+    timezone: 'UTC',
+  },
+  // Claims due sends and delivers bounded batches; a send stays locked while
+  // one worker holds it, so ticks never overlap on the same send.
+  [PLATFORM_SCHEDULED_TASKS.NEWSLETTER_SENDS]: {
+    pattern: NEWSLETTER_SENDS_SCHEDULE,
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.NOTIFICATION_DELIVERY_RECOVERY]: {

@@ -1,4 +1,5 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { settleIngredientGeneration } from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
@@ -21,7 +22,7 @@ import type {
 } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
-import { Injectable, Optional } from '@nestjs/common';
+import { ConflictException, Injectable, Optional } from '@nestjs/common';
 
 const INGREDIENT_PATH_PATTERN = /^ingredients\/([^/]+)\/(.+)$/;
 const INGREDIENT_URL_ID_PATTERN =
@@ -360,17 +361,51 @@ export class WorkflowEngineExecutorHelperService {
     await this.metadataService.patch(metadataId, metadata);
   }
 
-  async patchIngredient(
+  /**
+   * Marks a workflow output generated while it is still generating (#9735).
+   * An output the user cancelled meanwhile stays as it is, and the node fails
+   * with a conflict instead of reporting it generated.
+   */
+  async completeOutput(
     ingredientId: string,
-    patch: Record<string, unknown>,
+    organizationId: string,
+    data: Record<string, unknown> = {},
   ): Promise<void> {
+    const isSettled = await settleIngredientGeneration(
+      this.requireIngredientsService(),
+      {
+        data,
+        id: ingredientId,
+        organizationId,
+        to: IngredientStatus.GENERATED,
+      },
+    );
+    if (!isSettled) {
+      throw new ConflictException(
+        'The generation was stopped before it finished',
+      );
+    }
+  }
+
+  /** Fails a workflow output that is still generating; a settled one stays. */
+  async failOutput(
+    ingredientId: string,
+    organizationId: string,
+  ): Promise<void> {
+    await settleIngredientGeneration(this.requireIngredientsService(), {
+      id: ingredientId,
+      organizationId,
+      to: IngredientStatus.FAILED,
+    });
+  }
+
+  private requireIngredientsService(): IngredientsService {
     if (!this.ingredientsService) {
       throw new Error(
         'Workflow output persistence dependencies are not available',
       );
     }
-
-    await this.ingredientsService.patch(ingredientId, patch);
+    return this.ingredientsService;
   }
 
   requireBrandId(configuredBrandId: unknown, nodeType: string): string {

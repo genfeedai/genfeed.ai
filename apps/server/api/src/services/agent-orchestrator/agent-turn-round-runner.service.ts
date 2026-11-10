@@ -8,28 +8,29 @@ import type {
   ToolCallSummary,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
+import type {
+  AgentToolRoundRiskLevel,
+  AgentToolRoundState,
+  AgentToolRoundStrategy,
+  ExecuteToolRoundParams,
+  ExecuteToolRoundResult,
+} from '@api/services/agent-orchestrator/interfaces/agent-turn-round-runner.interface';
 import { AgentToolConfirmationService } from '@api/services/agent-orchestrator/tools/agent-tool-confirmation.service';
 import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import {
-  type AgentArtifactCompletionMetadata,
-  buildAgentArtifactCompletionMetadata as buildArtifactMetadata,
-} from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
+import { buildAgentArtifactCompletionMetadata as buildArtifactMetadata } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import { recordDashboardBlocks } from '@api/services/agent-orchestrator/utils/agent-dashboard-blocks.util';
 import { hasGenerationHoldIntent } from '@api/services/agent-orchestrator/utils/agent-generation-hold-intent.util';
 import {
   type GenerationRedirect,
   getGenerationPreparationRedirect,
-  inferPrepareGenerationType,
-  isIdentityGenerationToolName,
   normalizeRequestedAgentToolName,
 } from '@api/services/agent-orchestrator/utils/agent-generation-prepare-redirect.util';
 import {
   annotateKnowledgeSearchData,
   readBrandId,
-  type TurnKnowledgePassages,
 } from '@api/services/agent-orchestrator/utils/agent-knowledge-citation.util';
 import { readLatestOperatorMessage } from '@api/services/agent-orchestrator/utils/agent-operator-message.util';
 import { normalizeResponseModel } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
@@ -41,22 +42,14 @@ import {
 } from '@api/services/agent-orchestrator/utils/agent-terminal-tool-result.util';
 import { raceToolExecution } from '@api/services/agent-orchestrator/utils/agent-tool-race.util';
 import { buildToolResultSummary } from '@api/services/agent-orchestrator/utils/agent-tool-result-summary.util';
+import { buildUnknownToolRecoveryParams } from '@api/services/agent-orchestrator/utils/agent-unknown-tool-recovery.util';
 import type {
   OpenRouterMessage,
   OpenRouterToolCallResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
-import {
-  type CuratedActionName,
-  MEDIA_GENERATION_TOOL_NAME,
-  MEDIA_GENERATION_TYPE_PARAMETERS,
-} from '@genfeedai/actions';
-import { ActivitySource, type RouterPriority } from '@genfeedai/contracts';
-import {
-  type AgentDashboardOperation,
-  type AgentToolResult,
-  type AgentUIBlock,
-  type AgentUiAction,
-} from '@genfeedai/contracts/interfaces';
+import type { CuratedActionName } from '@genfeedai/actions';
+import { ActivitySource } from '@genfeedai/contracts';
+import { type AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
@@ -66,122 +59,6 @@ import { Injectable, Optional } from '@nestjs/common';
 // cancellation was only observed between tools.
 const TOOL_EXECUTION_TIMEOUT_MS = 5 * 60 * 1000;
 const TOOL_CANCEL_POLL_INTERVAL_MS = 1500;
-
-export type AgentToolRoundRiskLevel = 'low' | 'medium' | 'high';
-
-export type AgentToolRoundUiBlocks = {
-  blockIds?: string[];
-  blocks?: unknown[];
-  operation: AgentDashboardOperation;
-} | null;
-
-/**
- * Mutable accumulators shared across tool rounds within a single chat turn.
- * The runner mutates these in place so sync/stream loops keep identical merge
- * semantics without re-implementing accumulation.
- */
-export type AgentToolRoundState = {
-  artifactMetadata: AgentArtifactCompletionMetadata[];
-  highestRiskLevel: AgentToolRoundRiskLevel;
-  /** Passages `search_knowledge` showed the model this turn; the only citable ones. */
-  knowledgePassages?: TurnKnowledgePassages;
-  latestUiBlocks: AgentToolRoundUiBlocks;
-  reviewRequired: boolean;
-  toolCalls: ToolCallSummary[];
-  totalCreditsUsed: number;
-  uiActions: AgentUiAction[];
-};
-
-export type AgentToolRoundCancelAction = 'cancel' | 'continue';
-
-export type AgentToolRoundStartedEvent = {
-  parameters: Record<string, unknown>;
-  startTime: number;
-  toolCallId: string;
-  toolName: CuratedActionName;
-};
-
-export type AgentToolRoundCompletedEvent = {
-  durationMs: number;
-  kind: 'executed' | 'insufficient_credits' | 'unknown';
-  parameters: Record<string, unknown>;
-  requestedToolName: CuratedActionName;
-  result?: AgentToolResult;
-  summary: ToolCallSummary;
-  toolCallId: string;
-  toolName: string;
-};
-
-export type AgentToolRoundUiBlocksEvent = {
-  blockIds?: string[];
-  blocks: AgentUIBlock[];
-  deferPublish?: boolean;
-  operation: AgentDashboardOperation;
-  resultData: Record<string, unknown>;
-};
-
-export type AgentToolRoundStrategy = {
-  /**
-   * Stream: check cancellation before each tool call. Return `'cancel'` to
-   * stop the round (caller handles cancelled-stream lifecycle).
-   */
-  onBeforeTool?: () => Promise<AgentToolRoundCancelAction>;
-  /**
-   * Stream: check cancellation after tool execution completes.
-   */
-  onAfterTool?: () => Promise<AgentToolRoundCancelAction>;
-  /**
-   * Mode-specific "tool started" emission.
-   * Sync → thread event recorder; stream → SSE/work events.
-   */
-  onToolStarted?: (event: AgentToolRoundStartedEvent) => Promise<void>;
-  /**
-   * Mode-specific "tool completed" emission (success and failure paths).
-   */
-  onToolCompleted?: (event: AgentToolRoundCompletedEvent) => Promise<void>;
-  /**
-   * Mode-specific UI-blocks emission for `render_dashboard`.
-   * Sync always records; stream may skip publish when `deferPublish` is set.
-   */
-  onUiBlocks?: (event: AgentToolRoundUiBlocksEvent) => Promise<void>;
-  /**
-   * Sync-only today: fire-and-forget run tool-call accounting.
-   */
-  onRecordRunToolCall?: (summary: ToolCallSummary) => void;
-  /**
-   * Stream defers the unknown-tool failure until after `onToolStarted` so the
-   * client sees a started→failed pair. Sync fails before started.
-   */
-  deferUnknownToolFailure?: boolean;
-  /**
-   * Sync logs a warning when tool arguments fail to parse; stream is silent.
-   */
-  logParseErrors?: boolean;
-};
-
-export type ExecuteToolRoundParams = {
-  allowedToolNames: Set<CuratedActionName>;
-  assistantContent: string | null;
-  attachmentUrls?: string[];
-  context: AgentChatContext;
-  generationPriority: RouterPriority;
-  messages: OpenRouterMessage[];
-  model: string;
-  policy: ResolvedAgentExecutionPolicy;
-  source?: AgentChatRequest['source'];
-  state: AgentToolRoundState;
-  strategy?: AgentToolRoundStrategy;
-  thinkingModel?: string;
-  threadId: string;
-  toolCalls: OpenRouterToolCallResponse[];
-};
-
-export type ExecuteToolRoundResult = {
-  isCancelled: boolean;
-  wasInterrupted?: boolean;
-  terminalContent?: string;
-  terminalToolName?: CuratedActionName;
-};
 
 /**
  * Shared per-tool-call batch processor for sync and stream agent loops.
@@ -213,6 +90,32 @@ export function assertAgentCreditBudget(
     );
   }
 }
+
+type ParsedToolCall = {
+  rawRequestedToolName: string;
+  requestedToolName: CuratedActionName;
+  toolParams: Record<string, unknown>;
+};
+
+type RemappedToolCall = {
+  preRemapToolName: CuratedActionName;
+  toolName: CuratedActionName;
+  toolParams: Record<string, unknown>;
+};
+
+type ToolInvocation = {
+  creditCost: number;
+  preflightCreditCost: number;
+  requestedToolName: CuratedActionName;
+  startTime: number;
+  toolName: CuratedActionName;
+  toolParams: Record<string, unknown>;
+};
+
+type ToolCallOutcome =
+  | { kind: 'skipped' }
+  | { kind: 'cancelled'; result: ExecuteToolRoundResult }
+  | { kind: 'completed'; terminal: TerminalToolOutcome | undefined };
 
 @Traced()
 @Injectable()
@@ -378,19 +281,7 @@ export class AgentTurnRoundRunnerService {
   async executeToolRound(
     params: ExecuteToolRoundParams,
   ): Promise<ExecuteToolRoundResult> {
-    const {
-      allowedToolNames,
-      assistantContent,
-      context,
-      messages,
-      model,
-      policy,
-      source,
-      state,
-      strategy = {},
-      threadId,
-      toolCalls,
-    } = params;
+    const { assistantContent, messages, source, toolCalls } = params;
     const currentOperatorMessage = this.readCurrentOperatorMessage(
       messages,
       source,
@@ -404,293 +295,17 @@ export class AgentTurnRoundRunnerService {
     let terminal: TerminalToolOutcome | undefined;
 
     for (const toolCall of toolCalls) {
-      if (strategy.onBeforeTool) {
-        const action = await strategy.onBeforeTool();
-        if (action === 'cancel') {
-          return { isCancelled: true };
-        }
-      }
-
-      // Sync starts the timer before parse; stream starts after remap (below).
-      let startTime = Date.now();
-      const rawRequestedToolName = toolCall.function.name;
-      const requestedToolName = normalizeRequestedAgentToolName(
-        rawRequestedToolName,
-      ) as CuratedActionName;
-      let toolParams: Record<string, unknown> = {};
-
-      try {
-        toolParams = JSON.parse(toolCall.function.arguments);
-      } catch {
-        if (strategy.logParseErrors) {
-          this.loggerService.warn(
-            `Failed to parse tool arguments for ${requestedToolName}`,
-            this.constructorName,
-          );
-        }
-      }
-
-      let toolName = requestedToolName;
-
-      if (!allowedToolNames.has(requestedToolName)) {
-        const recovered = this.getGenerationPreparationRedirect(
-          rawRequestedToolName,
-          allowedToolNames,
-          context.generationMode,
-          toolParams,
-        );
-
-        if (recovered) {
-          allowedToolNames.add(recovered.toolName);
-          toolName = recovered.toolName;
-          toolParams = this.buildUnknownToolRecoveryParams(
-            rawRequestedToolName,
-            toolParams,
-            recovered,
-          );
-
-          this.loggerService.warn(
-            `Recovered unknown tool ${rawRequestedToolName} -> ${recovered.toolName}`,
-            {
-              constructor: this.constructorName,
-              model,
-              organizationId: context.organizationId,
-              source: source ?? 'agent',
-              threadId,
-              toolName: rawRequestedToolName,
-              userId: context.userId,
-            },
-          );
-        } else if (!strategy.deferUnknownToolFailure) {
-          await this.recordUnknownToolFailure({
-            allowedToolNames,
-            context,
-            messages,
-            model,
-            rawRequestedToolName,
-            requestedToolName,
-            source,
-            startTime,
-            state,
-            strategy,
-            threadId,
-            toolCallId: toolCall.id,
-            toolParams,
-          });
-          continue;
-        }
-      }
-
-      const preRemapToolName = toolName;
-      const directGenerationOverride = this.getGenerationPreparationRedirect(
-        toolName,
-        allowedToolNames,
-        context.generationMode,
-        toolParams,
-      );
-      if (directGenerationOverride) {
-        allowedToolNames.add(directGenerationOverride.toolName);
-        const originalToolName = toolName;
-        toolName = directGenerationOverride.toolName;
-        toolParams = this.buildUnknownToolRecoveryParams(
-          rawRequestedToolName,
-          toolParams,
-          directGenerationOverride,
-        );
-
-        this.loggerService.log(
-          `Remapped direct generation tool ${originalToolName} -> ${directGenerationOverride.toolName}${directGenerationOverride.mediaType ? ` (${directGenerationOverride.mediaType})` : ''}`,
-          {
-            organizationId: context.organizationId,
-            source: source ?? 'agent',
-            threadId,
-            userId: context.userId,
-          },
-        );
-      }
-
-      const creditCost = agentToolCreditFloor(toolName, toolParams);
-      // Gate affordability on the tool the model asked for: the
-      // prepare_generation remap above would otherwise resolve a zero
-      // cost and skip the check entirely (#482).
-      const preflightCreditCost = Math.max(
-        creditCost,
-        agentToolCreditFloor(preRemapToolName, toolParams),
-      );
-
-      // Stream resets startTime after remap so duration excludes remap work.
-      if (strategy.deferUnknownToolFailure) {
-        startTime = Date.now();
-      }
-
-      if (strategy.onToolStarted) {
-        await strategy.onToolStarted({
-          parameters: toolParams,
-          startTime,
-          toolCallId: toolCall.id,
-          toolName,
-        });
-      }
-
-      // Stream: unknown tools that could not be recovered fail after started.
-      if (strategy.deferUnknownToolFailure && !allowedToolNames.has(toolName)) {
-        await this.recordUnknownToolFailure({
-          allowedToolNames,
-          context,
-          messages,
-          model,
-          rawRequestedToolName,
-          requestedToolName,
-          source,
-          startTime,
-          state,
-          strategy,
-          threadId,
-          toolCallId: toolCall.id,
-          toolParams,
-        });
-        continue;
-      }
-
-      assertAgentCreditBudget(
-        context,
-        state.totalCreditsUsed,
-        preflightCreditCost,
-      );
-
-      if (
-        await this.recordUnaffordableTool({
-          context,
-          messages,
-          preflightCreditCost,
-          requestedToolName,
-          startTime,
-          state,
-          strategy,
-          toolCallId: toolCall.id,
-          toolName,
-          toolParams,
-        })
-      )
-        continue;
-
-      const preparedToolCall =
-        await this.toolConfirmationService.prepareToolCall({
-          currentOperatorMessage,
-          organizationId: context.organizationId,
-          parameters: toolParams,
-          threadId,
-          toolName,
-          userId: context.userId,
-        });
-      toolParams = preparedToolCall.parameters;
-
-      const result = await this.executeToolUntilSettled(
+      const outcome = await this.runToolCall(
         params,
-        toolName,
-        preparedToolCall,
+        toolCall,
+        currentOperatorMessage,
       );
-      if (!result) {
-        return { isCancelled: true, wasInterrupted: true };
+      if (outcome.kind === 'cancelled') {
+        return outcome.result;
       }
-      const modelVisibleResult =
-        this.toolConfirmationService.buildModelVisibleResult(toolName, result);
-
-      const durationMs = Date.now() - startTime;
-      state.artifactMetadata.push(buildArtifactMetadata(result.data, context));
-
-      if (result.nextActions?.length) {
-        state.uiActions.push(...result.nextActions);
+      if (outcome.kind === 'completed' && outcome.terminal) {
+        terminal = outcome.terminal;
       }
-      terminal =
-        resolveTerminalToolOutcome(toolName, toolParams, result) ?? terminal;
-      if (result.requiresConfirmation) {
-        state.reviewRequired = true;
-      }
-      this.recordRiskLevel(state, result.riskLevel);
-
-      // Generation tools may bill themselves (dynamic amount). Do not also
-      // deduct the catalog creditCost. Still record result.creditsUsed so the
-      // turn total and UI reflect real spend.
-      // Bill + record the summary *before* onAfterTool cancel: the tool already
-      // ran (side effects done). Cancelled streams must still charge
-      // orchestrator-billed tools and leave an audit trail.
-      const isOrchestratorBilled =
-        result.success && creditCost > 0 && !result.isBillingDelegated;
-      const delegatedCredits = result.isBillingDelegated
-        ? Math.max(0, result.creditsUsed ?? 0)
-        : 0;
-
-      if (isOrchestratorBilled) {
-        await this.creditsUtilsService.deductCreditsFromOrganization(
-          context.organizationId,
-          context.userId,
-          creditCost,
-          `Agent tool: ${toolName}`,
-          ActivitySource.SCRIPT,
-          { brandId: context.scope?.brandId },
-        );
-        state.totalCreditsUsed += creditCost;
-      } else if (delegatedCredits > 0) {
-        state.totalCreditsUsed += delegatedCredits;
-      }
-
-      const summary: ToolCallSummary = {
-        creditsUsed: isOrchestratorBilled ? creditCost : delegatedCredits,
-        durationMs,
-        error: result.error,
-        parameters: toolParams,
-        ...buildToolResultSummary(toolName, modelVisibleResult),
-        ...(isApprovalPendingResult(result)
-          ? { resultSummary: APPROVAL_PENDING_RESULT_SUMMARY }
-          : {}),
-        status: result.success ? 'completed' : 'failed',
-        toolName,
-      };
-      state.toolCalls.push(summary);
-
-      if (strategy.onAfterTool) {
-        const action = await strategy.onAfterTool();
-        if (action === 'cancel') {
-          return { isCancelled: true, wasInterrupted: true };
-        }
-      }
-
-      if (toolName === 'render_dashboard' && result.data?.uiBlocks) {
-        await recordDashboardBlocks(state, strategy, result.data);
-      }
-
-      if (strategy.onRecordRunToolCall) {
-        strategy.onRecordRunToolCall(summary);
-      }
-
-      if (strategy.onToolCompleted) {
-        await strategy.onToolCompleted({
-          durationMs,
-          kind: 'executed',
-          parameters: toolParams,
-          requestedToolName,
-          result,
-          summary,
-          toolCallId: toolCall.id,
-          toolName,
-        });
-      }
-
-      messages.push({
-        content: await this.gateToolResultContent({
-          context,
-          modelVisibleResult,
-          policy,
-          state,
-          threadId,
-          toolCall,
-          toolName,
-          toolParams,
-        }),
-        role: 'tool' as const,
-        tool_call_id: toolCall.id,
-      });
     }
 
     return {
@@ -702,6 +317,408 @@ export class AgentTurnRoundRunnerService {
           }
         : {}),
     };
+  }
+
+  private async runToolCall(
+    params: ExecuteToolRoundParams,
+    toolCall: OpenRouterToolCallResponse,
+    currentOperatorMessage: string | null,
+  ): Promise<ToolCallOutcome> {
+    const { context, messages, state, strategy = {}, threadId } = params;
+    if (strategy.onBeforeTool) {
+      const action = await strategy.onBeforeTool();
+      if (action === 'cancel') {
+        return { kind: 'cancelled', result: { isCancelled: true } };
+      }
+    }
+
+    const invocation = await this.resolveToolInvocation(params, toolCall);
+    if (!invocation) {
+      return { kind: 'skipped' };
+    }
+    const { preflightCreditCost, requestedToolName, startTime, toolName } =
+      invocation;
+
+    assertAgentCreditBudget(
+      context,
+      state.totalCreditsUsed,
+      preflightCreditCost,
+    );
+
+    if (
+      await this.recordUnaffordableTool({
+        context,
+        messages,
+        preflightCreditCost,
+        requestedToolName,
+        startTime,
+        state,
+        strategy,
+        toolCallId: toolCall.id,
+        toolName,
+        toolParams: invocation.toolParams,
+      })
+    ) {
+      return { kind: 'skipped' };
+    }
+
+    const preparedToolCall = await this.toolConfirmationService.prepareToolCall(
+      {
+        currentOperatorMessage,
+        organizationId: context.organizationId,
+        parameters: invocation.toolParams,
+        threadId,
+        toolName,
+        userId: context.userId,
+      },
+    );
+
+    const result = await this.executeToolUntilSettled(
+      params,
+      toolName,
+      preparedToolCall,
+    );
+    if (!result) {
+      return {
+        kind: 'cancelled',
+        result: { isCancelled: true, wasInterrupted: true },
+      };
+    }
+
+    return this.recordExecutedToolCall(params, toolCall, {
+      invocation: { ...invocation, toolParams: preparedToolCall.parameters },
+      result,
+    });
+  }
+
+  /**
+   * Parses the call, recovers or remaps an unknown or direct generation tool,
+   * and prices it. Resolves to null when the call was recorded as an unknown
+   * tool failure and must be skipped.
+   */
+  private async resolveToolInvocation(
+    params: ExecuteToolRoundParams,
+    toolCall: OpenRouterToolCallResponse,
+  ): Promise<ToolInvocation | null> {
+    const {
+      allowedToolNames,
+      context,
+      messages,
+      model,
+      source,
+      state,
+      strategy = {},
+      threadId,
+    } = params;
+
+    // Sync starts the timer before parse; stream starts after remap (below).
+    let startTime = Date.now();
+    const parsed = this.parseToolCall(toolCall, strategy);
+    const { rawRequestedToolName, requestedToolName } = parsed;
+    const recordUnknownToolFailure = () =>
+      this.recordUnknownToolFailure({
+        allowedToolNames,
+        context,
+        messages,
+        model,
+        rawRequestedToolName,
+        requestedToolName,
+        source,
+        startTime,
+        state,
+        strategy,
+        threadId,
+        toolCallId: toolCall.id,
+        toolParams: parsed.toolParams,
+      });
+
+    const remapped = this.remapToolCall(params, parsed);
+    if (!remapped) {
+      // Not recoverable and not deferred: fail before the started event.
+      await recordUnknownToolFailure();
+      return null;
+    }
+    const { preRemapToolName, toolName, toolParams } = remapped;
+
+    const creditCost = agentToolCreditFloor(toolName, toolParams);
+    // Gate affordability on the tool the model asked for: the
+    // prepare_generation remap above would otherwise resolve a zero
+    // cost and skip the check entirely (#482).
+    const preflightCreditCost = Math.max(
+      creditCost,
+      agentToolCreditFloor(preRemapToolName, toolParams),
+    );
+
+    // Stream resets startTime after remap so duration excludes remap work.
+    if (strategy.deferUnknownToolFailure) {
+      startTime = Date.now();
+    }
+
+    if (strategy.onToolStarted) {
+      await strategy.onToolStarted({
+        parameters: toolParams,
+        startTime,
+        toolCallId: toolCall.id,
+        toolName,
+      });
+    }
+
+    // Stream: unknown tools that could not be recovered fail after started.
+    if (strategy.deferUnknownToolFailure && !allowedToolNames.has(toolName)) {
+      await this.recordUnknownToolFailure({
+        allowedToolNames,
+        context,
+        messages,
+        model,
+        rawRequestedToolName,
+        requestedToolName,
+        source,
+        startTime,
+        state,
+        strategy,
+        threadId,
+        toolCallId: toolCall.id,
+        toolParams,
+      });
+      return null;
+    }
+
+    return {
+      creditCost,
+      preflightCreditCost,
+      requestedToolName,
+      startTime,
+      toolName,
+      toolParams,
+    };
+  }
+
+  private parseToolCall(
+    toolCall: OpenRouterToolCallResponse,
+    strategy: AgentToolRoundStrategy,
+  ): ParsedToolCall {
+    const rawRequestedToolName = toolCall.function.name;
+    const requestedToolName = normalizeRequestedAgentToolName(
+      rawRequestedToolName,
+    ) as CuratedActionName;
+    let toolParams: Record<string, unknown> = {};
+
+    try {
+      toolParams = JSON.parse(toolCall.function.arguments);
+    } catch {
+      if (strategy.logParseErrors) {
+        this.loggerService.warn(
+          `Failed to parse tool arguments for ${requestedToolName}`,
+          this.constructorName,
+        );
+      }
+    }
+
+    return { rawRequestedToolName, requestedToolName, toolParams };
+  }
+
+  /**
+   * Recovers an unknown tool and remaps a direct generation tool. Resolves to
+   * null when the tool is unknown, unrecoverable, and the strategy fails
+   * unknown tools immediately.
+   */
+  private remapToolCall(
+    params: ExecuteToolRoundParams,
+    parsed: ParsedToolCall,
+  ): RemappedToolCall | null {
+    const { allowedToolNames, context, model, source, strategy, threadId } =
+      params;
+    const { rawRequestedToolName, requestedToolName } = parsed;
+    let { toolParams } = parsed;
+    let toolName = requestedToolName;
+
+    if (!allowedToolNames.has(requestedToolName)) {
+      const recovered = this.getGenerationPreparationRedirect(
+        rawRequestedToolName,
+        allowedToolNames,
+        context.generationMode,
+        toolParams,
+      );
+
+      if (recovered) {
+        allowedToolNames.add(recovered.toolName);
+        toolName = recovered.toolName;
+        toolParams = buildUnknownToolRecoveryParams(
+          rawRequestedToolName,
+          toolParams,
+          recovered,
+        );
+
+        this.loggerService.warn(
+          `Recovered unknown tool ${rawRequestedToolName} -> ${recovered.toolName}`,
+          {
+            constructor: this.constructorName,
+            model,
+            organizationId: context.organizationId,
+            source: source ?? 'agent',
+            threadId,
+            toolName: rawRequestedToolName,
+            userId: context.userId,
+          },
+        );
+      } else if (!strategy?.deferUnknownToolFailure) {
+        return null;
+      }
+    }
+
+    const preRemapToolName = toolName;
+    const directGenerationOverride = this.getGenerationPreparationRedirect(
+      toolName,
+      allowedToolNames,
+      context.generationMode,
+      toolParams,
+    );
+    if (directGenerationOverride) {
+      allowedToolNames.add(directGenerationOverride.toolName);
+      const originalToolName = toolName;
+      toolName = directGenerationOverride.toolName;
+      toolParams = buildUnknownToolRecoveryParams(
+        rawRequestedToolName,
+        toolParams,
+        directGenerationOverride,
+      );
+
+      this.loggerService.log(
+        `Remapped direct generation tool ${originalToolName} -> ${directGenerationOverride.toolName}${directGenerationOverride.mediaType ? ` (${directGenerationOverride.mediaType})` : ''}`,
+        {
+          organizationId: context.organizationId,
+          source: source ?? 'agent',
+          threadId,
+          userId: context.userId,
+        },
+      );
+    }
+
+    return { preRemapToolName, toolName, toolParams };
+  }
+
+  /**
+   * Bills, summarizes and emits one executed tool call, then appends its
+   * model-visible result to the conversation.
+   */
+  private async recordExecutedToolCall(
+    params: ExecuteToolRoundParams,
+    toolCall: OpenRouterToolCallResponse,
+    executed: { invocation: ToolInvocation; result: AgentToolResult },
+  ): Promise<ToolCallOutcome> {
+    const {
+      context,
+      messages,
+      policy,
+      state,
+      strategy = {},
+      threadId,
+    } = params;
+    const { invocation, result } = executed;
+    const { creditCost, requestedToolName, startTime, toolName, toolParams } =
+      invocation;
+    const modelVisibleResult =
+      this.toolConfirmationService.buildModelVisibleResult(toolName, result);
+
+    const durationMs = Date.now() - startTime;
+    state.artifactMetadata.push(buildArtifactMetadata(result.data, context));
+
+    if (result.nextActions?.length) {
+      state.uiActions.push(...result.nextActions);
+    }
+    const terminal = resolveTerminalToolOutcome(toolName, toolParams, result);
+    if (result.requiresConfirmation) {
+      state.reviewRequired = true;
+    }
+    this.recordRiskLevel(state, result.riskLevel);
+
+    // Generation tools may bill themselves (dynamic amount). Do not also
+    // deduct the catalog creditCost. Still record result.creditsUsed so the
+    // turn total and UI reflect real spend.
+    // Bill + record the summary *before* onAfterTool cancel: the tool already
+    // ran (side effects done). Cancelled streams must still charge
+    // orchestrator-billed tools and leave an audit trail.
+    const isOrchestratorBilled =
+      result.success && creditCost > 0 && !result.isBillingDelegated;
+    const delegatedCredits = result.isBillingDelegated
+      ? Math.max(0, result.creditsUsed ?? 0)
+      : 0;
+
+    if (isOrchestratorBilled) {
+      await this.creditsUtilsService.deductCreditsFromOrganization(
+        context.organizationId,
+        context.userId,
+        creditCost,
+        `Agent tool: ${toolName}`,
+        ActivitySource.SCRIPT,
+        { brandId: context.scope?.brandId },
+      );
+      state.totalCreditsUsed += creditCost;
+    } else if (delegatedCredits > 0) {
+      state.totalCreditsUsed += delegatedCredits;
+    }
+
+    const summary: ToolCallSummary = {
+      creditsUsed: isOrchestratorBilled ? creditCost : delegatedCredits,
+      durationMs,
+      error: result.error,
+      parameters: toolParams,
+      ...buildToolResultSummary(toolName, modelVisibleResult),
+      ...(isApprovalPendingResult(result)
+        ? { resultSummary: APPROVAL_PENDING_RESULT_SUMMARY }
+        : {}),
+      status: result.success ? 'completed' : 'failed',
+      toolName,
+    };
+    state.toolCalls.push(summary);
+
+    if (strategy.onAfterTool) {
+      const action = await strategy.onAfterTool();
+      if (action === 'cancel') {
+        return {
+          kind: 'cancelled',
+          result: { isCancelled: true, wasInterrupted: true },
+        };
+      }
+    }
+
+    if (toolName === 'render_dashboard' && result.data?.uiBlocks) {
+      await recordDashboardBlocks(state, strategy, result.data);
+    }
+
+    if (strategy.onRecordRunToolCall) {
+      strategy.onRecordRunToolCall(summary);
+    }
+
+    if (strategy.onToolCompleted) {
+      await strategy.onToolCompleted({
+        durationMs,
+        kind: 'executed',
+        parameters: toolParams,
+        requestedToolName,
+        result,
+        summary,
+        toolCallId: toolCall.id,
+        toolName,
+      });
+    }
+
+    messages.push({
+      content: await this.gateToolResultContent({
+        context,
+        modelVisibleResult,
+        policy,
+        state,
+        threadId,
+        toolCall,
+        toolName,
+        toolParams,
+      }),
+      role: 'tool' as const,
+      tool_call_id: toolCall.id,
+    });
+
+    return { kind: 'completed', terminal };
   }
 
   /**
@@ -811,60 +828,6 @@ export class AgentTurnRoundRunnerService {
     });
   }
 
-  private buildUnknownToolRecoveryParams(
-    requestedToolName: string,
-    toolParams: Record<string, unknown>,
-    redirect: GenerationRedirect,
-  ): Record<string, unknown> {
-    if (redirect.toolName === MEDIA_GENERATION_TOOL_NAME) {
-      // `generate` is strict per type; drop the per-kind aliases models send.
-      const {
-        description,
-        generationType: _generationType,
-        text,
-        useIdentity: _useIdentity,
-        ...rest
-      } = toolParams;
-      // A composer-mode redirect can change the type; keep only the fields
-      // the resolved type accepts so the call is not rejected for them.
-      const accepted = redirect.mediaType
-        ? MEDIA_GENERATION_TYPE_PARAMETERS[redirect.mediaType]
-        : undefined;
-      const applicable = accepted
-        ? Object.fromEntries(
-            Object.entries(rest).filter(([key]) => accepted.has(key)),
-          )
-        : rest;
-      return {
-        ...applicable,
-        prompt:
-          (typeof rest.prompt === 'string' && rest.prompt) ||
-          (typeof description === 'string' && description) ||
-          (typeof text === 'string' && text) ||
-          '',
-        type: redirect.mediaType,
-      };
-    }
-
-    const generationType = inferPrepareGenerationType(requestedToolName);
-    const recovered = generationType
-      ? {
-          ...toolParams,
-          generationType,
-          prompt:
-            (toolParams.prompt as string | undefined) ||
-            (toolParams.description as string | undefined) ||
-            (toolParams.text as string | undefined) ||
-            '',
-        }
-      : toolParams;
-
-    if (!isIdentityGenerationToolName(requestedToolName)) {
-      return recovered;
-    }
-
-    return { ...recovered, useIdentity: true };
-  }
   /**
    * Runs one tool call, but stops waiting when the run is cancelled (`null`) or
    * the call outlives `TOOL_EXECUTION_TIMEOUT_MS` (a failed tool result).

@@ -49,6 +49,8 @@ export interface BrandOsRevisionFieldsProps {
 }
 
 export interface BrandOsValueEditorProps {
+  /** The brand being edited; the palette and font role editors read from it. */
+  brandId?: string;
   valueKind: IBrandKitFieldOwner['valueKind'];
   fieldKey?: BrandKitFieldKey;
   assetRole?: BrandKitAssetRole;

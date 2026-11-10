@@ -1,5 +1,8 @@
 import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { withholdGatedContent } from '@api/collections/articles/utils/article-preview.util';
+import { PublicArticleGenerationsService } from '@api/endpoints/public/services/public-article-generations.service';
+import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
@@ -16,17 +19,21 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
-import { PublicArticleSerializer } from '@genfeedai/serializers';
+import {
+  PublicArticleGenerationSerializer,
+  PublicArticleSerializer,
+} from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { PrismaWhereQuery } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Controller, Get, Param, Query, Req } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -39,7 +46,58 @@ export class PublicArticlesController {
     private readonly articlesService: ArticlesService,
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
+    private readonly publicViewsService: PublicViewsService,
+    private readonly publicArticleGenerationsService: PublicArticleGenerationsService,
   ) {}
+
+  /**
+   * The generations a published article embeds as blocks: each one's output,
+   * model and, unless the author hid it, prompt. Only public assets of the
+   * article's own organization are returned.
+   */
+  @Get(':articleId/generations')
+  @Cache({
+    keyGenerator: (req) =>
+      `public:article:generations:${req.params?.articleId ?? 'unknown'}`,
+    tags: ['articles', 'public'],
+    ttl: 60,
+  })
+  async findArticleGenerations(
+    @Req() request: Request,
+    @Param('articleId') articleId: string,
+  ): Promise<JsonApiCollectionResponse> {
+    const docs = isEntityId(articleId)
+      ? await this.publicArticleGenerationsService.findForArticle(
+          articleId,
+          await this.articlesService.publicArticleScope.buildWhere(),
+        )
+      : [];
+    return serializeCollection(request, PublicArticleGenerationSerializer, {
+      docs,
+    });
+  }
+
+  /** Counts a reader's view of a published article, once a day per visitor. */
+  @Post(':articleId/views')
+  @RateLimit({ limit: 30, scope: 'ip', windowMs: 60_000 })
+  async recordView(
+    @Req() request: Request,
+    @Param('articleId') articleId: string,
+  ): Promise<{ data: { views: number } | null }> {
+    if (!isEntityId(articleId)) {
+      return { data: null };
+    }
+    const userAgent = request.headers['user-agent'];
+    const views = await this.publicViewsService.recordArticle(
+      articleId,
+      await this.articlesService.publicArticleScope.buildWhere(),
+      {
+        ip: request.ip ?? '',
+        userAgent: typeof userAgent === 'string' ? userAgent : '',
+      },
+    );
+    return { data: views === null ? null : { views } };
+  }
 
   @Get()
   @Cache({
@@ -82,7 +140,11 @@ export class PublicArticlesController {
       matchQuery.OR = [
         { label: { mode: 'insensitive', contains: search } },
         { summary: { mode: 'insensitive', contains: search } },
-        { content: { mode: 'insensitive', contains: search } },
+        // A paid article's body is not public, so search skips it (#9718).
+        {
+          accessLevel: 'public',
+          content: { mode: 'insensitive', contains: search },
+        },
       ];
     }
 
@@ -119,7 +181,9 @@ export class PublicArticlesController {
     };
 
     const data = await this.articlesService.findAll(aggregate, options);
-    data.docs = data.docs.map(stripPrivateBrand);
+    data.docs = data.docs.map((doc) =>
+      withholdGatedContent(stripPrivateBrand(doc)),
+    );
     return serializeCollection(request, PublicArticleSerializer, data);
   }
 
@@ -158,7 +222,12 @@ export class PublicArticlesController {
       return serializeSingle(request, PublicArticleSerializer, { data: null });
     }
 
-    return serializeSingle(request, PublicArticleSerializer, article);
+    // A signed preview is the author checking their draft: show all of it.
+    return serializeSingle(
+      request,
+      PublicArticleSerializer,
+      previewArticleId ? article : withholdGatedContent(article),
+    );
   }
 
   @Get(':articleId')
@@ -184,6 +253,10 @@ export class PublicArticlesController {
       return returnNotFound(this.constructorName, articleId);
     }
 
-    return serializeSingle(request, PublicArticleSerializer, article);
+    return serializeSingle(
+      request,
+      PublicArticleSerializer,
+      withholdGatedContent(article),
+    );
   }
 }

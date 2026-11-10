@@ -3,6 +3,7 @@ import { formatNewsletterStatusLabel } from '@helpers/content/newsletters.helper
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Badge } from '@ui/primitives/badge';
 import { EmptyState } from '@ui/primitives/empty-state';
+import NewsletterSendCard from '@/features/newsletter/send/NewsletterSendCard';
 import type { ArtifactEditorPageProps } from '@/props/content/artifact-editor.props';
 import ArtifactEditorShell from '../../artifact-editor-shell';
 import NewsletterContextReview from '../newsletter-context-review';
@@ -79,6 +80,7 @@ export default function NewsletterEditorContent({
         />
 
         <div className="space-y-6">
+          <NewsletterSendCard isDirty={isEditorDirty} newsletter={newsletter} />
           <NewsletterDeliveryCard
             isDirty={isEditorDirty}
             isSavingExternalUrl={isSavingExternalUrl}

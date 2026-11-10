@@ -11,6 +11,8 @@ import { LinksService } from '@api/collections/links/services/links.service';
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { PublicBrandsController } from '@api/endpoints/public/controllers/brands/public.brands.controller';
+import { PublicBrandSocialsService } from '@api/endpoints/public/services/public-brand-socials.service';
+import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { AssetScope } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -107,6 +109,25 @@ describe('PublicBrandsController', () => {
         },
         { provide: VideosService, useValue: { findAll: vi.fn() } },
         { provide: LoggerService, useValue: { error: vi.fn(), log: vi.fn() } },
+        {
+          provide: PublicViewsService,
+          useValue: { record: vi.fn().mockResolvedValue(12) },
+        },
+        {
+          provide: PublicBrandSocialsService,
+          useValue: {
+            attach: async (brand: object) =>
+              Object.assign(brand, {
+                socials: [
+                  {
+                    handle: 'itsshaylamonroe',
+                    platform: 'instagram',
+                    url: 'https://www.instagram.com/itsshaylamonroe',
+                  },
+                ],
+              }),
+          },
+        },
       ],
     })
       .overrideGuard(RolesGuard)
@@ -134,7 +155,8 @@ describe('PublicBrandsController', () => {
     it('applies the requested limit as the page size', async () => {
       brandsService.findAll.mockResolvedValue({ docs: [mockBrand] } as never);
 
-      await controller.findPublicBrands(mockReq, undefined, '3');
+      const brands = await controller.findPublicBrands(mockReq, undefined, '3');
+      expect(brands).toEqual([mockBrand]);
 
       expect(brandsService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -147,8 +169,14 @@ describe('PublicBrandsController', () => {
     it('caps the limit at 100 and falls back to 10 for junk input', async () => {
       brandsService.findAll.mockResolvedValue({ docs: [] } as never);
 
-      await controller.findPublicBrands(mockReq, undefined, '5000');
-      await controller.findPublicBrands(mockReq, undefined, 'abc');
+      const capped = await controller.findPublicBrands(
+        mockReq,
+        undefined,
+        '5000',
+      );
+      expect(capped).toEqual([]);
+      const junk = await controller.findPublicBrands(mockReq, undefined, 'abc');
+      expect(junk).toEqual([]);
 
       expect(brandsService.findAll).toHaveBeenNthCalledWith(
         1,
@@ -173,7 +201,12 @@ describe('PublicBrandsController', () => {
         ],
       } as never);
 
-      await controller.findPublicBrands(mockReq);
+      const brands = await controller.findPublicBrands(mockReq);
+      expect(brands).toEqual([
+        expect.objectContaining({ id: 'b1' }),
+        expect.objectContaining({ id: 'b2' }),
+        expect.objectContaining({ id: 'b3' }),
+      ]);
 
       expect(brandsService.attachBrandKitAssetRelations).toHaveBeenCalledTimes(
         2,
@@ -227,6 +260,24 @@ describe('PublicBrandsController', () => {
       expect(result).toMatchObject({ logo });
     });
 
+    it('lists the connected socials as profile links', async () => {
+      brandsService.findOneBySlug.mockResolvedValue({
+        ...mockBrand,
+      } as unknown as BrandEntity);
+
+      const result = await controller.findOneBySlug(mockReq, 'test-brand');
+
+      expect(result).toMatchObject({
+        socials: [
+          {
+            handle: 'itsshaylamonroe',
+            platform: 'instagram',
+            url: 'https://www.instagram.com/itsshaylamonroe',
+          },
+        ],
+      });
+    });
+
     it('returns a brand stored with the PUBLIC scope value', async () => {
       brandsService.findOneBySlug.mockImplementation(
         scopeFilteringFindOne(PRISMA_SCOPE_PUBLIC),
@@ -262,7 +313,8 @@ describe('PublicBrandsController', () => {
         ...mockBrand,
       } as unknown as BrandEntity);
 
-      await controller.findOne(mockReq, brandId);
+      const brand = await controller.findOne(mockReq, brandId);
+      expect(brand).toMatchObject({ id: brandId, scope: PRISMA_SCOPE_PUBLIC });
 
       expect(brandsService.attachBrandKitAssetRelations).toHaveBeenCalledWith(
         [expect.objectContaining({ id: brandId })],
@@ -353,7 +405,8 @@ describe('PublicBrandsController', () => {
         totalDocs: 0,
       } as never);
 
-      await controller.findBrandArticles(brandId, mockReq);
+      const articles = await controller.findBrandArticles(brandId, mockReq);
+      expect(articles).toEqual([]);
 
       expect(articlesService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -413,7 +466,8 @@ describe('PublicBrandsController', () => {
       imagesService.findAll.mockResolvedValue({ docs: [] } as never);
       articlesService.findAll.mockResolvedValue({ docs: [] } as never);
 
-      await controller.findBrandLinks(mockReq, brandId);
+      const links = await controller.findBrandLinks(mockReq, brandId);
+      expect(links).toEqual([]);
       // Link has neither `scope` nor `type`; Prisma rejects unknown arguments.
       expect(linksService.findAll).toHaveBeenCalledWith(
         {

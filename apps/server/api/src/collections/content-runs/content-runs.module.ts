@@ -3,6 +3,7 @@ import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { BrandRemixGenerationController } from '@api/collections/content-runs/controllers/brand-remix-generation.controller';
 import { ContentRunsController } from '@api/collections/content-runs/controllers/content-runs.controller';
+import { StoryboardAssetBibleController } from '@api/collections/content-runs/controllers/storyboard-asset-bible.controller';
 import { StoryboardRunsController } from '@api/collections/content-runs/controllers/storyboard-runs.controller';
 import { StoryboardShotRendersController } from '@api/collections/content-runs/controllers/storyboard-shot-renders.controller';
 import { BrandRemixGenerationService } from '@api/collections/content-runs/services/brand-remix-generation.service';
@@ -36,6 +37,7 @@ import { PausedMetaCampaignDraftService } from '@api/collections/content-runs/se
 import { PausedXAdsCampaignDraftService } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
 import { StoryboardARollService } from '@api/collections/content-runs/services/storyboard-a-roll.service';
 import { StoryboardAnimaticVoiceService } from '@api/collections/content-runs/services/storyboard-animatic-voice.service';
+import { StoryboardAssetBibleService } from '@api/collections/content-runs/services/storyboard-asset-bible.service';
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
 import { StoryboardLongFormAssemblyService } from '@api/collections/content-runs/services/storyboard-long-form-assembly.service';
 import { StoryboardLongFormEstimateService } from '@api/collections/content-runs/services/storyboard-long-form-estimate.service';
@@ -44,10 +46,12 @@ import { StoryboardPlanDraftService } from '@api/collections/content-runs/servic
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
+import { StoryboardShotQaService } from '@api/collections/content-runs/services/storyboard-shot-qa.service';
 import { StoryboardShotRendersService } from '@api/collections/content-runs/services/storyboard-shot-renders.service';
 import { StoryboardSlideshowPostService } from '@api/collections/content-runs/services/storyboard-slideshow-post.service';
 import { StoryboardSourceService } from '@api/collections/content-runs/services/storyboard-source.service';
 import { StoryboardStillsService } from '@api/collections/content-runs/services/storyboard-stills.service';
+import { StoryboardVideoAssemblyService } from '@api/collections/content-runs/services/storyboard-video-assembly.service';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { EditorProjectsModule } from '@api/collections/editor-projects/editor-projects.module';
 import { ImagesModule } from '@api/collections/images/images.module';
@@ -60,6 +64,7 @@ import { TrendsModule } from '@api/collections/trends/trends.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { VoicesModule } from '@api/collections/voices/voices.module';
+import { VideoQaContinuityResolverService } from '@api/collections/workflows/services/video-qa-continuity-resolver.service';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -70,12 +75,14 @@ import { FilesClientModule } from '@api/services/files-microservice/client/files
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
+import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { XAdsModule } from '@api/services/integrations/x-ads/x-ads.module';
 import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { RouterModule } from '@api/services/router/router.module';
 import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
+import { VideoRecipesModule } from '@api/services/video-recipes/video-recipes.module';
 import { VideoStitchModule } from '@api/services/video-stitch/video-stitch.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { Module } from '@nestjs/common';
@@ -84,6 +91,7 @@ import { Module } from '@nestjs/common';
   controllers: [
     StoryboardRunsController,
     StoryboardShotRendersController,
+    StoryboardAssetBibleController,
     BrandRemixGenerationController,
     ContentRunsController,
   ],
@@ -91,8 +99,11 @@ import { Module } from '@nestjs/common';
     StoryboardRunsService,
     StoryboardStillsService,
     StoryboardShotRendersService,
+    StoryboardAssetBibleService,
+    StoryboardShotQaService,
     StoryboardARollService,
     StoryboardLongFormAssemblyService,
+    StoryboardVideoAssemblyService,
     StoryboardLongFormEstimateService,
     StoryboardLongFormTranslationService,
     StoryboardSlideshowPostService,
@@ -107,6 +118,7 @@ import { Module } from '@nestjs/common';
     PostsCoreModule,
     FileQueueModule,
     MediaUrlsModule,
+    LlmDispatcherModule,
     RouterModule,
     OpenRouterModule,
     WhisperModule,
@@ -129,6 +141,7 @@ import { Module } from '@nestjs/common';
     TrendsModule,
     VideoGenerationModule,
     VideosModule,
+    VideoRecipesModule,
     VoicesModule,
     EditorProjectsModule,
     WorkflowsCoreModule,
@@ -143,9 +156,13 @@ import { Module } from '@nestjs/common';
     StoryboardSourceService,
     StoryboardStillsService,
     StoryboardShotRendersService,
+    StoryboardAssetBibleService,
+    StoryboardShotQaService,
+    VideoQaContinuityResolverService,
     StoryboardARollService,
     StoryboardAnimaticVoiceService,
     StoryboardLongFormAssemblyService,
+    StoryboardVideoAssemblyService,
     StoryboardLongFormEstimateService,
     StoryboardLongFormTranslationService,
     StoryboardSlideshowPostService,

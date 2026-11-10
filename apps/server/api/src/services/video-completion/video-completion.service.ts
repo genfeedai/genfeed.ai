@@ -1,6 +1,10 @@
 import { RawCutClipCompletionService } from '@api/collections/clipper-projects/services/raw-cut-clip-completion.service';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import {
+  settleIngredientGeneration,
+  settleSharedIngredientGeneration,
+} from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -97,15 +101,21 @@ export class VideoCompletionService {
       }
 
       if (status === Status.COMPLETED) {
-        const ingredientUpdate: Record<string, unknown> = {
-          status: IngredientStatus.GENERATED,
-        };
-
-        if (result?.s3Key) {
-          ingredientUpdate.s3Key = result.s3Key;
+        const isSettled = await settleSharedIngredientGeneration(
+          this.ingredientsService,
+          {
+            data: result?.s3Key ? { s3Key: result.s3Key } : {},
+            id: ingredientId,
+            organizationId,
+            to: IngredientStatus.GENERATED,
+          },
+        );
+        if (!isSettled) {
+          this.logger.warn(
+            `Ignored completion for ingredient ${ingredientId}: the generation was stopped`,
+          );
+          return;
         }
-
-        await this.ingredientsService.patch(ingredientId, ingredientUpdate);
 
         this.logger.log(
           `Updated ingredient ${ingredientId} status to COMPLETED`,
@@ -135,10 +145,16 @@ export class VideoCompletionService {
           },
         });
       } else if (status === Status.FAILED) {
-        // Update ingredient status to failed
-        await this.ingredientsService.patch(ingredientId, {
-          status: IngredientStatus.FAILED,
-        });
+        const isSettled = await settleIngredientGeneration(
+          this.ingredientsService,
+          { id: ingredientId, organizationId, to: IngredientStatus.FAILED },
+        );
+        if (!isSettled) {
+          this.logger.warn(
+            `Ignored failure for ingredient ${ingredientId}: the generation already settled`,
+          );
+          return;
+        }
 
         this.logger.error(
           `Updated ingredient ${ingredientId} status to FAILED: ${error}`,

@@ -25,6 +25,7 @@ import {
   formatConfidence,
   formatSelectedAssetCount,
   getFieldEvidenceKind,
+  isStructuredReviewField,
   showsScoredKind,
   toAssetValues,
 } from './brand-kit-review.helpers';
@@ -187,7 +188,9 @@ export default function BrandKitReviewFields({
                               isAssetField={isAssetField}
                               isColorField={COLOR_FIELD_KEYS.has(key)}
                               isEditable={
-                                isSelectable && selectedFields.has(key)
+                                isSelectable &&
+                                selectedFields.has(key) &&
+                                !isStructuredReviewField(key)
                               }
                               isSocialField={isSocialField}
                               label={field.label}

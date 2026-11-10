@@ -1,3 +1,4 @@
+import { mergeAssetBibleEdit } from '@api/collections/content-runs/services/storyboard-asset-bible-state';
 import {
   type StoryboardStoredRunConfig,
   storyboardStoredRunConfigSchema,
@@ -110,6 +111,10 @@ export function editStoryboardPlan(
   const previous = new Map(config.plan.shots.map((shot) => [shot.id, shot]));
   const plan = storyboardPlanSchema.parse({
     ...submitted,
+    assetBible: mergeAssetBibleEdit(
+      config.plan.assetBible,
+      submitted.assetBible,
+    ),
     shots: submitted.shots.map((shot) => {
       const old = previous.get(shot.id);
       const conditioning = (value: StoryboardPlan, id: string) => {

@@ -12,6 +12,11 @@ export const APP_ROUTES = {
   MANAGED_CREDITS_SUCCESS: '/managed-credits/success',
   OAUTH: '/oauth',
   SIGN_UP: '/sign-up',
+  /**
+   * Support a creator (`/support/<handle>`): subscribe or tip; resolves to the
+   * reader's organization.
+   */
+  SUPPORT: '/support',
   ADMIN: {
     ROOT: '/admin',
     BRANDS: '/admin/brands',
@@ -92,6 +97,8 @@ export const APP_ROUTES = {
     BREAKOUTS: '/analytics/breakouts',
     HOOKS: '/analytics/hooks',
     INSIGHTS: '/analytics/insights',
+    /** A brand's newsletter results: sends, opens, clicks and growth (#9727). */
+    NEWSLETTER: '/analytics/newsletter',
     /**
      * Canonical analytics home. Bare ROOT permanently redirects here so Overview
      * is a complete path (same pattern as workspace/overview).
@@ -276,6 +283,10 @@ export const APP_ROUTES = {
      *   can share this path once kind resolution is wired)
      */
     POSTS: '/publishing/posts',
+    /** A brand's newsletter audience: add, import and export (#9724). */
+    NEWSLETTER: '/publishing/newsletter',
+    /** A brand's newsletter sending settings (#9723). */
+    NEWSLETTER_SETTINGS: '/publishing/newsletter/settings',
     /**
      * Remix is a contextual **action** (Discovery/Library button), not a module
      * page. This path is the deep-link target for that action only — never a
@@ -296,6 +307,8 @@ export const APP_ROUTES = {
     API_KEYS: '/settings/api-keys',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',
+    /** What creators earned from readers, and what the organization paid. */
+    EARNINGS: '/settings/earnings',
     /** Provider BYOK keys (OpenAI, Replicate, …) — not Genfeed product API keys. */
     INTEGRATIONS: '/settings/integrations',
     /**
@@ -507,6 +520,7 @@ export const RESERVED_APP_ROOT_SEGMENTS: ReadonlySet<string> = new Set(
     APP_ROUTES.LOGIN.replace(/^\//, ''),
     APP_ROUTES.LOGOUT.replace(/^\//, ''),
     APP_ROUTES.SIGN_UP.replace(/^\//, ''),
+    APP_ROUTES.SUPPORT.replace(/^\//, ''),
     APP_ROUTES.OAUTH.replace(/^\//, ''),
     'agent-auth',
     'api',

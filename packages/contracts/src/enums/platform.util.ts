@@ -25,6 +25,7 @@ export const PLATFORM_DISPLAY_LABELS: Readonly<
 > = {
   [Platform.BEEHIIV]: 'Beehiiv',
   [Platform.DEV_TO]: 'Dev.to',
+  [Platform.GENFEED]: 'Genfeed profile',
   [Platform.GOOGLE_ADS]: 'Google Ads',
   [Platform.GOOGLE_SEARCH_CONSOLE]: 'Google Search Console',
   [Platform.HACKER_NEWS]: 'Hacker News',
@@ -46,6 +47,7 @@ const PLATFORM_COMPACT_LABELS: Readonly<Record<Platform, string>> = {
   [Platform.DISCORD]: 'DC',
   [Platform.FACEBOOK]: 'FB',
   [Platform.FANVUE]: 'FV',
+  [Platform.GENFEED]: 'GF',
   [Platform.GHOST]: 'GH',
   [Platform.GOOGLE_ADS]: 'GA',
   [Platform.GOOGLE_SEARCH_CONSOLE]: 'GSC',

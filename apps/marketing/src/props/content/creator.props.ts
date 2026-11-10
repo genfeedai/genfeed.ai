@@ -1,7 +1,14 @@
-import type { CreatorProfileTab } from '@genfeedai/contracts/constants';
+import type { PublicViewTarget } from '@data/public-views';
+import type {
+  BrandSubscriberPublicSource,
+  CreatorProfileTab,
+  PublicMediaSort,
+} from '@genfeedai/contracts/constants';
+import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
 import type { Article } from '@models/content/article.model';
 import type { Post } from '@models/content/post.model';
 import type { Brand } from '@models/organization/brand.model';
+import type { CreatorPostMediaItem } from '@web-components/creator/post-media';
 import type { ReactNode } from 'react';
 
 export interface CopyLinkButtonProps {
@@ -42,6 +49,12 @@ export interface CreatorRailProps {
   handle: string;
   profileUrl: string;
   referralCode: string | null;
+}
+
+export interface ViewCountProps {
+  /** The brand id for a profile, the article id for an article. */
+  id: string;
+  target: PublicViewTarget;
 }
 
 export interface CreatorTabsProps {
@@ -86,6 +99,12 @@ export interface CreatorPostCardProps {
   post: Post;
 }
 
+export interface CreatorPostMediaProps {
+  /** Alternative text for every item: the post's title. */
+  alt: string;
+  media: CreatorPostMediaItem[];
+}
+
 export interface CreatorPostGridProps {
   handle: string;
   posts: Post[];
@@ -93,8 +112,78 @@ export interface CreatorPostGridProps {
 
 export interface ProfileSubscribeProps {
   brandId: string;
+  brandLabel?: string;
+  source: Extract<BrandSubscriberPublicSource, 'profile' | 'article' | 'post'>;
+  sourceRef?: string;
 }
 
 export interface CommunityCreatorCardProps {
   brand: Brand;
+}
+
+export interface MakeYourOwnBannerProps {
+  /** The creator whose page the reader is on, for tracking. */
+  handle: string;
+  /** The creator's referral code, carried into sign-up. */
+  referralCode?: string | null;
+}
+
+export interface SupportCreatorButtonProps {
+  /** The article the reader is on, when sent from an article page. */
+  articleId?: string;
+  /** Layout only (width, alignment); the button owns its look. */
+  className?: string;
+  handle: string;
+}
+
+/** A section of the community gallery, one per sub-nav link. */
+export type CommunitySection =
+  | 'articles'
+  | 'creators'
+  | 'discover'
+  | 'images'
+  | 'posts'
+  | 'videos';
+
+export interface CommunityNavProps {
+  active: CommunitySection;
+}
+
+export interface CommunitySectionLayoutProps {
+  active: CommunitySection;
+  /** Controls for the listing, such as its order, beside the heading. */
+  actions?: ReactNode;
+  children: ReactNode;
+  description: string;
+  title: string;
+}
+
+export interface CommunitySortMenuProps {
+  active: PublicMediaSort;
+  /** The gallery page the order applies to, e.g. `/community/videos`. */
+  basePath: string;
+}
+
+/** The query of a community gallery page. */
+export interface CommunityGalleryRouteProps {
+  searchParams: Promise<{ sort?: string | string[] }>;
+}
+
+/** The image or video an operator featured at the top of /community. */
+export interface CommunityFeaturedMedia {
+  /** The creator's handle; featured media shows only from public profiles. */
+  handle: string;
+  kind: 'image' | 'video';
+  media: IImage | IVideo;
+}
+
+export interface CommunityFeaturedHeroProps {
+  featured: CommunityFeaturedMedia;
+  /** Catalog labels of the models, by model key. */
+  modelCredits?: Record<string, string>;
+}
+
+export interface ClaimHandleBandProps {
+  /** Heading id, so the page can link to the band. */
+  id?: string;
 }

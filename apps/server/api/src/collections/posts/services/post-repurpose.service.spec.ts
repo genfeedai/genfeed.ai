@@ -170,7 +170,7 @@ describe('PostRepurposeService', () => {
       });
       prisma.post.count.mockResolvedValue(3);
 
-      await service.repurpose({
+      const result = await service.repurpose({
         mode: PostRepurposeMode.DETERMINISTIC,
         organizationId,
         platform: Platform.TWITTER,
@@ -178,6 +178,7 @@ describe('PostRepurposeService', () => {
         userId,
       });
 
+      expect(result.draft).toMatchObject({ groupId, order: 3 });
       expect(postsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           groupId,
@@ -229,7 +230,7 @@ describe('PostRepurposeService', () => {
         ],
       });
 
-      await service.repurpose({
+      const result = await service.repurpose({
         mode: PostRepurposeMode.DETERMINISTIC,
         organizationId,
         platform: Platform.TWITTER,
@@ -237,6 +238,7 @@ describe('PostRepurposeService', () => {
         userId,
       });
 
+      expect(result.draft).toMatchObject({ ingredients: ['ingredient_1'] });
       expect(postsService.create).toHaveBeenCalledWith(
         expect.objectContaining({ ingredients: ['ingredient_1'] }),
       );
@@ -315,13 +317,14 @@ describe('PostRepurposeService', () => {
       prisma.ingredient.findFirst.mockResolvedValue({
         cdnUrl: 'https://cdn.example.com/original',
       });
-      await service.repurpose({
+      const result = await service.repurpose({
         mode: PostRepurposeMode.AGENT,
         organizationId,
         platform: Platform.TWITTER,
         postId,
         userId,
       });
+      expect(result).toMatchObject({ draft: { id: 'draft_agent_1' } });
       expect(turboRunService.createManualReviewTurboRun).toHaveBeenCalledWith(
         expect.objectContaining({
           items: [

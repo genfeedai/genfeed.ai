@@ -69,7 +69,7 @@ const FLEET_CONTROL_REFERENCE_FILES = [
   'playwright/e2e/fixtures/api-mocks.fixture.ts',
   'playwright/e2e/fixtures/test-data.fixture.ts',
   'playwright/e2e/pages/admin.page.ts',
-  'playwright/e2e/tests/smoke/all-app-pages.spec.ts',
+  'playwright/e2e/utils/app-page-sweep.ts',
 ] as const;
 
 function readSource(relativePath: string): string {

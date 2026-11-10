@@ -2,10 +2,13 @@ import { GENERATE_CONTENT_TEXT_CREDITS } from '@genfeedai/contracts/constants/to
 import { describe, expect, it } from 'vitest';
 import {
   CURATED_ACTION_CATALOG,
+  type CuratedActionCatalogEntry,
+  getMcpCardKind,
   isActionOnSurface,
   isPublishingApprovalRequired,
 } from './curated-action-catalog';
 import { isMcpListedToolName } from './mcp-catalog-calls';
+import { isReadOnlyToolName } from './mutation-policy';
 import { SOURCE_TOOLS } from './source/index';
 import { ALL_TOOLS, getToolByName, getToolsForSurface } from './tool-registry';
 import { CORE_TOOLSET_NAME, isToolsetName } from './toolsets';
@@ -23,10 +26,10 @@ describe('curated action catalog', () => {
     },
   );
   it('retains internal targets while listing only the two consolidated MCP envelopes', () => {
-    expect(ALL_TOOLS).toHaveLength(241);
-    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(167);
+    expect(ALL_TOOLS).toHaveLength(245);
+    expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(171);
     const listed = getToolsForSurface('mcp').map((tool) => tool.name);
-    expect(listed).toHaveLength(163);
+    expect(listed).toHaveLength(167);
     expect(listed).toContain('check_channel');
     expect(listed).toContain('upload_media');
     for (const name of [
@@ -491,4 +494,102 @@ it('exposes explicit account recovery as a strict free agent-only direct action'
     (candidate) => candidate.name === 'link_external_publication_credential',
   );
   expect(entry && isPublishingApprovalRequired(entry)).toBe(false);
+});
+
+describe('curated action catalog policy fields', () => {
+  const surfaceNames = (entry: CuratedActionCatalogEntry): string[] => [
+    ...entry.surfaces,
+  ];
+
+  it('declares a mutation policy for every write tool and none for a read', () => {
+    const missing = CURATED_ACTION_CATALOG.filter(
+      (entry) =>
+        !isReadOnlyToolName(entry.name) && !('mutationPolicy' in entry),
+    ).map((entry) => entry.name);
+    const onReads = CURATED_ACTION_CATALOG.filter(
+      (entry) => isReadOnlyToolName(entry.name) && 'mutationPolicy' in entry,
+    ).map((entry) => entry.name);
+
+    expect(missing).toEqual([]);
+    expect(onReads).toEqual([]);
+  });
+
+  it('classifies only write tools into a confirmation class or MCP approval scope', () => {
+    const misplaced = CURATED_ACTION_CATALOG.filter(
+      (entry: CuratedActionCatalogEntry) =>
+        (entry.actionClass !== undefined ||
+          entry.mcpApproval !== undefined ||
+          entry.isMcpApprovalNeverSkipped === true) &&
+        !('mutationPolicy' in entry),
+    ).map((entry) => entry.name);
+
+    expect(misplaced).toEqual([]);
+  });
+
+  it('grants a Claude MCP tool only when it is listed on the MCP surface', () => {
+    const unreachable = CURATED_ACTION_CATALOG.filter(
+      (entry: CuratedActionCatalogEntry) =>
+        (entry.claudeAccess === 'mcp' || entry.claudeAccess === 'both') &&
+        !surfaceNames(entry).includes('mcp'),
+    ).map((entry) => entry.name);
+
+    expect(unreachable).toEqual([]);
+  });
+
+  it('puts MCP-only policy on tools that are on the MCP surface', () => {
+    const unreachable = CURATED_ACTION_CATALOG.filter(
+      (entry: CuratedActionCatalogEntry) =>
+        (entry.mcpBrandRequired === true || entry.mcpApproval !== undefined) &&
+        !surfaceNames(entry).includes('mcp'),
+    ).map((entry) => entry.name);
+
+    expect(unreachable).toEqual([]);
+  });
+
+  it('names an existing tool as the quote tool and a card only for MCP tools', () => {
+    const names = new Set<string>(
+      CURATED_ACTION_CATALOG.map((entry) => entry.name),
+    );
+    const unknownQuote = CURATED_ACTION_CATALOG.filter(
+      (entry: CuratedActionCatalogEntry) =>
+        entry.quoteTool !== undefined && !names.has(entry.quoteTool),
+    ).map((entry) => entry.name);
+    const cardOffMcp = CURATED_ACTION_CATALOG.filter(
+      (entry: CuratedActionCatalogEntry) =>
+        entry.mcpCardKind !== undefined && !surfaceNames(entry).includes('mcp'),
+    ).map((entry) => entry.name);
+
+    expect(unknownQuote).toEqual([]);
+    expect(cardOffMcp).toEqual([]);
+  });
+
+  it('reads quote pricing and card kind from the catalog entry', () => {
+    expect(getToolByName('start_remix_generation')?.creditPricing).toEqual({
+      mode: 'quote',
+      quoteTool: 'quote_remix_generation',
+    });
+    expect(getMcpCardKind('get_posts')).toBe('post');
+    expect(getMcpCardKind('create_scheduled_release')).toBe('summary');
+    expect(getMcpCardKind('get_trends')).toBeUndefined();
+  });
+
+  it('derives the published tool fields from the one catalog entry', () => {
+    expect(getToolByName('create_scheduled_release')).toMatchObject({
+      annotations: {
+        destructiveHint: true,
+        openWorldHint: true,
+        readOnlyHint: false,
+      },
+      mutationPolicy: 'approval-required',
+      surfaces: { agent: false, mcp: true },
+      toolset: 'scheduler',
+    });
+    expect(getToolByName('get_account')).toMatchObject({
+      uiActionType: 'credits_balance_card',
+    });
+    expect(getToolByName('fetch_x_posts')).toMatchObject({
+      dataSource: 'provider-paid',
+      mutationPolicy: 'direct',
+    });
+  });
 });

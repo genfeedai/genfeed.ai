@@ -3,7 +3,10 @@ import {
   buildMagicLinkCallbackURL,
   resolveAuthContinuation,
 } from '@genfeedai/auth-client/callback';
-import { parseReferralCode } from '@genfeedai/contracts/constants';
+import {
+  parseClaimHandle,
+  parseReferralCode,
+} from '@genfeedai/contracts/constants';
 import type { ISignupAttribution } from '@genfeedai/contracts/interfaces';
 import {
   hasSignupAttribution,
@@ -113,6 +116,7 @@ function buildPostSignupCallbackURL(
     searchParams.get('clipToolToken'),
   );
   const referralCode = parseReferralCode(searchParams.get('ref'));
+  const claimHandle = parseClaimHandle(searchParams.get('handle'));
   const accountType = parseOnboardingAccountType(
     searchParams.get('accountType'),
   );
@@ -147,6 +151,10 @@ function buildPostSignupCallbackURL(
 
   if (referralCode) {
     params.set('ref', referralCode);
+  }
+
+  if (claimHandle) {
+    params.set('handle', claimHandle);
   }
 
   // The first-touch source rides on the callback so a magic link opened on

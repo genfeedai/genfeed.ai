@@ -20,6 +20,7 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useCallback, useEffect, useState } from 'react';
 import type { RichTextEditorProps } from '@/props/components/rich-text-editor.props';
+import { GenfeedGeneration } from './extensions/genfeed-generation.extension';
 import RichTextEditorToolbar from './RichTextEditorToolbar';
 
 export default function RichTextEditor({
@@ -32,6 +33,7 @@ export default function RichTextEditor({
   toolbarMode = 'full',
   minHeight = { desktop: 400, mobile: 200 },
   aiConfig,
+  isGenerationInsertEnabled = false,
 }: RichTextEditorProps) {
   const [activeAiAction, setActiveAiAction] = useState<string | null>(null);
 
@@ -79,6 +81,9 @@ export default function RichTextEditor({
       Placeholder.configure({
         placeholder,
       }),
+      // Always registered, so a body that holds generation blocks keeps them
+      // in any editor that opens it.
+      GenfeedGeneration,
     ],
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
@@ -159,6 +164,7 @@ export default function RichTextEditor({
           activeAiAction={activeAiAction}
           handleAiAction={handleAiAction}
           aiConfig={aiConfig}
+          isGenerationInsertEnabled={isGenerationInsertEnabled}
           value={value}
         />
       )}

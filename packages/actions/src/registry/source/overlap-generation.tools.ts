@@ -1,14 +1,17 @@
 import { ENHANCE_PROMPT_CREDIT_COST } from '@genfeedai/contracts/constants/tool-credit.constant';
 import { TURBO_RUN_CAPTION_BASE_CREDITS } from '@genfeedai/contracts/constants/turbo-run-pricing.constant';
 import type { SourceTool } from '../../interfaces/source-tool.interface';
+import { MEDIA_TRANSFORM_OPERATIONS } from '../media-transform';
 
 /**
  * Turbo run definition split out of `overlap.tools.ts` to keep that
  * module under the per-file line budget (`source-tools.test.ts`). Its Agent/MCP
- * availability is declared only in `curated-action-catalog.ts`.
+ * availability is declared only in `curated-actions.catalog.ts`.
  */
 export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
   {
+    mcpDescription:
+      'Preview Studio/Agent media enhancement with effective organization/brand settings and pack metadata. Costs 1 credit; no media generation. Reuse the returned prompt with harness:false to preserve it. Model compilation may add format instructions; show the final submitted prompt from the generation receipt.',
     name: 'enhance_prompt',
     description:
       'Preview a media prompt using the same Enhance implementation as Studio and Agent, with effective organization/brand settings and contributing pack metadata. Costs 1 credit; does not generate media. To generate the reviewed prompt unchanged, pass the returned prompt with harness:false. Model compilation during normal generation may add format-specific instructions; the generation receipt records the final submitted prompt.',
@@ -40,6 +43,8 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
     },
   },
   {
+    mcpDescription:
+      "Free/read-only callable model catalog and effective image/video enhancement settings. Use image/video/music model keys as generate.model, image-edit keys as transform_media.model; voice uses voiceId. With type, return Studio credit estimate and organization balance; never charges, reprices or authorizes generation. Omitted/Auto modelKey leaves image/image-edit/video estimates auto; music quotes registry default. Voice/unsupported/missing/unpriced estimates: unavailable, credits null. Unreadable wallet: balance null; 0 means empty. MCP brandId selects settings scope; threaded Agent brandId must match its validated thread brand. With type voice, voices lists the organization's saved personal voices (id, name, provider, previewUrl, isBrandDefault) and hasConnectedAccount says whether a personal ElevenLabs account is connected; browse that account with get_assets type voice source account.",
     name: 'get_generation_options',
     description:
       "Read what generation can do right now, for free and without paid confirmation. models is always returned: this account's callable catalog. Pass an image, video or music models key as generate.model, and an image-edit key as transform_media.model. Voice rows are not generate.model; voice generation uses voiceId. settings is the effective image/video prompt enhancement with organization or brand overrides, always returned. cost is the Studio credit estimate and organization balance, only when type is given. Returns the same catalog estimate the Generate composer shows and the same Genfeed balance as the credits bar. Does not charge credits, change a price, or authorize a generation. Omit modelKey, or pass Auto, for image, image-edit and video estimate status auto. Music Auto quotes the registry music default. Voice, unsupported, missing or unpriced models return estimate status unavailable with credits null. balance is null when the wallet cannot be read; a numeric 0 is a real empty balance. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope for settings. With type voice, voices lists the organization's saved personal voices (id, name, provider, previewUrl, isBrandDefault) and hasConnectedAccount says whether a personal ElevenLabs account is connected; browse that account with get_assets type voice source account.",
@@ -77,9 +82,11 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
     },
   },
   {
+    mcpDescription:
+      "Transform existing media; fields for other operations reject. edit: exact instruction on primary Library imageId; original unchanged. Never enhance/rewrite instructions. Ordered references: Ideogram max 4, FLUX.3 max 9. FLUX.3: one output, resolution/aspectRatio, no mask/seed. Mask must match primary dimensions; black changes, white stays. Uses image-editing default, never generation model. reframe: re-crop ratio. upscale: increase resolution from URL. merge: join 2+ videos with transitions/captions/resize/mute/music; isBeatSyncEnabled trims clips so cuts land on music beats; brand end card appended automatically when on; zoomEaseCurve/zoomConfigs slideshow zoom rejects before starting. edit/reframe/upscale spend via shared generation settlement; local merge is free. digital_twin: train a twin (avatar plus cloned voice) from videoId, the caller's own 15 s-10 min Library recording of themselves, in the organization's own HeyGen account; no Genfeed credits. Result has consentUrl: the person on camera records consent there. Not ready until get_assets type digital_twin reports READY; same videoId returns the same twin. digital_twin_consent: fresh 24-hour consent link for twinId after expiry or rejection.",
     name: 'transform_media',
     description:
-      'Change existing media or join clips. operation edit: apply an exact instruction to a Library image (the original stays unchanged; imageId is the primary source, references adds up to four ordered images for Ideogram or nine for FLUX.3; FLUX.3 supports one output, resolution and aspectRatio, with no mask or seed; optional maskId must match the primary dimensions, black changes and white stays; uses the image-editing category default, never the generation model; do not enhance or rewrite the instruction). operation reframe: re-crop an image to a new aspect ratio. operation upscale: upscale an image to higher resolution from its URL. operation merge: join two or more existing videos into one clip with transitions, captions, resizing, mute and background music (with music, isBeatSyncEnabled trims each clip so every cut lands on a beat; the brand end card, when the brand has one switched on, is appended automatically); slideshow zoom (zoomEaseCurve and zoomConfigs) is not supported and is rejected before any merge starts. Each field lists the operations it applies to; a field for another operation is rejected. Edit, reframe and upscale spend credits through the shared generation settlement; merge runs locally and is free.',
+      "Change existing media or join clips. operation edit: apply an exact instruction to a Library image (the original stays unchanged; imageId is the primary source, references adds up to four ordered images for Ideogram or nine for FLUX.3; FLUX.3 supports one output, resolution and aspectRatio, with no mask or seed; optional maskId must match the primary dimensions, black changes and white stays; uses the image-editing category default, never the generation model; do not enhance or rewrite the instruction). operation reframe: re-crop an image to a new aspect ratio. operation upscale: upscale an image to higher resolution from its URL. operation merge: join two or more existing videos into one clip with transitions, captions, resizing, mute and background music (with music, isBeatSyncEnabled trims each clip so every cut lands on a beat; the brand end card, when the brand has one switched on, is appended automatically); slideshow zoom (zoomEaseCurve and zoomConfigs) is not supported and is rejected before any merge starts. Each field lists the operations it applies to; a field for another operation is rejected. Edit, reframe and upscale spend credits through the shared generation settlement; merge runs locally and is free. operation digital_twin: start training a digital twin (avatar plus cloned voice) from videoId, the caller's own private Library recording of themselves (an uploaded or recorded Library video; 15 s to 10 min, one person facing the camera, clear speech). The twin is made in the organization's own connected HeyGen account, never a platform account; it costs no Genfeed credits, and HeyGen bills its own account. The result includes a consentUrl: the person on camera must open it and record a consent statement on HeyGen's page before the twin can be used. Give them the link, and say plainly that the twin is not ready until HeyGen reports status READY; check with get_assets type digital_twin. Starting again from the same videoId returns the same twin. operation digital_twin_consent: a fresh consent link for twinId, when the last one expired (links last 24 hours) or HeyGen declined the consent.",
     creditCost: 0,
     requiredRole: 'user',
     parameters: {
@@ -89,7 +96,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
       properties: {
         operation: {
           type: 'string',
-          enum: ['edit', 'reframe', 'upscale', 'merge'],
+          enum: [...MEDIA_TRANSFORM_OPERATIONS],
           description: 'Which transform to run.',
         },
         brandId: {
@@ -232,13 +239,37 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
           maximum: 2,
           description: 'merge. Transition length in seconds (0.1-2).',
         },
+        videoId: {
+          type: 'string',
+          description:
+            "digital_twin. Library video id of the caller's own recording of themselves (from get_assets type video). Required for digital_twin.",
+        },
+        name: {
+          type: 'string',
+          minLength: 1,
+          maxLength: 64,
+          description:
+            'digital_twin. Name for the twin, for example the person\'s name. Defaults to "My digital twin".',
+        },
+        isRecordingKept: {
+          type: 'boolean',
+          description:
+            'digital_twin. Keep the recording in the Library once HeyGen has it. Off by default: footage of a face and voice is deleted when no longer needed.',
+        },
+        twinId: {
+          type: 'string',
+          description:
+            'digital_twin_consent. Twin id from transform_media digital_twin or get_assets type digital_twin. Required for digital_twin_consent.',
+        },
       },
     },
   },
   {
+    mcpDescription:
+      'Set organization/brand prompt enhancement; null restores inheritance. MCP brandId selects brand scope; threaded Agent brandId must match validated thread brand. Pricing unchanged. Also sets the brand default voice: defaultVoice (brand scope) takes voiceId for a saved voice, or externalVoiceId to first save a voice from the connected ElevenLabs account as an organization-owned reference; it never uses a platform account. defaultAvatar (brand scope) makes a READY digital twin from get_assets type digital_twin the brand default avatar and, unless isTwinVoiceUsed is false, its HeyGen voice the brand default voice; generate type avatar then renders with it. A twin that is not READY is refused.',
     name: 'set_generation_settings',
     description:
-      'Set organization or brand prompt enhancement. Use null to restore inheritance. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope. Generation pricing is unchanged. Also sets the brand default voice: defaultVoice (brand scope) takes voiceId for a saved voice, or externalVoiceId to first save a voice from the connected ElevenLabs account as an organization-owned reference; it never uses a platform account.',
+      'Set organization or brand prompt enhancement. Use null to restore inheritance. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope. Generation pricing is unchanged. Also sets the brand default voice: defaultVoice (brand scope) takes voiceId for a saved voice, or externalVoiceId to first save a voice from the connected ElevenLabs account as an organization-owned reference; it never uses a platform account. defaultAvatar (brand scope) makes a READY digital twin from get_assets type digital_twin the brand default avatar and, unless isTwinVoiceUsed is false, its HeyGen voice the brand default voice; generate type avatar then renders with it. A twin that is not READY is refused.',
     creditCost: 0,
     requiredRole: 'user',
     parameters: {
@@ -250,7 +281,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
         isEnabled: {
           anyOf: [{ type: 'boolean' }, { type: 'null' }],
           description:
-            'Prompt enhancement. Required unless defaultVoice is given.',
+            'Prompt enhancement. Required unless defaultVoice or defaultAvatar is given.',
         },
         defaultVoice: {
           type: 'object',
@@ -270,6 +301,24 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
             },
           },
         },
+        defaultAvatar: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['twinId'],
+          description:
+            'Brand scope only. A READY digital twin becomes the brand default avatar.',
+          properties: {
+            twinId: {
+              type: 'string',
+              description: 'Twin id from get_assets type digital_twin.',
+            },
+            isTwinVoiceUsed: {
+              type: 'boolean',
+              description:
+                "Also make the twin's HeyGen voice the brand default voice. Defaults to true.",
+            },
+          },
+        },
       },
     },
   },
@@ -279,6 +328,8 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
     creditCost: TURBO_RUN_CAPTION_BASE_CREDITS,
     description:
       'Generate a Turbo run of content (images, videos, carousels) for a brand. Specify count, platforms, and date range. Use handle param to resolve @username to a credential. Requires approval: the first call returns a credit estimate and nothing is spent until the run is approved. Returns a Turbo run ID for tracking. Credits scale by item format and caption model tier — not a flat fee.',
+    mcpDescription:
+      'Generate a branded Turbo run of images/videos/carousels using count, platforms and date range. handle resolves @username to a credential. Requires approval: first call estimates credits; spends only after approval. Returns tracking run ID. Pricing scales by format and caption model tier.',
     name: 'generate_turbo_content',
     parameters: {
       properties: {

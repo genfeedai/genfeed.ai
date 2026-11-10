@@ -10,6 +10,12 @@ import type {
   StoryboardLongFormEstimate,
   StoryboardPresenterTrack,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
+import type {
+  QuoteStoryboardAssets,
+  StoryboardAssetEntry,
+  StoryboardAssetGeneration,
+  StoryboardAssetQuote,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-asset-bible.contract';
 import type { StoryboardCharacterReplacement } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
 import type {
   StoryboardCastMember,
@@ -240,6 +246,40 @@ export interface StoryboardPlanEditorProps {
   readonly longForm?: StoryboardLongFormActions;
   readonly slideshow?: StoryboardSlideshowActions;
   readonly renders?: StoryboardShotRenderActions;
+  readonly assets?: StoryboardAssetBibleActions;
+}
+
+/** One asset bible generation call, before it is priced. */
+export type StoryboardAssetBibleRequest = Omit<
+  QuoteStoryboardAssets,
+  'expectedRevision'
+>;
+
+/** The paid asset bible images (#9616), each call priced before it starts. */
+export interface StoryboardAssetBibleActions {
+  readonly quote: (
+    revision: number,
+    request: StoryboardAssetBibleRequest,
+  ) => Promise<StoryboardAssetQuote>;
+  /** Accepts a quote; the run polls until every image lands. */
+  readonly start: (
+    request: StoryboardAssetBibleRequest,
+    quote: StoryboardAssetQuote,
+  ) => Promise<StoryboardRun>;
+}
+
+export interface StoryboardAssetBibleProps {
+  readonly plan: StoryboardEditablePlan;
+  readonly generations?: readonly StoryboardAssetGeneration[];
+  /** Thumbnail URLs of the entries' images, by asset id. */
+  readonly imageUrls: Readonly<Record<string, string | undefined>>;
+  readonly isDisabled: boolean;
+  /** Generation needs the paid actions; without them entries are edit-only. */
+  readonly canGenerate: boolean;
+  readonly onChange: (assetBible: StoryboardAssetEntry[]) => void;
+  /** Picks Library images as an entry's photos or reference stills. */
+  readonly onAddSources: (entryId: string) => void;
+  readonly onGenerate: (request: StoryboardAssetBibleRequest) => void;
 }
 
 /** The paid draft and final video render of each approved shot (#9618). */
@@ -354,6 +394,7 @@ export type StoryboardDraftPageProps = Pick<
   | 'longForm'
   | 'slideshow'
   | 'renders'
+  | 'assets'
 > & {
   /** Drafts the plan from the brief, or revises it when `instruction` is set. */
   readonly draftPlan: (instruction?: string) => Promise<StoryboardRun>;
@@ -452,6 +493,9 @@ export interface StoryboardInspectorShot {
 }
 
 export interface StoryboardInspectorProps {
+  /** The asset bible tab (#9616); left out where a plan has none to build. */
+  readonly assets?: ReactNode;
+  readonly assetCount?: number;
   readonly cast: ReactNode;
   readonly castCount: number;
   readonly details: ReactNode;

@@ -91,17 +91,19 @@ describe('TurboRunController', () => {
   });
 
   describe('createTurboRun', () => {
-    it('should call service.createTurboRun', () => {
+    it('should call service.createTurboRun', async () => {
+      service.createTurboRun.mockResolvedValue({ id: 'run-new' } as never);
       const user = {
         id: 'user-123',
         organizationId: 'org',
         userId: 'usr',
       } as never;
-      controller.createTurboRun(
+      const created = await controller.createTurboRun(
         mockReq,
         { brandId: 'brand-1', count: 10 } as never,
         user,
       );
+      expect(created).toEqual({ id: 'run-new' });
       expect(service.createTurboRun).toHaveBeenCalled();
     });
   });
@@ -154,7 +156,7 @@ describe('TurboRunController', () => {
         userId: 'usr',
       } as never;
 
-      await controller.getTurboRuns(
+      const res157 = await controller.getTurboRuns(
         mockReq,
         user,
         undefined,
@@ -162,6 +164,7 @@ describe('TurboRunController', () => {
         undefined,
         'brand-1',
       );
+      expect(res157).toEqual([]);
 
       expect(service.getTurboRuns).toHaveBeenCalledWith(
         expect.any(String),
@@ -238,7 +241,7 @@ describe('TurboRunController', () => {
     it('passes the canonical user id when approving items', async () => {
       service.approveItems.mockResolvedValue({ id: 'run-1' } as never);
 
-      await controller.itemAction(
+      const res241 = await controller.itemAction(
         mockReq,
         'run-1',
         {
@@ -252,6 +255,7 @@ describe('TurboRunController', () => {
           userId: 'test-object-id',
         } as never,
       );
+      expect(res241).toEqual({ id: 'run-1' });
 
       expect(service.approveItems).toHaveBeenCalledWith(
         'run-1',
@@ -271,7 +275,7 @@ describe('TurboRunController', () => {
         userId: 'test-object-id',
       } as never;
 
-      await controller.itemAction(
+      const res274 = await controller.itemAction(
         mockReq,
         'run-1',
         {
@@ -281,6 +285,7 @@ describe('TurboRunController', () => {
         } as never,
         user,
       );
+      expect(res274).toEqual({ id: 'run-1' });
 
       expect(service.requestChanges).toHaveBeenCalledWith(
         'run-1',
@@ -294,7 +299,7 @@ describe('TurboRunController', () => {
     it('passes the canonical user id when rejecting items', async () => {
       service.rejectItems.mockResolvedValue({ id: 'run-1' } as never);
 
-      await controller.itemAction(
+      const res297 = await controller.itemAction(
         mockReq,
         'run-1',
         {
@@ -309,6 +314,7 @@ describe('TurboRunController', () => {
           userId: 'test-object-id',
         } as never,
       );
+      expect(res297).toEqual({ id: 'run-1' });
 
       expect(service.rejectItems).toHaveBeenCalledWith(
         'run-1',
@@ -360,12 +366,24 @@ describe('TurboRunController', () => {
 
     it('scopes progress, the active job, and cancellation to the organization', async () => {
       rewriteService.getActiveJob.mockResolvedValue(null);
+      rewriteService.getJob.mockResolvedValue({
+        id: 'job-1',
+        status: 'running',
+      });
+      rewriteService.cancel.mockResolvedValue({
+        id: 'job-1',
+        status: 'cancelled',
+      });
 
       await expect(
         controller.getActiveRewriteJob('run-1', user),
       ).resolves.toEqual({ job: null });
-      await controller.getRewriteJob('run-1', 'job-1', user);
-      await controller.cancelRewriteJob('run-1', 'job-1', user);
+      await expect(
+        controller.getRewriteJob('run-1', 'job-1', user),
+      ).resolves.toEqual({ id: 'job-1', status: 'running' });
+      await expect(
+        controller.cancelRewriteJob('run-1', 'job-1', user),
+      ).resolves.toEqual({ id: 'job-1', status: 'cancelled' });
 
       expect(rewriteService.getActiveJob).toHaveBeenCalledWith(
         'run-1',
@@ -388,7 +406,7 @@ describe('TurboRunController', () => {
     it('assigns with the canonical user id and organization', async () => {
       service.assignItem.mockResolvedValue({ id: 'run-1' } as never);
 
-      await controller.assignItem(
+      const res391 = await controller.assignItem(
         mockReq,
         'run-1',
         'item-1',
@@ -398,6 +416,7 @@ describe('TurboRunController', () => {
           userId: 'actor-1',
         } as never,
       );
+      expect(res391).toEqual({ id: 'run-1' });
 
       expect(service.assignItem).toHaveBeenCalledWith(
         'run-1',
@@ -412,10 +431,11 @@ describe('TurboRunController', () => {
     it('clears assignment for the tenant-scoped item', async () => {
       service.unassignItem.mockResolvedValue({ id: 'run-1' } as never);
 
-      await controller.unassignItem(mockReq, 'run-1', 'item-1', {
+      const res415 = await controller.unassignItem(mockReq, 'run-1', 'item-1', {
         organizationId: 'org-1',
         userId: 'actor-1',
       } as never);
+      expect(res415).toEqual({ id: 'run-1' });
 
       expect(service.unassignItem).toHaveBeenCalledWith(
         'run-1',

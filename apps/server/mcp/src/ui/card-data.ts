@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { McpToolOutput } from '@genfeedai/actions';
+import { getMcpCardKind, type McpToolOutput } from '@genfeedai/actions';
 import {
   SATOSHI_FONT_RESOURCE_PATH,
   staticSurfaceFontCss,
@@ -73,42 +73,6 @@ const PENDING_STATUSES = new Set([
 
 const CALENDAR_MAX_DAYS = 31;
 
-const TOOL_KINDS: Readonly<Record<string, McpCardKind>> = {
-  complete_media_upload: 'media',
-  control_scheduled_release: 'summary',
-  create_post: 'post',
-  create_scheduled_release: 'summary',
-  enhance_prompt: 'summary',
-  find_tools: 'summary',
-  generate: 'media',
-  // Social copy renders as a post; an article result switches to the article
-  // card in buildCardView via its articleId.
-  generate_content: 'post',
-  generate_turbo_content: 'summary',
-  get_account: 'summary',
-  get_articles: 'article',
-  check_channel: 'summary',
-  get_brand_publishing_readiness: 'summary',
-  get_brands: 'summary',
-  get_generation_options: 'summary',
-  get_job_status: 'media',
-  get_posts: 'post',
-  get_scheduled_release: 'summary',
-  get_assets: 'media',
-  get_orgs: 'summary',
-  get_scheduler_capabilities: 'summary',
-  manage_campaign: 'summary',
-  onboard_brand: 'summary',
-  repurpose_post: 'summary',
-  request_media_upload: 'summary',
-  set_generation_settings: 'summary',
-  switch_org: 'summary',
-  transform_media: 'media',
-  update_scheduled_release: 'summary',
-  upload_media: 'summary',
-  validate_scheduler_target: 'summary',
-};
-
 /** Short host status lines shown while a tool runs and once it returns. */
 const INVOCATION_STATUS: Readonly<
   Record<McpCardKind, { invoked: string; invoking: string }>
@@ -129,8 +93,9 @@ const INVOCATION_STATUS: Readonly<
  * fallback for hosts that render no UI.
  */
 export function withCardMetadata(tool: McpToolOutput): McpToolOutput {
-  if (!TOOL_KINDS[tool.name] && tool.name !== 'resolve_approval') return tool;
-  const status = INVOCATION_STATUS[TOOL_KINDS[tool.name] ?? 'post'];
+  const kind = getMcpCardKind(tool.name);
+  if (!kind && tool.name !== 'resolve_approval') return tool;
+  const status = INVOCATION_STATUS[kind ?? 'post'];
   return {
     ...tool,
     _meta: {
@@ -828,7 +793,7 @@ export function buildCardView(
   name: string,
   payload: unknown,
 ): McpCardView | undefined {
-  const baseKind = TOOL_KINDS[name];
+  const baseKind = getMcpCardKind(name);
   if (!baseKind) return undefined;
   const data = record(payload);
   if (name === 'get_account') return buildAccountView(data);

@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import {
   allPackageTestTasks,
-  buildPackageTestMatrix,
+  buildWorkspaceTestMatrix,
 } from './workspace-test-matrix.mjs';
 
 const WEB_APP_PATH_PATTERN = /^apps\/web(?:\/|$)/;
@@ -91,6 +91,9 @@ export function appliesMcpAuthRuntime(
 }
 
 export const FULL_SUITE_SHARDS = 4;
+// The full tier's API suite is its longest job (median ~16 min per shard on
+// four shards, #9840), so it gets twice as many shards as the app suite.
+export const FULL_SUITE_API_SHARDS = 8;
 
 export function selectShardCount(testFileCount) {
   if (!Number.isSafeInteger(testFileCount) || testFileCount < 0) {
@@ -103,8 +106,8 @@ export function selectShardCount(testFileCount) {
 }
 
 export function createShardMatrix(shardCount) {
-  if (![0, 1, 2, 4].includes(shardCount)) {
-    throw new RangeError('shardCount must be one of 0, 1, 2, or 4');
+  if (![0, 1, 2, 4, 8].includes(shardCount)) {
+    throw new RangeError('shardCount must be one of 0, 1, 2, 4, or 8');
   }
 
   return {
@@ -211,13 +214,14 @@ export function createPrTestPlan({
   const forceFull = runHeavy || classification.forceFull;
   const app = forceAllSurfaces || forceFull || classification.app;
   const api = forceAllSurfaces || forceFull || classification.api;
-  // The full tier runs each whole suite over four shards; the affected tier
-  // sizes the shards to the exact changed graph.
+  // The full tier runs the whole app suite over four shards and the whole API
+  // suite over eight; the affected tier sizes the shards to the exact changed
+  // graph and never exceeds four.
   const appShardCount = forceFull
     ? FULL_SUITE_SHARDS * Number(app)
     : selectShardCount(appTests.length);
   const apiShardCount = forceFull
-    ? FULL_SUITE_SHARDS * Number(api)
+    ? FULL_SUITE_API_SHARDS * Number(api)
     : selectShardCount(apiTests.length);
 
   const normalizedTurboTasks = Object.fromEntries(
@@ -272,23 +276,20 @@ export function createPrTestPlan({
     },
     turboTasks: normalizedTurboTasks,
     workspaceGroups,
-    // Package pools preserve the selected union; UI uses four distinct shards.
-    // Other surfaces keep their existing applicability and coverage.
+    // Packages, web and the extension share balanced legs, the server group
+    // keeps its own, and UI uses four distinct shards. The selected union is
+    // preserved; only the number of runners changes.
     workspaceMatrix: {
-      include: Object.entries(workspaceGroups)
-        .filter(([, applies]) => applies)
-        .flatMap(([group]) =>
-          group === 'packages'
-            ? buildPackageTestMatrix(normalizedTurboTasks.packages)
-            : [
-                {
-                  group,
-                  name: group,
-                  filters: TURBO_TEST_GROUPS[group].join(' '),
-                  ui_shard: '',
-                },
-              ],
-        ),
+      include: buildWorkspaceTestMatrix({
+        packageTasks: workspaceGroups.packages
+          ? normalizedTurboTasks.packages
+          : [],
+        serverFilters: workspaceGroups.server
+          ? TURBO_TEST_GROUPS.server.join(' ')
+          : '',
+        webFilters: workspaceGroups.web ? TURBO_TEST_GROUPS.web.join(' ') : '',
+        browserExtension: workspaceGroups['browser-extension'],
+      }),
     },
   };
 }

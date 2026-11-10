@@ -27,7 +27,7 @@ function step(
  */
 export const REALISTIC_VIDEO_RECIPE: VideoRecipe = videoRecipeSchema.parse({
   key: 'realistic-video',
-  version: 1,
+  version: 2,
   label: 'Realistic video',
   description:
     'Asset bible, timestamped shot list, draft then final render guided by a 3D blocking animatic, coded overlays and assembly.',
@@ -50,6 +50,12 @@ export const REALISTIC_VIDEO_RECIPE: VideoRecipe = videoRecipeSchema.parse({
       minReferences: 2,
     }),
     step({ id: 'props', label: 'Props', category: ModelCategory.IMAGE }),
+    step({
+      id: 'asset-angles',
+      label: 'More angles',
+      category: ModelCategory.IMAGE_EDIT,
+      minReferences: 1,
+    }),
     step({
       id: 'environment',
       label: 'Environment',

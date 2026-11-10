@@ -905,6 +905,24 @@ const channelCapabilities = [
     ],
     status: 'supported',
   },
+  {
+    caption: { maxLength: 10_000, required: false },
+    description:
+      'The creator profile at genfeed.ai/@handle. Built in, needs no OAuth: a published post gets its own indexable page there while the brand profile is public.',
+    helpers: [],
+    label: 'Genfeed profile',
+    media: {
+      animated: { supported: true },
+      images: { maxItems: 20, minItems: 1 },
+      kinds: ['image', 'video', 'short_video', 'carousel', 'link'],
+      maxItems: 20,
+      minItems: 0,
+    },
+    platform: CredentialPlatform.GENFEED,
+    publishModes: ['draft', 'publish_now', 'scheduled'],
+    settings: [],
+    status: 'supported',
+  },
 ] satisfies ChannelCapability[];
 
 export const CHANNEL_CAPABILITIES: readonly ChannelCapability[] =
@@ -1091,6 +1109,8 @@ const PLATFORM_VISIBILITY_CAPABILITIES: Readonly<
     PostVisibility.PRIVATE,
     PostVisibility.UNLISTED,
   ],
+  // A private post publishes but stays off the profile.
+  [CredentialPlatform.GENFEED]: [PostVisibility.PUBLIC, PostVisibility.PRIVATE],
   [CredentialPlatform.TIKTOK]: [PostVisibility.PUBLIC, PostVisibility.PRIVATE],
   [CredentialPlatform.YOUTUBE]: [
     PostVisibility.PUBLIC,

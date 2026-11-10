@@ -1,6 +1,24 @@
 [
   {
-    "actual": 1070,
+    "actual": 2376,
+    "file": "apps/desktop/src/main.ts",
+    "metric": "file-lines",
+    "symbol": "apps/desktop/src/main.ts"
+  },
+  {
+    "actual": 1685,
+    "file": "apps/extension/src/background.ts",
+    "metric": "file-lines",
+    "symbol": "apps/extension/src/background.ts"
+  },
+  {
+    "actual": 226,
+    "file": "apps/server/api/scripts/evals/prisma-golden-set-reader.ts",
+    "metric": "method-lines",
+    "symbol": "PrismaGoldenSetReader.readScope"
+  },
+  {
+    "actual": 1052,
     "file": "apps/server/api/src/collections/agent-threads/services/agent-threads.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/agent-threads/services/agent-threads.service.ts"
@@ -42,12 +60,6 @@
     "symbol": "LearningReleaseService.control"
   },
   {
-    "actual": 254,
-    "file": "apps/server/api/src/collections/content-learning/services/learning-run.service.ts",
-    "metric": "method-lines",
-    "symbol": "LearningRunService.execute"
-  },
-  {
     "actual": 154,
     "file": "apps/server/api/src/collections/listening-topics/services/listening-topic-analysis.service.ts",
     "metric": "method-lines",
@@ -66,6 +78,18 @@
     "symbol": "apps/server/api/src/collections/skills/services/skills.service.ts"
   },
   {
+    "actual": 1273,
+    "file": "apps/server/api/src/collections/workflows/services/automation-workflow-definitions.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/collections/workflows/services/automation-workflow-definitions.ts"
+  },
+  {
+    "actual": 1844,
+    "file": "apps/server/api/src/collections/workflows/templates/generation-templates.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/collections/workflows/templates/generation-templates.ts"
+  },
+  {
     "actual": 198,
     "file": "apps/server/api/src/endpoints/public/services/public-youtube-clipper.service.ts",
     "metric": "method-lines",
@@ -78,6 +102,30 @@
     "symbol": "HeygenWebhookService.handleCallback"
   },
   {
+    "actual": 20,
+    "file": "apps/server/api/src/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler.ts",
+    "metric": "constructor-dependencies",
+    "symbol": "StripeCheckoutWebhookHandler.constructor"
+  },
+  {
+    "actual": 1216,
+    "file": "apps/server/api/src/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler.ts"
+  },
+  {
+    "actual": 161,
+    "file": "apps/server/api/src/helpers/guards/api-key/api-key.guard.ts",
+    "metric": "method-lines",
+    "symbol": "ApiKeyAuthGuard.canActivate"
+  },
+  {
+    "actual": 580,
+    "file": "apps/server/api/src/helpers/guards/credits/credits.guard.ts",
+    "metric": "method-lines",
+    "symbol": "CreditsGuard.admit"
+  },
+  {
     "actual": 206,
     "file": "apps/server/api/src/publish-approvals/publish-approvals.service.ts",
     "metric": "method-lines",
@@ -88,18 +136,6 @@
     "file": "apps/server/api/src/services/agent-orchestrator/agent-completion-card-builder.service.ts",
     "metric": "method-lines",
     "symbol": "AgentCompletionCardBuilderService.buildCompletionSuggestedActions"
-  },
-  {
-    "actual": 513,
-    "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-stream-loop.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentOrchestratorStreamLoopService.runStreamLoop"
-  },
-  {
-    "actual": 328,
-    "file": "apps/server/api/src/services/agent-orchestrator/agent-turn-round-runner.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentTurnRoundRunnerService.executeToolRound"
   },
   {
     "actual": 18,
@@ -162,6 +198,18 @@
     "symbol": "apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts"
   },
   {
+    "actual": 194,
+    "file": "apps/server/api/src/services/skill-executor/handlers/image-generation.handler.ts",
+    "metric": "method-lines",
+    "symbol": "ImageGenerationHandler.execute"
+  },
+  {
+    "actual": 238,
+    "file": "apps/server/api/src/services/source-collector/providers/apify-social.provider.ts",
+    "metric": "method-lines",
+    "symbol": "ApifySocialProvider.collectTimeline"
+  },
+  {
     "actual": 172,
     "file": "apps/server/api/src/services/sync/desktop-sync.service.ts",
     "metric": "method-lines",
@@ -178,6 +226,18 @@
     "file": "apps/server/files/src/processors/video.processor.ts",
     "metric": "file-lines",
     "symbol": "apps/server/files/src/processors/video.processor.ts"
+  },
+  {
+    "actual": 1364,
+    "file": "apps/server/mcp/src/mcp/setup-page.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/mcp/src/mcp/setup-page.ts"
+  },
+  {
+    "actual": 1747,
+    "file": "apps/server/mcp/src/ui/preview-client.tsx",
+    "metric": "file-lines",
+    "symbol": "apps/server/mcp/src/ui/preview-client.tsx"
   },
   {
     "actual": 1016,
@@ -198,15 +258,177 @@
     "symbol": "CronIngredientsService.refreshMissingMetadataDimensions"
   },
   {
-    "actual": 33,
-    "file": "apps/server/workers/src/scheduling/platform-schedules.processor.ts",
-    "metric": "constructor-dependencies",
-    "symbol": "PlatformSchedulesProcessor.constructor"
-  },
-  {
     "actual": 1077,
     "file": "apps/server/workers/src/services/scheduled-post-delivery.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/workers/src/services/scheduled-post-delivery.service.ts"
+  },
+  {
+    "actual": 1377,
+    "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/useStudioClipperPage.ts",
+    "metric": "file-lines",
+    "symbol": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/useStudioClipperPage.ts"
+  },
+  {
+    "actual": 1175,
+    "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/skills/content.tsx",
+    "metric": "file-lines",
+    "symbol": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/skills/content.tsx"
+  },
+  {
+    "actual": 1065,
+    "file": "apps/web/app/(protected)/home/operational-home-sections.tsx",
+    "metric": "file-lines",
+    "symbol": "apps/web/app/(protected)/home/operational-home-sections.tsx"
+  },
+  {
+    "actual": 1535,
+    "file": "apps/web/proxy.ts",
+    "metric": "file-lines",
+    "symbol": "apps/web/proxy.ts"
+  },
+  {
+    "actual": 1212,
+    "file": "apps/web/src/components/prompt-bars/base/use-prompt-bar-state.tsx",
+    "metric": "file-lines",
+    "symbol": "apps/web/src/components/prompt-bars/base/use-prompt-bar-state.tsx"
+  },
+  {
+    "actual": 1629,
+    "file": "apps/web/src/components/workspace-shell/UniversalWorkspaceShell.tsx",
+    "metric": "file-lines",
+    "symbol": "apps/web/src/components/workspace-shell/UniversalWorkspaceShell.tsx"
+  },
+  {
+    "actual": 1007,
+    "file": "apps/web/src/features/brands/components/sidebar/BrandDetailSocialMediaCard.tsx",
+    "metric": "file-lines",
+    "symbol": "apps/web/src/features/brands/components/sidebar/BrandDetailSocialMediaCard.tsx"
+  },
+  {
+    "actual": 1012,
+    "file": "apps/web/src/features/ingredients/components/list/content/IngredientsListContent.tsx",
+    "metric": "file-lines",
+    "symbol": "apps/web/src/features/ingredients/components/list/content/IngredientsListContent.tsx"
+  },
+  {
+    "actual": 1094,
+    "file": "apps/web/src/features/research/remix/RemixBriefInspector.tsx",
+    "metric": "file-lines",
+    "symbol": "apps/web/src/features/research/remix/RemixBriefInspector.tsx"
+  },
+  {
+    "actual": 1051,
+    "file": "apps/web/src/features/studio/playground/components/StudioPlaygroundInspector.tsx",
+    "metric": "file-lines",
+    "symbol": "apps/web/src/features/studio/playground/components/StudioPlaygroundInspector.tsx"
+  },
+  {
+    "actual": 1384,
+    "file": "apps/web/src/features/studio/playground/hooks/useStudioGeneration.ts",
+    "metric": "file-lines",
+    "symbol": "apps/web/src/features/studio/playground/hooks/useStudioGeneration.ts"
+  },
+  {
+    "actual": 1219,
+    "file": "apps/web/src/features/studio/storyboard/components/StoryboardPlanEditor.tsx",
+    "metric": "file-lines",
+    "symbol": "apps/web/src/features/studio/storyboard/components/StoryboardPlanEditor.tsx"
+  },
+  {
+    "actual": 2873,
+    "file": "packages/actions/src/registry/action-registry.ts",
+    "metric": "file-lines",
+    "symbol": "packages/actions/src/registry/action-registry.ts"
+  },
+  {
+    "actual": 1546,
+    "file": "packages/actions/src/registry/contracts/workflow-node-action-contracts.ts",
+    "metric": "file-lines",
+    "symbol": "packages/actions/src/registry/contracts/workflow-node-action-contracts.ts"
+  },
+  {
+    "actual": 1188,
+    "file": "packages/agent/src/components/useAgentChatInput.ts",
+    "metric": "file-lines",
+    "symbol": "packages/agent/src/components/useAgentChatInput.ts"
+  },
+  {
+    "actual": 1259,
+    "file": "packages/agent/src/components/useGenerationActionCard.ts",
+    "metric": "file-lines",
+    "symbol": "packages/agent/src/components/useGenerationActionCard.ts"
+  },
+  {
+    "actual": 1238,
+    "file": "packages/agent/src/dashboard/dashboard-openui.ts",
+    "metric": "file-lines",
+    "symbol": "packages/agent/src/dashboard/dashboard-openui.ts"
+  },
+  {
+    "actual": 1059,
+    "file": "packages/agent/src/hooks/agent-chat-stream.entry.ts",
+    "metric": "file-lines",
+    "symbol": "packages/agent/src/hooks/agent-chat-stream.entry.ts"
+  },
+  {
+    "actual": 1361,
+    "file": "packages/agent/src/hooks/use-agent-chat-container.ts",
+    "metric": "file-lines",
+    "symbol": "packages/agent/src/hooks/use-agent-chat-container.ts"
+  },
+  {
+    "actual": 1592,
+    "file": "packages/agent/src/stores/agent-chat.store.ts",
+    "metric": "file-lines",
+    "symbol": "packages/agent/src/stores/agent-chat.store.ts"
+  },
+  {
+    "actual": 1540,
+    "file": "packages/cli/src/commands/admin/index.ts",
+    "metric": "file-lines",
+    "symbol": "packages/cli/src/commands/admin/index.ts"
+  },
+  {
+    "actual": 1234,
+    "file": "packages/contracts/src/api-types/contracts/branded-generation.contract.ts",
+    "metric": "file-lines",
+    "symbol": "packages/contracts/src/api-types/contracts/branded-generation.contract.ts"
+  },
+  {
+    "actual": 1618,
+    "file": "packages/contracts/src/api-types/contracts/channel-capabilities.contract.ts",
+    "metric": "file-lines",
+    "symbol": "packages/contracts/src/api-types/contracts/channel-capabilities.contract.ts"
+  },
+  {
+    "actual": 1275,
+    "file": "packages/contracts/src/api-types/contracts/generation-capability-profile.contract.ts",
+    "metric": "file-lines",
+    "symbol": "packages/contracts/src/api-types/contracts/generation-capability-profile.contract.ts"
+  },
+  {
+    "actual": 2490,
+    "file": "packages/contracts/src/api-types/contracts/social-warmup-blueprint.contract.ts",
+    "metric": "file-lines",
+    "symbol": "packages/contracts/src/api-types/contracts/social-warmup-blueprint.contract.ts"
+  },
+  {
+    "actual": 1380,
+    "file": "packages/contracts/src/desktop/index.ts",
+    "metric": "file-lines",
+    "symbol": "packages/contracts/src/desktop/index.ts"
+  },
+  {
+    "actual": 1028,
+    "file": "packages/helpers/src/brand-kit-contract.helper.ts",
+    "metric": "file-lines",
+    "symbol": "packages/helpers/src/brand-kit-contract.helper.ts"
+  },
+  {
+    "actual": 1227,
+    "file": "packages/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions.ts",
+    "metric": "file-lines",
+    "symbol": "packages/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions.ts"
   }
 ]

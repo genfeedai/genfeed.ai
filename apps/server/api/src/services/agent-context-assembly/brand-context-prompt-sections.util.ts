@@ -21,14 +21,34 @@ export function buildVisualIdentityPrompt(
   if (visualIdentity.backgroundColor) {
     parts.push(`- Background color: ${visualIdentity.backgroundColor}`);
   }
+  for (const color of visualIdentity.palette ?? []) {
+    parts.push(
+      `- ${color.name} color: ${color.hex}${color.usage ? ` (${color.usage})` : ''}`,
+    );
+  }
   if (visualIdentity.fontFamily) {
     parts.push(`- Font: ${visualIdentity.fontFamily}`);
+  }
+  for (const font of visualIdentity.fontRoles ?? []) {
+    parts.push(`- ${font.role} font: ${font.family}`);
   }
   if (visualIdentity.logoUrl) {
     parts.push(`- Logo reference: ${visualIdentity.logoUrl}`);
   }
   if (visualIdentity.bannerUrl) {
     parts.push(`- Banner reference: ${visualIdentity.bannerUrl}`);
+  }
+  const variants = (visualIdentity.logos ?? []).map((logo) => logo.slot);
+  if (variants.length > 1) {
+    parts.push(`- Logo variants: ${variants.join(', ')}`);
+  }
+  const platformImages = (visualIdentity.banners ?? []).flatMap((banner) =>
+    banner.width && banner.height
+      ? [`${banner.slot} ${banner.width}x${banner.height}`]
+      : [],
+  );
+  if (platformImages.length > 0) {
+    parts.push(`- Platform images: ${platformImages.join(', ')}`);
   }
 
   const referencesByCategory = new Map<string, string[]>();

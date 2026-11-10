@@ -1,4 +1,7 @@
-import { isSourcePostVariationPlatform } from '@genfeedai/contracts';
+import {
+  AgentThreadMode,
+  isSourcePostVariationPlatform,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IClipperDraftHandoff } from '@genfeedai/contracts/interfaces';
 import type {
@@ -24,6 +27,19 @@ function buildQuery(params: Record<string, string | undefined>): string {
 
 export function buildAgentPromptHref(prompt: string): string {
   return `${APP_ROUTES.AGENT.NEW}${buildQuery({ prompt })}`;
+}
+
+/**
+ * A prompt someone else wrote, such as a public creator's generation prompt.
+ * The Agent sends a prefilled prompt on arrival, so it runs in manual mode:
+ * it asks the signed-in user before spending credits, writing brand context
+ * or running a gated action.
+ */
+export function buildUntrustedAgentPromptHref(prompt: string): string {
+  return `${APP_ROUTES.AGENT.NEW}${buildQuery({
+    agentMode: AgentThreadMode.MANUAL,
+    prompt,
+  })}`;
 }
 
 /**

@@ -159,6 +159,7 @@ describe('CredentialsService', () => {
       expect(prisma.credential.count).toHaveBeenCalledWith({
         where: {
           isConnected: true,
+          platform: { not: 'GENFEED' },
           isDeleted: false,
           organizationId: orgId,
         },
@@ -175,6 +176,7 @@ describe('CredentialsService', () => {
         where: {
           brandId,
           isConnected: true,
+          platform: { not: 'GENFEED' },
           isDeleted: false,
           organizationId: orgId,
         },

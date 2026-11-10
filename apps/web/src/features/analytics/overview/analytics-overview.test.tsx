@@ -516,6 +516,9 @@ describe('AnalyticsOverview', () => {
     const markup = renderOverview();
 
     expect(markup).toContain('Warming up');
+    expect(markup).toContain(
+      'Accounts are connected, but there is not enough tracked performance yet.',
+    );
     expect(markup).toContain('role="status"');
     expect(markup).toContain('Create content');
     expect(markup).toContain('Manage connections');
@@ -528,6 +531,26 @@ describe('AnalyticsOverview', () => {
     expect(markup).not.toContain('font-serif');
     expect(markup).not.toContain('rounded-2xl border');
     expect(markup).not.toContain('bg-black/10 p-4');
+  });
+
+  it('does not claim accounts are connected when none are', () => {
+    mockAnalyticsReturn.analytics = {
+      ...mockAnalyticsReturn.analytics,
+      totalCredentialsConnected: 0,
+      totalPosts: 3,
+    };
+
+    const markup = renderOverview();
+
+    expect(markup).toContain('No accounts connected');
+    expect(markup).toContain(
+      'No social accounts are connected yet. Connect one so published posts can report views and engagement.',
+    );
+    expect(markup).not.toContain('Accounts are connected');
+    expect(markup).not.toContain('Warming up');
+    expect(markup).toContain('href="/acme/brand-x/settings/accounts"');
+    expect(markup).toContain('Connect accounts');
+    expect(markup).toContain('Create content');
   });
 
   it('renders the active dashboard when metrics and time series data are available', () => {

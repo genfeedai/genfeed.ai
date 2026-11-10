@@ -1,7 +1,4 @@
-import {
-  isTurboRunSettled,
-  useTurboRunProgress,
-} from '@genfeedai/agent/hooks/use-turbo-run-progress';
+import { useTurboRunProgress } from '@genfeedai/agent/hooks/use-turbo-run-progress';
 import { TurboRunStatus } from '@genfeedai/contracts';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { act, renderHook } from '@testing-library/react';
@@ -121,18 +118,5 @@ describe('useTurboRunProgress', () => {
     expect(result.current?.status).toBe(TurboRunStatus.PROCESSING);
     // One success, then five consecutive failures.
     expect(getTurboRun).toHaveBeenCalledTimes(6);
-  });
-});
-
-describe('isTurboRunSettled', () => {
-  it.each([
-    [TurboRunStatus.COMPLETED, true],
-    [TurboRunStatus.PARTIAL, true],
-    [TurboRunStatus.FAILED, true],
-    [TurboRunStatus.CANCELLED, true],
-    [TurboRunStatus.PENDING, false],
-    [TurboRunStatus.PROCESSING, false],
-  ])('%s -> %s', (status, expected) => {
-    expect(isTurboRunSettled(status)).toBe(expected);
   });
 });

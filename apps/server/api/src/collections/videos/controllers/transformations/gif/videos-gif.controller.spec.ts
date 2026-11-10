@@ -40,6 +40,7 @@ import type { VideosService } from '@api/collections/videos/services/videos.serv
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import type { SharedService } from '@api/shared/services/shared/shared.service';
+import { ingredientRowWorld } from '@api-test/fixtures/ingredient-row.world';
 import {
   AssetScope,
   IngredientCategory,
@@ -145,6 +146,15 @@ describe('VideosGifController', () => {
     const ingredientsService = {
       patch: async (id: string, data: Row) =>
         Object.assign(ingredients.find((row) => row.id === id) ?? {}, data),
+      patchAll: async (filter: Row, data: Row) => {
+        let modifiedCount = 0;
+        for (const row of ingredients) {
+          modifiedCount += (
+            await ingredientRowWorld(row).patchAll(filter, data)
+          ).modifiedCount;
+        }
+        return { modifiedCount };
+      },
     } as unknown as IngredientsService;
     const metadataService = {
       patch: async (id: string, data: Row) => {
@@ -152,10 +162,14 @@ describe('VideosGifController', () => {
       },
     } as unknown as MetadataService;
     const shared = {
-      createMediaDocuments: async (_user: User, data: Row) => {
+      createMediaDocuments: async (owner: User, data: Row) => {
         const ingredientData = { ...data, id: `gif-${ingredients.length + 1}` };
         const metadataData = { id: `metadata-${metadata.size + 1}` };
-        ingredients.push(ingredientData);
+        ingredients.push({
+          ...ingredientData,
+          isDeleted: false,
+          organizationId: owner.organizationId,
+        });
         metadata.set(metadataData.id, metadataData);
         return { ingredientData, metadataData };
       },
@@ -244,6 +258,28 @@ describe('VideosGifController', () => {
       height: 270,
       width: 480,
     });
+  });
+
+  it('keeps a GIF the user cancelled while it ran failed (#9735)', async () => {
+    await controller.createGif(req, user, 'video-1');
+    Object.assign(gif() ?? {}, {
+      generationError: 'Cancelled by user',
+      status: IngredientStatus.FAILED,
+    });
+
+    jobs.get('job-1')?.settle?.resolve({
+      height: 270,
+      outputPath: '/tmp/video-1.gif',
+      width: 480,
+    });
+    await settle();
+
+    expect(gif()).toMatchObject({
+      generationError: 'Cancelled by user',
+      status: IngredientStatus.FAILED,
+    });
+    expect(gif()?.s3Key).toBeUndefined();
+    expect(metadata.get('metadata-1')).toEqual({ id: 'metadata-1' });
   });
 
   it('logs a failed GIF job and leaves the GIF processing', async () => {

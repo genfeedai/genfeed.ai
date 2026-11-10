@@ -318,6 +318,13 @@ describe('credit transaction presentation', () => {
       'Image generation (your API key)',
       'No credits charged',
     ],
+    [
+      'transfer-in',
+      'Tip from Ada',
+      'Credits received: Tip from Ada',
+      '+1 credit',
+    ],
+    ['transfer-out', 'Tip to Bea', 'Credits sent: Tip to Bea', '−1 credit'],
   ])(
     'explains %s without misrepresenting its balance effect',
     (category, description, title, amount) => {

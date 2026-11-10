@@ -2,6 +2,10 @@ import { BrandKitAssetsService } from '@api/collections/brands/services/brand-ki
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  brandFontRolesSchema,
+  brandPaletteSchema,
+} from '@genfeedai/contracts/api-types/contracts/brand-kit-style.contract';
 import { parseBrandPublishPolicy } from '@genfeedai/contracts/api-types/contracts/brand-publish-policy.contract';
 import type {
   IBrandKitDraft,
@@ -373,6 +377,7 @@ export class BrandOsRevisionsService {
       }
       content.assetCandidates = [];
       content.status = 'accepted';
+      await this.syncApprovedStyle(tx, organizationId, brandId, content);
       await tx.brandOsRevision.updateMany({
         data: { status: BrandOsRevisionStatus.SUPERSEDED },
         where: {
@@ -394,6 +399,36 @@ export class BrandOsRevisionsService {
           where: { brandId, id, isDeleted: false, organizationId },
         }),
       );
+    });
+  }
+
+  /**
+   * Palette and font roles live on the brand row too, so prompts and the agent
+   * read the approved kit without resolving a revision. Only fields the
+   * revision carries are written; a revision without them leaves the brand as
+   * it is.
+   */
+  private async syncApprovedStyle(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    brandId: string,
+    content: IBrandKitDraft,
+  ): Promise<void> {
+    const palette = brandPaletteSchema.safeParse(
+      content.fields.colorPalette?.currentValue,
+    );
+    const fontRoles = brandFontRolesSchema.safeParse(
+      content.fields.fontRoles?.currentValue,
+    );
+    const data: Prisma.BrandUpdateManyMutationInput = {
+      ...(palette.success ? { colorPalette: toPrismaJson(palette.data) } : {}),
+      ...(fontRoles.success ? { fontRoles: toPrismaJson(fontRoles.data) } : {}),
+    };
+    if (Object.keys(data).length === 0) return;
+    // sql-risk-audit: ignore bulk-write-tenant-review -- organizationId, isDeleted:false and the unique brand id bound the write to the one brand under the approval lock.
+    await tx.brand.updateMany({
+      data,
+      where: { id: brandId, isDeleted: false, organizationId },
     });
   }
 
@@ -713,6 +748,16 @@ export class BrandOsRevisionsService {
           (!value || typeof value !== 'object' || Array.isArray(value))
         )
           throw new BadRequestException(`Invalid ${key} asset`);
+        if (
+          owner.valueKind === 'palette' &&
+          !brandPaletteSchema.safeParse(value).success
+        )
+          throw new BadRequestException(`Invalid ${key} palette`);
+        if (
+          owner.valueKind === 'fontRoles' &&
+          !brandFontRolesSchema.safeParse(value).success
+        )
+          throw new BadRequestException(`Invalid ${key} font roles`);
       }
     }
     const normalized = structuredClone(content);

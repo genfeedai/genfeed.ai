@@ -8,6 +8,7 @@ import {
   ResendEmailDeliveryError,
   ResendService,
   resolveResendFromAddress,
+  withResendDisplayName,
 } from '@notifications/services/resend/resend.service';
 import { NotificationRuntimeSettingsService } from '@notifications/services/runtime-settings/notification-runtime-settings.service';
 import { Resend } from 'resend';
@@ -407,4 +408,39 @@ describe('resolveResendFromAddress', () => {
       }),
     ).toBe(RESEND_DEFAULT_FROM);
   });
+});
+
+describe('withResendDisplayName', () => {
+  it.each([
+    [
+      'Genfeed <no-reply@send.genfeed.ai>',
+      'Field Notes',
+      '"Field Notes" <no-reply@send.genfeed.ai>',
+    ],
+    [
+      'no-reply@send.genfeed.ai',
+      'Field Notes',
+      '"Field Notes" <no-reply@send.genfeed.ai>',
+    ],
+    [
+      'Genfeed <no-reply@send.genfeed.ai>',
+      'Evil"\r\nBcc: <x@y.z>',
+      '"EvilBcc: x@y.z" <no-reply@send.genfeed.ai>',
+    ],
+    [
+      'Genfeed <no-reply@send.genfeed.ai>',
+      '   ',
+      'Genfeed <no-reply@send.genfeed.ai>',
+    ],
+    [
+      'Genfeed <no-reply@send.genfeed.ai>',
+      undefined,
+      'Genfeed <no-reply@send.genfeed.ai>',
+    ],
+  ])(
+    'keeps the verified address of %s for display name %j',
+    (from, name, expected) => {
+      expect(withResendDisplayName(from, name)).toBe(expected);
+    },
+  );
 });

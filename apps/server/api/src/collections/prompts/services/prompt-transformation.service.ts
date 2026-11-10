@@ -4,7 +4,6 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { ParsePromptDto } from '@api/collections/prompts/dto/parse-prompt.dto';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
-import type { PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
 import { errorMessage } from '@api/collections/prompts/services/prompt-transformation-error.util';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import {
@@ -36,6 +35,7 @@ import {
   PromptTemplateKey,
   Status,
 } from '@genfeedai/contracts';
+import type { Prompt } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -99,7 +99,7 @@ export class PromptTransformationService {
     request: Request,
     promptId: string,
     user: User,
-  ): Promise<PromptDocument> {
+  ): Promise<Prompt> {
     const chargedCredits =
       (request as RequestWithCredits).creditsConfig?.amount ?? 0;
     // Captured synchronously (before generateRemix fires below, detached
@@ -178,7 +178,7 @@ export class PromptTransformationService {
     promptId: string,
     user: User,
     resolveApiKey?: TextDispatchKeyResolver,
-  ): Promise<{ model: string; prompt: PromptDocument | null }> {
+  ): Promise<{ model: string; prompt: Prompt | null }> {
     const prompt = await this.findOwnedPrompt(promptId, user);
     const promptBrandId = isEntityId(prompt.brandId) ? prompt.brandId : null;
     const { normalizedType, promptString } =
@@ -279,10 +279,7 @@ export class PromptTransformationService {
     }
   }
 
-  private async findOwnedPrompt(
-    promptId: string,
-    user: User,
-  ): Promise<PromptDocument> {
+  private async findOwnedPrompt(promptId: string, user: User): Promise<Prompt> {
     const prompt = await this.promptsService.findOne({ id: promptId });
 
     if (!prompt || prompt.userId !== (user.userId ?? user.id)) {
@@ -292,7 +289,7 @@ export class PromptTransformationService {
     return prompt;
   }
 
-  private async parseStoredPrompt(prompt: PromptDocument) {
+  private async parseStoredPrompt(prompt: Prompt) {
     const promptBrandId = isEntityId(prompt.brandId) ? prompt.brandId : null;
     const selectedBrand = promptBrandId
       ? ((await this.brandsService.findOne({ id: promptBrandId })) ?? undefined)
@@ -365,7 +362,7 @@ export class PromptTransformationService {
     brandId?: string | null;
     byokApiKeyOverride?: string;
     chargedCredits: number;
-    data: PromptDocument;
+    data: Prompt;
     organizationId: string;
     promptId: string;
     systemPromptKey: string;

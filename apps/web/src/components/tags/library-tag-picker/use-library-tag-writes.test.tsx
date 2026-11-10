@@ -95,14 +95,16 @@ describe('useLibraryTagWrites', () => {
     );
     const { result: hook } = renderHook(() => useLibraryTagWrites());
 
+    let outcome: unknown;
     await act(async () => {
-      await hook.current.applyTag(
+      outcome = await hook.current.applyTag(
         TagBulkAction.ADD,
         tag,
         Array.from({ length: 20 }, (_, index) => `asset-${index}`),
       );
     });
 
+    expect(outcome).toMatchObject({ result: { changed: 18, skipped: 2 } });
     expect(notifications.success).toHaveBeenCalledWith(
       'Added “S1E12” to 18 assets, skipped 2',
     );
@@ -112,10 +114,15 @@ describe('useLibraryTagWrites', () => {
     ingredientsService.bulkTag.mockResolvedValue(result({ changed: 1 }));
     const { result: hook } = renderHook(() => useLibraryTagWrites());
 
+    let outcome: unknown;
     await act(async () => {
-      await hook.current.applyTag(TagBulkAction.REMOVE, tag, ['a', 'b']);
+      outcome = await hook.current.applyTag(TagBulkAction.REMOVE, tag, [
+        'a',
+        'b',
+      ]);
     });
 
+    expect(outcome).toMatchObject({ result: { changed: 1, failed: 0 } });
     expect(notifications.success).toHaveBeenCalledWith(
       'Removed “S1E12” from 1 asset',
     );
@@ -133,10 +140,19 @@ describe('useLibraryTagWrites', () => {
     );
     const { result: hook } = renderHook(() => useLibraryTagWrites());
 
+    let outcome: unknown;
     await act(async () => {
-      await hook.current.applyTag(TagBulkAction.ADD, tag, ['a', 'b', 'c']);
+      outcome = await hook.current.applyTag(TagBulkAction.ADD, tag, [
+        'a',
+        'b',
+        'c',
+      ]);
     });
 
+    expect(outcome).toMatchObject({
+      changedIds: ['a'],
+      result: { failedIds: ['b'], skippedIds: ['c'] },
+    });
     expect(notifications.error).toHaveBeenCalledWith(
       'Changed 1, skipped 1, failed 1. Try again for the rest.',
     );
@@ -151,10 +167,12 @@ describe('useLibraryTagWrites', () => {
     );
     const { result: hook } = renderHook(() => useLibraryTagWrites());
 
+    let outcome: unknown;
     await act(async () => {
-      await hook.current.applyTag(TagBulkAction.ADD, tag, ['a']);
+      outcome = await hook.current.applyTag(TagBulkAction.ADD, tag, ['a']);
     });
 
+    expect(outcome).toMatchObject({ changedIds: [] });
     expect(notifications.success).toHaveBeenCalledWith(
       'This asset already has “S1E12”',
     );
@@ -165,10 +183,12 @@ describe('useLibraryTagWrites', () => {
     ingredientsService.bulkTag.mockResolvedValue(result({ changed: 1 }));
     const { result: hook } = renderHook(() => useLibraryTagWrites());
 
+    let outcome: unknown;
     await act(async () => {
-      await hook.current.applyTag(TagBulkAction.ADD, tag, ['a']);
+      outcome = await hook.current.applyTag(TagBulkAction.ADD, tag, ['a']);
     });
 
+    expect(outcome).toMatchObject({ changedIds: ['a'] });
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: ['library-tags'],
     });

@@ -33,6 +33,7 @@ import {
   Query,
   Req,
   Res,
+  StreamableFile,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -69,6 +70,26 @@ export class BrandFontAssetsController {
   ) {
     const result = await this.fonts.list(this.actor(user, brandId), query);
     return serializeCollection(req, BrandFontAssetSerializer, { ...result });
+  }
+  @TenantReadPolicy('owner')
+  @Get(':assetId/file')
+  async file(
+    @Res({ passthrough: true }) res: Response,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('brandId') brandId: string,
+    @Param('assetId') assetId: string,
+  ): Promise<StreamableFile> {
+    const bytes = await this.fonts.readFile(
+      this.actor(user, brandId),
+      InputValidationUtil.validateEntityId(assetId, 'assetId'),
+    );
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    return new StreamableFile(bytes, {
+      disposition: 'attachment',
+      length: bytes.length,
+      type: 'font/woff2',
+    });
   }
   @Post()
   @RequiredScopes(ApiKeyScope.BRANDS_WRITE)

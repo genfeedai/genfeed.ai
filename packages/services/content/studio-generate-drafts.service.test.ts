@@ -59,13 +59,28 @@ describe('StudioGenerateDraftsService', () => {
     expect(mockMapOne).not.toHaveBeenCalled();
   });
 
+  it('maps the draft stored for the brand when one exists', async () => {
+    mockGet.mockResolvedValue({
+      data: { data: { id: 'draft-9' } },
+      status: 200,
+    });
+    mockMapOne.mockResolvedValue({ id: 'draft-9', prompt: 'A lighthouse' });
+
+    const service = new StudioGenerateDraftsService('token');
+    const draft = await service.getCurrent('brand-a');
+
+    expect(draft).toEqual({ id: 'draft-9', prompt: 'A lighthouse' });
+  });
+
   it('writes the draft under the brand open in this tab', async () => {
     const signal = new AbortController().signal;
     mockPut.mockResolvedValue({ data: { data: { id: 'draft-1' } } });
     mockMapOne.mockResolvedValue({ id: 'draft-1' });
 
     const service = new StudioGenerateDraftsService('token');
-    await service.saveCurrent('brand-a', payload, { signal });
+    const saved = await service.saveCurrent('brand-a', payload, { signal });
+
+    expect(saved).toEqual({ id: 'draft-1' });
 
     expect(mockPut).toHaveBeenCalledWith(
       '/current',
@@ -76,9 +91,14 @@ describe('StudioGenerateDraftsService', () => {
 
   it('sends an unload flush with keepalive so it survives navigation', async () => {
     mockPut.mockResolvedValue({ data: { data: { id: 'draft-1' } } });
+    mockMapOne.mockResolvedValue({ id: 'draft-1' });
 
     const service = new StudioGenerateDraftsService('token');
-    await service.saveCurrent('brand-a', payload, { isKeepalive: true });
+    const saved = await service.saveCurrent('brand-a', payload, {
+      isKeepalive: true,
+    });
+
+    expect(saved).toEqual({ id: 'draft-1' });
 
     expect(mockPut).toHaveBeenCalledWith(
       '/current',

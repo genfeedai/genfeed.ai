@@ -13,8 +13,8 @@ export const ARTICLE_DELIVERY_PLATFORMS = [
 ] as const;
 
 /**
- * Connected accounts a Newsletter delivers to. Substack has no publishing API
- * (#2087); it imports published issues from the brand's newsletter feed.
+ * Connected accounts a Newsletter delivers to. Sending to the brand's own
+ * subscribers needs no connected account.
  */
 export const NEWSLETTER_DELIVERY_PLATFORMS = [
   CredentialPlatform.BEEHIIV,

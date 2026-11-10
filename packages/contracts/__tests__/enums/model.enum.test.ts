@@ -11,8 +11,8 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 153 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(153);
+    it('should have 154 members', () => {
+      expect(Object.values(MODEL_KEYS)).toHaveLength(154);
     });
 
     it('should have correct values', () => {
@@ -340,8 +340,8 @@ describe('model.enum', () => {
   });
 
   describe('ModelCategory', () => {
-    it('should have 11 members', () => {
-      expect(Object.values(ModelCategory)).toHaveLength(11);
+    it('should have 12 members', () => {
+      expect(Object.values(ModelCategory)).toHaveLength(12);
     });
 
     it('should have correct values', () => {
@@ -356,6 +356,7 @@ describe('model.enum', () => {
       expect(ModelCategory.MUSIC).toBe('music');
       expect(ModelCategory.VOICE).toBe('voice');
       expect(ModelCategory.AVATAR).toBe('avatar');
+      expect(ModelCategory.MODEL_3D).toBe('model-3d');
     });
   });
 

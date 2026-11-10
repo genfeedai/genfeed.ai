@@ -100,6 +100,11 @@ describe('ListeningTopicsService social intelligence HTTP contract', () => {
       },
       signal: undefined,
     });
+    expect(result).toHaveLength(1);
+    expect(result[0].topic.label).toBe('AI agents');
+    expect(result[0].evidence[0].sourceUrl).toBe(
+      'https://example.com/evidence',
+    );
     expect(result[0]).toMatchObject({
       evidence: [expect.objectContaining({ id: 'evidence-1' })],
       signals: [expect.objectContaining({ id: 'signal-1' })],

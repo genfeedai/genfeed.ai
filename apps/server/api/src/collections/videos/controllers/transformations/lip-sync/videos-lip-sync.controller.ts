@@ -207,11 +207,11 @@ export class VideosLipSyncController {
             ingredientId,
             user.organizationId,
           );
-        const websocketUrl = WebSocketPaths.video(ingredientId);
         await this.failedGenerationService.handleFailedVideoGeneration(
           this.videosService,
           ingredientId,
-          websocketUrl,
+          user.organizationId,
+          WebSocketPaths.video(ingredientId),
           user.id,
           getUserRoomName(user.id),
         );

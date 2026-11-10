@@ -179,6 +179,14 @@ describe('workflow engine in CLOUD tenant context', () => {
 
       expect(calls.map((call) => call.args)).toEqual([
         expect.objectContaining({
+          where: {
+            id: 'execution-1',
+            isDeleted: false,
+            organizationId: ORG,
+            status: { in: ['PENDING', 'RUNNING', 'FAILED'] },
+          },
+        }),
+        expect.objectContaining({
           where: { id: 'execution-1', isDeleted: false, organizationId: ORG },
         }),
         expect.objectContaining({

@@ -24,14 +24,15 @@ import type {
 } from '@/features/auth/props/oauth-platform-form.props';
 import {
   clearOAuthConnectContext,
+  OAUTH_RETURN_TO_STORAGE_KEY,
   readOAuthConnectContext,
-  rememberOAuthConnectContext,
+  redirectToOAuthAuthorization,
 } from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
-import { OAUTH_RETURN_TO_STORAGE_KEY } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { resolveSameOriginReturnTo } from '@/lib/navigation/resolve-same-origin-return-to';
 import { navigateToReturnPath } from './oauth-return-navigation';
 import {
   isHttpsAuthorizationUrl,
+  isReportableOAuthVerifyFailure,
   resolveOAuthPlatformVerifyFailure,
 } from './oauth-verify-error';
 
@@ -169,7 +170,10 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
           name: credential?.externalName || credential?.externalHandle,
         });
       } catch (error) {
-        logger.error(`${url} failed`, error);
+        logger.error(`${url} failed`, {
+          error,
+          reportToSentry: isReportableOAuthVerifyFailure(error),
+        });
         const failure = resolveOAuthPlatformVerifyFailure({
           callbackSubmitted,
           error,
@@ -238,21 +242,12 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
         throw new Error('Authorization URL missing');
       }
 
-      const returnTo = resolveReturnTo();
-      try {
-        sessionStorage.setItem(OAUTH_RETURN_TO_STORAGE_KEY, returnTo);
-      } catch {
-        // ignore
-      }
-      rememberOAuthConnectContext({
+      const opened = redirectToOAuthAuthorization({
+        authorizationUrl: credential.url,
         brandId: context.brandId,
         credentialId: credential.id || context.credentialId,
+        returnTo: resolveReturnTo(),
       });
-      const separator = credential.url.includes('?') ? '&' : '?';
-      const opened = window.open(
-        `${credential.url}${separator}return_to=${encodeURIComponent(returnTo)}`,
-        '_self',
-      );
       if (!opened) {
         isRestarting.current = false;
       }

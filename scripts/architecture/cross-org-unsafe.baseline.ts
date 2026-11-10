@@ -42,11 +42,11 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // BillingAccountMember role on the account, not by any organizationId.
     {
       file: 'apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts',
-      line: 501,
+      line: 502,
     },
     {
       file: 'apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts',
-      line: 915,
+      line: 913,
     },
     // #5511: admin-pinned Featured workflows are platform-curated and read by
     // every organization. The read is limited to the pinned ids, non-deleted
@@ -116,9 +116,10 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // inside the tenant context, which turned this into a production 500.
     // #5502 moved this unchanged discovery call four lines for native-app imports.
     // The member role-authority helpers moved it again, unchanged.
+    // Dropping the MemberDocument alias import moved it up one line, unchanged.
     {
       file: 'apps/server/api/src/collections/members/services/members.service.ts',
-      line: 181,
+      line: 180,
     },
     // #6120: hidden system-workflow mirror upsert. System-principal rows are
     // platform-global and owned by the system principal, not the request
@@ -244,7 +245,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // billing account, after the OWNER proof.
     {
       file: 'apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts',
-      line: 761,
+      line: 759,
     },
     // #6120: superadmin may edit any live brand's handle.
     {
@@ -359,11 +360,11 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
       file: 'apps/server/api/src/endpoints/admin/announcements/announcements.service.ts',
       line: 166,
     },
-    // #6120: runAsPlatformAdmin for the IP-whitelisted, superadmin-guarded
-    // warm-up provisioning in the target customer organization.
+    // #6120: runAsPlatformAdmin for the superadmin-guarded warm-up
+    // provisioning in the target customer organization.
     {
       file: 'apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.controller.ts',
-      line: 294,
+      line: 295,
     },
     // #6120: superadmin all-organizations analytics when no organization is
     // named.

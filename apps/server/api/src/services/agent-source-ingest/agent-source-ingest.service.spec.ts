@@ -1,3 +1,4 @@
+import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import {
   AgentSourceDownloadService,
   AgentSourceImportPendingError,
@@ -81,6 +82,13 @@ describe('AgentSourceIngestService', () => {
         organizationId: 'org-1',
         brandId: 'brand-1',
         isDeleted: false,
+        OR: [
+          { status: IngredientStatus.PROCESSING },
+          {
+            generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+            status: IngredientStatus.FAILED,
+          },
+        ],
       },
       data: expect.objectContaining({
         status: IngredientStatus.UPLOADED,
@@ -187,6 +195,23 @@ describe('AgentSourceIngestService', () => {
         }),
       }),
     );
+  });
+
+  it('keeps an import the user cancelled failed when the download finishes (#9735)', async () => {
+    prisma.ingredient.update.mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError('No record was found', {
+        clientVersion: 'test',
+        code: 'P2025',
+      }),
+    );
+
+    await expect(
+      service.ingest({ url: 'https://media.example/video.mp4' }, context),
+    ).rejects.toThrow('This source import was stopped before it finished.');
+    expect(prisma.ingredient.updateMany).toHaveBeenLastCalledWith({
+      where: expect.objectContaining({ status: IngredientStatus.PROCESSING }),
+      data: expect.objectContaining({ status: IngredientStatus.FAILED }),
+    });
   });
 
   it('records a failed upload and atomically claims a retry on the same ingredient', async () => {

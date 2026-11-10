@@ -57,14 +57,9 @@ export async function failInterpolationPair(
   const { organizationId } = scope.user;
   try {
     await deps.failedGenerationService.handleFailedVideoGeneration(
-      {
-        patch: (id, data) =>
-          deps.videosService.patchOneWhere(
-            { id, isDeleted: false, organizationId },
-            data,
-          ),
-      },
+      deps.videosService,
       ingredientId,
+      organizationId,
       WebSocketPaths.video(ingredientId),
       scope.user.id,
       getUserRoomName(scope.user.id),

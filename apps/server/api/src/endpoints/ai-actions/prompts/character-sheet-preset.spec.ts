@@ -36,6 +36,16 @@ describe('character sheet preset', () => {
     expect(before).not.toContain('close-up only');
   });
 
+  it.each([
+    [undefined, 'Neutral studio background'],
+    ['neutral' as const, 'Neutral studio background'],
+    ['outdoor' as const, 'Empty outdoor setting with no other people'],
+  ])('places a %s sheet in its environment', (environment, line) => {
+    expect(
+      composeCharacterSheetPrompt({ description: 'mia', environment }),
+    ).toContain(line);
+  });
+
   it('does not use a text-only prompt category', () => {
     expect(PromptCategory.MODELS_PROMPT_IMAGE).not.toBe(
       PromptCategory.PRESET_DESCRIPTION_TEXT,

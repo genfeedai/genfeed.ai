@@ -713,7 +713,6 @@ export class AgentOrchestratorContextService {
 
     if (
       normalized.includes('newsletter') ||
-      normalized.includes('substack') ||
       normalized.includes('beehiiv') ||
       normalized.includes('ghost')
     ) {

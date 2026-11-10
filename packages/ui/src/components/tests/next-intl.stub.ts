@@ -759,7 +759,7 @@ const UI_TEST_MESSAGES = {
       article: 'Article',
       articleHint: 'Long-form · blog or copy',
       newsletter: 'Newsletter',
-      newsletterHint: 'Email · Beehiiv or Substack',
+      newsletterHint: 'Email · your subscribers or Beehiiv',
       handoff:
         'Article and Newsletter are written in their own editor. Continue to open it.',
       continue: 'Continue',
@@ -1047,6 +1047,7 @@ const UI_TEST_MESSAGES = {
         lineageError: 'This could not be loaded right now.',
         madeFrom: 'Made from',
         model: 'Model',
+        modelUnavailable: 'This 3D model could not be loaded.',
         openPreview: 'Open full-size preview',
         origin: 'Origin',
         prompt: 'Prompt',

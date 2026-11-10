@@ -204,7 +204,7 @@ describe('WorkflowExecutionsService', () => {
         }),
       }),
     );
-    expect(prisma.workflowExecution.update).toHaveBeenNthCalledWith(
+    expect(prisma.workflowExecution.updateMany).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
         data: expect.objectContaining({
@@ -214,13 +214,14 @@ describe('WorkflowExecutionsService', () => {
           failedNodeId: null,
           status: PrismaWorkflowExecutionStatus.RUNNING,
         }),
-      }),
-    );
-    expect(prisma.workflowExecution.updateMany).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        data: expect.objectContaining({
-          status: PrismaWorkflowExecutionStatus.COMPLETED,
+        where: expect.objectContaining({
+          status: {
+            in: [
+              PrismaWorkflowExecutionStatus.PENDING,
+              PrismaWorkflowExecutionStatus.RUNNING,
+              PrismaWorkflowExecutionStatus.FAILED,
+            ],
+          },
         }),
       }),
     );
@@ -228,12 +229,20 @@ describe('WorkflowExecutionsService', () => {
       2,
       expect.objectContaining({
         data: expect.objectContaining({
-          status: PrismaWorkflowExecutionStatus.FAILED,
+          status: PrismaWorkflowExecutionStatus.COMPLETED,
         }),
       }),
     );
     expect(prisma.workflowExecution.updateMany).toHaveBeenNthCalledWith(
       3,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: PrismaWorkflowExecutionStatus.FAILED,
+        }),
+      }),
+    );
+    expect(prisma.workflowExecution.updateMany).toHaveBeenNthCalledWith(
+      4,
       expect.objectContaining({
         data: expect.objectContaining({
           status: PrismaWorkflowExecutionStatus.CANCELLED,
@@ -248,6 +257,15 @@ describe('WorkflowExecutionsService', () => {
         }),
       }),
     );
+  });
+
+  it('leaves an execution that completed or was cancelled before its start settled', async () => {
+    const { prisma, service } = makeService();
+    prisma.workflowExecution.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      service.startExecution('execution-1', 'org-1'),
+    ).resolves.toBeNull();
   });
 
   it('emits the terminal event once per settled execution', async () => {

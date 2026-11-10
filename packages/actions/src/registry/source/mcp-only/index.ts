@@ -10,6 +10,7 @@ import { MCP_CONTENT_CAMPAIGN_TOOLS } from './content-campaign.tools';
 import { MCP_DISCOVERY_TOOLS } from './discovery.tools';
 import { MCP_EDITOR_TOOLS } from './editor.tools';
 import { MCP_GENERATION_TOOLS } from './generation.tools';
+import { MCP_MODELS3D_TOOLS } from './models3d.tools';
 import { MCP_ONBOARDING_TOOLS } from './onboarding.tools';
 import { MCP_OTHER_TOOLS } from './other.tools';
 import { MCP_PRESET_TOOLS } from './presets.tools';
@@ -18,6 +19,7 @@ import { MCP_SCHEDULER_TOOLS } from './scheduler.tools';
 import { MCP_SKILLS_PRO_TOOLS } from './skills-pro.tools';
 import { MCP_SOCIAL_TOOLS } from './social.tools';
 import { MCP_STORYBOARD_CAPABILITY_TOOLS } from './storyboard-capabilities.tools';
+import { MCP_STORYBOARD_VIDEO_TOOLS } from './storyboard-video.tools';
 import { MCP_WORKFLOW_TOOLS } from './workflow.tools';
 import { MCP_WORKSPACE_TOOLS } from './workspace.tools';
 
@@ -39,8 +41,10 @@ export const MCP_ONLY_TOOLS: SourceTool[] = [
   ...MCP_EDITOR_TOOLS,
   ...MCP_SCHEDULER_TOOLS,
   ...MCP_REMIX_TOOLS,
+  ...MCP_MODELS3D_TOOLS,
   ...MCP_PRESET_TOOLS,
   ...MCP_STORYBOARD_CAPABILITY_TOOLS,
+  ...MCP_STORYBOARD_VIDEO_TOOLS,
   ...MCP_SKILLS_PRO_TOOLS,
   ...MCP_WORKSPACE_TOOLS,
 ];

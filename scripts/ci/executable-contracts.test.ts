@@ -23,6 +23,10 @@ const REPOSITORY_CONTRACTS = [
     name: 'untranslated string ratchet',
   },
   {
+    command: ['bun', 'run', 'check:dead-code'],
+    name: 'dead-code ratchet',
+  },
+  {
     command: ['bun', 'run', 'check:inline-types'],
     name: 'inline type ratchet',
   },
@@ -70,6 +74,26 @@ const REPOSITORY_CONTRACTS = [
     name: 'serializer drift',
   },
   { command: ['bun', 'run', 'audit:api:sql:ci'], name: 'SQL risk audit' },
+  {
+    command: ['bun', 'run', 'check:mcp-tool-references'],
+    name: 'MCP tool references',
+  },
+  {
+    command: ['bun', 'run', 'check:test-collection'],
+    name: 'test collection',
+  },
+  {
+    command: ['bun', 'run', 'check:nested-node-modules'],
+    name: 'nested node_modules',
+  },
+  {
+    command: ['bun', 'run', 'check:desktop-schema-drift'],
+    name: 'desktop schema drift',
+  },
+  {
+    command: ['bun', 'run', 'check:generated-source'],
+    name: 'generated source artifacts',
+  },
   {
     command: ['bun', 'run', 'check:public-packages'],
     name: 'public package manifests',

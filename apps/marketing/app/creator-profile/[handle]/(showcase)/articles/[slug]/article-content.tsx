@@ -12,6 +12,8 @@ import { createPortal } from 'react-dom';
 import { WEBSITE_ANALYTICS_EVENTS } from '../../../../../../src/analytics/analytics-events';
 import { captureWebsiteAnalyticsEvent } from '../../../../../../src/analytics/posthog-client';
 import { hasArticleExperience } from './article-experience-slugs';
+import ArticleGenerationBlock from './article-generation-block';
+import { splitArticleBody } from './article-generations';
 
 /** Only one article has a lab; the rest never download it. */
 const ArticleExperience = dynamic(() => import('./article-experience'));
@@ -64,6 +66,7 @@ function CopyCodeButton({ code }: { code: string }): React.ReactElement {
  */
 export default function ArticleContent({
   applyHref,
+  generations = {},
   sanitizedHtml,
   sections = [],
   slug,
@@ -73,8 +76,10 @@ export default function ArticleContent({
   const [actions, setActions] = useState<CodeBlockAction[]>([]);
   const headings = sections.filter((section) => section.level === 2);
 
-  const contentProps = useMemo(
-    () => ({ dangerouslySetInnerHTML: { __html: sanitizedHtml } }),
+  // Prose between generation blocks stays author HTML; each block becomes a
+  // component, so its buttons are real React controls.
+  const segments = useMemo(
+    () => splitArticleBody(sanitizedHtml),
     [sanitizedHtml],
   );
 
@@ -191,7 +196,26 @@ export default function ArticleContent({
       {hasArticleExperience(slug) ? <ArticleExperience slug={slug} /> : null}
 
       <div className="gen-article-prose prose prose-invert prose-lg max-w-none">
-        <div ref={containerRef} {...contentProps} />
+        <div ref={containerRef}>
+          {segments.map((segment) => {
+            if (segment.kind === 'html') {
+              return (
+                <div
+                  // biome-ignore lint/security/noDangerouslySetInnerHtml: each segment is a slice of the sanitized article body
+                  dangerouslySetInnerHTML={{ __html: segment.html }}
+                  key={segment.key}
+                />
+              );
+            }
+            const generation = generations[segment.ingredientId];
+            return generation ? (
+              <ArticleGenerationBlock
+                generation={generation}
+                key={segment.key}
+              />
+            ) : null;
+          })}
+        </div>
         {actions.map((action) =>
           createPortal(
             <CopyCodeButton code={action.code} />,

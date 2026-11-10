@@ -23,5 +23,6 @@
   "insetX": "From side edge (% of width)",
   "insetY": "From top or bottom edge (% of width)",
   "automatic": "Automatic",
-  "placementHelp": "Leave size and distances empty to fit the mark automatically. Distances are measured from the corner chosen above, as a share of the picture width, so every export size places the mark in the same spot. Choose the light or livestream mark when you export."
+  "placementHelp": "Leave size and distances empty to fit the mark automatically. Distances are measured from the corner chosen above, as a share of the picture width, so every export size places the mark in the same spot. Choose the light or livestream mark when you export.",
+  "logoVariant": "Logo · {variant}"
 }

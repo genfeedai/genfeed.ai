@@ -1,4 +1,4 @@
-import type { ReferenceImageCategory } from '../..';
+import type { BrandKitSlot, ReferenceImageCategory } from '../..';
 import type { BrandGenerationRulesV1 } from '../content/branded-generation.interface';
 import type { IBrandAgentStrategy, IBrandAgentVoice } from './brand.interface';
 import type { IBrandPublishPolicy } from './brand-publish-policy.interface';
@@ -45,6 +45,8 @@ export type BrandKitFieldKey =
   | 'secondaryColor'
   | 'backgroundColor'
   | 'fontFamily'
+  | 'colorPalette'
+  | 'fontRoles'
   | 'promptGuidelines'
   | 'voiceTone'
   | 'voiceStyle'
@@ -69,6 +71,8 @@ export type BrandKitFieldOwnerPath =
   | 'brand.secondaryColor'
   | 'brand.backgroundColor'
   | 'brand.fontFamily'
+  | 'brand.colorPalette'
+  | 'brand.fontRoles'
   | 'brand.text'
   | 'brand.agentConfig.voice.tone'
   | 'brand.agentConfig.voice.style'
@@ -91,7 +95,14 @@ export interface IBrandKitFieldOwner {
   label: string;
   group: BrandKitFieldGroup;
   ownerPath: BrandKitFieldOwnerPath;
-  valueKind: 'string' | 'string[]' | 'socialLinks' | 'asset' | 'asset[]';
+  valueKind:
+    | 'string'
+    | 'string[]'
+    | 'socialLinks'
+    | 'asset'
+    | 'asset[]'
+    | 'palette'
+    | 'fontRoles';
   applyActionDefault: BrandKitApplyAction;
 }
 
@@ -337,15 +348,116 @@ export interface IBrandKitResolvedAsset {
   id: string;
   role: BrandKitAssetRole;
   referenceCategory?: ReferenceImageCategory;
+  /** The logo variant or platform slot. Only logos and banners carry one. */
+  slot?: BrandKitSlot;
   url: string;
   label?: string;
   mimeType?: string;
+  /** The uploaded file's format; `svg` when a vector original is kept. */
+  originalFormat?: string;
 }
 
 export interface IBrandKitResolvedAssets {
+  /** The default logo: the LOGO_PRIMARY variant, else the newest variant. */
   logo?: IBrandKitResolvedAsset;
+  /** The master banner, else the newest platform banner. */
   banner?: IBrandKitResolvedAsset;
+  /** Every live logo variant, one per slot, in slot order. */
+  logos?: IBrandKitResolvedAsset[];
+  /** Every live banner and platform image, one per slot, in slot order. */
+  banners?: IBrandKitResolvedAsset[];
   references: IBrandKitResolvedAsset[];
+}
+
+/** Outcome of resizing the master banner into one platform image slot. */
+export interface IBrandKitPlatformFillResult {
+  slot: BrandKitSlot;
+  status: 'filled' | 'failed';
+  assetId?: string;
+  error?: string;
+}
+
+/** A named palette color, as the agent, MCP and kit readers see it. */
+export interface IBrandKitColorEntry {
+  name: string;
+  hex: string;
+  usage?: string;
+}
+
+/** The font family one text role uses. */
+export interface IBrandKitFontRoleEntry {
+  role: string;
+  family: string;
+  /** The uploaded brand font file, when the role uses one. */
+  fontAssetId?: string;
+}
+
+/** A logo variant or platform image, by its slot. */
+export interface IBrandKitSlotImage {
+  /** The asset id; API responses sign `url` for this asset. */
+  assetId: string;
+  slot: BrandKitSlot;
+  url: string;
+  mimeType?: string;
+  /** The size the platform asks for; logos have none. */
+  width?: number;
+  height?: number;
+}
+
+/** An uploaded brand font file. Its bytes come from the brand fonts API. */
+export interface IBrandKitFontFile {
+  fontAssetId: string;
+  name: string;
+  contentHash: string;
+}
+
+/**
+ * The whole brand kit in one read (#9710): colors, the named palette, fonts by
+ * role, every logo variant and every platform image.
+ */
+export interface IBrandKitView {
+  brandId: string;
+  label: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    background: string;
+  };
+  /** The built-in font the brand uses when no role names another. */
+  fontFamily: string;
+  palette: IBrandKitColorEntry[];
+  fontRoles: IBrandKitFontRoleEntry[];
+  fonts: IBrandKitFontFile[];
+  logos: IBrandKitSlotImage[];
+  banners: IBrandKitSlotImage[];
+}
+
+/** A file the kit import left out, and why. */
+export interface IBrandKitImportSkip {
+  file: string;
+  reason: string;
+}
+
+/** What importing a brand kit ZIP wrote to the brand. */
+export interface IBrandKitImportResult {
+  logos: BrandKitSlot[];
+  banners: BrandKitSlot[];
+  fontCount: number;
+  hasColors: boolean;
+  hasPalette: boolean;
+  hasFontRoles: boolean;
+  skipped: IBrandKitImportSkip[];
+}
+
+/** A candidate palette color read from the brand's primary logo. */
+export interface IBrandKitLogoColor {
+  hex: string;
+  /** Share of the logo's opaque pixels, 0 to 1. */
+  share: number;
+}
+
+export interface IBrandKitPlatformFillRequest {
+  slots: BrandKitSlot[];
 }
 
 /**
@@ -362,12 +474,16 @@ export interface IBrandKitAssetRelation {
   cdnUrl: string;
   displayName?: string;
   mimeType?: string;
+  originalFormat?: string;
   referenceCategory?: ReferenceImageCategory;
+  kitSlot?: BrandKitSlot;
 }
 
 export interface IBrandKitAssetRelations {
   logo?: IBrandKitAssetRelation;
   banner?: IBrandKitAssetRelation;
+  logos: IBrandKitAssetRelation[];
+  banners: IBrandKitAssetRelation[];
   references: IBrandKitAssetRelation[];
 }
 
@@ -423,6 +539,22 @@ export const BRAND_KIT_FIELD_OWNERSHIP: readonly IBrandKitFieldOwner[] = [
     label: 'Font family',
     ownerPath: 'brand.fontFamily',
     valueKind: 'string',
+  },
+  {
+    applyActionDefault: 'preserve',
+    group: 'visual',
+    key: 'colorPalette',
+    label: 'Color palette',
+    ownerPath: 'brand.colorPalette',
+    valueKind: 'palette',
+  },
+  {
+    applyActionDefault: 'preserve',
+    group: 'visual',
+    key: 'fontRoles',
+    label: 'Font roles',
+    ownerPath: 'brand.fontRoles',
+    valueKind: 'fontRoles',
   },
   {
     applyActionDefault: 'preserve',

@@ -184,6 +184,7 @@ export default function StoryboardRunPage({
     longForm,
     slideshow,
     renders,
+    assets,
   } = useDurableStoryboardRun(runId);
   const modelCapabilities = useStoryboardCapabilities(
     runId,
@@ -224,6 +225,7 @@ export default function StoryboardRunPage({
         longForm={longForm}
         slideshow={slideshow}
         renders={renders}
+        assets={assets}
         {...modelCapabilities}
       />
     );

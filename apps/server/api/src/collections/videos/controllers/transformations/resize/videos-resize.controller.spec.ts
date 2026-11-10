@@ -41,6 +41,7 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { ingredientRowWorld } from '@api-test/fixtures/ingredient-row.world';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -87,7 +88,7 @@ describe('VideosResizeController', () => {
       waitForJob: vi.fn().mockResolvedValue({ outputPath: '/tmp/video.mp4' }),
     },
     filesClientService: { uploadToS3: vi.fn() },
-    ingredientsService: { patch: vi.fn() },
+    ingredientsService: { patchAll: vi.fn() },
     loggerService: { error: vi.fn(), log: vi.fn() },
     metadataService: { patch: vi.fn() },
     sharedService: {
@@ -100,7 +101,18 @@ describe('VideosResizeController', () => {
     websocketService: { publishVideoComplete: vi.fn() },
   };
 
+  let ingredientRow: Record<string, unknown>;
+
   beforeEach(async () => {
+    ingredientRow = {
+      id: ingredientId,
+      isDeleted: false,
+      organizationId,
+      status: IngredientStatus.PROCESSING,
+    };
+    mockServices.ingredientsService.patchAll.mockImplementation(
+      ingredientRowWorld(ingredientRow).patchAll,
+    );
     mockServices.configService.isAuthorizedMediaDeliveryEnabled = false;
     const module: TestingModule = await Test.createTestingModule({
       controllers: [VideosResizeController],
@@ -146,10 +158,16 @@ describe('VideosResizeController', () => {
         [videoId, 'https://authorized.test/random-source?signature=grant'],
       ]),
     );
-    await controller.resizeVideo(mockRequest, mockUser, videoId, {
-      height: 1080,
-      width: 1920,
-    });
+    const result = await controller.resizeVideo(
+      mockRequest,
+      mockUser,
+      videoId,
+      {
+        height: 1080,
+        width: 1920,
+      },
+    );
+    expect(result).toMatchObject({ data: { type: 'ingredient' } });
     expect(
       mockServices.authorizedMediaUrls.issueServerPublish,
     ).toHaveBeenCalledWith(mockUser.organizationId.toString(), [videoId]);
@@ -292,7 +310,13 @@ describe('VideosResizeController', () => {
       width: 1920,
     });
     const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
-    await controller.resizeVideo(mockRequest, mockUser, videoId, resizeParams);
+    const result = await controller.resizeVideo(
+      mockRequest,
+      mockUser,
+      videoId,
+      resizeParams,
+    );
+    expect(result).toMatchObject({ data: { type: 'ingredient' } });
 
     await vi.waitFor(() =>
       expect(
@@ -312,19 +336,50 @@ describe('VideosResizeController', () => {
       mockUser.id,
       `user:${mockUser.id}`,
     );
-    expect(mockServices.ingredientsService.patch).toHaveBeenCalledWith(
-      ingredientId,
-      {
-        status: IngredientStatus.GENERATED,
-        transformations: [TransformationCategory.RESIZED],
+    expect(ingredientRow).toEqual({
+      id: ingredientId,
+      isDeleted: false,
+      organizationId,
+      status: IngredientStatus.GENERATED,
+      transformations: [TransformationCategory.RESIZED],
+    });
+  });
+
+  it('keeps a resize the user cancelled while it ran failed and silent (#9735)', async () => {
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+    mockServices.fileQueueService.waitForJob.mockImplementationOnce(
+      async () => {
+        Object.assign(ingredientRow, {
+          generationError: 'Cancelled by user',
+          status: IngredientStatus.FAILED,
+        });
+        return { outputPath: '/tmp/video.mp4' };
       },
     );
-    expect(
-      mockServices.ingredientsService.patch.mock.invocationCallOrder[0],
-    ).toBeLessThan(
-      mockServices.websocketService.publishVideoComplete.mock
-        .invocationCallOrder[0],
+    mockServices.filesClientService.uploadToS3.mockResolvedValue({
+      s3Key: 'videos/resized.mp4',
+    });
+    const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
+    const result = await controller.resizeVideo(
+      mockRequest,
+      mockUser,
+      videoId,
+      resizeParams,
     );
+    expect(result).toMatchObject({ data: { type: 'ingredient' } });
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(ingredientRow).toEqual({
+      generationError: 'Cancelled by user',
+      id: ingredientId,
+      isDeleted: false,
+      organizationId,
+      status: IngredientStatus.FAILED,
+    });
+    expect(
+      mockServices.websocketService.publishVideoComplete,
+    ).not.toHaveBeenCalled();
+    expect(mockServices.metadataService.patch).not.toHaveBeenCalled();
   });
 
   it('does not publish VIDEO_RESIZED when the resize job fails', async () => {
@@ -333,7 +388,13 @@ describe('VideosResizeController', () => {
       new Error('ffmpeg failed'),
     );
     const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
-    await controller.resizeVideo(mockRequest, mockUser, videoId, resizeParams);
+    const result = await controller.resizeVideo(
+      mockRequest,
+      mockUser,
+      videoId,
+      resizeParams,
+    );
+    expect(result).toMatchObject({ data: { type: 'ingredient' } });
 
     await vi.waitFor(() =>
       expect(mockServices.loggerService.error).toHaveBeenCalledOnce(),
@@ -346,7 +407,13 @@ describe('VideosResizeController', () => {
   it('should create ingredient with PROCESSING status and VIDEO category', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const resizeParams: IResizeBodyParams = { height: 480, width: 640 };
-    await controller.resizeVideo(mockRequest, mockUser, videoId, resizeParams);
+    const result = await controller.resizeVideo(
+      mockRequest,
+      mockUser,
+      videoId,
+      resizeParams,
+    );
+    expect(result).toMatchObject({ data: { type: 'ingredient' } });
     expect(
       mockServices.sharedService.createMediaDocuments,
     ).toHaveBeenCalledWith(
@@ -441,7 +508,13 @@ describe('VideosResizeController', () => {
   it('should set parent to original video for resize', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
-    await controller.resizeVideo(mockRequest, mockUser, videoId, resizeParams);
+    const result = await controller.resizeVideo(
+      mockRequest,
+      mockUser,
+      videoId,
+      resizeParams,
+    );
+    expect(result).toMatchObject({ data: { type: 'ingredient' } });
     expect(
       mockServices.sharedService.createMediaDocuments,
     ).toHaveBeenCalledWith(
@@ -455,7 +528,13 @@ describe('VideosResizeController', () => {
   it('should include inputPath in processVideo params', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
-    await controller.resizeVideo(mockRequest, mockUser, videoId, resizeParams);
+    const result = await controller.resizeVideo(
+      mockRequest,
+      mockUser,
+      videoId,
+      resizeParams,
+    );
+    expect(result).toMatchObject({ data: { type: 'ingredient' } });
     expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
       expect.objectContaining({
         params: expect.objectContaining({

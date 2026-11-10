@@ -1,18 +1,57 @@
 import { getEditorialArticleCoverUrl } from '@data/editorial-og.data';
 import { stringifyJsonLd } from '@data/json-ld';
+import { buildModelCredits } from '@data/model-credits';
 import {
   creatorArticlePath,
   creatorProfilePath,
 } from '@genfeedai/contracts/constants';
 import { buildArticleJsonLd } from '@genfeedai/helpers';
 import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
-import type { PublicArticleViewProps } from '@props/content/public-article.props';
+import type {
+  ArticleGenerationBlockData,
+  PublicArticleViewProps,
+} from '@props/content/public-article.props';
+import { getPublicModels } from '@public/models/models-loader';
 import { EnvironmentService } from '@services/core/environment.service';
+import { PublicService } from '@services/external/public.service';
 import { notFound } from 'next/navigation';
-import { getPublicBrandBySlug } from '../../creator-loader';
+import {
+  getPublicBrandBySlug,
+  getPublicReferralCode,
+} from '../../creator-loader';
 import { resolvePublicArticleAuthor } from './article-author';
 import ArticleDetailContent from './article-detail';
+import { toArticleGenerationBlocks } from './article-generations';
 import { getCreatorArticleCached } from './article-loader';
+
+/**
+ * The generation blocks the article embeds, with model labels from the public
+ * catalog. A failed load renders the article without its blocks.
+ */
+async function loadArticleGenerations(
+  articleId: string,
+): Promise<Record<string, ArticleGenerationBlockData>> {
+  try {
+    const [ingredients, catalog] = await Promise.all([
+      PublicService.getInstance().findArticleGenerations(articleId),
+      getPublicModels(),
+    ]);
+    return toArticleGenerationBlocks(
+      ingredients,
+      buildModelCredits(
+        catalog,
+        ingredients.map((ingredient) => ({
+          model:
+            typeof ingredient.metadata === 'object'
+              ? ingredient.metadata?.model
+              : undefined,
+        })),
+      ),
+    );
+  } catch {
+    return {};
+  }
+}
 
 /**
  * The rendered article, shared by the cached public route and the dynamic
@@ -39,6 +78,10 @@ export default async function ArticleView({
 
   const handle = requestedHandle.toLowerCase();
   const brand = await getPublicBrandBySlug(handle).catch(() => null);
+  const [referralCode, generations] = await Promise.all([
+    brand ? getPublicReferralCode(brand.id) : null,
+    loadArticleGenerations(article.id),
+  ]);
   const articlePath = creatorArticlePath(handle, slug);
   const articleUrl = `${EnvironmentService.apps.website}${articlePath}`;
   const profileUrl = `${EnvironmentService.apps.website}${creatorProfilePath(handle)}`;
@@ -57,36 +100,40 @@ export default async function ArticleView({
       ? article.label.trim()
       : 'Article';
 
-  const articleJsonLd = buildArticleJsonLd({
-    author: authorLabel ?? {
-      name: brandName,
-      url: profileUrl,
-    },
-    body: typeof article.content === 'string' ? article.content : undefined,
-    dateModified: article.updatedAt || article.createdAt,
-    datePublished: article.publishedAt || article.createdAt,
-    description:
-      typeof article.summary === 'string' ? article.summary : undefined,
-    headline,
-    // The artwork first — it is the article's own image — then the composed
-    // social card, which is what a share preview actually renders.
-    imageUrls: [
-      getEditorialArticleCoverUrl(slug, article.coverImageUrl),
-      `${articleUrl}/og`,
-    ],
-    inLanguage: 'en-US',
-    keywords: article.tags
-      ?.map((tag) => (typeof tag?.label === 'string' ? tag.label : undefined))
-      .filter((label): label is string => Boolean(label)),
-    mainEntityUrl: articleUrl,
-    publisher: {
-      logoUrl: cdnAsset('/assets/branding/logo.jpg'),
-      name: 'Genfeed',
-      url: 'https://genfeed.ai',
-    },
-    url: articleUrl,
-    wordCount: article.wordCount || undefined,
-  });
+  const articleJsonLd = {
+    ...buildArticleJsonLd({
+      author: authorLabel ?? {
+        name: brandName,
+        url: profileUrl,
+      },
+      body: typeof article.content === 'string' ? article.content : undefined,
+      dateModified: article.updatedAt || article.createdAt,
+      datePublished: article.publishedAt || article.createdAt,
+      description:
+        typeof article.summary === 'string' ? article.summary : undefined,
+      headline,
+      // The artwork first — it is the article's own image — then the composed
+      // social card, which is what a share preview actually renders.
+      imageUrls: [
+        getEditorialArticleCoverUrl(slug, article.coverImageUrl),
+        `${articleUrl}/og`,
+      ],
+      inLanguage: 'en-US',
+      keywords: article.tags
+        ?.map((tag) => (typeof tag?.label === 'string' ? tag.label : undefined))
+        .filter((label): label is string => Boolean(label)),
+      mainEntityUrl: articleUrl,
+      publisher: {
+        logoUrl: cdnAsset('/assets/branding/logo.jpg'),
+        name: 'Genfeed',
+        url: 'https://genfeed.ai',
+      },
+      url: articleUrl,
+      wordCount: article.wordCount || undefined,
+    }),
+    // A paid article (#9718): search engines see the preview, not the rest.
+    ...(article.accessLevel === 'paid' ? { isAccessibleForFree: false } : {}),
+  };
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
@@ -138,7 +185,9 @@ export default async function ArticleView({
         )}
         brand={brand}
         handle={handle}
+        generations={generations}
         isPreview={isPreview}
+        referralCode={referralCode}
       />
     </>
   );

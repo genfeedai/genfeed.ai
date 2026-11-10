@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { settleSharedIngredientGeneration } from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
@@ -143,23 +144,32 @@ export class VideosEffectsController {
           metadataData.id,
           new MetadataEntity(meta),
         );
-        await this.ingredientsService.patch(ingredientData.id, {
-          ...(meta.s3Key ? { s3Key: meta.s3Key } : {}),
-          status: IngredientStatus.GENERATED,
-          transformations: [TransformationCategory.REVERSED],
-        });
-
-        const websocketUrl = WebSocketPaths.video(ingredientData.id);
-        await this.websocketService.publishVideoComplete(
-          websocketUrl,
+        const isSettled = await settleSharedIngredientGeneration(
+          this.ingredientsService,
           {
-            eventType: WebSocketEventType.VIDEO_REVERSED,
+            data: {
+              ...(meta.s3Key ? { s3Key: meta.s3Key } : {}),
+              transformations: [TransformationCategory.REVERSED],
+            },
             id: ingredientData.id,
-            status: WebSocketEventStatus.COMPLETED,
+            organizationId: user.organizationId,
+            to: IngredientStatus.GENERATED,
           },
-          user.id,
-          getUserRoomName(user.id),
         );
+
+        if (isSettled) {
+          const websocketUrl = WebSocketPaths.video(ingredientData.id);
+          await this.websocketService.publishVideoComplete(
+            websocketUrl,
+            {
+              eventType: WebSocketEventType.VIDEO_REVERSED,
+              id: ingredientData.id,
+              status: WebSocketEventStatus.COMPLETED,
+            },
+            user.id,
+            getUserRoomName(user.id),
+          );
+        }
       })
       .catch((error: unknown) => {
         this.loggerService.error(`${url} failed`, error);
@@ -234,23 +244,32 @@ export class VideosEffectsController {
             metadataData.id,
             new MetadataEntity(meta),
           );
-          await this.ingredientsService.patch(ingredientData.id, {
-            ...(meta.s3Key ? { s3Key: meta.s3Key } : {}),
-            status: IngredientStatus.GENERATED,
-            transformations: [TransformationCategory.MIRRORED],
-          });
-
-          const websocketUrl = WebSocketPaths.video(ingredientData.id);
-          await this.websocketService.publishVideoComplete(
-            websocketUrl,
+          const isSettled = await settleSharedIngredientGeneration(
+            this.ingredientsService,
             {
-              eventType: WebSocketEventType.VIDEO_MIRRORED,
+              data: {
+                ...(meta.s3Key ? { s3Key: meta.s3Key } : {}),
+                transformations: [TransformationCategory.MIRRORED],
+              },
               id: ingredientData.id,
-              status: WebSocketEventStatus.COMPLETED,
+              organizationId: user.organizationId,
+              to: IngredientStatus.GENERATED,
             },
-            user.id,
-            getUserRoomName(user.id),
           );
+
+          if (isSettled) {
+            const websocketUrl = WebSocketPaths.video(ingredientData.id);
+            await this.websocketService.publishVideoComplete(
+              websocketUrl,
+              {
+                eventType: WebSocketEventType.VIDEO_MIRRORED,
+                id: ingredientData.id,
+                status: WebSocketEventStatus.COMPLETED,
+              },
+              user.id,
+              getUserRoomName(user.id),
+            );
+          }
 
           try {
             fs.unlinkSync(output);

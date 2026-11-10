@@ -1,3 +1,5 @@
+import { defineStateMachine } from './state-machine.util';
+
 /**
  * Publish content-campaign lifecycle.
  *
@@ -107,6 +109,53 @@ export function canApplyContentCampaignLifecycle(
 ): boolean {
   return CONTENT_CAMPAIGN_LIFECYCLE_ALLOWED_FROM[action].has(status);
 }
+
+/**
+ * `campaigns.status` edges (#9740). Start, pause and complete move a campaign
+ * from the statuses `CONTENT_CAMPAIGN_LIFECYCLE_ALLOWED_FROM` allows (a no-op
+ * when it is already there); archive moves any campaign to ARCHIVED, and
+ * restore brings an archived one back (to DRAFT unless the caller names a
+ * status). Nothing writes SCHEDULED yet except an explicit update.
+ *
+ * Archive, restore and `PATCH /campaigns/:id` do not compare the current
+ * status yet.
+ */
+export const CONTENT_CAMPAIGN_STATE_MACHINE =
+  defineStateMachine<ContentCampaignStatus>({
+    terminal: [ContentCampaignStatus.COMPLETED, ContentCampaignStatus.ARCHIVED],
+    transitions: {
+      [ContentCampaignStatus.DRAFT]: [
+        ContentCampaignStatus.ACTIVE,
+        ContentCampaignStatus.PAUSED,
+        ContentCampaignStatus.COMPLETED,
+        ContentCampaignStatus.ARCHIVED,
+      ],
+      [ContentCampaignStatus.SCHEDULED]: [
+        ContentCampaignStatus.ACTIVE,
+        ContentCampaignStatus.PAUSED,
+        ContentCampaignStatus.COMPLETED,
+        ContentCampaignStatus.ARCHIVED,
+      ],
+      [ContentCampaignStatus.ACTIVE]: [
+        ContentCampaignStatus.PAUSED,
+        ContentCampaignStatus.COMPLETED,
+        ContentCampaignStatus.ARCHIVED,
+      ],
+      [ContentCampaignStatus.PAUSED]: [
+        ContentCampaignStatus.ACTIVE,
+        ContentCampaignStatus.COMPLETED,
+        ContentCampaignStatus.ARCHIVED,
+      ],
+      [ContentCampaignStatus.COMPLETED]: [ContentCampaignStatus.ARCHIVED],
+      [ContentCampaignStatus.ARCHIVED]: [
+        ContentCampaignStatus.DRAFT,
+        ContentCampaignStatus.SCHEDULED,
+        ContentCampaignStatus.ACTIVE,
+        ContentCampaignStatus.PAUSED,
+        ContentCampaignStatus.COMPLETED,
+      ],
+    },
+  });
 
 /**
  * Paid activation program status. Provider resources stay paused until a

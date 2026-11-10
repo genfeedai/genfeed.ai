@@ -75,12 +75,12 @@
     "creditUsage": "{count, plural, one {# credit used} other {# credits used}}",
     "creditUsageLabel": "Credit usage",
     "credits": {
-      "add": "{creditCategory, select, refund {{source, select, none {Credits refunded} other {Credit refund: {source}}}} rollover {{source, select, none {Credits rolled over} other {Credits rolled over: {source}}}} other {{source, select, none {Credits added} other {{source}}}}}",
-      "remove": "{creditCategory, select, expire {{source, select, none {Credits expired} other {Credits expired: {source}}}} byok_usage {{source, select, none {AI usage} other {{source}}} (your API key)} other {{source, select, none {Credit usage — details unavailable} other {{source}}}}}",
+      "add": "{creditCategory, select, refund {{source, select, none {Credits refunded} other {Credit refund: {source}}}} transfer_in {{source, select, none {Credits received} other {Credits received: {source}}}} rollover {{source, select, none {Credits rolled over} other {Credits rolled over: {source}}}} other {{source, select, none {Credits added} other {{source}}}}}",
+      "remove": "{creditCategory, select, expire {{source, select, none {Credits expired} other {Credits expired: {source}}}} transfer_out {{source, select, none {Credits sent} other {Credits sent: {source}}}} byok_usage {{source, select, none {AI usage} other {{source}}} (your API key)} other {{source, select, none {Credit usage — details unavailable} other {{source}}}}}",
       "remove_all": "Removed all credits",
       "low": "Credits are running low",
       "reset": "{source, select, none {Credit balance reset} other {Credit balance reset: {source}}}",
-      "change": "{creditCategory, select, byok_usage {No credits charged} reset {Balance set to {count, plural, one {{amount} credit} other {{amount} credits}}} add {+{count, plural, one {{amount} credit} other {{amount} credits}}} refund {+{count, plural, one {{amount} credit} other {{amount} credits}}} rollover {+{count, plural, one {{amount} credit} other {{amount} credits}}} other {−{count, plural, one {{amount} credit} other {{amount} credits}}}}"
+      "change": "{creditCategory, select, byok_usage {No credits charged} reset {Balance set to {count, plural, one {{amount} credit} other {{amount} credits}}} add {+{count, plural, one {{amount} credit} other {{amount} credits}}} refund {+{count, plural, one {{amount} credit} other {{amount} credits}}} rollover {+{count, plural, one {{amount} credit} other {{amount} credits}}} transfer_in {+{count, plural, one {{amount} credit} other {{amount} credits}}} other {−{count, plural, one {{amount} credit} other {{amount} credits}}}}"
     },
     "fallback": "{fallbackSubject}",
     "lifecycle": {
@@ -2332,6 +2332,17 @@
       "previewLink": "Preview link",
       "shareDomain": "genfeed.ai",
       "untitled": "Untitled Article"
+    },
+    "access": {
+      "title": "Who can read it",
+      "publicIntro": "Everyone can read the full article.",
+      "paidIntro": "Readers see a preview. Your paying subscribers read it all, and others can unlock it once when you set a price.",
+      "paidLabel": "Paid article",
+      "unlockPriceLabel": "One-time unlock price (credits)",
+      "unlockPriceHelp": "Leave empty for subscribers only, or set {min} to {max} credits.",
+      "unlockPriceInvalid": "Enter a whole number of credits in range, or leave it empty.",
+      "save": "Save",
+      "saving": "Saving…"
     }
   },
   "newsletterEditor": {
@@ -3003,10 +3014,7 @@
     "externalUrlSave": "Save link",
     "externalUrlClear": "Remove link",
     "externalUrlSaved": "Live link saved",
-    "externalUrlFailed": "Could not save the live link",
-    "substackTitle": "Import into Substack",
-    "substackHint": "Substack has no publishing API. In Substack, open Settings, choose Import, and paste this feed. It lists the brand’s published issues.",
-    "copyFeed": "Copy feed URL"
+    "externalUrlFailed": "Could not save the live link"
   },
   "taskComposer": {
     "title": "New Task",

@@ -1,7 +1,7 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IngredientStatus } from '@genfeedai/contracts';
+import { INGREDIENT_READY_STATUSES } from '@genfeedai/contracts';
 import type {
   BrandRemixDraft,
   BrandRemixDraftEdits,
@@ -11,11 +11,9 @@ import type {
 import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 
-export const GENERATION_READY_STATUSES = new Set<string>([
-  IngredientStatus.GENERATED,
-  IngredientStatus.UPLOADED,
-  IngredientStatus.VALIDATED,
-]);
+export const GENERATION_READY_STATUSES = new Set<string>(
+  INGREDIENT_READY_STATUSES,
+);
 export const SUPPORTED_ASPECT_RATIOS = new Set(['1:1', '4:5', '9:16', '16:9']);
 export const MAX_ERROR_LENGTH = 900;
 export const MAX_SERIALIZATION_RETRIES = 3;

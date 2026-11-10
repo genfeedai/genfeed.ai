@@ -1,5 +1,11 @@
-import type { ReferenceImageCategory } from '@genfeedai/contracts';
-import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type {
+  BrandKitSlot,
+  ReferenceImageCategory,
+} from '@genfeedai/contracts';
+import {
+  API_ENDPOINTS,
+  type BrandLogoDownloadFormat,
+} from '@genfeedai/contracts/constants';
 import type {
   IActivity,
   IAnalytics,
@@ -11,7 +17,12 @@ import type {
   IBrandKitAssetImportRequest,
   IBrandKitAssetImportResponse,
   IBrandKitDraft,
+  IBrandKitImportResult,
+  IBrandKitLogoColor,
   IBrandKitManualInput,
+  IBrandKitPlatformFillRequest,
+  IBrandKitPlatformFillResult,
+  IBrandKitView,
   IBrandOnboardingScan,
   IBrandOnboardingScanRequest,
   IBrandOsDraftHandoff,
@@ -621,6 +632,90 @@ export class BrandsService extends BaseService<Brand> {
     return this.instance
       .patch<JsonApiResponseDocument>(`/${id}`, settings)
       .then((res) => this.mapOne(res.data));
+  }
+
+  /** Resize the master banner into the chosen platform image slots. */
+  public async fillPlatformImagesFromMaster(
+    id: string,
+    slots: BrandKitSlot[],
+  ): Promise<IBrandKitPlatformFillResult[]> {
+    const request: IBrandKitPlatformFillRequest = { slots };
+    return this.instance
+      .post<{ data: IBrandKitPlatformFillResult[] }>(
+        `/${id}/kit/platform-images/from-master`,
+        request,
+      )
+      .then((res) => res.data.data);
+  }
+
+  /** Candidate palette colors read from the primary logo. Saves nothing. */
+  public async getLogoColorCandidates(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IBrandKitLogoColor[]> {
+    return this.instance
+      .get<{ data: IBrandKitLogoColor[] }>(`/${id}/kit/logo-colors`, {
+        signal,
+      })
+      .then((res) => res.data.data);
+  }
+
+  /** The whole kit: colors, palette, fonts by role, logos and platform images. */
+  public async getKit(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IBrandKitView> {
+    return this.instance
+      .get<{ data: IBrandKitView }>(`/${id}/kit`, { signal })
+      .then((res) => res.data.data);
+  }
+
+  /** The whole kit as a ZIP of every file plus a manifest. */
+  public async exportKit(id: string, signal?: AbortSignal): Promise<Blob> {
+    return this.instance
+      .get<Blob>(`/${id}/kit/export`, {
+        responseType: 'blob',
+        signal,
+        timeout: 120000,
+      })
+      .then((res) => res.data);
+  }
+
+  /**
+   * One logo variant as PNG, WEBP or SVG. PNG and WEBP render at `size` px on
+   * the longest side; SVG is only there for a logo uploaded as an SVG.
+   */
+  public async downloadKitLogo(
+    id: string,
+    slot: BrandKitSlot,
+    format: BrandLogoDownloadFormat,
+    size: number,
+    signal?: AbortSignal,
+  ): Promise<Blob> {
+    return this.instance
+      .get<Blob>(`/${id}/kit/logos/${slot}/download`, {
+        params: format === 'svg' ? { format } : { format, size },
+        responseType: 'blob',
+        signal,
+        timeout: 60000,
+      })
+      .then((res) => res.data);
+  }
+
+  /** Import a kit ZIP exported from any brand into this one. */
+  public async importKit(
+    id: string,
+    file: File,
+    signal?: AbortSignal,
+  ): Promise<IBrandKitImportResult> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.instance
+      .post<{ data: IBrandKitImportResult }>(`/${id}/kit/import`, form, {
+        signal,
+        timeout: 120000,
+      })
+      .then((res) => res.data.data);
   }
 
   public async updateEndCard(

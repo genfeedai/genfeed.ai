@@ -35,7 +35,6 @@ const INGREDIENT_SCALAR_FIELDS = [
   'isDeleted',
   'isFeatured',
   'isFavorite',
-  'isHighlighted',
   'isMergeEnabled',
   'isPublic',
   'isVoiceActive',

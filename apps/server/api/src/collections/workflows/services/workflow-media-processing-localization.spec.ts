@@ -1,3 +1,4 @@
+import { ingredientRowWorld } from '@api-test/fixtures/ingredient-row.world';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 
 vi.mock('@api/collections/captions/services/captions.service', () => ({
@@ -89,10 +90,17 @@ function setup(isAuthorizedMediaDeliveryEnabled = false) {
       },
     ],
   ]);
+  const output: Record<string, unknown> = {
+    id: 'result',
+    isDeleted: false,
+    organizationId: 'org',
+    status: IngredientStatus.PROCESSING,
+  };
   const ingredients = {
     findOne: vi.fn(async ({ id }: { id: string }) => assets.get(id)),
     findOneSelect: delegateFindOneSelect(),
-    patch: vi.fn().mockResolvedValue({}),
+    patch: vi.fn(ingredientRowWorld(output).patch),
+    patchAll: vi.fn(ingredientRowWorld(output).patchAll),
   };
   const metadata = { patch: vi.fn().mockResolvedValue({}) };
   const shared = {
@@ -207,6 +215,7 @@ function setup(isAuthorizedMediaDeliveryEnabled = false) {
   return {
     assets,
     ingredients,
+    output,
     metadata,
     shared,
     files,
@@ -281,13 +290,10 @@ describe('workflow media composition integration', () => {
           publicUrl: 'https://cdn.example/result.mp4',
         }),
       );
-      expect(h.ingredients.patch).toHaveBeenCalledWith(
-        'result',
-        expect.objectContaining({
-          status: IngredientStatus.GENERATED,
-          s3Key: 'ingredients/videos/result.mp4',
-        }),
-      );
+      expect(h.output).toMatchObject({
+        status: IngredientStatus.GENERATED,
+        s3Key: 'ingredients/videos/result.mp4',
+      });
       expect(result).toMatchObject({
         id: 'result',
         videoUrl: 'https://cdn.example/ingredients/videos/result',
@@ -299,7 +305,7 @@ describe('workflow media composition integration', () => {
     const source = h.assets.get('clip-1');
     if (!source) throw new Error('Missing video fixture');
     source.s3Key = 'ingredients/videos/nested/raw %2F?part=#video.mp4';
-    await h.run(
+    const result = await h.run(
       'soundOverlay',
       new Map<string, unknown>([
         [
@@ -309,6 +315,7 @@ describe('workflow media composition integration', () => {
         ['soundUrl', { id: 'speech' }],
       ]),
     );
+    expect(result).toMatchObject({ id: 'result' });
     expect(h.files.getPresignedDownloadUrlForObjectKey).toHaveBeenCalledWith(
       source.s3Key,
     );
@@ -323,7 +330,7 @@ describe('workflow media composition integration', () => {
   });
   it('uses fresh organization-bound issuer grants when private delivery is enabled', async () => {
     const h = setup(true);
-    await h.run(
+    const result = await h.run(
       'soundOverlay',
       new Map<string, unknown>([
         [
@@ -336,6 +343,7 @@ describe('workflow media composition integration', () => {
         ],
       ]),
     );
+    expect(result).toMatchObject({ id: 'result' });
     expect(h.issuer.issueServerPublish).toHaveBeenCalledWith('org', ['clip-1']);
     expect(h.issuer.issueServerPublish).toHaveBeenCalledWith('org', ['speech']);
     expect(h.files.audioOverlay).toHaveBeenCalledWith(
@@ -354,13 +362,14 @@ describe('workflow media composition integration', () => {
       if (!source) throw new Error('Missing media fixture');
       source.s3Key = '';
     }
-    await h.run(
+    const result = await h.run(
       'soundOverlay',
       new Map<string, unknown>([
         ['videoUrl', { id: 'clip-1' }],
         ['soundUrl', { id: 'speech' }],
       ]),
     );
+    expect(result).toMatchObject({ id: 'result' });
     expect(h.files.getPresignedDownloadUrl).toHaveBeenCalledWith(
       'clip-1',
       'videos',
@@ -390,6 +399,37 @@ describe('workflow media composition integration', () => {
     expect(h.issuer.issueServerPublish).not.toHaveBeenCalled();
     expect(h.files.audioOverlay).not.toHaveBeenCalled();
   });
+  it('keeps a soundtrack output the user cancelled while it encoded failed (#9735)', async () => {
+    const h = setup();
+    h.files.audioOverlay.mockImplementation(async () => {
+      Object.assign(h.output, {
+        generationError: 'Cancelled by user',
+        status: IngredientStatus.FAILED,
+      });
+      return {
+        duration: 30,
+        publicUrl: 'https://cdn.example/result.mp4',
+        s3Key: 'ingredients/videos/result.mp4',
+      };
+    });
+
+    await expect(
+      h.run(
+        'soundOverlay',
+        new Map<string, unknown>([
+          ['videoUrl', { id: 'clip-1' }],
+          ['soundUrl', { id: 'speech' }],
+        ]),
+      ),
+    ).rejects.toThrow('The generation was stopped before it finished');
+    expect(h.output).toEqual({
+      generationError: 'Cancelled by user',
+      id: 'result',
+      isDeleted: false,
+      organizationId: 'org',
+      status: IngredientStatus.FAILED,
+    });
+  });
   it('marks soundtrack output failed when encoding fails', async () => {
     const h = setup();
     h.files.audioOverlay.mockRejectedValue(new Error('encoding failed'));
@@ -402,9 +442,7 @@ describe('workflow media composition integration', () => {
         ]),
       ),
     ).rejects.toThrow('encoding failed');
-    expect(h.ingredients.patch).toHaveBeenCalledWith('result', {
-      status: IngredientStatus.FAILED,
-    });
+    expect(h.output.status).toBe(IngredientStatus.FAILED);
     expect(h.metadata.patch).not.toHaveBeenCalled();
   });
   it('rejects an incompatible soundtrack output brand before creating media', async () => {

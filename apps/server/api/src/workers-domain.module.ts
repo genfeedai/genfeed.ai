@@ -57,6 +57,7 @@ import { InsightsService } from '@api/collections/insights/services/insights.ser
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { NewsletterProviderEventsService } from '@api/collections/newsletter-sends/services/newsletter-provider-events.service';
 import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -338,6 +339,7 @@ const WORKER_DOMAIN_SERVICES = [
   LeonardoAIService,
   LifecycleEmailDeliveryService,
   EmailPerformanceService,
+  NewsletterProviderEventsService,
   SystemEmailEligibilityService,
   LinkedInPublisherService,
   LinkedInService,

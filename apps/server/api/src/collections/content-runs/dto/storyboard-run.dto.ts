@@ -208,6 +208,44 @@ export class StartStoryboardShotRendersDto extends ControlStoryboardRunDto {
   inputHash!: string;
 }
 
+export class QuoteStoryboardAssetsDto extends ControlStoryboardRunDto {
+  @ApiProperty()
+  @IsString()
+  entryId!: string;
+
+  @ApiProperty({ enum: ['variants', 'angles', 'costume', 'edit'] })
+  @IsIn(['variants', 'angles', 'costume', 'edit'])
+  action!: 'variants' | 'angles' | 'costume' | 'edit';
+
+  @ApiProperty({ maximum: 4, minimum: 1, required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(4)
+  count?: number;
+
+  @ApiProperty({ maxItems: 6, minItems: 1, required: false, type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(6)
+  @IsString({ each: true })
+  @MaxLength(60, { each: true })
+  angles?: string[];
+
+  @ApiProperty({ maxLength: 1_000, required: false })
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(1_000)
+  instruction?: string;
+}
+export class StartStoryboardAssetsDto extends QuoteStoryboardAssetsDto {
+  @ApiProperty()
+  @IsString()
+  inputHash!: string;
+}
+
 export class QuoteStoryboardARollDto extends ControlStoryboardRunDto {}
 export class TranslateStoryboardRunDto extends ControlStoryboardRunDto {
   @ApiProperty({ format: 'uuid' })

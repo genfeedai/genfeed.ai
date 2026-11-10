@@ -103,6 +103,8 @@ export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/publishing/campaigns/:id/performance',
   '/:orgSlug/~/publishing/campaigns/:id/ads',
   '/:orgSlug/~/publishing/campaigns/:id/edit',
+  '/:orgSlug/~/publishing/newsletter',
+  '/:orgSlug/~/publishing/newsletter/settings',
 ] as const);
 
 export const PROTECTED_HARD_CUT_PREFIXES = Object.freeze([
@@ -240,6 +242,9 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/articles',
     '/changelog',
     '/community',
+    '/community/creators',
+    '/community/images',
+    '/community/videos',
     // Served at /@:handle/* through a next.config rewrite: an `@` folder is a
     // parallel-route slot, so the pages live under this internal segment.
     '/creator-profile/:handle',
@@ -251,6 +256,8 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/creator-profile/:handle/posts',
     '/creator-profile/:handle/posts/:id',
     '/creator-profile/:handle/videos',
+    '/newsletter',
+    '/newsletter/:id',
     '/posts',
     '/posts/:id',
   ] as const),

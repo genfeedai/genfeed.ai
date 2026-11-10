@@ -63,6 +63,7 @@ enum IngredientCategory {
   INGREDIENT
   TEXT
   SOURCE
+  MODEL_3D
 }
 
 enum IngredientStatus {
@@ -143,6 +144,7 @@ enum MetadataExtension {
   AVI
   MP3
   WAV
+  GLB
 }
 
 enum PromptCategory {
@@ -243,6 +245,7 @@ enum CredentialPlatform {
   UNIPILE
   DEVTO
   RESTREAM
+  GENFEED
 }
 
 enum TagCategory {
@@ -272,6 +275,28 @@ enum AssetParent {
   INGREDIENT
   BRAND
   ARTICLE
+}
+
+/// The slot a brand logo or platform image fills in the brand kit. LOGO assets
+/// take a LOGO_* variant; BANNER assets take BANNER_MASTER or a platform slot.
+/// A brand keeps one live asset per slot. A null slot is a row written before
+/// slots existed and reads as LOGO_PRIMARY or BANNER_MASTER.
+enum BrandKitSlot {
+  LOGO_PRIMARY
+  LOGO_ICON
+  LOGO_WORDMARK
+  LOGO_LIGHT
+  LOGO_DARK
+  LOGO_MONOCHROME
+  BANNER_MASTER
+  X_HEADER
+  X_PROFILE
+  YOUTUBE_BANNER
+  YOUTUBE_PROFILE
+  LINKEDIN_COVER
+  LINKEDIN_LOGO
+  FACEBOOK_COVER
+  FACEBOOK_PROFILE
 }
 
 enum VoiceProvider {
@@ -463,6 +488,14 @@ enum SubscriptionStatus {
   PAST_DUE
   TRIALING
   INCOMPLETE
+}
+
+/// A reader's paid subscription to a creator (#9717). Cancelling keeps the
+/// subscription ACTIVE until the period ends; the renewal job then ends it.
+enum CreatorSubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  ENDED
 }
 
 enum BillingAccountStatus {
@@ -709,6 +742,8 @@ contentLearningOperations ContentLearningOperation[]
   articles                  Article[]
   articleAnalytics          ArticleAnalytics[]
   newsletters               Newsletter[]              @relation("newsletter_user")
+  creatorSubscriptionsPaid    CreatorSubscription[]        @relation("creator_subscription_payer_user")
+  articleUnlocksPaid          ArticleUnlock[]              @relation("article_unlock_payer_user")
   newsletterApprovals       Newsletter[]              @relation("newsletter_approved_by")
   newsletterPublishes       Newsletter[]              @relation("newsletter_published_by")
   trainings                 Training[]
@@ -881,6 +916,11 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   articles                      Article[]
   articleAnalytics              ArticleAnalytics[]
   newsletters                   Newsletter[]
+  creatorSubscriptionPlans      CreatorSubscriptionPlan[]
+  creatorSubscriptions          CreatorSubscription[]
+  creatorSubscriptionsPaid      CreatorSubscription[]          @relation("creator_subscription_payer_organization")
+  articleUnlocks                ArticleUnlock[]
+  articleUnlocksPaid            ArticleUnlock[]                @relation("article_unlock_payer_organization")
   trainings                     Training[]
   models                        Model[]
   personas                      Persona[]
@@ -1135,6 +1175,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   primaryColor             String       @default("#000000")
   secondaryColor           String       @default("#FFFFFF")
   backgroundColor          String       @default("transparent")
+  colorPalette             Json         @default("[]")
+  fontRoles                Json         @default("{}")
   referenceImages          Json         @default("[]")
   scope                    AssetScope   @default(USER)
   isActive                 Boolean      @default(true)
@@ -1142,6 +1184,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   isDeleted                Boolean      @default(false)
   isHighlighted            Boolean      @default(false)
   isFleetEnabled           Boolean      @default(false)
+  /// Distinct visitors to the public profile, at most one per visitor a day.
+  profileViewCount         Int          @default(0)
   defaultVideoModel        String?
   isPromptEnhancementEnabled Boolean?
   defaultImageModel        String?
@@ -1171,6 +1215,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   articles                   Article[]
   articleAnalytics           ArticleAnalytics[]
   newsletters                Newsletter[]
+  creatorSubscriptionPlan     CreatorSubscriptionPlan?
+  creatorSubscriptions        CreatorSubscription[]
   trainings                  Training[]
   personas                   Persona[]
   agentStrategies            AgentStrategy[]
@@ -1234,6 +1280,9 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   agentUntrustedContentAudits AgentUntrustedContentAudit[]
   bookmarks                  Bookmark[]
   moodBoard                  MoodBoard?                 @relation("brand_moodboard")
+  subscribers                BrandSubscriber[]
+  newsletterSettings         NewsletterSettings?
+  newsletterSends            NewsletterSend[]
   dashboardLayouts           DashboardLayout[]          @relation("brand_dashboard_layout")
   brandInterviews            BrandInterview[]
   llmVendorCosts             LlmVendorCost[]            @relation("llm_vendor_cost_brand")
@@ -2519,6 +2568,10 @@ model Ingredient {
   qualityScore          Float?
   qualityFeedback       String[]                 @default([])
   qualityStatus         QualityStatus            @default(UNRATED)
+  // Community gallery counters (#9670): a visitor's view counts once a day,
+  // and so does their click on Recreate in Genfeed.
+  viewCount             Int                      @default(0)
+  recreateCount         Int                      @default(0)
 
   // Voice discriminator fields (only populated when category = VOICE).
   // Imported account voices (voiceSource 'imported') are unique on
@@ -2826,6 +2879,7 @@ model Asset {
   parentArticleId    String?
   category           AssetCategory
   referenceCategory  ReferenceImageCategory?
+  kitSlot            BrandKitSlot?
   externalId         String?
   localAssetId       String?
   cloudObjectKey     String?
@@ -2837,6 +2891,12 @@ model Asset {
   residency          String?
   uploadPolicy       String?
   originalFileName   String?
+  /// The uploaded file's format (svg, png, jpeg, webp, gif) and nominal size.
+  originalFormat     String?
+  originalWidth      Int?
+  originalHeight     Int?
+  /// Storage key of the sanitized SVG original. Never served from the media CDN.
+  vectorObjectKey    String?
   displayName        String?
   isDeleted          Boolean                 @default(false)
   createdAt          DateTime                @default(now())
@@ -3789,6 +3849,10 @@ model CreditBalance {
   billingAccount   BillingAccount? @relation(fields: [billingAccountId], references: [id])
   balance          Float           @default(0)
   heldAmount       Float           @default(0)
+  /// Part of `balance` received from other organizations (tips, creator
+  /// subscriptions, unlocks). Never expires and survives plan resets; spending
+  /// draws on the rest of the balance first, so it is clamped to `balance`.
+  earnedBalance    Float           @default(0)
   version          Int             @default(0)
   isDeleted        Boolean         @default(false)
   createdAt        DateTime        @default(now())
@@ -4313,6 +4377,14 @@ model Article {
   publishedAt    DateTime?
   // Live URL recorded when the article was published outside Genfeed (#6753).
   externalUrl    String?
+  // Readers of the public article page, counted once a day per visitor (#9663).
+  viewCount      Int           @default(0)
+  // Who reads it in full (#9718): public | paid. Everyone else
+  // gets the preview; the server withholds the rest.
+  accessLevel           String        @default("public")
+  // One-time unlock price in credits for a paid article; null = paying
+  // subscribers only.
+  unlockPriceCredits    Int?
   isDeleted      Boolean       @default(false)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -4322,6 +4394,7 @@ model Article {
   postEntities     Post[]             @relation("post_entity_article")
   articleAnalytics ArticleAnalytics[]
   newsletters      Newsletter[]       @relation("newsletter_articles")
+  unlocks          ArticleUnlock[]
 
   category String?
   scope    String?
@@ -4334,6 +4407,29 @@ model Article {
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([slug])
   @@map("articles")
+}
+
+/// A reader's one-time unlock of a paid article (#9718), paid through the
+/// credit transfer ledger. The row belongs to the creator's organization.
+model ArticleUnlock {
+  id                  String       @id @default(cuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  articleId           String
+  article             Article      @relation(fields: [articleId], references: [id])
+  payerOrganizationId String
+  payerOrganization   Organization @relation("article_unlock_payer_organization", fields: [payerOrganizationId], references: [id])
+  payerUserId         String
+  payerUser           User         @relation("article_unlock_payer_user", fields: [payerUserId], references: [id])
+  priceCredits        Int
+  transferId          String
+  isDeleted           Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@unique([articleId, payerUserId])
+  @@index([organizationId, isDeleted])
+  @@map("article_unlocks")
 }
 
 model ArticleAnalytics {
@@ -4360,6 +4456,64 @@ model ArticleAnalytics {
   @@index([organizationId, date(sort: Desc)])
   @@index([brandId, date(sort: Desc)])
   @@map("article_analytics")
+}
+
+/// A creator's paid subscription offer: one monthly price in credits per
+/// public brand (#9717). Turning it off keeps existing subscribers until their
+/// period ends; it only stops new sign-ups.
+model CreatorSubscriptionPlan {
+  id                  String       @id @default(cuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  brandId             String       @unique
+  brand               Brand        @relation(fields: [brandId], references: [id])
+  monthlyPriceCredits Int
+  isEnabled           Boolean      @default(true)
+  isDeleted           Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@index([organizationId, isDeleted])
+  @@map("creator_subscription_plans")
+}
+
+/// A reader paying a creator monthly in credits (#9717). The row belongs to
+/// the creator's organization (it is their subscriber list); the payer is a
+/// signed-in user paying from their own organization. Each period is charged
+/// through the credit transfer ledger. At most one ACTIVE or PAST_DUE row per
+/// reader and brand (partial unique index in the migration).
+model CreatorSubscription {
+  id                   String                    @id @default(cuid())
+  organizationId       String
+  organization         Organization              @relation(fields: [organizationId], references: [id])
+  brandId              String
+  brand                Brand                     @relation(fields: [brandId], references: [id])
+  payerOrganizationId  String
+  payerOrganization    Organization              @relation("creator_subscription_payer_organization", fields: [payerOrganizationId], references: [id])
+  payerUserId          String
+  payerUser            User                      @relation("creator_subscription_payer_user", fields: [payerUserId], references: [id])
+  /// Locked when the reader subscribes; a later plan price change applies to new subscribers.
+  priceCredits         Int
+  status               CreatorSubscriptionStatus @default(ACTIVE)
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean                   @default(false)
+  /// When the first failed renewal of the current past-due stretch happened.
+  pastDueSince         DateTime?
+  endedAt              DateTime?
+  /// Ledger transfer id of the first month's charge. One charge backs at most
+  /// one subscription, so a replayed charge never opens a second one.
+  firstChargeTransferId String                    @unique
+  /// Ledger transfer id of the latest successful charge.
+  lastChargeTransferId String?
+  isDeleted            Boolean                   @default(false)
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  @@index([organizationId, brandId, status, isDeleted])
+  @@index([payerUserId, isDeleted])
+  @@index([status, currentPeriodEnd])
+  @@map("creator_subscriptions")
 }
 
 model Newsletter {
@@ -4392,6 +4546,10 @@ model Newsletter {
   scheduledFor         DateTime?
   // Live URL recorded when the issue was sent outside Genfeed (#6753).
   externalUrl          String?
+  /// Who may read the full issue (#9718): `public`, `subscribers` or `paid`.
+  accessLevel          String             @default("public")
+  /// One-time unlock price in credits for a `paid` issue (#9718).
+  unlockPriceCredits   Int?
   isDeleted            Boolean            @default(false)
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
@@ -4400,10 +4558,193 @@ model Newsletter {
   postEntities       Post[]       @relation("post_entity_newsletter")
   contextNewsletters Newsletter[] @relation("newsletter_context")
   contextOf          Newsletter[] @relation("newsletter_context")
+  sends              NewsletterSend[]
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([approvedVersionPinId], map: "newsletters_approvedVersionPinId_idx")
   @@map("newsletters")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NEWSLETTER MODULE (#9722): subscribers, settings, sends, tracking
+// ═══════════════════════════════════════════════════════════════
+
+/// A reader subscribed to one brand (#9665). The address is kept only for
+/// delivery; suppression and analytics use the one-way `emailHash`.
+model BrandSubscriber {
+  id               String                    @id @default(cuid())
+  organizationId   String
+  brandId          String
+  brand            Brand                     @relation(fields: [brandId], references: [id])
+  /// Set when the subscriber also has a Genfeed account.
+  userId           String?
+  email            String
+  emailHash        String
+  name             String?
+  tags             String[]                  @default([])
+  /// `pending | active | unsubscribed | bounced | complained`.
+  status           String                    @default("pending")
+  /// Where the subscriber came from: `profile`, `article`, `homepage`, `footer`, `manual`, `import`.
+  source           String                    @default("manual")
+  /// The article, post or issue that converted the subscriber.
+  sourceRef        String?
+  /// `double_opt_in` or `owner_attested` (manual add or CSV import).
+  consentMethod    String?
+  consentAt        DateTime?
+  consentIp        String?
+  importId         String?
+  confirmTokenHash String?                   @unique
+  confirmSentAt    DateTime?
+  confirmedAt      DateTime?
+  unsubscribedAt   DateTime?
+  bouncedAt        DateTime?
+  complainedAt     DateTime?
+  isDeleted        Boolean                   @default(false)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  recipients       NewsletterSendRecipient[]
+
+  @@unique([brandId, emailHash])
+  @@index([organizationId, brandId, isDeleted, status])
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)])
+  @@map("brand_subscribers")
+}
+
+/// One CSV import, with the owner's consent confirmation and its counts.
+model BrandSubscriberImport {
+  id                 String   @id @default(cuid())
+  organizationId     String
+  brandId            String
+  /// The member who confirmed they hold consent for every address.
+  userId             String
+  fileName           String?
+  consentConfirmedAt DateTime
+  totalRows          Int      @default(0)
+  addedCount         Int      @default(0)
+  duplicateCount     Int      @default(0)
+  invalidCount       Int      @default(0)
+  suppressedCount    Int      @default(0)
+  isDeleted          Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)])
+  @@map("brand_subscriber_imports")
+}
+
+/// Per-brand sending identity, footer and welcome email.
+model NewsletterSettings {
+  id                   String   @id @default(cuid())
+  organizationId       String
+  brandId              String   @unique
+  brand                Brand    @relation(fields: [brandId], references: [id])
+  senderName           String?
+  replyTo              String?
+  postalAddress        String?
+  footerText           String?
+  isWelcomeEnabled     Boolean  @default(false)
+  welcomeSubject       String?
+  welcomeBody          String?
+  /// "Sent with Genfeed" footer link; only a paid plan may turn it off.
+  isAttributionEnabled Boolean  @default(true)
+  /// Monthly paid tier price in credits (#9717).
+  paidPriceCredits     Int?
+  isDeleted            Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([organizationId, isDeleted])
+  @@map("newsletter_settings")
+}
+
+/// One delivery of an issue to the brand's subscribers. `idempotencyKey`
+/// makes an issue send once; the rendered snapshot keeps later edits out.
+model NewsletterSend {
+  id             String                    @id @default(cuid())
+  organizationId String
+  brandId        String
+  brand          Brand                     @relation(fields: [brandId], references: [id])
+  newsletterId   String
+  newsletter     Newsletter                @relation(fields: [newsletterId], references: [id])
+  userId         String
+  idempotencyKey String                    @unique
+  /// `scheduled | sending | paused | canceled | completed | failed`.
+  status         String                    @default("scheduled")
+  scheduledFor   DateTime
+  startedAt      DateTime?
+  completedAt    DateTime?
+  canceledAt     DateTime?
+  lockedAt       DateTime?
+  subject        String
+  html           String
+  text           String
+  /// Preview variant for readers without full access to a gated issue.
+  previewHtml    String?
+  previewText    String?
+  /// Tracked destinations, addressed by index from the click redirect.
+  links          Json                      @default("[]")
+  recipientCount Int                       @default(0)
+  sentCount      Int                       @default(0)
+  failedCount    Int                       @default(0)
+  skippedCount   Int                       @default(0)
+  lastError      String?
+  isDeleted      Boolean                   @default(false)
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  recipients     NewsletterSendRecipient[]
+
+  @@index([status, scheduledFor])
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, newsletterId, isDeleted])
+  @@map("newsletter_sends")
+}
+
+/// One subscriber's copy of a send, with its provider receipts.
+model NewsletterSendRecipient {
+  id                String          @id @default(cuid())
+  organizationId    String
+  sendId            String
+  send              NewsletterSend  @relation(fields: [sendId], references: [id])
+  subscriberId      String
+  subscriber        BrandSubscriber @relation(fields: [subscriberId], references: [id])
+  recipientHash     String
+  /// `pending | sent | skipped | failed`.
+  status            String          @default("pending")
+  attemptCount      Int             @default(0)
+  nextAttemptAt     DateTime?
+  providerMessageId String?         @unique
+  lastError         String?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  openedAt          DateTime?
+  clickedAt         DateTime?
+  bouncedAt         DateTime?
+  complainedAt      DateTime?
+  unsubscribedAt    DateTime?
+  openCount         Int             @default(0)
+  clickCount        Int             @default(0)
+  isDeleted         Boolean         @default(false)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@unique([sendId, subscriberId])
+  @@index([sendId, status, nextAttemptAt])
+  @@index([organizationId, subscriberId, isDeleted])
+  @@map("newsletter_send_recipients")
+}
+
+/// First-party click on a tracked newsletter link.
+model NewsletterLinkClick {
+  id             String   @id @default(cuid())
+  organizationId String
+  sendId         String
+  recipientId    String
+  linkIndex      Int
+  occurredAt     DateTime @default(now())
+  isDeleted      Boolean  @default(false)
+
+  @@index([organizationId, sendId, isDeleted, linkIndex])
+  @@index([recipientId])
+  @@map("newsletter_link_clicks")
 }
 
 // ═══════════════════════════════════════════════════════════════

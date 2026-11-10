@@ -2,6 +2,7 @@ import {
   AGENT_VIDEO_MERGE_GATEWAY,
   type IAgentVideoMergeGateway,
 } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
+import { AgentAvatarTwinToolHandler } from '@api/services/agent-orchestrator/tools/agent-avatar-twin-tool-handler.service';
 import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-asset-generation.service';
 import {
   readMediaResponseString,
@@ -10,13 +11,14 @@ import {
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
   findInapplicableMediaTransformParameters,
+  isDigitalTwinTransformOperation,
   isMediaTransformOperation,
   MEDIA_MERGE_TRANSITION_EASE_UNSUPPORTED,
   MEDIA_MERGE_ZOOM_UNSUPPORTED,
   MEDIA_REFRAME_ASPECT_RATIOS,
   MEDIA_TRANSFORM_OPERATIONS,
   MEDIA_TRANSFORM_RESULT_KINDS,
-  type MediaTransformOperation,
+  type MediaOutputTransformOperation,
 } from '@genfeedai/actions';
 import { IngredientCategory, Status } from '@genfeedai/contracts';
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
@@ -55,6 +57,8 @@ function isVideoIdList(value: unknown): value is string[] {
  * provider-backed implementations in the asset service; merge goes through the
  * generation gateway to the same orchestration the REST endpoint uses, so the
  * organization, user and brand scope and the DTO validation are shared.
+ * The digital twin operations go to the twin enrollment, the same path as
+ * the in-app recorder (#9688).
  */
 @Traced()
 @Injectable()
@@ -63,6 +67,7 @@ export class AgentMediaTransformService {
     private readonly assetGeneration: AgentMediaAssetGenerationService,
     @Inject(AGENT_VIDEO_MERGE_GATEWAY)
     private readonly mergeGateway: IAgentVideoMergeGateway,
+    private readonly avatarTwins: AgentAvatarTwinToolHandler,
   ) {}
 
   async transformMedia(
@@ -97,12 +102,17 @@ export class AgentMediaTransformService {
     }
 
     const { operation: _operation, ...rest } = params;
+    if (isDigitalTwinTransformOperation(operation)) {
+      return operation === 'digital_twin'
+        ? this.avatarTwins.start(rest, ctx)
+        : this.avatarTwins.requestConsent(rest, ctx);
+    }
     const result = await this.run(operation, rest, ctx);
     return result.success ? this.withKind(result, operation) : result;
   }
 
   private run(
-    operation: MediaTransformOperation,
+    operation: MediaOutputTransformOperation,
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
@@ -223,7 +233,7 @@ export class AgentMediaTransformService {
   /** MCP cards read `kind` off the result data to pick image or video. */
   private withKind(
     result: AgentToolResult,
-    operation: MediaTransformOperation,
+    operation: MediaOutputTransformOperation,
   ): AgentToolResult {
     return {
       ...result,

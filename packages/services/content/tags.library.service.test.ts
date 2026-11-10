@@ -68,7 +68,9 @@ describe('TagsService library tags (#6011)', () => {
     );
     const controller = new AbortController();
 
-    await service.findLibraryTags({ signal: controller.signal });
+    const tags = await service.findLibraryTags({ signal: controller.signal });
+
+    expect(tags).toEqual([]);
 
     expect(http.get).toHaveBeenCalledWith('library', {
       params: { brandId: undefined, search: undefined },
@@ -105,7 +107,9 @@ describe('TagsService library tags (#6011)', () => {
       ),
     );
 
-    await service.createLibraryTag('Launch', TagScope.ORGANIZATION);
+    const tag = await service.createLibraryTag('Launch', TagScope.ORGANIZATION);
+
+    expect(tag).toMatchObject({ id: 'tag-4', scope: TagScope.ORGANIZATION });
 
     expect(http.post).toHaveBeenCalledWith('', {
       label: 'Launch',
@@ -120,11 +124,13 @@ describe('TagsService library tags (#6011)', () => {
       ),
     );
 
-    await service.createLibraryTag('Launch', TagScope.BRAND, {
+    const tag = await service.createLibraryTag('Launch', TagScope.BRAND, {
       backgroundColor: '#2563EB',
       name: 'Blue',
       textColor: '#FFFFFF',
     });
+
+    expect(tag).toMatchObject({ id: 'tag-5', label: 'Launch' });
 
     expect(http.post).toHaveBeenCalledWith('', {
       backgroundColor: '#2563EB',

@@ -1,4 +1,8 @@
 import {
+  assetJournalSchema,
+  projectAssetGenerations,
+} from '@api/collections/content-runs/services/storyboard-asset-bible-state';
+import {
   characterJournalSchema,
   characterStructuralAssociation,
 } from '@api/collections/content-runs/services/storyboard-character-replace-state';
@@ -20,12 +24,15 @@ export const storyboardStoredRunConfigSchema = z
       });
       return z.NEVER;
     }
-    // `shotRenders` is projected from the render journal, never stored.
+    // `shotRenders` and `assetGenerations` are projected from their
+    // journals, never stored.
     const {
       characterReplacementOperations,
       stillOperations,
       shotRenderOperations,
+      assetOperations,
       shotRenders: _projected,
+      assetGenerations: _projectedAssets,
       ...publicValue
     } = value as Record<string, unknown>;
     const config = storyboardRunConfigSchema.safeParse(publicValue);
@@ -71,6 +78,17 @@ export const storyboardStoredRunConfigSchema = z
       });
       return z.NEVER;
     }
+    const assets =
+      assetOperations === undefined
+        ? undefined
+        : assetJournalSchema.safeParse(assetOperations);
+    if (assets && !assets.success) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Invalid asset bible journal',
+      });
+      return z.NEVER;
+    }
     return {
       ...config.data,
       ...(journal?.success
@@ -78,6 +96,7 @@ export const storyboardStoredRunConfigSchema = z
         : {}),
       ...(stills?.success ? { stillOperations: stills.data } : {}),
       ...(renders?.success ? { shotRenderOperations: renders.data } : {}),
+      ...(assets?.success ? { assetOperations: assets.data } : {}),
     };
   });
 export type StoryboardStoredRunConfig = z.infer<
@@ -89,11 +108,13 @@ export function storyboardPublicConfig(config: StoryboardStoredRunConfig) {
     characterReplacementOperations: journal,
     stillOperations: _stills,
     shotRenderOperations,
+    assetOperations,
     ...publicValue
   } = config;
   return storyboardRunConfigSchema.parse({
     ...publicValue,
     shotRenders: projectShotRenders(publicValue.plan, shotRenderOperations),
+    assetGenerations: projectAssetGenerations(assetOperations),
     characterReplacements: publicValue.characterReplacements?.filter((item) => {
       const op = journal?.find((op) =>
         op.receipts.some((r) => r.requestId === item.requestId),

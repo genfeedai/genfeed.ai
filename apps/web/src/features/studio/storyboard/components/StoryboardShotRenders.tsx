@@ -86,6 +86,37 @@ export default function StoryboardShotRenders({
                   {translate('earlierVersion')}
                 </p>
               ) : null}
+              {render?.qa?.state === 'checking' ? (
+                <p className="text-xs text-muted-foreground">
+                  {translate('qaChecking')}
+                </p>
+              ) : null}
+              {render?.qa?.state === 'passed' ? (
+                <p className="text-xs text-muted-foreground">
+                  {translate('qaPassed')}
+                </p>
+              ) : null}
+              {render?.qa?.state === 'unavailable' ? (
+                <p className="text-xs text-muted-foreground">
+                  {translate('qaUnavailable')}
+                </p>
+              ) : null}
+              {render?.qa?.state === 'failed' ? (
+                <p className="text-xs text-destructive" role="alert">
+                  {translate('qaFailed', {
+                    reasons: render.qa.failures
+                      .map((failure) => failure.message)
+                      .join('; '),
+                  })}
+                </p>
+              ) : null}
+              {render?.qa?.continuity?.state === 'flagged' ? (
+                <p className="text-xs text-warning">
+                  {translate('qaContinuity', {
+                    notes: render.qa.continuity.notes.join(' '),
+                  })}
+                </p>
+              ) : null}
             </div>
           );
         })}

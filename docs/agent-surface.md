@@ -29,7 +29,7 @@ bound it: the scopes on the API key, and the MCP approval gate below.
 
 ## The curated action catalog
 
-`packages/actions/src/registry/curated-action-catalog.ts` is the single source of
+`packages/actions/src/registry/curated-actions.catalog.ts` is the single source of
 truth for which actions exist and which surfaces they appear on. Each entry is
 a name plus a `surfaces` array of `'agent'`, `'mcp'`, or both.
 
@@ -286,7 +286,7 @@ second general-purpose agent surface, and the MCP catalog is unrelated to it.
 
 1. Add the definition (schema, description, credit cost, `requiredRole`) to the
    right shard in `packages/actions/src/registry/source/`.
-2. Add a catalog entry in `curated-action-catalog.ts`, sorted by name, in the
+2. Add a catalog entry in `curated-actions.catalog.ts`, sorted by name, in the
    canonical single-line form, with the surfaces you intend.
 3. Wire an executor: an MCP dispatch group plus a `classify()` entry, or the
    agent executor, matching the surfaces you chose.

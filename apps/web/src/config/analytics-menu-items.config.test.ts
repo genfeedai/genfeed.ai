@@ -104,17 +104,18 @@ describe('ANALYTICS_MENU_ITEMS', () => {
       'Overview',
       'Posts',
       'Accounts',
+      'Newsletter',
       'Brands',
       'Streaks',
     ]);
   });
 
-  it('always lists Overview, Posts and Accounts; the rest waits for its release', () => {
+  it('always lists Overview, Posts, Accounts and Newsletter; the rest waits for its release', () => {
     expect(
       ANALYTICS_MENU_ITEMS.filter((item) => !item.releaseItemId).map(
         (item) => item.label,
       ),
-    ).toEqual(['Overview', 'Posts', 'Accounts']);
+    ).toEqual(['Overview', 'Posts', 'Accounts', 'Newsletter']);
   });
 
   it('puts derived analysis destinations under Intelligence', () => {

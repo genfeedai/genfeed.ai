@@ -2,11 +2,13 @@ import { personaAttributes } from '@serializers/attributes/content/persona.attri
 import {
   postAttributes,
   publicPostAttributes,
+  publicPostBrandAttributes,
+  publicPostMediaAttributes,
 } from '@serializers/attributes/content/post.attributes';
 import { ingredientAttributes } from '@serializers/attributes/ingredients/ingredient.attributes';
 import { metadataAttributes } from '@serializers/attributes/ingredients/metadata.attributes';
 import { credentialAttributes } from '@serializers/attributes/organizations/credential.attributes';
-import { nestedRel, rel, simpleConfig } from '@serializers/builders';
+import { nestedRel, rel } from '@serializers/builders';
 import {
   CONTENT_ENTITY_RELS,
   EVALUATION_REL,
@@ -33,7 +35,9 @@ export const postListSerializerConfig = {
   evaluation: EVALUATION_REL,
 };
 
-export const publicPostSerializerConfig = simpleConfig(
-  'post',
-  publicPostAttributes,
-);
+export const publicPostSerializerConfig = {
+  attributes: publicPostAttributes,
+  type: 'post',
+  brand: rel('brand', publicPostBrandAttributes),
+  ingredients: rel('ingredient', publicPostMediaAttributes),
+};

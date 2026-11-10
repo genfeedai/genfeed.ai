@@ -12,8 +12,6 @@ import { AgentOrchestratorContextService } from '@api/services/agent-orchestrato
 import { AgentOrchestratorTurboRunService } from '@api/services/agent-orchestrator/agent-orchestrator-turbo-run.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import {
-  type AgentToolRoundState,
-  type AgentToolRoundStrategy,
   AgentTurnRoundRunnerService,
   assertAgentCreditBudget,
 } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
@@ -25,6 +23,14 @@ import type {
   AgentChatRequest,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
+import type {
+  StreamAssistantMessage,
+  StreamInferenceRound,
+  StreamLoopParams,
+  StreamLoopState,
+  StreamRoundOutcome,
+  StreamTurnInputs,
+} from '@api/services/agent-orchestrator/interfaces/agent-orchestrator-stream-loop.interface';
 import { mergeAgentArtifactCompletionMetadata } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import { resolveAgentAutoRoutingRound } from '@api/services/agent-orchestrator/utils/agent-auto-routing-round.util';
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
@@ -39,6 +45,7 @@ import {
 import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
 import { readAgentRunPublicError } from '@api/services/agent-orchestrator/utils/agent-run-failure.util';
 import { buildAgentScopeMetadata } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
+import { buildStreamToolRoundStrategy } from '@api/services/agent-orchestrator/utils/agent-stream-tool-round-strategy.util';
 import {
   extractThreadEnvelope,
   maybeUpdateThreadTitle,
@@ -65,10 +72,6 @@ import {
   type RouterPriority,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
-import type {
-  AgentAutoRoutingResolution,
-  AgentUIBlocksEvent,
-} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
@@ -187,610 +190,716 @@ export class AgentOrchestratorStreamLoopService {
     runStartedAt?: string,
     attachments?: AgentChatAttachment[],
   ): Promise<void> {
+    const params: StreamLoopParams = {
+      agentType,
+      attachments,
+      context,
+      generationPriority,
+      memoryEntries,
+      model,
+      resolvedPolicy,
+      runStartedAt,
+      seedTitle,
+      source,
+      systemPromptOverride,
+      threadId,
+      turnCost,
+    };
     this.activeStreams.add(threadId);
-    const toolRoundState: AgentToolRoundState = {
-      artifactMetadata: [],
-      highestRiskLevel: 'low',
-      latestUiBlocks: null,
-      reviewRequired: false,
-      toolCalls: [],
-      totalCreditsUsed: 0,
-      uiActions: [],
-    };
-    const actualModels = new Set<string>();
-    let roundCredits = 0;
-
-    const settleAccruedTurnCredits = async (): Promise<number> => {
-      const creditsToSettle = roundCredits;
-      // A settlement failure must not make the outer catch retry a possibly
-      // committed ledger write. Every settlement path is terminal.
-      roundCredits = 0;
-      return creditsToSettle;
-    };
-
-    try {
-      await this.streamEffects.publishStreamLifecycleStarted({
-        context,
-        model,
-        startedAt: runStartedAt,
-        threadId,
-      });
-
-      const memoryEntriesForResponse =
-        this.contextService.buildMemoryEntriesForResponse(memoryEntries);
-      const memoryInfluence =
-        this.contextService.buildMemoryInfluenceMetadata(memoryEntries);
-
-      // Build thread history from separate messages collection
-      const {
-        messages: recentMessages,
-        compressedContext: streamCompressedCtx,
-      } = await this.contextService.resolveThreadMessages(
-        threadId,
-        context.organizationId,
-      );
-      const history = this.contextService.buildMessageHistory(
-        recentMessages,
-        systemPromptOverride,
-        memoryEntries,
-        attachments,
-        streamCompressedCtx,
-      );
-      const typeConfig = agentType ? getAgentTypeConfig(agentType) : null;
-      // Merge skill tool overrides into the base tool set (additive).
-      // When agentType is unset, pass undefined to preserve unrestricted toolset
-      // instead of [] which would wipe all base tools.
-      const baseTools =
-        this.skillRuntimeService && context.resolvedSkills?.length
-          ? (this.skillRuntimeService.mergeSkillToolOverrides(
-              typeConfig?.defaultTools,
-              context.resolvedSkills,
-            ) as CuratedActionName[] | undefined)
-          : typeConfig?.defaultTools;
-      const latestUserMessage =
-        [...history]
-          .reverse()
-          .find((message) => message.role === 'user')
-          ?.content?.toString?.() ?? '';
-      const scopedTools =
-        source !== 'proactive' &&
-        this.turboRunService.isTurboRunIntent(latestUserMessage)
-          ? TURBO_RUN_SCOPED_ALLOWED_TOOLS
-          : undefined;
-      const tools = buildToolDefinitions(
-        mergeAllowedTools(baseTools, scopedTools),
-        resolveBlockedTools(),
-      );
-      const allowedToolNames = new Set(
-        tools.map((tool) => tool.function.name as CuratedActionName),
-      );
-      const messages = [...history];
-      let round = 0;
-      // Auto-routing decision inputs (#4865): the tier depends on how the turn
-      // has behaved so far, not only on the opening message.
-      let hasPreviousRoundUsedTools = false;
-      let hasRequestedUnproducedDrafts = false;
-      let latestAutoRouting: AgentAutoRoutingResolution | undefined;
-      let terminalContent: string | undefined;
-      let latestProviderUsage = {
+    const state: StreamLoopState = {
+      actualModels: new Set<string>(),
+      hasPreviousRoundUsedTools: false,
+      hasRequestedUnproducedDrafts: false,
+      latestAutoRouting: undefined,
+      latestProviderUsage: {
         completion_tokens: 0,
         prompt_tokens: 0,
         total_tokens: 0,
-      };
-      // Credits accrue per completed round, not per turn: a turn that burns
-      // N tool rounds costs N rounds of inference and has to bill like it.
+      },
+      roundCredits: 0,
+      terminalContent: undefined,
+      toolRoundState: {
+        artifactMetadata: [],
+        highestRiskLevel: 'low',
+        latestUiBlocks: null,
+        reviewRequired: false,
+        toolCalls: [],
+        totalCreditsUsed: 0,
+        uiActions: [],
+      },
+    };
 
-      // Real token streaming is skipped for title-seeding turns (seedTitle set,
-      // first message of a new thread) because the model returns a JSON
-      // {title, content} envelope there — streaming raw deltas would flash JSON
-      // at the user. Those turns keep the simulated word-split path.
-      const canStreamLiveTokens =
-        !(seedTitle ?? '').trim() && (await this.isRealTokenStreamingEnabled());
-
-      while (round < AGENT_MAX_TOOL_ROUNDS || terminalContent) {
-        if (await this.isRunCancelled(context)) {
-          toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
-          await this.handleCancelledStream(context, threadId);
-          return;
-        }
-        round++;
-
-        const isWrapUpRound =
-          !terminalContent && isAgentWrapUpRound(round, AGENT_MAX_TOOL_ROUNDS);
-        if (isWrapUpRound) {
-          messages.push({ content: AGENT_WRAP_UP_INSTRUCTION, role: 'system' });
-        }
-
-        const maximumRoundCredits =
-          terminalContent || turnCost === 0
-            ? 0
-            : await this.agentChatModelRegistry.getMaximumRoundCredits(model);
-        if (!terminalContent)
-          assertAgentCreditBudget(
-            context,
-            toolRoundState.totalCreditsUsed + roundCredits,
-            maximumRoundCredits,
-          );
-        const { defaultModelKey, dispatchedModel, resolution } =
-          await resolveAgentAutoRoutingRound({
-            context,
-            hasPreviousRoundUsedTools,
-            hasToolsAvailable: tools.length > 0,
-            isTerminalRound: Boolean(terminalContent),
-            latestUserMessage,
-            model,
-            modelRegistry: this.agentChatModelRegistry,
-            previous: latestAutoRouting,
-            prioritize: generationPriority,
-            resolver: this.autoModelResolver,
-            roundNumber: round,
-            source,
-            threadId,
-          });
-        latestAutoRouting = resolution;
-
-        const chatParams = buildAgentChatCompletionParams({
-          autoAllowedModelKeys:
-            await this.agentChatModelRegistry.getAutoAllowedModelKeys(),
-          defaultModelKey,
-          dispatchModelKey: latestAutoRouting?.dispatchModelKey,
-          isWebSearchNeeded: latestAutoRouting?.isWebSearchNeeded,
-          messages,
-          model,
-          prompt: latestUserMessage,
-          prioritize: generationPriority,
-          seedTitle: seedTitle ?? '',
-          source,
-          toolChoice: isWrapUpRound ? 'none' : 'auto',
-          tools,
-          sessionId: threadId,
-        });
-
-        // Real deltas published live during this round; drives whether the
-        // final branch re-simulates word-split streaming or not.
-        const streamCounters = {
-          lastCancelCheckAt: 0,
-          lastPublishErrorLoggedAt: 0,
-          roundStreamedTokenCount: 0,
-        };
-        const onStreamToken = (delta: string) =>
-          this.publishStreamDelta(context, threadId, delta, streamCounters);
-
-        // IIFE so a mid-stream cancellation (StreamCancelledError thrown from
-        // onStreamToken) is caught here and routed to the cancelled-stream
-        // handler; any other error still propagates as a real failure.
-        const isTerminalCompletion = Boolean(terminalContent);
-        const reservedRound: {
-          credits: number;
-          response: OpenRouterChatCompletionResponse;
-        } | null = terminalContent
-          ? {
-              credits: 0,
-              response: {
-                choices: [
-                  {
-                    finish_reason: 'stop',
-                    message: {
-                      content: terminalContent,
-                      role: 'assistant',
-                    },
-                  },
-                ],
-                id: `terminal-tool-${context.executionId ?? threadId}`,
-                usage: latestProviderUsage,
-              },
-            }
-          : await (async () => {
-              try {
-                return await runReservedAgentLlmRound({
-                  actorUserId: context.userId,
-                  brandId: context.scope?.brandId,
-                  credits: this.creditsUtilsService,
-                  idempotencyKey: `${context.executionId ?? threadId}:agent-llm-round:${round}`,
-                  maximumCredits: maximumRoundCredits,
-                  organizationId: context.organizationId,
-                  pricer: this.agentChatModelRegistry,
-                  requestedModel: dispatchedModel,
-                  run: () =>
-                    canStreamLiveTokens
-                      ? this.llmDispatcher.streamChatCompletionAggregated(
-                          chatParams,
-                          context.organizationId,
-                          onStreamToken,
-                          {
-                            brandId: context.scope?.brandId,
-                            runId: context.executionId,
-                            threadId,
-                            userId: context.userId,
-                          },
-                        )
-                      : this.llmDispatcher.chatCompletion(
-                          chatParams,
-                          context.organizationId,
-                          {
-                            brandId: context.scope?.brandId,
-                            runId: context.executionId,
-                            threadId,
-                            userId: context.userId,
-                          },
-                        ),
-                  waived: turnCost === 0,
-                });
-              } catch (error) {
-                if (error instanceof StreamCancelledError) {
-                  return null;
-                }
-                throw error;
-              }
-            })();
-        terminalContent = undefined;
-
-        if (!reservedRound) {
-          await this.handleCancelledStream(context, threadId);
-          return;
-        }
-        const response = reservedRound.response;
-        if (!isTerminalCompletion) {
-          latestProviderUsage = response.usage;
-          const actualModel =
-            await this.turnRoundRunner.recordAgentResponseModel({
-              actualModels: Array.from(actualModels),
-              context,
-              requestedModel: model,
-              responseModel: response.model,
-              executionId: context.executionId,
-              source,
-              threadId,
-            });
-          actualModels.add(actualModel);
-          roundCredits += reservedRound.credits;
-        }
-
-        const choice = response.choices[0];
-        if (!choice) {
-          throw new Error('No response from LLM');
-        }
-
-        const assistantMessage = choice.message;
-        const toolCalls = assistantMessage.tool_calls;
-        hasPreviousRoundUsedTools = Boolean(toolCalls?.length);
-
-        // No tool calls — final response
-        if (!toolCalls || toolCalls.length === 0) {
-          if (await this.isRunCancelled(context)) {
-            toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
-            await this.handleCancelledStream(context, threadId);
-            return;
-          }
-
-          if (
-            !hasRequestedUnproducedDrafts &&
-            claimsUnproducedDrafts(
-              sanitizeAgentOutputText(assistantMessage.content || ''),
-              toolRoundState.toolCalls,
-              toolRoundState.uiActions,
-            )
-          ) {
-            hasRequestedUnproducedDrafts = true;
-            messages.push(
-              { content: assistantMessage.content ?? '', role: 'assistant' },
-              { content: AGENT_UNPRODUCED_DRAFTS_INSTRUCTION, role: 'system' },
-            );
-            continue;
-          }
-
-          const threadEnvelope = extractThreadEnvelope({
-            assistantContent: sanitizeAgentOutputText(
-              assistantMessage.content || '',
-            ),
-            prompt: latestUserMessage,
-            seedTitle: seedTitle ?? '',
-          });
-          const normalizedContent = normalizeFinalAssistantContent(
-            threadEnvelope.content,
-            toolRoundState.toolCalls,
-            toolRoundState.uiActions,
-          );
-          const citations =
-            await this.turnRoundRunner.finalizeKnowledgeCitations(
-              normalizedContent.content,
-              toolRoundState,
-              context,
-            );
-          const content = citations.content;
-
-          toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
-
-          const appliedThreadTitle = await maybeUpdateThreadTitle({
-            agentThreadsService: this.agentThreadsService,
-            context,
-            seedTitle: seedTitle ?? '',
-            threadId,
-            title: threadEnvelope.title,
-          });
-
-          const creditsRemaining =
-            await this.creditsUtilsService.getOrganizationCreditsBalance(
-              context.organizationId,
-            );
-          const reasoning = assistantMessage.reasoning_content ?? null;
-
-          if (await this.isRunCancelled(context)) {
-            await this.handleCancelledStream(context, threadId);
-            return;
-          }
-
-          await this.streamEffects.publishStreamAssistantResponse({
-            content,
-            context,
-            reasoning,
-            // When this round already streamed real deltas live, don't
-            // re-emit the content as simulated word-split tokens.
-            suppressTokenStreaming: streamCounters.roundStreamedTokenCount > 0,
-            threadId,
-          });
-
-          const enhancedUiActions =
-            this.completionCardBuilder.buildAssistantUiActions({
-              reviewRequired: toolRoundState.reviewRequired,
-              toolCalls: toolRoundState.toolCalls,
-              uiActions: toolRoundState.uiActions,
-            });
-          const artifactMetadata = mergeAgentArtifactCompletionMetadata(
-            toolRoundState.artifactMetadata,
-          );
-
-          // Save assistant message to DB. The enclosing workflow result owns
-          // artifact provenance; the message keeps the user-facing projection.
-          await this.agentMessagesService.addMessage({
-            brandId: context.scope?.brandId,
-            content,
-            metadata: buildPersistedAgentResponseMetadata(
-              {
-                ...artifactMetadata,
-                ...buildAgentScopeMetadata(context),
-                ...buildAgentRoutingMetadata({
-                  autoRouting: latestAutoRouting,
-                  defaultModelKey,
-                  model,
-                  prompt: latestUserMessage,
-                }),
-                isFallbackContent: normalizedContent.isFallback,
-                ...citations.metadata,
-                memoryEntries: memoryEntriesForResponse,
-                memoryInfluence,
-                ...buildResolvedModelMetadata(model, Array.from(actualModels)),
-                reasoning,
-                reviewRequired: toolRoundState.reviewRequired,
-                riskLevel: toolRoundState.highestRiskLevel,
-                ...(enhancedUiActions.suggestedActions.length
-                  ? { suggestedActions: enhancedUiActions.suggestedActions }
-                  : {}),
-                totalCreditsUsed: toolRoundState.totalCreditsUsed,
-                uiActions: enhancedUiActions.uiActions,
-              },
-              creditsRemaining,
-              context.executionId,
-              response.usage,
-            ),
-            organizationId: context.organizationId,
-            role: AgentMessageRole.ASSISTANT,
-            room: threadId,
-            toolCalls: toPersistedToolCalls(toolRoundState.toolCalls),
-            userId: context.userId,
-          });
-
-          await this.streamEffects.publishStreamCompletion({
-            completionMetadata: {
-              isFallbackContent: normalizedContent.isFallback,
-              ...citations.metadata,
-              memoryEntries: memoryEntriesForResponse,
-              memoryInfluence,
-              ...buildResolvedModelMetadata(model, Array.from(actualModels)),
-              reasoning,
-              reviewRequired: toolRoundState.reviewRequired,
-              riskLevel: toolRoundState.highestRiskLevel,
-              ...(enhancedUiActions.suggestedActions.length
-                ? { suggestedActions: enhancedUiActions.suggestedActions }
-                : {}),
-              totalCreditsUsed: toolRoundState.totalCreditsUsed,
-              uiActions: enhancedUiActions.uiActions,
-              ...(toolRoundState.latestUiBlocks
-                ? { uiBlocks: toolRoundState.latestUiBlocks }
-                : {}),
-            },
-            content,
-            context,
-            creditsRemaining,
-            creditsUsed: toolRoundState.totalCreditsUsed,
-            runStartedAt,
-            threadId,
-            ...(appliedThreadTitle ? { threadTitle: appliedThreadTitle } : {}),
-            toolCalls: toolRoundState.toolCalls,
-          });
-
-          return;
-        }
-
-        toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
-        const toolRoundResult = await this.turnRoundRunner.executeToolRound({
-          allowedToolNames,
-          assistantContent: assistantMessage.content,
-          attachmentUrls: attachments?.map((a) => a.url),
-          context,
-          generationPriority,
-          messages,
-          model,
-          policy: resolvedPolicy,
-          source,
-          state: toolRoundState,
-          strategy: this.buildStreamToolRoundStrategy(context, threadId),
-          thinkingModel: resolvedPolicy.thinkingModelOverride ?? undefined,
-          threadId,
-          toolCalls,
-        });
-
-        const interrupted = toolRoundResult.wasInterrupted;
-        if (toolRoundResult.isCancelled) {
-          toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
-          await this.handleCancelledStream(context, threadId, interrupted);
-          return;
-        }
-        terminalContent = toolRoundResult.terminalContent;
-      }
-
-      // Overflowing the round budget still consumed every one of those rounds
-      // at the provider — settle them before surfacing the failure, or a turn
-      // that runs away is the cheapest turn on the platform.
-      await settleAccruedTurnCredits();
-
-      const errorMsg = `Agent exceeded maximum tool-calling rounds (${AGENT_MAX_TOOL_ROUNDS})`;
-      if (context.executionMode === 'background') {
-        throw new Error(errorMsg);
-      }
-      await this.streamEffects.publishStreamFailure({
-        context,
-        error: errorMsg,
-        threadId,
-      });
+    try {
+      await this.executeStreamLoop(params, state);
     } catch (error: unknown) {
-      toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
-      if (await this.isRunCancelled(context)) {
-        await this.handleCancelledStream(context, threadId);
-        return;
-      }
-
-      this.loggerService.error(
-        `${this.constructorName} streaming chat failed`,
-        {
-          error: error instanceof Error ? error.message : error,
-          organizationId: context.organizationId,
-          userId: context.userId,
-        },
-      );
-
-      // A queue-owned attempt is not terminal until BullMQ exhausts its retry
-      // budget. Propagate the provider/tool failure without recording a
-      // run.failed event; the processor owns the one durable terminal outcome.
-      if (context.executionMode === 'background') {
-        throw error;
-      }
-
-      await this.streamEffects.publishStreamFailure({
-        context,
-        error: readAgentRunPublicError(error),
-        threadId,
-      });
+      await this.handleStreamLoopFailure(params, state, error);
     } finally {
       this.activeStreams.delete(threadId);
     }
   }
 
-  private buildStreamToolRoundStrategy(
-    context: AgentChatContext,
-    threadId: string,
-  ): AgentToolRoundStrategy {
+  private async settleAccruedTurnCredits(
+    state: StreamLoopState,
+  ): Promise<number> {
+    const creditsToSettle = state.roundCredits;
+    // A settlement failure must not make the outer catch retry a possibly
+    // committed ledger write. Every settlement path is terminal.
+    state.roundCredits = 0;
+    return creditsToSettle;
+  }
+
+  private async executeStreamLoop(
+    params: StreamLoopParams,
+    state: StreamLoopState,
+  ): Promise<void> {
+    const { context, threadId, model, runStartedAt } = params;
+    await this.streamEffects.publishStreamLifecycleStarted({
+      context,
+      model,
+      startedAt: runStartedAt,
+      threadId,
+    });
+
+    const inputs = await this.prepareStreamTurnInputs(params);
+    let round = 0;
+
+    // Credits accrue per completed round, not per turn: a turn that burns
+    // N tool rounds costs N rounds of inference and has to bill like it.
+    while (round < AGENT_MAX_TOOL_ROUNDS || state.terminalContent) {
+      if (await this.isRunCancelled(context)) {
+        state.toolRoundState.totalCreditsUsed +=
+          await this.settleAccruedTurnCredits(state);
+        await this.handleCancelledStream(context, threadId);
+        return;
+      }
+      round++;
+
+      const outcome = await this.runStreamRound(params, state, inputs, round);
+      if (outcome === 'finished') {
+        return;
+      }
+    }
+
+    // Overflowing the round budget still consumed every one of those rounds
+    // at the provider — settle them before surfacing the failure, or a turn
+    // that runs away is the cheapest turn on the platform.
+    await this.settleAccruedTurnCredits(state);
+
+    const errorMsg = `Agent exceeded maximum tool-calling rounds (${AGENT_MAX_TOOL_ROUNDS})`;
+    if (context.executionMode === 'background') {
+      throw new Error(errorMsg);
+    }
+    await this.streamEffects.publishStreamFailure({
+      context,
+      error: errorMsg,
+      threadId,
+    });
+  }
+
+  private async handleStreamLoopFailure(
+    params: StreamLoopParams,
+    state: StreamLoopState,
+    error: unknown,
+  ): Promise<void> {
+    const { context, threadId } = params;
+    state.toolRoundState.totalCreditsUsed +=
+      await this.settleAccruedTurnCredits(state);
+    if (await this.isRunCancelled(context)) {
+      await this.handleCancelledStream(context, threadId);
+      return;
+    }
+
+    this.loggerService.error(`${this.constructorName} streaming chat failed`, {
+      error: error instanceof Error ? error.message : error,
+      organizationId: context.organizationId,
+      userId: context.userId,
+    });
+
+    // A queue-owned attempt is not terminal until BullMQ exhausts its retry
+    // budget. Propagate the provider/tool failure without recording a
+    // run.failed event; the processor owns the one durable terminal outcome.
+    if (context.executionMode === 'background') {
+      throw error;
+    }
+
+    await this.streamEffects.publishStreamFailure({
+      context,
+      error: readAgentRunPublicError(error),
+      threadId,
+    });
+  }
+
+  private async prepareStreamTurnInputs(
+    params: StreamLoopParams,
+  ): Promise<StreamTurnInputs> {
+    const {
+      agentType,
+      attachments,
+      context,
+      memoryEntries,
+      seedTitle,
+      source,
+      systemPromptOverride,
+      threadId,
+    } = params;
+    const memoryEntriesForResponse =
+      this.contextService.buildMemoryEntriesForResponse(memoryEntries);
+    const memoryInfluence =
+      this.contextService.buildMemoryInfluenceMetadata(memoryEntries);
+
+    // Build thread history from separate messages collection
+    const { messages: recentMessages, compressedContext: streamCompressedCtx } =
+      await this.contextService.resolveThreadMessages(
+        threadId,
+        context.organizationId,
+      );
+    const history = this.contextService.buildMessageHistory(
+      recentMessages,
+      systemPromptOverride,
+      memoryEntries,
+      attachments,
+      streamCompressedCtx,
+    );
+    const typeConfig = agentType ? getAgentTypeConfig(agentType) : null;
+    // Merge skill tool overrides into the base tool set (additive).
+    // When agentType is unset, pass undefined to preserve unrestricted toolset
+    // instead of [] which would wipe all base tools.
+    const baseTools =
+      this.skillRuntimeService && context.resolvedSkills?.length
+        ? (this.skillRuntimeService.mergeSkillToolOverrides(
+            typeConfig?.defaultTools,
+            context.resolvedSkills,
+          ) as CuratedActionName[] | undefined)
+        : typeConfig?.defaultTools;
+    const latestUserMessage =
+      [...history]
+        .reverse()
+        .find((message) => message.role === 'user')
+        ?.content?.toString?.() ?? '';
+    const scopedTools =
+      source !== 'proactive' &&
+      this.turboRunService.isTurboRunIntent(latestUserMessage)
+        ? TURBO_RUN_SCOPED_ALLOWED_TOOLS
+        : undefined;
+    const tools = buildToolDefinitions(
+      mergeAllowedTools(baseTools, scopedTools),
+      resolveBlockedTools(),
+    );
+    const allowedToolNames = new Set(
+      tools.map((tool) => tool.function.name as CuratedActionName),
+    );
+
+    // Real token streaming is skipped for title-seeding turns (seedTitle set,
+    // first message of a new thread) because the model returns a JSON
+    // {title, content} envelope there — streaming raw deltas would flash JSON
+    // at the user. Those turns keep the simulated word-split path.
+    const canStreamLiveTokens =
+      !(seedTitle ?? '').trim() && (await this.isRealTokenStreamingEnabled());
+
     return {
-      deferUnknownToolFailure: true,
-      logParseErrors: false,
-      onAfterTool: async () =>
-        (await this.isRunCancelled(context)) ? 'cancel' : 'continue',
-      onBeforeTool: async () =>
-        (await this.isRunCancelled(context)) ? 'cancel' : 'continue',
-      onToolCompleted: async (event) => {
-        if (event.kind === 'unknown') {
-          await this.streamEffects.publishStreamingToolCompleted({
-            context,
-            debug: {
-              error: event.summary.error,
-              parameters: event.parameters,
-            },
-            detail: event.summary.error,
-            durationMs: event.summary.durationMs,
-            error: event.summary.error,
-            label: event.requestedToolName,
-            parameters: event.parameters,
-            resultSummary: event.summary.error,
-            status: 'failed',
-            threadId,
-            toolCallId: event.toolCallId,
-            toolName: event.requestedToolName,
-          });
-          return;
-        }
-
-        if (event.kind === 'insufficient_credits') {
-          await this.streamEffects.publishStreamingToolCompleted({
-            context,
-            debug: {
-              error: event.summary.error,
-              parameters: event.parameters,
-            },
-            detail: event.summary.error,
-            durationMs: event.summary.durationMs,
-            error: event.summary.error,
-            parameters: event.parameters,
-            resultSummary: event.summary.error,
-            status: 'failed',
-            threadId,
-            toolCallId: event.toolCallId,
-            toolName: event.toolName,
-          });
-          return;
-        }
-
-        await this.streamEffects.publishStreamingToolCompleted({
-          context,
-          creditsUsed: event.summary.creditsUsed,
-          debug: event.summary.error
-            ? {
-                error: event.summary.error,
-                parameters: event.parameters,
-                result: event.result?.data,
-              }
-            : {
-                parameters: event.parameters,
-                result: event.result?.data,
-              },
-          detail:
-            event.summary.status === 'completed'
-              ? (event.summary.resultSummary ?? `${event.toolName} completed`)
-              : event.summary.error,
-          durationMs: event.durationMs,
-          error: event.summary.error,
-          parameters: event.parameters,
-          resultSummary: event.summary.resultSummary,
-          status: event.summary.status,
-          threadId,
-          toolCallId: event.toolCallId,
-          toolName: event.toolName,
-          uiActions: event.result?.nextActions,
-        });
-      },
-      onToolStarted: async (event) => {
-        await this.streamEffects.publishStreamingToolStarted({
-          context,
-          parameters: event.parameters,
-          startedAt: new Date(event.startTime).toISOString(),
-          threadId,
-          toolCallId: event.toolCallId,
-          toolName: event.toolName,
-        });
-      },
-      onUiBlocks: async (event) => {
-        if (event.deferPublish) {
-          return;
-        }
-        await this.streamEffects.publishStreamUiBlocks({
-          blockIds: event.blockIds,
-          blocks: event.blocks as AgentUIBlocksEvent['blocks'],
-          context,
-          operation: event.operation,
-          runId: context.executionId,
-          threadId,
-        });
-      },
+      allowedToolNames,
+      canStreamLiveTokens,
+      latestUserMessage,
+      memoryEntriesForResponse,
+      memoryInfluence,
+      messages: [...history],
+      tools,
     };
+  }
+
+  private async runStreamRound(
+    params: StreamLoopParams,
+    state: StreamLoopState,
+    inputs: StreamTurnInputs,
+    round: number,
+  ): Promise<StreamRoundOutcome> {
+    const { context, threadId } = params;
+    const inference = await this.runStreamInferenceRound(
+      params,
+      state,
+      inputs,
+      round,
+    );
+    if (!inference) {
+      await this.handleCancelledStream(context, threadId);
+      return 'finished';
+    }
+
+    const choice = inference.response.choices[0];
+    if (!choice) {
+      throw new Error('No response from LLM');
+    }
+
+    const assistantMessage = choice.message;
+    const toolCalls = assistantMessage.tool_calls;
+    state.hasPreviousRoundUsedTools = Boolean(toolCalls?.length);
+
+    // No tool calls — final response
+    if (!toolCalls || toolCalls.length === 0) {
+      return this.handleStreamFinalResponse(
+        params,
+        state,
+        inputs,
+        inference,
+        assistantMessage,
+      );
+    }
+
+    return this.runStreamToolRound(
+      params,
+      state,
+      inputs,
+      assistantMessage,
+      toolCalls,
+    );
+  }
+
+  /** Returns null when the run was cancelled mid-stream. */
+  private async runStreamInferenceRound(
+    params: StreamLoopParams,
+    state: StreamLoopState,
+    inputs: StreamTurnInputs,
+    round: number,
+  ): Promise<StreamInferenceRound | null> {
+    const {
+      context,
+      generationPriority,
+      model,
+      seedTitle,
+      source,
+      threadId,
+      turnCost,
+    } = params;
+    const { latestUserMessage, messages, tools } = inputs;
+    const { toolRoundState } = state;
+
+    const isWrapUpRound =
+      !state.terminalContent &&
+      isAgentWrapUpRound(round, AGENT_MAX_TOOL_ROUNDS);
+    if (isWrapUpRound) {
+      messages.push({ content: AGENT_WRAP_UP_INSTRUCTION, role: 'system' });
+    }
+
+    const maximumRoundCredits =
+      state.terminalContent || turnCost === 0
+        ? 0
+        : await this.agentChatModelRegistry.getMaximumRoundCredits(model);
+    if (!state.terminalContent)
+      assertAgentCreditBudget(
+        context,
+        toolRoundState.totalCreditsUsed + state.roundCredits,
+        maximumRoundCredits,
+      );
+    // Auto-routing decision inputs (#4865): the tier depends on how the turn
+    // has behaved so far, not only on the opening message.
+    const { defaultModelKey, dispatchedModel, resolution } =
+      await resolveAgentAutoRoutingRound({
+        context,
+        hasPreviousRoundUsedTools: state.hasPreviousRoundUsedTools,
+        hasToolsAvailable: tools.length > 0,
+        isTerminalRound: Boolean(state.terminalContent),
+        latestUserMessage,
+        model,
+        modelRegistry: this.agentChatModelRegistry,
+        previous: state.latestAutoRouting,
+        prioritize: generationPriority,
+        resolver: this.autoModelResolver,
+        roundNumber: round,
+        source,
+        threadId,
+      });
+    state.latestAutoRouting = resolution;
+
+    const chatParams = buildAgentChatCompletionParams({
+      autoAllowedModelKeys:
+        await this.agentChatModelRegistry.getAutoAllowedModelKeys(),
+      defaultModelKey,
+      dispatchModelKey: state.latestAutoRouting?.dispatchModelKey,
+      isWebSearchNeeded: state.latestAutoRouting?.isWebSearchNeeded,
+      messages,
+      model,
+      prompt: latestUserMessage,
+      prioritize: generationPriority,
+      seedTitle: seedTitle ?? '',
+      source,
+      toolChoice: isWrapUpRound ? 'none' : 'auto',
+      tools,
+      sessionId: threadId,
+    });
+
+    // Real deltas published live during this round; drives whether the
+    // final branch re-simulates word-split streaming or not.
+    const streamCounters = {
+      lastCancelCheckAt: 0,
+      lastPublishErrorLoggedAt: 0,
+      roundStreamedTokenCount: 0,
+    };
+    const onStreamToken = (delta: string) =>
+      this.publishStreamDelta(context, threadId, delta, streamCounters);
+
+    const isTerminalCompletion = Boolean(state.terminalContent);
+    const reservedRound = state.terminalContent
+      ? {
+          credits: 0,
+          response: {
+            choices: [
+              {
+                finish_reason: 'stop',
+                message: {
+                  content: state.terminalContent,
+                  role: 'assistant',
+                },
+              },
+            ],
+            id: `terminal-tool-${context.executionId ?? threadId}`,
+            usage: state.latestProviderUsage,
+          } satisfies OpenRouterChatCompletionResponse,
+        }
+      : await this.reserveStreamInferenceRound({
+          chatParams,
+          dispatchedModel,
+          maximumRoundCredits,
+          onStreamToken,
+          params,
+          round,
+          canStreamLiveTokens: inputs.canStreamLiveTokens,
+        });
+    state.terminalContent = undefined;
+
+    if (!reservedRound) {
+      return null;
+    }
+    const response: OpenRouterChatCompletionResponse = reservedRound.response;
+    if (!isTerminalCompletion) {
+      state.latestProviderUsage = response.usage;
+      const actualModel = await this.turnRoundRunner.recordAgentResponseModel({
+        actualModels: Array.from(state.actualModels),
+        context,
+        requestedModel: model,
+        responseModel: response.model,
+        executionId: context.executionId,
+        source,
+        threadId,
+      });
+      state.actualModels.add(actualModel);
+      state.roundCredits += reservedRound.credits;
+    }
+
+    return {
+      defaultModelKey,
+      response,
+      streamedTokenCount: streamCounters.roundStreamedTokenCount,
+    };
+  }
+
+  /**
+   * Reserves credits and dispatches one inference round. A mid-stream
+   * cancellation (StreamCancelledError thrown from onStreamToken) resolves to
+   * null so the caller routes it to the cancelled-stream handler; any other
+   * error still propagates as a real failure.
+   */
+  private async reserveStreamInferenceRound(input: {
+    canStreamLiveTokens: boolean;
+    chatParams: ReturnType<typeof buildAgentChatCompletionParams>;
+    dispatchedModel: string;
+    maximumRoundCredits: number;
+    onStreamToken: (delta: string) => Promise<void>;
+    params: StreamLoopParams;
+    round: number;
+  }): Promise<{
+    credits: number;
+    response: OpenRouterChatCompletionResponse;
+  } | null> {
+    const { chatParams, dispatchedModel, maximumRoundCredits } = input;
+    const { params, round } = input;
+    const { context, threadId, turnCost } = params;
+    const dispatchContext = {
+      brandId: context.scope?.brandId,
+      runId: context.executionId,
+      threadId,
+      userId: context.userId,
+    };
+    try {
+      return await runReservedAgentLlmRound({
+        actorUserId: context.userId,
+        brandId: context.scope?.brandId,
+        credits: this.creditsUtilsService,
+        idempotencyKey: `${context.executionId ?? threadId}:agent-llm-round:${round}`,
+        maximumCredits: maximumRoundCredits,
+        organizationId: context.organizationId,
+        pricer: this.agentChatModelRegistry,
+        requestedModel: dispatchedModel,
+        run: () =>
+          input.canStreamLiveTokens
+            ? this.llmDispatcher.streamChatCompletionAggregated(
+                chatParams,
+                context.organizationId,
+                input.onStreamToken,
+                dispatchContext,
+              )
+            : this.llmDispatcher.chatCompletion(
+                chatParams,
+                context.organizationId,
+                dispatchContext,
+              ),
+        waived: turnCost === 0,
+      });
+    } catch (error) {
+      if (error instanceof StreamCancelledError) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  private async handleStreamFinalResponse(
+    params: StreamLoopParams,
+    state: StreamLoopState,
+    inputs: StreamTurnInputs,
+    inference: StreamInferenceRound,
+    assistantMessage: StreamAssistantMessage,
+  ): Promise<StreamRoundOutcome> {
+    const { context, seedTitle, threadId } = params;
+    const { latestUserMessage, messages } = inputs;
+    const { toolRoundState } = state;
+
+    if (await this.isRunCancelled(context)) {
+      toolRoundState.totalCreditsUsed +=
+        await this.settleAccruedTurnCredits(state);
+      await this.handleCancelledStream(context, threadId);
+      return 'finished';
+    }
+
+    if (
+      !state.hasRequestedUnproducedDrafts &&
+      claimsUnproducedDrafts(
+        sanitizeAgentOutputText(assistantMessage.content || ''),
+        toolRoundState.toolCalls,
+        toolRoundState.uiActions,
+      )
+    ) {
+      state.hasRequestedUnproducedDrafts = true;
+      messages.push(
+        { content: assistantMessage.content ?? '', role: 'assistant' },
+        { content: AGENT_UNPRODUCED_DRAFTS_INSTRUCTION, role: 'system' },
+      );
+      return 'continue';
+    }
+
+    const threadEnvelope = extractThreadEnvelope({
+      assistantContent: sanitizeAgentOutputText(assistantMessage.content || ''),
+      prompt: latestUserMessage,
+      seedTitle: seedTitle ?? '',
+    });
+    const normalizedContent = normalizeFinalAssistantContent(
+      threadEnvelope.content,
+      toolRoundState.toolCalls,
+      toolRoundState.uiActions,
+    );
+    const citations = await this.turnRoundRunner.finalizeKnowledgeCitations(
+      normalizedContent.content,
+      toolRoundState,
+      context,
+    );
+
+    toolRoundState.totalCreditsUsed +=
+      await this.settleAccruedTurnCredits(state);
+
+    const appliedThreadTitle = await maybeUpdateThreadTitle({
+      agentThreadsService: this.agentThreadsService,
+      context,
+      seedTitle: seedTitle ?? '',
+      threadId,
+      title: threadEnvelope.title,
+    });
+
+    const creditsRemaining =
+      await this.creditsUtilsService.getOrganizationCreditsBalance(
+        context.organizationId,
+      );
+    const reasoning = assistantMessage.reasoning_content ?? null;
+
+    if (await this.isRunCancelled(context)) {
+      await this.handleCancelledStream(context, threadId);
+      return 'finished';
+    }
+
+    await this.publishStreamFinalResponse({
+      appliedThreadTitle,
+      citations,
+      creditsRemaining,
+      inference,
+      inputs,
+      isFallbackContent: normalizedContent.isFallback,
+      params,
+      reasoning,
+      state,
+    });
+    return 'finished';
+  }
+
+  private async publishStreamFinalResponse(input: {
+    appliedThreadTitle: string | null | undefined;
+    citations: Awaited<
+      ReturnType<AgentTurnRoundRunnerService['finalizeKnowledgeCitations']>
+    >;
+    creditsRemaining: number;
+    inference: StreamInferenceRound;
+    inputs: StreamTurnInputs;
+    isFallbackContent: boolean;
+    params: StreamLoopParams;
+    reasoning: string | null;
+    state: StreamLoopState;
+  }): Promise<void> {
+    const { appliedThreadTitle, citations, creditsRemaining, inference } =
+      input;
+    const { inputs, isFallbackContent, params, reasoning, state } = input;
+    const { context, model, runStartedAt, threadId } = params;
+    const { toolRoundState } = state;
+    const { memoryEntriesForResponse, memoryInfluence } = inputs;
+    const content = citations.content;
+
+    await this.streamEffects.publishStreamAssistantResponse({
+      content,
+      context,
+      reasoning,
+      // When this round already streamed real deltas live, don't
+      // re-emit the content as simulated word-split tokens.
+      suppressTokenStreaming: inference.streamedTokenCount > 0,
+      threadId,
+    });
+
+    const enhancedUiActions =
+      this.completionCardBuilder.buildAssistantUiActions({
+        reviewRequired: toolRoundState.reviewRequired,
+        toolCalls: toolRoundState.toolCalls,
+        uiActions: toolRoundState.uiActions,
+      });
+    const artifactMetadata = mergeAgentArtifactCompletionMetadata(
+      toolRoundState.artifactMetadata,
+    );
+
+    // Save assistant message to DB. The enclosing workflow result owns
+    // artifact provenance; the message keeps the user-facing projection.
+    await this.agentMessagesService.addMessage({
+      brandId: context.scope?.brandId,
+      content,
+      metadata: buildPersistedAgentResponseMetadata(
+        {
+          ...artifactMetadata,
+          ...buildAgentScopeMetadata(context),
+          ...buildAgentRoutingMetadata({
+            autoRouting: state.latestAutoRouting,
+            defaultModelKey: inference.defaultModelKey,
+            model,
+            prompt: inputs.latestUserMessage,
+          }),
+          isFallbackContent,
+          ...citations.metadata,
+          memoryEntries: memoryEntriesForResponse,
+          memoryInfluence,
+          ...buildResolvedModelMetadata(model, Array.from(state.actualModels)),
+          reasoning,
+          reviewRequired: toolRoundState.reviewRequired,
+          riskLevel: toolRoundState.highestRiskLevel,
+          ...(enhancedUiActions.suggestedActions.length
+            ? { suggestedActions: enhancedUiActions.suggestedActions }
+            : {}),
+          totalCreditsUsed: toolRoundState.totalCreditsUsed,
+          uiActions: enhancedUiActions.uiActions,
+        },
+        creditsRemaining,
+        context.executionId,
+        inference.response.usage,
+      ),
+      organizationId: context.organizationId,
+      role: AgentMessageRole.ASSISTANT,
+      room: threadId,
+      toolCalls: toPersistedToolCalls(toolRoundState.toolCalls),
+      userId: context.userId,
+    });
+
+    await this.streamEffects.publishStreamCompletion({
+      completionMetadata: {
+        isFallbackContent,
+        ...citations.metadata,
+        memoryEntries: memoryEntriesForResponse,
+        memoryInfluence,
+        ...buildResolvedModelMetadata(model, Array.from(state.actualModels)),
+        reasoning,
+        reviewRequired: toolRoundState.reviewRequired,
+        riskLevel: toolRoundState.highestRiskLevel,
+        ...(enhancedUiActions.suggestedActions.length
+          ? { suggestedActions: enhancedUiActions.suggestedActions }
+          : {}),
+        totalCreditsUsed: toolRoundState.totalCreditsUsed,
+        uiActions: enhancedUiActions.uiActions,
+        ...(toolRoundState.latestUiBlocks
+          ? { uiBlocks: toolRoundState.latestUiBlocks }
+          : {}),
+      },
+      content,
+      context,
+      creditsRemaining,
+      creditsUsed: toolRoundState.totalCreditsUsed,
+      runStartedAt,
+      threadId,
+      ...(appliedThreadTitle ? { threadTitle: appliedThreadTitle } : {}),
+      toolCalls: toolRoundState.toolCalls,
+    });
+  }
+
+  private async runStreamToolRound(
+    params: StreamLoopParams,
+    state: StreamLoopState,
+    inputs: StreamTurnInputs,
+    assistantMessage: StreamAssistantMessage,
+    toolCalls: NonNullable<StreamAssistantMessage['tool_calls']>,
+  ): Promise<StreamRoundOutcome> {
+    const {
+      attachments,
+      context,
+      generationPriority,
+      model,
+      resolvedPolicy,
+      source,
+      threadId,
+    } = params;
+    const { toolRoundState } = state;
+
+    toolRoundState.totalCreditsUsed +=
+      await this.settleAccruedTurnCredits(state);
+    const toolRoundResult = await this.turnRoundRunner.executeToolRound({
+      allowedToolNames: inputs.allowedToolNames,
+      assistantContent: assistantMessage.content,
+      attachmentUrls: attachments?.map((a) => a.url),
+      context,
+      generationPriority,
+      messages: inputs.messages,
+      model,
+      policy: resolvedPolicy,
+      source,
+      state: toolRoundState,
+      strategy: buildStreamToolRoundStrategy({
+        context,
+        isRunCancelled: () => this.isRunCancelled(context),
+        streamEffects: this.streamEffects,
+        threadId,
+      }),
+      thinkingModel: resolvedPolicy.thinkingModelOverride ?? undefined,
+      threadId,
+      toolCalls,
+    });
+
+    const interrupted = toolRoundResult.wasInterrupted;
+    if (toolRoundResult.isCancelled) {
+      toolRoundState.totalCreditsUsed +=
+        await this.settleAccruedTurnCredits(state);
+      await this.handleCancelledStream(context, threadId, interrupted);
+      return 'finished';
+    }
+    state.terminalContent = toolRoundResult.terminalContent;
+    return 'continue';
   }
 
   private async isRunCancelled(context: AgentChatContext): Promise<boolean> {

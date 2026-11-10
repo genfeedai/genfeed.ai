@@ -122,6 +122,7 @@ function setup(isAllowed = true) {
     {} as never,
     moduleAccess as never,
     slideshowPosts as never,
+    {} as never,
   );
   const slideshowHandler = new AgentStoryboardToolHandler(
     slideshowRuns as never,
@@ -132,6 +133,7 @@ function setup(isAllowed = true) {
     {} as never,
     moduleAccess as never,
     slideshowPosts as never,
+    {} as never,
   );
   return { handler, runs, slideshowHandler, stills };
 }

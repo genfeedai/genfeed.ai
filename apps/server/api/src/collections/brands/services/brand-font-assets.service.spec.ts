@@ -82,6 +82,7 @@ function asset(data: Prisma.AssetCreateArgs['data']): Asset {
     parentArticleId: null,
     category: AssetCategory.FONT,
     referenceCategory: null,
+    kitSlot: null,
     externalId: null,
     localAssetId: null,
     cloudObjectKey:
@@ -95,6 +96,10 @@ function asset(data: Prisma.AssetCreateArgs['data']): Asset {
     uploadPolicy: null,
     originalFileName:
       typeof data.originalFileName === 'string' ? data.originalFileName : null,
+    originalFormat: null,
+    originalWidth: null,
+    originalHeight: null,
+    vectorObjectKey: null,
     displayName: typeof data.displayName === 'string' ? data.displayName : null,
     isDeleted: false,
     createdAt: new Date('2026-10-01T00:00:00.000Z'),

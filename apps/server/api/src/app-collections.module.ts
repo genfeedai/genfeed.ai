@@ -36,6 +36,7 @@ import { ContentPlansModule } from '@api/collections/content-plans/content-plans
 import { ContentRunsModule } from '@api/collections/content-runs/content-runs.module';
 import { ContextsModule } from '@api/collections/contexts/contexts.module';
 import { CreativePatternsModule } from '@api/collections/creative-patterns/creative-patterns.module';
+import { CreatorPaymentsModule } from '@api/collections/creator-payments/creator-payments.module';
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { CustomersModule } from '@api/collections/customers/customers.module';
@@ -73,6 +74,9 @@ import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { MoodBoardsModule } from '@api/collections/mood-boards/mood-boards.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
+import { NewsletterAnalyticsModule } from '@api/collections/newsletter-analytics/newsletter-analytics.module';
+import { NewsletterSendsModule } from '@api/collections/newsletter-sends/newsletter-sends.module';
+import { NewsletterSubscribersModule } from '@api/collections/newsletter-subscribers/newsletter-subscribers.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
 import { OptimizersModule } from '@api/collections/optimizers/optimizers.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
@@ -175,6 +179,7 @@ import { Module } from '@nestjs/common';
     CredentialsModule,
     BillingAccountsModule,
     CreditsModule,
+    CreatorPaymentsModule,
     DashboardLayoutsModule,
     DistributionsModule,
     CustomersModule,
@@ -211,6 +216,9 @@ import { Module } from '@nestjs/common';
     ModelsModule,
     MoodBoardsModule,
     MusicsModule,
+    NewsletterAnalyticsModule,
+    NewsletterSendsModule,
+    NewsletterSubscribersModule,
     NewslettersModule,
     OptimizersModule,
     OrganizationSettingsModule,

@@ -24,24 +24,31 @@ describe('api/templates', () => {
 
   it('lists templates without params', async () => {
     mockGet.mockResolvedValue({ data: [] });
-    mockFlattenCollection.mockReturnValue([]);
+    mockFlattenCollection.mockReturnValue([{ id: 'tpl-all' }]);
 
     const { listTemplates } = await import('@/api/templates');
-    await listTemplates();
+    const result = await listTemplates();
 
     expect(mockGet).toHaveBeenCalledWith('/templates');
+    expect(result).toEqual([{ id: 'tpl-all' }]);
   });
 
   it('lists templates with all filters', async () => {
     mockGet.mockResolvedValue({ data: [] });
-    mockFlattenCollection.mockReturnValue([]);
+    mockFlattenCollection.mockReturnValue([{ id: 'tpl-filtered' }]);
 
     const { listTemplates } = await import('@/api/templates');
-    await listTemplates({ category: 'social', limit: 3, purpose: 'launch', sort: 'popular' });
+    const result = await listTemplates({
+      category: 'social',
+      limit: 3,
+      purpose: 'launch',
+      sort: 'popular',
+    });
 
     expect(mockGet).toHaveBeenCalledWith(
       '/templates?purpose=launch&category=social&limit=3&sort=popular'
     );
+    expect(result).toEqual([{ id: 'tpl-filtered' }]);
   });
 
   it('gets a single template by id', async () => {
@@ -108,7 +115,7 @@ describe('api/templates', () => {
     mockDel.mockResolvedValue(undefined);
 
     const { deleteTemplate } = await import('@/api/templates');
-    await deleteTemplate('tpl-1');
+    await expect(deleteTemplate('tpl-1')).resolves.toBeUndefined();
 
     expect(mockDel).toHaveBeenCalledWith('/templates/tpl-1');
   });

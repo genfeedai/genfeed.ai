@@ -14,6 +14,14 @@ const findPublicVideosPage = vi.fn();
 const findPublicImagesPage = vi.fn();
 const findPublicReferralCode = vi.fn<() => Promise<string | null>>();
 
+vi.mock('@public/models/models-loader', () => ({
+  getPublicModels: async () => null,
+}));
+
+vi.mock('@data/public-views', () => ({
+  trackPublicView: async () => null,
+}));
+
 vi.mock('@services/external/public.service', () => ({
   PublicService: {
     getInstance: () => ({
@@ -133,7 +141,7 @@ describe('getCreatorProfileData', () => {
 });
 
 describe('generateMetadata', () => {
-  it('shares the banner under the @handle URL', async () => {
+  it('shares the profile card under the @handle URL', async () => {
     const meta = await generateMetadata({
       params: Promise.resolve({ handle: 'acme' }),
     });
@@ -142,7 +150,11 @@ describe('generateMetadata', () => {
     expect(meta.description).toBe('We make things.');
     expect(meta.alternates?.canonical).toBe('https://genfeed.ai/@acme');
     expect(meta.openGraph?.images).toEqual([
-      expect.objectContaining({ url: 'https://cdn.genfeed.ai/banner.jpg' }),
+      expect.objectContaining({
+        height: 630,
+        url: 'https://genfeed.ai/@acme/og',
+        width: 1200,
+      }),
     ]);
     expect(meta.twitter?.creator).toBe('@acme');
     expect(meta.alternates?.types?.['application/rss+xml']).toBeTruthy();

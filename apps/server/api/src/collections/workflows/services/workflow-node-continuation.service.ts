@@ -5,13 +5,20 @@ import {
   buildFailedOutput,
   buildFinalOutput,
   buildIdentityWhere,
+  buildProviderSubmittedUpdate,
   type ContinuationReconciliationCandidate,
   type ContinuationRow,
   type ContinuationSettlement,
   type ProviderContinuationIdentity,
+  planInitialOutputAttach,
   validateActionOutput,
 } from '@api/collections/workflows/services/workflow-continuation-output.util';
-import { IngredientStatus } from '@genfeedai/contracts';
+import {
+  IngredientStatus,
+  WORKFLOW_NODE_CONTINUATION_ACTIVE_STATUSES,
+  WORKFLOW_NODE_CONTINUATION_PROVIDER_SETTLED_STATUSES,
+  WORKFLOW_NODE_CONTINUATION_SUBMISSION_STATUSES,
+} from '@genfeedai/contracts';
 
 export type {
   AttachedContinuationOutput,
@@ -43,6 +50,13 @@ import { Injectable, Optional } from '@nestjs/common';
 const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
 
 const RESUME_LEASE_MS = 5 * 60 * 1000;
+
+/**
+ * A provider callback can land between a writer's read and its write. Each
+ * writer compares the status and `updatedAt` it read, and re-reads when the row
+ * moved (#9734).
+ */
+const CAS_WRITE_ATTEMPTS = 3;
 
 @Traced()
 @Injectable()
@@ -157,85 +171,42 @@ export class WorkflowNodeContinuationService {
     const webhookUrl = this.configService?.get('GENFEEDAI_WEBHOOKS_URL');
     const requiresPoll = !canReceiveProviderWebhooks(webhookUrl);
     await this.prisma.$transaction(async (transaction) => {
-      const continuation =
-        (await transaction.workflowNodeContinuation.findFirst({
-          where: {
-            id: input.continuationId,
-            organizationId: input.organizationId,
-          },
-        })) as ContinuationRow | null;
-      if (!continuation) {
-        throw new Error(
-          `Workflow continuation ${input.continuationId} not found in organization`,
-        );
-      }
-      if (
-        continuation.externalId &&
-        continuation.externalId !== input.externalId
-      ) {
-        throw new Error(
-          `Workflow continuation ${input.continuationId} provider identity changed`,
-        );
-      }
-
-      const previousResult = this.readProviderResult(
-        continuation.providerResult,
-      );
-      const previousAccepted = this.readProviderResult(
-        previousResult.acceptedFalOutput,
-      );
-      const previousQuantities = this.readProviderResult(
-        previousAccepted.completionQuantities,
-      );
-      if (
-        continuation.provider === 'fal' &&
-        previousResult.acceptedFalOutput !== undefined
-      ) {
-        if (previousAccepted.externalId !== input.externalId)
-          throw new Error('Fal accepted output identity changed');
-        for (const key of ['width', 'height', 'duration'] as const) {
-          if (
-            input.completionQuantities?.[key] !== undefined &&
-            previousQuantities[key] !== input.completionQuantities[key]
-          )
-            throw new Error(`Fal accepted ${key} changed`);
+      for (let attempt = 1; attempt <= CAS_WRITE_ATTEMPTS; attempt += 1) {
+        const continuation =
+          (await transaction.workflowNodeContinuation.findFirst({
+            where: {
+              id: input.continuationId,
+              organizationId: input.organizationId,
+            },
+          })) as ContinuationRow | null;
+        if (!continuation) {
+          throw new Error(
+            `Workflow continuation ${input.continuationId} not found in organization`,
+          );
         }
-      }
 
-      await transaction.workflowNodeContinuation.update({
-        data: {
-          externalId: input.externalId,
-          ...(continuation.provider === 'fal'
-            ? {
-                providerResult: {
-                  ...previousResult,
-                  acceptedFalOutput: previousResult.acceptedFalOutput ?? {
-                    externalId: input.externalId,
-                    ...(input.completionQuantities
-                      ? { completionQuantities: input.completionQuantities }
-                      : {}),
-                  },
-                } as Prisma.InputJsonValue,
-              }
-            : {}),
-          ...(continuation.provider === 'heygen' && requiresPoll
-            ? {
-                pollAttempt: continuation.pollAttempt ?? 1,
-                pollDispatchClaimedAt: null,
-                pollDispatchedAt: null,
-              }
-            : {}),
-          ...(continuation.status ===
-          WorkflowNodeContinuationStatus.PENDING_SUBMISSION
-            ? { status: WorkflowNodeContinuationStatus.WAITING_PROVIDER }
-            : {}),
-        },
-        where: { id: continuation.id },
-      });
-      await this.generationBilling?.recordContinuationProof(
-        transaction,
-        continuation,
-        { kind: 'accepted', providerJobId: input.externalId },
+        // sql-risk-audit: ignore bulk-write-tenant-review -- compare-and-set on continuation.id after the tenant-scoped load of this row.
+        const written = await transaction.workflowNodeContinuation.updateMany({
+          data: buildProviderSubmittedUpdate(continuation, input, requiresPoll),
+          where: {
+            id: continuation.id,
+            organizationId: input.organizationId,
+            status: continuation.status,
+            updatedAt: continuation.updatedAt,
+          },
+        });
+        if (written.count !== 1) {
+          continue;
+        }
+        await this.generationBilling?.recordContinuationProof(
+          transaction,
+          continuation,
+          { kind: 'accepted', providerJobId: input.externalId },
+        );
+        return;
+      }
+      throw new Error(
+        `Workflow continuation ${input.continuationId} changed during every attempt to record its submission`,
       );
     });
 
@@ -512,15 +483,7 @@ export class WorkflowNodeContinuationService {
         executionId: input.executionId,
         nodeId: input.nodeId,
         organizationId: input.organizationId,
-        status: {
-          in: [
-            WorkflowNodeContinuationStatus.PENDING_SUBMISSION,
-            WorkflowNodeContinuationStatus.WAITING_PROVIDER,
-            WorkflowNodeContinuationStatus.PROVIDER_SUCCEEDED,
-            WorkflowNodeContinuationStatus.PROVIDER_FAILED,
-            WorkflowNodeContinuationStatus.RESUMING,
-          ],
-        },
+        status: { in: [...WORKFLOW_NODE_CONTINUATION_ACTIVE_STATUSES] },
         workflowVersionId: input.workflowVersionId,
       },
     });
@@ -554,10 +517,7 @@ export class WorkflowNodeContinuationService {
             id: input.continuationId,
             organizationId: input.organizationId,
             status: {
-              in: [
-                WorkflowNodeContinuationStatus.PENDING_SUBMISSION,
-                WorkflowNodeContinuationStatus.WAITING_PROVIDER,
-              ],
+              in: [...WORKFLOW_NODE_CONTINUATION_SUBMISSION_STATUSES],
             },
           },
         })) as ContinuationRow | null;
@@ -641,63 +601,51 @@ export class WorkflowNodeContinuationService {
     validateActionOutput(input.actionId, input.initialOutput);
 
     return this.prisma.$transaction(async (transaction) => {
-      const continuation =
-        (await transaction.workflowNodeContinuation.findFirst({
-          where: {
-            actionId: input.actionId,
-            executionId: input.executionId,
-            nodeId: input.nodeId,
-            organizationId: input.organizationId,
-            workflowVersionId: input.workflowVersionId,
+      for (let attempt = 1; attempt <= CAS_WRITE_ATTEMPTS; attempt += 1) {
+        const continuation =
+          (await transaction.workflowNodeContinuation.findFirst({
+            where: {
+              actionId: input.actionId,
+              executionId: input.executionId,
+              nodeId: input.nodeId,
+              organizationId: input.organizationId,
+              workflowVersionId: input.workflowVersionId,
+            },
+          })) as ContinuationRow | null;
+        if (!continuation) {
+          throw new Error(
+            `Provider-callback action ${input.actionId} did not create a durable continuation before submission`,
+          );
+        }
+
+        const plan = planInitialOutputAttach(continuation, input.initialOutput);
+        if (plan.kind === 'settled-elsewhere') {
+          return { kind: 'settled-elsewhere' };
+        }
+        // sql-risk-audit: ignore bulk-write-tenant-review -- compare-and-set on continuation.id after the tenant-scoped load of this row.
+        const written = await transaction.workflowNodeContinuation.updateMany({
+          data: {
+            creditsUsed: input.creditsUsed,
+            initialOutput: input.initialOutput as Prisma.InputJsonValue,
+            ...(plan.status === WorkflowNodeContinuationStatus.RESUMING
+              ? { resumeClaimedAt: new Date() }
+              : {}),
+            status: plan.status,
           },
-        })) as ContinuationRow | null;
-      if (!continuation) {
-        throw new Error(
-          `Provider-callback action ${input.actionId} did not create a durable continuation before submission`,
-        );
+          where: {
+            id: continuation.id,
+            organizationId: input.organizationId,
+            status: continuation.status,
+            updatedAt: continuation.updatedAt,
+          },
+        });
+        if (written.count === 1) {
+          return plan.result;
+        }
       }
-
-      const providerSucceeded =
-        continuation.status ===
-        WorkflowNodeContinuationStatus.PROVIDER_SUCCEEDED;
-      const providerFailed =
-        continuation.status === WorkflowNodeContinuationStatus.PROVIDER_FAILED;
-      const finalOutput = providerSucceeded
-        ? buildFinalOutput(input.actionId, input.initialOutput)
-        : providerFailed
-          ? buildFailedOutput(input.actionId, input.initialOutput)
-          : undefined;
-      if (finalOutput !== undefined) {
-        validateActionOutput(input.actionId, finalOutput);
-      }
-
-      await transaction.workflowNodeContinuation.update({
-        data: {
-          creditsUsed: input.creditsUsed,
-          initialOutput: input.initialOutput as Prisma.InputJsonValue,
-          ...(providerSucceeded || providerFailed
-            ? {
-                resumeClaimedAt: new Date(),
-                status: WorkflowNodeContinuationStatus.RESUMING,
-              }
-            : { status: WorkflowNodeContinuationStatus.WAITING_PROVIDER }),
-        },
-        where: { id: continuation.id },
-      });
-
-      if (!providerSucceeded && !providerFailed) {
-        return { kind: 'waiting' };
-      }
-
-      return {
-        continuationId: continuation.id,
-        ...(providerFailed && continuation.error
-          ? { error: continuation.error }
-          : {}),
-        ...(finalOutput === undefined ? {} : { finalOutput }),
-        kind: 'provider-settled',
-        succeeded: providerSucceeded,
-      };
+      throw new Error(
+        `Workflow continuation for node ${input.nodeId} changed during every attempt to attach its initial output`,
+      );
     });
   }
 
@@ -879,10 +827,7 @@ export class WorkflowNodeContinuationService {
         OR: [
           {
             status: {
-              in: [
-                WorkflowNodeContinuationStatus.PROVIDER_SUCCEEDED,
-                WorkflowNodeContinuationStatus.PROVIDER_FAILED,
-              ],
+              in: [...WORKFLOW_NODE_CONTINUATION_PROVIDER_SETTLED_STATUSES],
             },
           },
           {

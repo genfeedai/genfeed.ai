@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { brandRemixScenePipelineSchema } from './brand-remix-scene.contract';
 import { storyboardARollSchema } from './storyboard-a-roll.contract';
+import { storyboardAssetGenerationSchema } from './storyboard-asset-bible.contract';
 import { storyboardCharacterReplacementSchema } from './storyboard-character-replace.contract';
 import {
   storyboardPlanSchema,
@@ -65,6 +66,11 @@ export const storyboardNativeRunConfigSchema = z
      * the private render journal; never stored on its own.
      */
     shotRenders: z.array(storyboardShotRenderSchema).max(24).optional(),
+    /** The latest asset bible generations (#9616). Derived, never stored. */
+    assetGenerations: z
+      .array(storyboardAssetGenerationSchema)
+      .max(64)
+      .optional(),
     error: z.string().max(1_000).optional(),
   })
   .strict();

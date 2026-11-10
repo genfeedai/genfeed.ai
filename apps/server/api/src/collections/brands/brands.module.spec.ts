@@ -1,4 +1,5 @@
 import { BrandFontAssetsController } from '@api/collections/brands/controllers/brand-font-assets.controller';
+import { BrandKitController } from '@api/collections/brands/controllers/brand-kit.controller';
 import { BrandLutController } from '@api/collections/brands/controllers/brand-lut.controller';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
@@ -21,6 +22,7 @@ describe('BrandsModule registration', () => {
       BrandOsRevisionsController,
       BrandOsScanController,
       BrandFontAssetsController,
+      BrandKitController,
       BrandLutController,
       BrandsAgentConfigController,
       BrandsSetupController,

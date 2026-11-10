@@ -296,6 +296,8 @@ export class StoryboardShotRendersService {
     ) =>
       Boolean(op) &&
       op?.state !== 'failed' &&
+      // A final that failed QA needs a new render (#9621).
+      op?.qa?.state !== 'failed' &&
       op?.inputFingerprint === shotRenderInputFingerprint(plan, shot, stage);
     const targets = shotIds
       ? shotIds.map((id) => {

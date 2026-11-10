@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { storyboardAssetBibleSchema } from './storyboard-asset-bible.contract';
 import { storyboardModelKeySchema } from './storyboard-run-capabilities.contract';
 import { storyboardIdSchema } from './storyboard-source.contract';
 
@@ -199,6 +200,7 @@ export const storyboardPlanDraftSchema = storyboardPlanSettingsSchema
     logline: z.string().trim().max(300),
     shots: z.array(storyboardShotSchema).max(12),
     longForm: storyboardLongFormSchema.optional(),
+    assetBible: storyboardAssetBibleSchema.optional(),
   })
   .strict();
 
@@ -334,10 +336,33 @@ function validateStoryboardShotCuts(
   });
 }
 
+function validateStoryboardAssetBible(
+  plan: z.infer<typeof storyboardPlanDraftSchema>,
+  ctx: z.RefinementCtx,
+) {
+  const entries = plan.assetBible ?? [];
+  if (new Set(entries.map((entry) => entry.id)).size !== entries.length)
+    ctx.addIssue({
+      code: 'custom',
+      path: ['assetBible'],
+      message: 'Asset bible entry IDs must be unique.',
+    });
+  const castIds = new Set(plan.cast.map((member) => member.id));
+  entries.forEach((entry, index) => {
+    if (entry.castMemberId && !castIds.has(entry.castMemberId))
+      ctx.addIssue({
+        code: 'custom',
+        path: ['assetBible', index, 'castMemberId'],
+        message: 'Choose a member of the storyboard cast.',
+      });
+  });
+}
+
 function validateStoryboardPlan(
   plan: z.infer<typeof storyboardPlanDraftSchema>,
   ctx: z.RefinementCtx,
 ) {
+  validateStoryboardAssetBible(plan, ctx);
   validateStoryboardSlideshow(plan, ctx);
   validateStoryboardLongForm(plan, ctx);
   if (

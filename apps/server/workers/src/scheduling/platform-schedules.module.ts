@@ -36,6 +36,7 @@ import { CronMediaDeliveryRecoveryModule } from '@workers/crons/media-delivery-r
 import { CronMediaPerceptionModule } from '@workers/crons/media-perception/cron.media-perception.module';
 import { CronModelDeprecationModule } from '@workers/crons/model-deprecation/cron.model-deprecation.module';
 import { CronModelWatcherModule } from '@workers/crons/model-watcher/cron.model-watcher.module';
+import { CronNewsletterSendsModule } from '@workers/crons/newsletter-sends/cron.newsletter-sends.module';
 import { CronOAuthClientCleanupModule } from '@workers/crons/oauth-client-cleanup/cron.oauth-client-cleanup.module';
 import { CronPatternExtractionModule } from '@workers/crons/pattern-extraction/cron.pattern-extraction.module';
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
@@ -53,7 +54,10 @@ import { CronYoutubeModule } from '@workers/crons/youtube/cron.youtube.module';
 import { QueueMetricsModule } from '@workers/monitoring/queue-metrics.module';
 import { NotificationDeliveryRecoveryModule } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.module';
 import { PendingWorkflowExecutionReconcileService } from '@workers/scheduling/pending-workflow-execution-reconcile.service';
+import { PlatformAccountTaskHandlers } from '@workers/scheduling/platform-account-task-handlers.service';
 import { PlatformMediaSchedulesService } from '@workers/scheduling/platform-media-schedules.service';
+import { PlatformMediaTaskHandlers } from '@workers/scheduling/platform-media-task-handlers.service';
+import { PlatformPublishingTaskHandlers } from '@workers/scheduling/platform-publishing-task-handlers.service';
 import { PlatformRecoverySchedulesService } from '@workers/scheduling/platform-recovery-schedules.service';
 import { PlatformScheduleRegistryService } from '@workers/scheduling/platform-schedule-registry.service';
 import { PlatformSchedulesProcessor } from '@workers/scheduling/platform-schedules.processor';
@@ -107,6 +111,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     CronModelDeprecationModule,
     CronModelWatcherModule,
     CronBrandedDispatchRecoveryModule,
+    CronNewsletterSendsModule,
     CronOAuthClientCleanupModule,
     CronPatternExtractionModule,
     CronPostsModule,
@@ -129,6 +134,9 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     CrunReconcileService,
     PlatformMediaSchedulesService,
     PlatformScheduleRegistryService,
+    PlatformMediaTaskHandlers,
+    PlatformPublishingTaskHandlers,
+    PlatformAccountTaskHandlers,
     PlatformSchedulesProcessor,
     PlatformWorkflowSchedulesService,
     PendingWorkflowExecutionReconcileService,

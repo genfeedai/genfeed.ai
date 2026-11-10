@@ -125,6 +125,8 @@ export default function ArticleDetail({
     handleArticleDelivered,
     handleSaveExternalUrl,
     isSavingExternalUrl,
+    handleSaveAccess,
+    isSavingAccess,
   } = useArticleDetail({ articleId });
 
   const hasXArticleSections =
@@ -338,6 +340,11 @@ export default function ArticleDetail({
           isDirty={isDirty}
           isScoringSeo={isScoringSeo}
           onScoreSeo={handleScoreSeo}
+          access={
+            isXArticle
+              ? undefined
+              : { isSaving: isSavingAccess, onSave: handleSaveAccess }
+          }
           delivery={
             isXArticle
               ? undefined

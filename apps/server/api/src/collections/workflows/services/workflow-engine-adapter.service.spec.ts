@@ -1107,6 +1107,7 @@ describe('WorkflowEngineAdapterService', () => {
         }),
         findOneSelect: delegateFindOneSelect(),
         patch: vi.fn().mockResolvedValue({}),
+        patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
       };
       const metadataService = { patch: vi.fn().mockResolvedValue({}) };
       const musicsService = {
@@ -1277,8 +1278,12 @@ describe('WorkflowEngineAdapterService', () => {
           videoVolume: 0,
         }),
       );
-      expect(ingredientsService.patch).toHaveBeenCalledWith(
-        captionedId,
+      expect(ingredientsService.patchAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: captionedId,
+          organizationId,
+          status: 'PROCESSING',
+        }),
         expect.objectContaining({
           s3Key: 'ingredients/videos/merged-1',
           status: 'GENERATED',
@@ -1298,6 +1303,7 @@ describe('WorkflowEngineAdapterService', () => {
       };
       const ingredientsService = {
         patch: vi.fn().mockResolvedValue({}),
+        patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
       };
       const metadataService = {
         patch: vi.fn().mockResolvedValue({}),

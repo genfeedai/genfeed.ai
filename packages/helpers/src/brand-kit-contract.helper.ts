@@ -1,5 +1,9 @@
 import { Platform } from '@genfeedai/contracts';
 import {
+  readBrandFontRoles,
+  readBrandPalette,
+} from '@genfeedai/contracts/api-types/contracts/brand-kit-style.contract';
+import {
   BRAND_KIT_FIELD_OWNERSHIP,
   type BrandKitAssetRole,
   type BrandKitFieldKey,
@@ -46,6 +50,10 @@ export interface BrandKitSourceBrand {
   primaryColor?: string | null;
   secondaryColor?: string | null;
   backgroundColor?: string | null;
+  /** Stored JSON; read through `readBrandPalette`. */
+  colorPalette?: unknown;
+  /** Stored JSON; read through `readBrandFontRoles`. */
+  fontRoles?: unknown;
   logo?: BrandKitAssetSource | null;
   banner?: BrandKitAssetSource | null;
   references?: BrandKitAssetSource[] | null;
@@ -281,6 +289,14 @@ function readCurrentValue(
       return brand.backgroundColor ?? undefined;
     case 'fontFamily':
       return brand.fontFamily ?? undefined;
+    case 'colorPalette': {
+      const palette = readBrandPalette(brand.colorPalette);
+      return palette.length > 0 ? palette : undefined;
+    }
+    case 'fontRoles': {
+      const roles = readBrandFontRoles(brand.fontRoles);
+      return Object.keys(roles).length > 0 ? roles : undefined;
+    }
     case 'promptGuidelines':
       return brand.text ?? undefined;
     case 'voiceTone':

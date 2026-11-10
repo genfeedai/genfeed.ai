@@ -287,6 +287,33 @@ nothing falls back to a platform account.
   for a saved voice, or `externalVoiceId` to first save a voice from the
   connected account) makes the voice the brand default.
 
+## Digital twin
+
+A person can train a digital twin of themselves (an avatar plus a voice cloned
+from the footage) in the organization's own connected HeyGen account. Genfeed
+charges no credits for it, and nothing runs in a platform account. The camera
+step stays in the app; over MCP the twin starts from a recording already in the
+Library.
+
+1. Upload a 15 s to 10 min video of yourself facing the camera with
+   `upload_media`. Only your own uploads can be used.
+2. `transform_media` with `operation: "digital_twin"` and `videoId` sends the
+   video to HeyGen and starts training. It waits in the approvals queue like
+   other media transforms. The result has the twin and a `consentLink`: the
+   person on camera opens it and records a short consent statement on HeyGen's
+   page. Starting again from the same video returns the same twin.
+3. `get_assets` with `type: "digital_twin"` (optionally `twinId`) re-reads
+   training and consent at HeyGen and returns each twin's `status`, `consent`,
+   `failure` and a plain `nextStep`. The twin can be used only when `status` is
+   `READY`.
+4. If the consent link expired (links last 24 hours) or HeyGen declined the
+   consent, `transform_media` with `operation: "digital_twin_consent"` and
+   `twinId` returns a new link.
+5. `set_generation_settings` with `scope: "brand"` and
+   `defaultAvatar: { twinId }` makes a ready twin the brand's default avatar and
+   its voice the default voice (`isTwinVoiceUsed: false` keeps the current
+   voice). `generate` with `type: "avatar"` then renders with it.
+
 ## Brand context
 
 `get_brand_context` returns what Genfeed's own agent is given about a brand in

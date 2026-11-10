@@ -126,6 +126,12 @@ export class WorkflowEventWebhookService {
   }
 }
 
+/**
+ * Outbound webhooks only announce `workflow.execution.completed` and
+ * `workflow.execution.failed`. This deliberately narrows
+ * `WORKFLOW_EXECUTION_TERMINAL_STATUSES`: a CANCELLED execution is terminal but
+ * sends no webhook.
+ */
 function mapToTerminalExecutionStatus(
   status: WorkflowExecutionStatus,
 ): WorkflowExecutionStatus.COMPLETED | WorkflowExecutionStatus.FAILED | null {

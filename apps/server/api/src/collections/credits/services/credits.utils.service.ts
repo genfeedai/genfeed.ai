@@ -903,14 +903,17 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           : undefined;
 
       // Core reset logic always runs inside the required serializable transaction.
+      // A reset replaces the plan allocation only: credits earned from other
+      // organizations never expire, so they stay on top of the new amount.
       const resetCore = async (tx?: PrismaTransactionClient) => {
         const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
         this.assertGrantBillingAccount(wallet.billingAccountId, options);
         const currentBalance = wallet.available;
+        const balanceAfterReset = newCreditAmount + wallet.earned;
 
         await this.creditBalanceService.updateBalance(
           organizationId,
-          newCreditAmount,
+          balanceAfterReset,
           wallet.billingAccountId,
           tx,
         );
@@ -920,7 +923,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
             CreditTransactionCategory.RESET,
             newCreditAmount,
             currentBalance,
-            newCreditAmount,
+            balanceAfterReset,
             source,
             description,
             undefined,
@@ -933,7 +936,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
             CreditTransactionCategory.RESET,
             newCreditAmount,
             currentBalance,
-            newCreditAmount,
+            balanceAfterReset,
             source,
             description,
             undefined,
@@ -941,13 +944,14 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           );
         }
 
-        return currentBalance;
+        return { balanceAfterReset, currentBalance };
       };
 
-      const currentBalance = await this.transactionUtil.runInTransaction(
-        (tx) => resetCore(tx),
-        BALANCE_TX_OPTIONS,
-      );
+      const { balanceAfterReset, currentBalance } =
+        await this.transactionUtil.runInTransaction(
+          (tx) => resetCore(tx),
+          BALANCE_TX_OPTIONS,
+        );
 
       if (newCreditAmount > 0) {
         await this.markOrganizationAsHavingCredits(organizationId);
@@ -957,7 +961,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       // Phase C — no legacy auth provider identity write-back).
       const websocketUrl = `/credits/${organizationId}`;
       await this.websocketService.emit(websocketUrl, {
-        balance: newCreditAmount,
+        balance: balanceAfterReset,
       });
       await this.accessBootstrapCacheService.invalidateForOrganization(
         organizationId,
@@ -965,7 +969,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       this.loggerService.log(`${url} credits reset successfully`, {
         description,
-        newBalance: newCreditAmount,
+        newBalance: balanceAfterReset,
         organizationId,
         previousBalance: currentBalance,
         source,

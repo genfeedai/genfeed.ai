@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest';
 import ProfileSignupCta, { getProfileSignupHref } from './ProfileSignupCta';
 
 describe('ProfileSignupCta', () => {
-  it('links to app sign-up with the profile owner referral code', () => {
+  it('says it is the owner referral and carries the code', () => {
     render(<ProfileSignupCta handle="acme" referralCode="frend2345xyz" />);
 
-    const link = screen.getByRole('link', { name: /sign up to genfeed/i });
+    const link = screen.getByRole('link', {
+      name: "Join Genfeed with @acme's referral",
+    });
     const url = new URL(link.getAttribute('href') ?? '');
 
     expect(url.pathname).toBe('/sign-up');

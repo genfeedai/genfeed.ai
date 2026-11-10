@@ -4,6 +4,7 @@ import type {
   ImageGenerationSaveDocumentsResult,
 } from '@api/collections/images/services/image-generation.types';
 import type { ImagesService } from '@api/collections/images/services/images.service';
+import { transitionIngredientStatus } from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import { IngredientStatus } from '@genfeedai/contracts';
 
 /**
@@ -57,19 +58,15 @@ export async function failUnproducedBatchOutput(
   context: ImageGenerationContext,
   ingredientId: string,
 ): Promise<boolean> {
-  const claimed = await imagesService.patchAll(
-    {
-      id: ingredientId,
-      organizationId: context.user.organizationId,
-      isDeleted: false,
-      status: IngredientStatus.PROCESSING,
-    },
-    {
-      status: IngredientStatus.FAILED,
+  return transitionIngredientStatus(imagesService, {
+    data: {
       generationError:
         'Provider completed without producing this requested output',
       isGenerationFailureConfirmed: true,
     },
-  );
-  return claimed.modifiedCount === 1;
+    from: IngredientStatus.PROCESSING,
+    id: ingredientId,
+    organizationId: context.user.organizationId,
+    to: IngredientStatus.FAILED,
+  });
 }

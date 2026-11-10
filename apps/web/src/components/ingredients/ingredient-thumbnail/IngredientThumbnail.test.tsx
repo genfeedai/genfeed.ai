@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { IngredientCategory } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -35,6 +36,11 @@ vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
 const ingredient = {
   id: 'img-1',
   ingredientUrl: 'https://cdn.test/images/img-1.jpg',
+} as IIngredient;
+
+const videoIngredient = {
+  category: IngredientCategory.VIDEO,
+  id: 'vid-1',
 } as IIngredient;
 
 describe('IngredientThumbnail', () => {
@@ -90,6 +96,37 @@ describe('IngredientThumbnail', () => {
       <IngredientThumbnail alt="Anna" ingredient={undefined} size={40} />,
     );
     expect(screen.getByRole('img', { name: 'Anna' })).toBeInTheDocument();
+  });
+
+  it('shows the first frame of a video through its media grant', () => {
+    mocks.grant = { url: 'https://signed.test/videos/vid-1.mp4?sig=1' };
+    render(
+      <IngredientThumbnail
+        alt="Draft video"
+        ingredient={videoIngredient}
+        size={64}
+      />,
+    );
+
+    expect(screen.getByLabelText('Draft video')).toHaveAttribute(
+      'src',
+      'https://signed.test/videos/vid-1.mp4?sig=1#t=0.001',
+    );
+  });
+
+  it('shows the placeholder when the video fails to load', () => {
+    mocks.grant = { url: 'https://signed.test/videos/vid-1.mp4?sig=1' };
+    render(
+      <IngredientThumbnail
+        alt="Draft video"
+        ingredient={videoIngredient}
+        size={64}
+      />,
+    );
+
+    fireEvent.error(screen.getByLabelText('Draft video'));
+
+    expect(screen.getByRole('img', { name: 'Draft video' })).toBeVisible();
   });
 
   it('fills the positioned parent when no size is given', () => {

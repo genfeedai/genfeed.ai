@@ -72,7 +72,7 @@ function announcedCards(): HTMLElement[] {
 }
 
 describe('HomeHero', () => {
-  it('leads with generated output and one signup CTA', () => {
+  it('leads with generated output and the agent action first', () => {
     render(<HomeHero />);
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
@@ -83,7 +83,7 @@ describe('HomeHero', () => {
     expect(heading).toBeInTheDocument();
     expect(
       screen.getByText(
-        /genfeed is an open-source content agent\. create on-brand videos, images and posts, then review and publish to your connected channels/i,
+        /run genfeed from the agent you already use\. brief it in claude, chatgpt, codex or cursor, then review, publish and track your on-brand videos, images and posts in the dashboard\./i,
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/— on brand —/)).not.toBeInTheDocument();
@@ -91,7 +91,7 @@ describe('HomeHero', () => {
       [...document.querySelectorAll('button, a')].map((link) =>
         link.textContent?.trim(),
       ),
-    ).toEqual(['Start for $0']);
+    ).toEqual(['Connect your agent', 'Start for $0']);
 
     const actions = screen.getByTestId('home-hero-actions');
     const carousel = screen.getByTestId('home-hero-output-carousel');
@@ -151,17 +151,19 @@ describe('HomeHero', () => {
     expect(screen.queryByText(/31% hook rate/i)).not.toBeInTheDocument();
   });
 
-  it('sends visitors to the sign-up page', () => {
+  it('opens the connect dialog first and keeps sign-up as the second action', () => {
     render(<HomeHero />);
+    expect(
+      screen.getByRole('button', { name: /connect your agent/i }),
+    ).toHaveAttribute('aria-haspopup', 'dialog');
     expect(
       screen.getByRole('link', { name: /start for \$0/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
     expect(
-      screen.getByText(/create your free account with google or email/i),
+      screen.getByText(
+        /connecting takes one sign-in\. free account, no card required\./i,
+      ),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /connect your agent/i }),
-    ).not.toBeInTheDocument();
   });
 
   it('never offers a sales demo', () => {

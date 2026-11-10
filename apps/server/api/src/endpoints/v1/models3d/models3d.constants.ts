@@ -1,0 +1,52 @@
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+
+/** Image model that renders the multi-angle sheet. A harness parameter, so a second tier can be added. */
+export const MODELS3D_SHEET_MODEL_KEY =
+  MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO;
+
+/** Image-to-3D model that builds the GLB from the photo and the sheet views. */
+export const MODELS3D_BUILD_MODEL_KEY = MODEL_KEYS.REPLICATE_FIRTOZ_TRELLIS;
+
+export const MODELS3D_GRID_SIZE = 3;
+
+/** Index of the centre cell: the original view, already supplied as the photo. */
+export const MODELS3D_GRID_CENTER_INDEX = 4;
+
+export const MODELS3D_SHEET_RESOLUTION = '2K';
+
+export const MODELS3D_BUILD_INPUT = {
+  generate_model: true,
+  mesh_simplify: 0.95,
+  randomize_seed: false,
+  seed: 42,
+  texture_size: 2048,
+} as const;
+
+/** Key of the GLB file inside the TRELLIS prediction output. */
+export const MODELS3D_BUILD_OUTPUT_KEY = 'model_file';
+
+export const MODELS3D_SHEET_ASPECT_RATIO = '1:1';
+
+export const MODELS3D_GLB_CONTENT_TYPE = 'model/gltf-binary';
+
+/** Longest a single source upload may be, in bytes. */
+export const MODELS3D_MAX_SOURCE_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Harness prompt for the angle sheet. The reference photo is attached as an
+ * input image; the optional caller prompt only describes the subject.
+ */
+export function buildModels3dSheetPrompt(subject?: string): string {
+  const description = subject?.trim()
+    ? ` The subject is: ${subject.trim()}.`
+    : '';
+  return [
+    'Create a single square image that is a 3x3 grid of nine views of the exact same object shown in the reference image, with thin equal gaps and a plain neutral light-grey background in every cell.',
+    description.trim(),
+    'The centre cell repeats the reference view unchanged. The other eight cells show the same object rotated around its vertical axis in 45 degree steps, reading left to right and top to bottom: front-left, front-right, left, right, back-left, back, back-right, plus a high three-quarter view from above.',
+    'Keep the object identical in every cell: same proportions, materials, colours, textures and details. Use the same camera distance, the same soft even studio lighting and no shadows cast outside the object. Fit the whole object inside each cell with an equal margin.',
+    'No text, labels, numbers, arrows, borders or extra objects.',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}

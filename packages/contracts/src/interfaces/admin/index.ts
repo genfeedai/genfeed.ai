@@ -1,4 +1,5 @@
 export * from './announcements.interface';
+export * from './community.interface';
 export * from './credit-holds.interface';
 export * from './email-performance.interface';
 export * from './fleet.interface';

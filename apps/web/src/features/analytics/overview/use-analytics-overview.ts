@@ -15,26 +15,17 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { User } from '@models/auth/user.model';
 import { UsersService } from '@services/organization/users.service';
 import { format } from 'date-fns';
+import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef } from 'react';
 import { useHealthChecks } from '@/features/analytics/hooks/use-health-checks/use-health-checks';
 import { useTimeseries } from '@/features/analytics/hooks/use-timeseries/use-timeseries';
+import type {
+  AnalyticsDashboardState,
+  AnalyticsOverviewHeroContent,
+} from '@/features/analytics/props/analytics-overview-hero.props';
 import { useAnalytics } from '@/hooks/data/analytics/use-analytics/use-analytics';
 import { useLeaderboards } from '@/hooks/data/analytics/use-leaderboards/use-leaderboards';
 import { useTopPosts } from '@/hooks/data/analytics/use-top-posts/use-top-posts';
-
-type DashboardState = 'empty' | 'warming_up' | 'active';
-
-interface HeroAction {
-  href: string;
-  label: string;
-  variant: ButtonVariant;
-}
-
-interface DashboardHeroContent {
-  badge: string;
-  description: string;
-  primaryAction: HeroAction;
-}
 
 const DB_DASHBOARD_SCOPE_KEY = 'organization';
 
@@ -43,6 +34,7 @@ export interface UseAnalyticsOverviewParams {
 }
 
 export function useAnalyticsOverview({ scope }: UseAnalyticsOverviewParams) {
+  const translate = useTranslations('pages.analytics.overview');
   const agentBlocks = useAgentDashboardStore((s) => s.blocks);
   const isAgentModified = useAgentDashboardStore((s) => s.isAgentModified);
   const resetToDefaults = useAgentDashboardStore((s) => s.resetToDefaults);
@@ -259,7 +251,7 @@ export function useAnalyticsOverview({ scope }: UseAnalyticsOverviewParams) {
     ),
   );
 
-  const dashboardState: DashboardState = useMemo(() => {
+  const dashboardState: AnalyticsDashboardState = useMemo(() => {
     if (
       !hasConnectedAccounts &&
       !hasPosts &&
@@ -300,7 +292,7 @@ export function useAnalyticsOverview({ scope }: UseAnalyticsOverviewParams) {
         ? href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)
         : orgHref(APP_ROUTES.SETTINGS.BRANDS);
 
-  const heroContent = useMemo<DashboardHeroContent | null>(() => {
+  const heroContent = useMemo<AnalyticsOverviewHeroContent | null>(() => {
     // Active dashboards need no status strip — metrics and charts carry the page.
     // Empty is a page-level blocker (EmptyState surface="card"), not a banner over zeros.
     // Warming_up keeps a compact badge + next-action row (no in-page H1;
@@ -309,17 +301,49 @@ export function useAnalyticsOverview({ scope }: UseAnalyticsOverviewParams) {
       return null;
     }
 
+    const createContentAction = {
+      href: href(APP_ROUTES.PUBLISHING.OVERVIEW),
+      label: translate('hero.createContent'),
+    };
+
+    // Posts can exist before any account is connected. The banner must then
+    // match the zero on the Connected Accounts tile and point at connecting.
+    if (!hasConnectedAccounts) {
+      return {
+        badge: translate('hero.notConnectedBadge'),
+        description: translate('hero.notConnectedDescription'),
+        hasConnectedAccounts: false,
+        primaryAction: {
+          href: connectAccountsHref,
+          label: translate('connectAccounts'),
+          variant: ButtonVariant.DEFAULT,
+        },
+        secondaryAction: {
+          ...createContentAction,
+          variant: ButtonVariant.SECONDARY,
+        },
+      };
+    }
+
     return {
-      badge: 'Warming up',
-      description:
-        'Accounts are connected, but there is not enough tracked performance yet. Keep publishing and check back after the next sync.',
-      primaryAction: {
-        href: href(APP_ROUTES.PUBLISHING.OVERVIEW),
-        label: 'Create content',
-        variant: ButtonVariant.DEFAULT,
+      badge: translate('hero.warmingUpBadge'),
+      description: translate('hero.warmingUpDescription'),
+      hasConnectedAccounts: true,
+      primaryAction: { ...createContentAction, variant: ButtonVariant.DEFAULT },
+      secondaryAction: {
+        href: connectAccountsHref,
+        label: translate('hero.manageConnections'),
+        variant: ButtonVariant.SECONDARY,
       },
     };
-  }, [dashboardState, href, scope]);
+  }, [
+    connectAccountsHref,
+    dashboardState,
+    hasConnectedAccounts,
+    href,
+    scope,
+    translate,
+  ]);
 
   const primaryKpiItems = useMemo(() => {
     if (scope === PageScope.SUPERADMIN) {

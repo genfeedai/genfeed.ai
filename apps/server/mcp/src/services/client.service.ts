@@ -42,6 +42,7 @@ import {
 import { LinkedInClient } from '@mcp/services/client/linkedin.client';
 import type { LinkedInConnectionStatus } from '@mcp/services/client/linkedin.client.types';
 import { MediaClient } from '@mcp/services/client/media.client';
+import { Models3dClient } from '@mcp/services/client/models3d.client';
 import { PresetsClient } from '@mcp/services/client/presets.client';
 import { RemixClient } from '@mcp/services/client/remix.client';
 import {
@@ -118,6 +119,7 @@ import type {
   WorkflowScheduleResponse,
   WorkflowTemplate,
 } from '@mcp/shared/interfaces/workflow.interface';
+import type { Models3dToolInput } from '@mcp/tools/models3d.schemas';
 import type { RemixToolInput } from '@mcp/tools/remix.schemas';
 import {
   type StoryboardToolInput,
@@ -144,6 +146,7 @@ export class ClientService {
   private readonly scheduler: SchedulerClient;
   private readonly campaigns: CampaignClient;
   private readonly presets: PresetsClient;
+  private readonly models3d: Models3dClient;
   private readonly remix: RemixClient;
   private readonly workflows: WorkflowClient;
   private readonly workspace: WorkspaceClient;
@@ -170,6 +173,7 @@ export class ClientService {
     this.scheduler = new SchedulerClient(this.base);
     this.campaigns = new CampaignClient(this.base);
     this.presets = new PresetsClient(this.base);
+    this.models3d = new Models3dClient(this.base);
     this.remix = new RemixClient(this.base);
     this.workflows = new WorkflowClient(this.base);
     this.workspace = new WorkspaceClient(this.base);
@@ -506,6 +510,12 @@ export class ClientService {
     );
   }
 
+  render3d(input: Models3dToolInput<'render_3d'>) {
+    return this.models3d.render3d(input);
+  }
+  getModel3d(input: Models3dToolInput<'get_model3d'>) {
+    return this.models3d.getModel3d(input);
+  }
   getRemixRun(input: RemixToolInput<'get_remix_run'>) {
     return this.remix.getRemixRun(input);
   }

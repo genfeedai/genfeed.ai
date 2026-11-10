@@ -311,6 +311,31 @@ describe('AssetsController', () => {
       expect(mockCacheService.invalidateByTags).not.toHaveBeenCalled();
     });
 
+    it('keeps the caller organization on an asset set as a brand logo', async () => {
+      const writes: Record<string, unknown>[] = [];
+      mockBrandsService.findOne.mockResolvedValue({ id: mockBrandId });
+      mockAssetsService.patch.mockImplementation(
+        async (_id: string, data: Record<string, unknown>) => {
+          writes.push(data);
+          return { ...mockAsset, ...data };
+        },
+      );
+
+      await controller.update(mockRequest, mockAssetId, mockUser, {
+        category: AssetCategory.LOGO,
+        parentId: mockBrandId,
+        parentType: AssetParent.BRAND,
+      });
+
+      expect(writes).toEqual([
+        expect.objectContaining({
+          parentId: mockBrandId,
+          parentOrgId: mockOrgId,
+          parentType: AssetParent.BRAND,
+        }),
+      ]);
+    });
+
     it('rejects reparenting under another organization', async () => {
       await expect(
         controller.update(mockRequest, mockAssetId, mockUser, {

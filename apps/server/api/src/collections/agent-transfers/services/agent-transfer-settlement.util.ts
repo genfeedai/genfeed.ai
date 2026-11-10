@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { projectAgentTransferStatus } from '@api/collections/agent-transfers/services/agent-transfer-status.util';
 import { scopedWhere } from '@api/index';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentMessageRole,
   AgentTransferStatus,
   IngredientStatus,
+  projectAgentTransferStatus,
 } from '@genfeedai/contracts';
 import { MEDIA_GENERATION_HOLD_TTL_MS } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';

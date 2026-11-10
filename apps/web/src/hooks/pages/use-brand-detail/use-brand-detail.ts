@@ -7,6 +7,7 @@ import {
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
+  type BrandKitSlot,
   IngredientCategory,
   IngredientStatus,
   ModalEnum,
@@ -259,13 +260,14 @@ export function useBrandDetail(): UseBrandDetailReturn {
   }, [hasBrandId, refetchBrand]);
 
   const handleOpenUploadModal = useCallback(
-    (category: AssetCategory) => {
+    (category: AssetCategory, kitSlot?: BrandKitSlot) => {
       if (!brand?.id) {
         return;
       }
 
       openUpload({
         category,
+        ...(kitSlot ? { kitSlot } : {}),
         onComplete: () => {
           findOneBrand();
         },

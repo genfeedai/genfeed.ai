@@ -30,4 +30,9 @@ export enum Platform {
   HACKER_NEWS = 'hacker_news',
   /** Multistream + unified chat (OAuth / credentials), not a social post target. */
   RESTREAM = 'restream',
+  /**
+   * The creator's own profile at genfeed.ai/@handle. A built-in channel: it
+   * needs no OAuth, and a post published here gets its own page there.
+   */
+  GENFEED = 'genfeed',
 }

@@ -45,6 +45,8 @@ export class BrandEntity extends BaseEntity implements Brand {
   declare readonly primaryColor: BrandDocument['primaryColor'];
   declare readonly secondaryColor: BrandDocument['secondaryColor'];
   declare readonly backgroundColor: BrandDocument['backgroundColor'];
+  declare readonly colorPalette: BrandDocument['colorPalette'];
+  declare readonly fontRoles: BrandDocument['fontRoles'];
 
   declare readonly defaultVideoModel: BrandDocument['defaultVideoModel'];
   declare readonly defaultImageModel: BrandDocument['defaultImageModel'];
@@ -60,4 +62,5 @@ export class BrandEntity extends BaseEntity implements Brand {
   // Indicates if the brand is active and should be billed monthly
   isActive!: boolean;
   declare readonly isHighlighted: boolean;
+  declare readonly profileViewCount: BrandDocument['profileViewCount'];
 }

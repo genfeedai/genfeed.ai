@@ -1,10 +1,10 @@
 import type { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import type { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
-import type { AgentToolRoundState } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import type {
   AgentChatContext,
   AgentChatRequest,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import type { AgentToolRoundState } from '@api/services/agent-orchestrator/interfaces/agent-turn-round-runner.interface';
 import { mergeAgentArtifactCompletionMetadata } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';

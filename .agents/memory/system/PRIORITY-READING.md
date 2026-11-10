@@ -2,11 +2,11 @@
 
 ## Last Verified
 
-- **Date:** 2026-04-07
+- **Date:** 2026-11-09
 
 ## Quick Start
 
-1. `CLAUDE.md` (repo rules)
+1. `AGENTS.md` (repo rules; `CLAUDE.md` imports it)
 2. `.agents/memory/system/CRITICAL-NEVER-DO.md`
 3. `.agents/memory/system/ARCHITECTURE.md`
 
@@ -22,7 +22,7 @@ Use GitHub Issues + Projects as canonical backlog. Do not create or rely on loca
 
 ## Feature Work Reading Order
 
-1. `CLAUDE.md`
+1. `AGENTS.md`
 2. Relevant ADRs (`.agents/memory/architecture/`)
 3. Similar implementations in code
 4. Open GitHub issues and project items for the area

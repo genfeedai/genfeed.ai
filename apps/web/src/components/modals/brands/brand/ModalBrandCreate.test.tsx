@@ -166,6 +166,7 @@ describe('ModalBrandCreate', () => {
     };
     render(<ModalBrandCreate {...defaultProps} />);
 
+    expect(screen.getByRole('button', { name: 'Create brand' })).toBeEnabled();
     fireEvent.click(screen.getByRole('button', { name: 'Create brand' }));
 
     await waitFor(() => {

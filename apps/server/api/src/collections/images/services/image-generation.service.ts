@@ -127,6 +127,8 @@ export class ImageGenerationService {
     dto: EditImageDto,
     request: Request,
     onPlaceholderCreated?: GenerationPlaceholderCreatedCallback,
+    placeholderScope?: GenerationPlaceholderScope,
+    onCreditsPrepared?: () => Promise<void>,
   ): Promise<JsonApiSingleResponse> {
     const brandId = dto.brandId || user.brandId;
     if (!brandId)
@@ -206,8 +208,8 @@ export class ImageGenerationService {
       normalized,
       request,
       onPlaceholderCreated,
-      undefined,
-      undefined,
+      placeholderScope,
+      onCreditsPrepared,
       undefined,
       editing,
     );

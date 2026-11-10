@@ -222,6 +222,20 @@ describe('tool credit pricing', () => {
     expect(
       estimateToolCreditCost(
         'transform_media',
+        { operation: 'digital_twin', videoId: 'video-1' },
+        pricingOf('transform_media'),
+      ),
+    ).toBe(0);
+    expect(
+      estimateToolCreditCost(
+        'transform_media',
+        { operation: 'digital_twin_consent', twinId: 'twin-1' },
+        pricingOf('transform_media'),
+      ),
+    ).toBe(0);
+    expect(
+      estimateToolCreditCost(
+        'transform_media',
         { operation: 'edit' },
         pricingOf('transform_media'),
       ),

@@ -438,6 +438,21 @@ describe('workspace shell trusted registry', () => {
     });
   });
 
+  it('registers the creator support resolver and organization support page', () => {
+    expect(resolveWorkspaceShellRoute('/support/ada')).toMatchObject({
+      accessPolicy: 'authenticated',
+      canonicalUrl: '/support/:handle',
+      scope: 'personal',
+      surfaceKey: 'creator-support-resolver',
+    });
+    expect(resolveWorkspaceShellRoute('/acme/~/support/ada')).toMatchObject({
+      accessPolicy: 'organization-member',
+      canonicalUrl: '/:orgSlug/~/support/:handle',
+      scope: 'organization',
+      surfaceKey: 'creator-support',
+    });
+  });
+
   it('registers the Connect Genfeed resolver and organization flow explicitly', () => {
     expect(resolveWorkspaceShellRoute('/connect')).toMatchObject({
       accessPolicy: 'authenticated',

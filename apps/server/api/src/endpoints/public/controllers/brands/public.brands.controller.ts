@@ -1,10 +1,13 @@
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { withholdGatedContent } from '@api/collections/articles/utils/article-preview.util';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { LinksService } from '@api/collections/links/services/links.service';
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { PublicBrandSocialsService } from '@api/endpoints/public/services/public-brand-socials.service';
+import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { customLabels } from '@api/helpers/utils/pagination.util';
@@ -13,6 +16,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import {
   AssetScope,
   IngredientCategory,
@@ -33,7 +37,7 @@ import { Public } from '@libs/decorators/public.decorator';
 import { PublicApiFilter } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Controller, Get, Param, Query, Req } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 type BrandCollectionFailure = {
@@ -71,7 +75,30 @@ export class PublicBrandsController {
     private readonly referralsService: ReferralsService,
     private readonly videosService: VideosService,
     private readonly logger: LoggerService,
+    private readonly publicViewsService: PublicViewsService,
+    private readonly publicBrandSocialsService: PublicBrandSocialsService,
   ) {}
+
+  /**
+   * Counts a visit to the creator profile and answers its view count. A
+   * visitor counts once a day; crawlers never count.
+   */
+  @Post(':brandId/views')
+  @RateLimit({ limit: 30, scope: 'ip', windowMs: 60_000 })
+  async recordView(
+    @Req() request: Request,
+    @Param('brandId') brandId: string,
+  ): Promise<{ data: { views: number } | null }> {
+    if (!isEntityId(brandId)) {
+      return { data: null };
+    }
+    const userAgent = request.headers['user-agent'];
+    const views = await this.publicViewsService.recordProfile(brandId, {
+      ip: request.ip ?? '',
+      userAgent: typeof userAgent === 'string' ? userAgent : '',
+    });
+    return { data: views === null ? null : { views } };
+  }
 
   @Get()
   @Cache({
@@ -153,7 +180,7 @@ export class PublicBrandsController {
     return serializeSingle(
       request,
       PublicBrandSerializer,
-      await this.attachPublicBrandAsset(data),
+      await this.attachPublicProfile(data),
     );
   }
 
@@ -188,7 +215,7 @@ export class PublicBrandsController {
     return serializeSingle(
       request,
       PublicBrandSerializer,
-      await this.attachPublicBrandAsset(data),
+      await this.attachPublicProfile(data),
     );
   }
 
@@ -389,6 +416,7 @@ export class PublicBrandsController {
     };
 
     const data = await this.articlesService.findAll(aggregate, options);
+    data.docs = data.docs.map(withholdGatedContent);
     return serializeCollection(request, PublicArticleSerializer, data);
   }
 
@@ -414,6 +442,13 @@ export class PublicBrandsController {
     );
 
     return brand ? null : 'Brand not found';
+  }
+
+  /** A public profile: the brand with its logo, banner and connected socials. */
+  private async attachPublicProfile(brand: BrandDocument) {
+    return this.publicBrandSocialsService.attach(
+      await this.attachPublicBrandAsset(brand),
+    );
   }
 
   /**

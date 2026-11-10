@@ -20,6 +20,25 @@ import { Component, type ErrorInfo } from 'react';
 
 const PAGE_MAX_RETRIES = 3;
 
+/** Digest prefixes Next puts on the errors `notFound()` and `redirect()` throw. */
+const FRAMEWORK_SIGNAL_DIGESTS = [
+  'NEXT_HTTP_ERROR_FALLBACK;',
+  'NEXT_REDIRECT;',
+];
+
+/**
+ * `notFound()` and `redirect()` work by throwing. They are routing signals for
+ * the framework's own boundaries further up the tree, not failures, so this
+ * boundary must hand them on instead of showing "Something went wrong".
+ */
+function isFrameworkSignal(error: unknown): boolean {
+  const digest = (error as { digest?: unknown } | null)?.digest;
+  return (
+    typeof digest === 'string' &&
+    FRAMEWORK_SIGNAL_DIGESTS.some((prefix) => digest.startsWith(prefix))
+  );
+}
+
 export class ErrorBoundary extends Component<
   ErrorBoundaryProps,
   IErrorBoundaryState
@@ -31,6 +50,7 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    if (isFrameworkSignal(error)) return;
     if (this.props.reportError) {
       this.props.reportError(error, errorInfo, this.getFailure(error));
     } else if (this.props.presentation === 'inline') {
@@ -166,6 +186,7 @@ export class ErrorBoundary extends Component<
   render() {
     if (!this.state.hasError) return this.props.children;
     const error = this.state.error ?? new Error('An unexpected error occurred');
+    if (isFrameworkSignal(error)) throw error;
     return (
       <div data-testid="error-boundary-fallback">
         {this.renderFallback(error)}

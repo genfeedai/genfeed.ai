@@ -15,6 +15,7 @@ import { BeehiivPublisherService } from '@api/services/integrations/publishers/b
 import { DevtoPublisherService } from '@api/services/integrations/publishers/devto-publisher.service';
 import { FacebookPublisherService } from '@api/services/integrations/publishers/facebook-publisher.service';
 import { FanvuePublisherService } from '@api/services/integrations/publishers/fanvue-publisher.service';
+import { GenfeedPublisherService } from '@api/services/integrations/publishers/genfeed-publisher.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
 import { InstagramPublisherService } from '@api/services/integrations/publishers/instagram-publisher.service';
 import { LinkedInPublisherService } from '@api/services/integrations/publishers/linkedin-publisher.service';
@@ -57,6 +58,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
     DevtoPublisherService,
     FacebookPublisherService,
     FanvuePublisherService,
+    GenfeedPublisherService,
     GhostPublisherService,
     InstagramPublisherService,
     LinkedInPublisherService,
@@ -113,6 +115,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
     DevtoPublisherService,
     FacebookPublisherService,
     FanvuePublisherService,
+    GenfeedPublisherService,
     GhostPublisherService,
     InstagramPublisherService,
     LinkedInPublisherService,

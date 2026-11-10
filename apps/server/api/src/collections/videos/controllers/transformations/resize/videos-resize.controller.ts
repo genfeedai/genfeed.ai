@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { settleSharedIngredientGeneration } from '@api/collections/ingredients/utils/ingredient-status-transition.util';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
@@ -138,28 +139,37 @@ export class VideosResizeController {
             type: FileInputType.FILE,
           })
           .then(async (res) => {
-            await this.ingredientsService.patch(ingredientId, {
-              ...(res.s3Key ? { s3Key: res.s3Key } : {}),
-              status: IngredientStatus.GENERATED,
-              transformations: [TransformationCategory.RESIZED],
-            });
-
-            await this.metadataService.patch(
-              metadataData.id,
-              new MetadataEntity(res),
-            );
-
-            await this.websocketService.publishVideoComplete(
-              WebSocketPaths.video(ingredientId),
+            const isSettled = await settleSharedIngredientGeneration(
+              this.ingredientsService,
               {
-                eventType: WebSocketEventType.VIDEO_RESIZED,
+                data: {
+                  ...(res.s3Key ? { s3Key: res.s3Key } : {}),
+                  transformations: [TransformationCategory.RESIZED],
+                },
                 id: ingredientId,
-                status: WebSocketEventStatus.COMPLETED,
-                transformation: TransformationCategory.RESIZED,
+                organizationId: user.organizationId,
+                to: IngredientStatus.GENERATED,
               },
-              user.id,
-              getUserRoomName(user.id),
             );
+
+            if (isSettled) {
+              await this.metadataService.patch(
+                metadataData.id,
+                new MetadataEntity(res),
+              );
+
+              await this.websocketService.publishVideoComplete(
+                WebSocketPaths.video(ingredientId),
+                {
+                  eventType: WebSocketEventType.VIDEO_RESIZED,
+                  id: ingredientId,
+                  status: WebSocketEventStatus.COMPLETED,
+                  transformation: TransformationCategory.RESIZED,
+                },
+                user.id,
+                getUserRoomName(user.id),
+              );
+            }
 
             return res;
           });
@@ -230,24 +240,33 @@ export class VideosResizeController {
           metadataData.id,
           new MetadataEntity(meta),
         );
-        await this.ingredientsService.patch(ingredientData.id, {
-          ...(meta.s3Key ? { s3Key: meta.s3Key } : {}),
-          status: IngredientStatus.GENERATED,
-          transformations: [TransformationCategory.RESIZED],
-        });
-
-        const websocketUrl = WebSocketPaths.video(ingredientData.id);
-        await this.websocketService.publishVideoComplete(
-          websocketUrl,
+        const isSettled = await settleSharedIngredientGeneration(
+          this.ingredientsService,
           {
-            eventType: WebSocketEventType.VIDEO_RESIZED,
+            data: {
+              ...(meta.s3Key ? { s3Key: meta.s3Key } : {}),
+              transformations: [TransformationCategory.RESIZED],
+            },
             id: ingredientData.id,
-            status: WebSocketEventStatus.COMPLETED,
-            transformation: TransformationCategory.RESIZED,
+            organizationId: user.organizationId,
+            to: IngredientStatus.GENERATED,
           },
-          user.id,
-          getUserRoomName(user.id),
         );
+
+        if (isSettled) {
+          const websocketUrl = WebSocketPaths.video(ingredientData.id);
+          await this.websocketService.publishVideoComplete(
+            websocketUrl,
+            {
+              eventType: WebSocketEventType.VIDEO_RESIZED,
+              id: ingredientData.id,
+              status: WebSocketEventStatus.COMPLETED,
+              transformation: TransformationCategory.RESIZED,
+            },
+            user.id,
+            getUserRoomName(user.id),
+          );
+        }
       })
       .catch((error: unknown) => {
         this.loggerService.error(`${url} failed`, error);

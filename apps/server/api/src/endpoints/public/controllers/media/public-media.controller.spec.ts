@@ -10,15 +10,21 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 vi.mock('@api/endpoints/public/services/public-media.service', () => ({
   PublicMediaService: class {},
 }));
+vi.mock('@api/endpoints/public/services/public-views.service', () => ({
+  MAX_MEDIA_VIEW_BATCH: 48,
+  PublicViewsService: class {},
+}));
 
 import { PublicMediaController } from '@api/endpoints/public/controllers/media/public-media.controller';
 import { PublicMediaService } from '@api/endpoints/public/services/public-media.service';
+import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
 import type {
   IMediaProvenanceManifest,
   IPublicMediaRouteReference,
 } from '@genfeedai/contracts/interfaces';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { Request } from 'express';
 
 const assetId = 'cvideo123456789';
 
@@ -63,6 +69,14 @@ describe('PublicMediaController', () => {
           provide: PublicMediaService,
           useValue: publicMediaService,
         },
+        {
+          provide: PublicViewsService,
+          useValue: {
+            recordMediaViews: async (ids: string[]) =>
+              Object.fromEntries(ids.map((id) => [id, 3])),
+            recordRecreation: async () => 5,
+          },
+        },
       ],
     }).compile();
 
@@ -86,6 +100,28 @@ describe('PublicMediaController', () => {
   it('returns the raw WebVTT transcript artifact', async () => {
     await expect(controller.getTranscript(assetId)).resolves.toBe('WEBVTT\n');
     expect(publicMediaService.getTranscriptVtt).toHaveBeenCalledWith(assetId);
+  });
+
+  it('counts only well-formed ids a gallery visitor saw', async () => {
+    const request = {
+      headers: { 'user-agent': 'Mozilla/5.0' },
+      ip: '203.0.113.7',
+    } as Request;
+
+    await expect(
+      controller.recordViews(request, { ids: [assetId, 'not-an-id'] }),
+    ).resolves.toEqual({ data: { views: { [assetId]: 3 } } });
+  });
+
+  it.each([
+    [assetId, { data: { recreations: 5 } }],
+    ['not-an-id', { data: null }],
+  ])('answers a Recreate click on %s with %j', async (id, expected) => {
+    const request = { headers: {}, ip: '203.0.113.7' } as Request;
+
+    await expect(controller.recordRecreation(request, id)).resolves.toEqual(
+      expected,
+    );
   });
 
   it('rejects invalid media ids before resolving route references', async () => {

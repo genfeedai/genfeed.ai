@@ -539,7 +539,45 @@ export class ReferralsService {
         select: { code: true },
         where,
       }));
-    return referralCode?.code ?? null;
+    if (referralCode) {
+      return referralCode.code;
+    }
+    return input.userId
+      ? this.issueOwnerCode({
+          organizationId: input.organizationId,
+          userId: input.userId,
+        })
+      : null;
+  }
+
+  /**
+   * A public profile's sign-up always carries its owner's referral (#9666):
+   * an owner who never had a code gets the same primary code the Referrals
+   * page would give them on first visit. A code the owner paused or deleted
+   * stays that way, and an owner outside the billing account gets none.
+   */
+  private async issueOwnerCode(actor: ReferralActor): Promise<string | null> {
+    try {
+      const account = await this.resolveActorAccount(actor);
+      const previous = await this.prisma.referralCode.findFirst({
+        select: { id: true },
+        where: {
+          isPrimary: true,
+          ownerUserId: actor.userId,
+          rewardBillingAccountId: account.id,
+        },
+      });
+      if (previous) {
+        return null;
+      }
+      const code = await this.ensureCode(actor, account.id);
+      return code.isActive ? code.code : null;
+    } catch (error: unknown) {
+      if (error instanceof ForbiddenException) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   async recordPaygPurchase(input: PurchaseReferralInput): Promise<void> {

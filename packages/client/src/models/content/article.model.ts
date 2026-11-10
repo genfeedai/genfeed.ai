@@ -4,6 +4,7 @@ import type {
   ArticleStatus,
   AssetScope,
 } from '@genfeedai/contracts';
+import type { ArticleAccessLevel } from '@genfeedai/contracts/constants';
 import type {
   IArticle,
   IBrand,
@@ -29,6 +30,8 @@ export class Article extends BaseEntity implements IArticle {
   declare public status: ArticleStatus;
   declare public publishedAt?: string;
   declare public externalUrl?: string | null;
+  declare public accessLevel?: ArticleAccessLevel;
+  declare public unlockPriceCredits?: number | null;
   declare public scope: AssetScope;
   declare public generationPrompt?: string;
   declare public seoScore?: number | null;

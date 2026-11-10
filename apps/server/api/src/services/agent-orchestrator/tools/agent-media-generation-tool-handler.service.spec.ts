@@ -82,7 +82,11 @@ function createHandler() {
       { findOne: vi.fn().mockResolvedValue(null) } as never,
       { queueTurboRun: vi.fn().mockResolvedValue('job-1') } as never,
     ),
-    new AgentMediaTransformService(assetGeneration, gateway as never),
+    new AgentMediaTransformService(
+      assetGeneration,
+      gateway as never,
+      {} as never,
+    ),
   );
 
   return {

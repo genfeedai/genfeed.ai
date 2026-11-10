@@ -17,6 +17,7 @@ import type {
   ToolCreditPricing,
 } from '../interfaces/tool-definition.interface';
 import { isMcpApprovalScopeTool } from './agent-action-class';
+import { getCuratedAction } from './curated-action-catalog';
 import {
   getMediaGenerationCreditFloor,
   MEDIA_GENERATION_CREDIT_FLOORS,
@@ -24,21 +25,9 @@ import {
 } from './media-generation';
 import {
   getMediaTransformOperation,
+  isFreeMediaTransformOperation,
   MEDIA_TRANSFORM_TOOL_NAME,
 } from './media-transform';
-
-const VISUAL_CODE_QUOTE_TOOL = 'quote_visual_code_generation';
-const REMIX_QUOTE_TOOL = 'quote_remix_generation';
-
-const QUOTE_TOOL_BY_NAME: Readonly<Record<string, string>> = {
-  export_visual_code_project: VISUAL_CODE_QUOTE_TOOL,
-  generate_visual_code: VISUAL_CODE_QUOTE_TOOL,
-  retry_visual_code_project: VISUAL_CODE_QUOTE_TOOL,
-  revise_visual_code_project: VISUAL_CODE_QUOTE_TOOL,
-  start_remix_generation: REMIX_QUOTE_TOOL,
-  start_storyboard_long_form: 'storyboard_long_form',
-  start_storyboard_slideshow: 'storyboard_slideshow',
-};
 
 function floorBounds(): { maximum: number; minimum: number } {
   const floors = Object.values(MEDIA_GENERATION_CREDIT_FLOORS);
@@ -108,7 +97,7 @@ export function toolCreditPricingFor(
   name: string,
   creditCost: number,
 ): ToolCreditPricing {
-  const quoteTool = QUOTE_TOOL_BY_NAME[name];
+  const quoteTool = getCuratedAction(name)?.quoteTool;
   if (quoteTool) return { mode: 'quote', quoteTool };
   if (name === MEDIA_GENERATION_TOOL_NAME) {
     const bounds = floorBounds();
@@ -143,6 +132,10 @@ export function toolCreditPricingFor(
       mode: 'variable',
       unit: 'second of HeyGen avatar clip',
     };
+  }
+  if (name === 'render_3d') {
+    // Frozen quotes: angle sheet 50, GLB build 27, both 77 (#9835).
+    return { maximum: 77, minimum: 50, mode: 'variable', unit: '3D render' };
   }
   if (name === 'start_brand_interview') {
     return fixedCreditPricing(BRAND_INTERVIEW_CREDIT_COST);
@@ -246,8 +239,8 @@ export function estimateToolCreditCost(
   }
   if (name === MEDIA_TRANSFORM_TOOL_NAME) {
     const operation = getMediaTransformOperation(name, args);
-    if (operation === 'merge') return 0;
     if (!operation) return null;
+    if (isFreeMediaTransformOperation(operation)) return 0;
     return MEDIA_GENERATION_CREDIT_FLOORS.image;
   }
   if (name === 'repurpose_post') {
