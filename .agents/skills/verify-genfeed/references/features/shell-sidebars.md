@@ -12,7 +12,7 @@ Present on every authed page. The workspace pages and `/apps` have their own rou
 Specs under `playwright/e2e/tests/shell/`: `chrome-interactions`,
 `navigation-interactions`, `context-sidebar`, `sidebar-compatibility`, `agent-dock`,
 `notification-inbox`, `organization-context`, `page-context-contract`, `apps-browser`.
-Whole-app route coverage: `playwright/e2e/tests/smoke/all-app-pages.spec.ts` (mocked) and
+Whole-app route coverage: `playwright/e2e/tests/smoke/all-app-pages/` (mocked) and
 `all-app-pages.authed.spec.ts` (real session), `protected-hydration.spec.ts`.
 
 ## What usually breaks

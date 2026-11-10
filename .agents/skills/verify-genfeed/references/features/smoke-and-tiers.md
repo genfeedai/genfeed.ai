@@ -10,7 +10,7 @@ route-reference inventory, not coverage.
 
 ## How a user reaches it
 CI workflows: `playwright-master-core.yml` (core once per merge burst on master) and
-`playwright-full-nightly.yml`, both reporting-only. Pull requests run no Playwright. Locally: the lane commands in SKILL.md.
+`playwright-full-nightly.yml`, both reporting-only. `master-merge-check.yml` runs the API E2E tiers and acceptance suites (no browser) the same way. Pull requests run no Playwright. Locally: the lane commands in SKILL.md.
 
 ## How to drive it
 Specs under `playwright/e2e/tests/smoke/`: `safe`, `all-app-pages`,

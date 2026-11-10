@@ -61,6 +61,7 @@ describe('usePromptBarSubmission', () => {
 
     expect(onSubmit).not.toHaveBeenCalled();
     expect(result.current.isSubmitDisabled).toBe(true);
+    expect(result.current.prompt).toBe('rewrite this');
   });
 
   it('keeps the prompt when submission rejects', async () => {
@@ -116,6 +117,7 @@ describe('usePromptBarSubmission', () => {
     });
 
     expect(onSubmit).toHaveBeenCalledWith('rewrite this');
+    expect(result.current.prompt).toBe('');
   });
 
   it('inserts a newline on Shift+Enter instead of submitting', async () => {
@@ -138,6 +140,7 @@ describe('usePromptBarSubmission', () => {
 
     expect(preventDefault).not.toHaveBeenCalled();
     expect(onSubmit).not.toHaveBeenCalled();
+    expect(result.current.prompt).toBe('rewrite this');
   });
 
   it('uses the latest onSubmit handler after a rerender', async () => {
@@ -159,5 +162,6 @@ describe('usePromptBarSubmission', () => {
 
     expect(first).not.toHaveBeenCalled();
     expect(second).toHaveBeenCalledWith('rewrite this');
+    expect(result.current.prompt).toBe('');
   });
 });

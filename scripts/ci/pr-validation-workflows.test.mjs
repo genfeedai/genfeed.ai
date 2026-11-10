@@ -12,6 +12,7 @@ import { RECOVERY_GREEN_THRESHOLD } from './scheduled-failure-tracker.mjs';
 import './install-visual-runtime-deps.test.mjs';
 import './coverage-failure-reporter.test.mjs';
 import './cla-status-recovery.test.mjs';
+import './flake-ledger.test.mjs';
 import './full-suite-evidence.test.mjs';
 import './nightly-e2e-failure-reporter.test.mjs';
 import './nightly-playwright-full-failure-reporter.test.mjs';
@@ -784,6 +785,80 @@ test('playwright core on master runs once per merge burst and never on a pull re
   assert.equal(parsed.jobs.report.permissions.issues, 'write');
 });
 
+test('master merge check runs the API tiers once per merge burst and skips the browser', () => {
+  const parsed = parseYaml(readWorkflow('master-merge-check.yml'));
+
+  assert.deepEqual(Object.keys(parsed.on).sort(), [
+    'push',
+    'workflow_dispatch',
+  ]);
+  assert.deepEqual(parsed.on.push.branches, ['master']);
+  assert.equal(parsed.concurrency.group, 'master-merge-check');
+  assert.equal(
+    parsed.concurrency['cancel-in-progress'],
+    false,
+    'a newer push replaces the pending run; it must not cancel one in progress',
+  );
+  assert.equal(parsed.jobs.e2e.uses, './.github/workflows/e2e.yml');
+  assert.equal(parsed.jobs.e2e.with.run_api_full, true);
+  assert.equal(parsed.jobs.e2e.with.skip_frontend, true);
+  assert.equal(
+    parsed.jobs.e2e.with.run_runtime_acceptance,
+    undefined,
+    'the serial final acceptance stays a nightly and release lane',
+  );
+  assert.equal(parsed.jobs.e2e.permissions.actions, 'read');
+  assert.equal(parsed.jobs.report.permissions.issues, 'write');
+});
+
+test('only the master merge check may skip the browser jobs of e2e.yml', () => {
+  // skip_frontend turns the E2E gate's browser requirement into "must be
+  // skipped". It is reporting-only, so no release or deploy path may set it.
+  const callers = readdirSync(WORKFLOWS_DIRECTORY)
+    .filter((fileName) => /\.ya?ml$/.test(fileName))
+    .filter((fileName) => /skip_frontend/.test(readWorkflow(fileName)))
+    .sort();
+  assert.deepEqual(callers, ['e2e.yml', 'master-merge-check.yml']);
+
+  const workflow = readWorkflow('e2e.yml');
+  for (const jobId of [
+    'e2e-frontend',
+    'e2e-merge-reports',
+    'e2e-frontend-authed',
+  ]) {
+    assert.match(
+      jobBlock(workflow, jobId, 'e2e.yml'),
+      /^ {4}if: .*inputs\.skip_frontend != true/m,
+      `${jobId} must skip when skip_frontend is set`,
+    );
+  }
+
+  // Run the gate's frontend check as bash: a skipped matrix passes only when
+  // skip_frontend asked for it, and a default run still needs every shard green.
+  const gate = jobBlock(workflow, 'e2e-gate', 'e2e.yml');
+  const script = gate.match(/run: \|\n((?: {10}.*\n)+)/)[1];
+  const evaluate = (skip, frontend) => {
+    const resolved = script
+      .replaceAll('${{ inputs.skip_frontend == true }}', String(skip))
+      .replaceAll('${{ needs.e2e-frontend.result }}', frontend)
+      .replaceAll('${{ needs.e2e-route-coverage.result }}', 'success')
+      .replaceAll('${{ needs.e2e-api.result }}', 'success')
+      .replaceAll('${{ inputs.run_runtime_acceptance == true }}', 'false')
+      .replaceAll('${{ needs.runtime-acceptance.result }}', 'skipped')
+      .replaceAll(
+        '${{ needs.context-embedding-acceptance.result }}',
+        'success',
+      );
+    // GitHub runs steps as `bash -e`, so a failing `test` stops the gate.
+    return spawnSync('bash', ['-e', '-c', resolved]).status;
+  };
+  assert.equal(evaluate(false, 'success'), 0);
+  assert.notEqual(evaluate(false, 'skipped'), 0);
+  assert.notEqual(evaluate(false, 'failure'), 0);
+  assert.equal(evaluate(true, 'skipped'), 0);
+  assert.notEqual(evaluate(true, 'success'), 0);
+});
+
 test('the full suite grants its reusable E2E failure reporter permission ceiling', () => {
   // e2e.yml reads jobs from its current run to report exact scheduled failures.
   // GitHub validates this permission before starting any called job, so omitting
@@ -1262,38 +1337,66 @@ test('serializes reusable build verification without cancelling another caller',
   }
 });
 
-test('self-hosted release publish reuses the layers the verify build just tested', () => {
-  // The web layer reads RELEASE_TAG and BUILD_ID, so a verify build that omits
-  // them leaves the publisher to compile the web app a second time (~12 min).
+test('self-hosted release builds the image once and publishes the digest it tested', () => {
   const verify = readWorkflow('build-verify-selfhosted.yml');
   const publisher = readWorkflow('_publish-selfhosted-core.yml');
+  const tagJob = jobBlock(
+    publisher,
+    'tag-verified-image',
+    '_publish-selfhosted-core.yml',
+  );
+  const installJob = jobBlock(
+    publisher,
+    'publish-install-artifact',
+    '_publish-selfhosted-core.yml',
+  );
 
+  // The only image build lives in the verify workflow; the publisher has none.
+  assert.equal(verify.match(/uses: docker\/build-push-action@/g)?.length, 1);
+  assert.doesNotMatch(publisher, /docker\/build-push-action|docker build /);
   assert.match(verify, /^ {12}RELEASE_TAG=\$\{\{ inputs\.release_tag \}\}$/m);
   assert.match(
     verify,
     /^ {12}BUILD_ID=\$\{\{ inputs\.checkout_ref \|\| 'dev' \}\}$/m,
   );
   assert.match(verify, /^ {10}ref: \$\{\{ inputs\.checkout_ref \}\}$/m);
+  assert.match(verify, /cache-from: type=gha,scope=selfhosted\n/);
+
+  // Staged, the build is pushed by digest with no tag, and the boot check
+  // pulls that digest back, so a failed check leaves no public tag behind.
+  assert.match(verify, /push-by-digest=true,name-canonical=true,push=true/);
+  assert.doesNotMatch(verify, /^ {10}tags: .*image_tag/m);
+  assert.match(verify, /docker pull "\$\{ref\}"/);
+  assert.match(
+    verify,
+    /org\.opencontainers\.image\.version=\$\{\{ inputs\.image_tag \}\}\n {12}org\.opencontainers\.image\.revision=\$\{\{ inputs\.checkout_ref \}\}/,
+  );
+  assert.match(
+    verify,
+    /value: \$\{\{ jobs\.build-and-boot\.outputs\.image_digest \}\}/,
+  );
+
+  // The publisher verifies the exact commit and version it publishes, stages
+  // the build, and retags only the digest the verify job returned.
   assert.match(
     publisher,
-    /^ {12}RELEASE_TAG=\$\{\{ inputs\.release_tag \}\}$/m,
+    /uses: \.\/\.github\/workflows\/build-verify-selfhosted\.yml\n {4}with:\n {6}checkout_ref: \$\{\{ inputs\.checkout_ref \}\}\n {6}release_tag: \$\{\{ inputs\.release_tag \}\}\n {6}stage_image: true\n {6}image_tag: \$\{\{ inputs\.image_tag \}\}/,
   );
-  assert.match(publisher, /^ {12}BUILD_ID=\$\{\{ inputs\.checkout_ref \}\}$/m);
   assert.match(
-    publisher,
-    /uses: \.\/\.github\/workflows\/build-verify-selfhosted\.yml\n {4}with:\n {6}checkout_ref: \$\{\{ inputs\.checkout_ref \}\}\n {6}release_tag: \$\{\{ inputs\.release_tag \}\}/,
-    'the publisher must verify the exact commit and tag it publishes',
+    tagJob,
+    /VERIFIED_DIGEST: \$\{\{ needs\.verify-selfhosted\.outputs\.image_digest \}\}/,
   );
-  for (const [name, workflow] of [
-    ['verify', verify],
-    ['publisher', publisher],
-  ]) {
-    assert.match(
-      workflow,
-      /cache-from: type=gha,scope=selfhosted\n/,
-      `${name} build must read the shared selfhosted cache scope`,
-    );
-  }
+  assert.match(
+    tagJob,
+    /docker buildx imagetools create "\$\{tag_args\[@\]\}" "\$\{IMAGE\}@\$\{VERIFIED_DIGEST\}"/,
+  );
+  assert.match(tagJob, /\[ "\$\{published\}" != "\$\{VERIFIED_DIGEST\}" \]/);
+  assert.match(tagJob, /Tested \(boot check and release E2E\)/);
+  assert.match(installJob, /TESTED_IMAGE_DIGEST: .*tag-verified-image/);
+  assert.match(
+    installJob,
+    /"\$\{image_digest\}" != "\$\{TESTED_IMAGE_DIGEST\}"/,
+  );
 });
 
 test('release preflight is read-only and reuses the release evidence scripts', () => {

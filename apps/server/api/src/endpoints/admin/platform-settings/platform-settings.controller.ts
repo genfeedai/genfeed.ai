@@ -1,5 +1,4 @@
 import { UpdatePlatformSettingDto } from '@api/collections/platform-settings/dto/update-platform-setting.dto';
-import type { PlatformSettingDocument } from '@api/collections/platform-settings/schemas/platform-setting.schema';
 import { BrandVisionModelCatalogService } from '@api/collections/platform-settings/services/brand-vision-model-catalog.service';
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
@@ -7,6 +6,7 @@ import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
+import type { PlatformSetting } from '@genfeedai/prisma';
 import {
   BrandVisionModelOptionsSerializer,
   PlatformSettingSerializer,
@@ -89,7 +89,7 @@ export class PlatformSettingsController {
   }
 
   /** Adds the read-only deployment facts the admin page needs to explain a switch. */
-  private async withDeploymentFacts(settings: PlatformSettingDocument) {
+  private async withDeploymentFacts(settings: PlatformSetting) {
     return {
       ...settings,
       isEmailDeliveryConfigured:

@@ -109,6 +109,25 @@ bunx biome check --write .                           # Format all files
 bun run test --filter=@genfeedai/[name]              # Test one package
 ```
 
+### Local Preflight — run before you push
+
+```bash
+bun run preflight            # what PR CI runs on your diff, in about 2-5 minutes
+bun run preflight --list     # print the plan without running it
+```
+
+It refreshes `origin/master`, takes everything that differs from it (commits, staged,
+unstaged and untracked files), and runs the Static Checks (ratchet growth, e2e spec impact,
+skills, env drift, Biome, secretlint, gitleaks when installed, migration safety), the
+affected-workspace typecheck, the Spec Typecheck Ratchet for the affected workspaces, and the
+executable contracts. It stops at the first failure; `--keep-going` runs everything.
+It works in a cloud container after `bun install` and
+`cd packages/prisma && bunx prisma generate`. The contracts run under the Node in `.node-version`,
+downloaded once to `~/.cache/genfeed-preflight` when the host Node differs. Use it instead of
+a per-package `tsc`, which shows false missing-module errors until packages are built.
+Not covered: `turbo lint` (add `--lint`; some workspace lint scripts rewrite files), the
+Playwright suites, and the unit-test shards.
+
 | app | port | | app | port |
 |---|---|---|---|---|
 | `api/` | 3010 | | `discord/` | 3016 |

@@ -1101,3 +1101,77 @@ jobs:
             echo "- SaaS: ECS, Vercel frontends, and production smoke completed"
             echo "- npm: enrolled public packages published from this SHA"
           } >>"${GITHUB_STEP_SUMMARY}"
+
+  # The release is already public here. Rehearse the rollback to the release
+  # published just before it: a dry run that resolves that tag, finds its server
+  # image and runs the migration compatibility gate, and deploys nothing. It runs
+  # as its own workflow run so a red rehearsal cannot fail or undo the release;
+  # continue-on-error keeps this job from failing the Release run too.
+  rehearse-rollback:
+    name: Rehearse hosted rollback
+    needs: [validate-release, publish-release]
+    if: |
+      always() &&
+      needs.publish-release.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    continue-on-error: true
+    permissions:
+      actions: write
+      contents: read
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ needs.validate-release.outputs.release_tag }}
+    steps:
+      - name: Dry-run rollback to the previous stable release
+        run: |
+          set -uo pipefail
+
+          marker="release-rehearsal-${RELEASE_TAG}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          report() {
+            {
+              echo ""
+              echo "## Rollback rehearsal"
+              echo ""
+              echo "- Result: $1"
+              if [ -n "${2:-}" ]; then
+                echo "- Dry run: $2"
+              fi
+              echo "- Nothing was deployed or changed. A failed rehearsal does not affect this release."
+            } >>"${GITHUB_STEP_SUMMARY}"
+          }
+
+          # No tag given: the rollback resolves the stable release before the
+          # latest one, which is the release this run just published.
+          if ! gh workflow run rollback-hosted-saas.yml --ref master \
+            -f dry_run=true \
+            -f reason="Post-release rehearsal ${marker}"; then
+            echo "::warning::Could not start the rollback dry run."
+            report "could not start"
+            exit 1
+          fi
+
+          run_id=""
+          for _attempt in $(seq 1 30); do
+            run_id="$(gh run list --workflow rollback-hosted-saas.yml \
+              --event workflow_dispatch --limit 20 \
+              --json databaseId,displayTitle \
+              --jq "[.[] | select(.displayTitle | contains(\"${marker}\"))][0].databaseId // empty")"
+            [ -n "${run_id}" ] && break
+            sleep 5
+          done
+          if [ -z "${run_id}" ]; then
+            echo "::warning::Could not find the rollback dry run that was started."
+            report "started, but its run was not found"
+            exit 1
+          fi
+
+          gh run watch "${run_id}" --interval 15 >/dev/null || true
+          conclusion="$(gh run view "${run_id}" --json conclusion --jq .conclusion)"
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${run_id}"
+          report "${conclusion}" "${run_url}"
+          if [ "${conclusion}" != "success" ]; then
+            echo "::warning::Rollback rehearsal for ${RELEASE_TAG} finished ${conclusion}: ${run_url}"
+            exit 1
+          fi

@@ -448,11 +448,13 @@ describe('WorkflowNodeContinuationService', () => {
       count: 1,
     });
 
-    await service.failProviderSubmission({
-      continuationId: 'continuation-1',
-      error: 'provider rejected submission',
-      organizationId: 'org-1',
-    });
+    await expect(
+      service.failProviderSubmission({
+        continuationId: 'continuation-1',
+        error: 'provider rejected submission',
+        organizationId: 'org-1',
+      }),
+    ).resolves.toBeUndefined();
 
     expect(workflowNodeContinuation.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -536,7 +538,7 @@ describe('WorkflowNodeContinuationService', () => {
       pricingType: 'per-second',
       updatedAt: new Date('2026-09-05T00:00:00Z'),
     });
-    await service.createBeforeProviderSubmission({
+    const submission = await service.createBeforeProviderSubmission({
       actionId: 'imageGen',
       executionId: 'execution-1',
       ingredientId: 'ingredient-1',
@@ -546,6 +548,7 @@ describe('WorkflowNodeContinuationService', () => {
       workflowVersionId: 'version-1',
       model: 'model',
     });
+    expect(submission).toEqual({ continuationId: 'continuation-1' });
     expect(prisma.mediaVendorCost.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         workflowExecutionId: 'execution-1',
@@ -587,7 +590,7 @@ describe('WorkflowNodeContinuationService', () => {
     });
     prisma.model.findFirst.mockResolvedValue(null);
 
-    await service.createBeforeProviderSubmission({
+    const submission = await service.createBeforeProviderSubmission({
       actionId: 'videoGen',
       executionId: 'execution-1',
       ingredientId: 'ingredient-1',
@@ -598,6 +601,7 @@ describe('WorkflowNodeContinuationService', () => {
       provider: 'replicate',
       workflowVersionId: 'version-1',
     });
+    expect(submission).toEqual({ continuationId: 'continuation-1' });
 
     expect(workflowNodeContinuation.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ isByok: true }),

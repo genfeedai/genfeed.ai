@@ -70,7 +70,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       workflowId: 'wf-1',
     });
 
-    await service.finalizeExecution({
+    const completed = await service.finalizeExecution({
       completedAt: new Date('2026-08-14T08:00:00.000Z'),
       executionId: 'exec-1',
       finalStatus: WorkflowExecutionStatus.FAILED,
@@ -79,6 +79,8 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       workflowId: 'wf-1',
       workflowStatus: WorkflowStatus.FAILED,
     });
+
+    expect(completed?.id).toBe('exec-1');
 
     expect(notificationsPublisher.publishWorkflowStatus).toHaveBeenCalledWith(
       'wf-1',
@@ -100,7 +102,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       workflowId: 'wf-1',
     });
 
-    await service.finalizeExecution({
+    const completed = await service.finalizeExecution({
       completedAt: new Date('2026-08-14T08:00:00.000Z'),
       executionId: 'exec-2',
       finalStatus: WorkflowExecutionStatus.FAILED,
@@ -109,6 +111,8 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       workflowId: 'wf-1',
       workflowStatus: WorkflowStatus.FAILED,
     });
+
+    expect(completed?.id).toBe('exec-2');
 
     expect(notificationsPublisher.publishWorkflowStatus).not.toHaveBeenCalled();
   });
@@ -122,7 +126,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       workflowId: 'wf-1',
     });
 
-    await service.finalizeExecution({
+    const completed = await service.finalizeExecution({
       completedAt: new Date('2026-08-14T08:00:00.000Z'),
       executionId: 'exec-3',
       finalStatus: WorkflowExecutionStatus.COMPLETED,
@@ -135,6 +139,8 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       workflowId: 'wf-1',
       workflowStatus: WorkflowStatus.ACTIVE,
     });
+
+    expect(completed?.id).toBe('exec-3');
 
     expect(notificationsPublisher.publishWorkflowStatus).not.toHaveBeenCalled();
   });

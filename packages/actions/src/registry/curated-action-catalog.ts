@@ -1,3 +1,4 @@
+import type { ToolMcpCardKind } from '../interfaces/tool-policy.interface';
 import {
   CURATED_ACTION_CATALOG,
   type CuratedActionCatalogEntry,
@@ -53,4 +54,9 @@ export function isPublishingApprovalRequired(
   entry: CuratedActionCatalogEntry,
 ): boolean {
   return entry.isPublishingApprovalRequired === true;
+}
+
+/** The card the MCP app renders a tool's result as, or undefined when it has none. */
+export function getMcpCardKind(name: string): ToolMcpCardKind | undefined {
+  return CURATED_ACTIONS_BY_NAME.get(name)?.mcpCardKind;
 }

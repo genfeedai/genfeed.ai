@@ -123,8 +123,9 @@ describe('TagsService', () => {
     it('should log success message', async () => {
       mockInstance.get.mockResolvedValue({ data: mockTagsData });
 
-      await service.getTagsForCategory(TagCategory.PROMPT);
+      const result = await service.getTagsForCategory(TagCategory.PROMPT);
 
+      expect(result).toHaveLength(2);
       expect(logger.info).toHaveBeenCalledWith(
         `GET /tags?category=${TagCategory.PROMPT} success`,
         expect.any(Array),
@@ -247,8 +248,9 @@ describe('TagsService', () => {
     it('should serialize update data', async () => {
       mockInstance.patch.mockResolvedValue({ data: mockTagData });
 
-      await service.updateTag('tag-123', 'New Label');
+      const result = await service.updateTag('tag-123', 'New Label');
 
+      expect(result).toBeInstanceOf(Tag);
       expect(TagSerializer.serialize).toHaveBeenCalledWith({
         label: 'New Label',
       });
@@ -257,8 +259,9 @@ describe('TagsService', () => {
     it('should log success message', async () => {
       mockInstance.patch.mockResolvedValue({ data: mockTagData });
 
-      await service.updateTag('tag-789', 'Updated Label');
+      const result = await service.updateTag('tag-789', 'Updated Label');
 
+      expect(result).toBeInstanceOf(Tag);
       expect(logger.info).toHaveBeenCalledWith(
         'PATCH /tags/tag-789 success',
         expect.any(Tag),
@@ -294,8 +297,9 @@ describe('TagsService', () => {
     it('should include category filter when provided', async () => {
       mockInstance.get.mockResolvedValue({ data: mockTagsData });
 
-      await service.searchTags('Test', TagCategory.INGREDIENT);
+      const result = await service.searchTags('Test', TagCategory.INGREDIENT);
 
+      expect(result).toHaveLength(2);
       expect(mockInstance.get).toHaveBeenCalledWith('', {
         params: { category: TagCategory.INGREDIENT, label: 'Test' },
       });
@@ -312,8 +316,9 @@ describe('TagsService', () => {
     it('should log success message', async () => {
       mockInstance.get.mockResolvedValue({ data: mockTagsData });
 
-      await service.searchTags('Tag');
+      const result = await service.searchTags('Tag');
 
+      expect(result).toHaveLength(2);
       expect(logger.info).toHaveBeenCalledWith(
         'GET /tags success',
         expect.any(Array),

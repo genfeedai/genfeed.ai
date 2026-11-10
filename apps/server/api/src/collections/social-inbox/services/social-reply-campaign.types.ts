@@ -6,10 +6,6 @@ import type {
 export type SocialReplyCampaign = PrismaSocialReplyCampaign;
 export type SocialReplyCampaignRecipient = PrismaSocialReplyCampaignRecipient;
 
-export type SocialReplyCampaignDocument = PrismaSocialReplyCampaign;
-export type SocialReplyCampaignRecipientDocument =
-  PrismaSocialReplyCampaignRecipient;
-
 export interface SocialReplyCampaignDispatchRequest {
   campaignId: string;
   organizationId: string;

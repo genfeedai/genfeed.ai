@@ -2,6 +2,7 @@ import { resolveStreamFromMessages as resolveStreamFromMessagesFn } from '@genfe
 import {
   collectAssistantMessageIds,
   flushBufferedEventsForThread,
+  isAmbiguousAcknowledgementError,
   isForeignRunEvent,
 } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
 import {
@@ -19,6 +20,11 @@ import {
   subscribeAgentStreamEntry,
 } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import { attachAgentStreamSubscriptions } from '@genfeedai/agent/hooks/agent-chat-stream.subscriptions';
+import {
+  type AgentStreamRunningThreadPatch,
+  markAgentStreamThreadRunning,
+  updateAgentStreamThreadSummary,
+} from '@genfeedai/agent/hooks/agent-chat-stream.thread-summary';
 import type {
   AgentRunAdoptionOptions,
   AgentRunHandoff,
@@ -66,14 +72,6 @@ export type {
   UseAgentChatStreamOptions,
   UseAgentChatStreamReturn,
 } from '@genfeedai/agent/hooks/agent-chat-stream.types';
-
-function isAmbiguousAcknowledgementError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') {
-    return false;
-  }
-  const status = (error as { status?: unknown }).status;
-  return status === 0 || status === 408 || status === 504;
-}
 
 export function createAgentStreamController(
   entry: AgentStreamEntry,
@@ -141,7 +139,6 @@ export function createAgentStreamController(
   const setRunStartedAt = (startedAt: string | null) =>
     transitionRun({ startedAt, type: 'started-at' });
 
-  const updateThread = useAgentChatStore.getState().updateThread;
   const pageContext = presentationStore.getState().pageContext;
 
   const appendStreamToken = presentationStore.getState().appendStreamToken;
@@ -255,54 +252,12 @@ export function createAgentStreamController(
     return entry.activeStreamThreadRef.current === threadId;
   };
 
-  const updateThreadSummary = (
-    threadId: string,
-    patch: Partial<AgentThread>,
-  ) => {
-    const existingThread = useAgentChatStore
-      .getState()
-      .threads.find((thread) => thread.id === threadId);
-
-    if (!isCurrentAgentStreamEntry(entry) || !existingThread) {
-      return;
-    }
-
-    const actualVisible =
-      useAgentChatStore.getState().activeThreadId === threadId;
-    updateThread(threadId, {
-      ...patch,
-      ...(patch.runStatus === 'completed' ||
-      patch.runStatus === 'failed' ||
-      patch.runStatus === 'cancelled'
-        ? { attentionState: actualVisible ? null : 'updated' }
-        : {}),
-    });
-    useAgentChatStore.setState((state) => {
-      if (!(threadId in state.conversationCacheByThread)) {
-        return state;
-      }
-      const cache = { ...state.conversationCacheByThread };
-      delete cache[threadId];
-      return { conversationCacheByThread: cache };
-    });
-  };
-
+  const updateThreadSummary = (threadId: string, patch: Partial<AgentThread>) =>
+    updateAgentStreamThreadSummary(entry, threadId, patch);
   const markThreadRunning = (
     threadId: string,
-    patch?: Partial<
-      Pick<
-        AgentThread,
-        'attentionState' | 'lastActivityAt' | 'pendingInputCount' | 'runStatus'
-      >
-    >,
-  ) => {
-    updateThreadSummary(threadId, {
-      attentionState: 'running',
-      lastActivityAt: patch?.lastActivityAt ?? new Date().toISOString(),
-      pendingInputCount: patch?.pendingInputCount ?? 0,
-      runStatus: patch?.runStatus ?? 'running',
-    });
-  };
+    patch?: AgentStreamRunningThreadPatch,
+  ) => markAgentStreamThreadRunning(entry, threadId, patch);
 
   const syncThreadState = (
     threadId: string,

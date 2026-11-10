@@ -658,7 +658,7 @@ test('recovery skips proved-green gates and reuses the exact immutable image', (
   const deploySaas = jobBlock(releaseWorkflow, 'deploy-saas', 'release.yml');
   const imageBuild = jobBlock(
     selfHostedWorkflow,
-    'build-and-push',
+    'tag-verified-image',
     '_publish-selfhosted-core.yml',
   );
 

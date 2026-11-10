@@ -175,12 +175,12 @@ describe('FacebookController', () => {
         new Error('Graph permissions unavailable'),
       );
 
-      await expect(
-        controller.verify({} as never, {
-          code: 'auth-code',
-          state: 'opaque-oauth-state',
-        }),
-      ).resolves.toBeDefined();
+      const verified = await controller.verify({} as never, {
+        code: 'auth-code',
+        state: 'opaque-oauth-state',
+      });
+
+      expect(verified).toMatchObject({ data: { type: 'credential' } });
 
       expect(mockCredentialsService.patch).toHaveBeenCalledWith(
         'test-object-id',
@@ -210,11 +210,12 @@ describe('FacebookController', () => {
         'ads_read',
       ]);
 
-      await controller.verify({} as never, {
+      const verified = await controller.verify({} as never, {
         code: 'auth-code',
         state: 'opaque-oauth-state',
       });
 
+      expect(verified).toMatchObject({ data: { type: 'credential' } });
       expect(mockFacebookService.getGrantedPermissions).toHaveBeenCalledWith(
         'facebook-token',
       );
@@ -224,6 +225,19 @@ describe('FacebookController', () => {
           grantedScopes: ['ads_management', 'ads_read'],
         }),
       );
+    });
+
+    it('rejects a callback whose state matches no pending credential', async () => {
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValueOnce(
+        null,
+      );
+
+      await expect(
+        controller.verify({} as never, {
+          code: 'auth-code',
+          state: 'unknown-state',
+        }),
+      ).rejects.toBeInstanceOf(HttpException);
     });
 
     it('throws when code or state is missing', async () => {
@@ -350,12 +364,14 @@ describe('FacebookController', () => {
 
   describe('getPostAnalytics', () => {
     it('collects the Video node when mediaType is video', async () => {
-      await controller.getPostAnalytics(
+      mockFacebookService.getPostAnalytics.mockResolvedValue({ views: 42 });
+      const result = await controller.getPostAnalytics(
         mockUser,
         'video',
         'page-token',
         'video',
       );
+      expect(result).toEqual({ views: 42 });
       expect(facebookService.getPostAnalytics).toHaveBeenCalledWith(
         'video',
         'page-token',

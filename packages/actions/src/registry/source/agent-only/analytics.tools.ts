@@ -43,6 +43,8 @@ export const AGENT_ANALYTICS_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Analyze recent content performance over the last 30 days. Returns engagement rates grouped by content type, platform, and posting time, plus top-performing posts.',
+    mcpDescription:
+      'Analyze 30-day engagement by content type, platform and posting time, including top posts.',
     name: 'analyze_performance',
     parameters: {
       properties: {

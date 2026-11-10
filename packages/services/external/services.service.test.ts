@@ -1,3 +1,7 @@
+import {
+  Credential,
+  CredentialOAuth,
+} from '@genfeedai/models/auth/credential.model';
 import { ServicesService } from '@services/external/services.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -65,7 +69,10 @@ describe('ServicesService OAuth request contract', () => {
   it('posts a flat connect DTO that Nest integration controllers can read', async () => {
     const service = new ServicesService('restream', 'token');
 
-    await service.postConnect({ brandId: 'brand-1' });
+    const result = await service.postConnect({ brandId: 'brand-1' });
+
+    expect(result).toBeInstanceOf(CredentialOAuth);
+    expect(result).toEqual({ url: 'https://provider.example/oauth' });
 
     expect(mockInstance.post).toHaveBeenCalledWith('connect', {
       brandId: 'brand-1',
@@ -75,7 +82,13 @@ describe('ServicesService OAuth request contract', () => {
   it('posts a flat verify DTO that Nest integration controllers can read', async () => {
     const service = new ServicesService('restream', 'token');
 
-    await service.postVerify({ code: 'oauth-code', state: 'oauth-state' });
+    const credential = await service.postVerify({
+      code: 'oauth-code',
+      state: 'oauth-state',
+    });
+
+    expect(credential).toBeInstanceOf(Credential);
+    expect(credential).toMatchObject({ url: 'https://provider.example/oauth' });
 
     expect(mockInstance.post).toHaveBeenCalledWith('verify', {
       code: 'oauth-code',
@@ -86,9 +99,9 @@ describe('ServicesService OAuth request contract', () => {
   it('reads Threads readiness beside the canonical connect route', async () => {
     const service = new ServicesService('threads', 'token');
 
-    await expect(service.getConnectReadiness()).resolves.toEqual({
-      status: 'available',
-    });
+    const readiness = await service.getConnectReadiness();
+
+    expect(readiness).toEqual({ status: 'available' });
 
     expect(baseServiceConstructor).toHaveBeenCalledWith(
       '/services/threads',

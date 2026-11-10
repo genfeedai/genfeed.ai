@@ -23,11 +23,21 @@ const descriptions: Record<string, string> = {
   retry:
     'Explicitly retry retained source from a failed or cancelled visual revision using a new requestId and approved quote. No automatic source repair occurs; inspect prior diagnostics for uncertain provider work.',
 };
+/** Shorter wording MCP `tools/list` shows for the operations that have one. */
+const mcpDescriptions: Partial<Record<string, string>> = {
+  generate:
+    'Create a versioned visual project from prompt or React/Remotion source. Requires prior quote and approved maximumCredits. Untrusted code runs in an isolated renderer; completed outputs enter brand Library.',
+  retry:
+    'Explicitly retry failed/cancelled visual source with new requestId and approved quote. No automatic source repair; inspect prior diagnostics for uncertain provider work.',
+};
 export const VISUAL_CODE_TOOLS: SourceTool[] = Object.entries(
   VISUAL_CODE_ACTION_ALIASES,
 ).map(([name, operation]) => ({
   name,
   description: descriptions[operation],
+  ...(mcpDescriptions[operation]
+    ? { mcpDescription: mcpDescriptions[operation] }
+    : {}),
   creditCost: 0,
   requiredRole: 'user',
   parameters: VISUAL_CODE_INPUT_SCHEMAS[operation] as ToolParameterSchema,
