@@ -174,7 +174,7 @@ function listFilesRecursive(dir) {
   return out;
 }
 
-const ALL_APP_PAGES_FILE = 'all-app-pages.spec.ts';
+const ALL_APP_PAGES_DIRECTORY = 'tests/smoke/all-app-pages/';
 
 // Any quoted/backtick string literal.
 const STRING_LITERAL_RE = /[`'"]([^`'"\n]+)[`'"]/g;
@@ -325,7 +325,8 @@ function collectNavigatedKeys() {
   const appRoutes = readAppRouteConstants();
   for (const file of files) {
     // The generated route sweep provides no static interaction evidence.
-    if (file.endsWith(ALL_APP_PAGES_FILE)) continue;
+    if (file.split(path.sep).join('/').includes(ALL_APP_PAGES_DIRECTORY))
+      continue;
     for (const key of extractRouteReferenceKeys(
       readFileSync(file, 'utf8'),
       appRoutes,

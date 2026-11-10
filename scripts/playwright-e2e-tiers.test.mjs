@@ -637,14 +637,14 @@ test('duration shards run exactly the selected full-tier specs, once each', () =
   assert.deepEqual(shards.flat().sort(), [...selectedFiles].sort());
 });
 
-test('recorded durations balance the repository shards within 1.35x', () => {
+test('recorded durations balance the repository shards within 1.1x', () => {
   const { selectedFiles } = buildPlaywrightE2eTierPlan();
   const loads = assignSpecsToShards(selectedFiles, RECORDED_DURATIONS, 8).map(
     shardLoad,
   );
 
   assert.ok(
-    Math.max(...loads) / Math.min(...loads) <= 1.35,
+    Math.max(...loads) / Math.min(...loads) <= 1.1,
     `shard loads are ${loads.map(Math.round).join(', ')}`,
   );
 });
