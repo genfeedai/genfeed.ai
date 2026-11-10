@@ -81,7 +81,7 @@ describe('Models3dBuildService', () => {
       const ctx = setup();
       ctx.ingredients.find.mockResolvedValue([]);
 
-      await ctx.service.startBuild('sheet-1');
+      await expect(ctx.service.startBuild('sheet-1')).resolves.toBeUndefined();
 
       expect(ctx.replicate.runModel).not.toHaveBeenCalled();
     });
@@ -89,7 +89,7 @@ describe('Models3dBuildService', () => {
     it('looks only for a processing child of the sheet', async () => {
       const ctx = setup();
 
-      await ctx.service.startBuild('sheet-1');
+      await expect(ctx.service.startBuild('sheet-1')).resolves.toBeUndefined();
 
       expect(ctx.ingredients.find).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -102,7 +102,7 @@ describe('Models3dBuildService', () => {
     it('sends the photo and the cropped views to the build model', async () => {
       const ctx = setup();
 
-      await ctx.service.startBuild('sheet-1');
+      await expect(ctx.service.startBuild('sheet-1')).resolves.toBeUndefined();
 
       expect(ctx.replicate.runModel).toHaveBeenCalledWith(
         'firtoz/trellis',
@@ -129,7 +129,7 @@ describe('Models3dBuildService', () => {
         s3Key: 'ing/sheet',
       });
 
-      await ctx.service.startBuild('sheet-1');
+      await expect(ctx.service.startBuild('sheet-1')).resolves.toBeUndefined();
 
       const input = ctx.replicate.runModel.mock.calls[0]?.[1] as {
         images: string[];
@@ -140,7 +140,7 @@ describe('Models3dBuildService', () => {
     it('records the prediction and polls it as a GLB output', async () => {
       const ctx = setup();
 
-      await ctx.service.startBuild('sheet-1');
+      await expect(ctx.service.startBuild('sheet-1')).resolves.toBeUndefined();
 
       expect(ctx.metadata.patch).toHaveBeenCalledWith(
         'meta-2',
@@ -191,7 +191,7 @@ describe('Models3dBuildService', () => {
         vi.fn().mockResolvedValue({ ok: false, status: 403 }),
       );
 
-      await ctx.service.startBuild('sheet-1');
+      await expect(ctx.service.startBuild('sheet-1')).resolves.toBeUndefined();
 
       expect(
         ctx.webhooks.handleFailedGenerationForIngredient,
@@ -203,7 +203,7 @@ describe('Models3dBuildService', () => {
       const ctx = setup();
       ctx.pollQueue.schedule.mockResolvedValue(null);
 
-      await ctx.service.startBuild('sheet-1');
+      await expect(ctx.service.startBuild('sheet-1')).resolves.toBeUndefined();
 
       expect(
         ctx.webhooks.handleFailedGenerationForIngredient,
@@ -225,7 +225,9 @@ describe('Models3dBuildService', () => {
     it('fails the funded child so its hold is refunded', async () => {
       const ctx = setup();
 
-      await ctx.service.abandonBuild('sheet-1');
+      await expect(
+        ctx.service.abandonBuild('sheet-1'),
+      ).resolves.toBeUndefined();
 
       expect(
         ctx.webhooks.handleFailedGenerationForIngredient,
@@ -236,7 +238,9 @@ describe('Models3dBuildService', () => {
       const ctx = setup();
       ctx.ingredients.find.mockResolvedValue([]);
 
-      await ctx.service.abandonBuild('sheet-1');
+      await expect(
+        ctx.service.abandonBuild('sheet-1'),
+      ).resolves.toBeUndefined();
 
       expect(
         ctx.webhooks.handleFailedGenerationForIngredient,
