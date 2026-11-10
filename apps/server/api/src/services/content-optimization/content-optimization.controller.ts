@@ -54,6 +54,7 @@ export class ContentOptimizationController {
    * Returns performance analysis with insights.
    */
   @OrganizationModule('analytics', 'write')
+  @TenantReadPolicy('mutating')
   @Get('analysis')
   async getAnalysis(
     @Param('brandId') brandId: string,

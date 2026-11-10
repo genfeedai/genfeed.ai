@@ -1,4 +1,5 @@
 import type {
+  ConnectGenfeedClient,
   IOnboardingCampaignImage,
   IOnboardingDraftContext,
   IOnboardingFirstDraft,
@@ -6,12 +7,18 @@ import type {
   IOnboardingScanResult,
 } from '@genfeedai/contracts/interfaces';
 
+/**
+ * The four onboarding steps map onto these phases: `url`, `working`, `context`
+ * and `review` are "See your output"; then `agent`, `channels` and `prompt`.
+ */
 export type FirstDraftsPhase =
   | 'url'
   | 'working'
   | 'review'
   | 'context'
-  | 'schedule';
+  | 'agent'
+  | 'channels'
+  | 'prompt';
 
 /** The member's own answer to "would you post this?" for one draft. */
 export type FirstDraftVerdict = 'up' | 'down';
@@ -49,7 +56,8 @@ export interface FirstDraftsState {
   onBack: () => void;
   onContinue: () => void;
   onNotRight: () => void;
-  onSchedule: () => void;
+  /** Moves to the next step, or leaves onboarding from the last one. */
+  onAdvance: () => void;
   onVerdict: (
     draft: IOnboardingFirstDraft,
     verdict: FirstDraftVerdict | null,
@@ -89,8 +97,18 @@ export interface FirstDraftCardProps {
   verdict?: FirstDraftVerdict;
 }
 
-export interface FirstDraftsScheduleProps {
+export interface FirstDraftsChannelsProps {
   brandId: string;
+}
+
+export interface FirstDraftsAgentProps {
+  client: ConnectGenfeedClient;
+  onClientChange: (client: ConnectGenfeedClient) => void;
+}
+
+export interface FirstDraftsPromptProps {
+  brandName: string;
+  client: ConnectGenfeedClient;
 }
 
 export interface ConnectPlatformsProps {

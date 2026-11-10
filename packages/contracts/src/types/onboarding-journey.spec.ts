@@ -18,7 +18,7 @@ describe('resolveMissionCtaHref', () => {
     ['connect_social_account', '/settings/brands'],
     ['generate_first_image', '/settings/api-keys'],
     ['generate_first_video', '/settings/api-keys'],
-    ['publish_first_post', '/agent/new'],
+    ['publish_first_post', '/connect'],
   ] as const)('resolves %s to %s for self-hosted', (missionId, expected) => {
     const definition = ONBOARDING_JOURNEY_MISSIONS.find(
       (mission) => mission.id === missionId,
@@ -49,6 +49,29 @@ describe('resolveMissionCtaHref', () => {
         definition.ctaHref,
       );
     }
+  });
+});
+
+describe('mission destinations', () => {
+  it('never sends a member to a creative app', () => {
+    for (const definition of ONBOARDING_JOURNEY_MISSIONS) {
+      for (const isSelfHosted of [true, false]) {
+        expect(resolveMissionCtaHref(definition, { isSelfHosted })).not.toMatch(
+          /^\/(agent|playground|storyboard|turbo|motion|clipper|editor)(?:\/|$)/,
+        );
+      }
+    }
+  });
+
+  it('points the media missions at connecting an agent', () => {
+    const labels = ONBOARDING_JOURNEY_MISSIONS.filter((mission) =>
+      ['generate_first_image', 'generate_first_video'].includes(mission.id),
+    ).map((mission) => [mission.ctaHref, mission.ctaLabel]);
+
+    expect(labels).toEqual([
+      ['/connect', 'Connect your agent'],
+      ['/connect', 'Connect your agent'],
+    ]);
   });
 });
 

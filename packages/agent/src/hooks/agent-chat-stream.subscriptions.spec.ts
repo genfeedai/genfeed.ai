@@ -580,6 +580,19 @@ describe('attachAgentStreamSubscriptions', () => {
     );
   });
 
+  it('a stopped run clears the error instead of reporting a failure', () => {
+    const { deps, emit } = makeDeps();
+    attachAgentStreamSubscriptions(deps);
+
+    emit('agent:error', {
+      error: 'Agent run cancelled',
+      threadId: 'thread-1',
+    });
+
+    expect(deps.setError).toHaveBeenCalledWith(null);
+    expect(deps.setError).not.toHaveBeenCalledWith('Agent run cancelled');
+  });
+
   it('work events collapse onto a stable id', () => {
     const { deps, emit } = makeDeps();
     attachAgentStreamSubscriptions(deps);
