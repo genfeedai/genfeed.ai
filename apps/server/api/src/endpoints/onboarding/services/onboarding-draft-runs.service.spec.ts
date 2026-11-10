@@ -87,7 +87,7 @@ describe('OnboardingDraftRunsService', () => {
     );
     prisma.contentRun.createMany.mockResolvedValue({ count: 0 });
     prisma.contentRun.findFirst.mockResolvedValue({
-      status: 'complete',
+      status: 'completed',
       config: { surface: 'onboarding', result },
     });
     await expect(
@@ -131,7 +131,7 @@ describe('OnboardingDraftRunsService', () => {
   it('restores only this member’s ratings and scopes every read to the organization and brand', async () => {
     prisma.contentRun.findFirst.mockResolvedValue({
       id: 'run-1',
-      status: 'complete',
+      status: 'completed',
       updatedAt: new Date(),
       config: { surface: 'onboarding', result },
     });
@@ -191,7 +191,7 @@ describe('OnboardingDraftRunsService', () => {
   it('reconciles a pending platform image from its saved ingredient without generating', async () => {
     prisma.contentRun.findFirst.mockResolvedValue({
       id: 'run-1',
-      status: 'complete',
+      status: 'completed',
       updatedAt: new Date(),
       config: {
         surface: 'onboarding',
@@ -367,7 +367,7 @@ describe('OnboardingDraftRunsService', () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
         id: 'legacy',
-        status: 'complete',
+        status: 'completed',
         updatedAt: new Date(),
         config: { surface: 'onboarding', result },
       });

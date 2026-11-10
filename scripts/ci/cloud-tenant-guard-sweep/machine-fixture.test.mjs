@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
-import { buildDiagnosticSummary, coverageErrors } from './core.mjs';
+import {
+  API_KEY_ONLY_TEMPLATES,
+  buildDiagnosticSummary,
+  coverageErrors,
+} from './core.mjs';
 import {
   assertMachineResponse,
   MACHINE_CONTENT_HASH,
@@ -72,8 +76,9 @@ function positive(template) {
 }
 function coverageFixture() {
   const templates = [
-    ...Array.from({ length: 609 }, (_, i) => `/v1/example-${i}`),
+    ...Array.from({ length: 607 }, (_, i) => `/v1/example-${i}`),
     ...MACHINE_TEMPLATES,
+    ...API_KEY_ONLY_TEMPLATES,
   ];
   const requests = ['M:A', 'M2:B', 'S', 'S:A'].flatMap((actor) =>
     templates.map((route) => ({
@@ -81,7 +86,11 @@ function coverageFixture() {
       method: 'GET',
       phase: 'get',
       route,
-      status: MACHINE_TEMPLATES.includes(route) ? 401 : 200,
+      status:
+        MACHINE_TEMPLATES.includes(route) ||
+        API_KEY_ONLY_TEMPLATES.includes(route)
+          ? 401
+          : 200,
       hasTenantHit: false,
     })),
   );
@@ -319,7 +328,11 @@ test('four actors retain full N inventory, exactly sixteen denials and four sepa
   );
 });
 for (const [name, change, label] of [
-  ['missing template', (f) => f.templates.pop(), 'machine-route-inventory'],
+  [
+    'missing template',
+    (f) => f.templates.splice(f.templates.indexOf(MACHINE_TEMPLATES[3]), 1),
+    'machine-route-inventory',
+  ],
   [
     'duplicate template',
     (f) => f.templates.push(MACHINE_TEMPLATES[0]),
