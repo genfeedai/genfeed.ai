@@ -318,12 +318,6 @@
     "symbol": "apps/web/src/features/research/remix/RemixBriefInspector.tsx"
   },
   {
-    "actual": 1051,
-    "file": "apps/web/src/features/studio/playground/components/StudioPlaygroundInspector.tsx",
-    "metric": "file-lines",
-    "symbol": "apps/web/src/features/studio/playground/components/StudioPlaygroundInspector.tsx"
-  },
-  {
     "actual": 1384,
     "file": "apps/web/src/features/studio/playground/hooks/useStudioGeneration.ts",
     "metric": "file-lines",
