@@ -65,7 +65,7 @@ const ICONIC_STATUS_SOURCES = [
   'app/(protected)/[orgSlug]/[brandSlug]/automation/runs/ActiveRunsPanel.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/automation/runs/WorkflowExecutionCard.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-dashboard.tsx',
-  'app/(protected)/[orgSlug]/~/settings/(pages)/organization/api-keys/byok-provider-card.tsx',
+  'app/(protected)/[orgSlug]/~/connectors/api-keys/byok-provider-card.tsx',
   'src/features/workflows/components/editor/CloudCreditsIndicator.tsx',
 ] as const;
 

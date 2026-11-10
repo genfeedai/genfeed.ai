@@ -16,7 +16,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
 
@@ -26,8 +26,10 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
+const stableAction = vi.fn();
+
 function SectionWithAction() {
-  useConnectorsPrimaryAction('Connect account', vi.fn());
+  useConnectorsPrimaryAction('Connect account', stableAction);
   return <p>Section body</p>;
 }
 

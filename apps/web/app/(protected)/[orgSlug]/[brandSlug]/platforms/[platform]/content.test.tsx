@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   connectPlatform: vi.fn(),
   hasBrandId: true,
   href: (path: string) => `/acme/moonrise${path}`,
+  orgHref: (path: string) => `/acme/~${path}`,
   isLoading: false,
   socialConnections: [] as BrandDetailSocialConnection[],
 }));
@@ -41,6 +42,7 @@ vi.mock('@/hooks/pages/use-brand-detail/use-brand-detail', () => ({
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     href: mocks.href,
+    orgHref: mocks.orgHref,
   }),
 }));
 

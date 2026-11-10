@@ -355,7 +355,7 @@ describe('OperationalHomeContent', () => {
     ).toBeInTheDocument();
     expect(
       within(connectionState).getByRole('link', { name: /Connect Genfeed/ }),
-    ).toHaveAttribute('href', '/acme/~/connect');
+    ).toHaveAttribute('href', '/acme/~/connectors/agents');
     expect(
       screen.queryByRole('link', { name: /Manage API keys/ }),
     ).not.toBeInTheDocument();
@@ -504,7 +504,7 @@ describe('OperationalHomeContent', () => {
     expect(mocks.connectionOrganizationId).toBe('org_1');
     expect(
       screen.getByRole('link', { name: /Connect Genfeed/ }),
-    ).toHaveAttribute('href', '/acme/~/connect');
+    ).toHaveAttribute('href', '/acme/~/connectors/agents');
   });
 
   it('keeps operational summaries available when status resolution fails', () => {
@@ -524,7 +524,7 @@ describe('OperationalHomeContent', () => {
     expect(screen.getByTestId('operational-home-sections')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open Connect Genfeed' }),
-    ).toHaveAttribute('href', '/acme/~/connect');
+    ).toHaveAttribute('href', '/acme/~/connectors/agents');
   });
 
   it('uses organization-level brand setup actions when no brand is available', () => {

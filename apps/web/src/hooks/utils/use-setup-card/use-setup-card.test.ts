@@ -148,7 +148,7 @@ describe('useSetupCard', () => {
     expect(result.current.completedCount).toBe(1);
   });
 
-  it('sends brand-less Social accounts to the organization brands directory', () => {
+  it('sends Social accounts to Connectors → Channels even without a selected brand', () => {
     mockScope.brandSlug = '';
 
     const { result } = renderHook(() => useSetupCard(), {
@@ -158,12 +158,10 @@ describe('useSetupCard', () => {
       (step) => step.key === 'platforms',
     );
 
-    expect(platforms?.href).toBe('/acme/~/settings/brands');
-    expect(platforms?.href).not.toBe('/connectors/channels');
-    expect(platforms?.href).not.toBe('/connectors/api-keys');
+    expect(platforms?.href).toBe('/acme/~/connectors/channels');
   });
 
-  it('updates account hrefs when the selected scope changes', () => {
+  it('keeps the preferences href following the selected scope', () => {
     const { result, rerender } = renderHook(() => useSetupCard(), {
       wrapper: queryClientWrapper(),
     });
@@ -175,13 +173,13 @@ describe('useSetupCard', () => {
     mockScope.brandSlug = '';
     rerender();
 
-    expect(hrefFor('platforms')).toBe('/acme/~/settings/brands');
+    expect(hrefFor('platforms')).toBe('/acme/~/connectors/channels');
     expect(hrefFor('preferences')).toBe('/acme/~/settings/brands');
 
     mockScope.orgSlug = 'bravo';
     rerender();
 
-    expect(hrefFor('platforms')).toBe('/bravo/~/settings/brands');
+    expect(hrefFor('platforms')).toBe('/bravo/~/connectors/channels');
     expect(hrefFor('preferences')).toBe('/bravo/~/settings/brands');
   });
 

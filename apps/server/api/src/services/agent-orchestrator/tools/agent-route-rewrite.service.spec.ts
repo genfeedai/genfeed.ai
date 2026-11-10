@@ -259,7 +259,7 @@ describe('AgentRouteRewriteService', () => {
     ]);
   });
 
-  it.each(['accounts', 'agent', 'publishing', 'skills', 'knowledge'])(
+  it.each(['agent', 'publishing', 'skills', 'knowledge'])(
     'scopes brand-only Settings %s with the resolved brand',
     async (page) => {
       const scoped = await createService().scopeToolResultHrefs(
@@ -392,6 +392,7 @@ describe('AgentRouteRewriteService', () => {
       'agent',
       'billing',
       'brand_settings',
+      'connect_accounts',
       'credits',
       'members',
       'models',

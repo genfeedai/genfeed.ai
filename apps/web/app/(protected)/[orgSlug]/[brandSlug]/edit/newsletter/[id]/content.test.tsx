@@ -68,7 +68,10 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ href: (path: string) => `/acme/studio${path}` }),
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/studio${path}`,
+    orgHref: (path: string) => `/acme/~${path}`,
+  }),
 }));
 
 vi.mock('@services/core/clipboard.service', () => ({

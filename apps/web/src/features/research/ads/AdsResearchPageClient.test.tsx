@@ -1233,10 +1233,7 @@ describe('AdsResearchPageClient', () => {
 
     expect(
       screen.getByRole('link', { name: 'Manage ad connections' }),
-    ).toHaveAttribute(
-      'href',
-      '/moonrise-org/~/connectors/channels',
-    );
+    ).toHaveAttribute('href', '/moonrise-org/~/connectors/channels');
     expect(
       screen.getByRole('button', { name: 'Competitors' }),
     ).toBeInTheDocument();

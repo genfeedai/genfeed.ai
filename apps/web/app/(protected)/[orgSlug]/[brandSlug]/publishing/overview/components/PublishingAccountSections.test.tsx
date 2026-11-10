@@ -10,7 +10,10 @@ import AccountHealthSection from './AccountHealthSection';
 import CadenceGapsSection from './CadenceGapsSection';
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ href: (path: string) => `/acme/studio${path}` }),
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/studio${path}`,
+    orgHref: (path: string) => `/acme/~${path}`,
+  }),
 }));
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,

@@ -35,7 +35,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
 
@@ -99,7 +99,7 @@ describe('RailAccount', () => {
     const { rerender } = render(<RailAccount />);
 
     const link = screen.getByRole('link', {
-      name: 'common.appRail.connectors',
+      name: 'Connectors',
     });
     expect(link).toHaveAttribute('href', '/acme/~/connectors/agents');
     expect(link).not.toHaveAttribute('aria-current');
@@ -107,9 +107,10 @@ describe('RailAccount', () => {
     navigation.pathname = '/acme/~/connectors/api-keys';
     rerender(<RailAccount />);
 
-    expect(
-      screen.getByRole('link', { name: 'common.appRail.connectors' }),
-    ).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Connectors' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
   });
 
   it('keeps Help but drops the avatar when signed out', () => {

@@ -31,7 +31,10 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
   isBrandResourceReady: () => true,
 }));
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ href: (path: string) => `/org/brand${path}` }),
+  useOrgUrl: () => ({
+    href: (path: string) => `/org/brand${path}`,
+    orgHref: (path: string) => `/org/~${path}`,
+  }),
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({

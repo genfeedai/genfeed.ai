@@ -219,10 +219,7 @@ describe('BrandDetailIdentityCard.tsx', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Reconnect HeyGen');
     expect(
       screen.getByRole('link', { name: 'Reconnect HeyGen' }),
-    ).toHaveAttribute(
-      'href',
-      expect.stringContaining('/connectors/providers'),
-    );
+    ).toHaveAttribute('href', expect.stringContaining('/connectors/providers'));
   });
 
   it('shows no reconnect link for a plain catalogue outage', () => {

@@ -295,8 +295,16 @@ describe('AppProtectedBrandSwitcher', () => {
     expect(screen.getByTestId('brand-switcher')).toBeInTheDocument();
   });
 
+  it('keeps the brand switcher on Connectors, where Channels follow the selected brand', () => {
+    mockPathname.value = '/acme/~/connectors/channels';
+
+    render(<AppProtectedBrandSwitcher orgSlug="acme" />);
+
+    expect(screen.getByTestId('brand-switcher')).toBeInTheDocument();
+  });
+
   it('hides the brand switcher on organization settings routes', () => {
-    mockPathname.value = '/acme/~/connectors/api-keys';
+    mockPathname.value = '/acme/~/settings/identity';
 
     render(<AppProtectedBrandSwitcher orgSlug="acme" />);
 
