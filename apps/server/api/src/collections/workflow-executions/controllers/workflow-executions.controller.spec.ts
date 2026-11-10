@@ -1,5 +1,8 @@
 import { WorkflowExecutionQueryDto } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
-import { buildCustomerExecutionWhere } from '@api/collections/workflow-executions/services/workflow-execution-query.util';
+import {
+  buildCancellableExecutionWhere,
+  buildCustomerExecutionWhere,
+} from '@api/collections/workflow-executions/services/workflow-execution-query.util';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -394,10 +397,9 @@ describe('WorkflowExecutionsController', () => {
         status: WorkflowExecutionStatus.CANCELLED,
       });
 
-      expect(mockService.findOne).toHaveBeenCalledWith({
-        ...buildCustomerExecutionWhere(organizationId),
-        id: 'exec-1',
-      });
+      expect(mockService.findOne).toHaveBeenCalledWith(
+        buildCancellableExecutionWhere(organizationId, 'user-123', 'exec-1'),
+      );
       expect(mockService.cancelExecution).toHaveBeenCalledWith(
         'exec-1',
         organizationId,

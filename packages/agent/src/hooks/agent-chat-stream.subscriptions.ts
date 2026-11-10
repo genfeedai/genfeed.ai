@@ -562,7 +562,8 @@ export function attachAgentStreamSubscriptions(
             runStatus: nextStatus,
           });
           if (deps.isThreadVisible(payload.threadId)) {
-            deps.setError(payload.error);
+            // A stop is the person's own choice, not a failure to report.
+            deps.setError(nextStatus === 'cancelled' ? null : payload.error);
             deps.setActiveRunStatus(nextStatus);
             deps.resetStreamState();
           }

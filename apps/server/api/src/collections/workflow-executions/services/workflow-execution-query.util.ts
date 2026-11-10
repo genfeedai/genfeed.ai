@@ -1,9 +1,11 @@
 import type { WorkflowExecutionQueryDto } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
+import { AGENT_CONVERSATION_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import { BATCH_WORKFLOW_EXECUTION_ID } from '@api/collections/workflows/services/batch-workflow-execution.definition';
 import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-workflow.contract';
 import { EXCLUDE_SYSTEM_WORKFLOW } from '@api/collections/workflows/utils/workflow-list-where.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { Prisma } from '@genfeedai/prisma';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 
@@ -127,6 +129,47 @@ function buildCustomerExecutionIdsWhere(
         ],
       },
       ...(query.strategyId ? [{ strategyId: query.strategyId }] : []),
+    ],
+  };
+}
+
+/**
+ * The caller's own live agent conversation run: a chat turn, a card action or
+ * an answer to a question card. These run on hidden system workflows, so
+ * customer activity never lists them, but the person who started one must be
+ * able to stop it.
+ */
+function buildOwnAgentConversationRunWhere(
+  organizationId: string,
+  userId: string,
+): Prisma.WorkflowExecutionWhereInput {
+  return {
+    organizationId,
+    isDeleted: false,
+    userId,
+    canonicalId: { in: [...AGENT_CONVERSATION_WORKFLOW_IDS] },
+    dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+    threadId: { not: null },
+  };
+}
+
+/**
+ * What the caller may stop: any run in their customer activity, plus their own
+ * agent conversation runs. Without the second arm the chat's Stop button got a
+ * 404 and the turn ran on, spending credits.
+ */
+export function buildCancellableExecutionWhere(
+  organizationId: string,
+  userId: string,
+  id: string,
+): Prisma.WorkflowExecutionWhereInput {
+  return {
+    organizationId,
+    isDeleted: false,
+    id,
+    OR: [
+      buildCustomerExecutionWhere(organizationId),
+      buildOwnAgentConversationRunWhere(organizationId, userId),
     ],
   };
 }
