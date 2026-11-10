@@ -335,12 +335,14 @@ try {
     'synthetic-access',
   );
 
-  // A failure within a batch rolls the whole batch back.
+  // A failure within a batch rolls the whole batch back. The upgrade also
+  // creates a GENFEED profile credential per brand (random id, sorts before the
+  // fixture rows), so the batch must hold every credential, not just two.
   await db.query(`CREATE FUNCTION reject_backfill_fixture() RETURNS trigger LANGUAGE plpgsql AS $$
     BEGIN IF NEW.id = 'upgrade-deleted' THEN RAISE EXCEPTION 'synthetic failure'; END IF; RETURN NEW; END $$;
     CREATE TRIGGER reject_backfill_fixture BEFORE UPDATE ON credentials FOR EACH ROW EXECUTE FUNCTION reject_backfill_fixture()`);
   await assert.rejects(
-    runCredentialEncryptionBackfill(db, { ...args, batchSize: 2 }, secret),
+    runCredentialEncryptionBackfill(db, { ...args, batchSize: 50 }, secret),
     /synthetic failure/,
   );
   assert.equal(
@@ -437,7 +439,9 @@ try {
     runCredentialEncryptionBackfill(db, { ...args, batchSize: 0 }, secret),
     /batchSize/,
   );
-  const credentials = await db.query('SELECT * FROM credentials ORDER BY id');
+  const credentials = await db.query(
+    "SELECT * FROM credentials WHERE id LIKE 'upgrade-%' ORDER BY id",
+  );
   assert.equal(credentials.rows[0].accessToken, committed.accessToken);
   assert.equal(credentials.rows[0].refreshToken, committed.refreshToken);
   assert.equal(credentials.rows[0].organizationId, 'upgrade-org');
@@ -452,7 +456,11 @@ try {
     true,
   );
   assert.deepEqual(
-    (await db.query('SELECT * FROM credentials ORDER BY id')).rows,
+    (
+      await db.query(
+        "SELECT * FROM credentials WHERE id LIKE 'upgrade-%' ORDER BY id",
+      )
+    ).rows,
     credentials.rows,
   );
   assert.equal(

@@ -3,8 +3,8 @@ import type { Implementation } from '@modelcontextprotocol/server';
 import { MCP_BRAND_ICON_FILES } from './brand-icons';
 
 export const MCP_SERVER_NAME = 'genfeed-mcp-server';
-export const MCP_SERVER_TITLE = 'Genfeed';
-export const MCP_SERVER_VERSION = '1.0.0';
+const MCP_SERVER_TITLE = 'Genfeed';
+const MCP_SERVER_VERSION = '1.0.0';
 // The stateless transport has no subscription channel for change notifications.
 export const MCP_SERVER_CAPABILITIES = {
   resources: { listChanged: false },

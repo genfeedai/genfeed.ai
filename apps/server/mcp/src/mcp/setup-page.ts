@@ -250,11 +250,11 @@ export function getPublicMcpUrl(): string {
   return resolvePublicMcpResource().identifier;
 }
 
-export function getPublicClaudeMcpUrl(): string {
+function getPublicClaudeMcpUrl(): string {
   return deriveClaudeMcpResourceIdentifier(getPublicMcpUrl());
 }
 
-export function getOAuthIssuerUrl(): string {
+function getOAuthIssuerUrl(): string {
   return readFirstPublicUrl(
     ['GENFEEDAI_API_PUBLIC_URL', 'GENFEEDAI_API_URL'],
     DEFAULT_API_URL,
@@ -374,7 +374,7 @@ export function getMcpServerCard() {
   };
 }
 
-export function getPublicDocsUrl(): string {
+function getPublicDocsUrl(): string {
   return readPublicUrl('GENFEED_DOCS_URL', DEFAULT_DOCS_URL);
 }
 

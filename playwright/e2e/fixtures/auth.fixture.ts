@@ -43,6 +43,11 @@ import { test as base } from './coverage.fixture';
  * @module auth.fixture
  */
 
+interface AuthFixtureOptions {
+  /** Org role the signed-in user carries; `test.use({ memberRole: 'admin' })` for manager-only UI. */
+  memberRole: NonNullable<MockUserOptions['role']>;
+}
+
 interface AuthFixtures {
   authenticatedPage: Page;
   adminPage: Page;
@@ -381,7 +386,8 @@ async function navigateAfterAuth(page: Page, path: string): Promise<void> {
 // Extended Test with Auth Fixtures
 // ----------------------------------------------------------------------------
 
-export const test = base.extend<AuthFixtures>({
+export const test = base.extend<AuthFixtures & AuthFixtureOptions>({
+  memberRole: ['member', { option: true }],
   adminPage: async ({ page, context }, runFixture) => {
     const networkGuard = await setupStrictNetworkGuard(page);
     const adminOptions: MockUserOptions = {
@@ -407,13 +413,13 @@ export const test = base.extend<AuthFixtures>({
     await runFixture(context);
   },
 
-  authenticatedPage: async ({ page, context }, runFixture) => {
+  authenticatedPage: async ({ page, context, memberRole }, runFixture) => {
     const networkGuard = await setupStrictNetworkGuard(page);
 
     await setupAuthCookies(context);
     // API mocks first (lower priority), then Better Auth mocks (higher priority)
     await setupApiMocks(page);
-    await setupBetterAuthMocks(page, {}, MOCK_SESSION);
+    await setupBetterAuthMocks(page, { role: memberRole }, MOCK_SESSION);
     await navigateAfterAuth(page, APP_AUTH_BOOTSTRAP_PATH);
 
     await runFixture(page);

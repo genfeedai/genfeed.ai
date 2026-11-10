@@ -23,7 +23,6 @@
     "react-dropzone": "20.1.4",
     "react-hook-form": "7.91.0",
     "recharts": "3.10.1",
-    "temporal-polyfill": "1.0.7",
     "three": "0.183.2",
     "tippy.js": "6.3.7",
     "vaul": "1.1.2",

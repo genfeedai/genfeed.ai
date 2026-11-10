@@ -77,6 +77,7 @@ export function useStudioEditEntry({
     const epoch = crunRestoreEpochRef.current;
     const scope = crunRestoreScopeRef.current;
     let cancelled = false;
+    let isOffered = false;
     const isCurrent = () =>
       !cancelled &&
       isMountedRef.current &&
@@ -102,6 +103,7 @@ export function useStudioEditEntry({
         const url = new URL(window.location.href);
         url.searchParams.delete('editImage');
         window.history.replaceState(null, '', url);
+        isOffered = true;
         prepareContinuationRef.current(() => {
           clearCrunRestore();
           clearAttachments();
@@ -136,7 +138,9 @@ export function useStudioEditEntry({
       });
     return () => {
       cancelled = true;
-      editEntryRef.current = null;
+      // Re-offering after the source is applied would find a non-empty
+      // composer and ask "Replace your draft?" about the entry itself.
+      if (!isOffered) editEntryRef.current = null;
     };
   }, [
     isHydrated,

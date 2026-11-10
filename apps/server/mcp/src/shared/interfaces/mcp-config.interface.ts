@@ -30,7 +30,7 @@ export interface McpExampleToolPreview {
  * authenticated `endpoint`, so an unauthenticated reader gets an accurate count
  * plus a small `user`-role sample instead of a hand-maintained fiction.
  */
-export interface McpExampleTools {
+interface McpExampleTools {
   endpoint: string;
   preview: McpExampleToolPreview[];
   total: number;
@@ -53,7 +53,7 @@ export interface McpExample {
   version: string;
 }
 
-export interface McpClientExamples {
+interface McpClientExamples {
   claudeCode: {
     command: string;
   };
