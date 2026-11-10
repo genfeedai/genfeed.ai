@@ -164,7 +164,6 @@ vi.mock('@/components/shell/use-available-rail-apps', () => ({
   useIsAppAvailable: () => true,
   useIsHrefAvailable: () => (href: string) =>
     !mocks.hiddenAppPaths.some((path) => href.includes(path)),
-  useOrganizationAppIds: () => new Set<string>(),
 }));
 
 describe('PlatformHomePage catalog', () => {

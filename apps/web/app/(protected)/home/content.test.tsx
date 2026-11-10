@@ -297,7 +297,6 @@ vi.mock('@/components/shell/use-available-rail-apps', () => ({
   useHasAppsBeyondDashboard: () => true,
   useIsAppAvailable: () => true,
   useIsHrefAvailable: () => () => true,
-  useOrganizationAppIds: () => new Set<string>(),
 }));
 
 describe('OperationalHomeContent', () => {
