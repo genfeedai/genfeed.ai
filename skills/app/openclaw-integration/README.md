@@ -58,7 +58,7 @@ Add this to your MCP client config:
 }
 ```
 
-Get your API key at [app.genfeed.ai/connectors/api-keys](https://app.genfeed.ai/connectors/api-keys).
+Get your API key at [app.genfeed.ai/settings/api-keys](https://app.genfeed.ai/settings/api-keys).
 
 ## Available Tools
 
