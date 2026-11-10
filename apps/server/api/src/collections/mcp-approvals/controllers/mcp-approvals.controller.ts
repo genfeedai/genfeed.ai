@@ -3,7 +3,6 @@ import { AttachMcpApprovalResultDto } from '@api/collections/mcp-approvals/dto/a
 import { CreateMcpApprovalDto } from '@api/collections/mcp-approvals/dto/create-mcp-approval.dto';
 import { McpApprovalsQueryDto } from '@api/collections/mcp-approvals/dto/mcp-approvals-query.dto';
 import { ResolveMcpApprovalDto } from '@api/collections/mcp-approvals/dto/resolve-mcp-approval.dto';
-import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
 import { McpApprovalPolicyService } from '@api/collections/mcp-approvals/services/mcp-approval-policy.service';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -21,7 +20,7 @@ import {
 } from '@api/shared/utils/pagination-transform/pagination-transform.util';
 import { ActionOrigin, MemberRole } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
-import { McpApprovalStatus } from '@genfeedai/prisma';
+import { type McpApproval, McpApprovalStatus } from '@genfeedai/prisma';
 import {
   McpApprovalPricingSerializer,
   McpApprovalStatusSerializer,
@@ -72,7 +71,7 @@ export class McpApprovalsController {
     readonly _logger: LoggerService,
   ) {}
 
-  private toResponse(approval: McpApprovalDocument): McpApprovalResponse {
+  private toResponse(approval: McpApproval): McpApprovalResponse {
     return {
       id: approval.id,
       status: approval.status as McpApprovalStatus,
@@ -85,7 +84,7 @@ export class McpApprovalsController {
   }
 
   private async toScopedResponse(
-    approval: McpApprovalDocument,
+    approval: McpApproval,
   ): Promise<McpApprovalResponse> {
     return {
       ...this.toResponse(approval),

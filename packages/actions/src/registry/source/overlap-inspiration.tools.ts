@@ -68,6 +68,8 @@ export const OVERLAP_INSPIRATION_TOOLS: SourceTool[] = [
     creditCost: 0,
     description:
       'Create a draft, review-only Instagram remix workflow that adapts a public post pattern to the selected brand. This is prompt-based reinterpretation, not video style transfer.',
+    mcpDescription:
+      'Create a review-only draft remix workflow from a public Instagram pattern for this brand. Prompt-based reinterpretation, not video style transfer.',
     name: 'create_instagram_remix_workflow',
     parameters: {
       properties: {

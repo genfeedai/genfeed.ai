@@ -149,6 +149,170 @@ describe('PublicViewsService.recordArticle', () => {
   });
 });
 
+interface StoredMedia {
+  category: string;
+  id: string;
+  isDeleted: boolean;
+  organizationId: string | null;
+  recreateCount: number;
+  scope: string;
+  status: string;
+  viewCount: number;
+}
+
+interface MediaWhere {
+  category?: { in: string[] };
+  id: string | { in: string[] };
+  isDeleted?: boolean;
+  organizationId?: string;
+  scope?: string;
+  status?: string;
+}
+
+function publicMedia(id: string, overrides: Partial<StoredMedia> = {}) {
+  return {
+    category: 'VIDEO',
+    id,
+    isDeleted: false,
+    organizationId: 'org-1',
+    recreateCount: 0,
+    scope: 'PUBLIC',
+    status: 'GENERATED',
+    viewCount: 0,
+    ...overrides,
+  };
+}
+
+function matches(item: StoredMedia, where: MediaWhere): boolean {
+  const ids = typeof where.id === 'string' ? [where.id] : where.id.in;
+  return (
+    ids.includes(item.id) &&
+    (where.category === undefined ||
+      where.category.in.includes(item.category)) &&
+    (where.isDeleted === undefined || where.isDeleted === item.isDeleted) &&
+    (where.organizationId === undefined ||
+      where.organizationId === item.organizationId) &&
+    (where.scope === undefined || where.scope === item.scope) &&
+    (where.status === undefined || where.status === item.status)
+  );
+}
+
+/** Images and videos, a claim store and the service, all in memory. */
+function createMediaWorld(media: StoredMedia[]) {
+  const claims = new Set<string>();
+  const prisma = {
+    ingredient: {
+      findFirst: async ({ where }: { where: MediaWhere }) => {
+        const item = media.find((candidate) => matches(candidate, where));
+        return item ? { ...item } : null;
+      },
+      findMany: async ({ where }: { where: MediaWhere }) =>
+        media
+          .filter((candidate) => matches(candidate, where))
+          .map((item) => ({ ...item })),
+      updateMany: async ({
+        data,
+        where,
+      }: {
+        data: {
+          recreateCount?: { increment: number };
+          viewCount?: { increment: number };
+        };
+        where: MediaWhere;
+      }) => {
+        const hits = media.filter((candidate) => matches(candidate, where));
+        for (const item of hits) {
+          item.viewCount += data.viewCount?.increment ?? 0;
+          item.recreateCount += data.recreateCount?.increment ?? 0;
+        }
+        return { count: hits.length };
+      },
+    },
+  } as unknown as PrismaService;
+  const cache = {
+    claimOnce: async (key: string) => {
+      if (claims.has(key)) {
+        return 'duplicate';
+      }
+      claims.add(key);
+      return 'claimed';
+    },
+  } as unknown as CacheService;
+  return { media, service: new PublicViewsService(cache, prisma) };
+}
+
+describe('PublicViewsService.recordMediaViews', () => {
+  it('counts each public item once a day per visitor', async () => {
+    const { media, service } = createMediaWorld([
+      publicMedia('video-1', { viewCount: 2 }),
+      publicMedia('image-1', { category: 'IMAGE', organizationId: 'org-2' }),
+    ]);
+
+    await expect(
+      service.recordMediaViews(['video-1', 'image-1', 'video-1'], VISITOR, NOW),
+    ).resolves.toEqual({ 'image-1': 1, 'video-1': 3 });
+    await expect(
+      service.recordMediaViews(['video-1', 'image-1'], VISITOR, NOW),
+    ).resolves.toEqual({ 'image-1': 1, 'video-1': 3 });
+    expect(media.map((item) => item.viewCount)).toEqual([3, 1]);
+  });
+
+  it.each([
+    ['private', { scope: 'ORGANIZATION' }],
+    ['deleted', { isDeleted: true }],
+    ['still generating', { status: 'PROCESSING' }],
+    ['not an image or video', { category: 'MUSIC' }],
+  ])('leaves out an item that is %s', async (_label, overrides) => {
+    const { media, service } = createMediaWorld([
+      publicMedia('video-1', overrides),
+    ]);
+
+    await expect(
+      service.recordMediaViews(['video-1'], VISITOR, NOW),
+    ).resolves.toEqual({});
+    expect(media[0]?.viewCount).toBe(0);
+  });
+
+  it('shows a crawler the count without adding to it', async () => {
+    const { service } = createMediaWorld([
+      publicMedia('video-1', { viewCount: 7 }),
+    ]);
+
+    await expect(
+      service.recordMediaViews(
+        ['video-1'],
+        { ip: '203.0.113.7', userAgent: 'Googlebot/2.1' },
+        NOW,
+      ),
+    ).resolves.toEqual({ 'video-1': 7 });
+  });
+});
+
+describe('PublicViewsService.recordRecreation', () => {
+  it('counts a visitor once a day, apart from views', async () => {
+    const { media, service } = createMediaWorld([publicMedia('video-1')]);
+
+    await service.recordMediaViews(['video-1'], VISITOR, NOW);
+    await expect(
+      service.recordRecreation('video-1', VISITOR, NOW),
+    ).resolves.toBe(1);
+    await expect(
+      service.recordRecreation('video-1', VISITOR, NOW),
+    ).resolves.toBe(1);
+    expect(media[0]).toMatchObject({ recreateCount: 1, viewCount: 1 });
+  });
+
+  it('answers nothing for an item that is not public', async () => {
+    const { service } = createMediaWorld([
+      publicMedia('video-1', { scope: 'ORGANIZATION' }),
+    ]);
+
+    await expect(
+      service.recordRecreation('video-1', VISITOR, NOW),
+    ).resolves.toBeNull();
+  });
+});
+
 describe('isCountableVisitor', () => {
   it.each([
     [{ ip: '203.0.113.7', userAgent: BROWSER }, true],
@@ -165,6 +329,8 @@ describe('publicVisitorKey', () => {
   it.each([
     ['profile' as const, /^public:profile-view:brand-1:[0-9a-f]{64}$/],
     ['article' as const, /^public:article-view:brand-1:[0-9a-f]{64}$/],
+    ['media' as const, /^public:media-view:brand-1:[0-9a-f]{64}$/],
+    ['recreate' as const, /^public:recreate-view:brand-1:[0-9a-f]{64}$/],
   ])('keeps the address and browser out of the %s key', (target, pattern) => {
     const key = publicVisitorKey(target, 'brand-1', VISITOR, '2026-11-09');
 

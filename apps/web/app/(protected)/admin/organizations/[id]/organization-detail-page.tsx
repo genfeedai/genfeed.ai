@@ -12,6 +12,7 @@ import EconomicsPeriodFilter from '@protected/economics/economics-period-filter'
 import { DEFAULT_ECONOMICS_PERIOD_DAYS } from '@protected/economics/economics-report.util';
 import { useUnitEconomicsReport } from '@protected/economics/organizations/use-unit-economics-report';
 import OrganizationAppAccess from '@protected/organizations/components/organization-app-access';
+import OrganizationCommunity from '@protected/organizations/components/organization-community';
 import OrganizationLibrary from '@protected/organizations/components/organization-library';
 import OrganizationProfileHeader from '@protected/organizations/components/organization-profile-header';
 import { OrganizationSettingsTable } from '@protected/organizations/components/organization-settings-table';
@@ -75,6 +76,7 @@ function OrganizationDetailPageContent({
 
   const isSettingsTab = activeTab === 'settings';
   const isLibraryTab = activeTab === 'library';
+  const isCommunityTab = activeTab === 'community';
   const handleSpendingPeriodChange = (days: string) => {
     setSpendingPeriodDays(days);
     spending.resetPage();
@@ -85,7 +87,7 @@ function OrganizationDetailPageContent({
       title={translate('detailTitle')}
       icon={Building2}
       onRefresh={
-        isLibraryTab
+        isLibraryTab || isCommunityTab
           ? undefined
           : isSettingsTab
             ? () => refresh()
@@ -107,7 +109,8 @@ function OrganizationDetailPageContent({
       filters={
         isSettingsTab ||
         isLearningTab ||
-        isLibraryTab ? undefined : isSpendingTab ? (
+        isLibraryTab ||
+        isCommunityTab ? undefined : isSpendingTab ? (
           <EconomicsPeriodFilter
             onChange={handleSpendingPeriodChange}
             value={spendingPeriodDays}
@@ -120,6 +123,7 @@ function OrganizationDetailPageContent({
         isSettingsTab ||
         isLearningTab ||
         isLibraryTab ||
+        isCommunityTab ||
         isSpendingTab ? undefined : (
           <DateRangePicker
             onChange={setDateRange}
@@ -156,6 +160,10 @@ function OrganizationDetailPageContent({
               label: translate('libraryTab'),
             },
             {
+              href: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}/community`,
+              label: translate('communityTab'),
+            },
+            {
               href: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}/settings`,
               label: translate('settingsTab'),
             },
@@ -163,6 +171,8 @@ function OrganizationDetailPageContent({
         />
         {isLibraryTab ? (
           <OrganizationLibrary organizationId={organizationId} />
+        ) : isCommunityTab ? (
+          <OrganizationCommunity organizationId={organizationId} />
         ) : isSettingsTab ? (
           error ? (
             <Alert variant="destructive">
@@ -225,7 +235,8 @@ function OrganizationDetailPageContent({
  * One organization: its analytics at `/admin/organizations/:id`, its revenue,
  * cost and margin at `/admin/organizations/:id/spending`, its prompt slot
  * learning report at `/admin/organizations/:id/learning`, the content it has
- * generated at `/admin/organizations/:id/library` and its settings (release
+ * generated at `/admin/organizations/:id/library`, what it shows on
+ * genfeed.ai/community at `/admin/organizations/:id/community` and its settings (release
  * preview, released apps, per-organization settings) at
  * `/admin/organizations/:id/settings`, as route tabs.
  */

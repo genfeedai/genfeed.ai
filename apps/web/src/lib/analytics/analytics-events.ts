@@ -3,6 +3,7 @@ import type {
   AppRailNavigationEvent,
   AppRailReorderEvent,
 } from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
+import type { ClaimHandleOutcome } from '@/features/onboarding/props/claim-handle.props';
 
 /**
  * PostHog product-analytics event taxonomy for the studio app.
@@ -49,6 +50,7 @@ export const ANALYTICS_EVENTS = {
   FIRST_SUCCESSFUL_PUBLISH: 'first_successful_publish',
   GENERATION_COMPLETED: 'generation_completed',
   GENERATION_STARTED: 'generation_started',
+  HANDLE_CLAIMED: 'handle_claimed',
   ONBOARDING_COMPLETED: 'onboarding_completed',
   POST_PUBLISHED: 'post_published',
   PUBLIC_YOUTUBE_CLIPPER_PROJECT_CLAIMED:
@@ -234,6 +236,10 @@ export interface AnalyticsEventProperties {
     readonly handoffSource: Extract<FunnelHandoffSource, 'stripe_return'>;
   };
   [ANALYTICS_EVENTS.ONBOARDING_COMPLETED]: Record<string, never>;
+  /** A handle claimed on genfeed.ai, applied after sign-up. Never the handle. */
+  [ANALYTICS_EVENTS.HANDLE_CLAIMED]: {
+    readonly outcome: ClaimHandleOutcome;
+  };
   [ANALYTICS_EVENTS.EXPERT_ONBOARDING_STEP]: {
     readonly action: ExpertOnboardingAnalyticsAction;
     readonly step: ExpertOnboardingAnalyticsStep;

@@ -2561,6 +2561,10 @@ model Ingredient {
   qualityScore          Float?
   qualityFeedback       String[]                 @default([])
   qualityStatus         QualityStatus            @default(UNRATED)
+  // Community gallery counters (#9670): a visitor's view counts once a day,
+  // and so does their click on Recreate in Genfeed.
+  viewCount             Int                      @default(0)
+  recreateCount         Int                      @default(0)
 
   // Voice discriminator fields (only populated when category = VOICE).
   // Imported account voices (voiceSource 'imported') are unique on

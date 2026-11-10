@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { trackPublicView } from './public-views';
+import { trackPublicMediaViews, trackPublicView } from './public-views';
 
 function answer(status: number, body: unknown): void {
   vi.stubGlobal(
@@ -38,5 +38,31 @@ describe('trackPublicView', () => {
 
     const [url] = vi.mocked(fetch).mock.calls[0] as [string];
     expect(new URL(url).pathname.endsWith(path)).toBe(true);
+  });
+});
+
+describe('trackPublicMediaViews', () => {
+  it('answers the counts of the items the API knows', async () => {
+    answer(201, { data: { views: { 'video-1': 3, 'video-2': 'x' } } });
+
+    await expect(
+      trackPublicMediaViews(['video-1', 'video-2']),
+    ).resolves.toEqual({ 'video-1': 3 });
+    const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
+    expect(new URL(url).pathname.endsWith('/public/media/views')).toBe(true);
+    expect(init.body).toBe(JSON.stringify({ ids: ['video-1', 'video-2'] }));
+  });
+
+  it('answers nothing when the API refuses the call', async () => {
+    answer(429, { message: 'Too many requests' });
+
+    await expect(trackPublicMediaViews(['video-1'])).resolves.toEqual({});
+  });
+
+  it('makes no call for an empty gallery', async () => {
+    answer(201, {});
+
+    await expect(trackPublicMediaViews([])).resolves.toEqual({});
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

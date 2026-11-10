@@ -2,6 +2,10 @@ export default {
   '*.{js,ts,jsx,tsx,json,css,yml,yaml,md,toml,env*}': [
     'bun scripts/run-secretlint.ts --no-glob',
   ],
+  // Recorded E2E API responses are committed to a public repo (#7426): block a
+  // token, key, real email or production hostname before it is committed.
+  'playwright/e2e/recordings/*.recording.json': (files) =>
+    `bun scripts/architecture/check-e2e-recordings.ts ${files.join(' ')}`,
   '*.{js,ts,jsx,tsx,json,css}': (files) =>
     `biome check --write --config-path=biome-staged.json --no-errors-on-unmatched ${files.join(' ')}`,
   // Same canonical raw-control scanner CI runs (scripts/ui/check-ui-guards.ts),

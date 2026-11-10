@@ -15,13 +15,18 @@ import { parseSourceFile } from './parse-source-file';
 const FIXTURE_PATH_PATTERN =
   /(?:^|\/)(?:__fixtures__|fixtures|test-data|testdata)(?:\/|$)/;
 const GENERATED_PATH_PATTERN = /(?:^|\/)(?:generated|migrations)(?:\/|$)/;
+// Machine-written sources that carry a "DO NOT EDIT" header and are rebuilt
+// by a generator, so a size limit cannot apply to them.
+const GENERATED_FILE_PATTERN =
+  /^(?:packages\/prisma\/src\/enum-field-map\.ts|packages\/contracts\/src\/types\/replicate\/models\.ts)$/;
+const SEED_SCRIPT_PATH_PATTERN = /(?:^|\/)scripts\/seeds\//;
+// Sourced vector artwork (provenance in MODEL_LOGO_SOURCES.md), not logic.
+const ARTWORK_PATH_PATTERN = /(?:^|\/)ui\/icons\/brands\//;
 const TEST_FILE_PATTERN = /\.(?:e2e|spec|test|stories)\.(?:cts|mts|ts|tsx)$/;
 const DECLARATION_FILE_PATTERN =
-  /\.(?:config|constants|interface|schema|types)\.(?:cts|mts|ts|tsx)$/;
+  /\.(?:catalog|config|constant|constants|data|fixture|interface|schema|stub|types)\.(?:cts|mts|ts|tsx)$/;
 const LEADING_DOT_SLASH_PATTERN = /^\.\//;
 const CONTROLLER_FILE_PATTERN = /\.controller\.(?:cts|mts|ts|tsx)$/;
-const SERVICE_FILE_PATTERN =
-  /\.(?:gateway|processor|resolver|service)\.(?:cts|mts|ts|tsx)$/;
 const LINE_BREAK_ANY_PATTERN = /\r\n|\n|\r/;
 const RUNTIME_ROOT_PATTERN = /^(?:apps|ee|packages)\//;
 
@@ -44,6 +49,13 @@ const EXCLUSION_RULES = [
   {
     matches: (file: string) => GENERATED_PATH_PATTERN.test(file),
     reason: 'generated or migration source',
+  },
+  {
+    matches: (file: string) =>
+      GENERATED_FILE_PATTERN.test(file) ||
+      SEED_SCRIPT_PATH_PATTERN.test(file) ||
+      ARTWORK_PATH_PATTERN.test(file),
+    reason: 'generated, seed or artwork source',
   },
   {
     matches: (file: string) =>
@@ -141,14 +153,14 @@ function exclusionReason(file: string): string | null {
   return null;
 }
 
-function classifyRuntimeFile(file: string): RuntimeFileKind | null {
-  if (CONTROLLER_FILE_PATTERN.test(file)) {
-    return 'controller';
-  }
-  if (SERVICE_FILE_PATTERN.test(file)) {
-    return 'runtime';
-  }
-  return null;
+/**
+ * Every non-excluded production source is measured: services and processors,
+ * but also components, hooks, stores, handlers and entry points. The size
+ * limit used to stop at `*.service.*`, which left the largest files in the
+ * repository (Studio Playground, action registry, desktop main) unguarded.
+ */
+function classifyRuntimeFile(file: string): RuntimeFileKind {
+  return CONTROLLER_FILE_PATTERN.test(file) ? 'controller' : 'runtime';
 }
 
 function countPhysicalLines(contents: string): number {
@@ -494,9 +506,6 @@ export function runRuntimeComplexityCheck(
       continue;
     }
     const kind = classifyRuntimeFile(relativeFile);
-    if (!kind) {
-      continue;
-    }
     const absoluteFile = path.join(rootDir, relativeFile);
     if (!existsSync(absoluteFile)) {
       // Deleted paths can appear in a caller-provided changed-file list.
@@ -539,9 +548,6 @@ export function measureRuntimeFilesAtRef(options: {
       continue;
     }
     const kind = classifyRuntimeFile(file);
-    if (!kind) {
-      continue;
-    }
     const result = spawnSync('git', ['show', `${options.baseRef}:${file}`], {
       cwd: rootDir,
       encoding: 'utf8',

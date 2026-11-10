@@ -8,6 +8,10 @@ vi.mock('@web-components/home/_hero', () => ({
   default: () => <section data-testid="home-hero">Hero</section>,
 }));
 
+vi.mock('@web-components/home/_agents', () => ({
+  default: () => <section data-testid="home-agents">Agents</section>,
+}));
+
 vi.mock('@web-components/home/_how', () => ({
   default: () => <section data-testid="home-distribution-loop">Loop</section>,
 }));
@@ -57,20 +61,21 @@ describe('HomeContent', () => {
     );
   });
 
-  it('shows output first and the product mechanism second', () => {
+  it('shows output first, the agent entry second and the product third', () => {
     render(<HomeContent />);
     const sections = Array.from(screen.getByTestId('home-reveal').children);
 
     expect(sections[0]).toBe(screen.getByTestId('home-hero'));
-    expect(sections[1]).toBe(screen.getByTestId('home-product'));
+    expect(sections[1]).toBe(screen.getByTestId('home-agents'));
+    expect(sections[2]).toBe(screen.getByTestId('home-product'));
   });
 
   it('places verified proof after product and before explanation', () => {
     render(<HomeContent />);
     const sections = Array.from(screen.getByTestId('home-reveal').children);
 
-    expect(sections[2]).toBe(screen.getByTestId('home-winners'));
-    expect(sections[3]).toBe(screen.getByTestId('home-distribution-loop'));
+    expect(sections[3]).toBe(screen.getByTestId('home-winners'));
+    expect(sections[4]).toBe(screen.getByTestId('home-distribution-loop'));
   });
 
   // The providers wall is supporting depth, not part of the opening claim, so
@@ -80,16 +85,16 @@ describe('HomeContent', () => {
     render(<HomeContent />);
     const sections = Array.from(screen.getByTestId('home-reveal').children);
 
-    expect(sections[4]).toBe(screen.getByTestId('home-providers'));
-    expect(sections[5]).toBe(screen.getByTestId('home-asks'));
+    expect(sections[5]).toBe(screen.getByTestId('home-providers'));
+    expect(sections[6]).toBe(screen.getByTestId('home-asks'));
   });
 
   it('offers the newsletter just before the closing call to action', () => {
     render(<HomeContent />);
     const sections = Array.from(screen.getByTestId('home-reveal').children);
 
-    expect(sections[6]).toBe(screen.getByTestId('home-newsletter'));
-    expect(sections[7]).toBe(screen.getByTestId('home-cta'));
+    expect(sections[7]).toBe(screen.getByTestId('home-newsletter'));
+    expect(sections[8]).toBe(screen.getByTestId('home-cta'));
   });
 
   it('drops the sections that moved to pricing and the FAQ page', () => {

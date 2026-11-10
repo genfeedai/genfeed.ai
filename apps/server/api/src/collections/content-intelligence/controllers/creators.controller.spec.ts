@@ -129,7 +129,12 @@ describe('CreatorsController', () => {
       const mockData = { docs: [mockCreator], totalDocs: 1 };
       mockContentIntelligenceService.findAll.mockResolvedValue(mockData);
 
-      await controller.findAll(mockRequest, mockUser, {} as CreatorsQueryDto);
+      const res132 = await controller.findAll(
+        mockRequest,
+        mockUser,
+        {} as CreatorsQueryDto,
+      );
+      expect(res132).toEqual({ data: [mockCreator] });
 
       expect(mockContentIntelligenceService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -145,9 +150,10 @@ describe('CreatorsController', () => {
     it('should filter by platform', async () => {
       mockContentIntelligenceService.findAll.mockResolvedValue({ docs: [] });
 
-      await controller.findAll(mockRequest, mockUser, {
+      const res148 = await controller.findAll(mockRequest, mockUser, {
         platform: 'twitter',
       } as unknown as CreatorsQueryDto);
+      expect(res148).toEqual({ data: [] });
 
       expect(mockContentIntelligenceService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -164,7 +170,8 @@ describe('CreatorsController', () => {
     it('should return a single creator', async () => {
       mockContentIntelligenceService.findOne.mockResolvedValue(mockCreator);
 
-      await controller.findOne(mockRequest, mockUser, creatorId);
+      const res167 = await controller.findOne(mockRequest, mockUser, creatorId);
+      expect(res167).toEqual({ data: mockCreator });
 
       expect(mockContentIntelligenceService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -194,10 +201,11 @@ describe('CreatorsController', () => {
         mockCreator,
       );
 
-      await controller.create(mockRequest, mockUser, {
+      const res197 = await controller.create(mockRequest, mockUser, {
         handle: '@testcreator',
         platform: 'twitter',
       } as unknown as AddCreatorDto);
+      expect(res197).toEqual({ data: mockCreator });
 
       expect(mockContentIntelligenceService.addCreator).not.toHaveBeenCalled();
     });
@@ -206,10 +214,11 @@ describe('CreatorsController', () => {
       mockContentIntelligenceService.findByHandle.mockResolvedValue(null);
       mockContentIntelligenceService.addCreator.mockResolvedValue(mockCreator);
 
-      await controller.create(mockRequest, mockUser, {
+      const res209 = await controller.create(mockRequest, mockUser, {
         handle: '@newcreator',
         platform: 'twitter',
       } as unknown as AddCreatorDto);
+      expect(res209).toEqual({ data: mockCreator });
 
       expect(mockContentIntelligenceService.addCreator).toHaveBeenCalled();
     });
@@ -289,7 +298,8 @@ describe('CreatorsController', () => {
         .mockResolvedValueOnce({ ...mockCreator, status: 'analyzed' });
       mockPatternAnalyzerService.analyzeCreator.mockResolvedValue(undefined);
 
-      await controller.analyze(mockRequest, mockUser, creatorId);
+      const res292 = await controller.analyze(mockRequest, mockUser, creatorId);
+      expect(res292).toEqual({ data: { ...mockCreator, status: 'analyzed' } });
 
       expect(mockPatternAnalyzerService.analyzeCreator).toHaveBeenCalledWith(
         creatorId,
@@ -315,7 +325,8 @@ describe('CreatorsController', () => {
         isDeleted: true,
       });
 
-      await controller.remove(mockRequest, mockUser, creatorId);
+      const res318 = await controller.remove(mockRequest, mockUser, creatorId);
+      expect(res318).toEqual({ data: { ...mockCreator, isDeleted: true } });
 
       expect(mockPatternStoreService.deleteByCreator).toHaveBeenCalledWith(
         creatorId,

@@ -1,10 +1,8 @@
-import type {
-  CanonicalToolDefinition,
-  ToolCategory,
-} from '../interfaces/tool-definition.interface';
+import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
 import { materializeJsonDocumentSchema } from './contracts/schema-builders';
 import {
   CURATED_ACTION_CATALOG,
+  getCuratedAction,
   isActionOnSurface,
 } from './curated-action-catalog';
 import {
@@ -28,133 +26,6 @@ import {
  * temporal-dead-zone error at module load whenever the load graph enters
  * through the "wrong" side of a real cycle).
  */
-
-const UI_ACTION_MAP: Partial<
-  Record<string, CanonicalToolDefinition['uiActionType']>
-> = {
-  ai_action: 'ai_text_action_card',
-  analyze_performance: 'analytics_snapshot_card',
-  check_onboarding_status: 'onboarding_checklist_card',
-  complete_outreach_sequence: 'outreach_sequence_control_card',
-  connect_social_account: 'oauth_connect_card',
-  create_brand: 'brand_identity_confirmation_card',
-  create_outreach_sequence: 'outreach_sequence_create_card',
-  discover_engagements: 'engagement_opportunity_card',
-  generate: 'generation_action_card',
-  generate_as_identity: 'generation_action_card',
-  generate_turbo_content: 'turbo_run_card',
-  get_account: 'credits_balance_card',
-  get_analytics: 'analytics_snapshot_card',
-  get_outreach_sequence_analytics: 'analytics_snapshot_card',
-  get_posts: 'content_calendar_card',
-  get_review_queue: 'review_gate_card',
-  get_trends: 'trending_topics_card',
-  initiate_oauth_connect: 'oauth_connect_card',
-  open_studio_handoff: 'studio_handoff_card',
-  pause_outreach_sequence: 'outreach_sequence_control_card',
-  prepare_clipper_workflow_run: 'clipper_workflow_run_card',
-  prepare_generation: 'generation_action_card',
-  prepare_workflow_trigger: 'workflow_trigger_card',
-  rename_brand: 'brand_identity_confirmation_card',
-  schedule_post: 'schedule_post_card',
-  select_ingredient: 'ingredient_picker_card',
-  start_outreach_sequence: 'outreach_sequence_control_card',
-  suggest_ingredient_alternatives: 'ingredient_alternatives_card',
-  suggest_next_steps: 'next_steps_card',
-  transform_media: 'image_transform_card',
-};
-
-export function inferCategory(name: string): ToolCategory {
-  if (name === 'check_channel' || name === 'upload_media') return 'content';
-  if (name.includes('visual_code')) return 'generation';
-  if (
-    [
-      'generate',
-      'get_generation_options',
-      'set_generation_settings',
-      'enhance_prompt',
-      'get_assets',
-    ].includes(name)
-  )
-    return 'generation';
-  if (name.includes('outreach_sequence') || name.includes('campaign')) {
-    return 'campaign';
-  }
-  if (
-    name.includes('onboarding') ||
-    name === 'create_brand' ||
-    name === 'scan_brand_url' ||
-    name === 'rename_brand'
-  )
-    return 'onboarding';
-  if (
-    name.startsWith('prepare_') ||
-    name === 'render_dashboard' ||
-    name === 'save_dashboard_layout' ||
-    name === 'get_dashboard_layout' ||
-    name.includes('ingredient')
-  )
-    return 'ui';
-  if (
-    name.includes('analytics') ||
-    name.includes('trends') ||
-    name.includes('performance')
-  )
-    return 'analytics';
-  if (name.includes('workflow')) return 'workflow';
-  if (
-    name.includes('post') ||
-    name.includes('article') ||
-    name.includes('content') ||
-    name.includes('media_upload') ||
-    name.includes('release') ||
-    name.includes('schedul')
-  )
-    return 'content';
-  if (
-    name.includes('image') ||
-    name.includes('video') ||
-    name.includes('music') ||
-    name.includes('voice') ||
-    name.includes('avatar')
-  )
-    return 'generation';
-  if (
-    name.includes('oauth') ||
-    name.includes('account') ||
-    name.includes('brand') ||
-    name.includes('social')
-  )
-    return 'social';
-  if (
-    name.includes('ads') ||
-    name.startsWith('meta_') ||
-    name.startsWith('google_') ||
-    name.startsWith('get_meta_') ||
-    name.startsWith('get_google_')
-  )
-    return 'ads';
-  if (
-    name.includes('fleet') ||
-    name.includes('training') ||
-    name.includes('dataset') ||
-    name.includes('comfyui') ||
-    name.includes('gpu') ||
-    name.includes('loras')
-  )
-    return 'admin';
-  if (
-    name.includes('engagement') ||
-    name.includes('approval') ||
-    name.includes('strategy') ||
-    name.includes('calendar')
-  )
-    return 'proactive';
-  if (name.includes('identity')) return 'identity';
-  if (name.includes('spawn') || name.includes('asset') || name.includes('chat'))
-    return 'agent-control';
-  return 'other';
-}
 
 const definitionsByName = new Map(
   SOURCE_TOOLS.map((tool) => [tool.name, tool]),
@@ -209,6 +80,7 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
       throw new Error(`Missing curated action definition: ${entry.name}`);
     }
 
+    const curated = getCuratedAction(entry.name);
     const agent = isActionOnSurface(entry, 'agent');
     const mcp = isActionOnSurface(entry, 'mcp');
     const mutationPolicy = MUTATION_POLICY_BY_NAME[tool.name];
@@ -218,7 +90,7 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
       : undefined;
     return {
       ...(presentation ? { annotations: presentation.annotations } : {}),
-      category: inferCategory(tool.name),
+      category: entry.category,
       creditCost: tool.creditCost,
       creditPricing,
       dataSource: toolDataSource(tool.name),
@@ -226,6 +98,17 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
         tool.description,
         creditPricing,
       ),
+      ...(tool.mcpDescription
+        ? {
+            mcpDescription: appendCreditPricingDescription(
+              tool.mcpDescription,
+              creditPricing,
+            ),
+          }
+        : {}),
+      ...(tool.mcpHiddenParameters
+        ? { mcpHiddenParameters: tool.mcpHiddenParameters }
+        : {}),
       name: entry.name,
       parameters: {
         ...tool.parameters,
@@ -239,7 +122,7 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
       },
       ...(presentation ? { title: presentation.title } : {}),
       toolset: entry.toolset,
-      uiActionType: UI_ACTION_MAP[tool.name],
+      uiActionType: curated?.uiActionType,
       ...(mutationPolicy ? { mutationPolicy } : {}),
     };
   });

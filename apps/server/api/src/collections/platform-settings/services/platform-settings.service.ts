@@ -4,7 +4,6 @@ import {
   PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS,
   PLATFORM_MARGIN_UPDATED_CHANNEL,
 } from '@api/collections/platform-settings/platform-settings.constants';
-import type { PlatformSettingDocument } from '@api/collections/platform-settings/schemas/platform-setting.schema';
 import { BrandVisionModelCatalogService } from '@api/collections/platform-settings/services/brand-vision-model-catalog.service';
 import { isTypedDecisionProviderAvailable } from '@api/services/typed-decisions/typed-decision-provider.factory';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -29,7 +28,7 @@ import {
   setRuntimeAgentChatMarginMultiplier,
   setRuntimeMarginMultiplier,
 } from '@genfeedai/pricing';
-import { Prisma } from '@genfeedai/prisma';
+import { type PlatformSetting, Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
@@ -136,7 +135,7 @@ type FeatureSettingsCacheEntry = {
 @Injectable()
 export class PlatformSettingsService
   extends BaseService<
-    PlatformSettingDocument,
+    PlatformSetting,
     CreatePlatformSettingDto,
     UpdatePlatformSettingDto
   >
@@ -230,7 +229,7 @@ export class PlatformSettingsService
    * first access. Race-safe: a concurrent create loses the unique-key race and
    * re-reads the winner's row instead of surfacing a constraint error.
    */
-  async getSingleton(): Promise<PlatformSettingDocument> {
+  async getSingleton(): Promise<PlatformSetting> {
     const singletonWhere = {
       isDeleted: false,
       key: PLATFORM_SETTING_KEY,
@@ -353,7 +352,7 @@ export class PlatformSettingsService
    */
   async updateSingleton(
     dto: UpdatePlatformSettingDto,
-  ): Promise<PlatformSettingDocument> {
+  ): Promise<PlatformSetting> {
     this.assertTypedDecisionProviderAvailable(dto);
     this.assertModerationProviderAvailable(dto);
 
@@ -493,7 +492,7 @@ export class PlatformSettingsService
    */
   private async assertBrandVisionModelsSelectable(
     dto: UpdatePlatformSettingDto,
-    current: PlatformSettingDocument,
+    current: PlatformSetting,
   ): Promise<void> {
     const selections: Array<{
       kind: BrandVisionModelKind;

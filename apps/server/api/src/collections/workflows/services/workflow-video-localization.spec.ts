@@ -66,7 +66,8 @@ describe('Text-to-speech workflow input ports', () => {
         config[key],
       createWorkflowOutputIngredient,
       patchMetadata: vi.fn(),
-      patchIngredient: vi.fn(),
+      completeOutput: vi.fn(),
+      failOutput: vi.fn(),
       buildMusicIngredientUrl: (id: string) => `https://api.test/musics/${id}`,
       wrapEngineExecutor:
         (executor: INodeExecutor): NodeExecutor =>

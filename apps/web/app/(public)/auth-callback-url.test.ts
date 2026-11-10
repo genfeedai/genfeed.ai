@@ -288,6 +288,18 @@ describe('auth callback URL helpers', () => {
     expect(parsePublicYoutubeClipperToken('b'.repeat(44))).toBeNull();
   });
 
+  it.each([
+    ['@Shayla', '/onboarding/post-signup?handle=shayla'],
+    ['settings', '/onboarding/post-signup'],
+    ['not a handle', '/onboarding/post-signup'],
+  ])('carries the claimed handle %j through sign-up as %j', (handle, url) => {
+    expect(
+      getAuthCallbackURL(new URLSearchParams({ handle }), {
+        includeOnboardingHandoffParams: true,
+      }),
+    ).toBe(url);
+  });
+
   it('preserves a validated referral code through the external auth round trip', () => {
     expect(
       getAuthCallbackURL(new URLSearchParams({ ref: 'frend2345xyz' }), {

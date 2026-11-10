@@ -35,10 +35,14 @@ describe('api/schedules', () => {
 
   it('fetches the calendar with a start and end range', async () => {
     mockGet.mockResolvedValue({ data: [] });
-    mockFlattenCollection.mockReturnValue([]);
+    mockFlattenCollection.mockReturnValue([
+      { id: 'entry-aug', scheduledAt: '2026-08-15T09:00:00Z' },
+    ]);
 
     const { getCalendar } = await import('../../src/api/schedules');
-    await getCalendar('2026-08-01', '2026-08-31');
+    const result = await getCalendar('2026-08-01', '2026-08-31');
+
+    expect(result).toEqual([{ id: 'entry-aug', scheduledAt: '2026-08-15T09:00:00Z' }]);
 
     expect(mockGet).toHaveBeenCalledWith('/schedules/calendar?start=2026-08-01&end=2026-08-31');
   });
@@ -92,9 +96,11 @@ describe('api/schedules', () => {
       );
 
       const { bulkSchedule } = await import('../../src/api/schedules');
-      await bulkSchedule('brand-1', items);
+      const result = await bulkSchedule('brand-1', items);
 
       expect(mockPost.mock.calls.map(([, body]) => body.contentIds.length)).toEqual([100, 1]);
+      expect(result.failed).toEqual([]);
+      expect(result.scheduled).toHaveLength(2);
     });
 
     it('reports a failed batch against its content ids when another batch succeeded', async () => {
@@ -139,7 +145,9 @@ describe('api/schedules', () => {
     mockPost.mockResolvedValue({ basis: 'learned', windows: [] });
 
     const { getOptimalTime } = await import('../../src/api/schedules');
-    await getOptimalTime('tiktok', 'Europe/Malta');
+    const result = await getOptimalTime('tiktok', 'Europe/Malta');
+
+    expect(result).toEqual({ basis: 'learned', windows: [] });
 
     expect(mockPost).toHaveBeenCalledWith('/schedules/optimal', {
       platform: 'tiktok',

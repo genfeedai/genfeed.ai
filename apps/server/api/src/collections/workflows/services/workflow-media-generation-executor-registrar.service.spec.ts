@@ -3,7 +3,7 @@ import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collection
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import * as imageGenerationBriefRegistry from '@api/services/generation-brief/image-generation-brief-registry';
 import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
-import { ByokProvider, IngredientStatus } from '@genfeedai/contracts';
+import { ByokProvider } from '@genfeedai/contracts';
 import { QWEN_IMAGE_MODEL_KEY } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
@@ -1020,14 +1020,14 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
   });
 
   it('marks the pending text-to-speech ingredient failed when BYOK key resolution rejects', async () => {
-    const patchIngredient = vi.fn();
+    const failOutput = vi.fn();
     const createWorkflowOutputIngredient = vi.fn().mockResolvedValue({
       ingredientId: 'ingredient-1',
       metadataId: 'metadata-1',
     });
     const helper = {
       createWorkflowOutputIngredient,
-      patchIngredient,
+      failOutput,
       readConfigString: () => undefined,
       requireBrandId: (brandId: unknown) => String(brandId),
       wrapEngineExecutor,
@@ -1075,9 +1075,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       ),
     ).rejects.toThrow('BYOK unavailable');
 
-    expect(patchIngredient).toHaveBeenCalledWith('ingredient-1', {
-      status: IngredientStatus.FAILED,
-    });
+    expect(failOutput).toHaveBeenCalledWith('ingredient-1', 'org-1');
     expect(elevenLabsService.generateAndUploadAudio).not.toHaveBeenCalled();
   });
 });

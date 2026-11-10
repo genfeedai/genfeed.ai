@@ -34,7 +34,7 @@ function makeDeps(overrides: Partial<StreamSubscriptionDeps> = {}): {
     clearPendingInputRequest: vi.fn(),
     resolvePendingInputRequest: vi.fn(() => true),
     finalizeStream: vi.fn(),
-    isAwaitingRunIdRef: { current: false },
+    isAwaitingRunId: () => false,
     isThreadVisible: vi.fn(() => true),
     markThreadRunning: vi.fn(),
     pendingCompletionRef: { current: null },
@@ -57,6 +57,7 @@ function makeDeps(overrides: Partial<StreamSubscriptionDeps> = {}): {
       };
     },
     touchCompletionWatchdog: vi.fn(),
+    transitionPhase: vi.fn(),
     updateActiveToolCall: vi.fn(),
     updateThreadSummary: vi.fn(),
     ...overrides,
@@ -346,7 +347,7 @@ describe('attachAgentStreamSubscriptions', () => {
 
   it('buffers events while the send waits for its run id', () => {
     const { deps, emit } = makeDeps({
-      isAwaitingRunIdRef: { current: true },
+      isAwaitingRunId: () => true,
     });
     attachAgentStreamSubscriptions(deps);
 

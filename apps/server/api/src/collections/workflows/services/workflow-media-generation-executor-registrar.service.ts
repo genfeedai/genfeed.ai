@@ -376,9 +376,10 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
             },
           );
         } catch (error) {
-          await this.helper.patchIngredient(pendingOutput.ingredientId, {
-            status: IngredientStatus.FAILED,
-          });
+          await this.helper.failOutput(
+            pendingOutput.ingredientId,
+            context.organizationId,
+          );
           throw error;
         }
 
@@ -390,9 +391,10 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
             result: result.audioUrl,
           }),
         );
-        await this.helper.patchIngredient(pendingOutput.ingredientId, {
-          status: IngredientStatus.GENERATED,
-        });
+        await this.helper.completeOutput(
+          pendingOutput.ingredientId,
+          context.organizationId,
+        );
 
         return {
           audioUrl: this.helper.buildMusicIngredientUrl(

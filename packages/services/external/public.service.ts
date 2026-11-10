@@ -174,6 +174,11 @@ export class PublicService extends HTTPBaseService {
       });
   }
 
+  /** A creator by id, or null when the brand is missing or not public. */
+  public async findPublicBrand(brandId: string): Promise<Brand | null> {
+    return this.fetchOne(`brands/${encodeURIComponent(brandId)}`, Brand);
+  }
+
   /** The profile owner's referral code, or null when the brand has none. */
   public async findPublicReferralCode(brandId: string): Promise<string | null> {
     return await this.instance

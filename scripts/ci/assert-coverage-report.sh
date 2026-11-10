@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Weekly Coverage jobs historically required lcov.info, but Vitest merge-reports
+# Scheduled Coverage jobs historically required lcov.info, but Vitest merge-reports
 # and some package reporters emit coverage-final.json / clover.xml without LCOV.
 # Accept either so a complete Istanbul report is not treated as a missing gate.
 set -euo pipefail

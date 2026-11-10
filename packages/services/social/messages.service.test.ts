@@ -176,7 +176,9 @@ describe('SocialMessagesService', () => {
         axiosResponse(resourceDocument({ status: 'approved' }, { id: 'm1' })),
       );
 
-      await service.approveDraft(conversationId, 'm1');
+      const approved = await service.approveDraft(conversationId, 'm1');
+
+      expect(approved).toMatchObject({ id: 'm1', status: 'approved' });
 
       expect(http.patch).toHaveBeenCalledWith(`/${conversationId}/drafts/m1`, {
         status: 'approved',
@@ -188,7 +190,13 @@ describe('SocialMessagesService', () => {
         axiosResponse(resourceDocument({ status: 'rejected' }, { id: 'm2' })),
       );
 
-      await service.rejectDraft(conversationId, 'm2', 'off brand');
+      const rejected = await service.rejectDraft(
+        conversationId,
+        'm2',
+        'off brand',
+      );
+
+      expect(rejected).toMatchObject({ id: 'm2', status: 'rejected' });
 
       expect(http.patch).toHaveBeenCalledWith(`/${conversationId}/drafts/m2`, {
         reason: 'off brand',
@@ -203,7 +211,9 @@ describe('SocialMessagesService', () => {
         axiosResponse(resourceDocument({ text: 'reply' }, { id: 'msg_r' })),
       );
 
-      await service.postReply(conversationId, { text: 'reply' });
+      const reply = await service.postReply(conversationId, { text: 'reply' });
+
+      expect(reply).toMatchObject({ id: 'msg_r', text: 'reply' });
 
       expect(http.post).toHaveBeenCalledWith(`/${conversationId}/replies`, {
         text: 'reply',
@@ -215,7 +225,9 @@ describe('SocialMessagesService', () => {
         axiosResponse(resourceDocument({ text: 'dm' }, { id: 'msg_m' })),
       );
 
-      await service.sendDm(conversationId, { text: 'dm' });
+      const dm = await service.sendDm(conversationId, { text: 'dm' });
+
+      expect(dm).toMatchObject({ id: 'msg_m', text: 'dm' });
 
       expect(http.post).toHaveBeenCalledWith(`/${conversationId}/dms`, {
         text: 'dm',
@@ -262,7 +274,12 @@ describe('SocialMessagesService', () => {
         ),
       );
 
-      await service.markRead(conversationId, 3);
+      const conversation = await service.markRead(conversationId, 3);
+
+      expect(conversation).toMatchObject({
+        id: conversationId,
+        unreadCount: 0,
+      });
 
       expect(http.patch).toHaveBeenCalledWith(
         `/${conversationId}/read`,
@@ -280,7 +297,15 @@ describe('SocialMessagesService', () => {
         ),
       );
 
-      await service.updateStatus(conversationId, 'resolved');
+      const conversation = await service.updateStatus(
+        conversationId,
+        'resolved',
+      );
+
+      expect(conversation).toMatchObject({
+        id: conversationId,
+        status: 'resolved',
+      });
 
       expect(http.patch).toHaveBeenCalledWith(`/${conversationId}`, {
         status: 'resolved',
@@ -294,7 +319,9 @@ describe('SocialMessagesService', () => {
         ),
       );
 
-      await service.updateTags(conversationId, ['vip']);
+      const conversation = await service.updateTags(conversationId, ['vip']);
+
+      expect(conversation).toMatchObject({ id: conversationId, tags: ['vip'] });
 
       expect(http.patch).toHaveBeenCalledWith(`/${conversationId}`, {
         tags: ['vip'],

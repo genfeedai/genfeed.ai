@@ -532,6 +532,7 @@ describe('VideosUpscaleController', () => {
     ).toHaveBeenCalledWith(
       mockServices.videosService,
       ingredientId,
+      mockUser.organizationId,
       `/videos/${ingredientId}`,
       mockUser.id,
       `user:${mockUser.id}`,

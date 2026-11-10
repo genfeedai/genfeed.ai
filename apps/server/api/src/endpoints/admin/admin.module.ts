@@ -1,4 +1,5 @@
 import { AdminAnnouncementsModule } from '@api/endpoints/admin/announcements/announcements.module';
+import { AdminCommunityModule } from '@api/endpoints/admin/community/community.module';
 import { AdminCreditHoldsModule } from '@api/endpoints/admin/credit-holds/credit-holds.module';
 import { AdminEconomicsModule } from '@api/endpoints/admin/economics/economics.module';
 import { AdminFeaturedWorkflowsModule } from '@api/endpoints/admin/featured-workflows/featured-workflows.module';
@@ -31,6 +32,7 @@ import { Module } from '@nestjs/common';
     AdminWarmupAccountsModule,
     AdminPlatformSettingsModule,
     AdminFeaturedWorkflowsModule,
+    AdminCommunityModule,
     AdminHarnessActivationModule,
     AdminOnboardingFunnelModule,
     AdminSystemEmailsModule,

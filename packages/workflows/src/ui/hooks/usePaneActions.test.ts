@@ -96,6 +96,7 @@ describe('usePaneActions', () => {
       expect(mockSetNodes).toHaveBeenCalled();
       const updater = mockSetNodes.mock.calls[0][0];
       const updated = updater(mockNodes);
+      expect(updated).toHaveLength(2);
       expect(updated[0].selected).toBe(true);
       expect(updated[1].selected).toBe(true);
     });
@@ -122,6 +123,14 @@ describe('usePaneActions', () => {
       });
 
       expect(mockSetNodes).toHaveBeenCalled();
+      const laidOut = mockSetNodes.mock.calls[0][0] as Array<{
+        id: string;
+        position: { x: number; y: number };
+      }>;
+      expect(laidOut.map((node) => [node.id, node.position])).toEqual([
+        ['node-1', { x: 0, y: 0 }],
+        ['node-2', { x: 200, y: 0 }],
+      ]);
       // Edges are normalized to the edge style read from the settings store.
       const edgeUpdater = mockSetEdges.mock.calls[0][0];
       const normalized = edgeUpdater(mockEdges);
@@ -138,6 +147,7 @@ describe('usePaneActions', () => {
 
       const edgeUpdater = mockSetEdges.mock.calls[0][0];
       expect(edgeUpdater(mockEdges)[0].type).toBe('straight');
+      expect(edgeUpdater(mockEdges)).toHaveLength(1);
     });
 
     it('fits the view after a delay', () => {

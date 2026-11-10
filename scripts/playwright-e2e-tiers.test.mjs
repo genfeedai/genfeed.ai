@@ -16,15 +16,18 @@ import {
   PLAYWRIGHT_E2E_QUARANTINES,
 } from './playwright-e2e-tiers.manifest.mjs';
 import {
+  assignSpecsToShards,
   buildPlaywrightCoreArgs,
   buildPlaywrightE2eTierPlan,
   buildPlaywrightE2eTierSummary,
+  buildSpecDurations,
   collectPlaywrightJsonReportPaths,
   discoverPlaywrightSpecs,
   getPlaywrightCorePaths,
   isPlaywrightJsonReport,
   mergePlaywrightJsonReports,
   PLAYWRIGHT_E2E_TIER_CONTRACT,
+  resolveShardFiles,
   validatePlaywrightE2eQuarantines,
 } from './playwright-e2e-tiers.mjs';
 
@@ -613,4 +616,120 @@ test('core runner rejects options that only apply to full-tier reports', () => {
     assert.equal(result.status, 1, option);
     assert.match(result.stderr, /Report options require --tier=full/);
   }
+});
+
+const RECORDED_DURATIONS = JSON.parse(
+  readFileSync(
+    path.join(REPOSITORY_ROOT, 'scripts/playwright-e2e-durations.json'),
+    'utf8',
+  ),
+).specs;
+
+function shardLoad(files) {
+  return files.reduce((sum, file) => sum + (RECORDED_DURATIONS[file] ?? 0), 0);
+}
+
+test('duration shards run exactly the selected full-tier specs, once each', () => {
+  const { selectedFiles } = buildPlaywrightE2eTierPlan();
+  const shards = assignSpecsToShards(selectedFiles, RECORDED_DURATIONS, 8);
+
+  assert.equal(shards.length, 8);
+  assert.deepEqual(shards.flat().sort(), [...selectedFiles].sort());
+});
+
+test('recorded durations balance the repository shards within 1.1x', () => {
+  const { selectedFiles } = buildPlaywrightE2eTierPlan();
+  const loads = assignSpecsToShards(selectedFiles, RECORDED_DURATIONS, 8).map(
+    shardLoad,
+  );
+
+  assert.ok(
+    Math.max(...loads) / Math.min(...loads) <= 1.1,
+    `shard loads are ${loads.map(Math.round).join(', ')}`,
+  );
+});
+
+test('assignSpecsToShards puts longest specs first on the lightest shard', () => {
+  const shards = assignSpecsToShards(
+    ['a.spec.ts', 'b.spec.ts', 'c.spec.ts', 'd.spec.ts', 'e.spec.ts'],
+    {
+      'a.spec.ts': 100,
+      'b.spec.ts': 60,
+      'c.spec.ts': 50,
+      'd.spec.ts': 40,
+      'e.spec.ts': 10,
+    },
+    2,
+  );
+
+  assert.deepEqual(shards, [
+    ['a.spec.ts', 'd.spec.ts'],
+    ['b.spec.ts', 'c.spec.ts', 'e.spec.ts'],
+  ]);
+});
+
+test('a spec without a recorded duration costs the median and is still assigned', () => {
+  const shards = assignSpecsToShards(
+    ['a.spec.ts', 'b.spec.ts', 'new.spec.ts'],
+    { 'a.spec.ts': 10, 'b.spec.ts': 30 },
+    3,
+  );
+
+  assert.deepEqual(shards.flat().sort(), [
+    'a.spec.ts',
+    'b.spec.ts',
+    'new.spec.ts',
+  ]);
+  assert.equal(
+    shards.every((files) => files.length === 1),
+    true,
+  );
+});
+
+test('assignSpecsToShards is deterministic and rejects a bad shard count', () => {
+  const files = ['x.spec.ts', 'y.spec.ts', 'z.spec.ts'];
+  const durations = { 'x.spec.ts': 5, 'y.spec.ts': 5, 'z.spec.ts': 5 };
+
+  assert.deepEqual(
+    assignSpecsToShards(files, durations, 2),
+    assignSpecsToShards([...files].reverse(), durations, 2),
+  );
+  assert.throws(() => assignSpecsToShards(files, durations, 0));
+});
+
+test('buildSpecDurations takes the median recorded seconds per spec across reports', () => {
+  const report = (seconds) => ({
+    suites: [
+      {
+        file: 'smoke/a.spec.ts',
+        specs: [
+          {
+            file: 'smoke/a.spec.ts',
+            tests: [
+              {
+                results: [
+                  { duration: seconds * 500 },
+                  { duration: seconds * 500 },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.deepEqual(buildSpecDurations([report(10), report(30), report(20)]), {
+    'playwright/e2e/tests/smoke/a.spec.ts': 20,
+  });
+});
+
+test('resolveShardFiles returns the one-based shard of the duration partition', () => {
+  const { selectedFiles } = buildPlaywrightE2eTierPlan();
+  const shards = assignSpecsToShards(selectedFiles, RECORDED_DURATIONS, 8);
+
+  assert.deepEqual(
+    resolveShardFiles(selectedFiles, '3/8', RECORDED_DURATIONS),
+    shards[2],
+  );
 });

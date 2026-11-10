@@ -675,6 +675,24 @@ describe('check-serializer-drift', () => {
     expect(result.matchedCount).toBe(1);
   });
 
+  it('matches a schema file that only re-exports its Prisma row type', () => {
+    writeBaseFixture();
+    writeFixture(
+      'apps/server/api/src/collections/widgets/schemas/widget.schema.ts',
+      "export type { Widget } from '@genfeedai/prisma';\n",
+    );
+    writeSerializerTriplet({ fields: ['label', 'payload'] });
+
+    const result = runCheckSerializerDrift({
+      projections: {},
+      rootDir: fixtureRoot,
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.discoveredSchemaCount).toBe(1);
+    expect(result.matchedCount).toBe(1);
+  });
+
   it('still flags an unserialized schema when its comment contains an apostrophe', () => {
     writeBaseFixture();
     writeFixture(

@@ -1,3 +1,9 @@
 export interface OrganizationDetailPageProps {
-  activeTab: 'analytics' | 'learning' | 'library' | 'settings' | 'spending';
+  activeTab:
+    | 'analytics'
+    | 'community'
+    | 'learning'
+    | 'library'
+    | 'settings'
+    | 'spending';
 }

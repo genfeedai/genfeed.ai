@@ -61,8 +61,13 @@ describe('BrandOsPolicyEditor', () => {
   });
 
   it('edits the banned lists one entry per line, without blank or duplicate lines', () => {
-    const onChange = renderEditor(policy());
+    const onChange = renderEditor(
+      policy({ bannedTopics: ['Gambling', 'Spam'] }),
+    );
 
+    expect(screen.getByLabelText('Banned topics (one per line)')).toHaveValue(
+      'Gambling\nSpam',
+    );
     fireEvent.change(screen.getByLabelText('Banned topics (one per line)'), {
       target: { value: 'Politics\n\n  Religion \nPolitics' },
     });
@@ -75,6 +80,9 @@ describe('BrandOsPolicyEditor', () => {
   it('turns caps and the quality minimum into bounded numbers, and blank into no limit', () => {
     const onChange = renderEditor(policy({ maxPostsPerDay: 3 }));
 
+    expect(screen.getByLabelText('Max unattended posts per day')).toHaveValue(
+      3,
+    );
     fireEvent.change(screen.getByLabelText('Max unattended posts per week'), {
       target: { value: '9999' },
     });

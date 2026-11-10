@@ -158,10 +158,16 @@ describe('VideosResizeController', () => {
         [videoId, 'https://authorized.test/random-source?signature=grant'],
       ]),
     );
-    await controller.resizeVideo(mockRequest, mockUser, videoId, {
-      height: 1080,
-      width: 1920,
-    });
+    const result = await controller.resizeVideo(
+      mockRequest,
+      mockUser,
+      videoId,
+      {
+        height: 1080,
+        width: 1920,
+      },
+    );
+    expect(result).toMatchObject({ data: { type: 'ingredient' } });
     expect(
       mockServices.authorizedMediaUrls.issueServerPublish,
     ).toHaveBeenCalledWith(mockUser.organizationId.toString(), [videoId]);
@@ -304,7 +310,13 @@ describe('VideosResizeController', () => {
       width: 1920,
     });
     const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
-    await controller.resizeVideo(mockRequest, mockUser, videoId, resizeParams);
+    const result = await controller.resizeVideo(
+      mockRequest,
+      mockUser,
+      videoId,
+      resizeParams,
+    );
+    expect(result).toMatchObject({ data: { type: 'ingredient' } });
 
     await vi.waitFor(() =>
       expect(
@@ -348,7 +360,13 @@ describe('VideosResizeController', () => {
       s3Key: 'videos/resized.mp4',
     });
     const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
-    await controller.resizeVideo(mockRequest, mockUser, videoId, resizeParams);
+    const result = await controller.resizeVideo(
+      mockRequest,
+      mockUser,
+      videoId,
+      resizeParams,
+    );
+    expect(result).toMatchObject({ data: { type: 'ingredient' } });
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
     expect(ingredientRow).toEqual({
@@ -370,7 +388,13 @@ describe('VideosResizeController', () => {
       new Error('ffmpeg failed'),
     );
     const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
-    await controller.resizeVideo(mockRequest, mockUser, videoId, resizeParams);
+    const result = await controller.resizeVideo(
+      mockRequest,
+      mockUser,
+      videoId,
+      resizeParams,
+    );
+    expect(result).toMatchObject({ data: { type: 'ingredient' } });
 
     await vi.waitFor(() =>
       expect(mockServices.loggerService.error).toHaveBeenCalledOnce(),
@@ -383,7 +407,13 @@ describe('VideosResizeController', () => {
   it('should create ingredient with PROCESSING status and VIDEO category', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const resizeParams: IResizeBodyParams = { height: 480, width: 640 };
-    await controller.resizeVideo(mockRequest, mockUser, videoId, resizeParams);
+    const result = await controller.resizeVideo(
+      mockRequest,
+      mockUser,
+      videoId,
+      resizeParams,
+    );
+    expect(result).toMatchObject({ data: { type: 'ingredient' } });
     expect(
       mockServices.sharedService.createMediaDocuments,
     ).toHaveBeenCalledWith(
@@ -478,7 +508,13 @@ describe('VideosResizeController', () => {
   it('should set parent to original video for resize', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
-    await controller.resizeVideo(mockRequest, mockUser, videoId, resizeParams);
+    const result = await controller.resizeVideo(
+      mockRequest,
+      mockUser,
+      videoId,
+      resizeParams,
+    );
+    expect(result).toMatchObject({ data: { type: 'ingredient' } });
     expect(
       mockServices.sharedService.createMediaDocuments,
     ).toHaveBeenCalledWith(
@@ -492,7 +528,13 @@ describe('VideosResizeController', () => {
   it('should include inputPath in processVideo params', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
-    await controller.resizeVideo(mockRequest, mockUser, videoId, resizeParams);
+    const result = await controller.resizeVideo(
+      mockRequest,
+      mockUser,
+      videoId,
+      resizeParams,
+    );
+    expect(result).toMatchObject({ data: { type: 'ingredient' } });
     expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
       expect.objectContaining({
         params: expect.objectContaining({

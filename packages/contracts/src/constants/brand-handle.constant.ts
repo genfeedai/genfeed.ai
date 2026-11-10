@@ -1,3 +1,5 @@
+import { isReservedAppRootSegment } from './routes.constant';
+
 const LEADING_AT_SIGNS_PATTERN = /^@+/;
 
 /**
@@ -25,4 +27,20 @@ export function isValidBrandHandle(value: string): boolean {
     value.length <= BRAND_HANDLE_MAX_LENGTH &&
     BRAND_HANDLE_PATTERN.test(value)
   );
+}
+
+/**
+ * A handle someone asked to claim from the website ("genfeed.ai/@<handle>",
+ * carried through sign-up as `?handle=`), or null when it could never be a
+ * handle: wrong format or a reserved app route. Whether it is free is only
+ * known when the signed-in owner claims it.
+ */
+export function parseClaimHandle(value?: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  const handle = normalizeBrandHandle(value);
+  return isValidBrandHandle(handle) && !isReservedAppRootSegment(handle)
+    ? handle
+    : null;
 }

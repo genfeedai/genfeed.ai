@@ -120,8 +120,9 @@ describe('StudioGenerateDraftsService', () => {
   it('checks the caller membership in the draft organization', async () => {
     studioGenerateDraft.findFirst.mockResolvedValueOnce(null);
 
-    await service.findCurrent(scope);
+    const draft = await service.findCurrent(scope);
 
+    expect(draft).toBeNull();
     expect(member.findFirst).toHaveBeenCalledWith({
       select: {
         brands: { select: { id: true } },
@@ -324,8 +325,9 @@ describe('StudioGenerateDraftsService', () => {
     studioGenerateDraft.updateMany.mockResolvedValueOnce({ count: 0 });
     studioGenerateDraft.findFirst.mockResolvedValueOnce(buildRow());
 
-    await service.upsertCurrent(dto, scope);
+    const saved = await service.upsertCurrent(dto, scope);
 
+    expect(saved).toMatchObject({ id: 'draft-1', prompt: dto.prompt });
     expect(studioGenerateDraft.create).toHaveBeenCalledWith({
       data: {
         ...expectedData,
@@ -347,8 +349,9 @@ describe('StudioGenerateDraftsService', () => {
     studioGenerateDraft.create.mockRejectedValueOnce({ code: 'P2002' });
     studioGenerateDraft.findFirst.mockResolvedValueOnce(buildRow());
 
-    await service.upsertCurrent(dto, scope);
+    const saved = await service.upsertCurrent(dto, scope);
 
+    expect(saved).toMatchObject({ id: 'draft-1', prompt: dto.prompt });
     expect(studioGenerateDraft.updateMany).toHaveBeenCalledTimes(2);
     expect(studioGenerateDraft.updateMany).toHaveBeenLastCalledWith({
       data: expectedData,

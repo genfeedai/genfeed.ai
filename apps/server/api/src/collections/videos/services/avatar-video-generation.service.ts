@@ -937,6 +937,7 @@ export class AvatarVideoGenerationService {
     await this.failedGenerationService.handleFailedVideoGeneration(
       this.videosService,
       ingredientId,
+      context.organizationId,
       WebSocketPaths.video(ingredientId),
       context.userId,
       getUserRoomName(context.userId),
@@ -946,8 +947,7 @@ export class AvatarVideoGenerationService {
         userId: context.userId,
         key: ActivityKey.VIDEO_FAILED,
         source: ActivitySource.AVATAR_GENERATION,
-        // Must match the processing activity's payload shape: the failure
-        // handler JSON-parses this to find the row it has to resolve.
+        // The processing activity's payload shape; the handler parses it.
         value: JSON.stringify({
           error: error instanceof Error ? error.message : 'Generation failed',
           ingredientId,

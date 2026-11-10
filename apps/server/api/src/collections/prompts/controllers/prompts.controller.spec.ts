@@ -218,7 +218,7 @@ describe('PromptsController', () => {
         '## Skill: Cinematic Prompting',
       );
 
-      await controller.create(
+      const created = await controller.create(
         mockReq,
         {
           brandId: mockUser.brandId,
@@ -228,6 +228,7 @@ describe('PromptsController', () => {
         } as CreatePromptDto,
         mockUser,
       );
+      expect(created).toEqual(mockPrompt);
 
       await vi.waitFor(() =>
         expect(mockOpenRouterService.chatCompletion).toHaveBeenCalled(),
@@ -251,7 +252,7 @@ describe('PromptsController', () => {
     it('resolves media defaults when no skills were picked', async () => {
       mockPromptsService.create.mockResolvedValue(mockPrompt);
 
-      await controller.create(
+      const created = await controller.create(
         mockReq,
         {
           brandId: mockUser.brandId,
@@ -260,6 +261,7 @@ describe('PromptsController', () => {
         } as CreatePromptDto,
         mockUser,
       );
+      expect(created).toEqual(mockPrompt);
 
       await vi.waitFor(() =>
         expect(mockOpenRouterService.chatCompletion).toHaveBeenCalled(),
@@ -286,7 +288,7 @@ describe('PromptsController', () => {
         new Error('Selected skill unavailable'),
       );
 
-      await controller.create(
+      const created = await controller.create(
         mockReq,
         {
           brandId: mockUser.brandId,
@@ -296,6 +298,7 @@ describe('PromptsController', () => {
         } as CreatePromptDto,
         mockUser,
       );
+      expect(created).toEqual(mockPrompt);
 
       await vi.waitFor(() =>
         expect(mockPromptsService.patch).toHaveBeenCalledWith(

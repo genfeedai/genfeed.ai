@@ -70,10 +70,11 @@ describe('useSocialWarmupEnrollment', () => {
   });
 
   it('does not fetch without a credential', () => {
-    renderHook(() => useSocialWarmupEnrollment(), {
+    const { result } = renderHook(() => useSocialWarmupEnrollment(), {
       wrapper: createQueryWrapper(),
     });
 
+    expect(result.current.data).toBeFalsy();
     expect(mockGetService).not.toHaveBeenCalled();
   });
 
@@ -90,17 +91,21 @@ describe('useSocialWarmupEnrollment', () => {
     mockFindAll.mockClear();
     mockFindAll.mockResolvedValue([UPDATED]);
 
+    let enrolled: unknown;
     await act(async () => {
-      await result.current.enroll('credential-1');
+      enrolled = await result.current.enroll('credential-1');
     });
+    expect(enrolled).toEqual(ENROLLMENT);
     await waitFor(() => {
-      expect(mockFindAll).toHaveBeenCalled();
+      expect(result.current.data).toEqual(UPDATED);
     });
 
     mockFindAll.mockClear();
+    let completed: unknown;
     await act(async () => {
-      await result.current.completeItem('use-native-app-manually');
+      completed = await result.current.completeItem('use-native-app-manually');
     });
+    expect(completed).toEqual(UPDATED);
     expect(mockCompleteItem).toHaveBeenCalledWith(
       'enrollment-1',
       'use-native-app-manually',
@@ -110,9 +115,11 @@ describe('useSocialWarmupEnrollment', () => {
     });
 
     mockFindAll.mockClear();
+    let reopened: unknown;
     await act(async () => {
-      await result.current.reopenItem('use-native-app-manually');
+      reopened = await result.current.reopenItem('use-native-app-manually');
     });
+    expect(reopened).toEqual(UPDATED);
     expect(mockReopenItem).toHaveBeenCalledWith(
       'enrollment-1',
       'use-native-app-manually',

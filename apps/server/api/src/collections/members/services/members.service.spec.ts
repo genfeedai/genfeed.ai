@@ -45,7 +45,7 @@ describe('MembersService', () => {
   it('maps canonical brandIds to a Prisma relation set on create', async () => {
     prisma.member.create.mockResolvedValue({ id: 'member-1' });
 
-    await service.create({
+    const created = await service.create({
       brandIds: [
         'cmbrand000000000000000001',
         'cmbrand000000000000000001',
@@ -57,6 +57,7 @@ describe('MembersService', () => {
       userId: 'cmuser0000000000000000001',
     });
 
+    expect(created).toEqual({ id: 'member-1' });
     expect(prisma.member.create).toHaveBeenCalledWith({
       data: {
         brands: {
@@ -76,8 +77,9 @@ describe('MembersService', () => {
   it('maps canonical brandIds to a Prisma relation set on patch', async () => {
     prisma.member.update.mockResolvedValue({ id: 'member-1' });
 
-    await service.patch('member-1', { brandIds: [] });
+    const patched = await service.patch('member-1', { brandIds: [] });
 
+    expect(patched).toEqual({ id: 'member-1' });
     expect(prisma.member.update).toHaveBeenCalledWith({
       data: { brands: { set: [] } },
       where: { id: 'member-1' },
@@ -105,8 +107,9 @@ describe('MembersService', () => {
   it('writes the denormalized roleKey from the assigned role on a role change', async () => {
     prisma.member.update.mockResolvedValue({ id: 'member-1' });
 
-    await service.patch('member-1', { roleId: 'role_admin' });
+    const patched = await service.patch('member-1', { roleId: 'role_admin' });
 
+    expect(patched).toEqual({ id: 'member-1' });
     expect(prisma.role.findFirst).toHaveBeenCalledWith({
       select: { id: true, key: true },
       where: { id: 'role_admin', isDeleted: false },

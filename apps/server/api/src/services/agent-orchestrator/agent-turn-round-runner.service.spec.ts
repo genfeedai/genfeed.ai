@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import {
-  type AgentToolRoundState,
   AgentTurnRoundRunnerService,
   assertAgentCreditBudget,
 } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import type { AgentChatRequest } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import type { AgentToolRoundState } from '@api/services/agent-orchestrator/interfaces/agent-turn-round-runner.interface';
 import {
   buildCampaignConfirmationPrompt,
   buildCampaignPreparationCacheKey,

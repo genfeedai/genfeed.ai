@@ -242,6 +242,9 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/articles',
     '/changelog',
     '/community',
+    '/community/creators',
+    '/community/images',
+    '/community/videos',
     // Served at /@:handle/* through a next.config rewrite: an `@` folder is a
     // parallel-route slot, so the pages live under this internal segment.
     '/creator-profile/:handle',

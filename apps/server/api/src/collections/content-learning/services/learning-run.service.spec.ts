@@ -5,6 +5,7 @@ import {
 } from '@api/collections/content-learning/services/learning-run.service';
 import { LearningRunControlService } from '@api/collections/content-learning/services/learning-run-control.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { LEARNING_ARMS } from '@genfeedai/harness';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
@@ -253,5 +254,93 @@ describe('paired durable run recovery', () => {
         (call) => call[0]?.data?.status === 'insufficient_data',
       ),
     ).toBe(false);
+  });
+});
+
+function datasetEntries(count: number, split: 'training' | 'validation') {
+  return Array.from({ length: count }, (_, index) => ({
+    accountGroup: `group-${index % 3}`,
+    armId: LEARNING_ARMS[index % LEARNING_ARMS.length] as string,
+    decisionAt: new Date(now.getTime() - (count - index) * 1000),
+    features: [1, 0, 0, 0, 0, 0, 0, 0, index % 2],
+    id: `${split}-${index}`,
+    probabilities: Object.fromEntries(
+      LEARNING_ARMS.map((arm) => [arm, 1 / LEARNING_ARMS.length]),
+    ),
+    reward: index % 2 ? 0.5 : -0.25,
+    split,
+  }));
+}
+function pendingRun(type: 'train' | 'evaluate') {
+  const f = fixture('pending', 0);
+  f.run.startedAt = null as unknown as Date;
+  f.run.type = type;
+  f.operation.resultReferences.claimedStartedAt = null as unknown as string;
+  const entries = [
+    ...datasetEntries(60, 'training'),
+    ...datasetEntries(10, 'validation'),
+  ];
+  f.tx.contentLearningDataset.findFirst.mockResolvedValue({
+    cell: 'cell',
+    id: 'dataset',
+    manifestHash: 'manifest',
+    synthetic: false,
+  });
+  f.tx.contentLearningDatasetEntry.count.mockResolvedValue(entries.length);
+  f.tx.contentLearningDatasetEntry.findMany.mockResolvedValue(entries);
+  const policy = {
+    create: vi.fn().mockResolvedValue({ id: 'policy-1' }),
+    findFirst: vi.fn().mockResolvedValue({ version: 4 }),
+  };
+  (f.tx as Record<string, unknown>).contentLearningSharedPolicy = policy;
+  return { ...f, policy };
+}
+describe('dataset run execution', () => {
+  it('publishes the next candidate policy version from a training run', async () => {
+    const f = pendingRun('train');
+    const artifact = await f.service.execute(dispatch);
+    expect(artifact).toEqual({ id: 'policy-1' });
+    expect(f.run.status).toBe('completed');
+    expect(f.run.resultArtifactId).toBe('policy-1');
+    expect(f.operation.status).toBe('completed');
+    const published = f.policy.create.mock.calls[0][0].data;
+    expect(published).toMatchObject({
+      cell: 'cell',
+      datasetId: 'dataset',
+      validity: 'candidate',
+      version: 5,
+    });
+    expect(Object.keys(published.coefficients)).toEqual([...LEARNING_ARMS]);
+    expect(f.run.report).toMatchObject({
+      manifestHash: 'manifest',
+      sourceAccountCount: 3,
+      synthetic: false,
+    });
+  });
+  it('completes an evaluation run with an inconclusive report and no artifact', async () => {
+    const f = pendingRun('evaluate');
+    const report = await f.service.execute(dispatch);
+    expect(report).toMatchObject({
+      configVersion: 'rl-reward-v1-experimental',
+      manifestHash: 'manifest',
+      status: 'inconclusive',
+    });
+    expect(report).toHaveProperty(
+      'reasons',
+      expect.arrayContaining(['assignment_denominators_required']),
+    );
+    expect(f.run.status).toBe('completed');
+    expect(f.run.resultArtifactId).toBeNull();
+    expect(f.policy.create).not.toHaveBeenCalled();
+  });
+  it('fails a run for good when a stored entry carries an unknown arm', async () => {
+    const f = pendingRun('train');
+    const entries = datasetEntries(40, 'training');
+    entries[7] = { ...entries[7], armId: 'not-an-arm' };
+    f.tx.contentLearningDatasetEntry.findMany.mockResolvedValue(entries);
+    await f.service.execute(dispatch);
+    expect(f.run.status).toBe('failed');
+    expect(f.run.error).toBe('invalid_evidence:dataset.entries[7].armId');
+    expect(f.policy.create).not.toHaveBeenCalled();
   });
 });
