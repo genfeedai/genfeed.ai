@@ -126,6 +126,7 @@ export class InsightsController {
   /**
    * Get content gaps
    */
+  @TenantReadPolicy('mutating')
   @Get('gaps')
   @OrganizationModule('analytics', 'write')
   @UseGuards(CreditsGuard)
@@ -156,6 +157,7 @@ export class InsightsController {
   /**
    * Get best posting times
    */
+  @TenantReadPolicy('mutating')
   @Get('times')
   @OrganizationModule('analytics', 'write')
   @UseGuards(CreditsGuard)
