@@ -228,7 +228,7 @@
     "symbol": "apps/server/files/src/processors/video.processor.ts"
   },
   {
-    "actual": 1364,
+    "actual": 1356,
     "file": "apps/server/mcp/src/mcp/setup-page.ts",
     "metric": "file-lines",
     "symbol": "apps/server/mcp/src/mcp/setup-page.ts"
