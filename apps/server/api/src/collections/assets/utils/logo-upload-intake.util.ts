@@ -8,13 +8,13 @@ import { traced } from '@libs/tracing/traced';
 import { BadRequestException } from '@nestjs/common';
 import sharp from 'sharp';
 
-export const SVG_UPLOAD_MIME_TYPE = 'image/svg+xml';
+const SVG_UPLOAD_MIME_TYPE = 'image/svg+xml';
 const SVG_EXTENSION_PATTERN = /\.svg$/i;
 /** Refuse images larger than a 10,000 × 10,000 canvas before decoding them. */
 const IMAGE_MAX_PIXELS = 100_000_000;
 const RASTER_FORMATS = new Set(['gif', 'jpeg', 'png', 'webp']);
 
-export function isSvgUpload(
+function isSvgUpload(
   file: Pick<Express.Multer.File, 'mimetype' | 'originalname'>,
 ): boolean {
   return (

@@ -160,6 +160,7 @@ describe('Models3dService', () => {
         expect.not.objectContaining({ chain: expect.anything() }),
       );
       expect(result.status).toBe('sheet_pending');
+      expect(result.id).toBe('ing-1');
     });
 
     it('holds both steps and chains the build with build:true', async () => {
@@ -170,11 +171,12 @@ describe('Models3dService', () => {
         IngredientStatus.PROCESSING,
       );
 
-      await ctx.service.create(ACTOR, {
+      const result = await ctx.service.create(ACTOR, {
         build: true,
         imageUrl: 'https://x.test/a.png',
       });
 
+      expect(result.id).toBe('ing-1');
       expect(ctx.billing.hold).toHaveBeenCalledTimes(2);
       expect(ctx.billing.hold).toHaveBeenNthCalledWith(
         2,
@@ -193,12 +195,13 @@ describe('Models3dService', () => {
       const ctx = setup();
       renderState(ctx, IngredientStatus.PROCESSING);
 
-      await ctx.service.create(
+      const result = await ctx.service.create(
         ACTOR,
         {},
         { buffer: Buffer.from('png'), mimetype: 'image/png' },
       );
 
+      expect(result.id).toBe('ing-1');
       expect(ctx.filesClient.uploadToS3).toHaveBeenCalledWith(
         'ing-1-source',
         'images',
@@ -223,6 +226,9 @@ describe('Models3dService', () => {
       await expect(
         ctx.service.create(ACTOR, { imageUrl: 'https://x.test/a.png' }),
       ).rejects.toMatchObject({ status: 402 });
+      await expect(
+        ctx.service.create(ACTOR, { imageUrl: 'https://x.test/a.png' }),
+      ).rejects.toThrow('short');
 
       expect(ctx.replicate.runModel).not.toHaveBeenCalled();
       expect(ctx.billing.release).toHaveBeenCalledWith('ing-1', 'org-1');
@@ -360,8 +366,9 @@ describe('Models3dService', () => {
       const ctx = setup();
       renderState(ctx, IngredientStatus.GENERATED);
 
-      await ctx.service.get(ACTOR, 'ing-1');
+      const result = await ctx.service.get(ACTOR, 'ing-1');
 
+      expect(result).toMatchObject({ id: 'ing-1', status: 'sheet_ready' });
       expect(ctx.ingredients.findOne).toHaveBeenCalledWith(
         expect.objectContaining({ organizationId: 'org-1' }),
       );
@@ -376,8 +383,9 @@ describe('Models3dService', () => {
       const ctx = setup();
       renderState(ctx, IngredientStatus.GENERATED);
 
-      await ctx.service.startBuild(ACTOR, 'ing-1');
+      const result = await ctx.service.startBuild(ACTOR, 'ing-1');
 
+      expect(result).toMatchObject({ id: 'ing-1' });
       expect(ctx.billing.quoteStep).toHaveBeenCalledWith('build', 'org-1');
       expect(ctx.billing.hold).toHaveBeenCalledWith(
         expect.objectContaining({ credits: 27, step: 'build' }),
@@ -392,6 +400,9 @@ describe('Models3dService', () => {
       await expect(
         ctx.service.startBuild(ACTOR, 'ing-1'),
       ).rejects.toBeInstanceOf(ConflictException);
+      await expect(ctx.service.startBuild(ACTOR, 'ing-1')).rejects.toThrow(
+        'The angle sheet is not ready yet',
+      );
       expect(ctx.billing.hold).not.toHaveBeenCalled();
     });
 
@@ -415,14 +426,18 @@ describe('Models3dService', () => {
       await expect(
         ctx.service.startBuild(ACTOR, 'ing-1'),
       ).rejects.toBeInstanceOf(ConflictException);
+      await expect(ctx.service.startBuild(ACTOR, 'ing-1')).rejects.toThrow(
+        'The angle sheet did not render',
+      );
     });
 
     it('retries after a failed build', async () => {
       const ctx = setup();
       renderState(ctx, IngredientStatus.GENERATED, IngredientStatus.FAILED);
 
-      await ctx.service.startBuild(ACTOR, 'ing-1');
+      const result = await ctx.service.startBuild(ACTOR, 'ing-1');
 
+      expect(result).toMatchObject({ id: 'ing-1' });
       expect(ctx.build.startBuild).toHaveBeenCalledWith('ing-1');
     });
 
@@ -434,6 +449,9 @@ describe('Models3dService', () => {
       await expect(
         ctx.service.startBuild(ACTOR, 'ing-1'),
       ).rejects.toMatchObject({ status: 402 });
+      await expect(ctx.service.startBuild(ACTOR, 'ing-1')).rejects.toThrow(
+        'short',
+      );
 
       expect(ctx.build.startBuild).not.toHaveBeenCalled();
       // The only row this call created is the GLB child.
@@ -478,6 +496,9 @@ describe('Models3dService', () => {
       await expect(
         ctx.service.getFileUrl(ACTOR, 'ing-1'),
       ).rejects.toBeInstanceOf(ConflictException);
+      await expect(ctx.service.getFileUrl(ACTOR, 'ing-1')).rejects.toThrow(
+        'The 3D model is not ready',
+      );
     });
   });
 });

@@ -184,7 +184,7 @@ const LOCAL_URL_FUNCTION_PATTERN =
 const UNSAFE_VALUE_PATTERN =
   /javascript:|vbscript:|data:|expression\s*\(|@import|behavior\s*:|-moz-binding|\\|</i;
 
-export type SvgLogoRejection =
+type SvgLogoRejection =
   | 'svg_logo_too_large'
   | 'svg_logo_not_svg'
   | 'svg_logo_too_complex';
@@ -216,7 +216,7 @@ function hasOnlyLocalUrls(value: string): boolean {
 }
 
 /** Whether a CSS block or attribute value is free of loads and scripts. */
-export function isSafeSvgValue(value: string): boolean {
+function isSafeSvgValue(value: string): boolean {
   return !UNSAFE_VALUE_PATTERN.test(value) && hasOnlyLocalUrls(value);
 }
 
