@@ -4160,4 +4160,18 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     sourceUrl: 'https://replicate.com/firtoz/trellis',
     verifiedAt: '2026-11-09T00:00:00.000Z',
   },
+  {
+    endpoint: 'hyper3d/rodin',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.4,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/hyper3d/rodin',
+    verifiedAt: '2026-11-10T00:00:00.000Z',
+  },
 ];

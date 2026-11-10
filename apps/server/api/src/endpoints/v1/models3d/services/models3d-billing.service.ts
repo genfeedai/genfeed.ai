@@ -3,9 +3,11 @@ import { GenerationBillingService } from '@api/collections/credits/services/gene
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import type { Models3dQuote } from '@api/endpoints/v1/models3d/interfaces/models3d.interfaces';
 import {
-  MODELS3D_BUILD_MODEL_KEY,
+  MODELS3D_BUILD_TIERS,
+  MODELS3D_DEFAULT_QUALITY,
   MODELS3D_SHEET_MODEL_KEY,
   MODELS3D_SHEET_RESOLUTION,
+  type Models3dQuality,
 } from '@api/endpoints/v1/models3d/models3d.constants';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { ActivitySource } from '@genfeedai/contracts';
@@ -36,17 +38,26 @@ export class Models3dBillingService {
   ) {}
 
   /** Quotes both steps from the reviewed provider rates. */
-  async quote(organizationId: string): Promise<Models3dQuote> {
+  async quote(
+    organizationId: string,
+    quality: Models3dQuality = MODELS3D_DEFAULT_QUALITY,
+  ): Promise<Models3dQuote> {
     const [sheet, build] = await Promise.all([
       this.quoteStep('sheet', organizationId),
-      this.quoteStep('build', organizationId),
+      this.quoteStep('build', organizationId, quality),
     ]);
     return { build, sheet, total: sheet + build };
   }
 
-  async quoteStep(step: Models3dStep, organizationId: string): Promise<number> {
+  async quoteStep(
+    step: Models3dStep,
+    organizationId: string,
+    quality: Models3dQuality = MODELS3D_DEFAULT_QUALITY,
+  ): Promise<number> {
     const modelKey =
-      step === 'sheet' ? MODELS3D_SHEET_MODEL_KEY : MODELS3D_BUILD_MODEL_KEY;
+      step === 'sheet'
+        ? MODELS3D_SHEET_MODEL_KEY
+        : MODELS3D_BUILD_TIERS[quality].modelKey;
     const snapshot = await this.quotes.quoteSnapshotByKey(modelKey, {
       organizationId,
       outputs: 1,

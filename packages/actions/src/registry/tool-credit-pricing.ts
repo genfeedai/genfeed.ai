@@ -134,8 +134,8 @@ export function toolCreditPricingFor(
     };
   }
   if (name === 'render_3d') {
-    // Frozen quotes: angle sheet 50, GLB build 27, both 77 (#9835).
-    return { maximum: 77, minimum: 50, mode: 'variable', unit: '3D render' };
+    // Frozen quotes: angle sheet 50, GLB build 27 standard or 134 high, so 77 or 184 together (#9835).
+    return { maximum: 184, minimum: 50, mode: 'variable', unit: '3D render' };
   }
   if (name === 'start_brand_interview') {
     return fixedCreditPricing(BRAND_INTERVIEW_CREDIT_COST);

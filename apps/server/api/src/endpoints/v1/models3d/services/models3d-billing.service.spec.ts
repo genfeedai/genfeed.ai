@@ -23,7 +23,12 @@ function setup({
   };
   const quotes = {
     quoteSnapshotByKey: vi.fn(async (modelKey: string) => ({
-      credits: modelKey === 'firtoz/trellis' ? build : sheet,
+      credits:
+        modelKey === 'firtoz/trellis'
+          ? build
+          : modelKey === 'hyper3d/rodin'
+            ? 134
+            : sheet,
     })),
   };
   const logger = { error: vi.fn() };
@@ -54,6 +59,16 @@ describe('Models3dBillingService', () => {
         build: 27,
         sheet: 50,
         total: 77,
+      });
+    });
+
+    it('freezes sheet 50, build 134 and a total of 184 for the high tier', async () => {
+      const { service } = setup();
+
+      await expect(service.quote('org-1', 'high')).resolves.toEqual({
+        build: 134,
+        sheet: 50,
+        total: 184,
       });
     });
 

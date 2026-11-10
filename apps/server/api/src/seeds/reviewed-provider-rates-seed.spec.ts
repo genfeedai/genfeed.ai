@@ -649,6 +649,30 @@ describe('direct-provider (HeyGen, ElevenLabs) rate sheet entries', () => {
     expect(applyMargin(0.081, 3.33)).toBe(27);
   });
 
+  it('seeds Rodin Gen-2 from the shipped schema fixtures and quotes the build at 134 credits', async () => {
+    const { create, profile } = await seededProfile('hyper3d/rodin');
+
+    expect(create).toMatchObject({
+      endpoint: 'hyper3d/rodin',
+      provider: 'replicate',
+      reviewStatus: 'approved',
+      reviewedBy: RATE_SHEET_REVIEWER,
+    });
+    expect(create.inputSchema).toHaveProperty('properties.images');
+    expect(
+      quoteModelBillablePricing(
+        profile,
+        { modelKey: 'hyper3d/rodin', provider: 'replicate' },
+        3.33,
+        NOW,
+      ),
+    ).toMatchObject({
+      snapshot: { credits: 134, providerCostUsd: 0.4 },
+      status: 'priced',
+    });
+    expect(applyMargin(0.4, 3.33)).toBe(134);
+  });
+
   describe('HeyGen avatar engines', () => {
     const quote = (
       profile: Awaited<ReturnType<typeof seededProfile>>['profile'],

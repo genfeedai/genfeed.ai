@@ -112,13 +112,13 @@ export const CLAUDE_CLIENT_CAPABILITIES = [
   'Use your brand context to draft posts and articles for review.',
   'Find existing assets and schedule content on connected channels.',
   'Read analytics to plan your next campaign.',
-  'Open Genfeed Studio to create images, video and audio, then bring the assets back to your content.',
+  'To generate images, video and audio, add the full Genfeed server as a second connector.',
 ] as const;
 export const CLAUDE_CLIENT_EXAMPLE_PROMPTS = [
   'Draft three LinkedIn posts from my latest article and save them for review.',
   'Find my existing product video and prepare a release for Friday at 9am.',
   'Show last week’s best-performing posts across my connected channels.',
-  'Write an image brief and give me the link to create it in Genfeed Studio.',
+  'Write an image brief from my brand guidelines that I can run on the full Genfeed connector.',
 ] as const;
 
 const HELPER_CLIENT: Record<AgentClientSlug, ConnectGenfeedClient> = {
@@ -241,8 +241,7 @@ function buildClient(copy: AgentClientCopy): AgentClient {
             {
               question:
                 'Can Claude create images, video or audio through this connector?',
-              answer:
-                'Create those assets in Genfeed Studio, then use Claude to draft, schedule and measure content with your existing assets. The Claude connector does not run media generation, batches or workflows. Reconnect existing installations with the Claude URL shown here.',
+              answer: `Not through this connector. To generate images, video and audio, add the full Genfeed server (${GENFEED_PUBLIC_MCP_URL}) as a second connector in Claude, and keep this one to draft, schedule and measure content. The Claude connector does not run media generation, batches or workflows. Reconnect existing installations with the Claude URL shown here.`,
             },
           ]
         : []),
@@ -274,7 +273,7 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
     about:
       'Claude is Anthropic’s AI assistant on the web, desktop, and mobile. It can add a remote MCP server as a custom connector, so Genfeed tools work inside a normal Claude chat.',
     description:
-      'Draft, schedule and measure content in Claude with your Genfeed brands and existing assets. Create images, video and audio in Genfeed Studio.',
+      'Draft, schedule and measure content in Claude with your Genfeed brands. Add the full Genfeed server as a second connector to generate media.',
     extraFaq: [
       {
         answer:
@@ -289,7 +288,7 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
     about:
       'Claude Code is Anthropic’s agentic coding tool for the terminal and IDE. It adds a remote MCP server with one command, so the session that ships code can also draft posts, schedule existing assets and read analytics.',
     description:
-      'Manage brands, drafts, scheduling and analytics in Claude Code. Create images, video and audio in Genfeed Studio.',
+      'Manage brands, drafts, scheduling and analytics in Claude Code. Add the full Genfeed server as a second connector to generate media.',
     extraFaq: [
       {
         answer:
@@ -304,11 +303,11 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
     about:
       'Claude Cowork is Anthropic’s desktop agent for knowledge work outside the terminal. It uses the same remote MCP connectors as Claude, so Genfeed connects with the shared URL.',
     description:
-      'Plan campaigns, draft posts and schedule existing assets with Cowork and Genfeed. Create images, video and audio in Genfeed Studio.',
+      'Plan campaigns and schedule assets with Cowork and Genfeed. Add the full Genfeed server as a second connector to generate media.',
     extraFaq: [
       {
         answer:
-          'Cowork uses the Claude connector URL shown here. It supports brands, drafts, scheduling and analytics; media creation happens in Genfeed Studio.',
+          'Cowork uses the Claude connector URL shown here. It supports brands, drafts, scheduling and analytics. To generate images, video and audio, add the full Genfeed server as a second connector.',
         question: 'Does Cowork use a different endpoint?',
       },
     ],
@@ -732,7 +731,7 @@ export function renderAgentConnectMarkdown(input: {
   lines.push('');
   lines.push(`- MCP URL: ${GENFEED_PUBLIC_MCP_URL}`);
   lines.push(
-    `- Claude, Claude Code and Cowork: ${GENFEED_CLAUDE_MCP_URL}. Brands, drafts, scheduling and analytics; create media in Genfeed Studio.`,
+    `- Claude, Claude Code and Cowork: ${GENFEED_CLAUDE_MCP_URL}. Brands, drafts, scheduling and analytics. To generate images, video and audio, add the full Genfeed server (${GENFEED_PUBLIC_MCP_URL}) as a second connector.`,
   );
   lines.push(
     '- Auth: OAuth in the browser. Claude requires OAuth. For other clients, the advanced path is a scoped API key exported as GENFEED_API_KEY.',

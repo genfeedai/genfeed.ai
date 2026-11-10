@@ -26,6 +26,7 @@ import {
   createProactiveAgentTextPost,
   finishConfirmedPublish,
   parsePostVisibility,
+  readAgentPostText,
   resolveConfirmedFallbackPolicy,
   scheduleAgentPost,
 } from '@api/services/agent-orchestrator/tools/agent-publish-post-actions';
@@ -506,14 +507,7 @@ export class AgentPublishToolHandler {
     requestedScheduledAt: string | undefined;
     requestedTargets: ReturnType<typeof parseAgentPublishTargetPayloads>;
   } {
-    const caption =
-      typeof params.caption === 'string'
-        ? params.caption.trim()
-        : typeof params.content === 'string'
-          ? params.content.trim()
-          : typeof params.textContent === 'string'
-            ? params.textContent.trim()
-            : undefined;
+    const caption = readAgentPostText(params);
     const requestedTargets = parseAgentPublishTargetPayloads(params.targets);
     const platforms = normalizePublishPlatforms(
       requestedTargets.length > 0
