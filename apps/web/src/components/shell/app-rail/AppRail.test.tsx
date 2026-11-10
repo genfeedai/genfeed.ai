@@ -169,11 +169,13 @@ function AppRail(props: AppRailProps) {
   return <RailUnderTest {...props} />;
 }
 
-/** Admin → Flags as the release migration leaves it. */
+/** Admin → Flags as the release migration leaves it, plus Playground and Storyboard an operator released. */
 const RELEASED_FLAGS = {
   release_analytics: true,
   release_discovery: true,
+  release_playground: true,
   release_publishing: true,
+  release_storyboard: true,
   release_turbo: true,
 };
 
@@ -959,6 +961,49 @@ describe('AppRail', () => {
       'app-rail-item-discovery',
     ]);
   });
+  it('hides Playground and Storyboard from a cloud rail until they are released', () => {
+    render(
+      <AppRail
+        orgSlug="acme"
+        pinnedAppIds={LAUNCHER_APP_IDS}
+        moduleAccess={Object.fromEntries(
+          ORGANIZATION_MODULE_IDS.map((moduleId) => [
+            moduleId,
+            resolveOrganizationModulePresentationAccess(
+              { hasOrganizationBilling: true, moduleOverrides: {} },
+              moduleId,
+              {},
+            ),
+          ]),
+        )}
+      />,
+    );
+    expect(
+      screen.queryByRole('link', { name: 'Playground' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Storyboard' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides the Agent app until it is released, and shows it once it is', () => {
+    const { rerender } = render(
+      <AppRail orgSlug="acme" releaseVisibility={{ agent: false }} />,
+    );
+    expect(
+      screen.queryByRole('link', { name: 'Agent' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Workspace' })).toBeInTheDocument();
+    rerender(<AppRail orgSlug="acme" releaseVisibility={null} />);
+    expect(
+      screen.queryByRole('link', { name: 'Agent' }),
+    ).not.toBeInTheDocument();
+    rerender(<AppRail orgSlug="acme" releaseVisibility={{ agent: true }} />);
+    expect(screen.getByRole('link', { name: 'Agent' })).toBeInTheDocument();
+    rerender(<AppRail orgSlug="acme" />);
+    expect(screen.getByRole('link', { name: 'Agent' })).toBeInTheDocument();
+  });
+
   it('keeps fixed and neutral navigation while verified preferences are unavailable', () => {
     render(
       <AppRail

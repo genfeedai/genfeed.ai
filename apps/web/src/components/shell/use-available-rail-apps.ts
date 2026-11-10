@@ -2,9 +2,12 @@
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
+  isReleaseItemVisible,
   ORGANIZATION_MODULE_IDS,
   type OrganizationModuleAccess,
   type OrganizationModuleId,
+  RELEASE_ITEM_IDS,
+  type ReleaseItemId,
   resolveOrganizationModulePreferences,
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
@@ -50,6 +53,20 @@ export function useAvailableRailApps() {
           ),
     [platformFlags, settings, settingsLoading],
   );
+  const releaseVisibility = useMemo<Partial<
+    Record<ReleaseItemId, boolean>
+  > | null>(
+    () =>
+      settingsLoading
+        ? null
+        : Object.fromEntries(
+            RELEASE_ITEM_IDS.map((itemId) => [
+              itemId,
+              isReleaseItemVisible(itemId, settings, platformFlags),
+            ]),
+          ),
+    [platformFlags, settings, settingsLoading],
+  );
   const installedAppIds =
     installedApps.status === 'ready'
       ? installedApps.installedAppIds
@@ -61,8 +78,15 @@ export function useAvailableRailApps() {
         installedAppIds,
         moduleAccess,
         modulePreferences,
+        releaseVisibility,
       }),
-    [installedAppIds, moduleAccess, modulePreferences, platformFlags],
+    [
+      installedAppIds,
+      moduleAccess,
+      modulePreferences,
+      platformFlags,
+      releaseVisibility,
+    ],
   );
 
   return {
@@ -71,5 +95,6 @@ export function useAvailableRailApps() {
     isReady: !settingsLoading && installedApps.status !== 'loading',
     moduleAccess,
     modulePreferences,
+    releaseVisibility,
   };
 }

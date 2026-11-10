@@ -118,6 +118,7 @@ interface MockOrganizationSettings {
   hasPaidModuleSubscription: boolean;
   isReleasePreviewEnabled: boolean;
   moduleOverrides: Record<string, boolean>;
+  releasedItemIds: string[];
   id: string;
   isFleetNsfwVisible: boolean;
   defaultAvatarIngredientId: string | null;
@@ -266,6 +267,7 @@ export function generateMockOrganizationSettings(
       automation: true,
       messages: true,
     },
+    releasedItemIds: [],
     isFleetNsfwVisible: false,
     ...overrides,
   };

@@ -40,7 +40,7 @@ export function isLauncherAppAvailable(
 
 interface ResolveAvailableRailAppsInput
   extends LauncherAvailabilityInput,
-    Pick<AppRailProps, 'modulePreferences'> {
+    Pick<AppRailProps, 'modulePreferences' | 'releaseVisibility'> {
   flags: Readonly<Record<string, unknown>>;
 }
 
@@ -55,9 +55,18 @@ export function resolveAvailableRailApps({
   installedAppIds,
   moduleAccess,
   modulePreferences,
+  releaseVisibility,
 }: ResolveAvailableRailAppsInput): AppRailItemConfig[] {
   return APP_RAIL_REGISTRY.filter((app) => {
     if (!isAppRailItemEnabled(app, flags)) {
+      return false;
+    }
+    // A release-only app (Agent) shows once released to the organization.
+    if (
+      app.releaseItemId &&
+      releaseVisibility !== undefined &&
+      releaseVisibility?.[app.releaseItemId] !== true
+    ) {
       return false;
     }
     if (app.group === 'app') {

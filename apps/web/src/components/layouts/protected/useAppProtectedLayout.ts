@@ -12,7 +12,6 @@ import {
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
-  isReleaseItemId,
   isReleaseItemVisible,
   resolveOrganizationModulePreferences,
 } from '@genfeedai/contracts/constants';
@@ -310,11 +309,10 @@ export function useAppProtectedLayout(
         .filter(
           (item) =>
             isAppRailPathEnabled(item.href, platformFlags) &&
+            // Every module is a release item, so its nav waits for the
+            // organization's preferences.
             (!item.organizationModule ||
-              // While preferences load, keep the always-released apps
-              // (Playground, Storyboard) so their nav does not flicker.
-              (modulePreferences?.[item.organizationModule] ??
-                !isReleaseItemId(item.organizationModule))),
+              modulePreferences?.[item.organizationModule] === true),
         )
         .map(
           (item): MenuItemConfig => ({

@@ -59,6 +59,9 @@ vi.mock('next-intl', async () => {
             retry: 'Retry loading',
             loadFailed: 'Could not load module settings. Try again.',
             modules: {
+              agent: { label: 'Agent' },
+              playground: { label: 'Playground' },
+              storyboard: { label: 'Storyboard' },
               turbo: { label: 'Turbo' },
               clipper: { label: 'Clipper' },
               editor: { label: 'Editor' },
@@ -140,8 +143,45 @@ describe('credit-based module creation gate', () => {
     render(view());
     expect(state.created).toHaveBeenCalledTimes(1);
   });
-  it('keeps Playground credit-based and fixed', () => {
-    render(view('playground'));
+  it.each([
+    ['playground', 'Playground'],
+    ['storyboard', 'Storyboard'],
+    ['agent', 'Agent'],
+  ] as const)(
+    'shows %s as not released on cloud, and opens it on release preview',
+    (moduleId, label) => {
+      render(view(moduleId));
+      expect(state.created).not.toHaveBeenCalled();
+      expect(screen.getByRole('status')).toHaveTextContent(
+        `${label} is not released yet`,
+      );
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    },
+  );
+  it.each(['playground', 'storyboard', 'agent'] as const)(
+    'mounts %s on release preview and on self-hosted',
+    (moduleId) => {
+      state.settings = {
+        hasOrganizationBilling: true,
+        isReleasePreviewEnabled: true,
+        moduleOverrides: {},
+      };
+      const { unmount } = render(view(moduleId));
+      expect(state.created).toHaveBeenCalledTimes(1);
+      unmount();
+      state.created.mockClear();
+      state.settings = { hasOrganizationBilling: false, moduleOverrides: {} };
+      render(view(moduleId));
+      expect(state.created).toHaveBeenCalledTimes(1);
+    },
+  );
+  it('keeps Agent open for an organization that turned the module switches off', () => {
+    state.settings = {
+      hasOrganizationBilling: true,
+      isReleasePreviewEnabled: true,
+      moduleOverrides: { playground: false, storyboard: false },
+    };
+    render(view('agent'));
     expect(state.created).toHaveBeenCalledTimes(1);
   });
   it('uses explicit self-hosted runtime defaults', () => {

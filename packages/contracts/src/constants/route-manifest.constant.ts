@@ -35,6 +35,7 @@ export const ROUTE_MANIFEST_APPS: readonly RouteManifestApp[] = [
     homePath: '/agent',
     id: 'agent',
     isBrandAware: true,
+    releaseItemId: 'agent',
   },
   {
     rootPath: '/library',

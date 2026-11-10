@@ -89,6 +89,18 @@
       "label": "Desktop local workspace",
       "description": "Offer the offline local workspace on the desktop app’s sign-in and local pages."
     },
+    "release_playground": {
+      "label": "Release Playground",
+      "description": "Generate and refine images, videos, audio and text in the web app."
+    },
+    "release_storyboard": {
+      "label": "Release Storyboard",
+      "description": "Plan and create stories in the web app."
+    },
+    "release_agent": {
+      "label": "Release Agent",
+      "description": "The full-page agent app. The agent sidebar stays on every page."
+    },
     "release_publishing": {
       "label": "Release Publishing",
       "description": "Scheduling and publishing posts."

@@ -24,7 +24,10 @@ import {
   buildConversationComposerDraftScopeKey,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import { ButtonVariant } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  isReleaseItemVisible,
+} from '@genfeedai/contracts/constants';
 import type {
   AgentArtifactReference,
   WorkspaceShellOverlayRequest,
@@ -62,7 +65,6 @@ import {
   SIDEBAR_TRANSITION_EASING,
 } from '@/components/layouts/app/app-layout.utils';
 import NotificationInboxPanel from '@/components/shell/NotificationInboxPanel';
-
 import {
   AnalyticsWorkspaceSurfaceAdapterProvider,
   useActiveAnalyticsWorkspaceSurfaceAdapter,
@@ -75,6 +77,7 @@ import {
 import type { WorkflowSummary } from '@/features/workflows/services/workflow-api';
 import { WorkflowPickerOverlay } from '@/features/workflows/workspace/WorkflowPickerOverlay';
 import { resolveWorkflowSurfaceRoute } from '@/features/workflows/workspace/workflow-surface-routing';
+import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import {
   appendSearchParamsToHref,
   buildAgentThreadHref,
@@ -187,7 +190,22 @@ function UniversalWorkspaceShellContent({
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const { back, push, replace } = useRouter();
-  const { brandId, brands, organizationId, selectedBrand } = useBrand();
+  const {
+    brandId,
+    brands,
+    organizationId,
+    selectedBrand,
+    settings: organizationSettings,
+    settingsLoading,
+  } = useBrand();
+  const { flags: platformFlags } = useFeatureFlagContext();
+  // The sidebar works whether or not the Agent app is released; only its
+  // "Open full page" hand-off needs the app to exist for this organization.
+  const isAgentAppReleased = isReleaseItemVisible(
+    'agent',
+    settingsLoading ? null : organizationSettings,
+    platformFlags,
+  );
   useResetAgentOnOrganizationChange(organizationId);
   const { activeHref, brandSlug, href, orgHref, orgSlug } = useOrgUrl();
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
@@ -1229,7 +1247,9 @@ function UniversalWorkspaceShellContent({
         dockThreads.startThread();
         handleSelectPanelTab('agent');
       }}
-      onOpenFullPage={handleOpenFullConversation}
+      onOpenFullPage={
+        isAgentAppReleased ? handleOpenFullConversation : undefined
+      }
       onSelectView={handleSelectPanelTab}
     />
   );
@@ -1292,13 +1312,17 @@ function UniversalWorkspaceShellContent({
       onCloseContext: () => setIsOutputContextOpen(false),
       onNewThread: dockThreads.startThread,
       onOpenContext: () => setIsOutputContextOpen(true),
-      onOpenFullPage: handleOpenFullConversation,
+      onOpenFullPage: isAgentAppReleased
+        ? handleOpenFullConversation
+        : undefined,
       threadsPanel: (
         <AgentThreadsPanel
           apiService={agentApiService}
           getThreadHref={getFullThreadHref}
           isLoading={dockThreads.isThreadListLoading}
-          onOpenFullThread={openFullThreadFromPage}
+          onOpenFullThread={
+            isAgentAppReleased ? openFullThreadFromPage : undefined
+          }
           threads={threads}
         />
       ),
@@ -1311,6 +1335,7 @@ function UniversalWorkspaceShellContent({
     dockThreads.startThread,
     getFullThreadHref,
     handleOpenFullConversation,
+    isAgentAppReleased,
     isAgentOutputSurface,
     isOutputContextOpen,
     openFullThreadFromPage,

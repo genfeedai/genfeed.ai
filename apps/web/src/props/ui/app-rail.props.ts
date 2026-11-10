@@ -2,6 +2,7 @@ import type {
   OrganizationModuleAccess,
   OrganizationModuleId,
   OrganizationModulePreferences,
+  ReleaseItemId,
 } from '@genfeedai/contracts/constants';
 import type {
   AppRailItemConfig,
@@ -36,6 +37,12 @@ export interface AppRailProps {
   moduleAccess?: Readonly<
     Partial<Record<OrganizationModuleId, OrganizationModuleAccess>>
   > | null;
+  /**
+   * Whether the organization sees each release-only rail app (the Agent app).
+   * Null waits for settings, so those apps stay hidden; undefined is a neutral
+   * surface.
+   */
+  releaseVisibility?: Readonly<Partial<Record<ReleaseItemId, boolean>>> | null;
   /** The member's installed apps here. Undefined is a neutral surface. */
   installedAppIds?: readonly string[];
   surface?: AppRailSurface;

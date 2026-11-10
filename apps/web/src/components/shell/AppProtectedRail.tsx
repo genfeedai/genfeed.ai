@@ -38,8 +38,12 @@ function AppProtectedRailContent({
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { brandId, brands, selectedBrand } = useBrand();
-  const { installedAppIds, moduleAccess, modulePreferences } =
-    useAvailableRailApps();
+  const {
+    installedAppIds,
+    moduleAccess,
+    modulePreferences,
+    releaseVisibility,
+  } = useAvailableRailApps();
   const { isAssetGateLocked, isSuperAdmin } = useAccessState();
   const isDesktop = useIsDesktopClient();
   const hasPlatformRole =
@@ -150,6 +154,7 @@ function AppProtectedRailContent({
       isAssetGateLocked={isAssetGateLocked}
       moduleAccess={moduleAccess}
       modulePreferences={modulePreferences}
+      releaseVisibility={releaseVisibility}
       hiddenAppIds={hiddenAppIds}
       onNavigate={onNavigate}
       onOpenAdminExternally={isAdminInBrowser ? openAdminInBrowser : undefined}
