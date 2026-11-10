@@ -68,6 +68,16 @@ export const PLAYWRIGHT_E2E_TIER_CONTRACT = {
  */
 
 /**
+ * A test that failed its first attempt and passed on a retry.
+ * @typedef {{
+ *   file: string,
+ *   project: string,
+ *   retries: number,
+ *   title: string,
+ * }} PlaywrightFlakyTest
+ */
+
+/**
  * @typedef {{
  *   discoveredFileCount: number,
  *   discoveredFiles: string[],
@@ -76,6 +86,7 @@ export const PLAYWRIGHT_E2E_TIER_CONTRACT = {
  *   failedTestCount: number | null,
  *   skippedTestCount: number | null,
  *   flakyTestCount: number | null,
+ *   flakyTests: PlaywrightFlakyTest[],
  *   firstAttemptFailureCount: number | null,
  *   reportErrorCount: number | null,
  *   laneExcludedFileCount: number,
@@ -302,6 +313,8 @@ export function mergePlaywrightJsonReports(reports) {
     firstAttemptFailures: 0,
     errors: 0,
   };
+  /** @type {PlaywrightFlakyTest[]} */
+  const flakyTests = [];
   const executedFiles = new Set();
   const failedFiles = new Set();
   let hasFileEvidence = false;
@@ -324,7 +337,15 @@ export function mergePlaywrightJsonReports(reports) {
         }
         if (attempts[0].status !== (test.expectedStatus ?? 'passed'))
           counts.firstAttemptFailures += 1;
-        if (test.status === 'flaky') counts.flaky += 1;
+        if (test.status === 'flaky') {
+          counts.flaky += 1;
+          flakyTests.push({
+            file: testFile ?? '',
+            project: test.projectName ?? '',
+            retries: attempts.length - 1,
+            title: spec.title ?? '',
+          });
+        }
         if (
           test.status === 'unexpected' ||
           attempts.at(-1).status === 'interrupted'
@@ -352,6 +373,7 @@ export function mergePlaywrightJsonReports(reports) {
   }
   return {
     ...counts,
+    flakyTests,
     executedFileCount: hasFileEvidence ? executedFiles.size : null,
     failedFileCount: hasFileEvidence ? failedFiles.size : null,
   };
@@ -505,6 +527,7 @@ export function buildPlaywrightE2eTierSummary({
     failedTestCount: hasEvidence ? merged.failed : null,
     skippedTestCount: hasEvidence ? merged.skipped : null,
     flakyTestCount: hasEvidence ? merged.flaky : null,
+    flakyTests: hasEvidence ? merged.flakyTests : [],
     firstAttemptFailureCount: hasEvidence ? merged.firstAttemptFailures : null,
     reportErrorCount: hasEvidence ? merged.errors : null,
     laneExcludedFileCount: plan.laneExcludedFiles?.length ?? 0,
@@ -529,6 +552,33 @@ function writeSummary(summary) {
 }
 
 /**
+ * Markdown for the run summary. A test that passed only on a retry is a flake
+ * that a green run would otherwise hide (#6231), so each one is named.
+ * Returns no lines when nothing was flaky.
+ * @param {PlaywrightFlakyTest[] | undefined} flakyTests
+ * @returns {string[]}
+ */
+export function formatFlakySection(flakyTests) {
+  if (!flakyTests || flakyTests.length === 0) {
+    return [];
+  }
+  const lines = [
+    '#### Flaky tests (passed on retry)',
+    '',
+    'These failed their first attempt and passed on a retry. The run is green; fix the flake.',
+    '',
+  ];
+  for (const test of flakyTests) {
+    const project = test.project ? ` [${test.project}]` : '';
+    lines.push(
+      `- \`${test.file}\`${project} — ${test.title} (${test.retries} ${test.retries === 1 ? 'retry' : 'retries'})`,
+    );
+  }
+  lines.push('');
+  return lines;
+}
+
+/**
  * @param {PlaywrightE2eTierSummary} summary
  */
 function appendGitHubSummary(summary) {
@@ -547,6 +597,8 @@ function appendGitHubSummary(summary) {
     `Other execution lanes: ${summary.laneExcludedFileCount} files. Skipped tests: ${summary.skippedTestCount ?? 'n/a'}. Flaky tests: ${summary.flakyTestCount ?? 'n/a'}. First-attempt failures: ${summary.firstAttemptFailureCount ?? 'n/a'}. Report errors: ${summary.reportErrorCount ?? 'n/a'}.`,
     '',
   ];
+
+  lines.push(...formatFlakySection(summary.flakyTests));
 
   if (summary.quarantinedFiles.length > 0) {
     lines.push('Quarantined files:', '');
