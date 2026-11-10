@@ -10,7 +10,7 @@ const repository = 'https://github.com/genfeedai/agent';
 const CLAUDE_CONNECTORS_URL =
   'https://claude.ai/customize/connectors?modal=add-custom-connector';
 const connector =
-  'In Claude, open Customize → Connectors → + Add → Add custom connector. Name it Genfeed, paste the URL below and approve browser sign-in. If Add is unavailable, ask your workspace owner. Create media in Genfeed Studio.';
+  'In Claude, open Customize → Connectors → + Add → Add custom connector. Name it Genfeed, paste the URL below and approve browser sign-in. If Add is unavailable, ask your workspace owner. To generate images, video and audio, add the full Genfeed server as a second connector.';
 
 export const agentInstallations = {
   chatgpt: {

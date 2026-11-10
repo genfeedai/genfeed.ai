@@ -160,9 +160,10 @@ export default function DevelopersLandingPage(): React.ReactElement {
               </Code>
             </Pre>
             <p className="border-t border-foreground/5 bg-background/90 px-4 py-3 text-xs text-foreground/60">
-              Connect Claude for drafts, scheduling and analytics, then open
-              Genfeed Studio for media creation. Cursor and other MCP clients
-              can also generate assets through the standard connector.
+              Connect Claude for drafts, scheduling and analytics, and add the
+              full Genfeed server as a second connector to generate images,
+              video and audio. Cursor and other MCP clients generate assets
+              through the standard connector.
             </p>
           </div>
         }
