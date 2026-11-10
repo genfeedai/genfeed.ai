@@ -1,7 +1,10 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { ConnectorsSection } from '@genfeedai/props/pages/connectors.props';
+import type {
+  ConnectorsPrimaryAction,
+  ConnectorsSection,
+} from '@genfeedai/props/pages/connectors.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { LayoutProps } from '@props/layout/layout.props';
 import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
@@ -11,10 +14,7 @@ import { Button } from '@ui/primitives/button';
 import { useRouter, useSelectedLayoutSegment } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import {
-  type ConnectorsPrimaryAction,
-  ConnectorsPrimaryActionContext,
-} from './connectors-primary-action';
+import { ConnectorsPrimaryActionContext } from './connectors-primary-action';
 import {
   CONNECTORS_ICON,
   CONNECTORS_SECTIONS,
