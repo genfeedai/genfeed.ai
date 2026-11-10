@@ -217,7 +217,7 @@ export function buildAgentClientChannelPage(
     channelName,
     channelSlug,
     description: isClaude
-      ? `Plan ${channelName} content in ${client.name} with your brand context, drafts, existing assets and analytics. Create new media in Genfeed Studio.`
+      ? `Plan ${channelName} content in ${client.name} with your brand context and drafts. Add the full Genfeed server as a second connector to generate media.`
       : `Connect ${client.name} to Genfeed for ${channelName}. Bring your brand context, media tools, and ${lowerNoun} into one creative workflow.`,
     faq: [
       {

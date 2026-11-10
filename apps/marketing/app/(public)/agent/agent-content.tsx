@@ -151,8 +151,8 @@ export default function AgentContent() {
           </div>
           <Text as="p" className="mt-4 text-center text-sm text-foreground/60">
             What an agent can do depends on its client. The Claude connector
-            drafts, schedules and reads analytics; create images, video and
-            audio in Genfeed Studio.
+            drafts, schedules and reads analytics; to generate images, video and
+            audio, add the full Genfeed server as a second connector.
           </Text>
         </section>
 
