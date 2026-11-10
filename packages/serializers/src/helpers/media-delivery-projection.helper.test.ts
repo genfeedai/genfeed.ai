@@ -58,6 +58,23 @@ describe('media delivery response projection', () => {
     expect(JSON.stringify(response)).toBe(snapshot);
   });
 
+  it('projects a grant onto a 3D model so the GLB is never served from its unsigned URL', () => {
+    const response = IngredientSerializer.serialize({
+      id,
+      category: 'MODEL_3D',
+      cdnUrl: 'https://cdn.example/original.glb',
+      s3Key: 'ingredients/models3d/original.glb',
+      metadata: { id: metadataId, label: 'Chair' },
+    });
+    expect(ingredientResponseIds(response)).toEqual([id]);
+    const projected = JSON.stringify(
+      projectMediaResponse(response, [preview], false),
+    );
+    expect(projected).toContain('protected-preview');
+    expect(projected).not.toContain('original.glb');
+    expect(projected).not.toContain('ingredients/models3d/');
+  });
+
   it('projects a grant onto the minimal ingredient rows of a serialized post list', () => {
     // The shape `PopulatePatterns.ingredientsMinimal` loads for the list.
     const response = PostListSerializer.serialize([

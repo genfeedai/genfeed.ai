@@ -63,6 +63,7 @@ enum IngredientCategory {
   INGREDIENT
   TEXT
   SOURCE
+  MODEL_3D
 }
 
 enum IngredientStatus {
@@ -143,6 +144,7 @@ enum MetadataExtension {
   AVI
   MP3
   WAV
+  GLB
 }
 
 enum PromptCategory {

@@ -28,6 +28,7 @@ import { CreativePatternsModule } from '@api/collections/creative-patterns/creat
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { InsightsModule } from '@api/collections/insights/insights.module';
+import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { BreakoutGenerationModule } from '@api/collections/outliers/breakout-generation.module';
@@ -39,6 +40,7 @@ import { SocialSourcesModule } from '@api/collections/social-sources/social-sour
 import { VoicesModule } from '@api/collections/voices/voices.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { Models3dBuildService } from '@api/endpoints/v1/models3d/services/models3d-build.service';
 import { HeygenPollModule } from '@api/queues/heygen-poll/heygen-poll.module';
 import { ReplicatePollModule } from '@api/queues/replicate-poll/replicate-poll.module';
 import { AgentCampaignOrchestratorModule } from '@api/services/agent-campaign/agent-campaign-orchestrator.module';
@@ -50,6 +52,7 @@ import { CampaignModule } from '@api/services/campaign/campaign.module';
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';
 import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
 import { TelegramDistributionModule } from '@api/services/distribution/telegram/telegram-distribution.module';
+import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { LowCreditThresholdModule } from '@api/services/low-credit-threshold/low-credit-threshold.module';
 import { MediaVisionEvaluationModule } from '@api/services/media-assessment/media-vision-evaluation.module';
@@ -159,6 +162,9 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => TaskOrchestrationModule),
     forwardRef(() => HeygenPollModule),
     ReplicatePollModule,
+    // The GLB build step of a 3D render chains off the replicate poll worker.
+    FilesClientModule,
+    MetadataModule,
     forwardRef(() => TelegramDistributionModule),
     forwardRef(() => WebhookClientModule),
     forwardRef(() => WhisperModule),
@@ -172,6 +178,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     LlmCostSettlementProcessor,
     HeygenPollProcessor,
     ReplicatePollProcessor,
+    Models3dBuildService,
     NotificationDeliveryProcessor,
     MediaPerceptionProcessor,
     MediaDeliveryProcessor,

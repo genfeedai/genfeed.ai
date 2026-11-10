@@ -4,6 +4,7 @@ import { IntegrationsModule } from '@api/endpoints/integrations/integrations.mod
 import { OnboardingModule } from '@api/endpoints/onboarding/onboarding.module';
 import { PublicModule } from '@api/endpoints/public/public.module';
 import { ManagedInferenceModule } from '@api/endpoints/v1/managed-inference/managed-inference.module';
+import { Models3dModule } from '@api/endpoints/v1/models3d/models3d.module';
 import { WebhooksModule } from '@api/endpoints/webhooks/webhooks.module';
 import { ArgilModule } from '@api/services/integrations/argil/argil.module';
 import { BeehiivModule } from '@api/services/integrations/beehiiv/beehiiv.module';
@@ -64,6 +65,7 @@ import { Module } from '@nestjs/common';
     MediumModule,
     LifecycleEmailsModule,
     ManagedInferenceModule,
+    Models3dModule,
     MicroservicesModule,
     ModelRouterModule,
     VideoRecipesModule,

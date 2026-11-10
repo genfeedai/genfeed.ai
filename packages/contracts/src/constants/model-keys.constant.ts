@@ -97,6 +97,7 @@ export const MODEL_KEYS = {
   FAL_LYRIA3_PRO: 'fal-ai/lyria3/pro',
   MUREKA_V9: 'mureka/v9',
   ARGIL_ATOM: 'argil/atom',
+  REPLICATE_FIRTOZ_TRELLIS: 'firtoz/trellis',
   HEYGEN_AVATAR: 'heygen/avatar',
   HEYGEN_AVATAR_IV: 'heygen/avatar-iv',
   HEYGEN_AVATAR_V: 'heygen/avatar-v',
