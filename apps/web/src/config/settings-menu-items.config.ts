@@ -300,7 +300,7 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       group: 'Brand',
       href: APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
       hrefScope: 'brand',
-      label: 'Connected accounts',
+      label: 'Accounts',
       outline: UsersRound,
       solid: UsersRound,
     },

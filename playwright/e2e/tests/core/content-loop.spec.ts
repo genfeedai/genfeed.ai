@@ -183,7 +183,7 @@ test.describe('Core Content Loop', () => {
 
     await analyticsPage.goto();
     await expect(analyticsPage.mainContent).toBeVisible();
-    // First-run orgs with no connected accounts render the empty overview
+    // First-run orgs with no accounts render the empty overview
     // instead of KPI/leaderboard chrome (QA 2026-09-09).
     await expect(
       authenticatedPage.getByRole('heading', {

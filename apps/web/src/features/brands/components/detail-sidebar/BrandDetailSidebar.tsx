@@ -10,7 +10,7 @@ import BrandDetailSocialMediaCard from '@/features/brands/components/sidebar/Bra
 /**
  * Public-profile column: visibility + connected accounts + website links.
  *
- * - With `manageSocialHref`, a "Connected accounts" section lists the accounts
+ * - With `manageSocialHref`, an "Accounts" section lists the accounts
  *   as rows with a Manage link (OAuth lives on /settings/accounts).
  * - Otherwise the full connect card owns the accounts.
  * - Website links are always their own section: the inline list +

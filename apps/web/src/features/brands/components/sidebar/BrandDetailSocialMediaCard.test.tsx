@@ -281,7 +281,7 @@ describe('BrandDetailSocialMediaCard', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Connected accounts' }),
+      screen.getByRole('heading', { name: 'Accounts' }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/connect accounts to display them here/i),

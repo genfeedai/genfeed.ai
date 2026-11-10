@@ -50,7 +50,7 @@ export function hasWarmupBlueprint(
 
 // Credentials that connect an ad or analytics account rather than a public
 // social profile: they have no profile page, avatar or follower presence, so
-// they stay on the Connected accounts page but never count as brand socials.
+// they stay on the Accounts page but never count as brand socials.
 const NON_SOCIAL_PROFILE_PLATFORMS = new Set<string>([
   CredentialPlatform.GOOGLE_ADS,
 ]);

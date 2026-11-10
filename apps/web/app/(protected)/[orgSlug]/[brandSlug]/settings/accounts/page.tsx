@@ -2,7 +2,7 @@ import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper
 import { Suspense } from 'react';
 import BrandConnectedAccountsPage from './content';
 
-export const generateMetadata = createPageMetadata('Connected accounts');
+export const generateMetadata = createPageMetadata('Accounts');
 
 export default function BrandConnectedAccountsRoute() {
   return (

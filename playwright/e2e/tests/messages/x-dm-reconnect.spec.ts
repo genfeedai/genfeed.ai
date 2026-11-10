@@ -108,7 +108,7 @@ test.describe('Reconnect X to enable DMs', () => {
     await mockBrandWithXAccounts(authenticatedPage);
   });
 
-  test('flags only the X account without DM access on Connected accounts', async ({
+  test('flags only the X account without DM access on Accounts', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(CONNECTED_ACCOUNTS_ROUTE, {

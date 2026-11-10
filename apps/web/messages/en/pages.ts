@@ -29,7 +29,6 @@ import brandAgentSettings from './pages/brandAgentSettings.json';
 import brandDetailOverview from './pages/brandDetailOverview.json';
 import brandEndCard from './pages/brandEndCard.json';
 import brandHarnessSettings from './pages/brandHarnessSettings.json';
-import brandIntegrations from './pages/brandIntegrations.json';
 import brandKitReview from './pages/brandKitReview.json';
 import brandKitSettings from './pages/brandKitSettings.json';
 import brandLinks from './pages/brandLinks.json';
@@ -111,7 +110,6 @@ const pages = {
   brandDetailOverview,
   brandEndCard,
   brandHarnessSettings,
-  brandIntegrations,
   brandKitReview,
   brandKitSettings,
   brandLinks,

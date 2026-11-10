@@ -11,7 +11,7 @@
     "confirmation": "Check action confirmation",
     "following": "Following",
     "followingDescription": "Your connected accounts’ curated feeds, together.",
-    "connectedAccounts": "Connected accounts",
+    "connectedAccounts": "Accounts",
     "refreshFeeds": "Refresh feeds",
     "loadingFeeds": "Loading your connected feeds…",
     "feedError": "Unable to load your feeds. Try refreshing.",

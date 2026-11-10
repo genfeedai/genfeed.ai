@@ -444,9 +444,7 @@ test.describe('Analytics Overview', () => {
       await expect(
         kpiCard(authenticatedPage, 'Avg Engagement Rate'),
       ).toContainText('6.62%');
-      await expect(
-        kpiCard(authenticatedPage, 'Connected Accounts'),
-      ).toContainText('3');
+      await expect(kpiCard(authenticatedPage, 'Accounts')).toContainText('3');
       await expect(
         kpiCard(authenticatedPage, 'Active Platforms'),
       ).toContainText('2');

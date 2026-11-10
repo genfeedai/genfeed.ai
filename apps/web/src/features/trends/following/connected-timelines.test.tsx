@@ -140,9 +140,7 @@ describe('connected Following feeds and native action confirmation', () => {
     expect(
       subbar.getByRole('button', { name: 'Refresh feeds' }),
     ).toBeInTheDocument();
-    expect(
-      subbar.getByRole('link', { name: 'Connected accounts' }),
-    ).toBeInTheDocument();
+    expect(subbar.getByRole('link', { name: 'Accounts' })).toBeInTheDocument();
   });
 
   it('requires a brand instead of querying with an empty brand on organization routes', () => {

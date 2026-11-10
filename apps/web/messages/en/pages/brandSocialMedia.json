@@ -23,7 +23,7 @@
   "connectPlatformError": "Failed to connect {platform}",
   "connectSocialAccountsDescription": "Connect your social media accounts to display them here.",
   "connected": "Connected",
-  "connectedAccounts": "Connected accounts",
+  "connectedAccounts": "Accounts",
   "connectedCount": "{count} connected",
   "connectingEllipsis": "Connecting…",
   "disconnect": "Disconnect",

@@ -5,7 +5,6 @@ import brandAgentSettings from '../../messages/en/pages/brandAgentSettings.json'
 import brandDetailOverview from '../../messages/en/pages/brandDetailOverview.json';
 import brandEndCard from '../../messages/en/pages/brandEndCard.json';
 import brandHarnessSettings from '../../messages/en/pages/brandHarnessSettings.json';
-import brandIntegrations from '../../messages/en/pages/brandIntegrations.json';
 import brandKitReview from '../../messages/en/pages/brandKitReview.json';
 import brandKitSettings from '../../messages/en/pages/brandKitSettings.json';
 import brandLinks from '../../messages/en/pages/brandLinks.json';
@@ -33,7 +32,6 @@ const messages = {
   brandSocialMedia,
   socialWarmup,
   credentialPostingTimes,
-  brandIntegrations,
   accountHistoryImport,
   brandWatermark,
   brandEndCard,

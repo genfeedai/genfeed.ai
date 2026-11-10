@@ -1237,7 +1237,7 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
       '/settings/brand-kit',
       '/settings/knowledge',
       '/settings/agent/receipts',
-      { path: '/settings/accounts', title: 'Connected accounts' },
+      { path: '/settings/accounts', title: 'Accounts' },
       '/settings/brand-kit/rules',
       '/settings/brand-kit/setup',
       '/settings/brand-kit/:tab',

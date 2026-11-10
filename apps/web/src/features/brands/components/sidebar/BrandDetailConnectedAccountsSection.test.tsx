@@ -34,7 +34,7 @@ describe('BrandDetailConnectedAccountsSection', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Connected accounts' }),
+      screen.getByRole('heading', { name: 'Accounts' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Manage' })).toHaveAttribute(
       'href',
