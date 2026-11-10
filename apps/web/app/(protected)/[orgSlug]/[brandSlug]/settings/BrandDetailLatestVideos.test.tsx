@@ -60,6 +60,12 @@ beforeEach(() => {
   navigation.app = 'https://app.example.test';
 });
 
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useHasAppsBeyondDashboard: () => true,
+  useIsAppAvailable: () => true,
+  useIsHrefAvailable: () => () => true,
+}));
+
 describe('BrandDetailLatestVideos', () => {
   const emptyCases = [
     ['empty', <BrandDetailLatestVideos key="empty" videos={[]} />],
