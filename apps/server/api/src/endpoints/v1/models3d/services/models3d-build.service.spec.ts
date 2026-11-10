@@ -1,4 +1,5 @@
 import { Models3dBuildService } from '@api/endpoints/v1/models3d/services/models3d-build.service';
+import { cropAngleSheet } from '@api/endpoints/v1/models3d/utils/grid-tiles.util';
 import { IngredientStatus } from '@genfeedai/contracts';
 
 vi.mock('@api/endpoints/v1/models3d/utils/grid-tiles.util', () => ({
@@ -120,6 +121,71 @@ describe('Models3dBuildService', () => {
         undefined,
         undefined,
         false,
+      );
+    });
+
+    it('builds the high tier on Rodin from the photo, four views and the subject', async () => {
+      vi.mocked(cropAngleSheet).mockResolvedValueOnce(
+        [0, 1, 2, 3, 5, 6, 7, 8].map((index) => ({
+          data: Buffer.from(`t${index}`),
+          index,
+        })),
+      );
+      const ctx = setup({
+        providerData: {
+          models3d: {
+            prompt: ' a two-storey house ',
+            quality: 'high',
+            sourceImageUrl: 'https://x.test/photo.png',
+          },
+        },
+        s3Key: 'ing/sheet',
+      });
+
+      await expect(ctx.service.startBuild('sheet-1')).resolves.toBeUndefined();
+
+      const [model, input] = ctx.replicate.runModel.mock.calls[0] ?? [];
+      expect(model).toBe('hyper3d/rodin');
+      expect(input).toEqual({
+        geometry_file_format: 'glb',
+        images: [
+          'https://x.test/photo.png',
+          'https://signed/up/child-1-view-2',
+          'https://signed/up/child-1-view-3',
+          'https://signed/up/child-1-view-6',
+          'https://signed/up/child-1-view-8',
+        ],
+        material: 'PBR',
+        mesh_mode: 'Quad',
+        prompt: 'a two-storey house',
+        quality: 'high',
+        seed: 42,
+        tier: 'Gen-2',
+      });
+      expect(ctx.pollQueue.schedule.mock.calls[0]?.[0]).not.toHaveProperty(
+        'outputKey',
+      );
+    });
+
+    it('describes the subject generically for the high tier when none was given', async () => {
+      vi.mocked(cropAngleSheet).mockResolvedValueOnce(
+        [2, 3, 6, 8].map((index) => ({ data: Buffer.from('t'), index })),
+      );
+      const ctx = setup({
+        providerData: {
+          models3d: {
+            quality: 'high',
+            sourceImageUrl: 'https://x.test/photo.png',
+          },
+        },
+        s3Key: 'ing/sheet',
+      });
+
+      await ctx.service.startBuild('sheet-1');
+
+      expect(ctx.replicate.runModel.mock.calls[0]?.[1]).toHaveProperty(
+        'prompt',
+        'the object shown in the images',
       );
     });
 

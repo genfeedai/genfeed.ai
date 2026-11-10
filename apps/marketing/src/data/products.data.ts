@@ -336,7 +336,7 @@ export const products: Product[] = [
       {
         problem: 'Every agent needs its own custom integration',
         solution:
-          'Connect Claude for brands, drafts, scheduling and analytics, with media creation in Genfeed Studio. Other agents use the full creative connector',
+          'Connect Claude for brands, drafts, scheduling and analytics, and add the full Genfeed server as a second connector for images, video and audio. Other agents use the full connector directly',
       },
       {
         problem: 'Pasting API keys into chats and config files',
@@ -352,7 +352,7 @@ export const products: Product[] = [
     category: 'Developer Tools',
     cta: 'Connect your agent',
     description:
-      'Connect any AI agent to Genfeed with the Model Context Protocol. Browser OAuth and tools to draft, schedule, publish and measure content. Claude connects to content operations and opens Genfeed Studio for media creation; other agents can generate through MCP.',
+      'Connect any AI agent to Genfeed with the Model Context Protocol. Browser OAuth and tools to draft, schedule, publish and measure content. Claude connects to content operations, and the full Genfeed server added as a second connector generates images, video and audio; other agents can generate through MCP.',
     features: [
       {
         description:

@@ -1,7 +1,7 @@
 import {
   buildModels3dSheetPrompt,
-  MODELS3D_BUILD_INPUT,
   MODELS3D_BUILD_MODEL_KEY,
+  MODELS3D_BUILD_TIERS,
   MODELS3D_SHEET_MODEL_KEY,
 } from '@api/endpoints/v1/models3d/models3d.constants';
 
@@ -11,14 +11,24 @@ describe('models3d constants', () => {
     expect(MODELS3D_BUILD_MODEL_KEY).toBe('firtoz/trellis');
   });
 
-  it('builds at texture 2048, simplify 0.95 and a fixed seed', () => {
-    expect(MODELS3D_BUILD_INPUT).toMatchObject({
+  it('builds the standard tier at texture 2048, simplify 0.95 and a fixed seed', () => {
+    expect(MODELS3D_BUILD_TIERS.standard.input).toMatchObject({
       generate_model: true,
       mesh_simplify: 0.95,
       randomize_seed: false,
       seed: 42,
       texture_size: 2048,
     });
+  });
+
+  it('builds the high tier on Rodin Gen-2 from the photo plus four views', () => {
+    expect(MODELS3D_BUILD_TIERS.high).toMatchObject({
+      input: { geometry_file_format: 'glb', quality: 'high', tier: 'Gen-2' },
+      isPromptRequired: true,
+      modelKey: 'hyper3d/rodin',
+      viewIndexes: [2, 3, 6, 8],
+    });
+    expect(MODELS3D_BUILD_TIERS.high.outputKey).toBeUndefined();
   });
 
   describe('buildModels3dSheetPrompt', () => {
