@@ -1,4 +1,5 @@
 import {
+  buildCancellableExecutionWhere,
   buildCustomerExecutionWhere,
   resolveCustomerExecutionWorkflowIds,
 } from '@api/collections/workflow-executions/services/workflow-execution-query.util';
@@ -105,8 +106,12 @@ type FakeWorkflow = {
   systemWorkflowKind?: string;
 };
 type FakeExecution = {
+  id?: string;
   organizationId: string;
   isDeleted: boolean;
+  userId?: string | null;
+  dispatchClass?: string | null;
+  threadId?: string | null;
   workflowId?: string;
   status?: string;
   trigger?: string;
@@ -221,6 +226,88 @@ function batchParentExecution(
     ...overrides,
   };
 }
+
+function chatTurnExecution(
+  overrides: Partial<FakeExecution> = {},
+): FakeExecution {
+  return {
+    id: 'run-1',
+    organizationId: 'org-1',
+    isDeleted: false,
+    userId: 'user-1',
+    canonicalId: 'agent.turn.execute',
+    source: 'AgentTurnAcceptanceService.accept',
+    dispatchClass: 'interactive',
+    threadId: 'thread-1',
+    workflow: {
+      organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+      isDeleted: false,
+      systemWorkflowCanonicalId: 'agent.turn.execute',
+    },
+    ...overrides,
+  };
+}
+
+function isCancellable(execution: FakeExecution): boolean {
+  return evaluateFilter(
+    execution as unknown as Record<string, unknown>,
+    buildCancellableExecutionWhere(
+      'org-1',
+      'user-1',
+      'run-1',
+    ) as unknown as Record<string, unknown>,
+  );
+}
+
+describe('who may stop a run (behavioral)', () => {
+  it('hides a chat turn from customer activity', () => {
+    expect(isVisible(chatTurnExecution(), 'org-1')).toBe(false);
+  });
+
+  it.each([
+    ['their own chat turn', chatTurnExecution(), true],
+    [
+      'their own card action',
+      chatTurnExecution({ canonicalId: 'agent.thread.ui-action' }),
+      true,
+    ],
+    [
+      'their own answer to a question card',
+      chatTurnExecution({ canonicalId: 'agent.thread.input-response' }),
+      true,
+    ],
+    [
+      'a run in their customer activity',
+      batchParentExecution({ id: 'run-1' }),
+      true,
+    ],
+    ["a teammate's chat turn", chatTurnExecution({ userId: 'user-2' }), false],
+    [
+      "another organization's chat turn",
+      chatTurnExecution({ organizationId: 'org-2' }),
+      false,
+    ],
+    ['a deleted chat turn', chatTurnExecution({ isDeleted: true }), false],
+    ['a different run id', chatTurnExecution({ id: 'run-2' }), false],
+    [
+      'a background agent run',
+      chatTurnExecution({ dispatchClass: 'background' }),
+      false,
+    ],
+    [
+      'an agent run outside a thread',
+      chatTurnExecution({ threadId: null }),
+      false,
+    ],
+    [
+      'another hidden system workflow',
+      chatTurnExecution({ canonicalId: 'some.other.system-workflow' }),
+      false,
+    ],
+  ])('lets the caller stop %s: %s', (_label, execution, expected) => {
+    expect(isCancellable(execution)).toBe(expected);
+  });
+});
 
 describe('batch execution visibility (behavioral, #5398)', () => {
   it('includes a same-org batch parent execution', () => {

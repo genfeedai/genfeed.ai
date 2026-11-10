@@ -6,7 +6,10 @@ import {
   UpdateWorkflowExecutionDto,
   WorkflowExecutionQueryDto,
 } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
-import { buildCustomerExecutionWhere } from '@api/collections/workflow-executions/services/workflow-execution-query.util';
+import {
+  buildCancellableExecutionWhere,
+  buildCustomerExecutionWhere,
+} from '@api/collections/workflow-executions/services/workflow-execution-query.util';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { AGENT_CONVERSATION_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
@@ -416,9 +419,13 @@ export class WorkflowExecutionsController {
     @Param('id') id: string,
     @Body() dto: UpdateWorkflowExecutionDto,
   ) {
-    // Verify ownership first
+    // Verify ownership first. Stop in the agent chat lands here too.
     const execution = await this.workflowExecutionsService.findOneSelect(
-      { ...buildCustomerExecutionWhere(user.organizationId), id },
+      buildCancellableExecutionWhere(
+        user.organizationId,
+        user.userId ?? user.id,
+        id,
+      ),
       { id: true },
     );
 
