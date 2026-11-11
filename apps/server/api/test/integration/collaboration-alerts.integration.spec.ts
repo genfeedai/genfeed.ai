@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CollaborationAlertsService } from '@api/services/collaboration-alerts/collaboration-alerts.service';
+import { MentionAlertListener } from '@api/services/collaboration-alerts/listeners/mention-alert.listener';
 import { NotificationInboxService } from '@api/services/notifications/inbox/notification-inbox.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivityKey } from '@genfeedai/contracts';
@@ -285,6 +286,32 @@ describe('Collaboration alerts (real Postgres)', () => {
     const { docs } = await inbox.list(organizationId, reviewer);
     expect(docs[0]).toMatchObject({
       activity: expect.objectContaining({ key: ActivityKey.MENTIONED }),
+      sourceHref: `/collab/collab-brand/agent/${threadId}`,
+    });
+  });
+
+  it('turns a validated mention event into one bell item for the mentioned member', async () => {
+    const listener = new MentionAlertListener(alerts);
+    const threadId = `thread-${randomUUID()}`;
+    const before = (await bellItems(bystander)).length;
+
+    await listener.handleMentionCreated({
+      actorUserId: requester,
+      brandId,
+      label: 'Q4 launch',
+      mentionedUserId: bystander,
+      organizationId,
+      source: { id: `message-${randomUUID()}`, type: 'agent_thread' },
+      threadId,
+    });
+
+    expect((await bellItems(bystander)).length - before).toBe(1);
+    const { docs } = await inbox.list(organizationId, bystander);
+    expect(docs[0]).toMatchObject({
+      activity: expect.objectContaining({
+        key: ActivityKey.MENTIONED,
+        value: 'Riley mentioned you in “Q4 launch”.',
+      }),
       sourceHref: `/collab/collab-brand/agent/${threadId}`,
     });
   });
