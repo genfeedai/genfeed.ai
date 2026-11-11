@@ -718,14 +718,18 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     // mode promises a confirmation before credits are spent. This turn skips
     // the model and charges immediately, so a Plan or Manual thread takes the
     // normal path below instead (the plan, or the `generate` review card with
-    // model and cost), whether the media mode was locked or inferred.
+    // model and cost), whether the media mode was locked or inferred. A turn
+    // sent in another member's thread (#9963) takes it too: the owner's Auto
+    // never charges for someone else's turn, and the tools there follow the
+    // sender's own mode.
     const thread = await this.agentThreadsService.findOneSelect(
       { id: state.threadId, organizationId: state.organizationId },
-      { mode: true },
+      { mode: true, userId: true },
     );
     if (
       thread?.mode === AgentThreadMode.PLAN ||
-      thread?.mode === AgentThreadMode.MANUAL
+      thread?.mode === AgentThreadMode.MANUAL ||
+      (thread && thread.userId !== state.userId)
     ) {
       return null;
     }
