@@ -10,6 +10,7 @@ import IngredientReviewPanel from './ingredient-review-panel';
 const mocks = vi.hoisted(() => ({
   approve: vi.fn(),
   listForIngredient: vi.fn(),
+  listMessages: vi.fn(),
   requestChanges: vi.fn(),
 }));
 
@@ -22,6 +23,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     approve: mocks.approve,
     listCandidates: async () => [],
     listForIngredient: mocks.listForIngredient,
+    listMessages: mocks.listMessages,
     requestChanges: mocks.requestChanges,
   }),
 }));
@@ -91,6 +93,7 @@ describe('IngredientReviewPanel (#9948)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.approve.mockResolvedValue({});
+    mocks.listMessages.mockResolvedValue([]);
     mocks.requestChanges.mockResolvedValue({});
   });
 
@@ -115,6 +118,35 @@ describe('IngredientReviewPanel (#9948)', () => {
     ).toHaveAttribute('href', '/acme/brand/agent/thread-1');
     // One reviewer asked for changes, so the asset as a whole needs changes.
     expect(screen.getAllByText('Changes requested').length).toBeGreaterThan(0);
+  });
+
+  it('opens the thread with the requester in the panel when the viewer was asked', async () => {
+    mocks.listForIngredient.mockResolvedValue([
+      request({ assigneeUserId: 'user-1', userId: 'user-2' }),
+    ]);
+    mocks.listMessages.mockResolvedValue([
+      {
+        content: 'Please check the 14-day claim.',
+        createdAt: '2026-11-11T10:05:00Z',
+        id: 'm1',
+        role: 'user',
+        userId: 'user-2',
+      },
+    ]);
+
+    render(<IngredientReviewPanel ingredient={ASSET} />);
+
+    expect(
+      await screen.findByText('Please check the 14-day claim.'),
+    ).toBeInTheDocument();
+    expect(mocks.listMessages).toHaveBeenCalledWith(
+      'thread-1',
+      expect.anything(),
+    );
+    expect(screen.getByText('Thread with Marco Rossi')).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', { name: 'Reply in thread' }),
+    ).toBeInTheDocument();
   });
 
   it('leaves dismissed requests out and falls back to the asset state with no requests', async () => {

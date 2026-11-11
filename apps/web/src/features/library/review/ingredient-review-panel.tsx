@@ -26,7 +26,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { Textarea } from '@ui/primitives/textarea';
-import { Check, MessageSquare, UserCheck, X } from 'lucide-react';
+import { Check, ExternalLink, MessageSquare, UserCheck, X } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -34,6 +34,7 @@ import { useAgentThreadMembers } from '@/components/workspace-shell/use-agent-th
 import { dispatchLibraryAssetsRefresh } from '@/features/ingredients/hooks/library-assets-refresh';
 import LibraryReviewBadge from './library-review-badge';
 import RequestReviewDialog from './request-review-dialog';
+import ReviewThread from './review-thread';
 import {
   INGREDIENT_REVIEW_REQUESTS_QUERY_KEY,
   useIngredientReviewRequests,
@@ -78,6 +79,9 @@ export default function IngredientReviewPanel({
   const [isAskingChanges, setIsAskingChanges] = useState(false);
   const [changesNote, setChangesNote] = useState('');
   const [isDeciding, setIsDeciding] = useState(false);
+  const [activeThreadRequestId, setActiveThreadRequestId] = useState<
+    string | null
+  >(null);
 
   const openRequests = useMemo(
     () => requests.filter((request) => request.reviewState !== 'dismissed'),
@@ -92,6 +96,27 @@ export default function IngredientReviewPanel({
       request.assigneeUserId === viewerUserId &&
       request.reviewState === PENDING,
   );
+  const threadRequests = useMemo(
+    () =>
+      openRequests.filter(
+        (request) =>
+          Boolean(request.planningThreadId) &&
+          (request.userId === viewerUserId ||
+            request.assigneeUserId === viewerUserId),
+      ),
+    [openRequests, viewerUserId],
+  );
+  const activeThreadRequest =
+    threadRequests.find((request) => request.id === activeThreadRequestId) ??
+    threadRequests.find((request) => request.assigneeUserId === viewerUserId) ??
+    threadRequests[0];
+  const counterpartId =
+    activeThreadRequest?.assigneeUserId === viewerUserId
+      ? activeThreadRequest?.userId
+      : activeThreadRequest?.assigneeUserId;
+  const counterpartName =
+    (counterpartId ? membersById.get(counterpartId)?.name : undefined) ??
+    translate('teammate');
   const requesterName = myRequest?.userId
     ? membersById.get(myRequest.userId)?.name
     : undefined;
@@ -232,24 +257,49 @@ export default function IngredientReviewPanel({
                 <Badge status={request.reviewState}>
                   {translate(`decision.${request.reviewState}`)}
                 </Badge>
-                {request.planningThreadId ? (
-                  <Link
-                    aria-label={translate('openThread', { name })}
-                    className={buttonVariants({
-                      size: ButtonSize.ICON,
-                      variant: ButtonVariant.GHOST,
-                    })}
-                    href={href(
-                      `${APP_ROUTES.AGENT.ROOT}/${request.planningThreadId}`,
-                    )}
+                {threadRequests.length > 1 &&
+                threadRequests.some((item) => item.id === request.id) ? (
+                  <Button
+                    ariaLabel={translate('showThread', { name })}
+                    isPressed={activeThreadRequest?.id === request.id}
+                    onClick={() => setActiveThreadRequestId(request.id)}
+                    size={ButtonSize.ICON}
+                    variant={ButtonVariant.GHOST}
                   >
                     <MessageSquare aria-hidden="true" className="size-4" />
-                  </Link>
+                  </Button>
                 ) : null}
               </li>
             );
           })}
         </ul>
+      ) : null}
+
+      {activeThreadRequest?.planningThreadId ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate text-xs text-muted-foreground">
+              {translate('threadWith', { name: counterpartName })}
+            </span>
+            <Link
+              aria-label={translate('openThread', { name: counterpartName })}
+              className={buttonVariants({
+                size: ButtonSize.ICON,
+                variant: ButtonVariant.GHOST,
+              })}
+              href={href(
+                `${APP_ROUTES.AGENT.ROOT}/${activeThreadRequest.planningThreadId}`,
+              )}
+            >
+              <ExternalLink aria-hidden="true" className="size-4" />
+            </Link>
+          </div>
+          <ReviewThread
+            ingredient={ingredient}
+            key={activeThreadRequest.planningThreadId}
+            threadId={activeThreadRequest.planningThreadId}
+          />
+        </div>
       ) : null}
 
       <RequestReviewDialog
