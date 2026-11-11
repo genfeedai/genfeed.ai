@@ -4,7 +4,7 @@ import {
   STUDIO_APP_ROUTE_PREFIXES,
 } from '@genfeedai/contracts/constants';
 
-export const BRAND_SCOPED_PREFIXES = [
+const BRAND_SCOPED_PREFIXES = [
   APP_ROUTE_PREFIXES.ANALYTICS.slice(1),
   APP_ROUTE_PREFIXES.AGENT.slice(1),
   APP_ROUTE_PREFIXES.LIBRARY.slice(1),
