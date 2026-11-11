@@ -341,7 +341,9 @@ describe('BrandDetail', () => {
       AssetScope.BRAND,
     );
     expect(
-      screen.getByText('Manage social: /org-one/~/connectors/channels?brand=brand-handle'),
+      screen.getByText(
+        'Manage social: /org-one/~/connectors/channels?brand=brand-handle',
+      ),
     ).toBeInTheDocument();
   });
 });
