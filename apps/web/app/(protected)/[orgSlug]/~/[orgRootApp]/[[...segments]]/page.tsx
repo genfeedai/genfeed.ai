@@ -40,7 +40,6 @@ import { loadProtectedBootstrap } from '@/server/protected-bootstrap.server';
 import AssetDeepLink from '../../../[brandSlug]/library/assets/asset-deep-link';
 import LibraryCaptionsPage from '../../../[brandSlug]/library/captions/page';
 import ImportedLibrary from '../../../[brandSlug]/library/imported/imported-library';
-import LibraryCreditNotice from '../../../[brandSlug]/library/library-credit-notice';
 import LibraryCharactersPage from '../../../[brandSlug]/library/references/content';
 import LibraryVoicesPage from '../../../[brandSlug]/library/voices/library-voices-page';
 import OutreachSequenceNewRoute from '../../../[brandSlug]/messages/outreach/new/page';
@@ -105,7 +104,6 @@ function OrgLibraryBrowserPage({ segments }: { segments: string[] }) {
       seededCategories={preset?.categories}
       shelf={shelf}
     >
-      {place === LibraryPlace.ASSETS ? <LibraryCreditNotice /> : null}
       <Suspense fallback={null}>
         {place === LibraryPlace.ASSETS ? <AssetDeepLink /> : null}
         <IngredientsList
