@@ -27,6 +27,8 @@ export const LIBRARY_QUERY_KEYS = {
    */
   ORIGINS: 'origins',
   PLACE: 'place',
+  /** Teammate-review state (`?review=in_review`). A filter, never a tab. */
+  REVIEW: 'review',
   SHELF: 'shelf',
   SEARCH: 'search',
   SORT: 'sort',

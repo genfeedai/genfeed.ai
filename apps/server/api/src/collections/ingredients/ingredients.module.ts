@@ -23,6 +23,7 @@ import { IngredientCharacterFilterService } from '@api/collections/ingredients/s
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientGenerationCostService } from '@api/collections/ingredients/services/ingredient-generation-cost.service';
 import { IngredientLineageService } from '@api/collections/ingredients/services/ingredient-lineage.service';
+import { IngredientReviewStateService } from '@api/collections/ingredients/services/ingredient-review-state.service';
 import { IngredientTagsService } from '@api/collections/ingredients/services/ingredient-tags.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
@@ -71,6 +72,7 @@ import { Module } from '@nestjs/common';
     IngredientGenerationCancellationService,
     IngredientGenerationCostService,
     IngredientLineageService,
+    IngredientReviewStateService,
     IngredientTagsService,
     IngredientsService,
   ],

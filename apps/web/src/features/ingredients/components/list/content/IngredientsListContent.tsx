@@ -41,14 +41,12 @@ import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
-import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
-import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import {
   Eye,
   Film,
@@ -62,7 +60,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import IngredientReviewActions from '@/components/ingredients/IngredientReviewActions';
 import IngredientOriginBadge from '@/components/ingredients/ingredient-origin-badge';
 import IngredientTagChips from '@/components/ingredients/ingredient-tag-chips';
 import { requestLibraryAssetRename } from '@/components/ingredients/inspector/library-asset-metadata-event';
@@ -77,6 +74,7 @@ import { groupIngredientsByTime } from '@/components/ingredients/list/media-grid
 import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import FailedIngredientsRecovery from '@/features/ingredients/components/ingredients/list/recovery/FailedIngredientsRecovery';
 import IngredientSound from '@/features/ingredients/components/ingredients/sound/IngredientSound';
+import IngredientStatusCell from '@/features/ingredients/components/list/content/IngredientStatusCell';
 import type { IngredientsListContentProps } from '@/features/ingredients/props/ingredients-list.props';
 import type { IngredientTimeGroupHeadingProps } from '@/props/content/ingredient.props';
 
@@ -580,25 +578,11 @@ export default function IngredientsListContent({
         header: translate('browser.columns.status'),
         key: 'status',
         render: (ingredient: IIngredient) => (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <DropdownStatus
-              entity={ingredient}
-              onStatusChange={(_newStatus, updatedIngredient) => {
-                if (updatedIngredient) {
-                  handleReviewUpdated(updatedIngredient as IIngredient);
-                }
-              }}
-            />
-            {isActionsEnabled ? (
-              // Approve/reject are row actions: shown on row hover or focus.
-              <div className={hoverRevealClassName({ at: 'lg' })}>
-                <IngredientReviewActions
-                  ingredient={ingredient}
-                  onUpdated={handleReviewUpdated}
-                />
-              </div>
-            ) : null}
-          </div>
+          <IngredientStatusCell
+            ingredient={ingredient}
+            isActionsEnabled={isActionsEnabled}
+            onUpdated={handleReviewUpdated}
+          />
         ),
       },
     ],

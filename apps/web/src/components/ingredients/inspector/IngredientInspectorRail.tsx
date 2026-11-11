@@ -55,6 +55,7 @@ import { useCallback } from 'react';
 import IngredientOriginBadge from '@/components/ingredients/ingredient-origin-badge';
 import LibraryAssetTypeBadge from '@/components/ingredients/library-asset-type-badge';
 import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
+import IngredientReviewPanel from '@/features/library/review/ingredient-review-panel';
 import type { IngredientInspectorRailProps } from '@/props/content/ingredient.props';
 import IngredientLineageStrip from './IngredientLineageStrip';
 import IngredientMetadataFields from './IngredientMetadataFields';
@@ -341,6 +342,10 @@ export default function IngredientInspectorRail({
           </Badge>
         ) : null}
       </div>
+
+      {isAgentAvailable && shelf !== LibraryShelf.FAILED ? (
+        <IngredientReviewPanel ingredient={ingredient} key={ingredient.id} />
+      ) : null}
 
       <dl className="flex flex-col divide-y divide-foreground/5">
         <div className="flex items-baseline justify-between gap-3 py-1.5">

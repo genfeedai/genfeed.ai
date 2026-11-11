@@ -5,6 +5,7 @@ import type {
   IngredientFormat,
   IngredientOrigin,
   IngredientStatus,
+  LibraryReviewState,
   QualityStatus,
   TransformationCategory,
 } from '../..';
@@ -121,6 +122,8 @@ export interface IIngredient extends IBaseEntity {
   contentRating?: string;
   campaign?: string;
   evaluation?: IEvaluation | null;
+  /** Summed teammate-review state; null when no review was requested. */
+  reviewState?: LibraryReviewState | null;
   /**
    * Generation ledger, serialized from the row that produced the asset. A
    * FAILED asset carries the provider's reason in `generationError`; the
