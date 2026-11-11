@@ -455,6 +455,8 @@ enum AgentTransferDeliveryMode {
 }
 
 enum AgentTransferStatus {
+  AWAITING_ACCEPTANCE
+  DECLINED
   PENDING
   DELIVERED
   QUEUED
@@ -5248,6 +5250,10 @@ model AgentTransfer {
   sourceThread                AgentThread               @relation("agent_transfer_source_thread", fields: [sourceThreadId], references: [id])
   destinationThreadId         String
   destinationThread           AgentThread               @relation("agent_transfer_destination_thread", fields: [destinationThreadId], references: [id])
+  /// The member the destination thread belongs to when a hand-off crosses to a
+  /// teammate (#9940). Null for a hand-off between the sender's own threads.
+  /// A plain id: access is re-read from membership on every request.
+  destinationUserId           String?
   sourceMessageId             String?
   destinationMessageId        String?
   destinationExecutionId      String?                   @unique
@@ -5282,6 +5288,7 @@ model AgentTransfer {
   @@index([organizationId, userId, sourceThreadId, isDeleted, createdAt(sort: Desc)], map: "agent_transfers_source_thread_idx")
   @@index([organizationId, userId, destinationThreadId, isDeleted, createdAt(sort: Desc)], map: "agent_transfers_destination_thread_idx")
   @@index([organizationId, destinationExecutionId, isDeleted], map: "agent_transfers_destination_execution_idx")
+  @@index([organizationId, destinationUserId, destinationThreadId, isDeleted, createdAt(sort: Desc)], map: "agent_transfers_destination_user_idx")
   @@map("agent_transfers")
 }
 

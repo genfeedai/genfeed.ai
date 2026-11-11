@@ -1,3 +1,4 @@
+import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { AgentTransfersController } from '@api/collections/agent-transfers/controllers/agent-transfers.controller';
 import { AgentTransfersService } from '@api/collections/agent-transfers/services/agent-transfers.service';
 import { AgentArtifactReferenceService, SERVER_TOKENS } from '@api/index';
@@ -9,7 +10,7 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [AgentTransfersController],
   exports: [AgentTransfersService],
-  imports: [AgentOrchestratorModule],
+  imports: [AgentOrchestratorModule, AgentThreadsModule],
   providers: [
     AgentArtifactReferenceService,
     AgentTransfersService,
