@@ -1,4 +1,5 @@
 import { AgentCardCollapseToggle } from '@genfeedai/agent/components/AgentCardCollapseToggle';
+import { useAgentHandoff } from '@genfeedai/agent/components/AgentHandoffContext';
 import { useAgentThreadOpen } from '@genfeedai/agent/components/AgentThreadOpenContext';
 import { useAgentThreadResolution } from '@genfeedai/agent/components/AgentThreadResolutionContext';
 import {
@@ -40,6 +41,7 @@ interface AgentTransferProvenanceCardProps {
 
 const TERMINAL_SUCCESS = new Set(['COMPLETED', 'DELIVERED']);
 const ACTIVE = new Set(['PENDING', 'QUEUED', 'RUNNING']);
+const AWAITING_ACCEPTANCE = 'AWAITING_ACCEPTANCE';
 
 function readTransfer(
   action: AgentUiActionOf<'agent_transfer_card'>,
@@ -67,9 +69,23 @@ export function AgentTransferProvenanceCard({
     transfer?.status ?? String(action.data?.status ?? 'PENDING');
   const [localStatus, setLocalStatus] = useState<string | null>(null);
   const status = localStatus ?? persistedStatus;
+  // A hand-off crosses to a teammate's thread: the card names the teammate and
+  // never links a conversation the viewer cannot open (#9940).
+  const isHandoff = Boolean(
+    transfer?.destinationUserId &&
+      transfer.destinationUserId !== transfer.userId,
+  );
+  const handoff = useAgentHandoff();
+  const teammateId =
+    direction === 'inbound' ? transfer?.userId : transfer?.destinationUserId;
+  const teammateName =
+    (teammateId ? handoff?.nameOf(teammateId) : undefined) ??
+    translate('teammateFallback');
+  const [isAnswering, setIsAnswering] = useState(false);
   const content = transfer?.content ?? String(action.data?.content ?? '');
-  const counterpartId =
-    direction === 'inbound'
+  const counterpartId = isHandoff
+    ? undefined
+    : direction === 'inbound'
       ? transfer?.sourceThreadId
       : (transfer?.destinationThreadId ??
         (typeof action.data?.destinationThreadId === 'string'
@@ -86,7 +102,9 @@ export function AgentTransferProvenanceCard({
     ? (resolution?.isPending(counterpartId) ?? false)
     : false;
   const isFailed = status === 'FAILED' || status === 'DEPTH_LIMIT_REACHED';
-  const [isExpanded, setIsExpanded] = useState(isFailed);
+  const isAwaitingMyAnswer =
+    isHandoff && direction === 'inbound' && status === AWAITING_ACCEPTANCE;
+  const [isExpanded, setIsExpanded] = useState(isFailed || isAwaitingMyAnswer);
   const [isRetrying, setIsRetrying] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const createdAt = transfer?.createdAt
@@ -131,6 +149,35 @@ export function AgentTransferProvenanceCard({
     }
   };
 
+  const answer = async (decision: 'accept' | 'decline') => {
+    if (!handoff || !transfer?.id || isAnswering) return;
+    setIsAnswering(true);
+    setLocalError(null);
+    try {
+      const updated =
+        decision === 'accept'
+          ? await handoff.accept(transfer.id)
+          : await handoff.decline(transfer.id);
+      setLocalStatus(
+        updated.status ?? (decision === 'accept' ? 'PENDING' : 'DECLINED'),
+      );
+    } catch (error: unknown) {
+      setLocalError(
+        error instanceof Error ? error.message : translate('answerFailed'),
+      );
+    } finally {
+      setIsAnswering(false);
+    }
+  };
+
+  const headerTitle = isHandoff
+    ? translate(direction === 'inbound' ? 'handoffFrom' : 'handoffTo', {
+        name: teammateName,
+      })
+    : `${direction === 'inbound' ? 'Received from' : 'Sent to'} ${
+        counterpartTitle || 'conversation'
+      }`;
+
   const header = (
     <div className="flex min-w-0 items-center gap-2">
       {direction === 'inbound' ? (
@@ -140,8 +187,7 @@ export function AgentTransferProvenanceCard({
       )}
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium text-foreground/90">
-          {direction === 'inbound' ? 'Received from' : 'Sent to'}{' '}
-          {counterpartTitle || 'conversation'}
+          {headerTitle}
         </div>
       </div>
       <span
@@ -230,6 +276,28 @@ export function AgentTransferProvenanceCard({
       <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/90">
         {content}
       </p>
+      {isHandoff &&
+      direction === 'outbound' &&
+      status === AWAITING_ACCEPTANCE ? (
+        <p
+          className="text-sm text-muted-foreground"
+          data-testid="agent-handoff-waiting"
+        >
+          {translate('waitingFor', { name: teammateName })}
+        </p>
+      ) : null}
+      {isHandoff && direction === 'inbound' ? (
+        <p
+          className="text-sm text-muted-foreground"
+          data-testid="agent-handoff-note"
+        >
+          {isAwaitingMyAnswer
+            ? translate('runsWithYourPermissions')
+            : status === 'DECLINED'
+              ? translate('declinedByYou', { name: teammateName })
+              : translate('accepted')}
+        </p>
+      ) : null}
       {transfer?.completionSummary ? (
         <p className="border-l-2 border-success/40 pl-3 text-sm text-muted-foreground">
           {transfer.completionSummary}
@@ -277,7 +345,33 @@ export function AgentTransferProvenanceCard({
             {primaryCta.label}
           </Button>
         ) : null}
-        {status === 'FAILED' && transfer?.deliveryMode === 'SEND_AND_RUN' ? (
+        {isAwaitingMyAnswer ? (
+          <>
+            <Button
+              data-testid="agent-handoff-accept"
+              isDisabled={!handoff || isAnswering}
+              onClick={() => void answer('accept')}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
+            >
+              {translate('accept')}
+            </Button>
+            <Button
+              data-testid="agent-handoff-decline"
+              isDisabled={!handoff || isAnswering}
+              onClick={() => void answer('decline')}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            >
+              {translate('decline')}
+            </Button>
+          </>
+        ) : null}
+        {status === 'FAILED' &&
+        transfer?.deliveryMode === 'SEND_AND_RUN' &&
+        !(isHandoff && direction === 'outbound') ? (
           <Button
             isDisabled={!apiService || isRetrying}
             size={ButtonSize.SM}

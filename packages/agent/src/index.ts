@@ -8,6 +8,10 @@ export type { ExtractedMention } from '@genfeedai/agent/components/AgentChatInpu
 export { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
 export { AgentChatMessage } from '@genfeedai/agent/components/AgentChatMessage';
 export { AgentFullPage } from '@genfeedai/agent/components/AgentFullPage';
+export {
+  type AgentHandoffActions,
+  AgentHandoffProvider,
+} from '@genfeedai/agent/components/AgentHandoffContext';
 export { AgentIconStrip } from '@genfeedai/agent/components/AgentIconStrip';
 export { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInputRequestOverlay';
 export { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';

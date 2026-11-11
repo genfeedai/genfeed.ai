@@ -414,12 +414,22 @@
     "validationRequired": "Choose a time and at least one healthy channel."
   },
   "transferProvenance": {
+    "accept": "Accept",
+    "accepted": "Accepted. Your agent is on it.",
+    "answerFailed": "Could not send your answer. Try again.",
     "copy": "Copy",
+    "decline": "Decline",
+    "declinedByYou": "Declined. {name} was told.",
+    "handoffFrom": "{name} handed this to your agent",
+    "handoffTo": "Handed to {name}",
     "openConversation": "Open conversation",
     "openInThreads": "Open in Threads",
     "reopen": "Reopen",
     "resolve": "Resolve",
-    "resolved": "Resolved"
+    "resolved": "Resolved",
+    "runsWithYourPermissions": "It runs with your permissions once you accept.",
+    "teammateFallback": "a teammate",
+    "waitingFor": "Waiting for {name} to accept."
   },
   "settings": {
     "autoDescription": "Use the platform default model",

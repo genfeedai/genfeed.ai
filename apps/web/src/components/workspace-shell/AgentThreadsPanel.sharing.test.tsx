@@ -5,6 +5,8 @@ import {
   AgentThreadShareLevel,
   AgentThreadShareScope,
   AgentThreadStatus,
+  AgentTransferDeliveryMode,
+  AgentTransferStatus,
 } from '@genfeedai/contracts';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -134,7 +136,45 @@ const promptThread = makeThread('prompt', 'Bundle video hooks', {
   canManageShares: false,
   userId: MARCO,
 });
-const threads = [ownThread, viewThread, promptThread];
+// A hand-off Ana sent to this viewer: a thread of theirs with the request in it.
+const handoffThread = makeThread('handoff', 'Review the queued post', {
+  accessLevel: AgentThreadAccessLevel.OWNER,
+  attentionState: 'updated',
+  brandId: 'brand-a',
+  canManageShares: true,
+  userId: ME,
+});
+const threads = [ownThread, viewThread, promptThread, handoffThread];
+
+const handoffMessages: AgentChatMessage[] = [
+  {
+    content: 'Review the queued post and tighten the hook.',
+    createdAt: '2026-10-29T08:01:00Z',
+    id: 'h1',
+    metadata: {
+      agentTransfer: {
+        direction: 'inbound',
+        transfer: {
+          content: 'Review the queued post and tighten the hook.',
+          createdAt: '2026-10-29T08:01:00Z',
+          deliveryMode: AgentTransferDeliveryMode.SEND_AND_RUN,
+          destinationThreadId: 'handoff',
+          destinationUserId: ME,
+          direction: 'inbound',
+          id: 'transfer-9',
+          progress: 0,
+          retryCount: 0,
+          sourceThreadId: 'ana-thread',
+          status: AgentTransferStatus.AWAITING_ACCEPTANCE,
+          userId: ANA,
+        },
+        transferId: 'transfer-9',
+      },
+    },
+    role: 'system',
+    threadId: 'handoff',
+  },
+];
 
 const sharedMessages: AgentChatMessage[] = [
   {
@@ -158,7 +198,13 @@ const sharedMessages: AgentChatMessage[] = [
 // real server would hold after each change.
 let liveShares: AgentThreadShare[] = [];
 const apiService = {
+  acceptAgentTransfer: vi.fn(async () => ({
+    status: AgentTransferStatus.PENDING,
+  })),
   chatStream: vi.fn(),
+  createAgentHandoff: vi.fn(async () => ({
+    status: AgentTransferStatus.AWAITING_ACCEPTANCE,
+  })),
   createThreadShare: vi.fn(
     async (
       threadId: string,
@@ -179,7 +225,12 @@ const apiService = {
   deleteThreadShare: vi.fn(async (_threadId: string, shareId: string) => {
     liveShares = liveShares.filter((share) => share.id !== shareId);
   }),
-  getMessages: vi.fn(async () => sharedMessages),
+  declineAgentTransfer: vi.fn(async () => ({
+    status: AgentTransferStatus.DECLINED,
+  })),
+  getMessages: vi.fn(async (threadId: string) =>
+    threadId === 'handoff' ? handoffMessages : sharedMessages,
+  ),
   getThreadShares: vi.fn(async () => liveShares),
   respondToUiAction: vi.fn(),
 };
@@ -392,5 +443,70 @@ describe('AgentThreadsPanel sharing', () => {
         targetUserId: MARCO,
       }),
     ]);
+  });
+  it('hands an owned thread to a teammate from the More menu', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+
+    await user.click(
+      screen.getByRole('link', { name: /Serum launch captions/ }),
+    );
+    await user.click(await screen.findByTestId('agent-thread-more'));
+    await user.click(
+      await screen.findByRole('menuitem', { name: 'Hand off to a teammate…' }),
+    );
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Hand off to a teammate',
+    });
+    await user.type(
+      within(dialog).getByRole('textbox', { name: 'Request' }),
+      'Review the queued post',
+    );
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Send hand-off' }),
+    );
+
+    expect(apiService.createAgentHandoff).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'Review the queued post',
+        destinationUserId: ANA,
+        sourceThreadId: 'own',
+      }),
+    );
+    expect(
+      await screen.findByText(
+        'Handed off to Ana Costa. Waiting for them to accept.',
+      ),
+    ).toBeVisible();
+  });
+
+  it('offers no hand-off on a thread the viewer does not own', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+
+    await user.click(
+      screen.getByRole('link', { name: /Weekly performance recap/ }),
+    );
+    await screen.findByTestId('agent-thread-access-badge');
+
+    expect(screen.queryByTestId('agent-thread-more')).toBeNull();
+  });
+
+  it('answers a hand-off sent to the viewer from its card', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+
+    await user.click(
+      screen.getByRole('link', { name: /Review the queued post/ }),
+    );
+    expect(
+      await screen.findByText('Ana Costa handed this to your agent'),
+    ).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Accept' }));
+
+    expect(apiService.acceptAgentTransfer).toHaveBeenCalledWith('transfer-9');
+    expect(
+      await screen.findByText('Accepted. Your agent is on it.'),
+    ).toBeVisible();
   });
 });
