@@ -16,6 +16,46 @@ export enum AgentThreadKind {
 }
 
 /**
+ * Who a thread share reaches (#9936). `MEMBER` names one member, `BRAND` every
+ * member with access to that brand, `ORGANIZATION` every active member. Mirrors
+ * the CHECK on `agent_thread_shares.scope`.
+ */
+export enum AgentThreadShareScope {
+  BRAND = 'brand',
+  MEMBER = 'member',
+  ORGANIZATION = 'organization',
+}
+
+/**
+ * What a share lets the viewer do: read the thread, or also prompt the agent in
+ * it. Mirrors the CHECK on `agent_thread_shares.level`.
+ */
+export enum AgentThreadShareLevel {
+  COLLABORATE = 'collaborate',
+  VIEW = 'view',
+}
+
+/**
+ * What the viewer may do with a thread: `OWNER` created it, the others come
+ * from a live share. Returned with each thread so a client needs no second call.
+ */
+export enum AgentThreadAccessLevel {
+  COLLABORATE = 'collaborate',
+  OWNER = 'owner',
+  VIEW = 'view',
+}
+
+/**
+ * The thread list's owner filter (#9936, #8574): everything the viewer can open,
+ * only their own threads, or only the ones shared with them.
+ */
+export enum AgentThreadOwnerFilter {
+  ALL = 'all',
+  MINE = 'mine',
+  SHARED = 'shared',
+}
+
+/**
  * Per-thread agent mode (#4672). Replaces the old `planModeEnabled` boolean:
  * `AUTO` and `PLAN` retain all declared approval-required and outbound gates.
  * `MANUAL` additionally confirms credit spending and brand context changes.

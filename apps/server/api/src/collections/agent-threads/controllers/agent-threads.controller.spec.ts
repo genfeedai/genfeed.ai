@@ -1,6 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
+import type { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
+import type { AgentThreadSharesService } from '@api/collections/agent-threads/services/agent-thread-shares.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -60,6 +62,12 @@ describe('AgentThreadsController', () => {
   let usersService: {
     findOne: ReturnType<typeof vi.fn>;
   };
+  let accessService: {
+    assertAccess: ReturnType<typeof vi.fn>;
+    buildOwnerWhere: ReturnType<typeof vi.fn>;
+    resolveAccessLevels: ReturnType<typeof vi.fn>;
+    resolveListScope: ReturnType<typeof vi.fn>;
+  };
 
   const mockUserId = testId('user');
 
@@ -113,8 +121,23 @@ describe('AgentThreadsController', () => {
       warn: vi.fn(),
     };
 
+    // Authorization has its own real-database spec; here the viewer owns the
+    // thread, so the controller's own behavior is what is asserted.
+    accessService = {
+      assertAccess: vi.fn().mockResolvedValue({
+        accessLevel: 'owner',
+        canManageShares: true,
+        thread: { userId: mockUser.userId },
+      }),
+      buildOwnerWhere: vi.fn().mockReturnValue({ userId: mockUser.userId }),
+      resolveAccessLevels: vi.fn().mockResolvedValue(new Map()),
+      resolveListScope: vi.fn().mockResolvedValue(null),
+    };
+
     controller = new AgentThreadsController(
       service as unknown as AgentThreadsService,
+      accessService as unknown as AgentThreadAccessService,
+      {} as unknown as AgentThreadSharesService,
       scopeService as unknown as AgentScopeContextService,
       messagesService as unknown as AgentMessagesService,
       usersService as unknown as UsersService,
@@ -271,7 +294,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
 
@@ -298,7 +321,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
 
@@ -323,7 +346,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
 
@@ -339,7 +362,7 @@ describe('AgentThreadsController', () => {
         'brand-1',
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
 
@@ -361,7 +384,7 @@ describe('AgentThreadsController', () => {
         undefined,
         'onboarding',
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
 
@@ -383,7 +406,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
   });
@@ -690,7 +713,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
       expect(mockUser).toEqual(originalIdentity);
       expect(usersService.findOne).not.toHaveBeenCalled();
@@ -755,6 +778,7 @@ describe('AgentThreadsController', () => {
 
       expect(service.getUserThreads.mock.calls[0]?.[6]).toEqual({
         kind: AgentThreadKind.MASTER,
+        ownerWhere: { userId: mockUser.userId },
         parentThreadId: 'parent_1',
       });
     });

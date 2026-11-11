@@ -1,9 +1,13 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AppendExternalAgentTurnDto } from '@api/collections/agent-threads/dto/append-external-agent-turn.dto';
 import { CreateAgentThreadDto } from '@api/collections/agent-threads/dto/create-agent-thread.dto';
+import { CreateAgentThreadShareDto } from '@api/collections/agent-threads/dto/create-agent-thread-share.dto';
 import { UpdateAgentModeDto } from '@api/collections/agent-threads/dto/update-agent-mode.dto';
 import { UpdateAgentThreadContextDto } from '@api/collections/agent-threads/dto/update-agent-thread-context.dto';
+import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
+import { AgentThreadSharesService } from '@api/collections/agent-threads/services/agent-thread-shares.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { withAgentThreadExternalRuntime } from '@api/collections/agent-threads/utils/agent-thread-external-runtime.util';
 import {
@@ -39,10 +43,12 @@ import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorato
 import {
   AgentMessageRole,
   AgentThreadMode,
+  AgentThreadOwnerFilter,
   AgentThreadStatus,
 } from '@genfeedai/contracts';
 import {
   AgentThreadSerializer,
+  AgentThreadShareSerializer,
   ThreadMessageSerializer,
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -50,6 +56,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -69,6 +76,8 @@ const DEFAULT_THREADS_PAGE_SIZE = 50;
 export class AgentThreadsController {
   constructor(
     private readonly agentThreadsService: AgentThreadsService,
+    private readonly agentThreadAccessService: AgentThreadAccessService,
+    private readonly agentThreadSharesService: AgentThreadSharesService,
     private readonly agentScopeContextService: AgentScopeContextService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly usersService: UsersService,
@@ -90,10 +99,19 @@ export class AgentThreadsController {
     @Query() pagination: PaginationQueryDto = {},
     @Query('kind') kind?: string,
     @Query('parentThreadId') parentThreadId?: string,
+    @Query('owner') owner?: string,
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveDatabaseUserId(user);
+      const actor = this.buildActor(user, organizationId, dbUserId);
+      const parsedOwner = Object.values(AgentThreadOwnerFilter).includes(
+        owner as AgentThreadOwnerFilter,
+      )
+        ? (owner as AgentThreadOwnerFilter)
+        : AgentThreadOwnerFilter.ALL;
+      const accessScope =
+        await this.agentThreadAccessService.resolveListScope(actor);
       const parsedStatus = Object.values(AgentThreadStatus).includes(
         status as AgentThreadStatus,
       )
@@ -112,10 +130,26 @@ export class AgentThreadsController {
         resolvePageWindow(pagination, DEFAULT_THREADS_PAGE_SIZE),
         {
           kind: parseAgentThreadKind(kind),
+          ownerWhere: this.agentThreadAccessService.buildOwnerWhere(
+            dbUserId,
+            accessScope,
+            parsedOwner,
+          ),
           parentThreadId: parentThreadId?.trim() || undefined,
         },
       );
-      return serializeCollection(req, AgentThreadSerializer, threads);
+      const accessLevels =
+        await this.agentThreadAccessService.resolveAccessLevels(
+          accessScope,
+          threads.docs,
+        );
+      return serializeCollection(req, AgentThreadSerializer, {
+        ...threads,
+        docs: threads.docs.map((thread) => ({
+          ...thread,
+          accessLevel: accessLevels.get(thread.id),
+        })),
+      });
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'listThreads');
     }
@@ -149,6 +183,7 @@ export class AgentThreadsController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
+      await this.assertThreadAccess(user, organizationId, threadId, 'view');
       const messageLimit = limit ? Number.parseInt(limit, 10) : 50;
 
       const page = await this.agentMessagesService.getMessagesPage(
@@ -185,6 +220,7 @@ export class AgentThreadsController {
         organizationId: this.resolveOrganizationId(user),
         brandId: user.brandId,
       }).organizationId;
+      await this.assertThreadAccess(user, organizationId, threadId, 'view');
       const references =
         await this.agentMessagesService.resolveMessageArtifactReferences(
           threadId,
@@ -217,6 +253,7 @@ export class AgentThreadsController {
         organizationId: this.resolveOrganizationId(user),
         brandId: user.brandId,
       }).organizationId;
+      await this.assertThreadAccess(user, organizationId, threadId, 'view');
       const message = await this.agentMessagesService.findOne({
         id: messageId,
         organizationId: organizationId,
@@ -242,17 +279,23 @@ export class AgentThreadsController {
         organizationId: this.resolveOrganizationId(user),
         brandId: user.brandId,
       }).organizationId;
+      const access = await this.assertThreadAccess(
+        user,
+        organizationId,
+        threadId,
+        'view',
+      );
       const thread = await this.agentThreadsService.findOne({
         id: threadId,
         isDeleted: false,
         organizationId: organizationId,
       });
       if (!thread) throw new NotFoundException('Thread', threadId);
-      return serializeSingle(
-        req,
-        AgentThreadSerializer,
-        withAgentThreadExternalRuntime(thread),
-      );
+      return serializeSingle(req, AgentThreadSerializer, {
+        ...withAgentThreadExternalRuntime(thread),
+        accessLevel: access.accessLevel,
+        canManageShares: access.canManageShares,
+      });
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'getThread');
     }
@@ -379,6 +422,11 @@ export class AgentThreadsController {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveDatabaseUserId(user);
+      await this.agentThreadAccessService.assertAccess(
+        this.buildActor(user, organizationId, dbUserId),
+        threadId,
+        'collaborate',
+      );
       const thread = await this.agentThreadsService.findOne(
         scopedWhere(organizationId, {
           id: threadId,
@@ -443,6 +491,80 @@ export class AgentThreadsController {
     }
   }
 
+  @Get(':threadId/shares')
+  @ApiOperation({
+    summary: 'List who a thread is shared with (owner or organization admin)',
+  })
+  async listShares(
+    @Req() req: Request,
+    @Param('threadId') threadId: string,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      const organizationId = this.resolveOrganizationId(user);
+      const dbUserId = await this.resolveDatabaseUserId(user);
+      const shares = await this.agentThreadSharesService.list(
+        this.buildActor(user, organizationId, dbUserId),
+        threadId,
+      );
+      return serializeCollection(req, AgentThreadShareSerializer, {
+        docs: shares,
+      });
+    } catch (error: unknown) {
+      return ErrorResponse.handle(error, this.loggerService, 'listShares');
+    }
+  }
+
+  @Post(':threadId/shares')
+  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
+  @ApiOperation({
+    summary:
+      'Share a thread with a member, a brand or the organization (owner or organization admin)',
+  })
+  async createShare(
+    @Req() req: Request,
+    @Param('threadId') threadId: string,
+    @Body() body: CreateAgentThreadShareDto,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      const organizationId = this.resolveOrganizationId(user);
+      const dbUserId = await this.resolveDatabaseUserId(user);
+      const share = await this.agentThreadSharesService.grant(
+        this.buildActor(user, organizationId, dbUserId),
+        threadId,
+        body,
+      );
+      return serializeSingle(req, AgentThreadShareSerializer, share);
+    } catch (error: unknown) {
+      return ErrorResponse.handle(error, this.loggerService, 'createShare');
+    }
+  }
+
+  @Delete(':threadId/shares/:shareId')
+  @ApiOperation({
+    summary:
+      'Stop sharing a thread with one target (owner or organization admin)',
+  })
+  async deleteShare(
+    @Param('threadId') threadId: string,
+    @Param('shareId') shareId: string,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      const organizationId = this.resolveOrganizationId(user);
+      const dbUserId = await this.resolveDatabaseUserId(user);
+      await this.agentThreadSharesService.revoke(
+        this.buildActor(user, organizationId, dbUserId),
+        threadId,
+        shareId,
+      );
+      return { deleted: true };
+    } catch (error: unknown) {
+      return ErrorResponse.handle(error, this.loggerService, 'deleteShare');
+    }
+  }
+
   @Patch(':threadId')
   @ApiOperation({ summary: 'Update thread metadata or status' })
   async updateThread(
@@ -492,6 +614,37 @@ export class AgentThreadsController {
 
   private resolveOrganizationId(user: User): string {
     return resolveAgentThreadOrganizationId(user);
+  }
+
+  private buildActor(
+    user: User,
+    organizationId: string,
+    userId: string,
+  ): BrandAccessActor {
+    return {
+      apiKeyId: user.apiKeyId,
+      isApiKey: user.isApiKey,
+      organizationId,
+      scopes: user.scopes,
+      userId,
+    };
+  }
+
+  private async assertThreadAccess(
+    user: User,
+    organizationId: string,
+    threadId: string,
+    need: 'view' | 'collaborate',
+  ) {
+    return this.agentThreadAccessService.assertAccess(
+      this.buildActor(
+        user,
+        organizationId,
+        await this.resolveDatabaseUserId(user),
+      ),
+      threadId,
+      need,
+    );
   }
 
   private async resolveDatabaseUserId(user: User): Promise<string> {

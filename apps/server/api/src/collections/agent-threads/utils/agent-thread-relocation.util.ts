@@ -22,3 +22,28 @@ export async function unlinkStraddlingAgentThreadParents(
       AND (child."brandId" = ${brandId} OR parent."brandId" = ${brandId})
   `;
 }
+
+/**
+ * Remove the thread shares a brand's move to another organization would
+ * otherwise carry or break (#9936). A share keeps composite (threadId,
+ * organizationId) and (targetBrandId, organizationId) keys, so ON UPDATE
+ * CASCADE would drag an organization-wide or member share along with a moved
+ * thread into an organization its owner never chose, and a share whose thread
+ * and target brand sit on opposite sides of the move would fail the whole
+ * relocation. Sharing is a grant inside one organization: the move ends it. The
+ * rows are deleted rather than soft-deleted because a soft-deleted row still
+ * holds the foreign keys. Runs in the caller's transaction, before any
+ * organization id is rewritten.
+ */
+export async function deleteAgentThreadSharesForRelocation(
+  tx: Prisma.TransactionClient,
+  brandId: string,
+): Promise<void> {
+  await tx.$executeRaw`
+    DELETE FROM "agent_thread_shares" AS share
+    USING "agent_threads" AS thread
+    WHERE share."threadId" = thread."id"
+      AND share."organizationId" = thread."organizationId"
+      AND (thread."brandId" = ${brandId} OR share."targetBrandId" = ${brandId})
+  `;
+}

@@ -66,6 +66,8 @@ describe('AgentThreadsController external turns', () => {
 
     controller = new AgentThreadsController(
       { appendExternalTurn } as unknown as AgentThreadsService,
+      {} as never,
+      {} as never,
       {} as AgentScopeContextService,
       {} as AgentMessagesService,
       {} as UsersService,

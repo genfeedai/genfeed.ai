@@ -11,6 +11,8 @@ import { AgentMasterThreadController } from '@api/collections/agent-threads/cont
 import { AgentRunsController } from '@api/collections/agent-threads/controllers/agent-runs.controller';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
 import { AgentMasterThreadService } from '@api/collections/agent-threads/services/agent-master-thread.service';
+import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
+import { AgentThreadSharesService } from '@api/collections/agent-threads/services/agent-thread-shares.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
@@ -31,6 +33,8 @@ import { Module } from '@nestjs/common';
   exports: [
     AgentMasterThreadService,
     AgentScopeContextService,
+    AgentThreadAccessService,
+    AgentThreadSharesService,
     AgentThreadsService,
   ],
   imports: [
@@ -43,6 +47,8 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     AgentThreadsService,
+    AgentThreadAccessService,
+    AgentThreadSharesService,
     AgentMasterThreadService,
     AgentThreadProjectorService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },

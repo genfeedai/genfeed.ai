@@ -757,6 +757,8 @@ contentLearningOperations ContentLearningOperation[]
   agentThreads              AgentThread[]
   agentMessages             AgentMessage[]
   agentTransfers            AgentTransfer[]
+  agentThreadSharesTargeted AgentThreadShare[] @relation("agent_thread_share_target_user")
+  agentThreadSharesGranted  AgentThreadShare[] @relation("agent_thread_share_granted_by")
   avatarTwins               AvatarTwin[]
   socialConversations       SocialConversation[]
   socialMessages            SocialMessage[]
@@ -932,6 +934,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   agentThreads                  AgentThread[]
   agentMessages                 AgentMessage[]
   agentTransfers                AgentTransfer[]
+  agentThreadShares             AgentThreadShare[]
   avatarTwins                   AvatarTwin[]
   socialConversations           SocialConversation[]
   socialMessages                SocialMessage[]
@@ -1226,6 +1229,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   agentMessages              AgentMessage[]
   agentThreads               AgentThread[]
   outboundAgentTransfers     AgentTransfer[]            @relation("agent_transfer_source_brand")
+  agentThreadShares          AgentThreadShare[]         @relation("agent_thread_share_target_brand")
   inboundAgentTransfers      AgentTransfer[]            @relation("agent_transfer_destination_brand")
   socialConversations        SocialConversation[]
   socialMessages             SocialMessage[]
@@ -5148,6 +5152,7 @@ model AgentThread {
   childThreads      AgentThread[]         @relation("agent_thread_parent")
   messages          AgentMessage[]
   outboundTransfers AgentTransfer[]       @relation("agent_transfer_source_thread")
+  shares            AgentThreadShare[]    @relation("agent_thread_share_thread")
   inboundTransfers  AgentTransfer[]       @relation("agent_transfer_destination_thread")
   posts             Post[]                @relation("post_agent_thread_scope")
   events            AgentThreadEvent[]
@@ -5192,6 +5197,38 @@ model AgentMessage {
   @@index([organizationId, threadId, isDeleted, createdAt(sort: Desc), id(sort: Desc)], map: "agent_messages_org_thread_created_id_desc_idx")
   @@index([threadId, isDeleted, id])
   @@map("agent_messages")
+}
+
+/// Who else may see or prompt an agent thread (#9936). `scope` is `member`
+/// (one named member), `brand` (members with access to that brand) or
+/// `organization` (every active member); `level` is `view` or `collaborate`.
+/// A share never widens the viewer's own brand access: the access check in
+/// `AgentThreadAccessService` applies it on top. Master threads cannot be
+/// shared (the migration trigger refuses the insert). The migration also owns
+/// the scope/target CHECK and the one-live-share partial unique index, which
+/// Prisma cannot declare. Removing a share is a soft delete.
+model AgentThreadShare {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  threadId        String
+  thread          AgentThread  @relation("agent_thread_share_thread", fields: [threadId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  scope           String
+  level           String
+  targetUserId    String?
+  targetUser      User?        @relation("agent_thread_share_target_user", fields: [targetUserId], references: [id])
+  targetBrandId   String?
+  targetBrand     Brand?       @relation("agent_thread_share_target_brand", fields: [targetBrandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  grantedByUserId String
+  grantedBy       User         @relation("agent_thread_share_granted_by", fields: [grantedByUserId], references: [id])
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([organizationId, threadId, isDeleted])
+  @@index([organizationId, targetUserId, isDeleted])
+  @@index([organizationId, targetBrandId, isDeleted])
+  @@map("agent_thread_shares")
 }
 
 /// Immutable, user-authorized handoff between two agent conversations. Only
