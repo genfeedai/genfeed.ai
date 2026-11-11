@@ -6,11 +6,14 @@ import {
   NotificationsService,
 } from '@api/services/notifications/notifications.service';
 import {
+  buildCollaborationEmail,
+  readCollaborationPayload,
+} from '@api/services/notifications/workflow-notifications/collaboration-email.util';
+import {
   AGENT_STATUS_NOTIFICATION_TOPIC,
   type AgentReviewNotificationPayload,
   COLLABORATION_NOTIFICATION_TOPIC,
   COLLABORATION_SOURCE_TYPE,
-  type CollaborationNotificationPayload,
   EMAIL_NOTIFICATION_CHANNEL,
   readNotificationSourcePath,
   WORKFLOW_STATUS_NOTIFICATION_TOPIC,
@@ -34,7 +37,6 @@ import type { Prisma } from '@genfeedai/prisma';
 import { buildSystemEmailHtml } from '@helpers/email/system-email.helper';
 import {
   buildAgentReviewStatusEmailBody,
-  buildCollaborationEmailBody,
   buildWorkflowStatusEmailBody,
 } from '@helpers/email/system-email-templates.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -385,7 +387,13 @@ export class WorkflowNotificationDeliveryService {
     }
 
     try {
-      const email = this.buildCollaborationEmail(payload);
+      const email = buildCollaborationEmail(
+        payload,
+        this.agentReportHref(
+          this.configService?.get('GENFEEDAI_APP_URL'),
+          payload.sourcePath,
+        ),
+      );
       const providerMessageId = await this.notificationsService.deliverEmail({
         ...email,
         idempotencyKey: recipient.idempotencyKey,
@@ -412,33 +420,6 @@ export class WorkflowNotificationDeliveryService {
         error,
       );
     }
-  }
-
-  private buildCollaborationEmail(payload: CollaborationNotificationPayload): {
-    html: string;
-    subject: string;
-    text: string;
-  } {
-    const headline = COLLABORATION_EMAIL_HEADLINES[payload.event];
-    const subject = `${headline.text}: ${payload.label}`;
-    const href = this.agentReportHref(
-      this.configService?.get('GENFEEDAI_APP_URL'),
-      payload.sourcePath,
-    );
-    return {
-      html: buildSystemEmailHtml({
-        action: href ? { label: 'Open in Genfeed', url: href } : undefined,
-        bodyHtml: buildCollaborationEmailBody({
-          headline: headline.text,
-          label: payload.label,
-          summary: payload.summary,
-          tone: headline.tone,
-        }),
-        title: subject,
-      }),
-      subject,
-      text: [subject, payload.summary, href].filter(Boolean).join('\n'),
-    };
   }
 
   /** A rendered channel message (operator Discord, explicit email, Telegram or
@@ -965,42 +946,6 @@ export class WorkflowNotificationDeliveryService {
         : `Your workflow ${payload.workflowLabel} completed successfully.`,
     };
   }
-}
-
-const COLLABORATION_EMAIL_HEADLINES: Record<
-  CollaborationNotificationPayload['event'],
-  { text: string; tone: 'neutral' | 'success' | 'warning' }
-> = {
-  mentioned: { text: 'You were mentioned', tone: 'neutral' },
-  review_approved: { text: 'Review approved', tone: 'success' },
-  review_changes_requested: { text: 'Changes requested', tone: 'warning' },
-  review_requested: { text: 'Review requested', tone: 'warning' },
-};
-
-function readCollaborationPayload(
-  value: unknown,
-): CollaborationNotificationPayload | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const payload = value as Record<string, unknown>;
-  if (
-    payload.kind !== 'collaboration' ||
-    payload.version !== 1 ||
-    typeof payload.label !== 'string' ||
-    typeof payload.summary !== 'string' ||
-    typeof payload.event !== 'string' ||
-    !Object.hasOwn(COLLABORATION_EMAIL_HEADLINES, payload.event)
-  ) {
-    return null;
-  }
-  const sourcePath = readNotificationSourcePath(payload.sourcePath);
-  return {
-    event: payload.event as CollaborationNotificationPayload['event'],
-    kind: 'collaboration',
-    label: payload.label.slice(0, 300),
-    summary: payload.summary.slice(0, 1000),
-    version: 1,
-    ...(sourcePath ? { sourcePath } : {}),
-  };
 }
 
 function readChannelMessage(value: unknown): IChannelMessage | null {

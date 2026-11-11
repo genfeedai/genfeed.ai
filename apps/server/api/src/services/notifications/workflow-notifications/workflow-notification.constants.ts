@@ -61,7 +61,7 @@ export const COLLABORATION_NOTIFICATION_TOPIC = 'collaboration.activity';
 /** The `NotificationEvent.sourceType` of a review or mention alert (#9947). */
 export const COLLABORATION_SOURCE_TYPE = 'collaboration';
 
-export type CollaborationNotificationEvent =
+type CollaborationNotificationEvent =
   | 'review_requested'
   | 'review_approved'
   | 'review_changes_requested'

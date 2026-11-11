@@ -48,7 +48,7 @@ describe('SocialReplyNotificationService.findUnreadInboxItemsCoveringConversatio
 
   it('a well-formed array_contains/path filter on the related event.payload only fails at the connection, never at validation', async () => {
     await expect(
-      service['findUnreadInboxItemsCoveringConversation'](
+      service.findUnreadInboxItemsCoveringConversation(
         'org_1',
         'conversation_1',
       ),
