@@ -176,7 +176,7 @@ export default function ReviewThread({
                     {splitMentions(message.content).map((part, index) =>
                       part.isMention ? (
                         <span
-                          className="rounded-sm bg-primary/15 px-1 font-medium text-foreground"
+                          className="rounded-sm bg-primary/10 px-1 font-medium text-foreground"
                           // biome-ignore lint/suspicious/noArrayIndexKey: parts are positional and never reordered
                           key={index}
                         >
