@@ -230,6 +230,32 @@ describe.skipIf(!connectionString)(
       expect(events[0].data).toMatchObject({ userId: member });
     });
 
+    it("refuses another collaborator's retry of an answered question, and lets the owner repair it", async () => {
+      const { thread } = await createThreadWithQuestion(
+        AgentThreadShareLevel.COLLABORATE,
+      );
+      const other = id('other');
+      await createUserMember(other);
+      await shares().grant({ organizationId, userId: owner }, thread.id, {
+        level: AgentThreadShareLevel.COLLABORATE,
+        scope: AgentThreadShareScope.MEMBER,
+        targetUserId: other,
+      });
+      await answerAs(member, thread.id);
+
+      await expect(answerAs(other, thread.id)).rejects.toThrow(
+        'This request was already answered.',
+      );
+      const repaired = await answerAs(owner, thread.id);
+
+      expect(repaired.status).toBe('resolved');
+      const events = await database().agentThreadEvent.findMany({
+        where: { organizationId, threadId: thread.id, type: 'input.resolved' },
+      });
+      expect(events).toHaveLength(1);
+      expect(events[0].data).toMatchObject({ userId: member });
+    });
+
     it('still lets the owner answer their own question', async () => {
       const { thread } = await createThreadWithQuestion(
         AgentThreadShareLevel.VIEW,
