@@ -12,6 +12,12 @@ import AgentThreadsPanel from './AgentThreadsPanel';
 // The real composer is a rich-text editor jsdom cannot type into (its own spec
 // covers it). This stand-in keeps its contract: send, clear on success, keep
 // the draft when the send rejects.
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/acme/~/agent',
+  useRouter: () => ({ replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock('@genfeedai/agent/components/AgentChatInput', async () => {
   const { useState } = await import('react');
   const { Button } = await import('@ui/primitives/button');
