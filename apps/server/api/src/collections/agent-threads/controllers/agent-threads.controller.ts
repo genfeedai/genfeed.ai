@@ -33,6 +33,8 @@ import {
 } from '@api/helpers/dto/pagination-query.dto';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
@@ -182,7 +184,7 @@ export class AgentThreadsController {
     @Query('cursor') cursor?: string,
   ) {
     try {
-      const organizationId = this.resolveOrganizationId(user);
+      const organizationId = this.resolveReadOrganizationId(req, user);
       await this.assertThreadAccess(user, organizationId, threadId, 'view');
       const messageLimit = limit ? Number.parseInt(limit, 10) : 50;
 
@@ -501,7 +503,7 @@ export class AgentThreadsController {
     @CurrentUser() user: User,
   ) {
     try {
-      const organizationId = this.resolveOrganizationId(user);
+      const organizationId = this.resolveReadOrganizationId(req, user);
       const dbUserId = await this.resolveDatabaseUserId(user);
       const shares = await this.agentThreadSharesService.list(
         this.buildActor(user, organizationId, dbUserId),
@@ -614,6 +616,22 @@ export class AgentThreadsController {
 
   private resolveOrganizationId(user: User): string {
     return resolveAgentThreadOrganizationId(user);
+  }
+
+  /**
+   * Plain GET routes run in the tenant context the interceptor pins: the
+   * session organization, or the one a verified superadmin names with
+   * `?organizationId=`. Query that same organization so the tenant guard sees
+   * one tenant; a caller who is not a superadmin is refused for any other one.
+   */
+  private resolveReadOrganizationId(req: Request, user: User): string {
+    const requested = req.query?.organizationId;
+    const authorized = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+      { organizationId: typeof requested === 'string' ? requested : undefined },
+      user,
+      getIsSuperAdmin(user, req),
+    );
+    return authorized.organizationId ?? this.resolveOrganizationId(user);
   }
 
   private buildActor(

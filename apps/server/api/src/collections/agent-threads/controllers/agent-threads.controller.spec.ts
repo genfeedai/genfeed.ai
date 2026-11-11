@@ -459,6 +459,43 @@ describe('AgentThreadsController', () => {
       );
     });
 
+    it('reads the organization a superadmin names, so the tenant guard sees one tenant', async () => {
+      messagesService.getMessagesPage.mockResolvedValue({
+        docs: [],
+        hasMore: false,
+        nextCursor: null,
+      });
+
+      await controller.getMessages(
+        {
+          originalUrl: '/v1/agent/threads/thread-1/messages',
+          query: { organizationId: 'org_other' },
+        } as never,
+        'thread-1',
+        { ...mockUser, isSuperAdmin: true },
+      );
+
+      expect(messagesService.getMessagesPage).toHaveBeenCalledWith(
+        'thread-1',
+        'org_other',
+        { cursor: undefined, limit: 50 },
+      );
+    });
+
+    it('refuses an organization override from a caller who is not a superadmin', async () => {
+      await expect(
+        controller.getMessages(
+          {
+            originalUrl: '/v1/agent/threads/thread-1/messages',
+            query: { organizationId: 'org_other' },
+          } as never,
+          'thread-1',
+          mockUser,
+        ),
+      ).rejects.toThrow();
+      expect(messagesService.getMessagesPage).not.toHaveBeenCalled();
+    });
+
     it('defaults the limit to 50 and passes no cursor when the query omits them', async () => {
       messagesService.getMessagesPage.mockResolvedValue({
         docs: [],
