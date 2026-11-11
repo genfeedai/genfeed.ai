@@ -4,7 +4,7 @@ import type { Page, Route } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { SettingsPage } from '../../pages/settings.page';
-import { brandPath, orgSettingsRoute } from '../../utils/app-chrome';
+import { brandPath, orgPath, orgSettingsRoute } from '../../utils/app-chrome';
 import { chooseFilterOption, openFilterFacet } from '../../utils/filter-menu';
 import { assertRouteRenders } from '../../utils/route-assertions';
 
@@ -18,7 +18,7 @@ import { assertRouteRenders } from '../../utils/route-assertions';
  * org+brand) slug. Bare `/settings/brands/:id/*` paths render the 404 page —
  * so each test asserts the surface's real content, never just the URL.
  */
-const API_KEYS_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.API_KEYS);
+const API_KEYS_ROUTE = orgPath(APP_ROUTES.CONNECTORS.API_KEYS);
 const GENERAL_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.GENERAL);
 const AGENTS_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.AGENTS);
 const MODELS_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.MODELS);
@@ -254,15 +254,21 @@ test.describe('Settings Connections & Sub-Pages', () => {
       ]);
     });
 
-    test('is reachable from the organization settings sidebar', async ({
+    test('is reachable from the Connectors section menu', async ({
       authenticatedPage,
     }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
       await mockApiKeyList(authenticatedPage, { keys: [], status: 200 });
 
-      await settingsPage.goToOrganization();
-      await settingsPage.navigateFromSidebar('API Keys', API_KEYS_ROUTE);
+      await settingsPage.open(orgPath(APP_ROUTES.CONNECTORS.PROVIDERS));
+      await authenticatedPage.getByRole('button', { name: /^View: / }).click();
+      await authenticatedPage
+        .getByRole('menuitemradio', { name: 'API keys' })
+        .click();
 
+      await expect(authenticatedPage).toHaveURL(
+        new RegExp(`${API_KEYS_ROUTE}$`),
+      );
       await expect(settingsPage.generateApiKeyButton).toBeVisible();
     });
   });

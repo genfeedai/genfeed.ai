@@ -5,6 +5,7 @@ import ConnectorsChannelsPage from './content';
 
 const mocks = vi.hoisted(() => ({
   brand: null as { id: string } | null,
+  brands: [] as { id: string; slug: string }[],
   hasBrandId: true,
   isLoading: false,
   isReady: true,
@@ -20,6 +21,7 @@ vi.mock('next-intl', async () => {
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
+    brands: mocks.brands,
     isReady: mocks.isReady,
     selectedBrand: mocks.selectedBrand,
   }),
@@ -57,6 +59,7 @@ vi.mock('../connectors-primary-action', () => ({
 describe('ConnectorsChannelsPage', () => {
   beforeEach(() => {
     mocks.brand = null;
+    mocks.brands = [];
     mocks.hasBrandId = true;
     mocks.isLoading = false;
     mocks.isReady = true;
@@ -78,7 +81,19 @@ describe('ConnectorsChannelsPage', () => {
     expect(mocks.setPrimaryAction).toHaveBeenCalledWith('Connect account');
   });
 
-  it('says so when no brand is selected', () => {
+  it('falls back to the first brand of the organization when none is selected', () => {
+    mocks.brand = { id: 'brand-1' };
+    mocks.brands = [{ id: 'brand-1', slug: 'coffee' }];
+
+    render(<ConnectorsChannelsPage />);
+
+    expect(screen.getByTestId('accounts-table')).toBeInTheDocument();
+    expect(mocks.useBrandDetail).toHaveBeenCalledWith({
+      fallbackBrandSlug: 'coffee',
+    });
+  });
+
+  it('says so when the organization has no brand', () => {
     render(<ConnectorsChannelsPage />);
 
     expect(screen.queryByTestId('accounts-table')).not.toBeInTheDocument();

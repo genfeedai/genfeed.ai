@@ -11,15 +11,19 @@ import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail'
 import { useConnectorsPrimaryAction } from '../connectors-primary-action';
 
 /**
- * Connectors → Channels: the connected accounts of the brand selected in the
- * top bar, with each account's status and reconnect action. Each account's
- * posting times, history import and health live in its Settings dialog.
+ * Connectors → Channels: the connected accounts of the organization's brand
+ * (the selected one, else the first), with each account's status and
+ * reconnect action. Each account's posting times, history import and health
+ * live in its Settings dialog.
  */
 export default function ConnectorsChannelsPage() {
   const translate = useTranslations('pages.brandSocialMedia');
   const [isConnectAccountModalOpen, setIsConnectAccountModalOpen] =
     useState(false);
-  const { isReady, selectedBrand } = useBrand();
+  const { brands, isReady, selectedBrand } = useBrand();
+  // On an organization route the brand context holds no selected brand (that
+  // is a brand-route concept), so fall back to the organization's first brand.
+  const channelsBrand = selectedBrand ?? brands[0];
   const {
     brand,
     brandId,
@@ -27,7 +31,7 @@ export default function ConnectorsChannelsPage() {
     hasBrandId,
     isLoading,
     connectedPlatformsCount,
-  } = useBrandDetail({ fallbackBrandSlug: selectedBrand?.slug });
+  } = useBrandDetail({ fallbackBrandSlug: channelsBrand?.slug });
   // The accounts table also surfaces disconnected-but-not-deleted
   // credentials as "Needs reconnect", so it reads straight off the brand
   // instead of the connected-only list `useBrandDetail` exposes elsewhere.
@@ -41,7 +45,7 @@ export default function ConnectorsChannelsPage() {
     openConnectAccountModal,
   );
 
-  if (isReady && !selectedBrand) {
+  if (isReady && !channelsBrand) {
     return (
       <Card>
         <p className="text-sm text-muted-foreground">

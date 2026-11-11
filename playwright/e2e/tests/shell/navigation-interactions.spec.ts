@@ -307,11 +307,14 @@ test.describe('Shell — navigation interactions', () => {
     const rail = desktopRail.getByRole('navigation', { name: 'Apps' });
     await expect(rail).toBeVisible({ timeout: 10_000 });
 
-    // The rail items are icon-only links named by aria-label.
+    // The app items are icon-only links named by aria-label. The nav also
+    // holds the admin item and the account footer, so scope to the app items.
     await expect
       .poll(() =>
         rail
-          .getByRole('link')
+          .locator(
+            '[data-testid^="app-rail-item-"]:not([data-testid="app-rail-item-admin"])',
+          )
           .evaluateAll((links) =>
             links.map((link) => link.getAttribute('aria-label') ?? ''),
           ),
@@ -326,9 +329,12 @@ test.describe('Shell — navigation interactions', () => {
       ]);
     await expect(rail.getByRole('link', { name: 'Discovery' })).toHaveCount(0);
 
-    const settings = desktopRail
-      .getByTestId('app-rail-account')
-      .getByRole('link', { name: 'Settings' });
+    const account = desktopRail.getByTestId('app-rail-account');
+    await expect(
+      account.getByRole('link', { name: 'Connectors' }),
+    ).toBeVisible();
+    await expect(account.getByRole('link', { name: 'Help' })).toBeVisible();
+    const settings = account.getByRole('link', { name: 'Settings' });
     await expect(settings).toBeVisible();
     await settings.click();
     await authenticatedPage.waitForURL(/\/settings(?:[/?#]|$)/, {
