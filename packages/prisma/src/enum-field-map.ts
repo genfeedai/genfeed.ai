@@ -764,6 +764,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'destinationMessageId',
       'destinationThread',
       'destinationThreadId',
+      'destinationUserId',
       'failureReason',
       'id',
       'idempotencyKey',
