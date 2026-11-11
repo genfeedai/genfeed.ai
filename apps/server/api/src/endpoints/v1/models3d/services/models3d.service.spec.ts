@@ -1,4 +1,5 @@
 import { Models3dService } from '@api/endpoints/v1/models3d/services/models3d.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { IngredientStatus } from '@genfeedai/contracts';
 import {
   BadGatewayException,
@@ -422,6 +423,74 @@ describe('Models3dService', () => {
       expect(ctx.ingredients.find).toHaveBeenCalledWith(
         expect.objectContaining({ organizationId: 'org-1' }),
       );
+    });
+  });
+
+  describe('brand-restricted API keys', () => {
+    type Where = { brandId?: { in: string[] } };
+
+    /** A sheet of `brand-2` with its finished GLB; lookups honour the brand filter. */
+    function siblingBrandRender() {
+      const ctx = setup();
+      const inAllowedBrands = (where: Where) =>
+        !where.brandId || where.brandId.in.includes('brand-2');
+      ctx.ingredients.findOne.mockImplementation(async (where: Where) =>
+        inAllowedBrands(where)
+          ? row('ing-1', IngredientStatus.GENERATED, { brandId: 'brand-2' })
+          : null,
+      );
+      ctx.ingredients.find.mockImplementation(async (where: Where) =>
+        inAllowedBrands(where)
+          ? [row('ing-2', IngredientStatus.GENERATED, { brandId: 'brand-2' })]
+          : [],
+      );
+      return ctx;
+    }
+
+    const RESTRICTED = { ...ACTOR, allowedBrandIds: ['brand-1'] };
+
+    it('answers not found for a sibling brand render before signing anything', async () => {
+      const ctx = siblingBrandRender();
+
+      await expect(ctx.service.get(RESTRICTED, 'ing-1')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      await expect(
+        ctx.service.getFileUrl(RESTRICTED, 'ing-1'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(ctx.filesClient.getPresignedDownloadUrl).not.toHaveBeenCalled();
+      expect(
+        ctx.filesClient.getPresignedDownloadUrlForObjectKey,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('starts no paid build for a sibling brand render', async () => {
+      const ctx = siblingBrandRender();
+
+      await expect(
+        ctx.service.startBuild(RESTRICTED, 'ing-1'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(ctx.billing.hold).not.toHaveBeenCalled();
+      expect(ctx.build.startBuild).not.toHaveBeenCalled();
+    });
+
+    it('serves a render of an allowed brand', async () => {
+      const ctx = siblingBrandRender();
+
+      const result = await ctx.service.get(
+        { ...ACTOR, allowedBrandIds: ['brand-1', 'brand-2'] },
+        'ing-1',
+      );
+
+      expect(result.status).toBe('ready');
+    });
+
+    it('keeps organization-wide access for a key without a brand restriction', async () => {
+      const ctx = siblingBrandRender();
+
+      const result = await ctx.service.get(ACTOR, 'ing-1');
+
+      expect(result.status).toBe('ready');
     });
   });
 
