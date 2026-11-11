@@ -1,10 +1,14 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
-import { AppendExternalAgentTurnDto } from '@api/collections/agent-threads/dto/append-external-agent-turn.dto';
 import { CreateAgentThreadDto } from '@api/collections/agent-threads/dto/create-agent-thread.dto';
 import { UpdateAgentModeDto } from '@api/collections/agent-threads/dto/update-agent-mode.dto';
 import { UpdateAgentThreadContextDto } from '@api/collections/agent-threads/dto/update-agent-thread-context.dto';
+import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import {
+  buildAgentThreadActor,
+  resolveAgentThreadReadOrganizationId,
+} from '@api/collections/agent-threads/utils/agent-thread-actor.util';
 import { withAgentThreadExternalRuntime } from '@api/collections/agent-threads/utils/agent-thread-external-runtime.util';
 import {
   resolveAgentThreadDatabaseUserId,
@@ -34,13 +38,9 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { AgentScopeContextService, scopedWhere } from '@api/index';
+import { AgentScopeContextService } from '@api/index';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import {
-  AgentMessageRole,
-  AgentThreadMode,
-  AgentThreadStatus,
-} from '@genfeedai/contracts';
+import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import {
   AgentThreadSerializer,
   ThreadMessageSerializer,
@@ -69,6 +69,7 @@ const DEFAULT_THREADS_PAGE_SIZE = 50;
 export class AgentThreadsController {
   constructor(
     private readonly agentThreadsService: AgentThreadsService,
+    private readonly agentThreadAccessService: AgentThreadAccessService,
     private readonly agentScopeContextService: AgentScopeContextService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly usersService: UsersService,
@@ -90,10 +91,15 @@ export class AgentThreadsController {
     @Query() pagination: PaginationQueryDto = {},
     @Query('kind') kind?: string,
     @Query('parentThreadId') parentThreadId?: string,
+    @Query('owner') owner?: string,
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveDatabaseUserId(user);
+      const listAccess = await this.agentThreadAccessService.resolveListAccess(
+        buildAgentThreadActor(user, organizationId, dbUserId),
+        owner,
+      );
       const parsedStatus = Object.values(AgentThreadStatus).includes(
         status as AgentThreadStatus,
       )
@@ -112,10 +118,18 @@ export class AgentThreadsController {
         resolvePageWindow(pagination, DEFAULT_THREADS_PAGE_SIZE),
         {
           kind: parseAgentThreadKind(kind),
+          ownerWhere: listAccess.ownerWhere,
           parentThreadId: parentThreadId?.trim() || undefined,
         },
       );
-      return serializeCollection(req, AgentThreadSerializer, threads);
+      return serializeCollection(
+        req,
+        AgentThreadSerializer,
+        await this.agentThreadAccessService.attachAccessLevels(
+          listAccess,
+          threads,
+        ),
+      );
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'listThreads');
     }
@@ -148,7 +162,8 @@ export class AgentThreadsController {
     @Query('cursor') cursor?: string,
   ) {
     try {
-      const organizationId = this.resolveOrganizationId(user);
+      const organizationId = resolveAgentThreadReadOrganizationId(req, user);
+      await this.assertThreadAccess(user, organizationId, threadId, 'view');
       const messageLimit = limit ? Number.parseInt(limit, 10) : 50;
 
       const page = await this.agentMessagesService.getMessagesPage(
@@ -185,6 +200,7 @@ export class AgentThreadsController {
         organizationId: this.resolveOrganizationId(user),
         brandId: user.brandId,
       }).organizationId;
+      await this.assertThreadAccess(user, organizationId, threadId, 'view');
       const references =
         await this.agentMessagesService.resolveMessageArtifactReferences(
           threadId,
@@ -217,6 +233,7 @@ export class AgentThreadsController {
         organizationId: this.resolveOrganizationId(user),
         brandId: user.brandId,
       }).organizationId;
+      await this.assertThreadAccess(user, organizationId, threadId, 'view');
       const message = await this.agentMessagesService.findOne({
         id: messageId,
         organizationId: organizationId,
@@ -242,17 +259,23 @@ export class AgentThreadsController {
         organizationId: this.resolveOrganizationId(user),
         brandId: user.brandId,
       }).organizationId;
+      const access = await this.assertThreadAccess(
+        user,
+        organizationId,
+        threadId,
+        'view',
+      );
       const thread = await this.agentThreadsService.findOne({
         id: threadId,
         isDeleted: false,
         organizationId: organizationId,
       });
       if (!thread) throw new NotFoundException('Thread', threadId);
-      return serializeSingle(
-        req,
-        AgentThreadSerializer,
-        withAgentThreadExternalRuntime(thread),
-      );
+      return serializeSingle(req, AgentThreadSerializer, {
+        ...withAgentThreadExternalRuntime(thread),
+        accessLevel: access.accessLevel,
+        canManageShares: access.canManageShares,
+      });
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'getThread');
     }
@@ -367,82 +390,6 @@ export class AgentThreadsController {
     }
   }
 
-  @Post(':threadId/messages')
-  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
-  @ApiOperation({ summary: 'Add a message to a thread' })
-  async addMessage(
-    @Req() req: Request,
-    @Param('threadId') threadId: string,
-    @Body() body: { content: string; role?: string },
-    @CurrentUser() user: User,
-  ) {
-    try {
-      const organizationId = this.resolveOrganizationId(user);
-      const dbUserId = await this.resolveDatabaseUserId(user);
-      const thread = await this.agentThreadsService.findOne(
-        scopedWhere(organizationId, {
-          id: threadId,
-          isDeleted: false,
-        }),
-      );
-      const status = String(
-        (thread as { status?: string | null } | null)?.status ?? '',
-      ).toLowerCase();
-      if (status === AgentThreadStatus.ARCHIVED || status === 'archived') {
-        throw new BadRequestException(
-          'This thread is archived. Unarchive it before sending messages or running actions.',
-        );
-      }
-      const message = await this.agentMessagesService.addMessage({
-        content: body.content,
-        organizationId,
-        role: (body.role as AgentMessageRole) || AgentMessageRole.USER,
-        room: threadId,
-        userId: dbUserId,
-      });
-
-      return serializeSingle(req, ThreadMessageSerializer, message);
-    } catch (error: unknown) {
-      return ErrorResponse.handle(error, this.loggerService, 'addMessage');
-    }
-  }
-
-  @Post(':threadId/external-turns')
-  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
-  @ApiOperation({
-    summary:
-      "Append a turn that ran on the user's own Claude Code / Codex CLI subscription (never billed in Genfeed credits)",
-  })
-  async appendExternalTurn(
-    @Req() req: Request,
-    @Param('threadId') threadId: string,
-    @Body() body: AppendExternalAgentTurnDto,
-    @CurrentUser() user: User,
-  ) {
-    try {
-      const organizationId = this.resolveOrganizationId(user);
-      const userId = await this.resolveDatabaseUserId(user);
-      const { thread } = await this.agentThreadsService.appendExternalTurn(
-        threadId,
-        organizationId,
-        userId,
-        body,
-      );
-
-      return serializeSingle(
-        req,
-        AgentThreadSerializer,
-        withAgentThreadExternalRuntime(thread),
-      );
-    } catch (error: unknown) {
-      return ErrorResponse.handle(
-        error,
-        this.loggerService,
-        'appendExternalTurn',
-      );
-    }
-  }
-
   @Patch(':threadId')
   @ApiOperation({ summary: 'Update thread metadata or status' })
   async updateThread(
@@ -492,6 +439,20 @@ export class AgentThreadsController {
 
   private resolveOrganizationId(user: User): string {
     return resolveAgentThreadOrganizationId(user);
+  }
+
+  private async assertThreadAccess(
+    user: User,
+    organizationId: string,
+    threadId: string,
+    need: 'view' | 'collaborate',
+  ) {
+    const userId = await this.resolveDatabaseUserId(user);
+    return this.agentThreadAccessService.assertAccess(
+      buildAgentThreadActor(user, organizationId, userId),
+      threadId,
+      need,
+    );
   }
 
   private async resolveDatabaseUserId(user: User): Promise<string> {

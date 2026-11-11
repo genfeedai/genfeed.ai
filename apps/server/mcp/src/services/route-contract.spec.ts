@@ -72,6 +72,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/agent-threads/controllers/agent-threads.controller.ts',
     prefix: 'agent/threads',
   },
+  agentThreadTurns: {
+    file: 'collections/agent-threads/controllers/agent-thread-turns.controller.ts',
+    prefix: 'agent/threads/:threadId',
+  },
   approvals: {
     file: 'collections/mcp-approvals/controllers/mcp-approvals.controller.ts',
     prefix: 'mcp-approvals',
@@ -394,8 +398,8 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   },
   {
     method: 'Post',
-    sub: ':threadId/messages',
-    controller: 'agentThreads',
+    sub: 'messages',
+    controller: 'agentThreadTurns',
     tools: ['send_chat_message'],
   },
   // ── Approvals (createApproval + resolve_approval) ──

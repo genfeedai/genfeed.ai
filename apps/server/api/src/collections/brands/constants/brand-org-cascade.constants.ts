@@ -1089,6 +1089,10 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
   'AgentPublishAudit',
   'AgentUntrustedContentAudit',
   'AgentTransfer',
+  // Brand relocation deletes a moving brand's thread shares before the cascade
+  // (deleteAgentThreadSharesForRelocation): a share is a grant inside one
+  // organization, so the move ends it instead of carrying it along.
+  'AgentThreadShare',
   // Immutable by trigger, so a composite-FK cascade would raise; relocation
   // refuses a brand with pins or publish approvals as learning/publication
   // history (assertNoLearningHistory) before the cascade runs.
@@ -1157,6 +1161,7 @@ export const AUDITOR_IGNORED_TABLES: readonly string[] = [
   'credit_transactions',
   'agent_publish_audits',
   'agent_untrusted_content_audits',
+  'agent_thread_shares',
   'agent_transfers',
   // Immutable pins and publish approvals cannot move: relocation rejects any
   // brand that has them (assertNoLearningHistory).

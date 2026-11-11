@@ -1,6 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { AgentThreadTurnsController } from '@api/collections/agent-threads/controllers/agent-thread-turns.controller';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
+import type { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -60,6 +62,11 @@ describe('AgentThreadsController', () => {
   let usersService: {
     findOne: ReturnType<typeof vi.fn>;
   };
+  let accessService: {
+    assertAccess: ReturnType<typeof vi.fn>;
+    attachAccessLevels: ReturnType<typeof vi.fn>;
+    resolveListAccess: ReturnType<typeof vi.fn>;
+  };
 
   const mockUserId = testId('user');
 
@@ -113,8 +120,25 @@ describe('AgentThreadsController', () => {
       warn: vi.fn(),
     };
 
+    // Authorization has its own real-database spec; here the viewer owns the
+    // thread, so the controller's own behavior is what is asserted.
+    accessService = {
+      assertAccess: vi.fn().mockResolvedValue({
+        accessLevel: 'owner',
+        canManageShares: true,
+        thread: { userId: mockUser.userId },
+      }),
+      attachAccessLevels: vi.fn(async (_access, page) => page),
+      resolveListAccess: vi.fn().mockResolvedValue({
+        ownerWhere: { userId: mockUser.userId },
+        scope: null,
+        userId: mockUser.userId,
+      }),
+    };
+
     controller = new AgentThreadsController(
       service as unknown as AgentThreadsService,
+      accessService as unknown as AgentThreadAccessService,
       scopeService as unknown as AgentScopeContextService,
       messagesService as unknown as AgentMessagesService,
       usersService as unknown as UsersService,
@@ -141,7 +165,7 @@ describe('AgentThreadsController', () => {
   it('should have a user-scoped rate limit on addMessage', () => {
     const metadata = Reflect.getMetadata(
       RATE_LIMIT_KEY,
-      AgentThreadsController.prototype.addMessage,
+      AgentThreadTurnsController.prototype.addMessage,
     );
     expect(metadata).toEqual({
       limit: 30,
@@ -271,7 +295,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
 
@@ -298,7 +322,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
 
@@ -323,7 +347,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
 
@@ -339,7 +363,7 @@ describe('AgentThreadsController', () => {
         'brand-1',
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
 
@@ -361,7 +385,7 @@ describe('AgentThreadsController', () => {
         undefined,
         'onboarding',
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
 
@@ -383,7 +407,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
     });
   });
@@ -434,6 +458,43 @@ describe('AgentThreadsController', () => {
         'org_current',
         { cursor: 'opaque-cursor', limit: 25 },
       );
+    });
+
+    it('reads the organization a superadmin names, so the tenant guard sees one tenant', async () => {
+      messagesService.getMessagesPage.mockResolvedValue({
+        docs: [],
+        hasMore: false,
+        nextCursor: null,
+      });
+
+      await controller.getMessages(
+        {
+          originalUrl: '/v1/agent/threads/thread-1/messages',
+          query: { organizationId: 'org_other' },
+        } as never,
+        'thread-1',
+        { ...mockUser, isSuperAdmin: true },
+      );
+
+      expect(messagesService.getMessagesPage).toHaveBeenCalledWith(
+        'thread-1',
+        'org_other',
+        { cursor: undefined, limit: 50 },
+      );
+    });
+
+    it('refuses an organization override from a caller who is not a superadmin', async () => {
+      await expect(
+        controller.getMessages(
+          {
+            originalUrl: '/v1/agent/threads/thread-1/messages',
+            query: { organizationId: 'org_other' },
+          } as never,
+          'thread-1',
+          mockUser,
+        ),
+      ).rejects.toThrow();
+      expect(messagesService.getMessagesPage).not.toHaveBeenCalled();
     });
 
     it('defaults the limit to 50 and passes no cursor when the query omits them', async () => {
@@ -690,7 +751,7 @@ describe('AgentThreadsController', () => {
         undefined,
         undefined,
         defaultWindow,
-        {},
+        { ownerWhere: { userId: mockUser.userId } },
       );
       expect(mockUser).toEqual(originalIdentity);
       expect(usersService.findOne).not.toHaveBeenCalled();
@@ -755,6 +816,7 @@ describe('AgentThreadsController', () => {
 
       expect(service.getUserThreads.mock.calls[0]?.[6]).toEqual({
         kind: AgentThreadKind.MASTER,
+        ownerWhere: { userId: mockUser.userId },
         parentThreadId: 'parent_1',
       });
     });

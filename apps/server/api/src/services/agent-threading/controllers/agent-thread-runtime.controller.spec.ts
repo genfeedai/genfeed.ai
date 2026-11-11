@@ -86,6 +86,9 @@ describe('Threading AgentThreadRuntimeController', () => {
         }),
       } as never,
       {} as never,
+      {
+        assertAccess: vi.fn().mockResolvedValue({ thread: { userId } }),
+      } as never,
       {} as never,
       usersService as never as UsersService,
       agentOrchestratorService as never as AgentOrchestratorService,

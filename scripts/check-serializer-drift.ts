@@ -520,8 +520,11 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'creative-pattern:CreativePattern': [],
   'workflow:Workflow': ['cloudSync', 'key', 'nextRunAt', 'tasks'],
   'agent-thread:AgentThread': [
+    // Computed per viewer from ownership and live shares (#9936).
+    'accessLevel',
     'attentionState',
     'brandLabel',
+    'canManageShares',
     'decisionHref',
     'externalRuntime',
     'lastActivityAt',

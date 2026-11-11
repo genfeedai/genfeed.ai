@@ -499,11 +499,19 @@ describe('original ownership regressions', () => {
   it('owner memory and thread calls retain original user and organization even inside a selected scope', async () => {
     const listForUser = vi.fn(async () => []);
     const listPersonalForUser = vi.fn(async () => []);
-    const getUserThreads = vi.fn(async () => []);
+    const getUserThreads = vi.fn(async () => ({ docs: [] }));
     const memories = instance(AgentMemoriesController, {
       memoriesService: { listForUser, listPersonalForUser },
     });
     const threads = instance(AgentThreadsController, {
+      agentThreadAccessService: {
+        attachAccessLevels: async (_access: unknown, page: unknown) => page,
+        resolveListAccess: async () => ({
+          ownerWhere: { userId: user.userId },
+          scope: null,
+          userId: user.userId,
+        }),
+      },
       agentThreadsService: { getUserThreads },
     });
     await selected(() => memories.list(request, user));
@@ -518,7 +526,7 @@ describe('original ownership regressions', () => {
       undefined,
       undefined,
       expect.objectContaining({ limit: expect.any(Number), page: 1 }),
-      {},
+      expect.objectContaining({ ownerWhere: { userId: user.userId } }),
     );
   });
   it('owner transfer discovery retains original actor', async () => {

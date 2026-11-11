@@ -9,8 +9,12 @@ import { BrandAccessService } from '@api/authorization/brand-access/brand-access
 import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messages.module';
 import { AgentMasterThreadController } from '@api/collections/agent-threads/controllers/agent-master-thread.controller';
 import { AgentRunsController } from '@api/collections/agent-threads/controllers/agent-runs.controller';
+import { AgentThreadSharesController } from '@api/collections/agent-threads/controllers/agent-thread-shares.controller';
+import { AgentThreadTurnsController } from '@api/collections/agent-threads/controllers/agent-thread-turns.controller';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
 import { AgentMasterThreadService } from '@api/collections/agent-threads/services/agent-master-thread.service';
+import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
+import { AgentThreadSharesService } from '@api/collections/agent-threads/services/agent-thread-shares.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
@@ -27,10 +31,14 @@ import { Module } from '@nestjs/common';
     AgentRunsController,
     AgentMasterThreadController,
     AgentThreadsController,
+    AgentThreadSharesController,
+    AgentThreadTurnsController,
   ],
   exports: [
     AgentMasterThreadService,
     AgentScopeContextService,
+    AgentThreadAccessService,
+    AgentThreadSharesService,
     AgentThreadsService,
   ],
   imports: [
@@ -43,6 +51,8 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     AgentThreadsService,
+    AgentThreadAccessService,
+    AgentThreadSharesService,
     AgentMasterThreadService,
     AgentThreadProjectorService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },

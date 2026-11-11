@@ -19,7 +19,6 @@ export const TRACED_DEFINITIONS_BASELINE: Readonly<Record<string, number>> = {
   'apps/server/api/src/collections/agent-strategies/services/agent-strategy-thread-publish.util.ts': 2,
   'apps/server/api/src/collections/agent-strategies/sources/agent-source-saved-ad-reader.ts': 1,
   'apps/server/api/src/collections/agent-threads/utils/agent-thread-identity.util.ts': 1,
-  'apps/server/api/src/collections/agent-threads/utils/agent-thread-relocation.util.ts': 1,
   'apps/server/api/src/collections/agent-threads/utils/reconcile-thread-workflow-snapshot.ts': 1,
   'apps/server/api/src/collections/agent-transfers/services/agent-transfer-settlement.util.ts': 1,
   'apps/server/api/src/collections/api-keys/utils/resolve-generation-brand-for-caller.util.ts': 1,
