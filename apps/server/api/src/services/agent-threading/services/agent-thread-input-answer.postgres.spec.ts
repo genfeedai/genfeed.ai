@@ -215,10 +215,10 @@ describe.skipIf(!connectionString)(
       const snapshot = await database().agentThreadSnapshot.findFirst({
         where: { organizationId, threadId: thread.id },
       });
-      const stored = (
-        snapshot?.data as { inputRequests: Array<Record<string, unknown>> }
-      ).inputRequests[0];
-      expect(stored).toMatchObject({
+      const data = snapshot?.data as
+        | { inputRequests: Array<Record<string, unknown>> }
+        | undefined;
+      expect(data?.inputRequests[0]).toMatchObject({
         answer: 'Playful',
         resolvedByUserId: member,
         status: 'resolved',
@@ -251,10 +251,10 @@ describe.skipIf(!connectionString)(
       const snapshot = await database().agentThreadSnapshot.findFirst({
         where: { organizationId, threadId: thread.id },
       });
-      expect(
-        (snapshot?.data as { inputRequests: Array<{ status: string }> })
-          .inputRequests[0].status,
-      ).toBe('pending');
+      const data = snapshot?.data as
+        | { inputRequests: Array<{ status: string }> }
+        | undefined;
+      expect(data?.inputRequests[0]?.status).toBe('pending');
     });
 
     it('refuses a collaborator once the share is revoked', async () => {
