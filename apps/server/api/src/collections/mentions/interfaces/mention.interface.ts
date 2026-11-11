@@ -1,5 +1,5 @@
 /** Where a mention was written. */
-export interface MentionSource {
+interface MentionSource {
   type: 'agent_thread' | 'task_comment';
   /** The agent message or task comment id. */
   id: string;
