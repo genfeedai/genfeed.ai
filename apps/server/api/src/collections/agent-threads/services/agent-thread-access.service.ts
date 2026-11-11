@@ -170,7 +170,10 @@ export class AgentThreadAccessService {
     };
   }
 
-  /** Adds how `access` reaches each thread of a listed page. */
+  /**
+   * Adds how `access` reaches each thread of a listed page, and, for the threads
+   * the viewer manages, who they are shared with.
+   */
   async attachAccessLevels<
     T extends Pick<AgentThreadAccessRow, 'brandId' | 'id' | 'userId'>,
   >(
@@ -178,7 +181,12 @@ export class AgentThreadAccessService {
     page: { docs: T[] },
   ): Promise<{
     docs: Array<
-      T & { accessLevel?: AgentThreadAccessLevel; canManageShares: boolean }
+      T & {
+        accessLevel?: AgentThreadAccessLevel;
+        canManageShares: boolean;
+        shareCount?: number;
+        shareScope?: AgentThreadShareScope;
+      }
     >;
   }> {
     const levels = await this.resolveAccessLevels(
@@ -186,24 +194,76 @@ export class AgentThreadAccessService {
       access.scope,
       page.docs,
     );
+    const rows = page.docs.map((doc) => {
+      const accessLevel = levels.get(doc.id);
+      const isOwner = accessLevel === AgentThreadAccessLevel.OWNER;
+      // Same rule as `assertAccess(..., 'manage')`: the owner, or a live
+      // admin; a brand-limited key manages no brandless thread it does not own.
+      const isManagedByAdmin =
+        accessLevel !== undefined &&
+        access.scope?.isAdmin === true &&
+        (access.scope.brandIds === undefined || doc.brandId !== null);
+      return {
+        ...doc,
+        accessLevel,
+        canManageShares: isOwner || isManagedByAdmin,
+      };
+    });
+    const summaries = await this.summarizeShares(
+      access.scope,
+      rows.filter((row) => row.canManageShares).map((row) => row.id),
+    );
     return {
       ...page,
-      docs: page.docs.map((doc) => {
-        const accessLevel = levels.get(doc.id);
-        const isOwner = accessLevel === AgentThreadAccessLevel.OWNER;
-        // Same rule as `assertAccess(..., 'manage')`: the owner, or a live
-        // admin; a brand-limited key manages no brandless thread it does not own.
-        const isManagedByAdmin =
-          accessLevel !== undefined &&
-          access.scope?.isAdmin === true &&
-          (access.scope.brandIds === undefined || doc.brandId !== null);
-        return {
-          ...doc,
-          accessLevel,
-          canManageShares: isOwner || isManagedByAdmin,
-        };
-      }),
+      docs: rows.map((row) => ({ ...row, ...summaries.get(row.id) })),
     };
+  }
+
+  /**
+   * Who each of `threadIds` is shared with: the widest scope a live share
+   * reaches (organization over brand over people) and how many shares there
+   * are. A thread nobody can open but its owner is left out.
+   */
+  private async summarizeShares(
+    scope: AgentThreadListAccessScope | null,
+    threadIds: string[],
+  ): Promise<
+    Map<string, { shareCount: number; shareScope: AgentThreadShareScope }>
+  > {
+    const summaries = new Map<
+      string,
+      { shareCount: number; shareScope: AgentThreadShareScope }
+    >();
+    if (!scope || threadIds.length === 0) {
+      return summaries;
+    }
+    // sql-risk-audit: ignore unbounded-read -- Bounded by the caller's page of thread ids and one organization.
+    const rows = await this.prisma.agentThreadShare.findMany({
+      select: { scope: true, threadId: true },
+      where: scopedWhere(scope.organizationId, {
+        threadId: { in: threadIds },
+      }),
+    });
+    const rank = [
+      AgentThreadShareScope.MEMBER,
+      AgentThreadShareScope.BRAND,
+      AgentThreadShareScope.ORGANIZATION,
+    ];
+    for (const row of rows) {
+      const shareScope = rank.find((value) => value === row.scope);
+      if (!shareScope) {
+        continue;
+      }
+      const current = summaries.get(row.threadId);
+      summaries.set(row.threadId, {
+        shareCount: (current?.shareCount ?? 0) + 1,
+        shareScope:
+          current && rank.indexOf(current.shareScope) > rank.indexOf(shareScope)
+            ? current.shareScope
+            : shareScope,
+      });
+    }
+    return summaries;
   }
 
   /**

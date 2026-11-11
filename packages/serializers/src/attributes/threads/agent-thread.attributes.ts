@@ -26,6 +26,8 @@ export const agentThreadAttributes = createEntityAttributes([
   'mode',
   'requestedModel',
   'runtimeKey',
+  'shareCount',
+  'shareScope',
   'title',
   'source',
   'status',
