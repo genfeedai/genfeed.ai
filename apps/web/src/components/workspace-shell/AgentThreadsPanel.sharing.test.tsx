@@ -238,6 +238,52 @@ describe('AgentThreadsPanel sharing', () => {
     ).not.toHaveTextContent('Ana Costa');
   });
 
+  it('says what each owned thread is shared with in its row, and nothing for a private or received one', () => {
+    const owned = (
+      id: string,
+      title: string,
+      overrides: Partial<AgentThread>,
+    ) =>
+      makeThread(id, title, {
+        accessLevel: AgentThreadAccessLevel.OWNER,
+        attentionState: 'updated',
+        brandId: 'brand-a',
+        brandLabel: 'Acme Skincare',
+        canManageShares: true,
+        userId: ME,
+        ...overrides,
+      });
+    render(
+      <AgentThreadsPanel
+        apiService={apiService}
+        getThreadHref={(threadId) => `/acme/~/agent/${threadId}`}
+        threads={[
+          owned('everyone', 'Org-wide recap', {
+            shareCount: 1,
+            shareScope: AgentThreadShareScope.ORGANIZATION,
+          }),
+          owned('brand', 'Brand calendar', {
+            shareCount: 2,
+            shareScope: AgentThreadShareScope.BRAND,
+          }),
+          owned('people', 'Pair on hooks', {
+            shareCount: 2,
+            shareScope: AgentThreadShareScope.MEMBER,
+          }),
+          owned('solo', 'Private draft', {}),
+          viewThread,
+        ]}
+      />,
+    );
+
+    const row = (name: RegExp) => screen.getByRole('link', { name });
+    expect(row(/Org-wide recap/)).toHaveTextContent('Shared · Organization');
+    expect(row(/Brand calendar/)).toHaveTextContent('Shared · Acme Skincare');
+    expect(row(/Pair on hooks/)).toHaveTextContent('Shared · 2 people');
+    expect(row(/Private draft/)).not.toHaveTextContent('Shared');
+    expect(row(/Weekly performance recap/)).not.toHaveTextContent('Shared');
+  });
+
   it('narrows the list to threads shared with me, or to mine, from the Filters menu', async () => {
     const user = userEvent.setup();
     renderPanel();
