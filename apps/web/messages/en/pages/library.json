@@ -620,6 +620,8 @@
     "decisionFailed": "Could not save your review. Try again.",
     "teammate": "Teammate",
     "openThread": "Open thread with {name}",
+    "showThread": "Show thread with {name}",
+    "threadWith": "Thread with {name}",
     "state": {
       "approved": "Approved",
       "changes_requested": "Changes requested",
@@ -641,6 +643,19 @@
       "send": "Send request",
       "sent": "{count, plural, one {Review requested} other {Review requested for # assets}}",
       "failed": "Could not request the review. Try again."
+    },
+    "thread": {
+      "title": "Thread",
+      "empty": "No messages yet. Tag a teammate with @.",
+      "assistant": "Assistant",
+      "teammate": "Teammate",
+      "teammates": "Teammates",
+      "replyLabel": "Reply in thread",
+      "replyPlaceholder": "Reply. Type @ to tag a teammate.",
+      "send": "Send",
+      "shareAndSend": "Share and send",
+      "dismiss": "Not now",
+      "sendFailed": "Could not send the message. Try again."
     }
   }
 }
