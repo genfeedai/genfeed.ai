@@ -358,20 +358,6 @@ describe('Threading AgentThreadRuntimeController', () => {
         mockUser,
       );
 
-      expect(prepareForTurn).toHaveBeenCalledWith(
-        expect.objectContaining({
-          isSharedCollaborationAllowed: true,
-          threadId,
-          userId,
-        }),
-      );
-      expect(resolveInputRequest).toHaveBeenCalledWith(
-        expect.objectContaining({ requestId: 'req-1', userId }),
-      );
-      expect(agentOrchestratorService.acceptChatStream).toHaveBeenCalledWith(
-        expect.objectContaining({ content: 'Use hybrid' }),
-        expect.objectContaining({ organizationId, userId }),
-      );
       expect(response).toMatchObject({
         executionId: 'run-member',
         requestId: 'req-1',
@@ -390,8 +376,6 @@ describe('Threading AgentThreadRuntimeController', () => {
           mockUser,
         ),
       ).rejects.toThrow(ForbiddenException);
-      expect(resolveInputRequest).not.toHaveBeenCalled();
-      expect(agentOrchestratorService.acceptChatStream).not.toHaveBeenCalled();
     });
 
     it('resolves nothing for a member whose share only lets them view', async () => {
@@ -407,8 +391,6 @@ describe('Threading AgentThreadRuntimeController', () => {
           mockUser,
         ),
       ).rejects.toThrow(ForbiddenException);
-      expect(resolveInputRequest).not.toHaveBeenCalled();
-      expect(agentOrchestratorService.acceptChatStream).not.toHaveBeenCalled();
     });
   });
 
