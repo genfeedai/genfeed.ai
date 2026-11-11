@@ -1,3 +1,4 @@
+import { IngredientReviewRequestsController } from '@api/collections/tasks/controllers/ingredient-review-requests.controller';
 import { TasksController } from '@api/collections/tasks/controllers/tasks.controller';
 import { TasksPlanningController } from '@api/collections/tasks/controllers/tasks-planning.controller';
 import { WorkspaceInboxReadController } from '@api/collections/tasks/controllers/workspace-inbox-read.controller';
@@ -48,6 +49,7 @@ describe('Tasks split controllers', () => {
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, TasksModule),
     ).toEqual([
       WorkspaceInboxReadController,
+      IngredientReviewRequestsController,
       TasksPlanningController,
       TasksController,
     ]);

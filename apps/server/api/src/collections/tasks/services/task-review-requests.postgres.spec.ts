@@ -63,7 +63,8 @@ describe.skipIf(!connectionString)(
     const brandAccess = () => new BrandAccessService(asPrisma());
     const threadAccess = () =>
       new AgentThreadAccessService(asPrisma(), brandAccess());
-    const reviewAccess = () => new TaskReviewAccessService(brandAccess());
+    const reviewAccess = () =>
+      new TaskReviewAccessService(asPrisma(), brandAccess());
     const service = () =>
       new TaskReviewRequestsService(
         asPrisma(),

@@ -9,6 +9,7 @@ import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import { TaskReviewAccessService } from '@api/collections/tasks/services/task-review-access.service';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { MemberRole } from '@genfeedai/contracts';
 import { TaskSerializer } from '@genfeedai/serializers';
@@ -44,6 +45,7 @@ describe('TasksController', () => {
     findOne: ReturnType<typeof vi.fn>;
     findOneSelect: ReturnType<typeof vi.fn>;
   };
+  let taskRow: { findFirst: ReturnType<typeof vi.fn> };
   let brandAccess: {
     assert: ReturnType<typeof vi.fn>;
     resolve: ReturnType<typeof vi.fn>;
@@ -104,13 +106,17 @@ describe('TasksController', () => {
       assert: vi.fn().mockResolvedValue(undefined),
       resolve: vi.fn().mockResolvedValue({ role: MemberRole.CREATOR }),
     };
+    taskRow = { findFirst: vi.fn().mockResolvedValue({}) };
 
     controller = new TasksController(
       loggerService as unknown as LoggerService,
       tasksService as unknown as TasksService,
       taskCountersService as unknown as TaskCountersService,
       organizationsService as unknown as OrganizationsService,
-      new TaskReviewAccessService(brandAccess as unknown as BrandAccessService),
+      new TaskReviewAccessService(
+        { task: taskRow } as unknown as PrismaService,
+        brandAccess as unknown as BrandAccessService,
+      ),
     );
 
     vi.spyOn(TaskSerializer, 'serialize').mockImplementation(
@@ -323,7 +329,11 @@ describe('TasksController', () => {
 
     beforeEach(() => {
       // A task nobody is assigned to: the open rule applies.
-      tasksService.findOne.mockResolvedValue({ id: taskId });
+      taskRow.findFirst.mockResolvedValue({
+        assigneeUserId: null,
+        brandId: null,
+        userId: null,
+      });
     });
 
     it('routes reviewState=approved to the approve action', async () => {
@@ -388,7 +398,7 @@ describe('TasksController', () => {
         ({ ...mockUser, id, userId: id }) as unknown as User;
 
       beforeEach(() => {
-        tasksService.findOne.mockResolvedValue(assigned);
+        taskRow.findFirst.mockResolvedValue(assigned);
         tasksService.approve.mockResolvedValue(task);
         tasksService.requestChanges.mockResolvedValue(task);
         tasksService.dismiss.mockResolvedValue(task);

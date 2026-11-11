@@ -1,4 +1,3 @@
-import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
@@ -8,9 +7,10 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  MinLength,
 } from 'class-validator';
 
-export const MAX_REVIEW_REQUEST_REVIEWERS = 10;
+const MAX_REVIEW_REQUEST_REVIEWERS = 10;
 
 /** Asks teammates to review one Library asset (#9945). */
 export class CreateTaskReviewRequestDto {
@@ -25,7 +25,8 @@ export class CreateTaskReviewRequestDto {
   @ArrayMinSize(1)
   @ArrayMaxSize(MAX_REVIEW_REQUEST_REVIEWERS)
   @ArrayUnique()
-  @IsEntityId({ each: true })
+  @IsString({ each: true })
+  @MinLength(1, { each: true })
   readonly reviewerUserIds!: string[];
 
   @ApiPropertyOptional({

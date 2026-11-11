@@ -1,5 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
 import { toWorkflowActor } from '@api/authorization/brand-access/workflow-actor.util';
 import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -318,7 +317,7 @@ export class TasksController extends BaseCRUDController<
     }
 
     if (updateDto.assigneeUserId !== undefined || updateDto.isDeleted) {
-      await this.assertCanChangeReviewer(user, id);
+      await this.taskReviewAccess.assertCanChangeTaskReviewer(user, id);
     }
 
     const result = await super.patch(request, user, id, updateDto);
@@ -368,18 +367,7 @@ export class TasksController extends BaseCRUDController<
 
     const organization = user.organizationId;
     const userId = user.userId ?? user.id;
-
-    if (
-      reviewState === 'approved' ||
-      reviewState === 'changes_requested' ||
-      reviewState === 'dismissed'
-    ) {
-      await this.taskReviewAccess.assertCanDecide(
-        this.reviewActor(user),
-        await this.requireReviewTask(organization, id),
-        reviewState,
-      );
-    }
+    await this.taskReviewAccess.assertCanDecideTask(user, id, reviewState);
 
     let doc: TaskDocument;
     switch (reviewState) {
@@ -414,35 +402,6 @@ export class TasksController extends BaseCRUDController<
     }
 
     return serializeSingle(request, TaskSerializer, doc);
-  }
-
-  private reviewActor(user: User): BrandAccessActor {
-    return {
-      apiKeyId: user.apiKeyId,
-      isApiKey: user.isApiKey,
-      organizationId: user.organizationId,
-      scopes: user.scopes,
-      userId: user.userId ?? user.id,
-    };
-  }
-
-  private async requireReviewTask(organizationId: string, id: string) {
-    const task = await this.tasksService.findOneSelect(
-      scopedWhere(organizationId, { id }),
-      { assigneeUserId: true, brandId: true, userId: true },
-    );
-    if (!task) {
-      throw new NotFoundException('Task', id);
-    }
-    return task;
-  }
-
-  /** A reviewer is changed, cleared or deleted by the reviewer, requester or an admin. */
-  private async assertCanChangeReviewer(user: User, id: string): Promise<void> {
-    await this.taskReviewAccess.assertCanChangeReviewer(
-      this.reviewActor(user),
-      await this.requireReviewTask(user.organizationId, id),
-    );
   }
 
   /**

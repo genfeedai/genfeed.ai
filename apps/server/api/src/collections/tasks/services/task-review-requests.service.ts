@@ -29,7 +29,7 @@ import {
 } from '@nestjs/common';
 
 /** Marks the threads this service starts, so they can be told apart. */
-export const REVIEW_REQUEST_THREAD_SOURCE = 'review-request';
+const REVIEW_REQUEST_THREAD_SOURCE = 'review-request';
 
 const LIST_LIMIT = 100;
 

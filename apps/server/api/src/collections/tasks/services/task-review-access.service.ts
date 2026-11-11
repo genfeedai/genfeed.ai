@@ -1,7 +1,11 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   type BrandAccessActor,
   BrandAccessService,
 } from '@api/authorization/brand-access/brand-access.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { isCloudDeployment } from '@genfeedai/config';
 import { MemberRole } from '@genfeedai/contracts';
 import { Traced } from '@libs/tracing/traced';
@@ -26,7 +30,34 @@ export type TaskReviewDecision = 'approved' | 'changes_requested' | 'dismissed';
 @Traced()
 @Injectable()
 export class TaskReviewAccessService {
-  constructor(private readonly brandAccess: BrandAccessService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly brandAccess: BrandAccessService,
+  ) {}
+
+  /** {@link assertCanDecide} for the task `taskId` of the caller's organization. */
+  async assertCanDecideTask(
+    user: User,
+    taskId: string,
+    decision: TaskReviewDecision | undefined,
+  ): Promise<void> {
+    if (!decision) {
+      return;
+    }
+    await this.assertCanDecide(
+      this.actorOf(user),
+      await this.requireTask(user.organizationId, taskId),
+      decision,
+    );
+  }
+
+  /** {@link assertCanChangeReviewer} for the task `taskId` of the caller's organization. */
+  async assertCanChangeTaskReviewer(user: User, taskId: string): Promise<void> {
+    await this.assertCanChangeReviewer(
+      this.actorOf(user),
+      await this.requireTask(user.organizationId, taskId),
+    );
+  }
 
   async assertCanDecide(
     actor: BrandAccessActor,
@@ -107,5 +138,29 @@ export class TaskReviewAccessService {
       }
       throw error;
     }
+  }
+
+  private actorOf(user: User): BrandAccessActor {
+    return {
+      apiKeyId: user.apiKeyId,
+      isApiKey: user.isApiKey,
+      organizationId: user.organizationId,
+      scopes: user.scopes,
+      userId: user.userId ?? user.id,
+    };
+  }
+
+  private async requireTask(
+    organizationId: string,
+    taskId: string,
+  ): Promise<TaskReviewAccessRow> {
+    const task = await this.prisma.task.findFirst({
+      select: { assigneeUserId: true, brandId: true, userId: true },
+      where: scopedWhere(organizationId, { id: taskId }),
+    });
+    if (!task) {
+      throw new NotFoundException('Task', taskId);
+    }
+    return task;
   }
 }
