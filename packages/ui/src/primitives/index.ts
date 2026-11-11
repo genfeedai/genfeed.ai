@@ -219,3 +219,8 @@ export {
   TooltipProvider,
   TooltipTrigger,
 } from './tooltip';
+export {
+  UnderlineNav,
+  type UnderlineNavItem,
+  type UnderlineNavProps,
+} from './underline-nav';

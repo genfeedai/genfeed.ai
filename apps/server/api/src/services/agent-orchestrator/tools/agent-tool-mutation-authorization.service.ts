@@ -116,12 +116,26 @@ export class AgentToolMutationAuthorizationService {
    * mode (storage unavailable, corrupt value) fails safe to Manual rather
    * than returning `undefined` — only "no thread" skips the matrix, never "a
    * thread whose mode we failed to read."
+   *
+   * The lookup is the acting member's own thread. A member sending a turn in a
+   * thread shared with them (#9937) does not own it, so the owner's Auto
+   * choice never approves what their turn does (#9963): their tools run in the
+   * mode they saved for their own threads, Manual when they saved none.
    */
   async resolveAgentModeForContext(
     context: ToolExecutionContext,
   ): Promise<AgentThreadModeValue | undefined> {
     if (!context.threadId) {
       return undefined;
+    }
+    // The scope was re-proved against the live share just before this call.
+    const scope = context.validatedScope;
+    if (
+      scope?.threadOwnerUserId &&
+      scope.threadOwnerUserId !== context.userId &&
+      scope.userId === context.userId
+    ) {
+      return this.resolveSavedDefaultMode(context.userId);
     }
     if (this.agentThreadsService) {
       const thread = await this.agentThreadsService.findOne({
@@ -136,6 +150,18 @@ export class AgentToolMutationAuthorizationService {
       }
     }
     return 'manual';
+  }
+
+  /** The member's saved default mode (#4672), Manual when absent or unreadable. */
+  private async resolveSavedDefaultMode(
+    userId: string,
+  ): Promise<AgentThreadModeValue> {
+    const setting = await this.prisma?.setting.findFirst({
+      select: { agentMode: true },
+      where: { isDeleted: false, userId },
+    });
+    const mode = setting?.agentMode;
+    return mode === 'auto' || mode === 'plan' ? mode : 'manual';
   }
 
   async authorize(

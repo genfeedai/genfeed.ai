@@ -19,7 +19,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #7552: superadmin all-organizations library listing; gated by the allOrganizations superadmin check in the controller.
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 252,
+      line: 256,
     },
     // Superadmin failure resolution; the write itself is scoped to the execution row's own tenant.
     {
@@ -80,7 +80,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // issuance only and are never returned over HTTP.
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 265,
+      line: 266,
     },
     // Platform-admin cross-organization media: the admin Library and Generations
     // list other tenants' assets, so preview grants for ids the organization
@@ -89,13 +89,13 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // and only a signed preview URL leaves the service.
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 808,
+      line: 809,
     },
     // Platform-admin batch refresh of those previews: the batch route verifies
     // the platform-admin role and reads only the ids the client already holds.
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 350,
+      line: 359,
     },
     // Public brand pictures: the anonymous public profile (/u/<handle>) has no
     // organization to scope by. projectPublicBrandAssets reads only LOGO and
@@ -103,11 +103,11 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // only the signed picture URL leaves the service (never the storage key).
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 474,
+      line: 475,
     },
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 501,
+      line: 502,
     },
     // Access discovery: findActiveForUserAccess lists the caller's own active
     // memberships by canonical users.id (userId in the where) to resolve which

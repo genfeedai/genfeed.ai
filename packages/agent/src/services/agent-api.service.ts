@@ -67,6 +67,12 @@ export class AgentApiService extends AgentBaseApiService {
   getMessages = threadsApi.getMessages.bind(null, this);
   getMessagesPage = threadsApi.getMessagesPage.bind(null, this);
   retryAgentTransfer = threadsApi.retryAgentTransfer.bind(null, this);
+  acceptAgentTransfer = threadsApi.acceptAgentTransfer.bind(null, this);
+  declineAgentTransfer = threadsApi.declineAgentTransfer.bind(null, this);
+  createAgentHandoff = threadsApi.createAgentHandoff.bind(null, this);
+  getThreadShares = threadsApi.getThreadShares.bind(null, this);
+  createThreadShare = threadsApi.createThreadShare.bind(null, this);
+  deleteThreadShare = threadsApi.deleteThreadShare.bind(null, this);
 
   // Brands
 

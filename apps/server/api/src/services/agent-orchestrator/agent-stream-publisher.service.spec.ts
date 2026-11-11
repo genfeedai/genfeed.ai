@@ -1,3 +1,4 @@
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -384,6 +385,49 @@ describe('AgentStreamPublisherService', () => {
       expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
     });
 
+    describe('for a member sending in a thread shared with them (#9937)', () => {
+      const hasAccess = vi.fn();
+      const withShares = () =>
+        new AgentStreamPublisherService(
+          mockRedisService as unknown as PublisherDependencies[0],
+          mockLoggerService as unknown as PublisherDependencies[1],
+          mockAgentThreadsService as unknown as PublisherDependencies[2],
+          mockAgentThreadEngineService as unknown as PublisherDependencies[3],
+          mockConfigService as unknown as PublisherDependencies[4],
+          undefined,
+          { hasAccess } as never,
+        );
+
+      beforeEach(() => {
+        hasAccess.mockReset();
+        // The member does not own the thread: the owner-scoped lookup is empty.
+        mockAgentThreadsService.findOne.mockResolvedValue(null);
+      });
+
+      it('signals as the member while their collaborate share is live', async () => {
+        hasAccess.mockResolvedValue(true);
+
+        await withShares().publishTurnAccepted(data);
+
+        expect(hasAccess).toHaveBeenCalledExactlyOnceWith(
+          { organizationId: data.organizationId, userId: data.userId },
+          data.threadId,
+          'collaborate',
+        );
+        expect(mockRedisService.publish).toHaveBeenCalledExactlyOnceWith(
+          CHANNEL,
+          { data, type: 'agent:turn_accepted' },
+        );
+      });
+
+      it('publishes nothing once the share is gone', async () => {
+        hasAccess.mockResolvedValue(false);
+
+        await expect(withShares().publishTurnAccepted(data)).rejects.toThrow();
+        expect(mockRedisService.publish).not.toHaveBeenCalled();
+      });
+    });
+
     it('fails closed without the threads service', async () => {
       const withoutThreads = new AgentStreamPublisherService(
         mockRedisService as unknown as PublisherDependencies[0],
@@ -747,7 +791,8 @@ describe('AgentStreamPublisherService', () => {
         mockAgentThreadEngineService as unknown as PublisherDependencies[3],
         mockConfigService as unknown as PublisherDependencies[4],
         undefined,
-        { resolve } as unknown as PublisherDependencies[6],
+        undefined,
+        { resolve } as unknown as PublisherDependencies[7],
       );
     });
 
@@ -1210,6 +1255,15 @@ describe('authorized media stream projection', () => {
       findOne: vi.fn().mockResolvedValue({ organizationId, userId }),
       findOneSelect: delegateFindOneSelect(),
     };
+    const scope = {
+      brandId: undefined,
+      organizationId,
+      participantUserIds: [userId],
+      userId,
+    };
+    const threadAccess = {
+      resolveMediaScope: vi.fn().mockResolvedValue(scope),
+    };
     const publisher = new AgentStreamPublisherService(
       redis as never,
       mockLoggerService as never,
@@ -1217,6 +1271,7 @@ describe('authorized media stream projection', () => {
       undefined,
       { isAuthorizedMediaDeliveryEnabled: true } as never,
       issuer as never,
+      threadAccess as never,
     );
     await publisher.publishUIBlocks({
       threadId,
@@ -1231,17 +1286,60 @@ describe('authorized media stream projection', () => {
         },
       ] as never,
     });
-    expect(threads.findOne).toHaveBeenCalledWith({
-      id: threadId,
-      userId,
-      isDeleted: false,
-    });
+    expect(threadAccess.resolveMediaScope).toHaveBeenCalledWith(
+      { organizationId, userId },
+      threadId,
+    );
     expect(JSON.stringify(redis.publish.mock.calls)).not.toContain(
       'provider.test',
     );
-    expect(issuer.projectIngredients).toHaveBeenCalledWith(
-      { organizationId, userId, brandId: undefined },
-      [id],
+    expect(issuer.projectIngredients).toHaveBeenCalledWith(scope, [id]);
+  });
+
+  it('signs no media for a member whose access to the thread is gone (#9962)', async () => {
+    const id = testId('ingredient');
+    const threadId = testId('thread');
+    const organizationId = testId('org');
+    const userId = testId('user');
+    const redis = { publish: vi.fn().mockResolvedValue(undefined) };
+    const issuer = {
+      projectIngredients: vi.fn(),
+      projectAssets: vi.fn(),
+    };
+    const threads = {
+      findOne: vi.fn().mockResolvedValue({ organizationId, userId }),
+      findOneSelect: delegateFindOneSelect(),
+    };
+    const threadAccess = {
+      resolveMediaScope: vi
+        .fn()
+        .mockRejectedValue(new NotFoundException('Thread', threadId)),
+    };
+    const publisher = new AgentStreamPublisherService(
+      redis as never,
+      mockLoggerService as never,
+      threads as never,
+      undefined,
+      { isAuthorizedMediaDeliveryEnabled: true } as never,
+      issuer as never,
+      threadAccess as never,
+    );
+    await publisher.publishUIBlocks({
+      threadId,
+      userId,
+      operation: 'append' as never,
+      blocks: [
+        {
+          type: 'content_preview_card',
+          assetKind: 'image',
+          assetId: id,
+          images: ['https://provider.test/original'],
+        },
+      ] as never,
+    });
+    expect(issuer.projectIngredients).not.toHaveBeenCalled();
+    expect(JSON.stringify(redis.publish.mock.calls)).not.toContain(
+      'provider.test',
     );
   });
 });

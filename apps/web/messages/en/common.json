@@ -105,6 +105,13 @@
     "social": {
       "replies": "New replies to your posts"
     },
+    "collaboration": {
+      "handoff_received": "Handed you a task",
+      "mentioned": "You were mentioned",
+      "review_approved": "Review approved",
+      "review_changes_requested": "Changes requested",
+      "review_requested": "Asked to review"
+    },
     "review": {
       "requested": "Review needed"
     },
@@ -1328,6 +1335,12 @@
     "actions": "Actions for {title}",
     "breadcrumb": "Thread location",
     "empty": "No threads yet. Ask the master to start one.",
+    "filters": {
+      "owner": "Owner",
+      "ownerAll": "All",
+      "ownerMine": "Mine",
+      "ownerShared": "Shared with me"
+    },
     "groups": {
       "earlier": "Earlier",
       "needsYou": "Needs you",
@@ -1336,10 +1349,24 @@
       "resolved": "Resolved",
       "working": "Working"
     },
+    "handoff": {
+      "action": "Hand off to a teammate…",
+      "cancel": "Cancel",
+      "description": "Their agent gets this request in a new thread and runs it with their permissions. They can decline.",
+      "failed": "Could not send the hand-off. Try again.",
+      "noTeammates": "No teammate has access to this thread's brand.",
+      "request": "Request",
+      "requestPlaceholder": "What should their agent do?",
+      "send": "Send hand-off",
+      "sent": "Handed off to {name}. Waiting for them to accept.",
+      "teammate": "Teammate",
+      "title": "Hand off to a teammate"
+    },
     "loadFailed": "Failed to load this thread.",
     "loadMoreResolved": "Load more resolved",
     "loading": "Loading threads",
     "loadingMessages": "Loading messages",
+    "moreActions": "More actions",
     "noMatches": "No threads match.",
     "noMessages": "No messages yet.",
     "nothingNeedsYou": "Nothing needs you.",
@@ -1352,6 +1379,41 @@
     "resolve": "Resolve",
     "resolved": "Resolved",
     "search": "Search threads",
+    "share": {
+      "accessBadge": "{owner} · {level}",
+      "accessFor": "Access for {name}",
+      "accessLevel": "Access level",
+      "brandHint": "Everyone with access to {brand}",
+      "brandMembersCan": "Members of {brand} can",
+      "canPrompt": "Can prompt",
+      "canView": "Can view",
+      "description": "Teammates see the history. With “Can prompt”, their messages run with their own permissions and credits.",
+      "done": "Done",
+      "everyMemberCan": "Every member can",
+      "failed": "Could not update sharing. Try again.",
+      "noAccess": "No access",
+      "noBrandAccess": "{role} · no access to {brand}",
+      "noBrandHint": "This thread is not in a brand",
+      "noMembers": "No other active members yet.",
+      "onlyMe": "Only me",
+      "onlyMeHint": "Only you can open it",
+      "organization": "Organization",
+      "organizationHint": "Every member of the organization",
+      "organizationNote": "Members without access to {brand} still can’t open it. Sharing never widens brand access.",
+      "people": "Specific people",
+      "peopleHint": "Pick teammates one by one",
+      "scopeBrand": "Brand",
+      "scopeOrganization": "Organization",
+      "scopePeople": "{count, plural, one {# person} other {# people}}",
+      "scopePrivate": "Private",
+      "sharedScope": "Shared · {scope}",
+      "steerPlaceholderShared": "Message the agent. Everyone in this thread sees it.",
+      "thisBrand": "This brand",
+      "title": "Share this thread",
+      "viewOnly": "You can view this thread. Ask the owner for “Can prompt” to send messages.",
+      "viewOnlyNamed": "You can view this thread. Ask {owner} for “Can prompt” to send messages.",
+      "whoCanOpen": "Who can open this thread"
+    },
     "statusDone": "Done",
     "statusIdle": "Idle",
     "steerFailed": "Could not send. Try again.",

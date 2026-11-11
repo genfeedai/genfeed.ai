@@ -52,6 +52,8 @@ export enum ActivitySource {
   MCP_APPROVAL = 'mcp-approval',
   POST_LIFECYCLE = 'post-lifecycle',
   BRAND_OS_EXPORT = 'brand-os-export',
+  /** A teammate's review request, review decision or mention (#9947). */
+  COLLABORATION = 'collaboration',
 }
 
 /**
@@ -138,6 +140,16 @@ export enum ActivityKey {
   CREDITS_LOW = 'credits-low',
   /** A workflow review gate paused for human approval. */
   WORKFLOW_REVIEW_REQUESTED = 'workflow-review-requested',
+  /** A teammate asked this member to review a Library asset (#9947). */
+  ASSET_REVIEW_REQUESTED = 'asset-review-requested',
+  /** A reviewer approved the asset this member asked them to review. */
+  ASSET_REVIEW_APPROVED = 'asset-review-approved',
+  /** A reviewer asked for changes on the asset this member asked them to review. */
+  ASSET_REVIEW_CHANGES_REQUESTED = 'asset-review-changes-requested',
+  /** A teammate tagged this member in a thread or task comment (#9947). */
+  MENTIONED = 'mentioned',
+  /** A teammate handed this member's agent a task to accept or decline (#9980). */
+  AGENT_HANDOFF_RECEIVED = 'agent-handoff-received',
   /** A workflow reportDelivery node sent its report to the bell. */
   WORKFLOW_REPORT_DELIVERED = 'workflow-report-delivered',
   /** A scheduled trend summary is ready. */

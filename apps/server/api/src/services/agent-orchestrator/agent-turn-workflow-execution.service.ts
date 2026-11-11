@@ -48,6 +48,7 @@ import {
   upsertRuntimeBinding,
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   AgentMessageRole,
   AgentThreadMode,
@@ -244,20 +245,35 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     threadId: string;
   }> {
     const request = projectAgentTurnRequest(value);
-    const thread = await this.prisma.agentThread.findFirst({
-      select: {
-        brandId: true,
-        contextVersion: true,
-        status: true,
-        agentStrategyId: true,
-      },
-      where: {
+    const select = {
+      brandId: true,
+      contextVersion: true,
+      status: true,
+      agentStrategyId: true,
+    } as const;
+    let thread = await this.prisma.agentThread.findFirst({
+      select,
+      where: scopedWhere(workflowContext.organizationId, {
         id: request.threadId,
-        isDeleted: false,
-        organizationId: workflowContext.organizationId,
         userId: workflowContext.userId,
-      },
+      }),
     });
+    if (!thread) {
+      // Not the sender's own thread: it opens only to a sender whose share
+      // still lets them collaborate, read live now that the turn has left the
+      // queue (#9937). The turn keeps running as the sender.
+      const ownerUserId = await this.contextService.resolveSharedThreadOwner(
+        workflowContext,
+        request.threadId,
+      );
+      thread = await this.prisma.agentThread.findFirst({
+        select,
+        where: scopedWhere(workflowContext.organizationId, {
+          id: request.threadId,
+          userId: ownerUserId,
+        }),
+      });
+    }
     if (!thread) {
       throw new Error('Agent thread not found or inaccessible');
     }
@@ -702,14 +718,18 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     // mode promises a confirmation before credits are spent. This turn skips
     // the model and charges immediately, so a Plan or Manual thread takes the
     // normal path below instead (the plan, or the `generate` review card with
-    // model and cost), whether the media mode was locked or inferred.
+    // model and cost), whether the media mode was locked or inferred. A turn
+    // sent in another member's thread (#9963) takes it too: the owner's Auto
+    // never charges for someone else's turn, and the tools there follow the
+    // sender's own mode.
     const thread = await this.agentThreadsService.findOneSelect(
       { id: state.threadId, organizationId: state.organizationId },
-      { mode: true },
+      { mode: true, userId: true },
     );
     if (
       thread?.mode === AgentThreadMode.PLAN ||
-      thread?.mode === AgentThreadMode.MANUAL
+      thread?.mode === AgentThreadMode.MANUAL ||
+      (thread && thread.userId !== state.userId)
     ) {
       return null;
     }

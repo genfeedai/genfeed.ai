@@ -239,9 +239,9 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/youtube',
   ] as const),
   ...classifyPublicRoutes('website', 'public-content', [
-    '/articles',
     '/changelog',
     '/community',
+    '/community/articles',
     '/community/creators',
     '/community/images',
     '/community/videos',

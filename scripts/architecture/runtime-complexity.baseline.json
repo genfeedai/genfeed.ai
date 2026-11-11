@@ -24,12 +24,6 @@
     "symbol": "apps/server/api/src/collections/agent-threads/services/agent-threads.service.ts"
   },
   {
-    "actual": 183,
-    "file": "apps/server/api/src/collections/agent-transfers/services/agent-transfers.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentTransfersService.create"
-  },
-  {
     "actual": 175,
     "file": "apps/server/api/src/collections/billing-accounts/services/billing-account-migration.service.ts",
     "metric": "method-lines",
@@ -304,12 +298,6 @@
     "file": "apps/web/src/features/brands/components/sidebar/BrandDetailSocialMediaCard.tsx",
     "metric": "file-lines",
     "symbol": "apps/web/src/features/brands/components/sidebar/BrandDetailSocialMediaCard.tsx"
-  },
-  {
-    "actual": 1003,
-    "file": "apps/web/src/features/ingredients/components/list/content/IngredientsListContent.tsx",
-    "metric": "file-lines",
-    "symbol": "apps/web/src/features/ingredients/components/list/content/IngredientsListContent.tsx"
   },
   {
     "actual": 1094,

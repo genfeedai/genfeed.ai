@@ -2,6 +2,7 @@ import {
   IngredientCategory,
   IngredientOrigin,
   LibraryPlace,
+  LibraryReviewState,
   LibraryShelf,
   PageScope,
   TagMatchMode,
@@ -210,6 +211,51 @@ describe('useLibraryBrowser', () => {
       origins: [IngredientOrigin.UPLOADED],
       shelf: 'approved',
     });
+  });
+
+  it('reads the review state from the URL and sends it to the list (#9948)', () => {
+    state.search = '?review=in_review';
+
+    const { result } = renderHook(() => useLibraryBrowser({}));
+
+    expect(result.current.review).toBe(LibraryReviewState.IN_REVIEW);
+    expect(result.current.contextValue.query.review).toBe('in_review');
+  });
+
+  it('ignores a review value it does not know', () => {
+    state.search = '?review=bogus';
+
+    const { result } = renderHook(() => useLibraryBrowser({}));
+
+    expect(result.current.review).toBeUndefined();
+    expect(result.current.contextValue.query).not.toHaveProperty('review');
+  });
+
+  it('writes the review state to the URL without dropping the other axes, and clears it', () => {
+    state.search = '?categories=IMAGE&folder=f1&review=approved&page=2';
+
+    const { result } = renderHook(() => useLibraryBrowser({}));
+    act(() =>
+      result.current.handleReviewChange(LibraryReviewState.CHANGES_REQUESTED),
+    );
+
+    const next = new URLSearchParams(lastPushedSearch());
+    expect(next.get('review')).toBe('changes_requested');
+    expect(next.getAll('categories')).toEqual(['IMAGE']);
+    expect(next.get('folder')).toBe('f1');
+    expect(next.has('page')).toBe(false);
+
+    act(() => result.current.handleReviewChange(null));
+    expect(new URLSearchParams(lastPushedSearch()).has('review')).toBe(false);
+  });
+
+  it('clears the review state with every other filter', () => {
+    state.search = '?review=in_review&origins=UPLOADED';
+
+    const { result } = renderHook(() => useLibraryBrowser({}));
+    act(() => result.current.handleClearAllFilters());
+
+    expect(new URLSearchParams(lastPushedSearch()).has('review')).toBe(false);
   });
 
   it('reads repeated characters from the URL into the API query', () => {

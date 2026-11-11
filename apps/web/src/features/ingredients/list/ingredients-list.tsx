@@ -54,6 +54,7 @@ import IngredientsListSidebar from '@/features/ingredients/components/list/sideb
 import { useIngredientDeepLink } from '@/features/ingredients/hooks/use-ingredient-deep-link/use-ingredient-deep-link';
 import { useIngredientsList } from '@/features/ingredients/hooks/use-ingredients-list/use-ingredients-list';
 import type { IngredientsListProps } from '@/features/ingredients/props/ingredients-list.props';
+import SelectionReviewAction from '@/features/library/review/selection-review-action';
 import { useIngredientSidebar } from '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 
 /**
@@ -154,6 +155,7 @@ export default function IngredientsList({
   } = useIngredientsList({ folderNavigation, scope, type });
   // Reviewing a failed asset opens it in Playground.
   const isPlaygroundAvailable = useIsAppAvailable('playground');
+  const isAgentAvailable = useIsAppAvailable('agent');
   // The folders column only exists for brand/org scopes; the admin scope
   // renders no sidebar, so reserving its column squeezes the list into 14rem.
   const hasFoldersSidebar =
@@ -312,6 +314,11 @@ export default function IngredientsList({
         }
       }}
       placement={hostsSelectionActions ? 'subtopbar' : 'overlay'}
+      reviewAction={
+        isAgentAvailable && scope !== PageScope.SUPERADMIN ? (
+          <SelectionReviewAction selectedIngredients={selectedIngredients} />
+        ) : undefined
+      }
       tagAction={
         <SelectionTagAction selectedIngredients={selectedIngredients} />
       }

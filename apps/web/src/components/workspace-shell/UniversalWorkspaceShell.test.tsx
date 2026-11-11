@@ -497,6 +497,15 @@ vi.mock('@/features/workflows/workspace/WorkflowPickerOverlay', () => ({
   ),
 }));
 
+// The roster needs a query client and a session; its own spec covers it.
+vi.mock('./use-agent-thread-members', () => ({
+  useAgentThreadMembers: () => ({
+    isLoading: false,
+    members: [],
+    membersById: new Map(),
+  }),
+}));
+
 vi.mock('./use-conversation-scope-controls', () => ({
   useConversationScopeControls: () => ({
     contextLabel: 'Acme · Organization-wide',

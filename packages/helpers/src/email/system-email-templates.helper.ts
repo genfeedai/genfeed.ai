@@ -328,6 +328,24 @@ export function buildAgentReviewStatusEmailBody(
   return `<p style="margin:0 0 16px;">${pill}<span style="color:#949494;font-size:12px;padding-left:10px;">Agent review</span></p><p style="color:#EDEDED;font-size:18px;font-weight:600;line-height:26px;margin:0 0 16px;">${escapeSystemEmailHtml(input.label)}</p>${buildSystemEmailParagraph(input.summary)}`;
 }
 
+export interface CollaborationEmailInput {
+  /** The teammate's action, for example "Review requested". */
+  headline: string;
+  tone: 'neutral' | 'success' | 'warning';
+  /** The asset, thread or task the action is about. */
+  label: string;
+  /** One sentence naming who did what. */
+  summary: string;
+}
+
+/** A teammate asked for a review, decided one, or mentioned the reader. */
+export function buildCollaborationEmailBody(
+  input: CollaborationEmailInput,
+): string {
+  const pill = buildEmailPill(input.headline, input.tone);
+  return `<p style="margin:0 0 16px;">${pill}<span style="color:#949494;font-size:12px;padding-left:10px;">Team</span></p><p style="color:#EDEDED;font-size:18px;font-weight:600;line-height:26px;margin:0 0 16px;">${escapeSystemEmailHtml(input.label)}</p>${buildSystemEmailParagraph(input.summary)}`;
+}
+
 /** The receipt id and the command that uses it, ready to copy. */
 export function buildSkillsProReceiptEmailBody(input: {
   receiptId: string;

@@ -45,7 +45,13 @@ export interface ValidatedAgentScope {
   provenanceId?: string;
   source: AgentScopeSource;
   threadId: string;
+  /**
+   * The member the turn runs as: the one who sent it. It is the thread owner
+   * for the owner's own turns, and the collaborator for a shared thread (#9937).
+   */
   userId: string;
+  /** The thread's owner, when it differs from `userId` (a shared thread). */
+  threadOwnerUserId?: string;
 }
 
 export interface AgentScopeMetadata {

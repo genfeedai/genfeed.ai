@@ -263,16 +263,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: 'https://genfeed.ai/desktop',
     },
     {
-      changeFrequency: 'weekly',
-      priority: 0.8,
-      url: 'https://genfeed.ai/articles',
-    },
-    {
       changeFrequency: 'daily',
       priority: 0.8,
       url: 'https://genfeed.ai/community',
     },
-    ...['creators', 'videos', 'images'].map((section) => ({
+    ...['articles', 'creators', 'videos', 'images'].map((section) => ({
       changeFrequency: 'daily' as const,
       priority: 0.7,
       url: `https://genfeed.ai/community/${section}`,

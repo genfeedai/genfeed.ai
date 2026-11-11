@@ -1,7 +1,10 @@
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import type {
+  AgentThreadAccessLevel,
   AgentThreadKind,
   AgentThreadMode,
+  AgentThreadShareLevel,
+  AgentThreadShareScope,
   AgentThreadStatus,
   RouterPriority,
 } from '@genfeedai/contracts';
@@ -166,11 +169,50 @@ export interface AgentChatMessage {
   content: string;
   metadata?: AgentChatMessageMetadata;
   toolCalls?: AgentToolCallSummary[];
+  /** Who wrote a user turn. Differs between messages once a thread is shared. */
+  userId?: string;
   createdAt: string;
+}
+
+/** Who a thread is shared with: one member, a brand's members, or everyone. */
+export interface AgentThreadShare {
+  id: string;
+  level: AgentThreadShareLevel;
+  scope: AgentThreadShareScope;
+  targetBrandId?: string | null;
+  targetUserId?: string | null;
+  threadId: string;
+}
+
+export interface CreateAgentThreadSharePayload {
+  level: AgentThreadShareLevel;
+  scope: AgentThreadShareScope;
+  targetBrandId?: string;
+  targetUserId?: string;
+}
+
+/** A task handed to a teammate's agent from one of the viewer's own threads (#9940). */
+export interface CreateAgentHandoffPayload {
+  content: string;
+  destinationTitle?: string;
+  destinationUserId: string;
+  /** Stable for retries of this one hand-off. */
+  idempotencyKey: string;
+  sourceThreadId: string;
 }
 
 export interface AgentThread {
   id: string;
+  /** How the viewer reaches the thread: owner, or a share's level. */
+  accessLevel?: AgentThreadAccessLevel;
+  /** The owner or an organization admin: may change who the thread is shared with. */
+  canManageShares?: boolean;
+  /** Live shares on a thread the viewer manages; absent when it is private. */
+  shareCount?: number;
+  /** The widest scope those shares reach: organization over brand over people. */
+  shareScope?: AgentThreadShareScope;
+  /** The member who owns the thread. */
+  userId?: string;
   contextVersion: number;
   organizationId?: string;
   isPinned?: boolean;

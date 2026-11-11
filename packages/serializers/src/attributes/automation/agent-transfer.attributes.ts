@@ -15,6 +15,7 @@ export const agentTransferAttributes = createEntityAttributes([
   'destinationExecutionId',
   'destinationThreadId',
   'destinationThreadTitle',
+  'destinationUserId',
   'failureReason',
   'idempotencyKey',
   'lastAttemptAt',
@@ -33,4 +34,5 @@ export const agentTransferAttributes = createEntityAttributes([
   'startedAt',
   'status',
   'user',
+  'userId',
 ]);

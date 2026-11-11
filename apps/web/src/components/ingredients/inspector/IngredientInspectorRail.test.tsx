@@ -145,6 +145,9 @@ vi.mock('@ui/display/model-viewer/ModelViewer', () => ({
   ),
 }));
 
+vi.mock('@/features/library/review/ingredient-review-panel', () => ({
+  default: () => <div data-testid="review-panel" />,
+}));
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };

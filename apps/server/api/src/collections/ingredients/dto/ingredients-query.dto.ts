@@ -3,6 +3,7 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   IngredientCategory,
   IngredientStatus,
+  LibraryReviewState,
   LibraryShelf,
   MetadataExtension,
 } from '@genfeedai/contracts';
@@ -139,6 +140,21 @@ export class IngredientsQueryDto extends LibraryFilterQueryDto {
   @IsOptional()
   @IsEnum(LibraryShelf)
   shelf?: LibraryShelf;
+
+  @ApiProperty({
+    description:
+      'Filter by teammate-review state (#9948): assets with a review request ' +
+      'in this summed state. Composes with every other Library filter.',
+    enum: LibraryReviewState,
+    enumName: 'LibraryReviewState',
+    required: false,
+  })
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
+  @IsOptional()
+  @IsEnum(LibraryReviewState)
+  review?: LibraryReviewState;
 
   @ApiProperty({
     description: 'Search ingredients by name or description',

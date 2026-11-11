@@ -25,7 +25,7 @@ import { useDesktopRuntimeContext } from '@/hooks/ui/use-desktop-runtime-context
 /**
  * Shared wallet balance for the app shell.
  *
- * The topbar credits chip and the low-credits banner both mount on every
+ * The topbar credits chip and the topbar credits pill both mount on every
  * protected page and both need the same `/topbar-balances` response. Behind one
  * React Query key they collapse into a single request per navigation instead of
  * two, and a live socket balance published by one of them is visible to both.

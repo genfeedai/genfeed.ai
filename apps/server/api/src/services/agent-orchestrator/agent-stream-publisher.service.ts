@@ -1,3 +1,4 @@
+import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentThreadAudienceService } from '@api/collections/agent-threads/services/agent-thread-audience.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -8,6 +9,7 @@ import type {
   AgentDashboardOperation,
   AgentUIBlock,
   AgentUiAction,
+  MediaDeliveryScope,
 } from '@genfeedai/contracts/interfaces';
 import type { AgentInputRequestPublishParams } from '@genfeedai/contracts/interfaces/ai/agent-input-request.interface';
 import {
@@ -20,7 +22,12 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Traced } from '@libs/tracing/traced';
-import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 
 const CHANNEL = 'agent-chat';
 
@@ -93,6 +100,7 @@ export class AgentStreamPublisherService {
     @Optional()
     private readonly configService?: ConfigService,
     @Optional() private readonly mediaIssuer?: AuthorizedMediaUrlService,
+    @Optional() private readonly threadAccess?: AgentThreadAccessService,
     @Optional()
     private readonly audienceService?: AgentThreadAudienceService,
   ) {}
@@ -143,22 +151,43 @@ export class AgentStreamPublisherService {
     const ids = ingredientResponseIds(data);
     const assetIds = assetResponseIds(data);
     if (ids.length === 0 && assetIds.length === 0) return data;
-    const thread = await this.agentThreadsService?.findOneSelect(
-      { id: data.threadId, userId: data.userId, isDeleted: false },
-      { brandId: true, organizationId: true },
-    );
-    if (!thread?.organizationId || !this.mediaIssuer)
+    const scope = await this.resolveMediaScope(data);
+    if (!scope || !this.mediaIssuer)
       return projectMediaResponse(data, [], false) as T;
-    const scope = {
-      organizationId: thread.organizationId,
-      userId: data.userId,
-      brandId: thread.brandId ?? undefined,
-    };
     const [ingredients, assets] = await Promise.all([
       this.mediaIssuer.projectIngredients(scope, ids),
       this.mediaIssuer.projectAssets(scope, assetIds),
     ]);
     return projectMediaResponse(data, ingredients, true, assets) as T;
+  }
+
+  /**
+   * The thread's media scope for the member the event is recorded as (#9962),
+   * from a live access check. A denied member gets none, so no media is signed.
+   */
+  private async resolveMediaScope(data: {
+    threadId: string;
+    userId: string;
+  }): Promise<MediaDeliveryScope | null> {
+    const thread = await this.agentThreadsService?.findOneSelect(
+      { id: data.threadId, isDeleted: false },
+      { organizationId: true },
+    );
+    if (!thread?.organizationId || !this.threadAccess) return null;
+    try {
+      return await this.threadAccess.resolveMediaScope(
+        { organizationId: thread.organizationId, userId: data.userId },
+        data.threadId,
+      );
+    } catch (error: unknown) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      ) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   private getCoalesceWindowMs(): number {
@@ -328,7 +357,16 @@ export class AgentStreamPublisherService {
       },
       { id: true },
     );
-    if (!thread) {
+    if (
+      !thread &&
+      // A member sending a turn in a thread shared with them signals as
+      // themselves (#9937); their share is read live.
+      !(await this.threadAccess?.hasAccess(
+        { organizationId: data.organizationId, userId: data.userId },
+        data.threadId,
+        'collaborate',
+      ))
+    ) {
       throw new NotFoundException(`Thread "${data.threadId}" not found`);
     }
   }

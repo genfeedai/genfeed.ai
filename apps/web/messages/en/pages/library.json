@@ -31,6 +31,11 @@
       "matchAny": "Match any",
       "origin": "Origin",
       "removeFilter": "Remove {label} filter",
+      "review": "Review",
+      "reviewAny": "Any review state",
+      "reviewApproved": "Approved",
+      "reviewChangesRequested": "Changes requested",
+      "reviewInReview": "In review",
       "searchCharacters": "Search characters",
       "searchTags": "Search tags",
       "showAll": "All assets",
@@ -597,6 +602,60 @@
       "tooQuiet": "We could barely hear you. Check the microphone and record again.",
       "unsupported": "This browser can't record audio. Try a recent Chrome, Edge or Safari.",
       "clone": "The voice could not be created. Try again."
+    }
+  },
+  "teamReview": {
+    "section": "Review",
+    "request": "Request review",
+    "requestSelected": "Ask teammates to review {count, plural, one {# asset} other {# assets}}",
+    "overLimit": "Select {limit} assets or fewer to request a review",
+    "askedYou": "You were asked to review this.",
+    "askedYouBy": "{name} asked you to review this.",
+    "approve": "Approve",
+    "requestChanges": "Request changes",
+    "sendChanges": "Send changes",
+    "cancel": "Cancel",
+    "changesLabel": "What should change",
+    "changesPlaceholder": "What should change?",
+    "decisionFailed": "Could not save your review. Try again.",
+    "teammate": "Teammate",
+    "openThread": "Open thread with {name}",
+    "showThread": "Show thread with {name}",
+    "threadWith": "Thread with {name}",
+    "state": {
+      "approved": "Approved",
+      "changes_requested": "Changes requested",
+      "in_review": "In review"
+    },
+    "decision": {
+      "approved": "Approved",
+      "changes_requested": "Changes requested",
+      "pending_approval": "Pending"
+    },
+    "dialog": {
+      "title": "{count, plural, one {Request review} other {Request review for # assets}}",
+      "description": "Each person gets the asset and a thread with you. Only people with access to the asset's brand can be chosen.",
+      "noAccess": "{role} · no access to this brand",
+      "ask": "Ask {name}",
+      "note": "Note",
+      "notePlaceholder": "Add a note for the reviewers (optional)",
+      "cancel": "Cancel",
+      "send": "Send request",
+      "sent": "{count, plural, one {Review requested} other {Review requested for # assets}}",
+      "failed": "Could not request the review. Try again."
+    },
+    "thread": {
+      "title": "Thread",
+      "empty": "No messages yet. Tag a teammate with @.",
+      "assistant": "Assistant",
+      "teammate": "Teammate",
+      "teammates": "Teammates",
+      "replyLabel": "Reply in thread",
+      "replyPlaceholder": "Reply. Type @ to tag a teammate.",
+      "send": "Send",
+      "shareAndSend": "Share and send",
+      "dismiss": "Not now",
+      "sendFailed": "Could not send the message. Try again."
     }
   }
 }

@@ -1103,4 +1103,121 @@ describe('channel message delivery (#5197)', () => {
       }),
     );
   });
+
+  describe('review and mention emails (#9947)', () => {
+    const collaborationDelivery = {
+      attemptCount: 1,
+      channel: 'email',
+      event: {
+        eventKey: 'asset-review-requested',
+        payload: {
+          event: 'review_requested',
+          ingredientId: 'ingredient-1',
+          kind: 'collaboration',
+          label: 'Spring teaser',
+          sourcePath: '/acme/main/library/images?asset=ingredient-1',
+          summary: 'Riley asked you to review “Spring teaser”.',
+          version: 1,
+        },
+        sourceType: 'collaboration',
+      },
+      idempotencyKey: 'asset-review-requested/task-1/reviewer-1/email',
+      message: null,
+      organizationId: 'org-1',
+      topic: 'collaboration.activity',
+      user: { email: 'reviewer@example.com', isDeleted: false },
+      userId: 'reviewer-1',
+    };
+
+    function setupCollaboration(options: {
+      isMember?: boolean;
+      preference: { isEnabled: boolean } | null;
+    }) {
+      const prisma = {
+        member: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue(options.isMember === false ? null : { id: 'm' }),
+        },
+        notificationDelivery: {
+          findUnique: vi.fn().mockResolvedValue(collaborationDelivery),
+          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        },
+        notificationPreference: {
+          findFirst: vi.fn().mockResolvedValue(options.preference),
+        },
+      };
+      const notifications = {
+        deliverEmail: vi.fn().mockResolvedValue('resend-message-2'),
+      };
+      const service = new WorkflowNotificationDeliveryService(
+        prisma as never,
+        notifications as never,
+        { enqueue: vi.fn() } as never,
+        { warn: vi.fn() } as never,
+        undefined,
+        { get: () => 'https://app.genfeed.test' } as never,
+      );
+      return { notifications, prisma, service };
+    }
+
+    it('emails a reviewer who never chose, because the topic is on by default', async () => {
+      const { notifications, prisma, service } = setupCollaboration({
+        preference: null,
+      });
+
+      await service.deliver('delivery-1');
+
+      expect(notifications.deliverEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subject: 'Review requested: Spring teaser',
+          text: [
+            'Review requested: Spring teaser',
+            'Riley asked you to review “Spring teaser”.',
+            'https://app.genfeed.test/acme/main/library/images?asset=ingredient-1',
+          ].join('\n'),
+          to: 'reviewer@example.com',
+        }),
+      );
+      expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            providerMessageId: 'resend-message-2',
+            status: 'delivered',
+          }),
+        }),
+      );
+    });
+
+    it('sends nothing to a member who turned the email off', async () => {
+      const { notifications, prisma, service } = setupCollaboration({
+        preference: { isEnabled: false },
+      });
+
+      await service.deliver('delivery-1');
+
+      expect(notifications.deliverEmail).not.toHaveBeenCalled();
+      expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'skipped' }),
+        }),
+      );
+    });
+
+    it('sends nothing once the recipient has left the organization', async () => {
+      const { notifications, prisma, service } = setupCollaboration({
+        isMember: false,
+        preference: null,
+      });
+
+      await service.deliver('delivery-1');
+
+      expect(notifications.deliverEmail).not.toHaveBeenCalled();
+      expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'skipped' }),
+        }),
+      );
+    });
+  });
 });

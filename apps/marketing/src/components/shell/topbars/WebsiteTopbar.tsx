@@ -290,7 +290,7 @@ const SOLUTIONS_LINKS = [
 
 const NAV_LINKS = [
   { href: '/pricing', label: 'Pricing' },
-  { href: '/articles', label: 'Blog' },
+  { href: '/community/articles', label: 'Blog' },
 ];
 
 export default function WebsiteTopbar() {

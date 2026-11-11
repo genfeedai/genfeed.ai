@@ -7,9 +7,17 @@ const MASTER_ID = 'master-thread-e2e';
 const WORKING_ID = 'child-working-e2e';
 const REVIEW_ID = 'child-review-e2e';
 const NEEDS_ID = 'child-needs-e2e';
+const SHARED_VIEW_ID = 'child-shared-view-e2e';
+const OWN_ID = 'child-own-e2e';
+const ANA_ID = 'user-ana-e2e';
+const MARCO_ID = 'user-marco-e2e';
+const ME_ID = 'user-me-e2e';
 const now = '2026-10-29T10:00:00.000Z';
 
 interface MockThread {
+  accessLevel?: 'collaborate' | 'owner' | 'view';
+  canManageShares?: boolean;
+  userId?: string;
   attentionState?: 'running' | 'needs-input' | 'updated' | null;
   id: string;
   runStatus?: 'queued' | 'running' | 'waiting_input' | 'completed';
@@ -58,6 +66,11 @@ function makeThreads(): MockThread[] {
 function toResource(thread: MockThread) {
   return {
     attributes: {
+      ...(thread.accessLevel ? { accessLevel: thread.accessLevel } : {}),
+      ...(thread.canManageShares === undefined
+        ? {}
+        : { canManageShares: thread.canManageShares }),
+      ...(thread.userId ? { userId: thread.userId } : {}),
       attentionState: thread.attentionState ?? null,
       brandId: null,
       contextVersion: 3,
@@ -111,7 +124,16 @@ async function mockAgentSocketHandshake(page: Page): Promise<void> {
   });
 }
 
+interface MockShare {
+  id: string;
+  level: 'collaborate' | 'view';
+  scope: 'brand' | 'member' | 'organization';
+  targetBrandId?: string | null;
+  targetUserId?: string | null;
+}
+
 interface AgentMock {
+  shares: MockShare[];
   modePatches: Array<Record<string, unknown>>;
   planDecisions: Array<Record<string, unknown>>;
   statusPatches: Array<{ status: unknown; threadId: string }>;
@@ -154,15 +176,54 @@ const MASTER_TRANSFER_MESSAGE = {
   type: 'thread-message',
 };
 
+const MEMBERS = [
+  { firstName: 'Ana', id: ANA_ID, lastName: 'Costa', role: 'Admin' },
+  { firstName: 'Marco', id: MARCO_ID, lastName: 'Rossi', role: 'Creator' },
+  { firstName: 'Vincent', id: ME_ID, lastName: 'Owner', role: 'Owner' },
+];
+
+/** The organization roster the share dialog and author labels read. */
+async function mockMembers(page: Page): Promise<void> {
+  await page.route(/\/members(\?.*)?$/, async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    await fulfillJson(route, {
+      data: MEMBERS.map((member) => ({
+        attributes: {
+          isActive: true,
+          isDeleted: false,
+          role: member.role,
+          userId: member.id,
+        },
+        id: `member-${member.id}`,
+        relationships: { user: { data: { id: member.id, type: 'user' } } },
+        type: 'member',
+      })),
+      included: MEMBERS.map((member) => ({
+        attributes: { firstName: member.firstName, lastName: member.lastName },
+        id: member.id,
+        type: 'user',
+      })),
+      meta: { page: 1, pageSize: MEMBERS.length, totalCount: MEMBERS.length },
+    });
+  });
+}
+
 /** Serves the master, the thread list, one child's transcript and the steer ack. */
-async function mockMasterAndThreads(page: Page): Promise<AgentMock> {
+async function mockMasterAndThreads(
+  page: Page,
+  extraThreads: MockThread[] = [],
+): Promise<AgentMock> {
   const mock: AgentMock = {
     modePatches: [],
     planDecisions: [],
+    shares: [],
     statusPatches: [],
     steers: [],
   };
-  const THREADS = makeThreads();
+  const THREADS = [...makeThreads(), ...extraThreads];
 
   await page.route('**/agent/threads**', async (route) => {
     const request = route.request();
@@ -180,6 +241,42 @@ async function mockMasterAndThreads(page: Page): Promise<AgentMock> {
       /^.*\/agent\/threads/,
       '',
     );
+
+    const sharesMatch = path.match(/^\/([^/]+)\/shares(?:\/([^/]+))?$/);
+    if (sharesMatch) {
+      const [, , shareId] = sharesMatch;
+      if (request.method() === 'POST') {
+        const body = request.postDataJSON() as Omit<MockShare, 'id'>;
+        const known = mock.shares.find(
+          (share) =>
+            share.scope === body.scope &&
+            (share.targetUserId ?? null) === (body.targetUserId ?? null),
+        );
+        if (known) {
+          known.level = body.level;
+        } else {
+          mock.shares.push({ ...body, id: `share-${mock.shares.length + 1}` });
+        }
+        const saved = known ?? mock.shares[mock.shares.length - 1];
+        await fulfillJson(route, {
+          data: { attributes: saved, id: saved.id, type: 'thread-share' },
+        });
+        return;
+      }
+      if (request.method() === 'DELETE' && shareId) {
+        mock.shares = mock.shares.filter((share) => share.id !== shareId);
+        await fulfillJson(route, { deleted: true });
+        return;
+      }
+      await fulfillJson(route, {
+        data: mock.shares.map((share) => ({
+          attributes: share,
+          id: share.id,
+          type: 'thread-share',
+        })),
+      });
+      return;
+    }
 
     if (request.method() === 'POST' && path.endsWith('/turns/stream')) {
       const body = request.postDataJSON() as Record<string, unknown>;
@@ -321,29 +418,54 @@ async function mockMasterAndThreads(page: Page): Promise<AgentMock> {
                   type: 'thread-message',
                 },
               ]
-            : threadId === NEEDS_ID
+            : threadId === SHARED_VIEW_ID
               ? [
                   {
                     attributes: {
-                      content: 'I drafted a plan and paused for your approval.',
+                      content: 'Pull last week’s top posts and summarise them.',
                       createdAt: now,
-                      metadata: {
-                        proposedPlan: {
-                          content:
-                            'Price ten posts and two videos, then reply with a total.',
-                          createdAt: now,
-                          id: 'plan-e2e',
-                          status: 'awaiting_approval',
-                          updatedAt: now,
-                        },
-                      },
+                      metadata: {},
+                      role: 'user',
+                      userId: ANA_ID,
+                    },
+                    id: 'shared-message-1',
+                    type: 'thread-message',
+                  },
+                  {
+                    attributes: {
+                      content: 'Reels with a before/after opener won.',
+                      createdAt: now,
+                      metadata: {},
                       role: 'assistant',
                     },
-                    id: 'needs-message-1',
+                    id: 'shared-message-2',
                     type: 'thread-message',
                   },
                 ]
-              : [];
+              : threadId === NEEDS_ID
+                ? [
+                    {
+                      attributes: {
+                        content:
+                          'I drafted a plan and paused for your approval.',
+                        createdAt: now,
+                        metadata: {
+                          proposedPlan: {
+                            content:
+                              'Price ten posts and two videos, then reply with a total.',
+                            createdAt: now,
+                            id: 'plan-e2e',
+                            status: 'awaiting_approval',
+                            updatedAt: now,
+                          },
+                        },
+                        role: 'assistant',
+                      },
+                      id: 'needs-message-1',
+                      type: 'thread-message',
+                    },
+                  ]
+                : [];
       await fulfillJson(route, {
         data: messages,
         meta: {
@@ -662,6 +784,107 @@ test.describe('Agent master thread and Threads panel', () => {
     await expect(
       panel.getByTestId('agent-threads-panel-group-needsYou'),
     ).toHaveCount(0);
+    expect(pageErrors).toEqual([]);
+  });
+  test('shares a thread with a teammate and opens one shared with the viewer', async ({
+    authenticatedPage: page,
+  }) => {
+    const pageErrors: string[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    await page.setViewportSize({ height: 900, width: 1440 });
+    const mock = await mockMasterAndThreads(page, [
+      {
+        accessLevel: 'owner',
+        canManageShares: true,
+        id: OWN_ID,
+        kind: 'thread',
+        parentThreadId: MASTER_ID,
+        title: 'Serum launch captions',
+        userId: ME_ID,
+      },
+      {
+        accessLevel: 'view',
+        canManageShares: false,
+        id: SHARED_VIEW_ID,
+        kind: 'thread',
+        parentThreadId: MASTER_ID,
+        title: 'Weekly performance recap',
+        userId: ANA_ID,
+      },
+    ]);
+    await mockMembers(page);
+
+    await page.goto(`${ORG}/agent/threads`);
+    await assertNoErrorBoundaryFallback(page);
+
+    const output = page.getByTestId('agent-output-output-pane');
+    const panel = output.getByTestId('agent-threads-panel');
+    const sharedRow = panel.getByTestId(
+      `agent-threads-panel-thread-${SHARED_VIEW_ID}`,
+    );
+    const ownRow = panel.getByTestId(`agent-threads-panel-thread-${OWN_ID}`);
+    await expect(sharedRow).toBeVisible();
+    await expect(ownRow).toBeVisible();
+    // A shared thread names its owner in the row.
+    await expect(sharedRow).toContainText('Ana Costa');
+
+    // "Shared with me" is a choice in the Filters menu, not a tab.
+    await output.getByRole('button', { name: /Filters/ }).click();
+    await page.getByRole('menuitem', { name: /Owner/ }).click();
+    await page.getByRole('menuitemradio', { name: 'Shared with me' }).click();
+    await expect(sharedRow).toBeVisible();
+    await expect(ownRow).toHaveCount(0);
+    // The filter lives in the URL, so a reload keeps it.
+    await expect(page).toHaveURL(/[?&]owner=shared(&|$)/);
+    await page.keyboard.press('Escape');
+
+    // A thread shared as view-only: the owner is named on messages and there
+    // is no prompt bar.
+    await sharedRow.click();
+    const lightView = output.getByTestId('agent-thread-light-view');
+    await expect(lightView).toContainText(
+      'Reels with a before/after opener won.',
+    );
+    await expect(lightView.getByTestId('agent-message-author')).toContainText(
+      'Ana Costa',
+    );
+    await expect(
+      lightView.getByTestId('agent-thread-access-badge'),
+    ).toContainText('Can view');
+    await expect(lightView.getByTestId('agent-thread-view-only')).toBeVisible();
+    await expect(lightView.getByRole('textbox')).toHaveCount(0);
+    await expect(
+      lightView.getByTestId('agent-thread-share-button'),
+    ).toHaveCount(0);
+
+    // Your own thread: the scope button opens Share, and picking a teammate
+    // saves a "can prompt" share.
+    await lightView.getByRole('button', { name: 'Threads' }).click();
+    await output.getByRole('button', { name: /Filters/ }).click();
+    await page.getByRole('menuitem', { name: /Owner/ }).click();
+    await page.getByRole('menuitemradio', { name: 'All' }).click();
+    await page.keyboard.press('Escape');
+    await ownRow.click();
+    const shareButton = lightView.getByTestId('agent-thread-share-button');
+    await expect(shareButton).toHaveText('Private');
+    await shareButton.click();
+    const dialog = page.getByRole('dialog', { name: 'Share this thread' });
+    await dialog.getByRole('radio', { name: /Specific people/ }).click();
+    await dialog
+      .getByRole('combobox', { name: 'Access for Marco Rossi' })
+      .click();
+    await page.getByRole('option', { name: 'Can prompt' }).click();
+    await expect
+      .poll(() => mock.shares)
+      .toEqual([
+        expect.objectContaining({
+          level: 'collaborate',
+          scope: 'member',
+          targetUserId: MARCO_ID,
+        }),
+      ]);
+    await dialog.getByRole('button', { name: 'Done' }).click();
+    await expect(shareButton).toHaveText('1 person');
     expect(pageErrors).toEqual([]);
   });
 });

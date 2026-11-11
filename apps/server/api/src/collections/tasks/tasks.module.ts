@@ -1,3 +1,4 @@
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { AgentMemoriesModule } from '@api/collections/agent-memories/agent-memories.module';
 import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messages.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
@@ -7,18 +8,23 @@ import { PlatformSettingsModule } from '@api/collections/platform-settings/platf
 import { SkillsModule } from '@api/collections/skills/skills.module';
 import { TaskCommentsModule } from '@api/collections/task-comments/task-comments.module';
 import { TaskCountersModule } from '@api/collections/task-counters/task-counters.module';
+import { IngredientReviewRequestsController } from '@api/collections/tasks/controllers/ingredient-review-requests.controller';
 import { TasksController } from '@api/collections/tasks/controllers/tasks.controller';
 import { TasksPlanningController } from '@api/collections/tasks/controllers/tasks-planning.controller';
 import { WorkspaceInboxReadController } from '@api/collections/tasks/controllers/workspace-inbox-read.controller';
 import { TaskActionsService } from '@api/collections/tasks/services/task-actions.service';
 import { TaskPlanningService } from '@api/collections/tasks/services/task-planning.service';
+import { TaskReviewAccessService } from '@api/collections/tasks/services/task-review-access.service';
+import { TaskReviewRequestsService } from '@api/collections/tasks/services/task-review-requests.service';
 import { TaskRoutingService } from '@api/collections/tasks/services/task-routing.service';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { WorkspaceInboxReadService } from '@api/collections/tasks/services/workspace-inbox-read.service';
 import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
+import { UsersCoreModule } from '@api/collections/users/users-core.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentOrchestratorModule } from '@api/services/agent-orchestrator/agent-orchestrator.module';
+import { CollaborationAlertsModule } from '@api/services/collaboration-alerts/collaboration-alerts.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { TypedDecisionsModule } from '@api/services/typed-decisions/typed-decisions.module';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -27,16 +33,20 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [
     WorkspaceInboxReadController,
+    IngredientReviewRequestsController,
     TasksPlanningController,
     TasksController,
   ],
   exports: [TasksService],
   imports: [
+    BrandAccessModule,
+    UsersCoreModule,
     PlatformSettingsModule,
     AgentMessagesModule,
     AgentMemoriesModule,
     AgentOrchestratorModule,
     AgentThreadsModule,
+    CollaborationAlertsModule,
     IngredientsModule,
     NotificationsPublisherModule,
     SkillsModule,
@@ -52,6 +62,8 @@ import { Module } from '@nestjs/common';
     WorkspaceInboxReadService,
     TaskActionsService,
     TaskPlanningService,
+    TaskReviewAccessService,
+    TaskReviewRequestsService,
     TaskRoutingService,
     TasksService,
     // Token alias so TaskActionsService/TaskPlanningService inject TasksService

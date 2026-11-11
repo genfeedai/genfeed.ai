@@ -3,11 +3,14 @@
 import {
   INGREDIENT_ORIGIN_LABELS,
   INGREDIENT_ORIGIN_ORDER,
+  LIBRARY_REVIEW_STATE_ORDER,
   LIBRARY_SHELF_LABELS,
   LIBRARY_SHELF_ORDER,
   LibraryPlace,
+  LibraryReviewState,
   LibraryShelf,
   parseIngredientOrigin,
+  parseLibraryReviewState,
   parseLibraryShelf,
 } from '@genfeedai/contracts';
 import {
@@ -49,10 +52,12 @@ export function useLibraryFilters({
   onCharactersChange,
   onOriginsChange,
   onPlaceChange,
+  onReviewChange,
   onStatusChange,
   onTagsChange,
   origins,
   place,
+  review,
   shelf,
   shelfCounts,
   tagOptions,
@@ -67,10 +72,12 @@ export function useLibraryFilters({
   | 'onCharactersChange'
   | 'onOriginsChange'
   | 'onPlaceChange'
+  | 'onReviewChange'
   | 'onStatusChange'
   | 'onTagsChange'
   | 'origins'
   | 'place'
+  | 'review'
   | 'shelf'
   | 'shelfCounts'
   | 'tagOptions'
@@ -163,6 +170,23 @@ export function useLibraryFilters({
     onPlaceChange(null);
   };
 
+  const reviewLabels: Record<LibraryReviewState, string> = {
+    [LibraryReviewState.APPROVED]: translate('reviewApproved'),
+    [LibraryReviewState.CHANGES_REQUESTED]: translate('reviewChangesRequested'),
+    [LibraryReviewState.IN_REVIEW]: translate('reviewInReview'),
+  };
+  const reviewChoices: LibraryFilterChoice[] = [
+    { label: translate('reviewAny'), value: 'all' },
+    ...LIBRARY_REVIEW_STATE_ORDER.map((state) => ({
+      label: reviewLabels[state],
+      value: state,
+    })),
+  ];
+
+  const handleReviewValueChange = (value: string) => {
+    onReviewChange(parseLibraryReviewState(value) ?? null);
+  };
+
   const handleTypeValuesChange = (values: string[]) => {
     onCategoriesChange(categoriesFromAssetTypeIds(values));
   };
@@ -179,10 +203,13 @@ export function useLibraryFilters({
   return {
     onOriginValuesChange: handleOriginValuesChange,
     onPlaceValueChange: handlePlaceValueChange,
+    onReviewValueChange: handleReviewValueChange,
     onStatusValueChange: handleStatusValueChange,
     onTypeValuesChange: handleTypeValuesChange,
     originChoices: ORIGIN_CHOICES,
     placeValue,
+    reviewChoices,
+    reviewValue: review ?? 'all',
     statusChoices,
     statusValue,
     tagChoices,

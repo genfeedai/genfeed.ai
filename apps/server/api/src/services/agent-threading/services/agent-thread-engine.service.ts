@@ -1,4 +1,5 @@
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
+import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { readThreadWorkflowSnapshot } from '@api/collections/agent-threads/utils/reconcile-thread-workflow-snapshot';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -195,6 +196,8 @@ export class AgentThreadEngineService {
     private readonly threadContextCompressorService?: ThreadContextCompressorService,
     @Optional()
     private readonly threadStatusPublisher?: AgentThreadStatusPublisherService,
+    @Optional()
+    private readonly threadAccess?: AgentThreadAccessService,
   ) {}
 
   private optionalString(value: string | null | undefined): string | undefined {
@@ -209,7 +212,7 @@ export class AgentThreadEngineService {
         'userId is required to append thread events',
       );
     }
-    const thread = await this.ensureThreadAccess(
+    const thread = await this.ensureThreadWriteAccess(
       params.threadId,
       params.organizationId,
       params.userId,
@@ -465,7 +468,9 @@ export class AgentThreadEngineService {
   async resolveInputRequest(
     params: ResolveAgentInputRequestParams,
   ): Promise<AgentInputRequestDocument> {
-    await this.ensureThreadAccess(
+    // A member with a live collaborate share may answer (#9964); the answer
+    // and its event are recorded as them.
+    await this.ensureThreadWriteAccess(
       params.threadId,
       params.organizationId,
       params.userId,
@@ -497,6 +502,22 @@ export class AgentThreadEngineService {
     }
 
     const request = inputRequests[reqIndex];
+    // One answered question starts one continuation: a different member's
+    // retry of it is refused. The thread owner may still repair a delivery
+    // gap (#9964); a request answered before the responder was stored keeps
+    // the earlier behaviour.
+    const answeredBy =
+      request.status === 'resolved' ? request.resolvedByUserId : undefined;
+    if (
+      typeof answeredBy === 'string' &&
+      answeredBy !== params.userId &&
+      !(await this.isThreadOwner(
+        params.threadId,
+        params.organizationId,
+        params.userId,
+      ))
+    )
+      throw new BadRequestException('This request was already answered.');
     const answer = validateAgentInputAnswer(request, params);
     const optionIds = params.optionIds;
     params = { ...params, answer };
@@ -509,6 +530,7 @@ export class AgentThreadEngineService {
               answer,
               ...(optionIds ? { optionIds } : {}),
               resolvedAt: new Date().toISOString(),
+              resolvedByUserId: params.userId,
               status: 'resolved',
             }
           : item,
@@ -658,6 +680,51 @@ export class AgentThreadEngineService {
     });
 
     return String(memory.id);
+  }
+
+  /**
+   * Recording an event is allowed to the thread's owner, and to a member whose
+   * live share lets them collaborate: a turn sent in a shared thread records
+   * its events as the member who sent it (#9937). The share is read now, so a
+   * revoked share stops the next event.
+   */
+  private isThreadOwner(
+    threadId: string,
+    organizationId: string,
+    userId: string,
+  ): Promise<boolean> {
+    return this.ensureThreadAccess(threadId, organizationId, userId).then(
+      () => true,
+      () => false,
+    );
+  }
+
+  private async ensureThreadWriteAccess(
+    threadId: string,
+    organizationId: string,
+    userId: string,
+  ): Promise<{
+    id: string;
+    source?: string;
+    status?: string;
+    title?: string;
+  }> {
+    try {
+      return await this.ensureThreadAccess(threadId, organizationId, userId);
+    } catch (error: unknown) {
+      if (
+        !(error instanceof NotFoundException) ||
+        !this.threadAccess ||
+        !(await this.threadAccess.hasAccess(
+          { organizationId, userId },
+          threadId,
+          'collaborate',
+        ))
+      ) {
+        throw error;
+      }
+      return this.ensureThreadAccess(threadId, organizationId);
+    }
   }
 
   private async ensureThreadAccess(

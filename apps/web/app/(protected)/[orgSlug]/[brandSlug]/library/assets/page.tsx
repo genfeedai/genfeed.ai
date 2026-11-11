@@ -7,7 +7,6 @@ import { IngredientsMediaGridSkeleton } from '@/components/ingredients/list/medi
 import IngredientsList from '@/features/ingredients/list/ingredients-list';
 import LibraryBrowser from '@/features/library/browser/library-browser';
 import type { LegacyLibraryQueryRedirectProps } from '@/features/library/props/legacy-library-query-redirect.props';
-import LibraryCreditNotice from '../library-credit-notice';
 
 export const generateMetadata = createPageMetadata('All assets');
 
@@ -33,7 +32,6 @@ export default function LibraryAssetsPage({
           searchParams={searchParams}
         />
       </Suspense>
-      <LibraryCreditNotice />
       <Suspense fallback={<IngredientsMediaGridSkeleton />}>
         <AssetDeepLink />
         <IngredientsList

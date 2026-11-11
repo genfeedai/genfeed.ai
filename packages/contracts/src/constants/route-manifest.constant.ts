@@ -671,7 +671,7 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
     ],
   },
   {
-    scopes: ['organization'],
+    scopes: ['organization', 'brand'],
     surfaceKey: 'connectors',
     mode: 'canvas',
     productClass: 'control-plane',

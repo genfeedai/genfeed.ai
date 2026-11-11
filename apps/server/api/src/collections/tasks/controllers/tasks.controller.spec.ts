@@ -1,18 +1,27 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
 import { TasksController } from '@api/collections/tasks/controllers/tasks.controller';
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import type { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
 import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
+import { TaskReviewAccessService } from '@api/collections/tasks/services/task-review-access.service';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+import { MemberRole } from '@genfeedai/contracts';
 import { TaskSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import type { Request } from 'express';
+
+vi.mock('@genfeedai/config', async (original) => ({
+  ...(await original<typeof import('@genfeedai/config')>()),
+  isCloudDeployment: () => true,
+}));
 
 describe('TasksController', () => {
   let controller: TasksController;
@@ -35,6 +44,11 @@ describe('TasksController', () => {
   let organizationsService: {
     findOne: ReturnType<typeof vi.fn>;
     findOneSelect: ReturnType<typeof vi.fn>;
+  };
+  let taskRow: { findFirst: ReturnType<typeof vi.fn> };
+  let brandAccess: {
+    assert: ReturnType<typeof vi.fn>;
+    resolve: ReturnType<typeof vi.fn>;
   };
   let loggerService: {
     debug: ReturnType<typeof vi.fn>;
@@ -88,11 +102,21 @@ describe('TasksController', () => {
       warn: vi.fn(),
     };
 
+    brandAccess = {
+      assert: vi.fn().mockResolvedValue(undefined),
+      resolve: vi.fn().mockResolvedValue({ role: MemberRole.CREATOR }),
+    };
+    taskRow = { findFirst: vi.fn().mockResolvedValue({}) };
+
     controller = new TasksController(
       loggerService as unknown as LoggerService,
       tasksService as unknown as TasksService,
       taskCountersService as unknown as TaskCountersService,
       organizationsService as unknown as OrganizationsService,
+      new TaskReviewAccessService(
+        { task: taskRow } as unknown as PrismaService,
+        brandAccess as unknown as BrandAccessService,
+      ),
     );
 
     vi.spyOn(TaskSerializer, 'serialize').mockImplementation(
@@ -303,6 +327,15 @@ describe('TasksController', () => {
       title: 'Review task',
     } as TaskDocument;
 
+    beforeEach(() => {
+      // A task nobody is assigned to: the open rule applies.
+      taskRow.findFirst.mockResolvedValue({
+        assigneeUserId: null,
+        brandId: null,
+        userId: null,
+      });
+    });
+
     it('routes reviewState=approved to the approve action', async () => {
       tasksService.approve.mockResolvedValue(task);
 
@@ -350,6 +383,105 @@ describe('TasksController', () => {
         undefined,
         { userId, organizationId, isApiKey: false, scopes: [] },
       );
+    });
+
+    describe('a task assigned to a reviewer', () => {
+      const reviewerId = testId('reviewer');
+      const requesterId = testId('requester');
+      const assigned = {
+        assigneeUserId: reviewerId,
+        brandId,
+        id: taskId,
+        userId: requesterId,
+      };
+      const as = (id: string) =>
+        ({ ...mockUser, id, userId: id }) as unknown as User;
+
+      beforeEach(() => {
+        taskRow.findFirst.mockResolvedValue(assigned);
+        tasksService.approve.mockResolvedValue(task);
+        tasksService.requestChanges.mockResolvedValue(task);
+        tasksService.dismiss.mockResolvedValue(task);
+        tasksService.patch.mockResolvedValue(task);
+      });
+
+      it('lets the reviewer approve and request changes', async () => {
+        await expect(
+          controller.patch(mockRequest, as(reviewerId), taskId, {
+            reviewState: 'approved',
+          } as UpdateTaskDto),
+        ).resolves.toBeDefined();
+        await expect(
+          controller.patch(mockRequest, as(reviewerId), taskId, {
+            reason: 'tighten the hook',
+            reviewState: 'changes_requested',
+          } as UpdateTaskDto),
+        ).resolves.toBeDefined();
+      });
+
+      it('refuses another member, the requester included', async () => {
+        for (const memberId of [testId('other'), requesterId]) {
+          await expect(
+            controller.patch(mockRequest, as(memberId), taskId, {
+              reviewState: 'approved',
+            } as UpdateTaskDto),
+          ).rejects.toThrow(ForbiddenException);
+          await expect(
+            controller.patch(mockRequest, as(memberId), taskId, {
+              reason: 'no',
+              reviewState: 'changes_requested',
+            } as UpdateTaskDto),
+          ).rejects.toThrow(ForbiddenException);
+        }
+        expect(tasksService.approve).not.toHaveBeenCalled();
+        expect(tasksService.requestChanges).not.toHaveBeenCalled();
+      });
+
+      it('refuses the reviewer once they no longer reach the brand', async () => {
+        brandAccess.assert.mockRejectedValue(
+          new ForbiddenException('Brand access denied'),
+        );
+
+        await expect(
+          controller.patch(mockRequest, as(reviewerId), taskId, {
+            reviewState: 'approved',
+          } as UpdateTaskDto),
+        ).rejects.toThrow(ForbiddenException);
+      });
+
+      it('lets an organization admin decide', async () => {
+        brandAccess.resolve.mockResolvedValue({ role: MemberRole.ADMIN });
+
+        await expect(
+          controller.patch(mockRequest, as(testId('admin')), taskId, {
+            reviewState: 'approved',
+          } as UpdateTaskDto),
+        ).resolves.toBeDefined();
+      });
+
+      it('lets the requester withdraw the request, but nobody else', async () => {
+        await expect(
+          controller.patch(mockRequest, as(requesterId), taskId, {
+            reviewState: 'dismissed',
+          } as UpdateTaskDto),
+        ).resolves.toBeDefined();
+        await expect(
+          controller.patch(mockRequest, as(testId('other')), taskId, {
+            reviewState: 'dismissed',
+          } as UpdateTaskDto),
+        ).rejects.toThrow(ForbiddenException);
+      });
+
+      it('keeps another member from reassigning the review to themselves', async () => {
+        const other = testId('other');
+
+        await expect(
+          controller.patch(mockRequest, as(other), taskId, {
+            assigneeUserId: other,
+          } as UpdateTaskDto),
+        ).rejects.toThrow(ForbiddenException);
+        expect(tasksService.patch).not.toHaveBeenCalled();
+      });
     });
 
     it('rejects a reviewState transition mixed with other fields', async () => {

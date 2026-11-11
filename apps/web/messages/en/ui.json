@@ -632,13 +632,17 @@
     "cancel": "Cancel",
     "exportAs": "Export as {format}"
   },
-  "lowCreditsBanner": {
-    "generationUnaffordableTitle": "Not enough credits to keep generating",
-    "generationUnaffordableBody": "Everything you made stays in your Library. Buy a credit pack or pick a plan to keep generating.",
-    "trialEndedTitle": "Your free trial has ended",
-    "trialEndedBody": "Free credits expired. Everything you made stays in your Library.",
+  "creditsStatus": {
     "buyCredits": "Buy credits",
-    "seePlans": "See plans"
+    "lowLabel": "{balance} credits left",
+    "lowMessage": "Top up so generations and automations do not get blocked.",
+    "outLabel": "Out of credits",
+    "outMessage": "Top up to keep generating and running workflows.",
+    "topUp": "Top up",
+    "trialEndedLabel": "Free trial ended",
+    "trialEndedMessage": "Free credits expired. Everything you made stays in your Library.",
+    "unaffordableLabel": "Not enough credits",
+    "unaffordableMessage": "Everything you made stays in your Library. Buy a credit pack or pick a plan to keep generating."
   },
   "uploadModal": {
     "title": "Upload {category}",

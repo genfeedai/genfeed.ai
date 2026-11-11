@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
+import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { CreateAgentTransferDto } from '@api/collections/agent-transfers/dto/create-agent-transfer.dto';
-import { settleAgentTransferFromExecution } from '@api/collections/agent-transfers/services/agent-transfer-settlement.util';
+import {
+  buildTransferResultContent,
+  settleAgentTransferFromExecution,
+} from '@api/collections/agent-transfers/services/agent-transfer-settlement.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AgentArtifactReferenceService, scopedWhere } from '@api/index';
 import {
@@ -9,6 +13,7 @@ import {
 } from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
 import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { AgentInitiatingPrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
+import { CollaborationAlertsService } from '@api/services/collaboration-alerts/collaboration-alerts.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentMessageRole,
@@ -24,6 +29,7 @@ import { sha256Hex, stableStringify } from '@libs/utils/canonical-hash.util';
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 
@@ -75,6 +81,8 @@ export class AgentTransfersService {
     private readonly prisma: PrismaService,
     private readonly artifactReferenceService: AgentArtifactReferenceService,
     private readonly turnAcceptanceService: AgentTurnAcceptanceService,
+    private readonly threadAccess: AgentThreadAccessService,
+    private readonly collaborationAlerts: CollaborationAlertsService,
   ) {}
 
   async discoverConversations(
@@ -131,6 +139,52 @@ export class AgentTransfersService {
     }));
   }
 
+  /**
+   * The teammates a hand-off from this conversation can reach (#9940): active
+   * members of the organization other than the caller, who also have access to
+   * the conversation's brand. A conversation with no brand reaches every active
+   * member.
+   */
+  async discoverTeammates(
+    actor: TransferActor,
+    sourceThreadId: string,
+    limit = 50,
+  ): Promise<Array<{ name: string; userId: string }>> {
+    const source = await this.loadAuthorizedThread(actor, sourceThreadId);
+    const members = await this.prisma.member.findMany({
+      orderBy: { createdAt: 'asc' },
+      select: {
+        user: { select: { firstName: true, handle: true, lastName: true } },
+        userId: true,
+      },
+      take: Math.min(Math.max(limit, 1), 50),
+      where: scopedWhere(actor.organizationId, {
+        isActive: true,
+        userId: { not: actor.userId },
+      }),
+    });
+    const reachable: Array<{ name: string; userId: string }> = [];
+    for (const member of members) {
+      if (
+        await this.canReachBrand(
+          actor.organizationId,
+          member.userId,
+          source.brandId,
+        )
+      ) {
+        const name = [member.user.firstName, member.user.lastName]
+          .filter(Boolean)
+          .join(' ')
+          .trim();
+        reachable.push({
+          name: name || member.user.handle,
+          userId: member.userId,
+        });
+      }
+    }
+    return reachable;
+  }
+
   async listForThread(actor: TransferActor, threadId: string) {
     await this.loadAuthorizedThread(actor, threadId, false);
     return this.prisma.agentTransfer.findMany({
@@ -140,8 +194,15 @@ export class AgentTransfersService {
       },
       orderBy: { createdAt: 'desc' },
       where: scopedWhere(actor.organizationId, {
-        OR: [{ sourceThreadId: threadId }, { destinationThreadId: threadId }],
-        userId: actor.userId,
+        AND: [
+          {
+            OR: [
+              { sourceThreadId: threadId },
+              { destinationThreadId: threadId },
+            ],
+          },
+          this.partyWhere(actor),
+        ],
       }),
     });
   }
@@ -153,8 +214,8 @@ export class AgentTransfersService {
         sourceThread: { select: { title: true } },
       },
       where: scopedWhere(actor.organizationId, {
+        AND: [this.partyWhere(actor)],
         id,
-        userId: actor.userId,
       }),
     });
     if (!transfer) {
@@ -178,6 +239,7 @@ export class AgentTransfersService {
         'Source and destination conversations must be different.',
       );
     }
+    const destinationUserId = this.resolveHandoffUserId(input, actor);
     const hash = requestHash(input);
     const existing = await this.prisma.agentTransfer.findFirst({
       where: scopedWhere(actor.organizationId, {
@@ -186,31 +248,20 @@ export class AgentTransfersService {
       }),
     });
     if (existing) {
-      if (existing.requestHash !== hash) {
-        throw new ConflictException(
-          'idempotencyKey was already used for another transfer.',
-        );
-      }
-      if (
-        input.deliveryMode === AgentTransferDeliveryMode.SEND_AND_RUN &&
-        input.explicitUserIntent === true &&
-        [AgentTransferStatus.PENDING, AgentTransferStatus.FAILED].includes(
-          existing.status as AgentTransferStatus,
-        )
-      ) {
-        const destination = await this.loadAuthorizedThread(
-          actor,
-          existing.destinationThreadId,
-        );
-        await this.startDestinationRun(existing.id, destination, input, actor);
-      }
-      return this.findOne(actor, existing.id);
+      return this.replayTransfer(existing, hash, input, actor);
     }
 
     const source = await this.loadAuthorizedThread(actor, input.sourceThreadId);
     const destination = input.destinationThreadId
       ? await this.loadAuthorizedThread(actor, input.destinationThreadId)
       : await this.createDestinationThread(actor, input, source);
+    if (destinationUserId) {
+      await this.assertTeammateReach(
+        actor.organizationId,
+        destinationUserId,
+        destination.brandId,
+      );
+    }
     this.assertCompatibleScope(source, destination, input);
     this.assertSelectedContextBounded(input.selectedContext);
     await this.reauthorizeArtifacts(input, actor, source, destination);
@@ -220,8 +271,10 @@ export class AgentTransfersService {
     const transferId = randomUUID();
     const correlationId = randomUUID();
     const sourceMessageId = input.sourceActionId ? null : randomUUID();
+    // A hand-off leaves a marker in the teammate's conversation at once, so the
+    // request is there to accept or decline. A SEND leaves its message too.
     const destinationMessageId =
-      input.deliveryMode === AgentTransferDeliveryMode.SEND
+      input.deliveryMode === AgentTransferDeliveryMode.SEND || destinationUserId
         ? randomUUID()
         : null;
     const depthExceeded = depth > MAX_TRANSFER_DEPTH;
@@ -242,12 +295,14 @@ export class AgentTransfersService {
               contextVersion: destination.contextVersion,
               id: destination.id,
               organizationId: actor.organizationId,
-              // The orchestrating thread owns what it spawns (#8526).
-              parentThreadId: source.id,
+              // The orchestrating thread owns what it spawns (#8526). A hand-off
+              // belongs to the teammate, who cannot open the sender's thread, so
+              // it has no parent.
+              parentThreadId: destinationUserId ? null : source.id,
               source: 'agent-transfer',
               status: AgentThreadStatus.ACTIVE,
               title: destination.title,
-              userId: actor.userId,
+              userId: destinationUserId ?? actor.userId,
             },
           });
         }
@@ -262,6 +317,7 @@ export class AgentTransfersService {
             destinationBrandId: destination.brandId,
             destinationMessageId,
             destinationThreadId: destination.id,
+            ...(destinationUserId ? { destinationUserId } : {}),
             id: transferId,
             idempotencyKey: input.idempotencyKey,
             organizationId: actor.organizationId,
@@ -274,71 +330,41 @@ export class AgentTransfersService {
             sourceThreadId: source.id,
             status: depthExceeded
               ? AgentTransferStatus.DEPTH_LIMIT_REACHED
-              : input.deliveryMode === AgentTransferDeliveryMode.SEND
-                ? AgentTransferStatus.DELIVERED
-                : AgentTransferStatus.PENDING,
-            ...(destinationMessageId ? { deliveredAt: new Date() } : {}),
+              : destinationUserId
+                ? AgentTransferStatus.AWAITING_ACCEPTANCE
+                : input.deliveryMode === AgentTransferDeliveryMode.SEND
+                  ? AgentTransferStatus.DELIVERED
+                  : AgentTransferStatus.PENDING,
+            ...(destinationMessageId && !destinationUserId
+              ? { deliveredAt: new Date() }
+              : {}),
             userId: actor.userId,
           },
         });
 
-        if (sourceMessageId) {
-          await tx.agentMessage.create({
-            data: {
-              brandId: source.brandId,
-              content: input.content.trim(),
-              id: sourceMessageId,
-              isDeleted: false,
-              metadata: {
-                agentTransfer: { direction: 'outbound', transferId },
-              },
-              organizationId: actor.organizationId,
-              role: AgentMessageRole.SYSTEM,
-              threadId: source.id,
-              userId: actor.userId,
-            },
-          });
-        }
-
-        if (destinationMessageId && !depthExceeded) {
-          await tx.agentMessage.create({
-            data: {
-              artifactReferences: input.artifactReferences ?? [],
-              artifactVersionPinIds: input.artifactVersionPinIds ?? [],
-              brandId: destination.brandId,
-              content: input.content.trim(),
-              id: destinationMessageId,
-              isDeleted: false,
-              metadata: {
-                agentTransfer: { direction: 'inbound', transferId },
-              },
-              organizationId: actor.organizationId,
-              role: AgentMessageRole.USER,
-              threadId: destination.id,
-              userId: actor.userId,
-            },
-          });
-        }
+        await this.createTransferMessages(tx, {
+          depthExceeded,
+          destination,
+          destinationMessageId,
+          destinationUserId,
+          input,
+          source,
+          sourceMessageId,
+          transferId,
+          userId: actor.userId,
+          organizationId: actor.organizationId,
+        });
         return created;
       })
-      .catch(async (error: unknown) => {
-        if ((error as { code?: unknown }).code !== 'P2002') {
-          throw error;
-        }
-        const winner = await this.prisma.agentTransfer.findFirst({
-          where: scopedWhere(actor.organizationId, {
-            idempotencyKey: input.idempotencyKey,
-            userId: actor.userId,
-          }),
-        });
-        if (!winner || winner.requestHash !== hash) {
-          throw error;
-        }
-        return winner;
-      });
+      .catch((error: unknown) =>
+        this.findIdempotentWinner(error, actor, input.idempotencyKey, hash),
+      );
+
+    await this.alertHandoffRecipient(transfer, destination, actor);
 
     if (
       !depthExceeded &&
+      !destinationUserId &&
       input.deliveryMode === AgentTransferDeliveryMode.SEND_AND_RUN
     ) {
       await this.startDestinationRun(transfer.id, destination, input, actor);
@@ -349,6 +375,15 @@ export class AgentTransfersService {
 
   async retry(id: string, actor: TransferActor) {
     const transfer = await this.findOne(actor, id);
+    // A hand-off runs as the teammate: only they can start it again.
+    if (
+      transfer.destinationUserId &&
+      transfer.destinationUserId !== actor.userId
+    ) {
+      throw new ForbiddenException(
+        'Only the teammate this was handed to can retry it.',
+      );
+    }
     if (
       transfer.deliveryMode !== AgentTransferDeliveryMode.SEND_AND_RUN ||
       transfer.status !== AgentTransferStatus.FAILED
@@ -366,7 +401,6 @@ export class AgentTransfersService {
       where: scopedWhere(actor.organizationId, {
         id,
         status: AgentTransferStatus.FAILED,
-        userId: actor.userId,
       }),
     });
     await this.startDestinationRun(
@@ -385,6 +419,274 @@ export class AgentTransfersService {
       actor,
     );
     return this.findOne(actor, id);
+  }
+
+  /**
+   * The teammate says yes to a hand-off (#9940). The request moves to PENDING
+   * once, then the destination turn is queued as the accepting member: the run
+   * carries their authority, brand access and credits, never the sender's.
+   */
+  async accept(id: string, actor: TransferActor) {
+    const transfer = await this.findAwaitingHandoff(actor, id);
+    const destination = await this.loadAuthorizedThread(
+      actor,
+      transfer.destinationThreadId,
+    );
+    const claimed = await this.prisma.agentTransfer.updateMany({
+      data: { lastAttemptAt: new Date(), status: AgentTransferStatus.PENDING },
+      where: scopedWhere(actor.organizationId, {
+        destinationUserId: actor.userId,
+        id,
+        status: AgentTransferStatus.AWAITING_ACCEPTANCE,
+      }),
+    });
+    if (claimed.count !== 1) {
+      throw new ConflictException('This hand-off was already answered.');
+    }
+    await this.startDestinationRun(
+      id,
+      destination,
+      {
+        artifactReferences:
+          transfer.artifactReferences as unknown as AgentArtifactReference[],
+        artifactVersionPinIds: transfer.artifactVersionPinIds,
+        content: transfer.content,
+        deliveryMode: AgentTransferDeliveryMode.SEND_AND_RUN,
+        explicitUserIntent: true,
+        idempotencyKey: transfer.idempotencyKey,
+        sourceThreadId: transfer.sourceThreadId,
+      },
+      actor,
+    );
+    return this.findOne(actor, id);
+  }
+
+  /**
+   * The teammate says no. Nothing runs; the sender's conversation is told, and
+   * the conversation made for the request is archived so it does not linger in
+   * the teammate's list.
+   */
+  async decline(id: string, actor: TransferActor) {
+    const transfer = await this.findAwaitingHandoff(actor, id);
+    await this.prisma.$transaction(async (tx) => {
+      const moved = await tx.agentTransfer.updateMany({
+        data: {
+          completedAt: new Date(),
+          status: AgentTransferStatus.DECLINED,
+        },
+        where: scopedWhere(actor.organizationId, {
+          destinationUserId: actor.userId,
+          id,
+          status: AgentTransferStatus.AWAITING_ACCEPTANCE,
+        }),
+      });
+      if (moved.count !== 1) {
+        throw new ConflictException('This hand-off was already answered.');
+      }
+      await tx.agentThread.updateMany({
+        data: { status: AgentThreadStatus.ARCHIVED },
+        where: scopedWhere(actor.organizationId, {
+          id: transfer.destinationThreadId,
+          userId: actor.userId,
+        }),
+      });
+      await tx.agentMessage.create({
+        data: {
+          brandId: transfer.sourceBrandId,
+          content: buildTransferResultContent({
+            failureReason: null,
+            status: AgentTransferStatus.DECLINED,
+            summary: null,
+            title: transfer.destinationThread.title,
+          }),
+          id: randomUUID(),
+          isDeleted: false,
+          metadata: {
+            agentTransferResult: {
+              destinationThreadId: transfer.destinationThreadId,
+              outputArtifactReferences: [],
+              status: AgentTransferStatus.DECLINED,
+              transferId: id,
+            },
+          },
+          organizationId: actor.organizationId,
+          role: AgentMessageRole.SYSTEM,
+          threadId: transfer.sourceThreadId,
+          userId: transfer.userId,
+        },
+      });
+    });
+    return this.findOne(actor, id);
+  }
+
+  /**
+   * The teammate a hand-off goes to (#9940), or undefined for a plain transfer
+   * between the sender's own conversations. A hand-off creates its own
+   * conversation for the teammate and runs their agent, so it takes no existing
+   * destination and must be SEND_AND_RUN.
+   */
+  private resolveHandoffUserId(
+    input: CreateAgentTransferDto,
+    actor: TransferActor,
+  ): string | undefined {
+    if (!input.destinationUserId || input.destinationUserId === actor.userId) {
+      return undefined;
+    }
+    if (input.destinationThreadId) {
+      throw new BadRequestException(
+        'A hand-off creates its own conversation for the teammate; it cannot target an existing one.',
+      );
+    }
+    if (input.deliveryMode !== AgentTransferDeliveryMode.SEND_AND_RUN) {
+      throw new BadRequestException(
+        'A hand-off to a teammate runs their agent, so it must be SEND_AND_RUN.',
+      );
+    }
+    return input.destinationUserId;
+  }
+
+  /** Answers a repeat of a request that already created a transfer. */
+  private async replayTransfer(
+    existing: {
+      destinationThreadId: string;
+      destinationUserId: string | null;
+      id: string;
+      requestHash: string;
+      status: string;
+    },
+    hash: string,
+    input: CreateAgentTransferDto,
+    actor: TransferActor,
+  ) {
+    if (existing.requestHash !== hash) {
+      throw new ConflictException(
+        'idempotencyKey was already used for another transfer.',
+      );
+    }
+    // A hand-off's run is started by the teammate who accepts it, never by a
+    // repeat of the sender's request.
+    if (
+      !existing.destinationUserId &&
+      input.deliveryMode === AgentTransferDeliveryMode.SEND_AND_RUN &&
+      input.explicitUserIntent === true &&
+      [AgentTransferStatus.PENDING, AgentTransferStatus.FAILED].includes(
+        existing.status as AgentTransferStatus,
+      )
+    ) {
+      const destination = await this.loadAuthorizedThread(
+        actor,
+        existing.destinationThreadId,
+      );
+      await this.startDestinationRun(existing.id, destination, input, actor);
+    }
+    return this.findOne(actor, existing.id);
+  }
+
+  /** A lost idempotency race returns the transfer the winner created. */
+  private async findIdempotentWinner(
+    error: unknown,
+    actor: TransferActor,
+    idempotencyKey: string,
+    hash: string,
+  ) {
+    if ((error as { code?: unknown }).code !== 'P2002') {
+      throw error;
+    }
+    const winner = await this.prisma.agentTransfer.findFirst({
+      where: scopedWhere(actor.organizationId, {
+        idempotencyKey,
+        userId: actor.userId,
+      }),
+    });
+    if (!winner || winner.requestHash !== hash) {
+      throw error;
+    }
+    return winner;
+  }
+
+  /**
+   * The request waits in the teammate's conversation; tell them it is there.
+   * One alert per hand-off, so a replay or a lost race tells them nothing new.
+   */
+  private async alertHandoffRecipient(
+    transfer: { destinationUserId: string | null; id: string; status: string },
+    destination: AuthorizedThread,
+    actor: TransferActor,
+  ): Promise<void> {
+    const destinationUserId = transfer.destinationUserId;
+    if (
+      !destinationUserId ||
+      transfer.status !== AgentTransferStatus.AWAITING_ACCEPTANCE
+    ) {
+      return;
+    }
+    await this.collaborationAlerts.notifyHandoffReceived({
+      actorUserId: actor.userId,
+      brandId: destination.brandId,
+      label: destination.title ?? '',
+      organizationId: actor.organizationId,
+      recipientUserId: destinationUserId,
+      threadId: destination.id,
+      transferId: transfer.id,
+    });
+  }
+
+  /**
+   * The notes a transfer leaves in the two conversations: the sender's record,
+   * and the request in the destination (a message from the sender, or for a
+   * hand-off a note in the teammate's conversation, not one they wrote).
+   */
+  private async createTransferMessages(
+    tx: Prisma.TransactionClient,
+    params: {
+      depthExceeded: boolean;
+      destination: AuthorizedThread;
+      destinationMessageId: string | null;
+      destinationUserId?: string;
+      input: CreateAgentTransferDto;
+      organizationId: string;
+      source: AuthorizedThread;
+      sourceMessageId: string | null;
+      transferId: string;
+      userId: string;
+    },
+  ) {
+    const { destination, destinationUserId, input, source, transferId } =
+      params;
+    if (params.sourceMessageId) {
+      await tx.agentMessage.create({
+        data: {
+          brandId: source.brandId,
+          content: input.content.trim(),
+          id: params.sourceMessageId,
+          isDeleted: false,
+          metadata: { agentTransfer: { direction: 'outbound', transferId } },
+          organizationId: params.organizationId,
+          role: AgentMessageRole.SYSTEM,
+          threadId: source.id,
+          userId: params.userId,
+        },
+      });
+    }
+    if (params.destinationMessageId && !params.depthExceeded) {
+      await tx.agentMessage.create({
+        data: {
+          artifactReferences: input.artifactReferences ?? [],
+          artifactVersionPinIds: input.artifactVersionPinIds ?? [],
+          brandId: destination.brandId,
+          content: input.content.trim(),
+          id: params.destinationMessageId,
+          isDeleted: false,
+          metadata: { agentTransfer: { direction: 'inbound', transferId } },
+          organizationId: params.organizationId,
+          role: destinationUserId
+            ? AgentMessageRole.SYSTEM
+            : AgentMessageRole.USER,
+          threadId: destination.id,
+          userId: destinationUserId ?? params.userId,
+        },
+      });
+    }
   }
 
   private async startDestinationRun(
@@ -420,10 +722,7 @@ export class AgentTransfersService {
           queuedAt: new Date(acknowledgement.queuedAt),
           status: AgentTransferStatus.QUEUED,
         },
-        where: scopedWhere(actor.organizationId, {
-          id: transferId,
-          userId: actor.userId,
-        }),
+        where: scopedWhere(actor.organizationId, { id: transferId }),
       });
       const execution = await this.prisma.workflowExecution.findFirst({
         where: scopedWhere(actor.organizationId, {
@@ -464,11 +763,65 @@ export class AgentTransfersService {
           lastAttemptAt: new Date(),
           status: AgentTransferStatus.FAILED,
         },
-        where: scopedWhere(actor.organizationId, {
-          id: transferId,
-          userId: actor.userId,
-        }),
+        where: scopedWhere(actor.organizationId, { id: transferId }),
       });
+    }
+  }
+
+  /** The transfers a member is a party to: they sent it, or it lands in their thread. */
+  private partyWhere(actor: TransferActor) {
+    return {
+      OR: [{ userId: actor.userId }, { destinationUserId: actor.userId }],
+    };
+  }
+
+  /** The hand-off a teammate may still answer, or a refusal that names nothing else. */
+  private async findAwaitingHandoff(actor: TransferActor, id: string) {
+    const transfer = await this.prisma.agentTransfer.findFirst({
+      include: { destinationThread: { select: { title: true } } },
+      where: scopedWhere(actor.organizationId, {
+        destinationUserId: actor.userId,
+        id,
+      }),
+    });
+    if (!transfer) {
+      throw new NotFoundException('Agent transfer not found');
+    }
+    if (transfer.status !== AgentTransferStatus.AWAITING_ACCEPTANCE) {
+      throw new ConflictException('This hand-off was already answered.');
+    }
+    return transfer;
+  }
+
+  /** Whether a live member of the organization reaches this brand (any brand, when none). */
+  private async canReachBrand(
+    organizationId: string,
+    userId: string,
+    brandId: string | null,
+  ): Promise<boolean> {
+    const scope = await this.threadAccess.resolveListScope({
+      organizationId,
+      userId,
+    });
+    if (!scope) {
+      return false;
+    }
+    return (
+      !brandId ||
+      scope.brandIds === undefined ||
+      scope.brandIds.includes(brandId)
+    );
+  }
+
+  private async assertTeammateReach(
+    organizationId: string,
+    userId: string,
+    brandId: string | null,
+  ) {
+    if (!(await this.canReachBrand(organizationId, userId, brandId))) {
+      // The same answer for a stranger, a removed member and a member without
+      // the brand: a denial never says which.
+      throw new NotFoundException('Teammate not found');
     }
   }
 

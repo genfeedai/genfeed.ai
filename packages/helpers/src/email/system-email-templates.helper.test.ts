@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildCollaborationEmailBody,
   buildContentRecapEmailBody,
   buildCreditAlertEmailBody,
   buildFreeTrialVisualHtml,
@@ -152,5 +153,33 @@ describe('other system email bodies', () => {
 
     expect(html).toContain('npx @genfeedai/skills-pro install rcpt_1');
     expect(html).toContain('Receipt id');
+  });
+});
+
+describe('collaboration email', () => {
+  it('names the action, the subject and who did it', () => {
+    const html = buildCollaborationEmailBody({
+      headline: 'Review requested',
+      label: 'Spring teaser',
+      summary: 'Riley asked you to review “Spring teaser”.',
+      tone: 'warning',
+    });
+
+    expect(html).toContain('Review requested');
+    expect(html).toContain('Spring teaser');
+    expect(html).toContain('Riley asked you to review');
+  });
+
+  it('escapes what a teammate typed', () => {
+    const html = buildCollaborationEmailBody({
+      headline: 'You were mentioned',
+      label: '<script>alert(1)</script>',
+      summary: 'A & B',
+      tone: 'neutral',
+    });
+
+    expect(html).not.toContain('<script>');
+    expect(html).toContain('&lt;script&gt;');
+    expect(html).toContain('A &amp; B');
   });
 });

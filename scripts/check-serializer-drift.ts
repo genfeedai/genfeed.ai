@@ -249,6 +249,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'isEnhancementFailed',
     // Computed for the superadmin generation ledger from the activity log.
     'generationCredits',
+    // Summed from the open review requests (Tasks) linked to the asset.
+    'reviewState',
     'blacklist',
     'blacklists',
     'camera',
@@ -298,6 +300,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'isEnhancementFailed',
     // Computed for the superadmin generation ledger from the activity log.
     'generationCredits',
+    // Summed from the open review requests (Tasks) linked to the asset.
+    'reviewState',
     'blacklists',
     'camera',
     // Computed on read from s3Key by the Prisma result extension.
@@ -416,7 +420,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'studio-generate-draft:StudioGenerateDraft': ['droppedReferenceIds'],
   'studio-look:StudioLook': [],
   'subscription:Subscription': [],
-  'task-comment:TaskComment': [],
+  'task-comment:TaskComment': ['mentions'],
   'task:Task': [],
   'template-metadata:TemplateMetadata': [
     'difficulty',
@@ -472,6 +476,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'isEnhancementFailed',
     // Computed for the superadmin generation ledger from the activity log.
     'generationCredits',
+    // Summed from the open review requests (Tasks) linked to the asset.
+    'reviewState',
     'accent',
     'blacklists',
     'camera',
@@ -533,6 +539,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'pendingInputCount',
     'runStatus',
     'runtimeState',
+    'shareCount',
+    'shareScope',
     'statusSequence',
   ],
   'announcement:Announcement': [
@@ -680,6 +688,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'isEnhancementFailed',
     // Computed for the superadmin generation ledger from the activity log.
     'generationCredits',
+    // Summed from the open review requests (Tasks) linked to the asset.
+    'reviewState',
     'age',
     'blacklists',
     'camera',
@@ -740,6 +750,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'isEnhancementFailed',
     // Computed for the superadmin generation ledger from the activity log.
     'generationCredits',
+    // Summed from the open review requests (Tasks) linked to the asset.
+    'reviewState',
     'bitrate',
     'blacklist',
     'blacklists',

@@ -30,6 +30,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import KnowledgeCitationList from '@ui/knowledge/KnowledgeCitationList';
 import { Alert } from '@ui/primitives/alert';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
 import Image from 'next/image';
@@ -71,6 +72,11 @@ interface AgentChatMessageProps {
   /** Only the user turn that owns the terminal failed run may be retried. */
   isRetryableUserPrompt?: boolean;
   onRemember?: (message: AgentChatMessageType) => void;
+  /**
+   * Who wrote this user turn. Set only in a thread with more than one author,
+   * where it shows above the bubble; a thread with one author names no one.
+   */
+  author?: { avatarUrl?: string | null; name: string };
 }
 
 function formatTime(dateStr: string): string {
@@ -97,6 +103,7 @@ function AgentChatMessageInner({
   isHighlighted = false,
   isRetryableUserPrompt = false,
   onRemember,
+  author,
 }: AgentChatMessageProps): ReactElement {
   const isUser = message.role === 'user';
   const generatedContent = message.metadata?.generatedContent;
@@ -248,6 +255,16 @@ function AgentChatMessageInner({
       )}
       style={entranceAnimationStyle}
     >
+      {isUser && author ? (
+        <div
+          className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground"
+          data-testid="agent-message-author"
+        >
+          <Avatar name={author.name} size="2xs" src={author.avatarUrl} />
+          <span className="font-medium text-foreground/80">{author.name}</span>
+          <span>{formatTime(message.createdAt)}</span>
+        </div>
+      ) : null}
       <div
         data-message-role={message.role}
         data-message-surface={isUser ? 'prompt' : 'inline'}

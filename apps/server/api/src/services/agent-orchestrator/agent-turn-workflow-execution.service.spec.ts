@@ -22,6 +22,8 @@ function setup(
   source = 'proactive',
   priorMessageCount = 0,
   threadMode?: AgentThreadMode,
+  resolveSharedThreadOwner?: ReturnType<typeof vi.fn>,
+  threadOwnerUserId = 'user',
 ) {
   const countMessages = vi.fn().mockResolvedValue(priorMessageCount);
   const prisma = {
@@ -42,6 +44,7 @@ function setup(
   };
   const scope = { brandId: 'brand', organizationId: 'org', contextVersion: 1 };
   const context = {
+    resolveSharedThreadOwner,
     resolveSystemPromptAndModel: vi.fn().mockResolvedValue({
       preparedScope: { existingScope: scope },
       model: 'model',
@@ -76,6 +79,7 @@ function setup(
     {
       findOne: vi.fn().mockResolvedValue({
         title: 'Agent',
+        userId: threadOwnerUserId,
         ...(threadMode ? { mode: threadMode } : {}),
       }),
       findOneSelect: delegateFindOneSelect(),
@@ -556,8 +560,17 @@ describe('immediate media turns', () => {
     userId: 'user',
   };
 
-  async function runMediaTurn(threadMode?: AgentThreadMode) {
-    const { service } = setup('api', 0, threadMode);
+  async function runMediaTurn(
+    threadMode?: AgentThreadMode,
+    threadOwnerUserId = 'user',
+  ) {
+    const { service } = setup(
+      'api',
+      0,
+      threadMode,
+      undefined,
+      threadOwnerUserId,
+    );
     const executeUiAction = vi
       .spyOn(service, 'executeUiAction')
       .mockResolvedValue({
@@ -598,5 +611,80 @@ describe('immediate media turns', () => {
     );
     expect(result).not.toBeNull();
     expect(executeUiAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not charge a member's turn in another member's Auto thread (#9963)", async () => {
+    const { executeUiAction, result } = await runMediaTurn(
+      AgentThreadMode.AUTO,
+      'owner',
+    );
+    expect(result).toBeNull();
+    expect(executeUiAction).not.toHaveBeenCalled();
+  });
+
+  describe('a queued turn sent in a thread shared with the sender (#9937)', () => {
+    const memberContext = {
+      executionId: 'run',
+      organizationId: 'org',
+      userId: 'member',
+    };
+    const plainRequest = {
+      brandId: 'brand',
+      clientRequestId: 'shared-turn',
+      content: 'Draft a post',
+      threadId: 'thread',
+    };
+    const sharedSetup = (resolveOwner: ReturnType<typeof vi.fn>) => {
+      const setupResult = setup('api', 0, undefined, resolveOwner);
+      // Only the owner's own lookup finds the thread.
+      setupResult.prisma.agentThread.findFirst.mockImplementation(
+        ({ where }: { where: { userId: string } }) =>
+          Promise.resolve(
+            where.userId === 'owner'
+              ? {
+                  agentStrategyId: null,
+                  brandId: 'brand',
+                  contextVersion: 2,
+                  status: 'active',
+                }
+              : null,
+          ),
+      );
+      return setupResult;
+    };
+
+    it('prepares the turn as the sender once their share is re-proved', async () => {
+      const resolveOwner = vi.fn().mockResolvedValue('owner');
+      const { service } = sharedSetup(resolveOwner);
+
+      const prepared = await service.prepare(plainRequest, memberContext);
+
+      expect(resolveOwner).toHaveBeenCalledWith(memberContext, 'thread');
+      expect(prepared.state.userId).toBe('member');
+      expect(prepared.contextVersion).toBe(2);
+    });
+
+    it('refuses the turn when the share was removed while it queued', async () => {
+      const resolveOwner = vi
+        .fn()
+        .mockRejectedValue(new Error('Thread not found'));
+      const { service } = sharedSetup(resolveOwner);
+
+      await expect(
+        service.prepare(plainRequest, memberContext),
+      ).rejects.toThrow('Thread not found');
+    });
+
+    it('does not re-check the share for the owner own thread', async () => {
+      const resolveOwner = vi.fn();
+      const { service } = sharedSetup(resolveOwner);
+
+      await service.prepare(plainRequest, {
+        ...memberContext,
+        userId: 'owner',
+      });
+
+      expect(resolveOwner).not.toHaveBeenCalled();
+    });
   });
 });

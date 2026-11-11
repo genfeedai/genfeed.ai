@@ -15,9 +15,11 @@ import { AgentThreadsController } from '@api/collections/agent-threads/controlle
 import { AgentMasterThreadService } from '@api/collections/agent-threads/services/agent-master-thread.service';
 import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentThreadAudienceService } from '@api/collections/agent-threads/services/agent-thread-audience.service';
+import { AgentThreadMentionsService } from '@api/collections/agent-threads/services/agent-thread-mentions.service';
 import { AgentThreadSharesService } from '@api/collections/agent-threads/services/agent-thread-shares.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
+import { MentionsModule } from '@api/collections/mentions/mentions.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { UsersCoreModule } from '@api/collections/users/users-core.module';
 import { CommonModule } from '@api/common/common.module';
@@ -40,11 +42,13 @@ import { Module } from '@nestjs/common';
     AgentScopeContextService,
     AgentThreadAccessService,
     AgentThreadAudienceService,
+    AgentThreadMentionsService,
     AgentThreadSharesService,
     AgentThreadsService,
   ],
   imports: [
     BrandAccessModule,
+    MentionsModule,
     AgentMessagesModule,
     UsersCoreModule,
     BrandsCoreModule,
@@ -55,19 +59,26 @@ import { Module } from '@nestjs/common';
     AgentThreadsService,
     AgentThreadAccessService,
     AgentThreadAudienceService,
+    AgentThreadMentionsService,
     AgentThreadSharesService,
     AgentMasterThreadService,
     AgentThreadProjectorService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
     {
-      inject: [PrismaService, LoggerService, BrandAccessService],
+      inject: [
+        PrismaService,
+        LoggerService,
+        BrandAccessService,
+        AgentThreadAccessService,
+      ],
       provide: AgentScopeContextService,
       useFactory: (
         prisma: PrismaService,
         logger: LoggerService,
         access: BrandAccessService,
-      ) => new AgentScopeContextService(prisma, logger, access),
+        threadAccess: AgentThreadAccessService,
+      ) => new AgentScopeContextService(prisma, logger, access, threadAccess),
     },
   ],
 })
