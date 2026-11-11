@@ -2,7 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentThreadSharesService } from '@api/collections/agent-threads/services/agent-thread-shares.service';
+import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import type { ServerPrisma } from '@api/server.dependencies';
+import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
 import { hasMediaRecordAccess } from '@api/services/media-urls/media-delivery-policy.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -388,6 +390,62 @@ describe.skipIf(!connectionString)(
             thread.id,
           ),
         ).rejects.toMatchObject({ status: 404 });
+      });
+    });
+
+    // #9963: the owner's thread mode is never what decides a collaborator's
+    // tools; their own saved default is, Manual when they saved none.
+    describe('the mode a collaborator turn runs in (#9963)', () => {
+      const authorization = () =>
+        new AgentToolMutationAuthorizationService(
+          logger as never,
+          undefined,
+          new AgentThreadsService(
+            database() as unknown as PrismaService,
+            logger as never,
+            {} as never,
+          ),
+          database() as unknown as PrismaService,
+        );
+
+      async function collaboratorMode(savedMode?: string) {
+        const { thread } = await createSharedThread(
+          AgentThreadShareLevel.COLLABORATE,
+        );
+        await database().agentThread.update({
+          data: { mode: 'auto' },
+          where: { id: thread.id },
+        });
+        if (savedMode) {
+          await database().setting.create({
+            data: { agentMode: savedMode, userId: member },
+          });
+        }
+        const prepared = await scopes().prepareForTurn(memberTurn(thread.id));
+        const scope = prepared.existingScope;
+        if (!scope) throw new Error('Expected a prepared scope');
+        return authorization().resolveAgentModeForContext({
+          organizationId,
+          threadId: thread.id,
+          userId: member,
+          validatedScope: scope,
+        } as never);
+      }
+
+      it("runs in the collaborator's own saved Auto", async () => {
+        expect(await collaboratorMode('auto')).toBe('auto');
+      });
+
+      it("runs in the collaborator's own saved Plan", async () => {
+        expect(await collaboratorMode('plan')).toBe('plan');
+      });
+
+      it("never takes the owner's Auto thread when they saved nothing", async () => {
+        expect(await collaboratorMode()).toBe('manual');
+      });
+
+      it("never takes the owner's Auto thread when they saved Manual", async () => {
+        expect(await collaboratorMode('manual')).toBe('manual');
       });
     });
   },
