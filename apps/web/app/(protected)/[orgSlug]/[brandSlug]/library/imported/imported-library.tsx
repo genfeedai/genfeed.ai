@@ -11,7 +11,6 @@ import { Suspense } from 'react';
 import { IngredientsMediaGridSkeleton } from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientsList from '@/features/ingredients/list/ingredients-list';
 import LibraryBrowser from '@/features/library/browser/library-browser';
-import LibraryCreditNotice from '../library-credit-notice';
 
 const IMPORTED_ORIGINS = [
   IngredientOrigin.UPLOADED,
@@ -39,7 +38,6 @@ export default function ImportedLibrary({
       scope={scope}
       seededOrigins={IMPORTED_ORIGINS}
     >
-      <LibraryCreditNotice />
       <Suspense fallback={<IngredientsMediaGridSkeleton />}>
         <AssetDeepLink />
         <IngredientsList

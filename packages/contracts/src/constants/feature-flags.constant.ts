@@ -186,7 +186,7 @@ export const DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG =
 export const LIBRARY_CANVAS_FEATURE_FLAG =
   'library_canvas' satisfies PlatformFlagKey;
 
-/** Low-credits banner in the protected shell. */
+/** Low-credits warning in the topbar credits pill. */
 export const LOW_CREDITS_BANNER_FEATURE_FLAG =
   'low_credits_banner' satisfies PlatformFlagKey;
 

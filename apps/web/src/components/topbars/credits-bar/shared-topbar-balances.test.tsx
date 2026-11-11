@@ -3,15 +3,15 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import LowCreditsBanner from '@/components/banners/low-credits/LowCreditsBanner';
 import CreditsLiveSync from '@/components/topbars/credits-bar/CreditsLiveSync';
+import TopbarCreditsStatus from '@/components/topbars/credits-bar/TopbarCreditsStatus';
 import messages from '../../../../messages/en/ui.json';
 
 /**
- * The credits live sync and the low-credits banner both mount on every protected
+ * The credits live sync and the topbar credits pill both mount on every protected
  * page. They used to fetch `/topbar-balances` independently, which cost two
  * identical round trips per navigation. Behind one query key they collapse into
- * one request, and a live balance published by the sync reaches the banner.
+ * one request, and a live balance published by the sync reaches the pill.
  */
 
 const { mockGetCreditsService, mockGetTopbarBalances } = vi.hoisted(() => ({
@@ -80,6 +80,10 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: { error: vi.fn(), warn: vi.fn() },
 }));
 
+vi.mock('@/hooks/feature-flags/use-feature-flag', () => ({
+  useFeatureFlag: () => true,
+}));
+
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
@@ -111,7 +115,7 @@ describe('shared topbar balances', () => {
     });
   });
 
-  it('fetches the wallet once for the live sync and the banner together', async () => {
+  it('fetches the wallet once for the live sync and the pill together', async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { gcTime: 0, retry: false } },
     });
@@ -120,15 +124,13 @@ describe('shared topbar balances', () => {
       <NextIntlClientProvider locale="en" messages={{ ui: messages }}>
         <QueryClientProvider client={queryClient}>
           <CreditsLiveSync />
-          <LowCreditsBanner />
+          <TopbarCreditsStatus />
         </QueryClientProvider>
       </NextIntlClientProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        "You've run out of credits",
-      );
+      expect(screen.getByRole('link')).toHaveTextContent('Out of credits');
     });
 
     // Both mount on every protected page and share one wallet request.

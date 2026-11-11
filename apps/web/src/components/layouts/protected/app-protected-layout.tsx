@@ -14,7 +14,6 @@ import {
 } from '@contexts/ui/breadcrumb-leaf-context';
 import { ContextSidebarProvider } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { LayoutProps } from '@props/layout/layout.props';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
@@ -26,7 +25,6 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useEffect, useMemo, useRef } from 'react';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
-import LowCreditsBanner from '@/components/banners/low-credits/LowCreditsBanner';
 import ProductionDataBanner from '@/components/banners/production-data/ProductionDataBanner';
 import { CommandPaletteInitializer } from '@/components/command-palette/command-palette-initializer/CommandPaletteInitializer';
 import OnboardingGuard from '@/components/guards/onboarding/OnboardingGuard';
@@ -144,11 +142,9 @@ function AppLayoutWithDynamicMenu({
     isAnalyticsRoute,
     isConversationRoute,
     isEditorCanvasRoute,
-    isLibraryLandingRoute,
     isLibraryRoute,
     isMessagesRoute,
     isOrgRoute,
-    suppressShellLowCreditsBanner,
     isDiscoveryRoute,
     isSettingsRoute,
     isStudioRoute,
@@ -173,7 +169,6 @@ function AppLayoutWithDynamicMenu({
     messagesMenuItems,
     isPublishingRoute,
     handleNavigate,
-    isLowCreditsBannerEnabled,
     isDesktopShell,
     isUniversalWorkspaceShell,
     workspaceShellRoute,
@@ -355,21 +350,12 @@ function AppLayoutWithDynamicMenu({
                   : isOrgRoute
                     ? orgMenuItems
                     : menuItems;
-  const lowCreditsBanner =
-    hasOrganizationBillingHint() &&
-    !suppressShellLowCreditsBanner &&
-    !isLibraryLandingRoute ? (
-      <LowCreditsBanner
-        isLowBalanceWarningEnabled={isLowCreditsBannerEnabled}
-      />
-    ) : null;
   const shellBanner = (
     <>
       {/* Unconditional: the "Viewing as {user}" state must survive every
           route the impersonated session can reach, not a subset. */}
       <ImpersonationBanner />
       {isDesktopShell ? null : <ProductionDataBanner />}
-      {lowCreditsBanner}
     </>
   );
   // Brand settings: Settings / <brand label> / <page>.

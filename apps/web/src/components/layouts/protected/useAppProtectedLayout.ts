@@ -56,7 +56,6 @@ import {
 } from '@/config/studio-menu-items.config';
 import { useUserRole } from '@/hooks/auth/use-user-role';
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
-import { useFeatureFlag } from '@/hooks/feature-flags/use-feature-flag';
 import { useDesktopRuntimeContext } from '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { useMenuItems } from '@/hooks/ui/use-menu-items';
 import { useOptionalAuth } from '@/hooks/useOptionalAuth';
@@ -78,8 +77,6 @@ import {
 } from './protected-route-kind';
 import { usePageHelp } from './use-page-help';
 import { useOpenTaskComposer } from './useOpenTaskComposer';
-
-const CLIPPER_OR_STORYBOARD_PATH_PATTERN = /^\/(clipper|storyboard)(?:\/|$)/;
 
 export function useAppProtectedLayout(
   initialBootstrap?: ProtectedBootstrapData | null,
@@ -112,7 +109,6 @@ export function useAppProtectedLayout(
   const isDiscoveryRoute =
     pathname === APP_ROUTES.DISCOVERY.ROOT ||
     pathname.startsWith(`${APP_ROUTES.DISCOVERY.ROOT}/`);
-  const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.ASSETS;
   const isLibraryRoute = pathname.startsWith(APP_ROUTE_PREFIXES.LIBRARY);
   const isMessagesRoute = pathname.startsWith(APP_ROUTE_PREFIXES.MESSAGES);
   const isMessagesInboxRoute = pathname === APP_ROUTES.MESSAGES.ROOT;
@@ -120,11 +116,6 @@ export function useAppProtectedLayout(
   const studioApp = getStudioAppForPath(pathname);
   const isStudioRoute = studioApp !== undefined;
   const isPublishingRoute = pathname.startsWith(APP_ROUTE_PREFIXES.PUBLISHING);
-  // Dense studio canvases + mission-control runs: hide shell low-credits strip
-  // so it does not steal vertical space under fixed chrome.
-  const suppressShellLowCreditsBanner =
-    CLIPPER_OR_STORYBOARD_PATH_PATTERN.test(pathname) ||
-    pathname === APP_ROUTES.AUTOMATION.RUNS;
   const isSettingsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS);
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
   const isAutomationRoute = pathname.startsWith(APP_ROUTE_PREFIXES.AUTOMATION);
@@ -454,7 +445,6 @@ export function useAppProtectedLayout(
 
   const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
 
-  const isLowCreditsBannerEnabled = useFeatureFlag('low_credits_banner');
   const isDesktopShell = isDesktopClient();
 
   return {
@@ -463,13 +453,11 @@ export function useAppProtectedLayout(
     isAnalyticsRoute,
     isConversationRoute,
     isEditorCanvasRoute,
-    isLibraryLandingRoute,
     isLibraryRoute,
     isMessagesRoute,
     isMessagesInboxRoute,
     isOrgRoute,
     isPublishingRoute,
-    suppressShellLowCreditsBanner,
     isDiscoveryRoute,
     isSettingsRoute,
     isStudioRoute,
@@ -501,8 +489,6 @@ export function useAppProtectedLayout(
     messagesMenuItems: MESSAGES_MENU_ITEMS,
     // handlers
     handleNavigate,
-    // banners
-    isLowCreditsBannerEnabled,
     isDesktopShell,
     // bootstrap passthrough
     initialBootstrap,
