@@ -22,7 +22,7 @@
   "snapshot": "Versioned identity snapshot",
   "snapshotHelp": "Writing edits save to the live agent profile. Review the versioned snapshot separately before approving it.",
   "unsaved": "Unsaved revision changes",
-  "saved": "Revision saved",
+  "saved": "No unsaved changes",
   "saveDraft": "Save draft",
   "createManualDraft": "Create manual draft",
   "capturedDraft": "Website scan & captured draft",

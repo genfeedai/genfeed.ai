@@ -23,6 +23,7 @@ import {
   pickAgentThreadMetadata,
 } from '@api/collections/agent-threads/utils/agent-thread-metadata.util';
 import { resolveThreadModeForSource } from '@api/collections/agent-threads/utils/agent-thread-mode-for-source.util';
+import { TeammateMentionsService } from '@api/collections/mentions/services/teammate-mentions.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
@@ -39,6 +40,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { AgentScopeContextService } from '@api/index';
+import { setRequestMediaScope } from '@api/services/media-urls/request-media-scope';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import {
@@ -72,6 +74,7 @@ export class AgentThreadsController {
     private readonly agentThreadAccessService: AgentThreadAccessService,
     private readonly agentScopeContextService: AgentScopeContextService,
     private readonly agentMessagesService: AgentMessagesService,
+    private readonly teammateMentionsService: TeammateMentionsService,
     private readonly usersService: UsersService,
     private readonly loggerService: LoggerService,
   ) {}
@@ -163,7 +166,13 @@ export class AgentThreadsController {
   ) {
     try {
       const organizationId = resolveAgentThreadReadOrganizationId(req, user);
-      await this.assertThreadAccess(user, organizationId, threadId, 'view');
+      await this.assertThreadAccess(
+        user,
+        organizationId,
+        threadId,
+        'view',
+        req,
+      );
       const messageLimit = limit ? Number.parseInt(limit, 10) : 50;
 
       const page = await this.agentMessagesService.getMessagesPage(
@@ -172,7 +181,10 @@ export class AgentThreadsController {
         { cursor, limit: messageLimit },
       );
 
-      const chronological = [...page.docs].reverse();
+      const chronological = await this.teammateMentionsService.attachMentions(
+        organizationId,
+        [...page.docs].reverse(),
+      );
 
       return serializeCollection(req, ThreadMessageSerializer, {
         docs: chronological,
@@ -233,7 +245,13 @@ export class AgentThreadsController {
         organizationId: this.resolveOrganizationId(user),
         brandId: user.brandId,
       }).organizationId;
-      await this.assertThreadAccess(user, organizationId, threadId, 'view');
+      await this.assertThreadAccess(
+        user,
+        organizationId,
+        threadId,
+        'view',
+        req,
+      );
       const message = await this.agentMessagesService.findOne({
         id: messageId,
         organizationId: organizationId,
@@ -446,13 +464,25 @@ export class AgentThreadsController {
     organizationId: string,
     threadId: string,
     need: 'view' | 'collaborate',
+    req?: Request,
   ) {
     const userId = await this.resolveDatabaseUserId(user);
-    return this.agentThreadAccessService.assertAccess(
+    const access = await this.agentThreadAccessService.assertAccess(
       buildAgentThreadActor(user, organizationId, userId),
       threadId,
       need,
     );
+    // Sign the thread's own media for this member (#9962).
+    if (req) {
+      setRequestMediaScope(
+        req,
+        await this.agentThreadAccessService.mediaScopeFor(
+          userId,
+          access.thread,
+        ),
+      );
+    }
+    return access;
   }
 
   private async resolveDatabaseUserId(user: User): Promise<string> {

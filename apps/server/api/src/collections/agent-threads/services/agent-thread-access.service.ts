@@ -21,9 +21,13 @@ import {
   AgentThreadShareScope,
   MemberRole,
 } from '@genfeedai/contracts';
+import type { MediaDeliveryScope } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
+
+/** Most distinct authors whose media a thread view reaches. */
+const MEDIA_PARTICIPANT_LIMIT = 100;
 
 interface LiveViewer {
   brandIds: string[] | undefined;
@@ -109,6 +113,52 @@ export class AgentThreadAccessService {
     return this.accessFor(thread, level, viewer?.isAdmin === true);
   }
 
+  /**
+   * The media a member may see while viewing a thread (#9962): resolved from a
+   * live `view` access check, never from a stored share. Agent output is private
+   * to whoever ran the turn, so the scope also names the owner and every member
+   * who wrote in the thread. A denial throws like `assertAccess`.
+   */
+  async resolveMediaScope(
+    actor: BrandAccessActor,
+    threadId: string,
+  ): Promise<MediaDeliveryScope> {
+    const { thread } = await this.assertAccess(actor, threadId, 'view');
+    return this.mediaScopeFor(actor.userId, thread);
+  }
+
+  /** The media scope of a thread the caller already proved access to. */
+  async mediaScopeFor(
+    userId: string,
+    thread: Pick<
+      AgentThreadAccessRow,
+      'brandId' | 'id' | 'organizationId' | 'userId'
+    >,
+  ): Promise<MediaDeliveryScope> {
+    const authors = await this.prisma.agentMessage.findMany({
+      distinct: ['userId'],
+      select: { userId: true },
+      take: MEDIA_PARTICIPANT_LIMIT,
+      where: scopedWhere(thread.organizationId, {
+        threadId: thread.id,
+        userId: { not: null },
+      }),
+    });
+    return {
+      brandId: thread.brandId ?? undefined,
+      organizationId: thread.organizationId,
+      participantUserIds: [
+        ...new Set([
+          thread.userId,
+          ...authors.flatMap((author) =>
+            author.userId ? [author.userId] : [],
+          ),
+        ]),
+      ],
+      userId,
+    };
+  }
+
   /** Whether `actor` may do `need` on a thread, without throwing. */
   async hasAccess(
     actor: BrandAccessActor,
@@ -170,7 +220,10 @@ export class AgentThreadAccessService {
     };
   }
 
-  /** Adds how `access` reaches each thread of a listed page. */
+  /**
+   * Adds how `access` reaches each thread of a listed page, and, for the threads
+   * the viewer manages, who they are shared with.
+   */
   async attachAccessLevels<
     T extends Pick<AgentThreadAccessRow, 'brandId' | 'id' | 'userId'>,
   >(
@@ -178,7 +231,12 @@ export class AgentThreadAccessService {
     page: { docs: T[] },
   ): Promise<{
     docs: Array<
-      T & { accessLevel?: AgentThreadAccessLevel; canManageShares: boolean }
+      T & {
+        accessLevel?: AgentThreadAccessLevel;
+        canManageShares: boolean;
+        shareCount?: number;
+        shareScope?: AgentThreadShareScope;
+      }
     >;
   }> {
     const levels = await this.resolveAccessLevels(
@@ -186,24 +244,76 @@ export class AgentThreadAccessService {
       access.scope,
       page.docs,
     );
+    const rows = page.docs.map((doc) => {
+      const accessLevel = levels.get(doc.id);
+      const isOwner = accessLevel === AgentThreadAccessLevel.OWNER;
+      // Same rule as `assertAccess(..., 'manage')`: the owner, or a live
+      // admin; a brand-limited key manages no brandless thread it does not own.
+      const isManagedByAdmin =
+        accessLevel !== undefined &&
+        access.scope?.isAdmin === true &&
+        (access.scope.brandIds === undefined || doc.brandId !== null);
+      return {
+        ...doc,
+        accessLevel,
+        canManageShares: isOwner || isManagedByAdmin,
+      };
+    });
+    const summaries = await this.summarizeShares(
+      access.scope,
+      rows.filter((row) => row.canManageShares).map((row) => row.id),
+    );
     return {
       ...page,
-      docs: page.docs.map((doc) => {
-        const accessLevel = levels.get(doc.id);
-        const isOwner = accessLevel === AgentThreadAccessLevel.OWNER;
-        // Same rule as `assertAccess(..., 'manage')`: the owner, or a live
-        // admin; a brand-limited key manages no brandless thread it does not own.
-        const isManagedByAdmin =
-          accessLevel !== undefined &&
-          access.scope?.isAdmin === true &&
-          (access.scope.brandIds === undefined || doc.brandId !== null);
-        return {
-          ...doc,
-          accessLevel,
-          canManageShares: isOwner || isManagedByAdmin,
-        };
-      }),
+      docs: rows.map((row) => ({ ...row, ...summaries.get(row.id) })),
     };
+  }
+
+  /**
+   * Who each of `threadIds` is shared with: the widest scope a live share
+   * reaches (organization over brand over people) and how many shares there
+   * are. A thread nobody can open but its owner is left out.
+   */
+  private async summarizeShares(
+    scope: AgentThreadListAccessScope | null,
+    threadIds: string[],
+  ): Promise<
+    Map<string, { shareCount: number; shareScope: AgentThreadShareScope }>
+  > {
+    const summaries = new Map<
+      string,
+      { shareCount: number; shareScope: AgentThreadShareScope }
+    >();
+    if (!scope || threadIds.length === 0) {
+      return summaries;
+    }
+    // sql-risk-audit: ignore unbounded-read -- Bounded by the caller's page of thread ids and one organization.
+    const rows = await this.prisma.agentThreadShare.findMany({
+      select: { scope: true, threadId: true },
+      where: scopedWhere(scope.organizationId, {
+        threadId: { in: threadIds },
+      }),
+    });
+    const rank = [
+      AgentThreadShareScope.MEMBER,
+      AgentThreadShareScope.BRAND,
+      AgentThreadShareScope.ORGANIZATION,
+    ];
+    for (const row of rows) {
+      const shareScope = rank.find((value) => value === row.scope);
+      if (!shareScope) {
+        continue;
+      }
+      const current = summaries.get(row.threadId);
+      summaries.set(row.threadId, {
+        shareCount: (current?.shareCount ?? 0) + 1,
+        shareScope:
+          current && rank.indexOf(current.shareScope) > rank.indexOf(shareScope)
+            ? current.shareScope
+            : shareScope,
+      });
+    }
+    return summaries;
   }
 
   /**

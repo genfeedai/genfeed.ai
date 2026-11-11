@@ -145,7 +145,7 @@
     "apps/server/api/src/collections/agent-strategies/sources/agent-source-saved-ad-reader.ts": 2,
     "apps/server/api/src/collections/agent-threads/utils/agent-thread-external-runtime.util.ts": 1,
     "apps/server/api/src/collections/agent-threads/utils/agent-thread-mode-for-source.util.ts": 1,
-    "apps/server/api/src/collections/agent-transfers/services/agent-transfer-settlement.util.ts": 2,
+    "apps/server/api/src/collections/agent-transfers/services/agent-transfer-settlement.util.ts": 1,
     "apps/server/api/src/collections/api-keys/utils/resolve-generation-brand-for-caller.util.ts": 2,
     "apps/server/api/src/collections/articles/dto/analyze-virality.dto.ts": 2,
     "apps/server/api/src/collections/articles/dto/article-to-thread.dto.ts": 1,

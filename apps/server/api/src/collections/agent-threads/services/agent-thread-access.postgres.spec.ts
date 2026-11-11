@@ -716,6 +716,78 @@ describe.skipIf(!connectionString)(
         ]);
       });
 
+      it('summarizes who a managed thread is shared with, widest scope first', async () => {
+        const privateThread = await createThread(owner, { brandId: brandA });
+        const people = await createThread(owner, { brandId: brandA });
+        const brand = await createThread(owner, { brandId: brandA });
+        const everyone = await createThread(owner, { brandId: brandA });
+        await share(
+          people.id,
+          AgentThreadShareScope.MEMBER,
+          AgentThreadShareLevel.VIEW,
+          { targetUserId: teammate },
+        );
+        await share(
+          people.id,
+          AgentThreadShareScope.MEMBER,
+          AgentThreadShareLevel.VIEW,
+          { targetUserId: admin },
+        );
+        await share(
+          brand.id,
+          AgentThreadShareScope.BRAND,
+          AgentThreadShareLevel.VIEW,
+          { targetBrandId: brandA },
+        );
+        await share(
+          brand.id,
+          AgentThreadShareScope.MEMBER,
+          AgentThreadShareLevel.VIEW,
+          { targetUserId: teammate },
+        );
+        const revoked = await share(
+          everyone.id,
+          AgentThreadShareScope.ORGANIZATION,
+          AgentThreadShareLevel.VIEW,
+        );
+        await share(
+          everyone.id,
+          AgentThreadShareScope.BRAND,
+          AgentThreadShareLevel.VIEW,
+          { targetBrandId: brandA },
+        );
+        await shares().revoke(actor(owner), everyone.id, revoked.id);
+
+        const ownerPage = await access().attachAccessLevels(
+          await access().resolveListAccess(actor(owner)),
+          { docs: [privateThread, people, brand, everyone] },
+        );
+        const teammatePage = await access().attachAccessLevels(
+          await access().resolveListAccess(actor(teammate)),
+          { docs: [people, brand] },
+        );
+
+        expect(
+          Object.fromEntries(
+            ownerPage.docs.map((doc) => [
+              doc.id,
+              [doc.shareScope, doc.shareCount],
+            ]),
+          ),
+        ).toEqual({
+          [privateThread.id]: [undefined, undefined],
+          [people.id]: [AgentThreadShareScope.MEMBER, 2],
+          [brand.id]: [AgentThreadShareScope.BRAND, 2],
+          [everyone.id]: [AgentThreadShareScope.BRAND, 1],
+        });
+        expect(
+          teammatePage.docs.map((doc) => [doc.shareScope, doc.shareCount]),
+        ).toEqual([
+          [undefined, undefined],
+          [undefined, undefined],
+        ]);
+      });
+
       it('is an ordinary member when an API key carries no admin scope', async () => {
         const thread = await createThread(owner, { brandId: brandA });
 

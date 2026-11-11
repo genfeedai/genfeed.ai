@@ -480,7 +480,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'user',
       'userId',
     ],
-    listFields: ['artifactVersionPinIds'],
+    listFields: ['artifactVersionPinIds', 'mentionedUserIds'],
     enumFields: {},
     relationIdFields: {
       brand: 'brandId',
@@ -764,6 +764,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'destinationMessageId',
       'destinationThread',
       'destinationThreadId',
+      'destinationUserId',
       'failureReason',
       'id',
       'idempotencyKey',
@@ -8470,7 +8471,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'taskId',
       'updatedAt',
     ],
-    listFields: [],
+    listFields: ['mentionedUserIds'],
     enumFields: {},
     relationIdFields: {
       organization: 'organizationId',

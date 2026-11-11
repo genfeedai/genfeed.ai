@@ -3,6 +3,10 @@
 import { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
 import { AgentChatMessage } from '@genfeedai/agent/components/AgentChatMessage';
 import {
+  type AgentHandoffActions,
+  AgentHandoffProvider,
+} from '@genfeedai/agent/components/AgentHandoffContext';
+import {
   AgentPlanCard,
   type AgentPlanDecision,
 } from '@genfeedai/agent/components/AgentPlanCard';
@@ -29,10 +33,18 @@ import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
+import {
   ArchiveRestore,
   CheckCheck,
   ChevronRight,
+  Ellipsis,
   Expand,
+  Forward,
   Lock,
   Users,
   Video,
@@ -40,6 +52,7 @@ import {
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import AgentThreadHandoffDialog from '@/components/workspace-shell/AgentThreadHandoffDialog';
 import AgentThreadShareDialog from '@/components/workspace-shell/AgentThreadShareDialog';
 import type {
   AgentThreadLightViewProps,
@@ -98,6 +111,8 @@ export default function AgentThreadLightView({
   const updateThread = useAgentChatStore((state) => state.updateThread);
   const [shares, setShares] = useState<AgentThreadShare[]>(NO_SHARES);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isHandoffOpen, setIsHandoffOpen] = useState(false);
+  const [handoffTo, setHandoffTo] = useState<string | null>(null);
   const canManageShares = thread.canManageShares === true;
   // The viewer's own level: anything but a share reads as owner, which is how
   // an older API answered before sharing existed.
@@ -151,6 +166,21 @@ export default function AgentThreadLightView({
     void loadMessages(controller.signal);
     return () => controller.abort();
   }, [loadMessages]);
+
+  // What a hand-off card needs: answer the request, and name the teammate.
+  // Answering reloads the thread so the run it starts shows up here.
+  const handoffActions = useMemo<AgentHandoffActions>(
+    () => ({
+      accept: async (transferId) => {
+        const transfer = await apiService.acceptAgentTransfer(transferId);
+        void loadMessages(new AbortController().signal);
+        return transfer;
+      },
+      decline: (transferId) => apiService.declineAgentTransfer(transferId),
+      nameOf: (userId) => membersById.get(userId)?.name,
+    }),
+    [apiService, loadMessages, membersById],
+  );
 
   // Who the thread is shared with. Only the owner (or an admin) may read it.
   useEffect(() => {
@@ -416,6 +446,26 @@ export default function AgentThreadLightView({
               : translate(canPrompt ? 'share.canPrompt' : 'share.canView')}
           </Badge>
         ) : null}
+        {isOwnThread ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                ariaLabel={translate('moreActions')}
+                data-testid="agent-thread-more"
+                icon={<Ellipsis className="size-4" />}
+                size={ButtonSize.ICON}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-48">
+              <DropdownMenuItem onSelect={() => setIsHandoffOpen(true)}>
+                <Forward className="size-4" />
+                {translate('handoff.action')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
         {onToggleResolved ? (
           <Button
             ariaLabel={toggleLabel}
@@ -449,50 +499,64 @@ export default function AgentThreadLightView({
       </header>
 
       <div className={AGENT_CONVERSATION_SCROLL_CLASS}>
-        <div
-          className={cn(AGENT_CONVERSATION_TRACK_CLASS, 'grow space-y-1 pt-4')}
-        >
-          {isLoading && messages.length === 0 ? (
-            <p className="text-sm text-muted-foreground" role="status">
-              {translate('loadingMessages')}
-            </p>
-          ) : hasLoadFailed ? (
-            <p className="text-sm text-destructive" role="alert">
-              {translate('loadFailed')}
-            </p>
-          ) : messages.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {translate('noMessages')}
-            </p>
-          ) : (
-            messages.map((message, index) => (
-              <AgentChatMessage
-                author={
-                  isMultiAuthor &&
-                  message.role === 'user' &&
-                  message.userId &&
-                  (index === 0 ||
-                    messages[index - 1]?.userId !== message.userId ||
-                    messages[index - 1]?.role !== 'user')
-                    ? resolveAuthor(membersById.get(message.userId))
-                    : undefined
-                }
-                isReadOnly={isResolved}
-                key={message.id}
-                message={message}
-                messageIndex={index}
-              />
-            ))
-          )}
-          {displayedPlan ? (
-            <AgentPlanCard decision={planDecision} plan={displayedPlan} />
-          ) : null}
-          {hasDecisionFailed ? (
-            <p className="text-sm text-destructive" role="alert">
-              {translate('planDecisionFailed')}
-            </p>
-          ) : null}
-        </div>
+        <AgentHandoffProvider value={handoffActions}>
+          <div
+            className={cn(
+              AGENT_CONVERSATION_TRACK_CLASS,
+              'grow space-y-1 pt-4',
+            )}
+          >
+            {isLoading && messages.length === 0 ? (
+              <p className="text-sm text-muted-foreground" role="status">
+                {translate('loadingMessages')}
+              </p>
+            ) : hasLoadFailed ? (
+              <p className="text-sm text-destructive" role="alert">
+                {translate('loadFailed')}
+              </p>
+            ) : messages.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {translate('noMessages')}
+              </p>
+            ) : (
+              messages.map((message, index) => (
+                <AgentChatMessage
+                  author={
+                    isMultiAuthor &&
+                    message.role === 'user' &&
+                    message.userId &&
+                    (index === 0 ||
+                      messages[index - 1]?.userId !== message.userId ||
+                      messages[index - 1]?.role !== 'user')
+                      ? resolveAuthor(membersById.get(message.userId))
+                      : undefined
+                  }
+                  isReadOnly={isResolved}
+                  key={message.id}
+                  message={message}
+                  messageIndex={index}
+                />
+              ))
+            )}
+            {displayedPlan ? (
+              <AgentPlanCard decision={planDecision} plan={displayedPlan} />
+            ) : null}
+            {hasDecisionFailed ? (
+              <p className="text-sm text-destructive" role="alert">
+                {translate('planDecisionFailed')}
+              </p>
+            ) : null}
+            {handoffTo ? (
+              <p
+                className="text-center text-xs text-muted-foreground"
+                data-testid="agent-thread-handoff-sent"
+                role="status"
+              >
+                {translate('handoff.sent', { name: handoffTo })}
+              </p>
+            ) : null}
+          </div>
+        </AgentHandoffProvider>
       </div>
 
       {assets.length > 0 ? (
@@ -575,6 +639,19 @@ export default function AgentThreadLightView({
           </PromptBarContainer>
         </div>
       )}
+      {isOwnThread ? (
+        <AgentThreadHandoffDialog
+          apiService={apiService}
+          isOpen={isHandoffOpen}
+          members={members}
+          onOpenChange={setIsHandoffOpen}
+          onSent={(name) => {
+            setHandoffTo(name);
+            void loadMessages(new AbortController().signal);
+          }}
+          thread={thread}
+        />
+      ) : null}
       {canManageShares ? (
         <AgentThreadShareDialog
           apiService={apiService}

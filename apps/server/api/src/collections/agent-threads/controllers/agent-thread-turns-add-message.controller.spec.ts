@@ -2,7 +2,9 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import type { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadTurnsController } from '@api/collections/agent-threads/controllers/agent-thread-turns.controller';
 import type { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
+import type { AgentThreadMentionsService } from '@api/collections/agent-threads/services/agent-thread-mentions.service';
 import type { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import type { TeammateMentionsService } from '@api/collections/mentions/services/teammate-mentions.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
 import { AgentThreadAccessLevel } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -30,6 +32,14 @@ function buildController(accessLevel: AgentThreadAccessLevel) {
     {
       assertAccess: async () => ({ accessLevel, canManageShares: false }),
     } as unknown as AgentThreadAccessService,
+    {
+      announce: vi.fn(),
+      prepare: async () => [],
+    } as unknown as AgentThreadMentionsService,
+    {
+      attachMentions: async (_org: string, docs: unknown[]) =>
+        docs.map((doc) => ({ ...(doc as object), mentions: [] })),
+    } as unknown as TeammateMentionsService,
     {
       addMessage: async (input: { content: string; role: string }) => ({
         content: input.content,

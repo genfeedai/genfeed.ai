@@ -191,12 +191,26 @@ export interface CreateAgentThreadSharePayload {
   targetUserId?: string;
 }
 
+/** A task handed to a teammate's agent from one of the viewer's own threads (#9940). */
+export interface CreateAgentHandoffPayload {
+  content: string;
+  destinationTitle?: string;
+  destinationUserId: string;
+  /** Stable for retries of this one hand-off. */
+  idempotencyKey: string;
+  sourceThreadId: string;
+}
+
 export interface AgentThread {
   id: string;
   /** How the viewer reaches the thread: owner, or a share's level. */
   accessLevel?: AgentThreadAccessLevel;
   /** The owner or an organization admin: may change who the thread is shared with. */
   canManageShares?: boolean;
+  /** Live shares on a thread the viewer manages; absent when it is private. */
+  shareCount?: number;
+  /** The widest scope those shares reach: organization over brand over people. */
+  shareScope?: AgentThreadShareScope;
   /** The member who owns the thread. */
   userId?: string;
   contextVersion: number;

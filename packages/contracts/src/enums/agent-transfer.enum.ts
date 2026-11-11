@@ -4,6 +4,10 @@ export enum AgentTransferDeliveryMode {
 }
 
 export enum AgentTransferStatus {
+  /** A hand-off to a teammate's agent that the teammate has not answered (#9940). */
+  AWAITING_ACCEPTANCE = 'AWAITING_ACCEPTANCE',
+  /** A hand-off the teammate declined (#9940). */
+  DECLINED = 'DECLINED',
   PENDING = 'PENDING',
   DELIVERED = 'DELIVERED',
   QUEUED = 'QUEUED',
