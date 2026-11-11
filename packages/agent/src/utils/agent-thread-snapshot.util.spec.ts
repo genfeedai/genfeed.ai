@@ -270,4 +270,53 @@ describe('mapSnapshotWorkEvents', () => {
     expect(event.toolCallId).toBe('tool-call-1');
     expect(event.toolName).toBe('check_onboarding_status');
   });
+
+  it('shows only the live run after a reload, not steps from earlier runs', () => {
+    const entry = (
+      id: string,
+      runId: string | undefined,
+      createdAt: string,
+    ) => ({
+      createdAt,
+      id,
+      kind: 'work' as const,
+      label: 'Agent Turn Started',
+      payload: {},
+      runId,
+      sequence: 1,
+      status: 'running',
+    });
+    const events = mapSnapshotWorkEvents({
+      activeRun: {
+        runId: 'run-3',
+        startedAt: '2026-03-24T10:05:00.000Z',
+        status: 'running',
+      },
+      lastAssistantMessage: null,
+      lastSequence: 4,
+      latestProposedPlan: null,
+      latestUiBlocks: null,
+      memorySummaryRefs: [],
+      pendingApprovals: [],
+      pendingInputRequests: [],
+      profileSnapshot: null,
+      sessionBinding: null,
+      source: null,
+      threadId: 'thread-1',
+      threadStatus: null,
+      timeline: [
+        entry('old-run', 'run-1', '2026-03-24T10:00:00.000Z'),
+        entry('old-no-run', undefined, '2026-03-24T10:01:00.000Z'),
+        entry('other-run', 'run-2', '2026-03-24T10:03:00.000Z'),
+        entry('current', 'run-3', '2026-03-24T10:05:00.000Z'),
+        entry('current-no-run', undefined, '2026-03-24T10:05:01.000Z'),
+      ],
+      title: null,
+    });
+
+    expect(events.map((event) => event.id)).toEqual([
+      'current',
+      'current-no-run',
+    ]);
+  });
 });

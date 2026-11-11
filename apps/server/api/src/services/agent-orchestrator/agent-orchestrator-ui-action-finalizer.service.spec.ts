@@ -35,9 +35,9 @@ describe('structured action finalization', () => {
         getOrganizationCreditsBalance: async () => 100,
       } as unknown as CreditsUtilsService,
       {
-        buildAssistantUiActions: () => ({
+        buildAssistantUiActions: (input: { uiActions: unknown[] }) => ({
           suggestedActions: [],
-          uiActions: [],
+          uiActions: input.uiActions,
         }),
       } as unknown as AgentCompletionCardBuilderService,
       {
@@ -117,6 +117,47 @@ describe('structured action finalization', () => {
           runOutcome: { error: 'Provider unavailable', status: 'failed' },
         }),
       }),
+    ]);
+  });
+
+  it('stores the reply without the card it resolved and keeps the live copy', async () => {
+    const finalized = await service.finalizeStructuredAssistantTurn({
+      content: 'Action declined. Nothing was executed.',
+      context: {
+        executionId: 'exec-ui-action-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+      messageId: 'result-message-1',
+      model: 'test',
+      resolvedSourceActionId: 'mutation-approval:a1',
+      result: {
+        nextActions: [
+          {
+            data: { status: 'declined' },
+            id: 'mutation-approval:a1',
+            title: 'Create post',
+            type: 'mutation_approval_card',
+          },
+          {
+            data: {},
+            id: 'follow-up-1',
+            title: 'Open post',
+            type: 'content_preview_card',
+          },
+        ],
+        success: true,
+      },
+      threadId: 'thread-1',
+      toolCalls: [],
+    } as never);
+
+    expect(messages[0]?.metadata.uiActions).toEqual([
+      expect.objectContaining({ id: 'follow-up-1' }),
+    ]);
+    expect(finalized.message.metadata?.uiActions).toEqual([
+      expect.objectContaining({ id: 'mutation-approval:a1' }),
+      expect.objectContaining({ id: 'follow-up-1' }),
     ]);
   });
 });
