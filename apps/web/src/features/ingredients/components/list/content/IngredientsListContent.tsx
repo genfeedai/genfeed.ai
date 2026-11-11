@@ -78,6 +78,7 @@ import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import FailedIngredientsRecovery from '@/features/ingredients/components/ingredients/list/recovery/FailedIngredientsRecovery';
 import IngredientSound from '@/features/ingredients/components/ingredients/sound/IngredientSound';
 import type { IngredientsListContentProps } from '@/features/ingredients/props/ingredients-list.props';
+import LibraryReviewBadge from '@/features/library/review/library-review-badge';
 import type { IngredientTimeGroupHeadingProps } from '@/props/content/ingredient.props';
 
 const IMAGE_URL_EXTENSION_PATTERN = /\.(avif|gif|jpe?g|png|webp)(?:$|[?#])/i;
@@ -581,6 +582,7 @@ export default function IngredientsListContent({
         key: 'status',
         render: (ingredient: IIngredient) => (
           <div className="flex flex-wrap items-center gap-1.5">
+            <LibraryReviewBadge state={ingredient.reviewState} />
             <DropdownStatus
               entity={ingredient}
               onStatusChange={(_newStatus, updatedIngredient) => {

@@ -400,6 +400,8 @@ export interface SelectionActionsBarProps {
   placement?: 'overlay' | 'subtopbar';
   /** The bulk tag control, rendered beside the other constructive actions. */
   tagAction?: ReactNode;
+  /** Asks teammates to review the selection, beside the other actions. */
+  reviewAction?: ReactNode;
 }
 
 export interface IngredientThumbnailProps {

@@ -52,6 +52,26 @@ export class IngredientReviewRequestsController {
     });
   }
 
+  @Get('candidates')
+  @ApiOperation({
+    summary: 'The teammates who can be asked to review an asset',
+  })
+  async candidates(
+    @Req() req: Request,
+    @Param('ingredientId') ingredientId: string,
+    @CurrentUser() user: User,
+  ): Promise<{ reviewerUserIds: string[] }> {
+    const reviewerUserIds =
+      await this.taskReviewRequestsService.listReviewerCandidates(
+        await this.actorFor(
+          user,
+          resolveAgentThreadReadOrganizationId(req, user),
+        ),
+        ingredientId,
+      );
+    return { reviewerUserIds };
+  }
+
   @Post()
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Ask teammates to review an asset' })

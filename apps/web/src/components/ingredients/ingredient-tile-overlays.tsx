@@ -9,6 +9,7 @@ import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import IngredientReviewActions from '@/components/ingredients/IngredientReviewActions';
 import IngredientOriginBadge from '@/components/ingredients/ingredient-origin-badge';
 import IngredientTagChips from '@/components/ingredients/ingredient-tag-chips';
+import LibraryReviewBadge from '@/features/library/review/library-review-badge';
 import type { IngredientTileOverlaysProps } from '@/props/content/ingredient.props';
 
 /**
@@ -63,6 +64,9 @@ const ORIGIN_BADGE_CLASS = cn(
 const TAG_CHIPS_CLASS =
   'pointer-events-none absolute bottom-8 left-1.5 right-1.5 z-10';
 
+/** The teammate-review state, always visible; the open-details button covers it on hover. */
+const REVIEW_BADGE_CLASS = 'pointer-events-none absolute right-2 top-2 z-10';
+
 const REVIEW_ACTIONS_CLASS = cn(
   'absolute bottom-1.5 right-1.5 z-20 transition-opacity',
   hoverRevealClassName(),
@@ -115,6 +119,10 @@ export default function IngredientTileOverlays({
           ) : null}
         </div>
       ) : null}
+      <LibraryReviewBadge
+        className={REVIEW_BADGE_CLASS}
+        state={ingredient.reviewState}
+      />
       <IngredientTagChips className={TAG_CHIPS_CLASS} tags={ingredient.tags} />
       {isReviewEnabled && !isFailed ? (
         <div className={REVIEW_ACTIONS_CLASS}>

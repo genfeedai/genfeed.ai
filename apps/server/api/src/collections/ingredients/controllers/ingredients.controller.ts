@@ -9,6 +9,7 @@ import {
   resolveCharacterFilter,
 } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
+import { IngredientReviewStateService } from '@api/collections/ingredients/services/ingredient-review-state.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import {
   libraryBrandWhere,
@@ -90,6 +91,8 @@ export class IngredientsController {
     private readonly characterFilter?: IngredientCharacterFilterService,
     @Optional()
     private readonly brandAccess?: BrandAccessService,
+    @Optional()
+    private readonly reviewState?: IngredientReviewStateService,
   ) {}
 
   /**
@@ -228,6 +231,7 @@ export class IngredientsController {
           IngredientFilterUtil.buildOriginFilter(query.origins),
           IngredientFilterUtil.buildStoryboardStillExclusion(),
           characterFilter,
+          this.reviewState?.buildFilter(query.review) ?? {},
           IngredientFilterUtil.buildTagFilter(query.tags, query.tagMatch),
           searchFilter.where,
         ],
@@ -255,12 +259,17 @@ export class IngredientsController {
             await listIngredients(),
         )
       : await listIngredients();
+    const evaluated =
+      (await this.evaluationProjection?.attachToPage(data, {
+        brandId: tenant.isOrganizationOverride ? tenant.brandId : user.brandId,
+      })) ?? data;
     return serializeCollection(
       request,
       IngredientSerializer,
-      (await this.evaluationProjection?.attachToPage(data, {
-        brandId: tenant.isOrganizationOverride ? tenant.brandId : user.brandId,
-      })) ?? data,
+      (await this.reviewState?.attachToPage(
+        evaluated,
+        tenant.organizationId,
+      )) ?? evaluated,
     );
   }
 

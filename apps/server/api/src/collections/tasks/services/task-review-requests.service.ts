@@ -121,6 +121,42 @@ export class TaskReviewRequestsService {
     return rows.map((row) => this.tasksService.normalizeTaskDocument(row));
   }
 
+  /**
+   * Teammates the actor may ask to review the asset: the active members, other
+   * than the actor, who reach its brand. The same rule `request` enforces, so a
+   * picker can offer exactly the people a request would accept.
+   */
+  async listReviewerCandidates(
+    actor: BrandAccessActor,
+    ingredientId: string,
+  ): Promise<string[]> {
+    const asset = await this.requireAsset(actor, ingredientId);
+    const members = await this.prisma.member.findMany({
+      select: { userId: true },
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organizationId: actor.organizationId,
+        userId: { not: actor.userId },
+      },
+    });
+    const eligible: string[] = [];
+    for (const { userId } of members) {
+      try {
+        await this.assertReaches(
+          { organizationId: actor.organizationId, userId },
+          asset.brandId,
+        );
+        eligible.push(userId);
+      } catch (error: unknown) {
+        if (!(error instanceof ForbiddenException)) {
+          throw error;
+        }
+      }
+    }
+    return eligible;
+  }
+
   private async createRequest(
     actor: BrandAccessActor,
     asset: ReviewedAsset,
@@ -208,6 +244,7 @@ export class TaskReviewRequestsService {
       description: note?.trim() || undefined,
       identifier: `${organization.prefix}-${taskNumber}`,
       linkedEntities: [{ entityId: asset.id, entityModel: 'Ingredient' }],
+      linkedOutputIds: [asset.id],
       organizationId: actor.organizationId,
       planningThreadId: threadId,
       reviewState: 'pending_approval',
@@ -236,12 +273,7 @@ export class TaskReviewRequestsService {
   }
 
   private linkedToAsset(ingredientId: string): Prisma.TaskWhereInput {
-    return {
-      config: {
-        array_contains: [{ entityId: ingredientId, entityModel: 'Ingredient' }],
-        path: ['linkedEntities'],
-      },
-    };
+    return { linkedOutputs: { some: { id: ingredientId } } };
   }
 
   /**

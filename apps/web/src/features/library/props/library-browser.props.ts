@@ -2,6 +2,7 @@ import type {
   IngredientCategory,
   IngredientOrigin,
   LibraryPlace,
+  LibraryReviewState,
   LibraryShelf,
   PageScope,
   TagMatchMode,
@@ -84,6 +85,8 @@ export interface LibraryFilterProps {
   /** Characters available to the active brand. Empty hides the filter. */
   characterOptions: LibraryCharacterOption[];
   origins: IngredientOrigin[];
+  /** Selected teammate-review state (`?review=`). Omitted means any. */
+  review?: LibraryReviewState;
   /** Selected tag ids (`?tags=`). */
   tags: string[];
   /** How the selected tags combine (`?tagMatch=`). */
@@ -93,6 +96,7 @@ export interface LibraryFilterProps {
   onCategoriesChange: (categories: IngredientCategory[]) => void;
   onCharactersChange: (characters: string[]) => void;
   onOriginsChange: (origins: IngredientOrigin[]) => void;
+  onReviewChange: (review: LibraryReviewState | null) => void;
   onTagMatchChange: (tagMatch: TagMatchMode) => void;
   onTagsChange: (tags: string[]) => void;
   /** Resets every filter in one URL update; sort and view are kept. */
@@ -137,6 +141,8 @@ export interface LibraryFilterChoice {
 export interface LibraryFilterModel {
   originChoices: LibraryFilterChoice[];
   placeValue: string;
+  reviewChoices: LibraryFilterChoice[];
+  reviewValue: string;
   statusChoices: LibraryFilterChoice[];
   statusValue: string;
   tagChoices: LibraryFilterChoice[];
@@ -144,6 +150,7 @@ export interface LibraryFilterModel {
   typeValues: string[];
   onOriginValuesChange: (values: string[]) => void;
   onPlaceValueChange: (value: string) => void;
+  onReviewValueChange: (value: string) => void;
   onStatusValueChange: (value: string) => void;
   onTypeValuesChange: (values: string[]) => void;
 }

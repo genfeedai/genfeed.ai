@@ -6,10 +6,12 @@ import {
   type IngredientOrigin,
   LIBRARY_OUTPUT_ORIGINS,
   LibraryPlace,
+  type LibraryReviewState,
   type LibraryShelf,
   PageScope,
   parseIngredientCategory,
   parseIngredientOrigin,
+  parseLibraryReviewState,
   parseTagMatchMode,
   TagMatchMode,
 } from '@genfeedai/contracts';
@@ -166,6 +168,11 @@ export function useLibraryBrowser({
     [searchParams],
   );
 
+  // Review is a single-value filter like origin: URL-only, no route of its own.
+  const review = parseLibraryReviewState(
+    searchParams?.get(LIBRARY_QUERY_KEYS.REVIEW),
+  );
+
   // Character is a filter like origin: URL-only, repeatable, no route of its own.
   const characters = useMemo(
     () =>
@@ -225,6 +232,7 @@ export function useLibraryBrowser({
       folderId?: string;
       origins?: IngredientOrigin[];
       place?: LibraryBrowserPlace | null;
+      review?: LibraryReviewState | null;
       search?: string;
       sort?: string;
       status?: LibraryBrowserStatus | null;
@@ -236,6 +244,7 @@ export function useLibraryBrowser({
       const nextCharacters = next.characters ?? characters;
       const nextFolderId = next.folderId ?? folderId;
       const nextOrigins = next.origins ?? origins;
+      const nextReview = 'review' in next ? next.review : review;
       const nextSearch = next.search ?? search;
       const nextSort = next.sort ?? sort;
       const nextTagMatch = next.tagMatch ?? tagMatch;
@@ -249,6 +258,7 @@ export function useLibraryBrowser({
         'folder',
         'origins',
         'place',
+        'review',
         'search',
         'shelf',
         'sort',
@@ -309,6 +319,10 @@ export function useLibraryBrowser({
         params.append(LIBRARY_QUERY_KEYS.ORIGINS, origin);
       }
 
+      if (nextReview) {
+        params.set(LIBRARY_QUERY_KEYS.REVIEW, nextReview);
+      }
+
       for (const tag of nextTags) {
         params.append(LIBRARY_QUERY_KEYS.TAGS, tag);
       }
@@ -351,6 +365,7 @@ export function useLibraryBrowser({
       origins,
       pathname,
       place,
+      review,
       router,
       search,
       searchParams,
@@ -382,6 +397,7 @@ export function useLibraryBrowser({
       characters: [],
       origins: [],
       place: null,
+      review: null,
       status: null,
       tags: [],
     });
@@ -397,6 +413,13 @@ export function useLibraryBrowser({
   const handleOriginsChange = useCallback(
     (nextOrigins: IngredientOrigin[]) => {
       pushAxes({ origins: Array.from(new Set(nextOrigins)) });
+    },
+    [pushAxes],
+  );
+
+  const handleReviewChange = useCallback(
+    (nextReview: LibraryReviewState | null) => {
+      pushAxes({ review: nextReview });
     },
     [pushAxes],
   );
@@ -532,6 +555,10 @@ export function useLibraryBrowser({
       next.characters = characters;
     }
 
+    if (review) {
+      next.review = review;
+    }
+
     if (tags.length > 0) {
       next.tags = tags;
 
@@ -564,6 +591,7 @@ export function useLibraryBrowser({
     isAllAssets,
     origins,
     place,
+    review,
     search,
     seededOrigins,
     shelf,
@@ -604,6 +632,7 @@ export function useLibraryBrowser({
     handleClearAllFilters,
     handleOriginsChange,
     handleRefresh,
+    handleReviewChange,
     handleSearchChange,
     handleSortChange,
     handlePlaceChange,
@@ -614,6 +643,7 @@ export function useLibraryBrowser({
     handleViewModeChange,
     isRefreshing,
     origins,
+    review,
     search,
     sort,
     tagMatch,

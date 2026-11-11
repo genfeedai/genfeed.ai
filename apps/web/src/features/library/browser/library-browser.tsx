@@ -63,6 +63,7 @@ export default function LibraryBrowser({
     handleOriginsChange,
     handlePlaceChange,
     handleRefresh,
+    handleReviewChange,
     handleSearchChange,
     handleSortChange,
     handleStatusChange,
@@ -72,6 +73,7 @@ export default function LibraryBrowser({
     handleViewModeChange,
     isRefreshing,
     origins,
+    review,
     search,
     sort,
     tagMatch,
@@ -161,6 +163,7 @@ export default function LibraryBrowser({
               onClearAllFilters={handleClearAllFilters}
               onOriginsChange={handleOriginsChange}
               onPlaceChange={handlePlaceChange}
+              onReviewChange={handleReviewChange}
               onSearch={handleSearchChange}
               onSortChange={handleSortChange}
               onStatusChange={handleStatusChange}
@@ -168,6 +171,7 @@ export default function LibraryBrowser({
               onTagsChange={handleTagsChange}
               origins={origins}
               place={place}
+              review={review}
               placeholder={
                 isAdminScope
                   ? 'Search all assets'
