@@ -71,6 +71,7 @@ describe('normalizeAgentAppHref', () => {
     ).toBe('/acme/launch/connectors/channels?platform=x');
     expect(
       normalizeAgentAppHref('/connectors/channels?platform=x', {
+        brandSlug: '',
         orgSlug: 'acme',
       }),
     ).toBe('/acme/~/settings/brands?platform=x');
