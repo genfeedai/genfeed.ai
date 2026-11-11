@@ -105,6 +105,12 @@
     "social": {
       "replies": "New replies to your posts"
     },
+    "collaboration": {
+      "mentioned": "You were mentioned",
+      "review_approved": "Review approved",
+      "review_changes_requested": "Changes requested",
+      "review_requested": "Asked to review"
+    },
     "review": {
       "requested": "Review needed"
     },
