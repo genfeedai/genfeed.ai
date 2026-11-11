@@ -1,7 +1,6 @@
 'use client';
 
 import { createAgentStreamController } from '@genfeedai/agent/hooks/agent-chat-stream.entry';
-import { restoreThreadFromSnapshot } from '@genfeedai/agent/hooks/agent-chat-stream.restore';
 import {
   bindAgentStreamTransport,
   createAgentStreamEntry,
@@ -19,6 +18,10 @@ import type {
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useCallback, useEffect, useRef } from 'react';
+import {
+  restoreActiveThread,
+  useAgentSharedThreadSync,
+} from './use-agent-shared-thread-sync';
 
 export type {
   SendStreamMessageOptions,
@@ -41,6 +44,7 @@ export function useAgentChatStream(
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   const isStreaming = useAgentChatStore((state) => state.stream.isStreaming);
   const runtime = getAgentStreamRuntime();
+  useAgentSharedThreadSync(options.apiService);
   const latestOptions = useRef(options);
   latestOptions.current = options;
   const controller = useCallback((entry: AgentStreamEntry) => {
@@ -91,32 +95,7 @@ export function useAgentChatStream(
         !state.stream.isStreaming &&
         !state.stream.pendingUiActions?.length
       ) {
-        void restoreThreadFromSnapshot(state.activeThreadId, {
-          apiService: latestOptions.current.apiService,
-          clearCompletionWatchdog: () => {},
-          clearPendingCompletionIfThread: () => {},
-          clearPendingInputRequest: state.clearPendingInputRequest,
-          markStreamLive: state.markStreamLive,
-          resetStreamState: state.resetStreamState,
-          setActiveRun: (runId, meta) =>
-            state.transitionRun(state.activeThreadId, {
-              runId,
-              startedAt: meta?.startedAt,
-              status: meta?.status,
-              type: 'begin',
-            }),
-          setError: state.setError,
-          setLatestProposedPlan: state.setLatestProposedPlan,
-          setMessages: state.setMessages,
-          setPendingInputRequest: state.setPendingInputRequest,
-          setRunStartedAt: (startedAt) =>
-            state.transitionRun(state.activeThreadId, {
-              startedAt,
-              type: 'started-at',
-            }),
-          setWorkEvents: state.setWorkEvents,
-          updateThreadSummary: state.updateThread,
-        }).catch(() => undefined);
+        restoreActiveThread(latestOptions.current.apiService);
       }
     }
   }, [connectionState, runtime]);
