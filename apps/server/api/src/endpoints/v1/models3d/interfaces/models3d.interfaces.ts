@@ -2,6 +2,7 @@ import type { Models3dQuality } from '@api/endpoints/v1/models3d/models3d.consta
 import type { Request } from 'express';
 
 interface Models3dRequestUser {
+  allowedBrandIds?: string[];
   id?: string;
   brandId?: string;
   isApiKey?: boolean;

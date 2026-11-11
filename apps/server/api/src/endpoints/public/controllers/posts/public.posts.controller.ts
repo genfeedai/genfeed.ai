@@ -18,6 +18,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   AssetScope,
   CredentialPlatform,
@@ -52,15 +53,52 @@ const PUBLIC_POST_INCLUDE = {
   ingredientLinks: orderedPostIngredientLinks({
     select: {
       category: true,
-      height: true,
       id: true,
       isDeleted: true,
+      // Frame size lives on the metadata row; `Ingredient` has no width or
+      // height column, so selecting them on it fails Prisma validation.
+      metadata: { select: { height: true, width: true } },
       s3Key: true,
       status: true,
-      width: true,
     },
   }),
 };
+
+interface PublicPostMedia {
+  metadata?: { height?: number; width?: number } | null;
+}
+
+/**
+ * Lifts the frame size from the media's metadata row onto the media itself,
+ * the shape the public post serializer reads. Media without a metadata row
+ * carries no dimensions.
+ */
+function withMediaDimensions<T extends PublicPostMedia>(media: T): T {
+  const { metadata, ...rest } = media;
+  return {
+    ...rest,
+    ...(metadata ? { height: metadata.height, width: metadata.width } : {}),
+  } as unknown as T;
+}
+
+function withPublicMediaDimensions<D extends object>(
+  data: AggregatePaginateResult<D>,
+): AggregatePaginateResult<D> {
+  return {
+    ...data,
+    docs: data.docs.map((post) => {
+      const { ingredients } = post as { ingredients?: unknown };
+      return Array.isArray(ingredients)
+        ? {
+            ...post,
+            ingredients: (ingredients as PublicPostMedia[]).map(
+              withMediaDimensions,
+            ),
+          }
+        : post;
+    }),
+  };
+}
 
 /** Native posts compared when pairing a profile's cross-posts. */
 const CROSS_POST_NATIVE_LIMIT = 200;
@@ -168,7 +206,11 @@ export class PublicPostsController {
     };
 
     const data = await this.postsService.findAll(aggregate, options);
-    return serializeCollection(request, PublicPostSerializer, data);
+    return serializeCollection(
+      request,
+      PublicPostSerializer,
+      withPublicMediaDimensions(data),
+    );
   }
 
   @Get('ingredients')

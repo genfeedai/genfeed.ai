@@ -134,6 +134,62 @@ describe('PublicPostsController', () => {
       expect(result).toEqual({ data: mockPosts.docs });
     });
 
+    it('reads frame size from the media metadata, not the Ingredient row', async () => {
+      postsService.findAll.mockResolvedValue({
+        docs: [],
+      } as unknown as AggregatePaginateResult<PostDocument>);
+
+      await controller.findPublicPosts(mockRequest, createBaseQuery());
+
+      const include = (
+        postsService.findAll.mock.calls[0][0] as {
+          include: {
+            ingredientLinks: {
+              include: { ingredient: { select: Record<string, unknown> } };
+            };
+          };
+        }
+      ).include;
+      const select = include.ingredientLinks.include.ingredient.select;
+      expect(select.metadata).toEqual({
+        select: { height: true, width: true },
+      });
+      expect(select).not.toHaveProperty('height');
+      expect(select).not.toHaveProperty('width');
+    });
+
+    it('returns media dimensions from metadata and none when it is missing', async () => {
+      postsService.findAll.mockResolvedValue({
+        docs: [
+          {
+            id: 'with-media',
+            ingredients: [
+              { id: 'a', metadata: { height: 720, width: 1280 } },
+              { id: 'b', metadata: null },
+            ],
+          },
+          { id: 'text-only' },
+        ],
+        page: 1,
+        totalDocs: 2,
+      } as unknown as AggregatePaginateResult<PostDocument>);
+
+      const result = await controller.findPublicPosts(
+        mockRequest,
+        createBaseQuery(),
+      );
+
+      expect(result).toEqual({
+        data: [
+          {
+            id: 'with-media',
+            ingredients: [{ height: 720, id: 'a', width: 1280 }, { id: 'b' }],
+          },
+          { id: 'text-only' },
+        ],
+      });
+    });
+
     it('lists a network copy of a Genfeed profile post only once', async () => {
       const query = createBaseQuery();
       const brandId = testId('brand');
