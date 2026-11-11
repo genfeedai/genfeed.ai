@@ -24,7 +24,7 @@
     "symbol": "apps/server/api/src/collections/agent-threads/services/agent-threads.service.ts"
   },
   {
-    "actual": 183,
+    "actual": 158,
     "file": "apps/server/api/src/collections/agent-transfers/services/agent-transfers.service.ts",
     "metric": "method-lines",
     "symbol": "AgentTransfersService.create"

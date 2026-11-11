@@ -237,24 +237,7 @@ export class AgentTransfersService {
         'Source and destination conversations must be different.',
       );
     }
-    // A hand-off crosses to a teammate's agent (#9940). Naming yourself is a
-    // plain transfer between your own conversations.
-    const destinationUserId =
-      input.destinationUserId && input.destinationUserId !== actor.userId
-        ? input.destinationUserId
-        : undefined;
-    if (destinationUserId) {
-      if (input.destinationThreadId) {
-        throw new BadRequestException(
-          'A hand-off creates its own conversation for the teammate; it cannot target an existing one.',
-        );
-      }
-      if (input.deliveryMode !== AgentTransferDeliveryMode.SEND_AND_RUN) {
-        throw new BadRequestException(
-          'A hand-off to a teammate runs their agent, so it must be SEND_AND_RUN.',
-        );
-      }
-    }
+    const destinationUserId = this.resolveHandoffUserId(input, actor);
     const hash = requestHash(input);
     const existing = await this.prisma.agentTransfer.findFirst({
       where: scopedWhere(actor.organizationId, {
@@ -263,28 +246,7 @@ export class AgentTransfersService {
       }),
     });
     if (existing) {
-      if (existing.requestHash !== hash) {
-        throw new ConflictException(
-          'idempotencyKey was already used for another transfer.',
-        );
-      }
-      // A hand-off's run is started by the teammate who accepts it, never by
-      // a repeat of the sender's request.
-      if (
-        !existing.destinationUserId &&
-        input.deliveryMode === AgentTransferDeliveryMode.SEND_AND_RUN &&
-        input.explicitUserIntent === true &&
-        [AgentTransferStatus.PENDING, AgentTransferStatus.FAILED].includes(
-          existing.status as AgentTransferStatus,
-        )
-      ) {
-        const destination = await this.loadAuthorizedThread(
-          actor,
-          existing.destinationThreadId,
-        );
-        await this.startDestinationRun(existing.id, destination, input, actor);
-      }
-      return this.findOne(actor, existing.id);
+      return this.replayTransfer(existing, hash, input, actor);
     }
 
     const source = await this.loadAuthorizedThread(actor, input.sourceThreadId);
@@ -378,47 +340,18 @@ export class AgentTransfersService {
           },
         });
 
-        if (sourceMessageId) {
-          await tx.agentMessage.create({
-            data: {
-              brandId: source.brandId,
-              content: input.content.trim(),
-              id: sourceMessageId,
-              isDeleted: false,
-              metadata: {
-                agentTransfer: { direction: 'outbound', transferId },
-              },
-              organizationId: actor.organizationId,
-              role: AgentMessageRole.SYSTEM,
-              threadId: source.id,
-              userId: actor.userId,
-            },
-          });
-        }
-
-        if (destinationMessageId && !depthExceeded) {
-          await tx.agentMessage.create({
-            data: {
-              artifactReferences: input.artifactReferences ?? [],
-              artifactVersionPinIds: input.artifactVersionPinIds ?? [],
-              brandId: destination.brandId,
-              content: input.content.trim(),
-              id: destinationMessageId,
-              isDeleted: false,
-              metadata: {
-                agentTransfer: { direction: 'inbound', transferId },
-              },
-              organizationId: actor.organizationId,
-              // A hand-off's request is a note in the teammate's conversation,
-              // not a message they wrote.
-              role: destinationUserId
-                ? AgentMessageRole.SYSTEM
-                : AgentMessageRole.USER,
-              threadId: destination.id,
-              userId: destinationUserId ?? actor.userId,
-            },
-          });
-        }
+        await this.createTransferMessages(tx, {
+          depthExceeded,
+          destination,
+          destinationMessageId,
+          destinationUserId,
+          input,
+          source,
+          sourceMessageId,
+          transferId,
+          userId: actor.userId,
+          organizationId: actor.organizationId,
+        });
         return created;
       })
       .catch(async (error: unknown) => {
@@ -592,6 +525,127 @@ export class AgentTransfersService {
       });
     });
     return this.findOne(actor, id);
+  }
+
+  /**
+   * The teammate a hand-off goes to (#9940), or undefined for a plain transfer
+   * between the sender's own conversations. A hand-off creates its own
+   * conversation for the teammate and runs their agent, so it takes no existing
+   * destination and must be SEND_AND_RUN.
+   */
+  private resolveHandoffUserId(
+    input: CreateAgentTransferDto,
+    actor: TransferActor,
+  ): string | undefined {
+    if (!input.destinationUserId || input.destinationUserId === actor.userId) {
+      return undefined;
+    }
+    if (input.destinationThreadId) {
+      throw new BadRequestException(
+        'A hand-off creates its own conversation for the teammate; it cannot target an existing one.',
+      );
+    }
+    if (input.deliveryMode !== AgentTransferDeliveryMode.SEND_AND_RUN) {
+      throw new BadRequestException(
+        'A hand-off to a teammate runs their agent, so it must be SEND_AND_RUN.',
+      );
+    }
+    return input.destinationUserId;
+  }
+
+  /** Answers a repeat of a request that already created a transfer. */
+  private async replayTransfer(
+    existing: {
+      destinationThreadId: string;
+      destinationUserId: string | null;
+      id: string;
+      requestHash: string;
+      status: string;
+    },
+    hash: string,
+    input: CreateAgentTransferDto,
+    actor: TransferActor,
+  ) {
+    if (existing.requestHash !== hash) {
+      throw new ConflictException(
+        'idempotencyKey was already used for another transfer.',
+      );
+    }
+    // A hand-off's run is started by the teammate who accepts it, never by a
+    // repeat of the sender's request.
+    if (
+      !existing.destinationUserId &&
+      input.deliveryMode === AgentTransferDeliveryMode.SEND_AND_RUN &&
+      input.explicitUserIntent === true &&
+      [AgentTransferStatus.PENDING, AgentTransferStatus.FAILED].includes(
+        existing.status as AgentTransferStatus,
+      )
+    ) {
+      const destination = await this.loadAuthorizedThread(
+        actor,
+        existing.destinationThreadId,
+      );
+      await this.startDestinationRun(existing.id, destination, input, actor);
+    }
+    return this.findOne(actor, existing.id);
+  }
+
+  /**
+   * The notes a transfer leaves in the two conversations: the sender's record,
+   * and the request in the destination (a message from the sender, or for a
+   * hand-off a note in the teammate's conversation, not one they wrote).
+   */
+  private async createTransferMessages(
+    tx: Prisma.TransactionClient,
+    params: {
+      depthExceeded: boolean;
+      destination: AuthorizedThread;
+      destinationMessageId: string | null;
+      destinationUserId?: string;
+      input: CreateAgentTransferDto;
+      organizationId: string;
+      source: AuthorizedThread;
+      sourceMessageId: string | null;
+      transferId: string;
+      userId: string;
+    },
+  ) {
+    const { destination, destinationUserId, input, source, transferId } =
+      params;
+    if (params.sourceMessageId) {
+      await tx.agentMessage.create({
+        data: {
+          brandId: source.brandId,
+          content: input.content.trim(),
+          id: params.sourceMessageId,
+          isDeleted: false,
+          metadata: { agentTransfer: { direction: 'outbound', transferId } },
+          organizationId: params.organizationId,
+          role: AgentMessageRole.SYSTEM,
+          threadId: source.id,
+          userId: params.userId,
+        },
+      });
+    }
+    if (params.destinationMessageId && !params.depthExceeded) {
+      await tx.agentMessage.create({
+        data: {
+          artifactReferences: input.artifactReferences ?? [],
+          artifactVersionPinIds: input.artifactVersionPinIds ?? [],
+          brandId: destination.brandId,
+          content: input.content.trim(),
+          id: params.destinationMessageId,
+          isDeleted: false,
+          metadata: { agentTransfer: { direction: 'inbound', transferId } },
+          organizationId: params.organizationId,
+          role: destinationUserId
+            ? AgentMessageRole.SYSTEM
+            : AgentMessageRole.USER,
+          threadId: destination.id,
+          userId: destinationUserId ?? params.userId,
+        },
+      });
+    }
   }
 
   private async startDestinationRun(
