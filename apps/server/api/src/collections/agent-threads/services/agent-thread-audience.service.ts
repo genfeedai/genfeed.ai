@@ -52,6 +52,8 @@ const CHECK_CONCURRENCY = 8;
 export class AgentThreadAudienceService {
   private readonly constructorName = String(this.constructor.name);
   private readonly cache = new Map<string, CachedAudience>();
+  /** Bumped when sharing changes, so a resolution that started before it is not trusted. */
+  private sharingEpoch = 0;
   private readonly inFlight = new Map<
     string,
     Promise<AgentThreadAudience | null>
@@ -81,13 +83,19 @@ export class AgentThreadAudienceService {
    * Resolves the audience now and tells every member who dropped out of it,
    * compared with `baseline` or, without one, with what this process last
    * resolved. A caller that changes sharing passes the audience it read before
-   * the change, since another process may be the one holding the stream. Never
-   * throws.
+   * the change, since another process may be the one holding the stream. Such a
+   * call also drops what is cached at once: until the new audience is known,
+   * a caller resolves it afresh instead of getting the one from before the
+   * change. Never throws.
    */
   refresh(
     threadId: string,
     baseline?: AgentThreadAudience | null,
   ): Promise<AgentThreadAudience | null> {
+    if (baseline !== undefined) {
+      this.cache.delete(threadId);
+      this.sharingEpoch += 1;
+    }
     if (baseline === undefined) {
       const pending = this.inFlight.get(threadId);
       if (pending) {
@@ -113,7 +121,7 @@ export class AgentThreadAudienceService {
       baseline === undefined ? this.cache.get(threadId)?.audience : baseline;
     let audience: AgentThreadAudience | null;
     try {
-      audience = await this.compute(threadId);
+      audience = await this.computeCurrent(threadId);
     } catch (error: unknown) {
       this.loggerService.warn(
         `${this.constructorName} failed to resolve the thread audience`,
@@ -141,6 +149,25 @@ export class AgentThreadAudienceService {
         threadId,
         previous.recipientUserIds.filter((userId) => !stillThere.has(userId)),
       );
+    }
+    return audience;
+  }
+
+  /**
+   * Resolves the audience, again when sharing changed while it was being read:
+   * a read that began before a removal must not put the removed member back in
+   * the cache.
+   */
+  private async computeCurrent(
+    threadId: string,
+  ): Promise<AgentThreadAudience | null> {
+    let audience: AgentThreadAudience | null = null;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const epoch = this.sharingEpoch;
+      audience = await this.compute(threadId);
+      if (epoch === this.sharingEpoch) {
+        break;
+      }
     }
     return audience;
   }

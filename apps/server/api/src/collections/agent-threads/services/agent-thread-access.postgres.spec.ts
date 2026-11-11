@@ -1147,6 +1147,55 @@ describe.skipIf(!connectionString)(
         await expect(recipients(thread.id)).resolves.toContain(teammate);
       });
 
+      it('does not serve the audience from before a removal while the new one is read', async () => {
+        const thread = await createThread(owner, { brandId: brandA });
+        const grant = await share(
+          thread.id,
+          AgentThreadShareScope.MEMBER,
+          AgentThreadShareLevel.VIEW,
+          { targetUserId: teammate },
+        );
+        const live = audience();
+        const before = await live.resolve(thread.id);
+        expect(before?.recipientUserIds).toContain(teammate);
+        await database().agentThreadShare.updateMany({
+          data: { isDeleted: true },
+          where: { id: grant.id },
+        });
+
+        // Hold the recomputation open the way a slow database would.
+        let release: () => void = () => {};
+        const gate = new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        const findMany = database().agentThreadShare.findMany.bind(
+          database().agentThreadShare,
+        );
+        vi.spyOn(
+          database().agentThreadShare,
+          'findMany',
+        ).mockImplementationOnce((async (
+          args: Parameters<typeof findMany>[0],
+        ) => {
+          await gate;
+          return findMany(args);
+        }) as never);
+        const refreshing = live.refresh(thread.id, before);
+        let isSettled = false;
+        const resolving = live.resolve(thread.id).then((resolved) => {
+          isSettled = true;
+          return resolved;
+        });
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        expect(isSettled).toBe(false);
+        release();
+        await refreshing;
+        await expect(resolving).resolves.toMatchObject({
+          recipientUserIds: [owner],
+        });
+      });
+
       it('drops a member who loses brand access and tells them', async () => {
         const thread = await createThread(owner, { brandId: brandA });
         await share(
