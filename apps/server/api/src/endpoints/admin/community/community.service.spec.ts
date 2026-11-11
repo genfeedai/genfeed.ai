@@ -1,4 +1,8 @@
 import { AdminCommunityService } from '@api/endpoints/admin/community/community.service';
+import {
+  getTenantContext,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { describe, expect, it } from 'vitest';
 
 interface Row {
@@ -63,13 +67,30 @@ function table<T extends Row>(rows: T[]) {
         );
       return hits.slice(skip, take === undefined ? undefined : skip + take);
     },
-    updateMany: async ({ data, where }: { data: Where; where: Where }) => {
-      const hits = rows.filter((row) => matches(row, where));
-      for (const row of hits) {
-        Object.assign(row, data);
-      }
-      return { count: hits.length };
-    },
+    // Lazy like a Prisma query: it runs when awaited, under whatever tenant
+    // is active then, and the tenant guard refuses a mismatch.
+    updateMany: ({ data, where }: { data: Where; where: Where }) => ({
+      // biome-ignore lint/suspicious/noThenProperty: a Prisma query is a lazy thenable
+      then<R>(
+        resolve: (value: { count: number }) => R,
+        reject: (reason: unknown) => R,
+      ) {
+        try {
+          if (getTenantContext()?.organizationId !== where.organizationId) {
+            throw new Error(
+              `Tenant isolation: updateMany used organizationId ${String(where.organizationId)} but the request tenant is ${getTenantContext()?.organizationId}.`,
+            );
+          }
+          const hits = rows.filter((row) => matches(row, where));
+          for (const row of hits) {
+            Object.assign(row, data);
+          }
+          return resolve({ count: hits.length });
+        } catch (error) {
+          return reject(error);
+        }
+      },
+    }),
   };
 }
 
@@ -235,6 +256,28 @@ describe('AdminCommunityService', () => {
     await expect(service.unpublishMedia('org-1', 'video-1')).rejects.toThrow();
     expect(row).toMatchObject({ isHighlighted: false, ...change });
     expect(invalidated).toEqual([]);
+  });
+
+  it("takes another organization's creator off community when an admin from a different organization asks", async () => {
+    const row = creator({ organizationId: 'org-2' });
+    const { service } = createWorld({ brands: [row] });
+
+    await runWithTenantContext({ organizationId: 'admin-org' }, () =>
+      service.unpublishCreator('org-2', 'brand-1'),
+    );
+
+    expect(row.scope).toBe('ORGANIZATION');
+  });
+
+  it("features another organization's video when an admin from a different organization asks", async () => {
+    const row = video({ organizationId: 'org-2' });
+    const { service } = createWorld({ media: [row] });
+
+    await runWithTenantContext({ organizationId: 'admin-org' }, () =>
+      service.setMediaFeatured('org-2', 'video-1', true),
+    );
+
+    expect(row.isHighlighted).toBe(true);
   });
 
   it('features a public creator, then takes the profile off genfeed.ai', async () => {
