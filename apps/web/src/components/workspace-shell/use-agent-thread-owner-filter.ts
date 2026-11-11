@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 
 /** The query param that carries the thread list's owner filter. */
-export const AGENT_THREAD_OWNER_PARAM = 'owner';
+const AGENT_THREAD_OWNER_PARAM = 'owner';
 
 function parseOwnerFilter(value: string | null): AgentThreadOwnerFilter {
   return (
