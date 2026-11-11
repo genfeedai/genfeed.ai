@@ -1,3 +1,4 @@
+import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
@@ -81,6 +82,7 @@ export class AgentStreamPublisherService {
     @Optional()
     private readonly configService?: ConfigService,
     @Optional() private readonly mediaIssuer?: AuthorizedMediaUrlService,
+    @Optional() private readonly threadAccess?: AgentThreadAccessService,
   ) {}
 
   /** Authorize typed media before both durable events and live transport. */
@@ -274,7 +276,16 @@ export class AgentStreamPublisherService {
       },
       { id: true },
     );
-    if (!thread) {
+    if (
+      !thread &&
+      // A member sending a turn in a thread shared with them signals as
+      // themselves (#9937); their share is read live.
+      !(await this.threadAccess?.hasAccess(
+        { organizationId: data.organizationId, userId: data.userId },
+        data.threadId,
+        'collaborate',
+      ))
+    ) {
       throw new NotFoundException(`Thread "${data.threadId}" not found`);
     }
   }

@@ -1,4 +1,5 @@
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
+import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { readThreadWorkflowSnapshot } from '@api/collections/agent-threads/utils/reconcile-thread-workflow-snapshot';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -195,6 +196,8 @@ export class AgentThreadEngineService {
     private readonly threadContextCompressorService?: ThreadContextCompressorService,
     @Optional()
     private readonly threadStatusPublisher?: AgentThreadStatusPublisherService,
+    @Optional()
+    private readonly threadAccess?: AgentThreadAccessService,
   ) {}
 
   private optionalString(value: string | null | undefined): string | undefined {
@@ -209,7 +212,7 @@ export class AgentThreadEngineService {
         'userId is required to append thread events',
       );
     }
-    const thread = await this.ensureThreadAccess(
+    const thread = await this.ensureThreadWriteAccess(
       params.threadId,
       params.organizationId,
       params.userId,
@@ -658,6 +661,40 @@ export class AgentThreadEngineService {
     });
 
     return String(memory.id);
+  }
+
+  /**
+   * Recording an event is allowed to the thread's owner, and to a member whose
+   * live share lets them collaborate: a turn sent in a shared thread records
+   * its events as the member who sent it (#9937). The share is read now, so a
+   * revoked share stops the next event.
+   */
+  private async ensureThreadWriteAccess(
+    threadId: string,
+    organizationId: string,
+    userId: string,
+  ): Promise<{
+    id: string;
+    source?: string;
+    status?: string;
+    title?: string;
+  }> {
+    try {
+      return await this.ensureThreadAccess(threadId, organizationId, userId);
+    } catch (error: unknown) {
+      if (
+        !(error instanceof NotFoundException) ||
+        !this.threadAccess ||
+        !(await this.threadAccess.hasAccess(
+          { organizationId, userId },
+          threadId,
+          'collaborate',
+        ))
+      ) {
+        throw error;
+      }
+      return this.ensureThreadAccess(threadId, organizationId);
+    }
   }
 
   private async ensureThreadAccess(

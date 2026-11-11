@@ -834,6 +834,8 @@ test.describe('Agent master thread and Threads panel', () => {
     await page.getByRole('menuitemradio', { name: 'Shared with me' }).click();
     await expect(sharedRow).toBeVisible();
     await expect(ownRow).toHaveCount(0);
+    // The filter lives in the URL, so a reload keeps it.
+    await expect(page).toHaveURL(/[?&]owner=shared(&|$)/);
     await page.keyboard.press('Escape');
 
     // A thread shared as view-only: the owner is named on messages and there

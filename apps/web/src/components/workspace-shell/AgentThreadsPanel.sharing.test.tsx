@@ -48,6 +48,40 @@ vi.mock('@/components/workspace-shell/use-agent-thread-members', () => ({
   }),
 }));
 
+const urlStore = vi.hoisted(() => {
+  const listeners = new Set<() => void>();
+  const state = { search: '' };
+  return {
+    get: () => state.search,
+    set: (search: string) => {
+      state.search = search;
+      for (const listener of listeners) {
+        listener();
+      }
+    },
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+});
+
+// The URL is the owner filter's state, so the mock keeps one the panel can
+// write to and re-read.
+vi.mock('next/navigation', async () => {
+  const { useSyncExternalStore } = await import('react');
+  return {
+    usePathname: () => '/acme/~/agent',
+    useRouter: () => ({
+      replace: (url: string) => urlStore.set(url.split('?')[1] ?? ''),
+    }),
+    useSearchParams: () =>
+      new URLSearchParams(
+        useSyncExternalStore(urlStore.subscribe, urlStore.get, urlStore.get),
+      ),
+  };
+});
+
 vi.mock('@genfeedai/agent/components/AgentChatInput', async () => {
   const { Textarea } = await import('@ui/primitives/textarea');
   return {
@@ -190,6 +224,7 @@ describe('AgentThreadsPanel sharing', () => {
 
   beforeEach(() => {
     liveShares = [];
+    urlStore.set('');
   });
 
   it('names the owner of a thread shared with the viewer in its row', () => {
@@ -208,6 +243,7 @@ describe('AgentThreadsPanel sharing', () => {
     renderPanel();
 
     await pickOwner(user, 'Shared with me');
+    expect(urlStore.get()).toBe('owner=shared');
     expect(
       await screen.findByRole('link', { name: /Weekly performance recap/ }),
     ).toBeVisible();
@@ -217,12 +253,26 @@ describe('AgentThreadsPanel sharing', () => {
     expect(screen.queryByRole('link', { name: /Serum launch/ })).toBeNull();
 
     await pickOwner(user, 'Mine');
+    expect(urlStore.get()).toBe('owner=mine');
     expect(
       await screen.findByRole('link', { name: /Serum launch/ }),
     ).toBeVisible();
     expect(
       screen.queryByRole('link', { name: /Weekly performance/ }),
     ).toBeNull();
+
+    await pickOwner(user, 'All');
+    expect(urlStore.get()).toBe('');
+  });
+
+  it('opens already narrowed when the URL carries the owner filter', () => {
+    urlStore.set('owner=shared');
+    renderPanel();
+
+    expect(
+      screen.getByRole('link', { name: /Weekly performance recap/ }),
+    ).toBeVisible();
+    expect(screen.queryByRole('link', { name: /Serum launch/ })).toBeNull();
   });
 
   it('opens a view-only thread with the author named and no prompt bar', async () => {

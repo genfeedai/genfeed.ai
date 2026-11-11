@@ -116,6 +116,11 @@ export class AgentToolMutationAuthorizationService {
    * mode (storage unavailable, corrupt value) fails safe to Manual rather
    * than returning `undefined` — only "no thread" skips the matrix, never "a
    * thread whose mode we failed to read."
+   *
+   * The lookup is the acting member's own thread. A member sending a turn in a
+   * thread shared with them (#9937) does not own it, so their tools run in
+   * Manual: the owner's Auto choice never approves what another member's turn
+   * does.
    */
   async resolveAgentModeForContext(
     context: ToolExecutionContext,
