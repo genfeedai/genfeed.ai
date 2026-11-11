@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import {
+  TREND_PLATFORMS_WITHOUT_NATIVE_FEED,
   TREND_REFRESH_DATASETS,
   TREND_REFRESH_WINDOW_MS,
   TrendRefreshHealthService,
@@ -102,6 +103,7 @@ export class TrendIngestionHealthService {
         if (
           !platform ||
           !scope.organizationId ||
+          TREND_PLATFORMS_WITHOUT_NATIVE_FEED.includes(platform) ||
           !TREND_REFRESH_DATASETS.some(
             (dataset) => dataset.platform === platform,
           )

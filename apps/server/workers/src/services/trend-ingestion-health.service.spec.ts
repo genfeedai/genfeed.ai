@@ -363,6 +363,50 @@ describe('TrendIngestionHealthService', () => {
     ).toHaveLength(1);
   });
 
+  it('never raises a per-tenant incident for a platform with no native trend feed', async () => {
+    const { service, health, prisma, events, digests } = setup();
+    prisma.credential.findMany.mockResolvedValue([
+      { createdAt: enrollment, organizationId: 'org-a', platform: 'TIKTOK' },
+    ]);
+    // Global tiktok trends are healthy (Apify fallback); the tenant scope can
+    // only ever record native_unavailable.
+    const globalHealthy = {
+      completedAt: '2026-10-01T23:45:00.000Z',
+      dataset: 'trends',
+      lastAttemptAt: '2026-10-01T23:45:00.000Z',
+      lastSuccessfulRefreshAt: '2026-10-01T23:45:00.000Z',
+      outcome: 'fallback_available',
+      platform: 'tiktok',
+      reason: 'native_unavailable',
+      scope: 'global',
+    };
+    health.getHealth.mockImplementation(
+      (input: { organizationId?: string } = {}) =>
+        Promise.resolve(
+          input.organizationId
+            ? [
+                {
+                  ...globalHealthy,
+                  lastSuccessfulRefreshAt: null,
+                  outcome: 'native_empty',
+                  scope: 'scoped',
+                },
+              ]
+            : [globalHealthy],
+        ),
+    );
+    await service.checkMissedWindows(new Date('2026-10-02T00:15:00.000Z'));
+    await service.checkMissedWindows(new Date('2026-10-03T00:15:00.000Z'));
+    expect(
+      [...events.keys()].filter((key) => key.includes('tiktok/trends/scope-')),
+    ).toEqual([]);
+    expect(JSON.stringify(digests())).not.toContain('tenant scope');
+    expect(health.getHealth).not.toHaveBeenCalledWith({
+      organizationId: 'org-a',
+      platform: 'tiktok',
+    });
+  });
+
   it('bounds concurrent per-scope health lookups', async () => {
     const { service, health, prisma } = setup();
     prisma.credential.findMany.mockResolvedValue(

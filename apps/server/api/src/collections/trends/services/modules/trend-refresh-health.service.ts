@@ -29,6 +29,17 @@ export const TREND_REFRESH_DATASETS = [
   { dataset: 'sounds' as const, platform: 'tiktok' },
 ];
 
+/**
+ * Platforms whose native provider can never return trends, so a tenant-scoped
+ * refresh (which forbids the Apify fallback) always records `native_unavailable`
+ * and can never count as a success. Per-tenant health is meaningless for them;
+ * only the platform-wide refresh, which may use the fallback, is monitored.
+ * TikTok: the Display API lists the account's own uploads, not a trend feed.
+ */
+export const TREND_PLATFORMS_WITHOUT_NATIVE_FEED: readonly string[] = [
+  'tiktok',
+];
+
 function sourceId(
   health: Pick<TrendRefreshHealth, 'platform' | 'dataset'>,
 ): string {
