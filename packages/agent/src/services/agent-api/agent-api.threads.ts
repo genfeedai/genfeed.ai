@@ -4,8 +4,10 @@ import type {
   AgentChatResponse,
   AgentChatStreamResponse,
   AgentThread,
+  AgentThreadShare,
   AgentThreadSnapshot,
   AgentUiActionAckResponse,
+  CreateAgentThreadSharePayload,
   CreateThreadPayload,
   SendMessagePayload,
   UpdateAgentThreadContextPayload,
@@ -540,4 +542,46 @@ export async function getMessagesPage(
     messages: hydrateTransferCards(page.docs, transfers, threadId),
     nextCursor: page.nextCursor,
   };
+}
+
+/** Who a thread is shared with. Only its owner or an organization admin reads this. */
+export async function getThreadShares(
+  api: AgentBaseApiService,
+  threadId: string,
+  signal?: AbortSignal,
+): Promise<AgentThreadShare[]> {
+  return api.fetchCollection<AgentThreadShare>(
+    `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/shares`,
+    { signal },
+    'Failed to fetch thread shares',
+    'Failed to deserialize thread shares',
+  );
+}
+
+/** Shares a thread with one target, or changes the level of a live share. */
+export async function createThreadShare(
+  api: AgentBaseApiService,
+  threadId: string,
+  payload: CreateAgentThreadSharePayload,
+  signal?: AbortSignal,
+): Promise<AgentThreadShare> {
+  return api.fetchResource<AgentThreadShare>(
+    `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/shares`,
+    { body: JSON.stringify(payload), method: 'POST', signal },
+    'Failed to share thread',
+    'Failed to deserialize thread share',
+  );
+}
+
+export async function deleteThreadShare(
+  api: AgentBaseApiService,
+  threadId: string,
+  shareId: string,
+  signal?: AbortSignal,
+): Promise<void> {
+  await api.fetchJson<unknown>(
+    `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/shares/${shareId}`,
+    { method: 'DELETE', signal },
+    'Failed to stop sharing thread',
+  );
 }

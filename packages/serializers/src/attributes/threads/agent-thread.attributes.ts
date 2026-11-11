@@ -19,6 +19,7 @@ export const agentThreadAttributes = createEntityAttributes([
   'externalRuntime',
   'organization',
   'user',
+  'userId',
   'isPinned',
   'kind',
   'parentThreadId',

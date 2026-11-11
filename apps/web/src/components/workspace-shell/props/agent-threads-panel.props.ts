@@ -3,8 +3,23 @@ import type { AgentApiService, AgentThread } from '@genfeedai/agent';
 /** The part of the agent API the Threads panel reads and writes. */
 export type AgentThreadsPanelApi = Pick<
   AgentApiService,
-  'chatStream' | 'getMessages' | 'respondToUiAction'
+  | 'chatStream'
+  | 'createThreadShare'
+  | 'deleteThreadShare'
+  | 'getMessages'
+  | 'getThreadShares'
+  | 'respondToUiAction'
 >;
+
+/** An active organization member, as the share dialog and author labels need. */
+export interface AgentThreadMember {
+  avatarUrl: string | null;
+  /** The brands the viewer can see this member on. */
+  brandIds: string[];
+  name: string;
+  roleLabel: string | null;
+  userId: string;
+}
 
 export interface AgentThreadsPanelProps {
   apiService: AgentThreadsPanelApi;
@@ -41,6 +56,9 @@ export interface AgentThreadsPanelProps {
 
 export interface AgentThreadLightViewProps {
   apiService: AgentThreadsPanelApi;
+  /** Organization members by user id: names the owner and each author. */
+  membersById?: ReadonlyMap<string, AgentThreadMember>;
+  members?: readonly AgentThreadMember[];
   isPending?: boolean;
   /** Marked done: the thread cannot be steered until it is reopened. */
   isResolved?: boolean;

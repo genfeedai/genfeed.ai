@@ -50,6 +50,16 @@ vi.mock('@genfeedai/agent/components/AgentChatInput', async () => {
   };
 });
 
+// The roster needs a signed-in session and a query client; its own spec covers
+// it. These threads are all the viewer's own, so no one needs naming.
+vi.mock('@/components/workspace-shell/use-agent-thread-members', () => ({
+  useAgentThreadMembers: () => ({
+    isLoading: false,
+    members: [],
+    membersById: new Map(),
+  }),
+}));
+
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
     '../../../tests/next-intl.stub'
@@ -121,7 +131,14 @@ const respondToUiAction = vi.fn(async () => ({
   status: 'queued' as const,
   threadId: 'needs',
 }));
-const apiService = { chatStream, getMessages, respondToUiAction };
+const apiService = {
+  chatStream,
+  createThreadShare: vi.fn(),
+  deleteThreadShare: vi.fn(),
+  getMessages,
+  getThreadShares: vi.fn(async () => []),
+  respondToUiAction,
+};
 const getThreadHref = (threadId: string) => `/acme/~/agent/${threadId}`;
 
 const plan: AgentProposedPlan = {
