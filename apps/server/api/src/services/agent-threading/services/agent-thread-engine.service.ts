@@ -468,7 +468,9 @@ export class AgentThreadEngineService {
   async resolveInputRequest(
     params: ResolveAgentInputRequestParams,
   ): Promise<AgentInputRequestDocument> {
-    await this.ensureThreadAccess(
+    // A member with a live collaborate share may answer (#9964); the answer
+    // and its event are recorded as them.
+    await this.ensureThreadWriteAccess(
       params.threadId,
       params.organizationId,
       params.userId,
@@ -512,6 +514,7 @@ export class AgentThreadEngineService {
               answer,
               ...(optionIds ? { optionIds } : {}),
               resolvedAt: new Date().toISOString(),
+              resolvedByUserId: params.userId,
               status: 'resolved',
             }
           : item,

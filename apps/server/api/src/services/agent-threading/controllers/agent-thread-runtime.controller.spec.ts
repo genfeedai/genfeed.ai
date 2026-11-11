@@ -10,7 +10,7 @@ import {
   GenerationEntryChannel,
 } from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {
@@ -37,6 +37,7 @@ describe('Threading AgentThreadRuntimeController', () => {
     list: vi.fn(),
   };
   const resolveInputRequest = vi.fn();
+  const prepareForTurn = vi.fn();
   let controller: AgentThreadRuntimeController;
   let usersService: { findOne: ReturnType<typeof vi.fn> };
   let agentOrchestratorService: {
@@ -49,6 +50,17 @@ describe('Threading AgentThreadRuntimeController', () => {
     resolveInputRequest.mockResolvedValue({
       requestId: 'req-1',
       status: 'resolved',
+    });
+    prepareForTurn.mockResolvedValue({
+      existingScope: {
+        contextVersion: 1,
+        isLegacyFallback: false,
+        isVersionExplicit: true,
+        organizationId,
+        source: 'explicit',
+        threadId,
+        userId,
+      },
     });
     usersService = {
       findOne: vi.fn().mockResolvedValue({ id: userId }),
@@ -73,17 +85,7 @@ describe('Threading AgentThreadRuntimeController', () => {
       } as never as AgentThreadEngineService,
       {
         assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
-        prepareForTurn: vi.fn().mockResolvedValue({
-          existingScope: {
-            contextVersion: 1,
-            isLegacyFallback: false,
-            isVersionExplicit: true,
-            organizationId,
-            source: 'explicit',
-            threadId,
-            userId,
-          },
-        }),
+        prepareForTurn,
       } as never,
       {} as never,
       {
@@ -325,6 +327,89 @@ describe('Threading AgentThreadRuntimeController', () => {
         requestId: 'req-1',
       }),
     );
+  });
+
+  describe('answering in a thread shared with the member (#9964)', () => {
+    const ownerUserId = 'user_owner';
+    const sharedScope = {
+      contextVersion: 1,
+      isLegacyFallback: false,
+      isVersionExplicit: true,
+      organizationId,
+      source: 'explicit',
+      threadId,
+      threadOwnerUserId: ownerUserId,
+      userId,
+    };
+
+    it('resolves the question and continues the turn as the answering member', async () => {
+      prepareForTurn.mockResolvedValue({ existingScope: sharedScope });
+      agentOrchestratorService.acceptChatStream.mockResolvedValue({
+        executionId: 'run-member',
+        queuedAt: '2026-11-11T14:00:00.000Z',
+        status: 'queued',
+        threadId,
+      });
+
+      const response = await controller.respondToInputRequest(
+        threadId,
+        'req-1',
+        { answer: 'Use hybrid' },
+        mockUser,
+      );
+
+      expect(prepareForTurn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isSharedCollaborationAllowed: true,
+          threadId,
+          userId,
+        }),
+      );
+      expect(resolveInputRequest).toHaveBeenCalledWith(
+        expect.objectContaining({ requestId: 'req-1', userId }),
+      );
+      expect(agentOrchestratorService.acceptChatStream).toHaveBeenCalledWith(
+        expect.objectContaining({ content: 'Use hybrid' }),
+        expect.objectContaining({ organizationId, userId }),
+      );
+      expect(response).toMatchObject({
+        executionId: 'run-member',
+        requestId: 'req-1',
+        status: 'resolved',
+      });
+    });
+
+    it('leaves a recurring-task question to the thread owner', async () => {
+      prepareForTurn.mockResolvedValue({ existingScope: sharedScope });
+
+      await expect(
+        controller.respondToInputRequest(
+          threadId,
+          'recurring-workflow:draft-1',
+          { answer: 'Weekly' },
+          mockUser,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      expect(resolveInputRequest).not.toHaveBeenCalled();
+      expect(agentOrchestratorService.acceptChatStream).not.toHaveBeenCalled();
+    });
+
+    it('resolves nothing for a member whose share only lets them view', async () => {
+      prepareForTurn.mockRejectedValue(
+        new ForbiddenException('This thread is shared with you to view only.'),
+      );
+
+      await expect(
+        controller.respondToInputRequest(
+          threadId,
+          'req-1',
+          { answer: 'Use hybrid' },
+          mockUser,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      expect(resolveInputRequest).not.toHaveBeenCalled();
+      expect(agentOrchestratorService.acceptChatStream).not.toHaveBeenCalled();
+    });
   });
 
   it('routes thread UI actions with resolved tenant context', async () => {
