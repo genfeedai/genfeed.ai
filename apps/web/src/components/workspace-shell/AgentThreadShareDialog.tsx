@@ -48,9 +48,7 @@ interface AgentThreadShareDialogProps {
 }
 
 /** Which radio a thread's live shares read as. A brand or org share wins. */
-function resolveShareChoice(
-  shares: readonly AgentThreadShare[],
-): ShareChoice {
+function resolveShareChoice(shares: readonly AgentThreadShare[]): ShareChoice {
   if (shares.some((s) => s.scope === AgentThreadShareScope.ORGANIZATION)) {
     return 'organization';
   }
