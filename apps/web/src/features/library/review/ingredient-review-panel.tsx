@@ -261,7 +261,7 @@ export default function IngredientReviewPanel({
                 threadRequests.some((item) => item.id === request.id) ? (
                   <Button
                     ariaLabel={translate('showThread', { name })}
-                    isPressed={activeThreadRequest?.id === request.id}
+                    aria-pressed={activeThreadRequest?.id === request.id}
                     onClick={() => setActiveThreadRequestId(request.id)}
                     size={ButtonSize.ICON}
                     variant={ButtonVariant.GHOST}
