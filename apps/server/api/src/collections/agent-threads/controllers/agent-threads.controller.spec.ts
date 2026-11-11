@@ -8,6 +8,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { AgentScopeContextService } from '@api/index';
+import { getRequestMediaScope } from '@api/services/media-urls/request-media-scope';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { AgentThreadKind, AgentThreadStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -33,6 +34,12 @@ const emptyPage = {
   prevPage: null,
   totalDocs: 0,
   totalPages: 0,
+};
+
+const threadMediaScope = {
+  organizationId: 'org_current',
+  participantUserIds: ['user_owner', 'user_member'],
+  userId: 'user_member',
 };
 
 describe('AgentThreadsController', () => {
@@ -65,6 +72,7 @@ describe('AgentThreadsController', () => {
   let accessService: {
     assertAccess: ReturnType<typeof vi.fn>;
     attachAccessLevels: ReturnType<typeof vi.fn>;
+    mediaScopeFor: ReturnType<typeof vi.fn>;
     resolveListAccess: ReturnType<typeof vi.fn>;
   };
 
@@ -129,6 +137,7 @@ describe('AgentThreadsController', () => {
         thread: { userId: mockUser.userId },
       }),
       attachAccessLevels: vi.fn(async (_access, page) => page),
+      mediaScopeFor: vi.fn().mockResolvedValue(threadMediaScope),
       resolveListAccess: vi.fn().mockResolvedValue({
         ownerWhere: { userId: mockUser.userId },
         scope: null,
@@ -566,6 +575,36 @@ describe('AgentThreadsController', () => {
           }),
         }),
       );
+    });
+  });
+
+  describe('thread media scope (#9962)', () => {
+    it('registers the thread media scope on the request for a message page', async () => {
+      messagesService.getMessagesPage.mockResolvedValue({
+        docs: [],
+        hasMore: false,
+        nextCursor: undefined,
+      });
+      const req = {
+        originalUrl: '/v1/agent/threads/thread-1/messages',
+      } as never;
+
+      await controller.getMessages(req, 'thread-1', mockUser);
+
+      expect(getRequestMediaScope(req)).toEqual(threadMediaScope);
+    });
+
+    it('registers no media scope when access to the thread is denied', async () => {
+      accessService.assertAccess.mockRejectedValue(new Error('denied'));
+      const req = {
+        originalUrl: '/v1/agent/threads/thread-1/messages',
+      } as never;
+
+      await expect(
+        controller.getMessages(req, 'thread-1', mockUser),
+      ).rejects.toThrow();
+
+      expect(getRequestMediaScope(req)).toBeUndefined();
     });
   });
 

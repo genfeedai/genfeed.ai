@@ -21,9 +21,13 @@ import {
   AgentThreadShareScope,
   MemberRole,
 } from '@genfeedai/contracts';
+import type { MediaDeliveryScope } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
+
+/** Most distinct authors whose media a thread view reaches. */
+const MEDIA_PARTICIPANT_LIMIT = 100;
 
 interface LiveViewer {
   brandIds: string[] | undefined;
@@ -107,6 +111,52 @@ export class AgentThreadAccessService {
       );
     }
     return this.accessFor(thread, level, viewer?.isAdmin === true);
+  }
+
+  /**
+   * The media a member may see while viewing a thread (#9962): resolved from a
+   * live `view` access check, never from a stored share. Agent output is private
+   * to whoever ran the turn, so the scope also names the owner and every member
+   * who wrote in the thread. A denial throws like `assertAccess`.
+   */
+  async resolveMediaScope(
+    actor: BrandAccessActor,
+    threadId: string,
+  ): Promise<MediaDeliveryScope> {
+    const { thread } = await this.assertAccess(actor, threadId, 'view');
+    return this.mediaScopeFor(actor.userId, thread);
+  }
+
+  /** The media scope of a thread the caller already proved access to. */
+  async mediaScopeFor(
+    userId: string,
+    thread: Pick<
+      AgentThreadAccessRow,
+      'brandId' | 'id' | 'organizationId' | 'userId'
+    >,
+  ): Promise<MediaDeliveryScope> {
+    const authors = await this.prisma.agentMessage.findMany({
+      distinct: ['userId'],
+      select: { userId: true },
+      take: MEDIA_PARTICIPANT_LIMIT,
+      where: scopedWhere(thread.organizationId, {
+        threadId: thread.id,
+        userId: { not: null },
+      }),
+    });
+    return {
+      brandId: thread.brandId ?? undefined,
+      organizationId: thread.organizationId,
+      participantUserIds: [
+        ...new Set([
+          thread.userId,
+          ...authors.flatMap((author) =>
+            author.userId ? [author.userId] : [],
+          ),
+        ]),
+      ],
+      userId,
+    };
   }
 
   /** Whether `actor` may do `need` on a thread, without throwing. */
