@@ -95,6 +95,7 @@ describe.skipIf(!connectionString)(
           ),
         ),
         new AgentThreadSharesService(asPrisma(), threadAccess(), brandAccess()),
+        { notifyReviewRequested: vi.fn() } as never,
       );
 
     let suffix: string;

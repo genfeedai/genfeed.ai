@@ -24,6 +24,7 @@ import { UsersCoreModule } from '@api/collections/users/users-core.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentOrchestratorModule } from '@api/services/agent-orchestrator/agent-orchestrator.module';
+import { CollaborationAlertsModule } from '@api/services/collaboration-alerts/collaboration-alerts.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { TypedDecisionsModule } from '@api/services/typed-decisions/typed-decisions.module';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -45,6 +46,7 @@ import { Module } from '@nestjs/common';
     AgentMemoriesModule,
     AgentOrchestratorModule,
     AgentThreadsModule,
+    CollaborationAlertsModule,
     IngredientsModule,
     NotificationsPublisherModule,
     SkillsModule,

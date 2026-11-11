@@ -1,5 +1,6 @@
 import { summarizeMcpApproval } from '@api/collections/mcp-approvals/utils/mcp-approval-summary.util';
 import { readAvatarTwinPayload } from '@api/services/notifications/inbox/inbox-avatar-twin.util';
+import { readCollaborationPayload } from '@api/services/notifications/inbox/inbox-collaboration.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { MemberRole } from '@genfeedai/contracts';
@@ -320,8 +321,9 @@ async function loadInboxBrandSlugs(input: {
     const payload =
       readSocialReplyPayload(row.topic, row.event.payload) ??
       readBreakoutRemixPayload(row.topic, row.event.payload) ??
-      readAvatarTwinPayload(row.topic, row.event.payload);
-    return payload ? [payload.brandId] : [];
+      readAvatarTwinPayload(row.topic, row.event.payload) ??
+      readCollaborationPayload(row.topic, row.event.payload);
+    return payload?.brandId ? [payload.brandId] : [];
   });
   return loadVisibleBrandSlugs({ brandIds, member, organizationId, prisma });
 }
@@ -513,6 +515,31 @@ function payloadInboxItem<
       row,
       socialReply,
     });
+  }
+  const collaboration = readCollaborationPayload(row.topic, row.event.payload);
+  if (collaboration) {
+    const brandSlug = collaboration.brandId
+      ? brandSlugs.get(collaboration.brandId)
+      : undefined;
+    // A brand the member cannot open leaves the item listed without a link.
+    const canLink =
+      collaboration.path !== null &&
+      (collaboration.brandId === null || brandSlug !== undefined);
+    return {
+      id: row.id,
+      topic: row.topic,
+      occurredAt: row.occurredAt,
+      readAt: row.readAt,
+      outcome: 'completed' as const,
+      severity: getActivityAlertPolicy(row.event.eventKey)?.severity ?? null,
+      activity,
+      sourceHref:
+        canLink && collaboration.path
+          ? inboxSourceHref(orgSlug, brandSlug, collaboration.path)
+          : null,
+      sourceLabel: null,
+      failure: null,
+    };
   }
   const remix = readBreakoutRemixPayload(row.topic, row.event.payload);
   const twin = readAvatarTwinPayload(row.topic, row.event.payload);

@@ -8,6 +8,9 @@ import {
 import {
   AGENT_STATUS_NOTIFICATION_TOPIC,
   type AgentReviewNotificationPayload,
+  COLLABORATION_NOTIFICATION_TOPIC,
+  COLLABORATION_SOURCE_TYPE,
+  type CollaborationNotificationPayload,
   EMAIL_NOTIFICATION_CHANNEL,
   readNotificationSourcePath,
   WORKFLOW_STATUS_NOTIFICATION_TOPIC,
@@ -24,12 +27,14 @@ import {
 } from '@genfeedai/contracts';
 import {
   CHANNEL_MESSAGE_TYPES,
+  defaultProductEmailPreference,
   type IChannelMessage,
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { buildSystemEmailHtml } from '@helpers/email/system-email.helper';
 import {
   buildAgentReviewStatusEmailBody,
+  buildCollaborationEmailBody,
   buildWorkflowStatusEmailBody,
 } from '@helpers/email/system-email-templates.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -206,6 +211,10 @@ export class WorkflowNotificationDeliveryService {
     recipient: RecipientDelivery,
   ): Promise<void> {
     if (await this.deliverAgentMessagingReport(deliveryId, recipient)) return;
+    if (recipient.topic === COLLABORATION_NOTIFICATION_TOPIC) {
+      await this.deliverCollaborationEmail(deliveryId, recipient);
+      return;
+    }
 
     const isAgentRun = recipient.topic === AGENT_STATUS_NOTIFICATION_TOPIC;
     const isAgentReview =
@@ -318,7 +327,121 @@ export class WorkflowNotificationDeliveryService {
   }
 
   /**
-   * A rendered channel message (operator Discord, explicit email, Telegram or
+   * Email for a review request, a review decision or a mention (#9947). It
+   * follows the member's "Reviews and mentions" choice: a stored preference
+   * wins, and without one the topic's default applies.
+   */
+  private async deliverCollaborationEmail(
+    deliveryId: string,
+    recipient: RecipientDelivery,
+  ): Promise<void> {
+    const payload = readCollaborationPayload(recipient.event.payload);
+    if (
+      recipient.channel !== EMAIL_NOTIFICATION_CHANNEL ||
+      recipient.event.sourceType !== COLLABORATION_SOURCE_TYPE ||
+      !payload
+    ) {
+      await this.failPermanently(
+        deliveryId,
+        recipient.organizationId,
+        'Invalid collaboration notification',
+      );
+      return;
+    }
+
+    // tenant-scope-ignore: preferences are globally user-owned; recipient.userId comes from the organization-scoped claimed delivery
+    const preference = await this.prisma.notificationPreference.findFirst({
+      select: { isEnabled: true },
+      where: {
+        channel: EMAIL_NOTIFICATION_CHANNEL,
+        isDeleted: false,
+        topic: COLLABORATION_NOTIFICATION_TOPIC,
+        userId: recipient.userId,
+      },
+    });
+    const isEnabled =
+      preference?.isEnabled ??
+      defaultProductEmailPreference(COLLABORATION_NOTIFICATION_TOPIC);
+    if (!isEnabled || recipient.user.isDeleted || !recipient.user.email) {
+      await this.skip(
+        deliveryId,
+        recipient.organizationId,
+        'recipient_disabled_or_unavailable',
+      );
+      return;
+    }
+    if (
+      !(await this.canReceiveAgentOutcome(
+        recipient.organizationId,
+        recipient.userId,
+      ))
+    ) {
+      await this.skip(
+        deliveryId,
+        recipient.organizationId,
+        'recipient_membership_revoked',
+      );
+      return;
+    }
+
+    try {
+      const email = this.buildCollaborationEmail(payload);
+      const providerMessageId = await this.notificationsService.deliverEmail({
+        ...email,
+        idempotencyKey: recipient.idempotencyKey,
+        to: recipient.user.email,
+      });
+      await this.markDelivered(
+        deliveryId,
+        recipient.organizationId,
+        providerMessageId,
+      );
+    } catch (error: unknown) {
+      if (error instanceof EmailDeliveryError && !error.retryable) {
+        await this.failPermanently(
+          deliveryId,
+          recipient.organizationId,
+          error.message,
+        );
+        return;
+      }
+      await this.recordFailure(
+        deliveryId,
+        recipient.organizationId,
+        recipient.attemptCount,
+        error,
+      );
+    }
+  }
+
+  private buildCollaborationEmail(payload: CollaborationNotificationPayload): {
+    html: string;
+    subject: string;
+    text: string;
+  } {
+    const headline = COLLABORATION_EMAIL_HEADLINES[payload.event];
+    const subject = `${headline.text}: ${payload.label}`;
+    const href = this.agentReportHref(
+      this.configService?.get('GENFEEDAI_APP_URL'),
+      payload.sourcePath,
+    );
+    return {
+      html: buildSystemEmailHtml({
+        action: href ? { label: 'Open in Genfeed', url: href } : undefined,
+        bodyHtml: buildCollaborationEmailBody({
+          headline: headline.text,
+          label: payload.label,
+          summary: payload.summary,
+          tone: headline.tone,
+        }),
+        title: subject,
+      }),
+      subject,
+      text: [subject, payload.summary, href].filter(Boolean).join('\n'),
+    };
+  }
+
+  /** A rendered channel message (operator Discord, explicit email, Telegram or
    * Slack). The notifications service sends it and acknowledges acceptance;
    * the durable row records the outcome and retries transient failures.
    */
@@ -842,6 +965,42 @@ export class WorkflowNotificationDeliveryService {
         : `Your workflow ${payload.workflowLabel} completed successfully.`,
     };
   }
+}
+
+const COLLABORATION_EMAIL_HEADLINES: Record<
+  CollaborationNotificationPayload['event'],
+  { text: string; tone: 'neutral' | 'success' | 'warning' }
+> = {
+  mentioned: { text: 'You were mentioned', tone: 'neutral' },
+  review_approved: { text: 'Review approved', tone: 'success' },
+  review_changes_requested: { text: 'Changes requested', tone: 'warning' },
+  review_requested: { text: 'Review requested', tone: 'warning' },
+};
+
+function readCollaborationPayload(
+  value: unknown,
+): CollaborationNotificationPayload | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const payload = value as Record<string, unknown>;
+  if (
+    payload.kind !== 'collaboration' ||
+    payload.version !== 1 ||
+    typeof payload.label !== 'string' ||
+    typeof payload.summary !== 'string' ||
+    typeof payload.event !== 'string' ||
+    !Object.hasOwn(COLLABORATION_EMAIL_HEADLINES, payload.event)
+  ) {
+    return null;
+  }
+  const sourcePath = readNotificationSourcePath(payload.sourcePath);
+  return {
+    event: payload.event as CollaborationNotificationPayload['event'],
+    kind: 'collaboration',
+    label: payload.label.slice(0, 300),
+    summary: payload.summary.slice(0, 1000),
+    version: 1,
+    ...(sourcePath ? { sourcePath } : {}),
+  };
 }
 
 function readChannelMessage(value: unknown): IChannelMessage | null {

@@ -2,6 +2,10 @@ import { TaskFeedbackMemoryAdapterService } from '@api/collections/agent-memorie
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import type { TasksService } from '@api/collections/tasks/services/tasks.service';
+import type {
+  CollaborationAlertsService,
+  ReviewDecidedAlert,
+} from '@api/services/collaboration-alerts/collaboration-alerts.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 
@@ -53,9 +57,11 @@ describe('TaskActionsService', () => {
   };
   let service: TaskActionsService;
   let memories: Record<string, unknown>[];
+  let decisionAlerts: ReviewDecidedAlert[];
 
   beforeEach(() => {
     memories = [];
+    decisionAlerts = [];
     currentTask = { ...baseTask, eventStream: [] };
     tasksService = {
       patch: vi.fn().mockImplementation((_id, data) => {
@@ -86,6 +92,11 @@ describe('TaskActionsService', () => {
       ingredientsService as unknown as IngredientsService,
       notificationsPublisher as unknown as NotificationsPublisherService,
       taskFeedbackMemoryAdapter as unknown as TaskFeedbackMemoryAdapterService,
+      {
+        notifyReviewDecided: async (alert: ReviewDecidedAlert) => {
+          decisionAlerts.push(alert);
+        },
+      } as unknown as CollaborationAlertsService,
     );
   });
 
@@ -134,6 +145,63 @@ describe('TaskActionsService', () => {
         userId: reviewerUserId,
       }),
     ]);
+  });
+
+  describe('review decisions on a Library asset (#9947)', () => {
+    const requesterUserId = 'requester-1';
+    const reviewTask = {
+      ...baseTask,
+      linkedEntities: [{ entityId: 'ingredient-1', entityModel: 'Ingredient' }],
+      title: 'Review: Spring teaser',
+      userId: requesterUserId,
+    } as unknown as TaskDocument;
+
+    it('tells the requester an approval', async () => {
+      currentTask = reviewTask;
+
+      await service.approve(taskId, organizationId, reviewerUserId);
+
+      expect(decisionAlerts).toEqual([
+        {
+          actorUserId: reviewerUserId,
+          brandId: 'brand-1',
+          decision: 'approved',
+          ingredientId: 'ingredient-1',
+          label: 'Spring teaser',
+          organizationId,
+          reason: undefined,
+          recipientUserId: requesterUserId,
+          taskId,
+        },
+      ]);
+    });
+
+    it('tells the requester the changes asked for', async () => {
+      currentTask = reviewTask;
+
+      await service.requestChanges(
+        taskId,
+        organizationId,
+        reviewerUserId,
+        'Tighten the hook.',
+      );
+
+      expect(decisionAlerts).toEqual([
+        expect.objectContaining({
+          decision: 'changes_requested',
+          reason: 'Tighten the hook.',
+          recipientUserId: requesterUserId,
+        }),
+      ]);
+    });
+
+    it('tells nobody about a task that is not a review of an asset', async () => {
+      currentTask = { ...baseTask, userId: requesterUserId } as TaskDocument;
+
+      await service.approve(taskId, organizationId, reviewerUserId);
+
+      expect(decisionAlerts).toEqual([]);
+    });
   });
 
   it('captures kept output feedback memory with the output id', async () => {

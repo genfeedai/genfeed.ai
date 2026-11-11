@@ -56,3 +56,34 @@ export interface AgentReviewNotificationPayload {
   summary: string;
   sourcePath?: string;
 }
+
+export const COLLABORATION_NOTIFICATION_TOPIC = 'collaboration.activity';
+/** The `NotificationEvent.sourceType` of a review or mention alert (#9947). */
+export const COLLABORATION_SOURCE_TYPE = 'collaboration';
+
+export type CollaborationNotificationEvent =
+  | 'review_requested'
+  | 'review_approved'
+  | 'review_changes_requested'
+  | 'mentioned';
+
+/**
+ * What a review or mention alert says and where it points. The bell derives
+ * its link from the ids (so brand access is checked when it is read); the email
+ * uses `sourcePath`.
+ */
+export interface CollaborationNotificationPayload {
+  version: 1;
+  kind: 'collaboration';
+  event: CollaborationNotificationEvent;
+  /** The asset, thread or task, for display. */
+  label: string;
+  /** One sentence naming who did what. */
+  summary: string;
+  brandId?: string;
+  ingredientId?: string;
+  ingredientCategory?: string;
+  taskIdentifier?: string;
+  threadId?: string;
+  sourcePath?: string;
+}

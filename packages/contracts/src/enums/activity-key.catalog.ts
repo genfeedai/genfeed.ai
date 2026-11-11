@@ -102,6 +102,10 @@ export type ActivityMessageId =
   | 'activity.social.replies'
   | 'activity.credits.low'
   | 'activity.review.requested'
+  | 'activity.collaboration.review_requested'
+  | 'activity.collaboration.review_approved'
+  | 'activity.collaboration.review_changes_requested'
+  | 'activity.collaboration.mentioned'
   | 'activity.report.delivered'
   | 'activity.trends.ready'
   | 'activity.breakout.remix_offered'
@@ -212,6 +216,12 @@ export const ACTIVITY_MESSAGE_ID_BY_KEY = {
   [ActivityKey.SOCIAL_REPLIES_RECEIVED]: 'activity.social.replies',
   [ActivityKey.CREDITS_LOW]: 'activity.credits.low',
   [ActivityKey.WORKFLOW_REVIEW_REQUESTED]: 'activity.review.requested',
+  [ActivityKey.ASSET_REVIEW_REQUESTED]:
+    'activity.collaboration.review_requested',
+  [ActivityKey.ASSET_REVIEW_APPROVED]: 'activity.collaboration.review_approved',
+  [ActivityKey.ASSET_REVIEW_CHANGES_REQUESTED]:
+    'activity.collaboration.review_changes_requested',
+  [ActivityKey.MENTIONED]: 'activity.collaboration.mentioned',
   [ActivityKey.WORKFLOW_REPORT_DELIVERED]: 'activity.report.delivered',
   [ActivityKey.TREND_SUMMARY_READY]: 'activity.trends.ready',
   [ActivityKey.BREAKOUT_REMIX_OFFERED]: 'activity.breakout.remix_offered',
@@ -923,6 +933,18 @@ export function formatActivityMessage(
 
     case 'activity.review.requested':
       return 'Review needed';
+
+    case 'activity.collaboration.review_requested':
+      return 'Asked to review';
+
+    case 'activity.collaboration.review_approved':
+      return 'Review approved';
+
+    case 'activity.collaboration.review_changes_requested':
+      return 'Changes requested';
+
+    case 'activity.collaboration.mentioned':
+      return 'You were mentioned';
 
     case 'activity.report.delivered':
       return 'Workflow report ready';
