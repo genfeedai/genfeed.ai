@@ -141,6 +141,17 @@ export class AgentOrchestratorContextService {
     };
   }
 
+  /** The owner of a thread shared with the turn's sender, re-proved now (#9937). */
+  resolveSharedThreadOwner(
+    context: Pick<AgentChatContext, 'organizationId' | 'userId'>,
+    threadId: string,
+  ): Promise<string> {
+    return this.agentScopeContextService.resolveCollaboratedThreadOwner(
+      { organizationId: context.organizationId, userId: context.userId },
+      threadId,
+    );
+  }
+
   /**
    * The single assembly path for a chat turn's context: scope, feedback
    * memories, brand context layers, skills, model, and system prompt. The
@@ -171,6 +182,7 @@ export class AgentOrchestratorContextService {
     const preparedScope = await this.agentScopeContextService.prepareForTurn({
       expectedContextVersion: request.expectedContextVersion,
       organizationId: context.organizationId,
+      isSharedCollaborationAllowed: true,
       policyBrandId: basePolicy.brandId,
       requestedBrandId: request.brandId,
       threadId: request.threadId,

@@ -48,6 +48,7 @@ import {
   upsertRuntimeBinding,
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   AgentMessageRole,
   AgentThreadMode,
@@ -244,20 +245,35 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     threadId: string;
   }> {
     const request = projectAgentTurnRequest(value);
-    const thread = await this.prisma.agentThread.findFirst({
-      select: {
-        brandId: true,
-        contextVersion: true,
-        status: true,
-        agentStrategyId: true,
-      },
-      where: {
+    const select = {
+      brandId: true,
+      contextVersion: true,
+      status: true,
+      agentStrategyId: true,
+    } as const;
+    let thread = await this.prisma.agentThread.findFirst({
+      select,
+      where: scopedWhere(workflowContext.organizationId, {
         id: request.threadId,
-        isDeleted: false,
-        organizationId: workflowContext.organizationId,
         userId: workflowContext.userId,
-      },
+      }),
     });
+    if (!thread) {
+      // Not the sender's own thread: it opens only to a sender whose share
+      // still lets them collaborate, read live now that the turn has left the
+      // queue (#9937). The turn keeps running as the sender.
+      const ownerUserId = await this.contextService.resolveSharedThreadOwner(
+        workflowContext,
+        request.threadId,
+      );
+      thread = await this.prisma.agentThread.findFirst({
+        select,
+        where: scopedWhere(workflowContext.organizationId, {
+          id: request.threadId,
+          userId: ownerUserId,
+        }),
+      });
+    }
     if (!thread) {
       throw new Error('Agent thread not found or inaccessible');
     }

@@ -3,6 +3,7 @@ import type {
   BrandAccessActor,
   BrandAccessService,
 } from '@api/authorization/brand-access/brand-access.service';
+import type { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import type { ServerLogger, ServerPrisma } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type {
@@ -62,6 +63,12 @@ interface AgentThreadScopeRow {
 
 export interface PrepareAgentScopeParams extends BrandAccessActor {
   expectedContextVersion?: number;
+  /**
+   * A turn may run in a thread another member owns when a live share lets this
+   * actor collaborate (#9937). Every other caller is refused a thread it does
+   * not own.
+   */
+  isSharedCollaborationAllowed?: boolean;
   organizationId: string;
   policyBrandId?: string;
   requestedBrandId?: string | null;
@@ -91,6 +98,10 @@ export class AgentScopeContextService {
     >,
     private readonly logger: ServerLogger | undefined,
     private readonly brandAccessService: BrandAccessService,
+    private readonly threadAccess?: Pick<
+      AgentThreadAccessService,
+      'assertAccess'
+    >,
   ) {}
 
   @Traced()
@@ -98,10 +109,10 @@ export class AgentScopeContextService {
     params: PrepareAgentScopeParams,
   ): Promise<PreparedAgentScope> {
     const thread = params.threadId
-      ? await this.findThread(
+      ? await this.findThreadForActor(
           params.threadId,
-          params.organizationId,
-          params.userId,
+          params,
+          params.isSharedCollaborationAllowed === true,
         )
       : null;
 
@@ -212,6 +223,27 @@ export class AgentScopeContextService {
       ),
       initialScopeFields: {},
     };
+  }
+
+  /**
+   * The owner of a thread another member shares with `actor`, or a refusal.
+   * A queued turn calls this when it leaves the queue: the share, role and
+   * brand access are read now, not when the turn was accepted (#9937).
+   */
+  @Traced()
+  async resolveCollaboratedThreadOwner(
+    actor: BrandAccessActor,
+    threadId: string,
+  ): Promise<string> {
+    if (!this.threadAccess) {
+      throw new ForbiddenException('Thread sharing is unavailable.');
+    }
+    const { thread } = await this.threadAccess.assertAccess(
+      actor,
+      threadId,
+      'collaborate',
+    );
+    return thread.userId;
   }
 
   @Traced()
@@ -371,10 +403,14 @@ export class AgentScopeContextService {
         });
       }
 
-      const current = await this.findThread(
+      // A turn that runs in a shared thread re-proves its collaboration right
+      // here, on every consequential step, against the live membership, role,
+      // brand access and share rows (#9937).
+      const current = await this.findThreadForActor(
         scope.threadId,
-        scope.organizationId,
-        scope.userId,
+        scope,
+        scope.threadOwnerUserId !== undefined &&
+          scope.threadOwnerUserId !== scope.userId,
       );
 
       if (!current) {
@@ -441,6 +477,33 @@ export class AgentScopeContextService {
     actor: BrandAccessActor,
   ): Promise<void> {
     await this.brandAccessService.assert(actor, brandId);
+  }
+
+  /**
+   * The thread, for `actor`: one they own, or, when `isSharedAllowed`, one a
+   * live share lets them collaborate in. A view-only share, a revoked share and
+   * a removed member are refused by the access check itself.
+   */
+  @Traced()
+  private async findThreadForActor(
+    threadId: string,
+    actor: BrandAccessActor,
+    isSharedAllowed: boolean,
+  ): Promise<AgentThreadScopeRow | null> {
+    const owned = await this.findThread(
+      threadId,
+      actor.organizationId,
+      actor.userId,
+    );
+    if (owned || !isSharedAllowed || !this.threadAccess) {
+      return owned;
+    }
+    const { thread } = await this.threadAccess.assertAccess(
+      actor,
+      threadId,
+      'collaborate',
+    );
+    return this.findThread(threadId, actor.organizationId, thread.userId);
   }
 
   @Traced()
@@ -589,7 +652,11 @@ export class AgentScopeContextService {
         ?.id,
       source,
       threadId: thread.id,
-      userId: thread.userId,
+      // The member the turn runs as; the owner's own turns have both the same.
+      userId: actor?.userId ?? thread.userId,
+      ...(actor?.userId && actor.userId !== thread.userId
+        ? { threadOwnerUserId: thread.userId }
+        : {}),
     };
   }
 
