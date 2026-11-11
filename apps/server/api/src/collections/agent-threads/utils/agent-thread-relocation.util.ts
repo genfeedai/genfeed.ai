@@ -9,7 +9,7 @@ import { traced } from '@libs/tracing/traced';
  * moves. Links between two moving threads, or two staying ones, are kept.
  * Runs in the caller's transaction, before any organization id is rewritten.
  */
-export async function unlinkStraddlingAgentThreadParents(
+async function unlinkStraddlingAgentThreadParents(
   tx: Prisma.TransactionClient,
   brandId: string,
 ): Promise<void> {
@@ -36,7 +36,7 @@ export async function unlinkStraddlingAgentThreadParents(
  * holds the foreign keys. Runs in the caller's transaction, before any
  * organization id is rewritten.
  */
-export const deleteAgentThreadSharesForRelocation = traced(
+const deleteAgentThreadSharesForRelocation = traced(
   'deleteAgentThreadSharesForRelocation',
   async (tx: Prisma.TransactionClient, brandId: string): Promise<void> => {
     // sql-risk-audit: ignore raw-sql-review -- Joins on the thread and organization keys (both indexed by their foreign keys) and touches only the moving brand's shares.

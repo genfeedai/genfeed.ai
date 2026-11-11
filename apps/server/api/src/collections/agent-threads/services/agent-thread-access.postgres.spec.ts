@@ -3,7 +3,7 @@ import { BrandAccessService } from '@api/authorization/brand-access/brand-access
 import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentThreadSharesService } from '@api/collections/agent-threads/services/agent-thread-shares.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
-import { deleteAgentThreadSharesForRelocation } from '@api/collections/agent-threads/utils/agent-thread-relocation.util';
+import { prepareAgentThreadsForRelocation } from '@api/collections/agent-threads/utils/agent-thread-relocation.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -860,7 +860,7 @@ describe.skipIf(!connectionString)(
         );
 
         await database().$transaction((tx) =>
-          deleteAgentThreadSharesForRelocation(tx, brandA),
+          prepareAgentThreadsForRelocation(tx, brandA),
         );
 
         const remaining = await database().agentThreadShare.findMany({
