@@ -8,6 +8,7 @@ import {
   AgentTransferDeliveryMode,
   AgentTransferStatus,
 } from '@genfeedai/contracts';
+import type { IAgentTransfer } from '@genfeedai/contracts/interfaces';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -197,14 +198,37 @@ const sharedMessages: AgentChatMessage[] = [
 // A share store the API stand-in reads and writes, so the dialog shows what a
 // real server would hold after each change.
 let liveShares: AgentThreadShare[] = [];
+
+function buildTransfer(status: AgentTransferStatus): IAgentTransfer {
+  return {
+    content: 'Review the queued post and tighten the hook.',
+    correlationId: 'correlation-9',
+    createdAt: '2026-10-29T08:01:00Z',
+    deliveryMode: AgentTransferDeliveryMode.SEND_AND_RUN,
+    depth: 1,
+    destinationThreadId: 'handoff',
+    destinationUserId: ME,
+    id: 'transfer-9',
+    idempotencyKey: 'key-9',
+    organization: 'org-1',
+    progress: 0,
+    retryCount: 0,
+    sourceThreadId: 'ana-thread',
+    status,
+    updatedAt: '2026-10-29T08:01:00Z',
+    user: ANA,
+    userId: ANA,
+  };
+}
+
 const apiService = {
-  acceptAgentTransfer: vi.fn(async () => ({
-    status: AgentTransferStatus.PENDING,
-  })),
+  acceptAgentTransfer: vi.fn(async () =>
+    buildTransfer(AgentTransferStatus.PENDING),
+  ),
   chatStream: vi.fn(),
-  createAgentHandoff: vi.fn(async () => ({
-    status: AgentTransferStatus.AWAITING_ACCEPTANCE,
-  })),
+  createAgentHandoff: vi.fn(async () =>
+    buildTransfer(AgentTransferStatus.AWAITING_ACCEPTANCE),
+  ),
   createThreadShare: vi.fn(
     async (
       threadId: string,
@@ -225,9 +249,9 @@ const apiService = {
   deleteThreadShare: vi.fn(async (_threadId: string, shareId: string) => {
     liveShares = liveShares.filter((share) => share.id !== shareId);
   }),
-  declineAgentTransfer: vi.fn(async () => ({
-    status: AgentTransferStatus.DECLINED,
-  })),
+  declineAgentTransfer: vi.fn(async () =>
+    buildTransfer(AgentTransferStatus.DECLINED),
+  ),
   getMessages: vi.fn(async (threadId: string) =>
     threadId === 'handoff' ? handoffMessages : sharedMessages,
   ),
