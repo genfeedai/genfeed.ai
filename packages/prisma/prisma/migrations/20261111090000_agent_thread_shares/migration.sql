@@ -59,11 +59,13 @@ CREATE UNIQUE INDEX "agent_thread_shares_live_target_key"
 ALTER TABLE "agent_thread_shares" ADD CONSTRAINT "agent_thread_shares_organizationId_fkey"
   FOREIGN KEY ("organizationId") REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "agent_thread_shares" ADD CONSTRAINT "agent_thread_shares_threadId_organizationId_fkey"
-  FOREIGN KEY ("threadId", "organizationId") REFERENCES "agent_threads"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE;
+  FOREIGN KEY ("threadId", "organizationId") REFERENCES "agent_threads"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE
+    DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE "agent_thread_shares" ADD CONSTRAINT "agent_thread_shares_targetUserId_fkey"
   FOREIGN KEY ("targetUserId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "agent_thread_shares" ADD CONSTRAINT "agent_thread_shares_targetBrandId_organizationId_fkey"
-  FOREIGN KEY ("targetBrandId", "organizationId") REFERENCES "brands"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE;
+  FOREIGN KEY ("targetBrandId", "organizationId") REFERENCES "brands"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE
+    DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE "agent_thread_shares" ADD CONSTRAINT "agent_thread_shares_grantedByUserId_fkey"
   FOREIGN KEY ("grantedByUserId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 

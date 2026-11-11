@@ -1,10 +1,9 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
-import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
+import { AgentThreadTurnsController } from '@api/collections/agent-threads/controllers/agent-thread-turns.controller';
 import { AppendExternalAgentTurnDto } from '@api/collections/agent-threads/dto/append-external-agent-turn.dto';
 import type { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
-import type { AgentScopeContextService } from '@api/index';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { AGENT_EXTERNAL_RUNTIME_KEYS } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -42,9 +41,9 @@ async function validationErrors(body: object): Promise<string[]> {
   return errors.map((error) => error.property);
 }
 
-describe('AgentThreadsController external turns', () => {
+describe('AgentThreadTurnsController external turns', () => {
   let appendExternalTurn: ReturnType<typeof vi.fn>;
-  let controller: AgentThreadsController;
+  let controller: AgentThreadTurnsController;
 
   beforeEach(() => {
     appendExternalTurn = vi.fn().mockResolvedValue({
@@ -64,11 +63,9 @@ describe('AgentThreadsController external turns', () => {
       userMessage: { id: 'msg-1' },
     });
 
-    controller = new AgentThreadsController(
+    controller = new AgentThreadTurnsController(
       { appendExternalTurn } as unknown as AgentThreadsService,
       {} as never,
-      {} as never,
-      {} as AgentScopeContextService,
       {} as AgentMessagesService,
       {} as UsersService,
       { error: vi.fn(), warn: vi.fn() } as unknown as LoggerService,
@@ -79,7 +76,7 @@ describe('AgentThreadsController external turns', () => {
     expect(
       Reflect.getMetadata(
         RATE_LIMIT_KEY,
-        AgentThreadsController.prototype.appendExternalTurn,
+        AgentThreadTurnsController.prototype.appendExternalTurn,
       ),
     ).toEqual({ limit: 30, scope: 'user', windowMs: 60_000 });
   });

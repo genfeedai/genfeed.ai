@@ -29,6 +29,7 @@ export class AgentThreadSharesService {
     threadId: string,
   ): Promise<AgentThreadShare[]> {
     await this.access.assertAccess(actor, threadId, 'manage');
+    // sql-risk-audit: ignore unbounded-read -- One thread in one organization; a thread holds at most one live share per target.
     return this.prisma.agentThreadShare.findMany({
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       where: scopedWhere(actor.organizationId, { threadId }),
@@ -53,17 +54,17 @@ export class AgentThreadSharesService {
     }
 
     const target = await this.resolveTarget(actor, thread, input);
-    const where = scopedWhere(actor.organizationId, {
+    const targetKey = {
       scope: input.scope,
       targetBrandId: target.targetBrandId,
       targetUserId: target.targetUserId,
       threadId,
-    });
+    };
     const data = { grantedByUserId: actor.userId, level: input.level };
 
     const updated = await this.prisma.agentThreadShare.updateMany({
       data,
-      where,
+      where: scopedWhere(actor.organizationId, targetKey),
     });
     if (updated.count === 0) {
       try {
@@ -82,11 +83,16 @@ export class AgentThreadSharesService {
         if ((error as { code?: unknown } | null)?.code !== 'P2002') {
           throw error;
         }
-        await this.prisma.agentThreadShare.updateMany({ data, where });
+        await this.prisma.agentThreadShare.updateMany({
+          data,
+          where: scopedWhere(actor.organizationId, targetKey),
+        });
       }
     }
 
-    const share = await this.prisma.agentThreadShare.findFirst({ where });
+    const share = await this.prisma.agentThreadShare.findFirst({
+      where: scopedWhere(actor.organizationId, targetKey),
+    });
     if (!share) {
       throw new NotFoundException('Thread share');
     }

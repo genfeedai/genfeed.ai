@@ -222,12 +222,9 @@ export class AgentThreadsService extends BaseService<
     source?: string | null,
     filters: AgentThreadListFilters = {},
   ): Record<string, unknown> {
-    // Own threads by default. The caller widens it to shared threads with
-    // `ownerWhere`, which is ANDed in so it cannot override the other filters.
-    const where: Record<string, unknown> = scopedWhere(
-      organizationId,
-      filters.ownerWhere ? { AND: [filters.ownerWhere] } : { userId },
-    );
+    const where: Record<string, unknown> = scopedWhere(organizationId, {
+      ...(filters.ownerWhere ? { AND: [filters.ownerWhere] } : { userId }),
+    });
 
     if (filters.kind) {
       where.kind = filters.kind;

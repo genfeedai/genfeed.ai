@@ -1,7 +1,4 @@
-import {
-  deleteAgentThreadSharesForRelocation,
-  unlinkStraddlingAgentThreadParents,
-} from '@api/collections/agent-threads/utils/agent-thread-relocation.util';
+import { prepareAgentThreadsForRelocation } from '@api/collections/agent-threads/utils/agent-thread-relocation.util';
 import {
   FIRST_ORDER_TARGETS,
   SECOND_ORDER_TARGETS,
@@ -781,8 +778,7 @@ export class BrandRelocationService {
     });
 
     await detachReferralCodesFromBrand(tx, brandId);
-    await unlinkStraddlingAgentThreadParents(tx, brandId);
-    await deleteAgentThreadSharesForRelocation(tx, brandId);
+    await prepareAgentThreadsForRelocation(tx, brandId);
     // 1. The brand row itself (+ any co-patched scalar fields). The workflow
     // composite FK cascades workflow.organizationId with the brand.
     await client.brand.updateMany({

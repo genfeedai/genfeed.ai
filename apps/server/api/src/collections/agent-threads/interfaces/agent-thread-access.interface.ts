@@ -3,6 +3,7 @@ import type {
   AgentThreadAccessLevel,
   AgentThreadKind,
 } from '@genfeedai/contracts';
+import type { Prisma } from '@genfeedai/prisma';
 
 /** What a request needs from a thread. */
 export type AgentThreadAccessNeed = 'view' | 'collaborate' | 'manage';
@@ -32,4 +33,11 @@ export interface AgentThreadAccess {
  */
 export interface AgentThreadListAccessScope extends BrandAccessActor {
   brandIds: string[] | undefined;
+}
+
+/** What a thread list needs: the owner filter, and how the viewer reaches threads. */
+export interface AgentThreadListAccess {
+  ownerWhere: Prisma.AgentThreadWhereInput;
+  scope: AgentThreadListAccessScope | null;
+  userId: string;
 }

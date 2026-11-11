@@ -1,8 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { AgentThreadTurnsController } from '@api/collections/agent-threads/controllers/agent-thread-turns.controller';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
 import type { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
-import type { AgentThreadSharesService } from '@api/collections/agent-threads/services/agent-thread-shares.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -64,9 +64,8 @@ describe('AgentThreadsController', () => {
   };
   let accessService: {
     assertAccess: ReturnType<typeof vi.fn>;
-    buildOwnerWhere: ReturnType<typeof vi.fn>;
-    resolveAccessLevels: ReturnType<typeof vi.fn>;
-    resolveListScope: ReturnType<typeof vi.fn>;
+    attachAccessLevels: ReturnType<typeof vi.fn>;
+    resolveListAccess: ReturnType<typeof vi.fn>;
   };
 
   const mockUserId = testId('user');
@@ -129,15 +128,17 @@ describe('AgentThreadsController', () => {
         canManageShares: true,
         thread: { userId: mockUser.userId },
       }),
-      buildOwnerWhere: vi.fn().mockReturnValue({ userId: mockUser.userId }),
-      resolveAccessLevels: vi.fn().mockResolvedValue(new Map()),
-      resolveListScope: vi.fn().mockResolvedValue(null),
+      attachAccessLevels: vi.fn(async (_access, page) => page),
+      resolveListAccess: vi.fn().mockResolvedValue({
+        ownerWhere: { userId: mockUser.userId },
+        scope: null,
+        userId: mockUser.userId,
+      }),
     };
 
     controller = new AgentThreadsController(
       service as unknown as AgentThreadsService,
       accessService as unknown as AgentThreadAccessService,
-      {} as unknown as AgentThreadSharesService,
       scopeService as unknown as AgentScopeContextService,
       messagesService as unknown as AgentMessagesService,
       usersService as unknown as UsersService,
@@ -164,7 +165,7 @@ describe('AgentThreadsController', () => {
   it('should have a user-scoped rate limit on addMessage', () => {
     const metadata = Reflect.getMetadata(
       RATE_LIMIT_KEY,
-      AgentThreadsController.prototype.addMessage,
+      AgentThreadTurnsController.prototype.addMessage,
     );
     expect(metadata).toEqual({
       limit: 30,

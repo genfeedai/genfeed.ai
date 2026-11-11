@@ -1,4 +1,5 @@
 import type { Prisma } from '@genfeedai/prisma';
+import { traced } from '@libs/tracing/traced';
 
 /**
  * Unlink agent thread parents that would straddle a brand's move to another
@@ -35,15 +36,28 @@ export async function unlinkStraddlingAgentThreadParents(
  * holds the foreign keys. Runs in the caller's transaction, before any
  * organization id is rewritten.
  */
-export async function deleteAgentThreadSharesForRelocation(
-  tx: Prisma.TransactionClient,
-  brandId: string,
-): Promise<void> {
-  await tx.$executeRaw`
-    DELETE FROM "agent_thread_shares" AS share
-    USING "agent_threads" AS thread
-    WHERE share."threadId" = thread."id"
-      AND share."organizationId" = thread."organizationId"
-      AND (thread."brandId" = ${brandId} OR share."targetBrandId" = ${brandId})
-  `;
-}
+export const deleteAgentThreadSharesForRelocation = traced(
+  'deleteAgentThreadSharesForRelocation',
+  async (tx: Prisma.TransactionClient, brandId: string): Promise<void> => {
+    // sql-risk-audit: ignore raw-sql-review -- Joins on the thread and organization keys (both indexed by their foreign keys) and touches only the moving brand's shares.
+    await tx.$executeRaw`
+      DELETE FROM "agent_thread_shares" AS share
+      USING "agent_threads" AS thread
+      WHERE share."threadId" = thread."id"
+        AND share."organizationId" = thread."organizationId"
+        AND (thread."brandId" = ${brandId} OR share."targetBrandId" = ${brandId})
+    `;
+  },
+);
+
+/**
+ * Everything an agent thread needs before its brand moves to another
+ * organization: straddling parent links are cleared and shares are dropped.
+ */
+export const prepareAgentThreadsForRelocation = traced(
+  'prepareAgentThreadsForRelocation',
+  async (tx: Prisma.TransactionClient, brandId: string): Promise<void> => {
+    await unlinkStraddlingAgentThreadParents(tx, brandId);
+    await deleteAgentThreadSharesForRelocation(tx, brandId);
+  },
+);

@@ -1,14 +1,14 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
-import { AppendExternalAgentTurnDto } from '@api/collections/agent-threads/dto/append-external-agent-turn.dto';
 import { CreateAgentThreadDto } from '@api/collections/agent-threads/dto/create-agent-thread.dto';
-import { CreateAgentThreadShareDto } from '@api/collections/agent-threads/dto/create-agent-thread-share.dto';
 import { UpdateAgentModeDto } from '@api/collections/agent-threads/dto/update-agent-mode.dto';
 import { UpdateAgentThreadContextDto } from '@api/collections/agent-threads/dto/update-agent-thread-context.dto';
 import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
-import { AgentThreadSharesService } from '@api/collections/agent-threads/services/agent-thread-shares.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import {
+  buildAgentThreadActor,
+  resolveAgentThreadReadOrganizationId,
+} from '@api/collections/agent-threads/utils/agent-thread-actor.util';
 import { withAgentThreadExternalRuntime } from '@api/collections/agent-threads/utils/agent-thread-external-runtime.util';
 import {
   resolveAgentThreadDatabaseUserId,
@@ -33,24 +33,16 @@ import {
 } from '@api/helpers/dto/pagination-query.dto';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
-import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { AgentScopeContextService, scopedWhere } from '@api/index';
+import { AgentScopeContextService } from '@api/index';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import {
-  AgentMessageRole,
-  AgentThreadMode,
-  AgentThreadOwnerFilter,
-  AgentThreadStatus,
-} from '@genfeedai/contracts';
+import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import {
   AgentThreadSerializer,
-  AgentThreadShareSerializer,
   ThreadMessageSerializer,
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -58,7 +50,6 @@ import {
   BadRequestException,
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   Patch,
@@ -79,7 +70,6 @@ export class AgentThreadsController {
   constructor(
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentThreadAccessService: AgentThreadAccessService,
-    private readonly agentThreadSharesService: AgentThreadSharesService,
     private readonly agentScopeContextService: AgentScopeContextService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly usersService: UsersService,
@@ -106,14 +96,10 @@ export class AgentThreadsController {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveDatabaseUserId(user);
-      const actor = this.buildActor(user, organizationId, dbUserId);
-      const parsedOwner = Object.values(AgentThreadOwnerFilter).includes(
-        owner as AgentThreadOwnerFilter,
-      )
-        ? (owner as AgentThreadOwnerFilter)
-        : AgentThreadOwnerFilter.ALL;
-      const accessScope =
-        await this.agentThreadAccessService.resolveListScope(actor);
+      const listAccess = await this.agentThreadAccessService.resolveListAccess(
+        buildAgentThreadActor(user, organizationId, dbUserId),
+        owner,
+      );
       const parsedStatus = Object.values(AgentThreadStatus).includes(
         status as AgentThreadStatus,
       )
@@ -132,26 +118,18 @@ export class AgentThreadsController {
         resolvePageWindow(pagination, DEFAULT_THREADS_PAGE_SIZE),
         {
           kind: parseAgentThreadKind(kind),
-          ownerWhere: this.agentThreadAccessService.buildOwnerWhere(
-            dbUserId,
-            accessScope,
-            parsedOwner,
-          ),
+          ownerWhere: listAccess.ownerWhere,
           parentThreadId: parentThreadId?.trim() || undefined,
         },
       );
-      const accessLevels =
-        await this.agentThreadAccessService.resolveAccessLevels(
-          accessScope,
-          threads.docs,
-        );
-      return serializeCollection(req, AgentThreadSerializer, {
-        ...threads,
-        docs: threads.docs.map((thread) => ({
-          ...thread,
-          accessLevel: accessLevels.get(thread.id),
-        })),
-      });
+      return serializeCollection(
+        req,
+        AgentThreadSerializer,
+        await this.agentThreadAccessService.attachAccessLevels(
+          listAccess,
+          threads,
+        ),
+      );
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'listThreads');
     }
@@ -184,7 +162,7 @@ export class AgentThreadsController {
     @Query('cursor') cursor?: string,
   ) {
     try {
-      const organizationId = this.resolveReadOrganizationId(req, user);
+      const organizationId = resolveAgentThreadReadOrganizationId(req, user);
       await this.assertThreadAccess(user, organizationId, threadId, 'view');
       const messageLimit = limit ? Number.parseInt(limit, 10) : 50;
 
@@ -412,161 +390,6 @@ export class AgentThreadsController {
     }
   }
 
-  @Post(':threadId/messages')
-  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
-  @ApiOperation({ summary: 'Add a message to a thread' })
-  async addMessage(
-    @Req() req: Request,
-    @Param('threadId') threadId: string,
-    @Body() body: { content: string; role?: string },
-    @CurrentUser() user: User,
-  ) {
-    try {
-      const organizationId = this.resolveOrganizationId(user);
-      const dbUserId = await this.resolveDatabaseUserId(user);
-      await this.agentThreadAccessService.assertAccess(
-        this.buildActor(user, organizationId, dbUserId),
-        threadId,
-        'collaborate',
-      );
-      const thread = await this.agentThreadsService.findOne(
-        scopedWhere(organizationId, {
-          id: threadId,
-          isDeleted: false,
-        }),
-      );
-      const status = String(
-        (thread as { status?: string | null } | null)?.status ?? '',
-      ).toLowerCase();
-      if (status === AgentThreadStatus.ARCHIVED || status === 'archived') {
-        throw new BadRequestException(
-          'This thread is archived. Unarchive it before sending messages or running actions.',
-        );
-      }
-      const message = await this.agentMessagesService.addMessage({
-        content: body.content,
-        organizationId,
-        role: (body.role as AgentMessageRole) || AgentMessageRole.USER,
-        room: threadId,
-        userId: dbUserId,
-      });
-
-      return serializeSingle(req, ThreadMessageSerializer, message);
-    } catch (error: unknown) {
-      return ErrorResponse.handle(error, this.loggerService, 'addMessage');
-    }
-  }
-
-  @Post(':threadId/external-turns')
-  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
-  @ApiOperation({
-    summary:
-      "Append a turn that ran on the user's own Claude Code / Codex CLI subscription (never billed in Genfeed credits)",
-  })
-  async appendExternalTurn(
-    @Req() req: Request,
-    @Param('threadId') threadId: string,
-    @Body() body: AppendExternalAgentTurnDto,
-    @CurrentUser() user: User,
-  ) {
-    try {
-      const organizationId = this.resolveOrganizationId(user);
-      const userId = await this.resolveDatabaseUserId(user);
-      const { thread } = await this.agentThreadsService.appendExternalTurn(
-        threadId,
-        organizationId,
-        userId,
-        body,
-      );
-
-      return serializeSingle(
-        req,
-        AgentThreadSerializer,
-        withAgentThreadExternalRuntime(thread),
-      );
-    } catch (error: unknown) {
-      return ErrorResponse.handle(
-        error,
-        this.loggerService,
-        'appendExternalTurn',
-      );
-    }
-  }
-
-  @Get(':threadId/shares')
-  @ApiOperation({
-    summary: 'List who a thread is shared with (owner or organization admin)',
-  })
-  async listShares(
-    @Req() req: Request,
-    @Param('threadId') threadId: string,
-    @CurrentUser() user: User,
-  ) {
-    try {
-      const organizationId = this.resolveReadOrganizationId(req, user);
-      const dbUserId = await this.resolveDatabaseUserId(user);
-      const shares = await this.agentThreadSharesService.list(
-        this.buildActor(user, organizationId, dbUserId),
-        threadId,
-      );
-      return serializeCollection(req, AgentThreadShareSerializer, {
-        docs: shares,
-      });
-    } catch (error: unknown) {
-      return ErrorResponse.handle(error, this.loggerService, 'listShares');
-    }
-  }
-
-  @Post(':threadId/shares')
-  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
-  @ApiOperation({
-    summary:
-      'Share a thread with a member, a brand or the organization (owner or organization admin)',
-  })
-  async createShare(
-    @Req() req: Request,
-    @Param('threadId') threadId: string,
-    @Body() body: CreateAgentThreadShareDto,
-    @CurrentUser() user: User,
-  ) {
-    try {
-      const organizationId = this.resolveOrganizationId(user);
-      const dbUserId = await this.resolveDatabaseUserId(user);
-      const share = await this.agentThreadSharesService.grant(
-        this.buildActor(user, organizationId, dbUserId),
-        threadId,
-        body,
-      );
-      return serializeSingle(req, AgentThreadShareSerializer, share);
-    } catch (error: unknown) {
-      return ErrorResponse.handle(error, this.loggerService, 'createShare');
-    }
-  }
-
-  @Delete(':threadId/shares/:shareId')
-  @ApiOperation({
-    summary:
-      'Stop sharing a thread with one target (owner or organization admin)',
-  })
-  async deleteShare(
-    @Param('threadId') threadId: string,
-    @Param('shareId') shareId: string,
-    @CurrentUser() user: User,
-  ) {
-    try {
-      const organizationId = this.resolveOrganizationId(user);
-      const dbUserId = await this.resolveDatabaseUserId(user);
-      await this.agentThreadSharesService.revoke(
-        this.buildActor(user, organizationId, dbUserId),
-        threadId,
-        shareId,
-      );
-      return { deleted: true };
-    } catch (error: unknown) {
-      return ErrorResponse.handle(error, this.loggerService, 'deleteShare');
-    }
-  }
-
   @Patch(':threadId')
   @ApiOperation({ summary: 'Update thread metadata or status' })
   async updateThread(
@@ -618,48 +441,15 @@ export class AgentThreadsController {
     return resolveAgentThreadOrganizationId(user);
   }
 
-  /**
-   * Plain GET routes run in the tenant context the interceptor pins: the
-   * session organization, or the one a verified superadmin names with
-   * `?organizationId=`. Query that same organization so the tenant guard sees
-   * one tenant; a caller who is not a superadmin is refused for any other one.
-   */
-  private resolveReadOrganizationId(req: Request, user: User): string {
-    const requested = req.query?.organizationId;
-    const authorized = CollectionFilterUtil.resolveAuthorizedTenantQuery(
-      { organizationId: typeof requested === 'string' ? requested : undefined },
-      user,
-      getIsSuperAdmin(user, req),
-    );
-    return authorized.organizationId ?? this.resolveOrganizationId(user);
-  }
-
-  private buildActor(
-    user: User,
-    organizationId: string,
-    userId: string,
-  ): BrandAccessActor {
-    return {
-      apiKeyId: user.apiKeyId,
-      isApiKey: user.isApiKey,
-      organizationId,
-      scopes: user.scopes,
-      userId,
-    };
-  }
-
   private async assertThreadAccess(
     user: User,
     organizationId: string,
     threadId: string,
     need: 'view' | 'collaborate',
   ) {
+    const userId = await this.resolveDatabaseUserId(user);
     return this.agentThreadAccessService.assertAccess(
-      this.buildActor(
-        user,
-        organizationId,
-        await this.resolveDatabaseUserId(user),
-      ),
+      buildAgentThreadActor(user, organizationId, userId),
       threadId,
       need,
     );

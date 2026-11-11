@@ -6,6 +6,7 @@ import type {
   AgentThreadAccess,
   AgentThreadAccessNeed,
   AgentThreadAccessRow,
+  AgentThreadListAccess,
   AgentThreadListAccessScope,
 } from '@api/collections/agent-threads/interfaces/agent-thread-access.interface';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -62,12 +63,26 @@ export class AgentThreadAccessService {
       throw this.denied(threadId);
     }
 
-    if (thread.userId === actor.userId) {
+    const isOwner = thread.userId === actor.userId;
+    // A key limited to some brands (#9130) reaches only those, owner or not.
+    const viewer =
+      isOwner && !actor.isApiKey ? null : await this.resolveLiveViewer(actor);
+    if (isOwner) {
+      if (actor.isApiKey && (!viewer || !this.hasBrandReach(viewer, thread))) {
+        throw this.denied(threadId);
+      }
       return this.accessFor(thread, AgentThreadAccessLevel.OWNER, true);
     }
 
-    const viewer = await this.resolveLiveViewer(actor);
-    if (need === 'manage' && viewer?.isAdmin) {
+    // A master thread belongs to its owner alone, admins included.
+    if (thread.kind !== AgentThreadKind.THREAD) {
+      throw this.denied(threadId);
+    }
+    if (
+      need === 'manage' &&
+      viewer?.isAdmin &&
+      this.hasBrandReach(viewer, thread)
+    ) {
       return this.accessFor(thread, AgentThreadAccessLevel.OWNER, true);
     }
 
@@ -88,7 +103,7 @@ export class AgentThreadAccessService {
         'This thread is shared with you to view only.',
       );
     }
-    return this.accessFor(thread, level, false);
+    return this.accessFor(thread, level, viewer?.isAdmin === true);
   }
 
   /** Whether `actor` may do `need` on a thread, without throwing. */
@@ -131,6 +146,47 @@ export class AgentThreadAccessService {
       : null;
   }
 
+  /** The owner filter a thread list asks for, narrowed to what `actor` may see. */
+  async resolveListAccess(
+    actor: BrandAccessActor,
+    owner?: string,
+  ): Promise<AgentThreadListAccess> {
+    const filter = Object.values(AgentThreadOwnerFilter).find(
+      (value) => value === owner,
+    );
+    const scope = await this.resolveListScope(actor);
+    return {
+      ownerWhere: this.buildOwnerWhere(
+        actor.userId,
+        scope,
+        filter ?? AgentThreadOwnerFilter.ALL,
+      ),
+      scope,
+      userId: actor.userId,
+    };
+  }
+
+  /** Adds how `access` reaches each thread of a listed page. */
+  async attachAccessLevels<
+    T extends Pick<AgentThreadAccessRow, 'brandId' | 'id' | 'userId'>,
+  >(
+    access: AgentThreadListAccess,
+    page: { docs: T[] },
+  ): Promise<{ docs: Array<T & { accessLevel?: AgentThreadAccessLevel }> }> {
+    const levels = await this.resolveAccessLevels(
+      access.userId,
+      access.scope,
+      page.docs,
+    );
+    return {
+      ...page,
+      docs: page.docs.map((doc) => ({
+        ...doc,
+        accessLevel: levels.get(doc.id),
+      })),
+    };
+  }
+
   /**
    * The `where` fragment that narrows a thread list to what `owner` asks for.
    * Combine it with `AND` next to the tenant scope: it carries no tenant keys.
@@ -160,6 +216,7 @@ export class AgentThreadAccessService {
    * strongest live share. Threads they cannot reach are left out of the map.
    */
   async resolveAccessLevels(
+    userId: string,
     scope: AgentThreadListAccessScope | null,
     threads: ReadonlyArray<
       Pick<AgentThreadAccessRow, 'brandId' | 'id' | 'userId'>
@@ -168,7 +225,7 @@ export class AgentThreadAccessService {
     const levels = new Map<string, AgentThreadAccessLevel>();
     const notOwned: string[] = [];
     for (const thread of threads) {
-      if (scope && thread.userId === scope.userId) {
+      if (thread.userId === userId) {
         levels.set(thread.id, AgentThreadAccessLevel.OWNER);
       } else {
         notOwned.push(thread.id);
@@ -178,6 +235,7 @@ export class AgentThreadAccessService {
       return levels;
     }
 
+    // sql-risk-audit: ignore unbounded-read -- Bounded by the caller's page of thread ids and one organization; a thread holds at most one live share per target.
     const rows = await this.prisma.agentThreadShare.findMany({
       select: { level: true, threadId: true },
       where: scopedWhere(scope.organizationId, {
@@ -240,6 +298,18 @@ export class AgentThreadAccessService {
     ];
   }
 
+  /** A brand-limited viewer (an API key with an allowlist) reaches only those brands' threads. */
+  private hasBrandReach(
+    viewer: LiveViewer,
+    thread: AgentThreadAccessRow,
+  ): boolean {
+    return (
+      !thread.brandId ||
+      viewer.brandIds === undefined ||
+      viewer.brandIds.includes(thread.brandId)
+    );
+  }
+
   private async resolveSharedLevel(
     actor: BrandAccessActor,
     thread: AgentThreadAccessRow,
@@ -248,14 +318,11 @@ export class AgentThreadAccessService {
     if (!viewer || thread.kind !== AgentThreadKind.THREAD) {
       return null;
     }
-    if (
-      thread.brandId &&
-      viewer.brandIds !== undefined &&
-      !viewer.brandIds.includes(thread.brandId)
-    ) {
+    if (!this.hasBrandReach(viewer, thread)) {
       return null;
     }
 
+    // sql-risk-audit: ignore unbounded-read -- One thread in one organization; a thread holds at most one live share per target.
     const shares = await this.prisma.agentThreadShare.findMany({
       select: { level: true },
       where: scopedWhere(actor.organizationId, {
@@ -302,15 +369,17 @@ export class AgentThreadAccessService {
     }
 
     let brandIds: string[] | undefined;
+    let liveRole: MemberRole | null = null;
     try {
-      ({ brandIds } = await this.brandAccess.resolve(actor));
+      ({ brandIds, role: liveRole } = await this.brandAccess.resolve(actor));
     } catch (error: unknown) {
       if (error instanceof ForbiddenException) {
         return null;
       }
       throw error;
     }
-    const role = resolveApiKeyEffectiveMemberRole(actor, membershipRole);
+    const role =
+      liveRole ?? resolveApiKeyEffectiveMemberRole(actor, membershipRole);
     return {
       brandIds,
       isAdmin: role === MemberRole.OWNER || role === MemberRole.ADMIN,

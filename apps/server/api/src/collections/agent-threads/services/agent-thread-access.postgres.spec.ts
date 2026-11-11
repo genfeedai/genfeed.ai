@@ -618,6 +618,19 @@ describe.skipIf(!connectionString)(
         ).resolves.toEqual([]);
       });
 
+      it('is denied to an organization admin who does not own it, as an unknown thread is', async () => {
+        const master = await createThread(owner, {
+          kind: AgentThreadKind.MASTER,
+        });
+
+        await expect(
+          shares().list(actor(admin), master.id),
+        ).rejects.toBeInstanceOf(NotFoundException);
+        await expect(
+          access().assertAccess(actor(owner), master.id, 'manage'),
+        ).resolves.toMatchObject({ canManageShares: true });
+      });
+
       it('refuses a share row written around the service', async () => {
         const master = await createThread(owner, {
           kind: AgentThreadKind.MASTER,
@@ -659,6 +672,22 @@ describe.skipIf(!connectionString)(
         ).rejects.toBeInstanceOf(NotFoundException);
       });
 
+      it('reports that an admin who opens a shared thread can manage its shares', async () => {
+        const thread = await createThread(owner, { brandId: brandA });
+        await share(
+          thread.id,
+          AgentThreadShareScope.ORGANIZATION,
+          AgentThreadShareLevel.VIEW,
+        );
+
+        await expect(
+          access().assertAccess(actor(admin), thread.id, 'view'),
+        ).resolves.toMatchObject({ canManageShares: true });
+        await expect(
+          access().assertAccess(actor(teammate), thread.id, 'view'),
+        ).resolves.toMatchObject({ canManageShares: false });
+      });
+
       it('is an ordinary member when an API key carries no admin scope', async () => {
         const thread = await createThread(owner, { brandId: brandA });
 
@@ -671,6 +700,49 @@ describe.skipIf(!connectionString)(
         ).rejects.toBeInstanceOf(NotFoundException);
       });
 
+      it('stays inside the brands an admin API key is limited to', async () => {
+        const thread = await createThread(owner, { brandId: brandA });
+        const keyFor = async (label: string, allowedBrandIds: string[]) => {
+          const key = await database().apiKey.create({
+            data: {
+              key: id(label),
+              label,
+              metadata: { allowedBrandIds },
+              organizationId,
+              scopes: ['admin'],
+              userId: admin,
+            },
+          });
+          return {
+            ...actor(admin),
+            apiKeyId: key.id,
+            isApiKey: true,
+            scopes: ['admin'],
+          };
+        };
+
+        await expect(
+          shares().grant(await keyFor('key-brand-b', [brandB]), thread.id, {
+            level: AgentThreadShareLevel.COLLABORATE,
+            scope: AgentThreadShareScope.ORGANIZATION,
+          }),
+        ).rejects.toBeInstanceOf(NotFoundException);
+        await expect(
+          shares().list(await keyFor('key-brand-b2', [brandB]), thread.id),
+        ).rejects.toBeInstanceOf(NotFoundException);
+
+        const granted = await shares().grant(
+          await keyFor('key-brand-a', [brandA]),
+          thread.id,
+          {
+            level: AgentThreadShareLevel.VIEW,
+            scope: AgentThreadShareScope.MEMBER,
+            targetUserId: teammate,
+          },
+        );
+        expect(granted.targetUserId).toBe(teammate);
+      });
+
       it('does not let an ordinary member who is not the owner manage a thread', async () => {
         const thread = await createThread(owner, { brandId: brandA });
 
@@ -680,6 +752,43 @@ describe.skipIf(!connectionString)(
             scope: AgentThreadShareScope.ORGANIZATION,
           }),
         ).rejects.toBeInstanceOf(NotFoundException);
+      });
+    });
+
+    describe('owner access', () => {
+      it("labels an owner's own threads even when they are no longer a live member", async () => {
+        const mine = await createThread(owner, { brandId: brandA });
+
+        const levels = await access().resolveAccessLevels(owner, null, [mine]);
+
+        expect(levels.get(mine.id)).toBe(AgentThreadAccessLevel.OWNER);
+      });
+
+      it("holds an owner's API key to the brands it is limited to", async () => {
+        const mine = await createThread(owner, { brandId: brandA });
+        const key = await database().apiKey.create({
+          data: {
+            key: id('owner-key'),
+            label: 'owner-key',
+            metadata: { allowedBrandIds: [brandB] },
+            organizationId,
+            scopes: ['*'],
+            userId: owner,
+          },
+        });
+        const limited = {
+          ...actor(owner),
+          apiKeyId: key.id,
+          isApiKey: true,
+          scopes: ['*'],
+        };
+
+        await expect(
+          access().assertAccess(limited, mine.id, 'view'),
+        ).rejects.toBeInstanceOf(NotFoundException);
+        await expect(
+          access().assertAccess(actor(owner), mine.id, 'view'),
+        ).resolves.toBeDefined();
       });
     });
 
@@ -835,7 +944,11 @@ describe.skipIf(!connectionString)(
         PAGE,
         { ownerWhere: access().buildOwnerWhere(userId, scope, owner) },
       );
-      const levels = await access().resolveAccessLevels(scope, page.docs);
+      const levels = await access().resolveAccessLevels(
+        userId,
+        scope,
+        page.docs,
+      );
       return page.docs.map((doc) => ({
         accessLevel: levels.get(doc.id),
         id: doc.id,
