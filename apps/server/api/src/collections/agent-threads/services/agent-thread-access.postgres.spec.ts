@@ -688,6 +688,34 @@ describe.skipIf(!connectionString)(
         ).resolves.toMatchObject({ canManageShares: false });
       });
 
+      it('flags share management on listed threads the same way the detail check does', async () => {
+        const mine = await createThread(admin, { brandId: brandA });
+        const shared = await createThread(owner, { brandId: brandA });
+        await share(
+          shared.id,
+          AgentThreadShareScope.ORGANIZATION,
+          AgentThreadShareLevel.VIEW,
+        );
+
+        const adminPage = await access().attachAccessLevels(
+          await access().resolveListAccess(actor(admin)),
+          { docs: [mine, shared] },
+        );
+        const memberPage = await access().attachAccessLevels(
+          await access().resolveListAccess(actor(teammate)),
+          { docs: [shared] },
+        );
+
+        expect(
+          Object.fromEntries(
+            adminPage.docs.map((doc) => [doc.id, doc.canManageShares]),
+          ),
+        ).toEqual({ [mine.id]: true, [shared.id]: true });
+        expect(memberPage.docs.map((doc) => doc.canManageShares)).toEqual([
+          false,
+        ]);
+      });
+
       it('is an ordinary member when an API key carries no admin scope', async () => {
         const thread = await createThread(owner, { brandId: brandA });
 

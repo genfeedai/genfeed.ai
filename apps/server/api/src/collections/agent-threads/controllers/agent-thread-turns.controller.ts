@@ -16,7 +16,11 @@ import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { scopedWhere } from '@api/index';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { AgentMessageRole, AgentThreadStatus } from '@genfeedai/contracts';
+import {
+  AgentMessageRole,
+  AgentThreadAccessLevel,
+  AgentThreadStatus,
+} from '@genfeedai/contracts';
 import {
   AgentThreadSerializer,
   ThreadMessageSerializer,
@@ -61,7 +65,7 @@ export class AgentThreadTurnsController {
         user,
         this.usersService,
       );
-      await this.agentThreadAccessService.assertAccess(
+      const access = await this.agentThreadAccessService.assertAccess(
         buildAgentThreadActor(user, organizationId, dbUserId),
         threadId,
         'collaborate',
@@ -83,7 +87,11 @@ export class AgentThreadTurnsController {
       const message = await this.agentMessagesService.addMessage({
         content: body.content,
         organizationId,
-        role: (body.role as AgentMessageRole) || AgentMessageRole.USER,
+        // A collaborator writes as the user; only the owner may set a role.
+        role:
+          access.accessLevel === AgentThreadAccessLevel.OWNER
+            ? (body.role as AgentMessageRole) || AgentMessageRole.USER
+            : AgentMessageRole.USER,
         room: threadId,
         userId: dbUserId,
       });

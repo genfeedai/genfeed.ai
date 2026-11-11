@@ -33,6 +33,8 @@ export interface AgentThreadAccess {
  */
 export interface AgentThreadListAccessScope extends BrandAccessActor {
   brandIds: string[] | undefined;
+  /** The viewer's live role is owner or admin. */
+  isAdmin: boolean;
 }
 
 /** What a thread list needs: the owner filter, and how the viewer reaches threads. */

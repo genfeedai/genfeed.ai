@@ -141,6 +141,7 @@ export class AgentThreadAccessService {
       ? {
           apiKeyId: actor.apiKeyId,
           brandIds: viewer.brandIds,
+          isAdmin: viewer.isAdmin,
           isApiKey: actor.isApiKey,
           organizationId: actor.organizationId,
           scopes: actor.scopes,
@@ -175,7 +176,11 @@ export class AgentThreadAccessService {
   >(
     access: AgentThreadListAccess,
     page: { docs: T[] },
-  ): Promise<{ docs: Array<T & { accessLevel?: AgentThreadAccessLevel }> }> {
+  ): Promise<{
+    docs: Array<
+      T & { accessLevel?: AgentThreadAccessLevel; canManageShares: boolean }
+    >;
+  }> {
     const levels = await this.resolveAccessLevels(
       access.userId,
       access.scope,
@@ -183,10 +188,21 @@ export class AgentThreadAccessService {
     );
     return {
       ...page,
-      docs: page.docs.map((doc) => ({
-        ...doc,
-        accessLevel: levels.get(doc.id),
-      })),
+      docs: page.docs.map((doc) => {
+        const accessLevel = levels.get(doc.id);
+        const isOwner = accessLevel === AgentThreadAccessLevel.OWNER;
+        // Same rule as `assertAccess(..., 'manage')`: the owner, or a live
+        // admin; a brand-limited key manages no brandless thread it does not own.
+        const isManagedByAdmin =
+          accessLevel !== undefined &&
+          access.scope?.isAdmin === true &&
+          (access.scope.brandIds === undefined || doc.brandId !== null);
+        return {
+          ...doc,
+          accessLevel,
+          canManageShares: isOwner || isManagedByAdmin,
+        };
+      }),
     };
   }
 
