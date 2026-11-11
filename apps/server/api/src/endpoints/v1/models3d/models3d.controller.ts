@@ -120,6 +120,13 @@ export class Models3dController {
     if (!organizationId || !userId) {
       throw new UnauthorizedException('API key is missing its organization');
     }
-    return { brandId: request.user?.brandId, organizationId, userId };
+    return {
+      ...(request.user?.allowedBrandIds
+        ? { allowedBrandIds: request.user.allowedBrandIds }
+        : {}),
+      brandId: request.user?.brandId,
+      organizationId,
+      userId,
+    };
   }
 }

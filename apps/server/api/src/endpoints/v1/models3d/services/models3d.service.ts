@@ -20,6 +20,10 @@ import { Models3dBillingService } from '@api/endpoints/v1/models3d/services/mode
 import { Models3dBuildService } from '@api/endpoints/v1/models3d/services/models3d-build.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import {
+  type BrandRestrictedCaller,
+  brandRestrictionWhere,
+} from '@api/helpers/utils/auth/api-key-brand-restriction.util';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
@@ -40,7 +44,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 
-export interface Models3dActor {
+export interface Models3dActor extends BrandRestrictedCaller {
   brandId?: string;
   organizationId: string;
   userId: string;
@@ -332,6 +336,7 @@ export class Models3dService {
     let sheet: SheetRow | null = null;
     try {
       sheet = await this.ingredients.findOne({
+        ...brandRestrictionWhere(actor),
         category: IngredientCategory.IMAGE,
         id,
         isDeleted: false,
@@ -349,6 +354,7 @@ export class Models3dService {
 
   private loadChildren(actor: Models3dActor, id: string) {
     return this.ingredients.find({
+      ...brandRestrictionWhere(actor),
       category: IngredientCategory.MODEL_3D,
       isDeleted: false,
       organizationId: actor.organizationId,
