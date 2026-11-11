@@ -728,6 +728,118 @@ describe('AgentStreamPublisherService', () => {
     });
   });
 
+  describe('shared thread audience (#9938)', () => {
+    const audienceThreadId = 'b'.repeat(24);
+    const audienceOrganizationId = 'a'.repeat(24);
+    const resolve = vi.fn();
+    let shared: AgentStreamPublisherService;
+
+    beforeEach(() => {
+      resolve.mockReset().mockResolvedValue({
+        organizationId: audienceOrganizationId,
+        ownerUserId: 'user-owner',
+        recipientUserIds: ['user-owner', 'user-teammate'],
+      });
+      shared = new AgentStreamPublisherService(
+        mockRedisService as unknown as PublisherDependencies[0],
+        mockLoggerService as unknown as PublisherDependencies[1],
+        mockAgentThreadsService as unknown as PublisherDependencies[2],
+        mockAgentThreadEngineService as unknown as PublisherDependencies[3],
+        mockConfigService as unknown as PublisherDependencies[4],
+        undefined,
+        { resolve } as unknown as PublisherDependencies[6],
+      );
+    });
+
+    it('names everyone with access, and the thread organization, on a thread event', async () => {
+      await shared.publishToolStart({
+        parameters: {},
+        threadId: audienceThreadId,
+        toolCallId: 'tool-1',
+        toolName: 'search',
+        userId: 'user-owner',
+      } as unknown as PublishToolStartInput);
+
+      const [, message] = mockRedisService.publish.mock.calls.at(-1) ?? [];
+      expect(message.type).toBe('agent:tool_start');
+      expect(message.data).toMatchObject({
+        organizationId: audienceOrganizationId,
+        recipientUserIds: ['user-owner', 'user-teammate'],
+        threadId: audienceThreadId,
+      });
+    });
+
+    it('names everyone with access on the final event and the tokens flushed with it', async () => {
+      await shared.publishToken({
+        runId: 'run-1',
+        threadId: audienceThreadId,
+        token: 'last words',
+        userId: 'user-owner',
+      });
+      await shared.publishDone({
+        runId: 'run-1',
+        threadId: audienceThreadId,
+        userId: 'user-owner',
+      } as unknown as PublishDoneInput);
+
+      const [entries] = mockRedisService.publishBatch.mock.calls[0];
+      expect(
+        entries.map(
+          (entry: { message: { data: { recipientUserIds: string[] } } }) =>
+            entry.message.data.recipientUserIds,
+        ),
+      ).toEqual([
+        ['user-owner', 'user-teammate'],
+        ['user-owner', 'user-teammate'],
+      ]);
+    });
+
+    it('names everyone with access on a coalesced token flush', async () => {
+      await shared.publishToken({
+        runId: 'run-1',
+        threadId: audienceThreadId,
+        token: 'hello',
+        userId: 'user-owner',
+      });
+      await vi.advanceTimersByTimeAsync(DEFAULT_COALESCE_WINDOW_MS + 1);
+
+      const [, message] = mockRedisService.publish.mock.calls.at(-1) ?? [];
+      expect(message.type).toBe('agent:token');
+      expect(message.data.recipientUserIds).toEqual([
+        'user-owner',
+        'user-teammate',
+      ]);
+    });
+
+    it('leaves an event without a thread for its sender alone', async () => {
+      await shared.publishRunStart({
+        label: 'Run',
+        organizationId: audienceOrganizationId,
+        runId: 'run-1',
+        timestamp: '2026-11-11T10:00:00.000Z',
+        userId: 'user-owner',
+      });
+
+      const [, message] = mockRedisService.publish.mock.calls.at(-1) ?? [];
+      expect(message.data).not.toHaveProperty('recipientUserIds');
+      expect(resolve).not.toHaveBeenCalled();
+    });
+
+    it('still publishes to the sender when the audience cannot be resolved', async () => {
+      resolve.mockResolvedValue(null);
+
+      await shared.publishReasoning({
+        content: 'thinking',
+        threadId: audienceThreadId,
+        userId: 'user-owner',
+      });
+
+      const [, message] = mockRedisService.publish.mock.calls.at(-1) ?? [];
+      expect(message.data).not.toHaveProperty('recipientUserIds');
+      expect(message.data.userId).toBe('user-owner');
+    });
+  });
+
   describe('publishDone', () => {
     it('should publish a single-entry batch with type agent:done when nothing is buffered', async () => {
       const data = {

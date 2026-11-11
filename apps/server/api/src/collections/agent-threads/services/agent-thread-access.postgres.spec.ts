@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
+import { AgentThreadAudienceService } from '@api/collections/agent-threads/services/agent-thread-audience.service';
 import { AgentThreadSharesService } from '@api/collections/agent-threads/services/agent-thread-shares.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { prepareAgentThreadsForRelocation } from '@api/collections/agent-threads/utils/agent-thread-relocation.util';
@@ -14,6 +15,10 @@ import {
   AgentThreadShareScope,
   MemberRole,
 } from '@genfeedai/contracts';
+import {
+  AGENT_CHAT_CHANNEL,
+  AGENT_THREAD_ACCESS_REVOKED_EVENT_TYPE,
+} from '@genfeedai/contracts/constants';
 import { PrismaClient } from '@genfeedai/prisma';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -66,18 +71,44 @@ describe.skipIf(!connectionString)(
         database() as unknown as PrismaService,
         brandAccess(),
       );
-    const shares = () =>
-      new AgentThreadSharesService(
-        database() as unknown as PrismaService,
-        access(),
-        brandAccess(),
-      );
     const threads = () =>
       new AgentThreadsService(
         database() as unknown as PrismaService,
         logger as never,
         {} as never,
       );
+    /** What the API published on the `agent-chat` channel. */
+    let published: Array<{ channel: string; message: unknown }> = [];
+    const redis = {
+      publish: async (channel: string, message: unknown) => {
+        published.push({ channel, message });
+      },
+    };
+    const audience = () =>
+      new AgentThreadAudienceService(
+        database() as unknown as PrismaService,
+        access(),
+        threads(),
+        redis as never,
+        logger as never,
+      );
+    const shares = (live = audience()) =>
+      new AgentThreadSharesService(
+        database() as unknown as PrismaService,
+        access(),
+        brandAccess(),
+        live,
+      );
+    const revokedFor = () =>
+      published
+        .filter(
+          ({ channel, message }) =>
+            channel === AGENT_CHAT_CHANNEL &&
+            (message as { type: string }).type ===
+              AGENT_THREAD_ACCESS_REVOKED_EVENT_TYPE,
+        )
+        .map(({ message }) => (message as { data: { userId: string } }).data)
+        .map((data) => data.userId);
 
     let suffix: string;
     let organizationId: string;
@@ -175,6 +206,7 @@ describe.skipIf(!connectionString)(
 
     beforeEach(async () => {
       vi.clearAllMocks();
+      published = [];
       suffix = randomUUID();
       owner = await createUser(id('owner'));
       teammate = await createUser(id('teammate'));
@@ -959,6 +991,109 @@ describe.skipIf(!connectionString)(
         ).rejects.toMatchObject({
           code: 'P2002',
         });
+      });
+    });
+
+    describe('live audience (#9938)', () => {
+      const recipients = async (threadId: string, live = audience()) =>
+        ((await live.resolve(threadId))?.recipientUserIds ?? []).sort();
+
+      it('is the owner alone while the thread is not shared', async () => {
+        const thread = await createThread(owner, { brandId: brandA });
+
+        await expect(recipients(thread.id)).resolves.toEqual([owner]);
+      });
+
+      it('adds the member a thread is shared with, and no one else', async () => {
+        const thread = await createThread(owner, { brandId: brandA });
+        await share(
+          thread.id,
+          AgentThreadShareScope.MEMBER,
+          AgentThreadShareLevel.VIEW,
+          { targetUserId: teammate },
+        );
+
+        await expect(recipients(thread.id)).resolves.toEqual(
+          [owner, teammate].sort(),
+        );
+      });
+
+      it('reaches an organization share only through members who still reach the thread brand', async () => {
+        const thread = await createThread(owner, { brandId: brandA });
+        await share(
+          thread.id,
+          AgentThreadShareScope.ORGANIZATION,
+          AgentThreadShareLevel.VIEW,
+        );
+
+        // brandBOnly is assigned to the other brand; the admin reaches all.
+        await expect(recipients(thread.id)).resolves.toEqual(
+          [owner, teammate, admin].sort(),
+        );
+      });
+
+      it('is the owner alone for a master thread', async () => {
+        const master = await createThread(owner, {
+          kind: AgentThreadKind.MASTER,
+        });
+
+        await expect(recipients(master.id)).resolves.toEqual([owner]);
+      });
+
+      it('drops a removed share at once and tells the member whose access ended', async () => {
+        const thread = await createThread(owner, { brandId: brandA });
+        const grant = await share(
+          thread.id,
+          AgentThreadShareScope.MEMBER,
+          AgentThreadShareLevel.VIEW,
+          { targetUserId: teammate },
+        );
+        // A different API process resolved this thread's audience earlier.
+        const removing = audience();
+        await shares(removing).revoke(actor(owner), thread.id, grant.id);
+
+        expect(revokedFor()).toEqual([teammate]);
+        await expect(recipients(thread.id, removing)).resolves.toEqual([owner]);
+      });
+
+      it('keeps a member who still reaches the thread through another share', async () => {
+        const thread = await createThread(owner, { brandId: brandA });
+        const grant = await share(
+          thread.id,
+          AgentThreadShareScope.MEMBER,
+          AgentThreadShareLevel.VIEW,
+          { targetUserId: teammate },
+        );
+        await share(
+          thread.id,
+          AgentThreadShareScope.ORGANIZATION,
+          AgentThreadShareLevel.VIEW,
+        );
+        await shares().revoke(actor(owner), thread.id, grant.id);
+
+        expect(revokedFor()).toEqual([]);
+        await expect(recipients(thread.id)).resolves.toContain(teammate);
+      });
+
+      it('drops a member who loses brand access and tells them', async () => {
+        const thread = await createThread(owner, { brandId: brandA });
+        await share(
+          thread.id,
+          AgentThreadShareScope.MEMBER,
+          AgentThreadShareLevel.VIEW,
+          { targetUserId: teammate },
+        );
+        const live = audience();
+        await expect(recipients(thread.id, live)).resolves.toContain(teammate);
+
+        await database().member.updateMany({
+          data: { isActive: false },
+          where: { organizationId, userId: teammate },
+        });
+        await live.refresh(thread.id);
+
+        expect(revokedFor()).toEqual([teammate]);
+        await expect(recipients(thread.id, live)).resolves.toEqual([owner]);
       });
     });
 

@@ -41,6 +41,28 @@ export interface AgentThreadStatusEvent extends AgentThreadRunState {
 }
 
 /**
+ * Who a thread-scoped `agent-chat` event is delivered to (#9938). The API
+ * resolves the audience with the thread access check and the gateway routes by
+ * it, so the gateway never decides access. The gateway strips this field
+ * before the event reaches a socket.
+ */
+export interface AgentChatAudience {
+  /** Members with live access to the thread, the owner included. */
+  recipientUserIds?: string[];
+}
+
+/**
+ * A member lost access to a thread (#9938): the share was removed, or their
+ * role or brand access no longer reaches it. Delivered to that member only.
+ */
+export interface AgentThreadAccessRevokedEvent {
+  organizationId: string;
+  threadId: string;
+  timestamp: string;
+  userId: string;
+}
+
+/**
  * One durable execution status in every vocabulary an agent turn is shown in
  * (#9738). The table in `AGENT_RUN_VOCABULARY` is the only mapping.
  */

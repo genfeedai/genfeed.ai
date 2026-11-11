@@ -1,6 +1,13 @@
 import { getDeploymentFromReader } from '@genfeedai/config/deployment';
-import { AGENT_THREAD_STATUS_EVENT_TYPE } from '@genfeedai/contracts/constants';
-import type { AgentThreadStatusEvent } from '@genfeedai/contracts/interfaces';
+import {
+  AGENT_THREAD_ACCESS_REVOKED_EVENT_TYPE,
+  AGENT_THREAD_STATUS_EVENT_TYPE,
+} from '@genfeedai/contracts/constants';
+import type {
+  AgentChatAudience,
+  AgentThreadAccessRevokedEvent,
+  AgentThreadStatusEvent,
+} from '@genfeedai/contracts/interfaces';
 import {
   isBearerScheme,
   parseAuthorizationHeader,
@@ -46,6 +53,10 @@ import {
 import type { Server, Socket } from 'socket.io';
 import { countAgentThreadStatus } from './agent-thread-status.metrics';
 import { getOrganizationUserRoomName, getUserRoomName } from './room-name.util';
+import {
+  getMemberRoomNames,
+  ThreadAccessDenials,
+} from './thread-audience-routing';
 
 @Injectable()
 @WSGateway({
@@ -61,6 +72,7 @@ export class WebSocketGateway
   private clients: Map<string, ClientInfo> = new Map();
   private userToSocket: Map<string, Set<string>> = new Map();
   private isServerReady = false;
+  private readonly revokedThreadAccess = new ThreadAccessDenials();
   /** Lazily built once; `jose` caches the remote JWKS internally. */
   private betterAuthVerifier?: BetterAuthJwksVerifier;
 
@@ -414,7 +426,11 @@ export class WebSocketGateway
 
   private handleAgentChat(event: {
     type: string;
-    data: { userId: string; threadId: string };
+    data: {
+      organizationId?: string;
+      threadId: string;
+      userId: string;
+    } & AgentChatAudience;
   }): void {
     if (!this.isServerOperational()) {
       this.warnServerNotReady('agent-chat', event);
@@ -423,7 +439,27 @@ export class WebSocketGateway
 
     const { type, data } = event;
     if (type === AGENT_THREAD_STATUS_EVENT_TYPE) {
-      this.handleAgentThreadStatus(data as Partial<AgentThreadStatusEvent>);
+      this.handleAgentThreadStatus(
+        data as Partial<AgentThreadStatusEvent> & AgentChatAudience,
+      );
+      return;
+    }
+    if (type === AGENT_THREAD_ACCESS_REVOKED_EVENT_TYPE) {
+      this.handleAgentThreadAccessRevoked(
+        data as Partial<AgentThreadAccessRevokedEvent>,
+      );
+      return;
+    }
+
+    if (Array.isArray(data?.recipientUserIds) && data.organizationId) {
+      const { recipientUserIds, ...payload } = data;
+      this.emitToThreadAudience(
+        type,
+        payload,
+        data.organizationId,
+        data.threadId,
+        recipientUserIds,
+      );
       return;
     }
 
@@ -438,19 +474,89 @@ export class WebSocketGateway
     );
   }
 
+  private resolveMemberRooms(
+    organizationId: string,
+    userIds: readonly string[],
+  ): string[] {
+    return getMemberRoomNames(
+      organizationId,
+      userIds,
+      getDeploymentFromReader((key) => this.configService.get(key)) ===
+        'self-hosted',
+    );
+  }
+
   /**
-   * A thread's run status changed (#5636). The thread list is per user, so the
-   * event goes to the owner's sockets that authenticated for the thread's
-   * organization — never to the user's sockets for another organization and
-   * never to other members of this one. An event that does not name both is
-   * dropped: there is no unscoped fallback.
-   *
-   * Self-hosted is single-tenant, so a user's own room cannot cross a tenant
-   * boundary; it also reaches a socket whose token carries no organization.
+   * Delivers a thread's event to the members the API resolved with the thread
+   * access check (#9938). The gateway routes by that list and never decides
+   * access itself; the list is not sent on to the sockets.
    */
-  private handleAgentThreadStatus(data: Partial<AgentThreadStatusEvent>): void {
+  private emitToThreadAudience(
+    type: string,
+    payload: unknown,
+    organizationId: string,
+    threadId: string,
+    recipientUserIds: readonly string[],
+  ): string[] {
+    const userIds = this.revokedThreadAccess.filter(
+      organizationId,
+      threadId,
+      recipientUserIds,
+    );
+    if (userIds.length === 0) {
+      return [];
+    }
+    const rooms = this.resolveMemberRooms(organizationId, userIds);
+    this.server.to(rooms).emit(type, payload);
+    this.logger.debug(
+      `Sent ${type} to ${userIds.length} member(s) for thread ${threadId}`,
+    );
+    return rooms;
+  }
+
+  /**
+   * A member lost access to a thread (#9938). Their sockets for the thread's
+   * organization are told so the open stream ends, and the thread's events stop
+   * reaching them even if another API process still holds an older audience.
+   */
+  private handleAgentThreadAccessRevoked(
+    data: Partial<AgentThreadAccessRevokedEvent>,
+  ): void {
     const { organizationId, threadId, userId } = data;
-    if (!organizationId || !userId) {
+    if (!organizationId || !threadId || !userId) {
+      this.logger.warn('Dropped thread access revoke without scope', {
+        ...this.context,
+        threadId,
+      });
+      return;
+    }
+
+    this.revokedThreadAccess.deny(organizationId, threadId, userId);
+    this.server
+      .to(this.resolveMemberRooms(organizationId, [userId]))
+      .emit(AGENT_THREAD_ACCESS_REVOKED_EVENT_TYPE, {
+        organizationId,
+        threadId,
+        timestamp: data.timestamp,
+        userId,
+      });
+    this.logger.debug(`Sent thread access revoke for thread ${threadId}`);
+  }
+
+  /**
+   * A thread's run status changed (#5636). The API names the members with live
+   * access to the thread (#9938); the event goes to their sockets that
+   * authenticated for the thread's organization — never to a user's sockets for
+   * another organization and never to anyone the API did not name. An event
+   * that does not name an organization and a user is dropped: there is no
+   * unscoped fallback.
+   */
+  private handleAgentThreadStatus(
+    data: Partial<AgentThreadStatusEvent> & AgentChatAudience,
+  ): void {
+    const { recipientUserIds, ...event } = data;
+    const { organizationId, threadId, userId } = event;
+    if (!organizationId || !userId || !threadId) {
       countAgentThreadStatus('dropped', 1, { reason: 'missing_scope' });
       this.logger.warn('Dropped thread status without organization or user', {
         ...this.context,
@@ -459,25 +565,21 @@ export class WebSocketGateway
       return;
     }
 
-    const room = getOrganizationUserRoomName(organizationId, userId);
-    const isSingleTenant =
-      getDeploymentFromReader((key) => this.configService.get(key)) ===
-      'self-hosted';
-    const target = isSingleTenant
-      ? this.server.to(room).to(getUserRoomName(userId))
-      : this.server.to(room);
-
-    target.emit(AGENT_THREAD_STATUS_EVENT_TYPE, data);
-    const rooms = this.server.sockets?.adapter?.rooms;
-    const recipients = new Set(rooms?.get(room));
-    if (isSingleTenant) {
-      for (const socketId of rooms?.get(getUserRoomName(userId)) ?? []) {
+    const rooms = this.emitToThreadAudience(
+      AGENT_THREAD_STATUS_EVENT_TYPE,
+      event,
+      organizationId,
+      threadId,
+      recipientUserIds?.length ? recipientUserIds : [userId],
+    );
+    const adapterRooms = this.server.sockets?.adapter?.rooms;
+    const recipients = new Set<string>();
+    for (const room of rooms) {
+      for (const socketId of adapterRooms?.get(room) ?? []) {
         recipients.add(socketId);
       }
     }
     countAgentThreadStatus('delivered', recipients.size);
-
-    this.logger.debug(`Sent thread status to ${room} for thread ${threadId}`);
   }
 
   private handleVideoProgress(data: VideoProgressEvent): void {
