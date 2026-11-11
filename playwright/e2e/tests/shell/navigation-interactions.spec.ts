@@ -307,11 +307,14 @@ test.describe('Shell — navigation interactions', () => {
     const rail = desktopRail.getByRole('navigation', { name: 'Apps' });
     await expect(rail).toBeVisible({ timeout: 10_000 });
 
-    // The rail items are icon-only links named by aria-label.
+    // The app items are icon-only links named by aria-label. Admin, Connectors,
+    // Settings and Help share the nav but are not apps.
     await expect
       .poll(() =>
         rail
-          .getByRole('link')
+          .locator(
+            '[data-testid^="app-rail-item-"]:not([data-testid="app-rail-item-admin"])',
+          )
           .evaluateAll((links) =>
             links.map((link) => link.getAttribute('aria-label') ?? ''),
           ),
