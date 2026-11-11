@@ -23,6 +23,7 @@ import {
   pickAgentThreadMetadata,
 } from '@api/collections/agent-threads/utils/agent-thread-metadata.util';
 import { resolveThreadModeForSource } from '@api/collections/agent-threads/utils/agent-thread-mode-for-source.util';
+import { TeammateMentionsService } from '@api/collections/mentions/services/teammate-mentions.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
@@ -72,6 +73,7 @@ export class AgentThreadsController {
     private readonly agentThreadAccessService: AgentThreadAccessService,
     private readonly agentScopeContextService: AgentScopeContextService,
     private readonly agentMessagesService: AgentMessagesService,
+    private readonly teammateMentionsService: TeammateMentionsService,
     private readonly usersService: UsersService,
     private readonly loggerService: LoggerService,
   ) {}
@@ -172,7 +174,10 @@ export class AgentThreadsController {
         { cursor, limit: messageLimit },
       );
 
-      const chronological = [...page.docs].reverse();
+      const chronological = await this.teammateMentionsService.attachMentions(
+        organizationId,
+        [...page.docs].reverse(),
+      );
 
       return serializeCollection(req, ThreadMessageSerializer, {
         docs: chronological,

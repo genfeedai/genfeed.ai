@@ -4,6 +4,7 @@ import { AgentThreadTurnsController } from '@api/collections/agent-threads/contr
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
 import type { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import type { TeammateMentionsService } from '@api/collections/mentions/services/teammate-mentions.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
@@ -141,6 +142,10 @@ describe('AgentThreadsController', () => {
       accessService as unknown as AgentThreadAccessService,
       scopeService as unknown as AgentScopeContextService,
       messagesService as unknown as AgentMessagesService,
+      {
+        attachMentions: async (_org: string, docs: unknown[]) =>
+          docs.map((doc) => ({ ...(doc as object), mentions: [] })),
+      } as unknown as TeammateMentionsService,
       usersService as unknown as UsersService,
       loggerService as unknown as LoggerService,
     );
