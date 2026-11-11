@@ -6,8 +6,7 @@ import { IngredientReviewRequestsService } from '@services/management/ingredient
 
 export const INGREDIENT_REVIEW_REQUESTS_QUERY_KEY =
   'ingredient-review-requests';
-export const INGREDIENT_REVIEW_CANDIDATES_QUERY_KEY =
-  'ingredient-review-candidates';
+const INGREDIENT_REVIEW_CANDIDATES_QUERY_KEY = 'ingredient-review-candidates';
 
 const NO_REQUESTS: Task[] = [];
 
