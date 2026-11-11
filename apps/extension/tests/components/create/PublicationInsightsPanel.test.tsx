@@ -289,7 +289,7 @@ describe('publication detail and explicit recovery', () => {
       screen.getByRole('link', { name: 'Reconnect account' }),
     ).toHaveAttribute(
       'href',
-      'https://app.genfeed.ai/org%20space/~/connectors/channels',
+      'https://app.genfeed.ai/org%20space/brand%20space/connectors/channels',
     );
   });
   it('offers reload as read and disables all actions during an operation', () => {
