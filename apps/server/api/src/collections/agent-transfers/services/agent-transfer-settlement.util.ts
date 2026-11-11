@@ -91,6 +91,9 @@ export function buildTransferResultContent(input: {
   if (input.status === AgentTransferStatus.CANCELLED) {
     return `${title} was cancelled.`;
   }
+  if (input.status === AgentTransferStatus.DECLINED) {
+    return `${title} was declined.`;
+  }
   return input.failureReason
     ? `${title} failed: ${input.failureReason}`
     : `${title} failed.`;
