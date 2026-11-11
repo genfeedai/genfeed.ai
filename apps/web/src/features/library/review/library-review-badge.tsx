@@ -16,11 +16,21 @@ export default function LibraryReviewBadge({
   className?: string;
   state: LibraryReviewState | null | undefined;
 }) {
-  const translate = useTranslations('pages.library.teamReview.state');
-
   if (!state) {
     return null;
   }
+
+  return <ReviewStateBadge className={className} state={state} />;
+}
+
+function ReviewStateBadge({
+  className,
+  state,
+}: {
+  className?: string;
+  state: LibraryReviewState;
+}) {
+  const translate = useTranslations('pages.library.teamReview.state');
 
   return (
     <Badge className={className} status={state}>
