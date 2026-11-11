@@ -8,7 +8,7 @@ describe('CommunityNav', () => {
     ['Creators', '/community/creators'],
     ['Videos', '/community/videos'],
     ['Images', '/community/images'],
-    ['Articles', '/articles'],
+    ['Articles', '/community/articles'],
     ['Posts', '/posts'],
   ])('links %s to %s', (name, href) => {
     render(<CommunityNav active="discover" />);

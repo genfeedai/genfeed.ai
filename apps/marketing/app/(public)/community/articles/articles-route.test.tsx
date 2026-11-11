@@ -62,19 +62,19 @@ function articlesMetadataProps(page?: string) {
 }
 
 describe('generateMetadata', () => {
-  it('canonicalises /articles and assigns its dedicated image', async () => {
+  it('canonicalises /community/articles and assigns its dedicated image', async () => {
     const parent = Promise.resolve({
       openGraph: { images: [{ url: 'https://cdn.genfeed.ai/og.png' }] },
     }) as unknown as Parameters<typeof generateMetadata>[1];
 
     const meta = await generateMetadata(articlesMetadataProps(), parent);
 
-    expect(meta.alternates?.canonical).toMatch(/\/articles$/);
+    expect(meta.alternates?.canonical).toMatch(/\/community\/articles$/);
     expect(meta.title).toBe('Articles from the Genfeed Community | Genfeed.ai');
     expect(meta.description).toBe(
       'Read what creators publish on Genfeed: guides, case studies and stories, each on its author profile at genfeed.ai/@handle.',
     );
-    expect(meta.openGraph?.url).toBe('https://genfeed.ai/articles');
+    expect(meta.openGraph?.url).toBe('https://genfeed.ai/community/articles');
     expect(meta.openGraph?.images).toEqual([
       expect.objectContaining({
         url: 'https://genfeed.ai/og/articles',
@@ -100,8 +100,8 @@ describe('generateMetadata', () => {
   });
 
   it.each([
-    ['2', 'https://genfeed.ai/articles?page=2', '– Page 2'],
-    ['3', 'https://genfeed.ai/articles?page=3', '– Page 3'],
+    ['2', 'https://genfeed.ai/community/articles?page=2', '– Page 2'],
+    ['3', 'https://genfeed.ai/community/articles?page=3', '– Page 3'],
   ])(
     'gives page %s a self-referencing canonical and unique copy',
     async (rawPage, canonical, pageLabel) => {
@@ -133,7 +133,9 @@ describe('generateMetadata', () => {
         EMPTY_PARENT,
       );
 
-      expect(meta.alternates?.canonical).toBe('https://genfeed.ai/articles');
+      expect(meta.alternates?.canonical).toBe(
+        'https://genfeed.ai/community/articles',
+      );
       expect(meta.title).toBe(
         'Articles from the Genfeed Community | Genfeed.ai',
       );

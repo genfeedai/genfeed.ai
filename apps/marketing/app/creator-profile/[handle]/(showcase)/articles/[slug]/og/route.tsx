@@ -1,8 +1,8 @@
 import { getEditorialArticleCard } from '@data/editorial-og.data';
 import { loadSatoshiSatoriFonts } from '@genfeedai/fonts/og';
+import { getArticleCoverPalette } from '@web-components/creator/article-cover.palette';
 import { BrandMark } from '@web-components/og/brand-mark';
 import { renderMarketingOg } from '@web-components/og/marketing-og';
-import { getArticleCoverPalette } from '@website/(content)/articles/article-cover.palette';
 import { ImageResponse } from 'next/og';
 import { getCreatorArticleCached } from '../article-loader';
 import { getDrawableArtwork } from './artwork';
