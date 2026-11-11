@@ -5,8 +5,10 @@ export const APP_ROUTES = {
   ROOT: '/',
   /**
    * Everything an organization connects, on one page (#9905). The section is
-   * part of the path; the bare root opens Agents. Channels follow the brand
-   * selected in the top bar, the other sections are per organization.
+   * part of the path; the bare root opens Agents. Channels show one brand:
+   * the brand in the URL under `/:org/:brand/connectors/channels`, else
+   * `?brand=<slug>` on `/:org/~/connectors/channels`. The other sections are
+   * per organization.
    */
   CONNECTORS: {
     AGENTS: '/connectors/agents',

@@ -9,6 +9,9 @@ const mocks = vi.hoisted(() => ({
   hasBrandId: true,
   isLoading: false,
   isReady: true,
+  replace: vi.fn(),
+  routeBrandSlug: '',
+  search: '',
   selectedBrand: null as { id: string; slug: string } | null,
   setPrimaryAction: vi.fn(),
   useBrandDetail: vi.fn(),
@@ -18,6 +21,11 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: mocks.replace }),
+  useSearchParams: () => new URLSearchParams(mocks.search),
+}));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
@@ -33,7 +41,7 @@ vi.mock('@contexts/user/brand-context/brand-context.helpers', () => ({
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ orgSlug: 'acme' }),
+  useOrgUrl: () => ({ brandSlug: mocks.routeBrandSlug, orgSlug: 'acme' }),
 }));
 
 vi.mock('@/hooks/pages/use-brand-detail/use-brand-detail', () => ({
@@ -72,12 +80,16 @@ describe('ConnectorsChannelsPage', () => {
     mocks.hasBrandId = true;
     mocks.isLoading = false;
     mocks.isReady = true;
+    mocks.replace.mockClear();
+    mocks.routeBrandSlug = '';
+    mocks.search = '';
     mocks.selectedBrand = null;
     mocks.setPrimaryAction.mockClear();
     mocks.useBrandDetail.mockClear();
   });
 
-  it('shows the accounts of the brand selected in the top bar and offers Connect account', () => {
+  it('shows the accounts of the brand in the URL and offers Connect account', () => {
+    mocks.routeBrandSlug = 'coffee';
     mocks.brand = { id: 'brand-1' };
     mocks.selectedBrand = { id: 'brand-1', slug: 'coffee' };
 
@@ -88,10 +100,24 @@ describe('ConnectorsChannelsPage', () => {
       fallbackBrandSlug: 'coffee',
     });
     expect(mocks.setPrimaryAction).toHaveBeenCalledWith('Connect account');
+    expect(mocks.replace).not.toHaveBeenCalled();
   });
 
-  it('shows the first brand of the organization when the route selects none', () => {
+  it('moves the organization route to the selected brand', () => {
+    mocks.brand = { id: 'brand-1' };
+    mocks.selectedBrand = { id: 'brand-1', slug: 'coffee' };
+
+    render(<ConnectorsChannelsPage />);
+
+    expect(mocks.replace).toHaveBeenCalledWith(
+      '/acme/coffee/connectors/channels',
+    );
+    expect(screen.queryByTestId('accounts-table')).not.toBeInTheDocument();
+  });
+
+  it('moves the organization route to its first brand, keeping the query string', () => {
     mocks.brand = { id: 'brand-2' };
+    mocks.search = 'credential=cred-1';
     mocks.brands = [
       { id: 'brand-9', organizationSlug: 'other', slug: 'elsewhere' },
       { id: 'brand-2', organizationSlug: 'acme', slug: 'tea' },
@@ -100,10 +126,9 @@ describe('ConnectorsChannelsPage', () => {
 
     render(<ConnectorsChannelsPage />);
 
-    expect(screen.getByTestId('accounts-table')).toBeInTheDocument();
-    expect(mocks.useBrandDetail).toHaveBeenCalledWith({
-      fallbackBrandSlug: 'tea',
-    });
+    expect(mocks.replace).toHaveBeenCalledWith(
+      '/acme/tea/connectors/channels?credential=cred-1',
+    );
   });
 
   it('says so when the organization has no brand', () => {
@@ -115,6 +140,7 @@ describe('ConnectorsChannelsPage', () => {
 
     expect(screen.queryByTestId('accounts-table')).not.toBeInTheDocument();
     expect(screen.getByText('Brand not found.')).toBeInTheDocument();
+    expect(mocks.replace).not.toHaveBeenCalled();
   });
 
   it('says so when no brand is selected', () => {
@@ -124,7 +150,8 @@ describe('ConnectorsChannelsPage', () => {
     expect(screen.getByText('Brand not found.')).toBeInTheDocument();
   });
 
-  it('says so when the selected brand cannot be loaded', () => {
+  it('says so when the brand in the URL cannot be loaded', () => {
+    mocks.routeBrandSlug = 'coffee';
     mocks.selectedBrand = { id: 'brand-1', slug: 'coffee' };
     mocks.brand = null;
 

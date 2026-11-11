@@ -465,6 +465,15 @@ describe('workspace shell trusted registry', () => {
       surfaceKey: 'connectors',
     });
     expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/connectors/channels'),
+    ).toMatchObject({
+      accessPolicy: 'brand-member',
+      breadcrumb: { leafLabel: 'Channels', rootLabel: 'Connectors' },
+      canonicalUrl: '/:orgSlug/:brandSlug/connectors/channels',
+      scope: 'brand',
+      surfaceKey: 'connectors',
+    });
+    expect(
       resolveWorkspaceShellRoute('/acme/~/connectors/providers'),
     ).toMatchObject({
       breadcrumb: { leafLabel: 'AI providers', rootLabel: 'Connectors' },

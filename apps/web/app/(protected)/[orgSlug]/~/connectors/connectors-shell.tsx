@@ -22,7 +22,10 @@ import {
 } from './connectors-sections';
 
 /**
- * One page for everything an organization connects (#9905). The section
+ * One page for everything an organization connects (#9905). It lives at
+ * `/:org/~/connectors/*` and, so the brand stays selected, at
+ * `/:org/:brand/connectors/*`; the section switch keeps whichever scope the
+ * page was opened in. The section
  * switch is a view menu in the sub bar, never a tab strip. A section that
  * fails to load shows its own error and leaves the switch, and so the other
  * sections, usable.
@@ -30,7 +33,7 @@ import {
 export default function ConnectorsShell({ children }: LayoutProps) {
   const translate = useTranslations('pages.connectors');
   const { push } = useRouter();
-  const { orgHref } = useOrgUrl();
+  const { href } = useOrgUrl();
   const [primaryAction, setPrimaryAction] =
     useState<ConnectorsPrimaryAction | null>(null);
   const segment = useSelectedLayoutSegment();
@@ -52,7 +55,7 @@ export default function ConnectorsShell({ children }: LayoutProps) {
                 (config) => config.section === section,
               );
               if (target) {
-                push(orgHref(target.path));
+                push(href(target.path));
               }
             }}
             options={CONNECTORS_SECTIONS.map((config) => {

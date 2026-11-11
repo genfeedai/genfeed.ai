@@ -23,11 +23,16 @@ vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({
 }));
 
 const orgScope = vi.hoisted(() => ({
+  brandSlug: '',
   orgSlug: 'acme' as string | undefined,
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
+    activeHref: (href: string) =>
+      orgScope.brandSlug
+        ? `/${orgScope.orgSlug}/${orgScope.brandSlug}${href}`
+        : `/${orgScope.orgSlug}/~${href}`,
     orgHref: (href: string) => `/${orgScope.orgSlug}/~${href}`,
     orgSlug: orgScope.orgSlug,
   }),
@@ -77,6 +82,7 @@ import RailAccount from './RailAccount';
 
 describe('RailAccount', () => {
   beforeEach(() => {
+    orgScope.brandSlug = '';
     orgScope.orgSlug = 'acme';
     route.pathname = '/acme/~/workspace/overview';
     auth.isSignedIn = true;
@@ -115,6 +121,16 @@ describe('RailAccount', () => {
       'aria-current',
       'page',
     );
+  });
+
+  it('opens Connectors on the selected brand and marks it current there', () => {
+    orgScope.brandSlug = 'moonrise';
+    route.pathname = '/acme/moonrise/connectors/channels';
+    render(<RailAccount />);
+
+    const link = screen.getByRole('link', { name: 'Connectors' });
+    expect(link).toHaveAttribute('href', '/acme/moonrise/connectors/agents');
+    expect(link).toHaveAttribute('aria-current', 'page');
   });
 
   it('pins Settings above Help and links it to the organization settings', () => {

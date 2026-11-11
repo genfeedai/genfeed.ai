@@ -3,10 +3,14 @@ import type { Page, Route } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { generateMockBrand } from '../../utils/api-interceptor';
-import { orgPath } from '../../utils/app-chrome';
+import { brandPath, orgPath } from '../../utils/app-chrome';
 import { exactUrlPattern } from '../../utils/exact-url';
 
 const CONNECTED_ACCOUNTS_ROUTE = orgPath(APP_ROUTES.CONNECTORS.CHANNELS);
+// The organization route moves to the brand route of the selected brand.
+const CONNECTED_ACCOUNTS_BRAND_ROUTE = brandPath(
+  APP_ROUTES.CONNECTORS.CHANNELS,
+);
 
 async function mockBrandWithXAccount(page: Page): Promise<void> {
   const brand = generateMockBrand({
@@ -81,9 +85,10 @@ test.describe('Accounts after the OAuth redirect', () => {
       { timeout: 60000, waitUntil: 'domcontentloaded' },
     );
 
-    // The callback returns to the stored route exactly (Connectors → Channels).
+    // The callback returns to the stored Connectors → Channels route, which
+    // opens on the selected brand's route.
     await expect(authenticatedPage).toHaveURL(
-      exactUrlPattern(CONNECTED_ACCOUNTS_ROUTE, authenticatedPage.url()),
+      exactUrlPattern(CONNECTED_ACCOUNTS_BRAND_ROUTE, authenticatedPage.url()),
       { timeout: 30000 },
     );
     const table = authenticatedPage.getByRole('table', {
