@@ -647,7 +647,6 @@
     "apps/web/src/components/shell/use-generation-toasts.ts": 2,
     "apps/web/src/components/shell/use-messages-unread-count.ts": 1,
     "apps/web/src/components/shell/use-notification-inbox.ts": 1,
-    "apps/web/src/components/workspace-shell/props/agent-threads-panel.props.ts": 1,
     "apps/web/src/components/workspace-shell/WorkspaceSurfaceAdapterContext.tsx": 1,
     "apps/web/src/config/page-help.config.ts": 1,
     "apps/web/src/config/personal-settings-anchor.ts": 1,

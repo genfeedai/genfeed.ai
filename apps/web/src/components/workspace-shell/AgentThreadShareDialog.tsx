@@ -37,7 +37,7 @@ import type {
 type ShareChoice = 'private' | 'people' | 'brand' | 'organization';
 type MemberLevel = AgentThreadShareLevel | 'none';
 
-export interface AgentThreadShareDialogProps {
+interface AgentThreadShareDialogProps {
   apiService: AgentThreadsPanelApi;
   isOpen: boolean;
   members: readonly AgentThreadMember[];
@@ -48,7 +48,7 @@ export interface AgentThreadShareDialogProps {
 }
 
 /** Which radio a thread's live shares read as. A brand or org share wins. */
-export function resolveShareChoice(
+function resolveShareChoice(
   shares: readonly AgentThreadShare[],
 ): ShareChoice {
   if (shares.some((s) => s.scope === AgentThreadShareScope.ORGANIZATION)) {
