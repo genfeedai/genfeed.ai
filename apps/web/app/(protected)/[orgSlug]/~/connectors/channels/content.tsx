@@ -1,6 +1,8 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { getBrandOrganizationSlug } from '@contexts/user/brand-context/brand-context.helpers';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
 import { buildSocialConnections } from '@ui/modals/brands/brand/ModalBrand.types';
@@ -14,12 +16,20 @@ import { useConnectorsPrimaryAction } from '../connectors-primary-action';
  * Connectors → Channels: the connected accounts of the brand selected in the
  * top bar, with each account's status and reconnect action. Each account's
  * posting times, history import and health live in its Settings dialog.
+ *
+ * Connectors is an organization page, and an organization route carries no
+ * brand, so the brand context has none selected there. The page then shows
+ * the first brand of the organization instead of a dead end.
  */
 export default function ConnectorsChannelsPage() {
   const translate = useTranslations('pages.brandSocialMedia');
   const [isConnectAccountModalOpen, setIsConnectAccountModalOpen] =
     useState(false);
-  const { isReady, selectedBrand } = useBrand();
+  const { brands, isReady, selectedBrand } = useBrand();
+  const { orgSlug } = useOrgUrl();
+  const channelsBrand =
+    selectedBrand ??
+    brands.find((candidate) => getBrandOrganizationSlug(candidate) === orgSlug);
   const {
     brand,
     brandId,
@@ -27,7 +37,7 @@ export default function ConnectorsChannelsPage() {
     hasBrandId,
     isLoading,
     connectedPlatformsCount,
-  } = useBrandDetail({ fallbackBrandSlug: selectedBrand?.slug });
+  } = useBrandDetail({ fallbackBrandSlug: channelsBrand?.slug });
   // The accounts table also surfaces disconnected-but-not-deleted
   // credentials as "Needs reconnect", so it reads straight off the brand
   // instead of the connected-only list `useBrandDetail` exposes elsewhere.
@@ -41,7 +51,7 @@ export default function ConnectorsChannelsPage() {
     openConnectAccountModal,
   );
 
-  if (isReady && !selectedBrand) {
+  if (isReady && !channelsBrand) {
     return (
       <Card>
         <p className="text-sm text-muted-foreground">

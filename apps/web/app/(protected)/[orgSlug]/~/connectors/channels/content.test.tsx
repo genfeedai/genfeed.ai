@@ -5,6 +5,7 @@ import ConnectorsChannelsPage from './content';
 
 const mocks = vi.hoisted(() => ({
   brand: null as { id: string } | null,
+  brands: [] as Array<{ id: string; organizationSlug: string; slug: string }>,
   hasBrandId: true,
   isLoading: false,
   isReady: true,
@@ -20,9 +21,19 @@ vi.mock('next-intl', async () => {
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
+    brands: mocks.brands,
     isReady: mocks.isReady,
     selectedBrand: mocks.selectedBrand,
   }),
+}));
+
+vi.mock('@contexts/user/brand-context/brand-context.helpers', () => ({
+  getBrandOrganizationSlug: (brand: { organizationSlug: string }) =>
+    brand.organizationSlug,
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ orgSlug: 'acme' }),
 }));
 
 vi.mock('@/hooks/pages/use-brand-detail/use-brand-detail', () => ({
@@ -57,6 +68,7 @@ vi.mock('../connectors-primary-action', () => ({
 describe('ConnectorsChannelsPage', () => {
   beforeEach(() => {
     mocks.brand = null;
+    mocks.brands = [];
     mocks.hasBrandId = true;
     mocks.isLoading = false;
     mocks.isReady = true;
@@ -76,6 +88,33 @@ describe('ConnectorsChannelsPage', () => {
       fallbackBrandSlug: 'coffee',
     });
     expect(mocks.setPrimaryAction).toHaveBeenCalledWith('Connect account');
+  });
+
+  it('shows the first brand of the organization when the route selects none', () => {
+    mocks.brand = { id: 'brand-2' };
+    mocks.brands = [
+      { id: 'brand-9', organizationSlug: 'other', slug: 'elsewhere' },
+      { id: 'brand-2', organizationSlug: 'acme', slug: 'tea' },
+      { id: 'brand-3', organizationSlug: 'acme', slug: 'cake' },
+    ];
+
+    render(<ConnectorsChannelsPage />);
+
+    expect(screen.getByTestId('accounts-table')).toBeInTheDocument();
+    expect(mocks.useBrandDetail).toHaveBeenCalledWith({
+      fallbackBrandSlug: 'tea',
+    });
+  });
+
+  it('says so when the organization has no brand', () => {
+    mocks.brands = [
+      { id: 'brand-9', organizationSlug: 'other', slug: 'elsewhere' },
+    ];
+
+    render(<ConnectorsChannelsPage />);
+
+    expect(screen.queryByTestId('accounts-table')).not.toBeInTheDocument();
+    expect(screen.getByText('Brand not found.')).toBeInTheDocument();
   });
 
   it('says so when no brand is selected', () => {
