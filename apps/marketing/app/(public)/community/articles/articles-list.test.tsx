@@ -9,23 +9,10 @@ const ARTICLE = {
   slug: 'shipping-faster',
 } as unknown as Article;
 
-describe('ArticlesList header', () => {
-  it('names the page and points to publishing and the community', () => {
+describe('ArticlesList empty state', () => {
+  it('says so when nothing is published', () => {
     render(<ArticlesList articles={[]} />);
 
-    expect(
-      screen.getByRole('heading', {
-        level: 1,
-        name: 'Written by the Genfeed community',
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Explore the community' }),
-    ).toHaveAttribute('href', '/community');
-    expect(screen.getByRole('link', { name: 'Publish yours' })).toHaveAttribute(
-      'href',
-      expect.stringContaining('sign-up'),
-    );
     expect(screen.getByText('No articles published yet')).toBeInTheDocument();
   });
 });

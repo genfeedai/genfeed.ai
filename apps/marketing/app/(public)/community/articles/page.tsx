@@ -1,9 +1,10 @@
+import { getAppSignUpUrl } from '@data/app-links';
 import { stringifyJsonLd } from '@data/json-ld';
 import { getMarketingOgImage } from '@data/marketing-og.data';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import { Button } from '@ui/primitives/button';
 import type { Metadata, ResolvingMetadata } from 'next';
-import { Suspense } from 'react';
+import CommunitySectionLayout from '../community-section-layout';
 import ArticlesList from './articles-list';
 import { getPublicArticlesPageCached } from './articles-loader';
 
@@ -11,7 +12,7 @@ const articlesDescription =
   'Read what creators publish on Genfeed: guides, case studies and stories, each on its author profile at genfeed.ai/@handle.';
 
 const ARTICLES_TITLE = 'Articles from the Genfeed Community';
-const ARTICLES_PATH = '/articles';
+const ARTICLES_PATH = '/community/articles';
 
 const articlesJsonLd = {
   '@context': 'https://schema.org',
@@ -96,9 +97,18 @@ export default async function ArticlesPage({
       <script type="application/ld+json">
         {stringifyJsonLd(articlesJsonLd)}
       </script>
-      <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+      <CommunitySectionLayout
+        actions={
+          <Button asChild withWrapper={false}>
+            <a href={getAppSignUpUrl()}>Publish yours</a>
+          </Button>
+        }
+        active="articles"
+        description={articlesDescription}
+        title="Articles"
+      >
         <ArticlesList articles={articlesPage.items} pagination={articlesPage} />
-      </Suspense>
+      </CommunitySectionLayout>
     </>
   );
 }
