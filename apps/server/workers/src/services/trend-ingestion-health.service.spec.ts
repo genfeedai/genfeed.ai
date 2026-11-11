@@ -1,11 +1,17 @@
 import type { TrendRefreshHealth } from '@genfeedai/contracts/interfaces';
 import {
   HEALTH_LOOKUP_CONCURRENCY,
+  type PendingIngestionAlert,
   TrendIngestionHealthService,
 } from '@workers/services/trend-ingestion-health.service';
 
-type DispatchedAlert = {
-  messages: { message: { payload: { card: { description: string } } } }[];
+type Digest = {
+  deduplicationKey: string;
+  messages: {
+    message: {
+      payload: { card: { color: number; description: string; title: string } };
+    };
+  }[];
 };
 
 const enrollment = new Date('2026-09-28T00:15:00.000Z');
@@ -20,7 +26,25 @@ function setup() {
     ),
     credential: { findMany: vi.fn().mockResolvedValue([]) },
     notificationEvent: {
-      upsert: vi.fn().mockResolvedValue({ id: 'enrollment' }),
+      upsert: vi.fn().mockImplementation(
+        (input: {
+          create: {
+            deduplicationKey: string;
+            occurredAt: Date;
+            sourceId: string;
+          };
+        }) => {
+          const { deduplicationKey, occurredAt, sourceId } = input.create;
+          if (deduplicationKey.endsWith('enrollment-v1'))
+            return Promise.resolve({ id: 'enrollment' });
+          events.set(deduplicationKey, {
+            deduplicationKey,
+            occurredAt,
+            sourceId,
+          });
+          return Promise.resolve({ id: deduplicationKey });
+        },
+      ),
       findFirstOrThrow: vi.fn().mockResolvedValue({ occurredAt: enrollment }),
       findMany: vi.fn().mockImplementation(
         (input: {
@@ -67,24 +91,17 @@ function setup() {
   };
   const health = { getHealth: vi.fn().mockResolvedValue([]) };
   const recorder = {
-    dispatch: vi
+    afterCommit: vi.fn().mockResolvedValue(undefined),
+    dispatchInTransaction: vi
       .fn()
-      .mockImplementation(
-        (input: {
-          deduplicationKey: string;
-          occurredAt: Date;
-          source: { id: string };
-        }) => {
-          events.set(input.deduplicationKey, {
-            deduplicationKey: input.deduplicationKey,
-            occurredAt: input.occurredAt,
-            sourceId: input.source.id,
-          });
-          return Promise.resolve();
-        },
-      ),
+      .mockResolvedValue({ pendingDeliveryIds: [] }),
   };
+  const digests = (): Digest[] =>
+    recorder.dispatchInTransaction.mock.calls.map(
+      (args: unknown[]) => args[1] as Digest,
+    );
   return {
+    digests,
     events,
     health,
     prisma,
@@ -99,7 +116,7 @@ function setup() {
 
 describe('TrendIngestionHealthService', () => {
   it('retains the earliest incident baseline without spreading a large outage into function arguments', async () => {
-    const { service, recorder } = setup();
+    const { service } = setup();
     const missed = {
       baseline: new Date('2026-09-29T00:15:00.000Z'),
       isMissed: true,
@@ -107,30 +124,29 @@ describe('TrendIngestionHealthService', () => {
     };
     const evaluated = Array.from({ length: 150_000 }, () => missed);
     evaluated[75_000] = { ...missed, baseline: enrollment };
-    const now = new Date('2026-10-02T00:15:00.000Z');
+    const alerts: PendingIngestionAlert[] = [];
 
     // biome-ignore lint/complexity/useLiteralKeys: Isolate the private incident phase without running the quadratic sweep.
     await service['reconcileIncident']({
+      alerts,
+      brief: 'Large provider outage',
       description: 'Large provider outage',
       evaluated,
-      now,
       recoveredDescription: () => 'Recovered',
       sourceId: 'youtube/trends/scoped',
     });
 
-    expect(recorder.dispatch).toHaveBeenCalledOnce();
-    expect(recorder.dispatch).toHaveBeenCalledWith(
+    expect(alerts).toEqual([
       expect.objectContaining({
-        deduplicationKey: `trend-ingestion-health/youtube/trends/scoped/missed/${enrollment.toISOString()}`,
-        occurredAt: now,
-        organizationId: null,
-        source: { id: 'youtube/trends/scoped', type: 'trend_ingestion_health' },
+        isRecovery: false,
+        key: `trend-ingestion-health/youtube/trends/scoped/missed/${enrollment.toISOString()}`,
+        sourceId: 'youtube/trends/scoped',
       }),
-    );
+    ]);
   });
 
   it('waits for two closed scheduled windows, emits actionable alerts once, and deduplicates continued failure', async () => {
-    const { service, recorder, events, prisma } = setup();
+    const { service, recorder, events, prisma, digests } = setup();
     await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
     expect(prisma.$transaction).toHaveBeenCalledOnce();
     expect(prisma.notificationEvent.upsert).toHaveBeenCalledWith({
@@ -150,32 +166,102 @@ describe('TrendIngestionHealthService', () => {
       where: { id: 'enrollment', isDeleted: false, organizationId: null },
     });
     await service.checkMissedWindows(new Date('2026-09-30T00:14:59.998Z'));
-    expect(recorder.dispatch).not.toHaveBeenCalled();
+    expect(recorder.dispatchInTransaction).not.toHaveBeenCalled();
     await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
     expect(events.size).toBe(15);
-    expect(recorder.dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        organizationId: null,
-        topic: 'operator.alerts',
-        messages: [
-          expect.objectContaining({
-            message: expect.objectContaining({
-              action: 'ingestion_health',
-              payload: expect.objectContaining({
-                card: expect.objectContaining({
-                  description: expect.stringContaining(
-                    'Inspect the trend maintenance queue',
-                  ),
-                }),
-              }),
-            }),
-          }),
-        ],
-      }),
+    expect(digests()).toHaveLength(1);
+    const [card] = digests()[0].messages.map(
+      (entry) => entry.message.payload.card,
     );
+    expect(card.title).toBe('Trend ingestion: 15 missed two scheduled windows');
+    expect(card.description).toContain('Inspect the trend maintenance queue');
+    expect(card.description).not.toContain('more');
     const keys = [...events.keys()];
     await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
     expect([...events.keys()]).toEqual(keys);
+    expect(digests()).toHaveLength(1);
+  });
+
+  it('posts one message for every incident found in a run, and a continuing outage stays silent', async () => {
+    const { service, digests, events, health, recorder } = setup();
+    await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
+    expect(digests()).toHaveLength(1);
+    expect(events.size).toBe(15);
+    const recovered: TrendRefreshHealth[] = ['instagram', 'pinterest'].map(
+      (platform) => ({
+        completedAt: '2026-09-30T01:45:00.000Z',
+        dataset: 'trends',
+        lastAttemptAt: '2026-09-30T01:43:00.000Z',
+        lastSuccessfulRefreshAt: '2026-09-30T01:45:00.000Z',
+        outcome: 'native_available',
+        platform,
+        reason: null,
+        scope: 'global',
+      }),
+    );
+    health.getHealth.mockResolvedValue(recovered);
+    await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
+    expect(digests()).toHaveLength(2);
+    const card = digests()[1].messages[0].message.payload.card;
+    expect(card.title).toBe('Trend ingestion: 2 recovered');
+    expect(card.color).toBe(0x22c55e);
+    expect(card.description).toContain('instagram trends completed a refresh');
+    expect(card.description).toContain('pinterest trends completed a refresh');
+    expect(recorder.afterCommit).toHaveBeenCalledTimes(2);
+  });
+
+  it('leads a mixed digest with the counts and lists missed incidents before recoveries', () => {
+    const { service } = setup();
+    const alert = (
+      isRecovery: boolean,
+      label: string,
+    ): PendingIngestionAlert => ({
+      brief: label,
+      description: `${label} (full)`,
+      isRecovery,
+      key: label,
+      sourceId: label,
+      title: label,
+    });
+    // biome-ignore lint/complexity/useLiteralKeys: Exercise the card layout without a full run.
+    const card = service['buildDigestCard']([
+      alert(true, 'instagram trends back'),
+      alert(false, 'tiktok trends down'),
+      alert(true, 'reddit trends back'),
+    ]);
+    expect(card.title).toBe('Trend ingestion: 1 need attention, 2 recovered');
+    expect(card.color).toBe(0xef4444);
+    expect(card.description.split('\n\n')[0]).toBe(
+      '**Missed two scheduled windows (1)**\n• tiktok trends down',
+    );
+    expect(card.description).toContain(
+      '**Recovered (2)**\n• instagram trends back\n• reddit trends back',
+    );
+  });
+
+  it('keeps a single incident as the original card and caps a huge digest under the Discord limit', () => {
+    const { service } = setup();
+    const alert = (index: number): PendingIngestionAlert => ({
+      brief: `dataset ${index}: ${'x'.repeat(200)}`,
+      description: `dataset ${index} full text`,
+      isRecovery: false,
+      key: `key-${index}`,
+      sourceId: `source-${index}`,
+      title: 'Trend ingestion missed two scheduled windows',
+    });
+    // biome-ignore lint/complexity/useLiteralKeys: Exercise the card layout without a full run.
+    const single = service['buildDigestCard']([alert(1)]);
+    expect(single).toEqual({
+      color: 0xef4444,
+      description: 'dataset 1 full text',
+      title: 'Trend ingestion missed two scheduled windows',
+    });
+    // biome-ignore lint/complexity/useLiteralKeys: Exercise the card layout without a full run.
+    const huge = service['buildDigestCard'](
+      Array.from({ length: 100 }, (_, index) => alert(index)),
+    );
+    expect(huge.description.length).toBeLessThan(4096);
+    expect(huge.description).toMatch(/…and \d+ more/);
   });
 
   it.each([
@@ -245,9 +331,9 @@ describe('TrendIngestionHealthService', () => {
           key.includes('youtube/trends/scope-') && key.includes('/missed/'),
       ),
     ).toBe(true);
-    expect(JSON.stringify(recorder.dispatch.mock.calls)).not.toContain(
-      'private-org',
-    );
+    expect(
+      JSON.stringify(recorder.dispatchInTransaction.mock.calls),
+    ).not.toContain('private-org');
   });
   it('counts a successful response exactly at a window boundary as evidence for that window', async () => {
     const { service, health, events } = setup();
@@ -316,7 +402,7 @@ describe('TrendIngestionHealthService', () => {
       key.startsWith('trend-ingestion-health/youtube/trends/scoped/missed/'),
     );
     expect(scoped).toHaveLength(1);
-    const calls = JSON.stringify(recorder.dispatch.mock.calls);
+    const calls = JSON.stringify(recorder.dispatchInTransaction.mock.calls);
     expect(calls).toContain('30 of 30 connected tenant scopes');
     expect(calls).not.toContain('org-1');
     await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
@@ -453,9 +539,9 @@ describe('TrendIngestionHealthService', () => {
       expect([...events.keys()].some((key) => key.includes('/scoped/'))).toBe(
         false,
       );
-      expect(JSON.stringify(recorder.dispatch.mock.calls)).not.toContain(
-        'org-',
-      );
+      expect(
+        JSON.stringify(recorder.dispatchInTransaction.mock.calls),
+      ).not.toContain('org-');
       // Tenant A recovers; only A's incident closes.
       health.getHealth.mockImplementation(
         (input: { organizationId?: string } = {}) =>
@@ -505,7 +591,7 @@ describe('TrendIngestionHealthService', () => {
     ] as const)(
       'the scope alert %s',
       async (_name, scopedReceipts, expected) => {
-        const { service, health, prisma, recorder } = setup();
+        const { service, health, prisma, digests } = setup();
         prisma.credential.findMany.mockResolvedValue([
           {
             createdAt: enrollment,
@@ -520,15 +606,10 @@ describe('TrendIngestionHealthService', () => {
             ),
         );
         await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
-        const descriptions = recorder.dispatch.mock.calls
-          .map(
-            (args: unknown[]) =>
-              (args[0] as DispatchedAlert).messages[0].message.payload.card
-                .description,
-          )
-          .filter((text: string) =>
-            text.includes('one connected tenant scope'),
-          );
+        const descriptions = digests()
+          .flatMap((digest) => digest.messages)
+          .map((entry) => entry.message.payload.card.description)
+          .filter((text: string) => text.includes('tenant scope'));
         expect(descriptions).toHaveLength(1);
         expect(descriptions[0]).toContain(expected);
       },
