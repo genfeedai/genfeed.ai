@@ -138,8 +138,11 @@ const respondToUiAction = vi.fn(async () => ({
   threadId: 'needs',
 }));
 const apiService = {
+  acceptAgentTransfer: vi.fn(),
   chatStream,
+  createAgentHandoff: vi.fn(),
   createThreadShare: vi.fn(),
+  declineAgentTransfer: vi.fn(),
   deleteThreadShare: vi.fn(),
   getMessages,
   getThreadShares: vi.fn(async () => []),
