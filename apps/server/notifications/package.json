@@ -3,7 +3,7 @@
     "@genfeedai/libs": "workspace:*",
     "@genfeedai/config": "workspace:*",
     "@slack/web-api": "8.3.0",
-    "jose": "^6.2.15",
+    "jose": "^6.2.17",
     "node-pty": "1.1.0",
     "tsconfig-paths": "4.2.0",
     "@genfeedai/contracts": "workspace:*"
