@@ -296,6 +296,10 @@ vi.mock('@/components/topbars/credits-bar/CreditsLiveSync', () => ({
   default: () => <span data-testid="credits-live-sync" />,
 }));
 
+vi.mock('@/components/topbars/credits-bar/TopbarCreditsStatus', () => ({
+  default: () => <span data-testid="topbar-credits-status" />,
+}));
+
 vi.mock('@/components/cloud-sync-indicator/CloudSyncIndicator', () => ({
   default: () => <div data-testid="cloud-sync-indicator" />,
 }));
@@ -480,18 +484,26 @@ describe('AppProtectedTopbar', () => {
       screen.queryByTestId('cloud-sync-indicator'),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('credits-live-sync')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('topbar-credits-status'),
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId('topbar-apps-link')).not.toBeInTheDocument();
   });
 
-  it('keeps the wallet synced but shows no credit balance in the topbar', () => {
+  it('keeps the wallet synced and puts the credits status before the panel toggles', () => {
     mountShellPanel();
     render(<AppProtectedTopbar />);
 
     const activityMenu = screen.getByTestId('topbar-notifications-toggle');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
+    const creditsStatus = screen.getByTestId('topbar-credits-status');
 
     expect(screen.getByTestId('credits-live-sync')).toBeInTheDocument();
     expect(screen.queryByTestId('topbar-credits-trigger')).toBeNull();
+    expect(
+      creditsStatus.compareDocumentPosition(activityMenu) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(
       cloudSyncIndicator.compareDocumentPosition(activityMenu) &
         Node.DOCUMENT_POSITION_FOLLOWING,
