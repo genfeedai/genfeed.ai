@@ -11,4 +11,6 @@ export const threadMessageAttributes = createEntityAttributes([
   'toolCallId',
   'toolCalls',
   'metadata',
+  'mentionedUserIds',
+  'mentions',
 ]);

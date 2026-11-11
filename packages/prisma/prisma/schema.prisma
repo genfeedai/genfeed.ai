@@ -5187,6 +5187,8 @@ model AgentMessage {
   metadata                           Json?
   artifactReferences                 Json         @default("[]")
   artifactVersionPinIds              String[]     @default([])
+  /// Canonical `users.id` of each teammate @-mentioned in the message (#9946).
+  mentionedUserIds                   String[]     @default([])
   isLegacyArtifactReferenceEligible  Boolean      @default(false)
   artifactReferenceEligibleReadCount Int          @default(0)
   legacyArtifactReferenceReadCount   Int          @default(0)
@@ -6311,6 +6313,8 @@ model TaskComment {
   body           String
   authorUserId   String?
   authorAgentId  String?
+  /// Canonical `users.id` of each teammate @-mentioned in the comment (#9946).
+  mentionedUserIds String[]   @default([])
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
