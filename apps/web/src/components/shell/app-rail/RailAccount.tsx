@@ -22,6 +22,8 @@ import { useTranslations } from 'next-intl';
 import UserDropdown from '@/components/menus/user-dropdown/UserDropdown';
 
 const SETTINGS_PATH_PATTERN = /\/settings(?:\/|$)/;
+/** `/:org/~/connectors/*` and `/:org/:brand/connectors/*`. */
+const CONNECTORS_PATH_PATTERN = /^\/[^/]+\/[^/]+\/connectors(?:\/|$)/;
 
 function resolveDisplayName(
   fullName: string | null | undefined,
@@ -93,8 +95,8 @@ function RailLink({
 export default function RailAccount() {
   const translate = useTranslations('common.appRail');
   const pathname = usePathname();
-  const { orgHref, orgSlug } = useOrgUrl();
-  const isConnectorsActive = Boolean(pathname?.includes('/~/connectors'));
+  const { activeHref, orgHref, orgSlug } = useOrgUrl();
+  const isConnectorsActive = CONNECTORS_PATH_PATTERN.test(pathname ?? '');
   const { isSignedIn } = useAuthIdentity();
   const { user } = useAuthUser();
   const isSettingsActive = SETTINGS_PATH_PATTERN.test(pathname ?? '');
@@ -107,7 +109,7 @@ export default function RailAccount() {
       data-testid="app-rail-account"
     >
       <RailLink
-        href={orgHref(APP_ROUTES.CONNECTORS.AGENTS)}
+        href={activeHref(APP_ROUTES.CONNECTORS.AGENTS)}
         icon={Plug}
         isActive={isConnectorsActive}
         label={translate('connectors')}

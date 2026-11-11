@@ -6,6 +6,7 @@ import { useConnectorsPrimaryAction } from './connectors-primary-action';
 import ConnectorsShell from './connectors-shell';
 
 const mocks = vi.hoisted(() => ({
+  brandSlug: '',
   push: vi.fn(),
   segment: 'channels' as string | null,
 }));
@@ -22,7 +23,8 @@ vi.mock('next-intl', async () => {
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
-    orgHref: (path: string) => `/acme/~${path}`,
+    href: (path: string) =>
+      mocks.brandSlug ? `/acme/${mocks.brandSlug}${path}` : `/acme/~${path}`,
   }),
 }));
 
@@ -39,6 +41,7 @@ function BrokenSection(): never {
 
 describe('ConnectorsShell', () => {
   beforeEach(() => {
+    mocks.brandSlug = '';
     mocks.push.mockClear();
     mocks.segment = 'channels';
   });
@@ -71,6 +74,23 @@ describe('ConnectorsShell', () => {
     await user.click(await screen.findByText('Webhooks'));
 
     expect(mocks.push).toHaveBeenCalledWith('/acme/~/connectors/webhooks');
+  });
+
+  it('opens another section on the brand route when the page is open on one', async () => {
+    const user = userEvent.setup();
+    mocks.brandSlug = 'moonrise';
+    render(
+      <ConnectorsShell>
+        <p>Section body</p>
+      </ConnectorsShell>,
+    );
+
+    await user.click(screen.getByRole('button', { name: /Channels/ }));
+    await user.click(await screen.findByText('Webhooks'));
+
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/acme/moonrise/connectors/webhooks',
+    );
   });
 
   it('keeps the switch usable when a section fails to load', () => {
