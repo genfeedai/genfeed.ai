@@ -117,6 +117,9 @@ export class AgentTurnAcceptanceService {
     const preparedScope = await this.scopeService.prepareForTurn({
       expectedContextVersion: request.expectedContextVersion,
       organizationId: context.organizationId,
+      // A member with a live collaborate share sends turns in a thread they
+      // do not own; the turn runs as them, never as the owner (#9937).
+      isSharedCollaborationAllowed: true,
       requestedBrandId: request.brandId,
       threadId: request.threadId,
       userId: context.userId,
@@ -129,7 +132,11 @@ export class AgentTurnAcceptanceService {
       this.newThreadId(context, request.clientRequestId);
     const existingScope = preparedScope.existingScope;
     const thread = existingScope
-      ? await this.loadThread(threadId, context)
+      ? await this.loadThread(
+          threadId,
+          context,
+          existingScope.threadOwnerUserId ?? context.userId,
+        )
       : await this.createThread(threadId, request, context, preparedScope);
     const contextVersion = Number(thread.contextVersion ?? 1);
     const scope =
@@ -143,7 +150,9 @@ export class AgentTurnAcceptanceService {
         apiKeyId: context.apiKeyContext?.apiKeyId,
         scopes: context.apiKeyContext?.scopes,
       }));
-    if (existingScope)
+    // A pending question was put to the owner's turn: another member's
+    // message never answers it.
+    if (existingScope && !existingScope.threadOwnerUserId)
       await this.resolveActiveInput(threadId, request.content, {
         ...context,
         scope,
@@ -448,6 +457,7 @@ export class AgentTurnAcceptanceService {
   private async loadThread(
     threadId: string,
     context: AgentChatContext,
+    ownerUserId: string,
   ): Promise<{
     brandId: string | null;
     contextVersion: number;
@@ -464,7 +474,7 @@ export class AgentTurnAcceptanceService {
         id: threadId,
         isDeleted: false,
         organizationId: context.organizationId,
-        userId: context.userId,
+        userId: ownerUserId,
       },
     });
     if (String(thread.status).toLowerCase() === 'archived') {

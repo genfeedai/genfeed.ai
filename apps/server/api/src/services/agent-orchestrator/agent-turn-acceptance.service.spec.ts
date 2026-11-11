@@ -728,4 +728,109 @@ describe('AgentTurnAcceptanceService', () => {
     ).rejects.toThrow('This thread is archived');
     expect(workflowRunner.enqueueWorkflow).not.toHaveBeenCalled();
   });
+
+  describe('a turn sent in a thread shared with the sender (#9937)', () => {
+    const sharedScope = {
+      brandId: 'brand-2',
+      contextVersion: 4,
+      organizationId: 'org-1',
+      threadId: 'thread-shared',
+      threadOwnerUserId: 'owner-1',
+      userId: 'member-1',
+    };
+
+    beforeEach(() => {
+      scopeService.prepareForTurn.mockResolvedValue({
+        existingScope: sharedScope,
+        initialScopeFields: {},
+      });
+      prisma.agentThread.findFirstOrThrow.mockResolvedValue({
+        brandId: 'brand-2',
+        contextVersion: 4,
+        status: 'active',
+      });
+    });
+
+    it('queues and records the turn as the sending member, not the owner', async () => {
+      await service.accept(
+        {
+          clientRequestId: 'shared-turn',
+          content: 'Draft a post',
+          threadId: 'thread-shared',
+        },
+        { organizationId: 'org-1', userId: 'member-1' },
+      );
+
+      expect(prisma.agentThread.findFirstOrThrow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: 'thread-shared',
+            userId: 'owner-1',
+          }),
+        }),
+      );
+      const queued = workflowRunner.enqueueWorkflow.mock.calls[0][0];
+      expect(queued.userId).toBe('member-1');
+      expect(queued.idempotencyKey).toBe(
+        buildAgentTurnIdempotencyKey('org-1', 'member-1', 'shared-turn'),
+      );
+      expect(agentMessagesService.addMessage.mock.calls[0][0]).toMatchObject({
+        organizationId: 'org-1',
+        role: 'user',
+        room: 'thread-shared',
+        userId: 'member-1',
+      });
+    });
+
+    it('leaves a pending question to the owner', async () => {
+      await service.accept(
+        {
+          clientRequestId: 'shared-no-answer',
+          content: 'Yes',
+          threadId: 'thread-shared',
+        },
+        { organizationId: 'org-1', userId: 'member-1' },
+      );
+
+      expect(threadEngine.getSnapshot).not.toHaveBeenCalled();
+      expect(threadEngine.resolveInputRequest).not.toHaveBeenCalled();
+    });
+
+    it('asks the scope check to allow a collaborating member', async () => {
+      await service.accept(
+        {
+          clientRequestId: 'shared-scope',
+          content: 'Draft a post',
+          threadId: 'thread-shared',
+        },
+        { organizationId: 'org-1', userId: 'member-1' },
+      );
+
+      expect(scopeService.prepareForTurn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isSharedCollaborationAllowed: true,
+          userId: 'member-1',
+        }),
+      );
+    });
+
+    it('queues nothing when the share does not let the sender collaborate', async () => {
+      scopeService.prepareForTurn.mockRejectedValue(
+        new Error('This thread is shared with you to view only.'),
+      );
+
+      await expect(
+        service.accept(
+          {
+            clientRequestId: 'shared-view-only',
+            content: 'Draft a post',
+            threadId: 'thread-shared',
+          },
+          { organizationId: 'org-1', userId: 'member-1' },
+        ),
+      ).rejects.toThrow('view only');
+      expect(workflowRunner.enqueueWorkflow).not.toHaveBeenCalled();
+      expect(agentMessagesService.addMessage).not.toHaveBeenCalled();
+    });
+  });
 });
