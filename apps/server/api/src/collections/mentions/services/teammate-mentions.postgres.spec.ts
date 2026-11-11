@@ -90,6 +90,7 @@ describe.skipIf(!connectionString)(
             asPrisma(),
             threadAccess(),
             brandAccess(),
+            { refresh: async () => null } as never,
           ),
         ),
         mentions(),
