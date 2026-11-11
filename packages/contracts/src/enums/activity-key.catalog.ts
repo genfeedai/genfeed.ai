@@ -106,6 +106,7 @@ export type ActivityMessageId =
   | 'activity.collaboration.review_approved'
   | 'activity.collaboration.review_changes_requested'
   | 'activity.collaboration.mentioned'
+  | 'activity.collaboration.handoff_received'
   | 'activity.report.delivered'
   | 'activity.trends.ready'
   | 'activity.breakout.remix_offered'
@@ -222,6 +223,8 @@ export const ACTIVITY_MESSAGE_ID_BY_KEY = {
   [ActivityKey.ASSET_REVIEW_CHANGES_REQUESTED]:
     'activity.collaboration.review_changes_requested',
   [ActivityKey.MENTIONED]: 'activity.collaboration.mentioned',
+  [ActivityKey.AGENT_HANDOFF_RECEIVED]:
+    'activity.collaboration.handoff_received',
   [ActivityKey.WORKFLOW_REPORT_DELIVERED]: 'activity.report.delivered',
   [ActivityKey.TREND_SUMMARY_READY]: 'activity.trends.ready',
   [ActivityKey.BREAKOUT_REMIX_OFFERED]: 'activity.breakout.remix_offered',
@@ -945,6 +948,9 @@ export function formatActivityMessage(
 
     case 'activity.collaboration.mentioned':
       return 'You were mentioned';
+
+    case 'activity.collaboration.handoff_received':
+      return 'Handed you a task';
 
     case 'activity.report.delivered':
       return 'Workflow report ready';

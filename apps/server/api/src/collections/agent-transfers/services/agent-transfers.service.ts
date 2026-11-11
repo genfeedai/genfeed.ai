@@ -13,6 +13,7 @@ import {
 } from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
 import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { AgentInitiatingPrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
+import { CollaborationAlertsService } from '@api/services/collaboration-alerts/collaboration-alerts.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentMessageRole,
@@ -81,6 +82,7 @@ export class AgentTransfersService {
     private readonly artifactReferenceService: AgentArtifactReferenceService,
     private readonly turnAcceptanceService: AgentTurnAcceptanceService,
     private readonly threadAccess: AgentThreadAccessService,
+    private readonly collaborationAlerts: CollaborationAlertsService,
   ) {}
 
   async discoverConversations(
@@ -354,21 +356,11 @@ export class AgentTransfersService {
         });
         return created;
       })
-      .catch(async (error: unknown) => {
-        if ((error as { code?: unknown }).code !== 'P2002') {
-          throw error;
-        }
-        const winner = await this.prisma.agentTransfer.findFirst({
-          where: scopedWhere(actor.organizationId, {
-            idempotencyKey: input.idempotencyKey,
-            userId: actor.userId,
-          }),
-        });
-        if (!winner || winner.requestHash !== hash) {
-          throw error;
-        }
-        return winner;
-      });
+      .catch((error: unknown) =>
+        this.findIdempotentWinner(error, actor, input.idempotencyKey, hash),
+      );
+
+    await this.alertHandoffRecipient(transfer, destination, actor);
 
     if (
       !depthExceeded &&
@@ -588,6 +580,55 @@ export class AgentTransfersService {
       await this.startDestinationRun(existing.id, destination, input, actor);
     }
     return this.findOne(actor, existing.id);
+  }
+
+  /** A lost idempotency race returns the transfer the winner created. */
+  private async findIdempotentWinner(
+    error: unknown,
+    actor: TransferActor,
+    idempotencyKey: string,
+    hash: string,
+  ) {
+    if ((error as { code?: unknown }).code !== 'P2002') {
+      throw error;
+    }
+    const winner = await this.prisma.agentTransfer.findFirst({
+      where: scopedWhere(actor.organizationId, {
+        idempotencyKey,
+        userId: actor.userId,
+      }),
+    });
+    if (!winner || winner.requestHash !== hash) {
+      throw error;
+    }
+    return winner;
+  }
+
+  /**
+   * The request waits in the teammate's conversation; tell them it is there.
+   * One alert per hand-off, so a replay or a lost race tells them nothing new.
+   */
+  private async alertHandoffRecipient(
+    transfer: { destinationUserId: string | null; id: string; status: string },
+    destination: AuthorizedThread,
+    actor: TransferActor,
+  ): Promise<void> {
+    const destinationUserId = transfer.destinationUserId;
+    if (
+      !destinationUserId ||
+      transfer.status !== AgentTransferStatus.AWAITING_ACCEPTANCE
+    ) {
+      return;
+    }
+    await this.collaborationAlerts.notifyHandoffReceived({
+      actorUserId: actor.userId,
+      brandId: destination.brandId,
+      label: destination.title ?? '',
+      organizationId: actor.organizationId,
+      recipientUserId: destinationUserId,
+      threadId: destination.id,
+      transferId: transfer.id,
+    });
   }
 
   /**

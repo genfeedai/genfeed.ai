@@ -197,6 +197,10 @@ export const ACTIVITY_ALERT_POLICIES = {
     severity: 'warning',
   },
   [ActivityKey.MENTIONED]: COLLABORATION_ALERT,
+  [ActivityKey.AGENT_HANDOFF_RECEIVED]: {
+    ...COLLABORATION_ALERT,
+    severity: 'warning',
+  },
   [ActivityKey.MCP_APPROVAL_REQUESTED]: {
     recipients: [{ channels: ['in_app'], recipient: 'actor' }],
     severity: 'warning',

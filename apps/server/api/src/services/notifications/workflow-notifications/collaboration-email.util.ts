@@ -9,6 +9,7 @@ const COLLABORATION_EMAIL_HEADLINES: Record<
   CollaborationNotificationPayload['event'],
   { text: string; tone: 'neutral' | 'success' | 'warning' }
 > = {
+  handoff_received: { text: 'A teammate handed you a task', tone: 'warning' },
   mentioned: { text: 'You were mentioned', tone: 'neutral' },
   review_approved: { text: 'Review approved', tone: 'success' },
   review_changes_requested: { text: 'Changes requested', tone: 'warning' },

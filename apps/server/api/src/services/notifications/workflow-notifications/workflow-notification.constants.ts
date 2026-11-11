@@ -62,6 +62,7 @@ export const COLLABORATION_NOTIFICATION_TOPIC = 'collaboration.activity';
 export const COLLABORATION_SOURCE_TYPE = 'collaboration';
 
 type CollaborationNotificationEvent =
+  | 'handoff_received'
   | 'review_requested'
   | 'review_approved'
   | 'review_changes_requested'
