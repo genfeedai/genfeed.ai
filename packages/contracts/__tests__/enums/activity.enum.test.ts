@@ -189,6 +189,7 @@ describe('activity.enum', () => {
         'ASSET_REVIEW_APPROVED',
         'ASSET_REVIEW_CHANGES_REQUESTED',
         'MENTIONED',
+        'AGENT_HANDOFF_RECEIVED',
         'WORKFLOW_REPORT_DELIVERED',
         'TREND_SUMMARY_READY',
         'BREAKOUT_REMIX_OFFERED',

@@ -25,7 +25,7 @@ const DROPDOWNS = [
 
 const NAV_LINKS = [
   { href: '/pricing', label: 'Pricing' },
-  { href: '/articles', label: 'Blog' },
+  { href: '/community/articles', label: 'Blog' },
 ];
 
 function renderTopbar() {

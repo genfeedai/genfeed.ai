@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentTransfersService } from '@api/collections/agent-transfers/services/agent-transfers.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import { CollaborationAlertsService } from '@api/services/collaboration-alerts/collaboration-alerts.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentMessageRole,
@@ -59,11 +61,22 @@ describe.skipIf(!connectionString)(
 
     function makeService(accept: ReturnType<typeof vi.fn>) {
       const db = database() as unknown as PrismaService;
+      const logger = { error: vi.fn(), warn: vi.fn() };
       return new AgentTransfersService(
         db,
         {} as never,
         { accept } as never,
         new AgentThreadAccessService(db, new BrandAccessService(db)),
+        new CollaborationAlertsService(
+          db,
+          new ActivityRecorderService(
+            db,
+            { enqueue: vi.fn() } as never,
+            { publishInboxUpdate: vi.fn() } as never,
+            logger as never,
+          ),
+          logger as never,
+        ),
       );
     }
 
@@ -129,6 +142,11 @@ describe.skipIf(!connectionString)(
       });
       return execution;
     }
+
+    const bellItems = (userId: string) =>
+      database().notificationInboxItem.findMany({
+        where: { organizationId, userId },
+      });
 
     const handoff = (overrides: Record<string, unknown> = {}) => ({
       content: 'Review the queued post and tighten the hook.',
@@ -217,6 +235,15 @@ describe.skipIf(!connectionString)(
         userId: ana,
       });
       expect(accept).not.toHaveBeenCalled();
+
+      // One bell item tells Marco the request is waiting; Ana, who sent it, gets none.
+      expect(await bellItems(marco)).toEqual([
+        expect.objectContaining({
+          readAt: null,
+          topic: 'collaboration.activity',
+        }),
+      ]);
+      expect(await bellItems(ana)).toEqual([]);
 
       const thread = await database().agentThread.findUniqueOrThrow({
         where: { id: transfer.destinationThreadId },
@@ -457,6 +484,7 @@ describe.skipIf(!connectionString)(
 
       expect(again.id).toBe(first.id);
       expect(accept).not.toHaveBeenCalled();
+      expect(await bellItems(marco)).toHaveLength(1);
     });
   },
 );

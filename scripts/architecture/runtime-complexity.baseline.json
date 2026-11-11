@@ -24,12 +24,6 @@
     "symbol": "apps/server/api/src/collections/agent-threads/services/agent-threads.service.ts"
   },
   {
-    "actual": 158,
-    "file": "apps/server/api/src/collections/agent-transfers/services/agent-transfers.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentTransfersService.create"
-  },
-  {
     "actual": 175,
     "file": "apps/server/api/src/collections/billing-accounts/services/billing-account-migration.service.ts",
     "metric": "method-lines",

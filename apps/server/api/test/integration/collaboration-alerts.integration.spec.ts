@@ -316,6 +316,34 @@ describe('Collaboration alerts (real Postgres)', () => {
     });
   });
 
+  it('puts one bell item in front of a teammate a task was handed to, once per hand-off', async () => {
+    const hand = {
+      actorUserId: requester,
+      brandId,
+      label: 'Review the queued post',
+      organizationId,
+      recipientUserId: reviewer,
+      threadId: `thread-${randomUUID()}`,
+      transferId: `transfer-${randomUUID()}`,
+    };
+    const reviewerBefore = (await bellItems(reviewer)).length;
+    const bystanderBefore = (await bellItems(bystander)).length;
+
+    await alerts.notifyHandoffReceived(hand);
+    await alerts.notifyHandoffReceived(hand);
+
+    expect((await bellItems(reviewer)).length - reviewerBefore).toBe(1);
+    expect((await bellItems(bystander)).length).toBe(bystanderBefore);
+    const { docs } = await inbox.list(organizationId, reviewer);
+    expect(docs[0]).toMatchObject({
+      activity: expect.objectContaining({
+        key: ActivityKey.AGENT_HANDOFF_RECEIVED,
+        value: 'Riley handed you a task in “Review the queued post”.',
+      }),
+      sourceHref: `/collab/collab-brand/agent/${hand.threadId}`,
+    });
+  });
+
   it('does not tell a member about their own action', async () => {
     const before = (await bellItems(requester)).length;
 

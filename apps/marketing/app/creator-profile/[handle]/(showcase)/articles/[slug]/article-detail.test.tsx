@@ -19,7 +19,7 @@ vi.mock('./article-content', () => ({
   default: () => <div>article body</div>,
 }));
 
-vi.mock('@website/(content)/articles/article-cover', () => ({
+vi.mock('@web-components/creator/article-cover', () => ({
   default: () => <div>cover</div>,
 }));
 

@@ -131,7 +131,7 @@ export default async function CommunityPage(): Promise<React.ReactElement> {
           </section>
 
           <CreatorSection
-            href="/articles"
+            href="/community/articles"
             title="Latest articles"
             total={articles.length}
           >

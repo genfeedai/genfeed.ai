@@ -87,6 +87,7 @@ describe('AgentTransfersService accepted turns (#6689)', () => {
       {} as never,
       { accept } as never,
       {} as never,
+      {} as never,
     );
   });
 

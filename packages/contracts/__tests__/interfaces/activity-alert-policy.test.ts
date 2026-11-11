@@ -98,6 +98,7 @@ describe('activity alert policy map (#5197)', () => {
       ActivityKey.ASSET_REVIEW_APPROVED,
       ActivityKey.ASSET_REVIEW_CHANGES_REQUESTED,
       ActivityKey.MENTIONED,
+      ActivityKey.AGENT_HANDOFF_RECEIVED,
     ]) {
       expect(getActivityAlertPolicy(key)).toMatchObject({
         recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
@@ -119,12 +120,14 @@ describe('activity alert policy map (#5197)', () => {
         ActivityKey.ASSET_REVIEW_APPROVED,
         ActivityKey.ASSET_REVIEW_CHANGES_REQUESTED,
         ActivityKey.MENTIONED,
+        ActivityKey.AGENT_HANDOFF_RECEIVED,
       ].map((key) => formatActivityMessage(getActivityMessageDescriptor(key))),
     ).toEqual([
       'Asked to review',
       'Review approved',
       'Changes requested',
       'You were mentioned',
+      'Handed you a task',
     ]);
     expect(
       formatActivityMessage(
