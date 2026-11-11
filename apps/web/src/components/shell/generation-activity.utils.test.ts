@@ -52,7 +52,7 @@ describe('generation activity destinations', () => {
         }),
         scope,
       ),
-    ).toBe('/acme/~/connectors/channels');
+    ).toBe('/acme/coffee/connectors/channels');
   });
   it('never sends another organization or inaccessible brand to the selected brand', () => {
     expect(
@@ -132,6 +132,6 @@ describe('generation activity destinations', () => {
         }),
         scope,
       ),
-    ).toBe('/acme/~/connectors/channels');
+    ).toBe('/acme/~/settings/brands');
   });
 });

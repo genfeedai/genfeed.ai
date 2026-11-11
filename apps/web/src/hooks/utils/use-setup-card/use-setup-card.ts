@@ -68,7 +68,7 @@ export function useSetupCard(): UseSetupCardReturn {
     getBrandOrganizationAccountType(selectedBrand),
   );
 
-  const { orgHref } = useOrgUrl();
+  const { orgHref, activeHref } = useOrgUrl();
 
   // Cached per brand: coming back to Settings shows the Expert Path progress
   // at once while it refreshes.
@@ -97,7 +97,7 @@ export function useSetupCard(): UseSetupCardReturn {
 
     const stepHrefs: Record<(typeof SETUP_CARD_STEPS)[number]['key'], string> =
       {
-        platforms: orgHref(APP_ROUTES.CONNECTORS.CHANNELS),
+        platforms: activeHref(APP_ROUTES.CONNECTORS.CHANNELS),
         preferences: orgHref(APP_ROUTES.SETTINGS.BRANDS),
       };
 
@@ -133,5 +133,12 @@ export function useSetupCard(): UseSetupCardReturn {
       steps,
       totalCount,
     };
-  }, [currentUser, expertStatus, hasPaygCredits, isExpert, orgHref]);
+  }, [
+    activeHref,
+    currentUser,
+    expertStatus,
+    hasPaygCredits,
+    isExpert,
+    orgHref,
+  ]);
 }

@@ -56,7 +56,7 @@ export default function PlatformHomePage({
   platform,
 }: PlatformHomeContentProps) {
   const translate = useTranslations('pages.platforms.home');
-  const { href, orgHref } = useOrgUrl();
+  const { activeHref, href } = useOrgUrl();
   const { brand, brandId, hasBrandId, isLoading, socialConnections } =
     useBrandDetail();
   const connectPlatform = usePlatformOAuthConnect({ brandId });
@@ -129,7 +129,7 @@ export default function PlatformHomePage({
             size={ButtonSize.SM}
             withWrapper={false}
           >
-            <Link href={orgHref(destinations.settingsSocial)}>
+            <Link href={activeHref(destinations.settingsSocial)}>
               {translate('empty.manage')}
             </Link>
           </Button>
@@ -175,7 +175,7 @@ export default function PlatformHomePage({
       color: 'bg-categorical-emerald/10 text-categorical-emerald',
       cta: connectionCta,
       description: connectionDescription,
-      href: orgHref(destinations.settingsSocial),
+      href: activeHref(destinations.settingsSocial),
       icon: Plug,
       id: 'connection',
       label: translate('connection.label'),

@@ -201,7 +201,7 @@ export function buildSaveAdInput(
 }
 
 export function useAdsResearchPageClient() {
-  const { href, orgHref } = useOrgUrl();
+  const { activeHref, href } = useOrgUrl();
   const translate = useTranslations('pages.adsResearch');
   const savedSourceLabel = translate('swipeFile.sourceLabel');
   const remixSurface = useOptionalDiscoveryRemix();
@@ -896,7 +896,7 @@ export function useAdsResearchPageClient() {
     handleCloseDetail,
     handleSelectAd,
     href,
-    orgHref,
+    activeHref,
     industry,
     isLoading: source === 'saved' ? saved.isLoading : isLoading,
     launchPrepResult,

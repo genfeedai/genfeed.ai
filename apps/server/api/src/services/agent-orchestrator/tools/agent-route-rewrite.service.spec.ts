@@ -296,7 +296,7 @@ describe('AgentRouteRewriteService', () => {
     });
   });
 
-  it('keeps Connectors on the organization even when a brand is available', async () => {
+  it('opens Channels on the brand even though it is a Connectors section', async () => {
     const scoped = await createService().scopeToolResultHrefs(
       {
         creditsUsed: 0,
@@ -306,7 +306,21 @@ describe('AgentRouteRewriteService', () => {
       context,
     );
     expect(scoped.data).toEqual({
-      href: '/genfeed-ai/~/connectors/channels?platform=x',
+      href: '/genfeed-ai/launch-brand/connectors/channels?platform=x',
+    });
+  });
+
+  it('keeps the other Connectors sections on the organization', async () => {
+    const scoped = await createService().scopeToolResultHrefs(
+      {
+        creditsUsed: 0,
+        success: true,
+        data: { href: '/connectors/api-keys' },
+      },
+      context,
+    );
+    expect(scoped.data).toEqual({
+      href: '/genfeed-ai/~/connectors/api-keys',
     });
   });
 
@@ -388,11 +402,11 @@ describe('AgentRouteRewriteService', () => {
       },
       context,
     );
+    // Channels (connect_accounts) is one brand's page, so it is brand-scoped.
     const organizationKeys = new Set([
       'agent',
       'billing',
       'brand_settings',
-      'connect_accounts',
       'credits',
       'members',
       'models',

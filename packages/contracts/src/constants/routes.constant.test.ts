@@ -193,6 +193,18 @@ describe('routes.constant', () => {
     expect(APP_ROUTES.LIBRARY).not.toHaveProperty('KNOWLEDGE');
   });
 
+  it('sends Connectors → Channels to the org brands hub, since it exists only under a brand', () => {
+    expect(
+      getOrgSwitchHref('bravo', '/alpha/moonrise/connectors/channels'),
+    ).toBe('/bravo/~/settings/brands');
+    expect(
+      createOrganizationAppRoute('alpha', APP_ROUTES.CONNECTORS.CHANNELS),
+    ).toBe('/alpha/~/settings/brands');
+    expect(
+      createOrganizationAppRoute('alpha', APP_ROUTES.CONNECTORS.API_KEYS),
+    ).toBe('/alpha/~/connectors/api-keys');
+  });
+
   it('keeps personal settings children on the unscoped /settings shell', () => {
     expect(isPersonalSettingsPath('/settings')).toBe(true);
     expect(isPersonalSettingsPath('/settings/personal')).toBe(true);

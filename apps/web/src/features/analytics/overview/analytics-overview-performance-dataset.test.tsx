@@ -45,6 +45,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     brandSlug: 'brand',
     orgHref: (path: string) => `/acme/~${path}`,
+    activeHref: (path: string) => `/acme/brand${path}`,
     href: (path: string) => `/acme/brand${path}`,
   }),
 }));
@@ -177,7 +178,7 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
     const link = await screen.findByRole('link', {
       name: 'Connect more accounts',
     });
-    expect(link).toHaveAttribute('href', '/acme/~/connectors/channels');
+    expect(link).toHaveAttribute('href', '/acme/brand/connectors/channels');
   });
 
   it('does not show the connect-accounts link for high confidence', async () => {

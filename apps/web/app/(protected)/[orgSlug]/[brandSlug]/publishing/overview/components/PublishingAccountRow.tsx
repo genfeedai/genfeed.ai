@@ -15,7 +15,7 @@ export default function PublishingAccountRow({
   platform,
   reconnectLabel,
 }: PublishingAccountRowProps) {
-  const { orgHref } = useOrgUrl();
+  const { activeHref } = useOrgUrl();
   const connection = connections.find(
     (account) =>
       account.credentialId === credentialId && account.platform === platform,
@@ -44,7 +44,7 @@ export default function PublishingAccountRow({
           withWrapper={false}
           className="self-start shrink-0 sm:self-center"
         >
-          <Link href={orgHref(APP_ROUTES.CONNECTORS.CHANNELS)}>
+          <Link href={activeHref(APP_ROUTES.CONNECTORS.CHANNELS)}>
             {reconnectLabel}
             <span className="sr-only">
               {' '}

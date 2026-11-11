@@ -164,7 +164,7 @@ export const protectedRouteBuckets: RouteBucket[] = [
     protectedRoutes,
     (route) =>
       route === '/test-org/brand-1' ||
-      /^\/test-org\/brand-1\/(agent|discovery|messages|overview|platforms|publishing|tasks|workflows|workspace)(\/|$)/.test(
+      /^\/test-org\/brand-1\/(agent|connectors|discovery|messages|overview|platforms|publishing|tasks|workflows|workspace)(\/|$)/.test(
         route,
       ),
   ),

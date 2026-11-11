@@ -72,6 +72,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
     brandSlug: mocks.brandSlug,
     href: (path: string) => `/org-1/${mocks.brandSlug || '~'}${path}`,
     orgHref: (path: string) => `/org-1/~${path}`,
+    activeHref: (path: string) => `/org-1/brand${path}`,
   }),
 }));
 
@@ -253,7 +254,7 @@ describe('DiscoveryDesk', () => {
     );
     expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
       'data-publishing-href',
-      '/org-1/~/connectors/channels',
+      '/org-1/brand/connectors/channels',
     );
     expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
       'data-source-health-href',

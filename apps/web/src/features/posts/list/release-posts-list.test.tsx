@@ -70,6 +70,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     href: (path: string) => `/genfeed-ai/paperclip${path}`,
     orgHref: (path: string) => `/genfeed-ai/~${path}`,
+    activeHref: (path: string) => `/genfeed-ai/brand${path}`,
   }),
 }));
 

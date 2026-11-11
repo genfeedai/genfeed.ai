@@ -144,11 +144,11 @@ describe('useSetupCard', () => {
     expect(preferences?.isCompleted).toBe(true);
     expect(preferences?.href).toBe('/acme/~/settings/brands');
     expect(platforms?.isCompleted).toBe(false);
-    expect(platforms?.href).toBe('/acme/~/connectors/channels');
+    expect(platforms?.href).toBe('/acme/coffee/connectors/channels');
     expect(result.current.completedCount).toBe(1);
   });
 
-  it('sends Social accounts to Connectors → Channels even without a selected brand', () => {
+  it('sends Social accounts to the Brands hub when no brand is selected', () => {
     mockScope.brandSlug = '';
 
     const { result } = renderHook(() => useSetupCard(), {
@@ -158,7 +158,7 @@ describe('useSetupCard', () => {
       (step) => step.key === 'platforms',
     );
 
-    expect(platforms?.href).toBe('/acme/~/connectors/channels');
+    expect(platforms?.href).toBe('/acme/~/settings/brands');
   });
 
   it('keeps the preferences href following the selected scope', () => {
@@ -168,18 +168,18 @@ describe('useSetupCard', () => {
     const hrefFor = (key: string) =>
       result.current.steps.find((step) => step.key === key)?.href;
 
-    expect(hrefFor('platforms')).toBe('/acme/~/connectors/channels');
+    expect(hrefFor('platforms')).toBe('/acme/coffee/connectors/channels');
 
     mockScope.brandSlug = '';
     rerender();
 
-    expect(hrefFor('platforms')).toBe('/acme/~/connectors/channels');
+    expect(hrefFor('platforms')).toBe('/acme/~/settings/brands');
     expect(hrefFor('preferences')).toBe('/acme/~/settings/brands');
 
     mockScope.orgSlug = 'bravo';
     rerender();
 
-    expect(hrefFor('platforms')).toBe('/bravo/~/connectors/channels');
+    expect(hrefFor('platforms')).toBe('/bravo/~/settings/brands');
     expect(hrefFor('preferences')).toBe('/bravo/~/settings/brands');
   });
 

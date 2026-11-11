@@ -210,12 +210,12 @@ describe('runCheckProductRouteInventory', () => {
     // Creator payments added the earnings settings page and the support page
     // (org and top level). Community gained its Creators, Images and Videos
     // pages, and admin organizations a Community tab. Connectors also opens
-    // under a brand (`/:org/:brand/connectors/*`, six pages).
+    // under a brand (`/:org/:brand/connectors/*`, six pages; Channels lives only there).
     expect(runCheckProductRouteInventory()).toMatchObject({
       appPublicRouteCount: 25,
       issues: [],
-      protectedPageCount: 259,
-      protectedRouteCount: 284,
+      protectedPageCount: 258,
+      protectedRouteCount: 283,
       publicRouteCount: 123,
       websitePublicRouteCount: 98,
     });

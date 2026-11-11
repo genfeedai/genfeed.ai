@@ -25,15 +25,15 @@ import {
  * One page for everything an organization connects (#9905). It lives at
  * `/:org/~/connectors/*` and, so the brand stays selected, at
  * `/:org/:brand/connectors/*`; the section switch keeps whichever scope the
- * page was opened in. The section
- * switch is a view menu in the sub bar, never a tab strip. A section that
+ * page was opened in, except Channels, which only exists under a brand. The
+ * section switch is a view menu in the sub bar, never a tab strip. A section that
  * fails to load shows its own error and leaves the switch, and so the other
  * sections, usable.
  */
 export default function ConnectorsShell({ children }: LayoutProps) {
   const translate = useTranslations('pages.connectors');
   const { push } = useRouter();
-  const { href } = useOrgUrl();
+  const { activeHref, href } = useOrgUrl();
   const [primaryAction, setPrimaryAction] =
     useState<ConnectorsPrimaryAction | null>(null);
   const segment = useSelectedLayoutSegment();
@@ -55,7 +55,12 @@ export default function ConnectorsShell({ children }: LayoutProps) {
                 (config) => config.section === section,
               );
               if (target) {
-                push(href(target.path));
+                // Channels is one brand's page and has no org-level route.
+                push(
+                  target.section === 'channels'
+                    ? activeHref(target.path)
+                    : href(target.path),
+                );
               }
             }}
             options={CONNECTORS_SECTIONS.map((config) => {

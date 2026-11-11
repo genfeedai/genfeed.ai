@@ -6,6 +6,7 @@ import { useConnectorsPrimaryAction } from './connectors-primary-action';
 import ConnectorsShell from './connectors-shell';
 
 const mocks = vi.hoisted(() => ({
+  activeBrandSlug: 'moonrise',
   brandSlug: '',
   push: vi.fn(),
   segment: 'channels' as string | null,
@@ -23,6 +24,7 @@ vi.mock('next-intl', async () => {
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
+    activeHref: (path: string) => `/acme/${mocks.activeBrandSlug}${path}`,
     href: (path: string) =>
       mocks.brandSlug ? `/acme/${mocks.brandSlug}${path}` : `/acme/~${path}`,
   }),
@@ -74,6 +76,23 @@ describe('ConnectorsShell', () => {
     await user.click(await screen.findByText('Webhooks'));
 
     expect(mocks.push).toHaveBeenCalledWith('/acme/~/connectors/webhooks');
+  });
+
+  it('opens Channels on the selected brand, which has no organization route', async () => {
+    const user = userEvent.setup();
+    mocks.segment = 'agents';
+    render(
+      <ConnectorsShell>
+        <p>Section body</p>
+      </ConnectorsShell>,
+    );
+
+    await user.click(screen.getByRole('button', { name: /Agents/ }));
+    await user.click(await screen.findByText('Channels'));
+
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/acme/moonrise/connectors/channels',
+    );
   });
 
   it('opens another section on the brand route when the page is open on one', async () => {

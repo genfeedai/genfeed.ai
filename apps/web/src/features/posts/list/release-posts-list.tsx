@@ -120,7 +120,7 @@ export default function ReleasePostsList({
   const translate = useTranslations('pages.posts.list');
   const translateRail = useTranslations('pages.posts.list.rail');
   const { brandId, isReady, organizationId } = useCollectionScope();
-  const { href, orgHref } = useOrgUrl();
+  const { href, activeHref } = useOrgUrl();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -594,7 +594,7 @@ export default function ReleasePostsList({
           browserTimezone={browserTimezone}
           isLoading={isLoading}
           onSelectRelease={selectRelease}
-          reconnectHref={orgHref(APP_ROUTES.CONNECTORS.CHANNELS)}
+          reconnectHref={activeHref(APP_ROUTES.CONNECTORS.CHANNELS)}
           releases={data.releases}
           selectedCredentialIds={credentialIds ?? []}
         />
@@ -706,7 +706,7 @@ export default function ReleasePostsList({
         onRescheduleTarget={handleRescheduleTarget}
         onRetryTarget={handleRetryTarget}
         pendingAction={pendingAction}
-        reconnectHref={orgHref(APP_ROUTES.CONNECTORS.CHANNELS)}
+        reconnectHref={activeHref(APP_ROUTES.CONNECTORS.CHANNELS)}
         release={selectedRelease}
       />
     </div>

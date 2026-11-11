@@ -152,7 +152,7 @@ describe('system recap policy', () => {
     expect(html).toContain('Created this week');
   });
   it.each([
-    [false, 'studio/~/connectors/channels', 'connect_account'],
+    [false, 'studio/brand/connectors/channels', 'connect_account'],
     [true, 'studio/brand/playground', 'publish_content'],
   ] as const)(
     'links the recap to the canonical next step when connected=%s',

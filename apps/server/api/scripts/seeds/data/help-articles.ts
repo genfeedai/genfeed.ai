@@ -518,7 +518,7 @@ to a brand, so each brand can publish to its own accounts.</p>
 <ol>
   <li>Select your brand in the top bar, then open <strong>Connectors</strong>
   and choose <strong>Channels</strong>
-  (<code>/{orgSlug}/~/connectors/channels</code>).</li>
+  (<code>/{orgSlug}/{brandSlug}/connectors/channels</code>).</li>
   <li>Choose <strong>Connect account</strong>.</li>
   <li>Search or browse the platform list, grouped as <strong>Social
   networks</strong>, <strong>Video</strong>, <strong>Communities</strong>,
