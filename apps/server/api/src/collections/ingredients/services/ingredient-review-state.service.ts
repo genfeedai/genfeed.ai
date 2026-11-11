@@ -10,6 +10,9 @@ const PENDING = 'pending_approval';
 const APPROVED = 'approved';
 const CHANGES_REQUESTED = 'changes_requested';
 
+/** One page of assets has at most a few hundred requests; this is a ceiling, not a page size. */
+const SUMMARY_LIMIT = 2000;
+
 /** A review request on an asset: assigned to a reviewer and not dismissed. */
 const OPEN_REQUEST = { assigneeUserId: { not: null }, isDeleted: false };
 
@@ -81,6 +84,7 @@ export class IngredientReviewStateService {
     }
     const tasks = await this.prisma.task.findMany({
       select: { linkedOutputs: { select: { id: true } }, reviewState: true },
+      take: SUMMARY_LIMIT,
       where: scopedWhere(organizationId, {
         ...OPEN_REQUEST,
         linkedOutputs: { some: { id: { in: [...ingredientIds] } } },

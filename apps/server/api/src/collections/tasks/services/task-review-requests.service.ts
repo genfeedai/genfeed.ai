@@ -33,6 +33,9 @@ const REVIEW_REQUEST_THREAD_SOURCE = 'review-request';
 
 const LIST_LIMIT = 100;
 
+/** Ceiling on the members offered as reviewers for one organization. */
+const CANDIDATE_LIMIT = 500;
+
 interface ReviewedAsset {
   brandId: string | null;
   id: string;
@@ -132,7 +135,9 @@ export class TaskReviewRequestsService {
   ): Promise<string[]> {
     const asset = await this.requireAsset(actor, ingredientId);
     const members = await this.prisma.member.findMany({
+      orderBy: { id: 'asc' },
       select: { userId: true },
+      take: CANDIDATE_LIMIT,
       where: {
         isActive: true,
         isDeleted: false,
