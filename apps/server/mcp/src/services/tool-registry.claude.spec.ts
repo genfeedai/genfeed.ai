@@ -1,5 +1,6 @@
 import { CLAUDE_MCP_TOOL_NAMES } from '@genfeedai/actions';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { McpResourceUri } from '@mcp/mcp/resource-catalog';
 import type { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
@@ -106,14 +107,31 @@ describe('Claude connector execution boundary', () => {
         isError: true,
         structuredContent: {
           code: 'unavailable_in_connector',
-          nextStepUrl: 'https://app.genfeed.ai/playground',
+          message: expect.stringContaining('does not generate images'),
         },
       });
+      expect(JSON.stringify(result)).not.toMatch(
+        /studio|playground|https?:\/\//i,
+      );
       expect(client.createApproval).not.toHaveBeenCalled();
       expect(client.executeAgentTool).not.toHaveBeenCalled();
       expect(client.resolveApproval).not.toHaveBeenCalled();
     },
   );
+
+  it('serves a Claude guide that points nowhere and says generation is not offered', async () => {
+    const { registry } = build();
+    const result = (await registry.handleResourceRead({
+      uri: McpResourceUri.AGENT_GUIDE,
+    })) as { contents: { text: string }[] };
+
+    expect(result.contents[0].text).toContain(
+      'This connector does not generate images, video or audio',
+    );
+    expect(result.contents[0].text).not.toMatch(
+      /studio|playground|https?:\/\//i,
+    );
+  });
 
   it('keeps discovery restricted even with generation/workflow toolsets', async () => {
     const { registry } = build();
