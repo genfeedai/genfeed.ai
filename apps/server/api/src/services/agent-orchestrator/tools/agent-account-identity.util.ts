@@ -1,23 +1,19 @@
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
+import {
+  type AgentBrandCounter,
+  BRAND_ACCESS_MISSING_MESSAGE,
+  countOrganizationBrands,
+} from '@api/services/agent-orchestrator/tools/agent-brand-access.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type { AgentBrandSerializedData } from '@genfeedai/serializers';
 
 /** Brands listed in the account profile; `brandCount` carries the total. */
 const ACCOUNT_BRAND_LIMIT = 25;
 
-/**
- * Said when an organization has brands but the caller can use none of them.
- * It never suggests creating a brand: the brands exist, access is what is missing.
- */
-export const BRAND_ACCESS_MISSING_MESSAGE =
-  'You have no brand access in this organization. It has brands, but none are assigned to you or to this API key. Ask an organization owner or admin to give you access to a brand.';
-
 export interface AgentAccountIdentityDeps {
-  /** Brands in the organization, whatever the caller may use. Undefined when unknown. */
-  countOrganizationBrands?: (
-    ctx: ToolExecutionContext,
-  ) => Promise<number | undefined>;
+  /** Counts the organization's brands, whatever the caller may use. */
+  brandCounter?: AgentBrandCounter;
   listBrands: (
     ctx: ToolExecutionContext,
   ) => Promise<AgentBrandSerializedData[]>;
@@ -41,8 +37,8 @@ export async function readAccountIdentity(
     deps.listBrands(ctx).catch(() => undefined),
   ]);
   const organizationBrandCount =
-    brands?.length === 0
-      ? await deps.countOrganizationBrands?.(ctx)
+    brands?.length === 0 && deps.brandCounter
+      ? await countOrganizationBrands(deps.brandCounter, ctx)
       : undefined;
   const hasMissingBrandAccess =
     organizationBrandCount !== undefined && organizationBrandCount > 0;
