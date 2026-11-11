@@ -276,7 +276,7 @@
     "symbol": "apps/web/app/(protected)/home/operational-home-sections.tsx"
   },
   {
-    "actual": 1535,
+    "actual": 1499,
     "file": "apps/web/proxy.ts",
     "metric": "file-lines",
     "symbol": "apps/web/proxy.ts"
