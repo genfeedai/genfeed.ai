@@ -49,16 +49,29 @@ function setup() {
       findMany: vi.fn().mockImplementation(
         (input: {
           where: {
-            deduplicationKey: { endsWith?: string; not?: unknown };
-            sourceId: { startsWith: string };
+            deduplicationKey: {
+              endsWith?: string;
+              in?: string[];
+              not?: unknown;
+            };
+            sourceId?: { startsWith: string };
           };
         }) => {
+          const wanted = input.where.deduplicationKey.in;
+          if (wanted)
+            return Promise.resolve(
+              wanted.flatMap((key) => {
+                const event = events.get(key);
+                return event ? [event] : [];
+              }),
+            );
+          const startsWith = input.where.sourceId?.startsWith ?? '';
           const wantsRecovered =
             input.where.deduplicationKey.endsWith !== undefined;
           return Promise.resolve(
             [...events.values()].filter(
               (event) =>
-                event.sourceId.startsWith(input.where.sourceId.startsWith) &&
+                event.sourceId.startsWith(startsWith) &&
                 event.deduplicationKey.endsWith('/recovered') ===
                   wantsRecovered,
             ),
@@ -180,6 +193,24 @@ describe('TrendIngestionHealthService', () => {
     await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
     expect([...events.keys()]).toEqual(keys);
     expect(digests()).toHaveLength(1);
+  });
+
+  it('checks every incident key in one query and gives the digest transaction room for a large outage', async () => {
+    const { service, prisma } = setup();
+    await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
+    const keyLookups = prisma.notificationEvent.findMany.mock.calls.filter(
+      (args: unknown[]) =>
+        (args[0] as { where: { deduplicationKey: { in?: string[] } } }).where
+          .deduplicationKey.in !== undefined,
+    );
+    expect(keyLookups).toHaveLength(1);
+    expect(
+      (keyLookups[0][0] as { where: { deduplicationKey: { in: string[] } } })
+        .where.deduplicationKey.in,
+    ).toHaveLength(15);
+    expect(prisma.$transaction).toHaveBeenLastCalledWith(expect.any(Function), {
+      timeout: 30_000,
+    });
   });
 
   it('posts one message for every incident found in a run, and a continuing outage stays silent', async () => {

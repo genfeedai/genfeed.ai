@@ -6,10 +6,7 @@ import {
   TrendRefreshHealthService,
 } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import {
-  findOutboxEvent,
-  writeNotificationOutbox,
-} from '@api/services/activity-recording/notification-outbox.writer';
+import { writeNotificationOutbox } from '@api/services/activity-recording/notification-outbox.writer';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createConcurrencyLimit } from '@api/shared/utils/create-concurrency-limit.util';
 import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
@@ -23,6 +20,9 @@ export const HEALTH_LOOKUP_CONCURRENCY = 10;
 const ENROLLMENT_KEY = 'trend-ingestion-health/enrollment-v1';
 const SOURCE_TYPE = 'trend_ingestion_health';
 const DIGEST_SOURCE_ID = 'digest';
+// One upsert per new incident runs inside the digest transaction, and a
+// provider-wide scoped outage can add hundreds. Prisma's default is 5 seconds.
+const DIGEST_TRANSACTION_TIMEOUT_MS = 30_000;
 // Discord rejects an embed description over 4096 characters; stay well under.
 const DIGEST_DESCRIPTION_BUDGET = 3600;
 const DIGEST_ADVICE =
@@ -435,55 +435,73 @@ export class TrendIngestionHealthService {
     now: Date,
   ): Promise<void> {
     if (alerts.length === 0) return;
-    const commit = await this.prisma.$transaction(async (transaction) => {
-      const announced: PendingIngestionAlert[] = [];
-      for (const alert of alerts) {
-        if (await findOutboxEvent(transaction, null, alert.key)) continue;
-        await writeNotificationOutbox(
-          transaction,
-          {
-            deduplicationKey: alert.key,
-            eventKey: alert.isRecovery
-              ? 'trend.ingestion-health.recovered'
-              : 'trend.ingestion-health.missed',
-            occurredAt: now,
+    // One lookup for every key, so the transaction only writes. Keys are
+    // deterministic and the writes are upserts, so a concurrent run cannot
+    // duplicate an incident row.
+    const known = new Set(
+      (
+        await this.prisma.notificationEvent.findMany({
+          select: { deduplicationKey: true },
+          where: {
+            deduplicationKey: { in: alerts.map((alert) => alert.key) },
+            isDeleted: false,
             organizationId: null,
-            payload: { description: alert.description, title: alert.title },
-            sourceId: alert.sourceId,
-            sourceType: SOURCE_TYPE,
           },
-          [],
-        );
-        announced.push(alert);
-      }
-      if (announced.length === 0) return null;
-      return this.activityRecorder.dispatchInTransaction(transaction, {
-        deduplicationKey: `trend-ingestion-health/digest/${createHash('sha256')
-          .update(
-            announced
-              .map((alert) => alert.key)
-              .sort()
-              .join('\n'),
-          )
-          .digest('hex')
-          .slice(0, 24)}`,
-        messages: [
-          {
-            destination: null,
-            message: {
-              action: 'ingestion_health',
-              payload: { card: this.buildDigestCard(announced) },
-              type: 'discord',
+        })
+      ).map((row) => row.deduplicationKey),
+    );
+    const fresh = alerts.filter((alert) => !known.has(alert.key));
+    if (fresh.length === 0) return;
+    const commit = await this.prisma.$transaction(
+      async (transaction) => {
+        for (const alert of fresh) {
+          await writeNotificationOutbox(
+            transaction,
+            {
+              deduplicationKey: alert.key,
+              eventKey: alert.isRecovery
+                ? 'trend.ingestion-health.recovered'
+                : 'trend.ingestion-health.missed',
+              occurredAt: now,
+              organizationId: null,
+              payload: { description: alert.description, title: alert.title },
+              sourceId: alert.sourceId,
+              sourceType: SOURCE_TYPE,
             },
-          },
-        ],
-        occurredAt: now,
-        organizationId: null,
-        source: { id: DIGEST_SOURCE_ID, type: SOURCE_TYPE },
-        topic: 'operator.alerts',
-      });
-    });
-    if (commit) await this.activityRecorder.afterCommit(commit);
+            [],
+          );
+        }
+        return this.activityRecorder.dispatchInTransaction(transaction, {
+          deduplicationKey: `trend-ingestion-health/digest/${createHash(
+            'sha256',
+          )
+            .update(
+              fresh
+                .map((alert) => alert.key)
+                .sort()
+                .join('\n'),
+            )
+            .digest('hex')
+            .slice(0, 24)}`,
+          messages: [
+            {
+              destination: null,
+              message: {
+                action: 'ingestion_health',
+                payload: { card: this.buildDigestCard(fresh) },
+                type: 'discord',
+              },
+            },
+          ],
+          occurredAt: now,
+          organizationId: null,
+          source: { id: DIGEST_SOURCE_ID, type: SOURCE_TYPE },
+          topic: 'operator.alerts',
+        });
+      },
+      { timeout: DIGEST_TRANSACTION_TIMEOUT_MS },
+    );
+    await this.activityRecorder.afterCommit(commit);
   }
 
   private buildDigestCard(alerts: PendingIngestionAlert[]): {
