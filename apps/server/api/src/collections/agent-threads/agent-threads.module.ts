@@ -58,13 +58,19 @@ import { Module } from '@nestjs/common';
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
     {
-      inject: [PrismaService, LoggerService, BrandAccessService],
+      inject: [
+        PrismaService,
+        LoggerService,
+        BrandAccessService,
+        AgentThreadAccessService,
+      ],
       provide: AgentScopeContextService,
       useFactory: (
         prisma: PrismaService,
         logger: LoggerService,
         access: BrandAccessService,
-      ) => new AgentScopeContextService(prisma, logger, access),
+        threadAccess: AgentThreadAccessService,
+      ) => new AgentScopeContextService(prisma, logger, access, threadAccess),
     },
   ],
 })
