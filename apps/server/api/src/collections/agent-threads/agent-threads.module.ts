@@ -14,6 +14,7 @@ import { AgentThreadTurnsController } from '@api/collections/agent-threads/contr
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
 import { AgentMasterThreadService } from '@api/collections/agent-threads/services/agent-master-thread.service';
 import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
+import { AgentThreadAudienceService } from '@api/collections/agent-threads/services/agent-thread-audience.service';
 import { AgentThreadMentionsService } from '@api/collections/agent-threads/services/agent-thread-mentions.service';
 import { AgentThreadSharesService } from '@api/collections/agent-threads/services/agent-thread-shares.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
@@ -40,6 +41,7 @@ import { Module } from '@nestjs/common';
     AgentMasterThreadService,
     AgentScopeContextService,
     AgentThreadAccessService,
+    AgentThreadAudienceService,
     AgentThreadMentionsService,
     AgentThreadSharesService,
     AgentThreadsService,
@@ -56,6 +58,7 @@ import { Module } from '@nestjs/common';
   providers: [
     AgentThreadsService,
     AgentThreadAccessService,
+    AgentThreadAudienceService,
     AgentThreadMentionsService,
     AgentThreadSharesService,
     AgentMasterThreadService,

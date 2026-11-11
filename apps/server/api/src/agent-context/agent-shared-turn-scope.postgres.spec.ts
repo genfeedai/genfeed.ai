@@ -68,6 +68,7 @@ describe.skipIf(!connectionString)(
         database() as unknown as PrismaService,
         access(),
         brandAccess(),
+        { refresh: async () => null } as never,
       );
     const scopes = () =>
       new AgentScopeContextService(

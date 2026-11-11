@@ -62,6 +62,7 @@ describe.skipIf(!connectionString)(
         database() as unknown as PrismaService,
         access(),
         brandAccess(),
+        { refresh: async () => null } as never,
       );
     const engine = () =>
       new AgentThreadEngineService(

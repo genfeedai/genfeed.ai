@@ -96,7 +96,12 @@ describe.skipIf(!connectionString)(
             logger as never,
           ),
         ),
-        new AgentThreadSharesService(asPrisma(), threadAccess(), brandAccess()),
+        new AgentThreadSharesService(
+          asPrisma(),
+          threadAccess(),
+          brandAccess(),
+          { refresh: async () => null } as never,
+        ),
         { notifyReviewRequested: vi.fn() } as never,
       );
 
