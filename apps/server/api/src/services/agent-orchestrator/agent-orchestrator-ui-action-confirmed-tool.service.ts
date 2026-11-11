@@ -169,8 +169,15 @@ export class AgentOrchestratorUiActionConfirmedToolService {
           'Failed to start the destination conversation.',
         );
       }
+      // A hand-off to a teammate waits for them; nothing is queued yet.
+      const transfer = (
+        execution.result.data as { transfer?: { status?: string } } | undefined
+      )?.transfer;
       return this.finalizer.finalizeStructuredAssistantTurn({
-        content: 'The handoff was sent and the destination run was queued.',
+        content:
+          transfer?.status === 'AWAITING_ACCEPTANCE'
+            ? 'The hand-off was sent. It starts when your teammate accepts it.'
+            : 'The handoff was sent and the destination run was queued.',
         context: params.context,
         eventIdempotencyKey: `agent-transfer-result:${sourceActionId}`,
         model: params.model,

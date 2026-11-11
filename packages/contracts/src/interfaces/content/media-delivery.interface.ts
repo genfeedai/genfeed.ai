@@ -11,6 +11,11 @@ export interface MediaDeliveryScope {
   organizationId: string;
   userId: string;
   brandId?: string;
+  /**
+   * Members whose own media this scope may also see: set only for a thread
+   * view, where it is the thread owner and everyone who wrote in it.
+   */
+  participantUserIds?: readonly string[];
 }
 
 export interface MediaDeliveryGrant {

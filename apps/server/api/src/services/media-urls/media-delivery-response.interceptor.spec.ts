@@ -2,6 +2,7 @@ import { generateKeyPairSync } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { MediaDeliveryResponseInterceptor } from '@api/services/media-urls/media-delivery-response.interceptor';
+import { setRequestMediaScope } from '@api/services/media-urls/request-media-scope';
 import type { ConfigService } from '@libs/config/config.service';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { lastValueFrom, of } from 'rxjs';
@@ -186,5 +187,84 @@ describe('MediaDeliveryResponseInterceptor cross-organization previews', () => {
 
     expect(asset.mediaDelivery.state).toBe('UNSUPPORTED');
     expect(asset.cdnUrl).toBeNull();
+  });
+});
+
+describe('MediaDeliveryResponseInterceptor thread media scope (#9962)', () => {
+  const organizationId = 'org-1';
+  const threadScope = {
+    organizationId,
+    participantUserIds: ['user-1', 'owner-1'],
+    userId: 'user-1',
+  };
+
+  async function projectWith(
+    registered: typeof threadScope | undefined,
+    user: Partial<AuthenticatedUser>,
+  ) {
+    const projectIngredients = vi.fn().mockResolvedValue([]);
+    const issuer = {
+      projectAssets: async () => [],
+      projectIngredients,
+    } as unknown as AuthorizedMediaUrlService;
+    const config = {
+      isAuthorizedMediaDeliveryEnabled: true,
+      mediaUrlConfig: { signing: {} },
+    } as unknown as ConfigService;
+    const request = { user };
+    if (registered) setRequestMediaScope(request, registered);
+    const context = {
+      switchToHttp: () => ({ getRequest: () => request }),
+    } as unknown as ExecutionContext;
+    const next: CallHandler = {
+      handle: () =>
+        of({
+          category: 'IMAGE',
+          cdnUrl: 'https://x.test/a',
+          id: 'ingredient-1',
+        }),
+    };
+    await lastValueFrom(
+      new MediaDeliveryResponseInterceptor(issuer, config).intercept(
+        context,
+        next,
+      ),
+    );
+    return projectIngredients;
+  }
+
+  it('projects the thread media under the scope the route registered for the same member', async () => {
+    const projectIngredients = await projectWith(threadScope, {
+      id: 'user-1',
+      organizationId,
+      userId: 'user-1',
+    });
+    expect(projectIngredients).toHaveBeenCalledWith(threadScope, [
+      'ingredient-1',
+    ]);
+  });
+
+  it('ignores a registered scope that belongs to another member', async () => {
+    const projectIngredients = await projectWith(threadScope, {
+      id: 'user-2',
+      organizationId,
+      userId: 'user-2',
+    });
+    expect(projectIngredients).toHaveBeenCalledWith(
+      { brandId: undefined, organizationId, userId: 'user-2' },
+      ['ingredient-1'],
+    );
+  });
+
+  it('keeps the session scope when no thread route registered one', async () => {
+    const projectIngredients = await projectWith(undefined, {
+      id: 'user-1',
+      organizationId,
+      userId: 'user-1',
+    });
+    expect(projectIngredients).toHaveBeenCalledWith(
+      { brandId: undefined, organizationId, userId: 'user-1' },
+      ['ingredient-1'],
+    );
   });
 });

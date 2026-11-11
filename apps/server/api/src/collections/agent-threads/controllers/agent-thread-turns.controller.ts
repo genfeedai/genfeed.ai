@@ -1,7 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { AddAgentThreadMessageDto } from '@api/collections/agent-threads/dto/add-agent-thread-message.dto';
 import { AppendExternalAgentTurnDto } from '@api/collections/agent-threads/dto/append-external-agent-turn.dto';
 import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
+import { AgentThreadMentionsService } from '@api/collections/agent-threads/services/agent-thread-mentions.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { buildAgentThreadActor } from '@api/collections/agent-threads/utils/agent-thread-actor.util';
 import { withAgentThreadExternalRuntime } from '@api/collections/agent-threads/utils/agent-thread-external-runtime.util';
@@ -9,6 +11,7 @@ import {
   resolveAgentThreadDatabaseUserId,
   resolveAgentThreadOrganizationId,
 } from '@api/collections/agent-threads/utils/agent-thread-identity.util';
+import { TeammateMentionsService } from '@api/collections/mentions/services/teammate-mentions.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -45,6 +48,8 @@ export class AgentThreadTurnsController {
   constructor(
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentThreadAccessService: AgentThreadAccessService,
+    private readonly agentThreadMentionsService: AgentThreadMentionsService,
+    private readonly teammateMentionsService: TeammateMentionsService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly usersService: UsersService,
     private readonly loggerService: LoggerService,
@@ -56,7 +61,7 @@ export class AgentThreadTurnsController {
   async addMessage(
     @Req() req: Request,
     @Param('threadId') threadId: string,
-    @Body() body: { content: string; role?: string },
+    @Body() body: AddAgentThreadMessageDto,
     @CurrentUser() user: User,
   ) {
     try {
@@ -65,8 +70,9 @@ export class AgentThreadTurnsController {
         user,
         this.usersService,
       );
+      const actor = buildAgentThreadActor(user, organizationId, dbUserId);
       const access = await this.agentThreadAccessService.assertAccess(
-        buildAgentThreadActor(user, organizationId, dbUserId),
+        actor,
         threadId,
         'collaborate',
       );
@@ -84,8 +90,15 @@ export class AgentThreadTurnsController {
           'This thread is archived. Unarchive it before sending messages or running actions.',
         );
       }
+      // Checked before anything is written: a refused mention saves nothing.
+      const mentionedUserIds = await this.agentThreadMentionsService.prepare(
+        actor,
+        access,
+        body,
+      );
       const message = await this.agentMessagesService.addMessage({
         content: body.content,
+        ...(mentionedUserIds.length > 0 ? { mentionedUserIds } : {}),
         organizationId,
         // A collaborator writes as the user; only the owner may set a role.
         role:
@@ -96,7 +109,21 @@ export class AgentThreadTurnsController {
         userId: dbUserId,
       });
 
-      return serializeSingle(req, ThreadMessageSerializer, message);
+      this.agentThreadMentionsService.announce(
+        actor,
+        access,
+        message,
+        String(
+          (thread as { title?: string | null } | null)?.title ?? 'a thread',
+        ),
+        mentionedUserIds,
+      );
+
+      const [withMentions] = await this.teammateMentionsService.attachMentions(
+        organizationId,
+        [message],
+      );
+      return serializeSingle(req, ThreadMessageSerializer, withMentions);
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'addMessage');
     }

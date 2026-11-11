@@ -66,6 +66,8 @@ describe('AgentThreadTurnsController external turns', () => {
     controller = new AgentThreadTurnsController(
       { appendExternalTurn } as unknown as AgentThreadsService,
       {} as never,
+      {} as never,
+      {} as never,
       {} as AgentMessagesService,
       {} as UsersService,
       { error: vi.fn(), warn: vi.fn() } as unknown as LoggerService,

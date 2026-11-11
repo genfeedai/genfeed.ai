@@ -197,6 +197,10 @@ export interface AgentThread {
   accessLevel?: AgentThreadAccessLevel;
   /** The owner or an organization admin: may change who the thread is shared with. */
   canManageShares?: boolean;
+  /** Live shares on a thread the viewer manages; absent when it is private. */
+  shareCount?: number;
+  /** The widest scope those shares reach: organization over brand over people. */
+  shareScope?: AgentThreadShareScope;
   /** The member who owns the thread. */
   userId?: string;
   contextVersion: number;

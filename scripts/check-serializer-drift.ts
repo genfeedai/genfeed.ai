@@ -416,7 +416,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'studio-generate-draft:StudioGenerateDraft': ['droppedReferenceIds'],
   'studio-look:StudioLook': [],
   'subscription:Subscription': [],
-  'task-comment:TaskComment': [],
+  'task-comment:TaskComment': ['mentions'],
   'task:Task': [],
   'template-metadata:TemplateMetadata': [
     'difficulty',
@@ -533,6 +533,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'pendingInputCount',
     'runStatus',
     'runtimeState',
+    'shareCount',
+    'shareScope',
     'statusSequence',
   ],
   'announcement:Announcement': [

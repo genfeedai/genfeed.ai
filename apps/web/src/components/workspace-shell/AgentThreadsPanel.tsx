@@ -10,6 +10,7 @@ import {
 import {
   AgentThreadAccessLevel,
   AgentThreadOwnerFilter,
+  AgentThreadShareScope,
   AgentThreadStatus,
   ButtonSize,
   ButtonVariant,
@@ -104,6 +105,19 @@ export default function AgentThreadsPanel({
   const isSharedWithViewer = (thread: AgentThread) =>
     thread.accessLevel !== undefined &&
     thread.accessLevel !== AgentThreadAccessLevel.OWNER;
+  // What an owned thread is shared with, for its subtitle; private rows say nothing.
+  const resolveShareScopeLabel = (thread: AgentThread): string | null => {
+    if (!thread.shareScope) {
+      return null;
+    }
+    const scope =
+      thread.shareScope === AgentThreadShareScope.ORGANIZATION
+        ? translate('share.scopeOrganization')
+        : thread.shareScope === AgentThreadShareScope.BRAND
+          ? thread.brandLabel?.trim() || translate('share.scopeBrand')
+          : translate('share.scopePeople', { count: thread.shareCount ?? 1 });
+    return translate('share.sharedScope', { scope });
+  };
   const hasSharedThreads = allThreads.some(isSharedWithViewer);
   const { members, membersById } = useAgentThreadMembers(
     hasSharedThreads || Boolean(openThreadId),
@@ -234,7 +248,12 @@ export default function AgentThreadsPanel({
         statusLabel={label}
         subtitle={
           <ThreadListSubtitle
-            parts={[owner?.name, preview, brandId ? null : thread.brandLabel]}
+            parts={[
+              owner?.name,
+              isShared ? null : resolveShareScopeLabel(thread),
+              preview,
+              brandId ? null : thread.brandLabel,
+            ]}
           />
         }
         time={formatThreadTime(

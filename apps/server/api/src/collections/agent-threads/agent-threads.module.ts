@@ -14,9 +14,11 @@ import { AgentThreadTurnsController } from '@api/collections/agent-threads/contr
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
 import { AgentMasterThreadService } from '@api/collections/agent-threads/services/agent-master-thread.service';
 import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
+import { AgentThreadMentionsService } from '@api/collections/agent-threads/services/agent-thread-mentions.service';
 import { AgentThreadSharesService } from '@api/collections/agent-threads/services/agent-thread-shares.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
+import { MentionsModule } from '@api/collections/mentions/mentions.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { UsersCoreModule } from '@api/collections/users/users-core.module';
 import { CommonModule } from '@api/common/common.module';
@@ -38,11 +40,13 @@ import { Module } from '@nestjs/common';
     AgentMasterThreadService,
     AgentScopeContextService,
     AgentThreadAccessService,
+    AgentThreadMentionsService,
     AgentThreadSharesService,
     AgentThreadsService,
   ],
   imports: [
     BrandAccessModule,
+    MentionsModule,
     AgentMessagesModule,
     UsersCoreModule,
     BrandsCoreModule,
@@ -52,6 +56,7 @@ import { Module } from '@nestjs/common';
   providers: [
     AgentThreadsService,
     AgentThreadAccessService,
+    AgentThreadMentionsService,
     AgentThreadSharesService,
     AgentMasterThreadService,
     AgentThreadProjectorService,
