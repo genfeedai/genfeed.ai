@@ -73,6 +73,7 @@ describe.skipIf(!connectionString)(
           database() as unknown as PrismaService,
           new BrandAccessService(database() as unknown as PrismaService),
         ),
+        { notifyHandoffReceived: vi.fn() } as never,
       );
     const makeListener = () =>
       new AgentTransferExecutionListener(

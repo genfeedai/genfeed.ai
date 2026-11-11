@@ -23,6 +23,7 @@ const LABEL_LIMIT = 300;
 type CollaborationEvent = CollaborationNotificationPayload['event'];
 
 const ACTIVITY_KEY_BY_EVENT: Record<CollaborationEvent, ActivityKey> = {
+  handoff_received: ActivityKey.AGENT_HANDOFF_RECEIVED,
   mentioned: ActivityKey.MENTIONED,
   review_approved: ActivityKey.ASSET_REVIEW_APPROVED,
   review_changes_requested: ActivityKey.ASSET_REVIEW_CHANGES_REQUESTED,
@@ -55,6 +56,13 @@ export interface MentionAlert extends AlertBase {
   source: { id: string; type: 'agent_thread' | 'task_comment' };
   threadId?: string;
   taskId?: string;
+}
+
+export interface HandoffReceivedAlert extends AlertBase {
+  /** The hand-off. One alert per hand-off, however often it is replayed. */
+  transferId: string;
+  /** The teammate's conversation the hand-off waits in. */
+  threadId: string;
 }
 
 interface RaiseInput extends AlertBase {
@@ -118,6 +126,18 @@ export class CollaborationAlertsService {
           !isApproved && reason ? ` ${reason}` : ''
         }`,
       taskId: input.taskId,
+    });
+  }
+
+  /** Tells a teammate a task was handed to their agent to accept or decline. */
+  async notifyHandoffReceived(input: HandoffReceivedAlert): Promise<void> {
+    await this.raise({
+      ...input,
+      event: 'handoff_received',
+      isWindowed: false,
+      subject: { id: input.transferId, type: 'transfer' },
+      summary: (actorName) =>
+        `${actorName} handed you a task in ${quote(input.label)}.`,
     });
   }
 

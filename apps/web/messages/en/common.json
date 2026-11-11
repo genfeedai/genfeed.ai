@@ -106,6 +106,7 @@
       "replies": "New replies to your posts"
     },
     "collaboration": {
+      "handoff_received": "Handed you a task",
       "mentioned": "You were mentioned",
       "review_approved": "Review approved",
       "review_changes_requested": "Changes requested",

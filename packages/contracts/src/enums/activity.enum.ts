@@ -148,6 +148,8 @@ export enum ActivityKey {
   ASSET_REVIEW_CHANGES_REQUESTED = 'asset-review-changes-requested',
   /** A teammate tagged this member in a thread or task comment (#9947). */
   MENTIONED = 'mentioned',
+  /** A teammate handed this member's agent a task to accept or decline (#9980). */
+  AGENT_HANDOFF_RECEIVED = 'agent-handoff-received',
   /** A workflow reportDelivery node sent its report to the bell. */
   WORKFLOW_REPORT_DELIVERED = 'workflow-report-delivered',
   /** A scheduled trend summary is ready. */

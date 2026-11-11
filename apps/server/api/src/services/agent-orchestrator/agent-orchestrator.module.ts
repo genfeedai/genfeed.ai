@@ -158,6 +158,7 @@ import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
 import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
 import { AutonomousPublishingModule } from '@api/services/autonomous-publishing/autonomous-publishing.module';
 import { CacheService } from '@api/services/cache/cache.service';
+import { CollaborationAlertsModule } from '@api/services/collaboration-alerts/collaboration-alerts.module';
 import { ContentQualityModule } from '@api/services/content-quality/content-quality.module';
 import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { MediaPromptEnhancementModule } from '@api/services/harness/media-prompt-enhancement.module';
@@ -197,6 +198,7 @@ import { Module } from '@nestjs/common';
     VisualProjectsCoreModule,
     PlatformSettingsModule,
     ActivityRecordingModule,
+    CollaborationAlertsModule,
     MediaPromptEnhancementModule,
     AgentSourceIngestModule,
     ContextsModule,
