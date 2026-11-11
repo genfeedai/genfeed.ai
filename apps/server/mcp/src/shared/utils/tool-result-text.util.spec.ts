@@ -65,6 +65,23 @@ describe('MCP readable tool results', () => {
     expect(text).toContain('organization admin');
   });
 
+  it('says access is missing, not that there are no brands, when the organization has some', () => {
+    const text = accountToolText({
+      profile: {
+        brandAccessMessage: 'You have no brand access. Ask an admin.',
+        brandCount: 0,
+        brands: [],
+        organizationBrandCount: 4,
+        role: 'user',
+      },
+    });
+
+    expect(text).toContain(
+      'Brands: none available to you. You have no brand access. Ask an admin.',
+    );
+    expect(text).not.toMatch(/none yet|create/i);
+  });
+
   it('distinguishes zero balances from unavailable balances and reports usage', () => {
     expect(
       accountToolText({

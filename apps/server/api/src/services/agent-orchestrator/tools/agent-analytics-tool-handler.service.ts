@@ -483,12 +483,23 @@ export class AgentAnalyticsToolHandler {
     const period = (params.period as string) || '30d';
     const { startDate, endDate } = this.analyticsPeriodRange(period);
 
-    const overview = (await this.analyticsService.getOverview(
-      startDate.toISOString(),
-      endDate.toISOString(),
-      undefined,
-      ctx.organizationId,
-    )) as {
+    const { brandCount: organizationBrandCount, ...organizationOverview } =
+      (await this.analyticsService.getOverview(
+        startDate.toISOString(),
+        endDate.toISOString(),
+        undefined,
+        ctx.organizationId,
+      )) as {
+        brandCount?: number;
+      } & Record<string, unknown>;
+    // `brandCount` here counts every brand in the organization, while
+    // get_brands lists only the brands the caller can use: say which it is.
+    const overview = {
+      ...organizationOverview,
+      ...(organizationBrandCount === undefined
+        ? {}
+        : { organizationBrandCount }),
+    } as {
       avgEngagementRate?: number;
       growth?: {
         engagement?: number;

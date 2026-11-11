@@ -3464,6 +3464,14 @@ describe('AgentToolExecutorService', () => {
 
   it('keeps organization analytics summary responses normalized for chat cards', async () => {
     const { analyticsService, service } = createService();
+    analyticsService.getOverview.mockResolvedValueOnce({
+      avgEngagementRate: 4.3,
+      brandCount: 4,
+      growth: { engagement: 12.5, posts: 8.1, views: 14.2 },
+      totalEngagement: 345,
+      totalPosts: 12,
+      totalViews: 4200,
+    });
 
     const result = await service.executeTool(
       'get_analytics',
@@ -3477,6 +3485,11 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
     expect(result.creditsUsed).toBe(0);
     expect(analyticsService.getOverview).toHaveBeenCalled();
+    expect(result.data).toMatchObject({
+      overview: { organizationBrandCount: 4, totalPosts: 12 },
+      period: '30d',
+    });
+    expect(result.data).not.toHaveProperty('overview.brandCount');
     expect(result.nextActions).toEqual([
       expect.objectContaining({
         metrics: expect.objectContaining({

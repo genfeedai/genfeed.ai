@@ -16,7 +16,10 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { readAccountIdentity } from '@api/services/agent-orchestrator/tools/agent-account-identity.util';
+import {
+  BRAND_ACCESS_MISSING_MESSAGE,
+  readAccountIdentity,
+} from '@api/services/agent-orchestrator/tools/agent-account-identity.util';
 import { starLibraryAsset } from '@api/services/agent-orchestrator/tools/agent-asset-star.util';
 import { readAgentLibraryFilters } from '@api/services/agent-orchestrator/tools/agent-library-filters.util';
 import {
@@ -52,6 +55,7 @@ type AgentBrandsServiceLike = {
     brands: Record<string, unknown>[],
     organizationId: string,
   ) => Promise<Record<string, unknown>[]>;
+  count?: (filter: Record<string, unknown>) => Promise<number>;
   findAll: (
     query: Record<string, unknown>,
     options: Record<string, unknown>,
@@ -189,6 +193,8 @@ export class AgentWorkspaceToolHandler {
     const brandId = ctx.brandId ?? ctx.validatedScope?.brandId;
     const identity = await readAccountIdentity(
       {
+        countOrganizationBrands: (context) =>
+          this.countOrganizationBrands(context),
         listBrands: (context) => this.listAccessibleBrands(context),
         organizationsService: this.organizationsService,
         usersService: this.usersService,
@@ -236,6 +242,25 @@ export class AgentWorkspaceToolHandler {
   }
 
   /**
+   * Brands in the organization regardless of the caller's brand access, so an
+   * empty list can be told apart from an organization with no brands. Cloud
+   * only (self-hosted lists every brand). Undefined when the count fails.
+   */
+  private async countOrganizationBrands(
+    ctx: ToolExecutionContext,
+  ): Promise<number | undefined> {
+    if (!isCloudDeployment()) return undefined;
+    try {
+      return await this.brandsService.count?.({
+        isDeleted: false,
+        organizationId: ctx.organizationId,
+      });
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
    * The caller's organization role key from their active membership. Fails
    * closed to `''` so an unresolved membership is never shown as a role.
    */
@@ -278,6 +303,21 @@ export class AgentWorkspaceToolHandler {
 
     const requested = readRequiredString(params.brand);
     if (!requested) {
+      const organizationBrandCount =
+        serialized.length === 0
+          ? await this.countOrganizationBrands(ctx)
+          : undefined;
+      if (organizationBrandCount !== undefined && organizationBrandCount > 0) {
+        return {
+          creditsUsed: 0,
+          data: {
+            brandAccessMessage: BRAND_ACCESS_MISSING_MESSAGE,
+            brands: serialized,
+            organizationBrandCount,
+          },
+          success: true,
+        };
+      }
       return { creditsUsed: 0, data: { brands: serialized }, success: true };
     }
 

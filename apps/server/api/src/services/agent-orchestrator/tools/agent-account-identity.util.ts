@@ -6,7 +6,18 @@ import type { AgentBrandSerializedData } from '@genfeedai/serializers';
 /** Brands listed in the account profile; `brandCount` carries the total. */
 const ACCOUNT_BRAND_LIMIT = 25;
 
+/**
+ * Said when an organization has brands but the caller can use none of them.
+ * It never suggests creating a brand: the brands exist, access is what is missing.
+ */
+export const BRAND_ACCESS_MISSING_MESSAGE =
+  'You have no brand access in this organization. It has brands, but none are assigned to you or to this API key. Ask an organization owner or admin to give you access to a brand.';
+
 export interface AgentAccountIdentityDeps {
+  /** Brands in the organization, whatever the caller may use. Undefined when unknown. */
+  countOrganizationBrands?: (
+    ctx: ToolExecutionContext,
+  ) => Promise<number | undefined>;
   listBrands: (
     ctx: ToolExecutionContext,
   ) => Promise<AgentBrandSerializedData[]>;
@@ -29,6 +40,12 @@ export async function readAccountIdentity(
     readOrganizationIdentity(deps.organizationsService, ctx),
     deps.listBrands(ctx).catch(() => undefined),
   ]);
+  const organizationBrandCount =
+    brands?.length === 0
+      ? await deps.countOrganizationBrands?.(ctx)
+      : undefined;
+  const hasMissingBrandAccess =
+    organizationBrandCount !== undefined && organizationBrandCount > 0;
   const brandName = brandId
     ? brands?.find((brand) => brand.id === brandId)?.name
     : undefined;
@@ -40,6 +57,12 @@ export async function readAccountIdentity(
           brands: brands
             .slice(0, ACCOUNT_BRAND_LIMIT)
             .map(({ id, name }) => ({ id, name })),
+        }
+      : {}),
+    ...(hasMissingBrandAccess
+      ? {
+          brandAccessMessage: BRAND_ACCESS_MISSING_MESSAGE,
+          organizationBrandCount,
         }
       : {}),
     ...(isOnboardingCompleted === undefined ? {} : { isOnboardingCompleted }),
