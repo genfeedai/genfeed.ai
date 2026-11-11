@@ -31,6 +31,7 @@ import { useMemo, useState } from 'react';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import type { AgentThreadsPanelProps } from '@/components/workspace-shell/props/agent-threads-panel.props';
 import { useAgentThreadMembers } from '@/components/workspace-shell/use-agent-thread-members';
+import { useAgentThreadOwnerFilter } from '@/components/workspace-shell/use-agent-thread-owner-filter';
 import AgentThreadLightView from './AgentThreadLightView';
 
 /** Open by default: what needs the operator, what runs, what just finished. */
@@ -75,9 +76,7 @@ export default function AgentThreadsPanel({
   const locale = useLocale();
   const now = useLocalDayClock();
   const [searchQuery, setSearchQuery] = useState('');
-  const [ownerFilter, setOwnerFilter] = useState<AgentThreadOwnerFilter>(
-    AgentThreadOwnerFilter.ALL,
-  );
+  const { ownerFilter, setOwnerFilter } = useAgentThreadOwnerFilter();
   const [localOpenThreadId, setLocalOpenThreadId] = useState<string | null>(
     null,
   );
