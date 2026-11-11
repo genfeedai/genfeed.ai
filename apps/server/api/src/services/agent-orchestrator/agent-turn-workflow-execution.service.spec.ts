@@ -23,6 +23,7 @@ function setup(
   priorMessageCount = 0,
   threadMode?: AgentThreadMode,
   resolveSharedThreadOwner?: ReturnType<typeof vi.fn>,
+  threadOwnerUserId = 'user',
 ) {
   const countMessages = vi.fn().mockResolvedValue(priorMessageCount);
   const prisma = {
@@ -78,6 +79,7 @@ function setup(
     {
       findOne: vi.fn().mockResolvedValue({
         title: 'Agent',
+        userId: threadOwnerUserId,
         ...(threadMode ? { mode: threadMode } : {}),
       }),
       findOneSelect: delegateFindOneSelect(),
@@ -558,8 +560,17 @@ describe('immediate media turns', () => {
     userId: 'user',
   };
 
-  async function runMediaTurn(threadMode?: AgentThreadMode) {
-    const { service } = setup('api', 0, threadMode);
+  async function runMediaTurn(
+    threadMode?: AgentThreadMode,
+    threadOwnerUserId = 'user',
+  ) {
+    const { service } = setup(
+      'api',
+      0,
+      threadMode,
+      undefined,
+      threadOwnerUserId,
+    );
     const executeUiAction = vi
       .spyOn(service, 'executeUiAction')
       .mockResolvedValue({
@@ -600,6 +611,15 @@ describe('immediate media turns', () => {
     );
     expect(result).not.toBeNull();
     expect(executeUiAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not charge a member's turn in another member's Auto thread (#9963)", async () => {
+    const { executeUiAction, result } = await runMediaTurn(
+      AgentThreadMode.AUTO,
+      'owner',
+    );
+    expect(result).toBeNull();
+    expect(executeUiAction).not.toHaveBeenCalled();
   });
 
   describe('a queued turn sent in a thread shared with the sender (#9937)', () => {
