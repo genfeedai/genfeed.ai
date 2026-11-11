@@ -6,6 +6,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
 import { buildSocialConnections } from '@ui/modals/brands/brand/ModalBrand.types';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import BrandDetailSocialMediaCard from '@/features/brands/components/sidebar/BrandDetailSocialMediaCard';
@@ -18,8 +19,10 @@ import { useConnectorsPrimaryAction } from '../connectors-primary-action';
  * posting times, history import and health live in its Settings dialog.
  *
  * Connectors is an organization page, and an organization route carries no
- * brand, so the brand context has none selected there. The page then shows
- * the first brand of the organization instead of a dead end.
+ * brand, so the brand context has none selected there. `?brand=<slug>` names
+ * the brand to show (brand Settings links here with it). Without it the page
+ * shows the selected brand, then the first brand of the organization, instead
+ * of a dead end.
  */
 export default function ConnectorsChannelsPage() {
   const translate = useTranslations('pages.brandSocialMedia');
@@ -27,9 +30,17 @@ export default function ConnectorsChannelsPage() {
     useState(false);
   const { brands, isReady, selectedBrand } = useBrand();
   const { orgSlug } = useOrgUrl();
+  const requestedBrandSlug = useSearchParams()?.get('brand') ?? '';
+  const organizationBrands = brands.filter(
+    (candidate) => getBrandOrganizationSlug(candidate) === orgSlug,
+  );
   const channelsBrand =
+    organizationBrands.find(
+      (candidate) =>
+        requestedBrandSlug.length > 0 && candidate.slug === requestedBrandSlug,
+    ) ??
     selectedBrand ??
-    brands.find((candidate) => getBrandOrganizationSlug(candidate) === orgSlug);
+    organizationBrands[0];
   const {
     brand,
     brandId,

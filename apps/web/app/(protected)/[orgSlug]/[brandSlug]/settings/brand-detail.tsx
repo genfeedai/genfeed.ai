@@ -66,9 +66,12 @@ export default function BrandDetail() {
 
   const params = useRouteParams();
   const orgSlug = typeof params?.orgSlug === 'string' ? params.orgSlug : '';
-  const manageSocialHref = orgSlug
+  const channelsPath = orgSlug
     ? createOrganizationAppRoute(orgSlug, APP_ROUTES.CONNECTORS.CHANNELS)
     : APP_ROUTES.CONNECTORS.CHANNELS;
+  const manageSocialHref = brand?.slug
+    ? `${channelsPath}?brand=${encodeURIComponent(brand.slug)}`
+    : channelsPath;
 
   const handleOpenLinkModal = useCallback(
     (link?: ILink) => {

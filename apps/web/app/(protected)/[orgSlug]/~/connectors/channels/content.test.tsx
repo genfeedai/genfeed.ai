@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   hasBrandId: true,
   isLoading: false,
   isReady: true,
+  searchBrand: null as string | null,
   selectedBrand: null as { id: string; slug: string } | null,
   setPrimaryAction: vi.fn(),
   useBrandDetail: vi.fn(),
@@ -18,6 +19,12 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => ({
+    get: (name: string) => (name === 'brand' ? mocks.searchBrand : null),
+  }),
+}));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
@@ -72,6 +79,7 @@ describe('ConnectorsChannelsPage', () => {
     mocks.hasBrandId = true;
     mocks.isLoading = false;
     mocks.isReady = true;
+    mocks.searchBrand = null;
     mocks.selectedBrand = null;
     mocks.setPrimaryAction.mockClear();
     mocks.useBrandDetail.mockClear();
@@ -101,6 +109,38 @@ describe('ConnectorsChannelsPage', () => {
     render(<ConnectorsChannelsPage />);
 
     expect(screen.getByTestId('accounts-table')).toBeInTheDocument();
+    expect(mocks.useBrandDetail).toHaveBeenCalledWith({
+      fallbackBrandSlug: 'tea',
+    });
+  });
+
+  it('shows the brand named by ?brand= over the selected and first brands', () => {
+    mocks.brand = { id: 'brand-3' };
+    mocks.searchBrand = 'cake';
+    mocks.selectedBrand = { id: 'brand-1', slug: 'coffee' };
+    mocks.brands = [
+      { id: 'brand-2', organizationSlug: 'acme', slug: 'tea' },
+      { id: 'brand-3', organizationSlug: 'acme', slug: 'cake' },
+      { id: 'brand-9', organizationSlug: 'other', slug: 'cake' },
+    ];
+
+    render(<ConnectorsChannelsPage />);
+
+    expect(mocks.useBrandDetail).toHaveBeenCalledWith({
+      fallbackBrandSlug: 'cake',
+    });
+  });
+
+  it('ignores a ?brand= that is not a brand of the organization', () => {
+    mocks.brand = { id: 'brand-2' };
+    mocks.searchBrand = 'elsewhere';
+    mocks.brands = [
+      { id: 'brand-2', organizationSlug: 'acme', slug: 'tea' },
+      { id: 'brand-9', organizationSlug: 'other', slug: 'elsewhere' },
+    ];
+
+    render(<ConnectorsChannelsPage />);
+
     expect(mocks.useBrandDetail).toHaveBeenCalledWith({
       fallbackBrandSlug: 'tea',
     });
