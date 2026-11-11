@@ -81,7 +81,10 @@ export class AgentThreadAccessService {
     if (
       need === 'manage' &&
       viewer?.isAdmin &&
-      this.hasBrandReach(viewer, thread)
+      // A brand-limited key manages no thread outside its brands, personal
+      // (brandless) threads included.
+      (viewer.brandIds === undefined || this.hasBrandReach(viewer, thread)) &&
+      (viewer.brandIds === undefined || thread.brandId !== null)
     ) {
       return this.accessFor(thread, AgentThreadAccessLevel.OWNER, true);
     }

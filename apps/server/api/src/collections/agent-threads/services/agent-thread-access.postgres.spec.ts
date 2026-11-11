@@ -731,6 +731,11 @@ describe.skipIf(!connectionString)(
           shares().list(await keyFor('key-brand-b2', [brandB]), thread.id),
         ).rejects.toBeInstanceOf(NotFoundException);
 
+        const personal = await createThread(owner);
+        await expect(
+          shares().list(await keyFor('key-brand-a2', [brandA]), personal.id),
+        ).rejects.toBeInstanceOf(NotFoundException);
+
         const granted = await shares().grant(
           await keyFor('key-brand-a', [brandA]),
           thread.id,
