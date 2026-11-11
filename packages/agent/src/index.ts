@@ -115,6 +115,7 @@ export type {
   AgentStreamToolStartPayload,
   AgentStreamUIBlocksPayload,
   AgentThread,
+  AgentThreadShare,
   AgentThreadSnapshot,
   AgentThreadSnapshotTimelineEntry,
   AgentThreadUiActionRun,

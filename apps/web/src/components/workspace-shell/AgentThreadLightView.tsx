@@ -11,30 +11,57 @@ import {
   AGENT_CONVERSATION_SCROLL_CLASS,
   AGENT_CONVERSATION_TRACK_CLASS,
 } from '@genfeedai/agent/constants/conversation-layout.constant';
-import type { AgentChatMessage as AgentChatMessageModel } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentChatMessage as AgentChatMessageModel,
+  AgentThreadShare,
+} from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { deriveLatestProposedPlan } from '@genfeedai/agent/utils/resolve-latest-proposed-plan.util';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  AgentThreadAccessLevel,
+  AgentThreadShareScope,
+  ButtonSize,
+  ButtonVariant,
+} from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
+import { Avatar } from '@ui/primitives/avatar';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   ArchiveRestore,
   CheckCheck,
   ChevronRight,
   Expand,
+  Lock,
+  Users,
   Video,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { AgentThreadLightViewProps } from '@/components/workspace-shell/props/agent-threads-panel.props';
+import AgentThreadShareDialog from '@/components/workspace-shell/AgentThreadShareDialog';
+import type {
+  AgentThreadLightViewProps,
+  AgentThreadMember,
+} from '@/components/workspace-shell/props/agent-threads-panel.props';
 import { collectThreadAssets } from './agent-thread-assets.util';
 
 const MESSAGE_LIMIT = 20;
 // While the thread runs, its transcript is re-read this often so the work
 // shows up here as it lands instead of only after a reload.
 const RUNNING_REFRESH_MS = 4000;
+const NO_MEMBERS: AgentThreadMember[] = [];
+const NO_MEMBERS_BY_ID: ReadonlyMap<string, AgentThreadMember> = new Map();
+const NO_SHARES: AgentThreadShare[] = [];
+
+function resolveAuthor(
+  member: AgentThreadMember | undefined,
+): { avatarUrl: string | null; name: string } | undefined {
+  return member
+    ? { avatarUrl: member.avatarUrl, name: member.name }
+    : undefined;
+}
 
 /**
  * A thread seen from the master's Threads panel, laid out like the master
@@ -45,6 +72,8 @@ export default function AgentThreadLightView({
   apiService,
   isPending = false,
   isResolved = false,
+  members = NO_MEMBERS,
+  membersById = NO_MEMBERS_BY_ID,
   onBack,
   onOpenFullThread,
   onReopen,
@@ -67,6 +96,17 @@ export default function AgentThreadLightView({
   } | null>(null);
   const decidedPlanId = decidedPlan?.id ?? null;
   const updateThread = useAgentChatStore((state) => state.updateThread);
+  const [shares, setShares] = useState<AgentThreadShare[]>(NO_SHARES);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const canManageShares = thread.canManageShares === true;
+  // The viewer's own level: anything but a share reads as owner, which is how
+  // an older API answered before sharing existed.
+  const accessLevel = thread.accessLevel ?? AgentThreadAccessLevel.OWNER;
+  const isOwnThread = accessLevel === AgentThreadAccessLevel.OWNER;
+  const canPrompt = accessLevel !== AgentThreadAccessLevel.VIEW;
+  const ownerName = thread.userId
+    ? membersById.get(thread.userId)?.name
+    : undefined;
 
   const status = getThreadStatusMeta(thread);
   const assets = useMemo(
@@ -111,6 +151,28 @@ export default function AgentThreadLightView({
     void loadMessages(controller.signal);
     return () => controller.abort();
   }, [loadMessages]);
+
+  // Who the thread is shared with. Only the owner (or an admin) may read it.
+  useEffect(() => {
+    if (!canManageShares) {
+      setShares(NO_SHARES);
+      return;
+    }
+    const controller = new AbortController();
+    apiService
+      .getThreadShares(thread.id, controller.signal)
+      .then((loaded) => {
+        if (!controller.signal.aborted) {
+          setShares(loaded);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setShares(NO_SHARES);
+        }
+      });
+    return () => controller.abort();
+  }, [apiService, canManageShares, thread.id]);
 
   // A running thread (for example right after its plan was approved) shows
   // its new messages as they land, and once more when the run settles.
@@ -232,6 +294,46 @@ export default function AgentThreadLightView({
       ? { ...latestPlan, status: 'approved' as const }
       : latestPlan;
 
+  // A thread with one author names no one; once a second member has written
+  // in it (or it is shared), each member's turn names its
+  // author.
+  const authorIds = useMemo(
+    () =>
+      new Set(
+        messages
+          .filter((message) => message.role === 'user' && message.userId)
+          .map((message) => message.userId),
+      ),
+    [messages],
+  );
+  const isShared = shares.length > 0;
+  const isMultiAuthor = authorIds.size > 1 || !isOwnThread || isShared;
+  const participants = useMemo(() => {
+    const ids = new Set<string>(
+      [
+        thread.userId,
+        ...shares
+          .filter((share) => share.scope === AgentThreadShareScope.MEMBER)
+          .map((share) => share.targetUserId),
+        ...authorIds,
+      ].filter((id): id is string => Boolean(id)),
+    );
+    return [...ids]
+      .map((id) => membersById.get(id))
+      .filter((member): member is AgentThreadMember => Boolean(member));
+  }, [authorIds, membersById, shares, thread.userId]);
+  const shareScopeLabel = (() => {
+    if (shares.some((s) => s.scope === AgentThreadShareScope.ORGANIZATION)) {
+      return translate('share.scopeOrganization');
+    }
+    if (shares.some((s) => s.scope === AgentThreadShareScope.BRAND)) {
+      return thread.brandLabel?.trim() || translate('share.scopeBrand');
+    }
+    return shares.length > 0
+      ? translate('share.scopePeople', { count: shares.length })
+      : translate('share.scopePrivate');
+  })();
+
   const title = thread.title?.trim() || translate('untitled');
   const toggleLabel = translate(isResolved ? 'reopen' : 'resolve');
   const onToggleResolved = isResolved ? onReopen : onResolve;
@@ -270,6 +372,50 @@ export default function AgentThreadLightView({
               : (status?.label ?? translate('statusIdle'))}
           </span>
         </nav>
+        {canManageShares ? (
+          <>
+            {isShared && participants.length > 1 ? (
+              <div
+                className="flex items-center gap-1"
+                data-testid="agent-thread-participants"
+              >
+                {participants.map((member) => (
+                  <Avatar
+                    key={member.userId}
+                    name={member.name}
+                    size="sm"
+                    src={member.avatarUrl}
+                  />
+                ))}
+              </div>
+            ) : null}
+            <Button
+              data-testid="agent-thread-share-button"
+              onClick={() => setIsShareOpen(true)}
+              size={ButtonSize.SM}
+              textTransform="none"
+              variant={ButtonVariant.SECONDARY}
+            >
+              {isShared ? (
+                <Users className="size-4" />
+              ) : (
+                <Lock className="size-4" />
+              )}
+              {shareScopeLabel}
+            </Button>
+          </>
+        ) : !isOwnThread ? (
+          <Badge data-testid="agent-thread-access-badge" variant="secondary">
+            {ownerName
+              ? translate('share.accessBadge', {
+                  level: translate(
+                    canPrompt ? 'share.canPrompt' : 'share.canView',
+                  ),
+                  owner: ownerName,
+                })
+              : translate(canPrompt ? 'share.canPrompt' : 'share.canView')}
+          </Badge>
+        ) : null}
         {onToggleResolved ? (
           <Button
             ariaLabel={toggleLabel}
@@ -321,6 +467,16 @@ export default function AgentThreadLightView({
           ) : (
             messages.map((message, index) => (
               <AgentChatMessage
+                author={
+                  isMultiAuthor &&
+                  message.role === 'user' &&
+                  message.userId &&
+                  (index === 0 ||
+                    messages[index - 1]?.userId !== message.userId ||
+                    messages[index - 1]?.role !== 'user')
+                    ? resolveAuthor(membersById.get(message.userId))
+                    : undefined
+                }
                 isReadOnly={isResolved}
                 key={message.id}
                 message={message}
@@ -372,36 +528,64 @@ export default function AgentThreadLightView({
         </ul>
       ) : null}
 
-      <div className="shrink-0 px-4 pb-4">
-        <PromptBarContainer
-          className="mx-auto w-full max-w-3xl"
-          layoutMode="inflow"
-          maxWidth="full"
-          topContent={
-            isResolved || hasSteerFailed ? (
-              <p
-                className={cn(
-                  'mb-2 text-xs',
-                  hasSteerFailed ? 'text-destructive' : 'text-muted-foreground',
-                )}
-                role={hasSteerFailed ? 'alert' : 'status'}
-              >
-                {hasSteerFailed
-                  ? translate('steerFailed')
-                  : translate('reopenToSteer')}
-              </p>
-            ) : undefined
-          }
+      {!canPrompt ? (
+        <p
+          className="shrink-0 px-6 pb-4 text-xs text-muted-foreground"
+          data-testid="agent-thread-view-only"
         >
-          <AgentChatInput
-            disabled={isSending || isResolved}
-            isAgentControlsHidden
-            key={thread.id}
-            onSend={handleSteer}
-            placeholder={translate('steerPlaceholder')}
-          />
-        </PromptBarContainer>
-      </div>
+          {ownerName
+            ? translate('share.viewOnlyNamed', { owner: ownerName })
+            : translate('share.viewOnly')}
+        </p>
+      ) : (
+        <div className="shrink-0 px-4 pb-4">
+          <PromptBarContainer
+            className="mx-auto w-full max-w-3xl"
+            layoutMode="inflow"
+            maxWidth="full"
+            topContent={
+              isResolved || hasSteerFailed ? (
+                <p
+                  className={cn(
+                    'mb-2 text-xs',
+                    hasSteerFailed
+                      ? 'text-destructive'
+                      : 'text-muted-foreground',
+                  )}
+                  role={hasSteerFailed ? 'alert' : 'status'}
+                >
+                  {hasSteerFailed
+                    ? translate('steerFailed')
+                    : translate('reopenToSteer')}
+                </p>
+              ) : undefined
+            }
+          >
+            <AgentChatInput
+              disabled={isSending || isResolved}
+              isAgentControlsHidden
+              key={thread.id}
+              onSend={handleSteer}
+              placeholder={translate(
+                isMultiAuthor
+                  ? 'share.steerPlaceholderShared'
+                  : 'steerPlaceholder',
+              )}
+            />
+          </PromptBarContainer>
+        </div>
+      )}
+      {canManageShares ? (
+        <AgentThreadShareDialog
+          apiService={apiService}
+          isOpen={isShareOpen}
+          members={members}
+          onOpenChange={setIsShareOpen}
+          onSharesChange={setShares}
+          shares={shares}
+          thread={thread}
+        />
+      ) : null}
     </div>
   );
 }

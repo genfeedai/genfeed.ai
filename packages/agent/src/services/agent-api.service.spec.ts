@@ -7,6 +7,10 @@ import {
 } from '@agent-tests/json-api-fetch.mock';
 import { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentApiDecodeError } from '@genfeedai/agent/services/agent-api-error';
+import {
+  AgentThreadShareLevel,
+  AgentThreadShareScope,
+} from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeService(token: string | null = 'test-token') {
@@ -352,6 +356,45 @@ describe('AgentApiService', () => {
         'http://api.test/agent/threads/c-1/turns/stream',
         expect.objectContaining({ method: 'POST' }),
       );
+    });
+  });
+
+  describe('thread shares', () => {
+    it('lists who a thread is shared with', async () => {
+      mockJsonApiCollection(
+        [{ id: 'share-1', level: 'view', scope: 'organization' }],
+        'thread-share',
+      );
+      const result = await makeService().getThreadShares('thread-1');
+      expect(result).toEqual([
+        expect.objectContaining({ id: 'share-1', scope: 'organization' }),
+      ]);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://api.test/agent/threads/thread-1/shares',
+        expect.anything(),
+      );
+    });
+
+    it('shares a thread with one member at a level', async () => {
+      mockJsonApiResource(
+        { id: 'share-2', level: 'collaborate', scope: 'member' },
+        'thread-share',
+      );
+      const result = await makeService().createThreadShare('thread-1', {
+        level: AgentThreadShareLevel.COLLABORATE,
+        scope: AgentThreadShareScope.MEMBER,
+        targetUserId: 'user-2',
+      });
+      expect(result).toEqual(
+        expect.objectContaining({ id: 'share-2', level: 'collaborate' }),
+      );
+      const [url, init] = mockFetch.mock.calls[0];
+      expect(url).toBe('http://api.test/agent/threads/thread-1/shares');
+      expect(JSON.parse(init.body)).toEqual({
+        level: 'collaborate',
+        scope: 'member',
+        targetUserId: 'user-2',
+      });
     });
   });
 

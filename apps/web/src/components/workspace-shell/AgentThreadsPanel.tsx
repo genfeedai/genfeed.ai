@@ -8,6 +8,8 @@ import {
   resolveThreadListPreview,
 } from '@genfeedai/agent/components/agent-thread-list.helpers';
 import {
+  AgentThreadAccessLevel,
+  AgentThreadOwnerFilter,
   AgentThreadStatus,
   ButtonSize,
   ButtonVariant,
@@ -21,11 +23,14 @@ import {
   ThreadListSubtitle,
   useLocalDayClock,
 } from '@ui/lists/thread-list/ThreadList';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import Searchbar from '@ui/primitives/searchbar';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import type { AgentThreadsPanelProps } from '@/components/workspace-shell/props/agent-threads-panel.props';
+import { useAgentThreadMembers } from '@/components/workspace-shell/use-agent-thread-members';
 import AgentThreadLightView from './AgentThreadLightView';
 
 /** Open by default: what needs the operator, what runs, what just finished. */
@@ -70,6 +75,9 @@ export default function AgentThreadsPanel({
   const locale = useLocale();
   const now = useLocalDayClock();
   const [searchQuery, setSearchQuery] = useState('');
+  const [ownerFilter, setOwnerFilter] = useState<AgentThreadOwnerFilter>(
+    AgentThreadOwnerFilter.ALL,
+  );
   const [localOpenThreadId, setLocalOpenThreadId] = useState<string | null>(
     null,
   );
@@ -92,13 +100,35 @@ export default function AgentThreadsPanel({
     ];
   }, [resolvedThreads, threads]);
 
+  // A thread is the viewer's own unless a share reaches them. The list already
+  // carries both, so the owner filter only narrows it.
+  const isSharedWithViewer = (thread: AgentThread) =>
+    thread.accessLevel !== undefined &&
+    thread.accessLevel !== AgentThreadAccessLevel.OWNER;
+  const hasSharedThreads = allThreads.some(isSharedWithViewer);
+  const { members, membersById } = useAgentThreadMembers(
+    hasSharedThreads || Boolean(openThreadId),
+  );
+  const listedThreads = useMemo(
+    () =>
+      ownerFilter === AgentThreadOwnerFilter.ALL
+        ? allThreads
+        : allThreads.filter(
+            (thread) =>
+              (ownerFilter === AgentThreadOwnerFilter.SHARED) ===
+              (thread.accessLevel !== undefined &&
+                thread.accessLevel !== AgentThreadAccessLevel.OWNER),
+          ),
+    [allThreads, ownerFilter],
+  );
+
   const groups = useMemo(
     () =>
-      groupChildThreads([...allThreads], {
+      groupChildThreads([...listedThreads], {
         brandId,
         searchQuery,
       }),
-    [allThreads, brandId, searchQuery],
+    [brandId, listedThreads, searchQuery],
   );
 
   const openThread = openThreadId
@@ -112,6 +142,8 @@ export default function AgentThreadsPanel({
         apiService={apiService}
         isPending={pendingThreadIds?.has(openThread.id)}
         isResolved={isOpenThreadResolved}
+        members={members}
+        membersById={membersById}
         onBack={() => setOpenThreadId(null)}
         onOpenFullThread={onOpenFullThread}
         onReopen={
@@ -177,6 +209,10 @@ export default function AgentThreadsPanel({
         onSelect: () => onOpenFullThread(thread.id),
       });
     }
+    const isShared = isSharedWithViewer(thread);
+    const owner =
+      isShared && thread.userId ? membersById.get(thread.userId) : undefined;
+    const preview = resolveThreadListPreview(thread);
     return (
       <ThreadListRow
         actions={actions}
@@ -184,15 +220,22 @@ export default function AgentThreadsPanel({
         data-testid={`agent-threads-panel-thread-${thread.id}`}
         href={getThreadHref(thread.id)}
         key={thread.id}
+        leading={
+          isShared ? (
+            <Avatar
+              className="mt-0.5"
+              name={owner?.name}
+              size="xs"
+              src={owner?.avatarUrl}
+            />
+          ) : null
+        }
         onSelect={() => setOpenThreadId(thread.id)}
         status={status}
         statusLabel={label}
         subtitle={
           <ThreadListSubtitle
-            parts={[
-              resolveThreadListPreview(thread),
-              brandId ? null : thread.brandLabel,
-            ]}
+            parts={[owner?.name, preview, brandId ? null : thread.brandLabel]}
           />
         }
         time={formatThreadTime(
@@ -214,14 +257,42 @@ export default function AgentThreadsPanel({
       className="flex min-h-0 flex-1 flex-col"
       data-testid="agent-threads-panel"
     >
-      <div className="p-3 pb-1">
+      <div className="flex items-center gap-2 p-3 pb-1">
         <Searchbar
           ariaLabel={translate('search')}
-          className="min-w-0"
+          className="min-w-0 flex-1"
           onChange={(event) => setSearchQuery(event.target.value)}
           onClear={() => setSearchQuery('')}
           placeholder={translate('search')}
           value={searchQuery}
+        />
+        <FilterMenu
+          facets={[
+            {
+              defaultValue: AgentThreadOwnerFilter.ALL,
+              key: 'owner',
+              label: translate('filters.owner'),
+              onChange: (value) =>
+                setOwnerFilter(value as AgentThreadOwnerFilter),
+              options: [
+                {
+                  label: translate('filters.ownerAll'),
+                  value: AgentThreadOwnerFilter.ALL,
+                },
+                {
+                  label: translate('filters.ownerMine'),
+                  value: AgentThreadOwnerFilter.MINE,
+                },
+                {
+                  label: translate('filters.ownerShared'),
+                  value: AgentThreadOwnerFilter.SHARED,
+                },
+              ],
+              selection: 'single',
+              value: ownerFilter,
+            },
+          ]}
+          onClear={() => setOwnerFilter(AgentThreadOwnerFilter.ALL)}
         />
       </div>
 
