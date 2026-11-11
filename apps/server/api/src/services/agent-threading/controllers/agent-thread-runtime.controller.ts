@@ -15,6 +15,12 @@ import type { AgentTurnAcknowledgement } from '@api/services/agent-orchestrator/
 import { AgentWorkObjectService } from '@api/services/agent-orchestrator/tools/agent-work-object.service';
 import { buildAgentInitiatingPrincipal } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
+import {
+  assertInputRequestAnswerable,
+  isRecurringWorkflowRequest,
+  resolveInputContinuationContent,
+  toInputRequestResponse,
+} from '@api/services/agent-threading/utils/agent-input-request-response.util';
 import type { AgentWorkObjectActionPayload } from '@genfeedai/contracts/interfaces';
 import type { AgentInputRequestResponsePayload } from '@genfeedai/contracts/interfaces/ai/agent-input-request.interface';
 import { AgentThreadSerializer } from '@genfeedai/serializers';
@@ -237,6 +243,8 @@ export class AgentThreadRuntimeController {
         requestedBrandId: body.brandId,
         threadId,
         userId,
+        // A member with a live collaborate share answers as themselves (#9964).
+        isSharedCollaborationAllowed: true,
         isApiKey: user.isApiKey,
         apiKeyId: user.apiKeyId,
         scopes: user.scopes,
@@ -245,6 +253,8 @@ export class AgentThreadRuntimeController {
       if (!scope) {
         throw new UnauthorizedException('Agent thread scope is unavailable.');
       }
+      const isRecurringRequest = isRecurringWorkflowRequest(requestId);
+      assertInputRequestAnswerable(scope, isRecurringRequest);
       await this.agentScopeContextService.assertConsequentialBoundary(
         scope,
         'workflow',
@@ -269,7 +279,7 @@ export class AgentThreadRuntimeController {
         organizationId,
         userId,
       });
-      if (requestId.startsWith('recurring-workflow:')) {
+      if (isRecurringRequest) {
         await this.agentOrchestratorService.resumeRecurringTaskDraftFromInput({
           answer: body.answer,
           fieldId:
@@ -286,12 +296,10 @@ export class AgentThreadRuntimeController {
         continuation = await this.agentOrchestratorService.acceptChatStream(
           {
             threadId,
-            content:
-              inputRequest.fieldId === 'brandUrl' &&
-              body.optionIds?.length === 1 &&
-              body.optionIds[0].startsWith('https://')
-                ? body.optionIds[0]
-                : body.answer,
+            content: resolveInputContinuationContent(
+              inputRequest.fieldId,
+              body,
+            ),
             clientRequestId: `input-response:${requestId}`,
             brandId: scope.brandId,
             expectedContextVersion: scope.contextVersion,
@@ -306,16 +314,7 @@ export class AgentThreadRuntimeController {
         );
       }
 
-      return {
-        answer: inputRequest.answer ?? null,
-        executionId: continuation?.executionId ?? null,
-        fieldId: inputRequest.fieldId ?? null,
-        queuedAt: continuation?.queuedAt ?? null,
-        requestId: inputRequest.requestId,
-        resolvedAt: inputRequest.resolvedAt ?? null,
-        status: inputRequest.status,
-        threadId,
-      };
+      return toInputRequestResponse(inputRequest, continuation, threadId);
     } catch (error: unknown) {
       return ErrorResponse.handle(
         error,
