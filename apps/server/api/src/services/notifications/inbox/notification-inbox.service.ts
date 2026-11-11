@@ -1,14 +1,17 @@
 import { summarizeMcpApproval } from '@api/collections/mcp-approvals/utils/mcp-approval-summary.util';
 import { readAvatarTwinPayload } from '@api/services/notifications/inbox/inbox-avatar-twin.util';
+import {
+  collaborationInboxItem,
+  inboxSourceHref,
+  readCollaborationPayload,
+} from '@api/services/notifications/inbox/inbox-collaboration.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { MemberRole } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
-  createBrandAppRoute,
   createLibraryAssetRoute,
   createMessagesConversationRoute,
-  createOrganizationAppRoute,
   createPublishingApprovalsRoute,
 } from '@genfeedai/contracts/constants';
 import {
@@ -146,22 +149,6 @@ function hasSystemWorkflowMetadata(metadata: Prisma.JsonValue): boolean {
       !Array.isArray(metadata) &&
       metadata[SYSTEM_WORKFLOW_METADATA_KEY],
   );
-}
-
-function inboxSourceHref(
-  organizationSlug: string | null | undefined,
-  brandSlug: string | null | undefined,
-  path: string,
-): string | null {
-  const org = organizationSlug ?? '';
-  if (org.length === 0) {
-    return null;
-  }
-  const slug = brandSlug ?? '';
-  if (slug.length > 0) {
-    return createBrandAppRoute(org, slug, path);
-  }
-  return createOrganizationAppRoute(org, path);
 }
 
 type SocialReplyInboxPayload = {
@@ -320,8 +307,9 @@ async function loadInboxBrandSlugs(input: {
     const payload =
       readSocialReplyPayload(row.topic, row.event.payload) ??
       readBreakoutRemixPayload(row.topic, row.event.payload) ??
-      readAvatarTwinPayload(row.topic, row.event.payload);
-    return payload ? [payload.brandId] : [];
+      readAvatarTwinPayload(row.topic, row.event.payload) ??
+      readCollaborationPayload(row.topic, row.event.payload);
+    return payload?.brandId ? [payload.brandId] : [];
   });
   return loadVisibleBrandSlugs({ brandIds, member, organizationId, prisma });
 }
@@ -514,6 +502,13 @@ function payloadInboxItem<
       socialReply,
     });
   }
+  const collaboration = collaborationInboxItem({
+    activity,
+    brandSlugs,
+    orgSlug,
+    row,
+  });
+  if (collaboration) return collaboration;
   const remix = readBreakoutRemixPayload(row.topic, row.event.payload);
   const twin = readAvatarTwinPayload(row.topic, row.event.payload);
   const brandId = remix?.brandId ?? twin?.brandId;

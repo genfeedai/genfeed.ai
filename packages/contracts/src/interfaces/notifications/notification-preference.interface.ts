@@ -8,6 +8,7 @@ export const PRODUCT_EMAIL_TOPICS = [
   'publishing.connection',
   'billing.credits',
   'generation.status',
+  'collaboration.activity',
 ] as const;
 export type ProductEmailTopic = (typeof PRODUCT_EMAIL_TOPICS)[number];
 export const SOCIAL_REPLY_NOTIFICATION_TOPIC = 'social.reply' as const;
@@ -74,6 +75,13 @@ export const PRODUCT_EMAIL_PREFERENCES = [
     description:
       'Email when a generation taking at least two minutes completes or fails. You can leave the studio while it runs.',
     isDefaultEnabled: false,
+  },
+  {
+    topic: 'collaboration.activity',
+    label: 'Reviews and mentions',
+    description:
+      'Email when a teammate asks you to review an asset, decides a review you asked for, or mentions you.',
+    isDefaultEnabled: true,
   },
 ] as const;
 

@@ -59,6 +59,7 @@ describe('activity.enum', () => {
         'MCP_APPROVAL',
         'POST_LIFECYCLE',
         'BRAND_OS_EXPORT',
+        'COLLABORATION',
       ]);
     });
 
@@ -184,6 +185,10 @@ describe('activity.enum', () => {
         'SOCIAL_REPLIES_RECEIVED',
         'CREDITS_LOW',
         'WORKFLOW_REVIEW_REQUESTED',
+        'ASSET_REVIEW_REQUESTED',
+        'ASSET_REVIEW_APPROVED',
+        'ASSET_REVIEW_CHANGES_REQUESTED',
+        'MENTIONED',
         'WORKFLOW_REPORT_DELIVERED',
         'TREND_SUMMARY_READY',
         'BREAKOUT_REMIX_OFFERED',

@@ -52,6 +52,17 @@ export interface ActivityAlertPolicy {
   recipients: readonly ActivityAlertRoute[];
 }
 
+/**
+ * A teammate's action that needs this member's attention (#9947). The member
+ * the event is for is the activity's user; the person who caused it is the
+ * alert's actor. Email follows the member's own "Reviews and mentions" choice.
+ */
+const COLLABORATION_ALERT: ActivityAlertPolicy = {
+  recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
+  severity: 'info',
+  topic: 'collaboration.activity',
+};
+
 const GENERATION_FAILED: ActivityAlertPolicy = {
   recipients: [{ channels: ['in_app'], recipient: 'actor' }],
   severity: 'warning',
@@ -173,6 +184,19 @@ export const ACTIVITY_ALERT_POLICIES = {
     severity: 'warning',
     topic: 'approval.requests',
   },
+  [ActivityKey.ASSET_REVIEW_REQUESTED]: {
+    ...COLLABORATION_ALERT,
+    severity: 'warning',
+  },
+  [ActivityKey.ASSET_REVIEW_APPROVED]: {
+    ...COLLABORATION_ALERT,
+    severity: 'success',
+  },
+  [ActivityKey.ASSET_REVIEW_CHANGES_REQUESTED]: {
+    ...COLLABORATION_ALERT,
+    severity: 'warning',
+  },
+  [ActivityKey.MENTIONED]: COLLABORATION_ALERT,
   [ActivityKey.MCP_APPROVAL_REQUESTED]: {
     recipients: [{ channels: ['in_app'], recipient: 'actor' }],
     severity: 'warning',

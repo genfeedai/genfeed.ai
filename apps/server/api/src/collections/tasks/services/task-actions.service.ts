@@ -9,6 +9,7 @@ import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { scopedWhere } from '@api/index';
+import { CollaborationAlertsService } from '@api/services/collaboration-alerts/collaboration-alerts.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { TaskStatus } from '@genfeedai/contracts/interfaces';
 import {
@@ -40,6 +41,9 @@ type TaskRealtimePayload = {
   userId: string;
 };
 
+/** Review-request tasks are titled "Review: <asset>" (#9945). */
+const REVIEW_TITLE_PREFIX = /^Review:\s*/;
+
 type OutputIdArrayField = 'approvedOutputIds' | 'linkedOutputIds';
 
 /**
@@ -57,6 +61,7 @@ export class TaskActionsService {
     private readonly ingredientsService: IngredientsService,
     private readonly notificationsPublisher: NotificationsPublisherService,
     private readonly taskFeedbackMemoryAdapter: TaskFeedbackMemoryAdapterService,
+    private readonly collaborationAlerts: CollaborationAlertsService,
   ) {}
 
   async approve(
@@ -83,6 +88,9 @@ export class TaskActionsService {
         type: 'task_approved',
       },
     );
+    await this.alertRequester(updated, organizationId, actorUserId, {
+      decision: 'approved',
+    });
     await this.taskFeedbackMemoryAdapter.captureFromTaskReview({
       ...(initiatingActor ? { initiatingActor } : {}),
       decision: 'approved',
@@ -111,6 +119,10 @@ export class TaskActionsService {
       payload: { reason },
       type: 'task_changes_requested',
     });
+    await this.alertRequester(updated, organizationId, userId, {
+      decision: 'changes_requested',
+      reason,
+    });
     await this.taskFeedbackMemoryAdapter.captureFromTaskReview({
       ...(initiatingActor ? { initiatingActor } : {}),
       decision: 'changes_requested',
@@ -120,6 +132,34 @@ export class TaskActionsService {
       userId,
     });
     return updated;
+  }
+
+  /**
+   * Tells the person who asked for a review what the reviewer decided (#9947).
+   * Only a review of a Library asset carries the asset the alert links to; any
+   * other task decision stays in the task's own event stream.
+   */
+  private async alertRequester(
+    task: TaskDocument,
+    organizationId: string,
+    reviewerUserId: string | undefined,
+    decision: { decision: 'approved' | 'changes_requested'; reason?: string },
+  ): Promise<void> {
+    const ingredient = task.linkedEntities?.find(
+      (entity) => entity.entityModel === 'Ingredient',
+    );
+    if (!ingredient || !reviewerUserId || !task.userId) return;
+    await this.collaborationAlerts.notifyReviewDecided({
+      actorUserId: reviewerUserId,
+      brandId: task.brandId,
+      decision: decision.decision,
+      ingredientId: ingredient.entityId,
+      label: task.title.replace(REVIEW_TITLE_PREFIX, ''),
+      organizationId,
+      reason: decision.reason,
+      recipientUserId: task.userId,
+      taskId: task.id,
+    });
   }
 
   async dismiss(

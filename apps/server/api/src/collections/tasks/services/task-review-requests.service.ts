@@ -12,6 +12,7 @@ import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import { TaskReviewAccessService } from '@api/collections/tasks/services/task-review-access.service';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { CollaborationAlertsService } from '@api/services/collaboration-alerts/collaboration-alerts.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
@@ -65,6 +66,7 @@ export class TaskReviewRequestsService {
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly agentThreadSharesService: AgentThreadSharesService,
+    private readonly collaborationAlerts: CollaborationAlertsService,
   ) {}
 
   /** Creates one review task and thread per reviewer, or returns the open one. */
@@ -89,10 +91,28 @@ export class TaskReviewRequestsService {
     const tasks: TaskDocument[] = [];
     for (const reviewerUserId of reviewerUserIds) {
       const open = await this.findOpenRequest(actor, asset, reviewerUserId);
-      tasks.push(
-        open ??
-          (await this.createRequest(actor, asset, reviewerUserId, input.note)),
+      if (open) {
+        tasks.push(open);
+        continue;
+      }
+      const created = await this.createRequest(
+        actor,
+        asset,
+        reviewerUserId,
+        input.note,
       );
+      tasks.push(created);
+      // Only a request made now alerts the reviewer, so asking again for the
+      // same asset does not raise a second bell item.
+      await this.collaborationAlerts.notifyReviewRequested({
+        actorUserId: actor.userId,
+        brandId: asset.brandId,
+        ingredientId: asset.id,
+        label: asset.label ?? 'Untitled asset',
+        organizationId: actor.organizationId,
+        recipientUserId: reviewerUserId,
+        taskId: created.id,
+      });
     }
     return tasks;
   }
