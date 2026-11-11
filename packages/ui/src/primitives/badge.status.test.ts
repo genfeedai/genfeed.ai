@@ -21,6 +21,7 @@ describe('getBadgeStatus', () => {
     ['planned', 'Planned', 'secondary'],
     ['rejected', 'Rejected', 'destructive'],
     ['revision_requested', 'Revision Requested', 'warning'],
+    ['changes_requested', 'Changes Requested', 'warning'],
     ['running', 'Running', 'info'],
     ['succeeded', 'Succeeded', 'success'],
     ['terminated', 'Terminated', 'destructive'],

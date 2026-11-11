@@ -16,6 +16,7 @@ const messages = {
     recovery: library.recovery,
     review: library.review,
     tags: library.tags,
+    teamReview: { state: library.teamReview.state },
   },
   studioClipper,
   studioStoryboard,

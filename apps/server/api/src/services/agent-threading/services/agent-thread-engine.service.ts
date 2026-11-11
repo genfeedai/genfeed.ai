@@ -468,7 +468,9 @@ export class AgentThreadEngineService {
   async resolveInputRequest(
     params: ResolveAgentInputRequestParams,
   ): Promise<AgentInputRequestDocument> {
-    await this.ensureThreadAccess(
+    // A member with a live collaborate share may answer (#9964); the answer
+    // and its event are recorded as them.
+    await this.ensureThreadWriteAccess(
       params.threadId,
       params.organizationId,
       params.userId,
@@ -500,6 +502,22 @@ export class AgentThreadEngineService {
     }
 
     const request = inputRequests[reqIndex];
+    // One answered question starts one continuation: a different member's
+    // retry of it is refused. The thread owner may still repair a delivery
+    // gap (#9964); a request answered before the responder was stored keeps
+    // the earlier behaviour.
+    const answeredBy =
+      request.status === 'resolved' ? request.resolvedByUserId : undefined;
+    if (
+      typeof answeredBy === 'string' &&
+      answeredBy !== params.userId &&
+      !(await this.isThreadOwner(
+        params.threadId,
+        params.organizationId,
+        params.userId,
+      ))
+    )
+      throw new BadRequestException('This request was already answered.');
     const answer = validateAgentInputAnswer(request, params);
     const optionIds = params.optionIds;
     params = { ...params, answer };
@@ -512,6 +530,7 @@ export class AgentThreadEngineService {
               answer,
               ...(optionIds ? { optionIds } : {}),
               resolvedAt: new Date().toISOString(),
+              resolvedByUserId: params.userId,
               status: 'resolved',
             }
           : item,
@@ -669,6 +688,17 @@ export class AgentThreadEngineService {
    * its events as the member who sent it (#9937). The share is read now, so a
    * revoked share stops the next event.
    */
+  private isThreadOwner(
+    threadId: string,
+    organizationId: string,
+    userId: string,
+  ): Promise<boolean> {
+    return this.ensureThreadAccess(threadId, organizationId, userId).then(
+      () => true,
+      () => false,
+    );
+  }
+
   private async ensureThreadWriteAccess(
     threadId: string,
     organizationId: string,

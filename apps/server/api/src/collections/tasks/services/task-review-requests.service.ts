@@ -12,6 +12,7 @@ import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import { TaskReviewAccessService } from '@api/collections/tasks/services/task-review-access.service';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { CollaborationAlertsService } from '@api/services/collaboration-alerts/collaboration-alerts.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
@@ -32,6 +33,9 @@ import {
 const REVIEW_REQUEST_THREAD_SOURCE = 'review-request';
 
 const LIST_LIMIT = 100;
+
+/** Ceiling on the members offered as reviewers for one organization. */
+const CANDIDATE_LIMIT = 500;
 
 interface ReviewedAsset {
   brandId: string | null;
@@ -62,6 +66,7 @@ export class TaskReviewRequestsService {
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly agentThreadSharesService: AgentThreadSharesService,
+    private readonly collaborationAlerts: CollaborationAlertsService,
   ) {}
 
   /** Creates one review task and thread per reviewer, or returns the open one. */
@@ -86,10 +91,28 @@ export class TaskReviewRequestsService {
     const tasks: TaskDocument[] = [];
     for (const reviewerUserId of reviewerUserIds) {
       const open = await this.findOpenRequest(actor, asset, reviewerUserId);
-      tasks.push(
-        open ??
-          (await this.createRequest(actor, asset, reviewerUserId, input.note)),
+      if (open) {
+        tasks.push(open);
+        continue;
+      }
+      const created = await this.createRequest(
+        actor,
+        asset,
+        reviewerUserId,
+        input.note,
       );
+      tasks.push(created);
+      // Only a request made now alerts the reviewer, so asking again for the
+      // same asset does not raise a second bell item.
+      await this.collaborationAlerts.notifyReviewRequested({
+        actorUserId: actor.userId,
+        brandId: asset.brandId,
+        ingredientId: asset.id,
+        label: asset.label ?? 'Untitled asset',
+        organizationId: actor.organizationId,
+        recipientUserId: reviewerUserId,
+        taskId: created.id,
+      });
     }
     return tasks;
   }
@@ -119,6 +142,44 @@ export class TaskReviewRequestsService {
       }),
     });
     return rows.map((row) => this.tasksService.normalizeTaskDocument(row));
+  }
+
+  /**
+   * Teammates the actor may ask to review the asset: the active members, other
+   * than the actor, who reach its brand. The same rule `request` enforces, so a
+   * picker can offer exactly the people a request would accept.
+   */
+  async listReviewerCandidates(
+    actor: BrandAccessActor,
+    ingredientId: string,
+  ): Promise<string[]> {
+    const asset = await this.requireAsset(actor, ingredientId);
+    const members = await this.prisma.member.findMany({
+      orderBy: { id: 'asc' },
+      select: { userId: true },
+      take: CANDIDATE_LIMIT,
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organizationId: actor.organizationId,
+        userId: { not: actor.userId },
+      },
+    });
+    const eligible: string[] = [];
+    for (const { userId } of members) {
+      try {
+        await this.assertReaches(
+          { organizationId: actor.organizationId, userId },
+          asset.brandId,
+        );
+        eligible.push(userId);
+      } catch (error: unknown) {
+        if (!(error instanceof ForbiddenException)) {
+          throw error;
+        }
+      }
+    }
+    return eligible;
   }
 
   private async createRequest(
@@ -208,6 +269,7 @@ export class TaskReviewRequestsService {
       description: note?.trim() || undefined,
       identifier: `${organization.prefix}-${taskNumber}`,
       linkedEntities: [{ entityId: asset.id, entityModel: 'Ingredient' }],
+      linkedOutputIds: [asset.id],
       organizationId: actor.organizationId,
       planningThreadId: threadId,
       reviewState: 'pending_approval',
@@ -236,12 +298,7 @@ export class TaskReviewRequestsService {
   }
 
   private linkedToAsset(ingredientId: string): Prisma.TaskWhereInput {
-    return {
-      config: {
-        array_contains: [{ entityId: ingredientId, entityModel: 'Ingredient' }],
-        path: ['linkedEntities'],
-      },
-    };
+    return { linkedOutputs: { some: { id: ingredientId } } };
   }
 
   /**

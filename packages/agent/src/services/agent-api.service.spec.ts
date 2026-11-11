@@ -398,6 +398,58 @@ describe('AgentApiService', () => {
     });
   });
 
+  describe('hand-offs to a teammate', () => {
+    it('hands a thread to a teammate as an explicit send-and-run', async () => {
+      mockJsonApiResource(
+        { id: 'transfer-1', status: 'AWAITING_ACCEPTANCE' },
+        'agent-transfer',
+      );
+
+      const result = await makeService().createAgentHandoff({
+        content: 'Review the queued post',
+        destinationTitle: 'Review the queued post',
+        destinationUserId: 'user-2',
+        idempotencyKey: 'handoff-1',
+        sourceThreadId: 'thread-1',
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({ status: 'AWAITING_ACCEPTANCE' }),
+      );
+      const [url, init] = mockFetch.mock.calls[0];
+      expect(url).toBe('http://api.test/agent/transfers');
+      expect(init.method).toBe('POST');
+      expect(JSON.parse(init.body)).toEqual({
+        content: 'Review the queued post',
+        deliveryMode: 'SEND_AND_RUN',
+        destinationTitle: 'Review the queued post',
+        destinationUserId: 'user-2',
+        explicitUserIntent: true,
+        idempotencyKey: 'handoff-1',
+        sourceThreadId: 'thread-1',
+      });
+    });
+
+    it.each([
+      ['acceptAgentTransfer', 'accept'],
+      ['declineAgentTransfer', 'decline'],
+    ] as const)(
+      '%s posts to the transfer %s endpoint',
+      async (method, path) => {
+        mockJsonApiResource(
+          { id: 'transfer-1', status: 'PENDING' },
+          'agent-transfer',
+        );
+
+        await makeService()[method]('transfer-1');
+
+        const [url, init] = mockFetch.mock.calls[0];
+        expect(url).toBe(`http://api.test/agent/transfers/transfer-1/${path}`);
+        expect(init.method).toBe('POST');
+      },
+    );
+  });
+
   describe('getThreads', () => {
     it('fetches threads from JSON:API collection', async () => {
       mockJsonApiCollection([{ id: 'c-1' }], 'thread');

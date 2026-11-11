@@ -7,6 +7,7 @@ import type {
   AgentThreadShare,
   AgentThreadSnapshot,
   AgentUiActionAckResponse,
+  CreateAgentHandoffPayload,
   CreateAgentThreadSharePayload,
   CreateThreadPayload,
   SendMessagePayload,
@@ -14,7 +15,11 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
-import { type AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
+import {
+  type AgentThreadMode,
+  AgentThreadStatus,
+  AgentTransferDeliveryMode,
+} from '@genfeedai/contracts';
 import type {
   AgentScopePayload,
   AgentTransferPresentation,
@@ -172,6 +177,62 @@ export async function retryAgentTransfer(
     `${api.config.baseUrl}/agent/transfers/${encodeURIComponent(transferId)}/retry`,
     { method: 'POST', signal },
     'Failed to retry conversation transfer',
+    'Failed to deserialize conversation transfer',
+  );
+}
+
+/** The teammate says yes to a hand-off: their agent runs it with their own permissions. */
+export async function acceptAgentTransfer(
+  api: AgentBaseApiService,
+  transferId: string,
+  signal?: AbortSignal,
+): Promise<IAgentTransfer> {
+  return api.fetchResource<IAgentTransfer>(
+    `${api.config.baseUrl}/agent/transfers/${encodeURIComponent(transferId)}/accept`,
+    { method: 'POST', signal },
+    'Failed to accept hand-off',
+    'Failed to deserialize conversation transfer',
+  );
+}
+
+export async function declineAgentTransfer(
+  api: AgentBaseApiService,
+  transferId: string,
+  signal?: AbortSignal,
+): Promise<IAgentTransfer> {
+  return api.fetchResource<IAgentTransfer>(
+    `${api.config.baseUrl}/agent/transfers/${encodeURIComponent(transferId)}/decline`,
+    { method: 'POST', signal },
+    'Failed to decline hand-off',
+    'Failed to deserialize conversation transfer',
+  );
+}
+
+/**
+ * Hands a task to a teammate's agent. The viewer's own click is the explicit
+ * intent a SEND_AND_RUN needs; the run starts only once the teammate accepts.
+ */
+export async function createAgentHandoff(
+  api: AgentBaseApiService,
+  payload: CreateAgentHandoffPayload,
+  signal?: AbortSignal,
+): Promise<IAgentTransfer> {
+  return api.fetchResource<IAgentTransfer>(
+    `${api.config.baseUrl}/agent/transfers`,
+    {
+      body: JSON.stringify({
+        content: payload.content,
+        deliveryMode: AgentTransferDeliveryMode.SEND_AND_RUN,
+        destinationTitle: payload.destinationTitle,
+        destinationUserId: payload.destinationUserId,
+        explicitUserIntent: true,
+        idempotencyKey: payload.idempotencyKey,
+        sourceThreadId: payload.sourceThreadId,
+      }),
+      method: 'POST',
+      signal,
+    },
+    'Failed to hand off to teammate',
     'Failed to deserialize conversation transfer',
   );
 }

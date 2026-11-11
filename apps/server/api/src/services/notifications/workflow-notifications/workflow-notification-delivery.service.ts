@@ -6,8 +6,14 @@ import {
   NotificationsService,
 } from '@api/services/notifications/notifications.service';
 import {
+  buildCollaborationEmail,
+  readCollaborationPayload,
+} from '@api/services/notifications/workflow-notifications/collaboration-email.util';
+import {
   AGENT_STATUS_NOTIFICATION_TOPIC,
   type AgentReviewNotificationPayload,
+  COLLABORATION_NOTIFICATION_TOPIC,
+  COLLABORATION_SOURCE_TYPE,
   EMAIL_NOTIFICATION_CHANNEL,
   readNotificationSourcePath,
   WORKFLOW_STATUS_NOTIFICATION_TOPIC,
@@ -24,6 +30,7 @@ import {
 } from '@genfeedai/contracts';
 import {
   CHANNEL_MESSAGE_TYPES,
+  defaultProductEmailPreference,
   type IChannelMessage,
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
@@ -206,6 +213,10 @@ export class WorkflowNotificationDeliveryService {
     recipient: RecipientDelivery,
   ): Promise<void> {
     if (await this.deliverAgentMessagingReport(deliveryId, recipient)) return;
+    if (recipient.topic === COLLABORATION_NOTIFICATION_TOPIC) {
+      await this.deliverCollaborationEmail(deliveryId, recipient);
+      return;
+    }
 
     const isAgentRun = recipient.topic === AGENT_STATUS_NOTIFICATION_TOPIC;
     const isAgentReview =
@@ -318,7 +329,100 @@ export class WorkflowNotificationDeliveryService {
   }
 
   /**
-   * A rendered channel message (operator Discord, explicit email, Telegram or
+   * Email for a review request, a review decision or a mention (#9947). It
+   * follows the member's "Reviews and mentions" choice: a stored preference
+   * wins, and without one the topic's default applies.
+   */
+  private async deliverCollaborationEmail(
+    deliveryId: string,
+    recipient: RecipientDelivery,
+  ): Promise<void> {
+    const payload = readCollaborationPayload(recipient.event.payload);
+    if (
+      recipient.channel !== EMAIL_NOTIFICATION_CHANNEL ||
+      recipient.event.sourceType !== COLLABORATION_SOURCE_TYPE ||
+      !payload
+    ) {
+      await this.failPermanently(
+        deliveryId,
+        recipient.organizationId,
+        'Invalid collaboration notification',
+      );
+      return;
+    }
+
+    // tenant-scope-ignore: preferences are globally user-owned; recipient.userId comes from the organization-scoped claimed delivery
+    const preference = await this.prisma.notificationPreference.findFirst({
+      select: { isEnabled: true },
+      where: {
+        channel: EMAIL_NOTIFICATION_CHANNEL,
+        isDeleted: false,
+        topic: COLLABORATION_NOTIFICATION_TOPIC,
+        userId: recipient.userId,
+      },
+    });
+    const isEnabled =
+      preference?.isEnabled ??
+      defaultProductEmailPreference(COLLABORATION_NOTIFICATION_TOPIC);
+    if (!isEnabled || recipient.user.isDeleted || !recipient.user.email) {
+      await this.skip(
+        deliveryId,
+        recipient.organizationId,
+        'recipient_disabled_or_unavailable',
+      );
+      return;
+    }
+    if (
+      !(await this.canReceiveAgentOutcome(
+        recipient.organizationId,
+        recipient.userId,
+      ))
+    ) {
+      await this.skip(
+        deliveryId,
+        recipient.organizationId,
+        'recipient_membership_revoked',
+      );
+      return;
+    }
+
+    try {
+      const email = buildCollaborationEmail(
+        payload,
+        this.agentReportHref(
+          this.configService?.get('GENFEEDAI_APP_URL'),
+          payload.sourcePath,
+        ),
+      );
+      const providerMessageId = await this.notificationsService.deliverEmail({
+        ...email,
+        idempotencyKey: recipient.idempotencyKey,
+        to: recipient.user.email,
+      });
+      await this.markDelivered(
+        deliveryId,
+        recipient.organizationId,
+        providerMessageId,
+      );
+    } catch (error: unknown) {
+      if (error instanceof EmailDeliveryError && !error.retryable) {
+        await this.failPermanently(
+          deliveryId,
+          recipient.organizationId,
+          error.message,
+        );
+        return;
+      }
+      await this.recordFailure(
+        deliveryId,
+        recipient.organizationId,
+        recipient.attemptCount,
+        error,
+      );
+    }
+  }
+
+  /** A rendered channel message (operator Discord, explicit email, Telegram or
    * Slack). The notifications service sends it and acknowledges acceptance;
    * the durable row records the outcome and retries transient failures.
    */

@@ -306,12 +306,6 @@
     "symbol": "apps/web/src/features/brands/components/sidebar/BrandDetailSocialMediaCard.tsx"
   },
   {
-    "actual": 1003,
-    "file": "apps/web/src/features/ingredients/components/list/content/IngredientsListContent.tsx",
-    "metric": "file-lines",
-    "symbol": "apps/web/src/features/ingredients/components/list/content/IngredientsListContent.tsx"
-  },
-  {
     "actual": 1094,
     "file": "apps/web/src/features/research/remix/RemixBriefInspector.tsx",
     "metric": "file-lines",

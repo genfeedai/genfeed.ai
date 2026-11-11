@@ -105,6 +105,12 @@
     "social": {
       "replies": "New replies to your posts"
     },
+    "collaboration": {
+      "mentioned": "You were mentioned",
+      "review_approved": "Review approved",
+      "review_changes_requested": "Changes requested",
+      "review_requested": "Asked to review"
+    },
     "review": {
       "requested": "Review needed"
     },
@@ -1342,10 +1348,24 @@
       "resolved": "Resolved",
       "working": "Working"
     },
+    "handoff": {
+      "action": "Hand off to a teammate…",
+      "cancel": "Cancel",
+      "description": "Their agent gets this request in a new thread and runs it with their permissions. They can decline.",
+      "failed": "Could not send the hand-off. Try again.",
+      "noTeammates": "No teammate has access to this thread's brand.",
+      "request": "Request",
+      "requestPlaceholder": "What should their agent do?",
+      "send": "Send hand-off",
+      "sent": "Handed off to {name}. Waiting for them to accept.",
+      "teammate": "Teammate",
+      "title": "Hand off to a teammate"
+    },
     "loadFailed": "Failed to load this thread.",
     "loadMoreResolved": "Load more resolved",
     "loading": "Loading threads",
     "loadingMessages": "Loading messages",
+    "moreActions": "More actions",
     "noMatches": "No threads match.",
     "noMessages": "No messages yet.",
     "nothingNeedsYou": "Nothing needs you.",

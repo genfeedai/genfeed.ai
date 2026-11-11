@@ -5,6 +5,7 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentThreadSharesService } from '@api/collections/agent-threads/services/agent-thread-shares.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import { IngredientReviewStateService } from '@api/collections/ingredients/services/ingredient-review-state.service';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
 import { TaskReviewAccessService } from '@api/collections/tasks/services/task-review-access.service';
@@ -15,6 +16,7 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentThreadAccessLevel,
   AgentThreadKind,
+  LibraryReviewState,
   MemberRole,
 } from '@genfeedai/contracts';
 import { PrismaClient } from '@genfeedai/prisma';
@@ -95,6 +97,7 @@ describe.skipIf(!connectionString)(
           ),
         ),
         new AgentThreadSharesService(asPrisma(), threadAccess(), brandAccess()),
+        { notifyReviewRequested: vi.fn() } as never,
       );
 
     let suffix: string;
@@ -493,6 +496,96 @@ describe.skipIf(!connectionString)(
         });
 
         expect(await service().list(actor(requester), asset)).toEqual([]);
+      });
+    });
+
+    describe('reviewer candidates', () => {
+      it('offers active members who reach the asset brand, never the requester', async () => {
+        const candidates = await service().listReviewerCandidates(
+          actor(requester),
+          asset,
+        );
+
+        expect([...candidates].sort()).toEqual(
+          [admin, reviewer, secondReviewer].sort(),
+        );
+      });
+
+      it('leaves out members who cannot see the asset brand', async () => {
+        const candidates = await service().listReviewerCandidates(
+          actor(admin),
+          assetInBrandB,
+        );
+
+        expect(candidates).not.toContain(reviewer);
+        expect(candidates).toContain(brandBOnly);
+      });
+    });
+
+    describe('review state on the Library (#9948)', () => {
+      const reviewStates = () => new IngredientReviewStateService(asPrisma());
+      const listed = async (review: LibraryReviewState) =>
+        (
+          await database().ingredient.findMany({
+            select: { id: true },
+            where: { organizationId, ...reviewStates().buildFilter(review) },
+          })
+        ).map((row) => row.id);
+
+      it('reports no state for an asset nobody was asked to review', async () => {
+        const states = await reviewStates().summarize(organizationId, [asset]);
+
+        expect(states.get(asset)).toBeUndefined();
+      });
+
+      it('sums the requests: changes requested beats in review, approved needs every request approved', async () => {
+        const [first, second] = await service().request(
+          actor(requester),
+          asset,
+          { reviewerUserIds: [reviewer, secondReviewer] },
+        );
+        const stateOf = async () =>
+          (await reviewStates().summarize(organizationId, [asset])).get(asset);
+
+        expect(await stateOf()).toBe(LibraryReviewState.IN_REVIEW);
+        await decide(first?.id as string, 'approved');
+        expect(await stateOf()).toBe(LibraryReviewState.IN_REVIEW);
+        await decide(second?.id as string, 'changes_requested');
+        expect(await stateOf()).toBe(LibraryReviewState.CHANGES_REQUESTED);
+        await decide(second?.id as string, 'approved');
+        expect(await stateOf()).toBe(LibraryReviewState.APPROVED);
+      });
+
+      it('lists each asset under the one filter that matches its summed state', async () => {
+        const [first, second] = await service().request(
+          actor(requester),
+          asset,
+          { reviewerUserIds: [reviewer, secondReviewer] },
+        );
+
+        expect(await listed(LibraryReviewState.IN_REVIEW)).toEqual([asset]);
+        await decide(first?.id as string, 'approved');
+        await decide(second?.id as string, 'changes_requested');
+
+        expect(await listed(LibraryReviewState.IN_REVIEW)).toEqual([]);
+        expect(await listed(LibraryReviewState.APPROVED)).toEqual([]);
+        expect(await listed(LibraryReviewState.CHANGES_REQUESTED)).toEqual([
+          asset,
+        ]);
+        await decide(second?.id as string, 'approved');
+        expect(await listed(LibraryReviewState.APPROVED)).toEqual([asset]);
+      });
+
+      it('ignores a dismissed request', async () => {
+        const [task] = await service().request(actor(requester), asset, {
+          reviewerUserIds: [reviewer],
+        });
+        await decide(task?.id as string, 'dismissed');
+
+        expect(
+          (await reviewStates().summarize(organizationId, [asset])).get(asset),
+        ).toBeUndefined();
+        expect(await listed(LibraryReviewState.IN_REVIEW)).toEqual([]);
       });
     });
   },
