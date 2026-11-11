@@ -3,6 +3,9 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
   LibraryReviewState,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
@@ -17,6 +20,7 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useQueryClient } from '@tanstack/react-query';
+import Card from '@ui/card/Card';
 import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -138,7 +142,12 @@ export default function IngredientReviewPanel({
       </Button>
 
       {myRequest ? (
-        <div className="flex flex-col gap-2 rounded-lg bg-background-secondary p-3 shadow-border">
+        <Card
+          className="flex flex-col"
+          gap={CardGap.SM}
+          padding={CardPadding.SM}
+          variant={CardVariant.INSET}
+        >
           <p className="text-sm">
             {requesterName
               ? translate('askedYouBy', { name: requesterName })
@@ -198,7 +207,7 @@ export default function IngredientReviewPanel({
               </Button>
             </div>
           )}
-        </div>
+        </Card>
       ) : null}
 
       {openRequests.length > 0 ? (
