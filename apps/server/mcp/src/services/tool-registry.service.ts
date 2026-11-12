@@ -55,6 +55,10 @@ import {
   withBrandNames,
 } from '@mcp/services/mcp-brand-names.util';
 import {
+  brandChoiceToolResult,
+  brandRequiredToolResult,
+} from '@mcp/services/mcp-brand-required-result.util';
+import {
   resolveAuthorizedMcpCatalogCall,
   validateMcpCatalogDispatchCoverage,
 } from '@mcp/services/mcp-catalog-call.util';
@@ -449,7 +453,7 @@ export class ToolRegistryService implements OnModuleInit {
 
       // Rejected before any approval or charge: a generation always names its brand.
       if (isMcpBrandRequiredTool(name) && !readMcpBrandId(args)) {
-        return await this.brandRequiredResult();
+        return brandRequiredToolResult(await this.listCallerBrands());
       }
 
       // A draft names its brand when the organization has several; a single
@@ -457,7 +461,7 @@ export class ToolRegistryService implements OnModuleInit {
       if (isMcpBrandRequiredWhenMultipleTool(name) && !readMcpBrandId(args)) {
         const brands = await this.listCallerBrands();
         if (brands && brands.length > 1) {
-          return this.brandChoiceResult(brands);
+          return brandChoiceToolResult(brands);
         }
       }
 
@@ -498,40 +502,6 @@ export class ToolRegistryService implements OnModuleInit {
       this.logger.error(`Error handling tool call ${name}:`, error);
       return mcpToolFailureResult(error);
     }
-  }
-
-  private async brandRequiredResult() {
-    const brands = await this.listCallerBrands();
-    if (!brands) {
-      return mcpToolErrorResult({
-        brands: [],
-        code: 'brand_required',
-        message:
-          'Choose a brand for this generation. Your brands could not be loaded right now: call get_brands, then retry with its brandId.',
-      });
-    }
-    if (brands.length === 0) {
-      return mcpToolErrorResult({
-        brands,
-        code: 'brand_required',
-        message:
-          'You have no brand to generate for yet. Create a brand in Genfeed (Settings > Brands), or ask an organization admin to create one and give you access, then retry.',
-        nextStepUrl: `${getPublicAppUrl()}${APP_ROUTES.SETTINGS.BRANDS}`,
-      });
-    }
-    return mcpToolErrorResult({
-      brands,
-      code: 'brand_required',
-      message: `Choose a brand for this generation. Available brands: ${brands.map((brand) => (brand.label === brand.id ? 'Unnamed brand' : brand.label)).join(', ')}.`,
-    });
-  }
-
-  private brandChoiceResult(brands: McpBrandOption[]) {
-    return mcpToolErrorResult({
-      brands,
-      code: 'brand_required',
-      message: `Choose a brand for this draft: pass its id as brandId. Available brands: ${brands.map((brand) => (brand.label === brand.id ? 'Unnamed brand' : `${brand.label} (${brand.id})`)).join(', ')}.`,
-    });
   }
 
   /** The caller's brands, or `undefined` when they could not be loaded. */
