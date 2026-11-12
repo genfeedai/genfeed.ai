@@ -100,6 +100,41 @@ type RoutedOrganizationFailure =
 const VERIFICATION_FAILED_MESSAGE = 'Organization context verification failed';
 
 /**
+ * How long a route confirmation, switch or cross-tab sync may run before it
+ * ends in the failed state with Retry. Reconciliations share one serial
+ * queue, so one that never settles (a session token that never arrives, a
+ * request the browser never answers) would otherwise hold every later one
+ * and leave the app on its frame skeleton for good (#9973).
+ */
+export const ROUTE_CONFIRMATION_TIMEOUT_MS = 20_000;
+
+class RouteConfirmationTimeoutError extends Error {
+  constructor() {
+    super('Route confirmation timed out');
+    this.name = 'RouteConfirmationTimeoutError';
+  }
+}
+
+function withConfirmationBound<T>(task: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new RouteConfirmationTimeoutError()),
+      ROUTE_CONFIRMATION_TIMEOUT_MS,
+    );
+    task.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+/**
  * What `fetch` itself rejects with when the request never got a response,
  * which the auth token exchange lets through unwrapped. In production the
  * Sentry fetch instrumentation appends the request host to these messages,
@@ -340,76 +375,86 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
       status: 'loading',
     }));
 
-    const reconcile = async (): Promise<void> => {
-      try {
-        await invalidateTenantState();
-        const initialService = await getOrganizationsService();
-        const readMembership = membershipReader(initialService);
-        let organizations = await readOrganizations(readMembership);
-        const target = organizations.find(
-          (organization) => organization.slug === routeOrganizationSlug,
-        );
+    const confirmRoute = async (): Promise<void> => {
+      await invalidateTenantState();
+      const initialService = await getOrganizationsService();
+      const readMembership = membershipReader(initialService);
+      let organizations = await readOrganizations(readMembership);
+      const target = organizations.find(
+        (organization) => organization.slug === routeOrganizationSlug,
+      );
 
-        if (!target) {
-          if (isCurrentGeneration(generation, routeOrganizationSlug)) {
-            emitSanitizedMismatch('route-unauthorized');
-            setState({
-              confirmedOrganizationId: null,
-              confirmedOrganizationSlug: null,
-              organizations,
-              status: 'unauthorized',
-            });
-          }
+      if (!target) {
+        if (isCurrentGeneration(generation, routeOrganizationSlug)) {
+          emitSanitizedMismatch('route-unauthorized');
+          setState({
+            confirmedOrganizationId: null,
+            confirmedOrganizationSlug: null,
+            organizations,
+            status: 'unauthorized',
+          });
+        }
+        return;
+      }
+
+      const activeOrganization = organizations.find(
+        (organization) => organization.isActive,
+      );
+      let hasSwitchedOrganization = false;
+      if (activeOrganization?.id !== target.id) {
+        emitSanitizedMismatch('route-auth-mismatch');
+        if (isCurrentGeneration(generation, routeOrganizationSlug)) {
+          setState({
+            confirmedOrganizationId: null,
+            confirmedOrganizationSlug: null,
+            organizations,
+            status: 'switching',
+          });
+        }
+
+        // A cross-tab change that arrived while this read was in flight has
+        // bumped the generation. Activating the route organization now would
+        // undo the other tab's switch (#9580).
+        if (!isCurrentGeneration(generation, routeOrganizationSlug)) {
           return;
         }
-
-        const activeOrganization = organizations.find(
-          (organization) => organization.isActive,
+        await initialService.switchOrganization(target.id);
+        hasSwitchedOrganization = true;
+        await invalidateTenantState();
+        const refreshedService = await getOrganizationsService({
+          forceRefresh: true,
+        });
+        organizations = await readConfirmedOrganizations(
+          membershipReader(refreshedService),
+          target.id,
         );
-        let hasSwitchedOrganization = false;
-        if (activeOrganization?.id !== target.id) {
-          emitSanitizedMismatch('route-auth-mismatch');
-          if (isCurrentGeneration(generation, routeOrganizationSlug)) {
-            setState({
-              confirmedOrganizationId: null,
-              confirmedOrganizationSlug: null,
-              organizations,
-              status: 'switching',
-            });
-          }
+      }
 
-          await initialService.switchOrganization(target.id);
-          hasSwitchedOrganization = true;
-          await invalidateTenantState();
-          const refreshedService = await getOrganizationsService({
-            forceRefresh: true,
-          });
-          organizations = await readConfirmedOrganizations(
-            membershipReader(refreshedService),
-            target.id,
-          );
-        }
+      const confirmedOrganization = organizations.find(
+        (organization) =>
+          organization.id === target.id && organization.isActive,
+      );
+      if (!confirmedOrganization) {
+        throw new Error(VERIFICATION_FAILED_MESSAGE);
+      }
 
-        const confirmedOrganization = organizations.find(
-          (organization) =>
-            organization.id === target.id && organization.isActive,
-        );
-        if (!confirmedOrganization) {
-          throw new Error(VERIFICATION_FAILED_MESSAGE);
+      if (isCurrentGeneration(generation, routeOrganizationSlug)) {
+        if (hasSwitchedOrganization) {
+          broadcastOrganizationChange();
         }
+        setRequestOrganizationId(confirmedOrganization.id);
+        setState({
+          confirmedOrganizationId: confirmedOrganization.id,
+          confirmedOrganizationSlug: confirmedOrganization.slug,
+          organizations,
+          status: 'matched',
+        });
+      }
+    };
 
-        if (isCurrentGeneration(generation, routeOrganizationSlug)) {
-          if (hasSwitchedOrganization) {
-            broadcastOrganizationChange();
-          }
-          setRequestOrganizationId(confirmedOrganization.id);
-          setState({
-            confirmedOrganizationId: confirmedOrganization.id,
-            confirmedOrganizationSlug: confirmedOrganization.slug,
-            organizations,
-            status: 'matched',
-          });
-        }
+    const reconcile = async (): Promise<void> => {
+      try {
+        await withConfirmationBound(confirmRoute());
       } catch (error) {
         if (isCurrentGeneration(generation, routeOrganizationSlug)) {
           setRequestOrganizationId(null);
@@ -422,6 +467,11 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
             confirmedOrganizationSlug: null,
             status: 'failed',
           }));
+          if (error instanceof RouteConfirmationTimeoutError) {
+            // The stalled attempt may still finish later; it must not confirm
+            // a route the member was already told failed.
+            generationRef.current += 1;
+          }
         }
       }
     };
@@ -557,54 +607,58 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
   );
 
   useEffect(() => {
-    const synchronizeActiveOrganization = async (
-      generation: number,
-    ): Promise<void> => {
-      try {
-        await invalidateTenantState();
-        const service = await getOrganizationsService({ forceRefresh: true });
-        const readMembership = membershipReader(service);
-        let organizations = await readOrganizations(readMembership, {
+    const synchronizeOnce = async (generation: number): Promise<void> => {
+      await invalidateTenantState();
+      const service = await getOrganizationsService({ forceRefresh: true });
+      const readMembership = membershipReader(service);
+      let organizations = await readOrganizations(readMembership, {
+        fresh: true,
+      });
+      if (generationRef.current !== generation) {
+        return;
+      }
+
+      let activeOrganization = organizations.find(
+        (organization) => organization.isActive,
+      );
+      const currentRouteOrganizationSlug = routeOrganizationSlugRef.current;
+      if (
+        !activeOrganization ||
+        activeOrganization.slug !== currentRouteOrganizationSlug
+      ) {
+        organizations = await readOrganizations(readMembership, {
           fresh: true,
         });
         if (generationRef.current !== generation) {
           return;
         }
-
-        let activeOrganization = organizations.find(
+        activeOrganization = organizations.find(
           (organization) => organization.isActive,
         );
-        const currentRouteOrganizationSlug = routeOrganizationSlugRef.current;
-        if (
-          !activeOrganization ||
-          activeOrganization.slug !== currentRouteOrganizationSlug
-        ) {
-          organizations = await readOrganizations(readMembership, {
-            fresh: true,
-          });
-          if (generationRef.current !== generation) {
-            return;
-          }
-          activeOrganization = organizations.find(
-            (organization) => organization.isActive,
-          );
-        }
+      }
 
-        if (!activeOrganization) {
-          throw new Error('Active organization context is unavailable');
-        }
-        if (activeOrganization.slug === routeOrganizationSlugRef.current) {
-          setRequestOrganizationId(activeOrganization.id);
-          setState({
-            confirmedOrganizationId: activeOrganization.id,
-            confirmedOrganizationSlug: activeOrganization.slug,
-            organizations,
-            status: 'matched',
-          });
-          return;
-        }
+      if (!activeOrganization) {
+        throw new Error('Active organization context is unavailable');
+      }
+      if (activeOrganization.slug === routeOrganizationSlugRef.current) {
+        setRequestOrganizationId(activeOrganization.id);
+        setState({
+          confirmedOrganizationId: activeOrganization.id,
+          confirmedOrganizationSlug: activeOrganization.slug,
+          organizations,
+          status: 'matched',
+        });
+        return;
+      }
 
-        replace(getOrgSwitchHref(activeOrganization.slug, pathnameRef.current));
+      replace(getOrgSwitchHref(activeOrganization.slug, pathnameRef.current));
+    };
+
+    const synchronizeActiveOrganization = async (
+      generation: number,
+    ): Promise<void> => {
+      try {
+        await withConfirmationBound(synchronizeOnce(generation));
       } catch {
         if (generationRef.current === generation) {
           setRequestOrganizationId(null);

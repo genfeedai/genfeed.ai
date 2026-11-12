@@ -14,6 +14,7 @@ import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContextAuthenticationTokenUnavailableError } from '../internal/context-authed-service';
 import {
+  ROUTE_CONFIRMATION_TIMEOUT_MS,
   RoutedOrganizationProvider,
   useRoutedOrganization,
 } from './organization-context';
@@ -1167,6 +1168,72 @@ describe('RoutedOrganizationProvider', () => {
     expect(screen.getByTestId('confirmed-id')).toHaveTextContent('org_alpha');
     expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith('org_alpha');
     expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it('does not re-activate the routed organization from a reconciliation that started before a cross-tab change', async () => {
+    pathname = '/alpha/moonrise/playground';
+    let resolveRouteRead: ((value: typeof BRAVO_ACTIVE) => void) | undefined;
+    getMyOrganizationsMock
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveRouteRead = resolve;
+          }),
+      )
+      .mockResolvedValue(BRAVO_ACTIVE);
+
+    renderProvider();
+    await waitFor(() =>
+      expect(getMyOrganizationsMock).toHaveBeenCalledTimes(1),
+    );
+
+    // The other tab activated Bravo and wrote the storage key while this tab's
+    // route reconciliation was still reading the list.
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: ROUTED_ORGANIZATION_STORAGE_KEY,
+          newValue: 'changed',
+        }),
+      );
+    });
+    await act(async () => {
+      resolveRouteRead?.(BRAVO_ACTIVE);
+      await Promise.resolve();
+    });
+
+    await waitFor(() =>
+      expect(replaceMock).toHaveBeenCalledWith('/bravo/~/playground'),
+    );
+    expect(switchOrganizationMock).not.toHaveBeenCalled();
+  });
+
+  it('ends a route confirmation that never settles in the failed state and recovers on retry', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      getMyOrganizationsMock
+        .mockImplementationOnce(() => new Promise(() => undefined))
+        .mockResolvedValue(ALPHA_ACTIVE);
+
+      renderProvider();
+      await waitFor(() =>
+        expect(getMyOrganizationsMock).toHaveBeenCalledTimes(1),
+      );
+      expect(screen.getByTestId('status')).toHaveTextContent('loading');
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(ROUTE_CONFIRMATION_TIMEOUT_MS + 1);
+      });
+      expect(screen.getByTestId('status')).toHaveTextContent('failed');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+      await waitFor(() =>
+        expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+      );
+      expect(screen.getByTestId('confirmed-id')).toHaveTextContent('org_alpha');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('throws when the hook is used outside its provider', () => {
