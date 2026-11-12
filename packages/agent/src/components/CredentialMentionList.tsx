@@ -35,6 +35,11 @@ export function CredentialMentionList({
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }: { event: KeyboardEvent }) => {
+      // With nothing to pick, the popup must not swallow Enter: a message
+      // containing `!word` still sends.
+      if (items.length === 0) {
+        return false;
+      }
       if (event.key === 'ArrowUp') {
         setSelectedIndex((prev) => (prev + items.length - 1) % items.length);
         return true;

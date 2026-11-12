@@ -7,6 +7,7 @@ export const webhooksSchema = {
   CHROME_EXTENSION_ID: Joi.string()
     .length(32)
     .optional()
+    .allow('')
     .description(
       'Chrome Extension ID for CORS. Get this after publishing to Chrome Web Store.',
     ),
