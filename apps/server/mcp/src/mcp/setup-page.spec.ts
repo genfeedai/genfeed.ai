@@ -224,6 +224,22 @@ describe('MCP setup page', () => {
     );
   });
 
+  it('publishes the admin endpoint as its own protected resource', () => {
+    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.genfeed.ai');
+    vi.stubEnv('GENFEEDAI_MCP_PUBLIC_URL', 'https://mcp.genfeed.ai/mcp');
+
+    expect(getMcpProtectedResourceMetadata('admin')).toMatchObject({
+      authorization_servers: ['https://api.genfeed.ai'],
+      resource: 'https://mcp.genfeed.ai/mcp/admin',
+    });
+    expect(getPublicMcpResourceMetadataUrl('admin')).toBe(
+      'https://mcp.genfeed.ai/.well-known/oauth-protected-resource/mcp/admin',
+    );
+    expect(getMcpWwwAuthenticateHeader('admin')).toContain(
+      'resource_metadata="https://mcp.genfeed.ai/.well-known/oauth-protected-resource/mcp/admin"',
+    );
+  });
+
   describe('shared protected-resource identifier (#4553 defect 1)', () => {
     it.each([
       'https://mcp.genfeed.ai/mcp',

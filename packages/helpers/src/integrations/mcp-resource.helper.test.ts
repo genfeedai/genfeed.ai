@@ -1,9 +1,11 @@
 import {
   buildProtectedResourceMetadataPaths,
+  deriveAdminMcpResourceIdentifier,
   deriveClaudeMcpResourceIdentifier,
   deriveMcpResourceIdentifier,
   MCP_RESOURCE_URL_ENV_KEYS,
   McpResourceConfigurationError,
+  resolveMcpAccessModeForResource,
   resolveMcpResourceIdentifier,
 } from './mcp-resource.helper';
 
@@ -38,6 +40,32 @@ describe('deriveClaudeMcpResourceIdentifier', () => {
     expect(() => deriveClaudeMcpResourceIdentifier('file:///tmp/mcp')).toThrow(
       McpResourceConfigurationError,
     );
+  });
+});
+
+describe('deriveAdminMcpResourceIdentifier', () => {
+  it.each([
+    ['https://custom.example', 'https://custom.example/mcp/admin'],
+    ['https://custom.example/mcp/', 'https://custom.example/mcp/admin'],
+    ['https://custom.example/mcp/claude', 'https://custom.example/mcp/admin'],
+    ['https://custom.example/mcp/admin/', 'https://custom.example/mcp/admin'],
+    [
+      'https://custom.example/genfeed/mcp?profile=full',
+      'https://custom.example/genfeed/mcp/admin',
+    ],
+  ])('resolves %s through the standard MCP resource', (endpoint, expected) => {
+    expect(deriveAdminMcpResourceIdentifier(endpoint)).toBe(expected);
+  });
+});
+
+describe('resolveMcpAccessModeForResource', () => {
+  it.each([
+    ['https://mcp.genfeed.ai/mcp', 'standard'],
+    ['https://mcp.genfeed.ai/mcp/claude', 'claude'],
+    ['https://mcp.genfeed.ai/mcp/admin', 'admin'],
+    ['not a url', 'claude'],
+  ])('maps %s to %s', (resource, mode) => {
+    expect(resolveMcpAccessModeForResource(resource)).toBe(mode);
   });
 });
 

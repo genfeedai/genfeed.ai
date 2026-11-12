@@ -12,7 +12,7 @@ Run from the repo root:
 
 ```bash
 bun run dev:setup           # once per machine: trusted Portless HTTPS proxy
-bun run dev:backend:min     # API, files, and notifications
+bun run dev:backend:min     # API, files, notifications, and workers
 bun run dev:mcp             # MCP in a separate terminal
 ```
 

@@ -101,6 +101,15 @@ function buildHarness() {
     }),
   } as unknown as ConfigService;
   const organizations = [makeOrganization('org-1')];
+  const users = [
+    {
+      banned: false,
+      email: 'founder@genfeed.ai',
+      emailVerified: true,
+      id: 'user-1',
+      isDeleted: false,
+    },
+  ];
   const brands = [{ id: 'brand-1', organizationId: 'org-1' }];
   const prisma = {
     brand: {
@@ -152,6 +161,31 @@ function buildHarness() {
             ),
         );
       }),
+    },
+    user: {
+      findFirst: vi.fn(
+        async ({
+          where,
+        }: {
+          where: {
+            banned: boolean;
+            email: { endsWith: string; mode: 'insensitive' };
+            emailVerified: boolean;
+            id: string;
+            isDeleted: boolean;
+          };
+        }) =>
+          users.find(
+            (candidate) =>
+              candidate.id === where.id &&
+              candidate.banned === where.banned &&
+              candidate.emailVerified === where.emailVerified &&
+              candidate.isDeleted === where.isDeleted &&
+              candidate.email
+                .toLowerCase()
+                .endsWith(where.email.endsWith.toLowerCase()),
+          ) ?? null,
+      ),
     },
     mcpOAuthAuthCode: {
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
@@ -206,6 +240,7 @@ function buildHarness() {
     organizations,
     prisma,
     refreshTokenService,
+    users,
     service: new OAuthAuthorizeService(
       apiKeysService,
       clientService,
@@ -821,15 +856,17 @@ describe('OAuthAuthorizeService', () => {
   });
 });
 
-describe('Membership admin scope', () => {
+describe('Admin endpoint grant', () => {
+  const adminResource = `${resource}/admin`;
+
   async function mintScopes(
     harness: ReturnType<typeof buildHarness>,
     overrides: Partial<OAuthAuthorizeDecisionDto> = {},
-    exchangeResource = resource,
+    grantResource = resource,
   ) {
     const authorization = await harness.service.decideAuthorization(
       makeUser(),
-      decision(overrides),
+      decision({ resource: grantResource, ...overrides }),
     );
     await harness.service.exchangeToken({
       client_id: clientId,
@@ -839,10 +876,10 @@ describe('Membership admin scope', () => {
       code_verifier: verifier,
       grant_type: 'authorization_code',
       redirect_uri: redirectUri,
-      resource: exchangeResource,
+      resource: grantResource,
     });
     const [call] = vi.mocked(harness.apiKeysService.createWithKey).mock.calls;
-    return call[0].scopes as string[];
+    return call[0];
   }
 
   function ownerHarness(roleKey: string) {
@@ -856,60 +893,122 @@ describe('Membership admin scope', () => {
   }
 
   it.each(['owner', 'admin'])(
-    'adds the admin scope to a full MCP grant for an org %s',
+    'never adds the admin scope to a full /mcp grant for an org %s',
     async (roleKey) => {
-      const scopes = await mintScopes(ownerHarness(roleKey), {
+      const key = await mintScopes(ownerHarness(roleKey), {
         scope: undefined,
       });
-      expect(scopes).toEqual([...API_KEY_SCOPE_PRESETS.mcp, 'admin']);
+      expect(key.scopes).toEqual([...API_KEY_SCOPE_PRESETS.mcp]);
+      expect(key.metadata).toMatchObject({ mcpAccessMode: 'standard' });
     },
   );
+
+  it('never grants admin on the Claude connector resource', async () => {
+    const claudeResource = `${resource}/claude`;
+    const key = await mintScopes(
+      ownerHarness('owner'),
+      { scope: undefined },
+      claudeResource,
+    );
+    expect(key.scopes).not.toContain('admin');
+  });
+
+  it.each(['owner', 'admin'])(
+    'issues the admin scope on the admin endpoint to an @genfeed.ai org %s',
+    async (roleKey) => {
+      const key = await mintScopes(
+        ownerHarness(roleKey),
+        { scope: undefined },
+        adminResource,
+      );
+      expect(key.scopes).toEqual([...API_KEY_SCOPE_PRESETS.mcp, 'admin']);
+      expect(key.metadata).toMatchObject({
+        mcpAccessMode: 'admin',
+        resource: adminResource,
+      });
+    },
+  );
+
+  it('issues admin on the admin endpoint even when the client asks for fewer scopes', async () => {
+    const key = await mintScopes(
+      ownerHarness('owner'),
+      { scope: 'videos:read' },
+      adminResource,
+    );
+    expect(key.scopes).toEqual(['videos:read', 'admin']);
+  });
+
+  it('matches the staff domain case-insensitively', async () => {
+    const harness = ownerHarness('owner');
+    harness.users[0].email = 'Founder@GenFeed.AI';
+    const key = await mintScopes(harness, { scope: undefined }, adminResource);
+    expect(key.scopes).toContain('admin');
+  });
 
   it.each(['creator', 'analytics', 'user', 'support'])(
-    'keeps a full MCP grant below admin for an org %s',
+    'refuses the admin endpoint to an @genfeed.ai org %s',
     async (roleKey) => {
-      const scopes = await mintScopes(ownerHarness(roleKey), {
-        scope: undefined,
+      await expect(
+        mintScopes(ownerHarness(roleKey), { scope: undefined }, adminResource),
+      ).rejects.toMatchObject({
+        response: { error: 'access_denied' },
       });
-      expect(scopes).toEqual([...API_KEY_SCOPE_PRESETS.mcp]);
     },
   );
 
-  it('keeps a narrower client-requested scope set below admin even for an owner', async () => {
-    const scopes = await mintScopes(ownerHarness('owner'), {
-      scope: 'videos:read images:read',
-    });
-    expect(scopes).toEqual(['videos:read', 'images:read']);
-  });
+  it.each([
+    ['another domain', { email: 'founder@example.com' }],
+    ['a lookalike domain', { email: 'founder@notgenfeed.ai' }],
+    ['a subdomain', { email: 'founder@mail.genfeed.ai' }],
+    ['an unverified email', { emailVerified: false }],
+    ['a banned account', { banned: true }],
+    ['a deleted account', { isDeleted: true }],
+  ])(
+    'refuses the admin endpoint to an owner with %s',
+    async (_label, patch) => {
+      const harness = ownerHarness('owner');
+      Object.assign(harness.users[0], patch);
+      await expect(
+        mintScopes(harness, { scope: undefined }, adminResource),
+      ).rejects.toMatchObject({ response: { error: 'access_denied' } });
+      expect(harness.apiKeysService.createWithKey).not.toHaveBeenCalled();
+    },
+  );
 
   it('derives admin from the chosen organization, not another one the user owns', async () => {
     const harness = ownerHarness('owner');
     harness.organizations.push(
       makeOrganization('org-2', false, true, false, 'user-1', 'user'),
     );
-    const scopes = await mintScopes(harness, {
-      organizationId: 'org-2',
-      scope: undefined,
-    });
-    expect(scopes).not.toContain('admin');
+    await expect(
+      mintScopes(
+        harness,
+        { organizationId: 'org-2', scope: undefined },
+        adminResource,
+      ),
+    ).rejects.toMatchObject({ response: { error: 'access_denied' } });
   });
 
-  it('keeps a connection limited to one brand below admin even for an owner', async () => {
-    const scopes = await mintScopes(ownerHarness('owner'), {
-      brandId: 'brand-1',
-      scope: undefined,
-    });
-    expect(scopes).toEqual([...API_KEY_SCOPE_PRESETS.mcp]);
+  it('refuses a connection limited to one brand on the admin endpoint', async () => {
+    await expect(
+      mintScopes(
+        ownerHarness('owner'),
+        { brandId: 'brand-1', scope: undefined },
+        adminResource,
+      ),
+    ).rejects.toMatchObject({ response: { error: 'access_denied' } });
   });
 
-  it('never grants admin on the Claude connector resource', async () => {
-    const claudeResource = `${resource}/claude`;
-    const scopes = await mintScopes(
-      ownerHarness('owner'),
-      { resource: claudeResource, scope: undefined },
-      claudeResource,
-    );
-    expect(scopes).not.toContain('admin');
+  it('sends the consent screen the admin access mode', async () => {
+    const redirect = await buildHarness().service.buildAuthorizeRedirect({
+      client_id: clientId,
+      code_challenge: challenge,
+      code_challenge_method: 'S256',
+      redirect_uri: redirectUri,
+      resource: adminResource,
+      response_type: 'code',
+    } as OAuthAuthorizeRequestDto);
+    expect(new URL(redirect).searchParams.get('access_mode')).toBe('admin');
   });
 });
 

@@ -5,6 +5,7 @@ import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import express, { type Request, type Response } from 'express';
 
 export const E2E_TOKENS = {
+  adminEndpointOwner: 'gf_e2e_owner_on_admin_endpoint_0000000000',
   member: 'gf_e2e_member_assigned_brand_000000000000',
   ownerCapped: 'gf_e2e_owner_without_admin_scope_00000000',
   ownerWithAdminScope: 'gf_e2e_owner_with_admin_scope_000000000000',
@@ -38,6 +39,8 @@ export const E2E_BRANDS = [
 
 interface E2eCredential {
   assignedBrandIds: readonly string[];
+  /** Recorded on the key by consent: `admin` only for a key granted on `/mcp/admin`. */
+  mcpAccessMode?: 'admin';
   membershipRole: MemberRole;
   organizationId: string;
   scopes: readonly string[];
@@ -63,6 +66,14 @@ const ORG_ADMIN_ROLES: readonly MemberRole[] = [
 ];
 
 const CREDENTIALS: Readonly<Record<string, E2eCredential>> = {
+  [E2E_TOKENS.adminEndpointOwner]: {
+    assignedBrandIds: [],
+    mcpAccessMode: 'admin',
+    membershipRole: MemberRole.OWNER,
+    organizationId: 'org_studio',
+    scopes: [...API_KEY_SCOPE_PRESETS.mcp, 'admin'],
+    userId: 'usr_owner',
+  },
   [E2E_TOKENS.member]: {
     assignedBrandIds: ['brand_studio_kids'],
     membershipRole: MemberRole.USER,
@@ -152,6 +163,9 @@ export async function startFakeGenfeedApi(): Promise<FakeGenfeedApi> {
     res.json({
       data: {
         isApiKey: true,
+        ...(credential.mcpAccessMode
+          ? { mcpAccessMode: credential.mcpAccessMode }
+          : {}),
         organization: { id: credential.organizationId, name: '' },
         role: whoamiRole(credential),
         scopes: credential.scopes,

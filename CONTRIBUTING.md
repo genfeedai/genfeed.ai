@@ -156,7 +156,7 @@ Set up and verify Portless, then start the app minimum in two terminals:
 ```bash
 bun run dev:setup          # once per machine; idempotent, rerun to repair
 bun run dev:doctor         # read-only contract check
-bun run dev:backend:min    # api + files + notifications behind Portless
+bun run dev:backend:min    # api + files + notifications + workers behind Portless
 ```
 
 ```bash
@@ -167,7 +167,7 @@ Open <https://app.genfeed.localhost/>.
 
 | Command                       | Starts                                    |
 | ----------------------------- | ----------------------------------------- |
-| `bun run dev:backend:min`     | api + files + notifications (app minimum) |
+| `bun run dev:backend:min`     | api + files + notifications + workers (app minimum) |
 | `bun run dev:backend`         | Full backend (+ mcp + workers)            |
 | `bun run dev:web`             | Product UI via Portless HTTPS             |
 | `bun run dev:frontend`        | app + website                             |
