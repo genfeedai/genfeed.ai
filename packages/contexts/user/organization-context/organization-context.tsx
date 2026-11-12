@@ -54,11 +54,25 @@ export interface RoutedOrganizationSummary {
   slug: string;
 }
 
+export interface RoutedOrganizationSwitchFailure {
+  kind: 'activation';
+}
+
 interface RoutedOrganizationState {
   confirmedOrganizationId: string | null;
   confirmedOrganizationSlug: string | null;
   organizations: RoutedOrganizationSummary[];
+  /**
+   * The organization an explicit switch is moving to, known from the member's
+   * own list the moment it is chosen. Null outside such a switch.
+   */
+  pendingOrganizationId: string | null;
   status: RoutedOrganizationStatus;
+  /**
+   * Set when the API refused a switch and the previous organization is back.
+   * A new object for every failure, so a consumer can tell one from the last.
+   */
+  switchFailure: RoutedOrganizationSwitchFailure | null;
 }
 
 export interface RoutedOrganizationContextValue
@@ -77,7 +91,9 @@ const INITIAL_STATE: RoutedOrganizationState = {
   confirmedOrganizationId: null,
   confirmedOrganizationSlug: null,
   organizations: [],
+  pendingOrganizationId: null,
   status: 'loading',
+  switchFailure: null,
 };
 
 const RoutedOrganizationContext =
@@ -316,6 +332,12 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
   const pathnameRef = useRef(pathname);
   const routeOrganizationSlugRef = useRef(routeOrganizationSlug);
   const stateRef = useRef(state);
+  // Set by an explicit switch once it has confirmed the organization, so the
+  // route change that follows does not read the list again.
+  const switchConfirmationRef = useRef<{
+    organizationId: string;
+    slug: string;
+  } | null>(null);
   pathnameRef.current = pathname;
   routeOrganizationSlugRef.current = routeOrganizationSlug;
   stateRef.current = state;
@@ -365,6 +387,25 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
       return;
     }
 
+    const switched = switchConfirmationRef.current;
+    if (switched?.slug === routeOrganizationSlug) {
+      // An explicit switch confirmed this organization against the API a
+      // moment ago and cleared the previous tenant state; the route has now
+      // caught up, so there is nothing left to read.
+      switchConfirmationRef.current = null;
+      generationRef.current += 1;
+      setRequestOrganizationId(switched.organizationId);
+      setState((current) => ({
+        ...current,
+        confirmedOrganizationId: switched.organizationId,
+        confirmedOrganizationSlug: switched.slug,
+        pendingOrganizationId: null,
+        status: 'matched',
+        switchFailure: null,
+      }));
+      return;
+    }
+
     const generation = generationRef.current + 1;
     generationRef.current = generation;
     setRequestOrganizationId(null);
@@ -372,6 +413,7 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
       ...current,
       confirmedOrganizationId: null,
       confirmedOrganizationSlug: null,
+      pendingOrganizationId: null,
       status: 'loading',
     }));
 
@@ -391,7 +433,9 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
             confirmedOrganizationId: null,
             confirmedOrganizationSlug: null,
             organizations,
+            pendingOrganizationId: null,
             status: 'unauthorized',
+            switchFailure: null,
           });
         }
         return;
@@ -408,7 +452,9 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
             confirmedOrganizationId: null,
             confirmedOrganizationSlug: null,
             organizations,
+            pendingOrganizationId: null,
             status: 'switching',
+            switchFailure: null,
           });
         }
 
@@ -447,7 +493,9 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
           confirmedOrganizationId: confirmedOrganization.id,
           confirmedOrganizationSlug: confirmedOrganization.slug,
           organizations,
+          pendingOrganizationId: null,
           status: 'matched',
+          switchFailure: null,
         });
       }
     };
@@ -521,80 +569,133 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
         return target.slug;
       }
 
+      // What the member returns to if the API refuses the switch.
+      const previous =
+        stateRef.current.status === 'matched' &&
+        stateRef.current.confirmedOrganizationId &&
+        stateRef.current.confirmedOrganizationSlug
+          ? {
+              id: stateRef.current.confirmedOrganizationId,
+              organizations: stateRef.current.organizations,
+              slug: stateRef.current.confirmedOrganizationSlug,
+            }
+          : null;
+
       const generation = generationRef.current + 1;
       generationRef.current = generation;
+      switchConfirmationRef.current = null;
       setRequestOrganizationId(null);
       setState((current) => ({
         ...current,
         confirmedOrganizationId: null,
         confirmedOrganizationSlug: null,
+        pendingOrganizationId: target.id,
         status: 'switching',
+        switchFailure: null,
       }));
 
       let switchedSlug: string | null = null;
+      let isActivated = false;
+      const confirmSwitch = async (): Promise<void> => {
+        // Everything of the previous organization goes now, not after the
+        // activate call: the old data must not outlive the click.
+        await invalidateTenantState();
+        if (generationRef.current !== generation) {
+          return;
+        }
+        const service = await getOrganizationsService();
+        if (generationRef.current !== generation) {
+          return;
+        }
+
+        // Membership is already in memory and activate refuses a non-member,
+        // so there is no list read before it.
+        await service.switchOrganization(target.id);
+        isActivated = true;
+
+        // The token refresh and the one list read of the switch run side by
+        // side: the read does not need the new token, and activate has
+        // finished, so the list is not the stale one.
+        const [refreshedService, organizations] = await Promise.all([
+          getOrganizationsService({ forceRefresh: true }),
+          readOrganizations(membershipReader(service), { fresh: true }),
+        ]);
+        const confirmedOrganizations = organizations.some(
+          (organization) =>
+            organization.id === target.id && organization.isActive,
+        )
+          ? organizations
+          : await readOrganizations(membershipReader(refreshedService), {
+              fresh: true,
+            });
+        const confirmedTarget = confirmedOrganizations.find(
+          (organization) =>
+            organization.id === target.id && organization.isActive,
+        );
+        if (!confirmedTarget) {
+          throw new Error(VERIFICATION_FAILED_MESSAGE);
+        }
+
+        await invalidateTenantState();
+        if (generationRef.current !== generation) {
+          return;
+        }
+        broadcastOrganizationChange();
+        switchConfirmationRef.current = {
+          organizationId: confirmedTarget.id,
+          slug: confirmedTarget.slug,
+        };
+        setState({
+          confirmedOrganizationId: confirmedTarget.id,
+          confirmedOrganizationSlug: confirmedTarget.slug,
+          organizations: confirmedOrganizations,
+          pendingOrganizationId: confirmedTarget.id,
+          status: 'switching',
+          switchFailure: null,
+        });
+        switchedSlug = confirmedTarget.slug;
+      };
+
       const switchTask = reconciliationQueueRef.current
         .catch(() => undefined)
         .then(async () => {
           try {
-            const service = await getOrganizationsService();
-            const authorizedOrganizations = (await service.getMyOrganizations({
-              fresh: true,
-            })) as RoutedOrganizationSummary[];
-            const authorizedTarget = authorizedOrganizations.find(
-              (organization) => organization.id === organizationId,
-            );
-            if (!authorizedTarget) {
-              if (generationRef.current === generation) {
-                setState((current) => ({
-                  ...current,
-                  status: 'unauthorized',
-                }));
-              }
+            await withConfirmationBound(confirmSwitch());
+          } catch (error) {
+            if (generationRef.current !== generation) {
               return;
             }
-
-            if (!authorizedTarget.isActive) {
-              await service.switchOrganization(authorizedTarget.id);
+            if (!isCancelledMembershipRead(error)) {
+              emitSanitizedMismatch('switch-failed', error);
             }
-            await invalidateTenantState();
-            const refreshedService = await getOrganizationsService({
-              forceRefresh: true,
-            });
-            const refreshedOrganizations = await readConfirmedOrganizations(
-              membershipReader(refreshedService),
-              authorizedTarget.id,
-            );
-            const confirmedTarget = refreshedOrganizations.find(
-              (organization) =>
-                organization.id === authorizedTarget.id &&
-                organization.isActive,
-            );
-            if (!confirmedTarget) {
-              throw new Error(VERIFICATION_FAILED_MESSAGE);
-            }
-
-            if (generationRef.current === generation) {
-              broadcastOrganizationChange();
+            // The API answered and refused, so the previous organization is
+            // still the active one: put its shell back, with the error.
+            if (
+              !isActivated &&
+              previous &&
+              errorStatusOf(error) !== undefined
+            ) {
+              setRequestOrganizationId(previous.id);
               setState({
-                confirmedOrganizationId: confirmedTarget.id,
-                confirmedOrganizationSlug: confirmedTarget.slug,
-                organizations: refreshedOrganizations,
-                status: 'switching',
+                confirmedOrganizationId: previous.id,
+                confirmedOrganizationSlug: previous.slug,
+                organizations: previous.organizations,
+                pendingOrganizationId: null,
+                status: 'matched',
+                switchFailure: { kind: 'activation' },
               });
-              switchedSlug = confirmedTarget.slug;
+              return;
             }
-          } catch (error) {
-            if (generationRef.current === generation) {
-              setRequestOrganizationId(null);
-              if (!isCancelledMembershipRead(error)) {
-                emitSanitizedMismatch('switch-failed', error);
-              }
-              setState((current) => ({
-                ...current,
-                confirmedOrganizationId: null,
-                confirmedOrganizationSlug: null,
-                status: 'failed',
-              }));
+            setRequestOrganizationId(null);
+            setState((current) => ({
+              ...current,
+              confirmedOrganizationId: null,
+              confirmedOrganizationSlug: null,
+              pendingOrganizationId: null,
+              status: 'failed',
+            }));
+            if (error instanceof RouteConfirmationTimeoutError) {
+              generationRef.current += 1;
             }
           }
         });
@@ -646,7 +747,9 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
           confirmedOrganizationId: activeOrganization.id,
           confirmedOrganizationSlug: activeOrganization.slug,
           organizations,
+          pendingOrganizationId: null,
           status: 'matched',
+          switchFailure: null,
         });
         return;
       }

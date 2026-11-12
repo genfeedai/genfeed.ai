@@ -11,6 +11,7 @@ import {
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { getOrganizationLimitForTier } from '@genfeedai/pricing';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import {
@@ -23,7 +24,7 @@ import { ChevronsUpDown, Settings } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSubscription } from '@/hooks/data/subscription/use-subscription/use-subscription';
 
 // Loaded on first "New Organization": its zod form validation and form
@@ -32,6 +33,10 @@ const LazyCreateOrganizationDialog = dynamic(
   () => import('./CreateOrganizationDialog'),
   { ssr: false },
 );
+
+// The switcher is mounted twice (desktop and the CSS-hidden mobile one) and
+// both see the same failure: tell the member once.
+const notifiedSwitchFailures = new WeakSet<object>();
 
 interface OrganizationSwitcherProps {
   compactOnMobile?: boolean;
@@ -48,11 +53,13 @@ export default function OrganizationSwitcher({
   const { isSubscriptionActive } = useSubscription();
   const { isLoading: isAccessLoading, isSuperAdmin } = useAccessState();
   const pathname = usePathname() ?? APP_ROUTES.ROOT;
-  const { push } = useRouter();
+  const { prefetch, push } = useRouter();
   const {
-    confirmedOrganizationId: activeOrgId,
+    confirmedOrganizationId,
     organizations: orgs,
+    pendingOrganizationId,
     status,
+    switchFailure,
     switchOrganization,
   } = useRoutedOrganization();
   const translate = useTranslations('ui.organizationSwitcher');
@@ -65,6 +72,9 @@ export default function OrganizationSwitcher({
     setHasRequestedCreate(true);
     setIsCreateOpen(true);
   }, []);
+  // The chosen organization shows at once, from the member's own list, rather
+  // than after the switch has been confirmed.
+  const activeOrgId = pendingOrganizationId ?? confirmedOrganizationId;
   const activeOrg = orgs.find((o) => o.id === activeOrgId);
   const organizationLimit = getOrganizationLimitForTier(subscriptionTier);
   const hasOwnershipMetadata = orgs.some(
@@ -90,13 +100,33 @@ export default function OrganizationSwitcher({
       if (!target?.slug) {
         return;
       }
+      // Prepare the destination while the activate call runs, so the address
+      // can change the moment the switch is confirmed instead of waiting on a
+      // server render.
+      prefetch(getOrgSwitchHref(target.slug, pathname));
       const confirmedSlug = await switchOrganization(orgId);
       if (confirmedSlug) {
         push(getOrgSwitchHref(confirmedSlug, pathname));
       }
     },
-    [activeOrgId, isSwitching, orgs, pathname, push, switchOrganization],
+    [
+      activeOrgId,
+      isSwitching,
+      orgs,
+      pathname,
+      prefetch,
+      push,
+      switchOrganization,
+    ],
   );
+
+  useEffect(() => {
+    if (!switchFailure || notifiedSwitchFailures.has(switchFailure)) {
+      return;
+    }
+    notifiedSwitchFailures.add(switchFailure);
+    NotificationsService.getInstance().error(translate('switchFailed'));
+  }, [switchFailure, translate]);
 
   const displayLabel = activeOrg?.label ?? 'Organization';
   return (
@@ -145,7 +175,7 @@ export default function OrganizationSwitcher({
                 compactOnMobile && 'hidden md:inline',
               )}
             >
-              {isSwitching ? translate('switching') : displayLabel}
+              {displayLabel}
             </span>
             <ChevronsUpDown
               className={cn(

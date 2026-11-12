@@ -8,6 +8,7 @@ import { Building2, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import WorkspaceContentSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceContentSkeleton';
 import WorkspaceFrameSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceFrameSkeleton';
 
 function OrganizationRoutePending() {
@@ -94,11 +95,29 @@ function OrganizationUnavailable() {
   );
 }
 
+/**
+ * The page itself, inside the shell. Nothing tenant-scoped mounts until the
+ * routed organization is confirmed, so while a member switches organization the
+ * shell stays up and this block shows its own loading state in the page's place.
+ */
+export function RoutedOrganizationPageGate({ children }: LayoutProps) {
+  const { isRouteConfirmed } = useRoutedOrganization();
+
+  return isRouteConfirmed ? <>{children}</> : <WorkspaceContentSkeleton />;
+}
+
 export default function RoutedOrganizationBoundary({ children }: LayoutProps) {
-  const { isRouteConfirmed, retry, status } = useRoutedOrganization();
+  const { isRouteConfirmed, pendingOrganizationId, retry, status } =
+    useRoutedOrganization();
   const translate = useTranslations('pages.organizationRouting');
 
-  if (isRouteConfirmed) {
+  // The same fragment for a confirmed route and for a member's own switch, so
+  // the shell is one mounted tree across the switch. The page inside it is
+  // held back by `RoutedOrganizationPageGate`.
+  if (
+    isRouteConfirmed ||
+    (status === 'switching' && Boolean(pendingOrganizationId))
+  ) {
     return <>{children}</>;
   }
 

@@ -18,7 +18,9 @@ import { usePlatformFlags } from '@/lib/platform-flags/use-platform-flags';
 import { captureWorkspaceShellSession } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import ApiAuthBridge from './api-auth-bridge';
 import PlatformModuleRouteGate from './platform-module-route-gate';
-import RoutedOrganizationBoundary from './routed-organization-boundary';
+import RoutedOrganizationBoundary, {
+  RoutedOrganizationPageGate,
+} from './routed-organization-boundary';
 
 export default function ProtectedLayoutClient({
   children,
@@ -60,7 +62,11 @@ export default function ProtectedLayoutClient({
         {/* Outside the shell's error boundaries, which would swallow notFound(). */}
         <PlatformModuleRouteGate>
           <AppProtectedLayout initialBootstrap={initialBootstrap}>
-            <ErrorBoundary presentation="inline">{children}</ErrorBoundary>
+            <ErrorBoundary presentation="inline">
+              <RoutedOrganizationPageGate>
+                {children}
+              </RoutedOrganizationPageGate>
+            </ErrorBoundary>
           </AppProtectedLayout>
         </PlatformModuleRouteGate>
       </RoutedOrganizationBoundary>
