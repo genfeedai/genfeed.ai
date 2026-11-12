@@ -201,6 +201,13 @@ export function useBrandDetail({
     );
     const usesIdAsSlug = matchedRouteBrand.id === routeBrandParam;
 
+    // Only settings routes have a canonical settings path. Connectors →
+    // Channels reads the same brand from `/:org/:brand/connectors/channels`
+    // and must stay there, even when the URL carries the brand id.
+    if (!oldRouteMatch && !canonicalRouteMatch) {
+      return;
+    }
+
     if ((oldRouteMatch || usesIdAsSlug) && pathname !== canonicalPath) {
       router.replace(canonicalPath);
     }

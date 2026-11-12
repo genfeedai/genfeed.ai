@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrandCreateModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
+import { saveLastBrand } from '@genfeedai/contexts/providers/protected-bootstrap/last-brand-save';
 import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonVariant } from '@genfeedai/contracts';
 import {
@@ -45,28 +46,38 @@ export default function MenuBrandSwitcher({
   );
 
   const { openBrandCreateModal } = useBrandCreateModal();
-  const [isUpdatingBrand, setIsUpdatingBrand] = useState(false);
+  // The chosen brand shows at once, before the route and the save request
+  // settle. The real brand taking over (or any other change) ends the preview.
+  const [pendingBrandId, setPendingBrandId] = useState<string | null>(null);
+  const [trackedBrandId, setTrackedBrandId] = useState(brandId);
 
-  const isUpdating = externalIsUpdating ?? isUpdatingBrand;
-  const selectedBrand = brands.find((b) => b.id === brandId);
+  if (trackedBrandId !== brandId) {
+    setTrackedBrandId(brandId);
+    setPendingBrandId(null);
+  }
+
+  const isUpdating = externalIsUpdating ?? false;
+  const displayedBrandId = pendingBrandId ?? brandId;
+  const selectedBrand = brands.find((b) => b.id === displayedBrandId);
   const selectedBrandLabel = selectedBrand?.label || 'Select Brand';
   const shouldShowClearSelection =
     variant === 'labeled' && Boolean(clearSelectionAction) && Boolean(brandId);
 
   const handleSelect = useCallback(
-    async (id: string) => {
+    (id: string) => {
+      setPendingBrandId(id);
+      onBrandChange?.(id);
+
+      // Saving the last brand never holds up the switch, and a failed save
+      // leaves the switch in place.
       const url = `PATCH /brands/${id}`;
-      try {
-        setIsUpdatingBrand(true);
+      void saveLastBrand(id, async (savedBrandId) => {
         const service = await getUsersService();
-        await service.patchMeBrand(id);
-        logger.info(`${url} success`);
-        onBrandChange?.(id);
-      } catch (error) {
-        logger.error(`${url} failed`, error);
-      } finally {
-        setIsUpdatingBrand(false);
-      }
+        return service.patchMeBrand(savedBrandId);
+      }).then(
+        () => logger.info(`${url} success`),
+        (error: unknown) => logger.error(`${url} failed`, error),
+      );
     },
     [getUsersService, onBrandChange],
   );
@@ -100,7 +111,7 @@ export default function MenuBrandSwitcher({
       return {
         id: b.id,
         imageUrl: b.logoUrl || undefined,
-        isActive: b.id === brandId,
+        isActive: b.id === displayedBrandId,
         label,
         trailingAction:
           orgSlug && b.slug
@@ -198,7 +209,7 @@ export default function MenuBrandSwitcher({
               {brandAvatar}
             </Button>
           )}
-          onSelect={(id) => void handleSelect(id)}
+          onSelect={handleSelect}
           onImageError={onLogoError}
           isDisabled={isUpdating}
           hasSearch={items.length >= 5}
@@ -255,7 +266,7 @@ export default function MenuBrandSwitcher({
           labeledTrigger(isOpen)
         )
       }
-      onSelect={(id) => void handleSelect(id)}
+      onSelect={handleSelect}
       onImageError={onLogoError}
       isDisabled={isUpdating}
       hasSearch={items.length >= 5}

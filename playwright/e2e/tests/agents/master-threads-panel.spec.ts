@@ -1,5 +1,6 @@
 import type { Page, Route } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { chooseFilterOption } from '../../utils/filter-menu';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 const ORG = '/test-org/~';
@@ -795,6 +796,8 @@ test.describe('Agent master thread and Threads panel', () => {
     const mock = await mockMasterAndThreads(page, [
       {
         accessLevel: 'owner',
+        // Ready for review, so the row sits in a group that starts open.
+        attentionState: 'updated',
         canManageShares: true,
         id: OWN_ID,
         kind: 'thread',
@@ -804,6 +807,8 @@ test.describe('Agent master thread and Threads panel', () => {
       },
       {
         accessLevel: 'view',
+        // Ready for review, so the row sits in a group that starts open.
+        attentionState: 'updated',
         canManageShares: false,
         id: SHARED_VIEW_ID,
         kind: 'thread',
@@ -829,9 +834,7 @@ test.describe('Agent master thread and Threads panel', () => {
     await expect(sharedRow).toContainText('Ana Costa');
 
     // "Shared with me" is a choice in the Filters menu, not a tab.
-    await output.getByRole('button', { name: /Filters/ }).click();
-    await page.getByRole('menuitem', { name: /Owner/ }).click();
-    await page.getByRole('menuitemradio', { name: 'Shared with me' }).click();
+    await chooseFilterOption(page, 'Owner', /^Shared with me/, output);
     await expect(sharedRow).toBeVisible();
     await expect(ownRow).toHaveCount(0);
     // The filter lives in the URL, so a reload keeps it.
@@ -860,9 +863,7 @@ test.describe('Agent master thread and Threads panel', () => {
     // Your own thread: the scope button opens Share, and picking a teammate
     // saves a "can prompt" share.
     await lightView.getByRole('button', { name: 'Threads' }).click();
-    await output.getByRole('button', { name: /Filters/ }).click();
-    await page.getByRole('menuitem', { name: /Owner/ }).click();
-    await page.getByRole('menuitemradio', { name: 'All' }).click();
+    await chooseFilterOption(page, 'Owner', /^All/, output);
     await page.keyboard.press('Escape');
     await ownRow.click();
     const shareButton = lightView.getByTestId('agent-thread-share-button');

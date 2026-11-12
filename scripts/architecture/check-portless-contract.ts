@@ -44,7 +44,7 @@ const DEFAULT_SCRIPT_EXPECTATIONS = {
   'dev:backend':
     'bunx turbo run dev --filter=@genfeedai/api --filter=@genfeedai/files --filter=@genfeedai/mcp --filter=@genfeedai/notifications --filter=@genfeedai/workers --concurrency=6',
   'dev:backend:min':
-    'bunx turbo run dev --filter=@genfeedai/api --filter=@genfeedai/files --filter=@genfeedai/notifications --concurrency=4',
+    'bunx turbo run dev --filter=@genfeedai/api --filter=@genfeedai/files --filter=@genfeedai/notifications --filter=@genfeedai/workers --concurrency=5',
   'dev:docs': 'bun run --cwd apps/docs dev',
   'dev:frontend':
     'bunx turbo run dev --filter=@genfeedai/web --filter=@genfeedai/marketing --concurrency=3',
@@ -52,7 +52,7 @@ const DEFAULT_SCRIPT_EXPECTATIONS = {
   // Fixed-port escape hatch (explicit only)
   'dev:debug:web': 'bunx turbo run dev:debug --filter=@genfeedai/web',
   'dev:debug:backend:min':
-    'bunx turbo run dev:debug --filter=@genfeedai/api --filter=@genfeedai/files --filter=@genfeedai/notifications --concurrency=4',
+    'bunx turbo run dev:debug --filter=@genfeedai/api --filter=@genfeedai/files --filter=@genfeedai/notifications --filter=@genfeedai/workers --concurrency=5',
   // One-cycle aliases → canonical names
   'dev:all': 'bun run dev',
   'dev:essentials': 'bun run dev:backend:min',
@@ -300,7 +300,7 @@ export function checkPortlessContract(
   const concurrencyExpectations = [
     ['dev', '--concurrency=9'],
     ['dev:backend', '--concurrency=6'],
-    ['dev:backend:min', '--concurrency=4'],
+    ['dev:backend:min', '--concurrency=5'],
     ['dev:frontend', '--concurrency=3'],
   ] as const;
 
