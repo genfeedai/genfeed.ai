@@ -745,11 +745,9 @@ export async function createProactiveProductionTurnFixture() {
       where: { key: 'platform' },
       create: {
         key: 'platform',
-        isAgentTokenStreamingEnabled: false,
         marginMultiplierAgentChat: 1.7,
       },
       update: {
-        isAgentTokenStreamingEnabled: false,
         marginMultiplierAgentChat: 1.7,
       },
     });
@@ -1590,8 +1588,6 @@ export async function createProactiveProductionTurnFixture() {
             await db.platformSetting.update({
               where: { id: originalPlatform.id },
               data: {
-                isAgentTokenStreamingEnabled:
-                  originalPlatform.isAgentTokenStreamingEnabled,
                 marginMultiplierAgentChat:
                   originalPlatform.marginMultiplierAgentChat,
               },

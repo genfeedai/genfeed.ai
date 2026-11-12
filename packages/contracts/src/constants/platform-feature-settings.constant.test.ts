@@ -40,16 +40,6 @@ describe('parsePlatformFeatureSettings', () => {
     });
   });
 
-  it('streams agent replies by default', () => {
-    expect(parsePlatformFeatureSettings({}).isAgentTokenStreamingEnabled).toBe(
-      true,
-    );
-    expect(
-      parsePlatformFeatureSettings({ isAgentTokenStreamingEnabled: false })
-        .isAgentTokenStreamingEnabled,
-    ).toBe(false);
-  });
-
   it('never resolves live on a shadow-capped decision point', () => {
     const settings = parsePlatformFeatureSettings({
       patternAnalyzerDecisionMode: 'live',

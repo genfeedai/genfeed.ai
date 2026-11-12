@@ -55,7 +55,6 @@ export const platformSettingAttributes = createEntityAttributes([
   'untrustedContentDecisionMode',
   'untrustedContentMinConfidence',
   'isAgentContextCompressionEnabled',
-  'isAgentTokenStreamingEnabled',
   'isBrandVisualAnalysisEnabled',
   'brandVisionOcrModelKey',
   'brandVisionDetectModelKey',
