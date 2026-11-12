@@ -203,6 +203,8 @@ export async function loadBreakoutPreviews(
             totalShares: true,
             totalViews: true,
           },
+          // One latest row per post, so the page's posts bound the read.
+          take: postIds.length,
           where: {
             isDeleted: false,
             organizationId: { in: organizationIds },

@@ -1,10 +1,19 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, isPlatform } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+  isPlatform,
+} from '@genfeedai/contracts';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
+import Card from '@ui/card/Card';
 import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { ExternalLink, Eye, Heart, MessageCircle, Repeat2 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -38,11 +47,13 @@ function Metric({
   label: string;
 }) {
   return (
-    <span className="flex items-center gap-1" title={label}>
-      {icon}
-      <span aria-hidden="true">{children}</span>
-      <span className="sr-only">{label}</span>
-    </span>
+    <SimpleTooltip label={label}>
+      <span className="flex items-center gap-1">
+        {icon}
+        <span aria-hidden="true">{children}</span>
+        <span className="sr-only">{label}</span>
+      </span>
+    </SimpleTooltip>
   );
 }
 
@@ -66,9 +77,11 @@ export default function ActivityPostPreviewCard({
   const { metrics } = preview;
 
   return (
-    <div
-      className="flex flex-col gap-3 rounded-xl bg-background-secondary p-3 shadow-border"
+    <Card
       data-testid="activity-post-preview"
+      gap={CardGap.MD}
+      padding={CardPadding.SM}
+      variant={CardVariant.INSET}
     >
       <div className="flex items-center gap-2">
         <Avatar
@@ -159,6 +172,6 @@ export default function ActivityPostPreviewCard({
           <Link href={remixHref}>{translate('detailRemix')}</Link>
         </Button>
       ) : null}
-    </div>
+    </Card>
   );
 }
