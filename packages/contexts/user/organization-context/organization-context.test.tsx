@@ -138,6 +138,11 @@ function ContextProbe() {
   );
 }
 
+function Orphan() {
+  useRoutedOrganization();
+  return null;
+}
+
 function renderProvider(queryClient = new QueryClient()) {
   return {
     queryClient,
@@ -1335,11 +1340,6 @@ describe('RoutedOrganizationProvider', () => {
   });
 
   it('throws when the hook is used outside its provider', () => {
-    function Orphan() {
-      useRoutedOrganization();
-      return null;
-    }
-
     expect(() => render(<Orphan />)).toThrow(
       'useRoutedOrganization must be used within RoutedOrganizationProvider',
     );

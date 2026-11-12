@@ -54,7 +54,7 @@ export interface RoutedOrganizationSummary {
   slug: string;
 }
 
-export interface RoutedOrganizationSwitchFailure {
+interface RoutedOrganizationSwitchFailure {
   kind: 'activation';
 }
 
