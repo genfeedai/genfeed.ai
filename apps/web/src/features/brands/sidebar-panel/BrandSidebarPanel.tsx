@@ -55,9 +55,9 @@ export default function BrandSidebarPanel(props: BrandSidebarPanelProps) {
     );
   }
 
-  const settingsHref =
+  const profileHref =
     orgSlug && activeBrand.slug
-      ? createBrandAppRoute(orgSlug, activeBrand.slug, APP_ROUTES.SETTINGS.ROOT)
+      ? createBrandAppRoute(orgSlug, activeBrand.slug, APP_ROUTES.PROFILE.ROOT)
       : undefined;
 
   return (
@@ -75,7 +75,7 @@ export default function BrandSidebarPanel(props: BrandSidebarPanelProps) {
             </Badge>
           </>
         }
-        openHref={settingsHref}
+        openHref={profileHref}
         openLabel={translate('openSettings')}
       >
         <BrandOverviewPanel

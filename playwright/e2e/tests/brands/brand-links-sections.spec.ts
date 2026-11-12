@@ -20,7 +20,7 @@ test.describe('Brand accounts and website links', () => {
   test('each section keeps its title and action outside the card', async ({
     authenticatedPage,
   }) => {
-    const route = brandPath('/settings');
+    const route = brandPath('/profile');
     await authenticatedPage.goto(route, {
       timeout: 60000,
       waitUntil: 'domcontentloaded',

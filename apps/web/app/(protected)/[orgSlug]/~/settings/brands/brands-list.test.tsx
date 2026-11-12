@@ -269,12 +269,12 @@ describe('BrandsList', () => {
     );
   });
 
-  it('links the brand name to its settings page', () => {
+  it('links the brand name to its profile page', () => {
     render(<BrandsList />);
 
     // A real anchor on the name: cmd-click opens it in a new tab.
     const link = screen.getByRole('link', { name: 'Open Test Brand settings' });
-    expect(link).toHaveAttribute('href', '/default/testbrand/settings');
+    expect(link).toHaveAttribute('href', '/default/testbrand/profile');
     expect(link).toHaveTextContent('Test Brand');
   });
 
