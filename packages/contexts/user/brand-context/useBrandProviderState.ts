@@ -35,6 +35,7 @@ import {
   clearClientProtectedBootstrapCache,
   loadClientProtectedBootstrap,
 } from '../../providers/protected-bootstrap/client-protected-bootstrap';
+import { saveLastBrand } from '../../providers/protected-bootstrap/last-brand-save';
 import { useContextAuthedService } from '../internal/context-authed-service';
 import {
   BRAND_CONTEXT_CACHE_TTL_MS,
@@ -526,8 +527,7 @@ export function useBrandProviderState({
           return;
         }
 
-        await service.patchMeBrand(urlBrandId);
-        clearClientProtectedBootstrapCache();
+        await saveLastBrand(urlBrandId, (id) => service.patchMeBrand(id));
       } catch (error) {
         lastSyncedUrlBrandIdRef.current = '';
         logger.warn('Failed to persist URL brand as last-used', {
