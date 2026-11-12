@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { getIngredientPreviewUrl } from '@genfeedai/utils/media/ingredient-preview.util';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { IngredientsService } from '@services/content/ingredients.service';
 import type { AppRailPreviewContentProps } from '@/props/ui/app-rail.props';
@@ -41,7 +42,7 @@ export default function MediaRailPreview({
         signal,
       );
       return page.items.flatMap((ingredient) => {
-        const src = ingredient.thumbnailUrl || ingredient.ingredientUrl;
+        const src = getIngredientPreviewUrl(ingredient);
         return src
           ? [
               {

@@ -45,7 +45,7 @@ export default function PublishingRailPreview({
         brandId: brandId || undefined,
         currentPage: 1,
         filterSearch: '',
-        filterSort: undefined,
+        filterSort: 'scheduledDate: 1',
         filterStatus: PostStatus.SCHEDULED,
         getBrandsService: async () => services.brands,
         getOrganizationsService: async () => services.organizations,

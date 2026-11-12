@@ -69,20 +69,28 @@ export default function WorkspaceRailPreview({
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-1.5 p-1">
-        <RailPreviewStat
-          label={translate('posts')}
-          value={number.format(analytics.totalPosts ?? 0)}
-        />
-        <RailPreviewStat
-          label={translate('inReview')}
-          value={number.format(reviewInbox.pendingCount)}
-        />
-        <RailPreviewStat
-          label={translate('ready')}
-          value={number.format(reviewInbox.readyCount)}
-        />
-      </div>
+      <RailPreviewState
+        emptyLabel={translate('empty')}
+        isEmpty={false}
+        isError={overview.isError}
+        isLoading={overview.isLoading}
+        skeletonRows={1}
+      >
+        <div className="grid grid-cols-3 gap-1.5 p-1">
+          <RailPreviewStat
+            label={translate('posts')}
+            value={number.format(analytics.totalPosts ?? 0)}
+          />
+          <RailPreviewStat
+            label={translate('inReview')}
+            value={number.format(reviewInbox.pendingCount)}
+          />
+          <RailPreviewStat
+            label={translate('ready')}
+            value={number.format(reviewInbox.readyCount)}
+          />
+        </div>
+      </RailPreviewState>
       <RailPreviewSection title={translate('inbox')}>
         <RailPreviewState
           emptyLabel={translate('empty')}

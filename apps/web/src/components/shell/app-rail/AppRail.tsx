@@ -455,14 +455,13 @@ export function AppRail({
         })),
     [railItems],
   );
+  // Where previews exist at all, they replace the tooltip. A drag or an open
+  // menu pauses them without bringing the tooltips back.
+  const hasPreviewSurface = surface === 'desktop' && !isAdminChrome;
   const preview = useAppRailPreview({
     activeAppId,
     apps: previewApps,
-    isEnabled:
-      surface === 'desktop' &&
-      !isAdminChrome &&
-      draggingId === null &&
-      menuTarget === null,
+    isEnabled: hasPreviewSurface && draggingId === null && menuTarget === null,
     navRef,
   });
   const previewAppIds = useMemo(
@@ -514,7 +513,9 @@ export function AppRail({
         {...item}
         badge={badges?.[item.app.id]}
         hasPreview={
-          item.app.id !== activeAppId && previewAppIds.has(item.app.id)
+          hasPreviewSurface &&
+          item.app.id !== activeAppId &&
+          previewAppIds.has(item.app.id)
         }
         isActive={item.app.id === activeAppId}
         onNavigateStart={(event) => {

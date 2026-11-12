@@ -505,6 +505,16 @@ describe('AppRail', () => {
     expect(tooltips.at(-1)?.querySelector('kbd')).toBeNull();
   });
 
+  it('keeps the tooltips in the drawer, where there is no hover preview', () => {
+    render(<AppRail orgSlug="acme" surface="drawer" />);
+
+    const tooltips = screen.getAllByTestId('rail-tooltip');
+    expect(tooltips).toHaveLength(
+      screen.getAllByTestId(/^app-rail-item-/).length,
+    );
+    expect(screen.queryByTestId('app-rail-preview')).toBeNull();
+  });
+
   it('has one keyboard and palette owner when desktop and drawer are both mounted', () => {
     vi.mocked(window.matchMedia).mockReturnValue({
       matches: false,

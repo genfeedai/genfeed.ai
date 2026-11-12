@@ -45,6 +45,8 @@ function findRailApp(target: EventTarget | null): HTMLElement | null {
 interface AppRailPreviewFlyoutProps {
   app: AppRailPreviewApp;
   left: number;
+  onFocusEnter: () => void;
+  onFocusLeave: () => void;
   onPointerEnter: () => void;
   onPointerLeave: () => void;
   onSelect: () => void;
@@ -54,6 +56,8 @@ interface AppRailPreviewFlyoutProps {
 function AppRailPreviewFlyout({
   app,
   left,
+  onFocusEnter,
+  onFocusLeave,
   onPointerEnter,
   onPointerLeave,
   onSelect,
@@ -98,6 +102,8 @@ function AppRailPreviewFlyout({
       // Page menu: exempt from the product motion policy, like the rail.
       data-motion="allow"
       data-testid="app-rail-preview"
+      onBlurCapture={onFocusLeave}
+      onFocusCapture={onFocusEnter}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
       ref={ref}
@@ -187,6 +193,10 @@ export function useAppRailPreview({
     (id: string) => isEnabled && id !== activeAppId && appsById.has(id),
     [activeAppId, appsById, isEnabled],
   );
+  // The open timer fires later: it asks the latest rules, so a drag or menu
+  // that started during the hover delay never opens a preview.
+  const isPreviewableRef = useRef(isPreviewable);
+  isPreviewableRef.current = isPreviewable;
 
   const onPointerOver = useCallback(
     (event: PointerEvent<HTMLElement>) => {
@@ -205,10 +215,9 @@ export function useAppRailPreview({
         show(id, anchor);
         return;
       }
-      openTimer.current = window.setTimeout(
-        () => show(id, anchor),
-        OPEN_DELAY_MS,
-      );
+      openTimer.current = window.setTimeout(() => {
+        if (isPreviewableRef.current(id)) show(id, anchor);
+      }, OPEN_DELAY_MS);
     },
     [isPreviewable, scheduleClose, show],
   );
@@ -217,9 +226,12 @@ export function useAppRailPreview({
       const anchor = findRailApp(event.target);
       if (!anchor || !event.target.matches(':focus-visible')) return;
       const id = anchor.getAttribute(APP_ATTRIBUTE) ?? '';
-      if (isPreviewable(id)) show(id, anchor);
+      if (!isPreviewable(id)) return;
+      // The focused app wins over a pending hover or blur timer.
+      cancelTimers();
+      show(id, anchor);
     },
-    [isPreviewable, show],
+    [cancelTimers, isPreviewable, show],
   );
   const onBlurCapture = useCallback(
     (event: FocusEvent<HTMLElement>) => {
@@ -233,6 +245,9 @@ export function useAppRailPreview({
   useEffect(() => {
     if (position && !isPreviewable(position.id)) close();
   }, [close, isPreviewable, position]);
+  useEffect(() => {
+    if (!isEnabled) cancelTimers();
+  }, [cancelTimers, isEnabled]);
   useEffect(() => {
     if (!position) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -258,6 +273,8 @@ export function useAppRailPreview({
         <AppRailPreviewFlyout
           app={app}
           left={position.left}
+          onFocusEnter={() => window.clearTimeout(closeTimer.current)}
+          onFocusLeave={scheduleClose}
           onPointerEnter={() => window.clearTimeout(closeTimer.current)}
           onPointerLeave={scheduleClose}
           onSelect={close}

@@ -208,4 +208,40 @@ describe('useAppRailPreview', () => {
 
     expect(screen.queryByTestId('app-rail-preview')).toBeNull();
   });
+
+  it('does not open a preview that became disabled during the hover delay', () => {
+    const { rerender } = render(<Rail />);
+    hover('Library');
+    wait(100);
+
+    rerender(<Rail isEnabled={false} />);
+    wait(500);
+
+    expect(screen.queryByTestId('app-rail-preview')).toBeNull();
+  });
+
+  it('stays open while keyboard focus is inside the preview', () => {
+    render(<Rail />);
+    hover('Library');
+    wait(300);
+
+    fireEvent.pointerLeave(screen.getByRole('navigation', { name: 'Apps' }));
+    fireEvent.focus(screen.getByTestId('app-rail-preview-open-library'));
+    wait(500);
+
+    expect(screen.getByTestId('app-rail-preview')).toBeInTheDocument();
+  });
+
+  it('closes after focus leaves the preview', () => {
+    render(<Rail />);
+    hover('Library');
+    wait(300);
+
+    const header = screen.getByTestId('app-rail-preview-open-library');
+    fireEvent.focus(header);
+    fireEvent.blur(header);
+    wait(200);
+
+    expect(screen.queryByTestId('app-rail-preview')).toBeNull();
+  });
 });
