@@ -1,12 +1,13 @@
 import dynamic from 'next/dynamic';
 import type { ComponentType } from 'react';
 import type { AppRailPreviewContentProps } from '@/props/ui/app-rail.props';
-import { RailPreviewLoading } from './previews/rail-preview-parts';
+import { RailPreviewLoading } from './previews/RailPreviewLoading';
 
 type PreviewComponent = ComponentType<AppRailPreviewContentProps>;
 
 // Each preview loads on first hover, so none of them weighs on the pages
-// every member opens.
+// every member opens. The loading skeleton is its own module for the same
+// reason: the shared parts pull in lists, cards and images.
 const loading = () => <RailPreviewLoading />;
 
 /**
