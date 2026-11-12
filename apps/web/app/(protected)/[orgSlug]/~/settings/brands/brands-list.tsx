@@ -87,7 +87,7 @@ function BrandsListContent() {
         return;
       }
 
-      push(createBrandAppRoute(orgSlug, brand.slug, APP_ROUTES.SETTINGS.ROOT));
+      push(createBrandAppRoute(orgSlug, brand.slug, APP_ROUTES.PROFILE.ROOT));
     },
     [notificationsService, orgSlug, push],
   );
@@ -101,7 +101,7 @@ function BrandsListContent() {
             href: createBrandAppRoute(
               orgSlug,
               brand.slug,
-              APP_ROUTES.SETTINGS.ROOT,
+              APP_ROUTES.PROFILE.ROOT,
             ),
             label: `Open ${brand.label} settings`,
           }

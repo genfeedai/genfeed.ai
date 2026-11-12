@@ -60,7 +60,7 @@ export interface BuildSettingsMenuItemsParams {
  *
  * Naming / paths (deliberate):
  * - Settings is a shell. Personal home is `/settings/personal`. Org home is
- *   `/:orgSlug/~/settings/general`. Brand home stays `/:org/:brand/settings`.
+ *   `/:orgSlug/~/settings/general`. Brand home is `/:org/:brand/profile`.
  * - Org sidebar label is **General** (workspace defaults).
  * - Brand sidebar label is **Profile** (public brand identity).
  * - Org **Agents** is agent/automation governance (not legal ToS). Route is
@@ -246,9 +246,9 @@ function buildBrandMenuItems(): MenuItemConfig[] {
   return [
     {
       group: 'Brand',
-      href: APP_ROUTES.SETTINGS.ROOT,
+      href: APP_ROUTES.PROFILE.ROOT,
       hrefScope: 'brand',
-      label: 'Brand profile',
+      label: 'Profile',
       outline: IdCard,
       solid: IdCard,
       isExactMatch: true,

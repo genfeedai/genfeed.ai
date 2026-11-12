@@ -169,6 +169,9 @@ describe('routes.constant', () => {
     expect(APP_ROUTE_TEMPLATES.ORGANIZATION_SETTINGS).toBe(
       '/:orgSlug/~/settings',
     );
+    expect(APP_ROUTE_TEMPLATES.BRAND_PROFILE).toBe(
+      '/:orgSlug/:brandSlug/profile',
+    );
     expect(APP_ROUTE_TEMPLATES.BRAND_SETTINGS).toBe(
       '/:orgSlug/:brandSlug/settings',
     );

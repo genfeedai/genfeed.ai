@@ -100,7 +100,7 @@ describe('computeBrandCompleteness', () => {
     const result = computeBrandCompleteness({ id: 'abc-123' });
 
     const expectedHrefs = {
-      identity: '/settings',
+      identity: '/profile',
       strategy: '/settings/brand-kit/strategy',
       visual: '/settings/brand-kit/visual',
       voice: '/settings/brand-kit/voice',

@@ -143,7 +143,7 @@ describe('BrandSidebarPanel', () => {
 
     expect(screen.getByRole('link', { name: 'Open settings' })).toHaveAttribute(
       'href',
-      '/acme-org/brand-one/settings',
+      '/acme-org/brand-one/profile',
     );
   });
 

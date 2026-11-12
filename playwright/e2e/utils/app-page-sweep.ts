@@ -172,8 +172,12 @@ export const protectedRouteBuckets: RouteBucket[] = [
       route,
     ),
   ),
-  routeBucket('protected brand settings', protectedRoutes, (route) =>
-    route.startsWith('/test-org/brand-1/settings'),
+  routeBucket(
+    'protected brand settings',
+    protectedRoutes,
+    (route) =>
+      route.startsWith('/test-org/brand-1/settings') ||
+      route === '/test-org/brand-1/profile',
   ),
   routeBucket('protected organization workspace', protectedRoutes, (route) =>
     route.startsWith('/test-org/~/'),

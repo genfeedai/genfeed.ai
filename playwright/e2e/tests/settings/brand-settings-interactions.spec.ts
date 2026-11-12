@@ -14,6 +14,7 @@ import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
  * the goal is to exercise interactive code paths for coverage.
  */
 
+const BRAND_PROFILE = '/test-org/brand-1/profile';
 const BRAND_SETTINGS = '/test-org/brand-1/settings';
 
 /** Toggle the first visible Radix switch on the page (best-effort). */
@@ -52,7 +53,7 @@ test.describe('Brand Settings — Interactions', () => {
   test('brand overview renders and supports interaction', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(BRAND_SETTINGS, {
+    await authenticatedPage.goto(BRAND_PROFILE, {
       timeout: 30_000,
       waitUntil: 'domcontentloaded',
     });
@@ -68,7 +69,7 @@ test.describe('Brand Settings — Interactions', () => {
   test('brand overview can open and close a link/edit overlay', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(BRAND_SETTINGS, {
+    await authenticatedPage.goto(BRAND_PROFILE, {
       timeout: 30_000,
       waitUntil: 'domcontentloaded',
     });
@@ -90,7 +91,7 @@ test.describe('Brand Settings — Interactions', () => {
   test('brand overview toggles public profile switch', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(BRAND_SETTINGS, {
+    await authenticatedPage.goto(BRAND_PROFILE, {
       timeout: 30_000,
       waitUntil: 'domcontentloaded',
     });
@@ -247,7 +248,7 @@ test.describe('Brand Settings — Interactions', () => {
     authenticatedPage,
   }) => {
     const subPages = [
-      BRAND_SETTINGS,
+      BRAND_PROFILE,
       `${BRAND_SETTINGS}/agent-defaults`,
       `${BRAND_SETTINGS}/harness`,
       `${BRAND_SETTINGS}/publishing`,
