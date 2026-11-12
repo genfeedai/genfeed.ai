@@ -131,8 +131,10 @@ function PublicPostCard({ href, post }: PublicPostCardProps) {
  */
 export default function BrandDetailPublicPosts({
   createHref,
+  onRetry,
   posts,
   publicHandle,
+  status,
 }: BrandDetailPublicPostsProps) {
   const translate = useTranslations('pages.brandDetailPosts');
   const websiteUrl = EnvironmentService.apps.website;
@@ -163,7 +165,39 @@ export default function BrandDetailPublicPosts({
       }
       title={translate('title')}
     >
-      {posts.length > 0 ? (
+      {status === 'pending' ? (
+        <Card>
+          <p
+            aria-busy="true"
+            className="px-4 py-8 text-center text-sm text-muted-foreground"
+            role="status"
+          >
+            {translate('loading')}
+          </p>
+        </Card>
+      ) : status === 'error' ? (
+        <Card>
+          <div
+            className="flex flex-col items-center justify-center gap-1 px-4 py-8 text-center"
+            role="alert"
+          >
+            <p className="text-sm font-medium text-foreground/70">
+              {translate('errorTitle')}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {translate('errorHint')}
+            </p>
+            <Button
+              className="mt-2"
+              onClick={onRetry}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            >
+              {translate('retry')}
+            </Button>
+          </div>
+        </Card>
+      ) : posts.length > 0 ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {posts.map((post) => (
             <PublicPostCard

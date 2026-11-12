@@ -47,6 +47,8 @@ function createBrandDetailState(overrides: Record<string, unknown> = {}) {
     handleUpdateAccount: mocks.handleUpdateAccount,
     hasBrandId: true,
     posts: [{ id: 'post-1' }, { id: 'post-2' }],
+    postsStatus: 'success',
+    refetchPosts: vi.fn(),
     isGeneratingBanner: false,
     isGeneratingLogo: false,
     isLoading: false,

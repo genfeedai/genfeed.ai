@@ -28,7 +28,7 @@ const mockReplace = vi.fn();
 const mockRefreshBrands = vi.fn();
 
 const mockPublicService = {
-  findPublicPosts: mockFindPublicPosts,
+  findPublicPostsWithSignal: mockFindPublicPosts,
 };
 
 const mockClipboardService = {
@@ -286,10 +286,11 @@ describe('useBrandDetail', () => {
         { id: 'post-2' },
       ]);
     });
-    expect(mockFindPublicPosts).toHaveBeenCalledWith({
-      brand: 'brand-1',
-      limit: 6,
-    });
+    expect(result.current.postsStatus).toBe('success');
+    expect(mockFindPublicPosts).toHaveBeenCalledWith(
+      { brand: 'brand-1', limit: 6 },
+      expect.any(AbortSignal),
+    );
   });
 
   it('copies text via clipboard service', async () => {
@@ -866,7 +867,7 @@ describe('useBrandDetail', () => {
     expect(result.current.socialConnections).toHaveLength(2);
   });
 
-  it('shows no posts when the public feed fails', async () => {
+  it('reports an error, not an empty feed, when the public posts request fails', async () => {
     mockFindPublicPosts.mockRejectedValue(new Error('posts down'));
 
     const { result } = renderHook(() => useBrandDetail(), {
@@ -874,7 +875,7 @@ describe('useBrandDetail', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.brand).not.toBeNull();
+      expect(result.current.postsStatus).toBe('error');
     });
     expect(result.current.posts).toEqual([]);
   });

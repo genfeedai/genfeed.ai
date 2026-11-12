@@ -1,8 +1,7 @@
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { stripHtmlToSingleLine } from '../security/strip-html.helper';
 
-const HTML_TAGS_PATTERN = /<[^>]*>/g;
-const WHITESPACE_RUN_PATTERN = /\s+/g;
 const PLATFORM_LABELS: Record<string, string> = {
   facebook: 'Facebook',
   instagram: 'Instagram',
@@ -17,10 +16,7 @@ const PLATFORM_LABELS: Record<string, string> = {
 
 /** Post copy can carry editor HTML; cards and meta tags need plain text. */
 export function toPlainPostText(value: string | undefined): string {
-  return (value ?? '')
-    .replace(HTML_TAGS_PATTERN, ' ')
-    .replace(WHITESPACE_RUN_PATTERN, ' ')
-    .trim();
+  return stripHtmlToSingleLine(value);
 }
 
 /** "Posted on X", or nothing for a post published on Genfeed itself. */

@@ -1,5 +1,5 @@
 import type { IPost } from '@genfeedai/contracts/interfaces';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import BrandDetailPublicPosts from './BrandDetailPublicPosts';
 
@@ -52,8 +52,10 @@ describe('BrandDetailPublicPosts', () => {
   it('shows each post with where it went out and how it performed', () => {
     render(
       <BrandDetailPublicPosts
+        onRetry={vi.fn()}
         posts={[launchPost, textPost]}
         publicHandle="acme"
+        status="success"
       />,
     );
 
@@ -78,7 +80,14 @@ describe('BrandDetailPublicPosts', () => {
   });
 
   it('labels a Genfeed-native post and defaults missing counts to zero', () => {
-    render(<BrandDetailPublicPosts posts={[textPost]} publicHandle="acme" />);
+    render(
+      <BrandDetailPublicPosts
+        onRetry={vi.fn()}
+        posts={[textPost]}
+        publicHandle="acme"
+        status="success"
+      />,
+    );
 
     const link = screen.getByRole('link', {
       name: /Why we open sourced the whole studio/,
@@ -90,7 +99,14 @@ describe('BrandDetailPublicPosts', () => {
   });
 
   it('links to the public profile', () => {
-    render(<BrandDetailPublicPosts posts={[launchPost]} publicHandle="acme" />);
+    render(
+      <BrandDetailPublicPosts
+        onRetry={vi.fn()}
+        posts={[launchPost]}
+        publicHandle="acme"
+        status="success"
+      />,
+    );
 
     expect(
       screen.getByRole('link', { name: 'Public profile' }),
@@ -101,8 +117,10 @@ describe('BrandDetailPublicPosts', () => {
     render(
       <BrandDetailPublicPosts
         createHref="https://app.genfeed.test/acme/agent/new"
+        onRetry={vi.fn()}
         posts={[]}
         publicHandle="acme"
+        status="success"
       />,
     );
 
@@ -114,9 +132,51 @@ describe('BrandDetailPublicPosts', () => {
   });
 
   it('shows no links for a brand without a public profile', () => {
-    render(<BrandDetailPublicPosts posts={[]} />);
+    render(
+      <BrandDetailPublicPosts onRetry={vi.fn()} posts={[]} status="success" />,
+    );
 
     expect(screen.getByText('No public posts yet')).toBeInTheDocument();
     expect(screen.queryByRole('link')).toBeNull();
+  });
+
+  it('shows a loading state, not the empty state, while posts load', () => {
+    render(
+      <BrandDetailPublicPosts
+        createHref="https://app.genfeed.test/acme/agent/new"
+        onRetry={vi.fn()}
+        posts={[]}
+        publicHandle="acme"
+        status="pending"
+      />,
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Loading public posts…',
+    );
+    expect(screen.queryByText('No public posts yet')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Create a post' })).toBeNull();
+  });
+
+  it('offers a retry, not the empty state, when posts fail to load', () => {
+    const onRetry = vi.fn();
+    render(
+      <BrandDetailPublicPosts
+        createHref="https://app.genfeed.test/acme/agent/new"
+        onRetry={onRetry}
+        posts={[]}
+        publicHandle="acme"
+        status="error"
+      />,
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Public posts could not be loaded',
+    );
+    expect(screen.queryByText('No public posts yet')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 });

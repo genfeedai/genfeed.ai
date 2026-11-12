@@ -47,6 +47,9 @@ export interface BrandDetailSystemPromptProps {
 
 export interface BrandDetailPublicPostsProps {
   posts: IPost[];
+  /** A failed request must not read as "no posts", so the state is explicit. */
+  status: 'pending' | 'error' | 'success';
+  onRetry: () => void;
   /**
    * The genfeed.ai handle the brand's public profile lives at. Without one
    * (a private brand) the website does not serve the posts, so the "Public
@@ -349,6 +352,8 @@ export interface UseBrandDetailReturn {
   hasBrandId: boolean;
   brand: IBrand | null;
   posts: IPost[];
+  postsStatus: 'pending' | 'error' | 'success';
+  refetchPosts: () => void;
   links: ILink[];
   selectedLink: ILink | null;
   isLoading: boolean;

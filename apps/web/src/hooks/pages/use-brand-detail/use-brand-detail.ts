@@ -209,20 +209,16 @@ export function useBrandDetail({
   // previews exactly what visitors see there.
   const publicPostsQuery = useQuery<IPost[]>({
     enabled: Boolean(brandId),
-    queryFn: async () => {
-      try {
-        return await publicService.findPublicPosts({
-          brand: brandId,
-          limit: PUBLIC_POSTS_LIMIT,
-        });
-      } catch (error) {
-        logger.error('GET /public/posts failed', error);
-        return EMPTY_POSTS;
-      }
-    },
+    queryFn: ({ signal }) =>
+      publicService.findPublicPostsWithSignal(
+        { brand: brandId, limit: PUBLIC_POSTS_LIMIT },
+        signal,
+      ),
     queryKey: ['brand-detail-public-posts', brandId],
   });
   const posts = publicPostsQuery.data ?? EMPTY_POSTS;
+  const postsStatus = publicPostsQuery.status;
+  const refetchPosts = publicPostsQuery.refetch;
 
   // A refresh keeps the loaded brand on screen; overlapping refreshes are
   // ordered by React Query, so only the latest answer is kept.
@@ -522,6 +518,8 @@ export function useBrandDetail({
     isUpdating,
     links,
     posts,
+    postsStatus,
+    refetchPosts,
     selectedLink,
     selectLink,
     setGenerateModalType,

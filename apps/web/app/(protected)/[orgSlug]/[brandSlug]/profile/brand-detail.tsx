@@ -43,6 +43,8 @@ export default function BrandDetail() {
     isLoading,
     brandId,
     posts,
+    postsStatus,
+    refetchPosts,
     links,
     selectedLink,
     isGeneratingBanner,
@@ -180,8 +182,10 @@ export default function BrandDetail() {
 
               <BrandDetailPublicPosts
                 createHref={createPostHref}
+                onRetry={() => void refetchPosts()}
                 posts={posts}
                 publicHandle={publicHandle}
+                status={postsStatus}
               />
             </div>
 

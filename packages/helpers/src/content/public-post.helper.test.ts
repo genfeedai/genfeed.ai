@@ -13,6 +13,12 @@ describe('post text', () => {
     );
   });
 
+  it('decodes character references in editor HTML', () => {
+    expect(toPlainPostText('<p>Tom &amp; Jerry&nbsp;launch</p>')).toBe(
+      'Tom & Jerry launch',
+    );
+  });
+
   it.each([
     ['twitter', 'X'],
     ['YOUTUBE', 'YouTube'],
