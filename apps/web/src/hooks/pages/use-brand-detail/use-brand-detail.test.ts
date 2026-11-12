@@ -7,7 +7,7 @@ import { BRAND_HANDLE_FORMAT_MESSAGE } from '@genfeedai/contracts/constants';
 import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { createBrand } from '@genfeedai/helpers/testing/entity-fixtures';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 
 const mockFindOne = vi.fn();
@@ -136,8 +136,9 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
   },
 }));
 
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { usePathname } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 
 describe('useBrandDetail', () => {
   beforeEach(() => {
@@ -881,6 +882,73 @@ describe('useBrandDetail', () => {
 
     expect(result.current.videos).toEqual([]);
     expect(result.current.articles).toEqual([]);
+  });
+
+  describe('brand id in the route', () => {
+    const brandContext = {
+      brands: [createBrand({ id: 'brand-1', slug: 'brand-1' })],
+      refreshBrands: vi.fn(),
+    };
+
+    beforeEach(() => {
+      vi.mocked(useBrand).mockReturnValue(
+        brandContext as unknown as ReturnType<typeof useBrand>,
+      );
+      vi.mocked(useParams).mockReturnValue({
+        brandSlug: 'brand-1',
+        orgSlug: 'acme',
+      });
+    });
+
+    afterEach(() => {
+      vi.mocked(useBrand).mockReturnValue({
+        brands: [],
+        refreshBrands: mockRefreshBrands,
+      } as unknown as ReturnType<typeof useBrand>);
+      vi.mocked(useParams).mockReturnValue({
+        orgSlug: 'acme',
+        slug: 'brand-1',
+      });
+      vi.mocked(usePathname).mockReturnValue('/settings/brands/brand-1');
+    });
+
+    it('keeps Connectors → Channels on its own route', async () => {
+      vi.mocked(usePathname).mockReturnValue(
+        '/acme/brand-1/connectors/channels',
+      );
+
+      const { result } = renderHook(() => useBrandDetail(), {
+        wrapper: queryClientWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.brand).not.toBeNull();
+      });
+
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it('still moves a settings route that names the brand by id to its slug', async () => {
+      vi.mocked(useBrand).mockReturnValue({
+        brands: [createBrand({ id: 'brand-1', slug: 'acme-labs' })],
+        refreshBrands: vi.fn(),
+      } as unknown as ReturnType<typeof useBrand>);
+      vi.mocked(useParams).mockReturnValue({
+        brandSlug: 'brand-1',
+        orgSlug: 'acme',
+      });
+      vi.mocked(usePathname).mockReturnValue(
+        '/acme/brand-1/settings/brand-kit',
+      );
+
+      renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+
+      await waitFor(() => {
+        expect(mockReplace).toHaveBeenCalledWith(
+          '/acme/acme-labs/settings/brand-kit',
+        );
+      });
+    });
   });
 
   it('registers an asset-status websocket subscription', async () => {
