@@ -40,6 +40,16 @@ describe('parsePlatformFeatureSettings', () => {
     });
   });
 
+  it('streams agent replies by default', () => {
+    expect(parsePlatformFeatureSettings({}).isAgentTokenStreamingEnabled).toBe(
+      true,
+    );
+    expect(
+      parsePlatformFeatureSettings({ isAgentTokenStreamingEnabled: false })
+        .isAgentTokenStreamingEnabled,
+    ).toBe(false);
+  });
+
   it('never resolves live on a shadow-capped decision point', () => {
     const settings = parsePlatformFeatureSettings({
       patternAnalyzerDecisionMode: 'live',
@@ -54,7 +64,7 @@ describe('parsePlatformFeatureSettings', () => {
 
   it('fails closed on out-of-range or unknown values', () => {
     const settings = parsePlatformFeatureSettings({
-      isAgentTokenStreamingEnabled: 'true',
+      isAgentContextCompressionEnabled: 'false',
       mediaGateVisionMode: 'LIVE',
       mediaPerceptionFrameCount: 2.5,
       mediaPerceptionLookbackHours: 721,
@@ -65,7 +75,7 @@ describe('parsePlatformFeatureSettings', () => {
     });
 
     expect(settings).toMatchObject({
-      isAgentTokenStreamingEnabled: false,
+      isAgentContextCompressionEnabled: true,
       mediaGateVisionMode: 'off',
       mediaPerceptionFrameCount: 6,
       mediaPerceptionLookbackHours: 24,

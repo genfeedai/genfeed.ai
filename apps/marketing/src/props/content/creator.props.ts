@@ -100,6 +100,17 @@ export interface CreatorPostCardProps {
   post: Post;
 }
 
+export interface CreatorPostMetricsProps {
+  post: Post;
+}
+
+export interface CreatorPostMetricProps {
+  icon: ReactNode;
+  /** The label for one, read by screen readers: "like", "comment". */
+  singular: string;
+  value: number;
+}
+
 export interface CreatorPostMediaProps {
   /** Alternative text for every item: the post's title. */
   alt: string;
