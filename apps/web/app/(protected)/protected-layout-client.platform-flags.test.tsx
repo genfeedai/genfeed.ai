@@ -65,6 +65,8 @@ vi.mock(
 );
 vi.mock('./routed-organization-boundary', () => ({
   default: ({ children }: { children: ReactNode }) => children,
+  RoutedOrganizationPageGate: ({ children }: { children: ReactNode }) =>
+    children,
 }));
 vi.mock('./platform-module-route-gate', () => ({
   default: ({ children }: { children: ReactNode }) => (
