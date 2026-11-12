@@ -1,6 +1,6 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
-import { ToolRegistryService } from '@mcp/services/tool-registry.service';
+import { createEndpointRegistries } from '@mcp/services/tool-registry.endpoints.testing';
 
 /**
  * Covers the MCP catalog REST handlers (content, analytics,
@@ -160,12 +160,9 @@ function build() {
     log: vi.fn(),
     warn: vi.fn(),
   };
-  const registry = new ToolRegistryService(
+  const registry = createEndpointRegistries(
     client as unknown as ClientService,
     logger as unknown as LoggerService,
-    'admin',
-    [],
-    undefined,
     'admin',
   );
   return { client, logger, registry };
@@ -697,18 +694,25 @@ describe('Brand URL tools', () => {
       expect(client.createApproval).not.toHaveBeenCalled();
     },
   );
-  it('lists both tools for admins selecting the brand toolset', () => {
+  it('lists brand creation on the admin endpoint and the scan status on the standard one', () => {
     const { registry } = build();
-    const names = registry
+    const adminNames = registry.admin
       .getToolsForRoleAndToolsets('admin', ['brand'])
       .map((tool) => tool.name);
-    expect(names).toContain('create_brand_from_url');
-    expect(names).toContain('get_brand_scan_status');
+    expect(adminNames.sort()).toEqual([
+      'create_brand_from_url',
+      'resolve_approval',
+    ]);
+    const standardNames = registry.standard
+      .getToolsForRoleAndToolsets('admin', ['brand'])
+      .map((tool) => tool.name);
+    expect(standardNames).toContain('get_brand_scan_status');
+    expect(standardNames).not.toContain('create_brand_from_url');
   });
 
   it('does not advertise brand creation to user-tier callers', () => {
     const { registry } = build();
-    const names = registry
+    const names = registry.standard
       .getToolsForRoleAndToolsets('user', ['brand'])
       .map((tool) => tool.name);
     expect(names).not.toContain('create_brand_from_url');

@@ -39,8 +39,8 @@ export function buildMcpServerInstructions(accessMode: McpAccessMode): string {
 
 function buildAdminMcpServerInstructions(): string {
   return [
-    MCP_SERVER_INSTRUCTIONS,
-    'This is the Genfeed staff admin connection: it also lists the admin-only tools, for organization owners and admins.',
+    'Genfeed staff admin connection for organization owners and admins.',
+    'It lists only the admin-only tools. Content, brand and generation tools are on the standard connection.',
   ].join(' ');
 }
 
@@ -53,6 +53,17 @@ export function buildClaudeMcpServerInstructions(): string {
     'Image, video and audio generation, workflows, batches and remix are unavailable through this connector.',
     'Use find_tools to discover supported content operations. Toolset changes cannot enable generation.',
   ].join(' ');
+}
+
+function describeMcpServer(accessMode: McpAccessMode): string {
+  switch (accessMode) {
+    case 'claude':
+      return 'Manage brands, drafts, scheduled releases and analytics in Genfeed.';
+    case 'admin':
+      return 'Genfeed admin actions for organization owners and admins.';
+    default:
+      return MCP_SERVER_DESCRIPTION;
+  }
 }
 
 /**
@@ -68,10 +79,7 @@ export function getMcpServerInfo(
   const origin = new URL(publicMcpUrl).origin;
 
   return {
-    description:
-      accessMode === 'claude'
-        ? 'Manage brands, drafts, scheduled releases and analytics in Genfeed.'
-        : MCP_SERVER_DESCRIPTION,
+    description: describeMcpServer(accessMode),
     icons: Object.entries(MCP_BRAND_ICON_FILES).map(
       ([path, { mimeType, sizes, theme }]) => ({
         mimeType,

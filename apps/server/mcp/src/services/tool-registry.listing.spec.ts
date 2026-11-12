@@ -72,7 +72,7 @@ vi.mock('@genfeedai/actions', async (importOriginal) => {
 function build(
   role: 'user' | 'admin' | 'superadmin',
   toolsets: ToolsetName[] = [],
-  accessMode: 'standard' | 'admin' = role === 'user' ? 'standard' : 'admin',
+  accessMode: 'standard' | 'admin' = 'standard',
 ) {
   const logger = {
     debug: vi.fn(),
@@ -136,20 +136,25 @@ describe('ToolRegistryService listing filters by the caller role', () => {
     ]);
   });
 
-  it('getAllTools returns the unfiltered surface for internal checks', () => {
-    expect(names(build('user', [], 'admin').getAllTools())).toEqual([
+  it('getAllTools returns the unfiltered standard surface for internal checks', () => {
+    expect(names(build('user').getAllTools())).toEqual([
       'admin_scoped_tool',
       'get_posts',
-      'resolve_approval',
     ]);
   });
 
-  it('never lists admin-gated tool names on the standard endpoint, whatever the role', () => {
-    expect(names(build('superadmin', [], 'standard').getAllTools())).toEqual([
-      'admin_scoped_tool',
-      'get_posts',
+  it('lists only the admin-gated tools on the admin endpoint', () => {
+    expect(names(build('superadmin', [], 'admin').getAllTools())).toEqual([
+      'resolve_approval',
     ]);
-    expect(names(build('superadmin', [], 'standard').getTools())).toEqual([
+    expect(names(build('superadmin', [], 'admin').getTools())).toEqual([
+      'resolve_approval',
+    ]);
+    expect(names(build('user', [], 'admin').getTools())).toEqual([]);
+  });
+
+  it('never lists admin-gated tool names on the standard endpoint, whatever the role', () => {
+    expect(names(build('superadmin').getTools())).toEqual([
       'admin_scoped_tool',
       'get_posts',
     ]);
@@ -242,7 +247,7 @@ describe('ToolRegistryService.getDiscoverableTools', () => {
     ]);
     expect(
       names(build('superadmin', ['content']).getDiscoverableTools()),
-    ).toEqual(['admin_scoped_tool', 'get_posts', 'resolve_approval']);
+    ).toEqual(['admin_scoped_tool', 'get_posts']);
   });
 });
 
@@ -257,7 +262,8 @@ it('lists the real mixed default with canonical wrappers inside the 25-tool bare
   const user = build('user', [...actual.DEFAULT_MCP_PROFILE_TOOLSETS]);
   const maximum = build('superadmin', [...actual.DEFAULT_MCP_PROFILE_TOOLSETS]);
   expect(user.getTools()).toHaveLength(actual.BARE_MCP_URL_TOOL_CAP);
-  expect(maximum.getTools()).toHaveLength(actual.BARE_MCP_URL_TOOL_CAP + 1);
+  // Admin-only tools are not on the standard endpoint, whatever the role.
+  expect(maximum.getTools()).toHaveLength(actual.BARE_MCP_URL_TOOL_CAP);
   const listed = names(user.getTools());
   expect(listed).toContain('check_channel');
   expect(listed).toContain('upload_media');

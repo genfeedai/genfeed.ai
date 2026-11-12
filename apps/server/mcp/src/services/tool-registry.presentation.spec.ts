@@ -2,7 +2,7 @@ import { getToolsForSurface } from '@genfeedai/actions';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
-import { ToolRegistryService } from '@mcp/services/tool-registry.service';
+import { createEndpointRegistries } from '@mcp/services/tool-registry.endpoints.testing';
 import type { McpAppResult } from '@mcp/shared/interfaces/mcp-app.interface';
 
 const fixture = {
@@ -92,13 +92,10 @@ function build() {
     warn: vi.fn(),
     log: vi.fn(),
   };
-  return new ToolRegistryService(
+  return createEndpointRegistries(
     client as unknown as ClientService,
     logger as unknown as LoggerService,
     'superadmin',
-    [],
-    undefined,
-    'admin',
   );
 }
 

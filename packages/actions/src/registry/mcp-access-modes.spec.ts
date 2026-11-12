@@ -142,11 +142,13 @@ describe('Admin MCP access policy', () => {
     }
   });
 
-  it('leaves every other tool available on standard and admin', () => {
+  it('leaves every other tool on the standard endpoint and off the admin one', () => {
     for (const tool of getToolsForSurface('mcp')) {
       if (ADMIN_MCP_TOOL_NAMES.has(tool.name)) continue;
       expect(isToolAllowedInMcpAccessMode('standard', tool.name)).toBe(true);
-      expect(isToolAllowedInMcpAccessMode('admin', tool.name)).toBe(true);
+      expect(isToolAllowedInMcpAccessMode('admin', tool.name), tool.name).toBe(
+        false,
+      );
     }
   });
 

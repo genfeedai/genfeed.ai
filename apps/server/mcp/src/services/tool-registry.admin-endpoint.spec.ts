@@ -1,9 +1,13 @@
-import { ADMIN_MCP_TOOL_NAMES, type McpAccessMode } from '@genfeedai/actions';
+import {
+  ADMIN_MCP_TOOL_NAMES,
+  getToolsForSurface,
+  type McpAccessMode,
+} from '@genfeedai/actions';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
-function build(accessMode: McpAccessMode, toolsets: 'core'[] = ['core']) {
+function build(accessMode: McpAccessMode) {
   const client = {
     executeAgentTool: vi.fn(),
     isApprovalRequired: vi.fn().mockResolvedValue(false),
@@ -14,7 +18,7 @@ function build(accessMode: McpAccessMode, toolsets: 'core'[] = ['core']) {
     client as unknown as ClientService,
     logger as unknown as LoggerService,
     'superadmin',
-    toolsets,
+    ['core'],
     undefined,
     accessMode,
   );
@@ -27,11 +31,19 @@ const listedNames = (accessMode: McpAccessMode) =>
     .map((tool) => tool.name);
 
 describe('Admin MCP endpoint tool boundary', () => {
-  it('lists every admin tool on the admin endpoint, whichever toolsets the URL selects', () => {
+  it('lists exactly the admin tools on the admin endpoint, whichever toolsets the URL selects', () => {
+    expect(listedNames('admin').sort()).toEqual(
+      [...ADMIN_MCP_TOOL_NAMES].sort(),
+    );
+  });
+
+  it('lists no generation or content tools on the admin endpoint', () => {
     const names = listedNames('admin');
-    for (const name of ADMIN_MCP_TOOL_NAMES) {
-      expect(names, name).toContain(name);
+    for (const tool of getToolsForSurface('mcp')) {
+      if (ADMIN_MCP_TOOL_NAMES.has(tool.name)) continue;
+      expect(names, tool.name).not.toContain(tool.name);
     }
+    expect(names).not.toContain('generate');
   });
 
   it.each(['standard', 'claude'] as const)(
@@ -43,12 +55,6 @@ describe('Admin MCP endpoint tool boundary', () => {
       }
     },
   );
-
-  it('keeps the standard tools on the admin endpoint', () => {
-    expect(listedNames('admin')).toEqual(
-      expect.arrayContaining(listedNames('standard')),
-    );
-  });
 
   it.each(['standard', 'claude'] as const)(
     'refuses a direct call to an admin tool on the %s endpoint',
@@ -62,4 +68,14 @@ describe('Admin MCP endpoint tool boundary', () => {
       expect(client.resolveApproval).not.toHaveBeenCalled();
     },
   );
+
+  it('refuses a direct call to a generation tool on the admin endpoint', async () => {
+    const { client, registry } = build('admin');
+    const result = (await registry.handleToolCall({
+      arguments: { prompt: 'a cat' },
+      name: 'generate',
+    })) as { isError?: boolean };
+    expect(result.isError).toBe(true);
+    expect(client.executeAgentTool).not.toHaveBeenCalled();
+  });
 });

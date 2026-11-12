@@ -4,8 +4,8 @@ import { ALL_TOOLS } from './tool-assembly';
 
 /**
  * Endpoint and OAuth grant policy, independent of the client's reported name.
- * `admin` is the staff endpoint (`/mcp/admin`): the standard tools plus the
- * admin-gated ones, which no other endpoint lists.
+ * `admin` is the staff endpoint (`/mcp/admin`): the admin-gated tools only,
+ * which no other endpoint lists.
  */
 export type McpAccessMode = 'standard' | 'claude' | 'admin';
 
@@ -72,12 +72,15 @@ export function isToolAllowedInMcpAccessMode(
     surface === 'mcp'
       ? (getRetiredMcpCatalogTool(name)?.canonicalName ?? name)
       : name;
-  if (mode === 'admin') {
-    return true;
-  }
+  const isAdminTool =
+    surface === 'mcp' && ADMIN_MCP_TOOL_NAMES.has(canonicalName);
   // Admin-gated tools exist on the admin endpoint only, even when a Claude
-  // catalog entry would otherwise reach them.
-  if (surface === 'mcp' && ADMIN_MCP_TOOL_NAMES.has(canonicalName)) {
+  // catalog entry would otherwise reach them, and that endpoint serves
+  // nothing else on the MCP surface.
+  if (mode === 'admin') {
+    return surface !== 'mcp' || isAdminTool;
+  }
+  if (isAdminTool) {
     return false;
   }
   if (mode === 'standard') {
