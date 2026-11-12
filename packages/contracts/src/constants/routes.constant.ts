@@ -5,10 +5,9 @@ export const APP_ROUTES = {
   ROOT: '/',
   /**
    * Everything an organization connects, on one page (#9905). The section is
-   * part of the path; the bare root opens Agents. Channels show one brand:
-   * the brand in the URL under `/:org/:brand/connectors/channels`, else
-   * `?brand=<slug>` on `/:org/~/connectors/channels`. The other sections are
-   * per organization.
+   * part of the path; the bare root opens Agents. Channels show one brand and
+   * exist only at `/:org/:brand/connectors/channels`. The other sections are
+   * per organization and open at both scopes.
    */
   CONNECTORS: {
     AGENTS: '/connectors/agents',
@@ -711,6 +710,20 @@ export function isBrandOnlySettingsPath(pathname: string): boolean {
   );
 }
 
+/**
+ * Connectors → Channels is one brand's connected accounts — there is no
+ * org-level `/:org/~/connectors/channels` page. The other Connectors sections
+ * exist at both scopes.
+ */
+export function isBrandOnlyConnectorsPath(pathname: string): boolean {
+  const path = pathname.split(QUERY_OR_HASH_PATTERN)[0] ?? pathname;
+
+  return (
+    path === APP_ROUTES.CONNECTORS.CHANNELS ||
+    path.startsWith(`${APP_ROUTES.CONNECTORS.CHANNELS}/`)
+  );
+}
+
 function workspaceSurfacePath(pathname: string): string {
   const parts = pathname.split('/').filter(Boolean);
   if (parts.length < 3) {
@@ -725,12 +738,15 @@ function toOrganizationScopePath(brandScopedPath: string): string {
     ? brandScopedPath
     : `/${brandScopedPath}`;
 
-  return isBrandOnlySettingsPath(path) ? APP_ROUTES.SETTINGS.BRANDS : path;
+  return isBrandOnlySettingsPath(path) || isBrandOnlyConnectorsPath(path)
+    ? APP_ROUTES.SETTINGS.BRANDS
+    : path;
 }
 
 /**
  * Client-side org switch keeps the current app surface. Brand-only settings
- * fall back to the org brands hub so the destination is never a 404.
+ * and Connectors → Channels fall back to the org brands hub so the
+ * destination is never a 404.
  */
 export function getOrgSwitchHref(
   nextOrgSlug: string,

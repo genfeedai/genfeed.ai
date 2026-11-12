@@ -111,6 +111,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     href: (path: string) => `/acme/main${path}`,
     orgHref: (path: string) => `/acme/~${path}`,
+    activeHref: (path: string) => `/acme/brand${path}`,
   }),
 }));
 

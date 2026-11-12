@@ -54,6 +54,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     href: (path: string) => `/org/brand${path}`,
     orgHref: (path: string) => `/org/~${path}`,
+    activeHref: (path: string) => `/org/brand${path}`,
   }),
 }));
 vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({

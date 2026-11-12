@@ -1,0 +1,72 @@
+'use client';
+
+import Card from '@ui/card/Card';
+import Loading from '@ui/loading/default/Loading';
+import { buildSocialConnections } from '@ui/modals/brands/brand/ModalBrand.types';
+import { useTranslations } from 'next-intl';
+import { useCallback, useMemo, useState } from 'react';
+import BrandDetailSocialMediaCard from '@/features/brands/components/sidebar/BrandDetailSocialMediaCard';
+import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
+import { useConnectorsPrimaryAction } from '../../../~/connectors/connectors-primary-action';
+
+/**
+ * Connectors → Channels: the connected accounts of the brand in the URL, with
+ * each account's status and reconnect action. Each account's posting times,
+ * history import and health live in its Settings dialog.
+ *
+ * Channels belongs to one brand, so it lives only at
+ * `/:org/:brand/connectors/channels`.
+ */
+export default function ConnectorsChannelsPage() {
+  const translate = useTranslations('pages.brandSocialMedia');
+  const [isConnectAccountModalOpen, setIsConnectAccountModalOpen] =
+    useState(false);
+  const {
+    brand,
+    brandId,
+    handleRefreshBrand,
+    hasBrandId,
+    isLoading,
+    connectedPlatformsCount,
+  } = useBrandDetail();
+  // The accounts table also surfaces disconnected-but-not-deleted
+  // credentials as "Needs reconnect", so it reads straight off the brand
+  // instead of the connected-only list `useBrandDetail` exposes elsewhere.
+  const connections = useMemo(() => buildSocialConnections(brand), [brand]);
+  const openConnectAccountModal = useCallback(
+    () => setIsConnectAccountModalOpen(true),
+    [],
+  );
+  useConnectorsPrimaryAction(
+    translate('connectAccount'),
+    openConnectAccountModal,
+  );
+
+  // Only the first read of the brand shows the spinner; a refetch keeps the
+  // table on screen.
+  if (!hasBrandId || (isLoading && !brand)) {
+    return <Loading isFullSize={false} />;
+  }
+
+  if (!brand) {
+    return (
+      <Card>
+        <p className="text-sm text-muted-foreground">
+          {translate('brandNotFound')}
+        </p>
+      </Card>
+    );
+  }
+
+  return (
+    <BrandDetailSocialMediaCard
+      brandId={brandId}
+      connections={connections}
+      connectedPlatformsCount={connectedPlatformsCount}
+      isConnectAccountModalOpen={isConnectAccountModalOpen}
+      onConnectAccountModalOpenChange={setIsConnectAccountModalOpen}
+      onRefresh={() => handleRefreshBrand()}
+      variant="page"
+    />
+  );
+}

@@ -44,7 +44,7 @@ export function useAnalyticsOverview({ scope }: UseAnalyticsOverviewParams) {
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
-  const { brandSlug, href, orgHref } = useOrgUrl();
+  const { brandSlug, href, orgHref, activeHref } = useOrgUrl();
   const { brandId } = useCollectionScope();
   const { dateRange, refreshTrigger } = useAnalyticsContext();
   const { startDate, endDate } = getDateRangeWithDefaults(
@@ -289,7 +289,7 @@ export function useAnalyticsOverview({ scope }: UseAnalyticsOverviewParams) {
     scope === PageScope.SUPERADMIN
       ? orgHref(APP_ROUTES.CONNECTORS.PROVIDERS)
       : brandSlug
-        ? orgHref(APP_ROUTES.CONNECTORS.CHANNELS)
+        ? activeHref(APP_ROUTES.CONNECTORS.CHANNELS)
         : orgHref(APP_ROUTES.SETTINGS.BRANDS);
 
   const heroContent = useMemo<AnalyticsOverviewHeroContent | null>(() => {

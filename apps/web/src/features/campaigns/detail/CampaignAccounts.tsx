@@ -13,7 +13,7 @@ import type { CampaignAccountsProps } from '@/features/campaigns/props/campaign-
 
 export default function CampaignAccounts({ brandId }: CampaignAccountsProps) {
   const t = useTranslations('pages.publishing.campaigns');
-  const { orgHref } = useOrgUrl();
+  const { activeHref } = useOrgUrl();
   const { accounts, eligibleAccounts, isPending, isError, refetch } =
     useCampaignAccounts(brandId);
   return (
@@ -65,7 +65,7 @@ export default function CampaignAccounts({ brandId }: CampaignAccountsProps) {
           <p className="text-sm">{t('accounts.empty')}</p>
         )}
         <Button asChild variant={ButtonVariant.SECONDARY}>
-          <Link href={orgHref(APP_ROUTES.CONNECTORS.CHANNELS)}>
+          <Link href={activeHref(APP_ROUTES.CONNECTORS.CHANNELS)}>
             {t('accounts.manage')}
           </Link>
         </Button>

@@ -31,6 +31,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     href: (path: string) => `/acme/studio${path}`,
     orgHref: (path: string) => `/acme/~${path}`,
+    activeHref: (path: string) => `/acme/brand${path}`,
   }),
 }));
 
@@ -174,7 +175,7 @@ describe('ArticleDeliveryCard', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Connect an account' }),
-    ).toHaveAttribute('href', '/acme/~/connectors/channels');
+    ).toHaveAttribute('href', '/acme/brand/connectors/channels');
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy HTML' }));
     expect(copyToClipboardMock).toHaveBeenCalledWith('<p>Body</p>');

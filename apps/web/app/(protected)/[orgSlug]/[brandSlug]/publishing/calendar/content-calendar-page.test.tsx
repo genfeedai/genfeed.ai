@@ -600,7 +600,7 @@ describe('ContentCalendarPage', () => {
 
     expect(screen.getByTestId('drawer-release')).toHaveTextContent('release-1');
     expect(screen.getByTestId('reconnect-href')).toHaveTextContent(
-      '/acme-org/~/connectors/channels',
+      '/acme-org/acme-creator/connectors/channels',
     );
     expect(screen.getByTestId('evergreen-series-controls')).toHaveTextContent(
       'release-1',

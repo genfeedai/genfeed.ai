@@ -68,7 +68,16 @@ describe('normalizeAgentAppHref', () => {
     );
     expect(
       normalizeAgentAppHref('/connectors/channels?platform=x', scope),
-    ).toBe('/acme/~/connectors/channels?platform=x');
+    ).toBe('/acme/launch/connectors/channels?platform=x');
+    expect(
+      normalizeAgentAppHref('/connectors/channels?platform=x', {
+        brandSlug: '',
+        orgSlug: 'acme',
+      }),
+    ).toBe('/acme/~/settings/brands?platform=x');
+    expect(normalizeAgentAppHref('/connectors/api-keys', scope)).toBe(
+      '/acme/~/connectors/api-keys',
+    );
     expect(normalizeAgentAppHref('/settings/subscription', scope)).toBe(
       '/acme/~/settings/subscription',
     );

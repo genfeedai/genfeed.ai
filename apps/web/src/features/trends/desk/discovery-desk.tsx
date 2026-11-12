@@ -111,7 +111,7 @@ export default function DiscoveryDesk() {
   const router = useRouter();
   const translateDesk = useTranslations('common.trends.desk');
   const brandId = useBrandId();
-  const { brandSlug, href, orgHref } = useOrgUrl();
+  const { brandSlug, href, orgHref, activeHref } = useOrgUrl();
   const surface = useOptionalResearchWorkSurface();
   const [search, setSearch] = useResearchQueryState();
   const [view, setView] = useResearchSearchParamState<
@@ -326,7 +326,7 @@ export default function DiscoveryDesk() {
 
   const followingHref = href(APP_ROUTES.DISCOVERY.FOLLOWING);
   const publishingHref = brandSlug
-    ? orgHref(APP_ROUTES.CONNECTORS.CHANNELS)
+    ? activeHref(APP_ROUTES.CONNECTORS.CHANNELS)
     : orgHref(APP_ROUTES.SETTINGS.BRANDS);
   const sourceHealthHref = href(APP_ROUTES.DISCOVERY.TRENDS);
 

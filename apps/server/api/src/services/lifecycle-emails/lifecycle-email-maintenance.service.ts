@@ -576,8 +576,9 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
       destinationUrl: destinationBrand
         ? `${this.appUrl()}${
             missingConnection
-              ? createOrganizationAppRoute(
+              ? createBrandAppRoute(
                   organizationPath,
+                  encodeURIComponent(destinationBrand.slug),
                   APP_ROUTES.CONNECTORS.CHANNELS,
                 )
               : createBrandAppRoute(
@@ -654,7 +655,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         select: { slug: true, label: true },
       });
       if (!brand) continue;
-      const destinationUrl = `${this.appUrl()}${createOrganizationAppRoute(encodeURIComponent(organizationSlug), APP_ROUTES.CONNECTORS.CHANNELS)}`;
+      const destinationUrl = `${this.appUrl()}${createBrandAppRoute(encodeURIComponent(organizationSlug), encodeURIComponent(brand.slug), APP_ROUTES.CONNECTORS.CHANNELS)}`;
       const waitingWhere = {
         ...GENERATED_CONTENT_FILTER,
         brandId: item.brandId,

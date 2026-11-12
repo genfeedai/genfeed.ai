@@ -187,7 +187,7 @@ describe('OAuthPlatformForm', () => {
     });
     window.sessionStorage.setItem(
       'oauth_return_to',
-      '/demo/~/connectors/channels',
+      '/demo/brand/connectors/channels',
     );
 
     render(<OAuthPlatformForm platform="twitter" />);
@@ -199,7 +199,9 @@ describe('OAuthPlatformForm', () => {
       });
     });
 
-    expect(mocks.navigate).toHaveBeenCalledWith('/demo/~/connectors/channels');
+    expect(mocks.navigate).toHaveBeenCalledWith(
+      '/demo/brand/connectors/channels',
+    );
     expect(window.sessionStorage.getItem('oauth_return_to')).toBeNull();
   });
 

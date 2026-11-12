@@ -48,7 +48,7 @@ export default function AdsResearchPageClient() {
     handleSelectAd,
     selectedAdOrigin,
     href,
-    orgHref,
+    activeHref,
     isLoading,
     launchPrepResult,
     metric,
@@ -97,7 +97,7 @@ export default function AdsResearchPageClient() {
   const { pageItems, pagination } = useResearchPagination(allAds);
 
   const hasCredentials = credentialOptions.length > 0;
-  const credentialsHref = orgHref(APP_ROUTES.CONNECTORS.CHANNELS);
+  const credentialsHref = activeHref(APP_ROUTES.CONNECTORS.CHANNELS);
   const showConnectStrip =
     source === 'my_accounts' &&
     !isLoading &&

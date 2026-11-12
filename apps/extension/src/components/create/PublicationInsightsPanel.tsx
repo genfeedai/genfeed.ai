@@ -1,7 +1,7 @@
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
-  createOrganizationAppRoute,
+  createBrandAppRoute,
 } from '@genfeedai/contracts/constants';
 import type { PublicationInsightDetailsProps } from '@genfeedai/props/extension/publication-insights.props';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
@@ -189,8 +189,9 @@ export function PublicationInsightsPanel() {
   const connectHref =
     organization?.slug && brand?.slug
       ? new URL(
-          createOrganizationAppRoute(
+          createBrandAppRoute(
             encodeURIComponent(organization.slug),
+            encodeURIComponent(brand.slug),
             APP_ROUTES.CONNECTORS.CHANNELS,
           ),
           appDomain,

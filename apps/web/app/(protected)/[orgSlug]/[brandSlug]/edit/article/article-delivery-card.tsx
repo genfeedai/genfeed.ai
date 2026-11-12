@@ -54,7 +54,7 @@ export default function ArticleDeliveryCard({
 }: ArticleDeliveryCardProps) {
   const translate = useTranslations('common.longFormDelivery');
   const { credentials } = useBrand();
-  const { orgHref } = useOrgUrl();
+  const { activeHref } = useOrgUrl();
   const { openConfirm } = useConfirmModal();
   const [deliveringCredentialId, setDeliveringCredentialId] = useState<
     string | null
@@ -174,7 +174,7 @@ export default function ArticleDeliveryCard({
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
-            <NextLink href={orgHref(APP_ROUTES.CONNECTORS.CHANNELS)}>
+            <NextLink href={activeHref(APP_ROUTES.CONNECTORS.CHANNELS)}>
               <PlugZap className="size-4" />
               {translate('connectAccounts')}
             </NextLink>

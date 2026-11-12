@@ -117,7 +117,7 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
 
   const { organizationId, refreshBrands, selectedBrand } = useBrand();
   const { push } = useRouter();
-  const { brandSlug, orgHref } = useOrgUrl();
+  const { brandSlug, orgHref, activeHref } = useOrgUrl();
   const hasActiveBrand = Boolean(brandSlug || selectedBrand?.slug);
   const [error, setError] = useState<string | null>(null);
 
@@ -275,10 +275,10 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
   const openCredentials = useCallback(() => {
     push(
       hasActiveBrand
-        ? orgHref(APP_ROUTES.CONNECTORS.CHANNELS)
+        ? activeHref(APP_ROUTES.CONNECTORS.CHANNELS)
         : orgHref(APP_ROUTES.SETTINGS.BRANDS),
     );
-  }, [hasActiveBrand, orgHref, push]);
+  }, [activeHref, hasActiveBrand, orgHref, push]);
 
   const handleSubmit = useCallback(async () => {
     if (view !== 'compose' || isPublishingRef.current) {

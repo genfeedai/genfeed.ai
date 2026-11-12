@@ -6,6 +6,7 @@ import {
   createBrandAppRoute,
   createOrganizationAppRoute,
   createPublishingPostsFilterRoute,
+  isBrandOnlyConnectorsPath,
   isPersonalSettingsPath,
   parseScopedAppPath,
 } from '@genfeedai/contracts/constants';
@@ -221,7 +222,7 @@ export class AgentRouteRewriteService {
       return `${path}${suffix}`;
     }
     if (isAlreadyScoped && path === APP_ROUTES.SETTINGS.ROOT) return href;
-    if (firstSegment === 'settings') {
+    if (firstSegment === 'settings' || isBrandOnlyConnectorsPath(path)) {
       const organizationRoute = createOrganizationAppRoute(slugs.orgSlug, path);
       const isBrandOnly = organizationRoute !== `/${slugs.orgSlug}/~${path}`;
       const brandSlug = isAlreadyScoped

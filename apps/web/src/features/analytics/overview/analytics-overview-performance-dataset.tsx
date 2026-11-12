@@ -25,7 +25,7 @@ export default function AnalyticsOverviewPerformanceDataset() {
   const translate = useTranslations('pages.analytics.performanceDataset');
   const scope = useCollectionScope();
   const { brandId } = scope;
-  const { brandSlug, href, orgHref } = useOrgUrl();
+  const { brandSlug, href, orgHref, activeHref } = useOrgUrl();
   const { dateRange, refreshTrigger } = useAnalyticsContext();
   const { startDate, endDate } = getDateRangeWithDefaults(
     dateRange.startDate ?? undefined,
@@ -84,7 +84,7 @@ export default function AnalyticsOverviewPerformanceDataset() {
           <Link
             href={
               brandSlug
-                ? orgHref(APP_ROUTES.CONNECTORS.CHANNELS)
+                ? activeHref(APP_ROUTES.CONNECTORS.CHANNELS)
                 : orgHref(APP_ROUTES.SETTINGS.BRANDS)
             }
             className="text-sm font-medium text-foreground underline underline-offset-2"

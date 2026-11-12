@@ -58,6 +58,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
     brandSlug: mockRoute.brandSlug,
     href: (path: string) => `/acme/${mockRoute.brandSlug || '~'}${path}`,
     orgHref: (path: string) => `/acme/~${path}`,
+    activeHref: (path: string) => `/acme/brand${path}`,
   }),
 }));
 
@@ -490,7 +491,7 @@ describe('AnalyticsOverview', () => {
       <AnalyticsOverview scope={PageScope.SUPERADMIN} basePath="/admin" />,
     );
     expect(markup).toContain('/acme/~/connectors/providers');
-    expect(markup).not.toContain('/acme/~/connectors/channels');
+    expect(markup).not.toContain('/acme/brand/connectors/channels');
     expect(markup).not.toContain('/acme/brand-x/publishing');
     expect(markup).toContain('href="/publishing');
     expect(markup).toContain('/admin/brands');
@@ -523,7 +524,7 @@ describe('AnalyticsOverview', () => {
     expect(markup).toContain('Create content');
     expect(markup).toContain('Manage connections');
     expect(markup).toContain('/acme/brand-x/publishing');
-    expect(markup).toContain('/acme/~/connectors/channels');
+    expect(markup).toContain('/acme/brand/connectors/channels');
     expect(markup).not.toContain('/connectors/api-keys');
     expect(markup).not.toContain('Data is starting to come through');
     expect(markup).not.toContain('Coverage so far');
@@ -548,7 +549,7 @@ describe('AnalyticsOverview', () => {
     );
     expect(markup).not.toContain('Accounts are connected');
     expect(markup).not.toContain('Warming up');
-    expect(markup).toContain('href="/acme/~/connectors/channels"');
+    expect(markup).toContain('href="/acme/brand/connectors/channels"');
     expect(markup).toContain('Connect accounts');
     expect(markup).toContain('Create content');
   });

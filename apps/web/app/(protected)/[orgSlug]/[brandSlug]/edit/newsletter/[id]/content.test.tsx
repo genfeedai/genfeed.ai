@@ -71,6 +71,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     href: (path: string) => `/acme/studio${path}`,
     orgHref: (path: string) => `/acme/~${path}`,
+    activeHref: (path: string) => `/acme/brand${path}`,
   }),
 }));
 
@@ -183,7 +184,7 @@ describe('NewsletterEditorContent', () => {
     expect(mocks.copyToClipboard).toHaveBeenCalledWith('Draft body');
     expect(
       screen.getByRole('link', { name: 'Connect an account' }),
-    ).toHaveAttribute('href', '/acme/~/connectors/channels');
+    ).toHaveAttribute('href', '/acme/brand/connectors/channels');
   });
 
   it('sends the issue through the connected Beehiiv publication', async () => {

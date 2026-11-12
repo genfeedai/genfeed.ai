@@ -34,6 +34,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     href: (path: string) => `/org/brand${path}`,
     orgHref: (path: string) => `/org/~${path}`,
+    activeHref: (path: string) => `/org/brand${path}`,
   }),
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -217,7 +218,7 @@ describe('Campaign setup', () => {
     expect(screen.getByRole('button', { name: 'generate' })).toBeDisabled();
     expect(
       screen.getByRole('link', { name: 'accounts.manage' }),
-    ).toHaveAttribute('href', '/org/~/connectors/channels');
+    ).toHaveAttribute('href', '/org/brand/connectors/channels');
   });
   it('keeps failed generation retryable instead of displaying success', async () => {
     mocks.generate.mockResolvedValue({

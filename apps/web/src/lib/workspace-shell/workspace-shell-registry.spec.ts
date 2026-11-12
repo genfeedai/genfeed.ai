@@ -336,7 +336,7 @@ describe('workspace shell trusted registry', () => {
       '/acme/moonrise/automation/runs/run-1',
       '/acme/moonrise/settings/publishing',
       '/acme/moonrise/settings/usage',
-      '/acme/~/connectors/channels',
+      '/acme/moonrise/connectors/channels',
       '/acme/~/connectors/api-keys',
       '/acme/~/settings/usage',
       '/acme/~/settings/subscription',
@@ -456,14 +456,7 @@ describe('workspace shell trusted registry', () => {
   it('registers every Connectors section explicitly', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/~/connectors/channels'),
-    ).toMatchObject({
-      accessPolicy: 'organization-member',
-      breadcrumb: { leafLabel: 'Channels', rootLabel: 'Connectors' },
-      canonicalUrl: '/:orgSlug/~/connectors/channels',
-      safeFallback: '/:orgSlug/~/connectors/agents',
-      scope: 'organization',
-      surfaceKey: 'connectors',
-    });
+    ).toBeNull();
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/connectors/channels'),
     ).toMatchObject({
