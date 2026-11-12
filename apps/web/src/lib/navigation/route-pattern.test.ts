@@ -1,13 +1,15 @@
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { describe, expect, it } from 'vitest';
 import { toRoutePattern } from '@/lib/navigation/route-pattern';
 
+const RECORD_ID = testId('record');
 const BASE = 'https://app.genfeed.ai/acme/brand/library';
 
 describe('toRoutePattern', () => {
   it.each([
     ['/acme/brand/library', '/:orgSlug/:brandSlug/library'],
     [
-      '/acme/brand/publishing/posts/665f1c2ab4d3e8a1f0c9d7e2',
+      `/acme/brand/publishing/posts/${RECORD_ID}`,
       '/:orgSlug/:brandSlug/publishing/posts/:id',
     ],
     [
@@ -24,10 +26,7 @@ describe('toRoutePattern', () => {
     ],
     ['/acme/~/library', '/:orgSlug/~/library'],
     ['/acme', '/:orgSlug'],
-    [
-      '/admin/organizations/665f1c2ab4d3e8a1f0c9d7e2',
-      '/admin/organizations/:id',
-    ],
+    [`/admin/organizations/${RECORD_ID}`, '/admin/organizations/:id'],
   ])('maps %s to %s', (url, expected) => {
     expect(toRoutePattern(url, BASE)).toBe(expected);
   });
@@ -43,11 +42,13 @@ describe('toRoutePattern', () => {
 
   it('never carries a tenant slug or record id for an unlisted route', () => {
     const pattern = toRoutePattern(
-      '/acme-corp/summer-brand/not-a-real-page/665f1c2ab4d3e8a1f0c9d7e2',
+      `/acme-corp/summer-brand/not-a-real-page/${RECORD_ID}`,
       BASE,
     );
 
-    expect(pattern).not.toMatch(/acme-corp|summer-brand|665f1c2a/);
+    expect(pattern).not.toMatch(
+      new RegExp(`acme-corp|summer-brand|${RECORD_ID}`),
+    );
   });
 
   it('returns the root for an unparseable url', () => {
