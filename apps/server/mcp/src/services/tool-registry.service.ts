@@ -5,6 +5,7 @@ import {
   getToolsForSurface,
   getToolsForToolsets,
   isMcpBrandRequiredTool,
+  isMcpBrandRequiredWhenMultipleTool,
   isToolAllowedInMcpAccessMode,
   type McpAccessMode,
   type McpBrandOption,
@@ -451,6 +452,15 @@ export class ToolRegistryService implements OnModuleInit {
         return await this.brandRequiredResult();
       }
 
+      // A draft names its brand when the organization has several; a single
+      // brand is filled in by the API (#10071).
+      if (isMcpBrandRequiredWhenMultipleTool(name) && !readMcpBrandId(args)) {
+        const brands = await this.listCallerBrands();
+        if (brands && brands.length > 1) {
+          return this.brandChoiceResult(brands);
+        }
+      }
+
       // The requester answered this call's approval prompt (#9647). Settle it
       // against that approval before the current policy, so a decline holds.
       if (params.approvalAnswer) {
@@ -513,6 +523,14 @@ export class ToolRegistryService implements OnModuleInit {
       brands,
       code: 'brand_required',
       message: `Choose a brand for this generation. Available brands: ${brands.map((brand) => (brand.label === brand.id ? 'Unnamed brand' : brand.label)).join(', ')}.`,
+    });
+  }
+
+  private brandChoiceResult(brands: McpBrandOption[]) {
+    return mcpToolErrorResult({
+      brands,
+      code: 'brand_required',
+      message: `Choose a brand for this draft: pass its id as brandId. Available brands: ${brands.map((brand) => (brand.label === brand.id ? 'Unnamed brand' : `${brand.label} (${brand.id})`)).join(', ')}.`,
     });
   }
 

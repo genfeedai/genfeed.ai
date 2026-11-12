@@ -11,8 +11,13 @@ import { getToolsForSurface } from './tool-registry';
 
 describe('Claude MCP access policy', () => {
   it('consolidates scheduler listing without changing the exact old agent allowlist', () => {
-    expect(CLAUDE_MCP_TOOL_NAMES.size).toBe(30);
+    expect(CLAUDE_MCP_TOOL_NAMES.size).toBe(31);
     expect(CLAUDE_MCP_TOOL_NAMES.has('check_channel')).toBe(true);
+    // Approval-gated: the Claude connector queues it, a reviewer in the app releases it (#10073).
+    expect(CLAUDE_MCP_TOOL_NAMES.has('publish_article')).toBe(true);
+    expect(isToolAllowedInMcpAccessMode('claude', 'publish_article')).toBe(
+      true,
+    );
     expect([...CLAUDE_MCP_AGENT_TOOL_NAMES].sort()).toEqual(
       [
         'get_account',

@@ -461,8 +461,11 @@ export async function createAgentTextDraft(
   visibility: PostVisibility,
   ingredientsService?: DraftMediaLookup,
 ): Promise<AgentToolResult> {
+  // A thread carries its validated brand; an MCP caller names it (#10071).
+  const brandId =
+    ctx.validatedScope?.brandId ?? readOptionalString(params.brandId);
   const media = await resolveDraftMediaUrls({
-    brandId: ctx.validatedScope?.brandId,
+    brandId,
     ingredients: ingredientsService,
     organizationId: ctx.organizationId,
     params,
@@ -485,7 +488,7 @@ export async function createAgentTextDraft(
     agentContextSource: ctx.validatedScope?.source,
     agentContextVersion: ctx.validatedScope?.contextVersion,
     agentThreadId: ctx.validatedScope?.threadId,
-    brandId: ctx.validatedScope?.brandId,
+    brandId,
     description: text,
     ingredients: media.ingredientIds,
     ...(media.category ? { category: media.category } : {}),

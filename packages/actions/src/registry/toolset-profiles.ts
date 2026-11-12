@@ -6,7 +6,8 @@ import type { ToolsetName } from './toolset-names';
  * not add tools to `core` (that toolset is capped at 12 MCP tools).
  *
  * `default` is what the bare MCP URL loads: the make-then-post loop of
- * core, generation, content, and scheduler. Generation is the product, so it
+ * core, generation, content, scheduler, and articles (draft, preview and
+ * request publication of a long-form article). Generation is the product, so it
  * is never left out to fit a cap; the cap tracks the default instead, and
  * shrinks as related tools merge into parameterized ones.
  * `studio` is the make-review-schedule-measure set for agent clients that
@@ -31,7 +32,7 @@ export const BARE_URL_MCP_PROFILE: McpToolsetProfileName = 'default';
  * caller can associate content and select a healthy brand channel before
  * scheduling. CI fails when a change pushes the default over it.
  */
-export const BARE_MCP_URL_TOOL_CAP = 25;
+export const BARE_MCP_URL_TOOL_CAP = 28;
 
 /** Hard cap on tools any directory-safe or Claude connector listing may carry. */
 export const CONNECTOR_MCP_TOOL_CAP = 30;
@@ -41,13 +42,14 @@ export const CONNECTOR_MCP_TOOL_CAP = 30;
  * explicit opt-in for agent clients that generate, so it may exceed the
  * connector cap, but not grow without a decision.
  */
-export const STUDIO_MCP_PROFILE_TOOL_CAP = 40;
+export const STUDIO_MCP_PROFILE_TOOL_CAP = 43;
 
 export const DEFAULT_MCP_PROFILE_TOOLSETS: readonly ToolsetName[] = [
   'core',
   'generation',
   'content',
   'scheduler',
+  'articles',
 ];
 
 export const STUDIO_MCP_PROFILE_TOOLSETS: readonly ToolsetName[] = [

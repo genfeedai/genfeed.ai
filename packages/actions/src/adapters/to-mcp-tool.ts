@@ -5,7 +5,9 @@ import type {
 } from '../interfaces/tool-definition.interface';
 import {
   isMcpBrandRequiredTool,
+  isMcpBrandRequiredWhenMultipleTool,
   MCP_BRAND_REQUIRED_NOTE,
+  MCP_BRAND_REQUIRED_WHEN_MULTIPLE_NOTE,
   withRequiredMcpBrandId,
 } from '../registry/mcp-brand-required';
 import { isMcpListedToolName } from '../registry/mcp-catalog-calls';
@@ -97,6 +99,11 @@ export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
       const creditPricing =
         tool.creditPricing ?? fixedCreditPricing(tool.creditCost);
       const requiresBrand = isMcpBrandRequiredTool(tool.name);
+      const brandNote = requiresBrand
+        ? MCP_BRAND_REQUIRED_NOTE
+        : isMcpBrandRequiredWhenMultipleTool(tool.name)
+          ? MCP_BRAND_REQUIRED_WHEN_MULTIPLE_NOTE
+          : undefined;
       const projected = withoutHiddenParameters(
         tool.parameters,
         tool.mcpHiddenParameters,
@@ -116,9 +123,7 @@ export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
         },
         annotations: presentation.annotations,
         description: appendCreditPricingDescription(
-          requiresBrand
-            ? `${description} ${MCP_BRAND_REQUIRED_NOTE}`
-            : description,
+          brandNote ? `${description} ${brandNote}` : description,
           creditPricing,
         ),
         inputSchema: compactMcpInputDocumentation(parameters),

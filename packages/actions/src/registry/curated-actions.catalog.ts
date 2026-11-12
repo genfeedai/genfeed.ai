@@ -63,6 +63,11 @@ export interface CuratedActionCatalogEntry {
   mcpApproval?: 'generation' | 'posting';
   /** MCP callers must pass `brandId` (#5786). */
   mcpBrandRequired?: true;
+  /**
+   * MCP callers must pass `brandId` when the organization has more than one
+   * brand. A single-brand organization may omit it (#10071).
+   */
+  mcpBrandRequiredWhenMultiple?: true;
   /** Required for every write; reads omit it. */
   mutationPolicy?: ToolMutationPolicy;
   name: string;
@@ -366,6 +371,7 @@ export const CURATED_ACTION_CATALOG = [
     category: 'content',
     claudeAccess: 'both',
     isPublishingApprovalRequired: true,
+    mcpBrandRequiredWhenMultiple: true,
     mcpCardKind: 'post',
     mutationPolicy: 'approval-required',
     name: 'create_post',
@@ -1390,6 +1396,7 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     category: 'content',
+    claudeAccess: 'mcp',
     mcpApproval: 'posting',
     mutationPolicy: 'approval-required',
     name: 'publish_article',

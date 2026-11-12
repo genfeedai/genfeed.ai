@@ -462,9 +462,9 @@ The bare endpoint uses the `default` profile. Profiles shape the advertised
 
 | Endpoint selector | Advertised toolsets |
 | --- | --- |
-| No selector or `?profile=default` | `core`, `generation`, `content`, and `scheduler`, hard-capped at 25 tools. |
+| No selector or `?profile=default` | `core`, `generation`, `content`, `scheduler`, and `articles`, hard-capped at 28 tools. |
 | `?profile=directory` | The same bounded selection, with `generation`, `clipper`, and `ui` excluded. This profile does not imply directory approval. |
-| `?profile=studio` | The default selection plus `brand` and `analytics`, capped at 40 tools. Generation, content, scheduling, brand and analytics, without ads tools. Codex installs use this profile. |
+| `?profile=studio` | The default selection plus `brand` and `analytics`, capped at 43 tools. Generation, content, scheduling, brand and analytics, without ads tools. Codex installs use this profile. |
 | `?profile=full` | All toolsets, subject to the caller's permissions. |
 
 ### Add an app with `?app=`

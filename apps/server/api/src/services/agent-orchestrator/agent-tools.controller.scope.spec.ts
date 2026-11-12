@@ -291,6 +291,116 @@ describe('AgentToolsController publishing scopes', () => {
     });
   });
 
+  describe('MCP draft brand choice (#10071)', () => {
+    const listing = (brands: { id: string; label: string }[]) => ({
+      creditsUsed: 0,
+      data: { brands },
+      success: true,
+    });
+    const asMcp = <T>(callback: () => T): T =>
+      runWithActionOrigin({ origin: ActionOrigin.MCP }, callback);
+
+    it('rejects create_post without brandId when the organization has several brands', async () => {
+      executor.executeTool.mockReset();
+      executor.executeTool.mockResolvedValueOnce(
+        listing([
+          { id: 'brand-1', label: 'Acme' },
+          { id: 'brand-2', label: 'Beta' },
+        ]),
+      );
+
+      const result = await asMcp(() =>
+        controller.execute(
+          'create_post',
+          { parameters: { content: 'draft' } },
+          apiKeyUser(MCP_SCOPES),
+          request,
+        ),
+      );
+
+      expect(result).toMatchObject({
+        data: {
+          brands: [
+            { id: 'brand-1', label: 'Acme' },
+            { id: 'brand-2', label: 'Beta' },
+          ],
+          recoveryAction: 'select_brand',
+        },
+        success: false,
+      });
+      expect(JSON.stringify(result)).toContain('create_post requires brandId');
+      expect(executor.executeTool).toHaveBeenCalledTimes(1);
+    });
+
+    it('files the draft under the only brand when the organization has one', async () => {
+      executor.executeTool.mockReset();
+      executor.executeTool
+        .mockResolvedValueOnce(listing([{ id: 'brand-1', label: 'Acme' }]))
+        .mockResolvedValueOnce({ creditsUsed: 0, success: true });
+
+      await asMcp(() =>
+        controller.execute(
+          'create_post',
+          { parameters: { content: 'draft' } },
+          apiKeyUser(MCP_SCOPES),
+          request,
+        ),
+      );
+
+      expect(executor.executeTool).toHaveBeenLastCalledWith(
+        'create_post',
+        { brandId: 'brand-1', content: 'draft' },
+        expect.anything(),
+      );
+    });
+
+    it('dispatches a draft that names its brand without listing brands', async () => {
+      executor.executeTool.mockReset();
+      executor.executeTool.mockResolvedValueOnce({
+        creditsUsed: 0,
+        success: true,
+      });
+
+      await asMcp(() =>
+        controller.execute(
+          'create_post',
+          { parameters: { brandId: 'brand-2', content: 'draft' } },
+          apiKeyUser(MCP_SCOPES),
+          request,
+        ),
+      );
+
+      expect(executor.executeTool).toHaveBeenCalledTimes(1);
+      expect(executor.executeTool).toHaveBeenCalledWith(
+        'create_post',
+        { brandId: 'brand-2', content: 'draft' },
+        expect.anything(),
+      );
+    });
+
+    it('leaves a draft with no brands on the caller default', async () => {
+      executor.executeTool.mockReset();
+      executor.executeTool
+        .mockResolvedValueOnce(listing([]))
+        .mockResolvedValueOnce({ creditsUsed: 0, success: true });
+
+      await asMcp(() =>
+        controller.execute(
+          'create_post',
+          { parameters: { content: 'draft' } },
+          apiKeyUser(MCP_SCOPES),
+          request,
+        ),
+      );
+
+      expect(executor.executeTool).toHaveBeenLastCalledWith(
+        'create_post',
+        { content: 'draft' },
+        expect.anything(),
+      );
+    });
+  });
+
   it('strips a spoofed confirmation origin from direct tool execution', async () => {
     executor.executeTool.mockResolvedValue({
       creditsUsed: 0,

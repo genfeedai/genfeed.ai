@@ -251,7 +251,7 @@ describe('ToolRegistryService.getDiscoverableTools', () => {
   });
 });
 
-it('lists the real mixed default with canonical wrappers inside the 25-tool bare-URL cap', async () => {
+it('lists the real mixed default with canonical wrappers inside the 28-tool bare-URL cap', async () => {
   const actual =
     await vi.importActual<typeof import('@genfeedai/actions')>(
       '@genfeedai/actions',
