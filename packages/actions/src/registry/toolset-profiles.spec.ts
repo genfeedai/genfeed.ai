@@ -41,10 +41,10 @@ describe('MCP toolset profiles', () => {
       getToolsForToolsets('mcp', toolsets).filter(
         (tool) => tool.requiredRole === 'user',
       ).length;
-    expect(BARE_MCP_URL_TOOL_CAP).toBe(25);
-    expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBe(25);
-    expect(userCount(DIRECTORY_MCP_PROFILE_TOOLSETS)).toBe(19);
-    expect(userCount(STUDIO_MCP_PROFILE_TOOLSETS)).toBe(40);
+    expect(BARE_MCP_URL_TOOL_CAP).toBe(28);
+    expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBe(28);
+    expect(userCount(DIRECTORY_MCP_PROFILE_TOOLSETS)).toBe(22);
+    expect(userCount(STUDIO_MCP_PROFILE_TOOLSETS)).toBe(43);
     expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBeLessThanOrEqual(
       BARE_MCP_URL_TOOL_CAP,
     );
@@ -124,7 +124,21 @@ describe('MCP toolset profiles', () => {
       'generation',
       'content',
       'scheduler',
+      'articles',
     ]);
+  });
+
+  it('lets a bare-URL client draft, preview and request publication of an article (#10073)', () => {
+    const names = getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS).map(
+      (tool) => tool.name,
+    );
+    expect(names).toEqual(
+      expect.arrayContaining([
+        'create_article_draft',
+        'get_article_preview',
+        'publish_article',
+      ]),
+    );
   });
 
   it('loads generation and the generate tool on the bare-URL default profile', () => {

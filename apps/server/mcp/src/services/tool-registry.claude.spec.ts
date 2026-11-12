@@ -61,6 +61,7 @@ describe('Claude connector execution boundary', () => {
       name: 'control_scheduled_release',
       arguments: { releaseId: 'release-1', action: 'resume' },
     },
+    { name: 'publish_article', arguments: { articleId: 'article-1' } },
   ])('queues $name without executing a public-channel write', async (call) => {
     const { registry, client } = build();
     client.createApproval.mockResolvedValue({
