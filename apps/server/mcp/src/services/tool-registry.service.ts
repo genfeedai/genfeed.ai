@@ -57,6 +57,7 @@ import {
   resolveAuthorizedMcpCatalogCall,
   validateMcpCatalogDispatchCoverage,
 } from '@mcp/services/mcp-catalog-call.util';
+import { unavailableInConnectorMessage } from '@mcp/services/mcp-connector-message.util';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
 import {
   agentGuideResource,
@@ -330,7 +331,7 @@ export class ToolRegistryService implements OnModuleInit {
   ): McpToolOutput[] {
     return ToolRegistryService.filterToolsByRole(
       toMcpTools(
-        accessMode === 'claude'
+        accessMode === 'claude' || accessMode === 'admin'
           ? getToolsForSurface('mcp')
           : getToolsForToolsets('mcp', toolsets),
       )
@@ -414,8 +415,7 @@ export class ToolRegistryService implements OnModuleInit {
       if (!isToolAllowedInMcpAccessMode(this.requestAccessMode, name)) {
         return mcpToolErrorResult({
           code: 'unavailable_in_connector',
-          message:
-            'This tool is unavailable through the Claude connector. This connector does not generate images, video or audio.',
+          message: unavailableInConnectorMessage(this.requestAccessMode, name),
         });
       }
       const canonicalTool = getToolByName(name);
@@ -956,6 +956,12 @@ export class ToolRegistryService implements OnModuleInit {
 
       switch (uri) {
         case McpResourceUri.AGENT_GUIDE:
+          if (this.requestAccessMode === 'admin') {
+            return markdownResource(
+              uri,
+              `# Genfeed admin\nThis connection lists only the admin-only tools, for organization owners and admins. Content, brand and generation tools are on the standard connection.`,
+            );
+          }
           return this.requestAccessMode === 'claude'
             ? markdownResource(
                 uri,

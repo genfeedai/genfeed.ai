@@ -19,7 +19,7 @@ import {
   toDefaultStandardEndpoint,
 } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import {
-  deriveClaudeMcpResourceIdentifier,
+  deriveMcpResourceIdentifierForMode,
   OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH,
   resolveMcpResourceIdentifier,
 } from '@genfeedai/helpers/integrations/mcp-resource.helper';
@@ -253,10 +253,6 @@ export function getPublicMcpUrl(): string {
   return resolvePublicMcpResource().identifier;
 }
 
-function getPublicClaudeMcpUrl(): string {
-  return deriveClaudeMcpResourceIdentifier(getPublicMcpUrl());
-}
-
 function getOAuthIssuerUrl(): string {
   return readFirstPublicUrl(
     ['GENFEEDAI_API_PUBLIC_URL', 'GENFEEDAI_API_URL'],
@@ -268,9 +264,9 @@ export function getPublicMcpResourceMetadataUrl(
   mode: McpAccessMode = 'standard',
 ): string {
   const path =
-    mode === 'claude'
-      ? `${OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH}${new URL(getPublicClaudeMcpUrl()).pathname}`
-      : OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH;
+    mode === 'standard'
+      ? OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH
+      : `${OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH}${new URL(deriveMcpResourceIdentifierForMode(getPublicMcpUrl(), mode)).pathname}`;
   return new URL(path, getPublicMcpUrl()).toString();
 }
 
@@ -288,7 +284,7 @@ export function getMcpProtectedResourceMetadata(
   return {
     authorization_servers: [getOAuthIssuerUrl()],
     bearer_methods_supported: ['header'],
-    resource: mode === 'claude' ? getPublicClaudeMcpUrl() : getPublicMcpUrl(),
+    resource: deriveMcpResourceIdentifierForMode(getPublicMcpUrl(), mode),
     resource_documentation: `${getPublicDocsUrl()}/api-reference/mcp`,
     resource_name: 'Genfeed',
     resource_policy_uri: `${getPublicWebsiteUrl()}/privacy`,
@@ -437,10 +433,12 @@ export function renderSetupPage(
   const docsGuideUrlSafe = escapeHtml(docsGuideUrl);
   const oauthDocsUrlSafe = escapeHtml(oauthDocsUrl);
 
-  const claudeUrlSafe = escapeHtml(getPublicClaudeMcpUrl());
+  const claudeUrlSafe = escapeHtml(
+    deriveMcpResourceIdentifierForMode(getPublicMcpUrl(), 'claude'),
+  );
   const claude = buildConnectGenfeedInstructions(
     'claude-code',
-    getPublicClaudeMcpUrl(),
+    deriveMcpResourceIdentifierForMode(getPublicMcpUrl(), 'claude'),
   );
   const codex = buildConnectGenfeedInstructions('codex', mcpUrl);
   const generic = buildConnectGenfeedInstructions('generic', mcpUrl);

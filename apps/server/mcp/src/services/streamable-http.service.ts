@@ -9,10 +9,9 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import {
-  buildClaudeMcpServerInstructions,
+  buildMcpServerInstructions,
   getMcpServerInfo,
   MCP_SERVER_CAPABILITIES,
-  MCP_SERVER_INSTRUCTIONS,
 } from '@mcp/mcp/server-identity';
 import { getPublicMcpUrl, getPublicWebsiteUrl } from '@mcp/mcp/setup-page';
 import { ClientService } from '@mcp/services/client.service';
@@ -162,10 +161,7 @@ export class StreamableHttpService {
     );
     const server = new Server(serverInfo, {
       capabilities: MCP_SERVER_CAPABILITIES,
-      instructions:
-        accessMode === 'claude'
-          ? buildClaudeMcpServerInstructions()
-          : MCP_SERVER_INSTRUCTIONS,
+      instructions: buildMcpServerInstructions(accessMode),
       ...(approvalPromptCodec
         ? { requestState: { verify: approvalPromptCodec.verify } }
         : {}),

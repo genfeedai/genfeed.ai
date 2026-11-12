@@ -26,6 +26,24 @@ export const MCP_SERVER_INSTRUCTIONS = [
   'Discovery does not load tools into the client. If a tool is listed by the connection but missing in the client, refresh its MCP tool list or reconnect to the same server URL. Do not reinstall or broaden permissions to repair a stale tool list.',
 ].join(' ');
 
+export function buildMcpServerInstructions(accessMode: McpAccessMode): string {
+  switch (accessMode) {
+    case 'claude':
+      return buildClaudeMcpServerInstructions();
+    case 'admin':
+      return buildAdminMcpServerInstructions();
+    default:
+      return MCP_SERVER_INSTRUCTIONS;
+  }
+}
+
+function buildAdminMcpServerInstructions(): string {
+  return [
+    'Genfeed staff admin connection for organization owners and admins.',
+    'It lists only the admin-only tools. Content, brand and generation tools are on the standard connection.',
+  ].join(' ');
+}
+
 export function buildClaudeMcpServerInstructions(): string {
   return [
     'Genfeed connects Claude to brands, drafts, scheduling and analytics.',
@@ -35,6 +53,17 @@ export function buildClaudeMcpServerInstructions(): string {
     'Image, video and audio generation, workflows, batches and remix are unavailable through this connector.',
     'Use find_tools to discover supported content operations. Toolset changes cannot enable generation.',
   ].join(' ');
+}
+
+function describeMcpServer(accessMode: McpAccessMode): string {
+  switch (accessMode) {
+    case 'claude':
+      return 'Manage brands, drafts, scheduled releases and analytics in Genfeed.';
+    case 'admin':
+      return 'Genfeed admin actions for organization owners and admins.';
+    default:
+      return MCP_SERVER_DESCRIPTION;
+  }
 }
 
 /**
@@ -50,10 +79,7 @@ export function getMcpServerInfo(
   const origin = new URL(publicMcpUrl).origin;
 
   return {
-    description:
-      accessMode === 'claude'
-        ? 'Manage brands, drafts, scheduled releases and analytics in Genfeed.'
-        : MCP_SERVER_DESCRIPTION,
+    description: describeMcpServer(accessMode),
     icons: Object.entries(MCP_BRAND_ICON_FILES).map(
       ([path, { mimeType, sizes, theme }]) => ({
         mimeType,

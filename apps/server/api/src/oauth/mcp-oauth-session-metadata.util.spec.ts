@@ -56,4 +56,32 @@ describe('MCP OAuth session metadata', () => {
       grantId: 'key-1',
     });
   });
+
+  it('marks a session consented on the admin endpoint and keeps the mark across rotation', () => {
+    const resource = 'https://mcp.genfeed.ai/mcp/admin';
+    const metadata = buildMcpOAuthSessionMetadata(resource, {
+      grantId: 'grant-1',
+    });
+    expect(metadata).toMatchObject({ mcpAccessMode: 'admin', resource });
+
+    const lineage = readMcpOAuthSessionLineage(metadata, 'fallback');
+    expect(lineage.accessMode).toBe('admin');
+    expect(buildMcpOAuthSessionMetadata(resource, lineage)).toMatchObject({
+      mcpAccessMode: 'admin',
+    });
+  });
+
+  it('never marks a standard or Claude session admin', () => {
+    expect(
+      buildMcpOAuthSessionMetadata('https://mcp.genfeed.ai/mcp', {
+        grantId: 'grant-1',
+      }),
+    ).toMatchObject({ mcpAccessMode: 'standard' });
+    expect(
+      buildMcpOAuthSessionMetadata('https://mcp.genfeed.ai/mcp/claude', {
+        accessMode: 'admin',
+        grantId: 'grant-1',
+      }),
+    ).toMatchObject({ mcpAccessMode: 'claude' });
+  });
 });

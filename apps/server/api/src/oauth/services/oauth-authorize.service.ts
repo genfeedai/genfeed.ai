@@ -21,7 +21,7 @@ import {
   ApiKeyScope,
   MemberRole,
 } from '@genfeedai/contracts';
-import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
+import { MCP_ADMIN_EMAIL_DOMAIN } from '@genfeedai/contracts/constants';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
@@ -119,8 +119,9 @@ export class OAuthAuthorizeService {
         consentUrl.searchParams.set(key, value);
       }
     }
-    if (resolveMcpAccessModeForResource(resource) === 'claude') {
-      consentUrl.searchParams.set('access_mode', 'claude');
+    const accessMode = resolveMcpAccessModeForResource(resource);
+    if (accessMode !== 'standard') {
+      consentUrl.searchParams.set('access_mode', accessMode);
     }
     if (client.clientName) {
       consentUrl.searchParams.set('client_name', client.clientName);
@@ -204,19 +205,29 @@ export class OAuthAuthorizeService {
       }
     }
 
-    const scopes = this.withMembershipAdminScope(
-      this.clampScopes(dto.scope, resource),
-      resource,
-      organization.members.map((member) => member.role.key),
-      Boolean(dto.brandId),
-    );
+    const isAdminResource =
+      resolveMcpAccessModeForResource(resource) === 'admin';
+    if (isAdminResource) {
+      await this.assertAdminEndpointEligible(
+        userId,
+        organization.members.map((member) => member.role.key),
+        Boolean(dto.brandId),
+      );
+    }
+    const clampedScopes = this.clampScopes(dto.scope, resource);
+    // The `admin` scope is issued on the admin endpoint only. It is never
+    // requested, never inherited from the standard preset and never added to a
+    // grant for any other resource.
+    const scopes = isAdminResource
+      ? [...clampedScopes, ApiKeyScope.ADMIN]
+      : clampedScopes;
     // "All my organizations": the connection may name any organization the
     // user belongs to on each call. Only meaningful with a second organization
     // to name, and the Claude connector tool set has no way to use it.
     const canSwitchOrganizations =
       dto.allowOrganizationSwitching === true &&
       organizations.length > 1 &&
-      resolveMcpAccessModeForResource(resource) !== 'claude';
+      resolveMcpAccessModeForResource(resource) === 'standard';
     const code = toBase64Url(randomBytes(32));
     const expiresAt = new Date(Date.now() + MCP_OAUTH_CODE_TTL_MS);
     const userName = [user.firstName, user.lastName].filter(Boolean).join(' ');
@@ -364,35 +375,45 @@ export class OAuthAuthorizeService {
   }
 
   /**
-   * A session key is the signed-in user acting through their own MCP client,
-   * so a full-preset grant carries the user's org owner/admin standing into
-   * the MCP role tier (via the explicit `admin` scope that tier reads). The
-   * scope only unlocks what the live membership already allows: `/auth/whoami`
-   * and the brand-access predicate still resolve the role from the current
-   * membership row, so a demoted member's key stops being privileged. A client
-   * that asked for a narrower scope set, a connection limited to one brand,
-   * and every Claude connector session stay below it.
+   * The admin endpoint's `admin` scope unlocks owner/admin standing for the
+   * connection, so consent is refused unless the signed-in account is a
+   * verified `@genfeed.ai` account that is an owner or admin of the selected
+   * organization. The scope only unlocks what the live membership already
+   * allows: the role is still resolved from the current membership row, so a
+   * demoted member's key stops being privileged. A connection limited to one
+   * brand stays below it.
    */
-  private withMembershipAdminScope(
-    granted: string[],
-    resource: string,
+  private async assertAdminEndpointEligible(
+    userId: string,
     roleKeys: readonly string[],
     isBrandLimited: boolean,
-  ): string[] {
-    const isFullGrant = API_KEY_SCOPE_PRESETS.mcp.every((scope) =>
-      granted.includes(scope),
+  ): Promise<void> {
+    const refusal = oauthError(
+      'access_denied',
+      'The admin connection is only for Genfeed staff who own or administer the selected organization',
     );
-    const isStandardResource =
-      resolveMcpAccessModeForResource(resource) !== 'claude';
-    const isOrganizationAdmin = roleKeys.some((key) =>
-      ORGANIZATION_ADMIN_ROLE_KEYS.has(key),
-    );
-    return isFullGrant &&
-      isStandardResource &&
-      isOrganizationAdmin &&
-      !isBrandLimited
-      ? [...granted, ApiKeyScope.ADMIN]
-      : granted;
+    if (
+      isBrandLimited ||
+      !roleKeys.some((key) => ORGANIZATION_ADMIN_ROLE_KEYS.has(key))
+    ) {
+      throw refusal;
+    }
+    const staffAccount = await this.prisma.user.findFirst({
+      select: { id: true },
+      where: {
+        banned: false,
+        email: {
+          endsWith: `@${MCP_ADMIN_EMAIL_DOMAIN}`,
+          mode: 'insensitive',
+        },
+        emailVerified: true,
+        id: userId,
+        isDeleted: false,
+      },
+    });
+    if (!staffAccount) {
+      throw refusal;
+    }
   }
 
   private clampScopes(scope: string | undefined, resource: string): string[] {

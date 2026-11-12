@@ -5,6 +5,7 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
+import { createEndpointRegistries } from '@mcp/services/tool-registry.endpoints.testing';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { withCardResult } from '@mcp/ui/card-data';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -54,7 +55,7 @@ describe('native MCP untrusted-result integration', () => {
     log: vi.fn(),
   };
   const registry = () =>
-    new ToolRegistryService(
+    createEndpointRegistries(
       client as unknown as ClientService,
       logger as unknown as LoggerService,
       'superadmin',

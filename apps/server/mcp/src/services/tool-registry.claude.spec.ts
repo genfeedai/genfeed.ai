@@ -1,4 +1,7 @@
-import { CLAUDE_MCP_TOOL_NAMES } from '@genfeedai/actions';
+import {
+  ADMIN_MCP_TOOL_NAMES,
+  CLAUDE_MCP_TOOL_NAMES,
+} from '@genfeedai/actions';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { McpResourceUri } from '@mcp/mcp/resource-catalog';
 import type { ClientService } from '@mcp/services/client.service';
@@ -139,7 +142,12 @@ describe('Claude connector execution boundary', () => {
       .getTools()
       .map((tool) => tool.name)
       .sort();
-    expect(tools).toEqual([...CLAUDE_MCP_TOOL_NAMES].sort());
+    expect(tools).toEqual(
+      [...CLAUDE_MCP_TOOL_NAMES]
+        .filter((name) => !ADMIN_MCP_TOOL_NAMES.has(name))
+        .sort(),
+    );
+    expect(tools).not.toContain('create_brand_from_url');
     expect(
       registry
         .getDiscoverableTools()
