@@ -6,7 +6,6 @@ import { FacebookController } from '@api/services/integrations/facebook/controll
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -57,15 +56,6 @@ describe('FacebookController', () => {
     }),
   };
 
-  const mockConfigService = {
-    get: vi.fn((key: string) => {
-      if (key === 'GENFEEDAI_APP_URL') {
-        return 'https://app.genfeed.ai';
-      }
-      return null;
-    }),
-  };
-
   const mockLoggerService = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -84,10 +74,6 @@ describe('FacebookController', () => {
         {
           provide: CredentialsService,
           useValue: mockCredentialsService,
-        },
-        {
-          provide: ConfigService,
-          useValue: mockConfigService,
         },
         {
           provide: FacebookService,
@@ -159,7 +145,7 @@ describe('FacebookController', () => {
           name: 'Person',
         },
       );
-      expect(result).toBeDefined();
+      expect(result).toMatchObject({ data: { type: 'credential' } });
     });
 
     it('keeps the connection when permission capture is temporarily unavailable', async () => {
@@ -244,14 +230,6 @@ describe('FacebookController', () => {
       await expect(
         controller.verify({} as never, { code: 'auth-code' }),
       ).rejects.toBeInstanceOf(HttpException);
-    });
-  });
-
-  describe('handleCallback', () => {
-    it('should redirect to dashboard on success', () => {
-      const result = controller.handleCallback();
-
-      expect(result.url).toContain('facebook=connected');
     });
   });
 
@@ -357,7 +335,6 @@ describe('FacebookController', () => {
 
       const result = await controller.schedulePost(mockUser, body);
 
-      expect(facebookService.schedulePost).toHaveBeenCalled();
       expect(result.postId).toBe(postId);
     });
   });

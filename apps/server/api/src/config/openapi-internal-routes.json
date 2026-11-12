@@ -14,10 +14,6 @@
       "reason": "Inbound Telegram bot webhook"
     },
     {
-      "pathPrefix": "/services/facebook/callback",
-      "reason": "OAuth provider browser-redirect callback"
-    },
-    {
       "pathPrefix": "/lifecycle-emails/unsubscribe",
       "reason": "Email preference browser-link callback"
     },

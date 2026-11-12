@@ -2391,19 +2391,6 @@ describe('proxy', () => {
     },
   );
 
-  it('opens the flat Channels path on the active brand, keeping the query', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeSignedInRequest('/connectors/channels?facebook=connected'),
-    );
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/connectors/channels?facebook=connected',
-    );
-  });
-
   it('routes flat brand-only settings to the active brand instead of the org scope', async () => {
     const { default: proxy } = await import('./proxy');
 

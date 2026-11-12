@@ -13,7 +13,6 @@ import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   buildGrantedScopesCredentialPatch,
   parseGrantedOAuthScopes,
@@ -22,7 +21,6 @@ import {
   CredentialOAuthSerializer,
   CredentialSerializer,
 } from '@genfeedai/serializers';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -45,7 +43,6 @@ export class FacebookController {
 
   constructor(
     private readonly brandsService: BrandsService,
-    private readonly configService: ConfigService,
     private readonly credentialsService: CredentialsService,
     private readonly facebookService: FacebookService,
     private readonly loggerService: LoggerService,
@@ -196,13 +193,6 @@ export class FacebookController {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
-  }
-
-  @Get('callback')
-  handleCallback() {
-    return {
-      url: `${this.configService.get('GENFEEDAI_APP_URL')}${APP_ROUTES.CONNECTORS.CHANNELS}?facebook=connected`,
-    };
   }
 
   @TenantReadPolicy('selected')
