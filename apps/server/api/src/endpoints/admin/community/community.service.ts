@@ -173,19 +173,27 @@ export class AdminCommunityService {
     return { id: brandId };
   }
 
+  /*
+   * The write is awaited inside the callback on purpose. A Prisma query is
+   * lazy: it runs when something awaits it. Returned bare, it would run after
+   * `runWithTenantContext` has returned, under the admin's own organization,
+   * and the tenant guard would reject it for naming another one.
+   */
   private async writeMedia(
     organizationId: string,
     ingredientId: string,
     data: { isHighlighted: boolean; scope?: typeof UNPUBLISHED_SCOPE },
   ): Promise<void> {
-    const { count } = await runWithTenantContext({ organizationId }, () =>
-      this.prisma.ingredient.updateMany({
-        data,
-        where: scopedWhere(organizationId, {
-          ...PUBLIC_MEDIA,
-          id: ingredientId,
+    const { count } = await runWithTenantContext(
+      { organizationId },
+      async () =>
+        await this.prisma.ingredient.updateMany({
+          data,
+          where: scopedWhere(organizationId, {
+            ...PUBLIC_MEDIA,
+            id: ingredientId,
+          }),
         }),
-      }),
     );
     if (count === 0) {
       throw new NotFoundException('Public media', ingredientId);
@@ -198,14 +206,16 @@ export class AdminCommunityService {
     brandId: string,
     data: { isHighlighted: boolean; scope?: typeof UNPUBLISHED_SCOPE },
   ): Promise<void> {
-    const { count } = await runWithTenantContext({ organizationId }, () =>
-      this.prisma.brand.updateMany({
-        data,
-        where: scopedWhere(organizationId, {
-          id: brandId,
-          scope: PUBLIC_SCOPE,
+    const { count } = await runWithTenantContext(
+      { organizationId },
+      async () =>
+        await this.prisma.brand.updateMany({
+          data,
+          where: scopedWhere(organizationId, {
+            id: brandId,
+            scope: PUBLIC_SCOPE,
+          }),
         }),
-      }),
     );
     if (count === 0) {
       throw new NotFoundException('Public profile', brandId);
