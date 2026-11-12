@@ -102,7 +102,6 @@ const PATCHABLE_FEATURE_KEYS = [
   'emailReplyToAddress',
   'agentAutoRoutingDecisionMode',
   'isAgentContextCompressionEnabled',
-  'isAgentTokenStreamingEnabled',
   'isBrandVisualAnalysisEnabled',
   'isEmailVerificationRequired',
   'isMediaPerceptionEnabled',

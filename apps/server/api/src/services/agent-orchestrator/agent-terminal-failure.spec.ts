@@ -79,64 +79,6 @@ describe('background agent terminal failures', () => {
     expect(published).not.toContain('publishStreamFailure');
   });
 
-  it('reads the real-token-streaming switch from platform settings (#5407)', async () => {
-    const { effects } = recordingEffects([
-      'publishStreamLifecycleStarted',
-      'publishStreamFailure',
-    ]);
-    const contextService = {
-      buildMemoryEntriesForResponse: vi.fn().mockReturnValue([]),
-      buildMemoryInfluenceMetadata: vi.fn().mockReturnValue({}),
-      resolveThreadMessages: vi.fn().mockResolvedValue({ messages: [] }),
-      buildMessageHistory: vi
-        .fn()
-        .mockReturnValue([{ role: 'assistant', content: 'An older answer' }]),
-    };
-    const settingsReads: string[] = [];
-    const getFeatureSettings = async () => {
-      settingsReads.push('features');
-      return { isAgentTokenStreamingEnabled: true };
-    };
-    const service = new AgentOrchestratorStreamLoopService(
-      { error: vi.fn() } as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      { isTurboRunIntent: () => false } as never,
-      contextService as never,
-      {} as never,
-      effects as never,
-      {
-        findOne: vi.fn().mockResolvedValue({ status: 'RUNNING' }),
-        findOneSelect: delegateFindOneSelect(),
-      } as never,
-      { resolve: vi.fn().mockResolvedValue({ mode: 'off' }) } as never,
-      undefined,
-      { getFeatureSettings } as never,
-    );
-    await expect(
-      service.runStreamLoop(
-        {
-          organizationId: 'org-1',
-          userId: 'user-1',
-          executionId: 'run-1',
-          executionMode: 'background',
-        },
-        'thread-1',
-        undefined,
-        'model',
-        0,
-        {} as never,
-        'standard' as never,
-        [],
-      ),
-    ).rejects.toThrow('Agent exceeded maximum tool-calling rounds');
-    expect(settingsReads).not.toHaveLength(0);
-  });
-
   it('propagates failed batch execution to workflow finalization', async () => {
     const executedTools: unknown[][] = [];
     const executor = {

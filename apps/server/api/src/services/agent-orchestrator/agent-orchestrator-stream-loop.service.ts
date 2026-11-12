@@ -2,7 +2,6 @@ import { type AgentMemoryDocument } from '@api/collections/agent-memories/schema
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { scopedWhere } from '@api/index';
 import { AgentAutoModelResolverService } from '@api/services/agent-orchestrator/agent-auto-model-resolver.service';
@@ -119,18 +118,7 @@ export class AgentOrchestratorStreamLoopService {
     private readonly autoModelResolver: AgentAutoModelResolverService,
     @Optional()
     private readonly skillRuntimeService?: SkillRuntimeService,
-    @Optional()
-    private readonly platformSettingsService?: PlatformSettingsService,
   ) {}
-
-  /** An operator platform setting (#5407); off when settings are not wired. */
-  private async isRealTokenStreamingEnabled(): Promise<boolean> {
-    if (!this.platformSettingsService) {
-      return false;
-    }
-    const settings = await this.platformSettingsService.getFeatureSettings();
-    return settings.isAgentTokenStreamingEnabled;
-  }
 
   private async publishStreamDelta(
     context: AgentChatContext,
@@ -393,8 +381,7 @@ export class AgentOrchestratorStreamLoopService {
     // first message of a new thread) because the model returns a JSON
     // {title, content} envelope there — streaming raw deltas would flash JSON
     // at the user. Those turns keep the simulated word-split path.
-    const canStreamLiveTokens =
-      !(seedTitle ?? '').trim() && (await this.isRealTokenStreamingEnabled());
+    const canStreamLiveTokens = !(seedTitle ?? '').trim();
 
     return {
       allowedToolNames,
