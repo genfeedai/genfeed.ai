@@ -13,6 +13,7 @@ vi.mock('next/navigation', () => ({
   // The shell lives above the dynamic route layouts, so params may be empty.
   useParams: () => ({}),
   usePathname: () => route.pathname,
+  useRouter: () => ({ prefetch: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
 }));
 
