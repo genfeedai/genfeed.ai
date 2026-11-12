@@ -263,7 +263,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'packages/cli/tests/commands/workflow.test.ts',
   'packages/contexts/onboarding/onboarding-context.test.tsx',
   'packages/contexts/providers/theme-sync/theme-preference-sync.test.tsx',
-  'packages/contexts/user/organization-context/organization-context.test.tsx',
   'apps/web/src/hooks/agent/use-agent-oauth-connect/use-agent-oauth-connect.test.ts',
   'packages/hooks/auth/use-authed-service/use-authed-service.test.ts',
   'apps/web/src/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect.test.ts',

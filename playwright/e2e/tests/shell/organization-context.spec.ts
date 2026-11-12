@@ -39,8 +39,28 @@ function isTenantScopedRequest(request: Request): boolean {
 }
 
 interface OrganizationContextMockOptions {
+  /** Added to every organization call, to make a request chain visible. */
+  apiDelayMs?: number;
   failSwitch?: boolean;
+  /** Receives `METHOD path` for each organization call, in arrival order. */
+  requestLog?: string[];
 }
+
+const ORGANIZATION_BRANDS: Record<
+  string,
+  { brand: { id: string; label: string }; label: string }
+> = {
+  [ALPHA_ORGANIZATION_ID]: {
+    brand: { id: 'brand-alpha', label: 'Alpha Brand' },
+    label: 'Alpha Organization',
+  },
+  [BRAVO_ORGANIZATION_ID]: {
+    brand: { id: 'brand-bravo', label: 'Bravo Brand' },
+    label: 'Bravo Organization',
+  },
+};
+
+const ACTIVATE_PATH_PATTERN = /\/organizations\/([^/]+)\/activate$/;
 
 interface OrganizationContextMockState {
   activeOrganizationId: string;
@@ -85,33 +105,45 @@ async function mockOrganizationContext(
   await page.route('**/v1/organizations**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+    const activatedOrganizationId = ACTIVATE_PATH_PATTERN.exec(
+      url.pathname,
+    )?.[1];
+    const isMembershipRead =
+      request.method() === 'GET' && url.searchParams.get('mine') === 'true';
+    const isActivation =
+      request.method() === 'PATCH' && activatedOrganizationId !== undefined;
 
-    if (request.method() === 'GET' && url.searchParams.get('mine') === 'true') {
+    if (isMembershipRead || isActivation) {
+      options.requestLog?.push(`${request.method()} ${url.pathname}`);
+      if (options.apiDelayMs) {
+        await new Promise((resolve) => setTimeout(resolve, options.apiDelayMs));
+      }
+    }
+
+    if (isMembershipRead) {
       await fulfillOrganizations(route);
       return;
     }
 
-    if (
-      request.method() === 'PATCH' &&
-      url.pathname.endsWith(`/organizations/${ALPHA_ORGANIZATION_ID}/activate`)
-    ) {
+    if (isActivation && ORGANIZATION_BRANDS[activatedOrganizationId]) {
       state.switchCount += 1;
       if (options.failSwitch) {
         await route.fulfill({
           body: JSON.stringify({ message: 'switch rejected' }),
           contentType: 'application/json',
-          status: 503,
+          status: 403,
         });
         return;
       }
 
-      state.activeOrganizationId = ALPHA_ORGANIZATION_ID;
+      state.activeOrganizationId = activatedOrganizationId;
+      const activated = ORGANIZATION_BRANDS[activatedOrganizationId];
       await route.fulfill({
         body: JSON.stringify({
-          brand: { id: 'brand-alpha', label: 'Alpha Brand' },
+          brand: activated.brand,
           organization: {
-            id: ALPHA_ORGANIZATION_ID,
-            label: 'Alpha Organization',
+            id: activatedOrganizationId,
+            label: activated.label,
           },
         }),
         contentType: 'application/json',
@@ -213,6 +245,148 @@ test.describe('Routed organization context', () => {
       .toBeGreaterThanOrEqual(3);
     expect(tenantRequests).toEqual([]);
     await expect(authenticatedPage.getByTestId('sidebar-shell')).toHaveCount(0);
+  });
+
+  test('switching organization keeps the shell on screen and reads the organization list once', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto('about:blank');
+    const requestLog: string[] = [];
+    const contextMock = await mockOrganizationContext(
+      authenticatedPage,
+      { apiDelayMs: 200, requestLog },
+      { activeOrganizationId: ALPHA_ORGANIZATION_ID, switchCount: 0 },
+    );
+
+    await authenticatedPage.goto('/alpha/~/workspace', {
+      waitUntil: 'domcontentloaded',
+    });
+    await expect(organizationSwitcher(authenticatedPage)).toHaveAccessibleName(
+      'Switch organization, Alpha Organization',
+    );
+    await expect(authenticatedPage.getByTestId('app-rail-mark')).toBeVisible();
+    await authenticatedPage.waitForLoadState('networkidle');
+    requestLog.length = 0;
+
+    // Watches the document from before the click: whether the rail or the top
+    // bar ever leaves it, whether the full-app skeleton ever replaces it, and
+    // how long the new organization's name takes to show.
+    await authenticatedPage.evaluate(() => {
+      const probe = {
+        chromeMissing: false,
+        clickedAt: 0,
+        frameSkeletonShown: false,
+        nameShownAfterMs: null as number | null,
+      };
+      (window as unknown as { __switchProbe: typeof probe }).__switchProbe =
+        probe;
+      // The very nodes on screen now must stay in the document: a shell that
+      // is torn down and rebuilt within one commit is not "staying".
+      const rail = document.querySelector('[data-testid="app-rail-mark"]');
+      const topbar = document.querySelector('[data-testid="app-topbar-shell"]');
+      document.addEventListener(
+        'click',
+        () => {
+          probe.clickedAt = performance.now();
+        },
+        { capture: true },
+      );
+      const check = () => {
+        if (probe.clickedAt === 0) {
+          return;
+        }
+        if (!rail?.isConnected || !topbar?.isConnected) {
+          probe.chromeMissing = true;
+        }
+        if (
+          document.querySelector('[data-testid="workspace-frame-skeleton"]')
+        ) {
+          probe.frameSkeletonShown = true;
+        }
+        const label = document
+          .querySelector('[data-testid="organization-switcher-trigger"]')
+          ?.getAttribute('aria-label');
+        if (
+          probe.nameShownAfterMs === null &&
+          label?.includes('Bravo Organization')
+        ) {
+          probe.nameShownAfterMs = performance.now() - probe.clickedAt;
+        }
+      };
+      new MutationObserver(check).observe(document, {
+        attributes: true,
+        childList: true,
+        subtree: true,
+      });
+    });
+
+    await organizationSwitcher(authenticatedPage).click();
+    await authenticatedPage
+      .getByRole('option', { name: 'Bravo Organization' })
+      .click();
+
+    await expect(authenticatedPage).toHaveURL(/\/bravo\/~\/workspace/);
+    await expect(organizationSwitcher(authenticatedPage)).toHaveAccessibleName(
+      'Switch organization, Bravo Organization',
+    );
+    await authenticatedPage.waitForLoadState('networkidle');
+
+    const probe = await authenticatedPage.evaluate(
+      () =>
+        (
+          window as unknown as {
+            __switchProbe: {
+              chromeMissing: boolean;
+              frameSkeletonShown: boolean;
+              nameShownAfterMs: number | null;
+            };
+          }
+        ).__switchProbe,
+    );
+    expect(probe.chromeMissing).toBe(false);
+    expect(probe.frameSkeletonShown).toBe(false);
+    expect(probe.nameShownAfterMs).not.toBeNull();
+    expect(probe.nameShownAfterMs).toBeLessThan(100);
+    expect(contextMock.getSwitchCount()).toBe(1);
+    expect(requestLog.filter((entry) => entry.startsWith('GET '))).toHaveLength(
+      1,
+    );
+    expect(
+      requestLog.filter((entry) => entry.startsWith('PATCH ')),
+    ).toHaveLength(1);
+  });
+
+  test('a refused switch puts the previous organization back with an error', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto('about:blank');
+    await mockOrganizationContext(
+      authenticatedPage,
+      { failSwitch: true },
+      { activeOrganizationId: ALPHA_ORGANIZATION_ID, switchCount: 0 },
+    );
+
+    await authenticatedPage.goto('/alpha/~/workspace', {
+      waitUntil: 'domcontentloaded',
+    });
+    await expect(organizationSwitcher(authenticatedPage)).toHaveAccessibleName(
+      'Switch organization, Alpha Organization',
+    );
+
+    await organizationSwitcher(authenticatedPage).click();
+    await authenticatedPage
+      .getByRole('option', { name: 'Bravo Organization' })
+      .click();
+
+    await expect(
+      authenticatedPage.getByText(
+        'Could not switch organization. You are still in the previous one.',
+      ),
+    ).toBeVisible();
+    await expect(organizationSwitcher(authenticatedPage)).toHaveAccessibleName(
+      'Switch organization, Alpha Organization',
+    );
+    await expect(authenticatedPage).toHaveURL(/\/alpha\/~\/workspace/);
   });
 
   test('an organization change moves every open tab to the same organization and keeps each surface', async ({

@@ -475,7 +475,7 @@
     "evaluationFailed": "Evaluation failed. Please try again."
   },
   "organizationSwitcher": {
-    "switching": "Switching…"
+    "switchFailed": "Could not switch organization. You are still in the previous one."
   },
   "agentModelLockNotice": {
     "freePlan": "Free plans run every agent on {model}. <upgrade>Upgrade</upgrade> to choose any model."
