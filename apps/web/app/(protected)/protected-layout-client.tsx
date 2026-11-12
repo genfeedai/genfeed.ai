@@ -62,11 +62,9 @@ export default function ProtectedLayoutClient({
         {/* Outside the shell's error boundaries, which would swallow notFound(). */}
         <PlatformModuleRouteGate>
           <AppProtectedLayout initialBootstrap={initialBootstrap}>
-            <ErrorBoundary presentation="inline">
-              <RoutedOrganizationPageGate>
-                {children}
-              </RoutedOrganizationPageGate>
-            </ErrorBoundary>
+            <RoutedOrganizationPageGate>
+              <ErrorBoundary presentation="inline">{children}</ErrorBoundary>
+            </RoutedOrganizationPageGate>
           </AppProtectedLayout>
         </PlatformModuleRouteGate>
       </RoutedOrganizationBoundary>

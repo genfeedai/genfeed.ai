@@ -1358,6 +1358,78 @@ describe('RoutedOrganizationProvider', () => {
     }
   });
 
+  it('ends a confirmed switch whose route change never arrives in the failed state', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      getMyOrganizationsMock
+        .mockResolvedValueOnce(ALPHA_ACTIVE)
+        .mockResolvedValue(BRAVO_ACTIVE);
+      renderProvider();
+      await waitFor(() =>
+        expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Switch to bravo' }));
+      await waitFor(() =>
+        expect(screen.getByTestId('switch-result')).toHaveTextContent('bravo'),
+      );
+      expect(screen.getByTestId('status')).toHaveTextContent('switching');
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(ROUTE_CONFIRMATION_TIMEOUT_MS + 1);
+      });
+      expect(screen.getByTestId('status')).toHaveTextContent('failed');
+      expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
+      expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(null);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not confirm a switched route once another tab has changed the organization', async () => {
+    getMyOrganizationsMock
+      .mockResolvedValueOnce(ALPHA_ACTIVE)
+      .mockResolvedValueOnce(BRAVO_ACTIVE)
+      .mockResolvedValue(ALPHA_ACTIVE);
+    const { rerender } = renderProvider();
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to bravo' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('switch-result')).toHaveTextContent('bravo'),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'genfeed:routed-organization-context:v1',
+          newValue: 'changed',
+        }),
+      );
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('confirmed-id')).toHaveTextContent('org_alpha'),
+    );
+
+    pathname = '/bravo/~/workspace/overview';
+    rerender(
+      <QueryClientProvider client={new QueryClient()}>
+        <RoutedOrganizationProvider>
+          <ContextProbe />
+        </RoutedOrganizationProvider>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() =>
+      expect(getMyOrganizationsMock.mock.calls.length).toBeGreaterThan(3),
+    );
+    expect(screen.getByTestId('confirmed-id')).not.toHaveTextContent(
+      'org_bravo',
+    );
+  });
+
   it('throws when the hook is used outside its provider', () => {
     expect(() => render(<Orphan />)).toThrow(
       'useRoutedOrganization must be used within RoutedOrganizationProvider',

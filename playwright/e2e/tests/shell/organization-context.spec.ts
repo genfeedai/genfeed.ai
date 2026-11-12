@@ -131,7 +131,7 @@ async function mockOrganizationContext(
         await route.fulfill({
           body: JSON.stringify({ message: 'switch rejected' }),
           contentType: 'application/json',
-          status: 503,
+          status: 403,
         });
         return;
       }
@@ -280,6 +280,10 @@ test.describe('Routed organization context', () => {
       };
       (window as unknown as { __switchProbe: typeof probe }).__switchProbe =
         probe;
+      // The very nodes on screen now must stay in the document: a shell that
+      // is torn down and rebuilt within one commit is not "staying".
+      const rail = document.querySelector('[data-testid="app-rail-mark"]');
+      const topbar = document.querySelector('[data-testid="app-topbar-shell"]');
       document.addEventListener(
         'click',
         () => {
@@ -291,10 +295,7 @@ test.describe('Routed organization context', () => {
         if (probe.clickedAt === 0) {
           return;
         }
-        if (
-          !document.querySelector('[data-testid="app-rail-mark"]') ||
-          !document.querySelector('[data-testid="app-topbar-shell"]')
-        ) {
+        if (!rail?.isConnected || !topbar?.isConnected) {
           probe.chromeMissing = true;
         }
         if (

@@ -343,6 +343,9 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
     organizationId: string;
     slug: string;
   } | null>(null);
+  const switchRouteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   pathnameRef.current = pathname;
   routeOrganizationSlugRef.current = routeOrganizationSlug;
   stateRef.current = state;
@@ -353,6 +356,18 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
       routeOrganizationSlugRef.current === expectedSlug,
     [],
   );
+
+  // A switch confirmation belongs to the generation that made it: anything
+  // that supersedes that generation drops it, and with it the wait on the route.
+  const clearSwitchConfirmation = useCallback((): void => {
+    switchConfirmationRef.current = null;
+    if (switchRouteTimerRef.current !== null) {
+      clearTimeout(switchRouteTimerRef.current);
+      switchRouteTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearSwitchConfirmation, [clearSwitchConfirmation]);
 
   const invalidateTenantState = useCallback(async (): Promise<void> => {
     setRequestOrganizationId(null);
@@ -397,7 +412,7 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
       // An explicit switch confirmed this organization against the API a
       // moment ago and cleared the previous tenant state; the route has now
       // caught up, so there is nothing left to read.
-      switchConfirmationRef.current = null;
+      clearSwitchConfirmation();
       generationRef.current += 1;
       setRequestOrganizationId(switched.organizationId);
       setState((current) => ({
@@ -593,7 +608,7 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
 
       const generation = generationRef.current + 1;
       generationRef.current = generation;
-      switchConfirmationRef.current = null;
+      clearSwitchConfirmation();
       setRequestOrganizationId(null);
       setState((current) => ({
         ...current,
@@ -657,10 +672,30 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
           return;
         }
         broadcastOrganizationChange();
-        switchConfirmationRef.current = {
+        const confirmation = {
           organizationId: confirmedTarget.id,
           slug: confirmedTarget.slug,
         };
+        switchConfirmationRef.current = confirmation;
+        // The bound on this switch ends here, but the route change that
+        // follows can stall too: end in the failed state with Retry rather
+        // than leave the page on its loading block.
+        switchRouteTimerRef.current = setTimeout(() => {
+          switchRouteTimerRef.current = null;
+          if (switchConfirmationRef.current !== confirmation) {
+            return;
+          }
+          switchConfirmationRef.current = null;
+          generationRef.current += 1;
+          setRequestOrganizationId(null);
+          setState((current) => ({
+            ...current,
+            confirmedOrganizationId: null,
+            confirmedOrganizationSlug: null,
+            pendingOrganizationId: null,
+            status: 'failed',
+          }));
+        }, ROUTE_CONFIRMATION_TIMEOUT_MS);
         setState({
           confirmedOrganizationId: confirmedTarget.id,
           confirmedOrganizationSlug: confirmedTarget.slug,
@@ -718,7 +753,7 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
       await switchTask;
       return switchedSlug;
     },
-    [getOrganizationsService, invalidateTenantState],
+    [clearSwitchConfirmation, getOrganizationsService, invalidateTenantState],
   );
 
   useEffect(() => {
@@ -804,6 +839,7 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
 
       const generation = generationRef.current + 1;
       generationRef.current = generation;
+      clearSwitchConfirmation();
       setRequestOrganizationId(null);
       setState((current) => ({
         ...current,
@@ -823,7 +859,12 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
       window.removeEventListener('storage', handleStorage);
       setRequestOrganizationId(null);
     };
-  }, [getOrganizationsService, invalidateTenantState, replace]);
+  }, [
+    clearSwitchConfirmation,
+    getOrganizationsService,
+    invalidateTenantState,
+    replace,
+  ]);
 
   const isRouteConfirmed =
     bypassReconciliation ||
