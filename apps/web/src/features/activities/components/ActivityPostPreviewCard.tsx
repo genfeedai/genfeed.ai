@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, isPlatform } from '@genfeedai/contracts';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
@@ -56,7 +56,9 @@ export default function ActivityPostPreviewCard({
   remixHref,
 }: ActivityPostPreviewCardProps) {
   const translate = useTranslations('pages.activities');
-  const platformLabel = getPostsPlatformLabel(preview.platform);
+  const platformLabel = isPlatform(preview.platform)
+    ? getPostsPlatformLabel(preview.platform)
+    : preview.platform;
   const viewLabel = translate('detailViewOnNetwork', {
     platform: platformLabel,
   });

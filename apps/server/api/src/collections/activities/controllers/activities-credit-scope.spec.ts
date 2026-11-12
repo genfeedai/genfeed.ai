@@ -20,7 +20,10 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 const findAll = vi.fn().mockResolvedValue({ data: [] });
 const controller = new ActivitiesController(
   { log: vi.fn(), error: vi.fn() } as unknown as LoggerService,
-  { findAll } as unknown as ActivitiesService,
+  {
+    attachDisplayContext: async (docs: unknown) => docs,
+    findAll,
+  } as unknown as ActivitiesService,
 );
 const user = {
   id: 'user-1',

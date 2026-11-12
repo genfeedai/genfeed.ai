@@ -853,7 +853,7 @@ describe('ActivitiesList', () => {
       expect(within(card).getByText('Nov 9, 2026')).toBeInTheDocument();
       expect(within(card).getByText('6.8× usual')).toBeInTheDocument();
       expect(
-        within(card).getByRole('link', { name: 'View on X' }),
+        within(card).getByRole('link', { name: 'View on (X) Twitter' }),
       ).toHaveAttribute('href', 'https://x.com/vincentshipsit/status/123');
       expect(
         within(card).getByRole('link', { name: 'Remix this post' }),
