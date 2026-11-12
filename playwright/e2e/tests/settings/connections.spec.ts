@@ -441,7 +441,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
         .click();
 
       await expect(authenticatedPage).toHaveURL(
-        new RegExp(`${brandPath(APP_ROUTES.SETTINGS.ROOT)}$`),
+        new RegExp(`${brandPath(APP_ROUTES.PROFILE.ROOT)}$`),
       );
       await expect(
         settingsPage.canvas.getByRole('button', {
