@@ -1,6 +1,7 @@
 import {
   buildOAuthAuthorizationServerMetadata,
   canonicalizeRequestedMcpResource,
+  resolveAdvertisedMcpResource,
   resolveMcpResourceUrl,
   resolveOAuthIssuerUrl,
 } from './oauth-metadata.util';
@@ -198,5 +199,40 @@ describe('canonicalizeRequestedMcpResource', () => {
     expect(canonical === 'https://mcp.genfeed.ai/mcp').toBe(
       requested === 'https://mcp.genfeed.ai/mcp',
     );
+  });
+});
+
+describe('resolveAdvertisedMcpResource', () => {
+  const serviceConfig = config({
+    GENFEEDAI_MCP_PUBLIC_URL: 'https://mcp.genfeed.ai/mcp',
+  });
+
+  it.each([
+    'https://mcp.genfeed.ai/mcp',
+    'https://mcp.genfeed.ai/mcp/claude',
+    'https://mcp.genfeed.ai/mcp/admin',
+  ])('accepts %s', (requested) => {
+    expect(resolveAdvertisedMcpResource(serviceConfig, requested)).toBe(
+      requested,
+    );
+  });
+
+  it.each([
+    'https://mcp.genfeed.ai/mcp/other',
+    'https://mcp.genfeed.ai/mcp/admin/extra',
+    'https://other.example/mcp/admin',
+  ])('rejects %s', (requested) => {
+    expect(resolveAdvertisedMcpResource(serviceConfig, requested)).toBe(
+      undefined,
+    );
+  });
+
+  it('keeps the admin endpoint out of the discoverable protected resources', () => {
+    expect(
+      buildOAuthAuthorizationServerMetadata(serviceConfig).protected_resources,
+    ).toEqual([
+      'https://mcp.genfeed.ai/mcp',
+      'https://mcp.genfeed.ai/mcp/claude',
+    ]);
   });
 });

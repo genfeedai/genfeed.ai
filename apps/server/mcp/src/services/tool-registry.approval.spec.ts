@@ -1,7 +1,7 @@
 import { McpApprovalStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
-import { ToolRegistryService } from '@mcp/services/tool-registry.service';
+import { createEndpointRegistries } from '@mcp/services/tool-registry.endpoints.testing';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
 
 /**
@@ -159,7 +159,7 @@ function build() {
     log: vi.fn(),
     warn: vi.fn(),
   };
-  const registry = new ToolRegistryService(
+  const registry = createEndpointRegistries(
     client as unknown as ClientService,
     logger as unknown as LoggerService,
     'admin',

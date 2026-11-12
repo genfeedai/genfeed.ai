@@ -371,12 +371,12 @@ describe('canonical MCP dispatch and immediate retirement', () => {
     },
   );
 
-  it('boots with all 171 raw definitions covered and advertises 30 Claude tools', async () => {
+  it('boots with all 171 raw definitions covered and advertises 29 Claude tools', async () => {
     expect(ALL_TOOLS.filter((tool) => tool.surfaces.mcp)).toHaveLength(171);
     expect(() => ToolRegistryService.validateDispatchCoverage()).not.toThrow();
     const { registry, module } = await build('claude');
     try {
-      expect(registry.getAllTools()).toHaveLength(30);
+      expect(registry.getAllTools()).toHaveLength(29);
       for (const name of [
         'get_scheduler_capabilities',
         'validate_scheduler_target',

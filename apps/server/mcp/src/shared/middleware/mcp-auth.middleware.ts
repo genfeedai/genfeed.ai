@@ -1,3 +1,4 @@
+import type { McpAccessMode } from '@genfeedai/actions';
 import { rejectMcpRequestIfApiKeyInUrl } from '@libs/auth/url-credentials';
 import { isPublicMcpRequest } from '@mcp/mcp/public-discovery';
 import { getMcpWwwAuthenticateHeader } from '@mcp/mcp/setup-page';
@@ -10,6 +11,31 @@ import {
   mcpJsonRpcError,
 } from '@mcp/tools/mcp-tool-error';
 import type { NextFunction, Response } from 'express';
+
+/**
+ * A Claude or admin route serves only the connection consented for it, and the
+ * standard route never serves an admin connection: the `admin` scope and the
+ * admin tools stay on `/mcp/admin`. A standard token on the Claude route has
+ * always been refused; a Claude token on the standard route is narrowed
+ * instead.
+ */
+function isConnectorRouteMismatch(
+  route: McpAccessMode | undefined,
+  key: McpAccessMode | undefined,
+): boolean {
+  if (route === 'claude' || route === 'admin') {
+    return key !== route;
+  }
+  return key === 'admin';
+}
+
+function connectorMismatchMessage(route: McpAccessMode | undefined): string {
+  return route === 'admin'
+    ? 'Authorize the admin connector with its own browser OAuth connection, signed in as a Genfeed staff owner or admin. Existing standard tokens and manual API keys cannot be used here.'
+    : route === 'claude'
+      ? 'Authorize the Claude connector with its own browser OAuth connection. Existing standard tokens and manual API keys cannot be used here.'
+      : 'This token belongs to the admin connector. Use it on the admin endpoint, or authorize the standard connector separately.';
+}
 
 export function createMcpAuthMiddleware({
   authService,
@@ -121,16 +147,16 @@ export function createMcpAuthMiddleware({
       return;
     }
 
-    if (
-      !authResult.valid ||
-      (req.routeAccessMode === 'claude' && authResult.accessMode !== 'claude')
-    ) {
+    const isConnectorMismatch =
+      authResult.valid &&
+      isConnectorRouteMismatch(req.routeAccessMode, authResult.accessMode);
+    if (!authResult.valid || isConnectorMismatch) {
       res.setHeader(
         'WWW-Authenticate',
         getMcpWwwAuthenticateHeader(req.routeAccessMode),
       );
       const message = authResult.valid
-        ? 'Authorize the Claude connector with its own browser OAuth connection. Existing standard tokens and manual API keys cannot be used here.'
+        ? connectorMismatchMessage(req.routeAccessMode)
         : authResult.error || 'Invalid token';
       const unauthorized = classifyMcpToolFailure({ message, status: 401 });
       res.status(401).json(

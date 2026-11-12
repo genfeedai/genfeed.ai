@@ -140,6 +140,9 @@ export default function OAuthConsentContent() {
   const isClaude =
     Boolean(requestedResource) &&
     resolveMcpAccessModeForResource(requestedResource ?? '') === 'claude';
+  const isAdmin =
+    Boolean(requestedResource) &&
+    resolveMcpAccessModeForResource(requestedResource ?? '') === 'admin';
   const requestedScope = searchParams.get('scope') || null;
   const requestedScopes = useMemo(
     () => getRequestedScopes(requestedScope, isClaude),
@@ -158,14 +161,9 @@ export default function OAuthConsentContent() {
     () => getScopeLabels(accessLevels[accessLevel]),
     [accessLevels, accessLevel],
   );
-  // Only the full request carries an org owner's admin standing (the server
-  // adds it for a full preset grant), so a narrower level or a connection
-  // limited to one brand never shows it.
-  const showAdminNotice =
-    !isClaude &&
-    accessLevel === 'full' &&
-    !selectedBrandId &&
-    API_KEY_SCOPE_PRESETS.mcp.every((scope) => requestedScopes.includes(scope));
+  // Only the staff admin endpoint carries admin standing; the server refuses
+  // consent there to everyone else, so the notice is not shown elsewhere.
+  const showAdminNotice = isAdmin;
   // `state` is optional (RFC 6749 §4.1.1); PKCE is the CSRF protection.
   const requiredParams = [
     'client_id',
