@@ -1,5 +1,6 @@
 'use client';
 
+import { getSupportCreatorHref } from '@data/app-links';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { creatorArticlePath } from '@genfeedai/contracts/constants';
 import type {
@@ -7,7 +8,6 @@ import type {
   GatedArticleBodyProps,
 } from '@props/content/public-article.props';
 import { Button } from '@ui/primitives/button';
-import { getSupportCreatorHref } from '@web-components/creator/SupportCreatorButton';
 import { LockKeyhole } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import ArticleContent from './article-content';

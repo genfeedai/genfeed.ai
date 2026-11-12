@@ -5,6 +5,7 @@ import type {
   PublicMediaSort,
 } from '@genfeedai/contracts/constants';
 import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
+import type { ICreatorTipTarget } from '@genfeedai/contracts/interfaces/billing';
 import type { Article } from '@models/content/article.model';
 import type { Post } from '@models/content/post.model';
 import type { Brand } from '@models/organization/brand.model';
@@ -126,6 +127,20 @@ export interface MakeYourOwnBannerProps {
   handle: string;
   /** The creator's referral code, carried into sign-up. */
   referralCode?: string | null;
+}
+
+/** Who the Support modal can send credits to, while it checks the visitor. */
+export type SupportModalState =
+  | { status: 'loading' }
+  | { status: 'signed-out' }
+  | { status: 'missing' }
+  | { status: 'ready'; target: ICreatorTipTarget };
+
+export interface SupportCreatorModalProps {
+  /** The article the reader is on, when sent from an article page. */
+  articleId?: string;
+  handle: string;
+  onOpenChange: (isOpen: boolean) => void;
 }
 
 export interface SupportCreatorButtonProps {
