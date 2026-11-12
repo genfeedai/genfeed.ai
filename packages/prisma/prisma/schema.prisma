@@ -2055,7 +2055,7 @@ model PlatformSetting {
   untrustedContentDecisionMode     String    @default("off")
   untrustedContentMinConfidence    Float     @default(0.95)
   isAgentContextCompressionEnabled Boolean   @default(true)
-  isAgentTokenStreamingEnabled     Boolean   @default(false)
+  isAgentTokenStreamingEnabled     Boolean   @default(true)
   isBrandVisualAnalysisEnabled     Boolean   @default(false)
   // Catalog models (`models.key`) that read text from and detect logo or product
   // regions in branded visuals (#6727). Null leaves the analysis unavailable.
