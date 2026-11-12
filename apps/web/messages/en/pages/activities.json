@@ -16,7 +16,7 @@
   "detailUserId": "User ID",
   "detailOrganization": "Organization",
   "detailBrand": "Brand",
-  "detailKey": "Activity key",
+  "detailKey": "Activity",
   "detailSource": "Source",
   "detailOrigin": "Origin",
   "detailActor": "Triggered by",
@@ -34,5 +34,16 @@
   "columnStatus": "Status",
   "columnCredits": "Credits",
   "loadError": "Failed to load activities",
-  "empty": "No activity yet"
+  "empty": "No activity yet",
+  "detailTechnical": "Technical details",
+  "detailOrganizationId": "Organization ID",
+  "detailBrandId": "Brand ID",
+  "detailEntityId": "Entity ID",
+  "detailRemix": "Remix this post",
+  "previewRatio": "{ratio}× usual",
+  "previewReplies": "{count, plural, one {# reply} other {# replies}}",
+  "previewReposts": "{count, plural, one {# repost} other {# reposts}}",
+  "previewLikes": "{count, plural, one {# like} other {# likes}}",
+  "previewViews": "{count, plural, one {# view} other {# views}}",
+  "detailKeyRaw": "Activity key"
 }

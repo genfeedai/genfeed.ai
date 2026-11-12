@@ -532,7 +532,9 @@ export default function AppTable<T>({
           >
             <thead
               className={cn(
-                hideHeader
+                // With a select-all checkbox the header row stays so the
+                // control is visible and focusable; only the labels go.
+                hideHeader && !selectable
                   ? 'sr-only'
                   : cn(
                       'border-b border-border',
@@ -600,6 +602,7 @@ export default function AppTable<T>({
                           : undefined
                       }
                       className={cn(
+                        hideHeader && 'sr-only',
                         'h-10 select-none text-left align-middle text-xs font-medium uppercase tracking-wide text-muted-foreground',
                         // A sortable header hands its padding to the button so
                         // the click target and focus ring span the whole cell.
@@ -642,7 +645,10 @@ export default function AppTable<T>({
                 })}
 
                 {hasRowActions && (
-                  <th aria-label="Actions" className="w-0 p-0" />
+                  <th
+                    aria-label="Actions"
+                    className={cn('w-0 p-0', hideHeader && 'sr-only')}
+                  />
                 )}
               </tr>
             </thead>

@@ -104,10 +104,13 @@ const SCHEMA_DOCUMENT_NAME_OVERRIDES: Record<string, string> = {
  */
 export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'activity:Activity': [
+    'brandLabel',
     'organizationLabel',
+    'preview',
     'totalFailed',
     'totalRequested',
     'totalUpdated',
+    'userLabel',
   ],
   'analytic:Analytic': [
     'activeBots',

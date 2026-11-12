@@ -76,6 +76,10 @@ vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
   ),
 }));
 
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useIsHrefAvailable: () => () => true,
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/activities',
   useRouter: () => ({
@@ -242,7 +246,8 @@ describe('ActivitiesList', () => {
     expect(screen.getByText('Fri, Jan 2 · UTC')).toBeInTheDocument();
     expect(screen.getByText('Thu, Jan 1 · UTC')).toBeInTheDocument();
     expect(screen.getByText('09:30:15')).toBeInTheDocument();
-    expect(screen.getByText(/^ran 1m 42s · /)).toBeInTheDocument();
+    expect(screen.getByText('ran 1m 42s')).toBeInTheDocument();
+    expect(screen.queryByText(/ago$/)).not.toBeInTheDocument();
     expect(screen.getByText('00:00:00')).toBeInTheDocument();
   });
 
@@ -527,6 +532,7 @@ describe('ActivitiesList', () => {
         buildActivity({
           id: 'unread-published',
           organizationId: 'org-123',
+          organizationLabel: 'Acme Studio',
           value: JSON.stringify({
             platform: 'instagram',
             url: 'https://instagram.com/p/abc',
@@ -730,7 +736,9 @@ describe('ActivitiesList', () => {
           id: 'failed-image',
           key: ActivityKey.IMAGE_FAILED,
           organizationId: 'org-123',
+          organizationLabel: 'Acme Studio',
           userId: 'user-456',
+          userLabel: 'Dana Fox',
           value: JSON.stringify({ error: 'Provider timed out' }),
         }),
       ];
@@ -741,8 +749,10 @@ describe('ActivitiesList', () => {
       );
 
       const dialog = await screen.findByTestId('activity-detail-panel');
-      expect(within(dialog).getByText('org-123')).toBeInTheDocument();
-      expect(within(dialog).getByText('user-456')).toBeInTheDocument();
+      expect(within(dialog).getByText('Acme Studio')).toBeInTheDocument();
+      expect(within(dialog).getByText('Dana Fox')).toBeInTheDocument();
+      expect(within(dialog).queryByText('org-123')).not.toBeInTheDocument();
+      expect(within(dialog).queryByText('user-456')).not.toBeInTheDocument();
       expect(within(dialog).getByRole('alert')).toHaveTextContent(
         'Provider timed out',
       );
@@ -767,6 +777,125 @@ describe('ActivitiesList', () => {
       expect(
         within(dialog).getByRole('link', { name: /view on instagram/i }),
       ).toHaveAttribute('href', 'https://instagram.com/p/abc');
+    });
+  });
+  describe('names and the post behind a breakout', () => {
+    const breakoutPreview = {
+      authorHandle: 'vincentshipsit',
+      authorName: 'Vincent Ships It',
+      kind: 'post' as const,
+      metrics: { likes: 38, replies: 6, reposts: 4, views: 9400 },
+      platform: 'twitter',
+      publishedAt: '2026-11-09T11:48:00.000Z',
+      ratio: 6.8,
+      remixQuery: 'remixPostId=post-1',
+      text: 'Is AI not supposed to use all of the water on Earth??',
+      url: 'https://x.com/vincentshipsit/status/123',
+    };
+
+    function breakoutActivity(overrides: Partial<IActivity> = {}) {
+      return buildActivity({
+        brandId: 'brand-id-1',
+        brandLabel: 'Vincent Ships It',
+        entityId: 'response-id-1',
+        entityModel: 'BreakoutResponse',
+        id: 'breakout',
+        key: ActivityKey.BREAKOUT_REMIX_OFFERED,
+        organizationId: 'org-id-1',
+        organizationLabel: 'Genfeed.Ai',
+        origin: 'workflow',
+        preview: breakoutPreview,
+        source: 'breakout-detection',
+        userId: 'user-id-1',
+        userLabel: 'Vincent',
+        value: '“Is AI not supposed…” is outperforming your usual X posts',
+        ...overrides,
+      } as Partial<IActivity>);
+    }
+
+    it('reads names and plain words in the detail, with the ids behind a toggle', async () => {
+      const user = userEvent.setup();
+      mockActivities = [breakoutActivity()];
+      renderWithSidebar(PageScope.BRAND);
+
+      await user.click(getActivityRows()[0]);
+
+      const panel = await screen.findByTestId('activity-detail-panel');
+      const detail = (term: string) =>
+        within(panel).getByText(term).nextElementSibling;
+      expect(detail('User')).toHaveTextContent('Vincent');
+      expect(detail('Organization')).toHaveTextContent('Genfeed.Ai');
+      expect(detail('Brand')).toHaveTextContent('Vincent Ships It');
+      expect(detail('Activity')).toHaveTextContent('Breakout remix offered');
+      expect(detail('Source')).toHaveTextContent('Breakout detection');
+      expect(detail('Origin')).toHaveTextContent('Workflow');
+      expect(detail('Entity')).toHaveTextContent('Breakout response');
+      expect(within(panel).queryByText('org-id-1')).not.toBeInTheDocument();
+      expect(
+        within(panel).queryByText('response-id-1'),
+      ).not.toBeInTheDocument();
+
+      await user.click(within(panel).getByText('Technical details'));
+      expect(within(panel).getByText('org-id-1')).toBeInTheDocument();
+      expect(within(panel).getByText('response-id-1')).toBeInTheDocument();
+    });
+
+    it('shows the post itself with its source and a remix, not only the stored sentence', async () => {
+      const user = userEvent.setup();
+      mockActivities = [breakoutActivity()];
+      renderWithSidebar(PageScope.BRAND);
+
+      await user.click(getActivityRows()[0]);
+
+      const card = await screen.findByTestId('activity-post-preview');
+      expect(
+        within(card).getByText(
+          'Is AI not supposed to use all of the water on Earth??',
+        ),
+      ).toBeInTheDocument();
+      expect(within(card).getByText('@vincentshipsit')).toBeInTheDocument();
+      expect(within(card).getByText('Nov 9, 2026')).toBeInTheDocument();
+      expect(within(card).getByText('6.8× usual')).toBeInTheDocument();
+      expect(
+        within(card).getByRole('link', { name: 'View on (X) Twitter' }),
+      ).toHaveAttribute('href', 'https://x.com/vincentshipsit/status/123');
+      expect(
+        within(card).getByRole('link', { name: 'Remix this post' }),
+      ).toHaveAttribute(
+        'href',
+        expect.stringMatching(/\/analytics\/posts\?remixPostId=post-1$/),
+      );
+    });
+
+    it('offers no remix to an operator, who cannot open the account', async () => {
+      const user = userEvent.setup();
+      mockActivities = [breakoutActivity()];
+      renderWithSidebar(PageScope.SUPERADMIN);
+
+      await user.click(getActivityRows()[0]);
+
+      const card = await screen.findByTestId('activity-post-preview');
+      expect(
+        within(card).queryByRole('link', { name: 'Remix this post' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows the post in a hover card on the row', async () => {
+      const user = userEvent.setup();
+      mockActivities = [breakoutActivity()];
+      render(
+        <ActivitiesList
+          scope={PageScope.BRAND}
+          isStatsEnabled={false}
+          isFiltersEnabled={false}
+        />,
+      );
+
+      await user.hover(screen.getByText('A post is breaking out. Remix it'));
+
+      expect(
+        await screen.findByTestId('activity-post-preview'),
+      ).toHaveTextContent('Is AI not supposed to use all of the water');
     });
   });
 });

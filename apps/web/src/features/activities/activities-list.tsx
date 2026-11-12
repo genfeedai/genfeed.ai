@@ -14,7 +14,6 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IActivity, IIngredient } from '@genfeedai/contracts/interfaces';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
-import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableAction } from '@props/ui/display/table.props';
@@ -25,6 +24,11 @@ import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@ui/primitives/hover-card';
 import { ArrowUpRight, ClipboardList, ExternalLink, X } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -56,6 +60,7 @@ import {
   parsePostActivityValue,
 } from './activities-list.utils';
 import ActivityDetailPanel from './components/ActivityDetailPanel';
+import ActivityPostPreviewCard from './components/ActivityPostPreviewCard';
 import ActivityStatusCell from './components/ActivityStatusCell';
 import ActivityThumbnailCell from './components/ActivityThumbnailCell';
 
@@ -143,6 +148,23 @@ export default function ActivitiesList({
     [isAdminScope, isHrefAvailable, resolveDestinationHref],
   );
 
+  // The remix a breakout offer asks for opens on the Posts analytics page,
+  // the same place the notification's "Remix it" goes.
+  const getActivityRemixHref = useCallback(
+    (activity: IActivity): string | undefined => {
+      const remixQuery = activity.preview?.remixQuery;
+      if (
+        isAdminScope ||
+        !remixQuery ||
+        !isHrefAvailable(APP_ROUTES.ANALYTICS.POSTS)
+      ) {
+        return undefined;
+      }
+      return `${resolveDestinationHref(APP_ROUTES.ANALYTICS.POSTS)}?${remixQuery}`;
+    },
+    [isAdminScope, isHrefAvailable, resolveDestinationHref],
+  );
+
   const columns = useMemo(
     () => [
       {
@@ -175,12 +197,10 @@ export default function ActivitiesList({
         sortable: false,
         className: 'w-44',
         render: (a: IActivity) => formatActivityClock(a.createdAt),
+        // The day heading above already says when; only a run's length adds to it.
         subtext: (a: IActivity) => {
-          const relative = a.createdAt ? getRelativeTime(a.createdAt) : '';
           const duration = getActivityRunDuration(a);
-          return [duration ? `ran ${duration}` : null, relative]
-            .filter(Boolean)
-            .join(' · ');
+          return duration ? `ran ${duration}` : '';
         },
       },
       ...(isAdminScope
@@ -237,7 +257,25 @@ export default function ActivitiesList({
                 status={getBackgroundTaskStatus(a.key)}
                 isBackgroundTask={isBackgroundTask(a)}
               />
-              <span>{title}</span>
+              {a.preview ? (
+                <HoverCard closeDelay={80} openDelay={250}>
+                  <HoverCardTrigger asChild>
+                    <span>{title}</span>
+                  </HoverCardTrigger>
+                  <HoverCardContent
+                    align="start"
+                    className="w-[26rem] p-0"
+                    side="right"
+                  >
+                    <ActivityPostPreviewCard
+                      preview={a.preview}
+                      remixHref={getActivityRemixHref(a)}
+                    />
+                  </HoverCardContent>
+                </HoverCard>
+              ) : (
+                <span>{title}</span>
+              )}
             </span>
           );
         },
@@ -273,6 +311,7 @@ export default function ActivitiesList({
     [
       activityMessageFormatter,
       getActivityHref,
+      getActivityRemixHref,
       handleViewIngredient,
       isAdminScope,
       toggleActivityRead,
@@ -360,10 +399,16 @@ export default function ActivitiesList({
           activity={activity}
           onToggleRead={toggleActivityRead}
           openHref={getActivityHref(activity)}
+          remixHref={getActivityRemixHref(activity)}
         />
       ),
     }),
-    [activityMessageFormatter, getActivityHref, toggleActivityRead],
+    [
+      activityMessageFormatter,
+      getActivityHref,
+      getActivityRemixHref,
+      toggleActivityRead,
+    ],
   );
 
   const getRowKey = useCallback((a: IActivity) => a.id, []);
@@ -451,6 +496,7 @@ export default function ActivitiesList({
         getRowKey={getRowKey}
         getRowClassName={getRowClassName}
         getGroupHeading={getGroupHeading}
+        hideHeader
         emptyLabel={translate('empty')}
         selectable={true}
         selectedIds={selectedActivityIds}

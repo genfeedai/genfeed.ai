@@ -59,6 +59,26 @@ describe('Table', () => {
     expect(header.closest('thead')).not.toHaveClass('sticky');
   });
 
+  it('keeps the select-all checkbox visible when hideHeader hides the labels', () => {
+    render(
+      <Table
+        columns={[{ header: 'Name', key: 'name' }]}
+        getItemId={(item) => item.id}
+        getRowKey={(item) => item.id}
+        hideHeader
+        items={[{ id: 'a', name: 'One' }]}
+        selectable
+      />,
+    );
+
+    const header = screen.getByRole('columnheader', { name: 'Name' });
+    expect(header).toHaveClass('sr-only');
+    expect(header.closest('thead')).not.toHaveClass('sr-only');
+    expect(
+      screen.getByRole('checkbox', { name: 'Select all rows' }),
+    ).toBeVisible();
+  });
+
   it('pins the column header and one day heading under the section bar', () => {
     render(
       <Table

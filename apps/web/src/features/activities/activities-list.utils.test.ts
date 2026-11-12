@@ -27,6 +27,7 @@ import {
   getActivityValueFields,
   getActivityVideoUrl,
   getGenerationCreditAmount,
+  humanizeActivityToken,
 } from './activities-list.utils';
 
 describe('getActivityDescription', () => {
@@ -454,5 +455,22 @@ describe('activity time formatting', () => {
       'Fri, Oct 30 · UTC',
     );
     expect(formatActivityDayHeading('unknown', now)).toBe('Unknown date');
+  });
+});
+
+describe('humanizeActivityToken', () => {
+  it.each([
+    ['breakout-remix-offered', 'Breakout remix offered'],
+    ['breakout-detection', 'Breakout detection'],
+    ['workflow', 'Workflow'],
+    ['BreakoutResponse', 'Breakout response'],
+    ['needs_review', 'Needs review'],
+  ])('reads %s as %s', (token, expected) => {
+    expect(humanizeActivityToken(token)).toBe(expected);
+  });
+
+  it('has nothing to say for an empty token', () => {
+    expect(humanizeActivityToken('')).toBeUndefined();
+    expect(humanizeActivityToken(null)).toBeUndefined();
   });
 });
