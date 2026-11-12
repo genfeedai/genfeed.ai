@@ -234,6 +234,24 @@ describe('persisted mutation approvals', () => {
     expect(turn.content).toBe('Approved action completed.');
     expect(turn.result.nextActions).toHaveLength(1);
   });
+  it('marks the resolved card so the stored reply does not repeat it', async () => {
+    await service.execute('confirm_mutation', params());
+
+    const [turn] = finalizer.finalizeStructuredAssistantTurn.mock.calls[0];
+    expect(turn.resolvedSourceActionId).toBe(sourceActionId);
+  });
+  it('shows a plain message when the approved tool throws unexpectedly', async () => {
+    executor.executeTool.mockRejectedValueOnce(
+      new Error('Invalid `prisma.post.create()` invocation: Argument missing'),
+    );
+
+    await expect(
+      service.execute('confirm_mutation', params()),
+    ).rejects.toThrow();
+    expect(
+      JSON.stringify(transaction.agentMessage.updateMany.mock.calls),
+    ).not.toContain('prisma.post.create');
+  });
   it('rejects a different thread', async () => {
     await expect(
       service.execute('confirm_mutation', { ...params(), threadId: 'other' }),
