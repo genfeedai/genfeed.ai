@@ -38,6 +38,7 @@ import { AppRailItemMenu } from './AppRailItemMenu';
 import { AppRailMore } from './AppRailMore';
 import { resolveAvailableRailApps } from './app-rail.availability';
 import { moveRailAppBy } from './app-rail.order';
+import { APP_RAIL_PREVIEWS } from './app-rail.previews';
 import {
   ADMIN_RAIL_APP,
   ADMIN_RAIL_BACK_APP,
@@ -49,6 +50,7 @@ import {
   isAppRailItemLocked,
 } from './app-rail.registry';
 import { useAppRailNavigation } from './use-app-rail-navigation';
+import { useAppRailPreview } from './use-app-rail-preview';
 import { useRailDragReorder } from './use-rail-drag-reorder';
 
 // Only the desktop chord is shown: the browser owns ⌘1–9 for tab switching,
@@ -66,6 +68,7 @@ function AppRailItem({
   href,
   isActive,
   isLocked,
+  hasPreview = false,
   onNavigateStart,
 }: AppRailItemProps) {
   const t = useTranslations('common.appRail');
@@ -130,36 +133,45 @@ function AppRailItem({
     </>
   );
 
+  const link = (
+    <Link
+      href={href}
+      // The slot around the link is the drag source, so the browser's
+      // own link drag never competes with reordering.
+      draggable={false}
+      aria-current={isActive ? 'page' : undefined}
+      aria-describedby={`app-rail-desc-${app.id}`}
+      aria-label={accessibleLabel}
+      data-app-rail-app={app.id}
+      data-testid={`app-rail-item-${app.id}`}
+      onBlur={(event) => {
+        hoverProps.onBlur(event);
+      }}
+      onClick={onNavigateStart}
+      onFocus={(event) => {
+        hoverProps.onFocus(event);
+      }}
+      onMouseEnter={(event) => {
+        hoverProps.onMouseEnter(event);
+      }}
+      onMouseLeave={(event) => {
+        hoverProps.onMouseLeave(event);
+      }}
+      className={itemClassName}
+    >
+      {itemBody}
+    </Link>
+  );
+
+  // An item with a hover preview shows the same label, description and
+  // shortcut in the preview's header, so it needs no tooltip.
+  if (hasPreview) {
+    return link;
+  }
+
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Link
-          href={href}
-          // The slot around the link is the drag source, so the browser's
-          // own link drag never competes with reordering.
-          draggable={false}
-          aria-current={isActive ? 'page' : undefined}
-          aria-describedby={`app-rail-desc-${app.id}`}
-          aria-label={accessibleLabel}
-          data-testid={`app-rail-item-${app.id}`}
-          onBlur={(event) => {
-            hoverProps.onBlur(event);
-          }}
-          onClick={onNavigateStart}
-          onFocus={(event) => {
-            hoverProps.onFocus(event);
-          }}
-          onMouseEnter={(event) => {
-            hoverProps.onMouseEnter(event);
-          }}
-          onMouseLeave={(event) => {
-            hoverProps.onMouseLeave(event);
-          }}
-          className={itemClassName}
-        >
-          {itemBody}
-        </Link>
-      </TooltipTrigger>
+      <TooltipTrigger asChild>{link}</TooltipTrigger>
       <TooltipContent
         side="right"
         sideOffset={10}
@@ -424,6 +436,38 @@ export function AppRail({
     isEnabled: isReorderable,
     onReorder: reorder,
   });
+  // Hover previews: a minified view of an app before it is opened. Only on
+  // the desktop rail, never in admin chrome, and never while an item is being
+  // dragged or has its menu open.
+  const previewApps = useMemo(
+    () =>
+      railItems
+        .filter(
+          (item) =>
+            APP_RAIL_PREVIEWS[item.app.id] !== undefined && !item.isLocked,
+        )
+        .map((item) => ({
+          description: item.description,
+          href: item.href,
+          id: item.app.id,
+          label: item.label,
+          shortcut: formatRailShortcut(item.shortcut),
+        })),
+    [railItems],
+  );
+  // Where previews exist at all, they replace the tooltip. A drag or an open
+  // menu pauses them without bringing the tooltips back.
+  const hasPreviewSurface = surface === 'desktop' && !isAdminChrome;
+  const preview = useAppRailPreview({
+    activeAppId,
+    apps: previewApps,
+    isEnabled: hasPreviewSurface && draggingId === null && menuTarget === null,
+    navRef,
+  });
+  const previewAppIds = useMemo(
+    () => new Set(previewApps.map((app) => app.id)),
+    [previewApps],
+  );
   const handleNavigate = useCallback(
     (item: AppRailNavigationItem, via: AppRailNavigationVia) => {
       onNavigationEvent?.({
@@ -468,8 +512,14 @@ export function AppRail({
         key={item.app.id}
         {...item}
         badge={badges?.[item.app.id]}
+        hasPreview={
+          hasPreviewSurface &&
+          item.app.id !== activeAppId &&
+          previewAppIds.has(item.app.id)
+        }
         isActive={item.app.id === activeAppId}
         onNavigateStart={(event) => {
+          preview.close();
           // The link would also navigate in place; Admin opens elsewhere.
           if (onOpenAdminExternally && item.app.group === 'admin') {
             event.preventDefault();
@@ -533,6 +583,7 @@ export function AppRail({
           // Page menu: the one surface exempt from the product motion policy.
           data-motion="allow"
           data-testid="app-rail"
+          {...preview.navProps}
         >
           {header ? (
             <div
@@ -589,6 +640,7 @@ export function AppRail({
         target={menuTarget}
         total={railItems.length}
       />
+      {preview.flyout}
       <span aria-live="polite" className="sr-only" role="status">
         {navigationAnnouncement}
       </span>

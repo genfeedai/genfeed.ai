@@ -3029,6 +3029,81 @@
     "adminPlatform": {
       "label": "Platform",
       "description": "Superadmin settings, access, flags and messaging."
+    },
+    "preview": {
+      "error": "Could not load this preview.",
+      "apps": {
+        "storyboard": "storyboard runs",
+        "turbo": "Turbo projects",
+        "motion": "Motion projects",
+        "clipper": "clip projects",
+        "editor": "editor projects"
+      },
+      "projects": {
+        "title": "Recent projects",
+        "empty": "No {app} yet.",
+        "selectBrand": "Select a brand to see its {app}.",
+        "needsYou": "Needs you",
+        "shotCount": "{count, plural, one {# shot} other {# shots}}",
+        "itemCount": "{count, plural, one {# item} other {# items}}",
+        "revision": "Revision {number}",
+        "clipsCount": "{count, plural, one {# clip} other {# clips}}",
+        "draft": "Draft"
+      },
+      "workspace": {
+        "posts": "Posts",
+        "inReview": "In review",
+        "ready": "Ready",
+        "inbox": "Needs your attention",
+        "empty": "Your inbox is clear."
+      },
+      "analytics": {
+        "error": "Could not load analytics.",
+        "views": "Views",
+        "engagement": "Engagement",
+        "posts": "Posts",
+        "platforms": "Platforms",
+        "trend": "Views, last 14 days"
+      },
+      "agent": {
+        "empty": "No threads yet.",
+        "groups": {
+          "needsYou": "Needs you",
+          "working": "Working",
+          "readyForReview": "Ready for review",
+          "recent": "Recent"
+        }
+      },
+      "messages": {
+        "empty": "No conversations yet.",
+        "unknown": "Unknown sender",
+        "unread": "{count, plural, one {# unread message} other {# unread messages}}"
+      },
+      "discovery": {
+        "title": "Trending for this brand",
+        "empty": "No trends yet for this brand.",
+        "views": "{count} views"
+      },
+      "publishing": {
+        "title": "Up next",
+        "empty": "Nothing scheduled.",
+        "untitled": "Untitled post"
+      },
+      "library": {
+        "title": "Recent",
+        "empty": "No assets yet."
+      },
+      "playground": {
+        "title": "Recent generations",
+        "empty": "No generations yet."
+      },
+      "automation": {
+        "title": "Workflows",
+        "empty": "No workflows yet.",
+        "nextRun": "Next run {date}",
+        "nodes": "{count, plural, one {# step} other {# steps}}",
+        "scheduled": "Scheduled"
+      }
     }
   },
   "navigationProgress": {
