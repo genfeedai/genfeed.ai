@@ -144,7 +144,6 @@ export const protectedRouteBuckets: RouteBucket[] = [
     protectedRoutes,
     (route) =>
       route === '/' ||
-      route.startsWith('/connectors') ||
       route === '/settings' ||
       route.startsWith('/settings/') ||
       route.startsWith('/support/') ||

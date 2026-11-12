@@ -623,7 +623,20 @@ export class PostGroupPersistenceService {
     organizationId: string,
     targets: readonly ChannelTargetInput[],
   ): Promise<Map<string, SchedulerCredential>> {
-    const ids = [...new Set(targets.map((target) => target.credentialId))];
+    // A legacy target can persist without a credential. It gets the missing
+    // credential answer before Prisma sees a null id.
+    const ids: string[] = [];
+    for (const target of targets) {
+      const credentialId: string | null | undefined = target.credentialId;
+      if (!credentialId) {
+        throw new BadRequestException(
+          'Channel target has no credential connected to this organization.',
+        );
+      }
+      if (!ids.includes(credentialId)) {
+        ids.push(credentialId);
+      }
+    }
     const credentials = (await tx.credential.findMany({
       select: {
         brandId: true,

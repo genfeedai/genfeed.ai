@@ -2,6 +2,7 @@ import type { BrandAccessActor } from '@api/authorization/brand-access/brand-acc
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { CreateAgentThreadShareDto } from '@api/collections/agent-threads/dto/create-agent-thread-share.dto';
 import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
+import { AgentThreadAudienceService } from '@api/collections/agent-threads/services/agent-thread-audience.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
@@ -22,6 +23,7 @@ export class AgentThreadSharesService {
     private readonly prisma: PrismaService,
     private readonly access: AgentThreadAccessService,
     private readonly brandAccess: BrandAccessService,
+    private readonly audience: AgentThreadAudienceService,
   ) {}
 
   async list(
@@ -96,6 +98,8 @@ export class AgentThreadSharesService {
     if (!share) {
       throw new NotFoundException('Thread share');
     }
+    // The new member starts receiving the thread's live events at once.
+    await this.audience.refresh(threadId);
     return share;
   }
 
@@ -105,6 +109,9 @@ export class AgentThreadSharesService {
     shareId: string,
   ): Promise<void> {
     await this.access.assertAccess(actor, threadId, 'manage');
+    // Read before the removal: the process that streams the thread may be
+    // another one, so the members who lose access are the difference.
+    const before = await this.audience.refresh(threadId);
     const removed = await this.prisma.agentThreadShare.updateMany({
       data: { isDeleted: true },
       where: scopedWhere(actor.organizationId, { id: shareId, threadId }),
@@ -112,6 +119,9 @@ export class AgentThreadSharesService {
     if (removed.count !== 1) {
       throw new NotFoundException('Thread share', shareId);
     }
+    // Members who no longer reach the thread are told, and stop receiving its
+    // live events from the next one.
+    await this.audience.refresh(threadId, before);
   }
 
   private async resolveTarget(

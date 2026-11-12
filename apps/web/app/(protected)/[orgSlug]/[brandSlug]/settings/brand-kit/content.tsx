@@ -30,7 +30,7 @@ import {
 } from '@ui/primitives/dialog';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useOptimistic, useState, useTransition } from 'react';
 import BrandFontsCard from '@/features/brands/components/brand-kit/BrandFontsCard';
 import {
   BrandKitReviewActionsProvider,
@@ -68,7 +68,11 @@ export default function BrandKitPage() {
   const router = useRouter();
   const pathname = usePathname();
   const requestedTab = pathname?.split('/').filter(Boolean).at(-1) ?? '';
-  const tab = isBrandKitPathTab(requestedTab) ? requestedTab : 'overview';
+  const routedTab = isBrandKitPathTab(requestedTab) ? requestedTab : 'overview';
+  // A tab's route is not prefetched, so the first click waits on the server.
+  // Show the chosen tab right away and let the route catch up.
+  const [tab, setOptimisticTab] = useOptimistic(routedTab);
+  const [, startTabTransition] = useTransition();
   const { href } = useOrgUrl();
   const getBrandsService = useAuthedService((token: string) =>
     BrandsService.getInstance(token),
@@ -135,14 +139,17 @@ export default function BrandKitPage() {
             brand={brand}
             tab={tab}
             onTabChange={(next) => {
-              router.push(
-                href(
-                  isBrandKitPathTab(next)
-                    ? BRAND_KIT_TAB_PATHS[next]
-                    : APP_ROUTES.SETTINGS.BRAND_KIT,
-                ),
-                { scroll: false },
-              );
+              startTabTransition(() => {
+                setOptimisticTab(isBrandKitPathTab(next) ? next : 'overview');
+                router.push(
+                  href(
+                    isBrandKitPathTab(next)
+                      ? BRAND_KIT_TAB_PATHS[next]
+                      : APP_ROUTES.SETTINGS.BRAND_KIT,
+                  ),
+                  { scroll: false },
+                );
+              });
             }}
             onScan={() => setWorkflow('scan')}
             onManualImport={() => setWorkflow('manual')}

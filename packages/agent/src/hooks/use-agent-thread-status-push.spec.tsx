@@ -1,7 +1,10 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentRuntimeState, AgentThreadStatus } from '@genfeedai/contracts';
-import { AGENT_THREAD_STATUS_EVENT_TYPE } from '@genfeedai/contracts/constants';
+import {
+  AGENT_THREAD_ACCESS_REVOKED_EVENT_TYPE,
+  AGENT_THREAD_STATUS_EVENT_TYPE,
+} from '@genfeedai/contracts/constants';
 import type { AgentThreadStatusEvent } from '@genfeedai/contracts/interfaces';
 import { act, renderHook } from '@testing-library/react';
 import {
@@ -73,6 +76,15 @@ const push = (event: AgentThreadStatusEvent) =>
   act(() => {
     socket.handlers.get(AGENT_THREAD_STATUS_EVENT_TYPE)?.(event);
   });
+const revoke = (threadId: string) =>
+  act(() => {
+    socket.handlers.get(AGENT_THREAD_ACCESS_REVOKED_EVENT_TYPE)?.({
+      organizationId: 'org-1',
+      threadId,
+      timestamp: '2026-11-11T08:01:00.000Z',
+      userId: 'user-1',
+    });
+  });
 const row = (id: string) =>
   useAgentChatStore.getState().threads.find((item) => item.id === id);
 
@@ -114,11 +126,35 @@ describe('useAgentThreadStatusPush', () => {
   it('subscribes once for the session, not once per thread', () => {
     mount();
 
-    expect(socket.subscribe).toHaveBeenCalledTimes(1);
-    expect(socket.subscribe).toHaveBeenCalledWith(
+    expect(socket.subscribe.mock.calls.map(([event]) => event)).toEqual([
       AGENT_THREAD_STATUS_EVENT_TYPE,
-      expect.any(Function),
+      AGENT_THREAD_ACCESS_REVOKED_EVENT_TYPE,
+    ]);
+  });
+
+  it('drops a thread whose share was removed and closes it when it is open', () => {
+    mount();
+    useAgentChatStore.getState().setActiveThread('a');
+
+    revoke('a');
+
+    expect(useAgentChatStore.getState().threads.map((item) => item.id)).toEqual(
+      ['b'],
     );
+    expect(useAgentChatStore.getState().activeThreadId).toBeNull();
+    expect(reloadThreads).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the open thread alone when another thread is revoked', () => {
+    mount();
+    useAgentChatStore.getState().setActiveThread('a');
+
+    revoke('b');
+
+    expect(useAgentChatStore.getState().threads.map((item) => item.id)).toEqual(
+      ['a'],
+    );
+    expect(useAgentChatStore.getState().activeThreadId).toBe('a');
   });
 
   it('does not subscribe while the sidebar is inactive, and unsubscribes on unmount', () => {
@@ -127,7 +163,7 @@ describe('useAgentThreadStatusPush', () => {
     unmount();
 
     const active = mount();
-    expect(socket.handlers.size).toBe(1);
+    expect(socket.handlers.size).toBe(2);
     active.unmount();
     expect(socket.handlers.size).toBe(0);
   });
