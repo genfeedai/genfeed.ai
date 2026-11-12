@@ -431,13 +431,13 @@ describe('OAuthConsentPage', () => {
   });
 
   it.each<[string, string | null, boolean]>([
-    ['https://mcp.genfeed.ai/mcp', null, true],
-    ['https://mcp.genfeed.ai/mcp', '', true],
-    ['https://mcp.genfeed.ai/mcp', API_KEY_SCOPE_PRESETS.mcp.join(' '), true],
-    ['https://mcp.genfeed.ai/mcp', 'videos:read', false],
+    ['https://mcp.genfeed.ai/mcp', null, false],
+    ['https://mcp.genfeed.ai/mcp', API_KEY_SCOPE_PRESETS.mcp.join(' '), false],
     ['https://mcp.genfeed.ai/mcp/claude', null, false],
+    ['https://mcp.genfeed.ai/mcp/admin', null, true],
+    ['https://mcp.genfeed.ai/mcp/admin', 'videos:read', true],
   ])(
-    'discloses admin access for the full standard grant (%s, %s)',
+    'discloses admin access only on the admin endpoint (%s, %s)',
     async (resource, scope, expected) => {
       const params = oauthParams({ resource });
       if (scope === null) {
@@ -453,25 +453,11 @@ describe('OAuthConsentPage', () => {
       const notice = screen.queryByText(/approve its own queued actions/);
       if (expected) {
         expect(notice).toBeInTheDocument();
-        expect(screen.getByText('Videos')).toBeInTheDocument();
       } else {
         expect(notice).not.toBeInTheDocument();
       }
     },
   );
-
-  it('drops the admin notice once the connection is limited to one brand', async () => {
-    findOrganizationBrandsMock.mockResolvedValue([
-      { id: 'brand-1', label: 'First brand' },
-    ]);
-    render(<OAuthConsentPage />);
-    fireEvent.change(await screen.findByLabelText('Brand'), {
-      target: { value: 'brand-1' },
-    });
-    expect(
-      screen.queryByText(/approve its own queued actions/),
-    ).not.toBeInTheDocument();
-  });
 
   it.each<[string, boolean]>([
     ['Authorize', true],

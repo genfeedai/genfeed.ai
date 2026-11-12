@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ADMIN_MCP_TOOL_NAMES,
   CLAUDE_MCP_AGENT_TOOL_NAMES,
   CLAUDE_MCP_TOOL_NAMES,
   isToolAllowedInMcpAccessMode,
@@ -118,5 +119,54 @@ describe('Claude MCP access policy', () => {
     ]) {
       expect(CLAUDE_MCP_AGENT_TOOL_NAMES.has(name)).toBe(true);
     }
+  });
+});
+
+describe('Admin MCP access policy', () => {
+  it('lists exactly the admin-gated MCP tools', () => {
+    expect([...ADMIN_MCP_TOOL_NAMES].sort()).toEqual(
+      getToolsForSurface('mcp')
+        .filter((tool) => tool.requiredRole !== 'user')
+        .map((tool) => tool.name)
+        .sort(),
+    );
+    expect(ADMIN_MCP_TOOL_NAMES.has('resolve_approval')).toBe(true);
+    expect(ADMIN_MCP_TOOL_NAMES.has('create_brand_from_url')).toBe(true);
+  });
+
+  it('keeps admin tools off the standard and Claude endpoints', () => {
+    for (const name of ADMIN_MCP_TOOL_NAMES) {
+      expect(isToolAllowedInMcpAccessMode('standard', name), name).toBe(false);
+      expect(isToolAllowedInMcpAccessMode('claude', name), name).toBe(false);
+      expect(isToolAllowedInMcpAccessMode('admin', name), name).toBe(true);
+    }
+  });
+
+  it('leaves every other tool available on standard and admin', () => {
+    for (const tool of getToolsForSurface('mcp')) {
+      if (ADMIN_MCP_TOOL_NAMES.has(tool.name)) continue;
+      expect(isToolAllowedInMcpAccessMode('standard', tool.name)).toBe(true);
+      expect(isToolAllowedInMcpAccessMode('admin', tool.name)).toBe(true);
+    }
+  });
+
+  it('does not restrict the in-app agent surface on standard', () => {
+    expect(
+      isToolAllowedInMcpAccessMode(
+        'standard',
+        'create_brand_from_url',
+        'agent',
+      ),
+    ).toBe(true);
+  });
+
+  it('keeps admin only when every mode is admin', () => {
+    expect(parseMcpAccessMode('admin')).toBe('admin');
+    expect(mostRestrictiveMcpAccessMode('admin', 'admin')).toBe('admin');
+    expect(mostRestrictiveMcpAccessMode(undefined, 'admin')).toBe('admin');
+    expect(mostRestrictiveMcpAccessMode('admin', 'standard')).toBe('standard');
+    expect(mostRestrictiveMcpAccessMode('standard', 'admin')).toBe('standard');
+    expect(mostRestrictiveMcpAccessMode('admin', 'claude')).toBe('claude');
+    expect(mostRestrictiveMcpAccessMode(undefined)).toBe('standard');
   });
 });

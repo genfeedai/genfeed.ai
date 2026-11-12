@@ -58,6 +58,9 @@ describe('native MCP untrusted-result integration', () => {
       client as unknown as ClientService,
       logger as unknown as LoggerService,
       'superadmin',
+      [],
+      undefined,
+      'admin',
     );
   beforeEach(() => {
     vi.clearAllMocks();

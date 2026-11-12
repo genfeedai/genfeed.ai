@@ -96,6 +96,9 @@ function build() {
     client as unknown as ClientService,
     logger as unknown as LoggerService,
     'superadmin',
+    [],
+    undefined,
+    'admin',
   );
 }
 

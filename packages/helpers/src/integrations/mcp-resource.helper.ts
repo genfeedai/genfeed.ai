@@ -1,6 +1,6 @@
 import type { McpResourceIdentifierResolution } from '@genfeedai/contracts/interfaces';
 
-const MCP_PATH_SUFFIX_PATTERN = /\/mcp(?:\/claude)?\/*$/i;
+const MCP_PATH_SUFFIX_PATTERN = /\/mcp(?:\/claude|\/admin)?\/*$/i;
 
 /**
  * Environment variables consulted, in order, for the public MCP URL. The
@@ -26,13 +26,26 @@ export function deriveClaudeMcpResourceIdentifier(
   return `${deriveMcpResourceIdentifier(url.toString())}/claude`;
 }
 
+/** The staff endpoint: admin tools, served only to `@genfeed.ai` owners and admins. */
+export function deriveAdminMcpResourceIdentifier(
+  standardResource: string,
+): string {
+  const url = new URL(standardResource);
+  url.search = '';
+  url.hash = '';
+  url.pathname = url.pathname.replace(MCP_PATH_SUFFIX_PATTERN, '/mcp');
+  return `${deriveMcpResourceIdentifier(url.toString())}/admin`;
+}
+
 export function resolveMcpAccessModeForResource(
   resource: string,
-): 'standard' | 'claude' {
+): 'standard' | 'claude' | 'admin' {
   try {
-    return new URL(resource).pathname.endsWith('/mcp/claude')
-      ? 'claude'
-      : 'standard';
+    const { pathname } = new URL(resource);
+    if (pathname.endsWith('/mcp/claude')) {
+      return 'claude';
+    }
+    return pathname.endsWith('/mcp/admin') ? 'admin' : 'standard';
   } catch {
     return 'claude';
   }

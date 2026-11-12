@@ -8,7 +8,11 @@ import {
 import { canonicalizeRequestedMcpResource } from '@api/oauth/oauth-metadata.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { mostRestrictiveMcpAccessMode } from '@genfeedai/actions';
-import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
+import {
+  ActionOrigin,
+  ApiKeyCategory,
+  ApiKeyScope,
+} from '@genfeedai/contracts';
 import {
   MCP_CLAUDE_SCOPE_CEILING,
   readApiKeyAllowedBrandIds,
@@ -166,6 +170,19 @@ export class OAuthRefreshTokenService {
         throw oauthError('invalid_scope', 'No supported scopes remain');
       }
     }
+    // Only the admin endpoint carries `admin`. A session consented on `/mcp`
+    // before that scope moved there loses it on its next refresh and keeps
+    // everything else; reconnecting through the admin endpoint restores it.
+    const grantedScopes =
+      accessMode === 'admin'
+        ? record.scopes
+        : record.scopes.filter((scope) => scope !== ApiKeyScope.ADMIN);
+    if (accessMode !== 'admin') {
+      scopes = scopes.filter((scope) => scope !== ApiKeyScope.ADMIN);
+      if (scopes.length === 0) {
+        throw oauthError('invalid_scope', 'No supported scopes remain');
+      }
+    }
 
     // Single-use claim. Losing this race means another request presented the
     // same token concurrently, which is the same compromise the `consumedAt`
@@ -225,7 +242,7 @@ export class OAuthRefreshTokenService {
         clientId: record.clientId,
         organizationId: record.organizationId,
         resource: record.resource,
-        scopes: record.scopes,
+        scopes: grantedScopes,
         userId: record.userId,
       });
     } catch (error) {

@@ -34,7 +34,13 @@ const allowed: RateLimitResult = {
   resetAt: 1234567890,
   retryAfterSeconds: 0,
 };
-const routes = ['/mcp', '/mcp/claude'];
+const routes = ['/mcp', '/mcp/claude', '/mcp/admin'];
+
+function modeFor(route: string): 'admin' | 'claude' | 'standard' {
+  if (route === '/mcp/claude') return 'claude';
+  return route === '/mcp/admin' ? 'admin' : 'standard';
+}
+
 const methods = ['POST', 'GET', 'DELETE'];
 const cases = routes.flatMap((route) =>
   methods.map((method) => [route, method]),
@@ -243,7 +249,7 @@ describe('createMcpAuthMiddleware mounted HTTP boundary', () => {
           async (route, method) => {
             result = {
               ...identity,
-              accessMode: route === '/mcp/claude' ? 'claude' : 'standard',
+              accessMode: modeFor(route),
               isRateLimited,
               isUnavailable,
               retryAfterSeconds: 37,
@@ -275,9 +281,7 @@ describe('createMcpAuthMiddleware mounted HTTP boundary', () => {
               rejected();
               expect(response.headers.get('www-authenticate')).toBe(
                 status === 401
-                  ? getMcpWwwAuthenticateHeader(
-                      route === '/mcp/claude' ? 'claude' : 'standard',
-                    )
+                  ? getMcpWwwAuthenticateHeader(modeFor(route))
                   : null,
               );
               if (status === 503) {
@@ -325,6 +329,48 @@ describe('createMcpAuthMiddleware mounted HTTP boundary', () => {
     expect(downstream).toHaveBeenCalledTimes(1);
     expect(authenticateRequest).toHaveBeenCalledTimes(2);
     expect(consume).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects a standard identity on the admin connector', async () => {
+    result = { ...identity, accessMode: 'standard' };
+    const response = await request('/mcp/admin');
+    expect(response.status).toBe(401);
+    expect(response.headers.get('www-authenticate')).toBe(
+      getMcpWwwAuthenticateHeader('admin'),
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      error: {
+        code: -32001,
+        message:
+          'Authorize the admin connector with its own browser OAuth connection, signed in as a Genfeed staff owner or admin. Existing standard tokens and manual API keys cannot be used here.',
+      },
+    });
+    rejected();
+  });
+
+  it('rejects a Claude identity on the admin connector', async () => {
+    result = { ...identity, accessMode: 'claude' };
+    const response = await request('/mcp/admin');
+    expect(response.status).toBe(401);
+    rejected();
+  });
+
+  it('rejects an admin identity on the standard and Claude connectors', async () => {
+    result = { ...identity, accessMode: 'admin' };
+    for (const route of ['/mcp', '/mcp/claude']) {
+      const response = await request(route);
+      expect(response.status, route).toBe(401);
+    }
+    expect(downstream).not.toHaveBeenCalled();
+  });
+
+  it('serves an admin identity on the admin connector', async () => {
+    result = { ...identity, accessMode: 'admin' };
+    const response = await request('/mcp/admin');
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      authContext: { accessMode: 'admin', role: 'admin' },
+    });
   });
 
   it('rejects a standard identity on the Claude connector', async () => {
@@ -389,9 +435,7 @@ describe('createMcpAuthMiddleware mounted HTTP boundary', () => {
       const response = await request(route, method, null);
       expect(response.status).toBe(401);
       expect(response.headers.get('www-authenticate')).toBe(
-        getMcpWwwAuthenticateHeader(
-          route === '/mcp/claude' ? 'claude' : 'standard',
-        ),
+        getMcpWwwAuthenticateHeader(modeFor(route)),
       );
       await expect(response.json()).resolves.toMatchObject({
         error: { code: -32001, data: { code: 'unauthorized' } },
@@ -500,7 +544,9 @@ describe('production authentication wiring', () => {
           `streamableHttpService.handle${method[0]?.toUpperCase()}${method.slice(1)}`,
         ),
       );
-      expect(registration).toMatch(/\['\/mcp', '\/mcp\/claude'\]/);
+      expect(registration).toMatch(
+        /\['\/mcp', '\/mcp\/claude', '\/mcp\/admin'\]/,
+      );
       expect(registration).toMatch(
         /mcpAccessModeMiddleware,\s*toolsetsQueryMiddleware,\s*mcpAuthMiddleware,/,
       );

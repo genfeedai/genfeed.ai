@@ -1,6 +1,7 @@
 import { JWT_BEARER_GRANT_TYPE } from '@api/oauth/enterprise-managed-auth.constants';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import {
+  deriveAdminMcpResourceIdentifier,
   deriveClaudeMcpResourceIdentifier,
   resolveMcpResourceIdentifier,
 } from '@genfeedai/helpers/integrations/mcp-resource.helper';
@@ -97,7 +98,9 @@ export function canonicalizeRequestedMcpResource(resource: string): string {
 
 /**
  * The canonical MCP resource a client named, or `undefined` when it is not one
- * this server protects (the standard MCP endpoint or its Claude variant).
+ * this server protects (the standard MCP endpoint, its Claude variant or the
+ * staff admin endpoint). The admin endpoint is not listed in the
+ * authorization-server metadata: it is for staff, not for discovery.
  */
 export function resolveAdvertisedMcpResource(
   configService: Pick<ConfigService, 'get'>,
@@ -106,7 +109,8 @@ export function resolveAdvertisedMcpResource(
   const resource = canonicalizeRequestedMcpResource(requested);
   const standard = resolveMcpResourceUrl(configService);
   return resource === standard ||
-    resource === deriveClaudeMcpResourceIdentifier(standard)
+    resource === deriveClaudeMcpResourceIdentifier(standard) ||
+    resource === deriveAdminMcpResourceIdentifier(standard)
     ? resource
     : undefined;
 }

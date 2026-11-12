@@ -53,6 +53,9 @@ function build(role: 'user' | 'admin') {
     client as unknown as ClientService,
     logger as unknown as LoggerService,
     role,
+    [],
+    undefined,
+    role === 'user' ? 'standard' : 'admin',
   );
   return { client, registry };
 }

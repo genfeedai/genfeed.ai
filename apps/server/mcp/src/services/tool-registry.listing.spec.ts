@@ -72,6 +72,7 @@ vi.mock('@genfeedai/actions', async (importOriginal) => {
 function build(
   role: 'user' | 'admin' | 'superadmin',
   toolsets: ToolsetName[] = [],
+  accessMode: 'standard' | 'admin' = role === 'user' ? 'standard' : 'admin',
 ) {
   const logger = {
     debug: vi.fn(),
@@ -84,6 +85,8 @@ function build(
     logger as unknown as LoggerService,
     role,
     toolsets,
+    undefined,
+    accessMode,
   );
 }
 
@@ -134,10 +137,21 @@ describe('ToolRegistryService listing filters by the caller role', () => {
   });
 
   it('getAllTools returns the unfiltered surface for internal checks', () => {
-    expect(names(build('user').getAllTools())).toEqual([
+    expect(names(build('user', [], 'admin').getAllTools())).toEqual([
       'admin_scoped_tool',
       'get_posts',
       'resolve_approval',
+    ]);
+  });
+
+  it('never lists admin-gated tool names on the standard endpoint, whatever the role', () => {
+    expect(names(build('superadmin', [], 'standard').getAllTools())).toEqual([
+      'admin_scoped_tool',
+      'get_posts',
+    ]);
+    expect(names(build('superadmin', [], 'standard').getTools())).toEqual([
+      'admin_scoped_tool',
+      'get_posts',
     ]);
   });
 });

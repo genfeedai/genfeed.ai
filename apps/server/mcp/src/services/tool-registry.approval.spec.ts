@@ -163,6 +163,9 @@ function build() {
     client as unknown as ClientService,
     logger as unknown as LoggerService,
     'admin',
+    [],
+    undefined,
+    'admin',
   );
   return { client, registry };
 }

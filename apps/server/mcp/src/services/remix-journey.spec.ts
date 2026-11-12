@@ -358,7 +358,14 @@ function build() {
     { axiosRef: { create: () => api.http } } as never,
     { get: () => undefined } as never,
   );
-  const registry = new ToolRegistryService(client, logger, 'admin');
+  const registry = new ToolRegistryService(
+    client,
+    logger,
+    'admin',
+    [],
+    undefined,
+    'admin',
+  );
   type Result = {
     isError?: boolean;
     content: { text: string }[];

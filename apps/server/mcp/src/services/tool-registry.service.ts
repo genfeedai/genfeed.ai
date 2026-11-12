@@ -1,4 +1,6 @@
 import {
+  ADMIN_MCP_TOOL_NAMES,
+  type CanonicalToolDefinition,
   getMcpCatalogOperations,
   getToolByName,
   getToolsetNames,
@@ -235,6 +237,26 @@ type ExecutorKind =
   | 'skills-pro'
   | 'unknown';
 
+/**
+ * The admin endpoint always lists the admin-gated tools, whichever toolsets
+ * the URL selects, so an owner never has to know which toolset carries them.
+ */
+function withAdminTools(
+  accessMode: McpAccessMode,
+  selected: CanonicalToolDefinition[],
+): CanonicalToolDefinition[] {
+  if (accessMode !== 'admin') {
+    return selected;
+  }
+  const listed = new Set(selected.map((tool) => tool.name));
+  return [
+    ...selected,
+    ...getToolsForSurface('mcp').filter(
+      (tool) => ADMIN_MCP_TOOL_NAMES.has(tool.name) && !listed.has(tool.name),
+    ),
+  ];
+}
+
 @Injectable()
 export class ToolRegistryService implements OnModuleInit {
   /**
@@ -332,7 +354,7 @@ export class ToolRegistryService implements OnModuleInit {
       toMcpTools(
         accessMode === 'claude'
           ? getToolsForSurface('mcp')
-          : getToolsForToolsets('mcp', toolsets),
+          : withAdminTools(accessMode, getToolsForToolsets('mcp', toolsets)),
       )
         .filter((tool) => isToolAllowedInMcpAccessMode(accessMode, tool.name))
         .map(withCardMetadata),

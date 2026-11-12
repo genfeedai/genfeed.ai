@@ -26,6 +26,24 @@ export const MCP_SERVER_INSTRUCTIONS = [
   'Discovery does not load tools into the client. If a tool is listed by the connection but missing in the client, refresh its MCP tool list or reconnect to the same server URL. Do not reinstall or broaden permissions to repair a stale tool list.',
 ].join(' ');
 
+export function buildMcpServerInstructions(accessMode: McpAccessMode): string {
+  switch (accessMode) {
+    case 'claude':
+      return buildClaudeMcpServerInstructions();
+    case 'admin':
+      return buildAdminMcpServerInstructions();
+    default:
+      return MCP_SERVER_INSTRUCTIONS;
+  }
+}
+
+function buildAdminMcpServerInstructions(): string {
+  return [
+    MCP_SERVER_INSTRUCTIONS,
+    'This is the Genfeed staff admin connection: it also lists the admin-only tools, for organization owners and admins.',
+  ].join(' ');
+}
+
 export function buildClaudeMcpServerInstructions(): string {
   return [
     'Genfeed connects Claude to brands, drafts, scheduling and analytics.',

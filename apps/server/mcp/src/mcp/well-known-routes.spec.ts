@@ -170,4 +170,18 @@ describe('registerWellKnownRoutes', () => {
         .toString(),
     ).toBe('wOF2');
   });
+
+  it('serves the admin endpoint its own protected-resource metadata', async () => {
+    vi.stubEnv('GENFEEDAI_MCP_PUBLIC_URL', 'https://mcp.genfeed.ai');
+    ({ baseUrl, server } = await listen());
+
+    const response = await fetch(
+      `${baseUrl}/.well-known/oauth-protected-resource/mcp/admin`,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      resource: 'https://mcp.genfeed.ai/mcp/admin',
+    });
+  });
 });

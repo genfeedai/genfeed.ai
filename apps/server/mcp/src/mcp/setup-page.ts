@@ -19,6 +19,7 @@ import {
   toDefaultStandardEndpoint,
 } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import {
+  deriveAdminMcpResourceIdentifier,
   deriveClaudeMcpResourceIdentifier,
   OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH,
   resolveMcpResourceIdentifier,
@@ -257,6 +258,22 @@ function getPublicClaudeMcpUrl(): string {
   return deriveClaudeMcpResourceIdentifier(getPublicMcpUrl());
 }
 
+function getPublicAdminMcpUrl(): string {
+  return deriveAdminMcpResourceIdentifier(getPublicMcpUrl());
+}
+
+/** The identifier a route's access mode advertises and enforces. */
+function getPublicMcpUrlForMode(mode: McpAccessMode): string {
+  switch (mode) {
+    case 'claude':
+      return getPublicClaudeMcpUrl();
+    case 'admin':
+      return getPublicAdminMcpUrl();
+    default:
+      return getPublicMcpUrl();
+  }
+}
+
 function getOAuthIssuerUrl(): string {
   return readFirstPublicUrl(
     ['GENFEEDAI_API_PUBLIC_URL', 'GENFEEDAI_API_URL'],
@@ -268,9 +285,9 @@ export function getPublicMcpResourceMetadataUrl(
   mode: McpAccessMode = 'standard',
 ): string {
   const path =
-    mode === 'claude'
-      ? `${OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH}${new URL(getPublicClaudeMcpUrl()).pathname}`
-      : OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH;
+    mode === 'standard'
+      ? OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH
+      : `${OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH}${new URL(getPublicMcpUrlForMode(mode)).pathname}`;
   return new URL(path, getPublicMcpUrl()).toString();
 }
 
@@ -288,7 +305,7 @@ export function getMcpProtectedResourceMetadata(
   return {
     authorization_servers: [getOAuthIssuerUrl()],
     bearer_methods_supported: ['header'],
-    resource: mode === 'claude' ? getPublicClaudeMcpUrl() : getPublicMcpUrl(),
+    resource: getPublicMcpUrlForMode(mode),
     resource_documentation: `${getPublicDocsUrl()}/api-reference/mcp`,
     resource_name: 'Genfeed',
     resource_policy_uri: `${getPublicWebsiteUrl()}/privacy`,
