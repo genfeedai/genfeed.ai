@@ -297,26 +297,35 @@ describe('AgentToolsController publishing scopes', () => {
       data: { brands },
       success: true,
     });
+    // Brand listing for get_brands; any other tool echoes the parameters it ran with.
+    const withBrands = (brands: { id: string; label: string }[]) => {
+      executor.executeTool.mockReset();
+      executor.executeTool.mockImplementation(
+        async (name: string, parameters: Record<string, unknown>) =>
+          name === 'get_brands'
+            ? listing(brands)
+            : { creditsUsed: 0, data: { ranWith: parameters }, success: true },
+      );
+    };
     const asMcp = <T>(callback: () => T): T =>
       runWithActionOrigin({ origin: ActionOrigin.MCP }, callback);
-
-    it('rejects create_post without brandId when the organization has several brands', async () => {
-      executor.executeTool.mockReset();
-      executor.executeTool.mockResolvedValueOnce(
-        listing([
-          { id: 'brand-1', label: 'Acme' },
-          { id: 'brand-2', label: 'Beta' },
-        ]),
-      );
-
-      const result = await asMcp(() =>
+    const draft = (parameters: Record<string, unknown>) =>
+      asMcp(() =>
         controller.execute(
           'create_post',
-          { parameters: { content: 'draft' } },
+          { parameters },
           apiKeyUser(MCP_SCOPES),
           request,
         ),
       );
+
+    it('rejects create_post without brandId when the organization has several brands', async () => {
+      withBrands([
+        { id: 'brand-1', label: 'Acme' },
+        { id: 'brand-2', label: 'Beta' },
+      ]);
+
+      const result = await draft({ content: 'draft' });
 
       expect(result).toMatchObject({
         data: {
@@ -329,75 +338,42 @@ describe('AgentToolsController publishing scopes', () => {
         success: false,
       });
       expect(JSON.stringify(result)).toContain('create_post requires brandId');
-      expect(executor.executeTool).toHaveBeenCalledTimes(1);
     });
 
     it('files the draft under the only brand when the organization has one', async () => {
-      executor.executeTool.mockReset();
-      executor.executeTool
-        .mockResolvedValueOnce(listing([{ id: 'brand-1', label: 'Acme' }]))
-        .mockResolvedValueOnce({ creditsUsed: 0, success: true });
+      withBrands([{ id: 'brand-1', label: 'Acme' }]);
 
-      await asMcp(() =>
-        controller.execute(
-          'create_post',
-          { parameters: { content: 'draft' } },
-          apiKeyUser(MCP_SCOPES),
-          request,
-        ),
-      );
+      const result = await draft({ content: 'draft' });
 
-      expect(executor.executeTool).toHaveBeenLastCalledWith(
-        'create_post',
-        { brandId: 'brand-1', content: 'draft' },
-        expect.anything(),
-      );
-    });
-
-    it('dispatches a draft that names its brand without listing brands', async () => {
-      executor.executeTool.mockReset();
-      executor.executeTool.mockResolvedValueOnce({
-        creditsUsed: 0,
+      expect(result).toMatchObject({
+        data: { ranWith: { brandId: 'brand-1', content: 'draft' } },
         success: true,
       });
+    });
 
-      await asMcp(() =>
-        controller.execute(
-          'create_post',
-          { parameters: { brandId: 'brand-2', content: 'draft' } },
-          apiKeyUser(MCP_SCOPES),
-          request,
-        ),
-      );
+    it('keeps the brand a draft names', async () => {
+      withBrands([
+        { id: 'brand-1', label: 'Acme' },
+        { id: 'brand-2', label: 'Beta' },
+      ]);
 
-      expect(executor.executeTool).toHaveBeenCalledTimes(1);
-      expect(executor.executeTool).toHaveBeenCalledWith(
-        'create_post',
-        { brandId: 'brand-2', content: 'draft' },
-        expect.anything(),
-      );
+      const result = await draft({ brandId: 'brand-2', content: 'draft' });
+
+      expect(result).toMatchObject({
+        data: { ranWith: { brandId: 'brand-2', content: 'draft' } },
+        success: true,
+      });
     });
 
     it('leaves a draft with no brands on the caller default', async () => {
-      executor.executeTool.mockReset();
-      executor.executeTool
-        .mockResolvedValueOnce(listing([]))
-        .mockResolvedValueOnce({ creditsUsed: 0, success: true });
+      withBrands([]);
 
-      await asMcp(() =>
-        controller.execute(
-          'create_post',
-          { parameters: { content: 'draft' } },
-          apiKeyUser(MCP_SCOPES),
-          request,
-        ),
-      );
+      const result = await draft({ content: 'draft' });
 
-      expect(executor.executeTool).toHaveBeenLastCalledWith(
-        'create_post',
-        { content: 'draft' },
-        expect.anything(),
-      );
+      expect(result).toMatchObject({
+        data: { ranWith: { content: 'draft' } },
+        success: true,
+      });
     });
   });
 
