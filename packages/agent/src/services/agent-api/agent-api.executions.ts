@@ -106,7 +106,7 @@ export async function cancelWorkflowExecution(
   signal?: AbortSignal,
 ): Promise<IWorkflowExecution> {
   return api.fetchResource<IWorkflowExecution>(
-    `${api.config.baseUrl}/workflow-executions/${executionId}`,
+    `${api.config.baseUrl}/agent/runs/${executionId}`,
     {
       body: JSON.stringify({ status: WorkflowExecutionStatus.CANCELLED }),
       method: 'PATCH',
