@@ -1,7 +1,7 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useCallback } from 'react';
+import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import { useCallback, useContext } from 'react';
 
 /** Pages listing more links than this prepare them on intent, not on view. */
 export const LONG_LINK_LIST_THRESHOLD = 20;
@@ -26,13 +26,16 @@ export interface PrefetchOnIntentProps {
 export function usePrefetchOnIntent(): (
   href: string | null | undefined,
 ) => PrefetchOnIntentProps {
-  const router = useRouter();
+  // Read from the context rather than `useRouter()`, which throws where no app
+  // router is mounted (shared components render in tests and stories). There,
+  // preparing a destination is simply skipped.
+  const router = useContext(AppRouterContext);
 
   return useCallback(
     (href) => {
       const prefetch = () => {
         if (href?.startsWith('/')) {
-          router.prefetch(href);
+          router?.prefetch(href);
         }
       };
 

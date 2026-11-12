@@ -1,10 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import Table from '@ui/display/table/Table';
+import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const router = vi.hoisted(() => ({ prefetch: vi.fn() }));
-
-vi.mock('next/navigation', () => ({ useRouter: () => router }));
+const router = { prefetch: vi.fn() };
 
 interface Row {
   id: string;
@@ -20,15 +20,17 @@ function buildRows(count: number): Row[] {
 
 function renderLinkedTable(rows: Row[]) {
   return render(
-    <Table
-      columns={[{ header: 'Name', key: 'name' }]}
-      getRowKey={(item) => item.id}
-      getRowLink={(item) => ({
-        href: `/items/${item.id}`,
-        label: `Open ${item.name}`,
-      })}
-      items={rows}
-    />,
+    <AppRouterContext.Provider value={router as unknown as AppRouterInstance}>
+      <Table
+        columns={[{ header: 'Name', key: 'name' }]}
+        getRowKey={(item) => item.id}
+        getRowLink={(item) => ({
+          href: `/items/${item.id}`,
+          label: `Open ${item.name}`,
+        })}
+        items={rows}
+      />
+    </AppRouterContext.Provider>,
   );
 }
 
