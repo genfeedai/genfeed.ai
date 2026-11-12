@@ -138,6 +138,10 @@ vi.mock('@/hooks/data/tasks/use-workspace-inbox-count', () => ({
   useWorkspaceInboxCount: () => 2,
 }));
 
+vi.mock('@/hooks/data/activities/use-unread-activity-count', () => ({
+  useUnreadActivityCount: () => 3,
+}));
+
 vi.mock('@/components/menus/item/MenuItem', () => ({
   default: ({
     badgeCount,
@@ -397,6 +401,20 @@ describe('MenuShared', () => {
       'data-active',
       'true',
     );
+  });
+
+  it('attaches the unread activity count to the activity row', () => {
+    const activityConfig: MenuShellConfig = {
+      items: [
+        { href: '/workspace/inbox', label: 'Inbox' },
+        { href: '/workspace/activity', label: 'Activity' },
+      ],
+      logoHref: '/',
+    };
+
+    render(<MenuShared config={activityConfig} />);
+
+    expect(screen.getByText('Activity (3)')).toBeInTheDocument();
   });
 
   it('attaches the unread workspace task count to the inbox row', () => {

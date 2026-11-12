@@ -53,20 +53,16 @@ export class ActivitiesController {
     private readonly activitiesService: ActivitiesService,
   ) {}
 
-  @Get()
-  // Members list activities scoped by brand/org (preferred over nested duals).
-  // Superadmins without filters still see all non-deleted activities.
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findAll(
-    @Req() request: Request,
-    @Query() query: ActivitiesQueryDto,
-    @CurrentUser() user: User,
-  ): Promise<JsonApiCollectionResponse> {
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-
+  /** The list's tenant boundary, shared by the page and the unread count. */
+  private buildListScope(
+    request: Request,
+    query: ActivitiesQueryDto,
+    user: User,
+  ): {
+    aggregate: { where: Record<string, unknown>; orderBy: SortObject };
+    isCrossTenantList: boolean;
+    isSuperAdmin: boolean;
+  } {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const where: Record<string, unknown> = { isDeleted };
     const isSuperAdmin = getIsSuperAdmin(user, request);
@@ -137,30 +133,77 @@ export class ActivitiesController {
       }),
     );
 
-    const aggregate = {
-      where,
-      orderBy: query.sort
-        ? handleQuerySort(query.sort)
-        : ({ createdAt: -1, key: 1 } as SortObject),
-    };
-
     // A superadmin list that is not pinned to the active organization (no
     // filter, a brand-only filter, or another organization) is cross-tenant.
     const isCrossTenantList =
       isSuperAdmin &&
       Boolean(user.organizationId) &&
       where.organizationId !== user.organizationId;
-    const data: AggregatePaginateResult<ActivityDocument> = isCrossTenantList
-      ? await crossOrgUnsafe(
-          async () => await this.activitiesService.findAll(aggregate, options),
-        )
-      : await this.activitiesService.findAll(aggregate, options);
-    if (isSuperAdmin) {
-      data.docs = await this.activitiesService.attachOrganizationLabels(
-        data.docs,
-      );
-    }
+
+    return {
+      aggregate: {
+        orderBy: query.sort
+          ? handleQuerySort(query.sort)
+          : ({ createdAt: -1, key: 1 } as SortObject),
+        where,
+      },
+      isCrossTenantList,
+      isSuperAdmin,
+    };
+  }
+
+  @Get()
+  // Members list activities scoped by brand/org (preferred over nested duals).
+  // Superadmins without filters still see all non-deleted activities.
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async findAll(
+    @Req() request: Request,
+    @Query() query: ActivitiesQueryDto,
+    @CurrentUser() user: User,
+  ): Promise<JsonApiCollectionResponse> {
+    const options = {
+      customLabels,
+      ...QueryDefaultsUtil.getPaginationDefaults(query),
+    };
+    const { aggregate, isCrossTenantList } = this.buildListScope(
+      request,
+      query,
+      user,
+    );
+    const load = async (): Promise<
+      AggregatePaginateResult<ActivityDocument>
+    > => {
+      const page = await this.activitiesService.findAll(aggregate, options);
+      page.docs = await this.activitiesService.attachDisplayContext(page.docs);
+      return page;
+    };
+    const data = isCrossTenantList ? await crossOrgUnsafe(load) : await load();
     return serializeCollection(request, ActivitySerializer, data);
+  }
+
+  /**
+   * How many activities in the same scope as the list are still unread, for
+   * the dot on the Activity menu item.
+   */
+  @Get('unread-count')
+  @LogMethod({ logEnd: false, logError: true, logStart: false })
+  async unreadCount(
+    @Req() request: Request,
+    @Query() query: ActivitiesQueryDto,
+    @CurrentUser() user: User,
+  ): Promise<{ unreadCount: number }> {
+    const { aggregate, isCrossTenantList } = this.buildListScope(
+      request,
+      query,
+      user,
+    );
+    const count = async () =>
+      await this.activitiesService.countUnread(aggregate.where);
+    return {
+      unreadCount: isCrossTenantList
+        ? await crossOrgUnsafe(count)
+        : await count(),
+    };
   }
 
   @Patch(':activityId')

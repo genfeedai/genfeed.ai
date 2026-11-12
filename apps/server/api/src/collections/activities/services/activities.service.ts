@@ -2,6 +2,10 @@ import { CreateActivityDto } from '@api/collections/activities/dto/create-activi
 import { UpdateActivityDto } from '@api/collections/activities/dto/update-activity.dto';
 import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import {
+  loadActivityNames,
+  loadBreakoutPreviews,
+} from '@api/collections/activities/utils/activity-display-context.util';
+import {
   type ActivityMutationInput,
   buildActivityMutation,
   normalizeActivityDocument,
@@ -64,38 +68,57 @@ export class ActivitiesService extends BaseService<
   }
 
   /**
-   * Attaches `organizationLabel` to a page of activities with one read-only
-   * lookup by id. Organization is not a tenant-scoped model, so this adds no
-   * scope bypass; callers gate it to superadmins, the only audience that sees
-   * rows from other organizations.
+   * Attaches the names an activity row needs so the UI never prints an id:
+   * `organizationLabel`, `brandLabel`, `userLabel`, and for a breakout offer
+   * the `preview` of the post itself. Each is one read by id for the whole
+   * page. Callers run it under the same tenant context as the list, so a
+   * member only ever resolves names inside their own scope.
    */
-  async attachOrganizationLabels(
+  async attachDisplayContext(
     activities: ActivityDocument[],
   ): Promise<ActivityDocument[]> {
-    const ids = [
-      ...new Set(
-        activities
-          .map((activity) => activity.organizationId)
-          .filter((id): id is string => Boolean(id)),
-      ),
-    ];
-    if (!ids.length) return activities;
-    const organizations = await this.prisma.organization.findMany({
-      select: { id: true, label: true },
-      where: { id: { in: ids } },
-    });
-    const labelById = new Map(
-      organizations.map((organization) => [
-        organization.id,
-        organization.label,
-      ]),
-    );
+    if (!activities.length) return activities;
+    const [names, previews] = await Promise.all([
+      loadActivityNames(this.prisma, activities),
+      loadBreakoutPreviews(this.prisma, activities),
+    ]);
     return activities.map((activity) => {
       const organizationLabel = activity.organizationId
-        ? labelById.get(activity.organizationId)
+        ? names.organizations.get(activity.organizationId)
         : undefined;
-      return organizationLabel ? { ...activity, organizationLabel } : activity;
+      const brandLabel = activity.brandId
+        ? names.brands.get(activity.brandId)
+        : undefined;
+      const userLabel = activity.userId
+        ? names.users.get(activity.userId)
+        : undefined;
+      const preview = previews.get(activity.id);
+      return {
+        ...activity,
+        ...(organizationLabel ? { organizationLabel } : {}),
+        ...(brandLabel ? { brandLabel } : {}),
+        ...(userLabel ? { userLabel } : {}),
+        ...(preview ? { preview } : {}),
+      };
     });
+  }
+
+  /**
+   * Unread rows in a scope: everything the scope lists minus the rows marked
+   * read. `isRead` lives in the `data` JSON and is absent on a never-opened
+   * row, so the read rows are the ones that can be matched directly.
+   */
+  async countUnread(where: Record<string, unknown>): Promise<number> {
+    const options = { limit: 1, page: 1 } as AggregationOptions;
+    const [all, read] = await Promise.all([
+      this.findAll({ where }, options, false),
+      this.findAll(
+        { where: { ...where, data: { equals: true, path: ['isRead'] } } },
+        options,
+        false,
+      ),
+    ]);
+    return Math.max(0, all.totalDocs - read.totalDocs);
   }
 
   async hydrateGenerationActivities(

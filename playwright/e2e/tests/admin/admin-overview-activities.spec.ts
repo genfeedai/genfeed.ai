@@ -157,6 +157,76 @@ test.describe('Admin Overview Activities', () => {
     await expect(panel.locator('video')).toHaveCount(1);
   });
 
+  test('names the user, organization and brand in the detail and keeps the ids behind technical details', async ({
+    adminPage,
+  }) => {
+    await adminPage.setViewportSize({ height: 900, width: 1440 });
+    const fulfill = async (route: Route): Promise<void> => {
+      if (route.request().method() !== 'GET') {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({
+        body: JSON.stringify({
+          data: [
+            {
+              attributes: {
+                brandId: 'brand-id-1',
+                brandLabel: 'Vincent Ships It',
+                createdAt: '2026-11-09T12:01:20.000Z',
+                entityId: 'response-id-1',
+                entityModel: 'BreakoutResponse',
+                isRead: false,
+                key: ActivityKey.BREAKOUT_REMIX_OFFERED,
+                organizationId: 'org-id-1',
+                organizationLabel: 'Genfeed.Ai',
+                origin: 'workflow',
+                preview: {
+                  authorHandle: 'vincentshipsit',
+                  authorName: 'Vincent Ships It',
+                  kind: 'post',
+                  platform: 'twitter',
+                  text: 'Is AI not supposed to use all of the water on Earth??',
+                  url: 'https://x.com/vincentshipsit/status/1990',
+                },
+                source: 'breakout-detection',
+                userId: 'user-id-1',
+                userLabel: 'Vincent',
+                value: 'A post is outperforming your usual X posts',
+              },
+              id: 'activity-breakout',
+              type: 'activities',
+            },
+          ],
+          meta: { page: 1, pageSize: 20, totalCount: 1 },
+        }),
+        contentType: 'application/json',
+        status: 200,
+      });
+    };
+    await adminPage.route('**/api.genfeed.ai/v1/activities**', fulfill);
+    await adminPage.route('**/v1/activities**', fulfill);
+
+    await adminPage.goto(APP_ROUTES.ADMIN.OVERVIEW.ACTIVITIES, {
+      waitUntil: 'domcontentloaded',
+    });
+    await adminPage
+      .getByText('A post is breaking out. Remix it')
+      .first()
+      .click();
+
+    const panel = adminPage.getByTestId('activity-detail-panel');
+    await expect(panel.getByText('Breakout detection')).toBeVisible();
+    await expect(panel.getByText('Breakout response')).toBeVisible();
+    await expect(panel.getByTestId('activity-post-preview')).toContainText(
+      'Is AI not supposed to use all of the water on Earth??',
+    );
+    await expect(panel.getByText('org-id-1')).toHaveCount(0);
+
+    await panel.getByText('Technical details').click();
+    await expect(panel.getByText('org-id-1')).toBeVisible();
+  });
+
   test('reads time first, grouped by day, with the organization and plain audit labels', async ({
     adminPage,
   }) => {
