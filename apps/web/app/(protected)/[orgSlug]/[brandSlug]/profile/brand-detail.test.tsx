@@ -25,7 +25,6 @@ const mocks = vi.hoisted(() => ({
 
 function createBrandDetailState(overrides: Record<string, unknown> = {}) {
   return {
-    articles: [{ id: 'article-1', title: 'Latest article' }],
     brand: {
       defaultImageModel: 'imagen-fast',
       description: 'Brand detail description',
@@ -47,7 +46,7 @@ function createBrandDetailState(overrides: Record<string, unknown> = {}) {
     handleRequestDeleteReference: mocks.handleRequestDeleteReference,
     handleUpdateAccount: mocks.handleUpdateAccount,
     hasBrandId: true,
-    images: [{ id: 'image-1' }],
+    posts: [{ id: 'post-1' }, { id: 'post-2' }],
     isGeneratingBanner: false,
     isGeneratingLogo: false,
     isLoading: false,
@@ -71,7 +70,6 @@ function createBrandDetailState(overrides: Record<string, unknown> = {}) {
         url: 'https://x.com/brand',
       },
     ],
-    videos: [{ id: 'video-1' }],
     ...overrides,
   };
 }
@@ -94,6 +92,7 @@ vi.mock('@hooks/data/elements/use-elements/use-elements', () => ({
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
     apps: {
+      app: 'https://app.genfeed.test',
       website: 'https://genfeed.test',
     },
   },
@@ -179,22 +178,29 @@ vi.mock('@/features/brands/components/overview/BrandDetailOverview', () => ({
   ),
 }));
 
-vi.mock('./BrandDetailLatestArticles', () => ({
-  default: ({ articles }: { articles?: Array<unknown> }) => (
-    <div>Articles {articles?.length ?? 0}</div>
+vi.mock('./BrandDetailPublicPosts', () => ({
+  default: ({
+    createHref,
+    posts,
+    publicHandle,
+  }: {
+    createHref?: string;
+    posts: Array<unknown>;
+    publicHandle?: string;
+  }) => (
+    <div>
+      Public posts {posts.length} at {publicHandle ?? 'no handle'} create{' '}
+      {createHref ?? 'none'}
+    </div>
   ),
 }));
 
-vi.mock('./BrandDetailLatestImages', () => ({
-  default: ({ images }: { images?: Array<unknown> }) => (
-    <div>Images {images?.length ?? 0}</div>
-  ),
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme${path}` }),
 }));
 
-vi.mock('./BrandDetailLatestVideos', () => ({
-  default: ({ videos }: { videos?: Array<unknown> }) => (
-    <div>Videos {videos?.length ?? 0}</div>
-  ),
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useIsAppAvailable: () => true,
 }));
 
 vi.mock(
@@ -297,9 +303,12 @@ describe('BrandDetail', () => {
     expect(screen.getByText('Banner')).toBeInTheDocument();
     expect(screen.getByText('Profile')).toBeInTheDocument();
     expect(screen.getByText('Sidebar')).toBeInTheDocument();
-    expect(screen.getByText('Videos 1')).toBeInTheDocument();
-    expect(screen.getByText('Images 1')).toBeInTheDocument();
-    expect(screen.getByText('Articles 1')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Public posts 2 at brand-handle create https://app.genfeed.test/acme/agent/new',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Latest (Videos|Images|Articles)/)).toBeNull();
     expect(screen.queryByText('Brand Kit Review')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Edit Brand' }),

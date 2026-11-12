@@ -6,10 +6,10 @@ import type {
 } from '@genfeedai/contracts/constants';
 import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
 import type { ICreatorTipTarget } from '@genfeedai/contracts/interfaces/billing';
+import type { CreatorPostMediaItem } from '@genfeedai/helpers/content/public-post.helper';
 import type { Article } from '@models/content/article.model';
 import type { Post } from '@models/content/post.model';
 import type { Brand } from '@models/organization/brand.model';
-import type { CreatorPostMediaItem } from '@web-components/creator/post-media';
 import type { ReactNode } from 'react';
 
 export interface CopyLinkButtonProps {

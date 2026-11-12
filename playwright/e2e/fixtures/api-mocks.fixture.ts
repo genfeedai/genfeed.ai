@@ -3768,6 +3768,14 @@ export async function mockBrandIdentityDefaults(page: Page): Promise<{
     });
   });
 
+  await routeApiPattern(page, '/public/posts**', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ data: [], meta: { totalCount: 0 } }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
   return { avatars };
 }
 

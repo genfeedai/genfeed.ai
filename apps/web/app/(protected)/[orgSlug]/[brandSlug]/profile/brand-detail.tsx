@@ -14,6 +14,7 @@ import { isPublicAssetScope } from '@genfeedai/helpers';
 import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { EnvironmentService } from '@services/core/environment.service';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
@@ -23,17 +24,16 @@ import {
   LazyModalBrandGenerate,
   LazyModalBrandLink,
 } from '@/components/lazy/modal/LazyModal';
+import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import BrandDetailBanner from '@/features/brands/components/banner/BrandDetailBanner';
 import BrandDetailSidebar from '@/features/brands/components/detail-sidebar/BrandDetailSidebar';
 import BrandDetailOverview from '@/features/brands/components/overview/BrandDetailOverview';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
-import BrandDetailLatestArticles from './BrandDetailLatestArticles';
-import BrandDetailLatestImages from './BrandDetailLatestImages';
-import BrandDetailLatestVideos from './BrandDetailLatestVideos';
+import BrandDetailPublicPosts from './BrandDetailPublicPosts';
 
 /**
  * Brand public profile surface — banner, logo, name/description, visibility,
- * external links (inline + modal), and latest public content.
+ * external links (inline + modal), and public posts with their performance.
  * OAuth accounts live on Connectors → Channels.
  */
 export default function BrandDetail() {
@@ -42,9 +42,7 @@ export default function BrandDetail() {
     hasBrandId,
     isLoading,
     brandId,
-    videos,
-    images,
-    articles,
+    posts,
     links,
     selectedLink,
     isGeneratingBanner,
@@ -64,6 +62,7 @@ export default function BrandDetail() {
     selectLink,
   } = useBrandDetail();
 
+  const { href } = useOrgUrl();
   const params = useRouteParams();
   const orgSlug = typeof params?.orgSlug === 'string' ? params.orgSlug : '';
   const manageSocialHref =
@@ -112,14 +111,20 @@ export default function BrandDetail() {
   };
 
   const isPublicProfile = isPublicAssetScope(brand?.scope);
-  // Mirrors what genfeed.ai serves: a public brand's articles at its handle,
+  // Mirrors what genfeed.ai serves: a public brand's posts at its handle,
   // Genfeed's own organization at @genfeedai.
-  const articlesPublicHandle =
+  const publicHandle =
     isPublicProfile && brand?.slug
       ? brand.slug
       : orgSlug === PUBLIC_ARTICLES_ORGANIZATION_SLUG
         ? GENFEED_BRAND_HANDLE
         : undefined;
+
+  // One-off generation is Agent-first: Studio has no media prompt bar.
+  const isAgentAvailable = useIsAppAvailable('agent');
+  const createPostHref = isAgentAvailable
+    ? `${EnvironmentService.apps.app}${href(APP_ROUTES.AGENT.NEW)}`
+    : undefined;
 
   if (!hasBrandId) {
     return (
@@ -173,11 +178,10 @@ export default function BrandDetail() {
                 }
               />
 
-              <BrandDetailLatestVideos videos={videos} />
-              <BrandDetailLatestImages images={images} />
-              <BrandDetailLatestArticles
-                articles={articles}
-                publicHandle={articlesPublicHandle}
+              <BrandDetailPublicPosts
+                createHref={createPostHref}
+                posts={posts}
+                publicHandle={publicHandle}
               />
             </div>
 

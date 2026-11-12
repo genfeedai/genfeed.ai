@@ -8,8 +8,6 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
   type BrandKitSlot,
-  IngredientCategory,
-  IngredientStatus,
   ModalEnum,
 } from '@genfeedai/contracts';
 import {
@@ -19,13 +17,7 @@ import {
   isValidBrandHandle,
   normalizeBrandHandle,
 } from '@genfeedai/contracts/constants';
-import type {
-  IArticle,
-  IBrand,
-  IImage,
-  ILink,
-  IVideo,
-} from '@genfeedai/contracts/interfaces';
+import type { IBrand, ILink, IPost } from '@genfeedai/contracts/interfaces';
 import type { UseBrandDetailReturn } from '@genfeedai/props/pages/brand-detail.props';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
@@ -35,7 +27,6 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import { PublicService } from '@genfeedai/services/external/public.service';
 import { BrandsService } from '@genfeedai/services/social/brands.service';
 import { ErrorHandler } from '@genfeedai/utils/error/error-handler.util';
-import { buildLatestBrandArticlesQuery } from '@helpers/content/latest-brand-articles-query.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -62,18 +53,11 @@ interface BrandDetailData {
   links: ILink[];
 }
 
-interface BrandLatestMedia {
-  articles: IArticle[];
-  images: IImage[];
-  videos: IVideo[];
-}
-
 const EMPTY_LINKS: ILink[] = [];
-const EMPTY_LATEST_MEDIA: BrandLatestMedia = {
-  articles: [],
-  images: [],
-  videos: [],
-};
+const EMPTY_POSTS: IPost[] = [];
+
+/** How many public posts the Profile page previews. */
+const PUBLIC_POSTS_LIMIT = 6;
 
 function brandDetailQueryKey(brandSlug: string) {
   return ['brand-detail', brandSlug] as const;
@@ -221,61 +205,24 @@ export function useBrandDetail({
     }
   }, [matchedRouteBrand, params?.orgSlug, pathname, routeBrandParam, router]);
 
-  const latestMediaQuery = useQuery<BrandLatestMedia>({
+  // The same public posts endpoint the genfeed.ai profile reads, so this page
+  // previews exactly what visitors see there.
+  const publicPostsQuery = useQuery<IPost[]>({
     enabled: Boolean(brandId),
     queryFn: async () => {
-      const mediaQuery = {
-        brand: brandId,
-        limit: 3,
-        sort: 'createdAt: -1',
-      };
-      const articleQuery = buildLatestBrandArticlesQuery(brandId);
-
-      const [videosResult, imagesResult, articlesResult] =
-        await Promise.allSettled([
-          publicService.findPublicVideos({
-            ...mediaQuery,
-            category: IngredientCategory.VIDEO,
-            status: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
-          }),
-          publicService.findPublicImages({
-            ...mediaQuery,
-            category: IngredientCategory.IMAGE,
-            status: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
-          }),
-          publicService.findPublicArticles(articleQuery),
-        ]);
-
-      let videos: IVideo[] = [];
-      let images: IImage[] = [];
-      let articles: IArticle[] = [];
-
-      if (videosResult.status === 'fulfilled') {
-        logger.info(`GET /public/videos success`, videosResult.value);
-        videos = videosResult.value;
-      } else {
-        logger.error(`GET /public/videos failed`, videosResult.reason);
+      try {
+        return await publicService.findPublicPosts({
+          brand: brandId,
+          limit: PUBLIC_POSTS_LIMIT,
+        });
+      } catch (error) {
+        logger.error('GET /public/posts failed', error);
+        return EMPTY_POSTS;
       }
-
-      if (imagesResult.status === 'fulfilled') {
-        logger.info(`GET /public/images success`, imagesResult.value);
-        images = imagesResult.value;
-      } else {
-        logger.error(`GET /public/images failed`, imagesResult.reason);
-      }
-
-      if (articlesResult.status === 'fulfilled') {
-        logger.info(`GET /public/articles success`, articlesResult.value);
-        articles = articlesResult.value;
-      } else {
-        logger.error(`GET /public/articles failed`, articlesResult.reason);
-      }
-
-      return { articles, images, videos };
     },
-    queryKey: ['brand-detail-media', brandId],
+    queryKey: ['brand-detail-public-posts', brandId],
   });
-  const latestMedia = latestMediaQuery.data ?? EMPTY_LATEST_MEDIA;
+  const posts = publicPostsQuery.data ?? EMPTY_POSTS;
 
   // A refresh keeps the loaded brand on screen; overlapping refreshes are
   // ordered by React Query, so only the latest answer is kept.
@@ -554,7 +501,6 @@ export function useBrandDetail({
   );
 
   return {
-    articles: latestMedia.articles,
     brand,
     brandId,
     connectedPlatformsCount,
@@ -570,16 +516,15 @@ export function useBrandDetail({
     handleUpdateAccount,
     handleUpdateHandle,
     hasBrandId,
-    images: latestMedia.images,
     isGeneratingBanner,
     isGeneratingLogo,
     isLoading,
     isUpdating,
     links,
+    posts,
     selectedLink,
     selectLink,
     setGenerateModalType,
     socialConnections,
-    videos: latestMedia.videos,
   };
 }

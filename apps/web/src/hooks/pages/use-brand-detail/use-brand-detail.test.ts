@@ -2,7 +2,7 @@ import {
   createTestQueryClient,
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
-import { ArticleStatus, AssetCategory, AssetScope } from '@genfeedai/contracts';
+import { AssetCategory, AssetScope } from '@genfeedai/contracts';
 import { BRAND_HANDLE_FORMAT_MESSAGE } from '@genfeedai/contracts/constants';
 import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { createBrand } from '@genfeedai/helpers/testing/entity-fixtures';
@@ -19,9 +19,7 @@ const mockOpenConfirm = vi.fn();
 const mockOpenModal = vi.fn();
 const mockNotifyError = vi.fn();
 const mockLoggerError = vi.fn();
-const mockFindPublicArticles = vi.fn();
-const mockFindPublicImages = vi.fn();
-const mockFindPublicVideos = vi.fn();
+const mockFindPublicPosts = vi.fn();
 type AssetStatusHandler = (data: { assetId: string; status: string }) => void;
 const mockSubscribe = vi.fn(
   (_event: string, _handler: AssetStatusHandler): (() => void) => vi.fn(),
@@ -30,9 +28,7 @@ const mockReplace = vi.fn();
 const mockRefreshBrands = vi.fn();
 
 const mockPublicService = {
-  findPublicArticles: mockFindPublicArticles,
-  findPublicImages: mockFindPublicImages,
-  findPublicVideos: mockFindPublicVideos,
+  findPublicPosts: mockFindPublicPosts,
 };
 
 const mockClipboardService = {
@@ -144,9 +140,7 @@ describe('useBrandDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCopyToClipboard.mockResolvedValue(undefined);
-    mockFindPublicArticles.mockResolvedValue([]);
-    mockFindPublicImages.mockResolvedValue([]);
-    mockFindPublicVideos.mockResolvedValue([]);
+    mockFindPublicPosts.mockResolvedValue([]);
     mockFindOne.mockResolvedValue(
       createBrand({ id: 'brand-1', scope: AssetScope.BRAND }),
     );
@@ -279,17 +273,22 @@ describe('useBrandDetail', () => {
     });
   });
 
-  it('uses article-native public query params for latest articles', async () => {
-    renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+  it('loads the brand public posts the way the public profile does', async () => {
+    mockFindPublicPosts.mockResolvedValue([{ id: 'post-1' }, { id: 'post-2' }]);
+
+    const { result } = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
-      expect(mockFindPublicArticles).toHaveBeenCalledWith({
-        brand: 'brand-1',
-        limit: 3,
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-        status: [ArticleStatus.PUBLISHED],
-      });
+      expect(result.current.posts).toEqual([
+        { id: 'post-1' },
+        { id: 'post-2' },
+      ]);
+    });
+    expect(mockFindPublicPosts).toHaveBeenCalledWith({
+      brand: 'brand-1',
+      limit: 6,
     });
   });
 
@@ -867,21 +866,17 @@ describe('useBrandDetail', () => {
     expect(result.current.socialConnections).toHaveLength(2);
   });
 
-  it('keeps other media when one public feed fails', async () => {
-    mockFindPublicVideos.mockRejectedValue(new Error('videos down'));
-    mockFindPublicImages.mockResolvedValue([{ id: 'image-1' }]);
-    mockFindPublicArticles.mockRejectedValue(new Error('articles down'));
+  it('shows no posts when the public feed fails', async () => {
+    mockFindPublicPosts.mockRejectedValue(new Error('posts down'));
 
     const { result } = renderHook(() => useBrandDetail(), {
       wrapper: queryClientWrapper(),
     });
 
     await waitFor(() => {
-      expect(result.current.images).toEqual([{ id: 'image-1' }]);
+      expect(result.current.brand).not.toBeNull();
     });
-
-    expect(result.current.videos).toEqual([]);
-    expect(result.current.articles).toEqual([]);
+    expect(result.current.posts).toEqual([]);
   });
 
   describe('brand id in the route', () => {
