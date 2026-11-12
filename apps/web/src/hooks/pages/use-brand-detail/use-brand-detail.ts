@@ -13,6 +13,7 @@ import {
   ModalEnum,
 } from '@genfeedai/contracts';
 import {
+  APP_ROUTES,
   BRAND_HANDLE_FORMAT_MESSAGE,
   createBrandAppRoute,
   isValidBrandHandle,
@@ -51,6 +52,7 @@ import { useSaveQueue } from '@/hooks/utils/use-save-queue/use-save-queue';
 
 const BRAND_SETTINGS_PATH_PATTERN = /\/~\/settings\/brands\/[^/]+(\/.*)?$/;
 const SETTINGS_PATH_PATTERN = /\/settings(\/.*)?$/;
+const PROFILE_PATH_PATTERN = /\/profile(\/.*)?$/;
 const BRAND_ID_PATH_PATTERN = /\/brands\/([^/]+)/;
 const BRAND_PATH_SEGMENT_PATTERN = /\/brands\/[^/]+/;
 
@@ -193,11 +195,17 @@ export function useBrandDetail({
 
     const oldRouteMatch = pathname.match(BRAND_SETTINGS_PATH_PATTERN);
     const canonicalRouteMatch = pathname.match(SETTINGS_PATH_PATTERN);
+    const profileRouteMatch = pathname.match(PROFILE_PATH_PATTERN);
     const suffix = oldRouteMatch?.[1] ?? canonicalRouteMatch?.[1] ?? '';
+    // The brand profile has its own route; every other page stays in settings.
+    const canonicalSegment =
+      profileRouteMatch || (oldRouteMatch && !suffix)
+        ? `${APP_ROUTES.PROFILE.ROOT}${profileRouteMatch?.[1] ?? ''}`
+        : `/settings${suffix}`;
     const canonicalPath = createBrandAppRoute(
       orgSlug,
       matchedRouteBrand.slug,
-      `/settings${suffix}`,
+      canonicalSegment,
     );
     const usesIdAsSlug = matchedRouteBrand.id === routeBrandParam;
 
@@ -415,7 +423,7 @@ export function useBrandDetail({
         const currentPrefix = createBrandAppRoute(orgSlug, routeBrandParam);
         const suffix = pathname.startsWith(currentPrefix)
           ? pathname.slice(currentPrefix.length)
-          : '/settings';
+          : APP_ROUTES.PROFILE.ROOT;
         router.replace(createBrandAppRoute(orgSlug, handle, suffix));
       }
 

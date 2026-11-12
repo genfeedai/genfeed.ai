@@ -71,6 +71,8 @@ export function resolveModalCatalogScope(
     if (segments[2] === 'settings') return 'brand-settings';
     return 'personal-settings';
   }
+  // The brand Profile page shares the brand settings catalog.
+  if (area === 'profile') return 'brand-settings';
   if (area === 'tasks') return 'workspace';
   if (area === 'connectors') return 'connect';
   if (

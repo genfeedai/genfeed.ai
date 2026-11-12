@@ -76,7 +76,7 @@ function hasValue(val: unknown): boolean {
 type BrandKitSection = 'voice' | 'strategy' | 'visual';
 
 function brandHref(section?: BrandKitSection): string {
-  if (!section) return APP_ROUTES.SETTINGS.ROOT;
+  if (!section) return APP_ROUTES.PROFILE.ROOT;
   return `${APP_ROUTES.SETTINGS.BRAND_KIT}/${section}`;
 }
 

@@ -342,7 +342,7 @@ describe('useBrandDetail', () => {
     }
 
     it('saves the normalized handle and moves the page to the new route', async () => {
-      vi.mocked(usePathname).mockReturnValue('/acme/brand-1/settings');
+      vi.mocked(usePathname).mockReturnValue('/acme/brand-1/profile');
       mockPatch.mockResolvedValue({
         id: 'brand-1',
         links: [],
@@ -355,7 +355,7 @@ describe('useBrandDetail', () => {
       });
 
       expect(mockPatch).toHaveBeenCalledWith('brand-1', { slug: 'acme-labs' });
-      expect(mockReplace).toHaveBeenCalledWith('/acme/acme-labs/settings');
+      expect(mockReplace).toHaveBeenCalledWith('/acme/acme-labs/profile');
       expect(mockRefreshBrands).toHaveBeenCalledOnce();
     });
 

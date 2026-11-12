@@ -61,8 +61,8 @@ function AppProtectedTopbarContent({
   // "Settings" as the breadcrumb root. Inspect the app-route segment so a
   // brand slug named "settings" cannot trigger the settings breadcrumb.
   const isAppsRoute = pathname?.split('/').filter(Boolean)[2] === 'apps';
-  const isSettingsRoute =
-    pathname?.split('/').filter(Boolean)[2] === 'settings';
+  const appSegment = pathname?.split('/').filter(Boolean)[2];
+  const isSettingsRoute = appSegment === 'settings' || appSegment === 'profile';
   const { settings } = useBrand();
   const translateApps = useTranslations('common.apps');
 
