@@ -51,6 +51,7 @@ export const ANALYTICS_EVENTS = {
   GENERATION_COMPLETED: 'generation_completed',
   GENERATION_STARTED: 'generation_started',
   HANDLE_CLAIMED: 'handle_claimed',
+  NAVIGATION_BLOCKED: 'navigation_blocked',
   ONBOARDING_COMPLETED: 'onboarding_completed',
   POST_PUBLISHED: 'post_published',
   PUBLIC_YOUTUBE_CLIPPER_PROJECT_CLAIMED:
@@ -74,6 +75,12 @@ export interface AnalyticsPageviewProperties {
 
 /** Terminal outcome of a tracked action. */
 export type AnalyticsOutcome = 'failure' | 'success';
+
+/**
+ * How a navigation that showed the top progress bar ended: the destination
+ * committed, or the transition was replaced or gave up without one.
+ */
+export type NavigationBlockedOutcome = 'abandoned' | 'committed';
 
 /** Expert Path onboarding steps tracked by the funnel. */
 export type ExpertOnboardingAnalyticsStep =
@@ -239,6 +246,18 @@ export interface AnalyticsEventProperties {
   /** A handle claimed on genfeed.ai, applied after sign-up. Never the handle. */
   [ANALYTICS_EVENTS.HANDLE_CLAIMED]: {
     readonly outcome: ClaimHandleOutcome;
+  };
+  /**
+   * One sighting of the top progress bar. Routes are patterns with parameter
+   * names (`/:orgSlug/:brandSlug/library`), never a slug, record id or query.
+   */
+  [ANALYTICS_EVENTS.NAVIGATION_BLOCKED]: {
+    readonly fromRoute: string;
+    readonly navigationType: 'push' | 'replace' | 'traverse';
+    readonly outcome: NavigationBlockedOutcome;
+    readonly toRoute: string;
+    /** Milliseconds from the router transition start to commit or give-up. */
+    readonly waitMs: number;
   };
   [ANALYTICS_EVENTS.EXPERT_ONBOARDING_STEP]: {
     readonly action: ExpertOnboardingAnalyticsAction;
