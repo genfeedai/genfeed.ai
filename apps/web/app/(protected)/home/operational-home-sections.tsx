@@ -48,8 +48,7 @@ import { ArrowRight, Check, RefreshCw, TriangleAlert } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
-import { useCallback, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
@@ -821,6 +820,7 @@ function ActivitySurface({
     <WorkspaceSurface
       data-testid="operational-home-activity"
       isLoading={isLoading}
+      loadingRows={{ count: ACTIVITY_ROW_LIMIT, size: 'media' }}
       density="compact"
       flush
       title={

@@ -117,12 +117,16 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
     requestState.summary = null;
   });
 
-  it('renders nothing while there is no summary yet', () => {
+  it('shows its title over a skeleton while loading, then nothing when there is no summary', async () => {
     requestState.summary = null;
     const { container } = render(<AnalyticsOverviewPerformanceDataset />, {
       wrapper: queryClientWrapper(),
     });
-    expect(container).toBeEmptyDOMElement();
+    expect(
+      screen.getByRole('heading', { name: 'Performance dataset' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Performance dataset');
+    await waitFor(() => expect(container).toBeEmptyDOMElement());
   });
 
   it('renders nothing instead of crashing when the summary has no dataset', async () => {

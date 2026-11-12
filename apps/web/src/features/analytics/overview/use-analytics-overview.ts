@@ -345,23 +345,30 @@ export function useAnalyticsOverview({ scope }: UseAnalyticsOverviewParams) {
     translate,
   ]);
 
+  // While the first load runs there is no data to classify, so the tiles take
+  // the shape of the populated page. They then fill in place instead of the
+  // row growing from three tiles to four plus a second row.
+  const layoutState: AnalyticsDashboardState = isLoading
+    ? 'active'
+    : dashboardState;
+
   const primaryKpiItems = useMemo(() => {
     if (scope === PageScope.SUPERADMIN) {
       return kpiItems.slice(0, 4);
     }
 
-    return dashboardState === 'active'
+    return layoutState === 'active'
       ? kpiItems.slice(1, 5)
       : kpiItems.slice(0, 3);
-  }, [dashboardState, kpiItems, scope]);
+  }, [kpiItems, layoutState, scope]);
 
   const secondaryKpiItems = useMemo(() => {
     if (scope === PageScope.SUPERADMIN) {
       return kpiItems.slice(4);
     }
 
-    return dashboardState === 'active' ? [kpiItems[0], kpiItems[5]] : [];
-  }, [dashboardState, kpiItems, scope]);
+    return layoutState === 'active' ? [kpiItems[0], kpiItems[5]] : [];
+  }, [kpiItems, layoutState, scope]);
 
   const showAgentDashboard = isAgentModified && agentBlocks.length > 0;
 

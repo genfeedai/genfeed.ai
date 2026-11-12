@@ -70,21 +70,38 @@ describe('MetricCard', () => {
     expect(screen.getByText('Orgs')).toBeInTheDocument();
   });
 
-  it('shows one skeleton for the entire loading tile', () => {
+  it('keeps the label on screen and skeletons only the value while loading', () => {
     const { container } = render(
-      <MetricCard isLoading label="Models" value="10" />,
+      <MetricCard icon={Users} isLoading label="Models" value="10" />,
     );
-    expect(screen.getByText('10').closest('[aria-hidden]')).toHaveAttribute(
-      'aria-hidden',
-      'true',
-    );
-    expect(screen.getByText('Models').closest('[inert]')).not.toBeNull();
-    expect(
-      screen.getByRole('status', { name: 'Loading Models' }).childElementCount,
-    ).toBe(0);
+
+    expect(screen.getByText('Models')).toBeVisible();
+    expect(screen.queryByText('10')).not.toBeInTheDocument();
     expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(
       1,
     );
+    expect(screen.getByTestId('metric-card')).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+  });
+
+  it('announces a loading tile once, not once per skeleton', () => {
+    const { container } = render(
+      <MetricCard isLoading label="Models" value="10" />,
+    );
+
+    expect(container.querySelectorAll('[aria-busy="true"]')).toHaveLength(1);
+  });
+
+  it('drops the busy state and shows the value once it arrives', () => {
+    const { rerender } = render(
+      <MetricCard isLoading label="Models" value="10" />,
+    );
+    rerender(<MetricCard label="Models" value="10" />);
+
+    expect(screen.getByText('10')).toBeInTheDocument();
+    expect(screen.getByTestId('metric-card')).not.toHaveAttribute('aria-busy');
   });
 
   it('starts the counter only after the real value arrives', () => {
@@ -94,7 +111,6 @@ describe('MetricCard', () => {
     );
     expect(counter).not.toHaveBeenCalled();
     rerender(<MetricCard label="Models" value="42" />);
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
     expect(counter).toHaveBeenCalledWith(expect.objectContaining({ end: 42 }));
     counter.mockRestore();
