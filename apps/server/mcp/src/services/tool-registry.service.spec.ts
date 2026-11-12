@@ -729,6 +729,25 @@ describe('ToolRegistryService', () => {
       expect(JSON.stringify(result)).not.toContain('brand_required');
     });
 
+    it('binds the single brand into the create_post arguments before dispatch or approval (#10071)', async () => {
+      clientService.executeAgentTool.mockResolvedValueOnce({
+        creditsUsed: 0,
+        data: { brands: [{ id: 'brand-1', label: 'Acme' }] },
+        success: true,
+      });
+
+      await service.handleToolCall({
+        arguments: { content: 'Draft copy' },
+        name: 'create_post',
+      });
+
+      expect(clientService.executeAgentTool).toHaveBeenLastCalledWith(
+        'create_post',
+        { brandId: 'brand-1', content: 'Draft copy' },
+        undefined,
+      );
+    });
+
     it('does not ask for a brand on tools outside the generation set', async () => {
       await service.handleToolCall({ arguments: {}, name: 'get_trends' });
 

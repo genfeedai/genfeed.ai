@@ -499,7 +499,7 @@ To expose the available content journey, including generation and analytics,
 select these toolsets explicitly:
 
 ```text
-http://localhost:3014/mcp?toolsets=content,generation,analytics,brand,scheduler
+http://localhost:3014/mcp?toolsets=content,generation,analytics,brand,scheduler,articles
 ```
 
 - **`core` is always included** and cannot be excluded. It holds discovery and
@@ -608,7 +608,7 @@ with a broader `?toolsets=` selection so the tool appears in future
 The toolset selector applies to the standard connector. Claude uses the fixed `/mcp/claude` catalog.
 
 ```bash
-codex mcp add genfeed --url 'http://localhost:3014/mcp?toolsets=content,generation,analytics,brand,scheduler' --bearer-token-env-var GENFEED_API_KEY
+codex mcp add genfeed --url 'http://localhost:3014/mcp?toolsets=content,generation,analytics,brand,scheduler,articles' --bearer-token-env-var GENFEED_API_KEY
 ```
 
 ## Skills

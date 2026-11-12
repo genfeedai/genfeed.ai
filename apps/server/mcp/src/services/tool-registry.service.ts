@@ -456,12 +456,16 @@ export class ToolRegistryService implements OnModuleInit {
         return brandRequiredToolResult(await this.listCallerBrands());
       }
 
-      // A draft names its brand when the organization has several; a single
-      // brand is filled in by the API (#10071).
+      // A draft names its brand when the organization has several. A single
+      // brand is bound into the arguments here, so a queued approval and its
+      // later redemption carry the same arguments (#10071).
       if (isMcpBrandRequiredWhenMultipleTool(name) && !readMcpBrandId(args)) {
         const brands = await this.listCallerBrands();
         if (brands && brands.length > 1) {
           return brandChoiceToolResult(brands);
+        }
+        if (brands?.length === 1) {
+          args = { ...args, brandId: brands[0].id };
         }
       }
 
