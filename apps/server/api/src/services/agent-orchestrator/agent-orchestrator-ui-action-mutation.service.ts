@@ -5,6 +5,7 @@ import { assertApiKeyAgentPublishingScope } from '@api/helpers/utils/auth/api-ke
 import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { describeToolFailure } from '@api/services/agent-orchestrator/tools/agent-tool-failure.util';
 import {
   buildMutationApprovalCard,
   humanize,
@@ -335,7 +336,7 @@ export class AgentOrchestratorUiActionMutationService {
           creditsUsed: 0,
           error:
             error instanceof Error
-              ? error.message
+              ? describeToolFailure(error)
               : 'Approved action execution failed.',
         },
         params,
@@ -386,6 +387,7 @@ export class AgentOrchestratorUiActionMutationService {
       context,
       messageId,
       model: params.model,
+      resolvedSourceActionId: resolvedCard.id,
       result: {
         ...result,
         nextActions: [

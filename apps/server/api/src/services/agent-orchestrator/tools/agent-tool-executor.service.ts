@@ -53,6 +53,10 @@ import {
 import { AgentThreadToolHandler } from '@api/services/agent-orchestrator/tools/agent-thread-tool-handler.service';
 import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
 import { dispatchRegisteredAgentTool } from '@api/services/agent-orchestrator/tools/agent-tool-dispatch.routes';
+import {
+  describeToolFailure,
+  describeToolFailureForLog,
+} from '@api/services/agent-orchestrator/tools/agent-tool-failure.util';
 import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import {
@@ -562,13 +566,15 @@ export class AgentToolExecutorService implements OnModuleInit {
         },
       );
     } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
       this.loggerService.error(
-        `Tool ${toolName} workflow failed: ${errorMessage}`,
+        `Tool ${toolName} workflow failed: ${describeToolFailureForLog(error)}`,
         this.constructorName,
       );
-      return { creditsUsed: 0, error: errorMessage, success: false };
+      return {
+        creditsUsed: 0,
+        error: describeToolFailure(error),
+        success: false,
+      };
     }
   }
 
@@ -719,15 +725,16 @@ export class AgentToolExecutorService implements OnModuleInit {
     } catch (error: unknown) {
       executionFailed = true;
       const durationMs = Date.now() - startTime;
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-
       this.loggerService.error(
-        `Tool ${toolName} failed after ${durationMs}ms: ${errorMessage}`,
+        `Tool ${toolName} failed after ${durationMs}ms: ${describeToolFailureForLog(error)}`,
         this.constructorName,
       );
 
-      executionResult = { creditsUsed: 0, error: errorMessage, success: false };
+      executionResult = {
+        creditsUsed: 0,
+        error: describeToolFailure(error),
+        success: false,
+      };
     }
 
     // Persist outside the execution catch: a storage failure must never replace

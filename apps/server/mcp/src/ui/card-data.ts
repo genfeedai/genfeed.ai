@@ -317,24 +317,26 @@ function buildAccountView(data: Record<string, unknown>): McpCardView {
       .map((brand) => text(record(brand), 'name'))
       .filter(Boolean);
     const brandsFact: McpCardFact[] =
-      brandCount === 0
-        ? fact('Brands', 'None yet. Create one in Genfeed to generate.')
-        : brandCount !== undefined
-          ? [
-              {
-                ...(brandNames.length
-                  ? {
-                      items: brandNames.map((label) => ({
-                        hasAvatar: true,
-                        label,
-                      })),
-                    }
-                  : {}),
-                label: 'Brands',
-                value: brandNames.join(', ') || String(brandCount),
-              },
-            ]
-          : [];
+      brandCount === 0 && text(profile, 'brandAccessMessage')
+        ? fact('Brands', text(profile, 'brandAccessMessage'))
+        : brandCount === 0
+          ? fact('Brands', 'None yet. Create one in Genfeed to generate.')
+          : brandCount !== undefined
+            ? [
+                {
+                  ...(brandNames.length
+                    ? {
+                        items: brandNames.map((label) => ({
+                          hasAvatar: true,
+                          label,
+                        })),
+                      }
+                    : {}),
+                  label: 'Brands',
+                  value: brandNames.join(', ') || String(brandCount),
+                },
+              ]
+            : [];
     cards.push(
       summaryCard(
         text(profile, 'organizationName') || 'Genfeed account',
@@ -429,6 +431,12 @@ function buildBrandsView(data: Record<string, unknown>): McpCardView {
       ? [data.brand]
       : [];
   const cards = rows.slice(0, 24).map((value) => brandCard(record(value)));
+  const accessMessage = text(data, 'brandAccessMessage');
+  if (rows.length === 0 && accessMessage) {
+    cards.push(
+      summaryCard('No brand access', [], { description: accessMessage }),
+    );
+  }
   return {
     cards,
     layout: 'cards',

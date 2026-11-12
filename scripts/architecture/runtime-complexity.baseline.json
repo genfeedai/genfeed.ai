@@ -138,7 +138,7 @@
     "symbol": "AgentTurnWorkflowExecutionService.constructor"
   },
   {
-    "actual": 203,
+    "actual": 192,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-analytics-tool-handler.service.ts",
     "metric": "method-lines",
     "symbol": "AgentAnalyticsToolHandler.getAnalytics"
@@ -276,7 +276,7 @@
     "symbol": "apps/web/app/(protected)/home/operational-home-sections.tsx"
   },
   {
-    "actual": 1499,
+    "actual": 1481,
     "file": "apps/web/proxy.ts",
     "metric": "file-lines",
     "symbol": "apps/web/proxy.ts"

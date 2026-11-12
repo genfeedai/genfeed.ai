@@ -344,7 +344,23 @@ export function mapSnapshotWorkEvents(snapshot: AgentThreadSnapshot) {
     snapshot.activeRun?.status === 'running';
 
   if (isRunLive) {
-    return events;
+    // The timeline holds the whole thread. The live work view shows only the
+    // run in progress, so earlier runs' steps, question cards and task panels
+    // do not come back after a reload.
+    const activeRun = snapshot.activeRun;
+    const startedAt = activeRun?.startedAt
+      ? Date.parse(activeRun.startedAt)
+      : Number.NaN;
+    return events.filter((event) => {
+      if (event.runId) {
+        return !activeRun?.runId || event.runId === activeRun.runId;
+      }
+      // Events recorded without a run belong to the run only when they
+      // started with it.
+      return (
+        Number.isNaN(startedAt) || Date.parse(event.createdAt) >= startedAt
+      );
+    });
   }
 
   // Snapshot says the run is done (or never had an active run). Orphaned

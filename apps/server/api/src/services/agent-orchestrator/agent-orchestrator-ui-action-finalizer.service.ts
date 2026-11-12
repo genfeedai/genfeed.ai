@@ -82,7 +82,14 @@ export class AgentOrchestratorUiActionFinalizerService {
       // `runId` correlates the reply with the acknowledged ui-action
       // execution; the client reconciles the async ack by it.
       metadata: buildPersistedAgentResponseMetadata(
-        assistantMetadata,
+        params.resolvedSourceActionId
+          ? {
+              ...assistantMetadata,
+              uiActions: enhancedUiActions.uiActions.filter(
+                (action) => action.id !== params.resolvedSourceActionId,
+              ),
+            }
+          : assistantMetadata,
         creditsRemaining,
         params.context.executionId,
       ),

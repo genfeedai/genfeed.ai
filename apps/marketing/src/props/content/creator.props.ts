@@ -51,7 +51,7 @@ export interface CreatorRailProps {
   referralCode: string | null;
 }
 
-export interface ViewCountProps {
+export interface ViewTrackerProps {
   /** The brand id for a profile, the article id for an article. */
   id: string;
   target: PublicViewTarget;
