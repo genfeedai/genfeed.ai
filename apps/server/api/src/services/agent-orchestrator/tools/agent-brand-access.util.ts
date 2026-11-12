@@ -7,7 +7,7 @@ import { traced } from '@libs/tracing/traced';
  * It never suggests creating a brand: the brands exist, access is what is missing.
  */
 export const BRAND_ACCESS_MISSING_MESSAGE =
-  'You have no brand access in this organization. It has brands, but none are assigned to you or to this API key. Ask an organization owner or admin to give you access to a brand.';
+  'No brand is available to this connection. The organization has brands, but this connection reaches only the brands assigned to you. An organization owner or admin can assign a brand to you.';
 
 export interface AgentBrandCounter {
   count?: (filter: Record<string, unknown>) => Promise<number>;
