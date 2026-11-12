@@ -11,7 +11,6 @@ import {
   render,
   screen,
   waitFor,
-  within,
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -98,6 +97,29 @@ vi.mock('@ui/primitives/tooltip', () => ({
   ),
   TooltipProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+
+// Preview bodies load their own data; the rail's contract is when and where
+// they open, so each app gets a one-line stand-in.
+vi.mock('./app-rail.previews', () => ({
+  APP_RAIL_PREVIEWS: Object.fromEntries(
+    [
+      'agent',
+      'analytics',
+      'automation',
+      'clipper',
+      'discovery',
+      'editor',
+      'library',
+      'messages',
+      'motion',
+      'playground',
+      'publishing',
+      'storyboard',
+      'turbo',
+      'workspace',
+    ].map((id) => [id, () => <p>{`Preview of ${id}`}</p>]),
+  ),
 }));
 
 vi.mock('@ui/primitives/separator', () => ({
@@ -235,12 +257,24 @@ Object.defineProperty(window, 'matchMedia', {
   writable: true,
 });
 
+/** Hovers a rail item long enough for its preview to open, and returns it. */
+function openPreview(appId: string): HTMLElement {
+  vi.useFakeTimers();
+  try {
+    fireEvent.pointerOver(screen.getByTestId(`app-rail-item-${appId}`));
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+  } finally {
+    vi.useRealTimers();
+  }
+  return screen.getByTestId('app-rail-preview');
+}
+
 describe('AppRail', () => {
-  it('keeps the web G-then-N shortcut in the palette, not the tooltip', () => {
+  it('keeps the web G-then-N shortcut in the palette, not the preview', () => {
     render(<AppRail orgSlug="acme" />);
-    expect(
-      screen.getAllByTestId('rail-tooltip')[0].querySelector('kbd'),
-    ).toBeNull();
+    expect(openPreview('workspace').querySelector('kbd')).toBeNull();
     expect(commands.registerCommands.mock.lastCall?.[0][0].shortcut).toEqual([
       'G',
       '1',
@@ -465,8 +499,9 @@ describe('AppRail', () => {
     rerender(<AppRail orgSlug="acme" showAdmin />);
     fireEvent.keyDown(document, { code: 'Digit1', key: '1', metaKey: true });
     expect(router.push).toHaveBeenLastCalledWith('/acme/~/workspace/overview');
+    expect(openPreview('workspace')).toHaveTextContent('⌘ 1');
+    // Admin has no preview, so it keeps its tooltip, and it has no number.
     const tooltips = screen.getAllByTestId('rail-tooltip');
-    expect(tooltips[0]).toHaveTextContent('⌘ 1');
     expect(tooltips.at(-1)?.querySelector('kbd')).toBeNull();
   });
 
@@ -1922,8 +1957,7 @@ describe('AppRail', () => {
         <AppRail orgSlug="acme" railAppOrder={['analytics', 'workspace']} />,
       );
 
-      const slot = screen.getByTestId('app-rail-slot-analytics');
-      expect(within(slot).getByTestId('rail-tooltip')).toHaveTextContent('⌘ 1');
+      expect(openPreview('analytics')).toHaveTextContent('⌘ 1');
     });
 
     it('lists installed apps that are not on the rail in More, with a pin', () => {
@@ -2131,11 +2165,7 @@ describe('AppRail', () => {
       );
 
       expect(screen.queryByTestId('app-rail-item-discovery')).toBeNull();
-      expect(
-        within(screen.getByTestId('app-rail-slot-library')).getByTestId(
-          'rail-tooltip',
-        ),
-      ).toHaveTextContent('⌘ 2');
+      expect(openPreview('library')).toHaveTextContent('⌘ 2');
       fireEvent.click(screen.getByTestId('app-rail-more'));
       expect(screen.getByTestId('app-rail-more-item-discovery')).toBeVisible();
       fireEvent.click(screen.getByTestId('app-rail-more-pin-discovery'));
