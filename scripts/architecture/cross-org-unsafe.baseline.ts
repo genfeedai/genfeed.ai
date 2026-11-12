@@ -381,7 +381,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin activity list not pinned to the active organization.
     {
       file: 'apps/server/api/src/collections/activities/controllers/activities.controller.ts',
-      line: 154,
+      line: 163,
     },
     // #6120: superadmin operates on a bot in any organization.
     {

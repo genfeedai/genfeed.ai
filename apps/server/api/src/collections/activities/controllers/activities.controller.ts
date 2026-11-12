@@ -152,6 +152,17 @@ export class ActivitiesController {
     };
   }
 
+  /**
+   * Runs a read in the list's tenant scope. Only a superadmin list that spans
+   * organizations needs the cross-tenant hatch; every other read stays scoped.
+   */
+  private async runInListScope<T>(
+    isCrossTenantList: boolean,
+    run: () => Promise<T>,
+  ): Promise<T> {
+    return isCrossTenantList ? await crossOrgUnsafe(run) : await run();
+  }
+
   @Get()
   // Members list activities scoped by brand/org (preferred over nested duals).
   // Superadmins without filters still see all non-deleted activities.
@@ -177,7 +188,7 @@ export class ActivitiesController {
       page.docs = await this.activitiesService.attachDisplayContext(page.docs);
       return page;
     };
-    const data = isCrossTenantList ? await crossOrgUnsafe(load) : await load();
+    const data = await this.runInListScope(isCrossTenantList, load);
     return serializeCollection(request, ActivitySerializer, data);
   }
 
@@ -197,12 +208,11 @@ export class ActivitiesController {
       query,
       user,
     );
-    const count = async () =>
-      await this.activitiesService.countUnread(aggregate.where);
     return {
-      unreadCount: isCrossTenantList
-        ? await crossOrgUnsafe(count)
-        : await count(),
+      unreadCount: await this.runInListScope(
+        isCrossTenantList,
+        async () => await this.activitiesService.countUnread(aggregate.where),
+      ),
     };
   }
 
