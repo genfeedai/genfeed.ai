@@ -712,7 +712,7 @@ describe('AgentApiService', () => {
       ).resolves.toEqual(execution);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/workflow-executions/execution-1',
+        'http://api.test/agent/runs/execution-1',
         expect.objectContaining({
           body: JSON.stringify({ status: 'CANCELLED' }),
           method: 'PATCH',

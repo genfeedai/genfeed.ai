@@ -179,3 +179,12 @@ export class AgentFailureQueryDto {
   })
   search?: string;
 }
+
+export class CancelAgentRunDto {
+  @IsIn([WorkflowExecutionStatus.CANCELLED])
+  @ApiProperty({
+    description: 'Cancellation is the only transition an agent run accepts',
+    enum: [WorkflowExecutionStatus.CANCELLED],
+  })
+  readonly status!: WorkflowExecutionStatus.CANCELLED;
+}
