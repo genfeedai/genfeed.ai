@@ -2,6 +2,7 @@ import { CreateActivityDto } from '@api/collections/activities/dto/create-activi
 import { UpdateActivityDto } from '@api/collections/activities/dto/update-activity.dto';
 import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import {
+  activityUserKey,
   loadActivityNames,
   loadBreakoutPreviews,
 } from '@api/collections/activities/utils/activity-display-context.util';
@@ -89,9 +90,12 @@ export class ActivitiesService extends BaseService<
       const brandLabel = activity.brandId
         ? names.brands.get(activity.brandId)
         : undefined;
-      const userLabel = activity.userId
-        ? names.users.get(activity.userId)
-        : undefined;
+      const userLabel =
+        activity.userId && activity.organizationId
+          ? names.users.get(
+              activityUserKey(activity.organizationId, activity.userId),
+            )
+          : undefined;
       const preview = previews.get(activity.id);
       return {
         ...activity,

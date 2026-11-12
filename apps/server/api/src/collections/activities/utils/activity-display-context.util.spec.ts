@@ -1,5 +1,6 @@
 import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import {
+  activityUserKey,
   loadActivityNames,
   loadBreakoutPreviews,
 } from '@api/collections/activities/utils/activity-display-context.util';
@@ -101,10 +102,49 @@ const prisma = {
     ],
     'postId',
   ),
-  user: table([
-    { firstName: 'Vincent', handle: 'vincent', id: 'user-1', lastName: null },
-    { firstName: null, handle: 'dana', id: 'user-2', lastName: null },
-  ]),
+  member: {
+    findMany: async ({
+      where,
+    }: {
+      where: { organizationId: { in: string[] }; userId: { in: string[] } };
+    }) =>
+      [
+        {
+          organizationId: 'org-1',
+          user: {
+            firstName: 'Vincent',
+            handle: 'vincent',
+            id: 'user-1',
+            lastName: null,
+          },
+          userId: 'user-1',
+        },
+        {
+          organizationId: 'org-1',
+          user: {
+            firstName: null,
+            handle: 'dana',
+            id: 'user-2',
+            lastName: null,
+          },
+          userId: 'user-2',
+        },
+        {
+          organizationId: 'org-2',
+          user: {
+            firstName: 'Casey',
+            handle: 'casey',
+            id: 'user-3',
+            lastName: null,
+          },
+          userId: 'user-3',
+        },
+      ].filter(
+        (member) =>
+          where.organizationId.in.includes(member.organizationId) &&
+          where.userId.in.includes(member.userId),
+      ),
+  },
 } as unknown as PrismaService;
 
 const activity = (overrides: Partial<ActivityDocument>): ActivityDocument =>
@@ -127,9 +167,17 @@ describe('loadActivityNames', () => {
 
     expect(names.organizations.get('org-1')).toBe('Genfeed.Ai');
     expect(names.brands.get('brand-1')).toBe('Vincent Ships It');
-    expect(names.users.get('user-1')).toBe('Vincent');
+    expect(names.users.get(activityUserKey('org-1', 'user-1'))).toBe('Vincent');
     // A user with no name falls back to their handle.
-    expect(names.users.get('user-2')).toBe('dana');
+    expect(names.users.get(activityUserKey('org-1', 'user-2'))).toBe('dana');
+  });
+
+  it('never names a user who is not a member of the activity organization', async () => {
+    const names = await loadActivityNames(prisma, [
+      activity({ organizationId: 'org-1', userId: 'user-3' }),
+    ]);
+
+    expect(names.users.get(activityUserKey('org-1', 'user-3'))).toBeUndefined();
   });
 });
 

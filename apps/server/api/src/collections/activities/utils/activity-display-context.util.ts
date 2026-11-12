@@ -10,6 +10,14 @@ const BREAKOUT_RESPONSE_ENTITY_MODEL = 'BreakoutResponse';
 const X_PLATFORM = 'twitter';
 const LEADING_AT_PATTERN = /^@/u;
 
+/** Key of a user's name in `users`: the name is per organization membership. */
+export function activityUserKey(
+  organizationId: string,
+  userId: string,
+): string {
+  return `${organizationId}:${userId}`;
+}
+
 function uniqueIds(values: Array<string | null | undefined>): string[] {
   return [...new Set(values.filter((id): id is string => Boolean(id)))];
 }
@@ -81,7 +89,7 @@ export const loadActivityNames = traced(
     const brandIds = uniqueIds(activities.map((a) => a.brandId));
     const userIds = uniqueIds(activities.map((a) => a.userId));
 
-    const [organizations, brands, users] = await Promise.all([
+    const [organizations, brands, members] = await Promise.all([
       organizationIds.length
         ? prisma.organization.findMany({
             select: { id: true, label: true },
@@ -98,10 +106,29 @@ export const loadActivityNames = traced(
             },
           })
         : [],
-      userIds.length
-        ? prisma.user.findMany({
-            select: { firstName: true, handle: true, id: true, lastName: true },
-            where: { id: { in: userIds } },
+      // Names come from members of the activity's own organization, so an
+      // activity never shows the name of a user outside its tenant.
+      userIds.length && organizationIds.length
+        ? prisma.member.findMany({
+            select: {
+              organizationId: true,
+              user: {
+                select: {
+                  firstName: true,
+                  handle: true,
+                  id: true,
+                  lastName: true,
+                },
+              },
+              userId: true,
+            },
+            // One membership per user and organization bounds the read.
+            take: userIds.length * organizationIds.length,
+            where: {
+              isDeleted: false,
+              organizationId: { in: organizationIds },
+              userId: { in: userIds },
+            },
           })
         : [],
     ]);
@@ -114,7 +141,12 @@ export const loadActivityNames = traced(
           organization.label,
         ]),
       ),
-      users: new Map(users.map((user) => [user.id, userName(user)])),
+      users: new Map(
+        members.map((member) => [
+          activityUserKey(member.organizationId, member.userId),
+          userName(member.user),
+        ]),
+      ),
     };
   },
 );
