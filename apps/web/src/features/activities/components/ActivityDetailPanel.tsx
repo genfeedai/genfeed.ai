@@ -10,6 +10,11 @@ import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@ui/primitives/collapsible';
+import {
   DefinitionDetail,
   DefinitionList,
   DefinitionRow,
@@ -25,16 +30,21 @@ import {
   getActivityCreditsDelta,
   getActivityIngredientPreviewUrl,
   getActivityMediaPreviewUrl,
+  getActivitySourceLabel,
   getActivityStatus,
   getActivityValueFields,
   getActivityVideoUrl,
+  humanizeActivityToken,
 } from '@/features/activities/activities-list.utils';
+import ActivityPostPreviewCard from '@/features/activities/components/ActivityPostPreviewCard';
 import ActivityStatusCell from '@/features/activities/components/ActivityStatusCell';
 
 interface ActivityDetailPanelProps {
   activity: IActivity;
   /** Where the activity's subject lives; omitted when the viewer cannot open it. */
   openHref?: string;
+  /** Where the post's remix opens; omitted when there is nothing to remix. */
+  remixHref?: string;
   onToggleRead: (id: string) => void;
 }
 
@@ -49,6 +59,27 @@ function formatTimestamp(value: string | undefined | null): string | undefined {
   return `${new Date(value).toLocaleString('en-US', { timeZone: 'UTC' })} UTC`;
 }
 
+function FactList({ facts }: { facts: DetailFact[] }) {
+  return (
+    <DefinitionList variant="properties">
+      {facts
+        .filter((fact) => fact.value)
+        .map((fact) => (
+          <DefinitionRow key={fact.label}>
+            <DefinitionTerm variant="muted">{fact.label}</DefinitionTerm>
+            <DefinitionDetail
+              className={
+                fact.isMono ? 'break-all font-mono text-xs' : undefined
+              }
+            >
+              {fact.value}
+            </DefinitionDetail>
+          </DefinitionRow>
+        ))}
+    </DefinitionList>
+  );
+}
+
 /**
  * The activity's detail inside the right context sidebar: who and what it
  * belongs to, how it ended, and the stored value. The shell rail owns the
@@ -58,6 +89,7 @@ function formatTimestamp(value: string | undefined | null): string | undefined {
 export default function ActivityDetailPanel({
   activity,
   openHref,
+  remixHref,
   onToggleRead,
 }: ActivityDetailPanelProps) {
   const translate = useTranslations('pages.activities');
@@ -79,48 +111,38 @@ export default function ActivityDetailPanel({
         })
       : undefined;
 
+  // The facts a person reads: names and plain words, never ids.
   const facts: DetailFact[] = [
     {
       label: translate('detailStatus'),
       value: <ActivityStatusCell status={status} />,
     },
-    { label: translate('detailUser'), value: activity.user?.email },
     {
-      isMono: true,
-      label: translate('detailUserId'),
-      value: activity.userId,
+      label: translate('detailUser'),
+      value: activity.userLabel ?? activity.user?.email,
     },
     {
-      isMono: true,
       label: translate('detailOrganization'),
-      value: activity.organizationId,
+      value: activity.organizationLabel,
+    },
+    { label: translate('detailBrand'), value: activity.brandLabel },
+    {
+      label: translate('detailKey'),
+      value: humanizeActivityToken(activity.key),
     },
     {
-      isMono: true,
-      label: translate('detailBrand'),
-      value: activity.brandId,
-    },
-    { isMono: true, label: translate('detailKey'), value: activity.key },
-    { label: translate('detailSource'), value: activity.source },
-    { label: translate('detailOrigin'), value: activity.origin },
-    {
-      isMono: true,
-      label: translate('detailActor'),
-      value: activity.actorUserId,
+      label: translate('detailSource'),
+      value:
+        getActivitySourceLabel(activity.source) ??
+        humanizeActivityToken(activity.source),
     },
     {
-      isMono: true,
+      label: translate('detailOrigin'),
+      value: humanizeActivityToken(activity.origin),
+    },
+    {
       label: translate('detailEntity'),
-      value: activity.entityId
-        ? `${activity.entityModel ?? 'entity'} ${activity.entityId}`
-        : undefined,
-    },
-    {
-      isMono: true,
-      label: translate('detailResult'),
-      value: fields?.resultId
-        ? `${fields.resultType ?? 'result'} ${fields.resultId}`
-        : undefined,
+      value: humanizeActivityToken(activity.entityModel),
     },
     {
       label: translate('detailCredits'),
@@ -141,6 +163,43 @@ export default function ActivityDetailPanel({
     {
       label: translate('detailFinished'),
       value: formatTimestamp(fields?.completedAt),
+    },
+  ];
+
+  // The ids behind those names, for support and debugging.
+  const technicalFacts: DetailFact[] = [
+    { isMono: true, label: translate('detailUserId'), value: activity.userId },
+    {
+      isMono: true,
+      label: translate('detailOrganizationId'),
+      value: activity.organizationId,
+    },
+    {
+      isMono: true,
+      label: translate('detailBrandId'),
+      value: activity.brandId,
+    },
+    {
+      isMono: true,
+      label: translate('detailActor'),
+      value: activity.actorUserId,
+    },
+    {
+      isMono: true,
+      label: translate('detailEntityId'),
+      value: activity.entityId,
+    },
+    {
+      isMono: true,
+      label: translate('detailResult'),
+      value: fields?.resultId
+        ? `${fields.resultType ?? 'result'} ${fields.resultId}`
+        : undefined,
+    },
+    {
+      isMono: true,
+      label: translate('detailKeyRaw'),
+      value: activity.key,
     },
   ];
 
@@ -187,26 +246,18 @@ export default function ActivityDetailPanel({
           </div>
         ) : null}
 
+        {activity.preview ? (
+          <ActivityPostPreviewCard
+            preview={activity.preview}
+            remixHref={remixHref}
+          />
+        ) : null}
+
         {fields.error ? (
           <Alert variant="destructive">{fields.error}</Alert>
         ) : null}
 
-        <DefinitionList variant="properties">
-          {facts
-            .filter((fact) => fact.value)
-            .map((fact) => (
-              <DefinitionRow key={fact.label}>
-                <DefinitionTerm variant="muted">{fact.label}</DefinitionTerm>
-                <DefinitionDetail
-                  className={
-                    fact.isMono ? 'break-all font-mono text-xs' : undefined
-                  }
-                >
-                  {fact.value}
-                </DefinitionDetail>
-              </DefinitionRow>
-            ))}
-        </DefinitionList>
+        <FactList facts={facts} />
 
         {openHref || fields.post ? (
           <div className="flex flex-wrap gap-2">
@@ -243,31 +294,42 @@ export default function ActivityDetailPanel({
           </div>
         ) : null}
 
-        {fields.raw ? (
-          <section className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-2xs uppercase tracking-wider text-muted-foreground">
-                {translate('detailValue')}
-              </h3>
-              <Button
-                icon={<Copy className="size-3.5" />}
-                onClick={() =>
-                  void ClipboardService.getInstance().copyToClipboard(
-                    fields.raw,
-                  )
-                }
-                size={ButtonSize.SM}
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-              >
-                {translate('copyValue')}
-              </Button>
-            </div>
-            <Pre className="max-h-72 overflow-y-auto" variant="debug">
-              {fields.raw}
-            </Pre>
-          </section>
-        ) : null}
+        <Collapsible>
+          <CollapsibleTrigger
+            className="py-0 text-2xs uppercase tracking-wider text-muted-foreground hover:no-underline"
+            data-testid="activity-technical-toggle"
+          >
+            {translate('detailTechnical')}
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-3 flex flex-col gap-4">
+            <FactList facts={technicalFacts} />
+            {fields.raw ? (
+              <section className="flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-2xs uppercase tracking-wider text-muted-foreground">
+                    {translate('detailValue')}
+                  </h3>
+                  <Button
+                    icon={<Copy className="size-3.5" />}
+                    onClick={() =>
+                      void ClipboardService.getInstance().copyToClipboard(
+                        fields.raw,
+                      )
+                    }
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.GHOST}
+                    withWrapper={false}
+                  >
+                    {translate('copyValue')}
+                  </Button>
+                </div>
+                <Pre className="max-h-72 overflow-y-auto" variant="debug">
+                  {fields.raw}
+                </Pre>
+              </section>
+            ) : null}
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </div>
   );

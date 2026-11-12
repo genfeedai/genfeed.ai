@@ -77,6 +77,25 @@ export function getActivitySourceLabel(
   return getCreditActivitySourceLabel(source);
 }
 
+const TOKEN_WORD_BOUNDARY_PATTERN = /[-_\s]+|(?<=[a-z0-9])(?=[A-Z])/u;
+
+/**
+ * Reads a wire token as words: `breakout-remix-offered` becomes
+ * "Breakout remix offered" and `BreakoutResponse` becomes "Breakout response".
+ * For the facts an operator reads, never an id.
+ */
+export function humanizeActivityToken(
+  token: string | null | undefined,
+): string | undefined {
+  const words = (token ?? '')
+    .split(TOKEN_WORD_BOUNDARY_PATTERN)
+    .filter(Boolean)
+    .map((word) => word.toLowerCase());
+  if (!words.length) return undefined;
+  const sentence = words.join(' ');
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+}
+
 export function parseActivityValue(
   value: string,
 ): Record<string, unknown> | null {

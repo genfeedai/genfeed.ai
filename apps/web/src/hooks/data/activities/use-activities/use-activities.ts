@@ -15,7 +15,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { withSilentOperation } from '@hooks/utils/service-operation/service-operation.util';
 import { useFilteredData } from '@hooks/utils/use-filtered-data/use-filtered-data';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 
 const EMPTY_ACTIVITIES: IActivity[] = [];
@@ -88,6 +88,7 @@ export function useActivities({
     isSignedIn || playwrightAuth?.isSignedIn === true;
 
   const [filter, setFilter] = useState(initialFilter);
+  const queryClient = useQueryClient();
 
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
@@ -207,6 +208,14 @@ export function useActivities({
     return { statusCounts, todayCount, total };
   }, [activities]);
 
+  // A read-state change also moves the dot on the Activity menu item.
+  const refetchAfterReadChange = useCallback(() => {
+    void refetch();
+    void queryClient.invalidateQueries({
+      queryKey: ['activities', userId ?? null, 'unread-count'],
+    });
+  }, [queryClient, refetch, userId]);
+
   const patchActivities = useCallback(
     async (activityIds: string[]) => {
       if (activityIds.length === 0) {
@@ -215,7 +224,7 @@ export function useActivities({
 
       await withSilentOperation({
         errorMessage: 'Failed to mark activities as read',
-        onSuccess: () => void refetch(),
+        onSuccess: refetchAfterReadChange,
         operation: async () => {
           const service = await getActivitiesService();
           return service.bulkPatch({
@@ -227,7 +236,7 @@ export function useActivities({
         url: `PATCH /activities/bulk [${activityIds.length} activities]`,
       });
     },
-    [getActivitiesService, refetch],
+    [getActivitiesService, refetchAfterReadChange],
   );
 
   const clearCompletedActivities = useCallback(
@@ -238,7 +247,7 @@ export function useActivities({
 
       await withSilentOperation({
         errorMessage: 'Failed to clear completed activities',
-        onSuccess: () => void refetch(),
+        onSuccess: refetchAfterReadChange,
         operation: async () => {
           const service = await getActivitiesService();
           return service.bulkPatch({
@@ -251,7 +260,7 @@ export function useActivities({
         url: `PATCH /activities/bulk [clear ${activityIds.length} completed]`,
       });
     },
-    [getActivitiesService, refetch],
+    [getActivitiesService, refetchAfterReadChange],
   );
 
   const markActivitiesAsRead = useCallback(
@@ -278,7 +287,7 @@ export function useActivities({
 
       await withSilentOperation({
         errorMessage: 'Failed to update activity status',
-        onSuccess: () => void refetch(),
+        onSuccess: refetchAfterReadChange,
         operation: async () => {
           const service = await getActivitiesService();
           return service.patch(activityId, {
@@ -289,7 +298,7 @@ export function useActivities({
         url: `PATCH /activities/${activityId} [toggle read]`,
       });
     },
-    [activities, getActivitiesService, refetch],
+    [activities, getActivitiesService, refetchAfterReadChange],
   );
 
   const refresh = useCallback(async () => {

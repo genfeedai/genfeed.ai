@@ -22,6 +22,7 @@ const {
   mockBrandState,
   mockLogoUrl,
   mockPathname,
+  mockUnreadActivityCount,
   mockSearchParams,
 } = vi.hoisted(() => ({
   mockBrandState: {
@@ -31,6 +32,7 @@ const {
   mockExitNestedGroup: vi.fn(),
   mockLogoUrl: { value: '' },
   mockPathname: { value: '/settings/personal' },
+  mockUnreadActivityCount: { value: 0 },
   mockSearchParams: { value: '' },
   mockPrefetch: vi.fn(),
   mockPush: vi.fn(),
@@ -138,6 +140,10 @@ vi.mock('@/hooks/data/tasks/use-workspace-inbox-count', () => ({
   useWorkspaceInboxCount: () => 2,
 }));
 
+vi.mock('@/hooks/data/activities/use-unread-activity-count', () => ({
+  useUnreadActivityCount: () => mockUnreadActivityCount.value,
+}));
+
 vi.mock('@/components/menus/item/MenuItem', () => ({
   default: ({
     badgeCount,
@@ -181,6 +187,7 @@ describe('MenuShared', () => {
     mockBrandState.selectedBrand = null;
     mockLogoUrl.value = '';
     mockPathname.value = '/settings/personal';
+    mockUnreadActivityCount.value = 0;
     mockSearchParams.value = '';
     process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
     const storage = new Map<string, string>();
@@ -397,6 +404,21 @@ describe('MenuShared', () => {
       'data-active',
       'true',
     );
+  });
+
+  it('attaches the unread activity count to the activity row', () => {
+    const activityConfig: MenuShellConfig = {
+      items: [
+        { href: '/workspace/inbox', label: 'Inbox' },
+        { href: '/workspace/activity', label: 'Activity' },
+      ],
+      logoHref: '/',
+    };
+
+    mockUnreadActivityCount.value = 3;
+    render(<MenuShared config={activityConfig} />);
+
+    expect(screen.getByText('Activity (3)')).toBeInTheDocument();
   });
 
   it('attaches the unread workspace task count to the inbox row', () => {

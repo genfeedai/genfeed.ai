@@ -16,6 +16,18 @@ export class ActivitiesService extends BaseService<Activity> {
     return BaseService.getDataServiceInstance(ActivitiesService, token);
   }
 
+  /** Unread activities in one scope, for the dot on the menu item. */
+  async getUnreadCount(
+    scope: { brandId?: string; organizationId?: string },
+    signal?: AbortSignal,
+  ): Promise<number> {
+    const response = await this.instance.get<{ unreadCount?: number }>(
+      '/unread-count',
+      { params: scope, signal },
+    );
+    return response.data.unreadCount ?? 0;
+  }
+
   async bulkPatch(data: IBulkPatchData): Promise<IBulkOperationResult> {
     // Serialize the data before sending
     const serializedData = await serializeRequest(

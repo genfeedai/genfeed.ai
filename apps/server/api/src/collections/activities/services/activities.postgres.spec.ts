@@ -53,11 +53,11 @@ describe.skipIf(!connectionString)(
 
     const row = (id: string, organizationId: string | null) =>
       ({ id, organizationId }) as Parameters<
-        typeof service.attachOrganizationLabels
+        typeof service.attachDisplayContext
       >[0][number];
 
     it('labels every row with its own organization name', async () => {
-      const result = await service.attachOrganizationLabels([
+      const result = await service.attachDisplayContext([
         row('1', 'org-a'),
         row('2', 'org-b'),
         row('3', 'org-a'),
@@ -70,7 +70,7 @@ describe.skipIf(!connectionString)(
     });
 
     it('leaves rows without a known organization unlabelled', async () => {
-      const result = await service.attachOrganizationLabels([
+      const result = await service.attachDisplayContext([
         row('1', null),
         row('2', 'org-missing'),
       ]);
