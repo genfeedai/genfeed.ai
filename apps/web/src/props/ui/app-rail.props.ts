@@ -12,7 +12,13 @@ import type {
   AppRailReorderEvent,
   AppRailSurface,
 } from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
-import type { MouseEvent, ReactNode } from 'react';
+import type {
+  FocusEvent,
+  MouseEvent,
+  PointerEvent,
+  ReactNode,
+  RefObject,
+} from 'react';
 
 export interface AppRailNavigationTarget {
   announcement?: string;
@@ -148,6 +154,8 @@ export interface AppRailItemProps {
   href: string;
   isActive: boolean;
   isLocked: boolean;
+  /** The hover preview carries the label, so the item needs no tooltip. */
+  hasPreview?: boolean;
   label: string;
   description: string;
   shortcut?: string[];
@@ -168,4 +176,40 @@ export interface AppProtectedRailProps {
   /** Injected by AppLayout into the drawer copy. */
   onNavigate?: () => void;
   orgSlug?: string;
+}
+
+/** One rail app that can open a hover preview. */
+export interface AppRailPreviewApp {
+  description: string;
+  href: string;
+  id: string;
+  label: string;
+  shortcut?: string;
+}
+
+/** What a preview body receives: where the app opens. */
+export interface AppRailPreviewContentProps {
+  href: string;
+}
+
+export interface UseAppRailPreviewOptions {
+  /** The active app has no preview; its own page is the preview. */
+  activeAppId?: string;
+  apps: readonly AppRailPreviewApp[];
+  /** Off while the rail is a drawer, in admin chrome or while dragging. */
+  isEnabled: boolean;
+  navRef: RefObject<HTMLElement | null>;
+}
+
+export interface UseAppRailPreviewResult {
+  /** Closes the preview now, e.g. when an item is clicked. */
+  close: () => void;
+  flyout: ReactNode;
+  /** Handlers for the rail's `nav`; one set serves every item. */
+  navProps: {
+    onBlurCapture: (event: FocusEvent<HTMLElement>) => void;
+    onFocusCapture: (event: FocusEvent<HTMLElement>) => void;
+    onPointerLeave: (event: PointerEvent<HTMLElement>) => void;
+    onPointerOver: (event: PointerEvent<HTMLElement>) => void;
+  };
 }
