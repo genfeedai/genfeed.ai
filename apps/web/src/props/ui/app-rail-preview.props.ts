@@ -37,7 +37,7 @@ export interface AppRailPreviewStatProps {
   value: string;
 }
 
-export interface AppRailPreviewThumbnail {
+interface AppRailPreviewThumbnail {
   alt: string;
   href: string;
   id: string;

@@ -1,5 +1,6 @@
 'use client';
 
+import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { formatThreadTime } from '@ui/lists/thread-list/group-by-recency';
 import {
   ThreadListRow,
@@ -115,10 +116,7 @@ export function RailPreviewItems({ items }: AppRailPreviewItemsProps) {
 /** A number and what it counts. */
 export function RailPreviewStat({ label, value }: AppRailPreviewStatProps) {
   return (
-    <div className="rounded-lg bg-background/40 p-2.5">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-0.5 text-base font-semibold tabular-nums">{value}</div>
-    </div>
+    <MetricCard appearance="inset" label={label} size="sm" value={value} />
   );
 }
 
