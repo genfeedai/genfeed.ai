@@ -9,7 +9,7 @@ import ProfileSocialLinks from '@web-components/profile/ProfileSocialLinks';
 import ProfileSubscribe from '@web-components/profile/ProfileSubscribe';
 import CopyLinkButton from './CopyLinkButton';
 import SupportCreatorButton from './SupportCreatorButton';
-import ViewCount from './ViewCount';
+import ViewTracker from './ViewTracker';
 
 const STAT_LABELS = [
   ['articles', 'articles'],
@@ -65,7 +65,7 @@ export default function CreatorRail({
             ))}
           </p>
         ) : null}
-        <ViewCount id={brand.id} target="profile" />
+        <ViewTracker id={brand.id} target="profile" />
       </div>
 
       <div className="flex items-center gap-4">
