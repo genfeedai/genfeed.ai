@@ -240,6 +240,7 @@ export function useAppProtectedLayout(
   );
 
   const threads = useAgentChatStore((s) => s.threads);
+  const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
 
   const contextRole = useUserRole();
   const bootstrapRole = initialBootstrap?.accessState?.memberRole;
@@ -474,6 +475,7 @@ export function useAppProtectedLayout(
     // agent
     agentApiService,
     threads,
+    activeThreadId,
     // menu items
     adminMenuItems,
     analyticsMenuItems,

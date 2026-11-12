@@ -73,6 +73,10 @@ const {
 }));
 
 const mockCreditsBilling = vi.hoisted(() => ({ value: true }));
+const mockAgentStore = vi.hoisted(() => ({
+  activeThreadId: null as string | null,
+  threads: [] as { id: string; title?: string }[],
+}));
 
 // Every real Studio app is a single page, and a one-item nav is dropped, so a
 // test opts an app into a second page here to exercise the Studio nav column.
@@ -468,7 +472,8 @@ vi.mock('@genfeedai/agent', () => ({
   AgentApiService: class AgentApiService {},
   useAgentChatStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({
-      threads: [],
+      activeThreadId: mockAgentStore.activeThreadId,
+      threads: mockAgentStore.threads,
     }),
   useAgentPageContext: vi.fn(),
 }));
@@ -597,6 +602,8 @@ describe('AppProtectedLayout', () => {
     vi.mocked(useUserRole).mockReturnValue(MemberRole.USER);
     vi.mocked(useAgentPageContext).mockClear();
     mockPathname.value = '/workspace';
+    mockAgentStore.activeThreadId = null;
+    mockAgentStore.threads = [];
     shellState.isAuthLoaded = true;
     shellState.isShellThrowing = false;
     shellState.isSignedIn = undefined;
@@ -1128,6 +1135,30 @@ describe('AppProtectedLayout', () => {
       });
     },
   );
+
+  describe('master thread breadcrumb', () => {
+    it.each([
+      ['/org-123/~/agent', 'Weekly launch plan'],
+      ['/org-123/~/agent/new', 'New Conversation'],
+    ])('shows the leaf for %s', (pathname, leafLabel) => {
+      mockPathname.value = pathname;
+      mockAgentStore.activeThreadId = 'master-1';
+      mockAgentStore.threads = [
+        { id: 'master-1', title: 'Weekly launch plan' },
+      ];
+
+      render(
+        <AppProtectedLayout>
+          <div>Protected content</div>
+        </AppProtectedLayout>,
+      );
+
+      const layoutProps = appLayoutSpy.mock.lastCall?.[0] as {
+        breadcrumb?: { leafLabel: string };
+      };
+      expect(layoutProps.breadcrumb?.leafLabel).toBe(leafLabel);
+    });
+  });
 
   describe('storyboard run breadcrumb', () => {
     it('shows the run title the page publishes as the leaf', () => {

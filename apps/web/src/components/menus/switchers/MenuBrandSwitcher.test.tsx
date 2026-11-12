@@ -1,3 +1,4 @@
+import { resetLastBrandSave } from '@genfeedai/contexts/providers/protected-bootstrap/last-brand-save';
 import {
   createBrand,
   createOrganization,
@@ -8,7 +9,7 @@ import type {
   SwitcherDropdownItem,
 } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MenuBrandSwitcher from '@/components/menus/switchers/MenuBrandSwitcher';
 
@@ -19,6 +20,7 @@ const mockOpenBrandCreateModal = vi.hoisted(() => vi.fn());
 let capturedFooterActions: SwitcherDropdownFooterAction[] = [];
 let capturedItems: SwitcherDropdownItem[] = [];
 let capturedMinWidth: number | undefined;
+let capturedOnSelect: ((id: string) => void) | undefined;
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
@@ -82,6 +84,7 @@ vi.mock('@ui/menus/switcher-dropdown/SwitcherDropdown', () => ({
     footerActions = [],
     items = [],
     minWidth,
+    onSelect,
     renderTrigger,
   }: {
     footerActions?: SwitcherDropdownFooterAction[];
@@ -96,6 +99,7 @@ vi.mock('@ui/menus/switcher-dropdown/SwitcherDropdown', () => ({
     capturedFooterActions = footerActions;
     capturedItems = items;
     capturedMinWidth = minWidth;
+    capturedOnSelect = onSelect;
     return (
       <div data-testid="switcher-dropdown">
         {renderTrigger({ isDisabled: false, isOpen: false })}
@@ -120,6 +124,8 @@ describe('MenuBrandSwitcher', () => {
     capturedFooterActions = [];
     capturedItems = [];
     capturedMinWidth = undefined;
+    capturedOnSelect = undefined;
+    resetLastBrandSave();
     mockPatchMeBrand.mockReset();
     mockPatchMeBrand.mockResolvedValue({});
     mockReloadUser.mockReset();
@@ -259,5 +265,116 @@ describe('MenuBrandSwitcher', () => {
 
     expect(onClearSelection).toHaveBeenCalledTimes(1);
     expect(mockPatchMeBrand).not.toHaveBeenCalled();
+  });
+  describe('choosing another brand', () => {
+    const brandsAB = [
+      brandsWithSlug[0] as Brand,
+      new Brand(
+        createBrand({
+          id: 'brand_2',
+          label: 'Second Brand',
+          organization: Object.assign(createOrganization(), {
+            slug: 'test-org',
+          }),
+          slug: 'second-brand',
+        }),
+      ),
+    ];
+
+    it('shows the chosen brand and switches before the save request completes', () => {
+      mockPatchMeBrand.mockReturnValue(new Promise(() => undefined));
+      const onBrandChange = vi.fn();
+
+      render(
+        <MenuBrandSwitcher
+          variant="labeled"
+          brands={brandsAB}
+          brandId="brand_1"
+          onBrandChange={onBrandChange}
+        />,
+      );
+
+      act(() => capturedOnSelect?.('brand_2'));
+
+      expect(onBrandChange).toHaveBeenCalledWith('brand_2');
+      expect(screen.getByTestId('brand-switcher-trigger')).toHaveTextContent(
+        'Second Brand',
+      );
+      expect(capturedItems.find((item) => item.isActive)?.id).toBe('brand_2');
+    });
+
+    it('follows the real brand again once the route changes it', () => {
+      mockPatchMeBrand.mockReturnValue(new Promise(() => undefined));
+
+      const { rerender } = render(
+        <MenuBrandSwitcher
+          variant="labeled"
+          brands={brandsAB}
+          brandId="brand_1"
+          onBrandChange={vi.fn()}
+        />,
+      );
+      act(() => capturedOnSelect?.('brand_2'));
+      rerender(
+        <MenuBrandSwitcher
+          variant="labeled"
+          brands={brandsAB}
+          brandId="brand_2"
+          onBrandChange={vi.fn()}
+        />,
+      );
+      rerender(
+        <MenuBrandSwitcher
+          variant="labeled"
+          brands={brandsAB}
+          brandId="brand_1"
+          onBrandChange={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByTestId('brand-switcher-trigger')).toHaveTextContent(
+        'Test Brand',
+      );
+    });
+
+    it('keeps the switch when saving the last brand fails', async () => {
+      mockPatchMeBrand.mockRejectedValue(new Error('offline'));
+      const onBrandChange = vi.fn();
+
+      render(
+        <MenuBrandSwitcher
+          variant="labeled"
+          brands={brandsAB}
+          brandId="brand_1"
+          onBrandChange={onBrandChange}
+        />,
+      );
+
+      await act(async () => capturedOnSelect?.('brand_2'));
+
+      expect(onBrandChange).toHaveBeenCalledWith('brand_2');
+      expect(screen.getByTestId('brand-switcher-trigger')).toHaveTextContent(
+        'Second Brand',
+      );
+    });
+
+    it('sends the save request once when the same brand is chosen twice', async () => {
+      render(
+        <MenuBrandSwitcher
+          variant="labeled"
+          brands={brandsAB}
+          brandId="brand_1"
+          onBrandChange={vi.fn()}
+        />,
+      );
+
+      await act(async () => {
+        capturedOnSelect?.('brand_2');
+        capturedOnSelect?.('brand_2');
+      });
+
+      expect(mockPatchMeBrand).toHaveBeenCalledTimes(1);
+      expect(mockPatchMeBrand).toHaveBeenCalledWith('brand_2');
+    });
   });
 });
