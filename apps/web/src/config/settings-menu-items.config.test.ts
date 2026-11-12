@@ -181,7 +181,7 @@ describe('buildSettingsMenuItems', () => {
     const items = buildSettingsMenuItems({ scope: SettingsSurface.BRAND });
     it('keeps seven focused destinations and moves workflow editors out of the menu', () => {
       expect(items.map((item) => [item.label, item.group, item.href])).toEqual([
-        ['Brand profile', 'Brand', APP_ROUTES.SETTINGS.ROOT],
+        ['Profile', 'Brand', APP_ROUTES.PROFILE.ROOT],
         ['Brand Kit', 'Brand', APP_ROUTES.SETTINGS.BRAND_KIT],
         ['Knowledge', 'Brand', APP_ROUTES.SETTINGS.KNOWLEDGE],
         ['Agent settings', 'Automation', APP_ROUTES.SETTINGS.AGENT],

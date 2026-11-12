@@ -73,7 +73,11 @@ export const ANALYTICS_APP_PUBLIC = 'public';
 /** `/settings/*` (personal) or `/:org/~/settings/*` and `/:org/:brand/settings/*`. */
 function isSettingsPath(pathname: string): boolean {
   const segments = pathname.split('?')[0].split('/').filter(Boolean);
-  return segments[0] === 'settings' || segments[2] === 'settings';
+  return (
+    segments[0] === 'settings' ||
+    segments[2] === 'settings' ||
+    segments[2] === 'profile'
+  );
 }
 
 /**

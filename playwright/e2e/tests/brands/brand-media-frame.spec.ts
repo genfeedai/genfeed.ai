@@ -20,7 +20,7 @@ test.describe('Brand logo and banner frames', () => {
   test('the brand page shows the banner at 3:1 and the logo as a square tile', async ({
     authenticatedPage,
   }) => {
-    const route = brandPath('/settings');
+    const route = brandPath('/profile');
     await authenticatedPage.goto(route, {
       timeout: 60000,
       waitUntil: 'domcontentloaded',
@@ -47,7 +47,7 @@ test.describe('Brand logo and banner frames', () => {
   test('the brand switcher draws the same tile for a logo as for initials', async ({
     authenticatedPage,
   }) => {
-    const route = brandPath('/settings');
+    const route = brandPath('/profile');
     await authenticatedPage.goto(route, {
       timeout: 60000,
       waitUntil: 'domcontentloaded',

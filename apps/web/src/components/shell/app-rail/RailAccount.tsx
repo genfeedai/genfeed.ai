@@ -22,6 +22,8 @@ import { useTranslations } from 'next-intl';
 import UserDropdown from '@/components/menus/user-dropdown/UserDropdown';
 
 const SETTINGS_PATH_PATTERN = /\/settings(?:\/|$)/;
+/** `/:org/:brand/profile`: the brand profile lives in the settings shell. */
+const PROFILE_PATH_PATTERN = /^\/[^/]+\/[^/]+\/profile(?:\/|$)/;
 /** `/:org/~/connectors/*` and `/:org/:brand/connectors/*`. */
 const CONNECTORS_PATH_PATTERN = /^\/[^/]+\/[^/]+\/connectors(?:\/|$)/;
 
@@ -99,7 +101,9 @@ export default function RailAccount() {
   const isConnectorsActive = CONNECTORS_PATH_PATTERN.test(pathname ?? '');
   const { isSignedIn } = useAuthIdentity();
   const { user } = useAuthUser();
-  const isSettingsActive = SETTINGS_PATH_PATTERN.test(pathname ?? '');
+  const isSettingsActive =
+    SETTINGS_PATH_PATTERN.test(pathname ?? '') ||
+    PROFILE_PATH_PATTERN.test(pathname ?? '');
 
   const emailAddress = user?.primaryEmailAddress?.emailAddress ?? '';
 

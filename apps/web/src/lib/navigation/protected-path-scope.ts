@@ -14,6 +14,7 @@ const BRAND_SCOPED_PREFIXES = [
   APP_ROUTE_PREFIXES.DISCOVERY.slice(1),
   ...STUDIO_APP_ROUTE_PREFIXES.map((prefix) => prefix.slice(1)),
   APP_ROUTE_PREFIXES.WORKSPACE.slice(1),
+  APP_ROUTE_PREFIXES.PROFILE.slice(1),
 ] as const;
 
 export const ORG_SCOPED_PREFIXES = ['settings', 'connectors'] as const;
