@@ -261,6 +261,35 @@ const config = createAppNextConfig({
         `${APP_ROUTES.SETTINGS.ROOT}/${segment}`,
       ),
     })),
+    // Bare Connectors opens its first section. A redirect in configuration is
+    // answered before any page renders, so the router can prefetch it; a page
+    // that redirects during the server render has no prefetchable shell and
+    // every click on it waits on the server.
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.CONNECTORS.AGENTS,
+      ),
+      permanent: false,
+      // `v1` is the API prefix, never an organization (see appHomeRedirects).
+      source: createBrandAppRoute(
+        ':orgSlug((?!v1(?:/|$))[^/]+)',
+        ':brandSlug',
+        APP_ROUTES.CONNECTORS.ROOT,
+      ),
+    },
+    {
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.CONNECTORS.AGENTS,
+      ),
+      permanent: false,
+      source: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.CONNECTORS.ROOT,
+      ),
+    },
     // Complete-path homes: bare `/[app]` → the `bareRootRedirect` of its route
     // manifest entry. The former Studio apps have no parent: each is its own
     // app (#5502).
