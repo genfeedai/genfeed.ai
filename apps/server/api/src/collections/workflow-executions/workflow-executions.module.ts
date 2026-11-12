@@ -7,6 +7,7 @@ import { AgentStrategiesCoreModule } from '@api/collections/agent-strategies/age
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { UsersModule } from '@api/collections/users/users.module';
+import { AgentRunCancelController } from '@api/collections/workflow-executions/controllers/agent-run-cancel.controller';
 import { InternalWorkflowExecutionsController } from '@api/collections/workflow-executions/controllers/internal-workflow-executions.controller';
 import { WorkflowExecutionsController } from '@api/collections/workflow-executions/controllers/workflow-executions.controller';
 import { StalePendingSystemExecutionFinderService } from '@api/collections/workflow-executions/services/stale-pending-system-execution-finder.service';
@@ -21,6 +22,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
+    AgentRunCancelController,
     WorkflowExecutionsController,
     InternalWorkflowExecutionsController,
   ],

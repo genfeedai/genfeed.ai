@@ -154,6 +154,19 @@ function buildOwnAgentConversationRunWhere(
 }
 
 /**
+ * What the chat's Stop button may cancel: only the caller's own live agent
+ * conversation run. It is a narrower set than `buildCancellableExecutionWhere`,
+ * which also admits customer workflow runs behind the automation module.
+ */
+export function buildCancellableAgentRunWhere(
+  organizationId: string,
+  userId: string,
+  id: string,
+): Prisma.WorkflowExecutionWhereInput {
+  return { ...buildOwnAgentConversationRunWhere(organizationId, userId), id };
+}
+
+/**
  * What the caller may stop: any run in their customer activity, plus their own
  * agent conversation runs. Without the second arm the chat's Stop button got a
  * 404 and the turn ran on, spending credits.
