@@ -18,6 +18,7 @@ import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingre
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { readAccountIdentity } from '@api/services/agent-orchestrator/tools/agent-account-identity.util';
 import { starLibraryAsset } from '@api/services/agent-orchestrator/tools/agent-asset-star.util';
+import { brandListData } from '@api/services/agent-orchestrator/tools/agent-brand-access.util';
 import { readAgentLibraryFilters } from '@api/services/agent-orchestrator/tools/agent-library-filters.util';
 import {
   agentPostPreviewInclude,
@@ -52,6 +53,7 @@ type AgentBrandsServiceLike = {
     brands: Record<string, unknown>[],
     organizationId: string,
   ) => Promise<Record<string, unknown>[]>;
+  count?: (filter: Record<string, unknown>) => Promise<number>;
   findAll: (
     query: Record<string, unknown>,
     options: Record<string, unknown>,
@@ -189,6 +191,7 @@ export class AgentWorkspaceToolHandler {
     const brandId = ctx.brandId ?? ctx.validatedScope?.brandId;
     const identity = await readAccountIdentity(
       {
+        brandCounter: this.brandsService,
         listBrands: (context) => this.listAccessibleBrands(context),
         organizationsService: this.organizationsService,
         usersService: this.usersService,
@@ -278,7 +281,8 @@ export class AgentWorkspaceToolHandler {
 
     const requested = readRequiredString(params.brand);
     if (!requested) {
-      return { creditsUsed: 0, data: { brands: serialized }, success: true };
+      const data = await brandListData(this.brandsService, ctx, serialized);
+      return { creditsUsed: 0, data, success: true };
     }
 
     const needle = requested.toLowerCase();

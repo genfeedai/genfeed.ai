@@ -335,6 +335,33 @@ describe('MCP Apps card contract', () => {
     });
   });
 
+  it('shows missing brand access instead of "None yet"', () => {
+    const account = buildCardView('get_account', {
+      profile: {
+        brandAccessMessage: 'You have no brand access. Ask an admin.',
+        brandCount: 0,
+        brands: [],
+        organizationBrandCount: 4,
+      },
+    });
+    expect(account?.cards[0].facts).toContainEqual({
+      label: 'Brands',
+      value: 'You have no brand access. Ask an admin.',
+    });
+
+    const brands = buildCardView('get_brands', {
+      brandAccessMessage: 'You have no brand access. Ask an admin.',
+      brands: [],
+      organizationBrandCount: 4,
+    });
+    expect(brands?.cards).toEqual([
+      expect.objectContaining({
+        description: 'You have no brand access. Ask an admin.',
+        title: 'No brand access',
+      }),
+    ]);
+  });
+
   it('lists brands by name and renders a single brand lookup', () => {
     const list = buildCardView('get_brands', {
       brands: [

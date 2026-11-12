@@ -211,6 +211,11 @@ function brandLines(
   brandsUrl: string | undefined,
 ): string[] {
   if (typeof profile.brandCount !== 'number') return [];
+  if (
+    profile.brandCount === 0 &&
+    typeof profile.brandAccessMessage === 'string'
+  )
+    return [`Brands: none available to you. ${profile.brandAccessMessage}`];
   if (profile.brandCount === 0)
     return [
       `Brands: none yet. Generation needs a brand: create one in Genfeed${
