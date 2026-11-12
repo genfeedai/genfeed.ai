@@ -20,6 +20,7 @@ import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
 import CopyLinkButton from '@web-components/creator/CopyLinkButton';
 import CreatorPostMedia from '@web-components/creator/CreatorPostMedia';
+import CreatorPostMetrics from '@web-components/creator/CreatorPostMetrics';
 import ProfileSubscribe from '@web-components/profile/ProfileSubscribe';
 import { ArrowUpRight } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -215,7 +216,11 @@ export default async function CreatorPostPage({
         </div>
       ) : null}
 
-      <div className="mt-8 flex flex-wrap gap-3">
+      <div className="mt-6 text-sm text-foreground/60">
+        <CreatorPostMetrics post={post} />
+      </div>
+
+      <div className="mt-6 flex flex-wrap gap-3">
         <CopyLinkButton url={url} />
         {networkLinks.map((link) => (
           <Button
