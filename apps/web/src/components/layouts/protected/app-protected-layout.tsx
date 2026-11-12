@@ -155,6 +155,7 @@ function AppLayoutWithDynamicMenu({
     settingsScope,
     agentApiService,
     threads,
+    activeThreadId,
     adminMenuItems,
     analyticsMenuItems,
     libraryMenuItems,
@@ -431,6 +432,20 @@ function AppLayoutWithDynamicMenu({
             leafLabel: truncateBreadcrumbLabel(title, 25),
           };
         }
+      } else if (
+        normalizeProtectedPathname(rawPathname ?? '') === '/agent' &&
+        activeThreadId
+      ) {
+        // The master thread lives at /agent with no id in the path.
+        const title = threads
+          .find((item) => item.id === activeThreadId)
+          ?.title?.trim();
+        if (title) {
+          return {
+            ...breadcrumb,
+            leafLabel: truncateBreadcrumbLabel(title, 25),
+          };
+        }
       }
     }
     const storyboardRunId = extractStoryboardRunId(rawPathname);
@@ -449,6 +464,7 @@ function AppLayoutWithDynamicMenu({
     rawPathname,
     selectedBrand?.label,
     threads,
+    activeThreadId,
     workspaceShellRoute,
   ]);
 
