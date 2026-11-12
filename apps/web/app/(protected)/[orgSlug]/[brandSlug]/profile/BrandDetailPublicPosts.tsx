@@ -5,7 +5,6 @@ import {
   CardVariant,
 } from '@genfeedai/contracts';
 import { creatorPostPath } from '@genfeedai/contracts/constants';
-import type { IPost } from '@genfeedai/contracts/interfaces';
 import {
   getPostMedia,
   postPlatformLabel,
@@ -14,7 +13,11 @@ import {
 } from '@genfeedai/helpers/content/public-post.helper';
 import { formatCompactNumberIntl } from '@genfeedai/helpers/formatting/format/format.helper';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
-import type { BrandDetailPublicPostsProps } from '@props/pages/brand-detail.props';
+import type {
+  BrandDetailPublicPostsProps,
+  PostMetricProps,
+  PublicPostCardProps,
+} from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
 import CollectionSection from '@ui/collection/CollectionSection';
@@ -27,12 +30,6 @@ import { useFormatter, useTranslations } from 'next-intl';
 
 const URL_SCHEME_PATTERN = /^https?:\/\//;
 
-interface PostMetricProps {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-}
-
 function PostMetric({ icon, label, value }: PostMetricProps) {
   return (
     <span className="inline-flex items-center gap-1 tabular-nums">
@@ -41,11 +38,6 @@ function PostMetric({ icon, label, value }: PostMetricProps) {
       <span className="sr-only">{label}</span>
     </span>
   );
-}
-
-interface PublicPostCardProps {
-  href?: string;
-  post: IPost;
 }
 
 function PublicPostCard({ href, post }: PublicPostCardProps) {

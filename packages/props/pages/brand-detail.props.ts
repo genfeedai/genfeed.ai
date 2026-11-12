@@ -17,6 +17,7 @@ import type {
   ILink,
   IPost,
 } from '@genfeedai/contracts/interfaces';
+import type { ReactNode } from 'react';
 
 export interface BrandDetailBannerProps {
   brand: IBrand;
@@ -405,4 +406,15 @@ export interface BrandWatermarkSettingsProps {
   brand: IBrand;
   brandId: string;
   onRefreshBrand: () => Promise<void>;
+}
+
+export interface PostMetricProps {
+  icon: ReactNode;
+  label: string;
+  value: number;
+}
+
+export interface PublicPostCardProps {
+  href?: string;
+  post: IPost;
 }
