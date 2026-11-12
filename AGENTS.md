@@ -96,8 +96,8 @@ one). Full rationale and the measured incidents:
 ```bash
 bun install                                          # Install dependencies
 bun run dev:setup                                    # once per machine (Portless HTTPS :443)
-bun run dev:backend:min                              # api + files + notifications (app minimum)
-bun run dev:backend                                  # full backend (+ mcp + workers)
+bun run dev:backend:min                              # api + files + notifications + workers (app minimum; workers run agent turns)
+bun run dev:backend                                  # full backend (+ mcp)
 bun run dev:web                                      # Main app → https://app.genfeed.localhost/
 bun run dev                                          # full stack (Portless)
 # Fixed ports only when you mean it: bun run dev:debug / dev:debug:backend:min
