@@ -98,7 +98,7 @@ export const DEFAULT_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSetting
     featuredWorkflowIds: [],
     flags: DEFAULT_PLATFORM_FLAGS,
     isAgentContextCompressionEnabled: true,
-    isAgentTokenStreamingEnabled: false,
+    isAgentTokenStreamingEnabled: true,
     // The registered catalog rows. The seed runs during reference-data sync,
     // and a key whose row is missing or unpriced leaves the analysis unavailable.
     brandVisionDetectModelKey: BRAND_VISION_DETECT_MODEL_KEY,
