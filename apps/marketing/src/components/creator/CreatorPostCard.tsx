@@ -9,6 +9,7 @@ import {
 import type { CreatorPostCardProps } from '@props/content/creator.props';
 import Card from '@ui/card/Card';
 import Link from 'next/link';
+import CreatorPostMetrics from './CreatorPostMetrics';
 
 const postDateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
@@ -51,14 +52,17 @@ export default function CreatorPostCard({
         {text && text !== title ? (
           <p className="mb-3 line-clamp-4 text-sm text-foreground/70">{text}</p>
         ) : null}
-        <p className="text-xs text-foreground/50">
-          {platform ? <span>{platform} · </span> : null}
-          {publishedAt ? (
-            <time dateTime={publishedAt}>
-              {postDateFormatter.format(new Date(publishedAt))}
-            </time>
-          ) : null}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-foreground/50">
+          <p>
+            {platform ? <span>{platform} · </span> : null}
+            {publishedAt ? (
+              <time dateTime={publishedAt}>
+                {postDateFormatter.format(new Date(publishedAt))}
+              </time>
+            ) : null}
+          </p>
+          <CreatorPostMetrics post={post} />
+        </div>
       </Card>
     </Link>
   );
