@@ -216,6 +216,11 @@ function errorStatusOf(error: unknown): string | undefined {
   return status === undefined ? undefined : String(status);
 }
 
+function isClientErrorStatus(error: unknown): boolean {
+  const status = Number(errorStatusOf(error));
+  return status >= 400 && status < 500;
+}
+
 function emitSanitizedMismatch(
   reason: RoutedOrganizationMismatchReason,
   error?: unknown,
@@ -466,6 +471,11 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
         }
         await initialService.switchOrganization(target.id);
         hasSwitchedOrganization = true;
+        // A confirmation that timed out or was overtaken must not clear the
+        // tenant state a newer reconciliation has already confirmed.
+        if (!isCurrentGeneration(generation, routeOrganizationSlug)) {
+          return;
+        }
         await invalidateTenantState();
         const refreshedService = await getOrganizationsService({
           forceRefresh: true,
@@ -599,6 +609,9 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
       const confirmSwitch = async (): Promise<void> => {
         // Everything of the previous organization goes now, not after the
         // activate call: the old data must not outlive the click.
+        if (generationRef.current !== generation) {
+          return;
+        }
         await invalidateTenantState();
         if (generationRef.current !== generation) {
           return;
@@ -636,6 +649,9 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
           throw new Error(VERIFICATION_FAILED_MESSAGE);
         }
 
+        if (generationRef.current !== generation) {
+          return;
+        }
         await invalidateTenantState();
         if (generationRef.current !== generation) {
           return;
@@ -668,13 +684,11 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
             if (!isCancelledMembershipRead(error)) {
               emitSanitizedMismatch('switch-failed', error);
             }
-            // The API answered and refused, so the previous organization is
-            // still the active one: put its shell back, with the error.
-            if (
-              !isActivated &&
-              previous &&
-              errorStatusOf(error) !== undefined
-            ) {
+            // The API answered with a client error and refused, so the previous
+            // organization is still the active one: put its shell back, with
+            // the error. A server error can follow a committed write, so it
+            // ends in the failed state instead.
+            if (!isActivated && previous && isClientErrorStatus(error)) {
               setRequestOrganizationId(previous.id);
               setState({
                 confirmedOrganizationId: previous.id,
@@ -762,7 +776,7 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
     ): Promise<void> => {
       try {
         await withConfirmationBound(synchronizeOnce(generation));
-      } catch {
+      } catch (error) {
         if (generationRef.current === generation) {
           setRequestOrganizationId(null);
           emitSanitizedMismatch('cross-tab-sync-failed');
@@ -772,6 +786,9 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
             confirmedOrganizationSlug: null,
             status: 'failed',
           }));
+          if (error instanceof RouteConfirmationTimeoutError) {
+            generationRef.current += 1;
+          }
         }
       }
     };

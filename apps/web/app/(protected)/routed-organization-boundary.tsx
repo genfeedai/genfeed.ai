@@ -101,9 +101,20 @@ function OrganizationUnavailable() {
  * shell stays up and this block shows its own loading state in the page's place.
  */
 export function RoutedOrganizationPageGate({ children }: LayoutProps) {
-  const { isRouteConfirmed } = useRoutedOrganization();
+  const { isRouteConfirmed, status } = useRoutedOrganization();
+  const translate = useTranslations('pages.organizationRouting.pending');
 
-  return isRouteConfirmed ? <>{children}</> : <WorkspaceContentSkeleton />;
+  if (isRouteConfirmed) {
+    return <>{children}</>;
+  }
+
+  return (
+    <WorkspaceContentSkeleton
+      label={
+        status === 'switching' ? translate('switching') : translate('loading')
+      }
+    />
+  );
 }
 
 export default function RoutedOrganizationBoundary({ children }: LayoutProps) {

@@ -478,6 +478,25 @@ describe('RoutedOrganizationProvider', () => {
     expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith('org_alpha');
   });
 
+  it('fails closed with Retry when the API answers an explicit switch with a server error', async () => {
+    getMyOrganizationsMock.mockResolvedValue(ALPHA_ACTIVE);
+    switchOrganizationMock.mockRejectedValue(
+      Object.assign(new Error('Server error'), { status: 500 }),
+    );
+    renderProvider();
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to bravo' }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('failed'),
+    );
+    expect(screen.getByTestId('switch-failure')).toHaveTextContent('none');
+    expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(null);
+  });
+
   it('fails closed with Retry when an explicit switch request never reached the server', async () => {
     getMyOrganizationsMock.mockResolvedValue(ALPHA_ACTIVE);
     switchOrganizationMock.mockRejectedValue(new TypeError('Failed to fetch'));
