@@ -58,6 +58,24 @@ export default function AnalyticsOverviewPerformanceDataset() {
   // A malformed or partial response (e.g. an unhandled API error falling
   // through to a generic empty-collection shape) can resolve successfully
   // without a `dataset` -- render nothing rather than crash. See #5381.
+  // On a brand page the block waits for the brand, then for its own request.
+  // Its title is known at once, so it shows with a row-shaped skeleton.
+  if (scope.pageScope === 'brand' && (!isFetchReady || isLoading)) {
+    return (
+      <WorkspaceSurface
+        data-testid="analytics-performance-dataset"
+        density="compact"
+        flush
+        isLoading
+        loadingLabel={translate('title')}
+        loadingRows={{ count: 1 }}
+        title={translate('title')}
+      >
+        {null}
+      </WorkspaceSurface>
+    );
+  }
+
   if (!isFetchReady || isLoading || !summary || !summary.dataset) {
     return null;
   }
@@ -67,6 +85,7 @@ export default function AnalyticsOverviewPerformanceDataset() {
 
   return (
     <WorkspaceSurface
+      data-testid="analytics-performance-dataset"
       density="compact"
       flush
       title={translate('title')}

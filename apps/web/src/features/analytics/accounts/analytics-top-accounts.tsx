@@ -55,12 +55,29 @@ export default function AnalyticsTopAccounts({
   });
   const accounts = accountsQuery.data ?? [];
 
+  if (!isFetchReady || accountsQuery.isPending) {
+    return (
+      <WorkspaceSurface
+        data-testid="analytics-top-accounts"
+        density="compact"
+        flush
+        isLoading
+        loadingLabel={translate('topAccounts')}
+        loadingRows={{ count: 3, size: 'single' }}
+        title={translate('topAccounts')}
+      >
+        {null}
+      </WorkspaceSurface>
+    );
+  }
+
   if (accounts.length === 0) {
     return null;
   }
 
   return (
     <WorkspaceSurface
+      data-testid="analytics-top-accounts"
       actions={
         <Button asChild variant={ButtonVariant.GHOST}>
           <Link href={href(APP_ROUTES.ANALYTICS.ACCOUNTS)}>View all</Link>
