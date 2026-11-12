@@ -2,10 +2,12 @@ import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useKeepRoutesPrefetched } from '@/hooks/navigation/use-keep-routes-prefetched/use-keep-routes-prefetched';
 import type { MenuSharedProps } from '@/props/navigation/menu.props';
 import { useMenuRouteResolution } from './useMenuRouteResolution';
 
 export function useMenuShared({
+  backHref,
   config,
   onClose,
   renderTopSlot,
@@ -14,6 +16,7 @@ export function useMenuShared({
   renderFooterSlot,
 }: Pick<
   MenuSharedProps,
+  | 'backHref'
   | 'config'
   | 'onClose'
   | 'renderTopSlot'
@@ -81,6 +84,21 @@ export function useMenuShared({
     () => config.secondaryItems ?? [],
     [config.secondaryItems],
   );
+
+  // Every destination the sidebar can open stays prefetched, like the rail's,
+  // so a click after minutes on one page or right after the shell paints does
+  // not wait on a server render.
+  const destinationHrefs = useMemo(() => {
+    const itemHrefs = [...config.items, ...secondaryItems].flatMap((item) => {
+      const itemHref = item.isComingSoon ? undefined : prefixHref(item);
+      return itemHref ? [itemHref] : [];
+    });
+    const resolvedBackHref = backHref
+      ? (prefixHref({ href: backHref }) ?? backHref)
+      : undefined;
+    return resolvedBackHref ? [resolvedBackHref, ...itemHrefs] : itemHrefs;
+  }, [backHref, config.items, prefixHref, secondaryItems]);
+  useKeepRoutesPrefetched(destinationHrefs, { isPrioritized: true });
 
   const isActiveItem = useCallback(
     (item: MenuItemConfig) => {

@@ -15,6 +15,7 @@ vi.mock('next-intl', async () => {
 });
 
 const {
+  mockPrefetch,
   mockPush,
   mockEnterNestedGroup,
   mockExitNestedGroup,
@@ -31,6 +32,7 @@ const {
   mockLogoUrl: { value: '' },
   mockPathname: { value: '/settings/personal' },
   mockSearchParams: { value: '' },
+  mockPrefetch: vi.fn(),
   mockPush: vi.fn(),
 }));
 const originalLocation = window.location;
@@ -123,7 +125,7 @@ vi.mock('next/navigation', async () => {
       orgSlug: 'acme',
     }),
     usePathname: () => mockPathname.value,
-    useRouter: () => ({ push: mockPush }),
+    useRouter: () => ({ prefetch: mockPrefetch, push: mockPush }),
     useSearchParams: () => new URLSearchParams(mockSearchParams.value),
   };
 });
@@ -175,6 +177,7 @@ describe('MenuShared', () => {
     mockEnterNestedGroup.mockClear();
     mockExitNestedGroup.mockClear();
     mockPush.mockClear();
+    mockPrefetch.mockClear();
     mockBrandState.selectedBrand = null;
     mockLogoUrl.value = '';
     mockPathname.value = '/settings/personal';
@@ -318,6 +321,31 @@ describe('MenuShared', () => {
     expect(
       screen.queryByTestId('organization-switcher'),
     ).not.toBeInTheDocument();
+  });
+
+  it('keeps every sidebar destination prepared, including the back link and secondary items', async () => {
+    mockPathname.value = '/acme/moonrise-studio/workspace/overview';
+    render(
+      <MenuShared
+        backHref="/settings/personal"
+        config={{
+          logoHref: '/',
+          items: [
+            { href: '/workspace/overview', label: 'Dashboard' },
+            { href: '/workspace/inbox', isComingSoon: true, label: 'Inbox' },
+          ],
+          secondaryItems: [{ href: '/workspace/tasks', label: 'Tasks' }],
+        }}
+      />,
+    );
+
+    await vi.waitFor(() =>
+      expect(mockPrefetch.mock.calls.map(([href]) => href)).toEqual([
+        '/acme/~/settings/personal',
+        '/acme/moonrise-studio/workspace/overview',
+        '/acme/moonrise-studio/workspace/tasks',
+      ]),
+    );
   });
 
   it('prefers the specific destination over an overview root alias', () => {

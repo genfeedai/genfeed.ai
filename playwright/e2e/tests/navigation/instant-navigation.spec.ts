@@ -354,3 +354,169 @@ test('a slow navigation shows progress until the destination commits', async ({
   await page.waitForURL((url) => url.pathname === href);
   await expect(progress).toBeHidden();
 });
+
+const REFRESH_SETTLE_MS = 3_000;
+const KEPT_WARM_BUDGET_MS = 150;
+const STALE_AFTER_MS = 6 * 60_000;
+const EARLY_CLICK_DELAY_MS = 1_000;
+const FIRST_SECOND_MS = 1_000;
+
+function prefetchedPathnames(page: Page): string[] {
+  const pathnames: string[] = [];
+  page.on('request', (request) => {
+    if (isPrefetchRequest(request)) {
+      pathnames.push(new URL(request.url()).pathname);
+    }
+  });
+  return pathnames;
+}
+
+// The first sidebar destination that is not the page the person is on.
+async function pickSidebarDestination(page: Page) {
+  const sidebar = page.getByTestId('sidebar-shell').first();
+  await expect(sidebar).toBeVisible();
+  const currentPath = new URL(page.url()).pathname;
+  const hrefs = await sidebar
+    .locator('a[href^="/test-org/"]')
+    .evaluateAll((links) =>
+      links.map((link) => link.getAttribute('href') ?? ''),
+    );
+  const href = hrefs.find(
+    (candidate) => candidate && candidate.split('?')[0] !== currentPath,
+  );
+  expect(
+    href,
+    'a sidebar destination other than the current page',
+  ).toBeTruthy();
+  return {
+    href: href as string,
+    link: sidebar.locator(`a[href="${href}"]`).first(),
+  };
+}
+
+// Prepared pages expire after 300s. Only the rail used to be refreshed, so a
+// sidebar click after minutes on one page waited for the server render with
+// the progress bar running.
+test('a sidebar click after minutes on one page paints without waiting for a server render', async ({
+  authenticatedPage: page,
+}, testInfo) => {
+  await page.clock.install();
+  await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
+  await mockLibraryData(page);
+  const requested = prefetchedPathnames(page);
+  await page.goto(
+    createBrandAppRoute('test-org', 'brand-1', APP_ROUTES.LIBRARY.ASSETS),
+  );
+  await expect(
+    page.getByRole('heading', { name: 'All assets', exact: true }),
+  ).toBeVisible();
+
+  const { href, link } = await pickSidebarDestination(page);
+  const pathname = href.split('?')[0];
+  await expect
+    .poll(() => requested.includes(pathname), {
+      message: 'sidebar destination is prepared after the shell paints',
+      timeout: PREFETCH_TIMEOUT_MS,
+    })
+    .toBe(true);
+
+  // The jump must land after the page's own prefetches have drained, or
+  // requests still queued would refresh the entry the test is about to age.
+  let seen = -1;
+  await expect
+    .poll(
+      async () => {
+        const settled = seen === requested.length;
+        seen = requested.length;
+        await page.waitForTimeout(PREFETCH_QUIET_MS);
+        return settled;
+      },
+      { timeout: PREFETCH_TIMEOUT_MS },
+    )
+    .toBe(true);
+  await page.clock.runFor(STALE_AFTER_MS);
+  // The shell refreshes what expired while the browser is idle. Give that work
+  // time to finish, as a person reaching for the sidebar would.
+  await page.waitForTimeout(REFRESH_SETTLE_MS);
+  await delayServerRenders(page);
+  await recordNavigationTiming(page);
+
+  await link.click();
+  await page.waitForURL((url) => url.pathname === pathname);
+  const elapsedMs = await readClickToCommitMs(page);
+
+  testInfo.annotations.push({
+    description: `${elapsedMs}ms after ${STALE_AFTER_MS / 1000}s on one page (${href})`,
+    type: 'click-to-destination',
+  });
+  expect(elapsedMs).toBeLessThan(KEPT_WARM_BUDGET_MS);
+});
+
+// Every page load queues the prefetches of the links on it. A click in the
+// first moments after the shell appears must not wait behind them.
+test('a sidebar click right after the shell appears paints without waiting for a server render', async ({
+  authenticatedPage: page,
+}, testInfo) => {
+  await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
+  await mockLibraryData(page);
+  await delayServerRenders(page);
+  await page.goto(
+    createBrandAppRoute('test-org', 'brand-1', APP_ROUTES.LIBRARY.ASSETS),
+  );
+  const { href, link } = await pickSidebarDestination(page);
+  const pathname = href.split('?')[0];
+  await page.waitForTimeout(EARLY_CLICK_DELAY_MS);
+  await recordNavigationTiming(page);
+
+  await link.click();
+  await page.waitForURL((url) => url.pathname === pathname);
+  const elapsedMs = await readClickToCommitMs(page);
+
+  testInfo.annotations.push({
+    description: `${elapsedMs}ms ${EARLY_CLICK_DELAY_MS}ms after the shell appeared`,
+    type: 'click-to-destination',
+  });
+  expect(elapsedMs).toBeLessThan(KEPT_WARM_BUDGET_MS);
+});
+
+// The shell's own destinations (rail, sidebar and the topbar's Apps link) are
+// what people click first, so their prefetches go out before any link in the
+// page content.
+test('the first prefetches after the shell paints are for the shell, not the page content', async ({
+  authenticatedPage: page,
+}) => {
+  await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
+  await mockLibraryData(page);
+  const requested = prefetchedPathnames(page);
+  await page.goto(
+    createBrandAppRoute('test-org', 'brand-1', APP_ROUTES.LIBRARY.ASSETS),
+  );
+  await expect(page.getByTestId('sidebar-shell').first()).toBeVisible();
+  await expect(page.getByTestId('app-rail')).toBeVisible();
+  const startedAt = Date.now();
+  await expect
+    .poll(() => requested.length, { timeout: PREFETCH_TIMEOUT_MS })
+    .toBeGreaterThan(0);
+  await page.waitForTimeout(
+    Math.max(0, FIRST_SECOND_MS - (Date.now() - startedAt)),
+  );
+  const firstSecond = [...new Set(requested)];
+
+  const hrefsWithin = (selector: string) =>
+    page
+      .locator(selector)
+      .evaluateAll((links) =>
+        links.map((link) => (link.getAttribute('href') ?? '').split('?')[0]),
+      );
+  await page.getByTestId('app-rail-more').click();
+  const shellPaths = new Set([
+    ...(await hrefsWithin('[data-testid="app-rail"] a[href]')),
+    ...(await hrefsWithin('[data-testid^="app-rail-more-item"][href]')),
+    ...(await hrefsWithin('[data-testid="sidebar-shell"] a[href]')),
+    ...(await hrefsWithin('[data-testid="topbar-apps-link"][href]')),
+  ]);
+
+  expect(firstSecond.filter((pathname) => !shellPaths.has(pathname))).toEqual(
+    [],
+  );
+});

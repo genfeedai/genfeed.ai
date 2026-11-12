@@ -590,7 +590,7 @@ describe('AppRail', () => {
     expect(
       screen.queryByRole('link', { name: 'Playground' }),
     ).not.toBeInTheDocument();
-    await vi.advanceTimersByTimeAsync(10);
+    await vi.advanceTimersByTimeAsync(2_000);
 
     expect(router.prefetch.mock.calls.map(([href]) => href)).toEqual(
       expect.arrayContaining([

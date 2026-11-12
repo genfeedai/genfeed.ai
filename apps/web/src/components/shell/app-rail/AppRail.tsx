@@ -190,6 +190,8 @@ function AppRailItem({
   );
 }
 
+const RAIL_FIRST_PREFETCH_DELAY_MS = 1_500;
+
 export function AppRail({
   badges,
   brandAwareSlug,
@@ -296,12 +298,15 @@ export function AppRail({
   );
   // Every destination the rail can open, including the ones behind More,
   // stays prefetched so a click paints the page at once instead of waiting
-  // on the server render.
+  // on the server render. The first pass waits so that the sidebar's requests
+  // go out ahead of the destinations behind the menu.
   const destinationHrefs = useMemo(
     () => items.map((item) => item.href),
     [items],
   );
-  useKeepRoutesPrefetched(destinationHrefs);
+  useKeepRoutesPrefetched(destinationHrefs, {
+    startDelayMs: RAIL_FIRST_PREFETCH_DELAY_MS,
+  });
   const adminExitItem = items.find((item) => item.app.group === 'admin-exit');
   const adminCategoryItems = items.filter(
     (item) => item.app.group === 'admin-category',

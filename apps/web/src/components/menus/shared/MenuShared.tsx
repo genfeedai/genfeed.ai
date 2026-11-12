@@ -58,6 +58,7 @@ export default function MenuShared({
     afterNavigationContent,
     footerSlotContent,
   } = useMenuShared({
+    backHref,
     config,
     onClose,
     renderTopSlot,
