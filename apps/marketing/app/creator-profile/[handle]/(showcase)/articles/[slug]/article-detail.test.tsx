@@ -11,9 +11,9 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
-vi.mock('@data/public-views', () => ({
-  trackPublicView: async () => 1284,
-}));
+const trackPublicView = vi.hoisted(() => vi.fn(async () => 1284));
+
+vi.mock('@data/public-views', () => ({ trackPublicView }));
 
 vi.mock('./article-content', () => ({
   default: () => <div>article body</div>,
@@ -112,12 +112,19 @@ describe('ArticleDetail', () => {
     expect(sticky).toHaveClass('lg:top-24');
   });
 
-  it('shows how many people read the article', async () => {
+  it('counts the visit but does not show the view count', async () => {
     render(
       <ArticleDetail article={article} handle="genfeedai" isPreview={false} />,
     );
 
-    expect(await screen.findByText('1,284')).toBeInTheDocument();
+    await vi.waitFor(() =>
+      expect(trackPublicView).toHaveBeenCalledWith(
+        'article',
+        article.id,
+        expect.any(AbortSignal),
+      ),
+    );
+    expect(screen.queryByText('1,284')).not.toBeInTheDocument();
   });
 
   it('ends with an invitation to make your own, carrying the referral code', () => {

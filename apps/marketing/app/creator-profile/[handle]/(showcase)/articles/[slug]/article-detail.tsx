@@ -28,7 +28,7 @@ import ArticleCover from '@web-components/creator/article-cover';
 import CopyLinkButton from '@web-components/creator/CopyLinkButton';
 import MakeYourOwnBanner from '@web-components/creator/MakeYourOwnBanner';
 import SupportCreatorButton from '@web-components/creator/SupportCreatorButton';
-import ViewCount from '@web-components/creator/ViewCount';
+import ViewTracker from '@web-components/creator/ViewTracker';
 import ProfileSubscribe from '@web-components/profile/ProfileSubscribe';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
@@ -305,7 +305,7 @@ export default function ArticleDetail({
             </Link>
             <div className="flex items-center gap-4">
               {isPreview ? null : (
-                <ViewCount id={article.id} target="article" />
+                <ViewTracker id={article.id} target="article" />
               )}
               <CopyLinkButton url={articleUrl} />
             </div>
