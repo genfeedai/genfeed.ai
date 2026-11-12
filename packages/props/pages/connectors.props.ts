@@ -23,7 +23,3 @@ export interface ConnectorsPrimaryAction {
 export interface ConnectorsPrimaryActionContextValue {
   setPrimaryAction: (action: ConnectorsPrimaryAction | null) => void;
 }
-
-export interface ConnectorsRootPageProps {
-  params: Promise<{ orgSlug: string }>;
-}
