@@ -107,8 +107,10 @@ export type { McpBrandOption } from './registry/mcp-brand-required';
 export {
   describeMissingMcpBrand,
   isMcpBrandRequiredTool,
+  isMcpBrandRequiredWhenMultipleTool,
   MCP_BRAND_REQUIRED_NOTE,
   MCP_BRAND_REQUIRED_TOOL_NAMES,
+  MCP_BRAND_REQUIRED_WHEN_MULTIPLE_NOTE,
   readMcpBrandId,
 } from './registry/mcp-brand-required';
 export {

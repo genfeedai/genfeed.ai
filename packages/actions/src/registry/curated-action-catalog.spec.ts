@@ -539,7 +539,9 @@ describe('curated action catalog policy fields', () => {
   it('puts MCP-only policy on tools that are on the MCP surface', () => {
     const unreachable = CURATED_ACTION_CATALOG.filter(
       (entry: CuratedActionCatalogEntry) =>
-        (entry.mcpBrandRequired === true || entry.mcpApproval !== undefined) &&
+        (entry.mcpBrandRequired === true ||
+          entry.mcpBrandRequiredWhenMultiple === true ||
+          entry.mcpApproval !== undefined) &&
         !surfaceNames(entry).includes('mcp'),
     ).map((entry) => entry.name);
 

@@ -3,7 +3,9 @@ import { toMcpTools } from '../adapters/to-mcp-tool';
 import {
   describeMissingMcpBrand,
   isMcpBrandRequiredTool,
+  isMcpBrandRequiredWhenMultipleTool,
   MCP_BRAND_REQUIRED_TOOL_NAMES,
+  MCP_BRAND_REQUIRED_WHEN_MULTIPLE_TOOL_NAMES,
   readMcpBrandId,
   withRequiredMcpBrandId,
 } from './mcp-brand-required';
@@ -62,6 +64,15 @@ describe('MCP brand-required generation tools', () => {
     expect(readMcpBrandId({ brandId: '  ' })).toBeUndefined();
     expect(readMcpBrandId({ brandId: 4 })).toBeUndefined();
     expect(readMcpBrandId(undefined)).toBeUndefined();
+  });
+
+  it('keeps the multiple-brand rule apart from the always-required generation set', () => {
+    expect([...MCP_BRAND_REQUIRED_WHEN_MULTIPLE_TOOL_NAMES]).toEqual([
+      'create_post',
+    ]);
+    expect(isMcpBrandRequiredWhenMultipleTool('create_post')).toBe(true);
+    expect(isMcpBrandRequiredTool('create_post')).toBe(false);
+    expect(MCP_BRAND_REQUIRED_TOOL_NAMES.has('create_post')).toBe(false);
   });
 
   it('lists the caller brands in the rejection message', () => {

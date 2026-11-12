@@ -666,6 +666,88 @@ describe('ToolRegistryService', () => {
       expect(JSON.stringify(result)).toContain('Continue in Genfeed');
     });
 
+    it('asks create_post for a brand only when the organization has several (#10071)', async () => {
+      clientService.executeAgentTool.mockResolvedValueOnce(brandListing);
+
+      const result = await service.handleToolCall({
+        arguments: { content: 'Draft copy' },
+        name: 'create_post',
+      });
+
+      expect(clientService.createApproval).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        isError: true,
+        structuredContent: {
+          brands: [
+            { id: 'brand-1', label: 'Acme' },
+            { id: 'brand-2', label: 'Beta' },
+          ],
+          code: 'brand_required',
+        },
+      });
+      expect(JSON.stringify(result)).toContain('Choose a brand for this draft');
+      expect(JSON.stringify(result)).toContain(
+        'Acme (brand-1), Beta (brand-2)',
+      );
+    });
+
+    it('lets a create_post that names its brand through without listing brands', async () => {
+      clientService.createApproval.mockResolvedValueOnce({
+        id: 'apr-1',
+        status: 'PENDING',
+        toolName: 'create_post',
+      });
+
+      await service.handleToolCall({
+        arguments: { brandId: 'brand-2', content: 'Draft copy' },
+        name: 'create_post',
+      });
+
+      expect(clientService.executeAgentTool).not.toHaveBeenCalledWith(
+        'get_brands',
+        {},
+      );
+    });
+
+    it('does not block create_post for a single-brand organization', async () => {
+      clientService.executeAgentTool.mockResolvedValueOnce({
+        creditsUsed: 0,
+        data: { brands: [{ id: 'brand-1', label: 'Acme' }] },
+        success: true,
+      });
+      clientService.createApproval.mockResolvedValueOnce({
+        id: 'apr-1',
+        status: 'PENDING',
+        toolName: 'create_post',
+      });
+
+      const result = await service.handleToolCall({
+        arguments: { content: 'Draft copy' },
+        name: 'create_post',
+      });
+
+      expect(JSON.stringify(result)).not.toContain('brand_required');
+    });
+
+    it('binds the single brand into the create_post arguments before dispatch or approval (#10071)', async () => {
+      clientService.executeAgentTool.mockResolvedValueOnce({
+        creditsUsed: 0,
+        data: { brands: [{ id: 'brand-1', label: 'Acme' }] },
+        success: true,
+      });
+
+      await service.handleToolCall({
+        arguments: { content: 'Draft copy' },
+        name: 'create_post',
+      });
+
+      expect(clientService.executeAgentTool).toHaveBeenLastCalledWith(
+        'create_post',
+        { brandId: 'brand-1', content: 'Draft copy' },
+        undefined,
+      );
+    });
+
     it('does not ask for a brand on tools outside the generation set', async () => {
       await service.handleToolCall({ arguments: {}, name: 'get_trends' });
 
