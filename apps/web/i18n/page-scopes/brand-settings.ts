@@ -3,6 +3,7 @@ import brandAgentContext from '../../messages/en/pages/brandAgentContext.json';
 import brandAgentProfile from '../../messages/en/pages/brandAgentProfile.json';
 import brandAgentSettings from '../../messages/en/pages/brandAgentSettings.json';
 import brandDetailOverview from '../../messages/en/pages/brandDetailOverview.json';
+import brandDetailPosts from '../../messages/en/pages/brandDetailPosts.json';
 import brandEndCard from '../../messages/en/pages/brandEndCard.json';
 import brandHarnessSettings from '../../messages/en/pages/brandHarnessSettings.json';
 import brandKitReview from '../../messages/en/pages/brandKitReview.json';
@@ -42,6 +43,7 @@ const messages = {
   brandAgentProfile,
   brandAgentSettings,
   brandDetailOverview,
+  brandDetailPosts,
 };
 
 export default messages;

@@ -34,6 +34,7 @@ const ORIGINAL_NAMES = [
   'brandAgentProfile',
   'brandAgentSettings',
   'brandDetailOverview',
+  'brandDetailPosts',
   'brandEndCard',
   'brandHarnessSettings',
   'brandKitReview',

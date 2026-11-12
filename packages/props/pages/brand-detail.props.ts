@@ -6,7 +6,6 @@ import type {
 import type {
   AccountHealthSummary,
   DirectMessageCapability,
-  IArticle,
   IAsset,
   IBrand,
   IBrandConversationStarter,
@@ -15,9 +14,8 @@ import type {
   IBrandKitDraft,
   IBrandPromptSeed,
   IClockTime,
-  IImage,
   ILink,
-  IVideo,
+  IPost,
 } from '@genfeedai/contracts/interfaces';
 import type { ReactNode } from 'react';
 
@@ -47,31 +45,19 @@ export interface BrandDetailSystemPromptProps {
   onCopy: (value?: string) => void;
 }
 
-export interface BrandDetailLatestContentCardProps {
-  label: string;
-  viewAllLink: ReactNode;
-  emptyTitle: string;
-  createLabel: string;
-  /** The create action, absent while the organization lacks the app behind it. */
-  createHref?: string;
-  children: ReactNode;
-}
-
-export interface BrandDetailLatestVideosProps {
-  videos: IVideo[];
-}
-
-export interface BrandDetailLatestImagesProps {
-  images: IImage[];
-}
-
-export interface BrandDetailLatestArticlesProps {
-  articles: IArticle[];
+export interface BrandDetailPublicPostsProps {
+  posts: IPost[];
+  /** A failed request must not read as "no posts", so the state is explicit. */
+  status: 'pending' | 'error' | 'success';
+  onRetry: () => void;
   /**
-   * The genfeed.ai handle the brand's articles are hosted under. Without one
-   * the website does not serve them, so no "Read article" link is shown.
+   * The genfeed.ai handle the brand's public profile lives at. Without one
+   * (a private brand) the website does not serve the posts, so the "Public
+   * profile" link is not shown.
    */
   publicHandle?: string;
+  /** The create action, absent while the organization lacks the app behind it. */
+  createHref?: string;
 }
 
 /**
@@ -365,9 +351,9 @@ export interface UseBrandDetailReturn {
   brandId: string;
   hasBrandId: boolean;
   brand: IBrand | null;
-  videos: IVideo[];
-  images: IImage[];
-  articles: IArticle[];
+  posts: IPost[];
+  postsStatus: 'pending' | 'error' | 'success';
+  refetchPosts: () => void;
   links: ILink[];
   selectedLink: ILink | null;
   isLoading: boolean;
@@ -425,4 +411,15 @@ export interface BrandWatermarkSettingsProps {
   brand: IBrand;
   brandId: string;
   onRefreshBrand: () => Promise<void>;
+}
+
+export interface PostMetricProps {
+  icon: ReactNode;
+  label: string;
+  value: number;
+}
+
+export interface PublicPostCardProps {
+  href?: string;
+  post: IPost;
 }

@@ -1,10 +1,14 @@
 import { CardVariant } from '@genfeedai/contracts';
 import { creatorPostPath } from '@genfeedai/contracts/constants';
+import {
+  getPostMedia,
+  postPlatformLabel,
+  postTitle,
+  toPlainPostText,
+} from '@genfeedai/helpers/content/public-post.helper';
 import type { CreatorPostCardProps } from '@props/content/creator.props';
 import Card from '@ui/card/Card';
 import Link from 'next/link';
-import { getPostMedia } from './post-media';
-import { postPlatformLabel, postTitle, toPlainPostText } from './post-text';
 
 const postDateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
