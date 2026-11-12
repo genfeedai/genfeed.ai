@@ -274,15 +274,24 @@ async function readOrganizations(
 }
 
 /**
- * Reads membership after activate. A list that is already in flight can still
- * show the previous organization as active, so a miss is read once more before
- * the switch is treated as a real mismatch.
+ * Reads membership after activate. The token refresh and the list read start
+ * together: the read does not need the new token, and activate has already
+ * answered, so the list is not the stale one. A list that was already in
+ * flight can still show the previous organization as active, so a miss is read
+ * once more, through the refreshed service, before the switch is treated as a
+ * real mismatch.
  */
-async function readConfirmedOrganizations(
-  read: ReadOrganizations,
+async function readOrganizationsAfterActivation(
+  service: { getMyOrganizations: OrganizationsService['getMyOrganizations'] },
+  getRefreshedService: () => Promise<{
+    getMyOrganizations: OrganizationsService['getMyOrganizations'];
+  }>,
   targetId: string,
 ): Promise<RoutedOrganizationSummary[]> {
-  const organizations = await readOrganizations(read, { fresh: true });
+  const [refreshedService, organizations] = await Promise.all([
+    getRefreshedService(),
+    readOrganizations(membershipReader(service), { fresh: true }),
+  ]);
   if (
     organizations.some(
       (organization) => organization.id === targetId && organization.isActive,
@@ -290,7 +299,7 @@ async function readConfirmedOrganizations(
   ) {
     return organizations;
   }
-  return readOrganizations(read, { fresh: true });
+  return readOrganizations(membershipReader(refreshedService), { fresh: true });
 }
 
 function membershipReader(service: {
@@ -438,6 +447,12 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
     }));
 
     const confirmRoute = async (): Promise<void> => {
+      // A restart (for instance the session identity resolving) can queue this
+      // behind a reconciliation that is still running: do not start work that
+      // is already superseded.
+      if (!isCurrentGeneration(generation, routeOrganizationSlug)) {
+        return;
+      }
       await invalidateTenantState();
       const initialService = await getOrganizationsService();
       const readMembership = membershipReader(initialService);
@@ -492,11 +507,9 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
           return;
         }
         await invalidateTenantState();
-        const refreshedService = await getOrganizationsService({
-          forceRefresh: true,
-        });
-        organizations = await readConfirmedOrganizations(
-          membershipReader(refreshedService),
+        organizations = await readOrganizationsAfterActivation(
+          initialService,
+          () => getOrganizationsService({ forceRefresh: true }),
           target.id,
         );
       }
@@ -641,21 +654,11 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
         await service.switchOrganization(target.id);
         isActivated = true;
 
-        // The token refresh and the one list read of the switch run side by
-        // side: the read does not need the new token, and activate has
-        // finished, so the list is not the stale one.
-        const [refreshedService, organizations] = await Promise.all([
-          getOrganizationsService({ forceRefresh: true }),
-          readOrganizations(membershipReader(service), { fresh: true }),
-        ]);
-        const confirmedOrganizations = organizations.some(
-          (organization) =>
-            organization.id === target.id && organization.isActive,
-        )
-          ? organizations
-          : await readOrganizations(membershipReader(refreshedService), {
-              fresh: true,
-            });
+        const confirmedOrganizations = await readOrganizationsAfterActivation(
+          service,
+          () => getOrganizationsService({ forceRefresh: true }),
+          target.id,
+        );
         const confirmedTarget = confirmedOrganizations.find(
           (organization) =>
             organization.id === target.id && organization.isActive,

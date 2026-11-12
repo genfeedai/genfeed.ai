@@ -1430,6 +1430,52 @@ describe('RoutedOrganizationProvider', () => {
     );
   });
 
+  it('starts the token refresh and the list read together after activating the route organization', async () => {
+    let resolveList: ((value: typeof ALPHA_ACTIVE) => void) | undefined;
+    let resolveRefresh: (() => void) | undefined;
+    getMyOrganizationsMock
+      .mockResolvedValueOnce(BRAVO_ACTIVE)
+      .mockImplementationOnce(
+        () =>
+          new Promise<typeof ALPHA_ACTIVE>((resolve) => {
+            resolveList = resolve;
+          }),
+      );
+    const service = {
+      getMyOrganizations: getMyOrganizationsMock,
+      switchOrganization: switchOrganizationMock,
+    };
+    getOrganizationsServiceMock.mockImplementation(
+      (options?: { forceRefresh?: boolean }) =>
+        options?.forceRefresh
+          ? new Promise((resolve) => {
+              resolveRefresh = () => resolve(service);
+            })
+          : Promise.resolve(service),
+    );
+
+    renderProvider();
+
+    await waitFor(() =>
+      expect(getOrganizationsServiceMock).toHaveBeenCalledWith({
+        forceRefresh: true,
+      }),
+    );
+    // Neither the refresh nor the list has answered, yet both have started.
+    expect(getMyOrganizationsMock).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('status')).toHaveTextContent('switching');
+
+    await act(async () => {
+      resolveList?.(ALPHA_ACTIVE);
+      resolveRefresh?.();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+    expect(screen.getByTestId('confirmed-id')).toHaveTextContent('org_alpha');
+    expect(getMyOrganizationsMock).toHaveBeenCalledTimes(2);
+  });
+
   it('throws when the hook is used outside its provider', () => {
     expect(() => render(<Orphan />)).toThrow(
       'useRoutedOrganization must be used within RoutedOrganizationProvider',
