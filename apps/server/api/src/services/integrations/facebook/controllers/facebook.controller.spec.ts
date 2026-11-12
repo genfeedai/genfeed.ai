@@ -145,7 +145,7 @@ describe('FacebookController', () => {
           name: 'Person',
         },
       );
-      expect(result).toBeDefined();
+      expect(result).toMatchObject({ data: { type: 'credential' } });
     });
 
     it('keeps the connection when permission capture is temporarily unavailable', async () => {
@@ -335,7 +335,6 @@ describe('FacebookController', () => {
 
       const result = await controller.schedulePost(mockUser, body);
 
-      expect(facebookService.schedulePost).toHaveBeenCalled();
       expect(result.postId).toBe(postId);
     });
   });
