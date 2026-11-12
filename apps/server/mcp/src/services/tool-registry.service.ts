@@ -1,5 +1,4 @@
 import {
-  ADMIN_MCP_TOOL_NAMES,
   getMcpCatalogOperations,
   getToolByName,
   getToolsetNames,
@@ -58,6 +57,7 @@ import {
   resolveAuthorizedMcpCatalogCall,
   validateMcpCatalogDispatchCoverage,
 } from '@mcp/services/mcp-catalog-call.util';
+import { unavailableInConnectorMessage } from '@mcp/services/mcp-connector-message.util';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
 import {
   agentGuideResource,
@@ -235,19 +235,6 @@ type ExecutorKind =
   | 'scheduler'
   | 'skills-pro'
   | 'unknown';
-
-function unavailableInConnectorMessage(
-  accessMode: McpAccessMode,
-  toolName: string,
-): string {
-  if (accessMode === 'admin') {
-    return 'This connection serves the admin-only tools. Use the standard Genfeed connection for this tool.';
-  }
-  if (accessMode === 'standard' && ADMIN_MCP_TOOL_NAMES.has(toolName)) {
-    return 'This tool is only available on the Genfeed admin connection.';
-  }
-  return 'This tool is unavailable through the Claude connector. This connector does not generate images, video or audio.';
-}
 
 @Injectable()
 export class ToolRegistryService implements OnModuleInit {

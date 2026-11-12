@@ -7,7 +7,10 @@ import {
 } from '@api/oauth/mcp-oauth-session-metadata.util';
 import { canonicalizeRequestedMcpResource } from '@api/oauth/oauth-metadata.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { mostRestrictiveMcpAccessMode } from '@genfeedai/actions';
+import {
+  type McpAccessMode,
+  mostRestrictiveMcpAccessMode,
+} from '@genfeedai/actions';
 import {
   ActionOrigin,
   ApiKeyCategory,
@@ -162,27 +165,12 @@ export class OAuthRefreshTokenService {
       lineage.accessMode,
       resolveMcpAccessModeForResource(record.resource),
     );
-    if (accessMode === 'claude') {
-      scopes = scopes.filter((scope) =>
-        MCP_CLAUDE_SCOPE_CEILING.includes(scope),
-      );
-      if (scopes.length === 0) {
-        throw oauthError('invalid_scope', 'No supported scopes remain');
-      }
-    }
-    // Only the admin endpoint carries `admin`. A session consented on `/mcp`
-    // before that scope moved there loses it on its next refresh and keeps
-    // everything else; reconnecting through the admin endpoint restores it.
-    const grantedScopes =
-      accessMode === 'admin'
-        ? record.scopes
-        : record.scopes.filter((scope) => scope !== ApiKeyScope.ADMIN);
-    if (accessMode !== 'admin') {
-      scopes = scopes.filter((scope) => scope !== ApiKeyScope.ADMIN);
-      if (scopes.length === 0) {
-        throw oauthError('invalid_scope', 'No supported scopes remain');
-      }
-    }
+    const { grantedScopes, scopes: modeScopes } = this.limitScopesToAccessMode(
+      accessMode,
+      scopes,
+      record.scopes,
+    );
+    scopes = modeScopes;
 
     // Single-use claim. Losing this race means another request presented the
     // same token concurrently, which is the same compromise the `consumedAt`
@@ -445,6 +433,34 @@ export class OAuthRefreshTokenService {
       await this.revokeRecord(next);
       nextId = next.replacedById;
     }
+  }
+
+  /**
+   * Claude connector sessions stay under the Claude ceiling. Only the admin
+   * endpoint carries `admin`: a session consented on `/mcp` before that scope
+   * moved there loses it on its next refresh and keeps everything else, and
+   * reconnecting through the admin endpoint restores it.
+   */
+  private limitScopesToAccessMode(
+    accessMode: McpAccessMode,
+    scopes: string[],
+    consentedScopes: string[],
+  ): { grantedScopes: string[]; scopes: string[] } {
+    const isAdmin = accessMode === 'admin';
+    const isAllowed = (scope: string) =>
+      (accessMode !== 'claude' || MCP_CLAUDE_SCOPE_CEILING.includes(scope)) &&
+      (isAdmin || scope !== ApiKeyScope.ADMIN);
+    const limited = scopes.filter(isAllowed);
+    if (
+      limited.length === 0 &&
+      (accessMode === 'claude' || scopes.length > 0)
+    ) {
+      throw oauthError('invalid_scope', 'No supported scopes remain');
+    }
+    return {
+      grantedScopes: consentedScopes.filter(isAllowed),
+      scopes: limited,
+    };
   }
 
   private narrowScopes(granted: string[], requested?: string): string[] {

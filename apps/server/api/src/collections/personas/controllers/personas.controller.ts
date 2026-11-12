@@ -15,11 +15,11 @@ import {
   hasSharedAvailability,
   isPersonaAvailableToBrand,
 } from '@api/collections/personas/utils/persona-availability.util';
+import { stripAvailabilityFields } from '@api/collections/personas/utils/persona-availability-fields.util';
 import {
   buildPersonasFindAllQuery,
   resolveAllowedPersonaBrandIds,
 } from '@api/collections/personas/utils/personas-find-all-query.util';
-import { stripAvailabilityFields } from '@api/collections/personas/utils/persona-availability-fields.util';
 import { composeCharacterSheetPrompt } from '@api/endpoints/ai-actions/prompts/character-sheet-preset';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';

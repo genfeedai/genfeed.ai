@@ -1,6 +1,7 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
 import { createEndpointRegistries } from '@mcp/services/tool-registry.endpoints.testing';
+import type { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
 /**
  * Covers the MCP catalog REST handlers (content, analytics,
@@ -178,7 +179,7 @@ type ToolResult = {
 };
 
 async function callTool(
-  registry: ToolRegistryService,
+  registry: Pick<ToolRegistryService, 'handleToolCall'>,
   name: string,
   args: Record<string, unknown> = {},
 ): Promise<ToolResult> {

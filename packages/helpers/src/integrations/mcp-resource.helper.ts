@@ -37,6 +37,21 @@ export function deriveAdminMcpResourceIdentifier(
   return `${deriveMcpResourceIdentifier(url.toString())}/admin`;
 }
 
+/** The protected-resource identifier an MCP route serves, from the standard one. */
+export function deriveMcpResourceIdentifierForMode(
+  standardResource: string,
+  mode: 'standard' | 'claude' | 'admin',
+): string {
+  switch (mode) {
+    case 'claude':
+      return deriveClaudeMcpResourceIdentifier(standardResource);
+    case 'admin':
+      return deriveAdminMcpResourceIdentifier(standardResource);
+    default:
+      return standardResource;
+  }
+}
+
 export function resolveMcpAccessModeForResource(
   resource: string,
 ): 'standard' | 'claude' | 'admin' {
