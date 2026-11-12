@@ -17,3 +17,9 @@ export type OrgRootAppPageProps = {
   }>;
   searchParams?: OrgRootAppSearchParams;
 };
+
+/** Props of a static `~/<app>/[[...segments]]` page (`~/library`, `~/publishing`). */
+export type OrgRootAppEntryPageProps = {
+  params: Promise<{ orgSlug: string; segments?: string[] }>;
+  searchParams?: OrgRootAppSearchParams;
+};

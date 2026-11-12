@@ -1,13 +1,7 @@
 import { Suspense } from 'react';
 import WorkspaceContentSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceContentSkeleton';
-import type { OrgRootAppSearchParams } from '@/props/layout/org-root-app-page.props';
+import type { OrgRootAppEntryPageProps } from '@/props/layout/org-root-app-page.props';
 import OrgRootAppSurface from './org-root-app-surface';
-
-/** Props of a static `~/<app>/[[...segments]]` page. */
-export interface OrgRootAppEntryPageProps {
-  params: Promise<{ orgSlug: string; segments?: string[] }>;
-  searchParams?: OrgRootAppSearchParams;
-}
 
 /**
  * The entry of one organization-level app that has its own static route
