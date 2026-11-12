@@ -76,6 +76,10 @@ vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
   ),
 }));
 
+vi.mock('@/components/shell/use-available-rail-apps', () => ({
+  useIsHrefAvailable: () => () => true,
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/activities',
   useRouter: () => ({
