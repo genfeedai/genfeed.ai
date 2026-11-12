@@ -87,7 +87,9 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
+    activeHref: (path: string) => `/acme/news${path}`,
     href: (path: string) => `/acme/news${path}`,
+    orgHref: (path: string) => `/acme/~${path}`,
   }),
 }));
 
@@ -451,6 +453,29 @@ describe('ActivitiesList', () => {
     expect(
       screen.getByRole('link', { name: /open failed to generate/i }),
     ).toHaveAttribute('href', '/acme/news/library/images?asset=ing-9');
+  });
+
+  it('opens a disconnected social account on the brand Channels page', () => {
+    mockActivities = [
+      buildActivity({
+        id: 'social-disconnected',
+        key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
+        value: 'Twitter credential requires reconnection',
+      }),
+    ];
+
+    render(
+      <ActivitiesList
+        scope={PageScope.ORGANIZATION}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />,
+    );
+
+    expect(screen.getAllByRole('link')[0]).toHaveAttribute(
+      'href',
+      '/acme/news/connectors/channels',
+    );
   });
 
   it('shows the empty state when there is no activity', () => {

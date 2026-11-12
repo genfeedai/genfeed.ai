@@ -16,7 +16,10 @@ const requestState = vi.hoisted(() => ({
   detailError: false,
   hasMetrics: false,
 }));
-const mocks = vi.hoisted(() => ({ getAccountAnalyticsDetail: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  getAccountAnalyticsDetail: vi.fn(),
+  push: vi.fn(),
+}));
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -25,11 +28,12 @@ vi.mock('next-intl', async () => {
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ id: 'cred-1' }),
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: mocks.push }),
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
+    activeHref: (path: string) => `/acme/moonrise${path}`,
     href: (path: string) => `/acme/moonrise${path}`,
   }),
 }));
@@ -147,6 +151,18 @@ describe('AnalyticsAccountDetail', () => {
     expect(mocks.getAccountAnalyticsDetail).toHaveBeenCalledWith(
       'cred-1',
       expect.objectContaining({ organizationId: 'org-1' }),
+    );
+  });
+
+  it('opens Manage account on the brand Channels page', async () => {
+    render(<AnalyticsAccountDetail />);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Manage account' }),
+    );
+
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/acme/moonrise/connectors/channels?credential=cred-1',
     );
   });
 

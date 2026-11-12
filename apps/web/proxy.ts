@@ -11,7 +11,6 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   hasCompletedBrandOnboardingStep,
-  isBrandOnlyConnectorsPath,
   isBrandOnlySettingsPath,
   isExpertAccountType,
   isPersonalSettingsPath,
@@ -896,26 +895,9 @@ async function resolveCanonicalProtectedPath(
   }
 
   if (!slugs.brandSlug) {
-    if (isBrandOnlyConnectorsPath(canonicalPath)) {
-      return {
-        cookieValue,
-        path: `/${slugs.orgSlug}/~${APP_ROUTES.SETTINGS.BRANDS}`,
-      };
-    }
-
     return {
       cookieValue,
       path: createOrgScopedCanonicalPath(canonicalPath, slugs.orgSlug),
-    };
-  }
-
-  // Channels is one brand's connected accounts: it has no org-level page, so
-  // an unscoped `/connectors/channels` (an OAuth return, a provider callback,
-  // an email link) opens on the active brand.
-  if (isBrandOnlyConnectorsPath(canonicalPath)) {
-    return {
-      cookieValue,
-      path: `/${slugs.orgSlug}/${slugs.brandSlug}${canonicalPath}`,
     };
   }
 

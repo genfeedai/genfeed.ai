@@ -8,7 +8,10 @@ import {
   type IngredientCategory,
   PageScope,
 } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  isBrandOnlyConnectorsPath,
+} from '@genfeedai/contracts/constants';
 import type { IActivity, IIngredient } from '@genfeedai/contracts/interfaces';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
@@ -90,7 +93,7 @@ export default function ActivitiesList({
     toggleActivityRead,
   } = useActivities({ limit: 20, page, scope, search });
 
-  const { href, orgHref } = useOrgUrl();
+  const { activeHref, href, orgHref } = useOrgUrl();
   const { openIngredientSidebar } = useIngredientSidebar();
   const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
   const [isMarkingRead, setIsMarkingRead] = useState(false);
@@ -111,6 +114,20 @@ export default function ActivitiesList({
     [openIngredientSidebar],
   );
 
+  // Channels is one brand's accounts; the other Connectors sections are
+  // organization scope; every other destination is a brand page.
+  const resolveDestinationHref = useCallback(
+    (path: string): string => {
+      if (isBrandOnlyConnectorsPath(path)) {
+        return activeHref(path);
+      }
+      return path.startsWith(APP_ROUTES.CONNECTORS.ROOT)
+        ? orgHref(path)
+        : href(path);
+    },
+    [activeHref, href, orgHref],
+  );
+
   const isHrefAvailable = useIsHrefAvailable();
   const getActivityHref = useCallback(
     (activity: IActivity): string | undefined => {
@@ -121,12 +138,9 @@ export default function ActivitiesList({
       if (!path || !isHrefAvailable(path)) {
         return undefined;
       }
-      // Connectors is organization scope; every other destination is a brand page.
-      return path.startsWith(APP_ROUTES.CONNECTORS.ROOT)
-        ? orgHref(path)
-        : href(path);
+      return resolveDestinationHref(path);
     },
-    [href, isAdminScope, isHrefAvailable, orgHref],
+    [isAdminScope, isHrefAvailable, resolveDestinationHref],
   );
 
   const columns = useMemo(
@@ -297,7 +311,7 @@ export default function ActivitiesList({
                   return undefined;
                 }
                 const path = getActivityDestinationPath(a);
-                return path ? href(path) : undefined;
+                return path ? resolveDestinationHref(path) : undefined;
               },
               icon: <ArrowUpRight className="size-4" />,
               tooltip: (a: IActivity) =>
@@ -305,7 +319,7 @@ export default function ActivitiesList({
             },
           ]),
     ],
-    [activityMessageFormatter, href, isAdminScope],
+    [activityMessageFormatter, isAdminScope, resolveDestinationHref],
   );
 
   const handleBulkMarkAsRead = useCallback(async () => {

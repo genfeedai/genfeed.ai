@@ -35,7 +35,7 @@ import PostDetailPanel from '@/features/posts/detail/PostDetailPanel';
 export default function AnalyticsAccountDetail() {
   const translate = useTranslations('pages.analytics.accounts');
   const router = useRouter();
-  const { href } = useOrgUrl();
+  const { activeHref, href } = useOrgUrl();
   const params = useRouteParams<{ id: string }>();
   const credentialId = params.id ?? '';
   const { triggerRefresh } = useAnalyticsContext();
@@ -108,7 +108,9 @@ export default function AnalyticsAccountDetail() {
           variant={ButtonVariant.SECONDARY}
           onClick={() =>
             router.push(
-              detail?.identity.manageHref ?? APP_ROUTES.CONNECTORS.CHANNELS,
+              activeHref(
+                detail?.identity.manageHref ?? APP_ROUTES.CONNECTORS.CHANNELS,
+              ),
             )
           }
         />
