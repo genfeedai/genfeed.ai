@@ -32,6 +32,19 @@ describe('system email helpers', () => {
     expect(html).toContain('Ignore this email if you did not request it.');
   });
 
+  it('keeps the card corners rounded: the table around it must not collapse borders', () => {
+    const html = buildSystemEmailHtml({
+      bodyHtml: buildSystemEmailParagraph('Body.'),
+      title: 'Rounded card',
+    });
+    const outerTable = html.match(
+      /<table[^>]*style="([^"]*max-width:560px[^"]*)"/,
+    );
+
+    expect(outerTable?.[1]).toContain('border-collapse:separate');
+    expect(html).toContain('border-radius:8px');
+  });
+
   it('heads the card with the raster brand mark, never an SVG', () => {
     const html = buildSystemEmailHtml({
       bodyHtml: buildSystemEmailParagraph('Body'),
