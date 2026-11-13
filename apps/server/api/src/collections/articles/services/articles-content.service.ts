@@ -474,7 +474,10 @@ export class ArticlesContentService {
    */
   async convertToTwitterThread(
     article: ArticleDocument,
-    resolvePublicHandle: (articleId: string) => Promise<string | null>,
+    resolvePublicHandle: (
+      articleId: string,
+      organizationId: string,
+    ) => Promise<string | null>,
   ): Promise<TwitterThreadResponse> {
     try {
       this.logger.debug(`${this.constructorName} convertToTwitterThread`, {
@@ -494,7 +497,10 @@ export class ArticlesContentService {
         publicUrl &&
         String(article.status) === ArticleStatus.PUBLISHED
       ) {
-        const handle = await resolvePublicHandle(String(article.id));
+        const handle = await resolvePublicHandle(
+          String(article.id),
+          String(article.organizationId),
+        );
         if (handle) {
           articleUrl = `${publicUrl}${creatorArticlePath(handle, article.slug)}`;
         }
