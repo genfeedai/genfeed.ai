@@ -5,7 +5,10 @@ import type {
   MergedBrandAnalysis,
   XProfileScrapedData,
 } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
-import type { IExtractedBrandData } from '@genfeedai/contracts/interfaces';
+import type {
+  IBrandVoiceAnalysis,
+  IExtractedBrandData,
+} from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { BrandDataMapper } from './brand-data.mapper';
 
@@ -369,7 +372,7 @@ describe('BrandDataMapper', () => {
   });
 
   describe('mergeExtractedVoice offers', () => {
-    const analysis = {
+    const analysis: IBrandVoiceAnalysis = {
       audience: 'founders',
       hashtags: [],
       taglines: [],
@@ -377,7 +380,7 @@ describe('BrandDataMapper', () => {
       values: [],
       voice: 'concise',
     };
-    const extract = (brandVoice: Record<string, unknown>) =>
+    const extract = (brandVoice: IBrandVoiceAnalysis) =>
       ({
         brandVoice,
         scrapedAt: new Date(),
