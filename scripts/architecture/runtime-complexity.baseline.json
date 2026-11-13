@@ -366,7 +366,7 @@
     "symbol": "packages/agent/src/stores/agent-chat.store.ts"
   },
   {
-    "actual": 1489,
+    "actual": 1457,
     "file": "packages/cli/src/commands/admin/index.ts",
     "metric": "file-lines",
     "symbol": "packages/cli/src/commands/admin/index.ts"
