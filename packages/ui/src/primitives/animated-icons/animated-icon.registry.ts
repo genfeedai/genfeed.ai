@@ -851,8 +851,34 @@ export const ANIMATED_ICON_LOADERS: ReadonlyArray<
   ],
 ];
 
+type IconModule = Awaited<ReturnType<IconLoader>>;
+
+const LOADERS_BY_NAME: ReadonlyMap<string, IconLoader> = new Map(
+  ANIMATED_ICON_LOADERS,
+);
+
+const loadsByName = new Map<string, Promise<IconModule>>();
+
+// The lazy twin and `preloadAnimatedIcon` share one load per icon, so a twin
+// that was preloaded while the browser was idle is already there when the
+// hover renders it. A load that fails is forgotten, so the next hover tries
+// again.
+function loadOnce(name: string): Promise<IconModule> {
+  const pending = loadsByName.get(name);
+  if (pending) {
+    return pending;
+  }
+  const load = LOADERS_BY_NAME.get(name);
+  const started = load
+    ? load()
+    : Promise.reject(new Error(`No animated icon named ${name}`));
+  loadsByName.set(name, started);
+  started.catch(() => loadsByName.delete(name));
+  return started;
+}
+
 const ANIMATED_ICONS: ReadonlyMap<string, AnimatedIconComponent> = new Map(
-  ANIMATED_ICON_LOADERS.map(([name, load]) => [name, lazy(load)]),
+  ANIMATED_ICON_LOADERS.map(([name]) => [name, lazy(() => loadOnce(name))]),
 );
 
 function iconName(icon: unknown): string | undefined {
@@ -872,6 +898,19 @@ export function findAnimatedIcon(
 ): AnimatedIconComponent | undefined {
   const name = iconName(icon);
   return name ? ANIMATED_ICONS.get(name) : undefined;
+}
+
+/**
+ * Starts loading a Lucide icon's animated twin without rendering it. Resolves
+ * once it is loaded, or at once for an icon without a twin or when the load
+ * fails (the hover that wanted it tries again).
+ */
+export async function preloadAnimatedIcon(icon: unknown): Promise<void> {
+  const name = iconName(icon);
+  if (!name || !LOADERS_BY_NAME.has(name)) {
+    return;
+  }
+  await loadOnce(name).catch(() => undefined);
 }
 
 export const ANIMATED_ICON_COUNT = ANIMATED_ICON_LOADERS.length;

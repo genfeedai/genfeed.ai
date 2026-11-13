@@ -1,7 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { Bell, Settings } from 'lucide-react';
 import { forwardRef, useImperativeHandle } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   AnimatedIconHandle,
@@ -9,8 +9,9 @@ import type {
 } from './animated-icon.types';
 import { useHoverAnimatedIcon } from './use-hover-animated-icon';
 
-const { handle } = vi.hoisted(() => ({
+const { handle, preloaded } = vi.hoisted(() => ({
   handle: { startAnimation: vi.fn(), stopAnimation: vi.fn() },
+  preloaded: [] as unknown[],
 }));
 
 vi.mock('./animated-icon.registry', async () => {
@@ -30,6 +31,9 @@ vi.mock('./animated-icon.registry', async () => {
   return {
     findAnimatedIcon: (icon: unknown) =>
       icon === BellIcon ? FakeAnimatedBell : undefined,
+    preloadAnimatedIcon: async (icon: unknown) => {
+      preloaded.push(icon);
+    },
   };
 });
 
@@ -65,7 +69,17 @@ describe('useHoverAnimatedIcon', () => {
   beforeEach(() => {
     handle.startAnimation.mockClear();
     handle.stopAnimation.mockClear();
+    preloaded.length = 0;
     stubReducedMotion(false);
+    vi.stubGlobal('requestIdleCallback', (callback: () => void) => {
+      callback();
+      return 1;
+    });
+    vi.stubGlobal('cancelIdleCallback', vi.fn());
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('renders the static icon until the control is pointed at', () => {
@@ -179,5 +193,42 @@ describe('useHoverAnimatedIcon', () => {
       'aria-hidden',
       'true',
     );
+  });
+
+  it('loads the animated twin once idle, not in the first seconds, and before any hover', () => {
+    vi.useFakeTimers();
+    render(<Host icon={<Bell className="size-4" />} />);
+
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+    expect(preloaded).toEqual([]);
+
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+    expect(preloaded).toEqual([Bell]);
+    expect(screen.queryByTestId('animated-bell')).not.toBeInTheDocument();
+  });
+
+  it('loads nothing for an icon without a twin', () => {
+    vi.useFakeTimers();
+    render(<Host icon={<Settings className="size-4" />} />);
+    act(() => {
+      vi.advanceTimersByTime(5_000);
+    });
+
+    expect(preloaded).toEqual([]);
+  });
+
+  it('loads nothing for people who ask for reduced motion', () => {
+    vi.useFakeTimers();
+    stubReducedMotion(true);
+    render(<Host icon={<Bell className="size-4" />} />);
+    act(() => {
+      vi.advanceTimersByTime(5_000);
+    });
+
+    expect(preloaded).toEqual([]);
   });
 });
