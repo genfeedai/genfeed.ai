@@ -41,6 +41,55 @@ describe('splitArticleBody', () => {
   });
 });
 
+describe('splitArticleBody compare blocks', () => {
+  const COMPARE =
+    '<figure data-genfeed-compare=""><img src="https://x.test/a.jpg?s=1&amp;t=2" alt="Before: busy" width="1280" height="720" /><img src="https://x.test/b.jpg" alt="After: clean" /><figcaption>Same video.</figcaption></figure>';
+
+  it('turns a two-image figure into a compare segment between the prose', () => {
+    expect(splitArticleBody(`<p>Intro</p>${COMPARE}<p>Outro</p>`)).toEqual([
+      { html: '<p>Intro</p>', key: 'html-0', kind: 'html' },
+      {
+        compare: {
+          after: { alt: 'After: clean', src: 'https://x.test/b.jpg' },
+          before: { alt: 'Before: busy', src: 'https://x.test/a.jpg?s=1&t=2' },
+          captionHtml: 'Same video.',
+          height: 720,
+          width: 1280,
+        },
+        key: 'compare-12',
+        kind: 'compare',
+      },
+      { html: '<p>Outro</p>', key: `html-${12 + COMPARE.length}`, kind: 'html' },
+    ]);
+  });
+
+  it('keeps compare and generation blocks in reading order', () => {
+    const kinds = splitArticleBody(`${BLOCK}${COMPARE}${BLOCK}`).map(
+      (segment) => segment.kind,
+    );
+    expect(kinds).toEqual(['generation', 'compare', 'generation']);
+  });
+
+  it.each([
+    [
+      'one image',
+      '<figure data-genfeed-compare=""><img src="https://x.test/a.jpg" alt="A" /></figure>',
+    ],
+    [
+      'three images',
+      '<figure data-genfeed-compare=""><img src="https://x.test/a.jpg" /><img src="https://x.test/b.jpg" /><img src="https://x.test/c.jpg" /></figure>',
+    ],
+    [
+      'an image without a source',
+      '<figure data-genfeed-compare=""><img alt="A" /><img src="https://x.test/b.jpg" /></figure>',
+    ],
+  ])('leaves a figure with %s as prose', (_label, html) => {
+    expect(splitArticleBody(html)).toEqual([
+      { html, key: 'html-0', kind: 'html' },
+    ]);
+  });
+});
+
 describe('toArticleGenerationBlocks', () => {
   /** A generated asset as the public API returns it. */
   function generated(

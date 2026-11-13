@@ -502,7 +502,7 @@
    so @tailwindcss/typography supplies the vertical rhythm. What it cannot know
    is the surface treatment — these rules align prose with the flat hairline
    panels the rest of the article page uses, and reserve room for the copy
-   affordance mounted into each code block.
+   and collapse buttons mounted into each code block.
    -------------------------------------------------------------------------- */
 .gen-article-prose {
   & :where(a) {
@@ -545,8 +545,8 @@
   }
 }
 
-/* The wrapper — not the `pre` — is the positioning context, so the copy button
-   stays pinned while long prompt lines scroll horizontally underneath it. */
+/* The wrapper — not the `pre` — is the positioning context, so the buttons
+   stay pinned while long prompt lines scroll horizontally underneath them. */
 .gen-code-block {
   position: relative;
 }
@@ -556,14 +556,22 @@
   border: 1px solid var(--gen-accent-border);
   border-radius: 0;
   background: var(--gen-accent-bg);
-  /* Top padding clears the button instead of letting line one run under it. */
-  padding: 3.25rem 1.25rem 1.25rem;
+  /* The right padding clears the copy and collapse buttons on line one. */
+  padding: 1rem 5rem 1rem 1.25rem;
+}
+
+/* Folded: the first three lines stay readable and the rest fades out. */
+.gen-code-block[data-collapsed="true"] > pre {
+  max-height: calc(3lh + 2rem);
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
 }
 
 .gen-code-block-action {
   position: absolute;
-  top: 0.625rem;
-  right: 0.625rem;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1;
 }
 
 /* A selected asset card. The outline follows the card's radius and leaves its
