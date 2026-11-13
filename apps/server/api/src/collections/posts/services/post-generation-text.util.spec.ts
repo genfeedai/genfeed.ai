@@ -89,6 +89,8 @@ describe('isUnusableDraftText', () => {
     'Cast iron pans, 25% off until Friday.',
     'Unfortunately, our workshop is closed today. Online orders remain open.',
     'Unfortunately, I will be closing the workshop today. Online orders remain open.',
+    'Unfortunately, I need to close the workshop today. Online orders remain open.',
+    "Unfortunately, I can't make it to the market today. Online orders remain open.",
     'Absolutely! Our pans ship free this week.',
     'Can you share your favorite pan with us?',
     'Please share this with a friend who loves to cook.',
