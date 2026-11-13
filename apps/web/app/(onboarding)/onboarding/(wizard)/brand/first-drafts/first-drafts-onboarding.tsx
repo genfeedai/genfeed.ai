@@ -32,6 +32,7 @@ import ConnectPlatforms from './connect-platforms';
 import ContextForm from './context-form';
 import DraftCard from './draft-card';
 import PromptStep from './prompt-step';
+import UnderstoodLine from './understood-line';
 import { useFirstDrafts } from './use-first-drafts';
 
 const GALLERY_ORDER = ['instagram', 'tiktok', 'twitter', 'linkedin'];
@@ -198,11 +199,13 @@ export default function FirstDraftsOnboarding() {
                     state.scan?.summary?.suggestions?.audiences ?? []
                   }
                   hasError={state.error === 'generate'}
+                  initial={result ? (state.understood ?? undefined) : undefined}
                   isScanFailed={state.isScanFailed}
                   isWebsiteMissing={state.scan === null}
                   offerSuggestions={
                     state.scan?.summary?.suggestions?.offers ?? []
                   }
+                  onCancel={result ? state.onCancelRedo : undefined}
                   onSubmit={state.onSubmitContext}
                 />
               </div>
@@ -214,6 +217,14 @@ export default function FirstDraftsOnboarding() {
               <PromptStep brandName={brandName} client={agentClient} />
             ) : state.phase === 'review' && result ? (
               <div className="mx-auto flex max-w-5xl flex-col gap-6">
+                <UnderstoodLine
+                  canRedo={state.canRetry}
+                  isBusy={state.isGenerating || state.isContinuing}
+                  maxRounds={state.maxRounds}
+                  onNotRight={state.onNotRight}
+                  round={state.round}
+                  understood={state.understood}
+                />
                 <Card padding={CardPadding.MD}>
                   <div className="grid items-center gap-6 md:grid-cols-[minmax(0,280px)_1fr]">
                     {result.imageUrl ? (
