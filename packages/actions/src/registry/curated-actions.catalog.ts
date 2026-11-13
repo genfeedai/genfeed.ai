@@ -705,7 +705,7 @@ export const CURATED_ACTION_CATALOG = [
     claudeAccess: 'both',
     name: 'get_analytics',
     surfaces: ['agent', 'mcp'],
-    toolset: 'analytics',
+    toolset: 'insights',
     uiActionType: 'analytics_snapshot_card',
   },
   {
@@ -1166,7 +1166,7 @@ export const CURATED_ACTION_CATALOG = [
     claudeAccess: 'both',
     name: 'get_trends',
     surfaces: ['agent', 'mcp'],
-    toolset: 'analytics',
+    toolset: 'insights',
     uiActionType: 'trending_topics_card',
   },
   {

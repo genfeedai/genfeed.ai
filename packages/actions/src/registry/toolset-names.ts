@@ -33,6 +33,7 @@ export const TOOLSET_NAMES = [
   'engagement',
   'generation',
   'goals',
+  'insights',
   'inspiration',
   'knowledge',
   'memory',
@@ -78,7 +79,7 @@ export const TOOLSETS: readonly ToolsetDefinition[] = [
   },
   {
     description:
-      'Performance, content, video, and LinkedIn analytics plus trend discovery.',
+      'Content, video, and LinkedIn analytics and performance analysis. Includes the insights toolset (trends and the analytics snapshot).',
     isAlwaysOn: false,
     name: 'analytics',
   },
@@ -134,6 +135,12 @@ export const TOOLSETS: readonly ToolsetDefinition[] = [
     description: 'Create, track, and update measurable agent goals.',
     isAlwaysOn: false,
     name: 'goals',
+  },
+  {
+    description:
+      'The two headline reads: trend discovery (get_trends) and performance analytics (get_analytics). Selecting analytics includes it.',
+    isAlwaysOn: false,
+    name: 'insights',
   },
   {
     description:

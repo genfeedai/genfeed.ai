@@ -462,7 +462,7 @@ The bare endpoint uses the `default` profile. Profiles shape the advertised
 
 | Endpoint selector | Advertised toolsets |
 | --- | --- |
-| No selector or `?profile=default` | `core`, `generation`, `content`, `scheduler`, and `articles`, hard-capped at 28 tools. |
+| No selector or `?profile=default` | `core`, `generation`, `content`, `scheduler`, `articles`, and `insights` (`get_trends` and `get_analytics`), hard-capped at 30 tools. |
 | `?profile=directory` | The same bounded selection, with `generation`, `clipper`, and `ui` excluded. This profile does not imply directory approval. |
 | `?profile=studio` | The default selection plus `brand` and `analytics`, capped at 43 tools. Generation, content, scheduling, brand and analytics, without ads tools. Codex installs use this profile. |
 | `?profile=full` | All toolsets, subject to the caller's permissions. |
@@ -478,7 +478,7 @@ Clipper and Motion. Added apps are not counted against the profile caps.
 | App | Toolsets it adds |
 | --- | --- |
 | `agent` | `agent-chat` |
-| `analytics` | `analytics` |
+| `analytics` | `analytics`, `insights` |
 | `automation` | `workflows` |
 | `clipper` | `clipper` |
 | `editor` | `editor` |
@@ -524,7 +524,8 @@ http://localhost:3014/mcp?toolsets=content,generation,analytics,brand,scheduler,
 | `scheduler` | Scheduled release lifecycle and channel scheduling capability discovery. |
 | `generation` | Image, video, music, voice, and avatar generation, media transforms (edit, reframe, upscale, merge), generation options, plus listing generated media. |
 | `workflows` | Workflow creation, execution, scheduling, and template management. |
-| `analytics` | Performance, content, video, and LinkedIn analytics plus trend discovery. |
+| `insights` | The two headline reads, `get_trends` and `get_analytics`. Included in the default profile, and selecting `analytics` includes it. |
+| `analytics` | Content, video, and LinkedIn analytics and performance analysis, plus the `insights` reads. |
 | `social-inbox` | Social conversation triage: replies, approvals, direct messages, and account activity. |
 | `brand` | `create_brand_from_url`, `get_brand_scan_status`, brand identity, completeness, publishing readiness, the brand interview flow, and the `get_brand_context` snapshot. |
 | `ads` | Meta, Google, and TikTok ad account, campaign, and insight tools. |
@@ -545,7 +546,7 @@ http://localhost:3014/mcp?toolsets=inspiration,content,generation,analytics,bran
 ```
 
 `core` is still added automatically. The bare URL keeps the `default` profile
-and its 26-tool cap, which does not advertise these actions; use
+and its 30-tool cap, which does not advertise these actions; use
 `?profile=full` to list every tool.
 
 Call the actions in this order. Saving, importing, reading, editing, attaching,
