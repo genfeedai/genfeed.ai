@@ -6,6 +6,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import type { PaidSubscriptionSnapshot } from '@api/common/subscriptions/paid-subscription-access.util';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   returnBadRequest,
@@ -20,6 +21,7 @@ import {
 } from '@api/services/integrations/stripe/services/organization-billing-account.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
+import { LifetimeDealService } from '@api/services/lifetime-deal/lifetime-deal.service';
 import { BillingAccountMemberRole } from '@genfeedai/contracts';
 import {
   type ISubscriptionsService,
@@ -70,6 +72,7 @@ export class StripeController {
     private readonly billingAccountService: OrganizationBillingAccountService,
     private readonly billingAccountsService: BillingAccountsService,
     private readonly configService: ConfigService,
+    private readonly lifetimeDealService: LifetimeDealService,
   ) {}
 
   /**
@@ -87,6 +90,30 @@ export class StripeController {
       subscription,
     );
     return account.stripeCustomerId;
+  }
+
+  /**
+   * A lifetime organization buys credit packs only: a subscription would
+   * overwrite its lifetime row, and cancelling that subscription would end
+   * the plan it paid for once. A lifetime checkout needs a free seat and an
+   * organization that does not already pay through a subscription.
+   */
+  private async assertLifetimeRules(
+    organizationId: string,
+    stripePriceId: string,
+    subscription: PaidSubscriptionSnapshot | null,
+  ): Promise<void> {
+    if (stripePriceId === this.configService.get('STRIPE_PRICE_PAYG')) {
+      return;
+    }
+    if (await this.lifetimeDealService.isLifetimeOrganization(organizationId)) {
+      throw new BadRequestException(
+        'This organization already has the lifetime plan. Buy a credit pack to add credits.',
+      );
+    }
+    if (await this.stripeService.isLifetimePrice(stripePriceId)) {
+      await this.lifetimeDealService.assertSeatPurchasable(subscription);
+    }
   }
 
   @Post('checkout')
@@ -141,6 +168,12 @@ export class StripeController {
       if (!organization) {
         return returnNotFound('Organization', user.organizationId);
       }
+
+      await this.assertLifetimeRules(
+        user.organizationId,
+        stripePriceId,
+        subscription,
+      );
 
       await this.billingAccountsService.ensureForOrganization({
         label: organization.label,

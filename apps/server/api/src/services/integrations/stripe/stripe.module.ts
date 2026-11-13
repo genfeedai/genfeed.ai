@@ -16,6 +16,7 @@ import { StripePaymentRevenueReferenceService } from '@api/services/integrations
 import { TrialCardSetupService } from '@api/services/integrations/stripe/services/trial-card-setup.service';
 import { StripeCoreModule } from '@api/services/integrations/stripe/stripe-core.module';
 import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
+import { LifetimeDealModule } from '@api/services/lifetime-deal/lifetime-deal.module';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -42,6 +43,7 @@ import { Module } from '@nestjs/common';
     UserSubscriptionsModule,
     UsersModule,
     LifecycleEmailsModule,
+    LifetimeDealModule,
   ],
   providers: [
     ManagedStripeCheckoutService,

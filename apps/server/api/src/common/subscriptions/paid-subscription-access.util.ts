@@ -34,6 +34,7 @@ export type PaidSubscriptionGrant = 'active_paid' | 'paid_through';
 
 const PAID_PLANS = new Set<string>([
   SubscriptionPlan.ENTERPRISE,
+  SubscriptionPlan.LIFETIME,
   SubscriptionPlan.MONTHLY,
   SubscriptionPlan.PAYG,
   SubscriptionPlan.YEARLY,

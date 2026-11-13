@@ -16,6 +16,7 @@
 export * from './agent-chat-margin';
 export * from './crun-provider-credits';
 export * from './generation-credit-calculator';
+export * from './lifetime-deal';
 export * from './live-model-pricing';
 export * from './margin-conversions';
 export * from './model-billable-quote';

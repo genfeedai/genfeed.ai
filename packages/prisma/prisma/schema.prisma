@@ -921,6 +921,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   articleAnalytics              ArticleAnalytics[]
   newsletters                   Newsletter[]
   creatorSubscriptionPlans      CreatorSubscriptionPlan[]
+  lifetimeDealSeat              LifetimeDealSeat?
   creatorSubscriptions          CreatorSubscription[]
   creatorSubscriptionsPaid      CreatorSubscription[]          @relation("creator_subscription_payer_organization")
   articleUnlocks                ArticleUnlock[]
@@ -4483,6 +4484,28 @@ model CreatorSubscriptionPlan {
 
   @@index([organizationId, isDeleted])
   @@map("creator_subscription_plans")
+}
+
+/// One of the capped lifetime-deal seats: a one-time purchase that gives an
+/// organization the Pro plan and its monthly credits for good. The unique
+/// seat number is the cap (the API holds an advisory lock while it claims the
+/// next one), and the organization can hold only one. Platform-level: the
+/// seats are counted across organizations, so the row carries no `isDeleted`.
+model LifetimeDealSeat {
+  id                      String       @id @default(cuid())
+  organizationId          String       @unique
+  organization            Organization @relation(fields: [organizationId], references: [id])
+  seatNumber              Int          @unique
+  /// The paid Checkout Session; one payment backs at most one seat.
+  stripeCheckoutSessionId String       @unique
+  monthlyCredits          Int
+  /// When the next monthly credit grant is due. Advanced one month after each grant.
+  nextCreditGrantAt       DateTime
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+
+  @@index([nextCreditGrantAt])
+  @@map("lifetime_deal_seats")
 }
 
 /// A reader paying a creator monthly in credits (#9717). The row belongs to

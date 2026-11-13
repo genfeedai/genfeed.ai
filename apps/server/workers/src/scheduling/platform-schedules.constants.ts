@@ -3,6 +3,7 @@ import { AVATAR_TWIN_TRACKING_SCHEDULE } from '@workers/crons/avatar-twins/cron.
 import { BRANDED_DISPATCH_RECOVERY_SCHEDULE } from '@workers/crons/branded-dispatch-recovery/branded-dispatch-recovery.constants';
 import { CREATOR_SUBSCRIPTION_RENEWAL_SCHEDULE } from '@workers/crons/credits/creator-subscription-renewal.constants';
 import { FREE_TRIAL_EXPIRY_SCHEDULE } from '@workers/crons/credits/free-trial-expiry.constants';
+import { LIFETIME_DEAL_CREDIT_GRANT_SCHEDULE } from '@workers/crons/credits/lifetime-deal-credit-grant.constants';
 import { MEDIA_DELIVERY_RECOVERY_SCHEDULE } from '@workers/crons/media-delivery-recovery/media-delivery-recovery.constants';
 import { MEDIA_PERCEPTION_SWEEP_SCHEDULE } from '@workers/crons/media-perception/media-perception.constants';
 import { NEWSLETTER_SENDS_SCHEDULE } from '@workers/crons/newsletter-sends/cron.newsletter-sends.service';
@@ -44,6 +45,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   ENGAGEMENT_TRIGGERS: 'engagement-triggers',
   FAL_MODEL_DISCOVERY: PROVIDER_PRICE_SYNC_TASKS.fal,
   FREE_TRIAL_EXPIRY: 'free-trial-expiry',
+  LIFETIME_DEAL_CREDIT_GRANT: 'lifetime-deal-credit-grant',
   GLOBAL_TRENDS_REFRESH: 'global-trends-refresh',
   INGREDIENT_METADATA_REFRESH: 'ingredient-metadata-refresh',
   INGREDIENT_PROCESSING_RECONCILE: 'ingredient-processing-reconcile',
@@ -176,6 +178,12 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   // leftover free credits, so a 15-minute cadence is enough.
   [PLATFORM_SCHEDULED_TASKS.FREE_TRIAL_EXPIRY]: {
     pattern: FREE_TRIAL_EXPIRY_SCHEDULE,
+    timezone: 'UTC',
+  },
+  // A seat's grant falls due once a month, so an hourly sweep lands it
+  // within the hour.
+  [PLATFORM_SCHEDULED_TASKS.LIFETIME_DEAL_CREDIT_GRANT]: {
+    pattern: LIFETIME_DEAL_CREDIT_GRANT_SCHEDULE,
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.GLOBAL_TRENDS_REFRESH]: {

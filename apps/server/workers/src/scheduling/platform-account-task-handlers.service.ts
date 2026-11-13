@@ -30,6 +30,8 @@ export class PlatformAccountTaskHandlers {
         this.credentials.refreshExpiringTokens(),
       [PLATFORM_SCHEDULED_TASKS.FREE_TRIAL_EXPIRY]: () =>
         this.credits.expireFreeTrials(),
+      [PLATFORM_SCHEDULED_TASKS.LIFETIME_DEAL_CREDIT_GRANT]: () =>
+        this.credits.grantLifetimeDealCredits(),
       [PLATFORM_SCHEDULED_TASKS.OAUTH_CLIENT_CLEANUP]: () =>
         this.oauthClientCleanup.deleteAbandonedClients(),
       [PLATFORM_SCHEDULED_TASKS.QUEUE_METRICS_PUBLISH]: () =>
