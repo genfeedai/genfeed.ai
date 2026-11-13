@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadQaCards, loadSmokeRows, resolveTextRow } from './cards';
-import { type QaCapture, qaCaptureSchema } from './contracts';
+import { type QaCapture, qaCaptureSchema, qaCardSchema } from './contracts';
 import { evaluateCapture } from './evaluate';
 import { renderQaSummary, summarizeQaResults } from './summary';
 
@@ -42,6 +42,19 @@ describe('evaluateCapture', () => {
       'context-brand-os-approved',
     ]);
     expect(result.isJudged).toBe(false);
+  });
+
+  it('runs only the is-a-post check on a standalone text card', () => {
+    const { fixtureRef: _unused, ...standalone } = socialCard;
+    const result = evaluateCapture(
+      qaCardSchema.parse({ ...standalone, id: 'qa-text-social-post' }),
+      capture({}),
+      null,
+    );
+    expect(result.status).toBe('pass');
+    expect(result.deterministicChecks?.map((check) => check.id)).toEqual([
+      'is-a-post',
+    ]);
   });
 
   it('calls a missing receipt context-missing, not a quality failure', () => {

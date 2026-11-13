@@ -54,6 +54,20 @@ describe('QA task cards', () => {
     );
   });
 
+  it('accepts a standalone card with no fixture to drift from', async () => {
+    const { fixtureRef: _unused, ...standalone } = TEXT_CARD;
+    const cards = parseQaCards(
+      JSON.stringify({
+        ...standalone,
+        brandFixtureId: 'genfeed-review',
+        id: 'qa-genfeed-post',
+        taskPrompt: 'Write a post about connecting your agent to Genfeed.',
+      }),
+    );
+    expect(cards[0].fixtureRef).toBeUndefined();
+    expect(await findCardProblems(cards)).toEqual([]);
+  });
+
   it('rejects a repeated card id', () => {
     const line = JSON.stringify(TEXT_CARD);
     expect(() => parseQaCards(`${line}\n${line}`)).toThrow(

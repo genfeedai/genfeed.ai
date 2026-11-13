@@ -57,11 +57,10 @@ export function evaluateCapture(
   const deterministicChecks =
     capture.outcome === 'generated' &&
     card.medium === 'text' &&
-    row !== null &&
     capture.output !== null
       ? [
           checkIsPost(capture.output, { contentKind: card.contentKind }),
-          ...runDeterministicChecks(capture.output, row),
+          ...(row === null ? [] : runDeterministicChecks(capture.output, row)),
         ]
       : null;
 

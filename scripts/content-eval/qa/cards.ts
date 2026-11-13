@@ -16,7 +16,10 @@ const BENCH_REF = /^bench:([a-z0-9-]+)@(\d+)$/;
 export const QA_CARDS_FIXTURE =
   'apps/server/api/test/fixtures/content-evals/qa/cards.synthetic.jsonl';
 
-export function parseQaCards(contents: string): QaCard[] {
+export function parseQaCards(
+  contents: string,
+  source: string = QA_CARDS_FIXTURE,
+): QaCard[] {
   const cards = contents
     .split('\n')
     .map((line, index) => ({ line: line.trim(), lineNumber: index + 1 }))
@@ -25,7 +28,7 @@ export function parseQaCards(contents: string): QaCard[] {
       const parsed = qaCardSchema.safeParse(JSON.parse(line));
       if (!parsed.success) {
         throw new Error(
-          `${QA_CARDS_FIXTURE} line ${lineNumber}: ${parsed.error.issues
+          `${source} line ${lineNumber}: ${parsed.error.issues
             .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
             .join('; ')}`,
         );
@@ -40,7 +43,11 @@ export function parseQaCards(contents: string): QaCard[] {
   return cards;
 }
 
-export function loadQaCards(): QaCard[] {
+/** The in-repo synthetic cards, or a card file elsewhere (a private card set). */
+export function loadQaCards(cardsPath?: string): QaCard[] {
+  if (cardsPath !== undefined) {
+    return parseQaCards(readFileSync(cardsPath, 'utf8'), cardsPath);
+  }
   return parseQaCards(readFileSync(resolveRepoPath(QA_CARDS_FIXTURE), 'utf8'));
 }
 
@@ -51,8 +58,15 @@ export function loadSmokeRows(): FixtureRow[] {
   );
 }
 
-/** The fixture row behind a text card, or an error naming what is wrong. */
-export function resolveTextRow(card: QaCard, rows: FixtureRow[]): FixtureRow {
+/**
+ * The fixture row behind a text card, null for a standalone card, or an error
+ * naming what is wrong.
+ */
+export function resolveTextRow(
+  card: QaCard,
+  rows: FixtureRow[],
+): FixtureRow | null {
+  if (card.fixtureRef === undefined) return null;
   if (!card.fixtureRef.startsWith('smoke:')) {
     throw new Error(`${card.id}: a text card needs a smoke: fixtureRef`);
   }
@@ -75,14 +89,16 @@ export async function findCardProblems(cards: QaCard[]): Promise<string[]> {
   });
 
   for (const card of cards) {
+    if (card.fixtureRef === undefined) continue;
     if (card.medium === 'text') {
-      let row: FixtureRow;
+      let row: FixtureRow | null;
       try {
         row = resolveTextRow(card, smokeRows);
       } catch (error: unknown) {
         problems.push(error instanceof Error ? error.message : String(error));
         continue;
       }
+      if (row === null) continue;
       if (card.taskPrompt !== row.input.prompt) {
         problems.push(`${card.id}: taskPrompt differs from ${card.fixtureRef}`);
       }

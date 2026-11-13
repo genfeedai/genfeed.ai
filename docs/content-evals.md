@@ -98,9 +98,20 @@ not calibrated.
 A capture is `pass`, `fail`, `context-missing` (no receipt, or no approved
 Brand OS revision on it) or `blocked`. Text also runs the fixture row's
 deterministic checks; images have none yet. The summary carries counts, context
-proof rate and credits only. It holds no judge or human score: judge layers stay
-`provisional` until judge calibration passes, so keep the full captures off
-repo and post only the summary.
+proof rate and credits only. It holds no judge or human score here: quality
+scores come from the product's own scorer (`ContentQualityScorerService`,
+reached through the `/evaluations` endpoints), recorded next to the capture
+rather than rebuilt in this runner. Keep the full captures off repo and post
+only the summary.
+
+A card with no `fixtureRef` is standalone: its prompt is its own source of truth
+and only the `is-a-post` check and context proof apply. A private card set, such
+as the Genfeed-branded cards kept in the private `genfeedai/evals` repo, loads
+with `--cards=<file>`:
+
+```bash
+bun run eval:content:qa -- --cards=<cards.jsonl> --captures=<file> --out=<md>
+```
 
 ## Skill A/B
 

@@ -34,7 +34,12 @@ export const QA_FIXTURE_REF = /^(smoke:[A-Za-z0-9-]+|bench:[a-z0-9-]+@\d+)$/;
 export const qaCardSchema = z.object({
   brandFixtureId: z.string().min(1),
   contentKind: z.string().regex(/^[a-z0-9-]+$/),
-  fixtureRef: z.string().regex(QA_FIXTURE_REF),
+  /**
+   * Ties the card to a smoke row or pinned benchmark task so it cannot drift.
+   * Absent on a standalone card, such as a private card set whose prompt is
+   * its own source of truth.
+   */
+  fixtureRef: z.string().regex(QA_FIXTURE_REF).optional(),
   id: z.string().regex(/^qa-[a-z0-9-]+$/),
   medium: z.enum(['text', 'image']),
   /** Cards never publish, schedule or message anyone. */
