@@ -459,6 +459,37 @@ describe('OnboardingFirstDraftsService', () => {
       );
     });
 
+    it('draws the image in the colours the brand chose, as words', async () => {
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        description: 'Scheduling for creators',
+        label: 'Acme',
+        primaryColor: '#1F6FEB',
+        secondaryColor: '#0D1117',
+      });
+
+      await service.generate(user, 'brand_1', {});
+
+      const [input] = vi.mocked(buildFirstRunOnboardingImageBody).mock.calls[0];
+      expect(input.slots?.style).toContain('blue and black color palette');
+      expect(JSON.stringify(input)).not.toContain('#1F6FEB');
+    });
+
+    it('ignores the default black and white a brand keeps until it picks colours', async () => {
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        description: 'Scheduling for creators',
+        label: 'Acme',
+        primaryColor: '#000000',
+        secondaryColor: '#FFFFFF',
+      });
+
+      await service.generate(user, 'brand_1', {});
+
+      const [input] = vi.mocked(buildFirstRunOnboardingImageBody).mock.calls[0];
+      expect(input.slots?.style).not.toContain('palette');
+    });
+
     it('is partial when the image fails', async () => {
       gateway.generateImage.mockRejectedValue(new Error('no key'));
 
