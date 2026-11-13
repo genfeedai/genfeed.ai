@@ -85,7 +85,6 @@ describe('AuthorReplyLoopService.getInbox YouTube path', () => {
       expect.objectContaining({
         brandId: 'brand-1',
         organizationId: 'org-1',
-        preferOfficialApi: true,
       }),
     );
     expect(socialMonitorService.getContentComments).toHaveBeenCalledWith(

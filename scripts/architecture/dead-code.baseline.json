@@ -503,7 +503,7 @@
     "apps/server/api/src/services/harness/harness-winner-promotion.service.ts": 1,
     "apps/server/api/src/services/instagram-inspiration/instagram-inspiration.util.ts": 1,
     "apps/server/api/src/services/integrations/_shared/serialize-provider-catalog.ts": 3,
-    "apps/server/api/src/services/integrations/apify/interfaces/apify.interfaces.ts": 8,
+    "apps/server/api/src/services/integrations/apify/interfaces/apify.interfaces.ts": 7,
     "apps/server/api/src/services/integrations/apify/utils/apify-caller.context.ts": 1,
     "apps/server/api/src/services/integrations/apify/utils/viral-scoring.util.ts": 3,
     "apps/server/api/src/services/integrations/argil/services/argil.service.ts": 1,

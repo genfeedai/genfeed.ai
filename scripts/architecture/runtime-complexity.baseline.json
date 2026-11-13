@@ -186,7 +186,7 @@
     "symbol": "PromptBuilderService.buildPrompt"
   },
   {
-    "actual": 1060,
+    "actual": 1059,
     "file": "apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts"
@@ -198,7 +198,7 @@
     "symbol": "ImageGenerationHandler.execute"
   },
   {
-    "actual": 238,
+    "actual": 183,
     "file": "apps/server/api/src/services/source-collector/providers/apify-social.provider.ts",
     "metric": "method-lines",
     "symbol": "ApifySocialProvider.collectTimeline"

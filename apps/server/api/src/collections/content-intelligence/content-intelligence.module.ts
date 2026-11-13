@@ -25,6 +25,7 @@ import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly
 import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
+import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { TypedDecisionsModule } from '@api/services/typed-decisions/typed-decisions.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { HttpModule } from '@nestjs/axios';
@@ -59,6 +60,7 @@ import { Module } from '@nestjs/common';
     LlmDispatcherModule,
     MembersModule,
     PersonasCoreModule,
+    TwitterModule,
     TypedDecisionsModule,
   ],
   providers: [

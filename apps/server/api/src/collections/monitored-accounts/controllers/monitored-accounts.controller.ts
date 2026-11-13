@@ -13,7 +13,7 @@ import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { MonitoredAccountSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -43,7 +43,7 @@ export class MonitoredAccountsController extends BaseCRUDController<
   constructor(
     public readonly monitoredAccountsService: MonitoredAccountsService,
     public readonly loggerService: LoggerService,
-    private readonly apifyService: ApifyService,
+    private readonly twitterService: TwitterService,
   ) {
     super(
       loggerService,
@@ -137,24 +137,19 @@ export class MonitoredAccountsController extends BaseCRUDController<
     error?: string;
   }> {
     try {
-      // Fetch the user's timeline with limit=1 to validate the account exists
-      const tweets = await this.apifyService.getTwitterUserTimeline(
-        body.username,
-        { limit: 1 },
-      );
+      const user = await this.twitterService.getUserByUsername(body.username);
 
-      if (!tweets || tweets.length === 0) {
-        return { error: 'Account not found or has no tweets', valid: false };
+      if (!user) {
+        return { error: 'Account not found', valid: false };
       }
 
-      const firstTweet = tweets[0];
-
       return {
-        avatarUrl: firstTweet.authorAvatarUrl,
-        displayName: firstTweet.authorDisplayName,
-        followersCount: firstTweet.authorFollowersCount,
-        id: firstTweet.authorId,
-        username: firstTweet.authorUsername,
+        avatarUrl: user.profileImageUrl,
+        bio: user.description,
+        displayName: user.name,
+        followersCount: user.followersCount,
+        id: user.id,
+        username: user.username,
         valid: true,
       };
     } catch (error: unknown) {

@@ -87,7 +87,6 @@ export async function collectAuthorReplyInbox(
         brandId: params.brandId,
         limit: MAX_PARENT_POSTS,
         organizationId: params.organizationId,
-        preferOfficialApi: true,
       },
     );
   } catch (error: unknown) {
@@ -132,7 +131,6 @@ export async function collectAuthorReplyInbox(
           brandId: params.brandId,
           limit: MAX_COMMENTS_PER_POST,
           organizationId: params.organizationId,
-          preferOfficialApi: true,
         },
       );
     } catch (error: unknown) {
