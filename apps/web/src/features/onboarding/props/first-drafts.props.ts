@@ -32,6 +32,12 @@ export type FirstDraftsError =
   | 'mediaRetry'
   | 'replay';
 
+/** What the scan or the member's own answers say the brand sells, and to whom. */
+export interface FirstDraftsUnderstood {
+  audience?: string;
+  offer?: string;
+}
+
 export interface FirstDraftsState {
   canRetry: boolean;
   /** A missing campaign image can be generated again for this run. */
@@ -44,10 +50,13 @@ export interface FirstDraftsState {
   savingPostIds: readonly string[];
   isScanFailed: boolean;
   likedDrafts: IOnboardingFirstDraft[];
+  /** Drafting rounds allowed for this run, the first included. */
+  maxRounds: number;
   phase: FirstDraftsPhase;
   result: IOnboardingFirstDraftsResult | null;
   round: number;
   scan: IOnboardingScanResult | null;
+  understood: FirstDraftsUnderstood | null;
   url: string;
   verdicts: Readonly<Record<string, FirstDraftVerdict>>;
   workingStep: FirstDraftsWorkingStep;
@@ -55,6 +64,7 @@ export interface FirstDraftsState {
   onNavigate: (step: number) => void;
   onBack: () => void;
   onContinue: () => void;
+  onCancelRedo: () => void;
   onNotRight: () => void;
   /** Moves to the next step, or leaves onboarding from the last one. */
   onAdvance: () => void;
@@ -71,10 +81,23 @@ export interface FirstDraftsState {
 export interface FirstDraftsContextFormProps {
   audienceSuggestions: readonly string[];
   hasError: boolean;
+  /** What the form starts with when it asks for a redo of drafts that already exist. */
+  initial?: FirstDraftsUnderstood;
   isScanFailed: boolean;
   isWebsiteMissing: boolean;
   offerSuggestions: readonly string[];
+  /** Set when the member can go back to the drafts they already have. */
+  onCancel?: () => void;
   onSubmit: (context: IOnboardingDraftContext) => void;
+}
+
+export interface FirstDraftsUnderstoodLineProps {
+  canRedo: boolean;
+  isBusy: boolean;
+  maxRounds: number;
+  onNotRight: () => void;
+  round: number;
+  understood: FirstDraftsUnderstood | null;
 }
 
 export interface FirstDraftCardProps {

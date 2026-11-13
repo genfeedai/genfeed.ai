@@ -831,4 +831,140 @@ describe('FirstDraftsOnboarding', () => {
     );
     expect(screen.getByText('twitter draft text')).toBeInTheDocument();
   });
+  it('says what the scan understood and offers a redo from the review', async () => {
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    expect(
+      await screen.findByText('You sell A scheduling tool to Founders.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Round 1 of 2')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    ).toBeEnabled();
+  });
+
+  it('opens the form with what we understood and redoes the posts from it', async () => {
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    );
+    const offer = await screen.findByRole('textbox', {
+      name: 'What do you sell or offer?',
+    });
+    expect(offer).toHaveValue('A scheduling tool');
+    expect(
+      screen.getByRole('textbox', { name: 'Who are the posts for?' }),
+    ).toHaveValue('Founders');
+    fireEvent.change(offer, { target: { value: 'Calendar software' } });
+    mocks.generateDrafts.mockResolvedValueOnce({
+      ...drafts(),
+      requestKey: 'key-redo',
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Redo my posts' }));
+    expect(
+      await screen.findByText('You sell Calendar software to Founders.'),
+    ).toBeInTheDocument();
+    expect(mocks.generateDrafts).toHaveBeenLastCalledWith(
+      'brand-1',
+      {
+        context: {
+          audience: 'Founders',
+          offer: 'Calendar software',
+          tone: 'keep',
+        },
+        previousRequestKey: 'key-twitter',
+      },
+      expect.any(AbortSignal),
+    );
+    expect(screen.getByText('Round 2 of 2')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    ).toBeDisabled();
+  });
+
+  it('keeps the understood line that matches the posts when the redo fails', async () => {
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    );
+    fireEvent.change(
+      await screen.findByRole('textbox', {
+        name: 'What do you sell or offer?',
+      }),
+      { target: { value: 'Calendar software' } },
+    );
+    mocks.generateDrafts.mockRejectedValueOnce(new Error('provider failed'));
+    mocks.readDrafts.mockResolvedValue({
+      ...savedRun(),
+      result: drafts(),
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Redo my posts' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('We couldn');
+    expect(
+      screen.getByText('You sell A scheduling tool to Founders.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Calendar software/)).not.toBeInTheDocument();
+  });
+
+  it('keeps counting rounds when a media retry reconciles the saved run', async () => {
+    const missing = { ...drafts('partial'), imageUrl: null };
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    );
+    mocks.generateDrafts.mockResolvedValueOnce({
+      ...missing,
+      requestKey: 'key-redo',
+    });
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Redo my posts' }),
+    );
+    expect(await screen.findByText('Round 2 of 2')).toBeInTheDocument();
+    mocks.retryDraftMedia.mockResolvedValue(drafts());
+    mocks.readDrafts.mockResolvedValue({
+      ...savedRun(),
+      mediaRetriesRemaining: 1,
+    });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Retry media' })[0]);
+    await waitFor(() => expect(mocks.retryDraftMedia).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(
+        screen.queryByText('Image unavailable. Your text drafts are saved.'),
+      ).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText('Round 2 of 2')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    ).toBeDisabled();
+  });
+
+  it('returns to the same posts when the redo is cancelled', async () => {
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Back to my posts' }),
+    );
+    expect(await screen.findByText('twitter draft text')).toBeInTheDocument();
+    expect(mocks.generateDrafts).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the redo closed for a finished user replaying the saved run', async () => {
+    mocks.isCompleted = true;
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    expect(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    ).toBeDisabled();
+  });
 });

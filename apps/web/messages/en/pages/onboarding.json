@@ -209,7 +209,12 @@
       "masterTitle": "Campaign image",
       "masterDescription": "Made first from your brand kit. Every image below reuses it, so each platform shares one look.",
       "derivedTitle": "Made from your campaign image",
-      "retryMedia": "Retry media"
+      "retryMedia": "Retry media",
+      "understood": {
+        "both": "You sell {offer} to {audience}.",
+        "offer": "You sell {offer}.",
+        "audience": "Your posts are for {audience}."
+      }
     },
     "platforms": {
       "twitter": "X",
@@ -244,7 +249,8 @@
       },
       "suggested": "Suggested from your site",
       "scanFailed": "We couldn't read that link, so tell us a bit about the brand instead.",
-      "submit": "Redo my posts"
+      "submit": "Redo my posts",
+      "cancel": "Back to my posts"
     },
     "errors": {
       "generate": "We couldn't draft your posts. Check your connection and try again.",

@@ -40,14 +40,16 @@ function Suggestions({
 export default function ContextForm({
   audienceSuggestions,
   hasError,
+  initial,
   isScanFailed,
   isWebsiteMissing,
   offerSuggestions,
+  onCancel,
   onSubmit,
 }: FirstDraftsContextFormProps) {
   const t = useTranslations('pages.onboarding.firstDrafts');
-  const [audience, setAudience] = useState('');
-  const [offer, setOffer] = useState('');
+  const [audience, setAudience] = useState(initial?.audience ?? '');
+  const [offer, setOffer] = useState(initial?.offer ?? '');
   const [goals, setGoals] = useState<(typeof GOALS)[number][]>([]);
   const [tone, setTone] = useState<(typeof TONES)[number]>('keep');
 
@@ -130,8 +132,15 @@ export default function ContextForm({
         </p>
       ) : null}
 
-      <div>
+      <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" label={t('context.submit')} />
+        {onCancel ? (
+          <Button
+            variant={ButtonVariant.GHOST}
+            label={t('context.cancel')}
+            onClick={onCancel}
+          />
+        ) : null}
       </div>
     </Form>
   );

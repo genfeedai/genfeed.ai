@@ -27,6 +27,7 @@ import type {
   FirstDraftsError,
   FirstDraftsPhase,
   FirstDraftsState,
+  FirstDraftsUnderstood,
   FirstDraftsWorkingStep,
   FirstDraftVerdict,
 } from '@/features/onboarding/props/first-drafts.props';
@@ -63,6 +64,34 @@ function resolveResumePhase(
   );
 }
 
+function readUnderstood(view: unknown): FirstDraftsUnderstood | null {
+  if (typeof view !== 'object' || view === null || !('understood' in view))
+    return null;
+  const saved = view.understood;
+  if (typeof saved !== 'object' || saved === null) return null;
+  const offer =
+    'offer' in saved && typeof saved.offer === 'string' ? saved.offer : '';
+  const audience =
+    'audience' in saved && typeof saved.audience === 'string'
+      ? saved.audience
+      : '';
+  return offer || audience
+    ? { ...(audience ? { audience } : {}), ...(offer ? { offer } : {}) }
+    : null;
+}
+
+/** The first offer and audience the scan found on the site, if it found any. */
+function readScanUnderstood(
+  scan: IOnboardingScanResult,
+): FirstDraftsUnderstood | null {
+  const suggestions = scan.summary?.suggestions;
+  const offer = suggestions?.offers[0];
+  const audience = suggestions?.audiences[0];
+  return offer || audience
+    ? { ...(audience ? { audience } : {}), ...(offer ? { offer } : {}) }
+    : null;
+}
+
 export function useFirstDrafts(): FirstDraftsState {
   const { getToken } = useAuthIdentity();
   const { brandId, organizationId, isBrandScopeResolved } = useBrand();
@@ -80,6 +109,9 @@ export function useFirstDrafts(): FirstDraftsState {
     null,
   );
   const [round, setRound] = useState(0);
+  const [understood, setUnderstood] = useState<FirstDraftsUnderstood | null>(
+    null,
+  );
   const [savingPostIds, setSavingPostIds] = useState<string[]>([]);
   const pendingFeedback = useRef(new Set<string>());
   const [error, setError] = useState<FirstDraftsError | null>(null);
@@ -112,7 +144,7 @@ export function useFirstDrafts(): FirstDraftsState {
     setIsGenerating(run.status === 'running');
     if (initial) setVerdicts(run.verdicts);
     if (run.result) {
-      setRound(1);
+      setRound((current) => Math.max(current, 1));
       setPhase((current) =>
         initial || current === 'working' ? 'review' : current,
       );
@@ -137,6 +169,7 @@ export function useFirstDrafts(): FirstDraftsState {
     setSavingPostIds([]);
     pendingFeedback.current.clear();
     setScan(null);
+    setUnderstood(null);
     setRound(0);
     setError(null);
     setPhase('url');
@@ -170,6 +203,7 @@ export function useFirstDrafts(): FirstDraftsState {
             ? view.url
             : '';
         setUrl(storedUrl || resolved.websiteUrl || '');
+        setUnderstood(readUnderstood(view));
         const run = await (await getService()).readDrafts(
           brandId,
           controller.signal,
@@ -208,9 +242,20 @@ export function useFirstDrafts(): FirstDraftsState {
   useEffect(() => {
     if (isRestoring || resolvedScope !== scopeKey) return;
     try {
-      sessionStorage.setItem(storageKey, JSON.stringify({ url, phase }));
+      sessionStorage.setItem(
+        storageKey,
+        JSON.stringify({ phase, understood, url }),
+      );
     } catch {}
-  }, [isRestoring, resolvedScope, scopeKey, storageKey, url, phase]);
+  }, [
+    isRestoring,
+    resolvedScope,
+    scopeKey,
+    storageKey,
+    understood,
+    url,
+    phase,
+  ]);
 
   useEffect(() => {
     if (!isGenerating || !brandId) return;
@@ -249,6 +294,18 @@ export function useFirstDrafts(): FirstDraftsState {
       setError(null);
       setPhase('working');
       setWorkingStep('scanning');
+      // The member's answers replace the understood line only once the posts
+      // they produced are shown; a failed redo keeps the line that matches the
+      // posts still on screen.
+      const previousRequestKey = result?.requestKey;
+      const applyContext = () => {
+        if (context)
+          setUnderstood((current) => ({
+            ...(current ?? {}),
+            ...(context.audience ? { audience: context.audience } : {}),
+            ...(context.offer ? { offer: context.offer } : {}),
+          }));
+      };
       try {
         const service = await getService();
         const existing = await service.readDrafts(brandId, controller.signal);
@@ -270,6 +327,7 @@ export function useFirstDrafts(): FirstDraftsState {
           );
           if (controller.signal.aborted || liveScope.current !== epoch) return;
           setScan(scanned);
+          setUnderstood(readScanUnderstood(scanned));
           if (scanned.status !== 'scanned') {
             setPhase('context');
             return;
@@ -288,6 +346,7 @@ export function useFirstDrafts(): FirstDraftsState {
           controller.signal,
         );
         if (controller.signal.aborted || liveScope.current !== epoch) return;
+        applyContext();
         setResult(next);
         setRound((current) => current + 1);
         setPhase('review');
@@ -307,6 +366,9 @@ export function useFirstDrafts(): FirstDraftsState {
           if (controller.signal.aborted || liveScope.current !== epoch) return;
           if (run) {
             acceptRun(run, true);
+            if (context && run.result?.requestKey !== previousRequestKey)
+              applyContext();
+            else if (context) setError('generate');
             return;
           }
         } catch {}
@@ -460,7 +522,7 @@ export function useFirstDrafts(): FirstDraftsState {
   };
 
   return {
-    canRetry: round < ONBOARDING_MAX_DRAFT_ROUNDS,
+    canRetry: round < ONBOARDING_MAX_DRAFT_ROUNDS && !isReplay,
     canRetryMedia:
       hasMissingMedia &&
       mediaRetriesRemaining > 0 &&
@@ -477,6 +539,8 @@ export function useFirstDrafts(): FirstDraftsState {
     isContinuing,
     isScanFailed: scan?.status === 'failed',
     likedDrafts,
+    maxRounds: ONBOARDING_MAX_DRAFT_ROUNDS,
+    onCancelRedo: () => setPhase(result ? 'review' : 'url'),
     onContinue,
     onNotRight: () => setPhase('context'),
     onNavigate: (step) => {
@@ -538,6 +602,7 @@ export function useFirstDrafts(): FirstDraftsState {
     result,
     round,
     scan,
+    understood,
     url,
     verdicts,
     workingStep,
