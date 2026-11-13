@@ -118,7 +118,6 @@ async function readPageHtml(
         'Accept-Language': 'en-US,en;q=0.9',
         'User-Agent': deps.userAgent,
       },
-      redirect: 'follow',
     },
     budget,
   );
