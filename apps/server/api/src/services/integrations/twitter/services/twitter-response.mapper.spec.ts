@@ -94,6 +94,18 @@ describe('TwitterResponseMapper', () => {
       });
     });
 
+    it('maps the following count when the provider sends one', () => {
+      expect(
+        mapper.mapUser({
+          data: {
+            id: 'user-4',
+            public_metrics: { followers_count: 9, following_count: 310 },
+            username: 'creator',
+          },
+        }),
+      ).toMatchObject({ followersCount: 9, followingCount: 310 });
+    });
+
     it('maps the bio when the provider sends one', () => {
       expect(
         mapper.mapUser({

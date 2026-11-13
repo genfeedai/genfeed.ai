@@ -118,14 +118,52 @@ describe('SocialMonitorService', () => {
     expect(results[0].contentType).toBe(SocialContentType.TWEET);
   });
 
-  it('surfaces the failure when the official X reply search fails', async () => {
-    mockTwitterService.getTweetReplies.mockRejectedValueOnce(
-      new Error('search not available'),
+  it('retries X replies with the app bearer when the brand token fails, then surfaces the last failure', async () => {
+    mockTwitterService.resolveBrandUserAccessToken.mockResolvedValueOnce(
+      'brand-token',
     );
+    mockTwitterService.getTweetReplies
+      .mockRejectedValueOnce(new Error('brand token expired'))
+      .mockRejectedValueOnce(new Error('search not available'));
 
     await expect(
-      service.getContentComments(ReplyBotPlatform.TWITTER, 'parent1'),
+      service.getContentComments(ReplyBotPlatform.TWITTER, 'parent1', {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+      }),
     ).rejects.toThrow('search not available');
+
+    expect(
+      mockTwitterService.getTweetReplies.mock.calls.map(
+        ([, options]) => options.accessToken,
+      ),
+    ).toEqual(['brand-token', undefined]);
+  });
+
+  it('reads X replies with the app bearer after an expired brand token', async () => {
+    mockTwitterService.resolveBrandUserAccessToken.mockResolvedValueOnce(
+      'brand-token',
+    );
+    mockTwitterService.getTweetReplies
+      .mockRejectedValueOnce(new Error('brand token expired'))
+      .mockResolvedValueOnce([
+        {
+          authorId: 'u1',
+          authorUsername: 'alice',
+          createdAt: new Date('2026-11-13T09:00:00.000Z'),
+          id: 'tweet2',
+          inReplyToId: 'parent1',
+          text: 'Still readable',
+        },
+      ]);
+
+    const results = await service.getContentComments(
+      ReplyBotPlatform.TWITTER,
+      'parent1',
+      { brandId: 'brand-1', organizationId: 'org-1' },
+    );
+
+    expect(results.map((reply) => reply.text)).toEqual(['Still readable']);
   });
 
   it('should throw for unsupported platform in getContentComments', async () => {
@@ -158,7 +196,7 @@ describe('SocialMonitorService', () => {
     );
 
     expect(mockTwitterService.searchRecentTweets).toHaveBeenCalledWith(
-      '@testuser lang:en',
+      '@testuser',
       { maxResults: 50, sinceId: '100', sortOrder: 'recency' },
     );
     expect(result).toEqual([
@@ -287,7 +325,7 @@ describe('SocialMonitorService', () => {
       limit: 10,
     });
     expect(mockTwitterService.searchRecentTweets).toHaveBeenCalledWith(
-      'AI news lang:en',
+      'AI news',
       expect.objectContaining({ maxResults: 10, sortOrder: 'recency' }),
     );
   });

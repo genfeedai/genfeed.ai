@@ -27,6 +27,7 @@ interface TwitterApiErrorShape {
 export interface TwitterResolvedUser {
   description?: string;
   followersCount?: number;
+  followingCount?: number;
   id: string;
   name?: string;
   profileImageUrl?: string;

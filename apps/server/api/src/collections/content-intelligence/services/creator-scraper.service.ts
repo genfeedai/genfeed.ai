@@ -320,11 +320,12 @@ export class CreatorScraperService {
         bio: user?.description,
         displayName: user?.name || handle,
         followerCount: user?.followersCount || 0,
-        followingCount: 0,
+        followingCount: user?.followingCount ?? 0,
         handle,
       };
 
-      const posts: ScrapedPost[] = tweets.map((tweet) => {
+      // X enforces a 5-post minimum per request, so trim to the configured cap.
+      const posts: ScrapedPost[] = tweets.slice(0, maxPosts).map((tweet) => {
         const likes = tweet.metrics?.likes || 0;
         const comments = tweet.metrics?.comments || 0;
         const shares = tweet.metrics?.shares || 0;

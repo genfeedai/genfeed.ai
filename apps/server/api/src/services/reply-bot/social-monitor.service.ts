@@ -380,7 +380,9 @@ export class SocialMonitorService {
   }
 
   /**
-   * Replies in one X conversation through the official API.
+   * Replies in one X conversation through the official API: the brand's X
+   * user token first, then the app bearer, so an expired brand token does not
+   * fail the read. The last failure is thrown.
    */
   private async getTwitterReplies(
     tweetId: string,
@@ -388,36 +390,56 @@ export class SocialMonitorService {
     options: FetchContentOptions = {},
   ): Promise<SocialContentData[]> {
     const brandAccessToken = await this.resolveBrandAccessToken(options);
-    const replies = await this.twitterService.getTweetReplies(tweetId, {
-      accessToken: brandAccessToken ?? undefined,
-      maxResults: limit,
-    });
+    const tokenAttempts: Array<string | undefined> = brandAccessToken
+      ? [brandAccessToken, undefined]
+      : [undefined];
 
-    this.loggerService.log(
-      `${this.constructorName} getTwitterReplies via official X API`,
-      {
-        count: replies.length,
-        source: brandAccessToken ? 'brand-oauth' : 'app-bearer',
-        tweetId,
-      },
-    );
-    return replies.map((reply) => ({
-      authorDisplayName: reply.authorName,
-      authorFollowersCount: reply.authorFollowersCount,
-      authorId: reply.authorId ?? '',
-      authorUsername: reply.authorUsername ?? 'unknown',
-      contentType: SocialContentType.TWEET,
-      contentUrl: reply.authorUsername
-        ? `https://x.com/${reply.authorUsername}/status/${reply.id}`
-        : undefined,
-      createdAt: reply.createdAt ?? new Date(),
-      id: reply.id,
-      inReplyToId: reply.inReplyToId ?? tweetId,
-      metrics: reply.metrics,
-      parentContentId: tweetId,
-      platform: ReplyBotPlatform.TWITTER,
-      text: reply.text,
-    }));
+    let lastError: unknown;
+    for (const accessToken of tokenAttempts) {
+      try {
+        const replies = await this.twitterService.getTweetReplies(tweetId, {
+          accessToken,
+          maxResults: limit,
+        });
+        this.loggerService.log(
+          `${this.constructorName} getTwitterReplies via official X API`,
+          {
+            count: replies.length,
+            source: accessToken ? 'brand-oauth' : 'app-bearer',
+            tweetId,
+          },
+        );
+        return replies.map((reply) => ({
+          authorDisplayName: reply.authorName,
+          authorFollowersCount: reply.authorFollowersCount,
+          authorId: reply.authorId ?? '',
+          authorUsername: reply.authorUsername ?? 'unknown',
+          contentType: SocialContentType.TWEET,
+          contentUrl: reply.authorUsername
+            ? `https://x.com/${reply.authorUsername}/status/${reply.id}`
+            : undefined,
+          createdAt: reply.createdAt ?? new Date(),
+          id: reply.id,
+          inReplyToId: reply.inReplyToId ?? tweetId,
+          metrics: reply.metrics,
+          parentContentId: tweetId,
+          platform: ReplyBotPlatform.TWITTER,
+          text: reply.text,
+        }));
+      } catch (error: unknown) {
+        lastError = error;
+        this.loggerService.warn(
+          `${this.constructorName} official X replies failed`,
+          {
+            error: error instanceof Error ? error.message : 'unknown',
+            source: accessToken ? 'brand-oauth' : 'app-bearer',
+            tweetId,
+          },
+        );
+      }
+    }
+
+    throw lastError;
   }
 
   private async getTwitterMentions(
@@ -503,14 +525,11 @@ export class SocialMonitorService {
     sinceId?: string,
   ): Promise<SocialContentData[]> {
     // X recent search accepts 10-100 results per request.
-    const results = await this.twitterService.searchRecentTweets(
-      `${query} lang:en`,
-      {
-        maxResults: Math.min(Math.max(limit, 10), 100),
-        sinceId,
-        sortOrder: 'recency',
-      },
-    );
+    const results = await this.twitterService.searchRecentTweets(query, {
+      maxResults: Math.min(Math.max(limit, 10), 100),
+      sinceId,
+      sortOrder: 'recency',
+    });
 
     return results.slice(0, limit).map((tweet) => ({
       authorDisplayName: tweet.authorName,

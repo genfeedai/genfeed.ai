@@ -333,6 +333,7 @@ describe('CreatorScraperService.scrapeCreator', () => {
     mockTwitterService.getUserByUsername.mockResolvedValue({
       description: 'Shipping daily',
       followersCount: 4200,
+      followingCount: 310,
       id: 'u-1',
       name: 'Test User',
       profileImageUrl: 'https://img.com/avatar.jpg',
@@ -356,7 +357,7 @@ describe('CreatorScraperService.scrapeCreator', () => {
       bio: 'Shipping daily',
       displayName: 'Test User',
       followerCount: 4200,
-      followingCount: 0,
+      followingCount: 310,
       handle: 'testuser',
     });
     expect(result?.posts).toEqual([
@@ -374,6 +375,32 @@ describe('CreatorScraperService.scrapeCreator', () => {
       },
     ]);
     expect(mockApifyService.runActor).not.toHaveBeenCalled();
+  });
+
+  it('keeps only maxPosts X posts even though X returns at least five per request', async () => {
+    mockTwitterService.getUserByUsername.mockResolvedValue(null);
+    mockTwitterService.getUserTimelineByUsername.mockResolvedValue(
+      ['tw-1', 'tw-2', 'tw-3'].map((id) => ({
+        createdAt: new Date('2024-01-15T10:00:00Z'),
+        id,
+        inReplyToId: null,
+        isRetweet: false,
+        metrics: { comments: 0, likes: 1, shares: 0 },
+        text: id,
+      })),
+    );
+
+    const result = await service.scrapeByPlatform(
+      ContentIntelligencePlatform.TWITTER,
+      'testuser',
+      1,
+    );
+
+    expect(result.posts.map((post) => post.id)).toEqual(['tw-1']);
+    expect(mockTwitterService.getUserTimelineByUsername).toHaveBeenCalledWith(
+      'testuser',
+      { maxResults: 1 },
+    );
   });
 
   it('calls apify with correct actor for LinkedIn and returns mapped posts', async () => {
