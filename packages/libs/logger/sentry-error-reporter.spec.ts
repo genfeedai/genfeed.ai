@@ -10,7 +10,7 @@ describe('normalizeErrorMessageForFingerprint', () => {
   it.each([
     ['Failed for brand 12345', 'Failed for brand <n>'],
     ['Lost 0b9c1f3e-2f4d-4c1a-9a0e-5d6f7a8b9c0d scope', 'Lost <id> scope'],
-    ['Missing 64f1a2b3c4d5e6f708192a3b', 'Missing <id>'],
+    ['Missing aaaaaaaaaaaaaaaaaaaaaaaa', 'Missing <id>'],
   ])('turns %j into %j', (message, expected) => {
     expect(normalizeErrorMessageForFingerprint(message)).toBe(expected);
   });

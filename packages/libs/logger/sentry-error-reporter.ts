@@ -1,3 +1,5 @@
+import { readString } from '@genfeedai/contracts/constants/type-guards.constant';
+
 const UUID_PATTERN =
   /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
 const OBJECT_ID_PATTERN = /\b[0-9a-f]{24}\b/gi;
@@ -48,14 +50,6 @@ function readHttpStatus(trace: unknown): number | null {
   return null;
 }
 
-function readString(
-  record: Record<string, unknown> | undefined,
-  key: string,
-): string | null {
-  const value = record?.[key];
-  return typeof value === 'string' && value.length > 0 ? value : null;
-}
-
 /**
  * Decides whether a `LoggerService.error` call is a server fault worth a Sentry
  * event and shapes it. Expected client errors (HTTP 4xx) and errors Nest's
@@ -64,7 +58,7 @@ function readString(
 export function buildLoggedErrorReport(
   input: LoggedErrorReportInput,
 ): LoggedErrorReport | null {
-  const service = readString(input.context, 'service');
+  const service = readString(input.context?.service) ?? null;
   if (service && SENTRY_HANDLED_SERVICES.has(service)) return null;
 
   const status = readHttpStatus(input.trace);
@@ -72,7 +66,7 @@ export function buildLoggedErrorReport(
 
   const error =
     input.trace instanceof Error ? input.trace : new Error(input.message);
-  const operation = readString(input.context, 'operation');
+  const operation = readString(input.context?.operation) ?? null;
   const tags: Record<string, string> = { source: 'logger.error' };
   if (service) tags.service = service;
   if (operation) tags.operation = operation;
