@@ -3,12 +3,12 @@ import {
   mergeWideEventFields,
   readWideEventOutcome,
 } from './wide-event.context';
+import { eventLoopLagSampler } from './wide-event.event-loop';
 import type {
   WideEventRecord,
   WideEventServiceIdentity,
   WideEventTraceContext,
 } from './wide-event.interface';
-import { eventLoopLagSampler } from './wide-event.event-loop';
 import { shouldKeepWideEvent } from './wide-event.sampling';
 
 export interface WideEventSink {
