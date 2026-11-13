@@ -315,10 +315,26 @@ describe('ArticlesService cache invalidation', () => {
       });
 
       await expect(
-        service.publicArticleScope.resolveHandle('article_1'),
+        service.publicArticleScope.resolveHandle('article_1', 'org_customer'),
       ).resolves.toBe(handle);
     },
   );
+
+  it('looks the article host up inside the owning organization', async () => {
+    const { reads, service } = buildService({
+      genfeedOrganization: { id: 'org_genfeed' },
+      storedArticle: { id: 'article_1', organizationId: 'org_customer' },
+    });
+
+    await service.publicArticleScope.resolveHandle('article_1', 'org_customer');
+
+    expect(reads).toHaveLength(1);
+    expect(reads[0].where).toEqual({
+      id: 'article_1',
+      isDeleted: false,
+      organizationId: 'org_customer',
+    });
+  });
 
   it('busts the org list key, the single key, and the articles tag on create', async () => {
     const { invalidatedKeys, invalidatedTags, service } = buildService();

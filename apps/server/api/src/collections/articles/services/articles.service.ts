@@ -887,8 +887,9 @@ export class ArticlesService
       throw new NotFoundException('Article');
     }
 
-    return this.articlesContentService.convertToTwitterThread(article, (id) =>
-      this.publicArticleScope.resolveHandle(id),
+    return this.articlesContentService.convertToTwitterThread(
+      article,
+      this.publicArticleScope.resolveHandle,
     );
   }
 
