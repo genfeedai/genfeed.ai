@@ -120,7 +120,10 @@ export class RedisCacheInterceptor implements NestInterceptor {
         ttl: cacheOptions.ttl,
       });
     } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} failed to store ${cacheKey}`, error);
+      this.logger.error(
+        `${this.constructorName} failed to store ${cacheKey}`,
+        error,
+      );
     }
   }
 
