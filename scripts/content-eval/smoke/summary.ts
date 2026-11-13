@@ -34,7 +34,7 @@ interface KindTally {
   scored: number;
 }
 
-type GuidanceArm = 'brief' | 'product' | 'raw';
+type GuidanceArm = 'brief' | 'product' | 'raw' | 'skill';
 type ArmTallies = Record<string, Record<GuidanceArm, KindTally>>;
 
 function emptyTally(): KindTally {
@@ -50,6 +50,7 @@ export function tallyTextKinds(report: ContentEvalReport): ArmTallies {
       brief: emptyTally(),
       product: emptyTally(),
       raw: emptyTally(),
+      skill: emptyTally(),
     };
     const kind = tallies[row.contentKind];
     const tally = kind[row.contestant.guidanceArm];
