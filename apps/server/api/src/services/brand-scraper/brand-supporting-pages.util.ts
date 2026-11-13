@@ -9,6 +9,7 @@ import type {
 } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
 import type { IScrapedBrandData } from '@genfeedai/contracts/interfaces';
 import { isBrandKitGuidanceNoise } from '@genfeedai/helpers';
+import { traced } from '@libs/tracing/traced';
 import * as cheerio from 'cheerio';
 
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
@@ -147,49 +148,52 @@ async function readPageHtml(
  * homepage result stands. Every page goes through the same SSRF-guarded client
  * as the homepage.
  */
-export async function addSupportingPages(
-  scrapedData: IScrapedBrandData,
-  rawContent: WebsiteScrapingResult,
-  budget: WebsiteFetchBudget,
-  deps: SupportingPagesDeps,
-): Promise<void> {
-  const urls = rawContent.supportingPageUrls ?? [];
-  const now = performance.now();
-  if (
-    urls.length === 0 ||
-    budget.deadlineAt - now < SUPPORTING_PAGES_MIN_REMAINING_MS
-  )
-    return;
-  const pageBudget = {
-    deadlineAt: Math.min(budget.deadlineAt, now + SUPPORTING_PAGES_BUDGET_MS),
-  };
-  const pages = await Promise.all(
-    urls.map(async (url) => {
-      try {
-        const html = await readPageHtml(url, pageBudget, deps);
-        return { excerpt: html ? extractPageExcerpt(html) : undefined, url };
-      } catch {
-        return { excerpt: undefined, failed: true, url };
-      }
-    }),
-  );
-  if (pages.some((page) => 'failed' in page))
-    rawContent.diagnostics?.push({
-      code: 'brand_scrape.supporting_page_failed',
-      message: 'A supporting page could not be read and was skipped.',
-      severity: 'warning',
-    });
-  const readable = pages.filter(
-    (page): page is { excerpt: string; url: string } => Boolean(page.excerpt),
-  );
-  if (readable.length === 0) return;
-  scrapedData.pageExcerpts = readable.map((page) => page.excerpt);
-  rawContent.evidence = [
-    ...(rawContent.evidence ?? []),
-    ...readable.map((page) => ({
-      sourceType: 'website' as const,
-      label: 'Website page',
-      url: deps.parser.sanitizeProvenanceUrl(page.url),
-    })),
-  ];
-}
+export const addSupportingPages = traced(
+  'addSupportingPages',
+  async (
+    scrapedData: IScrapedBrandData,
+    rawContent: WebsiteScrapingResult,
+    budget: WebsiteFetchBudget,
+    deps: SupportingPagesDeps,
+  ): Promise<void> => {
+    const urls = rawContent.supportingPageUrls ?? [];
+    const now = performance.now();
+    if (
+      urls.length === 0 ||
+      budget.deadlineAt - now < SUPPORTING_PAGES_MIN_REMAINING_MS
+    )
+      return;
+    const pageBudget = {
+      deadlineAt: Math.min(budget.deadlineAt, now + SUPPORTING_PAGES_BUDGET_MS),
+    };
+    const pages = await Promise.all(
+      urls.map(async (url) => {
+        try {
+          const html = await readPageHtml(url, pageBudget, deps);
+          return { excerpt: html ? extractPageExcerpt(html) : undefined, url };
+        } catch {
+          return { excerpt: undefined, failed: true, url };
+        }
+      }),
+    );
+    if (pages.some((page) => 'failed' in page))
+      rawContent.diagnostics?.push({
+        code: 'brand_scrape.supporting_page_failed',
+        message: 'A supporting page could not be read and was skipped.',
+        severity: 'warning',
+      });
+    const readable = pages.filter(
+      (page): page is { excerpt: string; url: string } => Boolean(page.excerpt),
+    );
+    if (readable.length === 0) return;
+    scrapedData.pageExcerpts = readable.map((page) => page.excerpt);
+    rawContent.evidence = [
+      ...(rawContent.evidence ?? []),
+      ...readable.map((page) => ({
+        sourceType: 'website' as const,
+        label: 'Website page',
+        url: deps.parser.sanitizeProvenanceUrl(page.url),
+      })),
+    ];
+  },
+);
