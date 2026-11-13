@@ -65,22 +65,25 @@ import {
 
 export const GENERATION_SCHEMA_NAME = 'content_eval_generation';
 export const GENERATION_MAX_TOKENS = 1024;
+/**
+ * A skill arm writes whole artifacts (a composition, a storyboard), not a post,
+ * so it gets room for them. Every arm of a skill run shares this limit.
+ */
+export const SKILL_GENERATION_MAX_TOKENS = 4096;
 const GENERATION_TEMPERATURE = 0.7;
 
 const generationSchema = z.object({ text: z.string().min(1) });
 
-/** The prompt a contestant sees. `raw` is the bare request; `brief` adds rules. */
-export function buildGenerationMessages(
-  row: FixtureRow,
-  contestant: Contestant,
-): EvalMessage[] {
-  const user: EvalMessage = { content: row.input.prompt, role: 'user' };
-  if (contestant.guidanceArm === 'raw') {
-    return [user];
-  }
+export function generationMaxTokens(contestant: Contestant): number {
+  return contestant.guidanceArm === 'skill'
+    ? SKILL_GENERATION_MAX_TOKENS
+    : GENERATION_MAX_TOKENS;
+}
 
+/** The fixture's own rules, as every guided arm receives them. */
+function guidanceRules(row: FixtureRow): string[] {
   const { brief, platform } = row.input;
-  const rules = [
+  return [
     brief.guidance,
     platform ? `Platform: ${platform}.` : null,
     brief.maxCharacters
@@ -91,10 +94,31 @@ export function buildGenerationMessages(
       : null,
     brief.isCtaRequired ? 'End with a clear call to action.' : null,
   ].filter((rule): rule is string => Boolean(rule));
+}
 
-  return rules.length === 0
+/**
+ * The prompt a contestant sees. `raw` is the bare request; `brief` adds the
+ * rules; `skill` is the brief plus a skill's instructions ahead of it, so two
+ * skill arms differ only by the skill.
+ */
+export function buildGenerationMessages(
+  row: FixtureRow,
+  contestant: Contestant,
+): EvalMessage[] {
+  const user: EvalMessage = { content: row.input.prompt, role: 'user' };
+  if (contestant.guidanceArm === 'raw') {
+    return [user];
+  }
+
+  const rules = guidanceRules(row);
+  const system =
+    contestant.guidanceArm === 'skill' && contestant.skillPrompt
+      ? [contestant.skillPrompt, ...rules]
+      : rules;
+
+  return system.length === 0
     ? [user]
-    : [{ content: rules.join('\n'), role: 'system' }, user];
+    : [{ content: system.join('\n\n'), role: 'system' }, user];
 }
 
 function isFatal(error: unknown): boolean {
@@ -234,8 +258,8 @@ function voidedGeneration(
   };
 }
 
-function cutOffReason(detail: string | null): string {
-  const limit = `${CUT_OFF_VOID_PREFIX} at the ${GENERATION_MAX_TOKENS}-token limit`;
+function cutOffReason(detail: string | null, maxTokens: number): string {
+  const limit = `${CUT_OFF_VOID_PREFIX} at the ${maxTokens}-token limit`;
   return detail ? `${limit}: ${detail}` : limit;
 }
 
@@ -298,7 +322,7 @@ async function answerRow(
           rubricVersion: null,
         },
         {
-          maxTokens: GENERATION_MAX_TOKENS,
+          maxTokens: generationMaxTokens(contestant),
           messages: buildGenerationMessages(row, contestant),
           model: contestant.registryKey,
           role: 'generation',
@@ -317,7 +341,7 @@ async function answerRow(
           base,
           provenance,
           generated.provenance,
-          cutOffReason(null),
+          cutOffReason(null, generationMaxTokens(contestant)),
         );
       }
       text = generated.response.value.text;
@@ -335,7 +359,7 @@ async function answerRow(
       provenance,
       failed,
       failed?.finishReason === 'length'
-        ? cutOffReason(detail)
+        ? cutOffReason(detail, generationMaxTokens(contestant))
         : `generation failed: ${detail}`,
     );
   }

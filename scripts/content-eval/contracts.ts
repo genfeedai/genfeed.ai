@@ -78,11 +78,15 @@ export const contestantSchema = z.object({
   /**
    * Guidance arm for the text A/Bs: `raw` sends the prompt alone, `brief`
    * adds the fixture's guidance, `product` generates through the product API
-   * with the eval organization's own brand context.
+   * with the eval organization's own brand context, and `skill` is `brief`
+   * with `skillPrompt` (a skill's instructions) ahead of the rules. A `skill`
+   * arm without a `skillPrompt` is the no-skill control of a skill run.
    */
-  guidanceArm: z.enum(['raw', 'brief', 'product']),
+  guidanceArm: z.enum(['raw', 'brief', 'product', 'skill']),
   isCompiled: z.boolean().default(false),
   registryKey: z.string().min(1),
+  /** Skill arm only: the instructions the arm's skill puts in the system prompt. */
+  skillPrompt: z.string().min(1).optional(),
 });
 export type Contestant = z.infer<typeof contestantSchema>;
 

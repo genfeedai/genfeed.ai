@@ -31,6 +31,11 @@ describe('readWideEventLevel', () => {
     ['a 404', { outcome: 'client_error', status_code: 404 }, 'info'],
     ['a slow request', { outcome: 'success', duration_ms: 2_500 }, 'warn'],
     [
+      'a request of a second and a half',
+      { outcome: 'success', duration_ms: 1_500 },
+      'info',
+    ],
+    [
       'a long job',
       { kind: 'job', outcome: 'success', duration_ms: 90_000 },
       'info',
