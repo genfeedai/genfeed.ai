@@ -142,11 +142,13 @@ export class TwitterReadService {
         );
 
       if (isAccessLevelError) {
-        this.loggerService.warn(
+        // An empty result here makes trends look healthy, so the failure is
+        // logged as an error (and reaches Sentry) rather than a warning.
+        this.loggerService.error(
           `${url} requires X API credits (PAYG). Returning empty results.`,
+          error,
           {
             code: errorObject?.code,
-            error: errorObject?.message,
             solution:
               'Add X API credits to your Developer Console: https://docs.x.com/x-api/getting-started/pricing',
             status: errorObject?.status,
