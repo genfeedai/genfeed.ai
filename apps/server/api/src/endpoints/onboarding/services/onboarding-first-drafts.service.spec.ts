@@ -571,6 +571,83 @@ describe('OnboardingFirstDraftsService', () => {
     },
   );
 
+  describe('funnel events', () => {
+    let events: Array<{ event: string; properties?: Record<string, unknown> }>;
+    let reporting: OnboardingFirstDraftsService;
+
+    beforeEach(() => {
+      events = [];
+      reporting = new OnboardingFirstDraftsService(
+        logger as never,
+        config as never,
+        brandsService as never,
+        brandDataMapper as never,
+        postGeneration as never,
+        signupPrefill as never,
+        gateway as never,
+        runs as never,
+        voiceCorpus as never,
+        {
+          capture: async (input: {
+            event: string;
+            properties?: Record<string, unknown>;
+          }) => {
+            events.push({ event: input.event, properties: input.properties });
+          },
+        } as never,
+      );
+    });
+
+    it('reports a failed scan with its reason and no brand text', async () => {
+      signupPrefill.scanBrandUrl.mockResolvedValue({
+        scrapeReason: 'blocked',
+        scrapeStatus: 'failed',
+      });
+
+      await reporting.scan(user, 'brand_1', 'acme.co');
+
+      expect(events).toEqual([
+        {
+          event: 'onboarding_brand_scanned',
+          properties: expect.objectContaining({
+            outcome: 'failed',
+            reason: 'blocked',
+          }),
+        },
+      ]);
+    });
+
+    it('reports a finished run with its draft count and status', async () => {
+      await reporting.generate(user, 'brand_1', {
+        previousRequestKey: 'key_1',
+      });
+
+      expect(events).toEqual([
+        {
+          event: 'onboarding_drafts_generated',
+          properties: expect.objectContaining({
+            draftCount: 4,
+            isRedo: true,
+            status: 'ready',
+          }),
+        },
+      ]);
+    });
+
+    it('reports a run that throws as failed and still throws', async () => {
+      runs.execute.mockImplementation(
+        async (_user, _brand, _previous, generate) => generate(vi.fn()),
+      );
+      brandsService.findOne.mockResolvedValue(null);
+
+      await expect(reporting.generate(user, 'brand_1', {})).rejects.toThrow();
+
+      expect(events.map((event) => event.properties?.status)).toEqual([
+        'failed',
+      ]);
+    });
+  });
+
   describe('retryMedia', () => {
     const readyImage = (
       slot: (typeof slots)[number],

@@ -1,4 +1,5 @@
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { ServerFunnelCaptureService } from '@api/services/analytics/server-funnel-capture.service';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import type { BrandedGenerationActorV1 } from '@api/services/branded-generation-receipts/branded-generation-receipts.types';
@@ -13,6 +14,7 @@ import {
   type BrandedGenerationFeedbackReadV1,
   type BrandedGenerationFeedbackSummaryV1,
 } from '@genfeedai/contracts/api-types/contracts/branded-generation-feedback.contract';
+import { GENERATION_FEEDBACK_RATED_EVENT } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import {
@@ -46,7 +48,23 @@ export class BrandedGenerationFeedbackService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: BrandedGenerationReceiptAccessService,
+    private readonly serverFunnelCapture?: ServerFunnelCaptureService,
   ) {}
+
+  /** Best-effort analytics: a dropped event never fails the rating. */
+  private captureRating(
+    actor: BrandedGenerationActorV1,
+    properties: Record<string, unknown>,
+  ): void {
+    void this.serverFunnelCapture
+      ?.capture({
+        distinctId: actor.actorId,
+        event: GENERATION_FEEDBACK_RATED_EVENT,
+        organizationId: actor.organizationId,
+        properties,
+      })
+      .catch(() => undefined);
+  }
 
   private transaction<T>(
     run: (tx: Prisma.TransactionClient) => Promise<T>,
@@ -174,7 +192,7 @@ export class BrandedGenerationFeedbackService {
     input: BrandedGenerationFeedbackInputV1,
   ): Promise<BrandedGenerationFeedbackReadV1> {
     this.assertMember(actor);
-    return this.transaction(async (tx) => {
+    const { artifactKind, read } = await this.transaction(async (tx) => {
       await this.access.assertBrand(actor, tx);
       const output = await this.receipt(tx, actor, receiptId);
       if (!output.artifact)
@@ -199,8 +217,17 @@ export class BrandedGenerationFeedbackService {
           receiptId_actorId: { actorId: actor.actorId, receiptId },
         },
       });
-      return this.read(tx, actor, receiptId, output);
+      return {
+        artifactKind: output.artifact.kind,
+        read: await this.read(tx, actor, receiptId, output),
+      };
     });
+    this.captureRating(actor, {
+      artifactKind,
+      rating: input.rating,
+      reasonCount: input.reasons.length,
+    });
+    return read;
   }
 
   /** Takes the member's rating back; withdrawing nothing is not an error. */
@@ -221,6 +248,7 @@ export class BrandedGenerationFeedbackService {
         }),
       });
     });
+    this.captureRating(actor, { rating: 'withdrawn' });
   }
 
   /** How the brand's recent generations were rated, by receipt mode and reason. */
