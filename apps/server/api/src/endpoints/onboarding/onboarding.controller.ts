@@ -173,7 +173,7 @@ export class OnboardingController {
   @HttpCode(200)
   @ApiOperation({
     description:
-      'Writes first drafts for the brand with a cheap text model and one shared image. Optional context from the retry round is saved on the brand. Nothing is published.',
+      'Writes first drafts for the brand with a cheap text model and one shared image. Optional context from the retry round is saved on the brand. A brand has two rounds. Nothing is published.',
     summary: 'Generate first drafts during onboarding',
   })
   async generateDrafts(
