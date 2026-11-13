@@ -430,7 +430,7 @@ shared `RateLimitService` window). JSON-RPC `error.code` stays numeric.
 | `unauthorized` | Missing or rejected bearer credential (`401`) | `/connectors/agents` on your app origin | |
 | `rate_limited` | `RateLimitService`, or an upstream `429` | none | `retryAfterSeconds` when the limiter reported a wait |
 | `validation_failed` | REST `ValidationPipe` / `ErrorResponse.validationFailed` field errors, or a missing required tool argument | none | `errors[]` of `{ field, message }` |
-| `approval_pending` | `mutationPolicy: 'approval-required'` queued the write instead of running it | `/publishing/review` | `approvalId`, `toolName`, `approvalStatus`, `canResolveApproval` |
+| `approval_pending` | `mutationPolicy: 'approval-required'` queued the write instead of running it | `/publishing/approvals` | `approvalId`, `toolName`, `approvalStatus`, `canResolveApproval` |
 | `brand_required` | A generation tool (`generate`, `generate_content`, `generate_turbo_content`, `enhance_prompt`, `transform_media`) was called without `brandId` | none | `brands[]` of `{ id, label }`, the caller's brands |
 
 `message` is always set. `retryAfterSeconds` and `nextStepUrl` are omitted

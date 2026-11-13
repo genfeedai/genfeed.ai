@@ -205,7 +205,9 @@ describe('useIngredientDetail loading', () => {
     expect(mocks.notifications.error).toHaveBeenCalledWith(
       'Failed to load ingredient',
     );
-    expect(mocks.router.push).toHaveBeenCalledWith('/ingredients/images');
+    expect(mocks.router.push).toHaveBeenCalledWith(
+      '/admin/content/ingredients/images',
+    );
   });
 
   it('keeps the parent when optional children fail', async () => {
