@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import { BRAND_PROFILE_GENERATION_CREDIT_COST } from '@api/collections/brands/constants/brand-profile.constant';
 import {
   buildBrandProfileAnalysisPrompt,
@@ -38,6 +39,19 @@ export const DEFAULT_BRAND_VOICE_ANALYSIS = {
   values: [],
   voice: 'Friendly and informative',
 };
+
+/**
+ * True for the placeholder voice returned when the analysis model failed.
+ * Saving it would give every such brand the same "Professional, friendly" voice,
+ * so callers keep the scraped data and leave the voice unset.
+ */
+export function isFallbackBrandVoice(
+  voice: IExtractedBrandData['brandVoice'],
+): boolean {
+  return (
+    Boolean(voice) && isDeepStrictEqual(voice, DEFAULT_BRAND_VOICE_ANALYSIS)
+  );
+}
 
 /**
  * System prompts for generating brand master prompts
@@ -277,6 +291,10 @@ export class MasterPromptGeneratorService {
       parts.push(
         `Value Propositions:\n- ${brandData.valuePropositions.join('\n- ')}`,
       );
+    }
+
+    if (brandData.pageExcerpts?.length) {
+      parts.push(`Other site pages:\n- ${brandData.pageExcerpts.join('\n- ')}`);
     }
 
     if (brandData.metaDescription) {

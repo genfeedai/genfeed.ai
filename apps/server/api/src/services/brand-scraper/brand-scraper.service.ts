@@ -9,6 +9,7 @@ import {
   expandTcoLinks,
   replaceTcoLinks,
 } from '@api/services/brand-scraper/brand-short-link.util';
+import { addSupportingPages } from '@api/services/brand-scraper/brand-supporting-pages.util';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
 import type {
   BrandScrapeSources,
@@ -133,6 +134,11 @@ export class BrandScraperService {
       );
       await this.expandShortLinks(scrapedData, budget);
       rawContent.diagnostics ??= [];
+      await addSupportingPages(scrapedData, rawContent, budget, {
+        http: this.http,
+        parser: this.brandWebsiteParser,
+        userAgent: BROWSER_USER_AGENT,
+      });
       if (rawContent.isShopify) {
         await this.addShopifyProductImages(
           scrapedData,

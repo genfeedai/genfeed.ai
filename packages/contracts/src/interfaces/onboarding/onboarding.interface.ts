@@ -57,6 +57,8 @@ export interface IScrapedBrandData {
   heroText?: string;
   valuePropositions?: string[];
   aboutText?: string;
+  /** Short excerpts of the about, product or pricing pages beyond the homepage. */
+  pageExcerpts?: string[];
 
   // Links
   socialLinks?: IExtractedSocialLinks;

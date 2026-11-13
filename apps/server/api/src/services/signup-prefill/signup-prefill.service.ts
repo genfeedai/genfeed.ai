@@ -9,7 +9,10 @@ import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { BRAND_SOCIAL_HOSTS } from '@api/services/brand-scraper/brand-social-hosts.constant';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
-import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
+import {
+  isFallbackBrandVoice,
+  MasterPromptGeneratorService,
+} from '@api/services/knowledge-base/master-prompt-generator.service';
 import { buildPrefilledAgentConfig } from '@api/services/signup-prefill/utils/agent-config-defaults.util';
 import {
   buildBrandSystemPrompt,
@@ -666,7 +669,8 @@ export class SignupPrefillService {
         scrapedData.aboutText ||
         scrapedData.heroText ||
         scrapedData.tagline ||
-        (scrapedData.valuePropositions?.length ?? 0) > 0,
+        (scrapedData.valuePropositions?.length ?? 0) > 0 ||
+        (scrapedData.pageExcerpts?.length ?? 0) > 0,
     );
 
     if (!hasAnalyzableContent) {
@@ -674,11 +678,20 @@ export class SignupPrefillService {
     }
 
     try {
-      return await this.masterPromptGeneratorService.analyzeBrandVoice(
-        scrapedData,
-        { organizationId, userId },
-        { deadlineAt, onCreditsSettled },
-      );
+      const brandVoice =
+        await this.masterPromptGeneratorService.analyzeBrandVoice(
+          scrapedData,
+          { organizationId, userId },
+          { deadlineAt, onCreditsSettled },
+        );
+      if (isFallbackBrandVoice(brandVoice)) {
+        this.loggerService.warn(
+          'Signup prefill brand-voice analysis fell back to the placeholder voice — leaving the voice unset',
+          { ...this.context, organizationId },
+        );
+        return undefined;
+      }
+      return brandVoice;
     } catch (error: unknown) {
       if (error instanceof RequestTimeoutException) throw error;
       this.loggerService.warn(

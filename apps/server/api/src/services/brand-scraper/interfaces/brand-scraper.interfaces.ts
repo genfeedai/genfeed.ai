@@ -130,6 +130,8 @@ export interface MetaTagFallbackData {
  */
 export interface WebsiteScrapingResult {
   stylesheetUrls?: string[];
+  /** Same-site about, product or pricing pages worth reading after the homepage. */
+  supportingPageUrls?: string[];
   evidence?: IBrandKitSourceEvidence[];
   diagnostics?: IBrandKitDiagnostic[];
   fontDetails?: WebsiteFontCandidate[];

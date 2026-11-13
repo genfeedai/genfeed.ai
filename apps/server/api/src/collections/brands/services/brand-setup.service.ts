@@ -15,7 +15,10 @@ import {
   isBrandScrapeContentEmpty,
 } from '@api/services/brand-scraper/brand-scrape-error.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
+import {
+  isFallbackBrandVoice,
+  MasterPromptGeneratorService,
+} from '@api/services/knowledge-base/master-prompt-generator.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { BrandScrapeErrorCode } from '@genfeedai/contracts';
 import type {
@@ -225,18 +228,22 @@ export class BrandSetupService {
         scrapedData.aboutText ||
         scrapedData.heroText ||
         scrapedData.tagline ||
-        (scrapedData.valuePropositions?.length ?? 0) > 0,
+        (scrapedData.valuePropositions?.length ?? 0) > 0 ||
+        (scrapedData.pageExcerpts?.length ?? 0) > 0,
     );
 
     if (!hasAnalyzableContent) {
       return undefined;
     }
 
-    return this.masterPromptGeneratorService.analyzeBrandVoice(scrapedData, {
-      brandId,
-      organizationId: organizationId.toString(),
-      userId: userId.toString(),
-    });
+    const brandVoice =
+      await this.masterPromptGeneratorService.analyzeBrandVoice(scrapedData, {
+        brandId,
+        organizationId: organizationId.toString(),
+        userId: userId.toString(),
+      });
+    // The placeholder voice is the same for every brand; leave the voice unset.
+    return isFallbackBrandVoice(brandVoice) ? undefined : brandVoice;
   }
 
   /**
