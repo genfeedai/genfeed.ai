@@ -15,6 +15,7 @@ import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-re
 import { resolveAccountlessLearningReceipt } from '@api/services/branded-text-generation/accountless-learning-receipt.util';
 import { BrandedModeResolverService } from '@api/services/branded-text-generation/branded-mode-resolver.service';
 import { BrandedTextGenerationService } from '@api/services/branded-text-generation/branded-text-generation.service';
+import type { BrandedTextGenerationRequestV1 } from '@api/services/branded-text-generation/branded-text-generation.types';
 import { brandedReasonHttpStatus } from '@api/services/branded-text-generation/branded-text-generation-outcome.util';
 import type { TextDispatchKeyResolver } from '@api/services/byok/text-dispatch-byok.util';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -246,35 +247,15 @@ export class PostDraftGenerationService {
         },
         privateLearning: learningReceipt,
         resolveApiKey: resolveApiKey ?? (async () => undefined),
-        acceptText: (text) => {
-          if (isUnusableDraftText(text, options.minCharacters)) return false;
-          const isWithinLimit = isValidPostLength(
-            text,
-            limit,
-            context.constraints.usesWeightedCharacters,
-          );
-          if (!isWithinLimit) overLimitDraft = text;
-          return isWithinLimit;
-        },
-        classifyRejectedText: (text) =>
-          isUnusableDraftText(text, options.minCharacters)
-            ? OUTPUT_UNUSABLE_REASON
-            : 'channel_limit_exceeded',
-        persistText: async (text) => {
-          const post = await this.postsService.create({
-            brandId: dto.brandId,
-            category: PostCategory.TEXT,
-            description: text,
-            format: dto.format ?? PostFormat.STANDARD,
-            ingredients: [],
-            label: '',
-            organizationId: identity.organizationId,
-            platform: dto.platform,
-            targetExecutionState: TargetExecutionState.DRAFT,
-            userId: identity.userId,
-          });
-          return { postId: String(post.id) };
-        },
+        ...this.draftTextGate(
+          limit,
+          context.constraints.usesWeightedCharacters,
+          options.minCharacters,
+          (text) => {
+            overLimitDraft = text;
+          },
+        ),
+        persistText: (text) => this.saveDraftPost(dto, identity, text),
       });
       if (result.kind !== 'in_progress' && result.hasNewDispatch) {
         paidCalls += 1;
@@ -283,39 +264,18 @@ export class PostDraftGenerationService {
       return result;
     };
     let outcome = await attempt(dto.requestKey, options.parentRequestId, null);
-    // One retry when the draft came back over the limit. It is a separate
-    // receipt derived from the request key, so a replay of the same request
-    // answers from the stored attempts and never dispatches a third time.
-    if (
-      outcome.kind === 'stopped' &&
-      outcome.reasonCode === 'channel_limit_exceeded'
-    ) {
-      const draft = await this.rememberOverLimitDraft(
-        dto,
-        identity,
-        overLimitDraft,
-      );
-      outcome = await attempt(
-        `${dto.requestKey}${SHORTEN_KEY_SUFFIX}`,
-        dto.requestKey,
-        {
-          draft,
-          kind: 'shorten',
-          target: Math.floor(limit * SHORTEN_TARGET_RATIO),
-        },
-      );
-    } else if (
-      outcome.kind === 'stopped' &&
-      outcome.reasonCode === OUTPUT_UNUSABLE_REASON
-    ) {
-      // Same shape as the over-limit retry: one more call, its own receipt, so
-      // a replay answers from the stored attempts and never dispatches again.
-      outcome = await attempt(
-        `${dto.requestKey}${REWRITE_KEY_SUFFIX}`,
-        dto.requestKey,
-        { kind: 'rewrite' },
-      );
-    }
+    // One retry when the draft came back over the limit or was not a post. It
+    // is a separate receipt derived from the request key, so a replay of the
+    // same request answers from the stored attempts and never dispatches again.
+    const retry = await this.planRetry(
+      outcome,
+      dto,
+      identity,
+      limit,
+      overLimitDraft,
+    );
+    if (retry)
+      outcome = await attempt(retry.requestKey, dto.requestKey, retry.retry);
     if (outcome.kind === 'in_progress')
       throw new BrandedGenerationBlockedException(
         409,
@@ -347,6 +307,86 @@ export class PostDraftGenerationService {
       model,
       postId: outcome.postId,
     };
+  }
+
+  private async saveDraftPost(
+    dto: PostDraftGenerationInput,
+    identity: GenerationMetadata,
+    text: string,
+  ): Promise<{ postId: string }> {
+    const post = await this.postsService.create({
+      brandId: dto.brandId,
+      category: PostCategory.TEXT,
+      description: text,
+      format: dto.format ?? PostFormat.STANDARD,
+      ingredients: [],
+      label: '',
+      organizationId: identity.organizationId,
+      platform: dto.platform,
+      targetExecutionState: TargetExecutionState.DRAFT,
+      userId: identity.userId,
+    });
+    return { postId: String(post.id) };
+  }
+
+  /**
+   * Gates the provider output before anything is saved: a reply that is not a
+   * post, or one over the channel limit, is refused with its own stable reason.
+   */
+  private draftTextGate(
+    limit: number,
+    usesWeightedCharacters: boolean,
+    minCharacters: number | undefined,
+    onOverLimit: (text: string) => void,
+  ): Pick<
+    BrandedTextGenerationRequestV1,
+    'acceptText' | 'classifyRejectedText'
+  > {
+    return {
+      acceptText: (text) => {
+        if (isUnusableDraftText(text, minCharacters)) return false;
+        const isWithinLimit = isValidPostLength(
+          text,
+          limit,
+          usesWeightedCharacters,
+        );
+        if (!isWithinLimit) onOverLimit(text);
+        return isWithinLimit;
+      },
+      classifyRejectedText: (text) =>
+        isUnusableDraftText(text, minCharacters)
+          ? OUTPUT_UNUSABLE_REASON
+          : 'channel_limit_exceeded',
+    };
+  }
+
+  private async planRetry(
+    outcome: { kind: string; reasonCode?: string },
+    dto: PostDraftGenerationInput,
+    identity: GenerationMetadata,
+    limit: number,
+    overLimitDraft: string,
+  ): Promise<{ requestKey: string; retry: DraftRetry } | null> {
+    if (outcome.kind !== 'stopped') return null;
+    if (outcome.reasonCode === 'channel_limit_exceeded')
+      return {
+        requestKey: `${dto.requestKey}${SHORTEN_KEY_SUFFIX}`,
+        retry: {
+          draft: await this.rememberOverLimitDraft(
+            dto,
+            identity,
+            overLimitDraft,
+          ),
+          kind: 'shorten',
+          target: Math.floor(limit * SHORTEN_TARGET_RATIO),
+        },
+      };
+    if (outcome.reasonCode === OUTPUT_UNUSABLE_REASON)
+      return {
+        requestKey: `${dto.requestKey}${REWRITE_KEY_SUFFIX}`,
+        retry: { kind: 'rewrite' },
+      };
+    return null;
   }
 
   private buildDraftPrompt(
