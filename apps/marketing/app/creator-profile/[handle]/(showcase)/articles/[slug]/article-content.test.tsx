@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { preloadButtonTooltip } from '@ui/primitives/button-tooltip';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import ArticleContent from './article-content';
 
 const copyToClipboard = vi.fn<(value: string) => Promise<boolean>>();
@@ -9,6 +10,12 @@ vi.mock('@services/core/clipboard.service', () => ({
     getInstance: () => ({ copyToClipboard }),
   },
 }));
+
+// Without a TooltipProvider the hint loads after mount and remounts the button,
+// so a click on the node found first would hit a stale element.
+beforeAll(async () => {
+  await preloadButtonTooltip();
+});
 
 beforeEach(() => {
   copyToClipboard.mockReset();
@@ -44,9 +51,10 @@ describe('ArticleContent', () => {
     await waitFor(() =>
       expect(copyToClipboard).toHaveBeenCalledWith('Generate a useful asset.'),
     );
+    expect(await screen.findByRole('status')).toHaveTextContent('Copied');
   });
 
-  it('keeps Copy after a handled clipboard failure', async () => {
+  it('does not announce Copied after a handled clipboard failure', async () => {
     copyToClipboard.mockResolvedValue(false);
     render(
       <ArticleContent
@@ -59,8 +67,87 @@ describe('ArticleContent', () => {
     });
     fireEvent.click(button);
     await waitFor(() => expect(copyToClipboard).toHaveBeenCalledWith('Prompt'));
-    expect(button).toHaveTextContent('Copy');
-    expect(button).not.toHaveTextContent('Copied');
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    expect(button).toHaveAccessibleName('Copy this prompt');
+  });
+
+  it('folds a long prompt block and unfolds it again', async () => {
+    const lines = Array.from({ length: 8 }, (_, line) => `Rule ${line + 1}`);
+    render(
+      <ArticleContent
+        sanitizedHtml={`<pre><code>${lines.join('\n')}</code></pre>`}
+      />,
+    );
+
+    const collapse = await screen.findByRole('button', {
+      name: 'Collapse this prompt',
+    });
+    expect(collapse).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.click(collapse);
+    const expand = screen.getByRole('button', { name: 'Expand this prompt' });
+    expect(expand).toHaveAttribute('aria-expanded', 'false');
+    expect(expand.closest('.gen-code-block')).toHaveAttribute(
+      'data-collapsed',
+      'true',
+    );
+
+    fireEvent.click(expand);
+    expect(
+      screen.getByRole('button', { name: 'Collapse this prompt' }),
+    ).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('gives a short prompt block a copy button and nothing to fold', async () => {
+    render(
+      <ArticleContent sanitizedHtml="<pre><code>One line.</code></pre>" />,
+    );
+
+    await screen.findByRole('button', { name: 'Copy this prompt' });
+    expect(
+      screen.queryByRole('button', { name: /collapse|expand/i }),
+    ).toBeNull();
+  });
+
+  it('renders a figure of two images as a before/after slider', async () => {
+    render(
+      <ArticleContent
+        sanitizedHtml={
+          '<p>Intro</p><figure data-genfeed-compare=""><img src="https://cdn.test/a.jpg?x=1&amp;y=2" alt="Before: crowded" width="1280" height="720" /><img src="https://cdn.test/b.jpg" alt="After: one subject" /><figcaption>Same video.</figcaption></figure>'
+        }
+      />,
+    );
+
+    const slider = await screen.findByRole('slider', {
+      name: 'Compare before and after',
+    });
+    expect(slider).toHaveAttribute('aria-valuenow', '50');
+    expect(screen.getByAltText('Before: crowded')).toHaveAttribute(
+      'src',
+      'https://cdn.test/a.jpg?x=1&y=2',
+    );
+    expect(screen.getByAltText('After: one subject')).toBeInTheDocument();
+    expect(screen.getByText('Same video.')).toBeInTheDocument();
+
+    fireEvent.keyDown(slider, { key: 'ArrowRight' });
+    expect(slider).toHaveAttribute('aria-valuenow', '55');
+    expect(slider).toHaveAttribute('aria-valuetext', 'Showing 55% before');
+
+    fireEvent.keyDown(slider, { key: 'End' });
+    expect(slider).toHaveAttribute('aria-valuenow', '100');
+    expect(slider).toHaveAttribute('aria-valuetext', 'Showing before');
+
+    fireEvent.keyDown(slider, { key: 'Home' });
+    expect(slider).toHaveAttribute('aria-valuetext', 'Showing after');
+  });
+
+  it('leaves a figure with one image as plain article HTML', async () => {
+    render(
+      <ArticleContent sanitizedHtml='<figure data-genfeed-compare=""><img src="https://cdn.test/a.jpg" alt="Only one" /></figure>' />,
+    );
+
+    expect(await screen.findByAltText('Only one')).toBeInTheDocument();
+    expect(screen.queryByRole('slider')).toBeNull();
   });
 
   it('mounts the filmmaking effect lab on the matching article', async () => {

@@ -4,13 +4,21 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ArticleContentProps } from '@props/content/public-article.props';
 import { Button } from '@ui/primitives/button';
 import { copyText } from '@web-components/creator/copy-text';
-import { ArrowUpRight, Check, Copy, ListTree } from 'lucide-react';
+import {
+  ArrowUpRight,
+  Check,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  Copy,
+  ListTree,
+} from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { WEBSITE_ANALYTICS_EVENTS } from '../../../../../../src/analytics/analytics-events';
 import { captureWebsiteAnalyticsEvent } from '../../../../../../src/analytics/posthog-client';
+import ArticleCompareSlider from './article-compare-slider';
 import { hasArticleExperience } from './article-experience-slugs';
 import ArticleGenerationBlock from './article-generation-block';
 import { splitArticleBody } from './article-generations';
@@ -19,15 +27,26 @@ import { splitArticleBody } from './article-generations';
 const ArticleExperience = dynamic(() => import('./article-experience'));
 
 const COPIED_RESET_MS = 2000;
+/** A block this short has nothing to fold away, so it only gets Copy. */
+const MIN_COLLAPSIBLE_LINES = 5;
 
 interface CodeBlockAction {
   code: string;
+  isCollapsible: boolean;
   key: string;
   mount: HTMLElement;
+  /** The `pre` the collapse button folds, for `aria-controls`. */
+  preId: string;
+  wrapper: HTMLElement;
 }
 
-function CopyCodeButton({ code }: { code: string }): React.ReactElement {
+function CodeBlockActions({
+  action,
+}: {
+  action: CodeBlockAction;
+}): React.ReactElement {
   const [isCopied, setIsCopied] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
@@ -35,34 +54,65 @@ function CopyCodeButton({ code }: { code: string }): React.ReactElement {
   }, []);
 
   const handleCopy = async (): Promise<void> => {
-    setIsCopied(await copyText(code));
+    setIsCopied(await copyText(action.code));
     clearTimeout(resetTimer.current);
     resetTimer.current = setTimeout(() => setIsCopied(false), COPIED_RESET_MS);
   };
 
+  const handleToggle = (): void => {
+    const nextIsCollapsed = !isCollapsed;
+    // The block is author markup that React does not own, so the folded state
+    // is written to the wrapper the stylesheet reads.
+    action.wrapper.dataset.collapsed = String(nextIsCollapsed);
+    setIsCollapsed(nextIsCollapsed);
+  };
+
   return (
-    <Button
-      variant={ButtonVariant.SECONDARY}
-      size={ButtonSize.XS}
-      ariaLabel="Copy this prompt"
-      className="border border-foreground/10 bg-foreground/10 text-foreground backdrop-blur-sm transition-all hover:border-foreground/20 hover:bg-foreground/20"
-      onClick={handleCopy}
-    >
-      {isCopied ? (
-        <Check className="size-3.5" />
-      ) : (
-        <Copy className="size-3.5" />
-      )}
-      {isCopied ? 'Copied' : 'Copy'}
-    </Button>
+    <div className="flex gap-1">
+      <Button
+        variant={ButtonVariant.SECONDARY}
+        size={ButtonSize.MICRO}
+        ariaLabel="Copy this prompt"
+        tooltip={isCopied ? 'Copied' : 'Copy'}
+        onClick={handleCopy}
+      >
+        {isCopied ? (
+          <Check className="size-3.5" aria-hidden="true" />
+        ) : (
+          <Copy className="size-3.5" aria-hidden="true" />
+        )}
+      </Button>
+      {action.isCollapsible ? (
+        <Button
+          variant={ButtonVariant.SECONDARY}
+          size={ButtonSize.MICRO}
+          ariaLabel={
+            isCollapsed ? 'Expand this prompt' : 'Collapse this prompt'
+          }
+          aria-controls={action.preId}
+          aria-expanded={!isCollapsed}
+          tooltip={isCollapsed ? 'Expand' : 'Collapse'}
+          onClick={handleToggle}
+        >
+          {isCollapsed ? (
+            <ChevronsUpDown className="size-3.5" aria-hidden="true" />
+          ) : (
+            <ChevronsDownUp className="size-3.5" aria-hidden="true" />
+          )}
+        </Button>
+      ) : null}
+      <span className="sr-only" role="status">
+        {isCopied ? 'Copied' : ''}
+      </span>
+    </div>
   );
 }
 
 /**
- * Article bodies are sanitized HTML, so the copy affordance cannot be authored
- * as JSX inside the content. Each `pre` is wrapped after render and given a
- * portal mount instead: React owns the button, the browser owns the markup, and
- * neither has to know about the other.
+ * Article bodies are sanitized HTML, so the copy and collapse buttons cannot be
+ * authored as JSX inside the content. Each `pre` is wrapped after render and
+ * given a portal mount instead: React owns the buttons, the browser owns the
+ * markup, and neither has to know about the other.
  */
 export default function ArticleContent({
   applyHref,
@@ -98,6 +148,8 @@ export default function ArticleContent({
         // Read the code before mounting anything: once the portal renders, the
         // button's own label would be part of the block's text content.
         const code = pre.textContent ?? '';
+        const preId = `code-block-${index}-content`;
+        pre.id ||= preId;
 
         const wrapper = document.createElement('div');
         wrapper.className = 'gen-code-block';
@@ -108,7 +160,15 @@ export default function ArticleContent({
         mount.className = 'gen-code-block-action';
         wrapper.append(mount);
 
-        return { code, key: `code-block-${index}`, mount };
+        return {
+          code,
+          isCollapsible:
+            code.trimEnd().split('\n').length >= MIN_COLLAPSIBLE_LINES,
+          key: `code-block-${index}`,
+          mount,
+          preId: pre.id,
+          wrapper,
+        };
       },
     );
 
@@ -118,6 +178,7 @@ export default function ArticleContent({
       for (const action of mounted) {
         const wrapper = action.mount.parentElement;
         action.mount.remove();
+        action.wrapper.removeAttribute('data-collapsed');
         // Unwrap so a re-render starts from the original markup rather than
         // nesting a second wrapper around every block.
         const pre = wrapper?.firstElementChild;
@@ -207,6 +268,14 @@ export default function ArticleContent({
                 />
               );
             }
+            if (segment.kind === 'compare') {
+              return (
+                <ArticleCompareSlider
+                  compare={segment.compare}
+                  key={segment.key}
+                />
+              );
+            }
             const generation = generations[segment.ingredientId];
             return generation ? (
               <ArticleGenerationBlock
@@ -218,7 +287,7 @@ export default function ArticleContent({
         </div>
         {actions.map((action) =>
           createPortal(
-            <CopyCodeButton code={action.code} />,
+            <CodeBlockActions action={action} />,
             action.mount,
             action.key,
           ),
