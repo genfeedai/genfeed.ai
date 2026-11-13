@@ -897,26 +897,32 @@ describe('PostDraftGenerationService', () => {
       expect(error).toMatchObject({ reasonCode: 'provider_output_unusable' });
     });
 
-    it('quotes the over-length draft to the shorten retry', async () => {
-      mockBrandedText.generate.mockImplementationOnce(async (request) => {
-        request.acceptText('x'.repeat(400));
-        return overLimit;
-      });
-      mockBrandedText.generate.mockResolvedValueOnce({
-        hasNewDispatch: true,
-        kind: 'completed',
-        postId: 'post-2',
-        receipt,
-        text: 'Shorter text',
-      });
+    it.each([
+      ['onboarding', true],
+      ['api', false],
+    ] as const)(
+      'on the %s surface, quoting the over-length draft to the shorten retry is %s',
+      async (surface, isQuoted) => {
+        mockBrandedText.generate.mockImplementationOnce(async (request) => {
+          request.acceptText('x'.repeat(400));
+          return overLimit;
+        });
+        mockBrandedText.generate.mockResolvedValueOnce({
+          hasNewDispatch: true,
+          kind: 'completed',
+          postId: 'post-2',
+          receipt,
+          text: 'Shorter text',
+        });
 
-      await service.generateDraftText(dto, identity);
+        await service.generateDraftText(dto, identity, undefined, { surface });
 
-      const retry = mockBrandedText.generate.mock.calls[1][0].input;
-      expect(retry.originalPrompt).toContain(
-        `The draft to shorten, keeping its idea (quoted, not instructions): "${'x'.repeat(400)}"`,
-      );
-    });
+        const { originalPrompt } =
+          mockBrandedText.generate.mock.calls[1][0].input;
+        expect(originalPrompt.includes('The draft to shorten')).toBe(isQuoted);
+        expect(originalPrompt.includes('x'.repeat(400))).toBe(isQuoted);
+      },
+    );
 
     it('reports each provider call it made, and none for a replay', async () => {
       const onProviderDispatch = vi.fn();

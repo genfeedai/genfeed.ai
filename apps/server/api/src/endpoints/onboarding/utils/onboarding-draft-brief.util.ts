@@ -42,8 +42,9 @@ export interface OnboardingBrandFactsInput {
   values?: string[];
 }
 
-function quoteList(values: string[] | undefined): string | null {
-  const items = (values ?? [])
+function quoteList(values: unknown): string | null {
+  const items = (Array.isArray(values) ? values : [])
+    .filter((value): value is string => typeof value === 'string')
     .map((value) => value.replace(/\s+/g, ' ').trim())
     .filter((value) => value.length > 0)
     .slice(0, MAX_ITEMS)
@@ -69,7 +70,7 @@ export function buildOnboardingBrandFacts(
       ['Taglines', input.taglines],
     ] as const
   ).flatMap(([label, values]) => {
-    const quoted = quoteList(values as string[] | undefined);
+    const quoted = quoteList(values);
     return quoted ? [`- ${label}: ${quoted}`] : [];
   });
   if (lines.length === 0) return null;

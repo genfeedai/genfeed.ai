@@ -72,6 +72,11 @@ describe('isUnusableDraftText', () => {
     "Here's your post: Cast iron lasts a lifetime.",
     'Sure! Here is a draft for you.',
     'Unfortunately, the brand profile is empty.',
+    'I\u2019m sorry, but I can\u2019t write this post.',
+    'Here\u2019s your post: Cast iron lasts a lifetime.',
+    'Absolutely! Here is a draft for you.',
+    'Can you provide me more detail about the offering?',
+    'Please provide more information about the brand.',
   ])('rejects a reply addressed to the user: %s', (text) => {
     expect(isUnusableDraftText(text)).toBe(true);
   });
@@ -81,6 +86,11 @@ describe('isUnusableDraftText', () => {
     "Here's the thing about cast iron: it gets better with every meal.",
     'We need more hands in the kitchen, so we built a pan for two.',
     'Cast iron pans, 25% off until Friday.',
+    'Unfortunately, our workshop is closed today. Online orders remain open.',
+    'Absolutely! Our pans ship free this week.',
+    'Can you share your favorite pan with us?',
+    'Please share this with a friend who loves to cook.',
+    'Sorry, not sorry: we only make pans that last.',
   ])('keeps a real post that only sounds similar: %s', (text) => {
     expect(isUnusableDraftText(text)).toBe(false);
   });

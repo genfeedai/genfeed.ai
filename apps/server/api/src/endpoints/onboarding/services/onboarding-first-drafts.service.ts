@@ -55,6 +55,7 @@ import type {
   IOnboardingScanResult,
   OnboardingDraftPlatform,
 } from '@genfeedai/contracts/interfaces';
+import { normalizeBrandAudience } from '@genfeedai/helpers/brand-audience.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -242,21 +243,11 @@ export class OnboardingFirstDraftsService {
       this.loggerService.error('Onboarding X draft failed', error);
       return null;
     });
-    if (!xDraft) {
-      return {
-        drafts: [],
-        imageIngredientId: null,
-        imageUrl: null,
-        requestKey: null,
-        status: 'unavailable',
-      };
-    }
-
     const result: IOnboardingFirstDraftsResult = {
-      drafts: [xDraft],
+      drafts: xDraft ? [xDraft] : [],
       imageIngredientId: null,
       imageUrl: null,
-      requestKey: xDraft.requestKey,
+      requestKey: xDraft?.requestKey ?? null,
       status: 'partial',
     };
     let isMasterShort = false;
@@ -266,18 +257,18 @@ export class OnboardingFirstDraftsService {
       writes = writes.then(() => save(snapshot));
       return writes;
     };
-    await checkpoint();
+    if (xDraft) await checkpoint();
     const otherPlatforms = ONBOARDING_DRAFT_PLATFORMS.filter(
       (platform): platform is Exclude<OnboardingDraftPlatform, 'twitter'> =>
         platform !== 'twitter',
     );
-    await Promise.all([
+    const generateMaster = (post: string) =>
       this.generateImage({
         brandName,
         description,
         identity,
         imageContext,
-        tweet: xDraft.text,
+        tweet: post,
         onPlaceholderCreated: async (ingredientId) => {
           result.imageIngredientId = ingredientId;
           await checkpoint();
@@ -288,35 +279,43 @@ export class OnboardingFirstDraftsService {
         result.imageUrl = image.url;
         isMasterShort = image.isShort;
         await checkpoint();
-      }),
-      ...otherPlatforms.map(async (platform) => {
-        const draft = await this.generateDraft({
-          brandFacts,
-          direction,
-          identity,
+      });
+    const platformDrafts = otherPlatforms.map(async (platform) => {
+      const draft = await this.generateDraft({
+        brandFacts,
+        direction,
+        identity,
+        platform,
+        voiceEvidence,
+        prompt: [
+          PLATFORM_FORMAT_BRIEF[platform],
+          PLATFORM_ANGLE[platform],
+          GROUNDING_RULE,
+          ...(direction ? [`Apply these requested changes: ${direction}`] : []),
+        ].join(' '),
+      }).catch((error: unknown) => {
+        this.loggerService.warn('Onboarding platform draft failed', {
+          error: error instanceof Error ? error.message : String(error),
           platform,
-          voiceEvidence,
-          prompt: [
-            PLATFORM_FORMAT_BRIEF[platform],
-            PLATFORM_ANGLE[platform],
-            GROUNDING_RULE,
-            ...(direction
-              ? [`Apply these requested changes: ${direction}`]
-              : []),
-          ].join(' '),
-        }).catch((error: unknown) => {
-          this.loggerService.warn('Onboarding platform draft failed', {
-            error: error instanceof Error ? error.message : String(error),
-            platform,
-          });
-          return null;
         });
-        if (draft) {
-          result.drafts.push(draft);
-          await checkpoint();
-        }
-      }),
-    ]);
+        return null;
+      });
+      if (draft) {
+        result.drafts.push(draft);
+        await checkpoint();
+      }
+    });
+    if (xDraft) {
+      await Promise.all([generateMaster(xDraft.text), ...platformDrafts]);
+    } else {
+      // The channel drafts do not depend on the X post, so a refused X draft
+      // costs only the X card. The master image waits for a draft to base it on.
+      await Promise.all(platformDrafts);
+      const [lead] = result.drafts;
+      if (!lead) return this.unavailable();
+      result.requestKey = lead.requestKey;
+      await generateMaster(lead.text);
+    }
     result.drafts.sort(
       (left, right) =>
         ONBOARDING_DRAFT_PLATFORMS.indexOf(left.platform) -
@@ -335,6 +334,16 @@ export class OnboardingFirstDraftsService {
     });
     result.status = this.resolveStatus(result);
     return result;
+  }
+
+  private unavailable(): IOnboardingFirstDraftsResult {
+    return {
+      drafts: [],
+      imageIngredientId: null,
+      imageUrl: null,
+      requestKey: null,
+      status: 'unavailable',
+    };
   }
 
   /** Regenerates only the image or video a finished run is missing. */
@@ -416,7 +425,9 @@ export class OnboardingFirstDraftsService {
     return {
       brandFacts:
         buildOnboardingBrandFacts({
-          audience: context?.audience ? [context.audience] : voice?.audience,
+          audience: context?.audience
+            ? [context.audience]
+            : normalizeBrandAudience(voice?.audience),
           goals: context?.goals ?? strategy?.goals,
           offers: context?.offer ? [context.offer] : strategy?.offers,
           taglines: voice?.taglines,
@@ -432,7 +443,9 @@ export class OnboardingFirstDraftsService {
       description:
         typeof brand.description === 'string' ? brand.description : '',
       imageContext: {
-        audience: context?.audience ?? savedConfig.voice?.audience?.[0],
+        audience:
+          context?.audience ??
+          normalizeBrandAudience(savedConfig.voice?.audience)[0],
         goals: context?.goals ?? savedConfig.strategy?.goals,
         offer: context?.offer ?? savedConfig.strategy?.offers?.[0],
         tone:

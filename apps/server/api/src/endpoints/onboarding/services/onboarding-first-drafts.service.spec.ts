@@ -434,6 +434,43 @@ describe('OnboardingFirstDraftsService', () => {
       expect(result.drafts).toHaveLength(3);
     });
 
+    it('keeps the other channels when only the X draft is refused', async () => {
+      postGeneration.generateDraftText.mockImplementation(
+        async (input: { platform: string }) => {
+          if (input.platform === 'twitter') throw new Error('not a post');
+          counter += 1;
+          return {
+            brandedReceipt: { id: `receipt_${counter}`, state: 'ready' },
+            description: `${input.platform} draft`,
+            postId: `post_${counter}`,
+          };
+        },
+      );
+
+      const result = await service.generate(user, 'brand_1', {});
+
+      expect(result.drafts.map((draft) => draft.platform)).toEqual([
+        'instagram',
+        'tiktok',
+        'linkedin',
+      ]);
+      expect(result.status).toBe('partial');
+      expect(result.requestKey).toBe(result.drafts[0].requestKey);
+      expect(result.imageUrl).toBe('https://cdn.example.com/a.png');
+    });
+
+    it('quotes a legacy text audience instead of failing', async () => {
+      brandDataMapper.readBrandAgentConfig.mockReturnValueOnce({
+        voice: { audience: 'Home cooks' },
+      });
+
+      const result = await service.generate(user, 'brand_1', {});
+
+      expect(result.drafts).toHaveLength(4);
+      const [, , , options] = postGeneration.generateDraftText.mock.calls[0];
+      expect(options.brandFacts).toContain('- Audience: "Home cooks"');
+    });
+
     it('is unavailable when the X draft cannot be written', async () => {
       postGeneration.generateDraftText.mockRejectedValue(new Error('no key'));
 

@@ -252,7 +252,10 @@ export class PostDraftGenerationService {
           context.constraints.usesWeightedCharacters,
           options.minCharacters,
           (text) => {
-            overLimitDraft = text;
+            // Quoted to the shorten retry on the onboarding surface only: its
+            // request keys are never replayed, so the retry prompt cannot drift
+            // from the one a stored receipt hashed.
+            if (options.surface === 'onboarding') overLimitDraft = text;
           },
         ),
         persistText: (text) => this.saveDraftPost(dto, identity, text),
@@ -267,13 +270,7 @@ export class PostDraftGenerationService {
     // One retry when the draft came back over the limit or was not a post. It
     // is a separate receipt derived from the request key, so a replay of the
     // same request answers from the stored attempts and never dispatches again.
-    const retry = await this.planRetry(
-      outcome,
-      dto,
-      identity,
-      limit,
-      overLimitDraft,
-    );
+    const retry = this.planRetry(outcome, dto, limit, overLimitDraft);
     if (retry)
       outcome = await attempt(retry.requestKey, dto.requestKey, retry.retry);
     if (outcome.kind === 'in_progress')
@@ -360,23 +357,18 @@ export class PostDraftGenerationService {
     };
   }
 
-  private async planRetry(
+  private planRetry(
     outcome: { kind: string; reasonCode?: string },
     dto: PostDraftGenerationInput,
-    identity: GenerationMetadata,
     limit: number,
     overLimitDraft: string,
-  ): Promise<{ requestKey: string; retry: DraftRetry } | null> {
+  ): { requestKey: string; retry: DraftRetry } | null {
     if (outcome.kind !== 'stopped') return null;
     if (outcome.reasonCode === 'channel_limit_exceeded')
       return {
         requestKey: `${dto.requestKey}${SHORTEN_KEY_SUFFIX}`,
         retry: {
-          draft: await this.rememberOverLimitDraft(
-            dto,
-            identity,
-            overLimitDraft,
-          ),
+          draft: overLimitDraft.slice(0, REJECTED_DRAFT_MAX_CHARS),
           kind: 'shorten',
           target: Math.floor(limit * SHORTEN_TARGET_RATIO),
         },
@@ -418,34 +410,6 @@ export class PostDraftGenerationService {
           ]
         : []),
     ];
-  }
-
-  /**
-   * The shorten retry quotes the draft it replaces. That prompt is hashed into
-   * the retry receipt, so a replay of the same request key must quote the same
-   * text: the first run keeps it per request key for an hour, like the recent
-   * posts. A replay after that sends the retry without the draft.
-   */
-  private async rememberOverLimitDraft(
-    dto: PostDraftGenerationInput,
-    identity: GenerationMetadata,
-    draft: string,
-  ): Promise<string> {
-    try {
-      const kept = await this.cacheService.getOrSet(
-        this.cacheService.generateKey(
-          'draft-over-limit-text',
-          identity.organizationId,
-          dto.brandId,
-          dto.requestKey ?? '',
-        ),
-        async () => draft.slice(0, REJECTED_DRAFT_MAX_CHARS),
-        { ttl: RECENT_POSTS_CACHE_TTL_SECONDS },
-      );
-      return kept ?? '';
-    } catch {
-      return draft.slice(0, REJECTED_DRAFT_MAX_CHARS);
-    }
   }
 
   /**
