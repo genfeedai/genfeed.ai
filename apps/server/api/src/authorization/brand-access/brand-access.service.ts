@@ -1,5 +1,5 @@
 import { findActorApiKey } from '@api/authorization/brand-access/actor-api-key.util';
-import { isStandardMcpOAuthSession } from '@api/authorization/brand-access/mcp-session-brand-view.util';
+import { isMembershipBrandViewMcpSession } from '@api/authorization/brand-access/mcp-session-brand-view.util';
 import { isSystemBrandPrincipal } from '@api/authorization/brand-access/system-brand-principal.util';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -52,7 +52,7 @@ export class BrandAccessService {
     // owner's own membership allows.
     let keyBrandIds: string[] | undefined;
     let effectiveActor = actor;
-    let isStandardMcpSession = false;
+    let isMembershipBrandView = false;
     if (actor.isApiKey) {
       if (!actor.apiKeyId?.trim()) {
         throw new ForbiddenException('Brand access denied');
@@ -60,7 +60,7 @@ export class BrandAccessService {
       const key = await findActorApiKey(tx, actor);
       if (!key) throw new ForbiddenException('Brand access denied');
       keyBrandIds = readApiKeyAllowedBrandIds(key.metadata);
-      isStandardMcpSession = isStandardMcpOAuthSession(key.metadata);
+      isMembershipBrandView = isMembershipBrandViewMcpSession(key.metadata);
       effectiveActor = {
         ...actor,
         scopes: (actor.scopes ?? []).filter((scope) =>
@@ -93,16 +93,17 @@ export class BrandAccessService {
       membershipRole,
     );
     // The `admin` scope lives on the admin MCP endpoint only, so an owner or
-    // admin connected through `/mcp` has no scope to lift their role. They
-    // still see every brand their live membership allows: brand visibility
-    // follows the membership row, while the role above stays capped.
+    // admin connected through `/mcp` or the Claude connector has no scope to
+    // lift their role. They still see every brand their live membership
+    // allows: brand visibility follows the membership row, while the role
+    // above stays capped.
     const isMembershipPrivileged =
       membershipRole === MemberRole.OWNER ||
       membershipRole === MemberRole.ADMIN;
     const privileged =
       role === MemberRole.OWNER ||
       role === MemberRole.ADMIN ||
-      (isStandardMcpSession && isMembershipPrivileged);
+      (isMembershipBrandView && isMembershipPrivileged);
     const memberBrandIds = privileged
       ? undefined
       : member.brands.map((brand) => brand.id);
