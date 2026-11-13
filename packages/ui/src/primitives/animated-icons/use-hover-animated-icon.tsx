@@ -8,18 +8,42 @@ import {
   type ReactNode,
   Suspense,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import { findAnimatedIcon } from './animated-icon.registry';
+import {
+  findAnimatedIcon,
+  preloadAnimatedIcon,
+} from './animated-icon.registry';
 import type {
   AnimatedIconHandle,
   HoverAnimatedIcon,
   UseHoverAnimatedIconOptions,
 } from './animated-icon.types';
 
+const PRELOAD_DELAY_MS = 2_000;
 const SIZE_CLASS_PATTERN = /(?:^|\s)(?:size|w|h)-/;
+
+// Waits out the first seconds after the control mounts, when the router is
+// still fetching the page's destinations, then runs when the browser is idle.
+function whenIdle(callback: () => void): () => void {
+  let cancelIdle: (() => void) | undefined;
+  const timeout = window.setTimeout(() => {
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(callback, { timeout: 3_000 });
+      cancelIdle = () => window.cancelIdleCallback(handle);
+      return;
+    }
+    callback();
+  }, PRELOAD_DELAY_MS);
+
+  return () => {
+    window.clearTimeout(timeout);
+    cancelIdle?.();
+  };
+}
 
 /**
  * Gives an icon that sits inside something interactive (a button, a nav row)
@@ -28,7 +52,9 @@ const SIZE_CLASS_PATTERN = /(?:^|\s)(?:size|w|h)-/;
  *
  * Nothing changes until the first hover or keyboard focus: the static icon
  * renders on the server and on first paint, and only then is the animated one
- * loaded and swapped in, with the static icon as the Suspense fallback.
+ * swapped in, with the static icon as the Suspense fallback. The twin's code
+ * loads once the browser is idle, ahead of any hover, so pointing at a control
+ * and clicking it right away does not wait on a script fetch.
  * Icons without an animated twin, and reduced-motion users, are untouched.
  *
  * Spread `hoverProps` onto the interactive element (composing its own
@@ -66,6 +92,15 @@ export function useHoverAnimatedIcon(
     isActiveRef.current = false;
     handleRef.current?.stopAnimation();
   }, []);
+
+  useEffect(() => {
+    if (!iconType || !Animated || prefersReducedMotion()) {
+      return;
+    }
+    return whenIdle(() => {
+      void preloadAnimatedIcon(iconType);
+    });
+  }, [Animated, iconType]);
 
   const hoverProps = useMemo(
     () => ({

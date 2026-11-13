@@ -5,6 +5,7 @@ import {
   ANIMATED_ICON_COUNT,
   ANIMATED_ICON_LOADERS,
   findAnimatedIcon,
+  preloadAnimatedIcon,
 } from './animated-icon.registry';
 
 describe('animated icon registry', () => {
@@ -64,5 +65,11 @@ describe('animated icon registry', () => {
 
       expect(component).toBeDefined();
     }
+  });
+
+  it('preloads a twin without rendering it, and ignores other icons', async () => {
+    await expect(preloadAnimatedIcon(Bell)).resolves.toBeUndefined();
+    await expect(preloadAnimatedIcon(Trash2)).resolves.toBeUndefined();
+    await expect(preloadAnimatedIcon(undefined)).resolves.toBeUndefined();
   });
 });
