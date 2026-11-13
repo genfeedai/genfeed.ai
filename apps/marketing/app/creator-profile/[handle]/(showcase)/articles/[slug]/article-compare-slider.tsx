@@ -4,12 +4,7 @@ import type { ArticleCompareSliderProps } from '@props/content/public-article.pr
 import { Badge } from '@ui/primitives/badge';
 import { focusRingInsetClassName } from '@ui/primitives/focus-ring';
 import { ChevronsLeftRight } from 'lucide-react';
-import {
-  type KeyboardEvent,
-  type PointerEvent,
-  useRef,
-  useState,
-} from 'react';
+import { type KeyboardEvent, type PointerEvent, useRef, useState } from 'react';
 
 const INITIAL_POSITION = 50;
 const KEY_STEP = 5;

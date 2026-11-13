@@ -86,7 +86,9 @@ function CodeBlockActions({
         <Button
           variant={ButtonVariant.SECONDARY}
           size={ButtonSize.MICRO}
-          ariaLabel={isCollapsed ? 'Expand this prompt' : 'Collapse this prompt'}
+          ariaLabel={
+            isCollapsed ? 'Expand this prompt' : 'Collapse this prompt'
+          }
           aria-controls={action.preId}
           aria-expanded={!isCollapsed}
           tooltip={isCollapsed ? 'Expand' : 'Collapse'}

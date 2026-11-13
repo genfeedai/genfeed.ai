@@ -92,10 +92,14 @@ describe('ArticleContent', () => {
   });
 
   it('gives a short prompt block a copy button and nothing to fold', async () => {
-    render(<ArticleContent sanitizedHtml="<pre><code>One line.</code></pre>" />);
+    render(
+      <ArticleContent sanitizedHtml="<pre><code>One line.</code></pre>" />,
+    );
 
     await screen.findByRole('button', { name: 'Copy this prompt' });
-    expect(screen.queryByRole('button', { name: /collapse|expand/i })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: /collapse|expand/i }),
+    ).toBeNull();
   });
 
   it('renders a figure of two images as a before/after slider', async () => {
@@ -132,9 +136,7 @@ describe('ArticleContent', () => {
 
   it('leaves a figure with one image as plain article HTML', async () => {
     render(
-      <ArticleContent
-        sanitizedHtml='<figure data-genfeed-compare=""><img src="https://cdn.test/a.jpg" alt="Only one" /></figure>'
-      />,
+      <ArticleContent sanitizedHtml='<figure data-genfeed-compare=""><img src="https://cdn.test/a.jpg" alt="Only one" /></figure>' />,
     );
 
     expect(await screen.findByAltText('Only one')).toBeInTheDocument();

@@ -59,7 +59,11 @@ describe('splitArticleBody compare blocks', () => {
         key: 'compare-12',
         kind: 'compare',
       },
-      { html: '<p>Outro</p>', key: `html-${12 + COMPARE.length}`, kind: 'html' },
+      {
+        html: '<p>Outro</p>',
+        key: `html-${12 + COMPARE.length}`,
+        kind: 'html',
+      },
     ]);
   });
 
