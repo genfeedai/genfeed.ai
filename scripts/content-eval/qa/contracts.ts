@@ -65,6 +65,7 @@ export const ONBOARDING_SCENARIOS = [
   'work-email-real-site',
   'personal-email-pasted-link',
   'no-link',
+  'brand-without-offers',
   'scan-failed-context-form',
 ] as const;
 export type OnboardingScenario = (typeof ONBOARDING_SCENARIOS)[number];

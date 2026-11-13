@@ -18,9 +18,9 @@ export const X_MAX_CHARACTERS = 280;
 
 /**
  * Smallest draft the product itself will save per channel: `MIN_DRAFT_CHARACTERS`
- * in `onboarding-draft-brief.util.ts` on the genfeedai/genfeed.ai#10106 branch
- * (read there; not on master when this was written, so re-check after merge).
- * A shorter draft on screen means the product's own guard did not run.
+ * in `onboarding-draft-brief.util.ts` (genfeedai/genfeed.ai#10106, merged; the
+ * stop reason for a withheld draft is `provider_output_unusable`). A shorter
+ * draft on screen means the product's own guard did not run.
  */
 export const ONBOARDING_MIN_CHARACTERS: Readonly<Record<string, number>> = {
   'instagram-draft': 80,
