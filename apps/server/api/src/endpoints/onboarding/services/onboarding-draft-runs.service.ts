@@ -10,6 +10,7 @@ import {
   ONBOARDING_CAMPAIGN_IMAGE_SLOTS,
   ONBOARDING_DRAFT_PLATFORMS,
   ONBOARDING_MAX_DRAFT_REWRITES,
+  ONBOARDING_MAX_DRAFT_ROUNDS,
   ONBOARDING_MAX_MEDIA_RETRIES,
 } from '@genfeedai/contracts/constants';
 import type {
@@ -21,7 +22,11 @@ import type {
 import type { ContentRun, IngredientStatus } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { z } from 'zod';
 
 const resultSchema = z.object({
@@ -660,6 +665,28 @@ export class OnboardingDraftRunsService {
       )
       .digest('hex')}`;
     const where = { id, organizationId, brandId, isDeleted: false };
+    // Each round is its own run, so the number of rounds a brand has had is the
+    // number of its runs that did not fail. A request that repeats a round
+    // already saved is replayed below and never counts as another round.
+    if (previousRequestKey) {
+      const rounds = await this.prisma.contentRun.findMany({
+        where: {
+          organizationId,
+          brandId,
+          isDeleted: false,
+          config: { path: ['surface'], equals: 'onboarding' },
+          status: { not: ContentRunStatus.FAILED },
+        },
+        select: { id: true },
+      });
+      if (
+        rounds.length >= ONBOARDING_MAX_DRAFT_ROUNDS &&
+        !rounds.some((round) => round.id === id)
+      )
+        throw new BadRequestException(
+          'This brand has used every round of first drafts.',
+        );
+    }
     // A unique durable reservation prevents refreshes and concurrent tabs from
     // spending again. An interrupted request is recovered, never auto-retried.
     const created = await this.prisma.contentRun.createMany({
