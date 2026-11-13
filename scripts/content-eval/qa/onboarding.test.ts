@@ -170,6 +170,23 @@ describe('evaluateOnboardingCapture', () => {
     expect(result.scenario).toBe('work-email-real-site');
   });
 
+  it('fails a LinkedIn draft under the channel minimum even though it reads as a post', () => {
+    const result = evaluateOnboardingCapture(
+      card('linkedin-draft'),
+      capture(
+        'qa-onboarding-linkedin-draft',
+        {},
+        { xDraft: 'Packaging returns to the paper mill every autumn.' },
+      ),
+    );
+    expect(result.status).toBe('fail');
+    expect(
+      result.deterministicChecks?.find(
+        (check) => check.id === 'draft-meets-channel-minimum',
+      )?.detail,
+    ).toBe('93/200 minimum characters for the channel');
+  });
+
   it('fails a nine-token draft that was saved and shown anyway', () => {
     const result = evaluateOnboardingCapture(
       card('x-draft'),

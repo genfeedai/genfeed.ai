@@ -15,6 +15,19 @@ export const GENERIC_VOICE_VALUES: readonly string[] = [
 ];
 
 export const X_MAX_CHARACTERS = 280;
+
+/**
+ * Smallest draft the product itself will save per channel: `MIN_DRAFT_CHARACTERS`
+ * in `onboarding-draft-brief.util.ts` on the genfeedai/genfeed.ai#10106 branch
+ * (read there; not on master when this was written, so re-check after merge).
+ * A shorter draft on screen means the product's own guard did not run.
+ */
+export const ONBOARDING_MIN_CHARACTERS: Readonly<Record<string, number>> = {
+  'instagram-draft': 80,
+  'linkedin-draft': 200,
+  'tiktok-draft': 60,
+  'x-draft': 60,
+};
 /** Share of a draft's words that may repeat the X draft before it is a rewrite. */
 export const MAX_REWRITE_SIMILARITY = 0.6;
 /** Share of the long draft's content words a shortened one must keep. */
@@ -81,6 +94,20 @@ export function checkVoiceIsSpecific(voice: {
         : `${generic.length} of 3 fields are the generic fallback`,
     id: 'voice-not-generic',
     passed: generic.length === 0,
+  };
+}
+
+export function checkMeetsChannelMinimum(
+  text: string,
+  output: string,
+): DeterministicCheck | null {
+  const min = ONBOARDING_MIN_CHARACTERS[output];
+  if (min === undefined) return null;
+  const length = [...text.trim()].length;
+  return {
+    detail: `${length}/${min} minimum characters for the channel`,
+    id: 'draft-meets-channel-minimum',
+    passed: length >= min,
   };
 }
 

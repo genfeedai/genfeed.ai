@@ -19,6 +19,7 @@ import {
 import { proofCheck } from './evaluate';
 import {
   checkFactsOnPage,
+  checkMeetsChannelMinimum,
   checkNamesBrandContext,
   checkNotRewriteOf,
   checkScanHasFacts,
@@ -52,6 +53,10 @@ export function loadOnboardingCards(): QaOnboardingCard[] {
   );
 }
 
+function optionalCheck(check: DeterministicCheck | null): DeterministicCheck[] {
+  return check ? [check] : [];
+}
+
 function missingEvidence(id: string, what: string): DeterministicCheck {
   return { detail: `capture carries no ${what}`, id, passed: false };
 }
@@ -81,6 +86,7 @@ function outputChecks(
         ? [missingEvidence('is-a-post', 'draft text')]
         : [
             checkIsPost(text, { contentKind: card.contentKind }),
+            ...optionalCheck(checkMeetsChannelMinimum(text, card.output)),
             checkWithinCharacters(text, X_MAX_CHARACTERS),
             checkNamesBrandContext(
               text,
@@ -95,6 +101,7 @@ function outputChecks(
         ? [missingEvidence('is-a-post', 'draft text')]
         : [
             checkIsPost(text, { contentKind: card.contentKind }),
+            ...optionalCheck(checkMeetsChannelMinimum(text, card.output)),
             checkNamesBrandContext(
               text,
               evidence.brandName,
