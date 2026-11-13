@@ -145,6 +145,43 @@ describe('workspace shell trusted registry', () => {
     },
   );
 
+  it('resolves the same pathname to the same route every time', () => {
+    const first = resolveWorkspaceShellRoute('/acme/moonrise/library/assets');
+
+    expect(first?.key).toBe('route:/:orgSlug/:brandSlug/library/assets');
+    expect(resolveWorkspaceShellRoute('/acme/moonrise/library/assets')).toBe(
+      first,
+    );
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/nope/nowhere'),
+    ).toBeNull();
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/nope/nowhere'),
+    ).toBeNull();
+  });
+
+  it('keeps resolving correctly after many distinct paths have been resolved', () => {
+    for (let index = 0; index < 600; index += 1) {
+      const route = resolveWorkspaceShellRoute(
+        `/org-${index}/brand-${index}/motion/project-${index}`,
+      );
+
+      expect(route?.params).toEqual({
+        brandSlug: `brand-${index}`,
+        projectId: `project-${index}`,
+        orgSlug: `org-${index}`,
+      });
+    }
+
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/motion/project-1')?.params,
+    ).toEqual({
+      brandSlug: 'moonrise',
+      orgSlug: 'acme',
+      projectId: 'project-1',
+    });
+  });
+
   it('no longer resolves the retired Playground job route', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/playground/job-1'),
