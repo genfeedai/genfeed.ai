@@ -8,6 +8,7 @@ import type {
   WideEventServiceIdentity,
   WideEventTraceContext,
 } from './wide-event.interface';
+import { eventLoopLagSampler } from './wide-event.event-loop';
 import { shouldKeepWideEvent } from './wide-event.sampling';
 
 export interface WideEventSink {
@@ -58,6 +59,11 @@ export function finishWideEvent(
   try {
     if (fields) mergeWideEventFields(event, fields);
     event.duration_ms = Math.round(performance.now() - startedAt);
+    const eventLoopLagMaxMs = eventLoopLagSampler.maxLagSince(startedAt);
+    if (eventLoopLagMaxMs !== undefined)
+      mergeWideEventFields(event, {
+        runtime: { event_loop_lag_max_ms: eventLoopLagMaxMs },
+      });
     event.outcome = readWideEventOutcome(
       event.status_code,
       event.error !== undefined,
