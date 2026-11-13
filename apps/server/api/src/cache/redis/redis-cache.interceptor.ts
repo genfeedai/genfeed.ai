@@ -96,16 +96,31 @@ export class RedisCacheInterceptor implements NestInterceptor {
       const result = await firstValueFrom(next.handle());
 
       if (this.shouldCacheResult(result, cacheOptions)) {
-        await this.cacheService.set(cacheKey, result, {
-          tags: cacheOptions.tags,
-          ttl: cacheOptions.ttl,
-        });
+        // The response is already built, so it does not wait for the Redis
+        // write (SETEX plus one SADD per tag). A failed write only costs the
+        // next request a miss.
+        void this.storeResult(cacheKey, result, cacheOptions);
       }
 
       return of(result);
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} failed`, error);
       return next.handle();
+    }
+  }
+
+  private async storeResult(
+    cacheKey: string,
+    result: unknown,
+    cacheOptions: CacheOptions,
+  ): Promise<void> {
+    try {
+      await this.cacheService.set(cacheKey, result, {
+        tags: cacheOptions.tags,
+        ttl: cacheOptions.ttl,
+      });
+    } catch (error: unknown) {
+      this.logger.error(`${this.constructorName} failed to store ${cacheKey}`, error);
     }
   }
 
