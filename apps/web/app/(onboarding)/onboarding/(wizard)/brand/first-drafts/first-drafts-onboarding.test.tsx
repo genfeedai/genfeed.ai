@@ -884,6 +884,66 @@ describe('FirstDraftsOnboarding', () => {
     ).toBeDisabled();
   });
 
+  it('keeps the understood line that matches the posts when the redo fails', async () => {
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    );
+    fireEvent.change(
+      await screen.findByRole('textbox', {
+        name: 'What do you sell or offer?',
+      }),
+      { target: { value: 'Calendar software' } },
+    );
+    mocks.generateDrafts.mockRejectedValueOnce(new Error('provider failed'));
+    mocks.readDrafts.mockResolvedValue({
+      ...savedRun(),
+      result: drafts(),
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Redo my posts' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('We couldn');
+    expect(
+      screen.getByText('You sell A scheduling tool to Founders.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Calendar software/)).not.toBeInTheDocument();
+  });
+
+  it('keeps counting rounds when a media retry reconciles the saved run', async () => {
+    const missing = { ...drafts('partial'), imageUrl: null };
+    render(<FirstDraftsOnboarding />);
+    await startFromLink();
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    );
+    mocks.generateDrafts.mockResolvedValueOnce({
+      ...missing,
+      requestKey: 'key-redo',
+    });
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Redo my posts' }),
+    );
+    expect(await screen.findByText('Round 2 of 2')).toBeInTheDocument();
+    mocks.retryDraftMedia.mockResolvedValue(drafts());
+    mocks.readDrafts.mockResolvedValue({
+      ...savedRun(),
+      mediaRetriesRemaining: 1,
+    });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Retry media' })[0]);
+    await waitFor(() => expect(mocks.retryDraftMedia).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(
+        screen.queryByText('Image unavailable. Your text drafts are saved.'),
+      ).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText('Round 2 of 2')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: "This doesn't look right" }),
+    ).toBeDisabled();
+  });
+
   it('returns to the same posts when the redo is cancelled', async () => {
     render(<FirstDraftsOnboarding />);
     await startFromLink();

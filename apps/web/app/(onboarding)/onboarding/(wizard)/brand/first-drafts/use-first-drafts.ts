@@ -144,7 +144,7 @@ export function useFirstDrafts(): FirstDraftsState {
     setIsGenerating(run.status === 'running');
     if (initial) setVerdicts(run.verdicts);
     if (run.result) {
-      setRound(1);
+      setRound((current) => Math.max(current, 1));
       setPhase((current) =>
         initial || current === 'working' ? 'review' : current,
       );
@@ -294,6 +294,18 @@ export function useFirstDrafts(): FirstDraftsState {
       setError(null);
       setPhase('working');
       setWorkingStep('scanning');
+      // The member's answers replace the understood line only once the posts
+      // they produced are shown; a failed redo keeps the line that matches the
+      // posts still on screen.
+      const previousRequestKey = result?.requestKey;
+      const applyContext = () => {
+        if (context)
+          setUnderstood((current) => ({
+            ...(current ?? {}),
+            ...(context.audience ? { audience: context.audience } : {}),
+            ...(context.offer ? { offer: context.offer } : {}),
+          }));
+      };
       try {
         const service = await getService();
         const existing = await service.readDrafts(brandId, controller.signal);
@@ -321,12 +333,6 @@ export function useFirstDrafts(): FirstDraftsState {
             return;
           }
         }
-        if (context)
-          setUnderstood((current) => ({
-            ...(current ?? {}),
-            ...(context.audience ? { audience: context.audience } : {}),
-            ...(context.offer ? { offer: context.offer } : {}),
-          }));
         setWorkingStep('drafting');
         setIsGenerating(true);
         const next = await service.generateDrafts(
@@ -340,6 +346,7 @@ export function useFirstDrafts(): FirstDraftsState {
           controller.signal,
         );
         if (controller.signal.aborted || liveScope.current !== epoch) return;
+        applyContext();
         setResult(next);
         setRound((current) => current + 1);
         setPhase('review');
@@ -359,6 +366,9 @@ export function useFirstDrafts(): FirstDraftsState {
           if (controller.signal.aborted || liveScope.current !== epoch) return;
           if (run) {
             acceptRun(run, true);
+            if (context && run.result?.requestKey !== previousRequestKey)
+              applyContext();
+            else if (context) setError('generate');
             return;
           }
         } catch {}
