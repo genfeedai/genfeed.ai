@@ -231,7 +231,7 @@ describe('live Cloud member brand policy', () => {
     });
   });
 
-  describe('an OAuth session on the standard /mcp endpoint', () => {
+  describe('an OAuth session on the /mcp or Claude connector endpoint', () => {
     const resource = 'https://mcp.genfeed.ai/mcp';
     const session = (overrides: Record<string, unknown> = {}) => ({
       kind: 'mcp-oauth-session',
@@ -246,15 +246,25 @@ describe('live Cloud member brand policy', () => {
       scopes: ['read', 'write'],
     };
 
-    it.each([MemberRole.OWNER, MemberRole.ADMIN])(
-      'lists every brand to an %s without the admin scope, with the role still capped',
-      async (role) => {
+    const claudeSession = session({
+      mcpAccessMode: 'claude',
+      resource: `${resource}/claude`,
+    });
+
+    it.each([
+      [MemberRole.OWNER, 'standard', session()],
+      [MemberRole.ADMIN, 'standard', session()],
+      [MemberRole.OWNER, 'Claude connector', claudeSession],
+      [MemberRole.ADMIN, 'Claude connector', claudeSession],
+    ])(
+      'lists every brand to an %s on a %s session without the admin scope, with the role still capped',
+      async (role, _endpoint, metadata) => {
         const f = fixture();
         f.member.role.key = role;
         f.member.brands = [];
         f.findKey.mockResolvedValue({
           scopes: ['read', 'write'],
-          metadata: session(),
+          metadata,
         });
         const resolved = await f.service.resolve(keyActor);
         expect(resolved.brandIds).toBeUndefined();
@@ -276,7 +286,7 @@ describe('live Cloud member brand policy', () => {
       f.member.role.key = role;
       f.findKey.mockResolvedValue({
         scopes: ['read', 'write'],
-        metadata: session(),
+        metadata: claudeSession,
       });
       expect((await f.service.resolve(keyActor)).brandIds).toEqual(['brand-a']);
       await expect(f.service.assert(keyActor, 'brand-b')).rejects.toThrow(
@@ -305,7 +315,7 @@ describe('live Cloud member brand policy', () => {
       f.member.brands = [];
       f.findKey.mockResolvedValue({
         scopes: ['read', 'write'],
-        metadata: session({ allowedBrandIds: ['brand-a'] }),
+        metadata: { ...claudeSession, allowedBrandIds: ['brand-a'] },
       });
       expect((await f.service.resolve(keyActor)).brandIds).toEqual(['brand-a']);
       await expect(f.service.assert(keyActor, 'brand-b')).rejects.toThrow(
@@ -314,11 +324,16 @@ describe('live Cloud member brand policy', () => {
     });
 
     it.each([
-      [
-        'a Claude connector session',
-        session({ mcpAccessMode: 'claude', resource: `${resource}/claude` }),
-      ],
       ['a session recording no resource', { kind: 'mcp-oauth-session' }],
+      ['a session whose resource is not a URL', session({ resource: 'mcp' })],
+      [
+        'a session recording an unknown access mode',
+        session({ mcpAccessMode: 'owner' }),
+      ],
+      [
+        'an admin endpoint session',
+        session({ mcpAccessMode: 'admin', resource: `${resource}/admin` }),
+      ],
       ['a manual API key', null],
       ['another kind of key', { kind: 'manual', resource }],
     ])('does not widen %s', async (_label, metadata) => {
