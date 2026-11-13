@@ -1531,15 +1531,39 @@ describe('create_post text draft over MCP without a thread scope (#10081)', () =
     expect(f.postsService.create).not.toHaveBeenCalled();
   });
 
-  it('fails cleanly when no brand can be resolved', async () => {
+  it('rejects a call that names no brand and saves nothing', async () => {
     const f = setup();
 
-    const result = await runWithActionOrigin({ origin: ActionOrigin.MCP }, () =>
-      f.handler.createPost({ content: 'Hello world' }, unscoped),
+    await expect(
+      runWithActionOrigin({ origin: ActionOrigin.MCP }, () =>
+        f.handler.createPost({ content: 'Hello world' }, unscoped),
+      ),
+    ).rejects.toThrow('brandId is required to save a post draft.');
+    expect(f.postsService.create).not.toHaveBeenCalled();
+  });
+
+  it('authorizes the named brand with the caller and its API key limits', async () => {
+    const f = setup();
+    const apiKeyContext = {
+      apiKeyId: 'key-1',
+      isApiKey: true,
+      scopes: ['posts:write'],
+    };
+
+    await runWithActionOrigin({ origin: ActionOrigin.MCP }, () =>
+      f.handler.createPost(
+        { brandId: 'brand-1', content: 'Hello world' },
+        { ...unscoped, apiKeyContext },
+      ),
     );
 
-    expect(result).toMatchObject({ success: false });
-    expect(f.postsService.create).not.toHaveBeenCalled();
+    expect(
+      f.agentScopeContextService.assertBrandAuthorized,
+    ).toHaveBeenCalledWith('brand-1', {
+      ...apiKeyContext,
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
   });
 
   it('still requires a validated scope outside MCP', async () => {
