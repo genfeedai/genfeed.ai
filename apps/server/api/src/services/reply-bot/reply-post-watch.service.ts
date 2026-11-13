@@ -147,7 +147,6 @@ export class ReplyPostWatchService implements OnModuleInit {
         brandId: request.brandId,
         limit: 40,
         organizationId: request.organizationId,
-        preferOfficialApi: true,
       },
     );
     const items: ReplyInboundWorkflowInput[] = [];

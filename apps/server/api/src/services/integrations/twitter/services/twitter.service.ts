@@ -395,6 +395,7 @@ export class TwitterService {
     options: {
       accessToken?: string;
       maxResults?: number;
+      sinceId?: string;
       sortOrder?: 'relevancy' | 'recency';
     } = {},
   ): Promise<ITwitterSearchResult[]> {

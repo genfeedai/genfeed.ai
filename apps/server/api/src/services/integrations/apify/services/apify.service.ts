@@ -3,9 +3,7 @@ import type {
   ApifyInstagramPost,
   ApifyLinkedInPost,
   ApifyNormalizedInstagramComment,
-  ApifyNormalizedSocialComment,
   ApifyNormalizedTikTokComment,
-  ApifyNormalizedTweet,
   ApifyNormalizedYouTubeComment,
   ApifyRedditPost,
   ApifySoundData,
@@ -24,7 +22,6 @@ import { ApifyTikTokService } from '@api/services/integrations/apify/services/mo
 import { ApifyTwitterService } from '@api/services/integrations/apify/services/modules/apify-twitter.service';
 import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
 import type { SocialSourceResearchContext } from '@api/services/source-collector/source-collector.types';
-import { Platform } from '@genfeedai/contracts';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
@@ -40,7 +37,7 @@ const LEADING_HASH_PATTERN = /^#/;
  * - ApifyBaseService: Shared actor execution, metrics, helpers
  * - ApifyTikTokService: TikTok trends, videos, sounds, comments
  * - ApifyInstagramService: Instagram trends, videos, comments
- * - ApifyTwitterService: Twitter/X trends, mentions, timeline, search
+ * - ApifyTwitterService: Twitter/X trends
  * - ApifyYouTubeService: YouTube trends, videos, comments
  * - ApifyRedditService: Reddit trends, videos, comments, posts
  * - ApifyPinterestService: Pinterest trends
@@ -174,51 +171,6 @@ export class ApifyService {
     return this.twitterService.getTwitterTrends(options);
   }
 
-  getTwitterMentions(
-    username: string,
-    options?: { limit?: number; sinceId?: string },
-  ): Promise<ApifyNormalizedTweet[]> {
-    return this.twitterService.getTwitterMentions(username, options);
-  }
-
-  getTwitterUserTimeline(
-    username: string,
-    options?: { limit?: number; sinceId?: string },
-    researchContext?: SocialSourceResearchContext,
-  ): Promise<ApifyNormalizedTweet[]> {
-    return this.twitterService.getTwitterUserTimeline(
-      username,
-      options,
-      researchContext,
-    );
-  }
-
-  getTweetByUrl(
-    tweetUrl: string,
-    tweetId: string,
-    researchContext?: SocialSourceResearchContext,
-  ): Promise<ApifyNormalizedTweet> {
-    return this.twitterService.getTweetByUrl(
-      tweetUrl,
-      tweetId,
-      researchContext,
-    );
-  }
-
-  getTwitterTweetReplies(
-    tweetId: string,
-    options?: { limit?: number },
-  ): Promise<ApifyNormalizedTweet[]> {
-    return this.twitterService.getTwitterTweetReplies(tweetId, options);
-  }
-
-  searchTwitterTweets(
-    query: string,
-    options?: { limit?: number; sinceId?: string },
-  ): Promise<ApifyNormalizedTweet[]> {
-    return this.twitterService.searchTwitterTweets(query, options);
-  }
-
   getYouTubeVideoComments(
     videoUrl: string,
     options?: { limit?: number },
@@ -348,101 +300,5 @@ export class ApifyService {
       );
       throw error;
     }
-  }
-
-  // ==================== Unified Social Comment Interface ====================
-
-  /**
-   * Convert any platform's normalized comment to unified format
-   * Enables platform-agnostic processing in reply bot
-   */
-  convertToUnifiedComment(
-    comment:
-      | ApifyNormalizedTweet
-      | ApifyNormalizedInstagramComment
-      | ApifyNormalizedTikTokComment
-      | ApifyNormalizedYouTubeComment,
-    platform:
-      | Platform.TWITTER
-      | Platform.INSTAGRAM
-      | Platform.TIKTOK
-      | Platform.YOUTUBE,
-  ): ApifyNormalizedSocialComment {
-    if (platform === Platform.TWITTER) {
-      const tweet = comment as ApifyNormalizedTweet;
-      if (!tweet.createdAt || !Number.isFinite(tweet.createdAt.getTime()))
-        throw new Error('Twitter comment publication date is required');
-      return {
-        authorAvatarUrl: tweet.authorAvatarUrl,
-        authorDisplayName: tweet.authorDisplayName,
-        authorId: tweet.authorId,
-        authorUsername: tweet.authorUsername,
-        contentId: tweet.conversationId || tweet.id,
-        contentType: 'tweet',
-        contentUrl: `https://x.com/${tweet.authorUsername}/status/${tweet.id}`,
-        createdAt: tweet.createdAt,
-        hashtags: tweet.hashtags,
-        id: tweet.id,
-        inReplyToId: tweet.inReplyToTweetId,
-        metrics: tweet.metrics
-          ? { likes: tweet.metrics.likes, replies: tweet.metrics.replies }
-          : undefined,
-        platform: Platform.TWITTER,
-        text: tweet.text,
-      };
-    }
-
-    if (platform === Platform.INSTAGRAM) {
-      const igComment = comment as ApifyNormalizedInstagramComment;
-      return {
-        authorAvatarUrl: igComment.authorAvatarUrl,
-        authorId: igComment.authorId,
-        authorUsername: igComment.authorUsername,
-        contentId: igComment.postId,
-        contentType: 'post',
-        contentUrl: igComment.postShortCode
-          ? `https://instagram.com/p/${igComment.postShortCode}`
-          : undefined,
-        createdAt: igComment.createdAt,
-        id: igComment.id,
-        metrics: igComment.metrics,
-        platform: Platform.INSTAGRAM,
-        text: igComment.text,
-      };
-    }
-
-    if (platform === Platform.TIKTOK) {
-      const ttComment = comment as ApifyNormalizedTikTokComment;
-      return {
-        authorAvatarUrl: ttComment.authorAvatarUrl,
-        authorDisplayName: ttComment.authorDisplayName,
-        authorId: ttComment.authorId,
-        authorUsername: ttComment.authorUsername,
-        contentId: ttComment.videoId,
-        contentType: 'video',
-        createdAt: ttComment.createdAt,
-        id: ttComment.id,
-        metrics: ttComment.metrics,
-        platform: Platform.TIKTOK,
-        text: ttComment.text,
-      };
-    }
-
-    // YouTube
-    const ytComment = comment as ApifyNormalizedYouTubeComment;
-    return {
-      authorAvatarUrl: ytComment.authorAvatarUrl,
-      authorDisplayName: ytComment.authorDisplayName,
-      authorId: ytComment.authorId,
-      authorUsername: ytComment.authorId,
-      contentId: ytComment.videoId,
-      contentType: 'video',
-      contentUrl: `https://youtube.com/watch?v=${ytComment.videoId}`,
-      createdAt: ytComment.createdAt,
-      id: ytComment.id,
-      metrics: ytComment.metrics,
-      platform: Platform.YOUTUBE,
-      text: ytComment.text,
-    };
   }
 }
