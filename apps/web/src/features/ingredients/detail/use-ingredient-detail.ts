@@ -1,7 +1,10 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { IngredientCategory } from '@genfeedai/contracts';
-import { createAdminIngredientRoute } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  createAdminIngredientRoute,
+} from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import {
   createCacheKey,
@@ -161,7 +164,7 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
     }
     logger.error(`GET /ingredients/${id} failed`, ingredientError);
     notificationsService.error('Failed to load ingredient');
-    router.push(`/ingredients/${type}`);
+    router.push(`${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/${type}`);
   }, [hasIngredient, id, ingredientError, notificationsService, router, type]);
 
   const { refetch: refetchIngredient } = ingredientQuery;
