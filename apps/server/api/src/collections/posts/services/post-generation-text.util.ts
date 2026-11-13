@@ -37,7 +37,7 @@ const ASSISTANT_REPLY_OPENINGS = [
   "i (?:cannot|can't|can not|couldn't|could not) (?:write|create|generate|produce|provide|assist|comply|fulfil)",
   'i (?:need|would need) (?:more|some more|additional|further|a bit more)\\b',
   "i (?:don't|do not) have (?:enough|access|any|the) (?:information|details|context|brand|data|access|specifics|offering)",
-  "unfortunately, (?:i |there is no |there isn't |the (?:brand|profile|context|offering))",
+  "unfortunately, (?:i (?:cannot|can't|can not|am unable|am not able|don't have|do not have|need|would need)|there is no |there isn't |the (?:brand|profile|context|offering)(?: profile| context)? (?:is|has|does|doesn't))",
   '(?:could|can) you (?:please )?(?:provide|share|tell|clarify|give) (?:me|more|what (?:the )?(?:brand|business|company|offering)|the (?:brand|business|company|offering)|details|information)\\b',
   'please (?:provide|share|tell me|clarify) (?:more |some |additional |the |any |further )?(?:information|details|context|specifics|brand|offering)',
   'as an ai\\b',
