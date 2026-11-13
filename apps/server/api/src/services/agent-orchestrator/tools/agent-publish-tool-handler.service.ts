@@ -15,6 +15,7 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-publish-canonical-actions';
 import { resolveConfirmedPublishTargets } from '@api/services/agent-orchestrator/tools/agent-publish-confirmed-targets.util';
 import {
+  authorizeAgentTextDraft,
   blockMcpCreatePost,
   isMcpActionOrigin,
   mcpDraftOnlyResult,
@@ -923,11 +924,7 @@ export class AgentPublishToolHandler {
       });
     }
 
-    await this.assertPublishingScope(
-      ctx,
-      ctx.validatedScope?.brandId,
-      'post creation',
-    );
+    await authorizeAgentTextDraft(this.agentScopeContextService, params, ctx);
 
     if (ctx.isProactive)
       return this.createProactiveTextPost(params, ctx, visibility);
