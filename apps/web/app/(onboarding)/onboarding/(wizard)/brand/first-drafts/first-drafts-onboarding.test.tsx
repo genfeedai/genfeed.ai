@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => ({
   withdrawFeedback: vi.fn(),
   generateDrafts: vi.fn(),
   retryDraftMedia: vi.fn(),
+  redoDraft: vi.fn(),
   scanBrand: vi.fn(),
   rateFeedback: vi.fn(),
   listReadiness: vi.fn(),
@@ -99,6 +100,7 @@ vi.mock('@services/onboarding/onboarding.service', () => ({
       readDrafts: mocks.readDrafts,
       generateDrafts: mocks.generateDrafts,
       retryDraftMedia: mocks.retryDraftMedia,
+      redoDraft: mocks.redoDraft,
       scanBrand: mocks.scanBrand,
     }),
   },
@@ -239,6 +241,12 @@ async function goToPrompt() {
 function savedRun() {
   return {
     id: 'run-1',
+    draftRewritesRemaining: {
+      instagram: 2,
+      linkedin: 2,
+      tiktok: 2,
+      twitter: 2,
+    },
     mediaRetriesRemaining: 2,
     status: 'complete' as const,
     result: drafts(),
@@ -966,5 +974,132 @@ describe('FirstDraftsOnboarding', () => {
     expect(
       screen.getByRole('button', { name: "This doesn't look right" }),
     ).toBeDisabled();
+  });
+  it('writes another post for one rejected channel and keeps the rest', async () => {
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    const rewritten = drafts();
+    rewritten.drafts = rewritten.drafts.map((draft) =>
+      draft.platform === 'twitter'
+        ? { ...draft, postId: 'post-twitter-2', text: 'a different x post' }
+        : draft,
+    );
+    mocks.redoDraft.mockResolvedValue(rewritten);
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    expect(
+      screen.queryByRole('button', { name: 'Write another' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      within(screen.getByTestId('onboarding-draft-twitter')).getByRole(
+        'button',
+        { name: 'Not for me' },
+      ),
+    );
+    mocks.readDrafts.mockResolvedValue({
+      ...savedRun(),
+      draftRewritesRemaining: {
+        instagram: 2,
+        linkedin: 2,
+        tiktok: 2,
+        twitter: 1,
+      },
+      result: rewritten,
+    });
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Write another' }),
+    );
+    expect(await screen.findByText('a different x post')).toBeInTheDocument();
+    expect(mocks.redoDraft).toHaveBeenCalledWith(
+      'brand-1',
+      'twitter',
+      expect.any(AbortSignal),
+    );
+    expect(screen.getByText('instagram draft text')).toBeInTheDocument();
+    expect(mocks.generateDrafts).not.toHaveBeenCalled();
+  });
+
+  it('says it was the last rewrite and offers no more for that channel', async () => {
+    mocks.readDrafts.mockResolvedValue({
+      ...savedRun(),
+      draftRewritesRemaining: {
+        instagram: 2,
+        linkedin: 2,
+        tiktok: 2,
+        twitter: 0,
+      },
+    });
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      within(screen.getByTestId('onboarding-draft-twitter')).getByRole(
+        'button',
+        { name: 'Not for me' },
+      ),
+    );
+    expect(
+      await screen.findByText('That was the last rewrite for this post.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Write another' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows a card with Try again for a channel that could not be written', async () => {
+    const partial = drafts('partial');
+    partial.drafts = partial.drafts.filter(
+      (draft) => draft.platform !== 'linkedin',
+    );
+    mocks.readDrafts.mockResolvedValue({ ...savedRun(), result: partial });
+    mocks.redoDraft.mockResolvedValue(drafts());
+    render(<FirstDraftsOnboarding />);
+    const card = await screen.findByTestId('onboarding-draft-missing-linkedin');
+    expect(card).toHaveTextContent('We could not write this one this time.');
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    fireEvent.click(within(card).getByRole('button', { name: 'Try again' }));
+    await waitFor(() =>
+      expect(mocks.redoDraft).toHaveBeenCalledWith(
+        'brand-1',
+        'linkedin',
+        expect.any(AbortSignal),
+      ),
+    );
+    expect(await screen.findByText('linkedin draft text')).toBeInTheDocument();
+  });
+
+  it('keeps the posts and says so when writing another fails', async () => {
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    mocks.redoDraft.mockRejectedValue(new Error('provider failed'));
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      within(screen.getByTestId('onboarding-draft-twitter')).getByRole(
+        'button',
+        { name: 'Not for me' },
+      ),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Write another' }),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'We couldn’t write another post',
+    );
+    expect(screen.getByText('twitter draft text')).toBeInTheDocument();
+  });
+
+  it('offers no rewrite to a finished user replaying the saved run', async () => {
+    mocks.isCompleted = true;
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    render(<FirstDraftsOnboarding />);
+    await screen.findByText('twitter draft text');
+    fireEvent.click(
+      within(screen.getByTestId('onboarding-draft-twitter')).getByRole(
+        'button',
+        { name: 'Not for me' },
+      ),
+    );
+    await screen.findByRole('button', { name: 'Undo' });
+    expect(
+      screen.queryByRole('button', { name: 'Write another' }),
+    ).not.toBeInTheDocument();
   });
 });

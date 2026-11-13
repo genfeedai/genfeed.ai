@@ -304,12 +304,7 @@ export class OnboardingFirstDraftsService {
       platform: 'twitter',
       previousRequestKey: dto.previousRequestKey,
       voiceEvidence,
-      prompt: [
-        "Write a useful, specific post for the brand's audience about what the brand offers.",
-        PLATFORM_ANGLE.twitter,
-        GROUNDING_RULE,
-        ...(direction ? [`Apply these requested changes: ${direction}`] : []),
-      ].join(' '),
+      prompt: this.buildDraftPrompt('twitter', direction),
     }).catch((error: unknown) => {
       this.loggerService.error('Onboarding X draft failed', error);
       return null;
@@ -358,12 +353,7 @@ export class OnboardingFirstDraftsService {
         identity,
         platform,
         voiceEvidence,
-        prompt: [
-          PLATFORM_FORMAT_BRIEF[platform],
-          PLATFORM_ANGLE[platform],
-          GROUNDING_RULE,
-          ...(direction ? [`Apply these requested changes: ${direction}`] : []),
-        ].join(' '),
+        prompt: this.buildDraftPrompt(platform, direction),
       }).catch((error: unknown) => {
         this.loggerService.warn('Onboarding platform draft failed', {
           error: error instanceof Error ? error.message : String(error),
@@ -407,6 +397,27 @@ export class OnboardingFirstDraftsService {
     return result;
   }
 
+  /** The brief one channel's post is written from, shared by a full run and a rewrite. */
+  private buildDraftPrompt(
+    platform: OnboardingDraftPlatform,
+    direction: string,
+    previousText?: string,
+  ): string {
+    return [
+      platform === 'twitter'
+        ? "Write a useful, specific post for the brand's audience about what the brand offers."
+        : PLATFORM_FORMAT_BRIEF[platform],
+      PLATFORM_ANGLE[platform],
+      GROUNDING_RULE,
+      ...(direction ? [`Apply these requested changes: ${direction}`] : []),
+      ...(previousText
+        ? [
+            `Write a different post from this earlier draft: take a new angle and a new opening, and do not reuse its wording.\nEarlier draft:\n${previousText}`,
+          ]
+        : []),
+    ].join(' ');
+  }
+
   private unavailable(): IOnboardingFirstDraftsResult {
     return {
       drafts: [],
@@ -415,6 +426,35 @@ export class OnboardingFirstDraftsService {
       requestKey: null,
       status: 'unavailable',
     };
+  }
+
+  /**
+   * Writes one channel's post again from the brand as it is saved now, as a
+   * different post from the one it replaces. Nothing else in the run changes.
+   */
+  async rewriteDraft(
+    user: User,
+    brandId: string,
+    platform: OnboardingDraftPlatform,
+  ): Promise<IOnboardingFirstDraftsResult> {
+    return this.runs.rewriteDraft(user, brandId, platform, async (previous) => {
+      const organizationId = String(user.organizationId);
+      const brand = await this.brandsService.findOne(
+        { id: brandId, isDeleted: false, organizationId },
+        'none',
+      );
+      if (!brand) throw new NotFoundException('Brand');
+      const { brandFacts } = this.readBrandContext(brand);
+      return this.generateDraft({
+        brandFacts,
+        direction: '',
+        identity: { brandId, organizationId, userId: String(user.id) },
+        platform,
+        previousRequestKey: previous?.requestKey,
+        prompt: this.buildDraftPrompt(platform, '', previous?.text),
+        voiceEvidence: await this.readVoiceEvidence(brandId, organizationId),
+      });
+    });
   }
 
   /** Regenerates only the image or video a finished run is missing. */

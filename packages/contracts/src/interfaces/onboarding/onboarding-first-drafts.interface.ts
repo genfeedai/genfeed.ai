@@ -81,6 +81,8 @@ export interface IOnboardingFirstDraftsResult {
 /** Server-owned onboarding outputs; reads never create or charge for content. */
 export interface IOnboardingDraftRun {
   id: string;
+  /** Attempts left per channel for "Write another"; the run's own bounded allowance. */
+  draftRewritesRemaining: Record<OnboardingDraftPlatform, number>;
   /** Retries left for missing campaign images; the run's own bounded allowance. */
   mediaRetriesRemaining: number;
   status: 'running' | 'complete' | 'interrupted';
