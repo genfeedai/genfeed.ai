@@ -25,6 +25,10 @@ import {
   MIN_DRAFT_CHARACTERS,
   PLATFORM_ANGLE,
 } from '@api/endpoints/onboarding/utils/onboarding-draft-brief.util';
+import {
+  buildDraftsFunnelProperties,
+  buildScanFunnelProperties,
+} from '@api/endpoints/onboarding/utils/onboarding-funnel-events.util';
 import { buildOnboardingImageBrief } from '@api/endpoints/onboarding/utils/onboarding-image-brief.util';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -38,14 +42,17 @@ import {
   readUsableCdnAssetUrl,
   toMediaResponseRecord,
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
+import { ServerFunnelCaptureService } from '@api/services/analytics/server-funnel-capture.service';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
 import { SignupPrefillService } from '@api/services/signup-prefill/signup-prefill.service';
 import { normalizeOnboardingUrl } from '@api/services/signup-prefill/utils/normalize-onboarding-url.util';
 import { Platform } from '@genfeedai/contracts';
 import {
   DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
+  ONBOARDING_BRAND_SCANNED_EVENT,
   ONBOARDING_CAMPAIGN_IMAGE_SLOTS,
   ONBOARDING_DRAFT_PLATFORMS,
+  ONBOARDING_DRAFTS_GENERATED_EVENT,
   resolveAgentGenerationDimensions,
 } from '@genfeedai/contracts/constants';
 import type {
@@ -132,10 +139,43 @@ export class OnboardingFirstDraftsService {
     private readonly generationGateway: IAgentGenerationGateway,
     private readonly runs: OnboardingDraftRunsService,
     private readonly brandVoiceCorpusService: BrandVoiceCorpusService,
+    private readonly serverFunnelCapture?: ServerFunnelCaptureService,
   ) {}
+
+  /** Best-effort analytics: a dropped event never fails the onboarding step. */
+  private captureFunnel(
+    user: User,
+    event:
+      | typeof ONBOARDING_BRAND_SCANNED_EVENT
+      | typeof ONBOARDING_DRAFTS_GENERATED_EVENT,
+    properties: Record<string, unknown>,
+  ): void {
+    void this.serverFunnelCapture
+      ?.capture({
+        distinctId: String(user.id),
+        event,
+        organizationId: String(user.organizationId),
+        properties,
+      })
+      .catch(() => undefined);
+  }
 
   /** Reads a public link and prefills the brand. Failures are reported, never thrown. */
   async scan(
+    user: User,
+    brandId: string,
+    url: string,
+  ): Promise<IOnboardingScanResult> {
+    const result = await this.readLink(user, brandId, url);
+    this.captureFunnel(
+      user,
+      ONBOARDING_BRAND_SCANNED_EVENT,
+      buildScanFunnelProperties(result),
+    );
+    return result;
+  }
+
+  private async readLink(
     user: User,
     brandId: string,
     url: string,
@@ -199,8 +239,32 @@ export class OnboardingFirstDraftsService {
     brandId: string,
     dto: OnboardingDraftsDto,
   ): Promise<IOnboardingFirstDraftsResult> {
-    return this.runs.execute(user, brandId, dto.previousRequestKey, (save) =>
-      this.generateOnce(user, brandId, dto, save),
+    return this.runs.execute(
+      user,
+      brandId,
+      dto.previousRequestKey,
+      async (save) => {
+        const options = {
+          hasContext: Boolean(dto.context),
+          isRedo: Boolean(dto.previousRequestKey),
+        };
+        try {
+          const result = await this.generateOnce(user, brandId, dto, save);
+          this.captureFunnel(
+            user,
+            ONBOARDING_DRAFTS_GENERATED_EVENT,
+            buildDraftsFunnelProperties(result, options),
+          );
+          return result;
+        } catch (error: unknown) {
+          this.captureFunnel(
+            user,
+            ONBOARDING_DRAFTS_GENERATED_EVENT,
+            buildDraftsFunnelProperties(null, options),
+          );
+          throw error;
+        }
+      },
     );
   }
 

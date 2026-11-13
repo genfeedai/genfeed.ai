@@ -6,7 +6,9 @@ import {
   FIRST_SUCCESSFUL_GENERATION_EVENT,
   FIRST_SUCCESSFUL_PUBLISH_EVENT,
   GENERATION_COMPLETED_EVENT,
+  ONBOARDING_BRAND_SCANNED_EVENT,
   ONBOARDING_COMPLETED_EVENT,
+  ONBOARDING_DRAFTS_GENERATED_EVENT,
   POST_PUBLISHED_EVENT,
 } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
@@ -22,7 +24,9 @@ import * as Sentry from '@sentry/nestjs';
  * user-derived text into a log or Sentry report.
  */
 type ServerFunnelEventName =
+  | typeof ONBOARDING_BRAND_SCANNED_EVENT
   | typeof ONBOARDING_COMPLETED_EVENT
+  | typeof ONBOARDING_DRAFTS_GENERATED_EVENT
   | typeof FIRST_SUCCESSFUL_PUBLISH_EVENT
   | typeof FIRST_SUCCESSFUL_GENERATION_EVENT
   | typeof GENERATION_COMPLETED_EVENT
