@@ -7,6 +7,7 @@ const LEADING_CODE_FENCE_PATTERN = /^```\s*/i;
 const TRAILING_CODE_FENCE_PATTERN = /\s*```$/i;
 const PARAGRAPH_BREAK_PATTERN = /\n\n+/;
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const TYPOGRAPHIC_APOSTROPHE = /[\u2018\u2019\u02bc]/g;
 
 function stripHtmlTags(html: string): string {
   return replaceMarkup(html, '');
@@ -23,6 +24,46 @@ export function isValidPostLength(
     : textOnly.length;
 
   return textOnly.length > 0 && length <= maxLength;
+}
+
+/**
+ * The model talking to the user instead of writing the post: a refusal, a
+ * request for more information, or a lead-in such as "Here is your post".
+ * Anchored to the start of the reply and kept narrow, so a post that opens
+ * with "I can't help but..." or "Here's the thing" is left alone.
+ */
+const ASSISTANT_REPLY_OPENINGS = [
+  "i(?:'m| am) (?:sorry,? but|unable|not able)",
+  "i (?:cannot|can't|can not|couldn't|could not) (?:write|create|generate|produce|provide|assist|comply|fulfil)",
+  'i (?:need|would need) (?:more|some more|additional|further|a bit more)\\b',
+  "i (?:don't|do not) have (?:enough|access|any|the) (?:information|details|context|brand|data|access|specifics|offering)",
+  "unfortunately, (?:i (?:cannot|can't|can not|am unable|am not able) (?:to )?(?:write|create|generate|produce|provide|assist|comply|fulfil)|there is no |there isn't |the (?:brand|profile|context|offering)(?: profile| context)? (?:is|has|does|doesn't))",
+  '(?:could|can) you (?:please )?(?:provide|share|tell|clarify|give) (?:me|more|what (?:the )?(?:brand|business|company|offering)|the (?:brand|business|company|offering)|details|information)\\b',
+  'please (?:provide|share|tell me|clarify) (?:more |some |additional |the |any |further )?(?:information|details|context|specifics|brand|offering)',
+  'as an ai\\b',
+  "(?:sure|certainly|absolutely|of course)[,!.:]? (?:here|i'll|i will|i can|let me)",
+  "here(?:'s| is) (?:your|an?|the) (?:\\w+ ){0,2}(?:post|draft|tweet|caption)\\b",
+];
+const ASSISTANT_REPLY_PATTERN = new RegExp(
+  `^(?:${ASSISTANT_REPLY_OPENINGS.join('|')})`,
+  'i',
+);
+
+/**
+ * True when a draft is not a usable post: shorter than `minCharacters` (after
+ * markup is removed) or a reply addressed to the user. A real post is never
+ * rejected by the pattern alone, so `minCharacters` stays opt-in per caller.
+ */
+export function isUnusableDraftText(
+  postHtml: string,
+  minCharacters = 0,
+): boolean {
+  const text = stripHtmlTags(postHtml).replace(WHITESPACE_RUNS_PATTERN, ' ');
+  const trimmed = text.trim();
+  return (
+    trimmed.length < minCharacters ||
+    ASSISTANT_REPLY_PATTERN.test(trimmed.replace(TYPOGRAPHIC_APOSTROPHE, "'"))
+  );
 }
 
 /**

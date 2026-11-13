@@ -203,16 +203,58 @@ describe('OnboardingFirstDraftsService', () => {
       ]);
     });
 
-    it('writes the other channels from the X post, which is drafted first', async () => {
+    it('gives each channel its own angle, written from the brand and not from the X post', async () => {
       await service.generate(user, 'brand_1', {});
 
       const prompts = postGeneration.generateDraftText.mock.calls.map(
         ([input]) => input.prompt as string,
       );
       expect(prompts).toHaveLength(4);
-      for (const prompt of prompts.slice(1)) {
-        expect(prompt).toContain('twitter draft');
+      expect(
+        new Set(prompts.map((prompt) => prompt.match(/Angle: [^.]*\./)?.[0]))
+          .size,
+      ).toBe(4);
+      for (const prompt of prompts) {
+        expect(prompt).not.toContain('twitter draft');
+        expect(prompt).toContain(
+          'invent no numbers, customers, results or claims',
+        );
       }
+    });
+
+    it("quotes the brand's saved offers, audience and topics to every channel", async () => {
+      brandDataMapper.readBrandAgentConfig.mockReturnValueOnce({
+        strategy: { offers: ['Cast iron pans'], topics: ['Seasoning'] },
+        voice: { audience: ['Home cooks'] },
+      });
+
+      await service.generate(user, 'brand_1', {});
+
+      const facts = postGeneration.generateDraftText.mock.calls.map(
+        ([, , , options]) => options.brandFacts as string,
+      );
+      expect(facts).toHaveLength(4);
+      for (const block of facts) {
+        expect(block).toContain('- Offers: "Cast iron pans"');
+        expect(block).toContain('- Audience: "Home cooks"');
+        expect(block).toContain('- Topics: "Seasoning"');
+      }
+    });
+
+    it('sets a shortest finished post for each channel', async () => {
+      await service.generate(user, 'brand_1', {});
+
+      const minimums = Object.fromEntries(
+        postGeneration.generateDraftText.mock.calls.map(
+          ([input, , , options]) => [input.platform, options.minCharacters],
+        ),
+      );
+      expect(minimums).toEqual({
+        instagram: 80,
+        linkedin: 200,
+        tiktok: 60,
+        twitter: 60,
+      });
     });
 
     describe('imported posts', () => {
@@ -309,10 +351,11 @@ describe('OnboardingFirstDraftsService', () => {
         }),
       );
       const [, , , options] = postGeneration.generateDraftText.mock.calls[0];
-      expect(options).toEqual({
+      expect(options).toMatchObject({
         parentRequestId: '3f6b1e0a-2b8c-4f06-9d34-5a0f8c1d2e7b',
         surface: 'onboarding',
       });
+      expect(options.brandFacts).toContain('- Offers: "A tool"');
     });
 
     it('sends the image a structured brief, not the form answers', async () => {
@@ -389,6 +432,43 @@ describe('OnboardingFirstDraftsService', () => {
 
       expect(result.status).toBe('partial');
       expect(result.drafts).toHaveLength(3);
+    });
+
+    it('keeps the other channels when only the X draft is refused', async () => {
+      postGeneration.generateDraftText.mockImplementation(
+        async (input: { platform: string }) => {
+          if (input.platform === 'twitter') throw new Error('not a post');
+          counter += 1;
+          return {
+            brandedReceipt: { id: `receipt_${counter}`, state: 'ready' },
+            description: `${input.platform} draft`,
+            postId: `post_${counter}`,
+          };
+        },
+      );
+
+      const result = await service.generate(user, 'brand_1', {});
+
+      expect(result.drafts.map((draft) => draft.platform)).toEqual([
+        'instagram',
+        'tiktok',
+        'linkedin',
+      ]);
+      expect(result.status).toBe('partial');
+      expect(result.requestKey).toBe(result.drafts[0].requestKey);
+      expect(result.imageUrl).toBe('https://cdn.example.com/a.png');
+    });
+
+    it('quotes a legacy text audience instead of failing', async () => {
+      brandDataMapper.readBrandAgentConfig.mockReturnValueOnce({
+        voice: { audience: 'Home cooks' },
+      });
+
+      const result = await service.generate(user, 'brand_1', {});
+
+      expect(result.drafts).toHaveLength(4);
+      const [, , , options] = postGeneration.generateDraftText.mock.calls[0];
+      expect(options.brandFacts).toContain('- Audience: "Home cooks"');
     });
 
     it('is unavailable when the X draft cannot be written', async () => {
