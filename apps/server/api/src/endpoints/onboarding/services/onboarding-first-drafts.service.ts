@@ -107,6 +107,9 @@ const PLATFORM_FORMAT_BRIEF: Record<
 };
 
 /** Own posts quoted to the draft prompt: enough to show the voice, few enough to stay cheap. */
+/** What a brand's colours are before anyone sets them (the Brand column defaults). */
+const DEFAULT_BRAND_PRIMARY_COLOR = '#000000';
+const DEFAULT_BRAND_SECONDARY_COLOR = '#ffffff';
 const VOICE_EVIDENCE_SAMPLE_LIMIT = 6;
 
 const TONE_DIRECTION: Record<
@@ -525,7 +528,13 @@ export class OnboardingFirstDraftsService {
   }
 
   private readBrandContext(
-    brand: { agentConfig?: unknown; description?: unknown; label?: unknown },
+    brand: {
+      agentConfig?: unknown;
+      description?: unknown;
+      label?: unknown;
+      primaryColor?: unknown;
+      secondaryColor?: unknown;
+    },
     context?: OnboardingDraftContextDto,
   ) {
     const savedConfig = this.brandDataMapper.readBrandAgentConfig(
@@ -559,12 +568,31 @@ export class OnboardingFirstDraftsService {
           normalizeBrandAudience(savedConfig.voice?.audience)[0],
         goals: context?.goals ?? savedConfig.strategy?.goals,
         offer: context?.offer ?? savedConfig.strategy?.offers?.[0],
+        palette: this.readBrandPalette(brand),
         tone:
           context?.tone && context.tone !== 'keep'
             ? context.tone
             : savedConfig.voice?.tone,
       },
     };
+  }
+
+  /**
+   * The colours the brand actually chose. A brand that never set any keeps the
+   * database defaults, black and white, and those say nothing about its look.
+   */
+  private readBrandPalette(brand: {
+    primaryColor?: unknown;
+    secondaryColor?: unknown;
+  }): string[] | undefined {
+    const colors = [brand.primaryColor, brand.secondaryColor].filter(
+      (color): color is string => typeof color === 'string' && color !== '',
+    );
+    const isDefault =
+      colors.length === 2 &&
+      colors[0]?.toLowerCase() === DEFAULT_BRAND_PRIMARY_COLOR &&
+      colors[1]?.toLowerCase() === DEFAULT_BRAND_SECONDARY_COLOR;
+    return colors.length && !isDefault ? colors : undefined;
   }
 
   private resolveStatus(
@@ -592,7 +620,7 @@ export class OnboardingFirstDraftsService {
     identity: { brandId: string; organizationId: string; userId: string };
     imageContext: Pick<
       OnboardingImageBriefInput,
-      'audience' | 'goals' | 'offer' | 'tone'
+      'audience' | 'goals' | 'offer' | 'palette' | 'tone'
     >;
     isMasterShort: boolean;
     result: IOnboardingFirstDraftsResult;
@@ -802,7 +830,7 @@ export class OnboardingFirstDraftsService {
     identity: { brandId: string; organizationId: string; userId: string };
     imageContext: Pick<
       OnboardingImageBriefInput,
-      'audience' | 'goals' | 'offer' | 'tone'
+      'audience' | 'goals' | 'offer' | 'palette' | 'tone'
     >;
     leadingReferenceIds?: string[];
     promptPrefix?: string;
