@@ -7,7 +7,6 @@ import { ApifyRedditService } from '@api/services/integrations/apify/services/mo
 import { ApifyTikTokService } from '@api/services/integrations/apify/services/modules/apify-tiktok.service';
 import { ApifyTwitterService } from '@api/services/integrations/apify/services/modules/apify-twitter.service';
 import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
-import { Platform } from '@genfeedai/contracts';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ApifyService', () => {
@@ -29,12 +28,7 @@ describe('ApifyService', () => {
     searchInstagramByHashtag: ReturnType<typeof vi.fn>;
   };
   let twitterService: {
-    getTwitterMentions: ReturnType<typeof vi.fn>;
     getTwitterTrends: ReturnType<typeof vi.fn>;
-    getTwitterTweetReplies: ReturnType<typeof vi.fn>;
-    getTweetByUrl: ReturnType<typeof vi.fn>;
-    getTwitterUserTimeline: ReturnType<typeof vi.fn>;
-    searchTwitterTweets: ReturnType<typeof vi.fn>;
   };
   let youtubeService: {
     getYouTubeChannelUploads: ReturnType<typeof vi.fn>;
@@ -100,12 +94,7 @@ describe('ApifyService', () => {
         {
           provide: ApifyTwitterService,
           useValue: {
-            getTwitterMentions: vi.fn(),
             getTwitterTrends: vi.fn(),
-            getTwitterTweetReplies: vi.fn(),
-            getTweetByUrl: vi.fn(),
-            getTwitterUserTimeline: vi.fn(),
-            searchTwitterTweets: vi.fn(),
           },
         },
         {
@@ -271,58 +260,6 @@ describe('ApifyService', () => {
       expect(instagramService.searchInstagramByHashtag).toHaveBeenCalledWith(
         '#travel',
         { limit: 30 },
-      );
-    });
-  });
-
-  describe('Twitter delegation', () => {
-    it('should delegate getTwitterMentions to twitterService', async () => {
-      const mockTweets = [{ id: 't1', text: 'mention' }];
-      twitterService.getTwitterMentions.mockResolvedValue(mockTweets);
-
-      const result = await service.getTwitterMentions('user', {
-        limit: 50,
-        sinceId: 'abc',
-      });
-
-      expect(twitterService.getTwitterMentions).toHaveBeenCalledWith('user', {
-        limit: 50,
-        sinceId: 'abc',
-      });
-      expect(result).toEqual(mockTweets);
-    });
-
-    it('should delegate getTwitterUserTimeline to twitterService', async () => {
-      twitterService.getTwitterUserTimeline.mockResolvedValue([]);
-
-      await service.getTwitterUserTimeline('user');
-
-      expect(twitterService.getTwitterUserTimeline).toHaveBeenCalledWith(
-        'user',
-        undefined,
-        undefined,
-      );
-    });
-
-    it('should delegate getTwitterTweetReplies to twitterService', async () => {
-      twitterService.getTwitterTweetReplies.mockResolvedValue([]);
-
-      await service.getTwitterTweetReplies('tweet-id', { limit: 10 });
-
-      expect(twitterService.getTwitterTweetReplies).toHaveBeenCalledWith(
-        'tweet-id',
-        { limit: 10 },
-      );
-    });
-
-    it('should delegate searchTwitterTweets to twitterService', async () => {
-      twitterService.searchTwitterTweets.mockResolvedValue([]);
-
-      await service.searchTwitterTweets('query');
-
-      expect(twitterService.searchTwitterTweets).toHaveBeenCalledWith(
-        'query',
-        undefined,
       );
     });
   });
@@ -502,151 +439,24 @@ describe('ApifyService', () => {
     });
   });
 
-  describe('convertToUnifiedComment', () => {
-    it('rejects Twitter comments without a valid publication date', () => {
-      expect(() =>
-        service.convertToUnifiedComment(
-          { id: 'missing' } as never,
-          Platform.TWITTER,
-        ),
-      ).toThrow('publication date');
-      expect(() =>
-        service.convertToUnifiedComment(
-          { id: 'invalid', createdAt: new Date(NaN) } as never,
-          Platform.TWITTER,
-        ),
-      ).toThrow('publication date');
-    });
-
-    it('should convert a twitter tweet to unified format', () => {
-      const tweet = {
-        authorAvatarUrl: 'https://avatar.com/test.jpg',
-        authorDisplayName: 'Test User',
-        authorId: 'a1',
-        authorUsername: 'testuser',
-        conversationId: 'conv-1',
-        createdAt: new Date('2024-01-01'),
-        hashtags: ['test'],
-        id: 't1',
-        inReplyToTweetId: 'parent-1',
-        metrics: { likes: 10, replies: 2, retweets: 5 },
-        text: 'Hello world',
-      };
-
-      const result = service.convertToUnifiedComment(
-        tweet as never,
-        Platform.TWITTER,
-      );
-
-      expect(result.platform).toBe('twitter');
-      expect(result.contentType).toBe('tweet');
-      expect(result.id).toBe('t1');
-      expect(result.text).toBe('Hello world');
-      expect(result.authorUsername).toBe('testuser');
-      expect(result.contentId).toBe('conv-1');
-      expect(result.inReplyToId).toBe('parent-1');
-      expect(result.hashtags).toEqual(['test']);
-      expect(result.contentUrl).toBe('https://x.com/testuser/status/t1');
-    });
-
-    it('should convert an instagram comment to unified format', () => {
-      const comment = {
-        authorAvatarUrl: 'https://avatar.com/ig.jpg',
-        authorId: 'a2',
-        authorUsername: 'iguser',
-        createdAt: new Date('2024-01-01'),
-        id: 'ig1',
-        metrics: { likes: 5, replies: 1 },
-        postId: 'post-1',
-        postShortCode: 'ABC123',
-        text: 'Nice post!',
-      };
-
-      const result = service.convertToUnifiedComment(
-        comment as never,
-        Platform.INSTAGRAM,
-      );
-
-      expect(result.platform).toBe('instagram');
-      expect(result.contentType).toBe('post');
-      expect(result.contentId).toBe('post-1');
-      expect(result.contentUrl).toBe('https://instagram.com/p/ABC123');
-    });
-
-    it('should convert a tiktok comment to unified format', () => {
-      const comment = {
-        authorAvatarUrl: 'https://avatar.com/tt.jpg',
-        authorDisplayName: 'TT User',
-        authorId: 'a3',
-        authorUsername: 'ttuser',
-        createdAt: new Date('2024-01-01'),
-        id: 'tt1',
-        metrics: { likes: 20, replies: 3 },
-        text: 'Great video!',
-        videoId: 'vid-1',
-      };
-
-      const result = service.convertToUnifiedComment(
-        comment as never,
-        Platform.TIKTOK,
-      );
-
-      expect(result.platform).toBe('tiktok');
-      expect(result.contentType).toBe('video');
-      expect(result.contentId).toBe('vid-1');
-      expect(result.authorDisplayName).toBe('TT User');
-    });
-
-    it('should convert a youtube comment to unified format', () => {
-      const comment = {
-        authorAvatarUrl: 'https://avatar.com/yt.jpg',
-        authorDisplayName: 'YT User',
-        authorId: 'a4',
-        createdAt: new Date('2024-01-01'),
-        id: 'yt1',
-        metrics: { likes: 15, replies: 0 },
-        text: 'Subscribed!',
-        videoId: 'vid-yt-1',
-      };
-
-      const result = service.convertToUnifiedComment(
-        comment as never,
-        Platform.YOUTUBE,
-      );
-
-      expect(result.platform).toBe('youtube');
-      expect(result.contentType).toBe('video');
-      expect(result.contentId).toBe('vid-yt-1');
-      expect(result.contentUrl).toBe('https://youtube.com/watch?v=vid-yt-1');
-      expect(result.authorUsername).toBe('a4');
-    });
-  });
-  it('forwards governed context through all five timelines and three posts', async () => {
+  it('forwards governed context through all four timelines and two posts', async () => {
     const context = {
       organizationId: 'org-1',
       origin: 'social-source' as const,
     };
-    await service.getTwitterUserTimeline('creator', {}, context);
     await service.getInstagramUserPosts('creator', {}, context);
     await service.getTikTokUserVideos('creator', {}, context);
     await service.getYouTubeChannelUploads('channel', {}, context);
     await service.getLinkedInProfilePosts('profile', {}, context);
     for (const mock of [
-      twitterService.getTwitterUserTimeline,
       instagramService.getInstagramUserPosts,
       tiktokService.getTikTokUserVideos,
       youtubeService.getYouTubeChannelUploads,
       linkedinService.getLinkedInProfilePosts,
     ])
       expect(mock.mock.calls[0].at(-1)).toEqual(context);
-    await service.getTweetByUrl('url', '123', context);
     await service.getInstagramPostByUrl('url', context);
     await service.getTikTokVideoByUrl('url', context);
-    expect(twitterService.getTweetByUrl).toHaveBeenCalledWith(
-      'url',
-      '123',
-      context,
-    );
     expect(instagramService.getInstagramPostByUrl).toHaveBeenCalledWith(
       'url',
       context,

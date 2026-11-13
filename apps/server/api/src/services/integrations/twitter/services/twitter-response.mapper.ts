@@ -33,6 +33,7 @@ export interface TwitterTrendResult {
 export interface TwitterUserSummary {
   id: string;
   username: string;
+  description?: string;
   name?: string;
   profile_image_url?: string;
   public_metrics?: {
@@ -49,6 +50,7 @@ export interface TwitterUsersResponse {
 }
 
 export interface TwitterMappedUser {
+  description?: string;
   followersCount?: number;
   id: string;
   name?: string;
@@ -159,6 +161,7 @@ export class TwitterResponseMapper {
         const retweets = metrics.retweet_count ?? 0;
 
         return {
+          ...(tweet.author_id ? { authorId: tweet.author_id } : {}),
           authorName: author?.name ?? 'Unknown',
           authorUsername: author?.username ?? 'unknown',
           createdAt: tweet.created_at ?? new Date().toISOString(),
@@ -380,6 +383,7 @@ export class TwitterResponseMapper {
 
   private mapUserSummary(user: TwitterUserSummary): TwitterMappedUser {
     return {
+      ...(user.description ? { description: user.description } : {}),
       followersCount: user.public_metrics?.followers_count,
       id: user.id,
       name: user.name,

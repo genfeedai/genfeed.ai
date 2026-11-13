@@ -4,6 +4,7 @@ import { TrendSourcePreviewService } from '@api/collections/trends/services/modu
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -53,7 +54,6 @@ describe('TrendSourcePreviewService', () => {
       searchInstagramByHashtag: vi.fn().mockResolvedValue([]),
       searchRedditPosts: vi.fn().mockResolvedValue([]),
       searchTikTokByHashtag: vi.fn().mockResolvedValue([]),
-      searchTwitterTweets: vi.fn().mockResolvedValue([]),
       searchYouTubeVideos: vi.fn().mockResolvedValue([]),
     };
     cache = {
@@ -81,6 +81,10 @@ describe('TrendSourcePreviewService', () => {
         TrendSourcePreviewService,
         TrendSourceItemsService,
         { provide: ApifyService, useValue: apify },
+        {
+          provide: TwitterService,
+          useValue: { searchRecentTweets: vi.fn().mockResolvedValue([]) },
+        },
         { provide: PrismaService, useValue: prisma },
         { provide: LoggerService, useValue: logger },
         { provide: CacheService, useValue: cache },

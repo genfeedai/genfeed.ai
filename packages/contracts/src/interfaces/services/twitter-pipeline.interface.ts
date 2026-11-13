@@ -1,6 +1,7 @@
 export interface ITwitterSearchResult {
   id: string;
   text: string;
+  authorId?: string;
   authorUsername: string;
   authorName: string;
   createdAt: string;

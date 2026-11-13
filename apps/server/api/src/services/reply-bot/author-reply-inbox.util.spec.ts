@@ -137,14 +137,14 @@ describe('collectAuthorReplyInbox', () => {
     expect(ports.socialMonitorService.getUserTimeline).toHaveBeenCalledWith(
       'twitter',
       '@Brand',
-      { ...scope, limit: 12, preferOfficialApi: true },
+      { ...scope, limit: 12 },
     );
     expect(ports.loadProcessedCommentIds).toHaveBeenCalledWith(
       scope.organizationId,
     );
     expect(ports.socialMonitorService.getContentComments.mock.calls).toEqual([
-      ['twitter', 'parent-1', { ...scope, limit: 40, preferOfficialApi: true }],
-      ['twitter', 'parent-2', { ...scope, limit: 40, preferOfficialApi: true }],
+      ['twitter', 'parent-1', { ...scope, limit: 40 }],
+      ['twitter', 'parent-2', { ...scope, limit: 40 }],
     ]);
     const order = [
       ports.loadCredential.mock.invocationCallOrder[0],

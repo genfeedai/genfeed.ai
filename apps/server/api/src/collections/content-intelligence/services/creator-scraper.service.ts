@@ -1,6 +1,7 @@
 import type { CreatorAnalysisDocument } from '@api/collections/content-intelligence/schemas/creator-analysis.schema';
 import { ContentIntelligenceService } from '@api/collections/content-intelligence/services/content-intelligence.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import {
   ContentIntelligencePlatform,
   CreatorAnalysisStatus,
@@ -66,25 +67,6 @@ interface LinkedInPostData {
   impressionCount?: number;
 }
 
-interface TwitterUserData {
-  profileImageUrl?: string;
-  description?: string;
-  name?: string;
-  followersCount?: number;
-  followingCount?: number;
-}
-
-interface TwitterTweetData {
-  id: string;
-  createdAt?: string;
-  likeCount?: number;
-  replyCount?: number;
-  retweetCount?: number;
-  text?: string;
-  user?: TwitterUserData;
-  viewCount?: number;
-}
-
 interface InstagramPostData {
   id: string;
   caption?: string;
@@ -137,6 +119,7 @@ export class CreatorScraperService {
 
   constructor(
     private readonly apifyService: ApifyService,
+    private readonly twitterService: TwitterService,
     private readonly contentIntelligenceService: ContentIntelligenceService,
     private readonly logger: LoggerService,
   ) {}
@@ -324,42 +307,41 @@ export class CreatorScraperService {
     });
 
     try {
-      const tweets = await this.apifyService.runActor<TwitterTweetData>(
-        'quacker/twitter-scraper',
-        {
-          handles: [handle],
-          maxTweets: maxPosts,
-          onlyVerified: false,
-          proxyConfiguration: { useApifyProxy: true },
-        },
-      );
+      // The official X API returns at most 100 posts per request.
+      const [user, tweets] = await Promise.all([
+        this.twitterService.getUserByUsername(handle),
+        this.twitterService.getUserTimelineByUsername(handle, {
+          maxResults: Math.min(maxPosts, 100),
+        }),
+      ]);
 
       const profile: ScrapedCreatorProfile = {
-        avatarUrl: tweets[0]?.user?.profileImageUrl,
-        bio: tweets[0]?.user?.description,
-        displayName: tweets[0]?.user?.name || handle,
-        followerCount: tweets[0]?.user?.followersCount || 0,
-        followingCount: tweets[0]?.user?.followingCount || 0,
+        avatarUrl: user?.profileImageUrl,
+        bio: user?.description,
+        displayName: user?.name || handle,
+        followerCount: user?.followersCount || 0,
+        followingCount: 0,
         handle,
       };
 
       const posts: ScrapedPost[] = tweets.map((tweet) => {
-        const likes = tweet.likeCount || 0;
-        const comments = tweet.replyCount || 0;
-        const shares = tweet.retweetCount || 0;
-        const views = tweet.viewCount || likes * 10;
+        const likes = tweet.metrics?.likes || 0;
+        const comments = tweet.metrics?.comments || 0;
+        const shares = tweet.metrics?.shares || 0;
+        // The timeline carries no view counts, so views are estimated from likes.
+        const views = likes * 10;
         const engagementRate =
           views > 0 ? ((likes + comments + shares) / views) * 100 : 0;
 
         return {
           comments,
           engagementRate: Math.round(engagementRate * 100) / 100,
-          hashtags: extractHashtags(tweet.text || ''),
+          hashtags: extractHashtags(tweet.text),
           id: tweet.id,
           likes,
-          publishedAt: new Date(tweet.createdAt || Date.now()),
+          publishedAt: tweet.createdAt ?? new Date(),
           shares,
-          text: tweet.text || '',
+          text: tweet.text,
           url: `https://twitter.com/${handle}/status/${tweet.id}`,
           views,
         };

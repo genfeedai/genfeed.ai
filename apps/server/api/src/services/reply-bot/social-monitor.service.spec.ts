@@ -40,21 +40,18 @@ describe('SocialMonitorService', () => {
     getRedditUserPosts: vi.fn().mockResolvedValue([]),
     getTikTokUserVideos: vi.fn().mockResolvedValue([]),
     getTikTokVideoComments: vi.fn().mockResolvedValue([]),
-    getTwitterMentions: vi.fn().mockResolvedValue([]),
-    getTwitterTweetReplies: vi.fn().mockResolvedValue([]),
-    getTwitterUserTimeline: vi.fn().mockResolvedValue([]),
     getYouTubeChannelVideos: vi.fn().mockResolvedValue([]),
     getYouTubeVideoComments: vi.fn().mockResolvedValue([]),
     searchInstagramByHashtag: vi.fn().mockResolvedValue([]),
     searchRedditPosts: vi.fn().mockResolvedValue([]),
     searchTikTokByHashtag: vi.fn().mockResolvedValue([]),
-    searchTwitterTweets: vi.fn().mockResolvedValue([]),
     searchYouTubeVideos: vi.fn().mockResolvedValue([]),
   };
 
   const mockTwitterService = {
     getTweetReplies: vi.fn().mockResolvedValue([]),
     getUserTimelineByUsername: vi.fn().mockResolvedValue([]),
+    searchRecentTweets: vi.fn().mockResolvedValue([]),
     resolveBrandUserAccessToken: vi.fn().mockResolvedValue(null),
   };
 
@@ -94,7 +91,7 @@ describe('SocialMonitorService', () => {
     vi.clearAllMocks();
   });
 
-  it('prefers official X API replies over Apify', async () => {
+  it('reads X replies through the official X API', async () => {
     mockTwitterService.getTweetReplies.mockResolvedValueOnce([
       {
         authorId: 'u1',
@@ -118,40 +115,17 @@ describe('SocialMonitorService', () => {
     expect(results[0].platform).toBe(ReplyBotPlatform.TWITTER);
     expect(results[0].text).toBe('Great thread!');
     expect(results[0].parentContentId).toBe('parent1');
-    expect(mockTwitterService.getTweetReplies).toHaveBeenCalled();
-    expect(mockApifyService.getTwitterTweetReplies).not.toHaveBeenCalled();
+    expect(results[0].contentType).toBe(SocialContentType.TWEET);
   });
 
-  it('falls back to Apify when official X replies fail', async () => {
+  it('surfaces the failure when the official X reply search fails', async () => {
     mockTwitterService.getTweetReplies.mockRejectedValueOnce(
       new Error('search not available'),
     );
-    mockApifyService.getTwitterTweetReplies.mockResolvedValueOnce([
-      {
-        authorAvatarUrl: 'https://img.test/a.jpg',
-        authorDisplayName: 'Alice',
-        authorFollowersCount: 100,
-        authorId: 'u1',
-        authorUsername: 'alice',
-        createdAt: new Date(),
-        hashtags: ['ai'],
-        id: 'tweet1',
-        inReplyToTweetId: 'parent1',
-        isRetweet: false,
-        metrics: { likes: 5, replies: 2, retweets: 1 },
-        text: 'Great thread!',
-      },
-    ]);
 
-    const results = await service.getContentComments(
-      ReplyBotPlatform.TWITTER,
-      'parent1',
-    );
-
-    expect(results).toHaveLength(1);
-    expect(results[0].text).toBe('Great thread!');
-    expect(results[0].contentType).toBe(SocialContentType.TWEET);
-    expect(mockApifyService.getTwitterTweetReplies).toHaveBeenCalled();
+    await expect(
+      service.getContentComments(ReplyBotPlatform.TWITTER, 'parent1'),
+    ).rejects.toThrow('search not available');
   });
 
   it('should throw for unsupported platform in getContentComments', async () => {
@@ -160,17 +134,47 @@ describe('SocialMonitorService', () => {
     ).rejects.toThrow(/Unsupported platform/);
   });
 
-  it('should fetch twitter mentions', async () => {
-    mockApifyService.getTwitterMentions.mockResolvedValueOnce([]);
+  it('should fetch twitter mentions through X recent search', async () => {
+    mockTwitterService.searchRecentTweets.mockResolvedValueOnce([
+      {
+        authorId: 'u9',
+        authorName: 'Dana',
+        authorUsername: 'dana',
+        createdAt: '2026-11-13T10:00:00.000Z',
+        engagement: 3,
+        id: 'm1',
+        likes: 2,
+        quotes: 0,
+        replies: 1,
+        retweets: 1,
+        text: '@testuser nice launch',
+      },
+    ]);
+
     const result = await service.getUserMentions(
       ReplyBotPlatform.TWITTER,
-      'testuser',
+      '@testuser',
+      { sinceId: '100' },
     );
-    expect(result).toEqual([]);
-    expect(mockApifyService.getTwitterMentions).toHaveBeenCalledWith(
-      'testuser',
-      expect.objectContaining({ limit: 50 }),
+
+    expect(mockTwitterService.searchRecentTweets).toHaveBeenCalledWith(
+      '@testuser lang:en',
+      { maxResults: 50, sinceId: '100', sortOrder: 'recency' },
     );
+    expect(result).toEqual([
+      {
+        authorDisplayName: 'Dana',
+        authorId: 'u9',
+        authorUsername: 'dana',
+        contentType: SocialContentType.TWEET,
+        contentUrl: 'https://x.com/dana/status/m1',
+        createdAt: new Date('2026-11-13T10:00:00.000Z'),
+        id: 'm1',
+        metrics: { comments: 1, likes: 2, shares: 1 },
+        platform: ReplyBotPlatform.TWITTER,
+        text: '@testuser nice launch',
+      },
+    ]);
   });
 
   it('should return empty array for YouTube mentions', async () => {
@@ -181,99 +185,76 @@ describe('SocialMonitorService', () => {
     expect(result).toEqual([]);
   });
 
-  it('excludes undated tweets from reply candidates', async () => {
-    mockApifyService.getTwitterUserTimeline.mockResolvedValueOnce([
+  it('reads the X timeline through the official API and asks X to drop replies and reposts by default', async () => {
+    mockTwitterService.getUserTimelineByUsername.mockResolvedValueOnce([
       {
-        authorId: 'u',
-        authorUsername: 'bob',
-        id: 'missing',
-        isRetweet: false,
-        text: 'missing',
-      },
-      {
-        authorId: 'u',
-        authorUsername: 'bob',
-        id: 'invalid',
-        isRetweet: false,
-        text: 'invalid',
-        createdAt: new Date(NaN),
-      },
-    ]);
-    expect(
-      await service.getUserTimeline(ReplyBotPlatform.TWITTER, 'bob', {
-        preferOfficialApi: false,
-      }),
-    ).toEqual([]);
-  });
-
-  it('filters retweets and replies from twitter timeline by default (reply-bot)', async () => {
-    mockApifyService.getTwitterUserTimeline.mockResolvedValueOnce([
-      {
+        authorAvatarUrl: 'https://img.test/bob.jpg',
         authorId: 'u1',
+        authorName: 'Bob',
         authorUsername: 'bob',
-        createdAt: new Date(),
+        createdAt: new Date('2026-11-13T09:00:00.000Z'),
         id: 't1',
-        inReplyToTweetId: null,
+        inReplyToId: null,
         isRetweet: false,
         text: 'Original tweet',
-      },
-      {
-        authorId: 'u1',
-        authorUsername: 'bob',
-        createdAt: new Date(),
-        id: 't2',
-        inReplyToTweetId: null,
-        isRetweet: true,
-        text: 'RT @someone',
-      },
-      {
-        authorId: 'u1',
-        authorUsername: 'bob',
-        createdAt: new Date(),
-        id: 't3',
-        inReplyToTweetId: 'parent',
-        isRetweet: false,
-        text: 'Reply to someone',
       },
     ]);
 
     const result = await service.getUserTimeline(
       ReplyBotPlatform.TWITTER,
       'bob',
-      { preferOfficialApi: false },
+    );
+
+    expect(mockTwitterService.getUserTimelineByUsername).toHaveBeenCalledWith(
+      'bob',
+      {
+        accessToken: undefined,
+        excludeReplies: true,
+        excludeRetweets: true,
+        maxResults: 20,
+        sinceId: undefined,
+      },
     );
     expect(result).toHaveLength(1);
-    expect(result[0].text).toBe('Original tweet');
+    expect(result[0]).toMatchObject({
+      authorAvatarUrl: 'https://img.test/bob.jpg',
+      authorUsername: 'bob',
+      contentUrl: 'https://x.com/bob/status/t1',
+      text: 'Original tweet',
+    });
   });
 
   it('keeps replies for Following when includeReplies is set', async () => {
-    mockApifyService.getTwitterUserTimeline.mockResolvedValueOnce([
-      {
-        authorId: 'u1',
-        authorUsername: 'bob',
-        createdAt: new Date(),
-        id: 't1',
-        inReplyToTweetId: null,
-        isRetweet: false,
-        text: 'Original tweet',
-      },
-      {
-        authorId: 'u1',
-        authorUsername: 'bob',
-        createdAt: new Date(),
-        id: 't3',
-        inReplyToTweetId: 'parent',
-        isRetweet: false,
-        text: 'Reply to someone',
-      },
-    ]);
+    await service.getUserTimeline(ReplyBotPlatform.TWITTER, 'bob', {
+      includeReplies: true,
+    });
 
-    const result = await service.getUserTimeline(
-      ReplyBotPlatform.TWITTER,
+    expect(mockTwitterService.getUserTimelineByUsername).toHaveBeenCalledWith(
       'bob',
-      { includeReplies: true, preferOfficialApi: false },
+      expect.objectContaining({ excludeReplies: false, excludeRetweets: true }),
     );
-    expect(result).toHaveLength(2);
+  });
+
+  it('retries the X timeline with the app bearer when the brand token fails, then surfaces the last failure', async () => {
+    mockTwitterService.resolveBrandUserAccessToken.mockResolvedValueOnce(
+      'brand-token',
+    );
+    mockTwitterService.getUserTimelineByUsername
+      .mockRejectedValueOnce(new Error('brand token expired'))
+      .mockRejectedValueOnce(new Error('app bearer unauthorized'));
+
+    await expect(
+      service.getUserTimeline(ReplyBotPlatform.TWITTER, 'bob', {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+      }),
+    ).rejects.toThrow('app bearer unauthorized');
+
+    expect(
+      mockTwitterService.getUserTimelineByUsername.mock.calls.map(
+        ([, options]) => options.accessToken,
+      ),
+    ).toEqual(['brand-token', undefined]);
   });
 
   it('preserves Instagram media in normalized timeline posts', async () => {
@@ -301,13 +282,13 @@ describe('SocialMonitorService', () => {
   });
 
   it('should search twitter with query and limit', async () => {
-    mockApifyService.searchTwitterTweets.mockResolvedValueOnce([]);
+    mockTwitterService.searchRecentTweets.mockResolvedValueOnce([]);
     await service.searchContent(ReplyBotPlatform.TWITTER, 'AI news', {
       limit: 10,
     });
-    expect(mockApifyService.searchTwitterTweets).toHaveBeenCalledWith(
-      'AI news',
-      expect.objectContaining({ limit: 10 }),
+    expect(mockTwitterService.searchRecentTweets).toHaveBeenCalledWith(
+      'AI news lang:en',
+      expect.objectContaining({ maxResults: 10, sortOrder: 'recency' }),
     );
   });
 

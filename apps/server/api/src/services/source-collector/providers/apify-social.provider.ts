@@ -59,16 +59,15 @@ function readDate(value: unknown): Date | undefined {
 }
 
 /**
- * Apify fallback for public timelines (X / IG / TikTok / YouTube / LinkedIn).
- * X, YouTube and LinkedIn throw when APIFY_API_TOKEN is missing (honest
- * failure).
+ * Apify fallback for public timelines (IG / TikTok / YouTube / LinkedIn).
+ * YouTube and LinkedIn throw when APIFY_API_TOKEN is missing (honest
+ * failure). X is read only through the official X API providers.
  */
 @Traced()
 @Injectable()
 export class ApifySocialProvider implements SourceTimelineProvider {
   readonly name = 'apify' as const;
   readonly platforms = [
-    SocialSourcePlatform.TWITTER,
     SocialSourcePlatform.INSTAGRAM,
     SocialSourcePlatform.TIKTOK,
     SocialSourcePlatform.YOUTUBE,
@@ -88,61 +87,6 @@ export class ApifySocialProvider implements SourceTimelineProvider {
   ): Promise<SourceCollectResult> {
     const researchContext = this.researchContext(context);
     const limit = context.limit ?? 25;
-    const includeReplies = Boolean(context.includeReplies);
-    const includeReposts = Boolean(context.includeReposts);
-
-    if (platform === SocialSourcePlatform.TWITTER) {
-      const tweets = await this.apifyService.getTwitterUserTimeline(
-        handle,
-        {
-          limit,
-          sinceId: context.sinceId,
-        },
-        researchContext,
-      );
-      const filtered = tweets.filter((tweet) => {
-        if (!includeReposts && tweet.isRetweet) {
-          return false;
-        }
-        if (!includeReplies && tweet.inReplyToTweetId) {
-          return false;
-        }
-        return true;
-      });
-      return {
-        handle,
-        platform,
-        posts: filtered.map(
-          (tweet): CollectedSourcePost => ({
-            ...normalizeSourcePostFlags(tweet),
-            authorAvatarUrl: tweet.authorAvatarUrl,
-            authorDisplayName: tweet.authorDisplayName,
-            authorFollowersCount: tweet.authorFollowersCount,
-            authorId: tweet.authorId,
-            authorUsername: tweet.authorUsername,
-            contentType: 'tweet',
-            contentUrl: tweet.authorUsername
-              ? `https://x.com/${tweet.authorUsername}/status/${tweet.id}`
-              : undefined,
-            createdAt: tweet.createdAt,
-            hashtags: tweet.hashtags,
-            id: tweet.id,
-            inReplyToId: tweet.inReplyToTweetId ?? null,
-            isRepost: tweet.isRetweet,
-            metrics: tweet.metrics
-              ? {
-                  comments: tweet.metrics.replies,
-                  likes: tweet.metrics.likes,
-                  shares: tweet.metrics.retweets,
-                }
-              : undefined,
-            platform: SocialSourcePlatform.TWITTER,
-            text: tweet.text,
-          }),
-        ),
-        provider: 'apify',
-      };
-    }
 
     if (platform === SocialSourcePlatform.INSTAGRAM) {
       const posts = await this.apifyService.getInstagramUserPosts(
@@ -325,44 +269,6 @@ export class ApifySocialProvider implements SourceTimelineProvider {
     context: SourceCollectContext,
   ): Promise<SourceCollectResult> {
     const researchContext = this.researchContext(context);
-    if (reference.platform === SocialSourcePlatform.TWITTER) {
-      const tweet = await this.apifyService.getTweetByUrl(
-        reference.url,
-        reference.postId,
-        researchContext,
-      );
-      return {
-        handle: tweet.authorUsername || (reference.authorHandle ?? ''),
-        platform: reference.platform,
-        posts: [
-          {
-            authorAvatarUrl: tweet.authorAvatarUrl,
-            authorDisplayName: tweet.authorDisplayName,
-            authorFollowersCount: tweet.authorFollowersCount,
-            authorId: tweet.authorId,
-            authorUsername: tweet.authorUsername,
-            contentType: 'tweet',
-            contentUrl: reference.url,
-            createdAt: tweet.createdAt,
-            hashtags: tweet.hashtags,
-            id: tweet.id,
-            inReplyToId: tweet.inReplyToTweetId ?? null,
-            isRepost: tweet.isRetweet,
-            metrics: tweet.metrics
-              ? {
-                  comments: tweet.metrics.replies,
-                  likes: tweet.metrics.likes,
-                  shares: tweet.metrics.retweets,
-                }
-              : undefined,
-            platform: SocialSourcePlatform.TWITTER,
-            text: tweet.text,
-          },
-        ],
-        provider: 'apify',
-      };
-    }
-
     if (reference.platform === SocialSourcePlatform.INSTAGRAM) {
       const post = await this.apifyService.getInstagramPostByUrl(
         reference.url,

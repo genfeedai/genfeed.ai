@@ -25,4 +25,52 @@ describe('TwitterReadService', () => {
       data: [{ id: 'user-1' }],
     });
   });
+
+  it('sends since_id to recent search so callers can read only new tweets', async () => {
+    const search = vi.fn().mockResolvedValue({ data: { data: [] } });
+    const mapper = { mapSearchResults: vi.fn().mockReturnValue([]) };
+    const service = new TwitterReadService(
+      { error: vi.fn(), log: vi.fn() } as unknown as LoggerService,
+      mapper as unknown as TwitterResponseMapper,
+      () => ({ v2: { search } }) as unknown as TwitterApi,
+    );
+
+    await service.searchRecentTweets('@creator', {
+      maxResults: 25,
+      sinceId: '1850000000000000000',
+      sortOrder: 'recency',
+    });
+
+    expect(search).toHaveBeenCalledWith(
+      '@creator',
+      expect.objectContaining({
+        max_results: 25,
+        since_id: '1850000000000000000',
+        sort_order: 'recency',
+      }),
+    );
+  });
+
+  it('asks X for the avatar and bio when resolving a user by username', async () => {
+    const get = vi.fn().mockResolvedValue({ data: { id: 'u1' } });
+    const mapped = {
+      description: 'Shipping daily',
+      id: 'u1',
+      profileImageUrl: 'https://pbs.twimg.com/a.jpg',
+      username: 'creator',
+    };
+    const mapper = { mapUser: vi.fn().mockReturnValue(mapped) };
+    const service = new TwitterReadService(
+      { error: vi.fn() } as unknown as LoggerService,
+      mapper as unknown as TwitterResponseMapper,
+      () => ({ v2: { get } }) as unknown as TwitterApi,
+    );
+
+    await expect(service.getUserByUsername('@creator')).resolves.toEqual(
+      mapped,
+    );
+    expect(get).toHaveBeenCalledWith('users/by/username/creator', {
+      'user.fields': 'public_metrics,profile_image_url,description',
+    });
+  });
 });

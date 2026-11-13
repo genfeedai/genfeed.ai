@@ -17,7 +17,6 @@ import type {
   ApifyInstagramPost,
   ApifyNormalizedInstagramComment,
   ApifyNormalizedTikTokComment,
-  ApifyNormalizedTweet,
   ApifyNormalizedYouTubeComment,
   ApifyRedditPost,
   ApifyTikTokVideo,
@@ -33,7 +32,9 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+
+const LEADING_AT_SIGN_PATTERN = /^@/;
 
 /**
  * Unified social content data structure
@@ -75,11 +76,6 @@ export interface FetchContentOptions {
   includeReplies?: boolean;
   /** When true, keep pure retweets. Default false. */
   includeReposts?: boolean;
-  /**
-   * Prefer official X API when available (Following). Falls back to Apify.
-   * Default true for Twitter timelines.
-   */
-  preferOfficialApi?: boolean;
   /** Brand scope for OAuth-first X user token lookup. */
   brandId?: string;
   /**
@@ -100,7 +96,7 @@ export class SocialMonitorService {
     private readonly loggerService: LoggerService,
     private readonly processedTweetsService: ProcessedTweetsService,
     private readonly apifyService: ApifyService,
-    @Optional() private readonly twitterService?: TwitterService,
+    private readonly twitterService: TwitterService,
   ) {}
 
   /**
@@ -384,83 +380,43 @@ export class SocialMonitorService {
   }
 
   /**
-   * Official X API first (conversation search); Apify only as fallback.
+   * Replies in one X conversation through the official API.
    */
   private async getTwitterReplies(
     tweetId: string,
     limit: number,
     options: FetchContentOptions = {},
   ): Promise<SocialContentData[]> {
-    const preferOfficialApi = options.preferOfficialApi !== false;
+    const brandAccessToken = await this.resolveBrandAccessToken(options);
+    const replies = await this.twitterService.getTweetReplies(tweetId, {
+      accessToken: brandAccessToken ?? undefined,
+      maxResults: limit,
+    });
 
-    if (preferOfficialApi && this.twitterService) {
-      let brandAccessToken: string | null = null;
-      if (options.brandId && options.organizationId) {
-        brandAccessToken =
-          await this.twitterService.resolveBrandUserAccessToken(
-            options.organizationId,
-            options.brandId,
-            options.credentialId,
-          );
-      }
-
-      try {
-        const official = await this.twitterService.getTweetReplies(tweetId, {
-          accessToken: brandAccessToken ?? undefined,
-          maxResults: limit,
-        });
-        if (official.length > 0) {
-          this.loggerService.log(
-            `${this.constructorName} getTwitterReplies via official X API`,
-            {
-              count: official.length,
-              source: brandAccessToken ? 'brand-oauth' : 'app-bearer',
-              tweetId,
-            },
-          );
-          return official.map((reply) => ({
-            authorDisplayName: reply.authorName,
-            authorFollowersCount: reply.authorFollowersCount,
-            authorId: reply.authorId ?? '',
-            authorUsername: reply.authorUsername ?? 'unknown',
-            contentType: SocialContentType.TWEET,
-            contentUrl: reply.authorUsername
-              ? `https://x.com/${reply.authorUsername}/status/${reply.id}`
-              : undefined,
-            createdAt: reply.createdAt ?? new Date(),
-            id: reply.id,
-            inReplyToId: reply.inReplyToId ?? tweetId,
-            metrics: reply.metrics,
-            parentContentId: tweetId,
-            platform: ReplyBotPlatform.TWITTER,
-            text: reply.text,
-          }));
-        }
-
-        this.loggerService.log(
-          `${this.constructorName} official X replies empty — falling back to Apify`,
-          { tweetId },
-        );
-      } catch (error: unknown) {
-        this.loggerService.warn(
-          `${this.constructorName} official X replies failed — falling back to Apify`,
-          {
-            error: error instanceof Error ? error.message : 'unknown',
-            source: brandAccessToken ? 'brand-oauth' : 'app-bearer',
-            tweetId,
-          },
-        );
-      }
-    }
-
-    const apifyTweets = await this.apifyService.getTwitterTweetReplies(
-      tweetId,
-      { limit },
+    this.loggerService.log(
+      `${this.constructorName} getTwitterReplies via official X API`,
+      {
+        count: replies.length,
+        source: brandAccessToken ? 'brand-oauth' : 'app-bearer',
+        tweetId,
+      },
     );
-    return this.convertTwitterToSocialContent(apifyTweets).map((item) => ({
-      ...item,
-      parentContentId: item.parentContentId ?? tweetId,
-      inReplyToId: item.inReplyToId ?? tweetId,
+    return replies.map((reply) => ({
+      authorDisplayName: reply.authorName,
+      authorFollowersCount: reply.authorFollowersCount,
+      authorId: reply.authorId ?? '',
+      authorUsername: reply.authorUsername ?? 'unknown',
+      contentType: SocialContentType.TWEET,
+      contentUrl: reply.authorUsername
+        ? `https://x.com/${reply.authorUsername}/status/${reply.id}`
+        : undefined,
+      createdAt: reply.createdAt ?? new Date(),
+      id: reply.id,
+      inReplyToId: reply.inReplyToId ?? tweetId,
+      metrics: reply.metrics,
+      parentContentId: tweetId,
+      platform: ReplyBotPlatform.TWITTER,
+      text: reply.text,
     }));
   }
 
@@ -469,11 +425,11 @@ export class SocialMonitorService {
     limit: number,
     sinceId?: string,
   ): Promise<SocialContentData[]> {
-    const apifyTweets = await this.apifyService.getTwitterMentions(username, {
+    return this.searchTwitter(
+      `@${username.replace(LEADING_AT_SIGN_PATTERN, '')}`,
       limit,
       sinceId,
-    });
-    return this.convertTwitterToSocialContent(apifyTweets);
+    );
   }
 
   private async getTwitterTimeline(
@@ -481,87 +437,64 @@ export class SocialMonitorService {
     limit: number,
     options: FetchContentOptions = {},
   ): Promise<SocialContentData[]> {
-    const includeReplies = Boolean(options.includeReplies);
-    const includeReposts = Boolean(options.includeReposts);
-    const preferOfficialApi = options.preferOfficialApi !== false;
-    const sinceId = options.sinceId;
+    const brandAccessToken = await this.resolveBrandAccessToken(options);
 
-    if (preferOfficialApi && this.twitterService) {
-      let brandAccessToken: string | null = null;
-      if (options.brandId && options.organizationId) {
-        brandAccessToken =
-          await this.twitterService.resolveBrandUserAccessToken(
-            options.organizationId,
-            options.brandId,
-            options.credentialId,
-          );
-      }
+    // Brand-connected X user token first, then the app bearer.
+    const tokenAttempts: Array<string | undefined> = brandAccessToken
+      ? [brandAccessToken, undefined]
+      : [undefined];
 
-      // Prefer brand-connected X user token, then app bearer, then Apify.
-      const tokenAttempts: Array<string | undefined> = brandAccessToken
-        ? [brandAccessToken, undefined]
-        : [undefined];
-
-      for (const accessToken of tokenAttempts) {
-        try {
-          const officialTweets =
-            await this.twitterService.getUserTimelineByUsername(username, {
-              accessToken,
-              excludeReplies: !includeReplies,
-              excludeRetweets: !includeReposts,
-              maxResults: limit,
-              sinceId,
-            });
-          this.loggerService.log(
-            `${this.constructorName} getTwitterTimeline via official X API`,
-            {
-              count: officialTweets.length,
-              source: accessToken ? 'brand-oauth' : 'app-bearer',
-              username,
-            },
-          );
-          return officialTweets.map((tweet) => ({
-            authorDisplayName: tweet.authorName,
-            authorFollowersCount: tweet.authorFollowersCount,
-            authorId: tweet.authorId ?? '',
-            authorUsername: tweet.authorUsername ?? username,
-            contentType: SocialContentType.TWEET,
-            contentUrl: `https://x.com/${tweet.authorUsername ?? username}/status/${tweet.id}`,
-            createdAt: tweet.createdAt ?? new Date(),
-            id: tweet.id,
-            inReplyToId: tweet.inReplyToId ?? undefined,
-            isRepost: tweet.isRetweet,
-            metrics: tweet.metrics,
-            platform: ReplyBotPlatform.TWITTER,
-            text: tweet.text,
-          }));
-        } catch (error: unknown) {
-          this.loggerService.warn(
-            `${this.constructorName} official X timeline failed — trying next source`,
-            {
-              error: (error as Error)?.message,
-              source: accessToken ? 'brand-oauth' : 'app-bearer',
-              username,
-            },
-          );
-        }
+    let lastError: unknown;
+    for (const accessToken of tokenAttempts) {
+      try {
+        const tweets = await this.twitterService.getUserTimelineByUsername(
+          username,
+          {
+            accessToken,
+            excludeReplies: !options.includeReplies,
+            excludeRetweets: !options.includeReposts,
+            maxResults: limit,
+            sinceId: options.sinceId,
+          },
+        );
+        this.loggerService.log(
+          `${this.constructorName} getTwitterTimeline via official X API`,
+          {
+            count: tweets.length,
+            source: accessToken ? 'brand-oauth' : 'app-bearer',
+            username,
+          },
+        );
+        return tweets.map((tweet) => ({
+          authorAvatarUrl: tweet.authorAvatarUrl,
+          authorDisplayName: tweet.authorName,
+          authorFollowersCount: tweet.authorFollowersCount,
+          authorId: tweet.authorId ?? '',
+          authorUsername: tweet.authorUsername ?? username,
+          contentType: SocialContentType.TWEET,
+          contentUrl: `https://x.com/${tweet.authorUsername ?? username}/status/${tweet.id}`,
+          createdAt: tweet.createdAt ?? new Date(),
+          id: tweet.id,
+          inReplyToId: tweet.inReplyToId ?? undefined,
+          isRepost: tweet.isRetweet,
+          metrics: tweet.metrics,
+          platform: ReplyBotPlatform.TWITTER,
+          text: tweet.text,
+        }));
+      } catch (error: unknown) {
+        lastError = error;
+        this.loggerService.warn(
+          `${this.constructorName} official X timeline failed`,
+          {
+            error: error instanceof Error ? error.message : 'unknown',
+            source: accessToken ? 'brand-oauth' : 'app-bearer',
+            username,
+          },
+        );
       }
     }
 
-    const apifyTweets = await this.apifyService.getTwitterUserTimeline(
-      username,
-      { limit, sinceId },
-    );
-    const filtered = apifyTweets.filter((tweet: ApifyNormalizedTweet) => {
-      if (!includeReposts && tweet.isRetweet) {
-        return false;
-      }
-      if (!includeReplies && tweet.inReplyToTweetId) {
-        return false;
-      }
-      return true;
-    });
-    return this.convertTwitterToSocialContent(filtered);
+    throw lastError;
   }
 
   private async searchTwitter(
@@ -569,45 +502,45 @@ export class SocialMonitorService {
     limit: number,
     sinceId?: string,
   ): Promise<SocialContentData[]> {
-    const apifyTweets = await this.apifyService.searchTwitterTweets(query, {
-      limit,
-      sinceId,
-    });
-    return this.convertTwitterToSocialContent(apifyTweets);
+    // X recent search accepts 10-100 results per request.
+    const results = await this.twitterService.searchRecentTweets(
+      `${query} lang:en`,
+      {
+        maxResults: Math.min(Math.max(limit, 10), 100),
+        sinceId,
+        sortOrder: 'recency',
+      },
+    );
+
+    return results.slice(0, limit).map((tweet) => ({
+      authorDisplayName: tweet.authorName,
+      authorId: tweet.authorId ?? tweet.authorUsername,
+      authorUsername: tweet.authorUsername,
+      contentType: SocialContentType.TWEET,
+      contentUrl: `https://x.com/${tweet.authorUsername}/status/${tweet.id}`,
+      createdAt: new Date(tweet.createdAt),
+      id: tweet.id,
+      metrics: {
+        comments: tweet.replies,
+        likes: tweet.likes,
+        shares: tweet.retweets,
+      },
+      platform: ReplyBotPlatform.TWITTER,
+      text: tweet.text,
+    }));
   }
 
-  private convertTwitterToSocialContent(
-    tweets: ApifyNormalizedTweet[],
-  ): SocialContentData[] {
-    return tweets
-      .filter(
-        (tweet): tweet is ApifyNormalizedTweet & { createdAt: Date } =>
-          tweet.createdAt instanceof Date &&
-          Number.isFinite(tweet.createdAt.getTime()),
-      )
-      .map((tweet) => ({
-        authorAvatarUrl: tweet.authorAvatarUrl,
-        authorDisplayName: tweet.authorDisplayName,
-        authorFollowersCount: tweet.authorFollowersCount,
-        authorId: tweet.authorId,
-        authorUsername: tweet.authorUsername,
-        contentType: SocialContentType.TWEET,
-        contentUrl: `https://x.com/${tweet.authorUsername}/status/${tweet.id}`,
-        createdAt: tweet.createdAt,
-        hashtags: tweet.hashtags,
-        id: tweet.id,
-        inReplyToId: tweet.inReplyToTweetId,
-        isRepost: tweet.isRetweet,
-        metrics: tweet.metrics
-          ? {
-              comments: tweet.metrics.replies,
-              likes: tweet.metrics.likes,
-              shares: tweet.metrics.retweets,
-            }
-          : undefined,
-        platform: ReplyBotPlatform.TWITTER,
-        text: tweet.text,
-      }));
+  private resolveBrandAccessToken(
+    options: FetchContentOptions,
+  ): Promise<string | null> {
+    if (!options.brandId || !options.organizationId) {
+      return Promise.resolve(null);
+    }
+    return this.twitterService.resolveBrandUserAccessToken(
+      options.organizationId,
+      options.brandId,
+      options.credentialId,
+    );
   }
 
   private async getInstagramComments(

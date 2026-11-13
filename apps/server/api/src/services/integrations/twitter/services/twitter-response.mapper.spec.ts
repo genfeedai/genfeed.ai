@@ -35,6 +35,7 @@ describe('TwitterResponseMapper', () => {
 
       expect(result).toEqual([
         expect.objectContaining({
+          authorId: 'author-high',
           authorName: 'High',
           authorUsername: 'high',
           engagement: 8,
@@ -91,6 +92,18 @@ describe('TwitterResponseMapper', () => {
         profileImageUrl: 'https://pbs.twimg.com/profile_images/abc_normal.jpg',
         username: 'vincentshipsit',
       });
+    });
+
+    it('maps the bio when the provider sends one', () => {
+      expect(
+        mapper.mapUser({
+          data: {
+            description: 'Shipping daily',
+            id: 'user-3',
+            username: 'creator',
+          },
+        }),
+      ).toMatchObject({ description: 'Shipping daily', id: 'user-3' });
     });
 
     it('returns null or an empty list when provider data is absent', () => {

@@ -4,6 +4,7 @@ import {
   type ScrapedPost,
 } from '@api/collections/content-intelligence/services/creator-scraper.service';
 import type { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import type { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import {
   ContentIntelligencePlatform,
   CreatorAnalysisStatus,
@@ -13,6 +14,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockApifyService = {
   runActor: vi.fn(),
+};
+
+const mockTwitterService = {
+  getUserByUsername: vi.fn(),
+  getUserTimelineByUsername: vi.fn(),
 };
 
 const mockContentIntelligenceService = {
@@ -30,6 +36,7 @@ const mockLogger = {
 function makeService() {
   return new CreatorScraperService(
     mockApifyService as unknown as ApifyService,
+    mockTwitterService as unknown as TwitterService,
     mockContentIntelligenceService as unknown as ContentIntelligenceService,
     mockLogger as unknown as LoggerService,
   );
@@ -315,6 +322,60 @@ describe('CreatorScraperService.scrapeCreator', () => {
     );
   });
 
+  it('reads X creators through the official API and maps profile and posts', async () => {
+    mockContentIntelligenceService.findOne.mockResolvedValue(
+      makeCreator(ContentIntelligencePlatform.TWITTER),
+    );
+    mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
+    mockContentIntelligenceService.updateCreatorProfile.mockResolvedValue(
+      undefined,
+    );
+    mockTwitterService.getUserByUsername.mockResolvedValue({
+      description: 'Shipping daily',
+      followersCount: 4200,
+      id: 'u-1',
+      name: 'Test User',
+      profileImageUrl: 'https://img.com/avatar.jpg',
+      username: 'testuser',
+    });
+    mockTwitterService.getUserTimelineByUsername.mockResolvedValue([
+      {
+        createdAt: new Date('2024-01-15T10:00:00Z'),
+        id: 'tw-1',
+        isRetweet: false,
+        inReplyToId: null,
+        metrics: { comments: 5, likes: 100, shares: 15 },
+        text: 'Launch day #buildinpublic',
+      },
+    ]);
+
+    const result = await service.scrapeCreator(creatorId, organizationId);
+
+    expect(result?.profile).toEqual({
+      avatarUrl: 'https://img.com/avatar.jpg',
+      bio: 'Shipping daily',
+      displayName: 'Test User',
+      followerCount: 4200,
+      followingCount: 0,
+      handle: 'testuser',
+    });
+    expect(result?.posts).toEqual([
+      {
+        comments: 5,
+        engagementRate: 12,
+        hashtags: ['buildinpublic'],
+        id: 'tw-1',
+        likes: 100,
+        publishedAt: new Date('2024-01-15T10:00:00Z'),
+        shares: 15,
+        text: 'Launch day #buildinpublic',
+        url: 'https://twitter.com/testuser/status/tw-1',
+        views: 1000,
+      },
+    ]);
+    expect(mockApifyService.runActor).not.toHaveBeenCalled();
+  });
+
   it('calls apify with correct actor for LinkedIn and returns mapped posts', async () => {
     mockContentIntelligenceService.findOne.mockResolvedValue(
       makeCreator(ContentIntelligencePlatform.LINKEDIN),
@@ -403,13 +464,16 @@ describe('CreatorScraperService.scrapeCreator', () => {
     expect(result?.posts[0].hashtags).toEqual(['dance']);
   });
 
-  it('updates status to FAILED when apify throws', async () => {
+  it('updates status to FAILED when the X API call throws', async () => {
     mockContentIntelligenceService.findOne.mockResolvedValue(
       makeCreator(ContentIntelligencePlatform.TWITTER),
     );
     mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
 
-    mockApifyService.runActor.mockRejectedValue(new Error('Apify down'));
+    mockTwitterService.getUserByUsername.mockRejectedValue(
+      new Error('X API down'),
+    );
+    mockTwitterService.getUserTimelineByUsername.mockResolvedValue([]);
 
     const result = await service.scrapeCreator(creatorId, organizationId);
     expect(result).toBeNull();
@@ -417,7 +481,7 @@ describe('CreatorScraperService.scrapeCreator', () => {
       creatorId,
       organizationId,
       CreatorAnalysisStatus.FAILED,
-      'Apify down',
+      'X API down',
     );
   });
 

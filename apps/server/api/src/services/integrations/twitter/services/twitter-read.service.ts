@@ -25,9 +25,11 @@ interface TwitterApiErrorShape {
 }
 
 export interface TwitterResolvedUser {
+  description?: string;
   followersCount?: number;
   id: string;
   name?: string;
+  profileImageUrl?: string;
   username: string;
 }
 
@@ -44,11 +46,18 @@ export class TwitterReadService {
     options: {
       accessToken?: string;
       maxResults?: number;
+      /** Only tweets newer than this id (X `since_id`). */
+      sinceId?: string;
       sortOrder?: 'relevancy' | 'recency';
     } = {},
   ): Promise<ITwitterSearchResult[]> {
     const url = `TwitterService ${CallerUtil.getCallerName()}`;
-    const { accessToken, maxResults = 10, sortOrder = 'relevancy' } = options;
+    const {
+      accessToken,
+      maxResults = 10,
+      sinceId,
+      sortOrder = 'relevancy',
+    } = options;
     const client = accessToken
       ? new TwitterApi(accessToken)
       : this.resolveClient();
@@ -58,6 +67,7 @@ export class TwitterReadService {
         expansions: 'author_id',
         max_results: maxResults,
         sort_order: sortOrder,
+        ...(sinceId ? { since_id: sinceId } : {}),
         'tweet.fields': 'author_id,created_at,public_metrics,entities',
         'user.fields': 'username,name',
       });
@@ -83,7 +93,7 @@ export class TwitterReadService {
     try {
       const result = (await this.resolveClient().v2.get(
         `users/by/username/${encodeURIComponent(username.replace(LEADING_AT_SIGN_PATTERN, ''))}`,
-        { 'user.fields': 'public_metrics' },
+        { 'user.fields': 'public_metrics,profile_image_url,description' },
       )) as TwitterUserResponse;
       return this.responseMapper.mapUser(result);
     } catch (error: unknown) {
