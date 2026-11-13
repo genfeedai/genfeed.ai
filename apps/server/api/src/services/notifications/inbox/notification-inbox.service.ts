@@ -632,10 +632,16 @@ export class NotificationInboxService {
   async count(organizationId: string, userId: string) {
     await this.member(organizationId, userId);
     await this.settleResolvedApprovalAlerts(organizationId, userId);
+    // member() above already proved the recipient and organization are active,
+    // so the count skips the user, organization and membership joins that
+    // scope() repeats for history and mutations.
     const unreadCount = await this.prisma.notificationInboxItem.count({
       where: scopedWhere(organizationId, {
-        ...this.scope(organizationId, userId),
+        organizationId,
+        userId,
+        isDeleted: false,
         readAt: null,
+        event: { organizationId, isDeleted: false },
       }),
     });
     return { id: organizationId, unreadCount };

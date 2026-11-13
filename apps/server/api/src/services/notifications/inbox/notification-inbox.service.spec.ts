@@ -94,6 +94,22 @@ describe('NotificationInboxService', () => {
       }),
     });
   });
+  it('returns the unread count without re-joining the user and organization', async () => {
+    const { service, prisma } = await setup();
+    prisma.notificationInboxItem.count.mockResolvedValue(7);
+    await expect(service.count('org', 'recipient')).resolves.toEqual({
+      id: 'org',
+      unreadCount: 7,
+    });
+    const { where } = prisma.notificationInboxItem.count.mock.calls[0][0];
+    expect(where).toEqual({
+      organizationId: 'org',
+      userId: 'recipient',
+      isDeleted: false,
+      readAt: null,
+      event: { organizationId: 'org', isDeleted: false },
+    });
+  });
   it('rejects malformed, oversized, and non-string cursors', async () => {
     const { service } = await setup();
     for (const cursor of [
