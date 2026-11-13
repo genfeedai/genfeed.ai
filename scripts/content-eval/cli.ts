@@ -66,6 +66,13 @@ function readEnum<TValue extends string>(
   return match;
 }
 
+/** Suites whose report carries the noise section. */
+const REPEATABLE_SUITES: readonly string[] = [
+  'ladder',
+  'harness-ab',
+  'skill-ab',
+];
+
 export function parseCliArgs(argv: string[]): ContentEvalCliArgs {
   // Checked first: an uncapped run is refused before anything else is read.
   const maxCredits = readNumber(
@@ -107,9 +114,9 @@ export function parseCliArgs(argv: string[]): ContentEvalCliArgs {
     requireFlag(argv, 'suite', SUITE_NAMES.join('|')),
     SUITE_NAMES,
   );
-  if (repeats > 1 && suite !== 'ladder' && suite !== 'harness-ab') {
+  if (repeats > 1 && !REPEATABLE_SUITES.includes(suite)) {
     throw new UsageError(
-      '--repeats above 1 is only valid with --suite=ladder or --suite=harness-ab',
+      `--repeats above 1 is only valid with ${REPEATABLE_SUITES.map((name) => `--suite=${name}`).join(', ')}`,
     );
   }
 
