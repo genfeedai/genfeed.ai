@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { preloadButtonTooltip } from '@ui/primitives/button-tooltip';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import ArticleContent from './article-content';
 
 const copyToClipboard = vi.fn<(value: string) => Promise<boolean>>();
@@ -9,6 +10,12 @@ vi.mock('@services/core/clipboard.service', () => ({
     getInstance: () => ({ copyToClipboard }),
   },
 }));
+
+// Without a TooltipProvider the hint loads after mount and remounts the button,
+// so a click on the node found first would hit a stale element.
+beforeAll(async () => {
+  await preloadButtonTooltip();
+});
 
 beforeEach(() => {
   copyToClipboard.mockReset();
