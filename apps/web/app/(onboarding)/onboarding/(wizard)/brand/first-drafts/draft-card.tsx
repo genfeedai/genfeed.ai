@@ -15,7 +15,11 @@ export default function DraftCard({
   isSaving,
   isMediaGenerating,
   onRetryMedia,
+  onRewrite,
   onVerdict,
+  rewritesRemaining = 0,
+  isRewriting = false,
+  isRewriteBusy = false,
   verdict,
 }: FirstDraftCardProps) {
   const t = useTranslations('pages.onboarding.firstDrafts');
@@ -31,7 +35,10 @@ export default function DraftCard({
   const status = images.find((image) => image.status !== 'ready')?.status;
   return (
     <div data-testid={`onboarding-draft-${draft.platform}`} className="min-w-0">
-      <div className={rejected ? 'opacity-35' : undefined}>
+      <div
+        className={rejected || isRewriting ? 'opacity-35' : undefined}
+        aria-busy={isRewriting}
+      >
         <PlatformPreview
           target={{
             id: draft.postId,
@@ -87,6 +94,22 @@ export default function DraftCard({
               label={t('verdict.undo')}
               onClick={() => onVerdict(draft, null)}
             />
+            {onRewrite && rewritesRemaining > 0 ? (
+              <Button
+                size={ButtonSize.SM}
+                isDisabled={isSaving || isRewriteBusy}
+                isLoading={isRewriting}
+                variant={ButtonVariant.SECONDARY}
+                label={t(
+                  isRewriting ? 'review.writingAnother' : 'review.writeAnother',
+                )}
+                onClick={() => onRewrite(draft.platform)}
+              />
+            ) : onRewrite ? (
+              <span role="status" className="text-xs text-muted-foreground">
+                {t('review.lastRewrite')}
+              </span>
+            ) : null}
           </>
         ) : (
           <>

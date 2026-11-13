@@ -49,7 +49,11 @@ describe('OnboardingFirstDraftsService', () => {
   const postGeneration = { generateDraftText: vi.fn() };
   const signupPrefill = { scanBrandUrl: vi.fn() };
   const gateway = { generateImage: vi.fn() };
-  const runs = { execute: vi.fn(), retryMedia: vi.fn() };
+  const runs = {
+    execute: vi.fn(),
+    retryMedia: vi.fn(),
+    rewriteDraft: vi.fn(),
+  };
   const voiceCorpus = { buildCorpus: vi.fn() };
 
   let service: OnboardingFirstDraftsService;
@@ -150,6 +154,69 @@ describe('OnboardingFirstDraftsService', () => {
         reason: 'invalid_url',
         status: 'failed',
       });
+    });
+  });
+
+  describe('rewriteDraft', () => {
+    const previous = {
+      isProvisional: false,
+      platform: 'linkedin' as const,
+      postId: 'post_old',
+      receiptId: 'receipt_old',
+      requestKey: 'key_old',
+      text: 'The post we wrote the first time',
+    };
+
+    it('writes a different post for that channel, linked to the one it replaces', async () => {
+      runs.rewriteDraft.mockImplementation(
+        async (_user, _brand, _platform, write) => write(previous),
+      );
+
+      const draft = await service.rewriteDraft(user, 'brand_1', 'linkedin');
+
+      expect(draft).toMatchObject({
+        platform: 'linkedin',
+        postId: 'post_1',
+        receiptId: 'receipt_1',
+        text: 'linkedin draft',
+      });
+      const [input, , , options] =
+        postGeneration.generateDraftText.mock.calls[0];
+      expect(input.platform).toBe('linkedin');
+      expect(input.prompt).toContain('Write a LinkedIn post');
+      expect(input.prompt).toContain(
+        'Earlier draft:\nThe post we wrote the first time',
+      );
+      expect(options).toMatchObject({
+        parentRequestId: 'key_old',
+        surface: 'onboarding',
+      });
+      expect(postGeneration.generateDraftText).toHaveBeenCalledTimes(1);
+    });
+
+    it('writes a channel that had no post without an earlier draft to avoid', async () => {
+      runs.rewriteDraft.mockImplementation(
+        async (_user, _brand, _platform, write) => write(undefined),
+      );
+
+      await service.rewriteDraft(user, 'brand_1', 'twitter');
+
+      const [input, , , options] =
+        postGeneration.generateDraftText.mock.calls[0];
+      expect(input.prompt).not.toContain('Earlier draft');
+      expect(options.parentRequestId).toBeUndefined();
+    });
+
+    it('stops with not found when the brand is gone', async () => {
+      brandsService.findOne.mockResolvedValue(null);
+      runs.rewriteDraft.mockImplementation(
+        async (_user, _brand, _platform, write) => write(previous),
+      );
+
+      await expect(
+        service.rewriteDraft(user, 'brand_1', 'linkedin'),
+      ).rejects.toThrow('Brand');
+      expect(postGeneration.generateDraftText).not.toHaveBeenCalled();
     });
   });
 

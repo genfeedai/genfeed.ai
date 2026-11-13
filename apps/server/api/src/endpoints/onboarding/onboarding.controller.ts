@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-access.helpers';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
+  OnboardingDraftRewriteDto,
   OnboardingDraftsDto,
   OnboardingScanDto,
 } from '@api/endpoints/onboarding/dto/onboarding-first-drafts.dto';
@@ -198,5 +199,22 @@ export class OnboardingController {
   ) {
     await verifyBrandAccess(this.brandsService, brandId, user);
     return this.firstDraftsService.retryMedia(user, brandId);
+  }
+
+  /** Write one channel's post again. */
+  @Post('brands/:brandId/drafts/redo')
+  @HttpCode(200)
+  @ApiOperation({
+    description:
+      "Writes one channel's post again as a different post. The other posts and all media are kept. Each channel has a small number of rewrites per run, and nothing is published.",
+    summary: 'Write another onboarding post',
+  })
+  async rewriteDraft(
+    @CurrentUser() user: User,
+    @Param('brandId') brandId: string,
+    @Body() dto: OnboardingDraftRewriteDto,
+  ) {
+    await verifyBrandAccess(this.brandsService, brandId, user);
+    return this.firstDraftsService.rewriteDraft(user, brandId, dto.platform);
   }
 }

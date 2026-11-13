@@ -215,6 +215,13 @@ export const ONBOARDING_MAX_DRAFT_ROUNDS = 2;
 export const ONBOARDING_MAX_MEDIA_RETRIES = 2;
 
 /**
+ * Times one channel's post may be written again with "Write another". Each
+ * attempt is one text generation through the normal billing gateway, so the
+ * count bounds what a run can spend per channel.
+ */
+export const ONBOARDING_MAX_DRAFT_REWRITES = 2;
+
+/**
  * The platform images derived from the master campaign image, cheapest to show
  * first. Each one is a single image generation, so a short wallet stops the
  * campaign part-way instead of failing it.

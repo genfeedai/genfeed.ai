@@ -6,7 +6,10 @@ import {
   APP_ROUTES,
   ONBOARDING_DRAFT_PLATFORMS,
 } from '@genfeedai/contracts/constants';
-import type { ConnectGenfeedClient } from '@genfeedai/contracts/interfaces';
+import type {
+  ConnectGenfeedClient,
+  OnboardingDraftPlatform,
+} from '@genfeedai/contracts/interfaces';
 import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -31,11 +34,17 @@ import ChannelsStep from './channels-step';
 import ConnectPlatforms from './connect-platforms';
 import ContextForm from './context-form';
 import DraftCard from './draft-card';
+import MissingDraftCard from './missing-draft-card';
 import PromptStep from './prompt-step';
 import UnderstoodLine from './understood-line';
 import { useFirstDrafts } from './use-first-drafts';
 
-const GALLERY_ORDER = ['instagram', 'tiktok', 'twitter', 'linkedin'];
+const GALLERY_ORDER: readonly OnboardingDraftPlatform[] = [
+  'instagram',
+  'tiktok',
+  'twitter',
+  'linkedin',
+];
 
 export default function FirstDraftsOnboarding() {
   const t = useTranslations('pages.onboarding.firstDrafts');
@@ -219,7 +228,11 @@ export default function FirstDraftsOnboarding() {
               <div className="mx-auto flex max-w-5xl flex-col gap-6">
                 <UnderstoodLine
                   canRedo={state.canRetry}
-                  isBusy={state.isGenerating || state.isContinuing}
+                  isBusy={
+                    state.isGenerating ||
+                    state.isContinuing ||
+                    Boolean(state.rewritingPlatform)
+                  }
                   maxRounds={state.maxRounds}
                   onNotRight={state.onNotRight}
                   round={state.round}
@@ -284,11 +297,47 @@ export default function FirstDraftsOnboarding() {
                           onRetryMedia={
                             state.canRetryMedia ? state.onRetryMedia : undefined
                           }
+                          isRewriteBusy={
+                            state.isGenerating ||
+                            Boolean(state.rewritingPlatform)
+                          }
+                          isRewriting={
+                            state.rewritingPlatform === draft.platform
+                          }
+                          onRewrite={
+                            state.canRewrite ? state.onRewrite : undefined
+                          }
+                          rewritesRemaining={
+                            state.draftRewritesRemaining[draft.platform]
+                          }
                           onVerdict={state.onVerdict}
                           verdict={state.verdicts[draft.postId]}
                         />
                       </div>
                     ))}
+                  {state.canRewrite && result.drafts.length > 0
+                    ? GALLERY_ORDER.filter(
+                        (platform) =>
+                          !result.drafts.some(
+                            (draft) => draft.platform === platform,
+                          ),
+                      ).map((platform) => (
+                        <div
+                          key={platform}
+                          className="w-[320px] shrink-0 snap-start"
+                        >
+                          <MissingDraftCard
+                            isBusy={Boolean(state.rewritingPlatform)}
+                            isRewriting={state.rewritingPlatform === platform}
+                            onRewrite={state.onRewrite}
+                            platform={platform}
+                            rewritesRemaining={
+                              state.draftRewritesRemaining[platform]
+                            }
+                          />
+                        </div>
+                      ))
+                    : null}
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {t('review.videoWithCredits')}
