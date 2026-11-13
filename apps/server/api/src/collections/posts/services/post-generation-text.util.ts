@@ -26,6 +26,31 @@ export function isValidPostLength(
 }
 
 /**
+ * The model talking to the user instead of writing the post: a refusal, a
+ * request for more information, or a lead-in such as "Here is your post".
+ * Anchored to the start of the reply and kept narrow, so a post that opens
+ * with "I can't help but..." or "Here's the thing" is left alone.
+ */
+const ASSISTANT_REPLY_PATTERN =
+  /^(?:i(?:'m| am) (?:sorry,? but|unable|not able)|i (?:cannot|can't|can not|couldn't|could not) (?:write|create|generate|produce|provide|assist|comply|fulfil)|i (?:need|would need) (?:more|some more|additional|further|a bit more)\b|i (?:don't|do not) have (?:enough|access|any|the) (?:information|details|context|brand|data|access|specifics|offering)|sorry,|unfortunately,|(?:could|can) you (?:please )?(?:provide|share|tell|clarify|give)\b|please (?:provide|share|tell me|clarify)\b|as an ai\b|(?:sure|certainly|absolutely|of course)[,!.:]|here(?:'s| is) (?:your|an?|the) (?:\w+ ){0,2}(?:post|draft|tweet|caption)\b)/i;
+
+/**
+ * True when a draft is not a usable post: shorter than `minCharacters` (after
+ * markup is removed) or a reply addressed to the user. A real post is never
+ * rejected by the pattern alone, so `minCharacters` stays opt-in per caller.
+ */
+export function isUnusableDraftText(
+  postHtml: string,
+  minCharacters = 0,
+): boolean {
+  const text = stripHtmlTags(postHtml).replace(WHITESPACE_RUNS_PATTERN, ' ');
+  const trimmed = text.trim();
+  return (
+    trimmed.length < minCharacters || ASSISTANT_REPLY_PATTERN.test(trimmed)
+  );
+}
+
+/**
  * Parse model output without collapsing invalid positions. Thread generation
  * uses this so a rejected middle reply cannot shift later replies to the wrong
  * child post.

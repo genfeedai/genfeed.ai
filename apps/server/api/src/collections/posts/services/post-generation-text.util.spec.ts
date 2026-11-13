@@ -1,5 +1,6 @@
 import {
   extractPostGenerationLabel,
+  isUnusableDraftText,
   parsePostGenerationSlots,
 } from '@api/collections/posts/services/post-generation-text.util';
 
@@ -60,5 +61,38 @@ describe('post generation text parsing', () => {
     expect(extractPostGenerationLabel('word '.repeat(20), 20)).toBe(
       'word word word word...',
     );
+  });
+});
+
+describe('isUnusableDraftText', () => {
+  it.each([
+    "I need more information about the brand's offering before I can write this.",
+    "I'm sorry, but I can't write a post without knowing what the brand sells.",
+    'Could you please share what the brand sells?',
+    "Here's your post: Cast iron lasts a lifetime.",
+    'Sure! Here is a draft for you.',
+    'Unfortunately, the brand profile is empty.',
+  ])('rejects a reply addressed to the user: %s', (text) => {
+    expect(isUnusableDraftText(text)).toBe(true);
+  });
+
+  it.each([
+    "I can't help but love a pan that outlives its owner.",
+    "Here's the thing about cast iron: it gets better with every meal.",
+    'We need more hands in the kitchen, so we built a pan for two.',
+    'Cast iron pans, 25% off until Friday.',
+  ])('keeps a real post that only sounds similar: %s', (text) => {
+    expect(isUnusableDraftText(text)).toBe(false);
+  });
+
+  it('rejects a draft shorter than the minimum, ignoring markup and spacing', () => {
+    expect(isUnusableDraftText('<p>Cast   iron</p>', 20)).toBe(true);
+    expect(
+      isUnusableDraftText('Cast iron pans that last a lifetime.', 20),
+    ).toBe(false);
+  });
+
+  it('has no minimum unless the caller sets one', () => {
+    expect(isUnusableDraftText('gm')).toBe(false);
   });
 });

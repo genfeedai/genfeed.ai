@@ -29,6 +29,7 @@ interface ExtractedBrandVoice {
   hashtags?: string[];
   messagingPillars?: string[];
   goals?: string[];
+  offers?: string[];
   prompting?: IBrandAgentPrompting;
   sampleOutput?: string;
   taglines?: string[];
@@ -244,6 +245,9 @@ export class BrandDataMapper {
       ? {
           ...(brandAgentConfig.strategy ?? {}),
           goals: extractedVoice.goals ?? brandAgentConfig.strategy?.goals ?? [],
+          ...(extractedVoice.offers?.length
+            ? { offers: extractedVoice.offers }
+            : {}),
           topics:
             extractedVoice.topics ??
             extractedVoice.messagingPillars ??

@@ -368,6 +368,41 @@ describe('BrandDataMapper', () => {
     });
   });
 
+  describe('mergeExtractedVoice offers', () => {
+    const analysis = {
+      audience: 'founders',
+      hashtags: [],
+      taglines: [],
+      tone: 'direct',
+      values: [],
+      voice: 'concise',
+    };
+    const extract = (brandVoice: Record<string, unknown>) =>
+      ({
+        brandVoice,
+        scrapedAt: new Date(),
+        sourceUrl: 'https://acme.com',
+      }) as IExtractedBrandData;
+
+    it('saves the offers the page names', () => {
+      const result = mapper.mergeExtractedVoice(
+        { strategy: { platforms: ['linkedin'] } },
+        extract({ ...analysis, offers: ['Anvils', 'Anvil repair'] }),
+      );
+
+      expect(result.strategy?.offers).toEqual(['Anvils', 'Anvil repair']);
+    });
+
+    it('keeps the saved offers when the page names none', () => {
+      const result = mapper.mergeExtractedVoice(
+        { strategy: { offers: ['Anvils'] } },
+        extract({ ...analysis, offers: [] }),
+      );
+
+      expect(result.strategy?.offers).toEqual(['Anvils']);
+    });
+  });
+
   describe('mergeVoiceOverrides', () => {
     it('applies only the provided overrides on top of the existing voice', () => {
       const config = {
