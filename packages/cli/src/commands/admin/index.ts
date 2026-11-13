@@ -1,12 +1,12 @@
 import { readFile } from 'node:fs/promises';
-import type {
-  IOnboardingFunnelBucket,
-  OnboardingFunnelStep,
-} from '@genfeedai/contracts/interfaces';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
 import { clearAdminTokenCache, revokeAdminSession, verifyAdminSession } from '@/api/admin-client';
+import {
+  createOnboardingDraftsCommand,
+  createOnboardingFunnelCommand,
+} from '@/commands/admin/onboarding';
 import { waitForAdminSession } from '@/commands/login';
 import { getAdminSession, getApiUrl, getLoginEndpoints, setAdminSession } from '@/config/store';
 import {
@@ -33,7 +33,6 @@ import {
   prepareWarmupAccount,
   readHarnessActivation,
   readNotificationStatus,
-  readOnboardingFunnel,
   readOrganizationAppsReport,
   readOrganizationBrand,
   readOrganizationCreditLedger,
@@ -527,41 +526,6 @@ async function runOrganizationsList(options: {
       } members · created ${organization.createdAt.slice(0, 10)}`
     );
   }
-}
-
-const FUNNEL_STEP_LABELS: Record<OnboardingFunnelStep, string> = {
-  accountConnected: 'social account connected',
-  brandScanned: 'brand scanned',
-  completed: 'onboarding completed',
-  draftsReady: 'drafts ready',
-  draftsStarted: 'drafts started',
-  published: 'post published',
-  websiteLink: 'website saved',
-};
-
-function formatFunnelBucket(label: string, bucket: IOnboardingFunnelBucket): void {
-  print(chalk.bold(`${label}: ${bucket.total} organizations`));
-  for (const [step, stepLabel] of Object.entries(FUNNEL_STEP_LABELS)) {
-    const count = bucket.steps[step as OnboardingFunnelStep];
-    const share = bucket.total > 0 ? Math.round((count / bucket.total) * 100) : 0;
-    print(`  ${stepLabel.padEnd(22)} ${String(count).padStart(4)}  ${chalk.dim(`${share}%`)}`);
-  }
-}
-
-async function runOnboardingFunnel(options: { days: number; isJson: boolean }): Promise<void> {
-  const report = await readOnboardingFunnel(options.days);
-  if (options.isJson) {
-    printJson(report);
-    return;
-  }
-
-  print(formatHeader(`Onboarding funnel, last ${report.windowDays} days\n`));
-  formatFunnelBucket('All', report.totals);
-  for (const emailClass of ['personal', 'company', 'unknown'] as const) {
-    print('');
-    formatFunnelBucket(emailClass, report.byEmailClass[emailClass]);
-  }
-  print(chalk.dim('\nInternal organizations are not excluded; use --json and filter by id.'));
 }
 
 function formatCounts(counts: Record<string, number>): string {
@@ -1456,23 +1420,8 @@ export const adminCommand = new Command('admin')
         })
     )
   )
-  .addCommand(
-    new Command('onboarding-funnel')
-      .description('Show how recent organizations moved through onboarding, by owner email class')
-      .option('--days <days>', 'How many days back to include (1-90)', '30')
-      .option('--json', 'Output as JSON')
-      .action(async (options: { days: string }, command: Command) => {
-        try {
-          const days = Number.parseInt(options.days, 10);
-          if (!Number.isInteger(days) || days < 1 || days > 90) {
-            throw new GenfeedError('--days must be a whole number from 1 to 90');
-          }
-          await runOnboardingFunnel({ days, isJson: wantsJson(command) });
-        } catch (error) {
-          handleError(error);
-        }
-      })
-  )
+  .addCommand(createOnboardingFunnelCommand())
+  .addCommand(createOnboardingDraftsCommand())
   .addCommand(
     new Command('publish-pipeline')
       .description(

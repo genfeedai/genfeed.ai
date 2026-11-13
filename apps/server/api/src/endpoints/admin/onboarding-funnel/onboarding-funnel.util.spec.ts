@@ -1,5 +1,6 @@
 import {
   readDraftsStatus,
+  readOnboardingDrafts,
   readPrefillMarker,
   summarizeOnboardingFunnel,
 } from '@api/endpoints/admin/onboarding-funnel/onboarding-funnel.util';
@@ -97,5 +98,42 @@ describe('summarizeOnboardingFunnel', () => {
     expect(byEmailClass.personal.steps.draftsReady).toBe(1);
     expect(byEmailClass.company.steps.completed).toBe(1);
     expect(byEmailClass.unknown.total).toBe(0);
+  });
+});
+
+describe('readOnboardingDrafts', () => {
+  it('reads the saved posts and whether a master image exists', () => {
+    expect(
+      readOnboardingDrafts({
+        result: {
+          drafts: [
+            { platform: 'twitter', receiptId: 'r1', text: 'First post' },
+            { platform: 'linkedin', receiptId: 'r2', text: 'Second post' },
+          ],
+          imageUrl: 'https://cdn.example.com/a.png',
+        },
+      }),
+    ).toEqual({
+      drafts: [
+        { platform: 'twitter', receiptId: 'r1', text: 'First post' },
+        { platform: 'linkedin', receiptId: 'r2', text: 'Second post' },
+      ],
+      hasMasterImage: true,
+    });
+  });
+
+  it('skips entries that are not saved drafts and reads a missing result as empty', () => {
+    expect(
+      readOnboardingDrafts({
+        result: {
+          drafts: [{ platform: 'twitter' }, 'nope', null],
+          imageUrl: null,
+        },
+      }),
+    ).toEqual({ drafts: [], hasMasterImage: false });
+    expect(readOnboardingDrafts(null)).toEqual({
+      drafts: [],
+      hasMasterImage: false,
+    });
   });
 });

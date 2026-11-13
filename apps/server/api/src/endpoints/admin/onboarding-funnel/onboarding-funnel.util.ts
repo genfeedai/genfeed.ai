@@ -82,3 +82,42 @@ export function summarizeOnboardingFunnel(
 
   return { byEmailClass, totals };
 }
+
+/** One saved first-run post as the onboarding content run keeps it. */
+export interface IReadOnboardingDraft {
+  platform: string;
+  receiptId: string;
+  text: string;
+}
+
+/**
+ * The posts and master image saved on an onboarding content run's config.
+ * Entries that do not look like a saved draft are skipped, so a run written by
+ * an older version still reads.
+ */
+export function readOnboardingDrafts(runConfig: unknown): {
+  drafts: IReadOnboardingDraft[];
+  hasMasterImage: boolean;
+} {
+  const result = isRecord(runConfig) ? runConfig.result : undefined;
+  if (!isRecord(result)) return { drafts: [], hasMasterImage: false };
+  const drafts: IReadOnboardingDraft[] = [];
+  for (const entry of Array.isArray(result.drafts) ? result.drafts : []) {
+    if (
+      isRecord(entry) &&
+      typeof entry.platform === 'string' &&
+      typeof entry.receiptId === 'string' &&
+      typeof entry.text === 'string'
+    )
+      drafts.push({
+        platform: entry.platform,
+        receiptId: entry.receiptId,
+        text: entry.text,
+      });
+  }
+  return {
+    drafts,
+    hasMasterImage:
+      typeof result.imageUrl === 'string' && result.imageUrl.length > 0,
+  };
+}

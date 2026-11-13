@@ -236,9 +236,9 @@ export class BrandedGenerationFeedbackService {
     receiptId: string,
   ): Promise<void> {
     this.assertMember(actor);
-    await this.transaction(async (tx) => {
+    const artifactKind = await this.transaction(async (tx) => {
       await this.access.assertBrand(actor, tx);
-      await this.receipt(tx, actor, receiptId);
+      const output = await this.receipt(tx, actor, receiptId);
       await tx.brandedGenerationFeedback.updateMany({
         data: { isDeleted: true },
         where: scopedWhere(actor.organizationId, {
@@ -247,8 +247,13 @@ export class BrandedGenerationFeedbackService {
           receiptId,
         }),
       });
+      return output.artifact?.kind ?? null;
     });
-    this.captureRating(actor, { rating: 'withdrawn' });
+    this.captureRating(actor, {
+      artifactKind,
+      rating: 'withdrawn',
+      reasonCount: 0,
+    });
   }
 
   /** How the brand's recent generations were rated, by receipt mode and reason. */

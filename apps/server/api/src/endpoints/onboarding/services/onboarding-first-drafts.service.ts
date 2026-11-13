@@ -239,33 +239,40 @@ export class OnboardingFirstDraftsService {
     brandId: string,
     dto: OnboardingDraftsDto,
   ): Promise<IOnboardingFirstDraftsResult> {
-    return this.runs.execute(
-      user,
-      brandId,
-      dto.previousRequestKey,
-      async (save) => {
-        const options = {
-          hasContext: Boolean(dto.context),
-          isRedo: Boolean(dto.previousRequestKey),
-        };
-        try {
-          const result = await this.generateOnce(user, brandId, dto, save);
-          this.captureFunnel(
-            user,
-            ONBOARDING_DRAFTS_GENERATED_EVENT,
-            buildDraftsFunnelProperties(result, options),
-          );
-          return result;
-        } catch (error: unknown) {
-          this.captureFunnel(
-            user,
-            ONBOARDING_DRAFTS_GENERATED_EVENT,
-            buildDraftsFunnelProperties(null, options),
-          );
-          throw error;
-        }
-      },
-    );
+    const options = {
+      hasContext: Boolean(dto.context),
+      isRedo: Boolean(dto.previousRequestKey),
+    };
+    // A replayed run or a reservation conflict never calls the generator, so
+    // it reports nothing; a run that did generate is reported once, after its
+    // final save, as ready, partial, unavailable or failed.
+    let didGenerate = false;
+    try {
+      const result = await this.runs.execute(
+        user,
+        brandId,
+        dto.previousRequestKey,
+        (save) => {
+          didGenerate = true;
+          return this.generateOnce(user, brandId, dto, save);
+        },
+      );
+      if (didGenerate)
+        this.captureFunnel(
+          user,
+          ONBOARDING_DRAFTS_GENERATED_EVENT,
+          buildDraftsFunnelProperties(result, options),
+        );
+      return result;
+    } catch (error: unknown) {
+      if (didGenerate)
+        this.captureFunnel(
+          user,
+          ONBOARDING_DRAFTS_GENERATED_EVENT,
+          buildDraftsFunnelProperties(null, options),
+        );
+      throw error;
+    }
   }
 
   private async generateOnce(

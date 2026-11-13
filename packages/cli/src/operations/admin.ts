@@ -6,6 +6,7 @@ import type {
   BrandKitFieldKey,
   IAdminPartnerApiKeyResult,
   IHarnessActivationReport,
+  IOnboardingDraftsReview,
   IOnboardingFunnelReport,
   IOrganizationAppsReport,
   IOrganizationsReport,
@@ -489,6 +490,15 @@ export async function readTrainingsReport(): Promise<AdminTrainingsReport> {
 export async function readOnboardingFunnel(days: number): Promise<IOnboardingFunnelReport> {
   return flattenSingle<IOnboardingFunnelReport>(
     await adminGet<JsonApiDocument>(`/admin/onboarding-funnel?days=${days}`)
+  );
+}
+
+export async function readOnboardingDrafts(
+  days: number,
+  limit: number
+): Promise<IOnboardingDraftsReview> {
+  return flattenSingle<IOnboardingDraftsReview>(
+    await adminGet<JsonApiDocument>(`/admin/onboarding-funnel/drafts?days=${days}&limit=${limit}`)
   );
 }
 
