@@ -12,6 +12,7 @@ export const QA_SURFACES = [
   'agent-chat',
   'articles',
   'newsletters',
+  'onboarding',
   'publishing',
   'reply-bot',
   'studio',
@@ -60,6 +61,66 @@ export const qaReceiptSchema = z
   );
 export type QaReceipt = z.infer<typeof qaReceiptSchema>;
 
+export const ONBOARDING_SCENARIOS = [
+  'work-email-real-site',
+  'personal-email-pasted-link',
+  'no-link',
+  'scan-failed-context-form',
+] as const;
+export type OnboardingScenario = (typeof ONBOARDING_SCENARIOS)[number];
+
+/**
+ * What the runner read off the onboarding screens for the deterministic
+ * checks. Scanned page text is third-party content: keep captures off repo.
+ */
+export const qaOnboardingEvidenceSchema = z.object({
+  /** Brand name as saved by the scan. */
+  brandName: z.string().min(1).optional(),
+  /** Text of the X draft, for the platform drafts' rewrite check. */
+  xDraft: z.string().min(1).optional(),
+  /** Text the scan fetched; absent when the context form was used. */
+  pageText: z.string().min(1).optional(),
+  /** Offers, facts and the like the product saved for the brand. */
+  savedFacts: z.array(z.string().min(1)).default([]),
+  scenario: z.enum(ONBOARDING_SCENARIOS),
+  /** The over-length draft the shorten retry was given. */
+  shortenInput: z.string().min(1).optional(),
+  voice: z
+    .object({
+      audience: z.string().min(1),
+      style: z.string().min(1),
+      tone: z.string().min(1),
+    })
+    .optional(),
+});
+export type QaOnboardingEvidence = z.infer<typeof qaOnboardingEvidenceSchema>;
+
+export const QA_ONBOARDING_OUTPUTS = [
+  'brand-scan',
+  'voice-analysis',
+  'x-draft',
+  'instagram-draft',
+  'tiktok-draft',
+  'linkedin-draft',
+  'shorten-retry',
+  'master-image',
+  'platform-images',
+] as const;
+export type QaOnboardingOutput = (typeof QA_ONBOARDING_OUTPUTS)[number];
+
+export const qaOnboardingCardSchema = z.object({
+  contentKind: z.string().regex(/^onboarding-[a-z0-9-]+$/),
+  id: z.string().regex(/^qa-onboarding-[a-z0-9-]+$/),
+  medium: z.enum(['text', 'image']),
+  output: z.enum(QA_ONBOARDING_OUTPUTS),
+  publish: z.literal(false),
+  /** Onboarding drafts are provisional, so no approved revision is required. */
+  requiredProof: z.array(z.enum(QA_PROOFS)),
+  scenarios: z.array(z.enum(ONBOARDING_SCENARIOS)).min(1),
+  surface: z.literal('onboarding'),
+});
+export type QaOnboardingCard = z.infer<typeof qaOnboardingCardSchema>;
+
 export const qaCaptureSchema = z
   .object({
     assetId: z.string().min(1).nullable(),
@@ -69,6 +130,8 @@ export const qaCaptureSchema = z
     creditsCharged: z.number().nonnegative(),
     /** Sanitized issue link for a deterministic defect; never a payload. */
     defectIssue: z.string().min(1).nullable().default(null),
+    /** Onboarding cards only: what the checks read off the screens. */
+    onboarding: qaOnboardingEvidenceSchema.optional(),
     model: z.object({
       model: z.string().min(1),
       provider: z.string().min(1),
@@ -90,7 +153,11 @@ export const qaCaptureSchema = z
         path: ['blockedReason'],
       });
     }
-    if (capture.outcome === 'generated' && capture.assetId === null) {
+    if (
+      capture.outcome === 'generated' &&
+      capture.assetId === null &&
+      capture.onboarding === undefined
+    ) {
       ctx.addIssue({
         code: 'custom',
         message: 'a generated capture needs assetId',
@@ -121,6 +188,7 @@ export const qaResultSchema = z.object({
   medium: z.enum(['text', 'image']),
   runId: z.string(),
   runner: z.enum(QA_RUNNERS),
+  scenario: z.enum(ONBOARDING_SCENARIOS).nullable().default(null),
   status: z.enum(QA_STATUSES),
 });
 export type QaResult = z.infer<typeof qaResultSchema>;

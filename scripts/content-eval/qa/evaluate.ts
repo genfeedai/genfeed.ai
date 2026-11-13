@@ -7,8 +7,12 @@
 import type { DeterministicCheck, FixtureRow } from '../rows';
 import { hasPassedAll, runDeterministicChecks } from '../scorers/deterministic';
 import type { QaCapture, QaCard, QaProof, QaResult } from './contracts';
+import { checkIsPost } from './post-shape';
 
-function proofCheck(proof: QaProof, capture: QaCapture): DeterministicCheck {
+export function proofCheck(
+  proof: QaProof,
+  capture: QaCapture,
+): DeterministicCheck {
   const receipt = capture.receipt;
   switch (proof) {
     case 'receipt':
@@ -55,7 +59,10 @@ export function evaluateCapture(
     card.medium === 'text' &&
     row !== null &&
     capture.output !== null
-      ? runDeterministicChecks(capture.output, row)
+      ? [
+          checkIsPost(capture.output, { contentKind: card.contentKind }),
+          ...runDeterministicChecks(capture.output, row),
+        ]
       : null;
 
   let status: QaResult['status'];
@@ -84,6 +91,7 @@ export function evaluateCapture(
     medium: card.medium,
     runId: capture.runId,
     runner: capture.runner,
+    scenario: null,
     status,
   };
 }

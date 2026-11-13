@@ -79,6 +79,19 @@ describe('evaluateCapture', () => {
     ).toBe(false);
   });
 
+  it('fails a nine-token output that would otherwise pass every fixture check', () => {
+    const result = evaluateCapture(
+      socialCard,
+      capture({ output: 'Shop KELDER.' }),
+      socialRow,
+    );
+    expect(result.status).toBe('fail');
+    expect(
+      result.deterministicChecks?.find((check) => check.id === 'is-a-post')
+        ?.passed,
+    ).toBe(false);
+  });
+
   it('records a blocked run as blocked with no checks', () => {
     const result = evaluateCapture(
       socialCard,

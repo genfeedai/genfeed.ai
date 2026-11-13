@@ -21,10 +21,12 @@ import {
 } from './cards';
 import { type QaResult, qaCaptureSchema } from './contracts';
 import { evaluateCapture } from './evaluate';
+import { evaluateOnboardingCapture, loadOnboardingCards } from './onboarding';
 import { renderQaSummary, summarizeQaResults } from './summary';
 
 async function main(argv: string[]): Promise<number> {
   const cards = loadQaCards();
+  const onboardingCards = loadOnboardingCards();
   const problems = await findCardProblems(cards);
   if (problems.length > 0) {
     process.stderr.write(`${problems.join('\n')}\n`);
@@ -33,7 +35,9 @@ async function main(argv: string[]): Promise<number> {
 
   const capturesPath = readFlag(argv, 'captures');
   if (capturesPath === undefined) {
-    process.stdout.write(`${cards.length} QA cards match their fixtures.\n`);
+    process.stdout.write(
+      `${cards.length} QA cards match their fixtures; ${onboardingCards.length} onboarding cards loaded.\n`,
+    );
     return 0;
   }
 
@@ -42,6 +46,11 @@ async function main(argv: string[]): Promise<number> {
     .parse(JSON.parse(readFileSync(capturesPath, 'utf8')));
   const smokeRows = loadSmokeRows();
   const results: QaResult[] = captures.map((capture) => {
+    const onboardingCard = onboardingCards.find(
+      (candidate) => candidate.id === capture.cardId,
+    );
+    if (onboardingCard)
+      return evaluateOnboardingCapture(onboardingCard, capture);
     const card = cards.find((candidate) => candidate.id === capture.cardId);
     if (!card) throw new UsageError(`No card "${capture.cardId}"`);
     return evaluateCapture(

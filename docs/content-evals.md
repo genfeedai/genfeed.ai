@@ -81,6 +81,18 @@ bun run eval:content:qa                                  # cards still match the
 bun run eval:content:qa -- --captures=<file> --out=<md>  # score a run, no model call
 ```
 
+Every text capture first runs an `is-a-post` check (a minimum length, no refusal
+or commentary), because the onboarding output audit found most first drafts
+saved and shown at about nine tokens. Onboarding has its own cards
+(`onboarding-cards.synthetic.jsonl`, one per onboarding output) that the runner
+executes as each signup scenario: work email with a real site, personal email
+with a pasted link, no link, and scan failed with the context form. Their
+checks read what the runner captured off the screens: saved facts found on the
+scanned page, a voice that is not the generic fallback, a draft that names the
+brand context, a platform draft that is not the X draft reworded, and a
+shortened draft that keeps the idea. Word-overlap thresholds are first guesses,
+not calibrated.
+
 A capture is `pass`, `fail`, `context-missing` (no receipt, or no approved
 Brand OS revision on it) or `blocked`. Text also runs the fixture row's
 deterministic checks; images have none yet. The summary carries counts, context
