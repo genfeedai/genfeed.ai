@@ -228,7 +228,8 @@ export class BrandSetupService {
         scrapedData.aboutText ||
         scrapedData.heroText ||
         scrapedData.tagline ||
-        (scrapedData.valuePropositions?.length ?? 0) > 0,
+        (scrapedData.valuePropositions?.length ?? 0) > 0 ||
+        (scrapedData.pageExcerpts?.length ?? 0) > 0,
     );
 
     if (!hasAnalyzableContent) {

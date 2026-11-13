@@ -15,7 +15,7 @@ const WHITESPACE_RUNS_PATTERN = /\s+/g;
 const WWW_PREFIX_PATTERN = /^www\./iu;
 const MAX_SUPPORTING_PAGES = 2;
 const MAX_PAGE_EXCERPT_CHARS = 900;
-const MIN_EXCERPT_BLOCK_CHARS = 40;
+const MIN_EXCERPT_CHARS = 40;
 
 /** Page kinds worth reading after the homepage, best first. */
 const SUPPORTING_PAGE_PATTERNS: readonly RegExp[] = [
@@ -25,12 +25,22 @@ const SUPPORTING_PAGE_PATTERNS: readonly RegExp[] = [
 ];
 
 /** Supporting pages never take more than this from the scan's time budget. */
-export const SUPPORTING_PAGES_BUDGET_MS = 10_000;
+const SUPPORTING_PAGES_BUDGET_MS = 10_000;
 /** Below this much remaining time the homepage result is returned as it is. */
-export const SUPPORTING_PAGES_MIN_REMAINING_MS = 12_000;
+const SUPPORTING_PAGES_MIN_REMAINING_MS = 12_000;
 
 function hostWithoutWww(url: URL): string {
   return url.hostname.replace(WWW_PREFIX_PATTERN, '').toLowerCase();
+}
+
+function isSameSite(finalUrl: string, expectedUrl: string): boolean {
+  try {
+    return (
+      hostWithoutWww(new URL(finalUrl)) === hostWithoutWww(new URL(expectedUrl))
+    );
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -81,19 +91,15 @@ export function extractPageExcerpt(html: string): string | undefined {
   const blocks: string[] = [];
   $('h1, h2, h3, p, li').each((_index, element) => {
     const text = $(element).text().replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
-    if (
-      text.length >= MIN_EXCERPT_BLOCK_CHARS &&
-      !isBrandKitGuidanceNoise(text)
-    )
-      blocks.push(text);
+    if (text.length > 0 && !isBrandKitGuidanceNoise(text)) blocks.push(text);
   });
   const excerpt = [...new Set(blocks)]
     .join(' ')
     .slice(0, MAX_PAGE_EXCERPT_CHARS);
-  return excerpt.length >= MIN_EXCERPT_BLOCK_CHARS ? excerpt : undefined;
+  return excerpt.length >= MIN_EXCERPT_CHARS ? excerpt : undefined;
 }
 
-export interface SupportingPagesDeps {
+interface SupportingPagesDeps {
   http: BrandScraperHttp;
   parser: BrandWebsiteParserService;
   userAgent: string;
@@ -118,6 +124,10 @@ async function readPageHtml(
   );
   try {
     if (!response.ok) return undefined;
+    // A redirect off the site (a login wall, a parked domain) is not this
+    // brand's copy, so it is not read.
+    if (!isSameSite(deps.http.responseUrl(response, url), url))
+      return undefined;
     deps.parser.assertHtmlResponse(response);
     return await deps.http.readWebsiteBody(
       response,
