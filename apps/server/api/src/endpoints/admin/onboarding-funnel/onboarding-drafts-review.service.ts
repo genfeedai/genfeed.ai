@@ -68,6 +68,8 @@ export class OnboardingDraftsReviewService {
         const feedback = drafts.length
           ? await this.prisma.brandedGenerationFeedback.findMany({
               select: { rating: true, reasons: true, receiptId: true },
+              // One verdict per draft, from the single user of a new organization.
+              take: drafts.length * 4,
               where: {
                 isDeleted: false,
                 organizationId: row.id,
