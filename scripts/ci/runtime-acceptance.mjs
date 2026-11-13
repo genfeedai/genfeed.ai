@@ -161,7 +161,7 @@ export const BRAND_SOURCE_CONTRACT = {
     {
       path: 'apps/server/api/src/services/harness/branded-generation-compiler.spec.ts',
       sha256:
-        '401c51ddee2c6cea40ccc712988619be54686acd6f0909893bd05800813242a2',
+        '84290368b90512bf6532ac09add5f810f14fc1848e4eda4e02e5fd5218361859',
       acceptance:
         'nonzero passed in this exact file; no failed/pending/skipped/todo',
     },
