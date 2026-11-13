@@ -4,6 +4,7 @@ import {
   PUBLIC_ARTICLE_BRAND_INCLUDE,
   PUBLIC_BRAND_WHERE,
 } from '@api/helpers/utils/public-brand/public-brand-filter.util';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   GENFEED_BRAND_HANDLE,
   PUBLIC_ARTICLES_ORGANIZATION_SLUG,
@@ -16,7 +17,7 @@ const PUBLIC_ARTICLE_HOST_SELECT = {
 
 interface PublicArticleHostQuery {
   select: typeof PUBLIC_ARTICLE_HOST_SELECT;
-  where: { id: string; isDeleted: boolean };
+  where: { id: string; isDeleted: boolean; organizationId: string };
 }
 
 interface PublicArticleHost {
@@ -122,13 +123,18 @@ export class PublicArticleScope {
    * The genfeed.ai handle an article is public under: its brand's handle when
    * the brand is public, `genfeedai` for Genfeed's own brandless or
    * private-brand articles, otherwise `null` (the article has no public page).
+   *
+   * The caller passes the organization that owns the article (taken from an
+   * article it already loaded under its own scope), so the lookup stays
+   * tenant-scoped instead of reading across organizations.
    */
   readonly resolveHandle = async (
     articleId: string,
+    organizationId: string,
   ): Promise<string | null> => {
     const article = (await this.findArticleHost({
       select: PUBLIC_ARTICLE_HOST_SELECT,
-      where: { id: articleId, isDeleted: false },
+      where: scopedWhere(organizationId, { id: articleId }),
     })) as PublicArticleHost | null;
     if (!article) {
       return null;
