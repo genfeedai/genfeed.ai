@@ -62,6 +62,32 @@ bun run eval:content:smoke -- --max-credits=300 --dispatcher=live
   two rows for each smoke text kind, all fictional KELDER data. Real-brand rows
   stay in the private `genfeedai/harness` repo (`CONTENT_EVAL_PRIVATE_FIXTURES`).
 
+## QA task cards
+
+QA runners (the Grok bot, Codex) generate through the product's own surfaces,
+where the smoke run cannot reach (Agent chat, Studio, ad copy, scripts). A card
+is the task prompt only, in
+`apps/server/api/test/fixtures/content-evals/qa/cards.synthetic.jsonl`. It
+points at a smoke text row (`smoke:<rowId>`) or a pinned benchmark image task
+(`bench:<taskId>@<version>`) and must equal that prompt verbatim. Brand facts
+never go in the prompt: the brand comes from the product, and the proof is the
+generation receipt.
+
+For each card the runner records a capture (card id, receipt, asset id, model,
+credits, and the text for text kinds), then:
+
+```bash
+bun run eval:content:qa                                  # cards still match their fixtures
+bun run eval:content:qa -- --captures=<file> --out=<md>  # score a run, no model call
+```
+
+A capture is `pass`, `fail`, `context-missing` (no receipt, or no approved
+Brand OS revision on it) or `blocked`. Text also runs the fixture row's
+deterministic checks; images have none yet. The summary carries counts, context
+proof rate and credits only. It holds no judge or human score: judge layers stay
+`provisional` until judge calibration passes, so keep the full captures off
+repo and post only the summary.
+
 ## Noise-aware reports
 
 Every ladder and harness A/B report carries a `noise` section, so a score gap
