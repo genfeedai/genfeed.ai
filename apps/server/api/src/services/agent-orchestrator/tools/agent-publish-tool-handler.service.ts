@@ -30,7 +30,10 @@ import {
   resolveConfirmedFallbackPolicy,
   scheduleAgentPost,
 } from '@api/services/agent-orchestrator/tools/agent-publish-post-actions';
-import { assertAgentPublishingScope } from '@api/services/agent-orchestrator/tools/agent-publish-scope.util';
+import {
+  assertAgentPublishingScope,
+  authorizeMcpDraftBrand,
+} from '@api/services/agent-orchestrator/tools/agent-publish-scope.util';
 import {
   buildAgentPublishTargetProposals,
   collectInvalidTargetBlockers,
@@ -923,11 +926,28 @@ export class AgentPublishToolHandler {
       });
     }
 
-    await this.assertPublishingScope(
-      ctx,
-      ctx.validatedScope?.brandId,
-      'post creation',
-    );
+    if (isMcpActionOrigin() && !ctx.validatedScope) {
+      // MCP has no thread scope: authorize the brand the draft is saved under.
+      const draftBrandId = readOptionalString(params.brandId);
+      if (!draftBrandId) {
+        return {
+          creditsUsed: 0,
+          error: 'brandId is required to save a post draft.',
+          success: false,
+        };
+      }
+      await authorizeMcpDraftBrand(
+        this.agentScopeContextService,
+        draftBrandId,
+        ctx,
+      );
+    } else {
+      await this.assertPublishingScope(
+        ctx,
+        ctx.validatedScope?.brandId,
+        'post creation',
+      );
+    }
 
     if (ctx.isProactive)
       return this.createProactiveTextPost(params, ctx, visibility);

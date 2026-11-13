@@ -52,3 +52,25 @@ export async function authorizeExternalPublicationBrand(
     );
   }
 }
+
+/**
+ * An MCP call has no thread, so no validated scope. The draft is saved under
+ * the brand the caller names, so prove on the server that this brand belongs
+ * to the caller before saving.
+ */
+export async function authorizeMcpDraftBrand(
+  agentScopeContextService: AgentScopeContextService | undefined,
+  brandId: string,
+  ctx: ToolExecutionContext,
+): Promise<void> {
+  if (!agentScopeContextService) {
+    throw new Error(
+      'Agent scope validation is required before saving a post draft.',
+    );
+  }
+  await agentScopeContextService.assertBrandAuthorized(brandId, {
+    userId: ctx.userId,
+    organizationId: ctx.organizationId,
+    ...ctx.apiKeyContext,
+  });
+}
