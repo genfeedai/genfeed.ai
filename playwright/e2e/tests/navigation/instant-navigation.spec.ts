@@ -3,6 +3,7 @@ import {
   mockLibraryData,
 } from '@e2e/fixtures/api-mocks.fixture';
 import { expect, test } from '@e2e/fixtures/auth.fixture';
+import { expectCommitWithinBudget } from '@e2e/utils/navigation-budget';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -87,7 +88,13 @@ function trackPrefetches(page: Page): (pathname: string) => boolean {
 
 // Delays only the renders a click waits for. Prefetches stay fast so a slow
 // server cannot stretch the prefetch queue the test is waiting on.
+const pagesWithDelayedRenders = new WeakSet<Page>();
+
 async function delayServerRenders(page: Page): Promise<void> {
+  if (pagesWithDelayedRenders.has(page)) {
+    return;
+  }
+  pagesWithDelayedRenders.add(page);
   await page.route(
     (url) =>
       url.searchParams.has('_rsc') || url.pathname.startsWith('/_next/data'),
@@ -153,38 +160,41 @@ test('rail navigation paints without waiting for a server render', async ({
   });
   await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
   await mockLibraryData(page);
-  await page.goto(
-    createBrandAppRoute('test-org', 'brand-1', APP_ROUTES.LIBRARY.ASSETS),
-  );
-  await expect(
-    page.getByRole('heading', { name: 'All assets', exact: true }),
-  ).toBeVisible();
 
-  const target = page.getByTestId('app-rail-item-analytics');
-  await expect(target).toBeVisible();
-  const href = await target.getAttribute('href');
-  expect(href).not.toContain('%%drp:');
+  await expectCommitWithinBudget({
+    budgetMs: INSTANT_BUDGET_MS,
+    label: (elapsedMs) =>
+      `${elapsedMs}ms (server render delayed ${SERVER_LATENCY_MS}ms)`,
+    measure: async () => {
+      await page.goto(
+        createBrandAppRoute('test-org', 'brand-1', APP_ROUTES.LIBRARY.ASSETS),
+      );
+      await expect(
+        page.getByRole('heading', { name: 'All assets', exact: true }),
+      ).toBeVisible();
 
-  await expect
-    .poll(() => isPrefetched(href ?? ''), {
-      message: 'rail destination is prefetched on viewport entry',
-      timeout: PREFETCH_TIMEOUT_MS,
-    })
-    .toBe(true);
-  await delayServerRenders(page);
-  await recordNavigationTiming(page);
+      const target = page.getByTestId('app-rail-item-analytics');
+      await expect(target).toBeVisible();
+      const href = await target.getAttribute('href');
+      expect(href).not.toContain('%%drp:');
 
-  await target.click();
-  await page.waitForURL((url) => url.pathname === href);
-  await expect(page.locator('main').first()).toBeVisible();
-  await expect(page.getByTestId('app-rail')).toBeVisible();
-  const elapsedMs = await readClickToCommitMs(page);
+      await expect
+        .poll(() => isPrefetched(href ?? ''), {
+          message: 'rail destination is prefetched on viewport entry',
+          timeout: PREFETCH_TIMEOUT_MS,
+        })
+        .toBe(true);
+      await delayServerRenders(page);
+      await recordNavigationTiming(page);
 
-  testInfo.annotations.push({
-    description: `${elapsedMs}ms (server render delayed ${SERVER_LATENCY_MS}ms)`,
-    type: 'click-to-destination',
+      await target.click();
+      await page.waitForURL((url) => url.pathname === href);
+      await expect(page.locator('main').first()).toBeVisible();
+      await expect(page.getByTestId('app-rail')).toBeVisible();
+      return readClickToCommitMs(page);
+    },
+    testInfo,
   });
-  expect(elapsedMs).toBeLessThan(INSTANT_BUDGET_MS);
   expect(placeholderRequests).toEqual([]);
 });
 
@@ -207,31 +217,38 @@ for (const appId of [
     const isPrefetched = trackPrefetches(page);
     await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
     await mockLibraryData(page);
-    await page.goto(
-      createBrandAppRoute('test-org', 'brand-1', APP_ROUTES.SETTINGS.BRAND_KIT),
-    );
 
-    const target = page.getByTestId(`app-rail-item-${appId}`);
-    await expect(target).toBeVisible();
-    const href = await target.getAttribute('href');
-    await expect
-      .poll(() => isPrefetched(href ?? ''), {
-        message: 'rail destination is prefetched before the click',
-        timeout: PREFETCH_TIMEOUT_MS,
-      })
-      .toBe(true);
-    await delayServerRenders(page);
-    await recordNavigationTiming(page);
+    await expectCommitWithinBudget({
+      budgetMs: INSTANT_BUDGET_MS,
+      label: (elapsedMs) =>
+        `${elapsedMs}ms (server render delayed ${SERVER_LATENCY_MS}ms)`,
+      measure: async () => {
+        await page.goto(
+          createBrandAppRoute(
+            'test-org',
+            'brand-1',
+            APP_ROUTES.SETTINGS.BRAND_KIT,
+          ),
+        );
 
-    await target.click();
-    await page.waitForURL((url) => url.pathname === href);
-    const elapsedMs = await readClickToCommitMs(page);
+        const target = page.getByTestId(`app-rail-item-${appId}`);
+        await expect(target).toBeVisible();
+        const href = await target.getAttribute('href');
+        await expect
+          .poll(() => isPrefetched(href ?? ''), {
+            message: 'rail destination is prefetched before the click',
+            timeout: PREFETCH_TIMEOUT_MS,
+          })
+          .toBe(true);
+        await delayServerRenders(page);
+        await recordNavigationTiming(page);
 
-    testInfo.annotations.push({
-      description: `${elapsedMs}ms (server render delayed ${SERVER_LATENCY_MS}ms)`,
-      type: 'click-to-destination',
+        await target.click();
+        await page.waitForURL((url) => url.pathname === href);
+        return readClickToCommitMs(page);
+      },
+      testInfo,
     });
-    expect(elapsedMs).toBeLessThan(INSTANT_BUDGET_MS);
   });
 }
 
@@ -244,41 +261,44 @@ test('a More menu destination paints without waiting for a server render', async
   const isPrefetched = trackPrefetches(page);
   await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
   await mockLibraryData(page);
-  await page.goto(
-    createBrandAppRoute('test-org', 'brand-1', APP_ROUTES.LIBRARY.ASSETS),
-  );
-  await expect(
-    page.getByRole('heading', { name: 'All assets', exact: true }),
-  ).toBeVisible();
-
   const href = createBrandAppRoute(
     'test-org',
     'brand-1',
     APP_ROUTES.STUDIO.PLAYGROUND,
   );
-  await expect
-    .poll(() => isPrefetched(href), {
-      message: 'More menu destination is prefetched before the menu opens',
-      timeout: PREFETCH_TIMEOUT_MS,
-    })
-    .toBe(true);
-  await delayServerRenders(page);
 
-  await page.getByTestId('app-rail-more').click();
-  const target = page.getByTestId('app-rail-more-item-playground');
-  await expect(target).toHaveAttribute('href', href);
-  await recordNavigationTiming(page);
+  await expectCommitWithinBudget({
+    budgetMs: INSTANT_BUDGET_MS,
+    label: (elapsedMs) =>
+      `${elapsedMs}ms (server render delayed ${SERVER_LATENCY_MS}ms)`,
+    measure: async () => {
+      await page.goto(
+        createBrandAppRoute('test-org', 'brand-1', APP_ROUTES.LIBRARY.ASSETS),
+      );
+      await expect(
+        page.getByRole('heading', { name: 'All assets', exact: true }),
+      ).toBeVisible();
 
-  await target.click();
-  await page.waitForURL((url) => url.pathname === href);
-  await expect(page.locator('main').first()).toBeVisible();
-  const elapsedMs = await readClickToCommitMs(page);
+      await expect
+        .poll(() => isPrefetched(href), {
+          message: 'More menu destination is prefetched before the menu opens',
+          timeout: PREFETCH_TIMEOUT_MS,
+        })
+        .toBe(true);
+      await delayServerRenders(page);
 
-  testInfo.annotations.push({
-    description: `${elapsedMs}ms (server render delayed ${SERVER_LATENCY_MS}ms)`,
-    type: 'click-to-destination',
+      await page.getByTestId('app-rail-more').click();
+      const target = page.getByTestId('app-rail-more-item-playground');
+      await expect(target).toHaveAttribute('href', href);
+      await recordNavigationTiming(page);
+
+      await target.click();
+      await page.waitForURL((url) => url.pathname === href);
+      await expect(page.locator('main').first()).toBeVisible();
+      return readClickToCommitMs(page);
+    },
+    testInfo,
   });
-  expect(elapsedMs).toBeLessThan(INSTANT_BUDGET_MS);
 });
 
 // Cached routes stay mounted while hidden, so shell overlays opened on one
@@ -404,52 +424,58 @@ test('a sidebar click after minutes on one page paints without waiting for a ser
   await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
   await mockLibraryData(page);
   const requested = prefetchedPathnames(page);
-  await page.goto(
-    createBrandAppRoute('test-org', 'brand-1', APP_ROUTES.LIBRARY.ASSETS),
-  );
-  await expect(
-    page.getByRole('heading', { name: 'All assets', exact: true }),
-  ).toBeVisible();
+  let destination = '';
 
-  const { href, link } = await pickSidebarDestination(page);
-  const pathname = href.split('?')[0];
-  await expect
-    .poll(() => requested.includes(pathname), {
-      message: 'sidebar destination is prepared after the shell paints',
-      timeout: PREFETCH_TIMEOUT_MS,
-    })
-    .toBe(true);
+  await expectCommitWithinBudget({
+    budgetMs: KEPT_WARM_BUDGET_MS,
+    label: (elapsedMs) =>
+      `${elapsedMs}ms after ${STALE_AFTER_MS / 1000}s on one page (${destination})`,
+    measure: async () => {
+      requested.length = 0;
+      await page.goto(
+        createBrandAppRoute('test-org', 'brand-1', APP_ROUTES.LIBRARY.ASSETS),
+      );
+      await expect(
+        page.getByRole('heading', { name: 'All assets', exact: true }),
+      ).toBeVisible();
 
-  // The jump must land after the page's own prefetches have drained, or
-  // requests still queued would refresh the entry the test is about to age.
-  let seen = -1;
-  await expect
-    .poll(
-      async () => {
-        const settled = seen === requested.length;
-        seen = requested.length;
-        await page.waitForTimeout(PREFETCH_QUIET_MS);
-        return settled;
-      },
-      { timeout: PREFETCH_TIMEOUT_MS },
-    )
-    .toBe(true);
-  await page.clock.runFor(STALE_AFTER_MS);
-  // The shell refreshes what expired while the browser is idle. Give that work
-  // time to finish, as a person reaching for the sidebar would.
-  await page.waitForTimeout(REFRESH_SETTLE_MS);
-  await delayServerRenders(page);
-  await recordNavigationTiming(page);
+      const { href, link } = await pickSidebarDestination(page);
+      destination = href;
+      const pathname = href.split('?')[0];
+      await expect
+        .poll(() => requested.includes(pathname), {
+          message: 'sidebar destination is prepared after the shell paints',
+          timeout: PREFETCH_TIMEOUT_MS,
+        })
+        .toBe(true);
 
-  await link.click();
-  await page.waitForURL((url) => url.pathname === pathname);
-  const elapsedMs = await readClickToCommitMs(page);
+      // The jump must land after the page's own prefetches have drained, or
+      // requests still queued would refresh the entry the test is about to age.
+      let seen = -1;
+      await expect
+        .poll(
+          async () => {
+            const settled = seen === requested.length;
+            seen = requested.length;
+            await page.waitForTimeout(PREFETCH_QUIET_MS);
+            return settled;
+          },
+          { timeout: PREFETCH_TIMEOUT_MS },
+        )
+        .toBe(true);
+      await page.clock.runFor(STALE_AFTER_MS);
+      // The shell refreshes what expired while the browser is idle. Give that
+      // work time to finish, as a person reaching for the sidebar would.
+      await page.waitForTimeout(REFRESH_SETTLE_MS);
+      await delayServerRenders(page);
+      await recordNavigationTiming(page);
 
-  testInfo.annotations.push({
-    description: `${elapsedMs}ms after ${STALE_AFTER_MS / 1000}s on one page (${href})`,
-    type: 'click-to-destination',
+      await link.click();
+      await page.waitForURL((url) => url.pathname === pathname);
+      return readClickToCommitMs(page);
+    },
+    testInfo,
   });
-  expect(elapsedMs).toBeLessThan(KEPT_WARM_BUDGET_MS);
 });
 
 // Every page load queues the prefetches of the links on it. A click in the
@@ -460,23 +486,26 @@ test('a sidebar click right after the shell appears paints without waiting for a
   await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
   await mockLibraryData(page);
   await delayServerRenders(page);
-  await page.goto(
-    createBrandAppRoute('test-org', 'brand-1', APP_ROUTES.LIBRARY.ASSETS),
-  );
-  const { href, link } = await pickSidebarDestination(page);
-  const pathname = href.split('?')[0];
-  await page.waitForTimeout(EARLY_CLICK_DELAY_MS);
-  await recordNavigationTiming(page);
 
-  await link.click();
-  await page.waitForURL((url) => url.pathname === pathname);
-  const elapsedMs = await readClickToCommitMs(page);
+  await expectCommitWithinBudget({
+    budgetMs: KEPT_WARM_BUDGET_MS,
+    label: (elapsedMs) =>
+      `${elapsedMs}ms ${EARLY_CLICK_DELAY_MS}ms after the shell appeared`,
+    measure: async () => {
+      await page.goto(
+        createBrandAppRoute('test-org', 'brand-1', APP_ROUTES.LIBRARY.ASSETS),
+      );
+      const { href, link } = await pickSidebarDestination(page);
+      const pathname = href.split('?')[0];
+      await page.waitForTimeout(EARLY_CLICK_DELAY_MS);
+      await recordNavigationTiming(page);
 
-  testInfo.annotations.push({
-    description: `${elapsedMs}ms ${EARLY_CLICK_DELAY_MS}ms after the shell appeared`,
-    type: 'click-to-destination',
+      await link.click();
+      await page.waitForURL((url) => url.pathname === pathname);
+      return readClickToCommitMs(page);
+    },
+    testInfo,
   });
-  expect(elapsedMs).toBeLessThan(KEPT_WARM_BUDGET_MS);
 });
 
 // The shell's own destinations (rail, sidebar and the topbar's Apps link) are
