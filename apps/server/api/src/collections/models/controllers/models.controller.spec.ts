@@ -9,6 +9,7 @@ import {
   findUnpriceableModelIds,
   unpriceableModelsScope,
 } from '@api/collections/models/utils/model-pricing-attention.util';
+import { clearUnpriceableModelIdsCache } from '@api/collections/models/utils/unpriceable-model-ids.cache';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -147,6 +148,7 @@ describe('ModelsController', () => {
   } as AggregatePaginateResult<ModelDocument>;
 
   beforeEach(async () => {
+    clearUnpriceableModelIdsCache();
     moduleRefGet = vi.fn();
 
     const module: TestingModule = await Test.createTestingModule({
