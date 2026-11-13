@@ -63,6 +63,10 @@ const LINKEDIN_POST_MIN_LENGTH = 20;
 const LINKEDIN_POST_MAX_LENGTH = 500;
 const LINKEDIN_MAX_RECENT_POSTS = 10;
 const MAX_STYLESHEETS = 5;
+/** Supporting pages never take more than this from the scan's time budget. */
+const SUPPORTING_PAGES_BUDGET_MS = 10_000;
+/** Below this much remaining time the homepage result is returned as it is. */
+const SUPPORTING_PAGES_MIN_REMAINING_MS = 12_000;
 const MAX_SHOPIFY_PRODUCT_IMAGES = 8;
 const MAX_SHOPIFY_FEED_BYTES = 1_048_576;
 const MAX_REFERENCE_IMAGES = 12;
@@ -133,6 +137,22 @@ export class BrandScraperService {
       );
       await this.expandShortLinks(scrapedData, budget);
       rawContent.diagnostics ??= [];
+      const supportingPages = await this.fetchSupportingPages(
+        rawContent.supportingPageUrls ?? [],
+        budget,
+        rawContent.diagnostics,
+      );
+      if (supportingPages.excerpts.length > 0) {
+        scrapedData.pageExcerpts = supportingPages.excerpts;
+        rawContent.evidence = [
+          ...(rawContent.evidence ?? []),
+          ...supportingPages.urls.map((pageUrl) => ({
+            sourceType: 'website' as const,
+            label: 'Website page',
+            url: this.brandWebsiteParser.sanitizeProvenanceUrl(pageUrl),
+          })),
+        ];
+      }
       if (rawContent.isShopify) {
         await this.addShopifyProductImages(
           scrapedData,
@@ -674,6 +694,84 @@ export class BrandScraperService {
     enriched.diagnostics = [...(enriched.diagnostics ?? []), ...diagnostics];
     enriched.stylesheetUrls = stylesheetUrls.slice(0, MAX_STYLESHEETS);
     return enriched;
+  }
+
+  /**
+   * Reads the about, product or pricing page the homepage links to, so the
+   * brand analysis sees what the brand sells and not only its landing copy.
+   * Best-effort: a slow, blocked or empty page is skipped and noted, and the
+   * homepage result stands. Each fetch goes through the same SSRF-guarded client.
+   */
+  private async fetchSupportingPages(
+    urls: string[],
+    budget: WebsiteFetchBudget,
+    diagnostics: IBrandKitDiagnostic[],
+  ): Promise<{ excerpts: string[]; urls: string[] }> {
+    const now = performance.now();
+    if (
+      urls.length === 0 ||
+      budget.deadlineAt - now < SUPPORTING_PAGES_MIN_REMAINING_MS
+    )
+      return { excerpts: [], urls: [] };
+    const pageBudget: WebsiteFetchBudget = {
+      deadlineAt: Math.min(budget.deadlineAt, now + SUPPORTING_PAGES_BUDGET_MS),
+    };
+    const pages = await Promise.all(
+      urls.map(async (pageUrl) => {
+        try {
+          return {
+            excerpt: await this.fetchPageExcerpt(pageUrl, pageBudget),
+            url: pageUrl,
+          };
+        } catch {
+          diagnostics.push(
+            this.diagnostic(
+              'supporting_page_failed',
+              'A supporting page could not be read and was skipped.',
+            ),
+          );
+          return { excerpt: undefined, url: pageUrl };
+        }
+      }),
+    );
+    const readable = pages.filter(
+      (page): page is { excerpt: string; url: string } => Boolean(page.excerpt),
+    );
+    return {
+      excerpts: readable.map((page) => page.excerpt),
+      urls: readable.map((page) => page.url),
+    };
+  }
+
+  private async fetchPageExcerpt(
+    url: string,
+    budget: WebsiteFetchBudget,
+  ): Promise<string | undefined> {
+    const response = await this.fetchWithRetry(
+      url,
+      {
+        headers: {
+          Accept: 'text/html,application/xhtml+xml',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'User-Agent': BROWSER_USER_AGENT,
+        },
+        redirect: 'follow',
+      },
+      budget,
+    );
+    try {
+      if (!response.ok) return undefined;
+      this.brandWebsiteParser.assertHtmlResponse(response);
+      const html = await this.readWebsiteBody(
+        response,
+        budget,
+        undefined,
+        MAX_HTML_BYTES,
+      );
+      return this.brandWebsiteParser.extractPageExcerpt(html);
+    } finally {
+      await this.releaseWebsiteResponse(response);
+    }
   }
 
   /**

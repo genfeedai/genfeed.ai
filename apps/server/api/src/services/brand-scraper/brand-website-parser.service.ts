@@ -47,6 +47,16 @@ const OUR_MISSION_SENTENCE_PATTERN = /our\s+mission[\s:]+([^.]+\.)/i;
 const WE_ARE_SENTENCE_PATTERN = /we\s+are\s+([^.]+\.)/i;
 
 const MAX_IMAGE_CANDIDATES = 12;
+const MAX_SUPPORTING_PAGES = 2;
+const MAX_PAGE_EXCERPT_CHARS = 900;
+const MIN_EXCERPT_BLOCK_CHARS = 40;
+/** Page kinds worth reading after the homepage, best first. */
+const SUPPORTING_PAGE_PATTERNS: readonly RegExp[] = [
+  /^\/(?:about|about-us|company|our-story|story|mission)\/?$/iu,
+  /^\/(?:products?|services?|solutions?|features?|what-we-do|offerings?)\/?$/iu,
+  /^\/(?:pricing|plans|shop)\/?$/iu,
+];
+const WWW_PREFIX_PATTERN = /^www\./iu;
 const MAX_FONT_CANDIDATES = 8;
 const THIRD_PARTY_SECTION =
   /\b(?:clients?|customers?|partners?|providers?|trusted|logo-wall|testimonials?|quotes?|case-stud(?:y|ies)|as-seen|press)\b|\blogos\b/iu;
@@ -175,9 +185,76 @@ export class BrandWebsiteParserService {
       scrapedAt: new Date(),
       socialLinks,
       sourceUrl,
+      supportingPageUrls: this.pickSupportingPageUrls(allLinks, sourceUrl),
       title,
       valuePropositions,
     };
+  }
+
+  /**
+   * Same-site pages that say what the brand does: about, then product or
+   * service, then pricing. One page per kind, so two fetches at most.
+   */
+  pickSupportingPageUrls(links: string[], pageUrl: string): string[] {
+    let base: URL;
+    try {
+      base = new URL(pageUrl);
+    } catch {
+      return [];
+    }
+    const baseHost = base.hostname
+      .replace(WWW_PREFIX_PATTERN, '')
+      .toLowerCase();
+    const found = new Map<number, string>();
+    for (const href of links) {
+      let url: URL;
+      try {
+        url = new URL(href, base);
+      } catch {
+        continue;
+      }
+      if (url.protocol !== 'https:' && url.protocol !== 'http:') continue;
+      if (
+        url.hostname.replace(WWW_PREFIX_PATTERN, '').toLowerCase() !== baseHost
+      )
+        continue;
+      const kind = SUPPORTING_PAGE_PATTERNS.findIndex((pattern) =>
+        pattern.test(url.pathname),
+      );
+      if (kind === -1 || found.has(kind)) continue;
+      url.hash = '';
+      url.search = '';
+      found.set(kind, url.toString());
+    }
+    return [...found.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([, url]) => url)
+      .slice(0, MAX_SUPPORTING_PAGES);
+  }
+
+  /**
+   * The readable copy of a page: its headings and paragraphs, without
+   * navigation, footers or scripts, cut to a short excerpt.
+   */
+  extractPageExcerpt(html: string): string | undefined {
+    const $ = cheerio.load(html);
+    $('script, style, noscript, nav, header, footer, form, svg').remove();
+    const blocks: string[] = [];
+    $('h1, h2, h3, p, li').each((_index, element) => {
+      const text = $(element)
+        .text()
+        .replace(WHITESPACE_RUNS_PATTERN, ' ')
+        .trim();
+      if (
+        text.length >= MIN_EXCERPT_BLOCK_CHARS &&
+        !isBrandKitGuidanceNoise(text)
+      )
+        blocks.push(text);
+    });
+    const excerpt = [...new Set(blocks)]
+      .join(' ')
+      .slice(0, MAX_PAGE_EXCERPT_CHARS);
+    return excerpt.length >= MIN_EXCERPT_BLOCK_CHARS ? excerpt : undefined;
   }
 
   /**
