@@ -18,7 +18,7 @@ import {
 } from '../spend';
 import {
   buildGenerationMessages,
-  GENERATION_MAX_TOKENS,
+  generationMaxTokens,
 } from '../suites/compare';
 import { GRADE_TWICE_SAMPLE_SIZE } from './contracts';
 
@@ -59,7 +59,8 @@ export function projectComparisonSpendCredits(
 
   let usd = 0;
   for (const row of input.rows) {
-    const outputTokens = GENERATION_MAX_TOKENS;
+    // Every arm of a run shares one limit (a skill run raises it for all).
+    const outputTokens = generationMaxTokens(baseline);
     const judgedPromptTokens =
       JUDGE_PROMPT_OVERHEAD_TOKENS +
       upperBoundTokens(row.input.prompt) +
@@ -107,7 +108,7 @@ export function projectComparisonSpendCredits(
         regradeCalls *
         callCreditsUsd(
           judge,
-          JUDGE_PROMPT_OVERHEAD_TOKENS + GENERATION_MAX_TOKENS,
+          JUDGE_PROMPT_OVERHEAD_TOKENS + generationMaxTokens(baseline),
           JUDGE_EXPECTED_COMPLETION_TOKENS,
         );
     }

@@ -20,3 +20,19 @@ export const FIRST_SUCCESSFUL_PUBLISH_EVENT = 'first_successful_publish';
 export const GENERATION_COMPLETED_EVENT = 'generation_completed';
 export const FIRST_SUCCESSFUL_GENERATION_EVENT = 'first_successful_generation';
 export const POST_PUBLISHED_EVENT = 'post_published';
+
+/**
+ * Server-side onboarding output events: what the brand scan found and what the
+ * first drafts came out as, so a bad run shows up in PostHog instead of in
+ * churn. Server-only (no client key); properties carry counts, statuses and
+ * platform names, never draft text.
+ */
+export const ONBOARDING_BRAND_SCANNED_EVENT = 'onboarding_brand_scanned';
+export const ONBOARDING_DRAFTS_GENERATED_EVENT = 'onboarding_drafts_generated';
+
+/**
+ * A member's thumbs up or down on a generated output, sent server-side when
+ * the rating is saved or taken back. Counts and the rating only, never the
+ * output text. Onboarding's "I'd post this" and "Not for me" taps arrive here.
+ */
+export const GENERATION_FEEDBACK_RATED_EVENT = 'generation_feedback_rated';

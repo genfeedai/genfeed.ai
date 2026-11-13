@@ -398,6 +398,24 @@ describe('SignupPrefillService explicit URL scan', () => {
       });
   });
 
+  it('leaves the brand voice unset when the analysis fell back to the placeholder voice', async () => {
+    const h = createHarness();
+    h.generator.analyzeBrandVoice.mockResolvedValue({
+      audience: 'General audience',
+      hashtags: [],
+      taglines: [],
+      tone: 'Professional',
+      values: [],
+      voice: 'Friendly and informative',
+    });
+
+    const state = await h.service.analyzePrefill(
+      await h.service.scrapePrefill(h.state),
+    );
+
+    expect(state.brandVoice).toBeUndefined();
+  });
+
   it('returns audience, offer and named-competitor suggestions from the voice analysis only', async () => {
     const h = createHarness();
     h.generator.analyzeBrandVoice.mockResolvedValue({

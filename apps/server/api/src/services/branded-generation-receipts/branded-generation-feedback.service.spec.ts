@@ -27,6 +27,10 @@ function setup(
     feedback?: unknown;
     rows?: unknown[];
   } = {},
+  capture?: (input: {
+    event: string;
+    properties?: Record<string, unknown>;
+  }) => Promise<void>,
 ) {
   const tx = {
     brandedGenerationFeedback: {
@@ -60,6 +64,7 @@ function setup(
   const service = new BrandedGenerationFeedbackService(
     prisma as unknown as PrismaService,
     access as unknown as BrandedGenerationReceiptAccessService,
+    capture ? ({ capture } as never) : undefined,
   );
   return { access, service, tx };
 }
@@ -204,6 +209,52 @@ describe('BrandedGenerationFeedbackService', () => {
         service.rate(actor, 'receipt', { rating: 'up', reasons: [] }),
       ).rejects.toThrow('feedback_receipt_has_no_output');
       expect(tx.brandedGenerationFeedback.upsert).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('funnel event', () => {
+    it('reports a rating with its value and reason count, never the text', async () => {
+      const events: Array<Record<string, unknown>> = [];
+      const { service } = setup({ post: livePost() }, async (input) => {
+        events.push({ event: input.event, ...input.properties });
+      });
+
+      await service.rate(actor, 'receipt', {
+        rating: 'down',
+        reasons: ['too_long', 'wrong_facts'],
+      });
+
+      expect(events).toEqual([
+        {
+          artifactKind: 'post',
+          event: 'generation_feedback_rated',
+          rating: 'down',
+          reasonCount: 2,
+        },
+      ]);
+    });
+
+    it('reports a withdrawn rating', async () => {
+      const events: Array<Record<string, unknown>> = [];
+      const { service } = setup({}, async (input) => {
+        events.push({ event: input.event, ...input.properties });
+      });
+
+      await service.withdraw(actor, 'receipt');
+
+      expect(events).toEqual([
+        { event: 'generation_feedback_rated', rating: 'withdrawn' },
+      ]);
+    });
+
+    it('still saves the rating when analytics capture fails', async () => {
+      const { service, tx } = setup({ post: livePost() }, async () => {
+        throw new Error('posthog down');
+      });
+
+      await service.rate(actor, 'receipt', { rating: 'up', reasons: [] });
+
+      expect(tx.brandedGenerationFeedback.upsert).toHaveBeenCalledTimes(1);
     });
   });
 

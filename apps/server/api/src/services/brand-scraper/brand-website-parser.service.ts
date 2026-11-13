@@ -6,6 +6,7 @@ import {
   upgradeSameHostHttp,
 } from '@api/services/brand-scraper/brand-image-source.util';
 import { BRAND_SOCIAL_HOSTS } from '@api/services/brand-scraper/brand-social-hosts.constant';
+import { pickSupportingPageUrls } from '@api/services/brand-scraper/brand-supporting-pages.util';
 import type {
   WebsiteScrapingResult,
   WebsiteStylesheetEvidence,
@@ -175,6 +176,7 @@ export class BrandWebsiteParserService {
       scrapedAt: new Date(),
       socialLinks,
       sourceUrl,
+      supportingPageUrls: pickSupportingPageUrls(allLinks, sourceUrl),
       title,
       valuePropositions,
     };

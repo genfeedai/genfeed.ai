@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { isDeepStrictEqual } from 'node:util';
 import { AGENT_CREATED_BRAND_VISUAL_DEFAULTS } from '@api/collections/brands/constants/agent-created-brand.constant';
 import type {
   BrandFromUrlContext,
@@ -17,7 +16,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import {
-  DEFAULT_BRAND_VOICE_ANALYSIS,
+  isFallbackBrandVoice,
   MasterPromptGeneratorService,
 } from '@api/services/knowledge-base/master-prompt-generator.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -221,10 +220,7 @@ export class BrandFromUrlService {
       );
       if (scrapedData) {
         const brandVoice = await this.voice.analyzeBrandVoice(scrapedData);
-        if (
-          brandVoice &&
-          !isDeepStrictEqual(brandVoice, DEFAULT_BRAND_VOICE_ANALYSIS)
-        ) {
+        if (brandVoice && !isFallbackBrandVoice(brandVoice)) {
           await this.persistence.updateBrandGuidance(
             brandId,
             context.organizationId,

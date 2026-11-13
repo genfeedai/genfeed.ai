@@ -11,6 +11,7 @@ checks agent task contracts and assesses no model quality.
 | Generation-type registry (`context-coverage/generation-types.ts`) | Every `GenerationType`, `ContentType` and `IngredientCategory` member has a row saying how brand context reaches its prompt, and the source file still does it. A fixed gap or a new type fails until the row is updated. | none | `bun run test:executable-contracts` (PR gate) |
 | Context injection (`context-coverage/context-injection.test.ts`) | For every harness content kind and surface, the org directive, brand voice, guardrails, criteria and examples are in the formatted prompt, and a second tenant's context never is. Uses the real `buildHarnessInput`, built-in packs and `formatHarnessBrief`. | none | same |
 | Smoke (`smoke/`) | Text kinds as raw prompt vs org + brand guidance on one cheap model with a cross-family judge, plus the public benchmark's image and video tasks through the product API. | stub or live | `.github/workflows/content-eval-smoke.yml` |
+| Skill A/B (`--suite=skill-ab`) | Two or more skills, or a skill against no skill, on one model and one fixture: the same brief and brand rules, only the skill in the system prompt differs. | stub or live | by hand |
 | Judge calibration, ladder, harness A/B, media ladder | The older suites under `--suite=`. See the header of `run.ts`. | stub or live | by hand |
 
 ## Smoke run
@@ -100,6 +101,40 @@ deterministic checks; images have none yet. The summary carries counts, context
 proof rate and credits only. It holds no judge or human score: judge layers stay
 `provisional` until judge calibration passes, so keep the full captures off
 repo and post only the summary.
+
+## Skill A/B
+
+`--suite=skill-ab` answers "which skill makes the model write the better
+artifact". Each arm is a local skill directory, so a skill pack that is not ours
+is read from a checkout and never copied into this repository.
+
+```bash
+bun run eval:content -- --suite=skill-ab \
+  --fixture=apps/server/api/test/fixtures/content-evals/skill-ab/video-composition.synthetic.jsonl \
+  --models=<one model key> --judge=<cross-family judge> --max-credits=<n> \
+  --skill-arms=ours=<dir of a skill>,other=<dir of another skill>,none --repeats=3
+```
+
+- `--skill-arms` takes two or more `label=<skill dir>` arms, baseline first;
+  every other arm is judged against the baseline. The bare label `none` is the
+  control: the same brand rules with no skill.
+- A skill is read as the product injects one: the `SKILL.md` body without its
+  frontmatter, cut at 24,000 characters. Files it links to are not loaded, so
+  the arm measures the instructions in context when the skill triggers.
+- One `--models` key serves every arm. Every arm gets the same output limit
+  (4096 tokens, more than the other text suites, because the answer is a whole
+  composition or storyboard). A cut-off answer is voided, not scored.
+- The judge scores the written artifact against the brief and brand guidance
+  (`content-quality-v1`) and the deterministic brief checks run as usual. It does
+  not render the artifact, so it cannot see a composition that parses but plays
+  badly. A render-and-judge lane would reuse the media suite's frame judge and is
+  a separate suite.
+- `--repeats` (1 to 10) adds the noise section: a winner is named only when the
+  paired interval clears zero.
+- The fixture `skill-ab/video-composition.synthetic.jsonl` is six fictional
+  KELDER rows (teaser, explainer, title card, captions, storyboard) in the lane
+  where video skills overlap. The prompts do not name a framework: the skill
+  decides how the composition is built.
 
 ## Noise-aware reports
 

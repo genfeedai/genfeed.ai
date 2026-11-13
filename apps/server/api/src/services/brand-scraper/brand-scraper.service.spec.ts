@@ -797,6 +797,79 @@ describe('BrandScraperService', () => {
     });
   });
 
+  describe('supporting pages', () => {
+    const homepage = () =>
+      makeResponse(
+        makeHtml({
+          themeColor: '',
+          body: '<h1>Acme</h1><a href="/about">About</a><a href="/pricing">Pricing</a>',
+        }),
+      );
+    const page = (copy: string) =>
+      makeResponse(`<html><body><p>${copy}</p></body></html>`);
+
+    it('reads the about and pricing pages and returns their excerpts', async () => {
+      fetchMock
+        .mockResolvedValueOnce(homepage())
+        .mockResolvedValueOnce(
+          page('We bake sourdough loaves and ship them across the country.'),
+        )
+        .mockResolvedValueOnce(
+          page('Plans start at twelve dollars a month for one loaf a week.'),
+        );
+
+      const result =
+        await service.scrapeWebsiteWithEvidence('https://acme.com');
+
+      expect(result.data.pageExcerpts).toEqual([
+        'We bake sourdough loaves and ship them across the country.',
+        'Plans start at twelve dollars a month for one loaf a week.',
+      ]);
+      expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual([
+        'https://acme.com',
+        'https://acme.com/about',
+        'https://acme.com/pricing',
+      ]);
+      expect(result.evidence).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            label: 'Website page',
+            url: 'https://acme.com/about',
+          }),
+        ]),
+      );
+    });
+
+    it('keeps the homepage result and notes the miss when a page cannot be read', async () => {
+      fetchMock
+        .mockResolvedValueOnce(homepage())
+        .mockResolvedValueOnce(makeResponse('', 404))
+        .mockResolvedValueOnce(
+          page('Plans start at twelve dollars a month for one loaf a week.'),
+        );
+
+      const result =
+        await service.scrapeWebsiteWithEvidence('https://acme.com');
+
+      expect(result.data.heroText).toBe('Acme');
+      expect(result.data.pageExcerpts).toEqual([
+        'Plans start at twelve dollars a month for one loaf a week.',
+      ]);
+    });
+
+    it('does not fetch more pages when the scan is nearly out of time', async () => {
+      fetchMock.mockResolvedValueOnce(homepage());
+
+      const result = await service.scrapeWebsiteWithEvidence(
+        'https://acme.com',
+        { deadlineAt: performance.now() + 5_000 },
+      );
+
+      expect(result.data.pageExcerpts).toBeUndefined();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });

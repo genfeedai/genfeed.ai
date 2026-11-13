@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
@@ -27,7 +28,7 @@ export default function IngredientDetailNotFound({ type }: Props) {
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
         >
-          <Link href={`/ingredients/${type}`}>
+          <Link href={`${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/${type}`}>
             <ArrowLeft /> Back to {type}
           </Link>
         </Button>

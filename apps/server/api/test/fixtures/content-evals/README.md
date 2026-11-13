@@ -4,6 +4,7 @@
 
 - `judge/`: existing judge fixtures; untouched by golden-set generation.
 - `ladder/`: existing ladder fixtures; untouched by golden-set generation.
+- `skill-ab/`: synthetic KELDER briefs for `--suite=skill-ab`, the skill-versus-skill A/B (see docs/content-evals.md).
 - `golden/`: generated golden set v1 fixtures, one `{contentKind}.synthetic.jsonl` file per kind, plus `label-quality.synthetic.json`.
 
 The public pack contains 45 social-post rows and 36 rows for each of thread, article, script, newsletter and image-caption, spanning three derived synthetic brand identifiers per kind. All content is invented in [synthetic-seed.ts](../../../scripts/evals/synthetic-seed.ts). Real-brand rows are never committed here.

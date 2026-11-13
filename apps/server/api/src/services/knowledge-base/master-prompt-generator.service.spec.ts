@@ -3,7 +3,10 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
-import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
+import {
+  isFallbackBrandVoice,
+  MasterPromptGeneratorService,
+} from '@api/services/knowledge-base/master-prompt-generator.service';
 import { ByokProvider } from '@genfeedai/contracts';
 import type { IExtractedBrandData } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -155,6 +158,34 @@ describe('MasterPromptGeneratorService', () => {
 
     expect(result?.tone).toBe('Professional');
     expect(mockLogger.error).toHaveBeenCalled();
+  });
+
+  it('flags only the placeholder voice as a fallback', async () => {
+    mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(null);
+    const fallback = await service.analyzeBrandVoice(makeBrandData());
+    mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
+      JSON.stringify(makeProfileResponse()),
+    );
+    const analyzed = await service.analyzeBrandVoice(makeBrandData());
+
+    expect(isFallbackBrandVoice(fallback)).toBe(true);
+    expect(isFallbackBrandVoice(analyzed)).toBe(false);
+    expect(isFallbackBrandVoice(undefined)).toBe(false);
+  });
+
+  it('sends the excerpts of other site pages to the analysis', async () => {
+    mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
+      JSON.stringify(makeProfileResponse()),
+    );
+
+    await service.analyzeBrandVoice({
+      ...makeBrandData(),
+      pageExcerpts: ['Plans start at twelve dollars a month.'],
+    });
+
+    expect(
+      mockReplicateService.generateTextCompletionSync.mock.calls[0][1].prompt,
+    ).toContain('Other site pages:\n- Plans start at twelve dollars a month.');
   });
 
   it('should return defaults when AI call throws', async () => {
