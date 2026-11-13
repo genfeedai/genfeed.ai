@@ -36,6 +36,7 @@ describe('shouldKeepWideEvent', () => {
     ['a forbidden request', { outcome: 'client_error', status_code: 403 }],
     ['a validation failure', { outcome: 'client_error', status_code: 400 }],
     ['a slow request', { duration_ms: WIDE_EVENT_SLOW_MS + 1 }],
+    ['a request that took a second and a half', { duration_ms: 1_500 }],
     [
       'a very slow job',
       { duration_ms: WIDE_EVENT_SLOW_JOB_MS + 1, kind: 'job' },
@@ -54,6 +55,7 @@ describe('shouldKeepWideEvent', () => {
     ['a rate-limited request', { outcome: 'client_error', status_code: 429 }],
     ['a job that ran for a minute', { duration_ms: 60_000, kind: 'job' }],
     ['a fast success', {}],
+    ['a request just under a second', { duration_ms: 900 }],
   ])('thins %s to the baseline rate', (_label, fields) => {
     expect(shouldKeepWideEvent(createEvent(fields), NEVER_SAMPLED)).toBe(false);
 

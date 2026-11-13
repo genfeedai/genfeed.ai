@@ -3,6 +3,7 @@ import {
   mergeWideEventFields,
   readWideEventOutcome,
 } from './wide-event.context';
+import { eventLoopLagSampler } from './wide-event.event-loop';
 import type {
   WideEventRecord,
   WideEventServiceIdentity,
@@ -58,6 +59,11 @@ export function finishWideEvent(
   try {
     if (fields) mergeWideEventFields(event, fields);
     event.duration_ms = Math.round(performance.now() - startedAt);
+    const eventLoopLagMaxMs = eventLoopLagSampler.maxLagSince(startedAt);
+    if (eventLoopLagMaxMs !== undefined)
+      mergeWideEventFields(event, {
+        runtime: { event_loop_lag_max_ms: eventLoopLagMaxMs },
+      });
     event.outcome = readWideEventOutcome(
       event.status_code,
       event.error !== undefined,
