@@ -470,9 +470,9 @@ function isWorkspaceShellHardCut(pathname: string): boolean {
 
 function hasRequiredPathScope(
   pathname: string,
+  segments: readonly string[],
   scope: WorkspaceShellScopeRequirement,
 ): boolean {
-  const segments = pathname.split('/').filter(Boolean);
   const hasReservedPrefix = RESERVED_SCOPED_ROUTE_PREFIXES.some(
     (prefix) => segments[0] === prefix,
   );
@@ -495,20 +495,41 @@ function hasRequiredPathScope(
   }
 }
 
-export function resolveWorkspaceShellRoute(
-  hrefOrPathname: string,
-): ResolvedWorkspaceShellRoute | null {
-  const pathname = getPathname(hrefOrPathname);
-  if (!pathname || isWorkspaceShellHardCut(pathname)) {
+// Every client navigation resolves the destination for the shell, the page
+// header, the menus and the launchers, each from its own render. The answer
+// depends only on the pathname, so it is computed once. The bound keeps
+// per-record paths (ids in the URL) from growing the map for the whole session.
+const MAX_RESOLVED_PATHNAMES = 256;
+const resolvedByPathname = new Map<
+  string,
+  ResolvedWorkspaceShellRoute | null
+>();
+
+function resolvePathname(pathname: string): ResolvedWorkspaceShellRoute | null {
+  if (isWorkspaceShellHardCut(pathname)) {
     return null;
   }
+
+  // The scope of a path does not depend on the registration, so it is decided
+  // four times per lookup instead of once for each of the registrations.
+  const segments = pathname.split('/').filter(Boolean);
+  const isScopeMatching = {
+    brand: hasRequiredPathScope(pathname, segments, 'brand'),
+    organization: hasRequiredPathScope(pathname, segments, 'organization'),
+    personal: hasRequiredPathScope(pathname, segments, 'personal'),
+    'platform-admin': hasRequiredPathScope(
+      pathname,
+      segments,
+      'platform-admin',
+    ),
+  } as const satisfies Record<WorkspaceShellScopeRequirement, boolean>;
 
   let bestMatch:
     | (CompiledRouteRegistration & { readonly match: RegExpExecArray })
     | null = null;
 
   for (const compiled of COMPILED_ROUTE_INVENTORY) {
-    if (!hasRequiredPathScope(pathname, compiled.registration.scope)) {
+    if (!isScopeMatching[compiled.registration.scope]) {
       continue;
     }
 
@@ -544,6 +565,27 @@ export function resolveWorkspaceShellRoute(
     ),
     params,
   });
+}
+
+export function resolveWorkspaceShellRoute(
+  hrefOrPathname: string,
+): ResolvedWorkspaceShellRoute | null {
+  const pathname = getPathname(hrefOrPathname);
+  if (!pathname) {
+    return null;
+  }
+
+  const cached = resolvedByPathname.get(pathname);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const resolved = resolvePathname(pathname);
+  if (resolvedByPathname.size >= MAX_RESOLVED_PATHNAMES) {
+    resolvedByPathname.clear();
+  }
+  resolvedByPathname.set(pathname, resolved);
+  return resolved;
 }
 
 export function getWorkspaceShellOverlayRegistration(

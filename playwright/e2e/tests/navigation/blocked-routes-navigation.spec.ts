@@ -27,6 +27,8 @@ interface NavigationTiming {
 interface BlockedRouteCase {
   /** Where the router lands. Defaults to the clicked address. */
   destination?: string;
+  /** Page the person is on when they open it. Defaults to the Brand Kit. */
+  from?: string;
   name: string;
   /** Address the person opens. */
   href: string;
@@ -56,6 +58,9 @@ const ROUTES_OPENED_FROM_A_BRAND_PAGE: BlockedRouteCase[] = [
     name: 'a trends platform page',
   },
   {
+    // Shelves are opened from the Library sidebar, so the Library code is
+    // already loaded when the person clicks.
+    from: brandRoute(APP_ROUTES.LIBRARY.ASSETS),
     href: brandRoute('/library/shelf/approved'),
     name: 'a library shelf',
   },
@@ -74,19 +79,27 @@ function isPrefetchRequest(request: Request): boolean {
 }
 
 // Tracks the prefetch requests per pathname so a test clicks only once the
-// router has everything it is going to prepare for that address.
+// router has everything it is going to prepare for that address, and the
+// page's own prefetches have drained like they have for a person who has
+// been on the page for a moment.
 function trackPrefetches(page: Page): (pathname: string) => boolean {
   const inFlightByPath = new Map<string, Set<Request>>();
   const lastActivityByPath = new Map<string, number>();
+  const inFlight = new Set<Request>();
+  let lastActivityAt = 0;
   const settle = (request: Request) => {
     const { pathname } = new URL(request.url());
     inFlightByPath.get(pathname)?.delete(request);
+    inFlight.delete(request);
     lastActivityByPath.set(pathname, Date.now());
+    lastActivityAt = Date.now();
   };
   page.on('framenavigated', (frame) => {
     if (frame === page.mainFrame()) {
       inFlightByPath.clear();
       lastActivityByPath.clear();
+      inFlight.clear();
+      lastActivityAt = 0;
     }
   });
   page.on('request', (request) => {
@@ -94,10 +107,12 @@ function trackPrefetches(page: Page): (pathname: string) => boolean {
       return;
     }
     const { pathname } = new URL(request.url());
-    const inFlight = inFlightByPath.get(pathname) ?? new Set<Request>();
+    const inFlightForPath = inFlightByPath.get(pathname) ?? new Set<Request>();
+    inFlightForPath.add(request);
+    inFlightByPath.set(pathname, inFlightForPath);
     inFlight.add(request);
-    inFlightByPath.set(pathname, inFlight);
     lastActivityByPath.set(pathname, Date.now());
+    lastActivityAt = Date.now();
   });
   page.on('requestfinished', (request) => {
     if (isPrefetchRequest(request)) {
@@ -112,7 +127,8 @@ function trackPrefetches(page: Page): (pathname: string) => boolean {
   return (pathname) =>
     lastActivityByPath.has(pathname) &&
     (inFlightByPath.get(pathname)?.size ?? 0) === 0 &&
-    Date.now() - (lastActivityByPath.get(pathname) ?? 0) >= PREFETCH_QUIET_MS;
+    inFlight.size === 0 &&
+    Date.now() - lastActivityAt >= PREFETCH_QUIET_MS;
 }
 
 // Delays only the renders a click waits for. Prefetches stay fast.
@@ -207,7 +223,10 @@ for (const route of ROUTES_OPENED_FROM_A_BRAND_PAGE) {
     authenticatedPage: page,
   }, testInfo) => {
     const isPrefetched = trackPrefetches(page);
-    await openFrom(page, brandRoute(APP_ROUTES.SETTINGS.BRAND_KIT));
+    await openFrom(
+      page,
+      route.from ?? brandRoute(APP_ROUTES.SETTINGS.BRAND_KIT),
+    );
 
     await prefetchThroughRouter(page, route.href);
     await expect
