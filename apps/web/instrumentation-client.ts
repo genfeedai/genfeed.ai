@@ -38,6 +38,9 @@ Sentry.init({
     /Could not establish connection\. Receiving end does not exist/i,
     /Failed to register a ServiceWorker/i,
     /serwist\/sw\.js/i,
+    // Unhandled rejection thrown by an extension's inpage.js
+    // (postMessageToContentScript → FunctionCallError); no app frames.
+    /func sseError not found/i,
   ],
 
   replaysOnErrorSampleRate: 1.0,
