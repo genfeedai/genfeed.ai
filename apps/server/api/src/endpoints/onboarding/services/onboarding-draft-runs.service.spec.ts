@@ -39,8 +39,8 @@ describe('OnboardingDraftRunsService', () => {
   const prisma = {
     contentRun: {
       createMany: vi.fn(),
+      count: vi.fn(),
       findFirst: vi.fn(),
-      findMany: vi.fn(),
       updateMany: vi.fn(),
     },
     brandedGenerationFeedback: { findMany: vi.fn() },
@@ -57,7 +57,7 @@ describe('OnboardingDraftRunsService', () => {
     vi.resetAllMocks();
     prisma.contentRun.createMany.mockResolvedValue({ count: 1 });
     prisma.contentRun.updateMany.mockResolvedValue({ count: 1 });
-    prisma.contentRun.findMany.mockResolvedValue([]);
+    prisma.contentRun.count.mockResolvedValue(0);
     prisma.brandedGenerationFeedback.findMany.mockResolvedValue([]);
     prisma.post.updateMany.mockResolvedValue({ count: 1 });
     prisma.brandedGenerationReceipt.findMany.mockResolvedValue([]);
@@ -191,10 +191,7 @@ describe('OnboardingDraftRunsService', () => {
   });
 
   it('refuses a third round of drafts for a brand and generates nothing', async () => {
-    prisma.contentRun.findMany.mockResolvedValue([
-      { id: 'onboarding-first' },
-      { id: 'onboarding-second' },
-    ]);
+    prisma.contentRun.count.mockResolvedValueOnce(2).mockResolvedValueOnce(0);
     const generate = vi.fn().mockResolvedValue(result);
     await expect(
       service.execute(user, 'brand-1', 'second-request', generate),
@@ -206,11 +203,7 @@ describe('OnboardingDraftRunsService', () => {
   it('still replays the saved second round once the brand is at the cap', async () => {
     const generate = vi.fn().mockResolvedValue(result);
     await service.execute(user, 'brand-1', 'first-request', generate);
-    const savedId = prisma.contentRun.createMany.mock.calls[0][0].data[0].id;
-    prisma.contentRun.findMany.mockResolvedValue([
-      { id: 'onboarding-first' },
-      { id: savedId },
-    ]);
+    prisma.contentRun.count.mockResolvedValueOnce(2).mockResolvedValueOnce(1);
     prisma.contentRun.createMany.mockResolvedValue({ count: 0 });
     prisma.contentRun.findFirst.mockResolvedValue({
       status: 'completed',
@@ -227,7 +220,7 @@ describe('OnboardingDraftRunsService', () => {
   });
 
   it('lets a second round start while the brand has had only one', async () => {
-    prisma.contentRun.findMany.mockResolvedValue([{ id: 'onboarding-first' }]);
+    prisma.contentRun.count.mockResolvedValue(1);
     const generate = vi.fn().mockResolvedValue(result);
     await expect(
       service.execute(user, 'brand-1', 'first-request', generate),

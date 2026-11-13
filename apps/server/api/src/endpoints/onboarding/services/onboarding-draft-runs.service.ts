@@ -669,7 +669,7 @@ export class OnboardingDraftRunsService {
     // number of its runs that did not fail. A request that repeats a round
     // already saved is replayed below and never counts as another round.
     if (previousRequestKey) {
-      const rounds = await this.prisma.contentRun.findMany({
+      const rounds = await this.prisma.contentRun.count({
         where: {
           organizationId,
           brandId,
@@ -677,11 +677,10 @@ export class OnboardingDraftRunsService {
           config: { path: ['surface'], equals: 'onboarding' },
           status: { not: ContentRunStatus.FAILED },
         },
-        select: { id: true },
       });
       if (
-        rounds.length >= ONBOARDING_MAX_DRAFT_ROUNDS &&
-        !rounds.some((round) => round.id === id)
+        rounds >= ONBOARDING_MAX_DRAFT_ROUNDS &&
+        !(await this.prisma.contentRun.count({ where }))
       )
         throw new BadRequestException(
           'This brand has used every round of first drafts.',
