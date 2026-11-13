@@ -38,6 +38,7 @@ describe('brandedReasonHttpStatus', () => {
   it.each([
     ['channel_limit_exceeded', 422],
     ['provider_output_empty', 422],
+    ['provider_output_unusable', 422],
     ['provider_attempt_ref_unavailable', 502],
     ['artifact_persist_failed', 500],
     ['artifact_bind_failed', 500],

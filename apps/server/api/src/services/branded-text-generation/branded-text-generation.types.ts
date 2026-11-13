@@ -22,6 +22,11 @@ export interface BrandedTextGenerationRequestV1 {
   resolveApiKey: TextDispatchKeyResolver;
   /** Channel-limit gate applied to the provider output before anything is saved. */
   acceptText: (text: string) => boolean;
+  /**
+   * The stable reason recorded when `acceptText` refused the output. Absent
+   * means every refusal is a channel-limit refusal.
+   */
+  classifyRejectedText?: (text: string) => string;
   /** Persists the exact accepted text as the artifact the receipt binds to. */
   persistText: (text: string) => Promise<{ postId: string }>;
   /** Trusted continuation check before private reads, provider work and artifact writes. */

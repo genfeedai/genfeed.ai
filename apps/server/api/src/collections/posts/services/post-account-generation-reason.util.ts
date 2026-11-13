@@ -22,6 +22,8 @@ const MESSAGES: Record<string, string> = {
   provider_capability_unsupported:
     'The selected text model cannot be used for this generation.',
   provider_output_empty: 'The text model returned nothing. Try again.',
+  provider_output_unusable:
+    'The text model did not return a finished post. Try again.',
   skill_context_unavailable:
     'Brand skills are unavailable right now. Try again shortly.',
 };
