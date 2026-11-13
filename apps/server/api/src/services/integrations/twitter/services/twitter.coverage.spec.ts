@@ -886,7 +886,11 @@ describe('TwitterService (coverage)', () => {
       const result = await service.getTrends('org', 'brand');
 
       expect(result).toEqual([]);
-      expect(loggerService.warn).toHaveBeenCalled();
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('requires X API credits'),
+        expect.anything(),
+        expect.anything(),
+      );
     });
 
     it('returns empty array on 403 status error', async () => {
@@ -902,7 +906,11 @@ describe('TwitterService (coverage)', () => {
       const result = await service.getTrends('org', 'brand');
 
       expect(result).toEqual([]);
-      expect(loggerService.warn).toHaveBeenCalled();
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('requires X API credits'),
+        expect.anything(),
+        expect.anything(),
+      );
     });
 
     it('returns empty array and logs error on generic failure', async () => {
