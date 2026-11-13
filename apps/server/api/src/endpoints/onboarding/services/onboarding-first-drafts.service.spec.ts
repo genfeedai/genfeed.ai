@@ -634,6 +634,37 @@ describe('OnboardingFirstDraftsService', () => {
       ]);
     });
 
+    it('reports nothing for a replayed run that never generated', async () => {
+      runs.execute.mockResolvedValue({
+        drafts: [],
+        imageIngredientId: null,
+        imageUrl: null,
+        requestKey: null,
+        status: 'ready',
+      });
+
+      await reporting.generate(user, 'brand_1', {});
+
+      expect(events).toEqual([]);
+    });
+
+    it('reports a run whose final save fails as failed', async () => {
+      runs.execute.mockImplementation(
+        async (_user, _brand, _previous, generate) => {
+          await generate(vi.fn());
+          throw new Error('final save failed');
+        },
+      );
+
+      await expect(reporting.generate(user, 'brand_1', {})).rejects.toThrow(
+        'final save failed',
+      );
+
+      expect(events.map((event) => event.properties?.status)).toEqual([
+        'failed',
+      ]);
+    });
+
     it('reports a run that throws as failed and still throws', async () => {
       runs.execute.mockImplementation(
         async (_user, _brand, _previous, generate) => generate(vi.fn()),
