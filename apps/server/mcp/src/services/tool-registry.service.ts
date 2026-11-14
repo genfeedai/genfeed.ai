@@ -598,7 +598,13 @@ export class ToolRegistryService implements OnModuleInit {
           name === 'get_brands' ? { ...args, includeLogo: true } : args,
           approvedApprovalId ? { approvedApprovalId } : undefined,
         );
-        return this.toMcpResult(await this.nameBrands(result, name), name);
+        return this.toMcpResult(
+          await this.withOtherOrganizations(
+            await this.nameBrands(result, name),
+            name,
+          ),
+          name,
+        );
       }
       case 'onboarding': {
         const { agentToolName, parameters, timeoutMs } =
@@ -853,6 +859,38 @@ export class ToolRegistryService implements OnModuleInit {
       return { ...result, data: withBrandNames(result.data, names) };
     } catch (error: unknown) {
       this.logger.warn('Could not name brands in a tool result', error);
+      return result;
+    }
+  }
+
+  /**
+   * A connection that may act in all of the user's organizations says so in
+   * `get_account`: the organization and brand it started in, and the others it
+   * can name. The Claude connector has no `get_orgs`, so this is where it
+   * learns the default it was given. A failed lookup leaves the result as it was.
+   */
+  private async withOtherOrganizations(
+    result: AgentToolResult,
+    name: string,
+  ): Promise<AgentToolResult> {
+    if (!result.success || name !== 'get_account' || !isRecord(result.data))
+      return result;
+    try {
+      if (!(await this.clientService.canSwitchOrganizations())) return result;
+      const organizations = await this.clientService.listOrganizations();
+      if (organizations.length < 2) return result;
+      return {
+        ...result,
+        data: {
+          ...result.data,
+          organizations: organizations.map((organization) => ({
+            isDefault: organization.isActive,
+            name: organization.label,
+          })),
+        },
+      };
+    } catch (error: unknown) {
+      this.logger.warn('Could not list organizations for get_account', error);
       return result;
     }
   }

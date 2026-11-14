@@ -3,10 +3,12 @@
 import LoginBetterAuth from '@app/(public)/login/login-better-auth';
 import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import {
-  API_KEY_SCOPE_OPTIONS,
   API_KEY_SCOPE_PRESETS,
+  APP_ROUTES,
+  createOrganizationAppRoute,
   MCP_CLAUDE_SCOPE_CEILING,
 } from '@genfeedai/contracts/constants';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
@@ -15,7 +17,26 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { SelectField } from '@ui/primitives/select';
-import { ArrowUpRight, Check, Lock } from 'lucide-react';
+import {
+  ArrowUpRight,
+  BadgeCheck,
+  BarChart3,
+  Building2,
+  CalendarClock,
+  type Check,
+  Coins,
+  Image as ImageIcon,
+  Lock,
+  MessageSquareText,
+  Newspaper,
+  Palette,
+  PenLine,
+  Sparkles,
+  TrendingUp,
+  Video,
+} from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -73,11 +94,78 @@ function getAvailableAccessLevels(
   return available;
 }
 
-function getScopeLabels(scopes: string[]): string[] {
+type ConsentTileKey =
+  | 'analytics'
+  | 'articles'
+  | 'brands'
+  | 'credits'
+  | 'drafts'
+  | 'images'
+  | 'prompts'
+  | 'publishing'
+  | 'scheduling'
+  | 'trends'
+  | 'videos';
+
+/** One tile per capability; it is on when any of its scopes is granted. */
+const CONSENT_TILES: {
+  icon: typeof Check;
+  isCreation?: boolean;
+  key: ConsentTileKey;
+  scopes: string[];
+}[] = [
+  {
+    icon: Video,
+    isCreation: true,
+    key: 'videos',
+    scopes: ['videos:read', 'videos:create'],
+  },
+  {
+    icon: ImageIcon,
+    isCreation: true,
+    key: 'images',
+    scopes: ['images:read', 'images:create'],
+  },
+  {
+    icon: MessageSquareText,
+    isCreation: true,
+    key: 'prompts',
+    scopes: ['prompts:read', 'prompts:create'],
+  },
+  {
+    icon: Newspaper,
+    key: 'articles',
+    scopes: ['articles:read', 'articles:create'],
+  },
+  { icon: PenLine, key: 'drafts', scopes: ['posts:draft'] },
+  { icon: CalendarClock, key: 'scheduling', scopes: ['posts:schedule'] },
+  {
+    icon: BadgeCheck,
+    key: 'publishing',
+    scopes: ['posts:approve', 'posts:publish'],
+  },
+  { icon: Palette, key: 'brands', scopes: ['brands:read'] },
+  { icon: Coins, key: 'credits', scopes: ['credits:read'] },
+  { icon: BarChart3, key: 'analytics', scopes: ['analytics:read'] },
+  { icon: TrendingUp, key: 'trends', scopes: ['analytics:read'] },
+];
+
+/**
+ * Every tile always shows, so the card keeps one size: a tile the chosen
+ * access level or client does not grant is greyed out instead of removed.
+ */
+function getScopeTiles(
+  scopes: string[],
+  isClaude: boolean,
+): { icon: typeof Check; isDisabled: boolean; key: ConsentTileKey }[] {
   const granted = new Set(scopes);
-  return API_KEY_SCOPE_OPTIONS.filter((option) =>
-    option.scopes.some((candidate) => granted.has(candidate)),
-  ).map((option) => option.label);
+  return CONSENT_TILES.map((tile) => ({
+    icon: tile.icon,
+    isDisabled:
+      (isClaude && tile.isCreation === true) ||
+      !tile.scopes.some((candidate) => granted.has(candidate)),
+    key: tile.key,
+  }));
 }
 
 function getCallbackHost(
@@ -103,12 +191,26 @@ function getCallbackHost(
 /** Dropdown value for a connection that may act in every organization. */
 const ALL_ORGANIZATIONS = 'all';
 
+/** Official marks of the clients we know, vendored from their first-party sites. */
+const CLIENT_LOGOS: readonly { pattern: RegExp; src: string }[] = [
+  { pattern: /claude/i, src: '/assets/agent-logos/claude.svg' },
+  { pattern: /codex|openai|chatgpt/i, src: '/assets/agent-logos/openai.svg' },
+  { pattern: /cursor/i, src: '/assets/agent-logos/cursor.svg' },
+];
+
+function getClientLogo(clientName: string): string | null {
+  return (
+    CLIENT_LOGOS.find(({ pattern }) => pattern.test(clientName))?.src ?? null
+  );
+}
+
 export default function OAuthConsentContent() {
   const translate = useTranslations('common.oauth.consent');
   const translateOrganization = useTranslations(
     'common.oauth.consent.organization',
   );
   const translateBrand = useTranslations('common.oauth.consent.brand');
+  const translateTiles = useTranslations('common.oauth.consent.request.tiles');
   const searchParams = useSearchParams();
   const { getToken, isLoaded, isSignedIn } = useAuthIdentity();
   const controllerRef = useRef<AbortController | null>(null);
@@ -157,9 +259,9 @@ export default function OAuthConsentContent() {
     [accessLevels],
   );
   const [accessLevel, setAccessLevel] = useState<AccessLevel>('full');
-  const scopeLabels = useMemo(
-    () => getScopeLabels(accessLevels[accessLevel]),
-    [accessLevels, accessLevel],
+  const scopeTiles = useMemo(
+    () => getScopeTiles(accessLevels[accessLevel], isClaude),
+    [accessLevels, accessLevel, isClaude],
   );
   // Only the staff admin endpoint carries admin standing; the server refuses
   // consent there to everyone else, so the notice is not shown elsewhere.
@@ -199,7 +301,7 @@ export default function OAuthConsentContent() {
         }
         setOrganizations(available);
         setSelectedOrganizationId(
-          available.length === 1 ? available[0].id : '',
+          available.length > 1 ? ALL_ORGANIZATIONS : (available[0]?.id ?? ''),
         );
         if (!available.length) {
           setOrganizationError(translateOrganization('empty'));
@@ -294,9 +396,10 @@ export default function OAuthConsentContent() {
   const selectedBrand = brands.find((brand) => brand.id === selectedBrandId);
 
   // "All" needs a second organization and a tool set that can use it.
-  const canChooseAllOrganizations = !isClaude && organizations.length > 1;
+  const canChooseAllOrganizations = organizations.length > 1;
   const isAllOrganizations =
     canChooseAllOrganizations && selectedOrganizationId === ALL_ORGANIZATIONS;
+  const defaultOrganization = organizations[0];
 
   async function submitDecision(approved: boolean): Promise<void> {
     if (
@@ -334,10 +437,13 @@ export default function OAuthConsentContent() {
             client_id: searchParams.get('client_id'),
             code_challenge: searchParams.get('code_challenge'),
             code_challenge_method: searchParams.get('code_challenge_method'),
-            organizationId:
-              approved && !isAllOrganizations
-                ? selectedOrganizationId
-                : undefined,
+            // All organizations starts in the first one listed, the one the
+            // screen names, so the connection and the screen agree.
+            organizationId: approved
+              ? isAllOrganizations
+                ? defaultOrganization?.id
+                : selectedOrganizationId
+              : undefined,
             redirect_uri: redirectUri,
             resource: searchParams.get('resource'),
             // Untouched, send the client's own request; a narrower level sends
@@ -450,8 +556,23 @@ export default function OAuthConsentContent() {
                   bodyClassName="flex-row items-start"
                   variant={CardVariant.BORDERED}
                 >
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background">
-                    <Lock className="size-4 text-muted-foreground" />
+                  <div
+                    className={
+                      'flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-white [color-scheme:light]' /* design-system-allow-content-color -- vendor marks are drawn for a light tile */
+                    }
+                  >
+                    {getClientLogo(clientName) ? (
+                      <Image
+                        alt=""
+                        className="size-5 object-contain [color-scheme:light]"
+                        height={20}
+                        src={getClientLogo(clientName) ?? ''}
+                        unoptimized
+                        width={20}
+                      />
+                    ) : (
+                      <Lock className="size-4 text-muted-foreground" />
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -489,6 +610,7 @@ export default function OAuthConsentContent() {
                 ) : (
                   <SelectField
                     isDisabled={consentState.isSubmitting}
+                    isTextCaseKept
                     label={translateOrganization('label')}
                     name="consent-organization"
                     placeholder={translateOrganization('placeholder')}
@@ -510,43 +632,28 @@ export default function OAuthConsentContent() {
                   </SelectField>
                 )}
 
-                {isAllOrganizations && (
-                  <p className="text-sm text-muted-foreground">
-                    {translateOrganization('all.description')}
-                  </p>
-                )}
-
-                {selectedOrganizationId && brands.length > 0 && (
-                  <div className="space-y-1.5">
-                    <SelectField
-                      isDisabled={consentState.isSubmitting || isLoadingBrands}
-                      isTextCaseKept
-                      label={translateBrand('label')}
-                      name="consent-brand"
-                      value={selectedBrandId}
-                      onChange={(event) =>
-                        setSelectedBrandId(event.target.value)
-                      }
-                    >
-                      <option value="">{translateBrand('allBrands')}</option>
-                      {brands.map((brand) => (
-                        <option key={brand.id} value={brand.id}>
-                          {brand.label}
-                        </option>
-                      ))}
-                    </SelectField>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedBrand
-                        ? translateBrand('onlyBrandDescription', {
-                            brand: selectedBrand.label,
-                            clientName,
-                          })
-                        : translateBrand('allBrandsDescription', {
-                            clientName,
-                          })}
-                    </p>
-                  </div>
-                )}
+                <div className="space-y-1.5">
+                  <SelectField
+                    isDisabled={
+                      consentState.isSubmitting ||
+                      isLoadingBrands ||
+                      !selectedOrganizationId ||
+                      isAllOrganizations
+                    }
+                    isTextCaseKept
+                    label={translateBrand('label')}
+                    name="consent-brand"
+                    value={selectedBrandId}
+                    onChange={(event) => setSelectedBrandId(event.target.value)}
+                  >
+                    <option value="">{translateBrand('allBrands')}</option>
+                    {brands.map((brand) => (
+                      <option key={brand.id} value={brand.id}>
+                        {brand.label}
+                      </option>
+                    ))}
+                  </SelectField>
+                </div>
 
                 {availableAccessLevels.length > 1 && (
                   <SelectField
@@ -570,28 +677,85 @@ export default function OAuthConsentContent() {
               <div className="space-y-6">
                 <div className="space-y-3">
                   <p className="text-sm font-medium">
-                    {translate('request.scopesLabel')}
+                    {translate('request.scopesLabel', { clientName })}
                   </p>
-                  <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
-                    {scopeLabels.map((label) => (
+                  <ul className="grid grid-cols-3 gap-2">
+                    {scopeTiles.map(({ icon: Icon, isDisabled, key }) => (
                       <li
-                        className="flex items-center gap-2 text-sm text-muted-foreground"
-                        key={label}
+                        aria-disabled={isDisabled || undefined}
+                        className={cn(
+                          'flex flex-col items-start gap-1.5 rounded-lg border border-border bg-card p-2.5 text-sm',
+                          isDisabled && 'opacity-40',
+                        )}
+                        key={key}
                       >
-                        <Check
-                          aria-hidden="true"
-                          className="size-4 shrink-0 text-foreground"
-                        />
-                        {label}
+                        <span
+                          className={cn(
+                            'flex size-6 shrink-0 items-center justify-center rounded-md',
+                            isDisabled
+                              ? 'bg-muted text-muted-foreground'
+                              : 'bg-primary/10 text-primary',
+                          )}
+                        >
+                          <Icon aria-hidden="true" className="size-3.5" />
+                        </span>
+                        {translateTiles(key)}
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                {isClaude && (
-                  <p className="text-sm text-muted-foreground">
-                    {translate('request.claudeNotice')}
-                  </p>
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Building2 aria-hidden="true" className="size-4 shrink-0" />
+                  {isAllOrganizations
+                    ? translateOrganization('all.description', {
+                        count: organizations.length,
+                        organization: organizations[0]?.label ?? '',
+                      })
+                    : selectedBrand
+                      ? translateBrand('onlyBrandDescription', {
+                          brand: selectedBrand.label,
+                          organization:
+                            organizations.find(
+                              (organization) =>
+                                organization.id === selectedOrganizationId,
+                            )?.label ?? '',
+                        })
+                      : translateBrand('allBrandsDescription', {
+                          organization:
+                            organizations.find(
+                              (organization) =>
+                                organization.id === selectedOrganizationId,
+                            )?.label ?? '',
+                        })}
+                </p>
+
+                {isClaude && defaultOrganization && (
+                  <div className="flex items-center gap-3 rounded-lg border border-dashed border-border px-3 py-2.5 text-sm">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                      <Sparkles aria-hidden="true" className="size-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      {translate('request.mediaInvite')}
+                    </span>
+                    <Button
+                      asChild
+                      variant={ButtonVariant.SECONDARY}
+                      withWrapper={false}
+                    >
+                      <Link
+                        href={createOrganizationAppRoute(
+                          defaultOrganization.slug,
+                          APP_ROUTES.CONNECTORS.AGENTS,
+                        )}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                      >
+                        {translate('request.mediaInviteAction')}
+                        <ArrowUpRight className="size-4" />
+                      </Link>
+                    </Button>
+                  </div>
                 )}
 
                 {showAdminNotice && (

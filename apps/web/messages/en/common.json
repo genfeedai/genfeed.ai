@@ -272,9 +272,9 @@
     "consent": {
       "brand": {
         "allBrands": "All brands",
-        "allBrandsDescription": "{clientName} can work in every brand in this organization.",
+        "allBrandsDescription": "{organization}, all brands",
         "label": "Brand",
-        "onlyBrandDescription": "{clientName} can only see and change {brand}. Your other brands stay hidden."
+        "onlyBrandDescription": "{organization}, {brand} only"
       },
       "organization": {
         "empty": "You need an active organization membership to authorize access.",
@@ -283,8 +283,8 @@
         "loading": "Loading organizations…",
         "placeholder": "Choose an organization",
         "all": {
-          "description": "This client can see all of your organizations and brands, and choose which to act in on each request. Your role in each one is checked every time.",
-          "label": "All my organizations"
+          "description": "{count} organizations, starts in {organization}",
+          "label": "All organizations"
         }
       },
       "callbackHost": {
@@ -311,9 +311,23 @@
         },
         "clientLabel": "Requesting client",
         "returnsTo": "Returns to {host}",
-        "claudeNotice": "Claude can manage brands, drafts, scheduling and analytics. Image, video and audio creation stays in Genfeed Studio.",
         "adminNotice": "This is the Genfeed staff admin connection. This client can also perform administrative actions in this organization and approve its own queued actions.",
-        "scopesLabel": "This client can access"
+        "scopesLabel": "{clientName} can",
+        "mediaInvite": "Need images, video or audio?",
+        "mediaInviteAction": "Connect all tools",
+        "tiles": {
+          "analytics": "Analytics",
+          "articles": "Articles",
+          "brands": "Brands",
+          "credits": "Credits",
+          "drafts": "Drafts",
+          "images": "Images",
+          "prompts": "Prompts",
+          "publishing": "Publishing",
+          "scheduling": "Scheduling",
+          "trends": "Trends",
+          "videos": "Videos"
+        }
       },
       "result": {
         "approvedTitle": "Authorization sent",
