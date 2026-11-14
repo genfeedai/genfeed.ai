@@ -33,7 +33,7 @@ function visible(row: Row, where: Row): boolean {
   );
 }
 
-function createHandler(allowedBrandIds: string[]) {
+function createHandler(allowedBrandIds?: string[]) {
   const postsService = {
     findAll: vi.fn(async ({ where }: { where: Row }, { limit }) => ({
       docs: posts.filter((row) => visible(row, where)).slice(0, limit),
@@ -54,7 +54,13 @@ function createHandler(allowedBrandIds: string[]) {
   );
   Object.assign(handler, {
     brandAccessService: {
-      predicate: vi.fn().mockResolvedValue({ id: { in: allowedBrandIds } }),
+      predicate: vi
+        .fn()
+        .mockResolvedValue(
+          allowedBrandIds
+            ? { id: { in: allowedBrandIds } }
+            : { isDeleted: false, organizationId: ORG },
+        ),
     },
   });
   return handler;
@@ -99,11 +105,22 @@ describe('get_posts brand access (#10133)', () => {
     expect(narrowed.data).toMatchObject({ count: 0 });
   });
 
-  it('opens any post of the organization on a self-hosted install', async () => {
+  it('opens any post of the organization on a self-hosted install without a key brand limit', async () => {
     deployment.cloud = false;
 
-    const result = await createHandler([]).getPost({ postId: 'post-b' }, ctx);
+    const result = await createHandler().getPost({ postId: 'post-b' }, ctx);
 
     expect(result.success).toBe(true);
+  });
+
+  it('keeps a self-hosted key limited to one brand away from the others', async () => {
+    deployment.cloud = false;
+    const handler = createHandler(['brand-a']);
+
+    const hidden = await handler.getPost({ postId: 'post-b' }, ctx);
+    const listed = await handler.listPosts({}, ctx);
+
+    expect(hidden).toMatchObject({ success: false });
+    expect(listed.data).toMatchObject({ count: 1 });
   });
 });

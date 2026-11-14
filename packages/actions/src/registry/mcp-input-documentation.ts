@@ -311,8 +311,8 @@ const PARAMETER_DOCUMENTATION = new Map([
     'Calendar only: also list drafts.',
   ],
   [
-    'Calendar mode only. Page of rows, starting at 1; keep going while hasMore is true.',
-    'Calendar page from 1; continue while hasMore.',
+    'Calendar mode only. Page of rows, starting at 1; keep going while hasMore is true (with includeDrafts, also while draftsHasMore is true).',
+    'Calendar page from 1; continue while hasMore (or draftsHasMore with includeDrafts).',
   ],
   [
     'Calendar mode only. IANA timezone for the day buckets and gap days (for example Europe/Malta). Default: the timezone most posts were scheduled in, else UTC.',

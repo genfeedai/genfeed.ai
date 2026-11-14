@@ -143,12 +143,20 @@ function seed(): Row[] {
 
 function createHandler(
   rows: Row[],
-  options: { allowedBrandIds?: string[]; hasBrandAccess?: boolean } = {},
+  options: {
+    allowedBrandIds?: string[];
+    hasBrandAccess?: boolean;
+    isUnlimited?: boolean;
+  } = {},
 ) {
   const postsService = createPostsService(rows);
-  const predicate = vi.fn().mockResolvedValue({
-    id: { in: options.allowedBrandIds ?? [BRAND_A, BRAND_B] },
-  });
+  const predicate = vi
+    .fn()
+    .mockResolvedValue(
+      options.isUnlimited
+        ? { isDeleted: false, organizationId: ORG }
+        : { id: { in: options.allowedBrandIds ?? [BRAND_A, BRAND_B] } },
+    );
   const brands = [BRAND_A, BRAND_B].map((id) => ({ id }));
   const prisma = {
     brand: {
@@ -466,5 +474,26 @@ describe('AgentProactiveToolHandler.getContentCalendar (#10133)', () => {
     const calendar = await readCalendar(handler, { days: 7 });
 
     expect(calendar.scheduledCount).toBe(56);
+  });
+
+  it('applies no brand filter on a self-hosted install whose key has no brand limit', async () => {
+    deployment.cloud = false;
+    const { handler } = createHandler(seed(), { isUnlimited: true });
+
+    const calendar = await readCalendar(handler, { days: 7 });
+
+    expect(calendar.scheduledCount).toBe(56);
+  });
+
+  it('keeps a self-hosted key limited to one brand to that brand', async () => {
+    deployment.cloud = false;
+    const { handler } = createHandler(seed(), { allowedBrandIds: [BRAND_B] });
+
+    const calendar = await readCalendar(handler, { days: 7 });
+
+    expect(calendar.scheduledCount).toBe(7);
+    expect(new Set(calendar.scheduled.map((row) => row.brandId))).toEqual(
+      new Set([BRAND_B]),
+    );
   });
 });

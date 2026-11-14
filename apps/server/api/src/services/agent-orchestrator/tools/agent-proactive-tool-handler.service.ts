@@ -12,6 +12,7 @@ import {
   parseSaveContentAgentArgs,
   resolveContentAgentPrincipal,
 } from '@api/services/agent-orchestrator/tools/save-content-agent';
+import { brandReadScope } from '@api/services/agent-orchestrator/utils/agent-brand-read-scope.util';
 import {
   buildCalendarWindow,
   CALENDAR_ACTIVE_STATES,
@@ -464,13 +465,11 @@ export class AgentProactiveToolHandler {
     ctx: ToolExecutionContext,
   ): Promise<{ brandWhere?: Prisma.BrandWhereInput } | string> {
     let brandWhere: Prisma.BrandWhereInput | undefined;
-    if (isCloudDeployment()) {
-      if (!this.brandAccessService) return 'Content calendar is unavailable';
-      brandWhere = await this.brandAccessService.predicate({
-        userId: ctx.userId,
-        organizationId: ctx.organizationId,
-        ...ctx.apiKeyContext,
-      });
+    if (this.brandAccessService) {
+      brandWhere = (await brandReadScope(this.brandAccessService, ctx)).brand
+        ?.is;
+    } else if (isCloudDeployment()) {
+      return 'Content calendar is unavailable';
     }
     if (!brandId) return { brandWhere };
     if (!this.prisma) return 'Content calendar is unavailable';

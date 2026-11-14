@@ -155,7 +155,7 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
         },
         page: {
           description:
-            'Calendar mode only. Page of rows, starting at 1; keep going while hasMore is true.',
+            'Calendar mode only. Page of rows, starting at 1; keep going while hasMore is true (with includeDrafts, also while draftsHasMore is true).',
           type: 'number',
         },
         postId: {
