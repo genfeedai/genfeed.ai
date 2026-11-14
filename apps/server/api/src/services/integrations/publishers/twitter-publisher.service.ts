@@ -22,7 +22,12 @@ import { downloadTwitterMedia } from '@api/services/integrations/twitter/service
 import {
   describeTwitterPublishError,
   isTwitterCreditsDepletedError,
+  isTwitterPostNotFound,
+  isTwitterRateLimitError,
+  isTwitterScopeOrTierError,
   X_CREDITS_DEPLETED_CODE,
+  X_QUOTE_REFUSED_CODE,
+  X_QUOTED_POST_UNAVAILABLE_CODE,
 } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
@@ -49,6 +54,9 @@ type TwitterClient = {
       text: string,
       options?: Record<string, unknown>,
     ) => Promise<{ data?: { id?: string } }>;
+    singleTweet: (
+      id: string,
+    ) => Promise<{ data?: { id?: string }; errors?: unknown[] }>;
     uploadMedia: (
       media: Buffer,
       options: { media_type: string },
@@ -203,6 +211,18 @@ export class TwitterPublisherService extends BasePublisherService {
       const postUrl = this.buildPostUrl(externalId, credential);
       return this.createSuccessResult(externalId, this.platform, postUrl);
     } catch (error: unknown) {
+      const quoteFailure = await this.explainQuoteFailure(context, error);
+      if (quoteFailure) {
+        this.logger.error(`${url} quote post was not published`, {
+          code: quoteFailure.code,
+          postId: context.postId,
+        });
+        return this.createFailedResult(
+          this.platform,
+          quoteFailure.message,
+          quoteFailure.code,
+        );
+      }
       const message = describeTwitterPublishError(error);
       this.logger.error(`${url} failed to publish`, {
         error: message,
@@ -221,6 +241,54 @@ export class TwitterPublisherService extends BasePublisherService {
         rateLimit: (error as { rateLimit?: unknown }).rateLimit,
       });
     }
+  }
+
+  /**
+   * Why a quote post failed, when the reason is the quote itself.
+   *
+   * Only a failed quote publish is looked into, so a successful one costs no
+   * extra X read. A quoted post that X answers resource-not-found for is named
+   * as gone and not retried. A 403 on a quote is reported as X refusing the
+   * quote, with X's own wording kept, because X documents quote posts as an
+   * Enterprise-plan feature. Rate limits and depleted credits are left to the
+   * normal retry path.
+   */
+  private async explainQuoteFailure(
+    context: PublishContext,
+    error: unknown,
+  ): Promise<{ code: string; message: string } | null> {
+    const quotedId = context.post.quoteTweetId;
+    if (
+      !quotedId ||
+      isTwitterRateLimitError(error) ||
+      isTwitterCreditsDepletedError(error)
+    ) {
+      return null;
+    }
+
+    let lookup: unknown;
+    try {
+      const client = await this.getTwitterClient(context);
+      lookup = await client.v2.singleTweet(quotedId);
+    } catch (lookupError: unknown) {
+      lookup = lookupError;
+    }
+
+    if (isTwitterPostNotFound(lookup)) {
+      return {
+        code: X_QUOTED_POST_UNAVAILABLE_CODE,
+        message: `The quoted X post ${quotedId} no longer exists (it may have been deleted), so this quote post was not published.`,
+      };
+    }
+
+    if (isTwitterScopeOrTierError(error)) {
+      return {
+        code: X_QUOTE_REFUSED_CODE,
+        message: `X refused this quote post. X documents quote posts as available only on Enterprise API plans. X said: ${describeTwitterPublishError(error)}`,
+      };
+    }
+
+    return null;
   }
 
   /**

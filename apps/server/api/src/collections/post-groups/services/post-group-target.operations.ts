@@ -36,6 +36,8 @@ import {
 } from '@genfeedai/contracts';
 import {
   type ChannelTargetValidationResult,
+  normalizeChannelTargetSettings,
+  resolveQuoteTweetId,
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import {
@@ -512,6 +514,7 @@ async function updateTargetInTransaction(
   );
   const targetMutation = buildTargetMutation(
     alignedInput,
+    existing.platform,
     isManualRetry,
     validation,
     dependencies.contractService,
@@ -557,6 +560,7 @@ async function updateTargetInTransaction(
 
 function buildTargetMutation(
   input: UpdateChannelTargetInput,
+  platform: string,
   isManualRetry: boolean,
   validation: ReturnType<PostGroupContractService['validateTargetUpdate']>,
   contractService: PostGroupContractService,
@@ -588,8 +592,18 @@ function buildTargetMutation(
     ...(input.scheduledDate !== undefined && {
       scheduledDate: contractService.toDate(input.scheduledDate),
     }),
+    // Settings are replaced as a whole, so the quoted post follows them: a
+    // write without one clears the quote.
     ...(input.settings !== undefined && {
-      targetSettings: contractService.toJson(input.settings),
+      ...(platform === CredentialPlatform.TWITTER && {
+        quoteTweetId: resolveQuoteTweetId(
+          platform,
+          normalizeChannelTargetSettings(platform, input.settings),
+        ),
+      }),
+      targetSettings: contractService.toJson(
+        normalizeChannelTargetSettings(platform, input.settings),
+      ),
     }),
     ...(input.visibility !== undefined && { visibility: input.visibility }),
     ...(input.timezone !== undefined && { timezone: input.timezone }),

@@ -10,9 +10,12 @@ import {
   getChannelThreadChildCapability,
   getSupportedPostVisibilities,
   listChannelCapabilities,
+  normalizeChannelTargetSettings,
   PRODUCTIZED_SCHEDULER_PLATFORMS,
+  parseXQuotedPostId,
   resolveChannelStatusIssue,
   resolveChannelTargetSettings,
+  resolveQuoteTweetId,
   validateChannelTargetSettings,
 } from '../../src/api-types/contracts/channel-capabilities.contract';
 
@@ -696,5 +699,134 @@ describe('channel follow-up capability', () => {
     expect(
       getChannelThreadChildCapability(CredentialPlatform.LINKEDIN).mediaKinds,
     ).toEqual(['image']);
+  });
+});
+
+describe('X quoted post setting', () => {
+  test.each([
+    ['1856322244019101979', '1856322244019101979'],
+    [' 1856322244019101979 ', '1856322244019101979'],
+    [
+      'https://x.com/VincentShipsIt/status/1856322244019101979',
+      '1856322244019101979',
+    ],
+    [
+      'https://twitter.com/i/web/status/1856322244019101979?s=20',
+      '1856322244019101979',
+    ],
+    ['https://x.com/VincentShipsIt', undefined],
+    ['https://example.com/status/1856322244019101979', undefined],
+    ['https://www.instagram.com/p/C8abcDEF123/', undefined],
+    ['not a post', undefined],
+    ['12345678901234567890', undefined],
+    [42, undefined],
+  ])('reads the post id from %j', (value, expected) => {
+    expect(parseXQuotedPostId(value)).toBe(expected);
+  });
+
+  test('is a declared X setting, so the settings renderer lists it', () => {
+    const quoted = getChannelCapability(
+      CredentialPlatform.TWITTER,
+    )?.settings.find((setting) => setting.key === 'quotedPost');
+
+    expect(quoted).toMatchObject({ label: 'Quoted post', type: 'string' });
+    expect(quoted?.required).toBeUndefined();
+  });
+
+  test('accepts an X post link and a post id', () => {
+    const settings = [
+      { quotedPost: 'https://x.com/a/status/1856322244019101979' },
+      { quotedPost: '1856322244019101979' },
+      { quotedPost: '   ' },
+      {},
+    ];
+
+    expect(
+      settings.map(
+        (value) =>
+          validateChannelTargetSettings({
+            caption: 'Shipped it.',
+            platform: CredentialPlatform.TWITTER,
+            publishMode: 'scheduled',
+            settings: value,
+          }).valid,
+      ),
+    ).toEqual([true, true, true, true]);
+  });
+
+  test.each([
+    'https://x.com/VincentShipsIt',
+    'https://example.com/a/status/1856322244019101979',
+    'tomorrow',
+  ])('rejects %j and names the field', (quotedPost) => {
+    const result = validateChannelTargetSettings({
+      caption: 'Shipped it.',
+      platform: CredentialPlatform.TWITTER,
+      publishMode: 'scheduled',
+      settings: { quotedPost },
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        code: 'channel_target.invalid_quoted_post',
+        field: 'settings.quotedPost',
+      }),
+    ]);
+  });
+
+  test('rejects a quoted post on a channel that does not declare one', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'Shipped it.',
+      platform: CredentialPlatform.LINKEDIN,
+      settings: { quotedPost: '1856322244019101979' },
+    });
+
+    expect(result.errors).toEqual([
+      expect.objectContaining({ code: 'channel_target.unknown_setting' }),
+    ]);
+  });
+
+  test('stores the id whichever form was typed, and drops a blank value', () => {
+    expect(
+      normalizeChannelTargetSettings(CredentialPlatform.TWITTER, {
+        quotedPost: 'https://x.com/a/status/1856322244019101979',
+        replyPolicy: 'following',
+      }),
+    ).toEqual({ quotedPost: '1856322244019101979', replyPolicy: 'following' });
+    expect(
+      normalizeChannelTargetSettings(CredentialPlatform.TWITTER, {
+        quotedPost: '  ',
+      }),
+    ).toEqual({});
+    expect(
+      normalizeChannelTargetSettings(CredentialPlatform.TWITTER, {
+        quotedPost: 'tomorrow',
+      }),
+    ).toEqual({ quotedPost: 'tomorrow' });
+    expect(
+      normalizeChannelTargetSettings(CredentialPlatform.LINKEDIN, {
+        quotedPost: 'x',
+      }),
+    ).toEqual({ quotedPost: 'x' });
+  });
+
+  test('writes quoteTweetId only for an X target with a valid quote', () => {
+    expect(
+      resolveQuoteTweetId(CredentialPlatform.TWITTER, {
+        quotedPost: '1856322244019101979',
+      }),
+    ).toBe('1856322244019101979');
+    expect(resolveQuoteTweetId(CredentialPlatform.TWITTER, {})).toBeNull();
+    expect(
+      resolveQuoteTweetId(CredentialPlatform.TWITTER, {
+        quotedPost: 'tomorrow',
+      }),
+    ).toBeNull();
+    expect(
+      resolveQuoteTweetId(CredentialPlatform.LINKEDIN, {
+        quotedPost: '1856322244019101979',
+      }),
+    ).toBeNull();
   });
 });
