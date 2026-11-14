@@ -2158,6 +2158,62 @@ describe('PostGroupsService', () => {
     expect(result.status).toBe(ReleaseStatus.SCHEDULED);
   });
 
+  it('closes a refused X quote as published with the post id from the link the person gives', async () => {
+    const manualTarget = makeTarget({
+      groupId: 'group-1',
+      id: 'target-1',
+      platform: CredentialPlatform.TWITTER,
+      targetError: {
+        code: 'x_quote_refused',
+        isRetryable: false,
+        message: 'X refused this quote post.',
+      },
+      targetExecutionState: TargetExecutionState.FAILED,
+    });
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.FAILED }),
+    );
+    prisma.post.findFirst.mockResolvedValue(manualTarget);
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        platform: CredentialPlatform.TWITTER,
+        targetError: null,
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+      }),
+    ]);
+    prisma.postGroup.update.mockImplementation(({ data }) =>
+      Promise.resolve(
+        makeGroup({
+          id: 'group-1',
+          status: data.status,
+          statusTransitions: data.statusTransitions,
+        }),
+      ),
+    );
+
+    await service.updateTarget('org-1', 'user-1', 'group-1', 'target-1', {
+      error: null,
+      executionState: TargetExecutionState.PUBLISHED,
+      url: 'https://x.com/VincentShipsIt/status/1860000000000000001',
+    });
+
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: null,
+        mutation: expect.objectContaining({
+          externalId: '1860000000000000001',
+          publishedAt: expect.any(Date),
+          url: 'https://x.com/VincentShipsIt/status/1860000000000000001',
+        }),
+        nextState: TargetExecutionState.PUBLISHED,
+        postId: 'target-1',
+      }),
+      prisma,
+    );
+  });
+
   it('replays a durable manual-retry command when queue dispatch previously failed', async () => {
     const scheduledTarget = makeTarget({
       groupId: 'group-1',

@@ -22,6 +22,7 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { isManualPostErrorCode } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
 import { type Post, Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
@@ -76,6 +77,34 @@ export const POST_LIFECYCLE_TRANSITIONS: Readonly<
   ]),
   [TargetExecutionState.SKIPPED]: new Set(),
 };
+
+/**
+ * A FAILED target the person was asked to post by hand (X refused the quote)
+ * closes as published or skipped. Every other FAILED target stays terminal
+ * until it is retried, so this never opens a path from a real failure.
+ */
+function isManualPostResolution(
+  target: Pick<Post, 'targetError'>,
+  from: TargetExecutionState,
+  to: TargetExecutionState,
+): boolean {
+  if (
+    from !== TargetExecutionState.FAILED ||
+    (to !== TargetExecutionState.PUBLISHED &&
+      to !== TargetExecutionState.SKIPPED)
+  ) {
+    return false;
+  }
+  const error = target.targetError;
+  return (
+    error !== null &&
+    typeof error === 'object' &&
+    !Array.isArray(error) &&
+    isManualPostErrorCode(
+      typeof error.code === 'string' ? error.code : undefined,
+    )
+  );
+}
 
 export function canTransitionPostLifecycle(
   from: TargetExecutionState,
@@ -257,7 +286,10 @@ export class PostLifecycleService {
       return this.stale(input, currentState, 'prior_state_mismatch');
     }
 
-    if (!canTransitionPostLifecycle(currentState, input.nextState)) {
+    if (
+      !canTransitionPostLifecycle(currentState, input.nextState) &&
+      !isManualPostResolution(target, currentState, input.nextState)
+    ) {
       this.logger.warn('Rejected invalid Post lifecycle transition', {
         currentState,
         organizationId: input.organizationId,

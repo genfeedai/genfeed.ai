@@ -36,7 +36,9 @@ import {
 } from '@genfeedai/contracts';
 import {
   type ChannelTargetValidationResult,
+  isManualPostErrorCode,
   normalizeChannelTargetSettings,
+  parseXQuotedPostId,
   resolveQuoteTweetId,
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
@@ -490,10 +492,9 @@ async function updateTargetInTransaction(
     group.id,
     params.targetId,
   );
-  const alignedInput = alignYouTubeVisibilityUpdate(
+  const alignedInput = completeManualPostUpdate(
     existing,
-    input,
-    dependencies.contractService,
+    alignYouTubeVisibilityUpdate(existing, input, dependencies.contractService),
   );
   const validation = dependencies.contractService.validateTargetUpdate(
     group,
@@ -555,6 +556,40 @@ async function updateTargetInTransaction(
       params.organizationId,
       group.id,
     ),
+  };
+}
+
+/**
+ * Marking a quote the person posted by hand as published: when they give the
+ * link, its post id becomes the external id so analytics can find the post, and
+ * the publish time defaults to now.
+ */
+function completeManualPostUpdate(
+  existing: SchedulerPostTarget,
+  input: UpdateChannelTargetInput,
+): UpdateChannelTargetInput {
+  const error = existing.targetError;
+  const isManualPost =
+    existing.targetExecutionState === TargetExecutionState.FAILED &&
+    error !== null &&
+    typeof error === 'object' &&
+    !Array.isArray(error) &&
+    isManualPostErrorCode(
+      typeof error.code === 'string' ? error.code : undefined,
+    );
+  if (
+    !isManualPost ||
+    input.executionState !== TargetExecutionState.PUBLISHED
+  ) {
+    return input;
+  }
+  const externalProviderId =
+    input.externalProviderId ??
+    (input.url ? parseXQuotedPostId(input.url) : undefined);
+  return {
+    ...input,
+    ...(externalProviderId ? { externalProviderId } : {}),
+    publishedAt: input.publishedAt ?? new Date().toISOString(),
   };
 }
 

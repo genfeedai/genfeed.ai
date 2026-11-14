@@ -5,10 +5,12 @@ import {
   TargetValidationState,
 } from '../../src';
 import {
+  buildXQuoteIntentUrl,
   channelTargetValidationResultSchema,
   getChannelCapability,
   getChannelThreadChildCapability,
   getSupportedPostVisibilities,
+  isManualPostErrorCode,
   listChannelCapabilities,
   normalizeChannelTargetSettings,
   PRODUCTIZED_SCHEDULER_PLATFORMS,
@@ -829,4 +831,29 @@ describe('X quoted post setting', () => {
       }),
     ).toBeNull();
   });
+
+  test.each([
+    ['x_quote_refused', true],
+    ['x_quoted_post_unavailable', false],
+    ['rate_limited', false],
+    [undefined, false],
+    [null, false],
+  ])('treats %s as manual-post error: %s', (code, expected) => {
+    expect(isManualPostErrorCode(code)).toBe(expected);
+  });
+
+  test.each([
+    [
+      'Shipped it.',
+      '1856322244019101979',
+      'https://x.com/intent/post?text=Shipped+it.&url=https%3A%2F%2Fx.com%2Fi%2Fstatus%2F1856322244019101979',
+    ],
+    ['A post & more', null, 'https://x.com/intent/post?text=A+post+%26+more'],
+    ['Bad id', 'not-an-id', 'https://x.com/intent/post?text=Bad+id'],
+  ])(
+    'builds the X compose link for %j quoting %j',
+    (text, quotedId, expected) => {
+      expect(buildXQuoteIntentUrl(text, quotedId)).toBe(expected);
+    },
+  );
 });

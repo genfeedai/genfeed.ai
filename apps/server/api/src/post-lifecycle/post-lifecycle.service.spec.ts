@@ -314,6 +314,64 @@ describe('PostLifecycleService', () => {
     expect(transaction.activity.create).not.toHaveBeenCalled();
   });
 
+  describe('closing a target the person was asked to post by hand', () => {
+    function failedTarget(code: string | null) {
+      return {
+        ...target,
+        status: PostStatus.FAILED,
+        targetError: code ? { code, isRetryable: false, message: 'm' } : null,
+        targetExecutionState: TargetExecutionState.FAILED,
+      } as typeof target;
+    }
+
+    it.each([TargetExecutionState.PUBLISHED, TargetExecutionState.SKIPPED])(
+      'moves a refused X quote from FAILED to %s',
+      async (nextState) => {
+        const transaction = createTransaction({
+          current: failedTarget('x_quote_refused'),
+        });
+        const service = new PostLifecycleService(
+          {} as never,
+          { warn: vi.fn() } as never,
+        );
+
+        const result = await service.transition(
+          { nextState, organizationId: 'org-1', postId: 'post-1' },
+          transaction as never,
+        );
+
+        expect(result.kind).toBe('transitioned');
+        expect(
+          transaction.post.updateMany.mock.calls[0]?.[0]?.data,
+        ).toMatchObject({ targetExecutionState: nextState });
+      },
+    );
+
+    it.each([
+      ['a provider failure', 'rate_limited'],
+      ['a failure with no recorded error', null],
+      ['a deleted quoted post', 'x_quoted_post_unavailable'],
+    ])('keeps %s terminal', async (_label, code) => {
+      const transaction = createTransaction({ current: failedTarget(code) });
+      const service = new PostLifecycleService(
+        {} as never,
+        { warn: vi.fn() } as never,
+      );
+
+      await expect(
+        service.transition(
+          {
+            nextState: TargetExecutionState.PUBLISHED,
+            organizationId: 'org-1',
+            postId: 'post-1',
+          },
+          transaction as never,
+        ),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(transaction.post.updateMany).not.toHaveBeenCalled();
+    });
+  });
+
   it('uses the same not-found response for missing and cross-tenant targets', async () => {
     const transaction = createTransaction({ current: null });
     const service = new PostLifecycleService(

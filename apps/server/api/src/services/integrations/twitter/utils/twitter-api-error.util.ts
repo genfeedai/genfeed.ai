@@ -325,9 +325,6 @@ function readProviderDetail(error: unknown): string | undefined {
   return detail || title || undefined;
 }
 
-export const X_QUOTED_POST_UNAVAILABLE_CODE = 'x_quoted_post_unavailable';
-export const X_QUOTE_REFUSED_CODE = 'x_quote_refused';
-
 /**
  * True when an X post lookup answered that the post does not exist, as a
  * partial response (`errors` without `data`) or as a thrown error carrying the

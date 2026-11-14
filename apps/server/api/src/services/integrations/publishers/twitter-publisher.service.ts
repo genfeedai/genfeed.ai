@@ -26,8 +26,6 @@ import {
   isTwitterRateLimitError,
   isTwitterScopeOrTierError,
   X_CREDITS_DEPLETED_CODE,
-  X_QUOTE_REFUSED_CODE,
-  X_QUOTED_POST_UNAVAILABLE_CODE,
 } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
@@ -39,6 +37,10 @@ import {
   PostCategory,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import {
+  X_QUOTE_REFUSED_CODE,
+  X_QUOTED_POST_UNAVAILABLE_CODE,
+} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';

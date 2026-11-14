@@ -347,6 +347,43 @@ export function resolveQuoteTweetId(
     : null;
 }
 
+/** Error code on a target when X refused to publish a quote post through the API. */
+export const X_QUOTE_REFUSED_CODE = 'x_quote_refused';
+
+/** Error code on a target whose quoted X post no longer exists. */
+export const X_QUOTED_POST_UNAVAILABLE_CODE = 'x_quoted_post_unavailable';
+
+/**
+ * Failures the person resolves by posting by hand. The target stays FAILED with
+ * the error kept, so it can be listed, reminded about and closed as posted or
+ * skipped without a new execution state.
+ */
+export const MANUAL_POST_ERROR_CODES: readonly string[] = [
+  X_QUOTE_REFUSED_CODE,
+];
+
+export function isManualPostErrorCode(
+  code: string | null | undefined,
+): boolean {
+  return typeof code === 'string' && MANUAL_POST_ERROR_CODES.includes(code);
+}
+
+/**
+ * X's web intent opens the composer, prefilled, in the person's own session.
+ * The quoted post is added as a link to it. Nothing is sent until they press
+ * Post in X.
+ */
+export function buildXQuoteIntentUrl(
+  text: string,
+  quotedPostId: string | null | undefined,
+): string {
+  const params = new URLSearchParams({ text });
+  if (quotedPostId && X_POST_ID_PATTERN.test(quotedPostId)) {
+    params.set('url', `https://x.com/i/status/${quotedPostId}`);
+  }
+  return `https://x.com/intent/post?${params.toString()}`;
+}
+
 const channelCapabilities = [
   {
     caption: { maxLength: 5_000, required: false },
