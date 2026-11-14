@@ -1,7 +1,12 @@
 'use client';
 
 import LoginBetterAuth from '@app/(public)/login/login-better-auth';
-import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import {
   API_KEY_SCOPE_PRESETS,
   APP_ROUTES,
@@ -681,13 +686,14 @@ export default function OAuthConsentContent() {
                   </p>
                   <ul className="grid grid-cols-3 gap-2">
                     {scopeTiles.map(({ icon: Icon, isDisabled, key }) => (
-                      <li
+                      <Card
                         aria-disabled={isDisabled || undefined}
-                        className={cn(
-                          'flex flex-col items-start gap-1.5 rounded-lg border border-border bg-card p-2.5 text-sm',
-                          isDisabled && 'opacity-40',
-                        )}
+                        as="li"
+                        className={cn(isDisabled && 'opacity-40')}
+                        gap={CardGap.SM}
                         key={key}
+                        padding={CardPadding.SM}
+                        variant={CardVariant.BORDERED}
                       >
                         <span
                           className={cn(
@@ -699,8 +705,8 @@ export default function OAuthConsentContent() {
                         >
                           <Icon aria-hidden="true" className="size-3.5" />
                         </span>
-                        {translateTiles(key)}
-                      </li>
+                        <span className="text-sm">{translateTiles(key)}</span>
+                      </Card>
                     ))}
                   </ul>
                 </div>
