@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CronBrandedDispatchRecoveryService } from '@workers/crons/branded-dispatch-recovery/cron.branded-dispatch-recovery.service';
 import { CronEngagementTriggersService } from '@workers/crons/engagement/cron.engagement-triggers.service';
 import { CronPatternExtractionService } from '@workers/crons/pattern-extraction/cron.pattern-extraction.service';
+import { CronManualPostRemindersService } from '@workers/crons/posts/cron.manual-post-reminders.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { CronReviewGateTimeoutService } from '@workers/crons/review-gate/cron.review-gate-timeout.service';
 import { CronRssAutopostService } from '@workers/crons/rss/cron.rss-autopost.service';
@@ -23,6 +24,7 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
 export class PlatformPublishingTaskHandlers {
   constructor(
     private readonly posts: CronPostsService,
+    private readonly manualPostReminders: CronManualPostRemindersService,
     private readonly threadComments: ThreadCommentDeliveryService,
     private readonly tiktok: CronTiktokStatusService,
     private readonly youtubeMessages: CronYoutubeMessagesService,
@@ -48,6 +50,8 @@ export class PlatformPublishingTaskHandlers {
         this.brandedDispatchRecovery.recoverExpiredDispatches(),
       [PLATFORM_SCHEDULED_TASKS.PATTERN_EXTRACTION]: () =>
         this.patternExtraction.computeDailyPatterns(),
+      [PLATFORM_SCHEDULED_TASKS.POSTS_MANUAL_POST_REMINDERS]: () =>
+        this.manualPostReminders.sendDueReminders(),
       [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH]: () =>
         this.posts.publishScheduledPosts(),
       [PLATFORM_SCHEDULED_TASKS.POSTS_THREAD_COMMENTS]: () =>

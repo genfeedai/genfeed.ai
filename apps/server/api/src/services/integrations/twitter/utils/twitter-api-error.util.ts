@@ -206,14 +206,24 @@ export function isTwitterScopeOrTierError(error: unknown): boolean {
   );
 }
 
-export function isTwitterRateLimitError(error: unknown): boolean {
+/**
+ * X answered 429 or said so in words. Unlike {@link isTwitterRateLimitError},
+ * quota headers on any other response (a 403 carries them too) do not count.
+ */
+export function isTwitterRateLimitResponse(error: unknown): boolean {
   const status = readStatus(error) ?? readAxiosStatus(error);
   const message = readMessage(error).toLowerCase();
   return (
     status === 429 ||
     message.includes('429') ||
     message.includes('rate limit') ||
-    message.includes('too many requests') ||
+    message.includes('too many requests')
+  );
+}
+
+export function isTwitterRateLimitError(error: unknown): boolean {
+  return (
+    isTwitterRateLimitResponse(error) ||
     (isObjectLike(error) && isObjectLike(error.rateLimit))
   );
 }
@@ -323,6 +333,41 @@ function readProviderDetail(error: unknown): string | undefined {
     typeof data.detail === 'string' ? data.detail.trim() : undefined;
   const title = typeof data.title === 'string' ? data.title.trim() : undefined;
   return detail || title || undefined;
+}
+
+/**
+ * True when an X post lookup answered that the post does not exist, as a
+ * partial response (`errors` without `data`) or as a thrown error carrying the
+ * same problem. A protected, suspended or deleted author is not covered: only
+ * the provider's own resource-not-found problem counts.
+ */
+export function isTwitterPostNotFound(lookup: unknown): boolean {
+  if (!isObjectLike(lookup)) {
+    return false;
+  }
+  const data = isObjectLike(lookup.data) ? lookup.data : undefined;
+  if (typeof data?.id === 'string') {
+    return false;
+  }
+  // X puts the problem type on the response body itself as well as on its
+  // `errors` items.
+  if (
+    typeof data?.type === 'string' &&
+    data.type.endsWith('/resource-not-found')
+  ) {
+    return true;
+  }
+  const errors = Array.isArray(lookup.errors)
+    ? lookup.errors
+    : isObjectLike(lookup.data) && Array.isArray(lookup.data.errors)
+      ? lookup.data.errors
+      : [];
+  return errors.some(
+    (problem) =>
+      isObjectLike(problem) &&
+      typeof problem.type === 'string' &&
+      problem.type.endsWith('/resource-not-found'),
+  );
 }
 
 export const X_CREDITS_DEPLETED_CODE = 'x_credits_depleted';

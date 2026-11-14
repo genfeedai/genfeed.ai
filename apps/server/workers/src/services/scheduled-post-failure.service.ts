@@ -3,11 +3,21 @@ import type { PostDocument } from '@api/collections/posts/post.schema';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { RecordActivityInput } from '@api/services/activity-recording/activity-recording.types';
 import { TargetExecutionState } from '@genfeedai/contracts';
+import { isManualPostErrorCode } from '@genfeedai/contracts/api-types/contracts/x-quote-post.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
-import { createChannelTargetError } from '@workers/crons/posts/post-publish-error.util';
+import * as Sentry from '@sentry/nestjs';
+import {
+  createManualPostActivity,
+  toManualPostSubject,
+} from '@workers/crons/posts/manual-post-activity.util';
+import {
+  createChannelTargetError,
+  createPublishFailedActivity,
+} from '@workers/crons/posts/post-publish-error.util';
+import { readPostString } from '@workers/services/scheduled-post.utils';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 /**
@@ -50,6 +60,45 @@ export class ScheduledPostFailureService {
         },
       );
     }
+  }
+
+  /**
+   * Tells the owner a target FAILED for good. A refused X quote (an Enterprise
+   * API plan feature) asks them to post it by hand; anything else is the
+   * generic failure alert.
+   */
+  async notifyTerminalFailure(
+    post: PostEntity,
+    errorCode: string,
+    errorMessage: string,
+  ): Promise<void> {
+    const isManualPost = isManualPostErrorCode(errorCode);
+    await this.notifyPublishFailed(
+      post,
+      isManualPost
+        ? createManualPostActivity(toManualPostSubject(post), 0)
+        : createPublishFailedActivity(post, errorMessage),
+    );
+    // A publish that ended FAILED is persisted on the post, so nothing rethrows
+    // it to Sentry's global handlers: report it once here. Content the owner
+    // must fix (validation) and a quote X refused (the person posts it by hand)
+    // stay out; provider and credential failures are the signal.
+    if (isManualPost || errorCode === 'publish_validation_failed') {
+      return;
+    }
+    Sentry.captureException(new Error(errorMessage), {
+      extra: {
+        organizationId: readPostString(post, ['organizationId']),
+        postId: post.id.toString(),
+        retryCount: post.retryCount || 0,
+      },
+      fingerprint: ['scheduled-post-publish-failed', errorCode],
+      level: 'error',
+      tags: {
+        'publish.error_code': errorCode,
+        'publish.platform': readPostString(post, ['platform']) ?? 'unknown',
+      },
+    });
   }
 
   /**

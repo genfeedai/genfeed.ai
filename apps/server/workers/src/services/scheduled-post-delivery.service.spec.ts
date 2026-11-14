@@ -1946,6 +1946,57 @@ describe('ScheduledPostDeliveryService', () => {
     );
   });
 
+  it('keeps a refused X quote failed and asks for it by hand instead of raising a publish failure', async () => {
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockResolvedValue({
+        error: 'X refused this quote post.',
+        errorCode: 'x_quote_refused',
+        executionState: TargetExecutionState.FAILED,
+        externalId: null,
+        platform: CredentialPlatform.TWITTER,
+        success: false,
+        url: '',
+      }),
+      supportsThreads: false,
+    });
+    const post = createScheduledPost({
+      description: 'Shipped X quote scheduling.',
+      groupId: 'group-1',
+      quoteTweetId: '1856322244019101979',
+      retryCount: 0,
+    });
+
+    await executeDelivery(mocks, post, 'scheduled_sweep');
+
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).toHaveBeenNthCalledWith(
+      2,
+      post,
+      expect.objectContaining({
+        error: expect.objectContaining({
+          code: 'x_quote_refused',
+          isRetryable: false,
+        }),
+        executionState: TargetExecutionState.FAILED,
+      }),
+      'X refused this quote post.',
+      expect.anything(),
+    );
+    expect(mocks.activitiesService.record).toHaveBeenCalledTimes(1);
+    expect(mocks.activitiesService.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityId: 'post-1',
+        key: ActivityKey.POST_MANUAL_POST_NEEDED,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        value: expect.stringContaining(
+          'https://x.com/intent/post?text=Shipped+X+quote+scheduling.&url=https%3A%2F%2Fx.com%2Fi%2Fstatus%2F1856322244019101979',
+        ),
+      }),
+    );
+  });
+
   it('records Beehiiv authorization rejection without a transient retry', async () => {
     mocks.credentialsService.findOne.mockResolvedValue({
       id: 'cred-1',

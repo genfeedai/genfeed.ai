@@ -288,6 +288,55 @@ describe('ReleaseGroupsService', () => {
     });
   });
 
+  it.each([
+    [
+      'with the link they pasted',
+      'https://x.com/VincentShipsIt/status/1860000000000000001',
+      {
+        error: null,
+        executionState: TargetExecutionState.PUBLISHED,
+        url: 'https://x.com/VincentShipsIt/status/1860000000000000001',
+      },
+    ],
+    [
+      'without a link',
+      '',
+      { error: null, executionState: TargetExecutionState.PUBLISHED },
+    ],
+  ])(
+    'closes a hand-posted quote as published %s',
+    async (_label, postUrl, body) => {
+      mockPatch.mockResolvedValue({ data: { data: { id: 'release-1' } } });
+      mockDeserializeResource.mockReturnValue({ id: 'release-1' });
+
+      await new ReleaseGroupsService('token').completeManualPost(
+        'release-1',
+        'target-9',
+        postUrl,
+      );
+
+      expect(mockPatch).toHaveBeenCalledWith(
+        '/release-1/targets/target-9',
+        body,
+      );
+    },
+  );
+
+  it('closes a quote the person chose not to post as skipped', async () => {
+    mockPatch.mockResolvedValue({ data: { data: { id: 'release-1' } } });
+    mockDeserializeResource.mockReturnValue({ id: 'release-1' });
+
+    await new ReleaseGroupsService('token').skipManualPost(
+      'release-1',
+      'target-9',
+    );
+
+    expect(mockPatch).toHaveBeenCalledWith('/release-1/targets/target-9', {
+      error: null,
+      executionState: TargetExecutionState.SKIPPED,
+    });
+  });
+
   it('publishes a TikTok target through the native app handoff action', async () => {
     const document = { data: { id: 'release-1' } };
     mockPatch.mockResolvedValue({ data: document });
