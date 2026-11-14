@@ -7,7 +7,9 @@ import { describe, expect, it } from 'vitest';
 
 const request = { context: { userId: 'operator' } } as never;
 
-function createController(draftStatus: BrandOsRevisionStatus) {
+function createController(
+  existing: Array<{ content: unknown; status: BrandOsRevisionStatus }>,
+) {
   const applied: unknown[] = [];
   const approvals: unknown[] = [];
   const brandsService = {
@@ -33,9 +35,10 @@ function createController(draftStatus: BrandOsRevisionStatus) {
     ensureBaselineDraft: async () => ({
       content: {},
       id: 'rev-1',
-      status: draftStatus,
+      status: BrandOsRevisionStatus.DRAFT,
       updatedAt: '2026-11-13T23:00:00.000Z',
     }),
+    list: async () => existing,
   };
   const controller = new AdminOrganizationBrandOsController(
     brandsService as never,
@@ -52,9 +55,7 @@ describe('admin organization brand os', () => {
   });
 
   it('applies the kit fields, then approves the draft and reports the approved revision', async () => {
-    const { applied, approvals, controller } = createController(
-      BrandOsRevisionStatus.DRAFT,
-    );
+    const { applied, approvals, controller } = createController([]);
     const result = await controller.approve(request, 'org-1', 'brand-1', {
       voiceTone: 'Bold and punchy',
     });
@@ -77,15 +78,24 @@ describe('admin organization brand os', () => {
     });
   });
 
-  it('refuses a brand that already has an approved revision', async () => {
-    const { controller } = createController(BrandOsRevisionStatus.APPROVED);
-    await expect(
-      controller.approve(request, 'org-1', 'brand-1', { voiceTone: 'Calm' }),
-    ).rejects.toThrow('already has an approved Brand OS revision');
+  it('refuses a brand with an approved or owner-edited revision before writing anything', async () => {
+    for (const status of [
+      BrandOsRevisionStatus.APPROVED,
+      BrandOsRevisionStatus.DRAFT,
+    ]) {
+      const { applied, approvals, controller } = createController([
+        { content: { fields: {} }, status },
+      ]);
+      await expect(
+        controller.approve(request, 'org-1', 'brand-1', { voiceTone: 'Calm' }),
+      ).rejects.toThrow('already has a');
+      expect(applied).toEqual([]);
+      expect(approvals).toEqual([]);
+    }
   });
 
   it('rejects fields outside the kit and an empty body', async () => {
-    const { controller } = createController(BrandOsRevisionStatus.DRAFT);
+    const { controller } = createController([]);
     await expect(
       controller.approve(request, 'org-1', 'brand-1', { organizationId: 'x' }),
     ).rejects.toThrow('Invalid Brand OS kit fields');

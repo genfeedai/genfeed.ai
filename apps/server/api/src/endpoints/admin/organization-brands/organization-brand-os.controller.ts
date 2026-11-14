@@ -2,9 +2,9 @@ import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { findBlockingBrandOsRevision } from '@api/endpoints/admin/organization-brands/organization-brand-os.util';
 import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { BrandOsRevisionStatus } from '@genfeedai/contracts';
 import type { BrandKitFieldKey } from '@genfeedai/contracts/interfaces';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
@@ -97,6 +97,14 @@ export class AdminOrganizationBrandOsController {
     >;
 
     return runWithTenantContext({ organizationId }, async () => {
+      const blocking = findBlockingBrandOsRevision(
+        await this.revisions.list(organizationId, brandId),
+      );
+      if (blocking) {
+        throw new ConflictException(
+          `This brand already has a ${blocking.status.toLowerCase()} Brand OS revision. Edit it in the app.`,
+        );
+      }
       const applied = await this.brandsService.applyBrandKitDraft(
         brandId,
         organizationId,
@@ -107,11 +115,6 @@ export class AdminOrganizationBrandOsController {
         organizationId,
         brandId,
       );
-      if (draft.status === BrandOsRevisionStatus.APPROVED) {
-        throw new ConflictException(
-          'This brand already has an approved Brand OS revision.',
-        );
-      }
       const approved = await this.revisions.approve(
         organizationId,
         brandId,
