@@ -68,7 +68,6 @@ export * from '@serializers/server/content/release-group.serializer';
 export * from '@serializers/server/content/review-inbox-decision.serializer';
 export * from '@serializers/server/content/review-inbox-item.serializer';
 export * from '@serializers/server/content/rss-source.serializer';
-export * from '@serializers/server/content/schedule.serializer';
 export * from '@serializers/server/content/speech-transcription.serializer';
 export * from '@serializers/server/content/storyboard-run.serializer';
 export * from '@serializers/server/content/storyboard-run-summary.serializer';

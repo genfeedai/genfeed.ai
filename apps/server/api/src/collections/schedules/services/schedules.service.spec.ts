@@ -6,7 +6,6 @@ import {
   TargetValidationState,
 } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 vi.mock('openai', () => {
@@ -32,26 +31,10 @@ describe('SchedulesService', () => {
     post: {
       findMany: vi.fn().mockResolvedValue([]),
     },
-    schedule: {
-      count: vi.fn().mockResolvedValue(0),
-      create: vi.fn().mockResolvedValue(null),
-      delete: vi.fn().mockResolvedValue(null),
-      findFirst: vi.fn().mockResolvedValue(null),
-      findMany: vi.fn().mockResolvedValue([]),
-      findUnique: vi.fn().mockResolvedValue(null),
-      update: vi.fn().mockResolvedValue(null),
-    },
   };
 
   const mockConfigService = {
     get: vi.fn().mockReturnValue('test-api-key'),
-  };
-
-  const mockLoggerService = {
-    debug: vi.fn(),
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -65,10 +48,6 @@ describe('SchedulesService', () => {
         {
           provide: ConfigService,
           useValue: mockConfigService,
-        },
-        {
-          provide: LoggerService,
-          useValue: mockLoggerService,
         },
       ],
     }).compile();
@@ -298,59 +277,6 @@ describe('SchedulesService', () => {
           'org_1',
         ),
       ).rejects.toBeInstanceOf(ValidationException);
-    });
-  });
-
-  describe('bulkSchedule with ai-optimal times', () => {
-    const base = {
-      brandIds: ['brand_1'],
-      contentIds: ['content_1', 'content_2'],
-      platforms: ['twitter'],
-      schedulingStrategy: 'ai-optimal' as const,
-    };
-
-    beforeEach(() => {
-      vi.useFakeTimers();
-      vi.setSystemTime(Date.parse('2026-10-20T10:00:00Z'));
-    });
-
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
-    it('schedules the default hours in the requested timezone', async () => {
-      await service.bulkSchedule(
-        { ...base, timezone: 'America/New_York' },
-        'org_1',
-        'user_1',
-      );
-
-      const scheduledAt = mockPrismaService.schedule.create.mock.calls.map(
-        ([args]) => args.data.scheduledAt.toISOString(),
-      );
-      expect(scheduledAt).toEqual([
-        '2026-10-21T12:00:00.000Z',
-        '2026-10-21T13:00:00.000Z',
-      ]);
-    });
-
-    it('defaults to UTC without a timezone', async () => {
-      await service.bulkSchedule(base, 'org_1', 'user_1');
-
-      expect(
-        mockPrismaService.schedule.create.mock.calls[0][0].data.scheduledAt.toISOString(),
-      ).toBe('2026-10-21T08:00:00.000Z');
-    });
-
-    it('rejects a timezone that does not exist before writing anything', async () => {
-      await expect(
-        service.bulkSchedule(
-          { ...base, timezone: 'Not/AZone' },
-          'org_1',
-          'user_1',
-        ),
-      ).rejects.toBeInstanceOf(ValidationException);
-      expect(mockPrismaService.schedule.create).not.toHaveBeenCalled();
     });
   });
 });

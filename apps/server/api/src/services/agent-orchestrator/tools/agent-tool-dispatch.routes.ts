@@ -170,6 +170,7 @@ function dispatchWorkspaceFamily(
 /**
  * `get_posts` modes: `postId` opens one post (exclusive with every other
  * field), `days` reads the content calendar, otherwise recent posts are listed.
+ * `limit` and `page` size and page the calendar rows as well as the list.
  */
 function dispatchGetPosts(
   handlers: AgentToolDispatchHandlers,
@@ -182,7 +183,15 @@ function dispatchGetPosts(
   // A supplied postId, even an empty one, selects detail mode so an invalid id
   // is rejected instead of silently listing unrelated posts.
   if (params.postId !== undefined && params.postId !== null) {
-    const others = ['days', 'executionState', 'limit'].filter(isSet);
+    const others = [
+      'brandId',
+      'days',
+      'executionState',
+      'includeDrafts',
+      'limit',
+      'page',
+      'timezone',
+    ].filter(isSet);
     if (others.length > 0) {
       return {
         creditsUsed: 0,
@@ -194,7 +203,7 @@ function dispatchGetPosts(
   }
 
   if (isSet('days')) {
-    const others = ['executionState', 'limit'].filter(isSet);
+    const others = ['executionState'].filter(isSet);
     if (others.length > 0) {
       return {
         creditsUsed: 0,
@@ -205,6 +214,14 @@ function dispatchGetPosts(
     return handlers.proactiveHandler.getContentCalendar(params, ctx);
   }
 
+  const calendarOnly = ['includeDrafts', 'page', 'timezone'].filter(isSet);
+  if (calendarOnly.length > 0) {
+    return {
+      creditsUsed: 0,
+      error: `${calendarOnly.join(', ')} only apply with days (content calendar).`,
+      success: false,
+    };
+  }
   return handlers.workspaceHandler.listPosts(params, ctx);
 }
 

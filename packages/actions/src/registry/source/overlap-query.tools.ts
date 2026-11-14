@@ -112,12 +112,17 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Read posts. postId returns one post (exclusive with the other fields). days returns the content calendar for the coming days: scheduled and draft posts with gap analysis showing days without content. With neither, lists recent posts, optionally filtered by executionState and capped by limit. Post items carry channel target, execution state, media, and timestamps.',
+      'Read posts. postId returns one post (exclusive with the other fields). days returns the content calendar: every post scheduled in the window, in pages (page, limit, hasMore), with scheduledCount and draftsCount counted in the database, gap days (days with no queued post, in the timezone given or the one most posts were scheduled in) and, with includeDrafts, the drafts. brandId narrows to one brand. With neither postId nor days, lists recent posts, optionally filtered by executionState and brandId and capped by limit. Post items carry brandId, releaseId (the id get_scheduled_release, update_scheduled_release and control_scheduled_release accept), channel target, execution state, the failure reason when failed, media, and timestamps. Only brands this connection can access are returned.',
     mcpDescription:
-      'Read postId alone for one post; days for upcoming draft/scheduled calendar and gaps; otherwise recent posts filtered by executionState/limit. Items include channel target, state, media and timestamps.',
+      'Read postId alone for one post; days for the upcoming calendar (all scheduled posts paged by page/limit with hasMore, scheduledCount and draftsCount from the database, gapDays in timezone, drafts with includeDrafts); otherwise recent posts filtered by executionState/brandId/limit. Items include brandId, releaseId, channel target, state, failure reason, media and timestamps.',
     name: 'get_posts',
     parameters: {
       properties: {
+        brandId: {
+          description:
+            "Only this brand's posts (list and calendar modes). A brand this connection cannot access is an error.",
+          type: 'string',
+        },
         days: {
           description:
             'Content calendar mode: number of days ahead to look (for example 7).',
@@ -138,14 +143,29 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
           ],
           type: 'string',
         },
+        includeDrafts: {
+          description:
+            'Calendar mode only. Also list the drafts (draftsCount is always given).',
+          type: 'boolean',
+        },
         limit: {
           description:
-            'List mode only. Maximum number of posts to return (default 10).',
+            'Maximum number of posts to return. List mode default 10; calendar mode rows per page, default 50, at most 100.',
+          type: 'number',
+        },
+        page: {
+          description:
+            'Calendar mode only. Page of rows, starting at 1; keep going while hasMore is true (with includeDrafts, also while draftsHasMore is true).',
           type: 'number',
         },
         postId: {
           description:
             'Return this one post. Use an id from get_posts or a scheduling tool. Cannot be combined with the other fields.',
+          type: 'string',
+        },
+        timezone: {
+          description:
+            'Calendar mode only. IANA timezone for the day buckets and gap days (for example Europe/Malta). Default: the timezone most posts were scheduled in, else UTC.',
           type: 'string',
         },
       },
