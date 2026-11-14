@@ -505,6 +505,77 @@ describe('OAuthConsentPage', () => {
     );
   });
 
+  it.each<[string, string]>([
+    ['Claude Helper', 'https://evil.example/cb'],
+    ['Claude', 'https://claude.ai.evil.example/cb'],
+    ['Not Cursor', 'myapp://cb'],
+    ['Codex', 'https://evil.example/cb'],
+  ])(
+    'shows no vendor mark for %s returning to %s',
+    async (clientName, redirectUri) => {
+      useSearchParamsMock.mockReturnValue(
+        oauthParams({ client_name: clientName, redirect_uri: redirectUri }),
+      );
+      const { container } = render(<OAuthConsentPage />);
+      await screen.findByText('First workspace');
+
+      expect(container.querySelector('img')).toBeNull();
+    },
+  );
+
+  it('offers only the organization on the admin endpoint, never all', async () => {
+    useSearchParamsMock.mockReturnValue(
+      oauthParams({ resource: 'https://mcp.genfeed.ai/mcp/admin' }),
+    );
+    getMyOrganizationsMock.mockResolvedValue([
+      { id: 'org-1', isActive: true, label: 'First workspace', slug: 'first' },
+      {
+        id: 'org-2',
+        isActive: false,
+        label: 'Second workspace',
+        slug: 'second',
+      },
+    ]);
+    mockDecisionResponse();
+    render(<OAuthConsentPage />);
+    await screen.findByLabelText('Organization');
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Authorize' })).toBeEnabled(),
+    );
+    expect(screen.queryByText('All organizations')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+    await waitFor(() => expect(redirectMock).toHaveBeenCalled());
+    expect(lastDecisionBody()).toMatchObject({ organizationId: 'org-1' });
+    expect(lastDecisionBody()).not.toHaveProperty('allowOrganizationSwitching');
+  });
+
+  it('links the Claude invite to the organization the user picked', async () => {
+    useSearchParamsMock.mockReturnValue(
+      oauthParams({
+        resource: 'https://mcp.genfeed.ai/mcp/claude',
+        scope: 'videos:read articles:read',
+      }),
+    );
+    getMyOrganizationsMock.mockResolvedValue([
+      { id: 'org-1', isActive: true, label: 'First workspace', slug: 'first' },
+      {
+        id: 'org-2',
+        isActive: false,
+        label: 'Second workspace',
+        slug: 'second',
+      },
+    ]);
+    render(<OAuthConsentPage />);
+    fireEvent.change(await screen.findByLabelText('Organization'), {
+      target: { value: 'org-2' },
+    });
+
+    expect(
+      screen.getByRole('link', { name: /Connect all tools/ }),
+    ).toHaveAttribute('href', '/second/~/connectors/agents');
+  });
+
   it('shows human-readable scope labels', async () => {
     render(<OAuthConsentPage />);
 

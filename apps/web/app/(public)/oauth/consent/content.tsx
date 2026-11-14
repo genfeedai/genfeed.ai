@@ -196,17 +196,65 @@ function getCallbackHost(
 /** Dropdown value for a connection that may act in every organization. */
 const ALL_ORGANIZATIONS = 'all';
 
-/** Official marks of the clients we know, vendored from their first-party sites. */
-const CLIENT_LOGOS: readonly { pattern: RegExp; src: string }[] = [
-  { pattern: /claude/i, src: '/assets/agent-logos/claude.svg' },
-  { pattern: /codex|openai|chatgpt/i, src: '/assets/agent-logos/openai.svg' },
-  { pattern: /cursor/i, src: '/assets/agent-logos/cursor.svg' },
+const LOOPBACK_HOSTS: ReadonlySet<string> = new Set([
+  'localhost',
+  '127.0.0.1',
+  '[::1]',
+]);
+
+function isHttpsHost(url: URL, hosts: readonly string[]): boolean {
+  return url.protocol === 'https:' && hosts.includes(url.hostname);
+}
+
+/**
+ * Official marks of the clients we know, vendored from their first-party sites.
+ * `client_name` comes from public dynamic registration, so a name alone never
+ * earns a mark: the redirect must also go where that vendor's client receives
+ * its code (its own site, its app scheme, or the user's own machine).
+ */
+const CLIENT_LOGOS: readonly {
+  isTrustedRedirect: (url: URL) => boolean;
+  pattern: RegExp;
+  src: string;
+}[] = [
+  {
+    isTrustedRedirect: (url) =>
+      isHttpsHost(url, ['claude.ai', 'www.claude.ai', 'claude.com']),
+    pattern: /claude/i,
+    src: '/assets/agent-logos/claude.svg',
+  },
+  {
+    isTrustedRedirect: (url) =>
+      isHttpsHost(url, ['chatgpt.com', 'openai.com']) ||
+      (url.protocol === 'http:' && LOOPBACK_HOSTS.has(url.hostname)),
+    pattern: /codex|openai|chatgpt/i,
+    src: '/assets/agent-logos/openai.svg',
+  },
+  {
+    isTrustedRedirect: (url) => url.protocol === 'cursor:',
+    pattern: /cursor/i,
+    src: '/assets/agent-logos/cursor.svg',
+  },
 ];
 
-function getClientLogo(clientName: string): string | null {
-  return (
-    CLIENT_LOGOS.find(({ pattern }) => pattern.test(clientName))?.src ?? null
-  );
+function getClientLogo(
+  clientName: string,
+  redirectUri: string | null,
+): string | null {
+  if (!redirectUri) {
+    return null;
+  }
+  try {
+    const url = new URL(redirectUri);
+    return (
+      CLIENT_LOGOS.find(
+        ({ isTrustedRedirect, pattern }) =>
+          pattern.test(clientName) && isTrustedRedirect(url),
+      )?.src ?? null
+    );
+  } catch {
+    return null;
+  }
 }
 
 export default function OAuthConsentContent() {
@@ -306,7 +354,9 @@ export default function OAuthConsentContent() {
         }
         setOrganizations(available);
         setSelectedOrganizationId(
-          available.length > 1 ? ALL_ORGANIZATIONS : (available[0]?.id ?? ''),
+          available.length > 1 && !isAdmin
+            ? ALL_ORGANIZATIONS
+            : (available[0]?.id ?? ''),
         );
         if (!available.length) {
           setOrganizationError(translateOrganization('empty'));
@@ -330,6 +380,7 @@ export default function OAuthConsentContent() {
   }, [
     getToken,
     hasRequiredParams,
+    isAdmin,
     isLoaded,
     isSignedIn,
     translate,
@@ -400,11 +451,17 @@ export default function OAuthConsentContent() {
 
   const selectedBrand = brands.find((brand) => brand.id === selectedBrandId);
 
-  // "All" needs a second organization and a tool set that can use it.
-  const canChooseAllOrganizations = organizations.length > 1;
+  // "All" needs a second organization and an endpoint that may switch; the
+  // admin endpoint never does.
+  const canChooseAllOrganizations = organizations.length > 1 && !isAdmin;
   const isAllOrganizations =
     canChooseAllOrganizations && selectedOrganizationId === ALL_ORGANIZATIONS;
   const defaultOrganization = organizations[0];
+  const connectorOrganization = isAllOrganizations
+    ? defaultOrganization
+    : (organizations.find(({ id }) => id === selectedOrganizationId) ??
+      defaultOrganization);
+  const clientLogo = getClientLogo(clientName, redirectUri);
 
   async function submitDecision(approved: boolean): Promise<void> {
     if (
@@ -566,12 +623,12 @@ export default function OAuthConsentContent() {
                       'flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-white [color-scheme:light]' /* design-system-allow-content-color -- vendor marks are drawn for a light tile */
                     }
                   >
-                    {getClientLogo(clientName) ? (
+                    {clientLogo ? (
                       <Image
                         alt=""
                         className="size-5 object-contain [color-scheme:light]"
                         height={20}
-                        src={getClientLogo(clientName) ?? ''}
+                        src={clientLogo}
                         unoptimized
                         width={20}
                       />
@@ -736,7 +793,7 @@ export default function OAuthConsentContent() {
                         })}
                 </p>
 
-                {isClaude && defaultOrganization && (
+                {isClaude && connectorOrganization && (
                   <div className="flex items-center gap-3 rounded-lg border border-dashed border-border px-3 py-2.5 text-sm">
                     <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                       <Sparkles aria-hidden="true" className="size-4" />
@@ -751,7 +808,7 @@ export default function OAuthConsentContent() {
                     >
                       <Link
                         href={createOrganizationAppRoute(
-                          defaultOrganization.slug,
+                          connectorOrganization.slug,
                           APP_ROUTES.CONNECTORS.AGENTS,
                         )}
                         rel="noopener noreferrer"
