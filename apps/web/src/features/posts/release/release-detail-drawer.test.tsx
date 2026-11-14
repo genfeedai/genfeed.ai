@@ -134,9 +134,11 @@ function renderDrawer(
 ) {
   const handlers = {
     onClose: vi.fn(),
+    onCompleteManualPost: vi.fn(),
     onRescheduleRelease: vi.fn(),
     onRescheduleTarget: vi.fn(),
     onRetryTarget: vi.fn(),
+    onSkipManualPost: vi.fn(),
   };
 
   const view = renderInSidebar(
@@ -277,6 +279,32 @@ describe('ReleaseDetailDrawer', () => {
       screen.getByRole('button', { name: 'Retry Instagram target' }),
     );
     expect(onRetryTarget).toHaveBeenCalledWith('target-1');
+  });
+
+  it('asks for a refused X quote by hand instead of showing a plain failure', () => {
+    renderDrawer({
+      baseContent: 'Shipped it.',
+      status: ReleaseStatus.FAILED,
+      targets: [
+        target({
+          error: {
+            code: 'x_quote_refused',
+            failedAt: '2026-08-02T10:00:05.000Z',
+            isRetryable: false,
+            message: 'X refused this quote post.',
+          },
+          executionState: TargetExecutionState.FAILED,
+          platform: CredentialPlatform.TWITTER,
+          settings: { quotedPost: '1856322244019101979' },
+        }),
+      ],
+    });
+
+    expect(screen.getByText('Needs your post')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open in X' })).toHaveAttribute(
+      'href',
+      'https://x.com/intent/post?text=Shipped+it.&url=https%3A%2F%2Fx.com%2Fi%2Fstatus%2F1856322244019101979',
+    );
   });
 
   it('locks the release once a target published, but not its unsent siblings', () => {

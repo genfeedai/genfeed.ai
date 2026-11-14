@@ -8,6 +8,7 @@ import {
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { parseXQuotedPostId } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import type {
   AccountHealthSummary,
   IChannelTarget,
@@ -32,10 +33,15 @@ import { ExternalLink, Repeat2 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { resolveTargetCaption } from '@/components/previews/preview.helpers';
 import ReleaseAnalyticsTable from '@/features/posts/release/release-analytics-table';
 import ReleaseEngagementRules from '@/features/posts/release/release-engagement-rules';
+import ReleaseManualPostCard from '@/features/posts/release/release-manual-post-card';
 import ReleaseRescheduleField from '@/features/posts/release/release-reschedule-field';
-import { isCredentialAtRisk } from '@/features/posts/release/release-target-actions.helpers';
+import {
+  isCredentialAtRisk,
+  isManualPostTarget,
+} from '@/features/posts/release/release-target-actions.helpers';
 import ReleaseTargetPreview from '@/features/posts/release/release-target-preview';
 import {
   badgeVariantForTone,
@@ -57,6 +63,10 @@ export const RELEASE_RESUME_ACTION = 'release:resume';
 
 export function targetRescheduleAction(targetId: string): string {
   return `target:reschedule:${targetId}`;
+}
+
+export function targetManualPostAction(targetId: string): string {
+  return `target:manual-post:${targetId}`;
 }
 
 export function targetRetryAction(targetId: string): string {
@@ -103,10 +113,12 @@ export default function ReleaseDetailDrawer({
   error,
   onAddChannel,
   onClose,
+  onCompleteManualPost,
   onRescheduleRelease,
   onRescheduleTarget,
   onResumeRelease,
   onRetryTarget,
+  onSkipManualPost,
   pendingAction,
   reconnectHref,
   release,
@@ -395,7 +407,22 @@ export default function ReleaseDetailDrawer({
                         </Alert>
                       ) : null}
 
-                      {target.error ? (
+                      {onCompleteManualPost &&
+                      onSkipManualPost &&
+                      isManualPostTarget(target) ? (
+                        <ReleaseManualPostCard
+                          caption={resolveTargetCaption(release, target)}
+                          isPending={isPending}
+                          onComplete={(postUrl) =>
+                            onCompleteManualPost(target.id, postUrl)
+                          }
+                          onSkip={() => onSkipManualPost(target.id)}
+                          quotedPostId={
+                            parseXQuotedPostId(target.settings?.quotedPost) ??
+                            null
+                          }
+                        />
+                      ) : target.error ? (
                         <p className="text-xs text-destructive">
                           {target.error.message}
                         </p>
