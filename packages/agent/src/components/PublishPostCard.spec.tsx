@@ -229,9 +229,9 @@ describe('PublishPostCard', () => {
       'Everyone',
     );
     expect(
-      screen.getByRole('button', { name: 'linkedin' }),
+      screen.getByRole('button', { name: 'LinkedIn' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'twitter' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'X' })).toBeInTheDocument();
   });
 
   it('preserves other targets and the shared caption when one channel is edited', async () => {
