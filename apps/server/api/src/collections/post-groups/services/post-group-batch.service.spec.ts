@@ -1,4 +1,5 @@
 import { PostGroupBatchService } from '@api/collections/post-groups/services/post-group-batch.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 
@@ -129,6 +130,61 @@ describe('PostGroupBatchService.validate', () => {
     expect(errors).toEqual([
       { index: 0, message: 'This release could not be scheduled.' },
     ]);
+  });
+});
+
+describe('PostGroupBatchService.assertBrandAccess', () => {
+  const limited = ['brand-a'];
+
+  it.each([
+    ['a release naming another brand', [{ brandId: 'brand-b' }], []],
+    [
+      'a channel account of another brand',
+      [{ targets: ONE_CHANNEL }],
+      [{ brandId: 'brand-b', id: 'cred-1' }],
+    ],
+    [
+      'a channel account with no brand',
+      [{ targets: ONE_CHANNEL }],
+      [{ brandId: null, id: 'cred-1' }],
+    ],
+  ])(
+    'hides %s from a key limited to brand-a',
+    async (_name, releases, credentials) => {
+      const { service } = build({ credentials });
+
+      await expect(
+        service.assertBrandAccess('org-1', releases, limited),
+      ).rejects.toThrow(NotFoundException);
+    },
+  );
+
+  it('lets a key limited to brand-a use its own brand and accounts', async () => {
+    const { service } = build({
+      credentials: [{ brandId: 'brand-a', id: 'cred-1' }],
+    });
+
+    await expect(
+      service.assertBrandAccess(
+        'org-1',
+        [{ brandId: 'brand-a', targets: ONE_CHANNEL }],
+        limited,
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  it('checks nothing for a key with no brand limit', async () => {
+    const { service } = build({
+      credentials: [{ brandId: 'brand-z', id: 'cred-1' }],
+    });
+
+    await expect(
+      service.assertBrandAccess(
+        'org-1',
+        [{ brandId: 'brand-b', targets: ONE_CHANNEL }],
+        undefined,
+      ),
+    ).resolves.toBeUndefined();
   });
 });
 

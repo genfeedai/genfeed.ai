@@ -91,6 +91,11 @@ export class PostGroupsController {
     @Body() body: { releases?: unknown },
   ) {
     this.postGroupBatchService.assertBatchShape(body?.releases);
+    await this.postGroupBatchService.assertBrandAccess(
+      user.organizationId,
+      body.releases,
+      user.allowedBrandIds,
+    );
     return {
       errors: await this.postGroupBatchService.validate(
         user.organizationId,
@@ -108,6 +113,11 @@ export class PostGroupsController {
     @Body() body: { releases?: unknown },
   ) {
     this.postGroupBatchService.assertBatchShape(body?.releases);
+    await this.postGroupBatchService.assertBrandAccess(
+      user.organizationId,
+      body.releases,
+      user.allowedBrandIds,
+    );
     const { posts } = await this.postGroupBatchService.describe(
       user.organizationId,
       body.releases,
@@ -134,6 +144,11 @@ export class PostGroupsController {
     if (!keyBase) {
       throw new BadRequestException('idempotencyKey is required for a batch.');
     }
+    await this.postGroupBatchService.assertBrandAccess(
+      user.organizationId,
+      body.releases,
+      user.allowedBrandIds,
+    );
     return this.postGroupBatchService.create(
       user.organizationId,
       user.id,

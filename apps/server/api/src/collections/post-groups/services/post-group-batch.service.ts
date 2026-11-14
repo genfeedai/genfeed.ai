@@ -2,6 +2,7 @@ import { PostGroupContractService } from '@api/collections/post-groups/services/
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ApiKeyPublishingContext } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
@@ -115,6 +116,51 @@ export class PostGroupBatchService {
         `A batch holds at most ${SCHEDULED_RELEASE_BATCH_MAX} releases.`,
       );
     }
+  }
+
+  /**
+   * A key limited to some brands (#9130) may name only those. The key guard
+   * reads brand ids from the top level of a request, so the ids inside
+   * `releases[]` are checked here: a release's brand and the brand of every
+   * channel account it posts to. Anything outside the list is reported as
+   * missing, exactly like the guard does.
+   */
+  async assertBrandAccess(
+    organizationId: string,
+    releases: readonly unknown[],
+    allowedBrandIds: readonly string[] | undefined,
+  ): Promise<void> {
+    if (!allowedBrandIds) return;
+    const allowed = new Set(allowedBrandIds);
+    const records = releases.map((release) =>
+      isRecord(release) ? release : {},
+    );
+    const named = records.flatMap((release) =>
+      [release.brandId, release.brand, release.brandIds]
+        .flatMap((value) => (Array.isArray(value) ? value : [value]))
+        .flatMap((value) => readString(value) ?? []),
+    );
+    const credentialIds = [
+      ...new Set(
+        records.flatMap((release) =>
+          readRecords(release.targets).flatMap(
+            (target) => readString(target.credentialId) ?? [],
+          ),
+        ),
+      ),
+    ];
+    const credentials = credentialIds.length
+      ? await this.prisma.credential.findMany({
+          select: { brandId: true, id: true },
+          where: scopedWhere(organizationId, { id: { in: credentialIds } }),
+        })
+      : [];
+    const isOutside =
+      named.some((brandId) => !allowed.has(brandId)) ||
+      credentials.some(
+        (credential) => !credential.brandId || !allowed.has(credential.brandId),
+      );
+    if (isOutside) throw new NotFoundException('Brand');
   }
 
   /**

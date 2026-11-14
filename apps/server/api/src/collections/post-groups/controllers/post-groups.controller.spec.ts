@@ -1,3 +1,5 @@
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn((_req, _serializer, data) => data.docs),
   serializeSingle: vi.fn((_req, _serializer, data) => data),
@@ -85,6 +87,15 @@ describe('PostGroupsController', () => {
         {
           provide: PostGroupBatchService,
           useValue: {
+            assertBrandAccess: async (
+              _org: string,
+              _releases: unknown[],
+              allowed?: string[],
+            ) => {
+              if (allowed?.[0] === 'brand-limited') {
+                throw new NotFoundException('Brand');
+              }
+            },
             assertBatchShape: (releases: unknown) => {
               if (!Array.isArray(releases) || releases.length === 0) {
                 throw new BadRequestException('releases must be non-empty');
@@ -450,6 +461,22 @@ describe('PostGroupsController', () => {
         ],
         errors: [],
       });
+    });
+
+    it('refuses every batch route to a key limited to other brands', async () => {
+      const limited = { ...user, allowedBrandIds: ['brand-limited'] };
+      await expect(
+        controller.validateBatch(limited, { releases: [{}] }),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        controller.previewBatch(limited, { releases: [{}] }),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        controller.createBatch(limited, {
+          idempotencyKey: 'k',
+          releases: [{}],
+        }),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('refuses a batch with no idempotency key, or no releases', async () => {
