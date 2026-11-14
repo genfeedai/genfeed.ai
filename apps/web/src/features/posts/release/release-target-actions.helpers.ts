@@ -1,4 +1,9 @@
-import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
+import { TargetExecutionState } from '@genfeedai/contracts';
+import { isManualPostErrorCode } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import type {
+  AccountHealthSummary,
+  IChannelTarget,
+} from '@genfeedai/contracts/interfaces';
 
 /**
  * Mirrors `isAccountAtRisk` from the rail's account chips, but answers the
@@ -22,4 +27,16 @@ export function isCredentialAtRisk(
     return false;
   }
   return account.holdPublishing || Boolean(account.reconnect?.isAvailable);
+}
+
+/**
+ * A FAILED target the person closes by posting it themselves, because the
+ * provider refused something only they can do (an X quote post on a plan
+ * without quote access).
+ */
+export function isManualPostTarget(target: IChannelTarget): boolean {
+  return (
+    target.executionState === TargetExecutionState.FAILED &&
+    isManualPostErrorCode(target.error?.code)
+  );
 }

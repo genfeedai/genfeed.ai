@@ -6,6 +6,7 @@ import {
   isTwitterClientAuthError,
   isTwitterCreditsDepletedError,
   isTwitterOAuthCodeError,
+  isTwitterPostNotFound,
   isTwitterRateLimitError,
   isTwitterScopeOrTierError,
   mapTwitterApiError,
@@ -201,5 +202,49 @@ describe('describeTwitterPublishError', () => {
     expect(describeTwitterPublishError(new Error('socket hang up'))).toBe(
       'socket hang up',
     );
+  });
+});
+
+describe('isTwitterPostNotFound', () => {
+  const notFound = {
+    title: 'Not Found Error',
+    type: 'https://api.twitter.com/2/problems/resource-not-found',
+  };
+
+  it.each([
+    [
+      'a partial response with only a not-found problem',
+      { errors: [notFound] },
+    ],
+    [
+      'a thrown error carrying the problem',
+      Object.assign(new Error('Request failed with code 404'), {
+        errors: [notFound],
+      }),
+    ],
+  ])('is true for %s', (_label, lookup) => {
+    expect(isTwitterPostNotFound(lookup)).toBe(true);
+  });
+
+  it.each([
+    ['a found post', { data: { id: '1' } }],
+    [
+      'a post found next to a problem',
+      { data: { id: '1' }, errors: [notFound] },
+    ],
+    [
+      'a post X will not show',
+      {
+        errors: [
+          {
+            type: 'https://api.twitter.com/2/problems/not-authorized-for-resource',
+          },
+        ],
+      },
+    ],
+    ['a bare error', new Error('boom')],
+    ['nothing', undefined],
+  ])('is false for %s', (_label, lookup) => {
+    expect(isTwitterPostNotFound(lookup)).toBe(false);
   });
 });

@@ -325,6 +325,33 @@ function readProviderDetail(error: unknown): string | undefined {
   return detail || title || undefined;
 }
 
+/**
+ * True when an X post lookup answered that the post does not exist, as a
+ * partial response (`errors` without `data`) or as a thrown error carrying the
+ * same problem. A protected, suspended or deleted author is not covered: only
+ * the provider's own resource-not-found problem counts.
+ */
+export function isTwitterPostNotFound(lookup: unknown): boolean {
+  if (!isObjectLike(lookup)) {
+    return false;
+  }
+  const data = isObjectLike(lookup.data) ? lookup.data : undefined;
+  if (typeof data?.id === 'string') {
+    return false;
+  }
+  const errors = Array.isArray(lookup.errors)
+    ? lookup.errors
+    : isObjectLike(lookup.data) && Array.isArray(lookup.data.errors)
+      ? lookup.data.errors
+      : [];
+  return errors.some(
+    (problem) =>
+      isObjectLike(problem) &&
+      typeof problem.type === 'string' &&
+      problem.type.endsWith('/resource-not-found'),
+  );
+}
+
 export const X_CREDITS_DEPLETED_CODE = 'x_credits_depleted';
 export const X_CREDITS_DEPLETED_ERROR =
   'X API credits depleted. Add credits to the X developer account, then retry.';

@@ -33,7 +33,11 @@ import {
   ReleaseAttachmentKind,
   ReleaseStatus,
 } from '@genfeedai/contracts';
-import type { ChannelTargetValidationResult } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import {
+  type ChannelTargetValidationResult,
+  normalizeChannelTargetSettings,
+  resolveQuoteTweetId,
+} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   IPublishingProviderReadiness,
@@ -308,9 +312,16 @@ export class PostGroupPersistenceService {
         );
       }
 
+      const targetSettings = normalizeChannelTargetSettings(
+        target.platform,
+        target.settings ?? {},
+      );
+      const quoteTweetId = resolveQuoteTweetId(target.platform, targetSettings);
+
       const created = (await tx.post.create({
         data: {
           campaignId: context.group.campaignId,
+          ...(quoteTweetId && { quoteTweetId }),
           ...(params.provenance?.agentContextSource && {
             agentContextSource: params.provenance.agentContextSource,
           }),
@@ -373,7 +384,7 @@ export class PostGroupPersistenceService {
               validation.readiness,
           ),
           targetSettings: this.contractService.toJson({
-            ...(target.settings ?? {}),
+            ...targetSettings,
             ...(params.input.postingSetId
               ? { postingSetId: params.input.postingSetId }
               : {}),

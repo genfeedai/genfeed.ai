@@ -23,6 +23,12 @@ describe('activity alert policy map (#5197)', () => {
     expect(getActivityAlertPolicy(ActivityKey.POST_FAILED)?.topic).toBe(
       'publishing.status',
     );
+    expect(getActivityAlertPolicy(ActivityKey.POST_MANUAL_POST_NEEDED)).toEqual(
+      expect.objectContaining({
+        recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
+        topic: 'publishing.status',
+      }),
+    );
     expect(
       getActivityAlertPolicy(ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED)
         ?.topic,

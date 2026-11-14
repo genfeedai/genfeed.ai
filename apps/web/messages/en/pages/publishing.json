@@ -304,6 +304,21 @@
       "triggerHistory": "Trigger history",
       "views": "Views"
     },
+    "manualPost": {
+      "back": "Back",
+      "confirmPosted": "Confirm posted",
+      "copied": "Copied",
+      "copyText": "Copy text",
+      "description": "X would not take this quote through the API, so post it yourself. Open it in X with the text and the quoted post ready, then mark it posted here.",
+      "linkHelp": "Optional. Paste the link to the post you published.",
+      "linkInvalid": "Paste a link to an X post, or leave it empty.",
+      "linkLabel": "Link to your post",
+      "linkPlaceholder": "https://x.com/handle/status/1856322244019101979",
+      "markPosted": "Mark as posted",
+      "openInX": "Open in X",
+      "skip": "Skip",
+      "title": "Needs your post"
+    },
     "noExecutionHistory": "No execution history yet.",
     "noTargets": "This post has no channel targets.",
     "readinessBlocked": "Publishing setup is blocking this channel",

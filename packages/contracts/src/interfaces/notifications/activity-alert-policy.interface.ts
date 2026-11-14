@@ -97,6 +97,13 @@ export const ACTIVITY_ALERT_POLICIES = {
     severity: 'critical',
     topic: 'publishing.status',
   },
+  // X would not take a quote post through the API: the person posts it by hand
+  // and is reminded until they do. Email as well, so it reaches them off screen.
+  [ActivityKey.POST_MANUAL_POST_NEEDED]: {
+    recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
+    severity: 'warning',
+    topic: 'publishing.status',
+  },
   [ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED]: {
     recipients: [{ channels: ['in_app'], recipient: 'actor' }],
     severity: 'warning',

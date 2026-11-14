@@ -54,6 +54,7 @@ import {
 } from '@/features/posts/rail/release-rail-row.helpers';
 import ReleaseDetailDrawer, {
   RELEASE_RESCHEDULE_ACTION,
+  targetManualPostAction,
   targetRescheduleAction,
   targetRetryAction,
 } from '@/features/posts/release/release-detail-drawer';
@@ -339,6 +340,30 @@ export default function ReleasePostsList({
         service.updateTarget(selectedReleaseId, targetId, {
           executionState: TargetState.SCHEDULED,
         }),
+      );
+    },
+    [runMutation, selectedReleaseId],
+  );
+
+  const handleCompleteManualPost = useCallback(
+    (targetId: string, postUrl: string) => {
+      if (!selectedReleaseId) {
+        return;
+      }
+      void runMutation(targetManualPostAction(targetId), (service) =>
+        service.completeManualPost(selectedReleaseId, targetId, postUrl),
+      );
+    },
+    [runMutation, selectedReleaseId],
+  );
+
+  const handleSkipManualPost = useCallback(
+    (targetId: string) => {
+      if (!selectedReleaseId) {
+        return;
+      }
+      void runMutation(targetManualPostAction(targetId), (service) =>
+        service.skipManualPost(selectedReleaseId, targetId),
       );
     },
     [runMutation, selectedReleaseId],
@@ -702,9 +727,11 @@ export default function ReleasePostsList({
         brandId={brandId}
         error={drawerError}
         onClose={closeDrawer}
+        onCompleteManualPost={handleCompleteManualPost}
         onRescheduleRelease={handleRescheduleRelease}
         onRescheduleTarget={handleRescheduleTarget}
         onRetryTarget={handleRetryTarget}
+        onSkipManualPost={handleSkipManualPost}
         pendingAction={pendingAction}
         reconnectHref={activeHref(APP_ROUTES.CONNECTORS.CHANNELS)}
         release={selectedRelease}

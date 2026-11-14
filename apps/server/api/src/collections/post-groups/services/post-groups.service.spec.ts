@@ -706,6 +706,73 @@ describe('PostGroupsService', () => {
     );
   });
 
+  it('writes the quoted X post id on the target from a post link', async () => {
+    const result = await service.create('org-1', 'user-1', {
+      baseContent: 'Shipped the MCP scheduler',
+      brandId: 'brand-1',
+      status: ReleaseStatus.SCHEDULED,
+      targets: [
+        {
+          credentialId: 'cred-x',
+          platform: CredentialPlatform.TWITTER,
+          scheduledDate: '2026-07-09T12:00:00.000Z',
+          settings: {
+            quotedPost:
+              'https://x.com/VincentShipsIt/status/1856322244019101979',
+            replyPolicy: 'everyone',
+          },
+        },
+      ],
+      timezone: 'UTC',
+      title: 'Quote note',
+    });
+
+    expect(prisma.post.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          quoteTweetId: '1856322244019101979',
+          targetSettings: {
+            quotedPost: '1856322244019101979',
+            replyPolicy: 'everyone',
+          },
+        }),
+      }),
+    );
+    expect(result.targets?.[0]?.settings).toEqual({
+      quotedPost: '1856322244019101979',
+      replyPolicy: 'everyone',
+    });
+  });
+
+  it('refuses to schedule an X target whose quoted post is not an X post', async () => {
+    await expect(
+      service.create('org-1', 'user-1', {
+        baseContent: 'Shipped the MCP scheduler',
+        brandId: 'brand-1',
+        status: ReleaseStatus.SCHEDULED,
+        targets: [
+          {
+            credentialId: 'cred-x',
+            platform: CredentialPlatform.TWITTER,
+            scheduledDate: '2026-07-09T12:00:00.000Z',
+            settings: { quotedPost: 'https://example.com/a/status/1' },
+          },
+        ],
+        timezone: 'UTC',
+        title: 'Quote note',
+      }),
+    ).rejects.toMatchObject({
+      response: {
+        detail: expect.stringContaining(
+          'X quoted post must be a link to an X post',
+        ),
+        title: 'Invalid channel target',
+      },
+    });
+
+    expect(prisma.post.create).not.toHaveBeenCalled();
+  });
+
   it('persists derived publishing readiness on every scheduled channel target', async () => {
     await service.create('org-1', 'user-1', {
       baseContent: 'Launch note for X',
@@ -2091,6 +2158,62 @@ describe('PostGroupsService', () => {
     expect(result.status).toBe(ReleaseStatus.SCHEDULED);
   });
 
+  it('closes a refused X quote as published with the post id from the link the person gives', async () => {
+    const manualTarget = makeTarget({
+      groupId: 'group-1',
+      id: 'target-1',
+      platform: CredentialPlatform.TWITTER,
+      targetError: {
+        code: 'x_quote_refused',
+        isRetryable: false,
+        message: 'X refused this quote post.',
+      },
+      targetExecutionState: TargetExecutionState.FAILED,
+    });
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.FAILED }),
+    );
+    prisma.post.findFirst.mockResolvedValue(manualTarget);
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        platform: CredentialPlatform.TWITTER,
+        targetError: null,
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+      }),
+    ]);
+    prisma.postGroup.update.mockImplementation(({ data }) =>
+      Promise.resolve(
+        makeGroup({
+          id: 'group-1',
+          status: data.status,
+          statusTransitions: data.statusTransitions,
+        }),
+      ),
+    );
+
+    await service.updateTarget('org-1', 'user-1', 'group-1', 'target-1', {
+      error: null,
+      executionState: TargetExecutionState.PUBLISHED,
+      url: 'https://x.com/VincentShipsIt/status/1860000000000000001',
+    });
+
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: null,
+        mutation: expect.objectContaining({
+          externalId: '1860000000000000001',
+          publishedAt: expect.any(Date),
+          url: 'https://x.com/VincentShipsIt/status/1860000000000000001',
+        }),
+        nextState: TargetExecutionState.PUBLISHED,
+        postId: 'target-1',
+      }),
+      prisma,
+    );
+  });
+
   it('replays a durable manual-retry command when queue dispatch previously failed', async () => {
     const scheduledTarget = makeTarget({
       groupId: 'group-1',
@@ -2797,6 +2920,34 @@ describe('PostGroupsService', () => {
         }),
       }),
     );
+  });
+
+  it('sets the quoted post on an X target update and clears it when dropped', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(makeGroup());
+    prisma.post.findFirst.mockResolvedValue(
+      makeTarget({ platform: CredentialPlatform.TWITTER }),
+    );
+
+    await service.updateTarget('org-1', 'user-1', 'group-1', 'target-1', {
+      settings: { quotedPost: 'https://x.com/a/status/1856322244019101979' },
+    });
+    await service.updateTarget('org-1', 'user-1', 'group-1', 'target-1', {
+      settings: { replyPolicy: 'everyone' },
+    });
+
+    const writes = prisma.post.updateMany.mock.calls.map(([call]) => {
+      const { quoteTweetId, targetSettings } = (
+        call as { data: Record<string, unknown> }
+      ).data;
+      return { quoteTweetId, targetSettings };
+    });
+    expect(writes).toEqual([
+      {
+        quoteTweetId: '1856322244019101979',
+        targetSettings: { quotedPost: '1856322244019101979' },
+      },
+      { quoteTweetId: null, targetSettings: { replyPolicy: 'everyone' } },
+    ]);
   });
 
   it('does not invent YouTube settings for a timezone-only target update', async () => {
