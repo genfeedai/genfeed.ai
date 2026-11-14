@@ -40,6 +40,7 @@ import {
 } from '@mcp/services/ads-tool-names.util';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
+import { withAccountOrganizations } from '@mcp/services/mcp-account-organizations.util';
 import {
   pendingApprovalResult,
   settleApprovalAnswer,
@@ -52,10 +53,7 @@ import {
   isBrandContextUri,
   readBrandContextResource,
 } from '@mcp/services/mcp-brand-context-resource.util';
-import {
-  collectBrandIds,
-  withBrandNames,
-} from '@mcp/services/mcp-brand-names.util';
+import { nameBrands } from '@mcp/services/mcp-brand-named-result.util';
 import {
   brandChoiceToolResult,
   brandRequiredToolResult,
@@ -205,12 +203,6 @@ const ACCOUNT_MANAGEMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_job_status',
   'get_orgs',
   'switch_org',
-]);
-
-/** Results that already list brands by name, so they need no extra lookup. */
-const BRAND_NAMED_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
-  'get_account',
-  'get_brands',
 ]);
 
 /**
@@ -598,7 +590,15 @@ export class ToolRegistryService implements OnModuleInit {
           name === 'get_brands' ? { ...args, includeLogo: true } : args,
           approvedApprovalId ? { approvedApprovalId } : undefined,
         );
-        return this.toMcpResult(await this.nameBrands(result, name), name);
+        return this.toMcpResult(
+          await withAccountOrganizations(
+            await nameBrands(result, name, this.clientService, this.logger),
+            name,
+            this.clientService,
+            this.logger,
+          ),
+          name,
+        );
       }
       case 'onboarding': {
         const { agentToolName, parameters, timeoutMs } =
@@ -830,31 +830,6 @@ export class ToolRegistryService implements OnModuleInit {
     return [
       this.configService?.get('GENFEEDAI_CDN_URL') || 'https://cdn.genfeed.ai',
     ];
-  }
-
-  /**
-   * Adds the brand name next to every `brandId` in a result (#7138). A failed
-   * lookup leaves the result as the tool returned it.
-   */
-  private async nameBrands(
-    result: AgentToolResult,
-    name: string,
-  ): Promise<AgentToolResult> {
-    if (!result.success || BRAND_NAMED_TOOL_NAMES.has(name)) return result;
-    const ids = collectBrandIds(result.data);
-    if (ids.length === 0) return result;
-    try {
-      const brands = await listCallerBrands(this.clientService);
-      const names = new Map(
-        (brands ?? [])
-          .filter((brand) => ids.includes(brand.id) && brand.label !== brand.id)
-          .map((brand) => [brand.id, brand.label]),
-      );
-      return { ...result, data: withBrandNames(result.data, names) };
-    } catch (error: unknown) {
-      this.logger.warn('Could not name brands in a tool result', error);
-      return result;
-    }
   }
 
   private toMcpResult(result: AgentToolResult, name: string) {

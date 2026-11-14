@@ -169,7 +169,7 @@ export class OAuthAuthorizeService {
         members: { some: { userId, isActive: true, isDeleted: false } },
       },
     });
-    // "All my organizations" needs no starting choice: the connection begins in
+    // "All organizations" needs no starting choice: the connection begins in
     // the user's first organization and can name any other per call.
     const organizationId =
       dto.organizationId ??
@@ -221,13 +221,16 @@ export class OAuthAuthorizeService {
     const scopes = isAdminResource
       ? [...clampedScopes, ApiKeyScope.ADMIN]
       : clampedScopes;
-    // "All my organizations": the connection may name any organization the
-    // user belongs to on each call. Only meaningful with a second organization
-    // to name, and the Claude connector tool set has no way to use it.
+    // "All organizations": the connection may name any organization the user
+    // belongs to on each call. Only meaningful with a second organization to
+    // name. The Claude connector gets it too: its access mode stays `claude`
+    // (no admin scope, no generation tools) whichever organization a call
+    // acts in, and every switch re-checks live membership. The admin endpoint
+    // stays in the one organization it was granted for.
     const canSwitchOrganizations =
       dto.allowOrganizationSwitching === true &&
       organizations.length > 1 &&
-      resolveMcpAccessModeForResource(resource) === 'standard';
+      !isAdminResource;
     const code = toBase64Url(randomBytes(32));
     const expiresAt = new Date(Date.now() + MCP_OAUTH_CODE_TTL_MS);
     const userName = [user.firstName, user.lastName].filter(Boolean).join(' ');

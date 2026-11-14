@@ -97,11 +97,13 @@ vi.mock('@ui/primitives/button', () => ({
 vi.mock('@ui/primitives/select', () => ({
   SelectField: ({
     children,
+    isDisabled,
     label,
     onChange,
     value,
   }: {
     children: ReactNode;
+    isDisabled?: boolean;
     label?: string;
     onChange?: (event: { target: { value: string } }) => void;
     value?: string;
@@ -109,6 +111,7 @@ vi.mock('@ui/primitives/select', () => ({
     <label>
       {label}
       <select
+        disabled={isDisabled}
         value={value ?? ''}
         onChange={(event) => onChange?.({ target: event.target })}
       >
@@ -174,20 +177,31 @@ describe('OAuthConsentPage', () => {
     vi.clearAllMocks();
   });
 
-  it('requires deliberate organization selection even when another workspace is active', async () => {
+  it('starts on all organizations and all brands, with the brand choice disabled', async () => {
     getMyOrganizationsMock.mockResolvedValue([
       { id: 'org-1', label: 'First workspace', isActive: true },
       { id: 'org-2', label: 'Second workspace', isActive: false },
     ]);
     mockDecisionResponse();
     render(<OAuthConsentPage />);
-    const picker = await screen.findByLabelText('Organization');
-    expect(picker).toHaveValue('');
-    expect(screen.getByRole('button', { name: 'Authorize' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
-    expect(globalThis.fetch).not.toHaveBeenCalled();
-    fireEvent.change(picker, { target: { value: 'org-2' } });
+    expect(await screen.findByLabelText('Organization')).toHaveValue('all');
+    expect(screen.getByLabelText('Brand')).toBeDisabled();
+    expect(
+      screen.getByText('2 organizations, starts in First workspace'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Authorize' })).toBeEnabled();
+  });
+
+  it('sends the chosen organization when the user picks one instead of all', async () => {
+    getMyOrganizationsMock.mockResolvedValue([
+      { id: 'org-1', label: 'First workspace', isActive: true },
+      { id: 'org-2', label: 'Second workspace', isActive: false },
+    ]);
+    mockDecisionResponse();
+    render(<OAuthConsentPage />);
+    fireEvent.change(await screen.findByLabelText('Organization'), {
+      target: { value: 'org-2' },
+    });
     expect(screen.getByText('Videos')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
     await waitFor(() => expect(redirectMock).toHaveBeenCalled());
@@ -195,6 +209,7 @@ describe('OAuthConsentPage', () => {
       approved: true,
       organizationId: 'org-2',
     });
+    expect(lastDecisionBody()).not.toHaveProperty('allowOrganizationSwitching');
   });
 
   describe('with several organizations', () => {
@@ -222,9 +237,7 @@ describe('OAuthConsentPage', () => {
 
     it('grants every organization when the user chooses all of them', async () => {
       render(<OAuthConsentPage />);
-      fireEvent.change(await screen.findByLabelText('Organization'), {
-        target: { value: 'all' },
-      });
+      expect(await screen.findByLabelText('Organization')).toHaveValue('all');
       expect(screen.getByRole('button', { name: 'Authorize' })).toBeEnabled();
 
       fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
@@ -233,8 +246,24 @@ describe('OAuthConsentPage', () => {
         allowOrganizationSwitching: true,
         approved: true,
       });
-      expect(lastDecisionBody()).not.toHaveProperty('organizationId');
+      // The connection starts in the first organization, the one the screen names.
+      expect(lastDecisionBody()).toMatchObject({ organizationId: 'org-1' });
       expect(lastDecisionBody()).not.toHaveProperty('brandId');
+    });
+
+    it('offers all organizations to the Claude connector too', async () => {
+      useSearchParamsMock.mockReturnValue(
+        oauthParams({ resource: 'https://mcp.genfeed.ai/mcp/claude' }),
+      );
+      render(<OAuthConsentPage />);
+      expect(await screen.findByLabelText('Organization')).toHaveValue('all');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+      await waitFor(() => expect(redirectMock).toHaveBeenCalled());
+      expect(lastDecisionBody()).toMatchObject({
+        allowOrganizationSwitching: true,
+        organizationId: 'org-1',
+      });
     });
   });
 
@@ -242,7 +271,7 @@ describe('OAuthConsentPage', () => {
     mockDecisionResponse();
     render(<OAuthConsentPage />);
     await screen.findByText('First workspace');
-    expect(screen.queryByText('All my organizations')).not.toBeInTheDocument();
+    expect(screen.queryByText('All organizations')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
     await waitFor(() => expect(redirectMock).toHaveBeenCalled());
     expect(lastDecisionBody()).not.toHaveProperty('allowOrganizationSwitching');
@@ -265,9 +294,7 @@ describe('OAuthConsentPage', () => {
     render(<OAuthConsentPage />);
     const picker = await screen.findByLabelText('Brand');
     expect(picker).toHaveValue('');
-    expect(
-      screen.getByText('Claude can work in every brand in this organization.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('First workspace, all brands')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
     await waitFor(() => expect(redirectMock).toHaveBeenCalled());
     expect(lastDecisionBody()).not.toHaveProperty('brandId');
@@ -280,13 +307,12 @@ describe('OAuthConsentPage', () => {
     ]);
     mockDecisionResponse();
     render(<OAuthConsentPage />);
-    fireEvent.change(await screen.findByLabelText('Brand'), {
+    await screen.findByRole('option', { name: 'Second brand' });
+    fireEvent.change(screen.getByLabelText('Brand'), {
       target: { value: 'brand-2' },
     });
     expect(
-      screen.getByText(
-        'Claude can only see and change Second brand. Your other brands stay hidden.',
-      ),
+      screen.getByText('First workspace, Second brand only'),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
     await waitFor(() => expect(redirectMock).toHaveBeenCalled());
@@ -419,6 +445,135 @@ describe('OAuthConsentPage', () => {
     render(<OAuthConsentPage />);
     await screen.findByText('First workspace');
     expect(screen.queryByLabelText('Access level')).not.toBeInTheDocument();
+  });
+
+  it('always lists the same tiles and greys out what the access level does not grant', async () => {
+    useSearchParamsMock.mockReturnValue(
+      oauthParams({ scope: 'videos:read posts:draft' }),
+    );
+    render(<OAuthConsentPage />);
+    await screen.findByText('First workspace');
+
+    expect(screen.getAllByRole('listitem')).toHaveLength(11);
+    expect(screen.getByText('Drafts').closest('li')).not.toHaveAttribute(
+      'aria-disabled',
+    );
+    expect(screen.getByText('Scheduling').closest('li')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  });
+
+  it('greys out the media tiles on the Claude connector and invites to the full connection', async () => {
+    useSearchParamsMock.mockReturnValue(
+      oauthParams({
+        resource: 'https://mcp.genfeed.ai/mcp/claude',
+        scope: 'videos:read articles:read',
+      }),
+    );
+    getMyOrganizationsMock.mockResolvedValue([
+      { id: 'org-1', isActive: true, label: 'First workspace', slug: 'first' },
+    ]);
+    render(<OAuthConsentPage />);
+    await screen.findByText('First workspace');
+
+    expect(screen.getByText('Videos').closest('li')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    expect(screen.getByText('Articles').closest('li')).not.toHaveAttribute(
+      'aria-disabled',
+    );
+    expect(
+      screen.getByRole('link', { name: /Connect all tools/ }),
+    ).toHaveAttribute('href', '/first/~/connectors/agents');
+  });
+
+  it('shows the official mark of the requesting client', async () => {
+    useSearchParamsMock.mockReturnValue(
+      oauthParams({
+        client_name: 'Codex',
+        redirect_uri: 'http://127.0.0.1:1455/cb',
+      }),
+    );
+    const { container } = render(<OAuthConsentPage />);
+    await screen.findByText('First workspace');
+
+    expect(container.querySelector('img')).toHaveAttribute(
+      'src',
+      '/assets/agent-logos/openai.svg',
+    );
+  });
+
+  it.each<[string, string]>([
+    ['Claude Helper', 'https://evil.example/cb'],
+    ['Claude', 'https://claude.ai.evil.example/cb'],
+    ['Not Cursor', 'myapp://cb'],
+    ['Codex', 'https://evil.example/cb'],
+  ])(
+    'shows no vendor mark for %s returning to %s',
+    async (clientName, redirectUri) => {
+      useSearchParamsMock.mockReturnValue(
+        oauthParams({ client_name: clientName, redirect_uri: redirectUri }),
+      );
+      const { container } = render(<OAuthConsentPage />);
+      await screen.findByText('First workspace');
+
+      expect(container.querySelector('img')).toBeNull();
+    },
+  );
+
+  it('offers only the organization on the admin endpoint, never all', async () => {
+    useSearchParamsMock.mockReturnValue(
+      oauthParams({ resource: 'https://mcp.genfeed.ai/mcp/admin' }),
+    );
+    getMyOrganizationsMock.mockResolvedValue([
+      { id: 'org-1', isActive: true, label: 'First workspace', slug: 'first' },
+      {
+        id: 'org-2',
+        isActive: false,
+        label: 'Second workspace',
+        slug: 'second',
+      },
+    ]);
+    mockDecisionResponse();
+    render(<OAuthConsentPage />);
+    await screen.findByLabelText('Organization');
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Authorize' })).toBeEnabled(),
+    );
+    expect(screen.queryByText('All organizations')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+    await waitFor(() => expect(redirectMock).toHaveBeenCalled());
+    expect(lastDecisionBody()).toMatchObject({ organizationId: 'org-1' });
+    expect(lastDecisionBody()).not.toHaveProperty('allowOrganizationSwitching');
+  });
+
+  it('links the Claude invite to the organization the user picked', async () => {
+    useSearchParamsMock.mockReturnValue(
+      oauthParams({
+        resource: 'https://mcp.genfeed.ai/mcp/claude',
+        scope: 'videos:read articles:read',
+      }),
+    );
+    getMyOrganizationsMock.mockResolvedValue([
+      { id: 'org-1', isActive: true, label: 'First workspace', slug: 'first' },
+      {
+        id: 'org-2',
+        isActive: false,
+        label: 'Second workspace',
+        slug: 'second',
+      },
+    ]);
+    render(<OAuthConsentPage />);
+    fireEvent.change(await screen.findByLabelText('Organization'), {
+      target: { value: 'org-2' },
+    });
+
+    expect(
+      screen.getByRole('link', { name: /Connect all tools/ }),
+    ).toHaveAttribute('href', '/second/~/connectors/agents');
   });
 
   it('shows human-readable scope labels', async () => {
