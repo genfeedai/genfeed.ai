@@ -42,6 +42,7 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  ConflictException,
   HttpException,
   HttpStatus,
   type INestApplication,
@@ -363,7 +364,7 @@ describe('StripeController', () => {
     it('stops a lifetime checkout when no seat can be sold', async () => {
       stripeService.isLifetimePrice.mockResolvedValue(true);
       lifetimeDealService.assertSeatPurchasable.mockRejectedValue(
-        new Error('All lifetime seats are taken.'),
+        new ConflictException('All lifetime seats are taken.'),
       );
 
       await expect(

@@ -420,9 +420,9 @@ describe('StripeCheckoutWebhookHandler', () => {
           userId: 'user_1',
         },
       ]);
-      expect(w.settings.find((row) => row.organizationId === 'org_1')).toMatchObject(
-        { subscriptionTier: 'pro' },
-      );
+      expect(
+        w.settings.find((row) => row.organizationId === 'org_1'),
+      ).toMatchObject({ subscriptionTier: 'pro' });
       expect(w.lifetimeGrants).toEqual(['seat_1']);
       expect(w.users[0]).toMatchObject({ isOnboardingCompleted: true });
       expect(w.revenue).toEqual([
@@ -455,7 +455,10 @@ describe('StripeCheckoutWebhookHandler', () => {
       await w.handler.handleCheckoutCompleted(checkout(LIFETIME), 'test');
 
       expect(w.refunds).toEqual([
-        { key: 'lifetime-oversold:cs_lifetime_1', paymentIntentId: 'pi_lifetime_1' },
+        {
+          key: 'lifetime-oversold:cs_lifetime_1',
+          paymentIntentId: 'pi_lifetime_1',
+        },
       ]);
       expect(w.lifetimeGrants).toEqual([]);
       expect(

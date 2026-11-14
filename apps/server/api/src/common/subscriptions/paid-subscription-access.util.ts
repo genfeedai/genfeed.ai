@@ -25,8 +25,8 @@ import {
  */
 export interface PaidSubscriptionSnapshot {
   cancelAtPeriodEnd: boolean;
-  currentPeriodEnd: Date | string | null;
-  plan: string | null;
+  currentPeriodEnd?: Date | string | null;
+  plan?: string | null;
   status: string;
 }
 
@@ -51,7 +51,7 @@ function normalize(value: string | null | undefined): string {
 }
 
 function periodIsOpen(
-  currentPeriodEnd: Date | string | null,
+  currentPeriodEnd: Date | string | null | undefined,
   now: Date,
 ): boolean {
   if (!currentPeriodEnd) return false;

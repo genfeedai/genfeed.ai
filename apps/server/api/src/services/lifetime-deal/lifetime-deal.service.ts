@@ -5,11 +5,7 @@ import {
 } from '@api/common/subscriptions/paid-subscription-access.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import {
-  ActivitySource,
-  SubscriptionPlan,
-  SubscriptionStatus,
-} from '@genfeedai/contracts';
+import { ActivitySource, SubscriptionPlan } from '@genfeedai/contracts';
 import {
   LIFETIME_DEAL_CREDIT_EXPIRY_DAYS,
   LIFETIME_DEAL_GRANT_REFERENCE_TYPE,
@@ -21,7 +17,11 @@ import {
 } from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const SEAT_CLAIM_LOCK_KEY = 'lifetime-deal:seat-claim';
@@ -276,7 +276,9 @@ export class LifetimeDealService {
       currentPeriodEnd: LIFETIME_DEAL_PERIOD_END,
       currentPeriodStart: now,
       plan: SubscriptionPlan.LIFETIME,
-      status: SubscriptionStatus.ACTIVE,
+      // Prisma's enum has no Stripe-only members, so the contracts enum
+      // member is narrowed to the literal the column accepts.
+      status: 'ACTIVE' as const,
     };
     const existing = await tx.subscription.findFirst({
       select: { id: true },

@@ -6,8 +6,8 @@ import { FreeTrialService } from '@api/collections/credits/services/free-trial.s
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import {
-  type LifetimeGrantTotals,
   LifetimeDealService,
+  type LifetimeGrantTotals,
 } from '@api/services/lifetime-deal/lifetime-deal.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -18,15 +18,15 @@ import {
   CREATOR_SUBSCRIPTION_RENEWAL_PAGE_SIZE,
 } from '@workers/crons/credits/creator-subscription-renewal.constants';
 import {
-  LIFETIME_DEAL_CREDIT_GRANT_LOCK_KEY,
-  LIFETIME_DEAL_CREDIT_GRANT_LOCK_TTL_SECONDS,
-  LIFETIME_DEAL_CREDIT_GRANT_PAGE_SIZE,
-} from '@workers/crons/credits/lifetime-deal-credit-grant.constants';
-import {
   FREE_TRIAL_EXPIRY_LOCK_KEY,
   FREE_TRIAL_EXPIRY_LOCK_TTL_SECONDS,
   FREE_TRIAL_EXPIRY_PAGE_SIZE,
 } from '@workers/crons/credits/free-trial-expiry.constants';
+import {
+  LIFETIME_DEAL_CREDIT_GRANT_LOCK_KEY,
+  LIFETIME_DEAL_CREDIT_GRANT_LOCK_TTL_SECONDS,
+  LIFETIME_DEAL_CREDIT_GRANT_PAGE_SIZE,
+} from '@workers/crons/credits/lifetime-deal-credit-grant.constants';
 
 export type FreeTrialExpiryTotals = {
   expiredCredits: number;

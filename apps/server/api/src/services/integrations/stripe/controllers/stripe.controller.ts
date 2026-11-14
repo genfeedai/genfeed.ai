@@ -3,10 +3,10 @@ import { BillingAccountsService } from '@api/collections/billing-accounts/servic
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { CreateCheckoutSessionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import { UsersService } from '@api/collections/users/services/users.service';
+import type { PaidSubscriptionSnapshot } from '@api/common/subscriptions/paid-subscription-access.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import type { PaidSubscriptionSnapshot } from '@api/common/subscriptions/paid-subscription-access.util';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   returnBadRequest,

@@ -361,7 +361,11 @@ export class StripeCheckoutWebhookHandler {
         });
 
         if (claim.outcome === 'sold_out') {
-          await this.refundOversoldLifetimePayment(session, organizationId, url);
+          await this.refundOversoldLifetimePayment(
+            session,
+            organizationId,
+            url,
+          );
           return;
         }
 
