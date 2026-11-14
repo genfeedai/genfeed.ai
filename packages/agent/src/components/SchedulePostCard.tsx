@@ -12,6 +12,7 @@ import {
 } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { usePostingSets } from '@hooks/data/content/use-posting-sets/use-posting-sets';
 import { usePostingSignatures } from '@hooks/data/content/use-posting-signatures/use-posting-signatures';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -32,7 +33,7 @@ import { type ReactElement, useCallback, useMemo, useState } from 'react';
 import {
   readPublishTargetProposals,
   resolveLiveTargetBlockers,
-  targetToggleName,
+  targetAccountSuffix,
 } from './publish-post-card.helpers';
 import {
   buildSignatureAttachments,
@@ -449,6 +450,10 @@ export function SchedulePostCard({
               const blockers = isSelected
                 ? (targetBlockers[target.id] ?? [])
                 : [];
+              const accountSuffix = targetAccountSuffix(
+                target,
+                targetProposals,
+              );
               const isUnhealthy = !isHealthyReferenceState(
                 target.referenceState,
               );
@@ -461,14 +466,23 @@ export function SchedulePostCard({
                       size="sm"
                       variant="chip"
                     >
-                      {targetToggleName(target, targetProposals)}
+                      <PlatformBadge
+                        className="bg-transparent p-0"
+                        platform={target.platform}
+                      />
                     </Toggle>
-                    <span className="text-xs text-muted-foreground">
-                      {target.label}
-                      {isUnhealthy
-                        ? ` · ${postingSetsTranslate('disconnected')}`
-                        : ''}
-                    </span>
+                    {accountSuffix || isUnhealthy ? (
+                      <span className="text-xs text-muted-foreground">
+                        {[
+                          accountSuffix,
+                          isUnhealthy
+                            ? postingSetsTranslate('disconnected')
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
+                    ) : null}
                   </div>
                   {isSelected ? (
                     <>
