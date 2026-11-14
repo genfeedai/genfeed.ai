@@ -33,6 +33,38 @@ function readRecords(value: unknown): Record<string, unknown>[] {
   return (Array.isArray(value) ? value : []).filter(isRecord);
 }
 
+/**
+ * What a reviewer reads is what runs: a batch release is one post on one
+ * channel, so a field the review page does not show cannot change what is
+ * scheduled. Anything else is refused by name (#10134).
+ */
+function assertReviewable(release: unknown): void {
+  if (!isRecord(release)) {
+    throw new BadRequestException('Each release must be an object.');
+  }
+  const targets = readRecords(release.targets);
+  if (!Array.isArray(release.targets) || targets.length !== 1) {
+    throw new BadRequestException(
+      'A batch release takes exactly one channel target. Send one release per channel.',
+    );
+  }
+  const hasAttachments = (value: unknown) =>
+    Array.isArray(value) && value.length > 0;
+  const hiddenFields = [
+    release.recurrence ? 'recurrence' : null,
+    hasAttachments(release.attachments) ? 'attachments' : null,
+    hasAttachments(targets[0].attachments) ? 'target attachments' : null,
+    isRecord(targets[0].settings) && Object.keys(targets[0].settings).length > 0
+      ? 'target settings'
+      : null,
+  ].filter((field): field is string => field !== null);
+  if (hiddenFields.length > 0) {
+    throw new BadRequestException(
+      `A batch release cannot carry ${hiddenFields.join(', ')}: the review shows text, media, time, channel and account only. Schedule it on its own.`,
+    );
+  }
+}
+
 /** What a reviewer reads for a batch: its posts, and the brands they belong to. */
 export interface BatchDescription {
   /** Brands the releases or their channels belong to. */
@@ -129,13 +161,14 @@ export class PostGroupBatchService {
     for (const index of indexes) {
       const release = releases[index];
       try {
-        if (!isRecord(release)) {
-          throw new BadRequestException('Each release must be an object.');
-        }
+        assertReviewable(release);
         const created = await this.postGroupsService.create(
           organizationId,
           userId,
-          { ...release, idempotencyKey: `${options.keyBase}:${index}` },
+          {
+            ...(release as object),
+            idempotencyKey: `${options.keyBase}:${index}`,
+          },
           undefined,
           undefined,
           options.apiKeyContext,
@@ -271,6 +304,7 @@ export class PostGroupBatchService {
     release: unknown,
     now: Date,
   ): Promise<void> {
+    assertReviewable(release);
     const input = this.contractService.parseCreateInput(release);
     const status = this.contractService.resolveCreateStatus(input);
     const isDraft = status === ReleaseStatus.DRAFT;

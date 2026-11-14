@@ -288,7 +288,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
         release: releaseCreateSchema,
         releases: {
           description:
-            'A batch of releases for one organization, approved once. Use instead of release.',
+            'A batch of releases for one organization, approved once. Use instead of release. Each release is one post on one channel (one target; no recurrence, attachments or target settings): send one release per channel.',
           items: releaseCreateSchema,
           maxItems: MAX_BATCH_RELEASES,
           minItems: 1,

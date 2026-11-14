@@ -11,6 +11,8 @@ interface Release {
   scheduledDate?: string;
 }
 
+const ONE_CHANNEL = [{ credentialId: 'cred-1', platform: 'twitter' }];
+
 function build(
   overrides: {
     create?: (input: Record<string, unknown>) => Promise<{ id: string }>;
@@ -92,9 +94,9 @@ describe('PostGroupBatchService.validate', () => {
     });
 
     const errors = await service.validate('org-1', [
-      { title: 'ok' },
-      { title: 'bad' },
-      { title: 'ok too' },
+      { targets: ONE_CHANNEL, title: 'ok' },
+      { targets: ONE_CHANNEL, title: 'bad' },
+      { targets: ONE_CHANNEL, title: 'ok too' },
     ]);
 
     expect(errors).toEqual([
@@ -106,7 +108,10 @@ describe('PostGroupBatchService.validate', () => {
     const { service } = build();
 
     expect(
-      await service.validate('org-1', [{ title: 'a' }, { title: 'b' }]),
+      await service.validate('org-1', [
+        { targets: ONE_CHANNEL, title: 'a' },
+        { targets: ONE_CHANNEL, title: 'b' },
+      ]),
     ).toEqual([]);
   });
 
@@ -117,11 +122,77 @@ describe('PostGroupBatchService.validate', () => {
       },
     });
 
-    const errors = await service.validate('org-1', [{ title: 'a' }]);
+    const errors = await service.validate('org-1', [
+      { targets: ONE_CHANNEL, title: 'a' },
+    ]);
 
     expect(errors).toEqual([
       { index: 0, message: 'This release could not be scheduled.' },
     ]);
+  });
+});
+
+describe('what a reviewer cannot see is refused', () => {
+  const refused = [
+    ['two channel targets', { targets: [ONE_CHANNEL[0], ONE_CHANNEL[0]] }],
+    ['no channel target', { targets: [] }],
+    [
+      'recurrence',
+      { recurrence: { frequency: 'daily' }, targets: ONE_CHANNEL },
+    ],
+    ['attachments', { attachments: [{ url: 'x' }], targets: ONE_CHANNEL }],
+    [
+      'target settings',
+      { targets: [{ ...ONE_CHANNEL[0], settings: { privacy: 'public' } }] },
+    ],
+  ] as const;
+
+  it.each(refused)(
+    'validate names a release with %s',
+    async (_name, release) => {
+      const { service } = build();
+
+      const errors = await service.validate('org-1', [
+        { title: 'a', ...release },
+      ]);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0]?.index).toBe(0);
+    },
+  );
+
+  it.each(refused)(
+    'create schedules nothing for a release with %s',
+    async (_name, release) => {
+      const { createdKeys, service } = build();
+
+      const result = await service.create(
+        'org-1',
+        'user-1',
+        [{ title: 'a', ...release }],
+        {
+          keyBase: 'k',
+        },
+      );
+
+      expect(createdKeys).toEqual([]);
+      expect(result.created).toEqual([]);
+      expect(result.errors).toHaveLength(1);
+    },
+  );
+
+  it('names the fields the review does not show', async () => {
+    const { service } = build();
+
+    const errors = await service.validate('org-1', [
+      {
+        attachments: [{ url: 'x' }],
+        recurrence: { frequency: 'daily' },
+        targets: ONE_CHANNEL,
+      },
+    ]);
+
+    expect(errors[0]?.message).toContain('recurrence, attachments');
   });
 });
 
@@ -132,7 +203,10 @@ describe('PostGroupBatchService.create', () => {
     const result = await service.create(
       'org-1',
       'user-1',
-      [{ title: 'a' }, { title: 'b' }],
+      [
+        { targets: ONE_CHANNEL, title: 'a' },
+        { targets: ONE_CHANNEL, title: 'b' },
+      ],
       { keyBase: 'approval-1' },
     );
 
@@ -159,7 +233,12 @@ describe('PostGroupBatchService.create', () => {
     const result = await service.create(
       'org-1',
       'user-1',
-      [{ title: 'a' }, { title: 'b' }, { title: 'c' }, { title: 'd' }],
+      [
+        { targets: ONE_CHANNEL, title: 'a' },
+        { targets: ONE_CHANNEL, title: 'b' },
+        { targets: ONE_CHANNEL, title: 'c' },
+        { targets: ONE_CHANNEL, title: 'd' },
+      ],
       { indexes: [0, 2, 3], keyBase: 'approval-1' },
     );
 
