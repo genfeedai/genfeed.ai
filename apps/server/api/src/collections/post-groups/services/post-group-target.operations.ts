@@ -585,11 +585,16 @@ function completeManualPostUpdate(
   ) {
     return input;
   }
-  const externalProviderId =
-    input.externalProviderId ??
-    (input.url ? parseXQuotedPostId(input.url) : undefined);
+  const postId = input.url ? parseXQuotedPostId(input.url) : undefined;
+  const externalProviderId = input.externalProviderId ?? postId;
+  // A bare id is not a link anyone can open, so keep the post by its X address.
+  const url =
+    postId && input.url?.trim() === postId
+      ? `https://x.com/i/web/status/${postId}`
+      : input.url;
   return {
     ...input,
+    ...(url ? { url } : {}),
     ...(externalProviderId ? { externalProviderId } : {}),
     publishedAt: input.publishedAt ?? new Date().toISOString(),
   };

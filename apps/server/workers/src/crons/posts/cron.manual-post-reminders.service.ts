@@ -10,10 +10,11 @@ import {
   MANUAL_POST_FIRST_REMINDER_MS,
   MANUAL_POST_MAX_REMINDERS,
   MANUAL_POST_REMINDER_INTERVAL_MS,
+  type ManualPostSubject,
   resolveDueManualPostReminder,
 } from '@workers/crons/posts/manual-post-activity.util';
 
-/** Posts read per sweep; a person has a handful of quotes waiting at most. */
+/** Posts read per query; the sweep pages through every eligible post. */
 const MANUAL_POST_REMINDER_BATCH_SIZE = 200;
 
 /**
@@ -36,56 +37,74 @@ export class CronManualPostRemindersService {
       const windowMs =
         MANUAL_POST_FIRST_REMINDER_MS +
         MANUAL_POST_MAX_REMINDERS * MANUAL_POST_REMINDER_INTERVAL_MS;
-      const posts = await this.prisma.post.findMany({
-        select: {
-          brandId: true,
-          description: true,
-          groupId: true,
-          id: true,
-          organizationId: true,
-          quoteTweetId: true,
-          scheduledDate: true,
-          userId: true,
+      const where = {
+        isDeleted: false,
+        OR: MANUAL_POST_ERROR_CODES.map((code) => ({
+          targetError: { equals: code, path: ['code'] },
+        })),
+        parentId: null,
+        scheduledDate: {
+          gte: new Date(now.getTime() - windowMs),
+          lte: new Date(now.getTime() - MANUAL_POST_FIRST_REMINDER_MS),
         },
-        take: MANUAL_POST_REMINDER_BATCH_SIZE,
-        where: {
-          isDeleted: false,
-          OR: MANUAL_POST_ERROR_CODES.map((code) => ({
-            targetError: { equals: code, path: ['code'] },
-          })),
-          parentId: null,
-          scheduledDate: {
-            gte: new Date(now.getTime() - windowMs),
-            lte: new Date(now.getTime() - MANUAL_POST_FIRST_REMINDER_MS),
-          },
-          targetExecutionState: TargetExecutionState.FAILED,
-        },
-      });
+        targetExecutionState: TargetExecutionState.FAILED,
+      };
 
-      for (const post of posts) {
-        if (!post.scheduledDate) {
-          continue;
+      // Walk every eligible post in id order, a batch at a time: reminding does
+      // not change what a post matches, so a plain limit would reread the same
+      // first batch on every sweep.
+      let cursorId: string | undefined;
+      for (;;) {
+        const posts = await this.prisma.post.findMany({
+          ...(cursorId ? { cursor: { id: cursorId }, skip: 1 } : {}),
+          orderBy: { id: 'asc' },
+          select: {
+            brandId: true,
+            description: true,
+            groupId: true,
+            id: true,
+            lastAttemptAt: true,
+            organizationId: true,
+            quoteTweetId: true,
+            scheduledDate: true,
+            userId: true,
+          },
+          take: MANUAL_POST_REMINDER_BATCH_SIZE,
+          where,
+        });
+        for (const post of posts) {
+          await this.remind(post, now);
         }
-        const reminder = resolveDueManualPostReminder(post.scheduledDate, now);
-        if (reminder < 1) {
-          continue;
+        if (posts.length < MANUAL_POST_REMINDER_BATCH_SIZE) {
+          break;
         }
-        try {
-          await this.activityRecorder.record(
-            createManualPostActivity(post, reminder, now),
-          );
-        } catch (error: unknown) {
-          this.logger.error('Failed to record manual post reminder', {
-            error: getErrorMessage(error, {
-              fallback: () => undefined,
-              messageSource: 'error-instance',
-            }),
-            postId: post.id,
-          });
-        }
+        cursorId = posts[posts.length - 1]?.id;
       }
     } catch (error: unknown) {
       this.logger.error('Manual post reminder sweep failed', { error });
+    }
+  }
+
+  private async remind(post: ManualPostSubject, now: Date): Promise<void> {
+    if (!post.scheduledDate) {
+      return;
+    }
+    const reminder = resolveDueManualPostReminder(post.scheduledDate, now);
+    if (reminder < 1) {
+      return;
+    }
+    try {
+      await this.activityRecorder.record(
+        createManualPostActivity(post, reminder, now),
+      );
+    } catch (error: unknown) {
+      this.logger.error('Failed to record manual post reminder', {
+        error: getErrorMessage(error, {
+          fallback: () => undefined,
+          messageSource: 'error-instance',
+        }),
+        postId: post.id,
+      });
     }
   }
 }

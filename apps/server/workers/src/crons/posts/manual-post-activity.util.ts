@@ -20,6 +20,8 @@ export type ManualPostSubject = {
   description: string;
   groupId?: string | null;
   id: string;
+  /** When X last refused the quote; tells one refusal from the next. */
+  lastAttemptAt?: Date | null;
   organizationId: string;
   quoteTweetId?: string | null;
   scheduledDate: Date | null;
@@ -32,6 +34,7 @@ export function toManualPostSubject(post: PostEntity): ManualPostSubject {
     description: post.description ?? '',
     groupId: post.groupId ?? null,
     id: post.id.toString(),
+    lastAttemptAt: post.lastAttemptAt ?? null,
     organizationId: readPostString(post, ['organizationId']) ?? '',
     quoteTweetId: post.quoteTweetId ?? null,
     scheduledDate: post.scheduledDate ?? null,
@@ -71,7 +74,8 @@ function formatLateness(lateMs: number): string {
 /**
  * The notification asking the person to post a quote by hand. Reminder 0 is the
  * first one, sent when X refuses the quote; the deduplication key makes each
- * reminder number fire once however often the sweep runs.
+ * reminder number fire once per refusal however often the sweep runs. A retry
+ * that X refuses again is a new refusal and starts over at reminder 0.
  */
 export function createManualPostActivity(
   post: ManualPostSubject,
@@ -88,10 +92,16 @@ export function createManualPostActivity(
       ? 'X would not take this quote post through the API. Post it by hand.'
       : `Still waiting for you to post this quote by hand (${formatLateness(lateMs)} late). Post it or skip it.`;
   const value = `${lead}\n\nOpen in X: ${intentUrl}`;
+  // Reminder 0 is sent as the refusal happens, before the post records it, so
+  // its own time marks the refusal; later reminders read the recorded one.
+  const refusedAt =
+    reminder === 0
+      ? now
+      : (post.lastAttemptAt ?? post.scheduledDate ?? new Date(0));
 
   return {
     alert: {
-      deduplicationKey: `${ActivityKey.POST_MANUAL_POST_NEEDED}/${post.id}/${reminder}`,
+      deduplicationKey: `${ActivityKey.POST_MANUAL_POST_NEEDED}/${post.id}/${refusedAt.getTime()}/${reminder}`,
       payload: {
         groupId: post.groupId ?? null,
         intentUrl,

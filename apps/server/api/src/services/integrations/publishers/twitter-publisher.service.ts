@@ -23,7 +23,7 @@ import {
   describeTwitterPublishError,
   isTwitterCreditsDepletedError,
   isTwitterPostNotFound,
-  isTwitterRateLimitError,
+  isTwitterRateLimitResponse,
   isTwitterScopeOrTierError,
   X_CREDITS_DEPLETED_CODE,
 } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
@@ -262,7 +262,7 @@ export class TwitterPublisherService extends BasePublisherService {
     const quotedId = context.post.quoteTweetId;
     if (
       !quotedId ||
-      isTwitterRateLimitError(error) ||
+      isTwitterRateLimitResponse(error) ||
       isTwitterCreditsDepletedError(error)
     ) {
       return null;

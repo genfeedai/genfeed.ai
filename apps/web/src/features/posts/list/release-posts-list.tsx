@@ -258,6 +258,9 @@ export default function ReleasePostsList({
               ),
             };
           });
+          // The release may no longer match the active filters (a refused quote
+          // closed as posted leaves the failed list), and the counts moved.
+          void queryClient.invalidateQueries({ queryKey });
         },
         setDrawerError,
         setPendingAction,

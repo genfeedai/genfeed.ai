@@ -217,6 +217,15 @@ describe('isTwitterPostNotFound', () => {
       { errors: [notFound] },
     ],
     [
+      'a thrown error whose body carries the problem type itself',
+      Object.assign(new Error('Request failed with code 404'), {
+        data: {
+          title: 'Not Found Error',
+          type: 'https://api.x.com/2/problems/resource-not-found',
+        },
+      }),
+    ],
+    [
       'a thrown error carrying the problem',
       Object.assign(new Error('Request failed with code 404'), {
         errors: [notFound],

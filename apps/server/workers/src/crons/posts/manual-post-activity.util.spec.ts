@@ -41,7 +41,7 @@ describe('createManualPostActivity', () => {
   };
 
   it('asks for the post by hand with a prefilled X link on the first notice', () => {
-    const activity = createManualPostActivity(post, 0, SCHEDULED);
+    const activity = createManualPostActivity(post, 0, minutesAfter(31));
 
     expect(activity).toMatchObject({
       entityId: 'post-1',
@@ -52,18 +52,31 @@ describe('createManualPostActivity', () => {
         'X would not take this quote post through the API. Post it by hand.\n\nOpen in X: https://x.com/intent/post?text=Shipped+X+quote+scheduling.&url=https%3A%2F%2Fx.com%2Fi%2Fstatus%2F1856322244019101979',
     });
     expect(activity.alert?.deduplicationKey).toBe(
-      'content-publish-manual/post-1/0',
+      `content-publish-manual/post-1/${minutesAfter(31).getTime()}/0`,
     );
   });
 
   it('says how late the post is on a reminder and keys it by reminder number', () => {
-    const activity = createManualPostActivity(post, 3, minutesAfter(150));
+    const activity = createManualPostActivity(
+      { ...post, lastAttemptAt: minutesAfter(-1) },
+      3,
+      minutesAfter(150),
+    );
 
     expect(activity.value).toContain(
       'Still waiting for you to post this quote by hand (2 h late). Post it or skip it.',
     );
     expect(activity.alert?.deduplicationKey).toBe(
-      'content-publish-manual/post-1/3',
+      `content-publish-manual/post-1/${minutesAfter(-1).getTime()}/3`,
+    );
+  });
+
+  it('keys the first notice by when it was sent, so a refused retry notifies again', () => {
+    const first = createManualPostActivity(post, 0, minutesAfter(31));
+    const retried = createManualPostActivity(post, 0, minutesAfter(240));
+
+    expect(first.alert?.deduplicationKey).not.toBe(
+      retried.alert?.deduplicationKey,
     );
   });
 });

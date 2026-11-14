@@ -768,6 +768,21 @@ describe('TwitterPublisherService', () => {
           expect(result.error).toContain('Request failed with code 403');
         });
 
+        it('still reports a 403 refusal that carries quota headers as X refusing the quote', async () => {
+          mockTweet.mockRejectedValue(
+            Object.assign(new Error('Request failed with code 403'), {
+              code: 403,
+              data: { detail: 'Forbidden', title: 'Forbidden' },
+              rateLimit: { limit: 100, remaining: 99, reset: 1800000000 },
+            }),
+          );
+          mockSingleTweet.mockResolvedValue({ data: { id: quotedId } });
+
+          const result = await service.publish(createPublishContext(quotePost));
+
+          expect(result.errorCode).toBe('x_quote_refused');
+        });
+
         it('leaves a rate limit on a quote to the normal retry path', async () => {
           mockTweet.mockRejectedValue(
             Object.assign(new Error('Too Many Requests'), { code: 429 }),

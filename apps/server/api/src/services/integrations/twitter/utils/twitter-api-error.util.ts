@@ -206,14 +206,24 @@ export function isTwitterScopeOrTierError(error: unknown): boolean {
   );
 }
 
-export function isTwitterRateLimitError(error: unknown): boolean {
+/**
+ * X answered 429 or said so in words. Unlike {@link isTwitterRateLimitError},
+ * quota headers on any other response (a 403 carries them too) do not count.
+ */
+export function isTwitterRateLimitResponse(error: unknown): boolean {
   const status = readStatus(error) ?? readAxiosStatus(error);
   const message = readMessage(error).toLowerCase();
   return (
     status === 429 ||
     message.includes('429') ||
     message.includes('rate limit') ||
-    message.includes('too many requests') ||
+    message.includes('too many requests')
+  );
+}
+
+export function isTwitterRateLimitError(error: unknown): boolean {
+  return (
+    isTwitterRateLimitResponse(error) ||
     (isObjectLike(error) && isObjectLike(error.rateLimit))
   );
 }
@@ -338,6 +348,14 @@ export function isTwitterPostNotFound(lookup: unknown): boolean {
   const data = isObjectLike(lookup.data) ? lookup.data : undefined;
   if (typeof data?.id === 'string') {
     return false;
+  }
+  // X puts the problem type on the response body itself as well as on its
+  // `errors` items.
+  if (
+    typeof data?.type === 'string' &&
+    data.type.endsWith('/resource-not-found')
+  ) {
+    return true;
   }
   const errors = Array.isArray(lookup.errors)
     ? lookup.errors
