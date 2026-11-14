@@ -58,6 +58,18 @@ function build(row: unknown, brandIds: string[] = ['brand-1']) {
       },
     } as never,
     {
+      assertBrandAccess: async (
+        _org: string,
+        releases: { brandId?: string }[],
+        allowed: string[] | undefined,
+      ) => {
+        if (
+          allowed &&
+          releases.some((r) => !allowed.includes(r.brandId ?? ''))
+        ) {
+          throw new NotFoundException('Brand');
+        }
+      },
       create: async (
         _org: string,
         _user: string,
@@ -82,27 +94,44 @@ function build(row: unknown, brandIds: string[] = ['brand-1']) {
 
 const apiKeyContext = {} as never;
 
-describe('ScheduledReleaseBatchApprovalService.assertKeepsPosts', () => {
-  it('refuses a decision that removes every post', () => {
+describe('ScheduledReleaseBatchApprovalService.assertCanApprove', () => {
+  it('refuses a decision that removes every post', async () => {
     const { service } = build(null);
 
-    expect(() =>
-      service.assertKeepsPosts(approval() as never, [0, 1, 2, 3]),
-    ).toThrow(BadRequestException);
+    await expect(
+      service.assertCanApprove(approval() as never, [0, 1, 2, 3], undefined),
+    ).rejects.toThrow(BadRequestException);
   });
 
-  it('accepts a decision that keeps at least one post, and ignores other tools', () => {
+  it('accepts a decision that keeps at least one post, and ignores other tools', async () => {
     const { service } = build(null);
 
-    expect(() =>
-      service.assertKeepsPosts(approval() as never, [0, 1, 2]),
-    ).not.toThrow();
-    expect(() =>
-      service.assertKeepsPosts(
+    await expect(
+      service.assertCanApprove(approval() as never, [0, 1, 2], undefined),
+    ).resolves.toBeUndefined();
+    await expect(
+      service.assertCanApprove(
         approval({ arguments: {}, toolName: 'create_post' }) as never,
         [0],
+        ['brand-1'],
       ),
-    ).not.toThrow();
+    ).resolves.toBeUndefined();
+  });
+
+  it('refuses a brand-limited key a week that reaches other brands', async () => {
+    const { service } = build(null);
+    const week = approval({
+      arguments: {
+        releases: [{ brandId: 'brand-1' }, { brandId: 'brand-2' }],
+      },
+    });
+
+    await expect(
+      service.assertCanApprove(week as never, [], ['brand-1']),
+    ).rejects.toThrow(NotFoundException);
+    await expect(
+      service.assertCanApprove(week as never, [], ['brand-1', 'brand-2']),
+    ).resolves.toBeUndefined();
   });
 });
 

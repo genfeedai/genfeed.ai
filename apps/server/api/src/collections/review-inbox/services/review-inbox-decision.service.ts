@@ -125,9 +125,10 @@ export class ReviewInboxDecisionService {
         );
       }
       if (isBatch && isApproved) {
-        this.scheduledBatches.assertKeepsPosts(
+        await this.scheduledBatches.assertCanApprove(
           pending,
           request.excludedIndexes ?? [],
+          user.allowedBrandIds,
         );
       }
       const approval = await this.mcpApprovals.resolve(

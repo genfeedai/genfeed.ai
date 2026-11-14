@@ -32,7 +32,7 @@ describe('ReviewInboxDecisionService', () => {
   const workflowExecutor = { submitReviewGateApproval: vi.fn() };
   const mcpApprovals = { findOwned: vi.fn(), resolve: vi.fn() };
   const scheduledBatches = {
-    assertKeepsPosts: vi.fn(),
+    assertCanApprove: vi.fn(),
     schedule: vi.fn(),
   };
   const moduleAccess = { assertAccess: vi.fn() };
@@ -258,7 +258,7 @@ describe('ReviewInboxDecisionService', () => {
     };
 
     beforeEach(() => {
-      scheduledBatches.assertKeepsPosts.mockReset();
+      scheduledBatches.assertCanApprove.mockReset();
       mcpApprovals.findOwned.mockResolvedValue(batchApproval);
       mcpApprovals.resolve.mockResolvedValue({
         ...batchApproval,
@@ -288,7 +288,7 @@ describe('ReviewInboxDecisionService', () => {
     });
 
     it('is not approved when the reviewer removed every post', async () => {
-      scheduledBatches.assertKeepsPosts.mockImplementation(() => {
+      scheduledBatches.assertCanApprove.mockImplementation(async () => {
         throw new BadRequestException('Every post was removed.');
       });
 

@@ -91,18 +91,28 @@ export class ScheduledReleaseBatchApprovalService {
   ) {}
 
   /**
-   * Refuses a decision that would schedule nothing. It runs before the approval
-   * is resolved, so a refused request leaves the approval pending.
+   * Refuses a decision that would schedule nothing, or that a brand-limited key
+   * may not make (#9130): the key may approve only a week whose releases, channel
+   * accounts and media all sit in its brands, exactly what opening the review
+   * requires. It runs before the approval is resolved, so a refused request
+   * leaves the approval pending.
    */
-  assertKeepsPosts(
-    approval: Pick<McpApproval, 'toolName' | 'arguments'>,
+  async assertCanApprove(
+    approval: Pick<McpApproval, 'toolName' | 'arguments' | 'organizationId'>,
     excludedIndexes: readonly number[],
-  ): void {
+    allowedBrandIds: readonly string[] | undefined,
+  ): Promise<void> {
     const releases = readScheduledReleaseBatch(
       approval.toolName,
       approval.arguments,
     );
-    if (releases) this.keptPosts(releases, excludedIndexes);
+    if (!releases) return;
+    this.keptPosts(releases, excludedIndexes);
+    await this.postGroupBatch.assertBrandAccess(
+      approval.organizationId,
+      releases,
+      allowedBrandIds,
+    );
   }
 
   private keptPosts(
