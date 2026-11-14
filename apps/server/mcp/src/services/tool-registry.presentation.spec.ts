@@ -113,6 +113,16 @@ describe('MCP catalog presentation through the public registry', () => {
       if (tool.name === 'create_clipper_project_from_youtube')
         args.brandId = 'input-private';
       if (tool.name === 'run_clipper') args.mode = 'raw-cut';
+      // One release or a batch is required, neither field alone.
+      if (
+        tool.name === 'create_scheduled_release' &&
+        isRecord(tool.parameters)
+      ) {
+        const properties = isRecord(tool.parameters.properties)
+          ? tool.parameters.properties
+          : {};
+        args.release = inputFor(properties.release, 'release');
+      }
       if (tool.name === 'update_scheduled_release')
         args.changes = { title: 'Example' };
       if (

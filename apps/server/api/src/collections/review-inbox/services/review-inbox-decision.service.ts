@@ -1,7 +1,9 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
+import { expireStaleMcpApprovals } from '@api/collections/mcp-approvals/utils/mcp-approval-expiry.util';
 import type { ReviewInboxViewerAccess } from '@api/collections/review-inbox/review-inbox.types';
+import { ScheduledReleaseBatchApprovalService } from '@api/collections/review-inbox/services/scheduled-release-batch-approval.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -13,6 +15,7 @@ import {
   type IReviewInboxDecisionRequest,
   type IReviewInboxDecisionResult,
   parseReviewInboxItemId,
+  readScheduledReleaseBatch,
 } from '@genfeedai/contracts/interfaces';
 import { Traced } from '@libs/tracing/traced';
 import {
@@ -40,6 +43,7 @@ export class ReviewInboxDecisionService {
     private readonly workflowExecutor: WorkflowExecutorService,
     private readonly mcpApprovals: McpApprovalsService,
     private readonly moduleAccess: OrganizationModuleAccessService,
+    private readonly scheduledBatches: ScheduledReleaseBatchApprovalService,
   ) {}
 
   /**
@@ -104,6 +108,29 @@ export class ReviewInboxDecisionService {
           'Only organization owners and admins can resolve MCP approvals',
         );
       }
+      // Past its expiry an approval is closed, not decided (#10134).
+      await expireStaleMcpApprovals(this.prisma.mcpApproval, organizationId);
+      const pending = await this.mcpApprovals.findOwned(
+        parsed.approvalId,
+        organizationId,
+      );
+      const isBatch =
+        readScheduledReleaseBatch(pending.toolName, pending.arguments) !== null;
+      // A batch is read in full before it is approved: the reviewer's own
+      // list of kept posts is what makes the approval, so a bare approve
+      // (a bulk decision, an old client) never schedules a week unread.
+      if (isBatch && isApproved && request.excludedIndexes == null) {
+        throw new BadRequestException(
+          'Open the batch and review every post before approving it.',
+        );
+      }
+      if (isBatch && isApproved) {
+        await this.scheduledBatches.assertCanApprove(
+          pending,
+          request.excludedIndexes ?? [],
+          user.allowedBrandIds,
+        );
+      }
       const approval = await this.mcpApprovals.resolve(
         parsed.approvalId,
         organizationId,
@@ -111,12 +138,28 @@ export class ReviewInboxDecisionService {
         undefined,
         user,
       );
+      const scheduled =
+        isBatch && isApproved
+          ? await this.scheduledBatches.schedule(
+              approval,
+              request.excludedIndexes ?? [],
+              user,
+            )
+          : null;
       return {
         decision: request.decision,
         id: request.itemId,
         itemId: request.itemId,
         kind: parsed.kind,
         resolvedAt: (approval.resolvedAt ?? new Date()).toISOString(),
+        ...(scheduled
+          ? {
+              scheduled: {
+                created: scheduled.created.length,
+                failed: scheduled.errors.length,
+              },
+            }
+          : {}),
         status: isApproved ? 'approved' : 'rejected',
       };
     }

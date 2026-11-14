@@ -1123,17 +1123,26 @@ describe('Organization switching grant', () => {
     );
   });
 
-  it('never grants switching on the Claude connector resource', async () => {
+  it('grants switching on the Claude connector and keeps its access mode', async () => {
     const claudeResource = `${resource}/claude`;
-    const { prisma } = await approve(
+    const { apiKeysService, prisma } = await approve(
       2,
       { allowOrganizationSwitching: true, resource: claudeResource },
       claudeResource,
     );
 
     expect(prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ canSwitchOrganizations: false }),
+      data: expect.objectContaining({ canSwitchOrganizations: true }),
     });
+    expect(apiKeysService.createWithKey).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          canSwitchOrganizations: true,
+          mcpAccessMode: 'claude',
+        }),
+      }),
+      'mcp',
+    );
   });
 });
 

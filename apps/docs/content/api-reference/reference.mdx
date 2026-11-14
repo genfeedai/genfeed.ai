@@ -57,8 +57,6 @@ curl -X PATCH http://localhost:3010/v1/post-groups/RELEASE_ID \
 
 | Method | Route                                                  | Purpose                                                                                                                                  |
 | ------ | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`  | `/v1/schedules/calendar`                               | Read scheduled entries for an optional `start` and `end` range.                                                                          |
-| `POST` | `/v1/schedules/bulk`                                   | Schedule multiple content items.                                                                                                         |
 | `POST` | `/v1/schedules/optimal`                                | Best posting windows for a platform and timezone: learned from your own measured posts once there are enough, otherwise labelled default times. No model call.   |
 | `GET`  | `/v1/schedules/channel-capabilities`                   | List channel publishing contracts. `includeHidden` and `includePlanned` are optional boolean query parameters.                           |
 | `GET`  | `/v1/schedules/channel-capabilities/{platform}`        | Read one platform's limits, media rules, publish modes, settings, and support status.                                                    |

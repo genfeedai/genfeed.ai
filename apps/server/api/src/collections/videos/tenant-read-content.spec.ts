@@ -47,14 +47,14 @@ function handlerFor(
   ) => unknown;
 }
 describe('content tenant read ledger', () => {
-  it('accounts for all 133 actual canonical aliases across 69 controllers', () => {
-    expect(TENANT_READ_CONTENT_ROUTES).toHaveLength(133);
+  it('accounts for all 132 actual canonical aliases across 68 controllers', () => {
+    expect(TENANT_READ_CONTENT_ROUTES).toHaveLength(132);
     expect(new Set(TENANT_READ_CONTENT_ROUTES.map((e) => e.route)).size).toBe(
-      133,
+      132,
     );
     expect(
       new Set(TENANT_READ_CONTENT_ROUTES.map((e) => e.controller)).size,
-    ).toBe(69);
+    ).toBe(68);
     for (const entry of TENANT_READ_CONTENT_ROUTES) {
       const handler = handlerFor(entry);
       expect(Reflect.getMetadata('genfeed.tenantReadPolicy', handler)).toBe(

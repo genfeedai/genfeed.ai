@@ -35,6 +35,13 @@ describe('McpApprovalsService', () => {
     record: vi.fn(),
   };
 
+  /** Updates that decide an approval: closing stale ones as expired does not count. */
+  function updatesOtherThanExpiry() {
+    return mcpApproval.updateMany.mock.calls.filter(
+      ([args]) => args?.data?.result?.reason !== 'expired',
+    );
+  }
+
   let service: McpApprovalsService;
   const brandAccess = { resolve: vi.fn(), assert: vi.fn() };
   const actor: AuthenticatedUser = {
@@ -62,6 +69,28 @@ describe('McpApprovalsService', () => {
       mockNotificationsPublisher as ActivityRecorderService,
       brandAccess as unknown as BrandAccessService,
     );
+  });
+
+  describe('createPending expiry', () => {
+    it('closes approvals pending for over seven days as expired before it counts them', async () => {
+      mcpApproval.findFirst.mockResolvedValue(null);
+      mcpApproval.create.mockResolvedValue({ id: 'fresh', status: 'PENDING' });
+
+      await service.createPending('org-1', 'canonical-user', 'create_post', {
+        brandId: 'brand-1',
+      });
+
+      const expiry = mcpApproval.updateMany.mock.calls
+        .map(([args]) => args)
+        .find((args) => args?.data?.result?.reason === 'expired');
+      expect(expiry).toMatchObject({
+        data: { status: 'DECLINED' },
+        where: { organizationId: 'org-1', status: 'PENDING' },
+      });
+      expect(mcpApproval.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
+        mcpApproval.count.mock.invocationCallOrder[0] ?? Infinity,
+      );
+    });
   });
 
   describe('findStatusForActor', () => {
@@ -101,7 +130,7 @@ describe('McpApprovalsService', () => {
         expect.objectContaining({ userId: 'canonical-user' }),
         'brand-1',
       );
-      expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+      expect(updatesOtherThanExpiry()).toEqual([]);
     });
 
     it('uses the validated selected tenant without changing the canonical actor', async () => {
@@ -271,7 +300,7 @@ describe('McpApprovalsService', () => {
       ).resolves.toBe(existing);
       expect(prepare).not.toHaveBeenCalled();
       expect(mcpApproval.create).not.toHaveBeenCalled();
-      expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+      expect(updatesOtherThanExpiry()).toEqual([]);
     });
 
     it('requires fresh consent for a legacy visual approval with no quote evidence', async () => {
@@ -288,7 +317,7 @@ describe('McpApprovalsService', () => {
         }),
       ).rejects.toThrow('no verified quote');
       expect(prepare).not.toHaveBeenCalled();
-      expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+      expect(updatesOtherThanExpiry()).toEqual([]);
     });
 
     it('keeps priced generation unavailable when the canonical quote service is missing', async () => {
@@ -376,7 +405,7 @@ describe('McpApprovalsService', () => {
       );
       expect(second.idempotencyKey).not.toBe(first.idempotencyKey);
       expect(mcpApproval.create).toHaveBeenCalledTimes(2);
-      expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+      expect(updatesOtherThanExpiry()).toEqual([]);
     });
 
     it('returns an existing PENDING or APPROVED row for the same logical write', async () => {
@@ -489,7 +518,7 @@ describe('McpApprovalsService', () => {
           tx,
         );
         expect(mcpApproval.findFirst).not.toHaveBeenCalled();
-        expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+        expect(updatesOtherThanExpiry()).toEqual([]);
         expect(txApproval.findFirst).toHaveBeenCalledWith({
           where: {
             id: 'approval-tx',

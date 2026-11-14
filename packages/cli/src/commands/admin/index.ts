@@ -3,6 +3,8 @@ import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
 import { clearAdminTokenCache, revokeAdminSession, verifyAdminSession } from '@/api/admin-client';
+import { createBrandOsApproveCommand } from '@/commands/admin/brand-os';
+import { createBrandScanCommand } from '@/commands/admin/brand-scan';
 import {
   createOnboardingDraftsCommand,
   createOnboardingFunnelCommand,
@@ -41,7 +43,6 @@ import {
   readPublishPipeline,
   readSystemBrand,
   readTrainingsReport,
-  scanOrganizationBrand,
   seedArticles,
   seedTemplates,
   seedWorkflows,
@@ -92,13 +93,6 @@ interface OrganizationBrandUpdateOptions {
   watermarkOpacity?: number;
   watermarkPosition?: OrganizationBrandUpdate['watermarkPosition'];
   watermarkText?: string;
-  yes?: boolean;
-}
-
-interface OrganizationBrandScanOptions {
-  brand: string;
-  org: string;
-  url: string;
   yes?: boolean;
 }
 
@@ -995,34 +989,8 @@ function createOrganizationBrandSubcommands(): Command[] {
           handleError(error);
         }
       }),
-    new Command('scan')
-      .description('Scan a website or social profile into the brand kit (preview unless --yes)')
-      .requiredOption('--org <organizationId>', 'Organization id')
-      .requiredOption('--brand <brandId>', 'Brand id')
-      .requiredOption('--url <url>', 'Website or social profile URL to scan')
-      .option('--yes', 'Run the scan')
-      .option('--json', 'Output as JSON')
-      .action(async (options: OrganizationBrandScanOptions, command: Command) => {
-        try {
-          if (!options.yes) {
-            print(formatHeader('Brand scan (preview)\n'));
-            print(formatLabel('Organization', options.org));
-            print(formatLabel('Brand', options.brand));
-            print(formatLabel('URL', options.url));
-            print(formatWarning('Re-run with --yes to scan and overwrite scraped brand fields.'));
-            return;
-          }
-          const scan = await scanOrganizationBrand(options.org, options.brand, options.url);
-          if (wantsJson(command)) {
-            printJson(scan);
-            return;
-          }
-          print(formatLabel('Status', scan.scrapeStatus));
-          if (scan.scrapeReason) print(formatLabel('Reason', scan.scrapeReason));
-        } catch (error) {
-          handleError(error);
-        }
-      }),
+    createBrandScanCommand(),
+    createBrandOsApproveCommand(),
   ];
 }
 

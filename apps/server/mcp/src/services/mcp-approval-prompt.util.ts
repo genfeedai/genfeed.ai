@@ -1,5 +1,9 @@
 import { createHash } from 'node:crypto';
 import { getToolByName } from '@genfeedai/actions';
+import type {
+  IScheduledReleaseBatchPending,
+  IScheduledReleaseBatchPost,
+} from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type { McpApprovalAnswer } from '@mcp/shared/interfaces/approval.interface';
 import {
@@ -114,10 +118,23 @@ export function readApprovalPromptRound(
 
 interface PendingApproval {
   approvalId: string;
+  /** Set for a scheduled release batch (#10134). */
+  batch?: IScheduledReleaseBatchPending;
   estimatedCredits?: number;
   /** The price range, when the cost cannot be estimated up front. */
   pricingSummary?: string;
   toolName: string;
+}
+
+function isBatchPending(
+  value: unknown,
+): value is IScheduledReleaseBatchPending {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.posts) &&
+    typeof value.total === 'number' &&
+    typeof value.isApprovableHere === 'boolean'
+  );
 }
 
 function readPendingApproval(result: unknown): PendingApproval | null {
@@ -132,6 +149,7 @@ function readPendingApproval(result: unknown): PendingApproval | null {
   }
   return {
     approvalId: content.approvalId,
+    ...(isBatchPending(content.batch) ? { batch: content.batch } : {}),
     ...(typeof content.estimatedCredits === 'number'
       ? { estimatedCredits: content.estimatedCredits }
       : {}),
@@ -237,6 +255,48 @@ function argumentPreview(args: Record<string, unknown>): string[] | null {
   return lines;
 }
 
+function postPromptLines(
+  post: IScheduledReleaseBatchPost,
+  n: number,
+): string[] {
+  const media = post.media.length
+    ? `${post.media.length} ${post.media.length === 1 ? 'file' : 'files'} in this order: ${post.media
+        .map((item) => `${item.order + 1}. ${item.kind}`)
+        .join(', ')}`
+    : 'no media';
+  return [
+    `Post ${n}: ${post.platform}${post.accountLabel ? ` on ${post.accountLabel}` : ''}, ${post.scheduledAt ?? 'no time set'}`,
+    `- text: ${previewString(post.text)}`,
+    `- media: ${media}`,
+  ];
+}
+
+/**
+ * Up to three posts, each in full, so the person approves what they read. A
+ * larger batch returns null: it is reviewed and approved once in Genfeed, and
+ * the chat offers no approval for it.
+ */
+function batchPromptMessage(
+  batch: IScheduledReleaseBatchPending,
+): string | null {
+  if (
+    !batch.isApprovableHere ||
+    batch.posts.length === 0 ||
+    batch.posts.length !== batch.total
+  ) {
+    return null;
+  }
+  const lines = batch.posts.flatMap((post, index) =>
+    postPromptLines(post, index + 1),
+  );
+  const message = [
+    `Genfeed needs your approval. Schedule ${batch.total} ${batch.total === 1 ? 'post' : 'posts'}?`,
+    ...lines,
+    'Accept to schedule them now, or decline to cancel.',
+  ].join('\n');
+  return message.length > PREVIEW_MAX_CHARS * 2 ? null : message;
+}
+
 /**
  * The question the person sees, e.g. "Generate an image with flux-pro?", with
  * every argument listed. Null when the arguments cannot be shown in full.
@@ -244,10 +304,11 @@ function argumentPreview(args: Record<string, unknown>): string[] | null {
 export function approvalPromptMessage(
   pending: Pick<
     PendingApproval,
-    'estimatedCredits' | 'pricingSummary' | 'toolName'
+    'batch' | 'estimatedCredits' | 'pricingSummary' | 'toolName'
   >,
   args: Record<string, unknown>,
 ): string | null {
+  if (pending.batch) return batchPromptMessage(pending.batch);
   const preview = argumentPreview(args);
   if (!preview) return null;
   const action =

@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { EnsureReleaseFromPostDto } from '@api/collections/post-groups/dto/ensure-release-from-post.dto';
 import { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
+import { PostGroupBatchService } from '@api/collections/post-groups/services/post-group-batch.service';
 import { PostGroupRecurrenceService } from '@api/collections/post-groups/services/post-group-recurrence.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
@@ -18,6 +19,7 @@ import {
 import { ApiKeyScope } from '@genfeedai/contracts';
 import { ReleaseGroupSerializer } from '@genfeedai/serializers';
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -39,6 +41,7 @@ export class PostGroupsController {
   constructor(
     private readonly postGroupsService: PostGroupsService,
     private readonly postGroupRecurrenceService: PostGroupRecurrenceService,
+    private readonly postGroupBatchService: PostGroupBatchService,
   ) {}
 
   @TenantReadPolicy('selected')
@@ -74,6 +77,90 @@ export class PostGroupsController {
       metadata,
     );
     return serializeSingle(req, ReleaseGroupSerializer, data);
+  }
+
+  /**
+   * Checks every release of a batch without creating any (#10134). Returns the
+   * releases that would be refused, by position.
+   */
+  @Post('batch/validate')
+  @RequiredScopes(ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_SCHEDULE)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async validateBatch(
+    @CurrentUser() user: User,
+    @Body() body: { releases?: unknown },
+  ) {
+    this.postGroupBatchService.assertBatchShape(body?.releases);
+    await this.postGroupBatchService.assertBrandAccess(
+      user.organizationId,
+      body.releases,
+      user.allowedBrandIds,
+    );
+    return {
+      errors: await this.postGroupBatchService.validate(
+        user.organizationId,
+        body.releases,
+      ),
+    };
+  }
+
+  /** The posts of a batch as a reviewer reads them (#10134). */
+  @Post('batch/preview')
+  @RequiredScopes(ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_SCHEDULE)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async previewBatch(
+    @CurrentUser() user: User,
+    @Body() body: { releases?: unknown },
+  ) {
+    this.postGroupBatchService.assertBatchShape(body?.releases);
+    await this.postGroupBatchService.assertBrandAccess(
+      user.organizationId,
+      body.releases,
+      user.allowedBrandIds,
+    );
+    const { posts } = await this.postGroupBatchService.describe(
+      user.organizationId,
+      body.releases,
+    );
+    return { posts };
+  }
+
+  /**
+   * Creates a batch of releases; a bad release is reported by position and the
+   * rest are created. Reached after the batch was approved.
+   */
+  @Post('batch')
+  @RequiredScopes(ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_SCHEDULE)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async createBatch(
+    @CurrentUser() user: User,
+    @Body() body: { idempotencyKey?: unknown; releases?: unknown },
+  ) {
+    this.postGroupBatchService.assertBatchShape(body?.releases);
+    const keyBase =
+      typeof body.idempotencyKey === 'string' && body.idempotencyKey.trim()
+        ? body.idempotencyKey.trim()
+        : null;
+    if (!keyBase) {
+      throw new BadRequestException('idempotencyKey is required for a batch.');
+    }
+    // Cut short, two keys would share a prefix and so share releases.
+    if (keyBase.length > 200) {
+      throw new BadRequestException(
+        'idempotencyKey must be at most 200 characters.',
+      );
+    }
+    await this.postGroupBatchService.assertBrandAccess(
+      user.organizationId,
+      body.releases,
+      user.allowedBrandIds,
+    );
+    return this.postGroupBatchService.create(
+      user.organizationId,
+      user.id,
+      body.releases,
+      { apiKeyContext: user, keyBase },
+    );
   }
 
   @Post('from-post')

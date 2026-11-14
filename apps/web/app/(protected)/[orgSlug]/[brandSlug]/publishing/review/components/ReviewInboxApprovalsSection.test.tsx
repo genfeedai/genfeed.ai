@@ -13,6 +13,14 @@ vi.mock(
   }),
 );
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/main${path}` }),
+}));
+
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return {
@@ -25,6 +33,7 @@ const approval: IReviewInboxItem = {
   actionSummary: 'Publish post · Platform: instagram',
   actionTitle: 'Publish post',
   approvalId: 'apr-1',
+  batchCount: null,
   brandId: 'brand-1',
   brandLabel: 'Acme',
   brandLogoUrl: null,
@@ -241,6 +250,27 @@ describe('ReviewInboxApprovalsSection', () => {
         'That request was already resolved, or it is not visible to you.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('opens a scheduled week for review instead of approving it in the row', () => {
+    const week: IReviewInboxItem = {
+      ...approval,
+      actionTitle: 'Schedule 42 posts',
+      batchCount: 42,
+      id: 'mcp_approval:apr-week',
+      toolName: 'create_scheduled_release',
+    };
+    render(
+      <ReviewInboxApprovalsSection approvals={state({ items: [week] })} />,
+    );
+
+    expect(screen.getByText('Schedule 42 posts')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Review 42' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Approve' }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders nothing when there is nothing to decide', () => {

@@ -40,7 +40,6 @@ import { PresetsController } from '@api/collections/presets/controllers/presets.
 import { PromptsController } from '@api/collections/prompts/controllers/prompts.controller';
 import { ReplyBotConfigsController } from '@api/collections/reply-bot-configs/controllers/reply-bot-configs.controller';
 import { SavedAdsController } from '@api/collections/saved-ads/controllers/saved-ads.controller';
-import { SchedulesController } from '@api/collections/schedules/controllers/schedules.controller';
 import { SocialInboxController } from '@api/collections/social-inbox/controllers/social-inbox.controller';
 import { SocialReplyCampaignController } from '@api/collections/social-inbox/controllers/social-reply-campaign.controller';
 import { TagsController } from '@api/collections/tags/controllers/tags.controller';
@@ -547,12 +546,6 @@ export const TENANT_READ_CONTENT_ROUTES = [
     controller: SavedAdsController,
     handler: 'list',
     route: '/v1/saved-ads',
-    policy: 'selected',
-  },
-  {
-    controller: SchedulesController,
-    handler: 'getCalendar',
-    route: '/v1/schedules/calendar',
     policy: 'selected',
   },
   {

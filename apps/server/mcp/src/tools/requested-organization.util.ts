@@ -63,7 +63,7 @@ export async function resolveRequestedOrganizationId(
   }
   if (!(await client.canSwitchOrganizations())) {
     throw new Error(
-      'This connection is limited to one organization. Reconnect and choose "All my organizations" to act in several.',
+      'This connection is limited to one organization. Reconnect and choose "All organizations" to act in several.',
     );
   }
   return matchOrganization(await client.listOrganizations(), wanted).id;

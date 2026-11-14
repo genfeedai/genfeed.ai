@@ -57,7 +57,7 @@ describe('ReviewInboxService', () => {
   const prisma = {
     asset: { findMany: vi.fn() },
     brand: { findMany: vi.fn() },
-    mcpApproval: { findMany: vi.fn() },
+    mcpApproval: { findMany: vi.fn(), updateMany: vi.fn() },
     workflowExecution: { findMany: vi.fn() },
   };
   const brandAccess = { resolve: vi.fn() };
@@ -69,6 +69,7 @@ describe('ReviewInboxService', () => {
     prisma.brand.findMany.mockResolvedValue([{ id: 'brand-1', label: 'Acme' }]);
     prisma.asset.findMany.mockResolvedValue([]);
     prisma.mcpApproval.findMany.mockResolvedValue([]);
+    prisma.mcpApproval.updateMany.mockResolvedValue({ count: 0 });
     prisma.workflowExecution.findMany.mockResolvedValue([]);
     service = new ReviewInboxService(
       prisma as unknown as PrismaService,
@@ -288,6 +289,48 @@ describe('ReviewInboxService', () => {
         isDeleted: false,
         organizationId: 'org-1',
         status: 'PENDING',
+      });
+    });
+
+    it('lists a scheduled week as one row that names how many posts it holds', async () => {
+      prisma.mcpApproval.findMany.mockResolvedValue([
+        {
+          arguments: {
+            releases: [
+              { baseContent: 'First post of the week', brandId: 'brand-1' },
+              { baseContent: 'Second post', brandId: 'brand-1' },
+              { baseContent: 'Third post', brandId: 'brand-1' },
+            ],
+          },
+          createdAt: new Date('2026-10-02T00:00:00.000Z'),
+          id: 'apr-week',
+          pricingQuote: null,
+          toolName: 'create_scheduled_release',
+          user: { email: null, firstName: 'Vincent', lastName: null },
+        },
+      ]);
+
+      const items = await service.listPending(
+        { organizationId: 'org-1' },
+        ownerAccess,
+      );
+
+      expect(items).toHaveLength(1);
+      expect(items[0]).toMatchObject({
+        actionTitle: 'Schedule 3 posts',
+        batchCount: 3,
+        brandId: 'brand-1',
+        brandLabel: 'Acme',
+        preview: { caption: 'First post of the week' },
+      });
+    });
+
+    it('closes stale pending approvals before listing', async () => {
+      await service.listPending({ organizationId: 'org-1' }, ownerAccess);
+
+      expect(prisma.mcpApproval.updateMany.mock.calls[0][0]).toMatchObject({
+        data: { result: { reason: 'expired' }, status: 'DECLINED' },
+        where: { organizationId: 'org-1', status: 'PENDING' },
       });
     });
 
