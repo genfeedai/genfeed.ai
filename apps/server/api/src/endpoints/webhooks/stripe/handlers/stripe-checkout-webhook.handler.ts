@@ -23,12 +23,16 @@ import {
   type ManagedCheckoutResult,
   ManagedStripeCheckoutService,
 } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
-import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
+import {
+  type StripeCheckoutSession,
+  StripeService,
+} from '@api/services/integrations/stripe/services/stripe.service';
 import {
   MANAGED_API_KEY_LABEL,
   MANAGED_API_KEY_SCOPES,
 } from '@api/services/integrations/stripe/stripe.constants';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
+import { LifetimeDealService } from '@api/services/lifetime-deal/lifetime-deal.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
@@ -37,6 +41,7 @@ import {
   ApiKeyCategory,
   BillingRevenueSource,
   OrganizationCategory,
+  SubscriptionTier,
 } from '@genfeedai/contracts';
 import {
   type ISubscriptionsService,
@@ -44,6 +49,12 @@ import {
   SUBSCRIPTIONS_SERVICE,
   USER_SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/contracts/interfaces/billing';
+import {
+  LIFETIME_DEAL_DEFAULT_MONTHLY_CREDITS,
+  LIFETIME_DEAL_MONTHLY_CREDITS_METADATA_KEY,
+  LIFETIME_DEAL_PLAN_TYPE,
+  parseIncludedMonthlyCredits,
+} from '@genfeedai/pricing';
 import { toPrismaJson, type User } from '@genfeedai/prisma';
 import { buildSystemEmailHtml } from '@helpers/email/system-email.helper';
 import { buildSkillsProReceiptEmailBody } from '@helpers/email/system-email-templates.helper';
@@ -98,6 +109,8 @@ export class StripeCheckoutWebhookHandler {
     private readonly lifecycleEmailService: LifecycleEmailService,
     private readonly notificationsService: NotificationsService,
     private readonly referralsService: ReferralsService,
+    private readonly lifetimeDealService: LifetimeDealService,
+    private readonly stripeService: StripeService,
   ) {}
 
   async handleCheckoutCompleted(
@@ -200,6 +213,11 @@ export class StripeCheckoutWebhookHandler {
         customerId: session.customer,
         sessionId: session.id,
       });
+      return;
+    }
+
+    if (session.metadata?.plan_type === LIFETIME_DEAL_PLAN_TYPE) {
+      await this.handleLifetimeCheckout(session, subscription, url);
       return;
     }
 
@@ -310,6 +328,113 @@ export class StripeCheckoutWebhookHandler {
       stripeCheckoutSessionId: session.id,
       stripePaymentIntentId,
     });
+  }
+
+  /**
+   * One-time lifetime purchase. Claims a seat for the paying organization,
+   * puts it on the Pro tier and grants the first month's credits. Every step
+   * is safe to repeat, so a replayed event finishes whatever a crash left
+   * undone. A payment that arrives after the last seat went is refunded in
+   * full. Affiliate rewards pay on pay-as-you-go purchases only, so none is
+   * recorded here.
+   */
+  private async handleLifetimeCheckout(
+    session: StripeCheckoutSession,
+    subscription: { organizationId: string; userId: string },
+    url: string,
+  ): Promise<void> {
+    const { organizationId } = subscription;
+    const monthlyCredits =
+      parseIncludedMonthlyCredits(
+        session.metadata?.[LIFETIME_DEAL_MONTHLY_CREDITS_METADATA_KEY],
+      ) ?? LIFETIME_DEAL_DEFAULT_MONTHLY_CREDITS;
+
+    await this.supportService.withCheckoutSessionProcessing(
+      session.id,
+      'organization-lifetime',
+      async () => {
+        const claim = await this.lifetimeDealService.claimSeat({
+          monthlyCredits,
+          organizationId,
+          stripeCheckoutSessionId: session.id,
+          userId: session.metadata?.userId ?? subscription.userId,
+        });
+
+        if (claim.outcome === 'sold_out') {
+          await this.refundOversoldLifetimePayment(
+            session,
+            organizationId,
+            url,
+          );
+          return;
+        }
+
+        await this.supportService.updateOrganizationTierAndModels(
+          organizationId,
+          SubscriptionTier.PRO,
+          url,
+        );
+        const creditsAdded = await this.lifetimeDealService.grantDueCredits(
+          claim.seatId,
+        );
+
+        const dbUser = await this.usersService.findOne({
+          id: subscription.userId,
+        });
+        if (dbUser) {
+          await this.supportService.markOnboardingComplete(dbUser);
+          await this.supportService.invalidateUserCaches(dbUser.id.toString());
+        }
+        if (creditsAdded > 0) {
+          await this.supportService.recordCreditsActivity({
+            organizationId,
+            source: ActivitySource.SUBSCRIPTION,
+            ...(dbUser?.id ? { userId: String(dbUser.id) } : {}),
+            value: String(creditsAdded),
+          });
+        }
+
+        this.loggerService.log(`${url} lifetime seat claimed`, {
+          creditsAdded,
+          organizationId,
+          outcome: claim.outcome,
+          seatNumber: claim.seatNumber,
+          sessionId: session.id,
+        });
+      },
+    );
+
+    await this.recordCheckoutRevenue(
+      session,
+      organizationId,
+      session.metadata?.userId ?? subscription.userId,
+    );
+  }
+
+  private async refundOversoldLifetimePayment(
+    session: StripeCheckoutSession,
+    organizationId: string,
+    url: string,
+  ): Promise<void> {
+    const paymentIntentId =
+      typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : session.payment_intent?.id;
+    if (!paymentIntentId) {
+      this.loggerService.error(
+        `${url} lifetime payment arrived after the last seat and has no payment to refund`,
+        { organizationId, sessionId: session.id },
+      );
+      return;
+    }
+    await this.stripeService.refundPaymentIntent(
+      paymentIntentId,
+      `lifetime-oversold:${session.id}`,
+    );
+    this.loggerService.warn(
+      `${url} lifetime payment arrived after the last seat and was refunded`,
+      { organizationId, sessionId: session.id },
+    );
   }
 
   private async handleManagedInferenceCheckoutCompleted(

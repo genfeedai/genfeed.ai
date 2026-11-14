@@ -8,12 +8,20 @@ import type { UserSetupService } from '@api/collections/users/services/user-setu
 import type { StripeAttributionTrackerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-attribution-tracker.service';
 import { StripeCheckoutWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler';
 import type { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
-import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
+import type {
+  StripeCheckoutSession,
+  StripeService,
+} from '@api/services/integrations/stripe/services/stripe.service';
 import {
   MANAGED_API_KEY_LABEL,
   MANAGED_API_KEY_SCOPES,
 } from '@api/services/integrations/stripe/stripe.constants';
 import type { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
+import type {
+  LifetimeDealService,
+  LifetimeSeatClaim,
+  LifetimeSeatClaimInput,
+} from '@api/services/lifetime-deal/lifetime-deal.service';
 import type { NotificationsService } from '@api/services/notifications/notifications.service';
 import {
   STRIPE_WORLD_NOW,
@@ -60,6 +68,11 @@ function world() {
     events: [] as WorldRow[],
     /** Scopes of managed keys the next account setups already issued. */
     keyOnSetup: [] as ApiKeyScope[][],
+    /** Outcomes the next lifetime seat claims return, in order. */
+    lifetimeClaims: [] as LifetimeSeatClaim[],
+    lifetimeClaimInputs: [] as LifetimeSeatClaimInput[],
+    lifetimeGrants: [] as string[],
+    refunds: [] as WorldRow[],
     managed: {
       faults: {
         cache: [] as Array<Error | false>,
@@ -269,6 +282,21 @@ function world() {
         state.referralPurchases.push(input);
       },
     } as unknown as ReferralsService,
+    {
+      claimSeat: async (input: LifetimeSeatClaimInput) => {
+        state.lifetimeClaimInputs.push(input);
+        return state.lifetimeClaims.shift() ?? { outcome: 'sold_out' };
+      },
+      grantDueCredits: async (seatId: string) => {
+        state.lifetimeGrants.push(seatId);
+        return 4_900;
+      },
+    } as unknown as LifetimeDealService,
+    {
+      refundPaymentIntent: async (paymentIntentId: string, key: string) => {
+        state.refunds.push({ key, paymentIntentId });
+      },
+    } as unknown as StripeService,
   );
 
   return Object.assign(w, state, { handler, setupAccount });
@@ -340,6 +368,102 @@ describe('StripeCheckoutWebhookHandler', () => {
       expect(w.users[0]).toMatchObject({ isOnboardingCompleted: true });
       expect(w.ledger).toEqual([]);
       expect(w.revenue).toEqual([]);
+    });
+  });
+
+  describe('payment mode (lifetime deal)', () => {
+    const LIFETIME = {
+      amount_total: 59900,
+      customer: 'cus_1',
+      id: 'cs_lifetime_1',
+      metadata: {
+        lifetime_monthly_credits: '4900',
+        plan_type: 'lifetime',
+        userId: 'user_1',
+      },
+      mode: 'payment',
+      payment_intent: 'pi_lifetime_1',
+      total_details: { amount_discount: 0, amount_tax: 0 },
+    };
+    function buyer(): World {
+      const w = world();
+      w.subscriptions.push({
+        organizationId: 'org_1',
+        stripeCustomerId: 'cus_1',
+        userId: 'user_1',
+      });
+      w.users.push({
+        id: 'user_1',
+        isDeleted: false,
+        isOnboardingCompleted: false,
+      });
+      w.settings.push({ id: 'settings_org_1', organizationId: 'org_1' });
+      return w;
+    }
+
+    it('gives a paying organization its seat, the Pro tier and the first month of credits once', async () => {
+      const w = buyer();
+      w.lifetimeClaims.push({
+        outcome: 'claimed',
+        seatId: 'seat_1',
+        seatNumber: 1,
+      });
+
+      await w.handler.handleCheckoutCompleted(checkout(LIFETIME), 'test');
+      await w.handler.handleCheckoutCompleted(checkout(LIFETIME), 'test');
+
+      expect(w.lifetimeClaimInputs).toEqual([
+        {
+          monthlyCredits: 4_900,
+          organizationId: 'org_1',
+          stripeCheckoutSessionId: 'cs_lifetime_1',
+          userId: 'user_1',
+        },
+      ]);
+      expect(
+        w.settings.find((row) => row.organizationId === 'org_1'),
+      ).toMatchObject({ subscriptionTier: 'pro' });
+      expect(w.lifetimeGrants).toEqual(['seat_1']);
+      expect(w.users[0]).toMatchObject({ isOnboardingCompleted: true });
+      expect(w.revenue).toEqual([
+        expect.objectContaining({
+          amountMinor: 59_900,
+          organizationId: 'org_1',
+          stripeObjectId: 'cs_lifetime_1',
+        }),
+      ]);
+      expect(w.refunds).toEqual([]);
+    });
+
+    it('pays no affiliate reward on a lifetime purchase', async () => {
+      const w = buyer();
+      w.lifetimeClaims.push({
+        outcome: 'claimed',
+        seatId: 'seat_1',
+        seatNumber: 1,
+      });
+
+      await w.handler.handleCheckoutCompleted(checkout(LIFETIME), 'test');
+
+      expect(w.referralPurchases).toEqual([]);
+    });
+
+    it('refunds a payment that arrives after the last seat and leaves the tier alone', async () => {
+      const w = buyer();
+      w.lifetimeClaims.push({ outcome: 'sold_out' });
+
+      await w.handler.handleCheckoutCompleted(checkout(LIFETIME), 'test');
+
+      expect(w.refunds).toEqual([
+        {
+          key: 'lifetime-oversold:cs_lifetime_1',
+          paymentIntentId: 'pi_lifetime_1',
+        },
+      ]);
+      expect(w.lifetimeGrants).toEqual([]);
+      expect(
+        w.settings.find((row) => row.organizationId === 'org_1'),
+      ).not.toHaveProperty('subscriptionTier');
     });
   });
 

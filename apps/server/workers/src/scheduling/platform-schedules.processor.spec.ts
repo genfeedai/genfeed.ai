@@ -46,6 +46,7 @@ describe('PlatformSchedulesProcessor', () => {
   const queueMetrics = { publishQueueMetrics: handler() };
   const credits = {
     expireFreeTrials: handler(),
+    grantLifetimeDealCredits: handler(),
     renewCreatorSubscriptions: handler(),
     settleReferralRewards: handler(),
   };
@@ -144,6 +145,10 @@ describe('PlatformSchedulesProcessor', () => {
         falModels.refreshRegistryModels,
       ],
       [PLATFORM_SCHEDULED_TASKS.FREE_TRIAL_EXPIRY, credits.expireFreeTrials],
+      [
+        PLATFORM_SCHEDULED_TASKS.LIFETIME_DEAL_CREDIT_GRANT,
+        credits.grantLifetimeDealCredits,
+      ],
       [
         PLATFORM_SCHEDULED_TASKS.GLOBAL_TRENDS_REFRESH,
         trends.refreshGlobalTrends,

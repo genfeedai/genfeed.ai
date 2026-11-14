@@ -36,11 +36,13 @@ import { StripeController } from '@api/services/integrations/stripe/controllers/
 import { OrganizationBillingAccountService } from '@api/services/integrations/stripe/services/organization-billing-account.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
+import { LifetimeDealService } from '@api/services/lifetime-deal/lifetime-deal.service';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  ConflictException,
   HttpException,
   HttpStatus,
   type INestApplication,
@@ -57,7 +59,12 @@ describe('StripeController', () => {
     createPaymentSession: ReturnType<typeof vi.fn>;
     getBillingPortalUrl: ReturnType<typeof vi.fn>;
     findOrganizationCustomers: ReturnType<typeof vi.fn>;
+    isLifetimePrice: ReturnType<typeof vi.fn>;
     retrieveCustomer: ReturnType<typeof vi.fn>;
+  };
+  let lifetimeDealService: {
+    assertSeatPurchasable: ReturnType<typeof vi.fn>;
+    isLifetimeOrganization: ReturnType<typeof vi.fn>;
   };
   let subscriptionsService: {
     createForOrganization: ReturnType<typeof vi.fn>;
@@ -132,7 +139,12 @@ describe('StripeController', () => {
     checkoutsStarted = [];
     ensuredAccounts = [];
     subscriptionWrites = [];
+    lifetimeDealService = {
+      assertSeatPurchasable: vi.fn().mockResolvedValue(undefined),
+      isLifetimeOrganization: vi.fn().mockResolvedValue(false),
+    };
     stripeService = {
+      isLifetimePrice: vi.fn().mockResolvedValue(false),
       createOrganizationCustomer: vi.fn().mockResolvedValue({
         id: 'cus_recreated',
       }),
@@ -266,6 +278,7 @@ describe('StripeController', () => {
         { provide: UsersService, useValue: usersService },
         { provide: OrganizationsService, useValue: organizationsService },
         { provide: LifecycleEmailService, useValue: lifecycleEmailService },
+        { provide: LifetimeDealService, useValue: lifetimeDealService },
         { provide: ConfigService, useValue: configService },
         {
           provide: OrganizationBillingAccountService,
@@ -325,6 +338,47 @@ describe('StripeController', () => {
           redirects: undefined,
         },
       ]);
+    });
+
+    it('refuses a subscription checkout from a lifetime organization', async () => {
+      lifetimeDealService.isLifetimeOrganization.mockResolvedValue(true);
+
+      await expect(
+        controller.createCheckoutSession(mockUser, dto, mockRequest),
+      ).rejects.toThrow('already has the lifetime plan');
+      expect(checkouts).toEqual([]);
+    });
+
+    it('lets a lifetime organization buy a credit pack', async () => {
+      lifetimeDealService.isLifetimeOrganization.mockResolvedValue(true);
+
+      await controller.createCheckoutSession(
+        mockUser,
+        { quantity: 5_000, stripePriceId: 'price_payg' },
+        mockRequest,
+      );
+
+      expect(checkouts).toHaveLength(1);
+    });
+
+    it('stops a lifetime checkout when no seat can be sold', async () => {
+      stripeService.isLifetimePrice.mockResolvedValue(true);
+      lifetimeDealService.assertSeatPurchasable.mockRejectedValue(
+        new ConflictException('All lifetime seats are taken.'),
+      );
+
+      await expect(
+        controller.createCheckoutSession(mockUser, dto, mockRequest),
+      ).rejects.toThrow('All lifetime seats are taken.');
+      expect(checkouts).toEqual([]);
+    });
+
+    it('opens a lifetime checkout while a seat is free', async () => {
+      stripeService.isLifetimePrice.mockResolvedValue(true);
+
+      await controller.createCheckoutSession(mockUser, dto, mockRequest);
+
+      expect(checkouts).toHaveLength(1);
     });
 
     it('should throw BAD_REQUEST when origin header is missing', async () => {

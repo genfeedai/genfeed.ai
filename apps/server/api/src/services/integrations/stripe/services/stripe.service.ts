@@ -24,6 +24,10 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   creditPackTotalCredits,
   INCLUDED_MONTHLY_CREDITS_METADATA_KEY,
+  LIFETIME_DEAL_DEFAULT_MONTHLY_CREDITS,
+  LIFETIME_DEAL_MONTHLY_CREDITS_METADATA_KEY,
+  LIFETIME_DEAL_PLAN_TYPE,
+  LIFETIME_DEAL_PRICE_LOOKUP_KEY,
   PAYG_CREDIT_PACKS,
   PAYG_CREDITS_PER_USD,
   PAYG_MAX_PURCHASE_USD,
@@ -58,6 +62,10 @@ type StripeBillingPortalSession = Awaited<
   ReturnType<StripeClient['billingPortal']['sessions']['create']>
 >;
 type StripeResponse<T> = T;
+type StripeListedPrice = Awaited<
+  ReturnType<StripeClient['prices']['list']>
+>['data'][number];
+type StripeMetadataCarrier = { metadata?: Record<string, string> | null };
 export type StripePrice = Awaited<
   ReturnType<StripeClient['prices']['retrieve']>
 >;
@@ -706,6 +714,68 @@ export class StripeService {
     }
   }
 
+  /**
+   * The active one-time price that sells the lifetime deal, or `null` while
+   * none exists. The operator opens the sale by creating a price with the
+   * lifetime lookup key in Stripe.
+   */
+  public async findLifetimePrice(): Promise<StripeListedPrice | null> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const { data } = await this.stripe.prices.list({
+        active: true,
+        limit: 1,
+        lookup_keys: [LIFETIME_DEAL_PRICE_LOOKUP_KEY],
+      });
+      const price = data[0];
+      return price && !price.recurring ? price : null;
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, {
+        category: classifyStripeFailure(error),
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Refunds a payment in full. The idempotency key makes a replayed webhook
+   * refund once.
+   */
+  public async refundPaymentIntent(
+    paymentIntentId: string,
+    idempotencyKey: string,
+  ): Promise<void> {
+    await this.stripe.refunds.create(
+      { payment_intent: paymentIntentId },
+      { idempotencyKey },
+    );
+  }
+
+  /** Whether this is the price that sells the lifetime deal. */
+  public async isLifetimePrice(stripePriceId: string): Promise<boolean> {
+    try {
+      const price = await this.stripe.prices.retrieve(stripePriceId);
+      return (
+        !price.recurring && price.lookup_key === LIFETIME_DEAL_PRICE_LOOKUP_KEY
+      );
+    } catch (error: unknown) {
+      if (isStripeResourceMissingError(error)) {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  /** The price's `included_monthly_credits` metadata, else the Pro allowance. */
+  public resolveLifetimeMonthlyCredits(price: StripeMetadataCarrier): number {
+    return (
+      parseIncludedMonthlyCredits(
+        price.metadata?.[INCLUDED_MONTHLY_CREDITS_METADATA_KEY],
+      ) ?? LIFETIME_DEAL_DEFAULT_MONTHLY_CREDITS
+    );
+  }
+
   public async getPrice(stripePriceId: string): Promise<StripePrice> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -858,18 +928,34 @@ export class StripeService {
         // Use the provided price ID directly (for custom prices)
         const priceDetails = await this.getPrice(stripePriceId);
         const isRecurring = !!priceDetails.recurring;
+        const isLifetime =
+          !isRecurring &&
+          priceDetails.lookup_key === LIFETIME_DEAL_PRICE_LOOKUP_KEY;
 
-        sessionConfig = {
-          allow_promotion_codes: true,
-          ...checkoutDefaults,
-          line_items: [
-            {
-              price: stripePriceId,
-              quantity,
-            },
-          ],
-          mode: isRecurring ? 'subscription' : 'payment',
-        };
+        sessionConfig = isLifetime
+          ? {
+              // No promotion codes: the seat's cost is fixed by the cap.
+              ...checkoutDefaults,
+              line_items: [{ price: stripePriceId, quantity: 1 }],
+              metadata: {
+                [LIFETIME_DEAL_MONTHLY_CREDITS_METADATA_KEY]: String(
+                  this.resolveLifetimeMonthlyCredits(priceDetails),
+                ),
+                plan_type: LIFETIME_DEAL_PLAN_TYPE,
+              },
+              mode: 'payment',
+            }
+          : {
+              allow_promotion_codes: true,
+              ...checkoutDefaults,
+              line_items: [
+                {
+                  price: stripePriceId,
+                  quantity,
+                },
+              ],
+              mode: isRecurring ? 'subscription' : 'payment',
+            };
 
         if (isRecurring) {
           sessionConfig.subscription_data = {

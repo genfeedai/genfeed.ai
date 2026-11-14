@@ -10,6 +10,8 @@ export enum SubscriptionPlan {
   YEARLY = 'yearly',
   PAYG = 'payg',
   ENTERPRISE = 'enterprise',
+  /** One-time purchase with a monthly credit allowance; see `lifetime-deal` in @genfeedai/pricing. */
+  LIFETIME = 'lifetime',
 }
 
 const SUBSCRIPTION_PLANS = new Set<string>(Object.values(SubscriptionPlan));

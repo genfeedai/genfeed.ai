@@ -21,8 +21,8 @@ describe('subscription.enum', () => {
   });
 
   describe('SubscriptionPlan', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(SubscriptionPlan)).toHaveLength(4);
+    it('should have 5 members', () => {
+      expect(Object.values(SubscriptionPlan)).toHaveLength(5);
     });
 
     it('should have correct values', () => {
@@ -30,6 +30,7 @@ describe('subscription.enum', () => {
       expect(SubscriptionPlan.YEARLY).toBe('yearly');
       expect(SubscriptionPlan.PAYG).toBe('payg');
       expect(SubscriptionPlan.ENTERPRISE).toBe('enterprise');
+      expect(SubscriptionPlan.LIFETIME).toBe('lifetime');
     });
   });
 
