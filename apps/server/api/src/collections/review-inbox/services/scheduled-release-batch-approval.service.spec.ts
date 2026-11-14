@@ -42,7 +42,12 @@ function build(row: unknown, brandIds: string[] = ['brand-1']) {
   const claims: string[] = [];
   const attached: unknown[] = [];
   const service = new ScheduledReleaseBatchApprovalService(
-    { mcpApproval: { findFirst: async () => row } } as never,
+    {
+      mcpApproval: {
+        findFirst: async () => row,
+        updateMany: async () => ({ count: 0 }),
+      },
+    } as never,
     {
       attachResult: async (_id: string, _org: string, result: unknown) => {
         attached.push(result);

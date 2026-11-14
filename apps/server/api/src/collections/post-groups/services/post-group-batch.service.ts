@@ -66,6 +66,28 @@ function assertReviewable(release: unknown): void {
   }
 }
 
+/** A release that schedules needs a time still ahead of `now`; a draft needs none. */
+function assertFutureTimes(
+  input: {
+    scheduledDate?: string | null;
+    targets: readonly { scheduledDate?: string | null }[];
+  },
+  isDraft: boolean,
+  now: Date,
+): void {
+  if (isDraft) return;
+  const times = [
+    input.scheduledDate,
+    ...input.targets.map((target) => target.scheduledDate),
+  ].filter((value): value is string => Boolean(value));
+  if (times.length === 0) {
+    throw new BadRequestException('A scheduled release needs a scheduledDate.');
+  }
+  if (times.some((value) => new Date(value) <= now)) {
+    throw new BadRequestException('The scheduled time has passed.');
+  }
+}
+
 /** What a reviewer reads for a batch: its posts, and the brands they belong to. */
 export interface BatchDescription {
   /** Brands the releases or their channels belong to. */
@@ -155,7 +177,23 @@ export class PostGroupBatchService {
           where: scopedWhere(organizationId, { id: { in: credentialIds } }),
         })
       : [];
+    const assetIds = [
+      ...new Set(
+        records.flatMap((release) =>
+          readRecords(release.media).flatMap(
+            (item) => readString(item.assetId) ?? [],
+          ),
+        ),
+      ),
+    ];
+    const assets = assetIds.length
+      ? await this.prisma.ingredient.findMany({
+          select: { brandId: true },
+          where: scopedWhere(organizationId, { id: { in: assetIds } }),
+        })
+      : [];
     const isOutside =
+      assets.some((asset) => asset.brandId && !allowed.has(asset.brandId)) ||
       named.some((brandId) => !allowed.has(brandId)) ||
       credentials.some(
         (credential) => !credential.brandId || !allowed.has(credential.brandId),
@@ -208,6 +246,14 @@ export class PostGroupBatchService {
       const release = releases[index];
       try {
         assertReviewable(release);
+        // An approval can wait days: a time that was ahead at validation may not be now.
+        const input = this.contractService.parseCreateInput(release);
+        assertFutureTimes(
+          input,
+          this.contractService.resolveCreateStatus(input) ===
+            ReleaseStatus.DRAFT,
+          new Date(),
+        );
         const created = await this.postGroupsService.create(
           organizationId,
           userId,
@@ -386,20 +432,7 @@ export class PostGroupBatchService {
         );
       }
     }
-    if (!isDraft) {
-      const times = [
-        input.scheduledDate,
-        ...input.targets.map((target) => target.scheduledDate),
-      ].filter((value): value is string => Boolean(value));
-      if (times.length === 0) {
-        throw new BadRequestException(
-          'A scheduled release needs a scheduledDate.',
-        );
-      }
-      if (times.some((value) => new Date(value) <= now)) {
-        throw new BadRequestException('The scheduled time has passed.');
-      }
-    }
+    assertFutureTimes(input, isDraft, now);
   }
 
   private failureMessage(error: unknown, action: string): string {

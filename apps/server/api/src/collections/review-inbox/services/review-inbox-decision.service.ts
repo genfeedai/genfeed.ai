@@ -1,6 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
+import { expireStaleMcpApprovals } from '@api/collections/mcp-approvals/utils/mcp-approval-expiry.util';
 import type { ReviewInboxViewerAccess } from '@api/collections/review-inbox/review-inbox.types';
 import { ScheduledReleaseBatchApprovalService } from '@api/collections/review-inbox/services/scheduled-release-batch-approval.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
@@ -107,6 +108,8 @@ export class ReviewInboxDecisionService {
           'Only organization owners and admins can resolve MCP approvals',
         );
       }
+      // Past its expiry an approval is closed, not decided (#10134).
+      await expireStaleMcpApprovals(this.prisma.mcpApproval, organizationId);
       const pending = await this.mcpApprovals.findOwned(
         parsed.approvalId,
         organizationId,
@@ -116,7 +119,7 @@ export class ReviewInboxDecisionService {
       // A batch is read in full before it is approved: the reviewer's own
       // list of kept posts is what makes the approval, so a bare approve
       // (a bulk decision, an old client) never schedules a week unread.
-      if (isBatch && isApproved && request.excludedIndexes === undefined) {
+      if (isBatch && isApproved && request.excludedIndexes == null) {
         throw new BadRequestException(
           'Open the batch and review every post before approving it.',
         );

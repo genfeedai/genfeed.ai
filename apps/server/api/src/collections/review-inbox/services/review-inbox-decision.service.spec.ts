@@ -24,7 +24,10 @@ const fullAccess = {
 };
 
 describe('ReviewInboxDecisionService', () => {
-  const prisma = { workflowExecution: { findFirst: vi.fn() } };
+  const prisma = {
+    mcpApproval: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    workflowExecution: { findFirst: vi.fn() },
+  };
   const brandAccess = { assert: vi.fn() };
   const workflowExecutor = { submitReviewGateApproval: vi.fn() };
   const mcpApprovals = { findOwned: vi.fn(), resolve: vi.fn() };
@@ -273,6 +276,17 @@ describe('ReviewInboxDecisionService', () => {
       expect(mcpApprovals.resolve).not.toHaveBeenCalled();
     });
 
+    it('is never approved by a null list of removed posts either', async () => {
+      await expect(
+        service.decide(user, fullAccess, {
+          decision: 'approve',
+          excludedIndexes: null as never,
+          itemId: 'mcp_approval:apr-1',
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(mcpApprovals.resolve).not.toHaveBeenCalled();
+    });
+
     it('is not approved when the reviewer removed every post', async () => {
       scheduledBatches.assertKeepsPosts.mockImplementation(() => {
         throw new BadRequestException('Every post was removed.');
@@ -299,7 +313,7 @@ describe('ReviewInboxDecisionService', () => {
 
       const result = await service.decide(user, fullAccess, {
         decision: 'approve',
-        excludedIndexes: [],
+        excludedIndexes: [1],
         itemId: 'mcp_approval:apr-1',
       });
 
@@ -307,6 +321,11 @@ describe('ReviewInboxDecisionService', () => {
         scheduled: { created: 2, failed: 1 },
         status: 'approved',
       });
+      expect(scheduledBatches.schedule).toHaveBeenCalledWith(
+        expect.anything(),
+        [1],
+        user,
+      );
     });
 
     it('declines without scheduling anything', async () => {

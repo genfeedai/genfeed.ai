@@ -160,3 +160,24 @@ export async function batchPendingFor(
     };
   }
 }
+
+/**
+ * A batch that ran with no approval (undated drafts) still names the releases
+ * validation left out, by their position in the request.
+ */
+export function withOmittedReleases<T extends { content: unknown[] }>(
+  result: T,
+  invalid: IScheduledReleaseBatchItemError[],
+): T {
+  if (invalid.length === 0) return result;
+  const omitted = invalid
+    .map((entry) => `releases[${entry.index}]: ${entry.message}`)
+    .join('\n');
+  return {
+    ...result,
+    content: [
+      ...result.content,
+      { text: `Left out, not valid:\n${omitted}`, type: 'text' },
+    ],
+  };
+}

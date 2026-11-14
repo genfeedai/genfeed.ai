@@ -76,6 +76,7 @@ import {
   batchPendingFor,
   prepareToolBatch,
   settledBatchText,
+  withOmittedReleases,
 } from '@mcp/services/mcp-scheduled-batch.util';
 import { finalizeMcpToolResult } from '@mcp/services/mcp-tool-result.util';
 import type {
@@ -461,14 +462,16 @@ export class ToolRegistryService implements OnModuleInit {
 
       // Rejected before any approval or charge: a generation always names its brand.
       if (isMcpBrandRequiredTool(name) && !readMcpBrandId(args)) {
-        return brandRequiredToolResult(await this.listCallerBrands());
+        return brandRequiredToolResult(
+          await listCallerBrands(this.clientService),
+        );
       }
 
       // A draft names its brand when the organization has several. A single
       // brand is bound into the arguments here, so a queued approval and its
       // later redemption carry the same arguments (#10071).
       if (isMcpBrandRequiredWhenMultipleTool(name) && !readMcpBrandId(args)) {
-        const brands = await this.listCallerBrands();
+        const brands = await listCallerBrands(this.clientService);
         if (brands && brands.length > 1) {
           return brandChoiceToolResult(brands);
         }
@@ -516,15 +519,12 @@ export class ToolRegistryService implements OnModuleInit {
         return this.pendingResult(approval, args ?? {}, prepared.invalid);
       }
 
-      return await this.executeTool(name, args ?? {});
+      const done = await this.executeTool(name, args ?? {});
+      return withOmittedReleases(done, prepared.invalid);
     } catch (error: unknown) {
       this.logger.error(`Error handling tool call ${name}:`, error);
       return mcpToolFailureResult(error);
     }
-  }
-
-  private listCallerBrands() {
-    return listCallerBrands(this.clientService);
   }
 
   static classify(name: string): ExecutorKind {
@@ -844,7 +844,7 @@ export class ToolRegistryService implements OnModuleInit {
     const ids = collectBrandIds(result.data);
     if (ids.length === 0) return result;
     try {
-      const brands = await this.listCallerBrands();
+      const brands = await listCallerBrands(this.clientService);
       const names = new Map(
         (brands ?? [])
           .filter((brand) => ids.includes(brand.id) && brand.label !== brand.id)
@@ -958,7 +958,7 @@ export class ToolRegistryService implements OnModuleInit {
               toolName,
               'agent',
             ),
-          listBrands: () => this.listCallerBrands(),
+          listBrands: () => listCallerBrands(this.clientService),
         });
       }
 

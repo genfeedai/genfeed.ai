@@ -139,10 +139,16 @@ export class PostGroupsController {
     this.postGroupBatchService.assertBatchShape(body?.releases);
     const keyBase =
       typeof body.idempotencyKey === 'string' && body.idempotencyKey.trim()
-        ? body.idempotencyKey.trim().slice(0, 200)
+        ? body.idempotencyKey.trim()
         : null;
     if (!keyBase) {
       throw new BadRequestException('idempotencyKey is required for a batch.');
+    }
+    // Cut short, two keys would share a prefix and so share releases.
+    if (keyBase.length > 200) {
+      throw new BadRequestException(
+        'idempotencyKey must be at most 200 characters.',
+      );
     }
     await this.postGroupBatchService.assertBrandAccess(
       user.organizationId,

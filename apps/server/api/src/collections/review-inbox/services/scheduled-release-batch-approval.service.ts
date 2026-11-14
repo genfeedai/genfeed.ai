@@ -1,4 +1,5 @@
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
+import { expireStaleMcpApprovals } from '@api/collections/mcp-approvals/utils/mcp-approval-expiry.util';
 import { PostGroupBatchService } from '@api/collections/post-groups/services/post-group-batch.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ApiKeyPublishingContext } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
@@ -169,6 +170,7 @@ export class ScheduledReleaseBatchApprovalService {
     approvalId: string,
     allowedBrandIds: readonly string[] | undefined,
   ): Promise<IScheduledReleaseBatchReview> {
+    await expireStaleMcpApprovals(this.prisma.mcpApproval, organizationId);
     const approval = await this.prisma.mcpApproval.findFirst({
       include: {
         user: { select: { email: true, firstName: true, lastName: true } },

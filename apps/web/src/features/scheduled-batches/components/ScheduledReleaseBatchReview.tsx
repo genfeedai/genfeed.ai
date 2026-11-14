@@ -26,6 +26,7 @@ import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { ScheduledReleaseBatchReviewState } from '../hooks/use-scheduled-release-batch-review';
 import {
   formatBatchPostTime,
+  getBatchPostsByTime,
   getKeptBatchPosts,
   groupBatchPostsByDay,
   UNSCHEDULED_DAY_KEY,
@@ -88,7 +89,7 @@ export default function ScheduledReleaseBatchReview({
   const scheduledCount = posts.filter((post) => post.releaseId).length;
   const failedCount = countFailed(posts);
   const badge = STATUS_BADGES[status];
-  const firstKept = kept.find((post) => post.scheduledAt);
+  const firstKept = getBatchPostsByTime(kept)[0];
 
   const toggle = useCallback((index: number) => {
     setRemoved((current) => {
@@ -146,7 +147,7 @@ export default function ScheduledReleaseBatchReview({
   }, [batch, openConfirm, translate]);
 
   const first = posts[0];
-  const times = posts.flatMap((post) => (post.scheduledAt ? [post] : []));
+  const times = getBatchPostsByTime(posts);
   const windowLabel =
     times.length > 1
       ? translate('window', {

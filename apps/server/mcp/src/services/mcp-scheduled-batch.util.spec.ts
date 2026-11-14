@@ -4,6 +4,7 @@ import {
   buildBatchPending,
   prepareScheduledBatch,
   recordedBatchOutcome,
+  withOmittedReleases,
 } from '@mcp/services/mcp-scheduled-batch.util';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
 import { describe, expect, it } from 'vitest';
@@ -163,5 +164,27 @@ describe('approvalReleases', () => {
         toolName: 'create_scheduled_release',
       } as McpApprovalResource),
     ).toEqual([{ title: 'a' }]);
+  });
+});
+
+describe('withOmittedReleases', () => {
+  it('names the releases left out of a batch that ran without approval', () => {
+    const result = withOmittedReleases(
+      { content: [{ text: 'Scheduled 2 of 3 releases', type: 'text' }] },
+      [{ index: 1, message: 'The scheduled time has passed.' }],
+    );
+
+    expect(
+      result.content.map((part) => (part as { text: string }).text),
+    ).toEqual([
+      'Scheduled 2 of 3 releases',
+      'Left out, not valid:\nreleases[1]: The scheduled time has passed.',
+    ]);
+  });
+
+  it('leaves a clean batch result as it is', () => {
+    const result = { content: [{ text: 'done', type: 'text' }] };
+
+    expect(withOmittedReleases(result, [])).toBe(result);
   });
 });

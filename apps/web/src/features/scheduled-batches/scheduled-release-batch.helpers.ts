@@ -65,6 +65,19 @@ export function formatBatchPostTime(
   }).format(date);
 }
 
+/** The posts that have a time, earliest first, whatever order they were sent in. */
+export function getBatchPostsByTime(
+  posts: readonly IScheduledReleaseBatchPost[],
+): IScheduledReleaseBatchPost[] {
+  return posts
+    .filter((post) => !Number.isNaN(new Date(post.scheduledAt ?? '').getTime()))
+    .sort(
+      (a, b) =>
+        new Date(a.scheduledAt ?? '').getTime() -
+        new Date(b.scheduledAt ?? '').getTime(),
+    );
+}
+
 /** Posts a reviewer keeps, by position in the approval. */
 export function getKeptBatchPosts(
   posts: readonly IScheduledReleaseBatchPost[],

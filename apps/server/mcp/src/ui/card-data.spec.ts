@@ -684,6 +684,7 @@ describe('MCP Apps card contract', () => {
       url: 'https://app.genfeed.ai/acme/main/publishing/batches/apr-9',
     });
     expect(view.cards.some((card) => card.actions?.length)).toBe(false);
+    expect(new Set(view.cards.slice(0, 3).map((card) => card.id)).size).toBe(3);
   });
 
   it('leaves out the buttons when this connection cannot resolve approvals, and ignores other errors', () => {

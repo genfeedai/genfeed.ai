@@ -159,6 +159,18 @@ describe('PostGroupBatchService.assertBrandAccess', () => {
     },
   );
 
+  it('hides media of another brand from a key limited to brand-a', async () => {
+    const { service } = build({ ingredients: [{ brandId: 'brand-b' }] });
+
+    await expect(
+      service.assertBrandAccess(
+        'org-1',
+        [{ media: [{ assetId: 'asset-1' }] }],
+        limited,
+      ),
+    ).rejects.toThrow(NotFoundException);
+  });
+
   it('lets a key limited to brand-a use its own brand and accounts', async () => {
     const { service } = build({
       credentials: [{ brandId: 'brand-a', id: 'cred-1' }],
@@ -249,6 +261,34 @@ describe('what a reviewer cannot see is refused', () => {
     ]);
 
     expect(errors[0]?.message).toContain('recurrence, attachments');
+  });
+});
+
+describe('PostGroupBatchService.create waiting for approval', () => {
+  it('names a scheduled release whose time passed while it waited', async () => {
+    const { createdKeys, service } = build({
+      parse: () =>
+        ({
+          scheduledDate: '2020-01-01T00:00:00.000Z',
+          targets: [],
+        }) as never,
+    });
+    const scheduling = service as unknown as {
+      contractService: { resolveCreateStatus: () => string };
+    };
+    scheduling.contractService.resolveCreateStatus = () => 'scheduled';
+
+    const result = await service.create(
+      'org-1',
+      'user-1',
+      [{ targets: ONE_CHANNEL, title: 'late' }],
+      { keyBase: 'k' },
+    );
+
+    expect(createdKeys).toEqual([]);
+    expect(result.errors).toEqual([
+      { index: 0, message: 'The scheduled time has passed.' },
+    ]);
   });
 });
 

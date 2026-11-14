@@ -2,6 +2,7 @@ import type { IScheduledReleaseBatchPost } from '@genfeedai/contracts/interfaces
 import { describe, expect, it } from 'vitest';
 import {
   getBatchPostDayKey,
+  getBatchPostsByTime,
   getKeptBatchPosts,
   groupBatchPostsByDay,
   toBatchPreviewTarget,
@@ -75,6 +76,18 @@ describe('groupBatchPostsByDay', () => {
         [UNSCHEDULED_DAY_KEY, [0]],
       ],
     );
+  });
+});
+
+describe('getBatchPostsByTime', () => {
+  it('orders by time, not by the order the posts were sent', () => {
+    const ordered = getBatchPostsByTime([
+      post(0, { scheduledAt: '2026-11-18T08:00:00.000Z' }),
+      post(1, { scheduledAt: null }),
+      post(2, { scheduledAt: '2026-11-16T08:00:00.000Z' }),
+    ]);
+
+    expect(ordered.map((p) => p.index)).toEqual([2, 0]);
   });
 });
 

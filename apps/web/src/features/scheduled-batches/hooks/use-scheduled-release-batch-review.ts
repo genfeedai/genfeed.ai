@@ -16,7 +16,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 export interface ScheduledReleaseBatchReviewState {
   review: IScheduledReleaseBatchReview | undefined;
@@ -47,6 +47,7 @@ export function useScheduledReleaseBatchReview(
   const collectionScope = useCollectionScope();
   const { brandId, organizationId } = collectionScope;
   const [isDeciding, setIsDeciding] = useState(false);
+  const isDecidingRef = useRef(false);
 
   const { data, error, isLoading, refetch } = useQuery({
     enabled: isCollectionFetchReady(collectionScope) && Boolean(approvalId),
@@ -66,7 +67,9 @@ export function useScheduledReleaseBatchReview(
       decision: 'approve' | 'reject',
       removedIndexes: readonly number[],
     ): Promise<boolean> => {
-      if (isDeciding) return false;
+      // A ref, not state: two calls before a render must not both submit.
+      if (isDecidingRef.current) return false;
+      isDecidingRef.current = true;
       setIsDeciding(true);
       try {
         const service = await getService();
@@ -101,6 +104,7 @@ export function useScheduledReleaseBatchReview(
         );
         return false;
       } finally {
+        isDecidingRef.current = false;
         setIsDeciding(false);
         // The page and the inbox row show what the server recorded.
         await Promise.all([
@@ -109,15 +113,7 @@ export function useScheduledReleaseBatchReview(
         ]);
       }
     },
-    [
-      approvalId,
-      getService,
-      isDeciding,
-      notifications,
-      queryClient,
-      refetch,
-      translate,
-    ],
+    [approvalId, getService, notifications, queryClient, refetch, translate],
   );
 
   const approve = useCallback(

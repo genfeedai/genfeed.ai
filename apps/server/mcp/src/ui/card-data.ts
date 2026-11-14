@@ -758,7 +758,7 @@ function buildBatchApprovalView(
           name: text(post, 'accountLabel'),
         },
         description: text(post, 'text'),
-        id: `${approvalId}:${text(post, 'index')}`,
+        id: `${approvalId}:${typeof post.index === 'number' ? post.index : ''}`,
         kind: 'post',
         media,
         platform: text(post, 'platform'),

@@ -479,6 +479,15 @@ describe('PostGroupsController', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
+    it('refuses a key that would be cut short and collide with another', async () => {
+      await expect(
+        controller.createBatch(user, {
+          idempotencyKey: 'k'.repeat(201),
+          releases: [{}],
+        }),
+      ).rejects.toThrow('idempotencyKey must be at most 200 characters.');
+    });
+
     it('refuses a batch with no idempotency key, or no releases', async () => {
       await expect(
         controller.createBatch(user, { releases: [{}] }),
