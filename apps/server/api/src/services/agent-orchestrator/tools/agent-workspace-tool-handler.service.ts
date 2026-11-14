@@ -516,6 +516,8 @@ export class AgentWorkspaceToolHandler {
           ...ctx.apiKeyContext,
         }),
       };
+    const brandId = readRequiredString(params.brandId);
+    if (brandId) matchStage.brandId = brandId;
     const executionState = params.executionState;
     if (
       typeof executionState === 'string' &&
@@ -560,11 +562,24 @@ export class AgentWorkspaceToolHandler {
       return toolFailure('get_posts requires postId.');
     }
 
+    // Same brand access rule as the list and calendar modes: a post of a brand
+    // this connection cannot see is reported as not found.
     const post = await this.postsService.findOne(
       {
         id: postId,
         isDeleted: false,
         organizationId: ctx.organizationId,
+        ...(isCloudDeployment()
+          ? {
+              brand: {
+                is: await this.brandAccessService.predicate({
+                  userId: ctx.userId,
+                  organizationId: ctx.organizationId,
+                  ...ctx.apiKeyContext,
+                }),
+              },
+            }
+          : {}),
       },
       agentPostPreviewPopulate(ctx.organizationId),
     );

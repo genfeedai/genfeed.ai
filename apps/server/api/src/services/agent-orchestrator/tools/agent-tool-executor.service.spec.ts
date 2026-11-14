@@ -2311,6 +2311,7 @@ describe('AgentToolExecutorService', () => {
     );
     expect(result.data).toEqual({
       post: {
+        brandId: null,
         createdAt: createdAt.toISOString(),
         description: 'Launch note',
         id: 'post-1',
@@ -2326,6 +2327,7 @@ describe('AgentToolExecutorService', () => {
         ],
         platform: 'instagram',
         publishedAt: null,
+        releaseId: null,
         scheduledDate: scheduledDate.toISOString(),
         state: TargetExecutionState.SCHEDULED,
         status: 'draft',
@@ -2338,6 +2340,7 @@ describe('AgentToolExecutorService', () => {
             validationState: 'valid',
           },
         ],
+        timezone: null,
         updatedAt: createdAt.toISOString(),
       },
     });
@@ -2383,27 +2386,38 @@ describe('AgentToolExecutorService', () => {
     expect(postsService.findAll).not.toHaveBeenCalled();
   });
 
-  it('reads the content calendar when get_posts receives days', async () => {
+  it('routes get_posts days to the content calendar, which pages with limit and page', async () => {
     const { postsService, service } = createService();
-    postsService.findAll.mockResolvedValue({ docs: [] });
+    const ctx = { organizationId: testId('org'), userId: testId('user') };
+
+    const calendar = await service.executeTool(
+      'get_posts',
+      { days: 3, limit: 5, page: 2, timezone: 'Europe/Malta' },
+      ctx,
+    );
+
+    // The calendar's own query and counts are covered in
+    // agent-proactive-tool-handler.calendar.spec.ts; here it only has to be
+    // reached, not refused as a mix of list-mode fields.
+    expect(calendar.error ?? '').not.toContain('cannot be combined');
+    expect(postsService.findAll).not.toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { createdAt: -1 } }),
+      expect.anything(),
+    );
+  });
+
+  it('rejects calendar-only fields in list mode instead of ignoring them', async () => {
+    const { postsService, service } = createService();
 
     const result = await service.executeTool(
       'get_posts',
-      { days: 3 },
+      { page: 2 },
       { organizationId: testId('org'), userId: testId('user') },
     );
 
-    expect(result.success).toBe(true);
-    expect(result.data).toMatchObject({ days: 3, gapsCount: 3 });
-    expect(postsService.findAll).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          isDeleted: false,
-          organizationId: testId('org'),
-        }),
-      }),
-      {},
-    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('only apply with days');
+    expect(postsService.findAll).not.toHaveBeenCalled();
   });
 
   it.each(['thread', 'headless MCP'])(

@@ -241,8 +241,8 @@ function isoDay(value: unknown): string | undefined {
 }
 
 /**
- * `get_posts {days}` returns `scheduled` posts and `gapDays` for the coming
- * days. Every day in the window becomes a column: its posts, or a gap.
+ * `get_posts {days}` returns a page of `scheduled` posts and `gapDays` for the
+ * coming days. Every day in the window becomes a column: its posts, or a gap.
  */
 function buildCalendarView(data: Record<string, unknown>): McpCardView {
   const scheduled = Array.isArray(data.scheduled) ? data.scheduled : [];
@@ -255,7 +255,9 @@ function buildCalendarView(data: Record<string, unknown>): McpCardView {
   const postsByDay = new Map<string, McpCard[]>();
   for (const value of scheduled.slice(0, 200)) {
     const row = record(value);
-    const day = isoDay(row.scheduledDate);
+    // localDate is the day in the calendar's timezone; the UTC day of
+    // scheduledDate would put a late-evening post on the next day's column.
+    const day = isoDay(row.localDate) ?? isoDay(row.scheduledDate);
     if (!day) continue;
     const post = card(row, 'post');
     postsByDay.set(day, [...(postsByDay.get(day) ?? []), post]);

@@ -5,7 +5,6 @@ import type {
   PostingWindowResult,
 } from '@genfeedai/contracts/interfaces';
 import { DEFAULT_POSTING_WINDOW_OPTIONS } from '@genfeedai/helpers';
-import { DateTime } from 'luxon';
 
 export interface PostingPostRow {
   id: string;

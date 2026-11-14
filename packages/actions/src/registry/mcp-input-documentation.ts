@@ -299,8 +299,24 @@ const PARAMETER_DOCUMENTATION = new Map([
     'List-only target execution state filter.',
   ],
   [
-    'List mode only. Maximum number of posts to return (default 10).',
-    'List-only result limit; default 10.',
+    'Maximum number of posts to return. List mode default 10; calendar mode rows per page, default 50, at most 100.',
+    'Result limit: list default 10; calendar rows per page, default 50, max 100.',
+  ],
+  [
+    "Only this brand's posts (list and calendar modes). A brand this connection cannot access is an error.",
+    'Only this brand; inaccessible brand errors.',
+  ],
+  [
+    'Calendar mode only. Also list the drafts (draftsCount is always given).',
+    'Calendar only: also list drafts.',
+  ],
+  [
+    'Calendar mode only. Page of rows, starting at 1; keep going while hasMore is true.',
+    'Calendar page from 1; continue while hasMore.',
+  ],
+  [
+    'Calendar mode only. IANA timezone for the day buckets and gap days (for example Europe/Malta). Default: the timezone most posts were scheduled in, else UTC.',
+    'Calendar IANA timezone for days and gaps; default most-used, else UTC.',
   ],
   [
     'Content format distribution (e.g., { imagePercent: 60, videoPercent: 25, carouselPercent: 10, reelPercent: 5, storyPercent: 0 })',

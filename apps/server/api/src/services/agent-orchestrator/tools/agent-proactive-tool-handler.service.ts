@@ -1,3 +1,4 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -12,6 +13,21 @@ import {
   resolveContentAgentPrincipal,
 } from '@api/services/agent-orchestrator/tools/save-content-agent';
 import {
+  buildCalendarWindow,
+  CALENDAR_ACTIVE_STATES,
+  CALENDAR_DAY_SCAN_LIMIT,
+  CALENDAR_DEFAULT_DAYS,
+  CALENDAR_DEFAULT_LIMIT,
+  CALENDAR_MAX_DAYS,
+  CALENDAR_MAX_LIMIT,
+  type CalendarPostDay,
+  findGapDays,
+  isValidTimezone,
+  localDayKey,
+  mostCommonTimezone,
+  readBoundedInteger,
+} from '@api/services/agent-orchestrator/utils/agent-content-calendar.util';
+import {
   buildStalledItemsResult,
   STALLED_DEFAULT_WINDOW_DAYS,
   STALLED_MAX_WINDOW_DAYS,
@@ -23,6 +39,7 @@ import { CreateManualReviewTurboRunDto } from '@api/services/turbo-run/dto/creat
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { isCloudDeployment } from '@genfeedai/config';
 import {
   AgentAutonomyMode,
   parsePlatform,
@@ -63,6 +80,7 @@ export class AgentProactiveToolHandler {
     @Optional() private readonly prisma?: PrismaService,
     @Optional()
     private readonly agentStrategiesService?: AgentStrategiesService,
+    @Optional() private readonly brandAccessService?: BrandAccessService,
   ) {}
 
   async getApprovalSummary(
@@ -301,66 +319,191 @@ export class AgentProactiveToolHandler {
     };
   }
 
+  /**
+   * The upcoming queue for `get_posts {days}`. Every figure comes from the
+   * database, not from the page of rows returned: `scheduledCount` and
+   * `draftsCount` are counts, gap days are read from every queued post in the
+   * window, and the rows are paged (`page`, `limit`, `hasMore`). Drafts are
+   * counted and listed only with `includeDrafts`. Brand access is the rule the
+   * list mode applies; `brandId` narrows to one brand.
+   */
   async getContentCalendar(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const days = (params.days as number) || 7;
-    const now = new Date();
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() + days);
-
-    // Get scheduled and draft posts for the coming week
-    const posts = await this.postsService.findAll(
-      {
-        include: agentPostPreviewInclude(ctx.organizationId),
-        where: {
-          OR: [
-            { scheduledDate: { gte: now, lte: endDate } },
-            { targetExecutionState: TargetExecutionState.DRAFT },
-          ],
-          isDeleted: false,
-          organizationId: ctx.organizationId,
-        },
-        orderBy: { createdAt: -1, scheduledDate: 1 },
-      },
-      {},
+    const days = readBoundedInteger(
+      params.days,
+      CALENDAR_DEFAULT_DAYS,
+      1,
+      CALENDAR_MAX_DAYS,
     );
-
-    const postDocs = (posts.docs ?? []) as unknown as Record<string, unknown>[];
-    const scheduled = postDocs.filter((p) => p.scheduledDate);
-    const drafts = postDocs.filter(
-      (p) =>
-        p.targetExecutionState === TargetExecutionState.DRAFT &&
-        !p.scheduledDate,
+    const limit = readBoundedInteger(
+      params.limit,
+      CALENDAR_DEFAULT_LIMIT,
+      1,
+      CALENDAR_MAX_LIMIT,
     );
+    const page = readBoundedInteger(params.page, 1, 1, 10_000);
+    if (days === null || limit === null || page === null) {
+      return {
+        creditsUsed: 0,
+        error: `days must be a whole number from 1 to ${CALENDAR_MAX_DAYS}, limit from 1 to ${CALENDAR_MAX_LIMIT}, and page 1 or more.`,
+        success: false,
+      };
+    }
+    const requestedTimezone = readOptionalString(params.timezone);
+    if (requestedTimezone && !isValidTimezone(requestedTimezone)) {
+      return {
+        creditsUsed: 0,
+        error: `timezone must be an IANA name such as Europe/Malta, not ${requestedTimezone}.`,
+        success: false,
+      };
+    }
+    const includeDrafts = params.includeDrafts === true;
+    const brandId = readOptionalString(params.brandId);
 
-    // Find gap days (days with no scheduled content)
-    const scheduledDates = new Set(
-      scheduled.map(
-        (p) => new Date(p.scheduledDate as string).toISOString().split('T')[0],
-      ),
-    );
-
-    const gapDays: string[] = [];
-    for (let d = 0; d < days; d++) {
-      const date = new Date(now);
-      date.setDate(date.getDate() + d);
-      const dateStr = date.toISOString().split('T')[0];
-      if (!scheduledDates.has(dateStr)) {
-        gapDays.push(dateStr);
+    let brandWhere: Record<string, unknown> | undefined;
+    if (isCloudDeployment()) {
+      if (!this.brandAccessService) {
+        return {
+          creditsUsed: 0,
+          error: 'Content calendar is unavailable',
+          success: false,
+        };
+      }
+      brandWhere = (await this.brandAccessService.predicate({
+        userId: ctx.userId,
+        organizationId: ctx.organizationId,
+        ...ctx.apiKeyContext,
+      })) as Record<string, unknown>;
+    }
+    if (brandId) {
+      const brandScope = scopedWhere(ctx.organizationId, { id: brandId });
+      const brand = await this.prisma?.brand.findFirst({
+        select: { id: true },
+        where: brandWhere
+          ? ({ AND: [brandScope, brandWhere] } as typeof brandScope)
+          : brandScope,
+      });
+      if (!brand) {
+        return {
+          creditsUsed: 0,
+          error: 'Brand was not found for this connection',
+          success: false,
+        };
       }
     }
+
+    const scope: Record<string, unknown> = {
+      isDeleted: false,
+      organizationId: ctx.organizationId,
+      parentId: null,
+      ...(brandId ? { brandId } : {}),
+      ...(brandWhere ? { brand: { is: brandWhere } } : {}),
+    };
+    const now = new Date();
+    const read = (
+      where: Record<string, unknown>,
+      options: Parameters<PostsService['findAll']>[1],
+      shape: Record<string, unknown>,
+    ) =>
+      this.postsService.findAll(
+        { where: { ...scope, ...where }, ...shape },
+        options,
+        false,
+      );
+
+    // Every queued post near the window, with only the columns the day
+    // buckets need. It also gives the timezone the person scheduled in.
+    const scan = await read(
+      {
+        scheduledDate: {
+          gte: new Date(now.getTime() - 2 * 86_400_000),
+          lt: new Date(now.getTime() + (days + 2) * 86_400_000),
+        },
+        targetExecutionState: { in: [...CALENDAR_ACTIVE_STATES] },
+      },
+      { limit: CALENDAR_DAY_SCAN_LIMIT, pagination: false },
+      {
+        select: {
+          id: true,
+          scheduledDate: true,
+          targetExecutionState: true,
+          timezone: true,
+        },
+      },
+    );
+    const scanned = (scan.docs ?? []) as unknown as CalendarPostDay[];
+    const timezone = requestedTimezone ?? mostCommonTimezone(scanned);
+    const window = buildCalendarWindow(now, days, timezone);
+    const inWindow = { gte: window.start, lt: window.end };
+    const nonDraftStates = Object.values(TargetExecutionState).filter(
+      (state) => state !== TargetExecutionState.DRAFT,
+    );
+    const rowShape = {
+      include: agentPostPreviewInclude(ctx.organizationId),
+      orderBy: { scheduledDate: 1, id: 1 },
+    };
+
+    const [rows, scheduledOnly, drafts] = await Promise.all([
+      read(
+        {
+          scheduledDate: inWindow,
+          targetExecutionState: { in: nonDraftStates },
+        },
+        { limit, page },
+        rowShape,
+      ),
+      read(
+        {
+          scheduledDate: inWindow,
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+        },
+        { limit: 1 },
+        { select: { id: true } },
+      ),
+      read(
+        { targetExecutionState: TargetExecutionState.DRAFT },
+        { limit: includeDrafts ? limit : 1, page: includeDrafts ? page : 1 },
+        includeDrafts
+          ? { include: rowShape.include, orderBy: { createdAt: -1, id: 1 } }
+          : { select: { id: true } },
+      ),
+    ]);
+
+    const serialize = (post: unknown) => {
+      const row = post as Record<string, unknown>;
+      return {
+        ...serializeAgentPost(row),
+        localDate: localDayKey(row.scheduledDate, timezone),
+      };
+    };
+    const gapDays = findGapDays(window, scanned);
 
     return {
       creditsUsed: 0,
       data: {
         days,
-        draftsCount: drafts.length,
+        draftsCount: drafts.totalDocs ?? 0,
+        ...(includeDrafts
+          ? {
+              drafts: (drafts.docs ?? []).map(serialize),
+              draftsHasMore: Boolean(drafts.hasNextPage),
+            }
+          : {}),
         gapDays,
         gapsCount: gapDays.length,
-        scheduled: scheduled.map(serializeAgentPost),
-        scheduledCount: scheduled.length,
+        hasMore: Boolean(rows.hasNextPage),
+        limit,
+        page,
+        scheduled: (rows.docs ?? []).map(serialize),
+        scheduledCount: scheduledOnly.totalDocs ?? 0,
+        timezone,
+        totalCount: rows.totalDocs ?? 0,
+        window: {
+          end: window.end.toISOString(),
+          start: window.start.toISOString(),
+        },
       },
       success: true,
     };
