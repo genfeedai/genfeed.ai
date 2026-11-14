@@ -56,6 +56,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   OAUTH_CLIENT_CLEANUP: 'oauth-client-cleanup',
   PATTERN_EXTRACTION: 'pattern-extraction',
   PENDING_WORKFLOW_EXECUTION_RECONCILE: 'pending-workflow-execution-reconcile',
+  POSTS_MANUAL_POST_REMINDERS: 'posts-manual-post-reminders',
   POSTS_PUBLISH: 'posts-publish',
   POSTS_THREAD_COMMENTS: 'posts-thread-comments',
   QUEUE_METRICS_PUBLISH: 'queue-metrics-publish',
@@ -235,6 +236,12 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   // on the background queue), so a per-minute tick is one indexed query.
   [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH]: {
     pattern: '* * * * *',
+    timezone: 'UTC',
+  },
+  // Reminds the owner about posts they must publish by hand (X refused a
+  // quote). Reminders are hourly, so a 15 minute sweep is early enough.
+  [PLATFORM_SCHEDULED_TASKS.POSTS_MANUAL_POST_REMINDERS]: {
+    pattern: '*/15 * * * *',
     timezone: 'UTC',
   },
   // A creator can park a comment one minute behind its post, so this sweep

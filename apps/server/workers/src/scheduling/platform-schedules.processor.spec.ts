@@ -43,6 +43,7 @@ describe('PlatformSchedulesProcessor', () => {
   const oauthClientCleanup = { deleteAbandonedClients: handler() };
   const patterns = { computeDailyPatterns: handler() };
   const posts = { publishScheduledPosts: handler() };
+  const manualPostReminders = { sendDueReminders: handler() };
   const queueMetrics = { publishQueueMetrics: handler() };
   const credits = {
     expireFreeTrials: handler(),
@@ -192,6 +193,10 @@ describe('PlatformSchedulesProcessor', () => {
         PLATFORM_SCHEDULED_TASKS.PENDING_WORKFLOW_EXECUTION_RECONCILE,
         workflowSchedules.reconcilePendingExecutions,
       ],
+      [
+        PLATFORM_SCHEDULED_TASKS.POSTS_MANUAL_POST_REMINDERS,
+        manualPostReminders.sendDueReminders,
+      ],
       [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH, posts.publishScheduledPosts],
       [
         PLATFORM_SCHEDULED_TASKS.POSTS_THREAD_COMMENTS,
@@ -305,6 +310,7 @@ describe('PlatformSchedulesProcessor', () => {
       ),
       new PlatformPublishingTaskHandlers(
         posts as never,
+        manualPostReminders as never,
         threadComments as never,
         tiktok as never,
         youtubeMessages as never,

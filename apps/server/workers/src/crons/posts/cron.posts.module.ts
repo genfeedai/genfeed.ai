@@ -27,6 +27,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
+import { CronManualPostRemindersService } from '@workers/crons/posts/cron.manual-post-reminders.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
@@ -58,12 +59,14 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
     forwardRef(() => WorkflowsModule),
   ],
   exports: [
+    CronManualPostRemindersService,
     CronPostsService,
     ScheduledPostWorkflowService,
     ThreadCommentDeliveryService,
   ],
   providers: [
     AgentArtifactReferenceService,
+    CronManualPostRemindersService,
     CronPostsService,
     PostRepeatSchedulerService,
     ScheduledPostDeliveryService,
