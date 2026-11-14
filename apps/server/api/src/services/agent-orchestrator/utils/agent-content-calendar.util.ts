@@ -1,10 +1,10 @@
 import { TargetExecutionState } from '@genfeedai/contracts';
 import { DateTime } from 'luxon';
 
-export const CALENDAR_DEFAULT_DAYS = 7;
-export const CALENDAR_MAX_DAYS = 90;
-export const CALENDAR_DEFAULT_LIMIT = 50;
-export const CALENDAR_MAX_LIMIT = 100;
+const CALENDAR_DEFAULT_DAYS = 7;
+const CALENDAR_MAX_DAYS = 90;
+const CALENDAR_DEFAULT_LIMIT = 50;
+const CALENDAR_MAX_LIMIT = 100;
 /** Most posts read to find gap days and the default timezone. */
 export const CALENDAR_DAY_SCAN_LIMIT = 2000;
 
@@ -34,7 +34,7 @@ export interface CalendarPostDay {
   timezone?: unknown;
 }
 
-export function isValidTimezone(timezone: string): boolean {
+function isValidTimezone(timezone: string): boolean {
   return DateTime.now().setZone(timezone).isValid;
 }
 
@@ -115,7 +115,7 @@ export function findGapDays(
 }
 
 /** A whole number within `[min, max]`, or the default when absent; `null` when invalid. */
-export function readBoundedInteger(
+function readBoundedInteger(
   value: unknown,
   fallback: number,
   min: number,
