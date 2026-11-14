@@ -2388,6 +2388,11 @@ describe('AgentToolExecutorService', () => {
 
   it('routes get_posts days to the content calendar, which pages with limit and page', async () => {
     const { postsService, service } = createService();
+    postsService.findAll.mockResolvedValue({
+      docs: [],
+      hasNextPage: false,
+      totalDocs: 0,
+    });
     const ctx = { organizationId: testId('org'), userId: testId('user') };
 
     const calendar = await service.executeTool(
@@ -2397,13 +2402,17 @@ describe('AgentToolExecutorService', () => {
     );
 
     // The calendar's own query and counts are covered in
-    // agent-proactive-tool-handler.calendar.spec.ts; here it only has to be
-    // reached, not refused as a mix of list-mode fields.
-    expect(calendar.error ?? '').not.toContain('cannot be combined');
-    expect(postsService.findAll).not.toHaveBeenCalledWith(
-      expect.objectContaining({ orderBy: { createdAt: -1 } }),
-      expect.anything(),
-    );
+    // agent-proactive-tool-handler.calendar.spec.ts; here the call has to
+    // reach it and come back as a calendar, not an error or a plain list.
+    expect(calendar.error).toBeUndefined();
+    expect(calendar.success).toBe(true);
+    expect(calendar.data).toMatchObject({
+      days: 3,
+      limit: 5,
+      page: 2,
+      timezone: 'Europe/Malta',
+      totalCount: 0,
+    });
   });
 
   it('rejects calendar-only fields in list mode instead of ignoring them', async () => {

@@ -246,12 +246,13 @@ function isoDay(value: unknown): string | undefined {
  */
 function buildCalendarView(data: Record<string, unknown>): McpCardView {
   const scheduled = Array.isArray(data.scheduled) ? data.scheduled : [];
-  const gapDays = new Set(
-    (Array.isArray(data.gapDays) ? data.gapDays : []).flatMap((value) => {
-      const day = isoDay(value);
+  const toDays = (value: unknown): string[] =>
+    (Array.isArray(value) ? value : []).flatMap((item) => {
+      const day = isoDay(item);
       return day ? [day] : [];
-    }),
-  );
+    });
+  const gapDays = new Set(toDays(data.gapDays));
+  const windowDays = toDays(data.dayKeys);
   const postsByDay = new Map<string, McpCard[]>();
   for (const value of scheduled.slice(0, 200)) {
     const row = record(value);
@@ -262,8 +263,12 @@ function buildCalendarView(data: Record<string, unknown>): McpCardView {
     const post = card(row, 'post');
     postsByDay.set(day, [...(postsByDay.get(day) ?? []), post]);
   }
+  // Every day of the requested window is a column, even when its posts are on
+  // a later page. A day is a gap only when the producer says so: a day can
+  // hold a failed post and still be empty, and an unloaded day is not a gap.
+  const hasGapInfo = Array.isArray(data.gapDays);
   const days: McpCalendarDay[] = [
-    ...new Set([...gapDays, ...postsByDay.keys()]),
+    ...new Set([...windowDays, ...gapDays, ...postsByDay.keys()]),
   ]
     .sort()
     .slice(0, CALENDAR_MAX_DAYS)
@@ -271,7 +276,11 @@ function buildCalendarView(data: Record<string, unknown>): McpCardView {
       const posts = (postsByDay.get(date) ?? []).sort((a, b) =>
         a.date.localeCompare(b.date),
       );
-      return { date, isGap: posts.length === 0, posts };
+      return {
+        date,
+        isGap: hasGapInfo ? gapDays.has(date) : posts.length === 0,
+        posts,
+      };
     });
   const draftsCount =
     typeof data.draftsCount === 'number' && Number.isFinite(data.draftsCount)
@@ -282,7 +291,10 @@ function buildCalendarView(data: Record<string, unknown>): McpCardView {
     cards: days.flatMap((day) => day.posts),
     layout: 'calendar',
     title: 'Content calendar',
-    total: scheduled.length,
+    total:
+      typeof data.totalCount === 'number' && Number.isFinite(data.totalCount)
+        ? data.totalCount
+        : scheduled.length,
   };
 }
 

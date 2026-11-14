@@ -752,6 +752,41 @@ describe('MCP Apps card contract', () => {
     ]);
   });
 
+  it('keeps every window day as a column and the gap verdict of the producer when posts are paged', () => {
+    const view = buildCardView('get_posts', {
+      dayKeys: ['2026-11-16', '2026-11-17', '2026-11-18'],
+      draftsCount: 0,
+      gapDays: ['2026-11-17'],
+      hasMore: true,
+      scheduled: [
+        {
+          id: 'p1',
+          localDate: '2026-11-16',
+          scheduledDate: '2026-11-16T09:00:00.000Z',
+        },
+        {
+          id: 'failed',
+          localDate: '2026-11-17',
+          scheduledDate: '2026-11-17T09:00:00.000Z',
+        },
+      ],
+      totalCount: 49,
+    });
+
+    expect(
+      view?.calendar?.days.map((day) => [
+        day.date,
+        day.isGap,
+        day.posts.map((post) => post.id),
+      ]),
+    ).toEqual([
+      ['2026-11-16', false, ['p1']],
+      ['2026-11-17', true, ['failed']],
+      ['2026-11-18', false, []],
+    ]);
+    expect(view?.total).toBe(49);
+  });
+
   it('marks running media jobs pending with their progress, never posts or finished media', () => {
     expect(
       buildCardView('generate', {

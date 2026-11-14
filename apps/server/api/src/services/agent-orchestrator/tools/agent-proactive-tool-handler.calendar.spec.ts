@@ -183,7 +183,9 @@ type Calendar = {
   draftsCount: number;
   drafts?: Row[];
   draftsHasMore?: boolean;
+  dayKeys: string[];
   gapDays: string[];
+  gapsVerified: boolean;
   hasMore: boolean;
   scheduled: Array<Row & { brandId: string; releaseId: string | null }>;
   scheduledCount: number;
@@ -375,6 +377,54 @@ describe('AgentProactiveToolHandler.getContentCalendar (#10133)', () => {
     expect(utc.gapDays).toEqual(['2026-11-16', '2026-11-18']);
     expect(malta.gapDays).toEqual(['2026-11-16', '2026-11-17']);
     expect(malta.scheduled[0]).toMatchObject({ localDate: '2026-11-18' });
+  });
+
+  it('reports no gaps, not false ones, when the day scan hit its cap', async () => {
+    // 2000 posts fill the 16th and the scan stops there, so the 18th's only
+    // post is never seen and its day must not be reported as empty.
+    const rows = [
+      ...Array.from({ length: 2000 }, () =>
+        post({
+          scheduledDate: new Date('2026-11-16T12:00:00.000Z'),
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+        }),
+      ),
+      post({
+        id: 'post-zzz',
+        scheduledDate: new Date('2026-11-18T12:00:00.000Z'),
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      }),
+    ];
+    const { handler } = createHandler(rows);
+
+    const calendar = await readCalendar(handler, { days: 3, timezone: 'UTC' });
+
+    expect(calendar.gapsVerified).toBe(false);
+    expect(calendar.gapDays).toEqual([]);
+    expect(calendar.dayKeys).toEqual([
+      '2026-11-16',
+      '2026-11-17',
+      '2026-11-18',
+    ]);
+  });
+
+  it('names every day of the window and verifies the gaps of a complete scan', async () => {
+    const { handler } = createHandler([
+      post({
+        scheduledDate: new Date('2026-11-17T12:00:00.000Z'),
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      }),
+    ]);
+
+    const calendar = await readCalendar(handler, { days: 3, timezone: 'UTC' });
+
+    expect(calendar.gapsVerified).toBe(true);
+    expect(calendar.dayKeys).toEqual([
+      '2026-11-16',
+      '2026-11-17',
+      '2026-11-18',
+    ]);
+    expect(calendar.gapDays).toEqual(['2026-11-16', '2026-11-18']);
   });
 
   it('defaults the day buckets to the timezone the posts were scheduled in', async () => {

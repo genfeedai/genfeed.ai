@@ -418,11 +418,15 @@ export class AgentProactiveToolHandler {
         localDate: localDayKey(row.scheduledDate, timezone),
       };
     };
-    const gapDays = findGapDays(window, scanned);
+    // A scan that hit its cap may have left occupied days out, so it cannot
+    // say which days are empty: report no gaps rather than false ones.
+    const isScanComplete = scanned.length < CALENDAR_DAY_SCAN_LIMIT;
+    const gapDays = isScanComplete ? findGapDays(window, scanned) : [];
 
     return {
       creditsUsed: 0,
       data: {
+        dayKeys: window.dayKeys,
         days: args.days,
         draftsCount: drafts.totalDocs ?? 0,
         ...(args.includeDrafts
@@ -433,6 +437,7 @@ export class AgentProactiveToolHandler {
           : {}),
         gapDays,
         gapsCount: gapDays.length,
+        gapsVerified: isScanComplete,
         hasMore: Boolean(rows.hasNextPage),
         limit: args.limit,
         page: args.page,
