@@ -15,6 +15,11 @@ export const CALENDAR_ACTIVE_STATES: readonly TargetExecutionState[] = [
   TargetExecutionState.PUBLISHED,
 ];
 
+/** Every state but draft: the rows of the calendar, whatever became of them. */
+export const CALENDAR_LISTED_STATES: TargetExecutionState[] = Object.values(
+  TargetExecutionState,
+).filter((state) => state !== TargetExecutionState.DRAFT);
+
 export interface CalendarWindow {
   /** Local calendar days of the window, first to last, as YYYY-MM-DD. */
   dayKeys: string[];
@@ -121,4 +126,54 @@ export function readBoundedInteger(
   return Number.isInteger(number) && number >= min && number <= max
     ? number
     : null;
+}
+
+export interface ContentCalendarArgs {
+  brandId?: string;
+  days: number;
+  includeDrafts: boolean;
+  limit: number;
+  page: number;
+  timezone?: string;
+}
+
+/** The validated `get_posts` calendar arguments, or a message saying what is wrong. */
+export function parseContentCalendarArgs(
+  params: Record<string, unknown>,
+): ContentCalendarArgs | string {
+  const days = readBoundedInteger(
+    params.days,
+    CALENDAR_DEFAULT_DAYS,
+    1,
+    CALENDAR_MAX_DAYS,
+  );
+  const limit = readBoundedInteger(
+    params.limit,
+    CALENDAR_DEFAULT_LIMIT,
+    1,
+    CALENDAR_MAX_LIMIT,
+  );
+  const page = readBoundedInteger(params.page, 1, 1, 10_000);
+  if (days === null || limit === null || page === null) {
+    return `days must be a whole number from 1 to ${CALENDAR_MAX_DAYS}, limit from 1 to ${CALENDAR_MAX_LIMIT}, and page 1 or more.`;
+  }
+  const timezone =
+    typeof params.timezone === 'string' && params.timezone.trim()
+      ? params.timezone.trim()
+      : undefined;
+  if (timezone && !isValidTimezone(timezone)) {
+    return `timezone must be an IANA name such as Europe/Malta, not ${timezone}.`;
+  }
+  const brandId =
+    typeof params.brandId === 'string' && params.brandId.trim()
+      ? params.brandId.trim()
+      : undefined;
+  return {
+    brandId,
+    days,
+    includeDrafts: params.includeDrafts === true,
+    limit,
+    page,
+    timezone,
+  };
 }

@@ -1,75 +1,85 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockGet = vi.fn();
-const mockPatch = vi.fn();
-const mockPost = vi.fn();
-const mockFlattenSingle = vi.fn();
+type Request = { body?: unknown; method: 'GET' | 'PATCH' | 'POST'; path: string };
+
+const requests: Request[] = [];
+let response: unknown;
 
 vi.mock('../../src/api/client', () => ({
-  get: (...args: unknown[]) => mockGet(...args),
-  patch: (...args: unknown[]) => mockPatch(...args),
-  post: (...args: unknown[]) => mockPost(...args),
+  get: async (path: string) => {
+    requests.push({ method: 'GET', path });
+    return response;
+  },
+  patch: async (path: string, body: unknown) => {
+    requests.push({ body, method: 'PATCH', path });
+    return response;
+  },
+  post: async (path: string, body: unknown) => {
+    requests.push({ body, method: 'POST', path });
+    return response;
+  },
 }));
 
 vi.mock('../../src/api/json-api', () => ({
-  flattenSingle: (...args: unknown[]) => mockFlattenSingle(...args),
+  flattenSingle: (document: { data: unknown }) => document.data,
 }));
 
 describe('api/schedules', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    requests.length = 0;
   });
 
   it('asks for the posting windows of one platform and returns the answer as is', async () => {
     const recommendation = { basis: 'default', platform: 'tiktok', windows: [] };
-    mockPost.mockResolvedValue(recommendation);
+    response = recommendation;
 
     const { getOptimalTime } = await import('../../src/api/schedules');
     const result = await getOptimalTime('tiktok');
 
-    expect(mockPost).toHaveBeenCalledWith('/schedules/optimal', { platform: 'tiktok' });
     expect(result).toBe(recommendation);
+    expect(requests).toEqual([
+      { body: { platform: 'tiktok' }, method: 'POST', path: '/schedules/optimal' },
+    ]);
   });
 
   it('sends the timezone when one is given', async () => {
-    mockPost.mockResolvedValue({ basis: 'learned', windows: [] });
+    response = { basis: 'learned', windows: [] };
 
     const { getOptimalTime } = await import('../../src/api/schedules');
     const result = await getOptimalTime('tiktok', 'Europe/Malta');
 
     expect(result).toEqual({ basis: 'learned', windows: [] });
-
-    expect(mockPost).toHaveBeenCalledWith('/schedules/optimal', {
-      platform: 'tiktok',
-      timezone: 'Europe/Malta',
-    });
+    expect(requests).toEqual([
+      {
+        body: { platform: 'tiktok', timezone: 'Europe/Malta' },
+        method: 'POST',
+        path: '/schedules/optimal',
+      },
+    ]);
   });
 
   it('reads a scheduled release from the canonical post-group route', async () => {
     const release = { id: 'release/1', status: 'scheduled' };
-    mockGet.mockResolvedValue({ data: {} });
-    mockFlattenSingle.mockReturnValue(release);
+    response = { data: release };
 
     const { getScheduledRelease } = await import('../../src/api/schedules');
     const result = await getScheduledRelease('release/1');
 
-    expect(mockGet).toHaveBeenCalledWith('/post-groups/release%2F1');
-    expect(mockFlattenSingle).toHaveBeenCalledWith({ data: {} });
-    expect(result).toBe(release);
+    expect(result).toEqual(release);
+    expect(requests).toEqual([{ method: 'GET', path: '/post-groups/release%2F1' }]);
   });
 
   it('cancels a scheduled release through the canonical lifecycle action', async () => {
     const release = { id: 'release-1', status: 'cancelled' };
-    mockPatch.mockResolvedValue({ data: {} });
-    mockFlattenSingle.mockReturnValue(release);
+    response = { data: release };
 
     const { cancelScheduledRelease } = await import('../../src/api/schedules');
     const result = await cancelScheduledRelease('release-1');
 
-    expect(mockPatch).toHaveBeenCalledWith('/post-groups/release-1', {
-      action: 'cancel',
-    });
-    expect(result).toBe(release);
+    expect(result).toEqual(release);
+    expect(requests).toEqual([
+      { body: { action: 'cancel' }, method: 'PATCH', path: '/post-groups/release-1' },
+    ]);
   });
 
   it('reschedules through the canonical scheduledDate update field', async () => {
@@ -78,15 +88,18 @@ describe('api/schedules', () => {
       scheduledAt: '2026-09-01T10:00:00.000Z',
       status: 'scheduled',
     };
-    mockPatch.mockResolvedValue({ data: {} });
-    mockFlattenSingle.mockReturnValue(release);
+    response = { data: release };
 
     const { rescheduleScheduledRelease } = await import('../../src/api/schedules');
     const result = await rescheduleScheduledRelease('release-1', '2026-09-01T10:00:00.000Z');
 
-    expect(mockPatch).toHaveBeenCalledWith('/post-groups/release-1', {
-      scheduledDate: '2026-09-01T10:00:00.000Z',
-    });
-    expect(result).toBe(release);
+    expect(result).toEqual(release);
+    expect(requests).toEqual([
+      {
+        body: { scheduledDate: '2026-09-01T10:00:00.000Z' },
+        method: 'PATCH',
+        path: '/post-groups/release-1',
+      },
+    ]);
   });
 });

@@ -26,6 +26,8 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-post-preview.util';
 import { resolvePublishValidationMedia } from '@api/services/agent-orchestrator/tools/agent-publish-target.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { brandReadScope } from '@api/services/agent-orchestrator/utils/agent-brand-read-scope.util';
+
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { isCloudDeployment } from '@genfeedai/config';
@@ -508,14 +510,10 @@ export class AgentWorkspaceToolHandler {
       organizationId: ctx.organizationId,
     };
 
-    if (isCloudDeployment())
-      matchStage.brand = {
-        is: await this.brandAccessService.predicate({
-          userId: ctx.userId,
-          organizationId: ctx.organizationId,
-          ...ctx.apiKeyContext,
-        }),
-      };
+    Object.assign(
+      matchStage,
+      await brandReadScope(this.brandAccessService, ctx),
+    );
     const brandId = readRequiredString(params.brandId);
     if (brandId) matchStage.brandId = brandId;
     const executionState = params.executionState;
@@ -562,24 +560,12 @@ export class AgentWorkspaceToolHandler {
       return toolFailure('get_posts requires postId.');
     }
 
-    // Same brand access rule as the list and calendar modes: a post of a brand
-    // this connection cannot see is reported as not found.
     const post = await this.postsService.findOne(
       {
         id: postId,
         isDeleted: false,
         organizationId: ctx.organizationId,
-        ...(isCloudDeployment()
-          ? {
-              brand: {
-                is: await this.brandAccessService.predicate({
-                  userId: ctx.userId,
-                  organizationId: ctx.organizationId,
-                  ...ctx.apiKeyContext,
-                }),
-              },
-            }
-          : {}),
+        ...(await brandReadScope(this.brandAccessService, ctx)),
       },
       agentPostPreviewPopulate(ctx.organizationId),
     );

@@ -16,16 +16,12 @@ import {
   buildCalendarWindow,
   CALENDAR_ACTIVE_STATES,
   CALENDAR_DAY_SCAN_LIMIT,
-  CALENDAR_DEFAULT_DAYS,
-  CALENDAR_DEFAULT_LIMIT,
-  CALENDAR_MAX_DAYS,
-  CALENDAR_MAX_LIMIT,
+  CALENDAR_LISTED_STATES,
   type CalendarPostDay,
   findGapDays,
-  isValidTimezone,
   localDayKey,
   mostCommonTimezone,
-  readBoundedInteger,
+  parseContentCalendarArgs,
 } from '@api/services/agent-orchestrator/utils/agent-content-calendar.util';
 import {
   buildStalledItemsResult,
@@ -46,6 +42,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { serializeAgentPost } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -331,77 +328,23 @@ export class AgentProactiveToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const days = readBoundedInteger(
-      params.days,
-      CALENDAR_DEFAULT_DAYS,
-      1,
-      CALENDAR_MAX_DAYS,
-    );
-    const limit = readBoundedInteger(
-      params.limit,
-      CALENDAR_DEFAULT_LIMIT,
-      1,
-      CALENDAR_MAX_LIMIT,
-    );
-    const page = readBoundedInteger(params.page, 1, 1, 10_000);
-    if (days === null || limit === null || page === null) {
-      return {
-        creditsUsed: 0,
-        error: `days must be a whole number from 1 to ${CALENDAR_MAX_DAYS}, limit from 1 to ${CALENDAR_MAX_LIMIT}, and page 1 or more.`,
-        success: false,
-      };
+    const args = parseContentCalendarArgs(params);
+    if (typeof args === 'string') {
+      return { creditsUsed: 0, error: args, success: false };
     }
-    const requestedTimezone = readOptionalString(params.timezone);
-    if (requestedTimezone && !isValidTimezone(requestedTimezone)) {
-      return {
-        creditsUsed: 0,
-        error: `timezone must be an IANA name such as Europe/Malta, not ${requestedTimezone}.`,
-        success: false,
-      };
-    }
-    const includeDrafts = params.includeDrafts === true;
-    const brandId = readOptionalString(params.brandId);
 
-    let brandWhere: Record<string, unknown> | undefined;
-    if (isCloudDeployment()) {
-      if (!this.brandAccessService) {
-        return {
-          creditsUsed: 0,
-          error: 'Content calendar is unavailable',
-          success: false,
-        };
-      }
-      brandWhere = (await this.brandAccessService.predicate({
-        userId: ctx.userId,
-        organizationId: ctx.organizationId,
-        ...ctx.apiKeyContext,
-      })) as Record<string, unknown>;
-    }
-    if (brandId) {
-      const brandScope = scopedWhere(ctx.organizationId, { id: brandId });
-      const brand = await this.prisma?.brand.findFirst({
-        select: { id: true },
-        where: brandWhere
-          ? ({ AND: [brandScope, brandWhere] } as typeof brandScope)
-          : brandScope,
-      });
-      if (!brand) {
-        return {
-          creditsUsed: 0,
-          error: 'Brand was not found for this connection',
-          success: false,
-        };
-      }
+    const access = await this.resolveCalendarBrandScope(args.brandId, ctx);
+    if (typeof access === 'string') {
+      return { creditsUsed: 0, error: access, success: false };
     }
 
     const scope: Record<string, unknown> = {
       isDeleted: false,
       organizationId: ctx.organizationId,
       parentId: null,
-      ...(brandId ? { brandId } : {}),
-      ...(brandWhere ? { brand: { is: brandWhere } } : {}),
+      ...(args.brandId ? { brandId: args.brandId } : {}),
+      ...(access.brandWhere ? { brand: { is: access.brandWhere } } : {}),
     };
-    const now = new Date();
     const read = (
       where: Record<string, unknown>,
       options: Parameters<PostsService['findAll']>[1],
@@ -412,6 +355,7 @@ export class AgentProactiveToolHandler {
         options,
         false,
       );
+    const now = new Date();
 
     // Every queued post near the window, with only the columns the day
     // buckets need. It also gives the timezone the person scheduled in.
@@ -419,7 +363,7 @@ export class AgentProactiveToolHandler {
       {
         scheduledDate: {
           gte: new Date(now.getTime() - 2 * 86_400_000),
-          lt: new Date(now.getTime() + (days + 2) * 86_400_000),
+          lt: new Date(now.getTime() + (args.days + 2) * 86_400_000),
         },
         targetExecutionState: { in: [...CALENDAR_ACTIVE_STATES] },
       },
@@ -434,25 +378,19 @@ export class AgentProactiveToolHandler {
       },
     );
     const scanned = (scan.docs ?? []) as unknown as CalendarPostDay[];
-    const timezone = requestedTimezone ?? mostCommonTimezone(scanned);
-    const window = buildCalendarWindow(now, days, timezone);
+    const timezone = args.timezone ?? mostCommonTimezone(scanned);
+    const window = buildCalendarWindow(now, args.days, timezone);
     const inWindow = { gte: window.start, lt: window.end };
-    const nonDraftStates = Object.values(TargetExecutionState).filter(
-      (state) => state !== TargetExecutionState.DRAFT,
-    );
-    const rowShape = {
-      include: agentPostPreviewInclude(ctx.organizationId),
-      orderBy: { scheduledDate: 1, id: 1 },
-    };
+    const include = agentPostPreviewInclude(ctx.organizationId);
 
     const [rows, scheduledOnly, drafts] = await Promise.all([
       read(
         {
           scheduledDate: inWindow,
-          targetExecutionState: { in: nonDraftStates },
+          targetExecutionState: { in: CALENDAR_LISTED_STATES },
         },
-        { limit, page },
-        rowShape,
+        { limit: args.limit, page: args.page },
+        { include, orderBy: { scheduledDate: 1, id: 1 } },
       ),
       read(
         {
@@ -464,9 +402,11 @@ export class AgentProactiveToolHandler {
       ),
       read(
         { targetExecutionState: TargetExecutionState.DRAFT },
-        { limit: includeDrafts ? limit : 1, page: includeDrafts ? page : 1 },
-        includeDrafts
-          ? { include: rowShape.include, orderBy: { createdAt: -1, id: 1 } }
+        args.includeDrafts
+          ? { limit: args.limit, page: args.page }
+          : { limit: 1 },
+        args.includeDrafts
+          ? { include, orderBy: { createdAt: -1, id: 1 } }
           : { select: { id: true } },
       ),
     ]);
@@ -483,9 +423,9 @@ export class AgentProactiveToolHandler {
     return {
       creditsUsed: 0,
       data: {
-        days,
+        days: args.days,
         draftsCount: drafts.totalDocs ?? 0,
-        ...(includeDrafts
+        ...(args.includeDrafts
           ? {
               drafts: (drafts.docs ?? []).map(serialize),
               draftsHasMore: Boolean(drafts.hasNextPage),
@@ -494,8 +434,8 @@ export class AgentProactiveToolHandler {
         gapDays,
         gapsCount: gapDays.length,
         hasMore: Boolean(rows.hasNextPage),
-        limit,
-        page,
+        limit: args.limit,
+        page: args.page,
         scheduled: (rows.docs ?? []).map(serialize),
         scheduledCount: scheduledOnly.totalDocs ?? 0,
         timezone,
@@ -507,6 +447,37 @@ export class AgentProactiveToolHandler {
       },
       success: true,
     };
+  }
+
+  /**
+   * The brand filter of the list mode (cloud only) and, when `brandId` is
+   * asked for, a check that this connection can reach that brand. Returns an
+   * error message instead when either cannot be resolved.
+   */
+  private async resolveCalendarBrandScope(
+    brandId: string | undefined,
+    ctx: ToolExecutionContext,
+  ): Promise<{ brandWhere?: Prisma.BrandWhereInput } | string> {
+    let brandWhere: Prisma.BrandWhereInput | undefined;
+    if (isCloudDeployment()) {
+      if (!this.brandAccessService) return 'Content calendar is unavailable';
+      brandWhere = await this.brandAccessService.predicate({
+        userId: ctx.userId,
+        organizationId: ctx.organizationId,
+        ...ctx.apiKeyContext,
+      });
+    }
+    if (!brandId) return { brandWhere };
+    if (!this.prisma) return 'Content calendar is unavailable';
+
+    const brand = await this.prisma.brand.findFirst({
+      select: { id: true },
+      where: scopedWhere(ctx.organizationId, {
+        id: brandId,
+        ...(brandWhere ? { AND: [brandWhere] } : {}),
+      }),
+    });
+    return brand ? { brandWhere } : 'Brand was not found for this connection';
   }
 
   async saveContentAgent(
