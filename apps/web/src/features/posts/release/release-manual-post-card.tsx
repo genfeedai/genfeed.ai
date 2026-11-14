@@ -4,7 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   buildXQuoteIntentUrl,
   parseXQuotedPostId,
-} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+} from '@genfeedai/contracts/api-types/contracts/x-quote-post.contract';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';

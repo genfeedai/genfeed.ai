@@ -13,13 +13,43 @@ import {
   PostVisibility,
   TargetValidationState,
 } from '../..';
-import { parseSocialPostUrl } from '../../enums/social-post-url.util';
-import { SocialSourcePlatform } from '../../enums/source-collector.enum';
+import {
+  type ChannelSettingDefinition,
+  type ChannelSettingFieldType,
+  type ChannelValidationIssue,
+  channelSettingDefinitionSchema,
+  channelSettingFieldTypeSchema,
+  channelSettingFieldTypeValues,
+  channelSettingOptionSchema,
+  channelValidationIssueSchema,
+  channelValidationSeveritySchema,
+  channelValidationSeverityValues,
+  isMissingValue,
+  validateSettingOptions,
+  validateSettingType,
+} from './channel-setting-validation.contract';
 import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
 import {
   TIKTOK_PRIVACY_OPTIONS,
   validateTikTokPublishingSettings,
 } from './tiktok-publishing.contract';
+import {
+  validateXQuotedPost,
+  X_QUOTED_POST_SETTING,
+} from './x-quote-post.contract';
+
+export {
+  type ChannelSettingDefinition,
+  type ChannelSettingFieldType,
+  type ChannelValidationIssue,
+  channelSettingDefinitionSchema,
+  channelSettingFieldTypeSchema,
+  channelSettingFieldTypeValues,
+  channelSettingOptionSchema,
+  channelValidationIssueSchema,
+  channelValidationSeveritySchema,
+  channelValidationSeverityValues,
+};
 
 /**
  * Publish readiness of a scheduler channel.
@@ -50,16 +80,6 @@ export const channelPublishModeValues = [
   'scheduled',
 ] as const;
 
-export const channelSettingFieldTypeValues = [
-  'string',
-  'text',
-  'number',
-  'boolean',
-  'select',
-  'multi_select',
-  'url',
-] as const;
-
 export const channelHelperKindValues = [
   'credential',
   'account',
@@ -68,8 +88,6 @@ export const channelHelperKindValues = [
   'subreddit',
   'audio_style',
 ] as const;
-
-export const channelValidationSeverityValues = ['error', 'warning'] as const;
 
 /**
  * How a channel carries the follow-up items scheduled behind a post.
@@ -91,13 +109,7 @@ export const channelCapabilityStatusSchema = z.enum(
 );
 export const channelMediaKindSchema = z.enum(channelMediaKindValues);
 export const channelPublishModeSchema = z.enum(channelPublishModeValues);
-export const channelSettingFieldTypeSchema = z.enum(
-  channelSettingFieldTypeValues,
-);
 export const channelHelperKindSchema = z.enum(channelHelperKindValues);
-export const channelValidationSeveritySchema = z.enum(
-  channelValidationSeverityValues,
-);
 export const channelThreadChildKindSchema = z.enum(
   channelThreadChildKindValues,
 );
@@ -105,29 +117,6 @@ export const channelThreadChildKindSchema = z.enum(
 const channelTargetSettingsSchema = z
   .record(z.string(), z.unknown())
   .default({});
-
-const settingDefaultValueSchema = z.union([
-  z.string(),
-  z.number(),
-  z.boolean(),
-  z.array(z.string()),
-]);
-
-export const channelSettingOptionSchema = z.object({
-  label: z.string().min(1),
-  value: z.string().min(1),
-});
-
-export const channelSettingDefinitionSchema = z.object({
-  defaultValue: settingDefaultValueSchema.optional(),
-  description: z.string().min(1).optional(),
-  helper: z.string().min(1).optional(),
-  key: z.string().min(1),
-  label: z.string().min(1),
-  options: z.array(channelSettingOptionSchema).optional(),
-  required: z.boolean().optional(),
-  type: channelSettingFieldTypeSchema,
-});
 
 export const channelHelperDefinitionSchema = z.object({
   description: z.string().min(1).optional(),
@@ -220,13 +209,6 @@ export const validateChannelTargetSettingsInputSchema = z.object({
   visibility: z.nativeEnum(PostVisibility).optional(),
 });
 
-export const channelValidationIssueSchema = z.object({
-  code: z.string().min(1),
-  field: z.string().min(1).optional(),
-  message: z.string().min(1),
-  severity: channelValidationSeveritySchema,
-});
-
 export const channelTargetValidationResultSchema = z.object({
   capability: channelCapabilitySchema.optional(),
   errors: z.array(channelValidationIssueSchema),
@@ -247,12 +229,6 @@ export type ChannelCapabilityStatus = z.infer<
 >;
 export type ChannelMediaKind = z.infer<typeof channelMediaKindSchema>;
 export type ChannelPublishMode = z.infer<typeof channelPublishModeSchema>;
-export type ChannelSettingFieldType = z.infer<
-  typeof channelSettingFieldTypeSchema
->;
-export type ChannelSettingDefinition = z.infer<
-  typeof channelSettingDefinitionSchema
->;
 export type ChannelHelperDefinition = z.infer<
   typeof channelHelperDefinitionSchema
 >;
@@ -265,9 +241,6 @@ export type ChannelThreadChildCapability = z.infer<
 >;
 export type ValidateChannelTargetSettingsInput = z.infer<
   typeof validateChannelTargetSettingsInputSchema
->;
-export type ChannelValidationIssue = z.infer<
-  typeof channelValidationIssueSchema
 >;
 export type ChannelTargetValidationResult = z.infer<
   typeof channelTargetValidationResultSchema
@@ -287,102 +260,6 @@ export const PRODUCTIZED_SCHEDULER_PLATFORMS = [
 
 export type ProductizedSchedulerPlatform =
   (typeof PRODUCTIZED_SCHEDULER_PLATFORMS)[number];
-
-/** X target setting that carries the post a release quotes. */
-export const QUOTED_POST_SETTING_KEY = 'quotedPost';
-
-// X documents `quote_tweet_id` as ^[0-9]{1,19}$.
-const X_POST_ID_PATTERN = /^[0-9]{1,19}$/;
-
-/**
- * The X post id in a quoted-post setting, or `undefined` when the value is
- * neither a numeric id nor a link to an X post. A link is only read, never
- * fetched, so the value cannot steer a server-side request.
- */
-export function parseXQuotedPostId(value: unknown): string | undefined {
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-  const trimmed = value.trim();
-  if (X_POST_ID_PATTERN.test(trimmed)) {
-    return trimmed;
-  }
-  const reference = parseSocialPostUrl(trimmed);
-  return reference?.platform === SocialSourcePlatform.TWITTER &&
-    X_POST_ID_PATTERN.test(reference.postId)
-    ? reference.postId
-    : undefined;
-}
-
-/**
- * Stored target settings with the X quoted post reduced to its id, so a read
- * back shows the post that will be quoted whichever form the caller typed.
- * A blank value is dropped; a value that is not an X post stays as typed so
- * validation can name it. Other platforms pass through unchanged.
- */
-export function normalizeChannelTargetSettings(
-  platform: CredentialPlatform | string,
-  settings: Record<string, unknown>,
-): Record<string, unknown> {
-  if (platform !== CredentialPlatform.TWITTER) {
-    return settings;
-  }
-  const { [QUOTED_POST_SETTING_KEY]: quoted, ...rest } = settings;
-  if (isMissingValue(quoted)) {
-    return rest;
-  }
-  return {
-    ...rest,
-    [QUOTED_POST_SETTING_KEY]: parseXQuotedPostId(quoted) ?? quoted,
-  };
-}
-
-/** The `quoteTweetId` a target's settings write on its post, or `null`. */
-export function resolveQuoteTweetId(
-  platform: CredentialPlatform | string,
-  settings: Record<string, unknown>,
-): string | null {
-  return platform === CredentialPlatform.TWITTER
-    ? (parseXQuotedPostId(settings[QUOTED_POST_SETTING_KEY]) ?? null)
-    : null;
-}
-
-/** Error code on a target when X refused to publish a quote post through the API. */
-export const X_QUOTE_REFUSED_CODE = 'x_quote_refused';
-
-/** Error code on a target whose quoted X post no longer exists. */
-export const X_QUOTED_POST_UNAVAILABLE_CODE = 'x_quoted_post_unavailable';
-
-/**
- * Failures the person resolves by posting by hand. The target stays FAILED with
- * the error kept, so it can be listed, reminded about and closed as posted or
- * skipped without a new execution state.
- */
-export const MANUAL_POST_ERROR_CODES: readonly string[] = [
-  X_QUOTE_REFUSED_CODE,
-];
-
-export function isManualPostErrorCode(
-  code: string | null | undefined,
-): boolean {
-  return typeof code === 'string' && MANUAL_POST_ERROR_CODES.includes(code);
-}
-
-/**
- * X's web intent opens the composer, prefilled, in the person's own session.
- * The quoted post is added as a link to it. Nothing is sent until they press
- * Post in X.
- */
-export function buildXQuoteIntentUrl(
-  text: string,
-  quotedPostId: string | null | undefined,
-): string {
-  const params = new URLSearchParams({ text });
-  if (quotedPostId && X_POST_ID_PATTERN.test(quotedPostId)) {
-    params.set('url', `https://x.com/i/status/${quotedPostId}`);
-  }
-  return `https://x.com/intent/post?${params.toString()}`;
-}
 
 const channelCapabilities = [
   {
@@ -641,13 +518,7 @@ const channelCapabilities = [
         ],
         type: 'select',
       },
-      {
-        description:
-          'Link or id of the X post to quote. Leave blank for a normal post. X may allow quote posts only on some API plans.',
-        key: QUOTED_POST_SETTING_KEY,
-        label: 'Quoted post',
-        type: 'string',
-      },
+      X_QUOTED_POST_SETTING,
     ],
     status: 'supported',
   },
@@ -1603,22 +1474,9 @@ function validateProviderConstraints(
   input: ValidateChannelTargetSettingsInput,
   capability: ChannelCapability,
 ): ChannelValidationIssue[] {
-  const quoted = input.settings?.[QUOTED_POST_SETTING_KEY];
-  if (
-    capability.platform === CredentialPlatform.TWITTER &&
-    typeof quoted === 'string' &&
-    !isMissingValue(quoted) &&
-    parseXQuotedPostId(quoted) === undefined
-  ) {
-    return [
-      {
-        code: 'channel_target.invalid_quoted_post',
-        field: `settings.${QUOTED_POST_SETTING_KEY}`,
-        message:
-          'X quoted post must be a link to an X post (x.com/<handle>/status/<id>) or a numeric post id.',
-        severity: 'error',
-      },
-    ];
+  const quotedIssue = validateXQuotedPost(capability.platform, input.settings);
+  if (quotedIssue) {
+    return [quotedIssue];
   }
 
   if (
@@ -1638,104 +1496,4 @@ function validateProviderConstraints(
   }
 
   return [];
-}
-
-function validateSettingType(
-  setting: ChannelSettingDefinition,
-  value: unknown,
-  label: string,
-  field: string,
-): ChannelValidationIssue[] {
-  const typeMatches =
-    (setting.type === 'boolean' && typeof value === 'boolean') ||
-    (setting.type === 'number' && typeof value === 'number') ||
-    (setting.type === 'multi_select' &&
-      Array.isArray(value) &&
-      value.every((item) => typeof item === 'string')) ||
-    (setting.type !== 'boolean' &&
-      setting.type !== 'number' &&
-      setting.type !== 'multi_select' &&
-      typeof value === 'string');
-
-  if (typeMatches) {
-    // `url` is otherwise indistinguishable from `string`, so without this the
-    // declared type is decoration and an unparseable host reaches the publisher.
-    if (setting.type === 'url' && !isParsableHttpUrl(value)) {
-      return [
-        {
-          code: 'channel_target.invalid_setting_url',
-          field,
-          message: `${label} setting ${setting.label} must be an http(s) URL.`,
-          severity: 'error',
-        },
-      ];
-    }
-
-    return [];
-  }
-
-  return [
-    {
-      code: 'channel_target.invalid_setting_type',
-      field,
-      message: `${label} setting ${setting.label} must be a valid ${setting.type} value.`,
-      severity: 'error',
-    },
-  ];
-}
-
-// Matched rather than parsed with `URL`: this contract compiles without DOM or
-// Node lib types so it can run in the browser bundle, workers, and the CLI.
-//
-// The authority run and the remainder must not overlap. `[^\s/?#]+[^\s]*` lets
-// both halves consume the same non-delimiter characters, so a long failing
-// input is re-split at every position — quadratic backtracking on a value that
-// reaches this from request data. Requiring the remainder to start with one of
-// `/?#` makes the split deterministic without changing what is accepted.
-const HTTP_URL_PATTERN = /^https?:\/\/[^\s/?#]+(?:[/?#]\S*)?$/i;
-
-function isParsableHttpUrl(value: unknown): boolean {
-  return typeof value === 'string' && HTTP_URL_PATTERN.test(value.trim());
-}
-
-function validateSettingOptions(
-  setting: ChannelSettingDefinition,
-  value: unknown,
-  label: string,
-  field: string,
-): ChannelValidationIssue[] {
-  if (!setting.options || setting.options.length === 0) {
-    return [];
-  }
-
-  const allowedValues = new Set(setting.options.map((option) => option.value));
-  const submittedValues = Array.isArray(value) ? value : [value];
-
-  for (const submittedValue of submittedValues) {
-    if (
-      typeof submittedValue !== 'string' ||
-      !allowedValues.has(submittedValue)
-    ) {
-      return [
-        {
-          code: 'channel_target.invalid_setting_option',
-          field,
-          message: `${label} setting ${setting.label} must use one of: ${[
-            ...allowedValues,
-          ].join(', ')}.`,
-          severity: 'error',
-        },
-      ];
-    }
-  }
-
-  return [];
-}
-
-function isMissingValue(value: unknown): boolean {
-  return (
-    value === undefined ||
-    value === null ||
-    (typeof value === 'string' && value.trim().length === 0)
-  );
 }

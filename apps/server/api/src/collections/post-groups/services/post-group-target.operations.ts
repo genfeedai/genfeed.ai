@@ -36,10 +36,6 @@ import {
 } from '@genfeedai/contracts';
 import {
   type ChannelTargetValidationResult,
-  isManualPostErrorCode,
-  normalizeChannelTargetSettings,
-  parseXQuotedPostId,
-  resolveQuoteTweetId,
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import {
@@ -48,6 +44,12 @@ import {
   type UpdateChannelTargetInput,
   type UpdateReleaseGroupInput,
 } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import {
+  isManualPostErrorCode,
+  normalizeChannelTargetSettings,
+  parseXQuotedPostId,
+  resolveQuoteTweetId,
+} from '@genfeedai/contracts/api-types/contracts/x-quote-post.contract';
 import type {
   IPublishingProviderReadiness,
   IReleaseGroup,

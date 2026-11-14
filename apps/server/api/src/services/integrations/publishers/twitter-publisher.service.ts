@@ -40,7 +40,7 @@ import {
 import {
   X_QUOTE_REFUSED_CODE,
   X_QUOTED_POST_UNAVAILABLE_CODE,
-} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+} from '@genfeedai/contracts/api-types/contracts/x-quote-post.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';

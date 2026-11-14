@@ -8,7 +8,7 @@ import {
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { parseXQuotedPostId } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { parseXQuotedPostId } from '@genfeedai/contracts/api-types/contracts/x-quote-post.contract';
 import type {
   AccountHealthSummary,
   IChannelTarget,

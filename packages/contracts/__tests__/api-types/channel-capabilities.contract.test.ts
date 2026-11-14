@@ -5,21 +5,23 @@ import {
   TargetValidationState,
 } from '../../src';
 import {
-  buildXQuoteIntentUrl,
   channelTargetValidationResultSchema,
   getChannelCapability,
   getChannelThreadChildCapability,
   getSupportedPostVisibilities,
-  isManualPostErrorCode,
   listChannelCapabilities,
-  normalizeChannelTargetSettings,
   PRODUCTIZED_SCHEDULER_PLATFORMS,
-  parseXQuotedPostId,
   resolveChannelStatusIssue,
   resolveChannelTargetSettings,
-  resolveQuoteTweetId,
   validateChannelTargetSettings,
 } from '../../src/api-types/contracts/channel-capabilities.contract';
+import {
+  buildXQuoteIntentUrl,
+  isManualPostErrorCode,
+  normalizeChannelTargetSettings,
+  parseXQuotedPostId,
+  resolveQuoteTweetId,
+} from '../../src/api-types/contracts/x-quote-post.contract';
 
 describe('channel capability catalog', () => {
   test('reconciles the productized scheduler channels', () => {

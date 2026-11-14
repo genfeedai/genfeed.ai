@@ -22,7 +22,7 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { isManualPostErrorCode } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { isManualPostErrorCode } from '@genfeedai/contracts/api-types/contracts/x-quote-post.contract';
 import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
 import { type Post, Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
@@ -111,6 +111,17 @@ export function canTransitionPostLifecycle(
   to: TargetExecutionState,
 ): boolean {
   return from === to || POST_LIFECYCLE_TRANSITIONS[from].has(to);
+}
+
+function isAllowedTransition(
+  target: Pick<Post, 'targetError'>,
+  from: TargetExecutionState,
+  to: TargetExecutionState,
+): boolean {
+  return (
+    canTransitionPostLifecycle(from, to) ||
+    isManualPostResolution(target, from, to)
+  );
 }
 
 // Unchecked so callers can assign FK scalars (e.g. `reviewVersionPinId`)
@@ -286,10 +297,7 @@ export class PostLifecycleService {
       return this.stale(input, currentState, 'prior_state_mismatch');
     }
 
-    if (
-      !canTransitionPostLifecycle(currentState, input.nextState) &&
-      !isManualPostResolution(target, currentState, input.nextState)
-    ) {
+    if (!isAllowedTransition(target, currentState, input.nextState)) {
       this.logger.warn('Rejected invalid Post lifecycle transition', {
         currentState,
         organizationId: input.organizationId,

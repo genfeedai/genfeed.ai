@@ -6,7 +6,7 @@ import {
   ActivityKey,
   ActivitySource,
 } from '@genfeedai/contracts';
-import { buildXQuoteIntentUrl } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { buildXQuoteIntentUrl } from '@genfeedai/contracts/api-types/contracts/x-quote-post.contract';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 
 /** First reminder after the scheduled time, then one per interval. */

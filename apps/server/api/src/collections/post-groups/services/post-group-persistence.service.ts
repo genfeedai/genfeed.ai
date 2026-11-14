@@ -33,12 +33,12 @@ import {
   ReleaseAttachmentKind,
   ReleaseStatus,
 } from '@genfeedai/contracts';
+import type { ChannelTargetValidationResult } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import {
-  type ChannelTargetValidationResult,
   normalizeChannelTargetSettings,
   resolveQuoteTweetId,
-} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
-import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+} from '@genfeedai/contracts/api-types/contracts/x-quote-post.contract';
 import type {
   IPublishingProviderReadiness,
   IReleaseGroup,

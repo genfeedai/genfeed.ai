@@ -24,18 +24,12 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { isManualPostErrorCode } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
-import * as Sentry from '@sentry/nestjs';
-import {
-  createManualPostActivity,
-  toManualPostSubject,
-} from '@workers/crons/posts/manual-post-activity.util';
 import {
   createChannelTargetError,
   createFailedPublishResult,
@@ -955,52 +949,13 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       'parent_failed',
       'Parent post failed',
     );
-    // The provider refused something only the person can do (X quote posts need
-    // an Enterprise API plan): ask them to post it by hand. It is not an outage,
-    // so it stays out of Sentry and out of the generic failure alert.
-    if (isManualPostErrorCode(errorCode)) {
-      await this.postFailureService.notifyPublishFailed(
-        post,
-        createManualPostActivity(toManualPostSubject(post), 0),
-      );
-      return false;
-    }
-    await this.postFailureService.notifyPublishFailed(
+    await this.postFailureService.notifyTerminalFailure(
       post,
-      createPublishFailedActivity(post, errorMessage),
+      errorCode,
+      errorMessage,
     );
-    this.captureTerminalPublishFailure(post, errorCode, errorMessage);
 
     return false;
-  }
-
-  /**
-   * A publish that ended FAILED is handled here and persisted on the post, so
-   * nothing rethrows it to Sentry's global handlers. Report it once, when the
-   * transition actually moved the target to FAILED. Content the owner must fix
-   * (validation) stays out; provider and credential failures are the signal.
-   */
-  private captureTerminalPublishFailure(
-    post: PostEntity,
-    errorCode: string,
-    errorMessage: string,
-  ): void {
-    if (errorCode === 'publish_validation_failed') {
-      return;
-    }
-    Sentry.captureException(new Error(errorMessage), {
-      extra: {
-        organizationId: readPostString(post, ['organizationId']),
-        postId: post.id.toString(),
-        retryCount: post.retryCount || 0,
-      },
-      fingerprint: ['scheduled-post-publish-failed', errorCode],
-      level: 'error',
-      tags: {
-        'publish.error_code': errorCode,
-        'publish.platform': readPostString(post, ['platform']) ?? 'unknown',
-      },
-    });
   }
 
   private async handlePublishFailure(

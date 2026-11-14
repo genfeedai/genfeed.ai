@@ -95,6 +95,7 @@
       "skipped": "{operation, select, import {Skipped importing existing posts from {articleSubject}} other {Skipped {articleSubject}}}"
     },
     "post": {
+      "manual": "Post this by hand",
       "ready": "Content is ready for review",
       "transition": "{fromState, select, none {Post state changed} other {Post moved from {fromState} to {toState}}}"
     },

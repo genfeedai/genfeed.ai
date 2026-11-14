@@ -1,6 +1,6 @@
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { TargetExecutionState } from '@genfeedai/contracts';
-import { MANUAL_POST_ERROR_CODES } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { MANUAL_POST_ERROR_CODES } from '@genfeedai/contracts/api-types/contracts/x-quote-post.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';

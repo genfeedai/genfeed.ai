@@ -1,5 +1,5 @@
 import { TargetExecutionState } from '@genfeedai/contracts';
-import { isManualPostErrorCode } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { isManualPostErrorCode } from '@genfeedai/contracts/api-types/contracts/x-quote-post.contract';
 import type {
   AccountHealthSummary,
   IChannelTarget,
