@@ -63,7 +63,6 @@ export * from '@serializers/configs/content/release-group.config';
 export * from '@serializers/configs/content/review-inbox-decision.config';
 export * from '@serializers/configs/content/review-inbox-item.config';
 export * from '@serializers/configs/content/rss-source.config';
-export * from '@serializers/configs/content/schedule.config';
 export * from '@serializers/configs/content/speech-transcription.config';
 export * from '@serializers/configs/content/storyboard-run.config';
 export * from '@serializers/configs/content/storyboard-run-summary.config';

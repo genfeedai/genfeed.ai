@@ -408,7 +408,7 @@ genfeed template use <template-id> --variables '{"topic":"AI workflows"}'
 ### Scheduling and Insights
 
 ```bash
-genfeed schedule calendar
+genfeed schedule optimal --platform twitter
 genfeed insights
 genfeed insights times --platform twitter
 genfeed performance weekly

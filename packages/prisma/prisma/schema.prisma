@@ -973,7 +973,6 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   socialWarmupSignals           SocialWarmupSignal[]
   processedTweets               ProcessedTweet[]
   trackedLinks                  TrackedLink[]
-  schedules                     Schedule[]
   postingSets                   PostingSet[]
   postingSignatures             PostingSignature[]
   rssSources                    RssSource[]
@@ -1276,7 +1275,6 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   turboRunItems                 TurboRunItem[]
   activities                 Activity[]
   contextBases               ContextBase[]              @relation("context_base_source_brand")
-  schedules                  Schedule[]
   postingSets                PostingSet[]
   postingSignatures          PostingSignature[]
   rssSources                 RssSource[]
@@ -3592,31 +3590,6 @@ model AccountAnalyticsSnapshot {
   @@index([brandId, isDeleted, date(sort: Desc)])
   @@index([credentialId, isDeleted, date(sort: Desc)])
   @@map("account_analytics_snapshots")
-}
-
-model Schedule {
-  id               String       @id @default(cuid())
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id])
-  userId           String
-  brandId          String?
-  brand            Brand?       @relation(fields: [brandId], references: [id])
-  label            String?
-  // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
-  platform         String?
-  timezone         String       @default("UTC")
-  slots            Json         @default("[]")
-  contentId        String?
-  contentType      String?
-  scheduledAt      DateTime?
-  schedulingMethod String?
-  isActive         Boolean      @default(true)
-  isDeleted        Boolean      @default(false)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-
-  @@index([organizationId, isDeleted, createdAt])
-  @@map("schedules")
 }
 
 model Distribution {

@@ -259,7 +259,6 @@ const observedTemplates = [
   '/v1/reply-bot-configs/author-reply/inbox',
   '/v1/reply-bot-configs/{id}',
   '/v1/saved-ads',
-  '/v1/schedules/calendar',
   '/v1/services/facebook/pages',
   '/v1/services/google-ads/ad-groups/{id}/insights',
   '/v1/services/google-ads/campaigns',
