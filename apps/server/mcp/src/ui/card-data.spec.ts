@@ -625,6 +625,68 @@ describe('MCP Apps card contract', () => {
     ]);
   });
 
+  it('shows three posts of a queued batch in full, then the rest as a count with one link to the web review', () => {
+    const posts = Array.from({ length: 3 }, (_, index) => ({
+      accountHandle: 'brand',
+      accountLabel: 'Brand account',
+      index,
+      media: [
+        {
+          kind: 'image',
+          order: 0,
+          url: `https://cdn.genfeed.ai/${index}-a.png`,
+        },
+        {
+          kind: 'image',
+          order: 1,
+          url: `https://cdn.genfeed.ai/${index}-b.png`,
+        },
+      ],
+      platform: 'instagram',
+      scheduledAt: `2026-11-1${5 + index}T08:00:00.000Z`,
+      text: `Carousel ${index + 1}`,
+      title: `Post ${index + 1}`,
+    }));
+    const result = withApprovalCard({
+      content: [],
+      isError: true,
+      structuredContent: {
+        approvalId: 'apr-9',
+        batch: { invalid: [], isApprovableHere: false, posts, total: 42 },
+        canResolveApproval: true,
+        code: 'approval_pending',
+        nextStepUrl:
+          'https://app.genfeed.ai/acme/main/publishing/batches/apr-9',
+        toolName: 'create_scheduled_release',
+      },
+    });
+
+    const view = result.structuredContent?.genfeedCards as McpCardView;
+    expect(view.isApproval).toBe(true);
+    expect(view.cards.map((card) => card.kind)).toEqual([
+      'post',
+      'post',
+      'post',
+      'summary',
+    ]);
+    expect(view.cards[0]).toMatchObject({
+      description: 'Carousel 1',
+      platform: 'instagram',
+      status: 'pending_approval',
+    });
+    expect(view.cards[0].media?.map((item) => item.url)).toEqual([
+      'https://cdn.genfeed.ai/0-a.png',
+      'https://cdn.genfeed.ai/0-b.png',
+    ]);
+    expect(view.cards[3]).toMatchObject({
+      linkLabel: 'Review all 42 in Genfeed',
+      title: '+39 more posts',
+      url: 'https://app.genfeed.ai/acme/main/publishing/batches/apr-9',
+    });
+    expect(view.cards.some((card) => card.actions?.length)).toBe(false);
+    expect(new Set(view.cards.slice(0, 3).map((card) => card.id)).size).toBe(3);
+  });
+
   it('leaves out the buttons when this connection cannot resolve approvals, and ignores other errors', () => {
     const pending = withApprovalCard({
       content: [],

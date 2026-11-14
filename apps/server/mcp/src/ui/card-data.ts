@@ -747,6 +747,71 @@ function buildReleaseView(resource: Record<string, unknown>): McpCardView {
 }
 
 /**
+ * A queued batch of scheduled posts (#10134): the first three in full, then the
+ * rest as a count with the one link to the web review. Past three posts the
+ * card offers no approval, only that link.
+ */
+function buildBatchApprovalView(
+  data: Record<string, unknown>,
+  batch: Record<string, unknown>,
+): McpCardView {
+  const approvalId = text(data, 'approvalId');
+  const posts = rows(batch.posts);
+  const total = typeof batch.total === 'number' ? batch.total : posts.length;
+  const omitted = Math.max(0, total - posts.length);
+  const invalid = rows(batch.invalid).length;
+  const postCards = posts.map((post) => {
+    const media = rows(post.media).map((item) => ({
+      ...item,
+      assetId: `${text(item, 'order')}`,
+    }));
+    return card(
+      {
+        author: {
+          handle: text(post, 'accountHandle'),
+          name: text(post, 'accountLabel'),
+        },
+        description: text(post, 'text'),
+        id: `${approvalId}:${typeof post.index === 'number' ? post.index : ''}`,
+        kind: 'post',
+        media,
+        platform: text(post, 'platform'),
+        scheduledAt: text(post, 'scheduledAt'),
+        status: 'pending_approval',
+        title: text(post, 'title'),
+      },
+      'post',
+    );
+  });
+  const reviewUrl = safeCardUrl(text(data, 'nextStepUrl'));
+  const closing = summaryCard(
+    omitted > 0
+      ? `+${omitted} more ${omitted === 1 ? 'post' : 'posts'}`
+      : `${total} ${total === 1 ? 'post' : 'posts'} waiting for approval`,
+    [...(invalid > 0 ? fact('Left out as invalid', `${invalid}`) : [])],
+    {
+      description:
+        batch.isApprovableHere === true
+          ? 'Nothing is scheduled until you approve.'
+          : `Nothing is scheduled yet. Read every post in Genfeed and approve once; Genfeed then schedules all ${total}.`,
+      id: approvalId,
+      linkLabel:
+        omitted > 0 ? `Review all ${total} in Genfeed` : 'Review in Genfeed',
+      status: 'pending_approval',
+      url: reviewUrl,
+    },
+  );
+  return {
+    cards: [...postCards, closing],
+    isApproval: true,
+    isCountHidden: true,
+    layout: 'cards',
+    title: 'Approval needed',
+    total: postCards.length + 1,
+  };
+}
+
+/**
  * A write that waits for a person: what it is, what it costs, and Approve /
  * Decline buttons when this connection may resolve it. The result is an error
  * so the model knows nothing ran; the card is how the person acts on it.
@@ -757,6 +822,9 @@ function buildApprovalView(
   const approvalId = text(data, 'approvalId');
   if (text(data, 'code') !== 'approval_pending' || !approvalId) {
     return undefined;
+  }
+  if (data.batch && typeof data.batch === 'object') {
+    return buildBatchApprovalView(data, record(data.batch));
   }
   const credits =
     typeof data.estimatedCredits === 'number'

@@ -68,6 +68,7 @@ function item(overrides: Partial<IReviewInboxItem>): IReviewInboxItem {
     actionSummary: 'Publish post',
     actionTitle: 'Publish post',
     approvalId: 'apr-1',
+    batchCount: null,
     brandId: null,
     brandLabel: null,
     brandLogoUrl: null,

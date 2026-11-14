@@ -40,6 +40,7 @@ export * from './public-youtube-clipper-tool.interface';
 export * from './public-youtube-long-form-tool.interface';
 export * from './publication-card.interface';
 export * from './review-inbox-item.interface';
+export * from './scheduled-release-batch.interface';
 export * from './seo-scorecard.interface';
 export * from './studio-edit-detail.interface';
 export * from './tag.interface';

@@ -1,5 +1,6 @@
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { PostGroupsController } from '@api/collections/post-groups/controllers/post-groups.controller';
+import { PostGroupBatchService } from '@api/collections/post-groups/services/post-group-batch.service';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
@@ -15,7 +16,11 @@ import { Module } from '@nestjs/common';
   controllers: [PostGroupsController],
   // PostGroupPersistenceService is exported for the post-repurpose flow, which
   // creates draft channel targets and needs the shared group-status recalc.
-  exports: [PostGroupPersistenceService, PostGroupsService],
+  exports: [
+    PostGroupBatchService,
+    PostGroupPersistenceService,
+    PostGroupsService,
+  ],
   imports: [
     QueuesModule,
     // Readiness derivation is shared with every read surface. This is a
@@ -26,6 +31,7 @@ import { Module } from '@nestjs/common';
     PublishingProviderSetupModule,
   ],
   providers: [
+    PostGroupBatchService,
     PostGroupContractService,
     PostGroupPersistenceService,
     PostGroupReadinessService,

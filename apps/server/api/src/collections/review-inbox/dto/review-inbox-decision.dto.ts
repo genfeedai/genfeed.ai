@@ -3,6 +3,7 @@ import {
   type IReviewInboxDecisionRequest,
   REVIEW_INBOX_BATCH_DECISION_MAX_ITEMS,
   type ReviewInboxDecision,
+  SCHEDULED_RELEASE_BATCH_MAX,
 } from '@genfeedai/contracts/interfaces';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
@@ -11,9 +12,12 @@ import {
   ArrayUnique,
   IsArray,
   IsIn,
+  IsInt,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 export class ReviewInboxDecisionDto implements IReviewInboxDecisionRequest {
@@ -36,6 +40,20 @@ export class ReviewInboxDecisionDto implements IReviewInboxDecisionRequest {
   @IsString()
   @MaxLength(2000)
   reason?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Scheduled release batches only: positions of the posts the reviewer removed before approving. Required to approve a batch, so every approval names what it keeps.',
+    type: [Number],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(SCHEDULED_RELEASE_BATCH_MAX)
+  @ArrayUnique()
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  @Max(SCHEDULED_RELEASE_BATCH_MAX - 1, { each: true })
+  excludedIndexes?: number[];
 }
 
 export class ReviewInboxBatchDecisionDto

@@ -30,6 +30,25 @@ describe('MCP_SCHEDULER_TOOLS', () => {
     expect(tool?.description).toContain('Read-only');
   });
 
+  it('takes one release or a batch of 1 to 50 releases, and a caption per target', () => {
+    const create = toolsByName.get('create_scheduled_release');
+    const releases = create?.parameters.properties.releases;
+
+    expect(create?.parameters.required ?? []).not.toContain('release');
+    expect(releases).toEqual(
+      expect.objectContaining({ maxItems: 50, minItems: 1, type: 'array' }),
+    );
+    expect(releases).toMatchObject({
+      items: {
+        properties: {
+          targets: {
+            items: { properties: { caption: { type: 'string' } } },
+          },
+        },
+      },
+    });
+  });
+
   it('accepts audience visibility on create and update targets', () => {
     const audience = {
       description: 'Audience visibility',

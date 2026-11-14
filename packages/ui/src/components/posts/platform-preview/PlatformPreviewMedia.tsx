@@ -211,6 +211,34 @@ export default function MediaGrid({
     );
   }
 
+  // A carousel keeps its slides in publishing order, side by side, so a
+  // five-slide post is one strip instead of a column several screens tall.
+  if (variant === 'square' && visibleMedia.length > 1) {
+    return (
+      <div
+        className={cn(mediaMargin, 'flex snap-x gap-1.5 overflow-x-auto')}
+        data-testid="preview-media"
+        data-media-aspect={aspect}
+        data-media-layout="carousel"
+      >
+        {visibleMedia.map((item, index) => (
+          <MediaTile
+            key={item.id}
+            item={item}
+            index={index}
+            animatedConsequence={animatedConsequence}
+            className="aspect-square w-44 shrink-0 snap-start"
+          />
+        ))}
+        {overflowCount > 0 ? (
+          <div className="flex aspect-square w-44 shrink-0 snap-start items-center justify-center rounded-lg bg-muted text-xs font-medium text-foreground/70">
+            {translate('moreMedia', { count: overflowCount })}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   const gridClassName =
     variant === 'square'
       ? 'grid-cols-1'
