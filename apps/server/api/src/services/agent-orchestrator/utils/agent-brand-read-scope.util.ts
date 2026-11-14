@@ -12,19 +12,22 @@ export type BrandReadScope = {
  * key is limited to some brands: then it reaches only those. Every `get_posts`
  * mode (one post, list, calendar) applies it.
  */
-export async function brandReadScope(
+export function brandReadScope(
   brandAccessService: Pick<BrandAccessService, 'predicate'> | undefined,
   ctx: ToolExecutionContext,
 ): Promise<BrandReadScope> {
   if (!brandAccessService) {
-    if (isCloudDeployment()) throw new Error('Brand access is unavailable');
-    return {};
+    return isCloudDeployment()
+      ? Promise.reject(new Error('Brand access is unavailable'))
+      : Promise.resolve({});
   }
-  const is = await brandAccessService.predicate({
-    userId: ctx.userId,
-    organizationId: ctx.organizationId,
-    ...ctx.apiKeyContext,
-  });
-  if (!isCloudDeployment() && is.id === undefined) return {};
-  return { brand: { is } };
+  return brandAccessService
+    .predicate({
+      userId: ctx.userId,
+      organizationId: ctx.organizationId,
+      ...ctx.apiKeyContext,
+    })
+    .then((is) =>
+      !isCloudDeployment() && is.id === undefined ? {} : { brand: { is } },
+    );
 }
