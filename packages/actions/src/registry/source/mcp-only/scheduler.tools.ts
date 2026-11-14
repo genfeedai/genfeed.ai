@@ -85,6 +85,11 @@ const audienceVisibilitySchema = {
 const targetSchema = {
   properties: {
     attachments: { items: attachmentSchema, type: 'array' },
+    caption: {
+      description:
+        'Text for this channel only. Omit to use the release baseContent.',
+      type: 'string',
+    },
     credentialId: { type: 'string' },
     order: { minimum: 0, type: 'number' },
     platform: {
@@ -123,6 +128,15 @@ const releaseCreateProperties = {
   timezone: { description: 'IANA', type: 'string' },
   title: { type: 'string' },
 };
+
+const releaseCreateSchema = {
+  properties: releaseCreateProperties,
+  required: ['title', 'baseContent', 'timezone', 'targets'],
+  type: 'object',
+};
+
+/** One approval covers at most this many releases (a week at 4 hours is 42). */
+export const MAX_BATCH_RELEASES = 50;
 
 const releaseUpdateProperties = {
   campaignId: {
@@ -264,20 +278,23 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Create a multi-channel release from prepared content and existing media. Use after check_channel(action=validate) for each channel. status draft (the default) saves for review; status scheduled or a scheduledDate requests future publishing, including recurring releases. Scheduling waits for server-enforced approval. If this connection cannot resolve approvals, review and release it in Genfeed.',
+      'Create a multi-channel release from prepared content and existing media. Use after check_channel(action=validate) for each channel. status draft (the default) saves for review; status scheduled or a scheduledDate requests future publishing, including recurring releases. Pass one release in `release`, or a whole week in `releases` (1 to 50, one organization, one approval for the batch): every release is validated on its own, invalid ones are named in the result and left out. Scheduling waits for server-enforced approval. A batch of up to 3 releases can be approved in the chat; a larger batch is reviewed and approved once in Genfeed, which then schedules every release without another call. If this connection cannot resolve approvals, review and release it in Genfeed.',
     mcpDescription:
-      'Create a multi-channel release from prepared text/media after check_channel(action=validate) for each channel. Default draft saves for review; scheduled status or scheduledDate requests future/recurring publishing. Server approval required to schedule; if unavailable here, review/release in Genfeed.',
+      'Create a multi-channel release from prepared text/media after check_channel(action=validate) for each channel. Default draft saves for review; scheduled status or scheduledDate requests future/recurring publishing. Pass `release` (one) or `releases` (1-50, one organization, one approval): each is validated alone, invalid ones are named and left out. Server approval required to schedule: up to 3 releases can be approved in chat; a larger batch is approved once in Genfeed, which schedules all of them with no second call.',
     name: 'create_scheduled_release',
     parameters: {
       properties: {
         idempotencyKey: { type: 'string' },
-        release: {
-          properties: releaseCreateProperties,
-          required: ['title', 'baseContent', 'timezone', 'targets'],
-          type: 'object',
+        release: releaseCreateSchema,
+        releases: {
+          description:
+            'A batch of releases for one organization, approved once. Use instead of release.',
+          items: releaseCreateSchema,
+          maxItems: MAX_BATCH_RELEASES,
+          minItems: 1,
+          type: 'array',
         },
       },
-      required: ['release'],
       type: 'object',
     },
     requiredRole: 'user',

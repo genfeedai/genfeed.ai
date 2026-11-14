@@ -197,6 +197,7 @@ export * from './content/public-youtube-clipper-tool.interface';
 export * from './content/public-youtube-long-form-tool.interface';
 export * from './content/publication-card.interface';
 export * from './content/review-inbox-item.interface';
+export * from './content/scheduled-release-batch.interface';
 export * from './content/seo-scorecard.interface';
 export * from './content/studio-edit-detail.interface';
 export * from './content/tag.interface';

@@ -1,14 +1,18 @@
-import type {
-  IReviewInboxItem,
-  ReviewInboxItemSource,
+import { createPublishingBatchRoute } from '@genfeedai/contracts/constants';
+import {
+  type IReviewInboxItem,
+  parseReviewInboxItemId,
+  type ReviewInboxItemSource,
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import AppTable from '@ui/display/table/Table';
 import type { BadgeProps } from '@ui/primitives/badge';
 import { Badge } from '@ui/primitives/badge';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
-import { Check, X } from 'lucide-react';
+import { ArrowRight, Check, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
@@ -41,6 +45,8 @@ export default function ReviewInboxApprovalsTable({
   onDecide,
 }: ReviewInboxApprovalsTableProps) {
   const translate = useTranslations('pages.publishing.review.inbox');
+  const { push } = useRouter();
+  const { href } = useOrgUrl();
   const isDeciding = decidingItemId !== null || isBulkDeciding;
 
   const columns = useMemo<TableColumn<IReviewInboxItem>[]>(
@@ -146,10 +152,25 @@ export default function ReviewInboxApprovalsTable({
 
   const actions = useMemo<TableAction<IReviewInboxItem>[]>(
     () => [
+      // A scheduled week is read in full on its own page before it is
+      // approved, so the row opens it instead of approving in place.
+      {
+        icon: <ArrowRight />,
+        isVisible: (item) => item.isResolvable && item.batchCount !== null,
+        onClick: (item) => {
+          const parsed = parseReviewInboxItemId(item.id);
+          if (parsed?.kind === 'mcp_approval') {
+            push(href(createPublishingBatchRoute(parsed.approvalId)));
+          }
+        },
+        tone: 'success',
+        tooltip: (item) =>
+          translate('reviewBatch', { count: item.batchCount ?? 0 }),
+      },
       {
         icon: <Check />,
         isDisabled: () => isDeciding,
-        isVisible: (item) => item.isResolvable,
+        isVisible: (item) => item.isResolvable && item.batchCount === null,
         onClick: (item) => {
           void onDecide(item, 'approve');
         },
@@ -167,7 +188,7 @@ export default function ReviewInboxApprovalsTable({
         tooltip: translate('reject'),
       },
     ],
-    [isDeciding, onDecide, translate],
+    [href, isDeciding, onDecide, push, translate],
   );
 
   return (

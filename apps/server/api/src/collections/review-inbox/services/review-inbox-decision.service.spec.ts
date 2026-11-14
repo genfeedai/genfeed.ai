@@ -2,6 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { ReviewInboxDecisionService } from '@api/collections/review-inbox/services/review-inbox-decision.service';
+import type { ScheduledReleaseBatchApprovalService } from '@api/collections/review-inbox/services/scheduled-release-batch-approval.service';
 import type { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import type { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -26,7 +27,11 @@ describe('ReviewInboxDecisionService', () => {
   const prisma = { workflowExecution: { findFirst: vi.fn() } };
   const brandAccess = { assert: vi.fn() };
   const workflowExecutor = { submitReviewGateApproval: vi.fn() };
-  const mcpApprovals = { resolve: vi.fn() };
+  const mcpApprovals = { findOwned: vi.fn(), resolve: vi.fn() };
+  const scheduledBatches = {
+    assertKeepsPosts: vi.fn(),
+    schedule: vi.fn(),
+  };
   const moduleAccess = { assertAccess: vi.fn() };
   let service: ReviewInboxDecisionService;
 
@@ -40,6 +45,10 @@ describe('ReviewInboxDecisionService', () => {
       approvedAt: '2026-10-03T00:00:00.000Z',
       status: 'approved',
     });
+    mcpApprovals.findOwned.mockResolvedValue({
+      arguments: {},
+      toolName: 'create_post',
+    });
     mcpApprovals.resolve.mockResolvedValue({
       resolvedAt: new Date('2026-10-03T00:00:00.000Z'),
     });
@@ -49,6 +58,7 @@ describe('ReviewInboxDecisionService', () => {
       workflowExecutor as unknown as WorkflowExecutorService,
       mcpApprovals as unknown as McpApprovalsService,
       moduleAccess as unknown as OrganizationModuleAccessService,
+      scheduledBatches as unknown as ScheduledReleaseBatchApprovalService,
     );
   });
 
@@ -235,6 +245,79 @@ describe('ReviewInboxDecisionService', () => {
       expect(result.decided.map((entry) => entry.itemId)).toEqual([
         'workflow_review_gate:exec-1:gate:1',
       ]);
+    });
+  });
+
+  describe('a scheduled week', () => {
+    const batchApproval = {
+      arguments: { releases: [{}, {}, {}] },
+      toolName: 'create_scheduled_release',
+    };
+
+    beforeEach(() => {
+      scheduledBatches.assertKeepsPosts.mockReset();
+      mcpApprovals.findOwned.mockResolvedValue(batchApproval);
+      mcpApprovals.resolve.mockResolvedValue({
+        ...batchApproval,
+        resolvedAt: new Date('2026-10-03T00:00:00.000Z'),
+      });
+    });
+
+    it('is never approved without the reviewer naming the posts they removed', async () => {
+      await expect(
+        service.decide(user, fullAccess, {
+          decision: 'approve',
+          itemId: 'mcp_approval:apr-1',
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(mcpApprovals.resolve).not.toHaveBeenCalled();
+    });
+
+    it('is not approved when the reviewer removed every post', async () => {
+      scheduledBatches.assertKeepsPosts.mockImplementation(() => {
+        throw new BadRequestException('Every post was removed.');
+      });
+
+      await expect(
+        service.decide(user, fullAccess, {
+          decision: 'approve',
+          excludedIndexes: [0, 1, 2],
+          itemId: 'mcp_approval:apr-1',
+        }),
+      ).rejects.toThrow('Every post was removed.');
+      expect(mcpApprovals.resolve).not.toHaveBeenCalled();
+    });
+
+    it('schedules the kept posts and reports how many were scheduled', async () => {
+      scheduledBatches.schedule.mockResolvedValue({
+        created: [
+          { index: 0, releaseId: 'r1' },
+          { index: 2, releaseId: 'r3' },
+        ],
+        errors: [{ index: 1, message: 'bad' }],
+      });
+
+      const result = await service.decide(user, fullAccess, {
+        decision: 'approve',
+        excludedIndexes: [],
+        itemId: 'mcp_approval:apr-1',
+      });
+
+      expect(result).toMatchObject({
+        scheduled: { created: 2, failed: 1 },
+        status: 'approved',
+      });
+    });
+
+    it('declines without scheduling anything', async () => {
+      const result = await service.decide(user, fullAccess, {
+        decision: 'reject',
+        itemId: 'mcp_approval:apr-1',
+      });
+
+      expect(result.status).toBe('rejected');
+      expect(result.scheduled).toBeUndefined();
+      expect(scheduledBatches.schedule).not.toHaveBeenCalled();
     });
   });
 });

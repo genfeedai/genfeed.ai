@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { SCHEDULED_RELEASE_BATCH_MAX } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type {
   ScheduledReleaseControlAction,
@@ -46,6 +48,8 @@ export function handleSchedulerTool(
   client: ClientService,
   name: string,
   args: Record<string, unknown>,
+  /** The approval this call runs under; its id keys a batch so a retry never doubles it. */
+  approvalId?: string,
 ) {
   const handlers: Record<
     string,
@@ -61,6 +65,12 @@ export function handleSchedulerTool(
       return textDataResult('Scheduled release updated', result);
     },
     create_scheduled_release: async (a) => {
+      if (a.releases !== undefined) {
+        return createReleaseBatch(client, a, approvalId);
+      }
+      if (a.release === undefined) {
+        throw new Error('Pass release (one) or releases (a batch)');
+      }
       const release = createReleasePayload(a);
       const result = await client.createScheduledRelease(
         release,
@@ -150,6 +160,56 @@ export function handleSchedulerTool(
   const handler = handlers[name];
   if (!handler) throw new Error(`Unknown scheduler tool: ${name}`);
   return handler(args);
+}
+
+/**
+ * Creates every release of a batch once it was approved. Each release is
+ * keyed `<key>:<position>`, so repeating the call returns the releases already
+ * made. A bad release is named; the rest are created.
+ */
+async function createReleaseBatch(
+  client: ClientService,
+  args: Record<string, unknown>,
+  approvalId: string | undefined,
+) {
+  if (args.release !== undefined) {
+    throw new Error('Pass either release or releases, not both');
+  }
+  const releases = batchReleases(args);
+  // Drafts run with no approval; the same releases then share one key.
+  const key =
+    approvalId ??
+    optionalString(args, 'idempotencyKey') ??
+    createHash('sha256').update(JSON.stringify(releases)).digest('hex');
+  const result = await client.scheduler.createScheduledReleaseBatch(
+    releases,
+    key,
+  );
+  return textDataResult(
+    `Scheduled ${result.created.length} of ${releases.length} releases`,
+    result,
+  );
+}
+
+/** The `releases` of a batch call, each checked for the fields every release needs. */
+export function batchReleases(
+  args: Record<string, unknown>,
+): Record<string, unknown>[] {
+  const releases = args.releases;
+  if (!Array.isArray(releases) || releases.length === 0) {
+    throw new Error('releases must be a non-empty array');
+  }
+  if (releases.length > SCHEDULED_RELEASE_BATCH_MAX) {
+    throw new Error(
+      `releases holds at most ${SCHEDULED_RELEASE_BATCH_MAX} releases`,
+    );
+  }
+  return releases.map((release, index) => {
+    if (!isRecord(release)) {
+      throw new Error(`releases[${index}] must be an object`);
+    }
+    return createReleasePayload({ release });
+  });
 }
 
 function createReleasePayload(

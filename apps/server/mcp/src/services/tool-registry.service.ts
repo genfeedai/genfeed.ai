@@ -8,7 +8,6 @@ import {
   isMcpBrandRequiredWhenMultipleTool,
   isToolAllowedInMcpAccessMode,
   type McpAccessMode,
-  type McpBrandOption,
   type McpToolOutput,
   readMcpBrandId,
   type ToolsetName,
@@ -16,7 +15,10 @@ import {
 } from '@genfeedai/actions';
 import { formatAgentError } from '@genfeedai/agent/server';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import {
+  type AgentToolResult,
+  type IScheduledReleaseBatchItemError,
+} from '@genfeedai/contracts/interfaces';
 import { serializeMediaArtifact } from '@genfeedai/helpers';
 import { SATOSHI_FONT_RESOURCE_PATH } from '@genfeedai/ui/static/font';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
@@ -58,6 +60,7 @@ import {
   brandChoiceToolResult,
   brandRequiredToolResult,
 } from '@mcp/services/mcp-brand-required-result.util';
+import { listCallerBrands } from '@mcp/services/mcp-caller-brands.util';
 import {
   resolveAuthorizedMcpCatalogCall,
   validateMcpCatalogDispatchCoverage,
@@ -69,6 +72,11 @@ import {
   jsonResource,
   markdownResource,
 } from '@mcp/services/mcp-resource-contents.util';
+import {
+  batchPendingFor,
+  prepareToolBatch,
+  settledBatchText,
+} from '@mcp/services/mcp-scheduled-batch.util';
 import { finalizeMcpToolResult } from '@mcp/services/mcp-tool-result.util';
 import type {
   McpApprovalAnswer,
@@ -482,23 +490,30 @@ export class ToolRegistryService implements OnModuleInit {
           return await this.runApprovedApproval(settled.approval);
         }
         return settled.kind === 'pending'
-          ? withApprovalCard(this.pendingResult(settled.approval, args ?? {}))
+          ? await this.pendingResult(settled.approval, args ?? {})
           : this.textResult(settled.message);
       }
 
       // Declared approvals and credit spenders wait for confirmation, unless the
       // organization and member both waived a credit spender (mcp-approval-gate.util).
+      // A release batch is validated whole first; refused releases are named (#10134).
+      const prepared = await prepareToolBatch(this.clientService, name, args);
+      if (prepared.kind === 'rejected') return prepared.result;
+      args = prepared.args;
+
       if (await requiresMcpToolApproval(this.clientService, name, args)) {
         const approval = await this.clientService.createApproval(
           name,
           args ?? {},
         );
+        const settled = settledBatchText(approval);
+        if (settled) return this.textResult(settled);
         // A reviewer approved this exact call in the Genfeed review inbox
         // (#7340); repeating it runs the approved action once.
         if (approval.status === 'APPROVED' && !approval.result) {
           return await this.runApprovedApproval(approval);
         }
-        return withApprovalCard(this.pendingResult(approval, args ?? {}));
+        return this.pendingResult(approval, args ?? {}, prepared.invalid);
       }
 
       return await this.executeTool(name, args ?? {});
@@ -508,21 +523,8 @@ export class ToolRegistryService implements OnModuleInit {
     }
   }
 
-  /** The caller's brands, or `undefined` when they could not be loaded. */
-  private async listCallerBrands(): Promise<McpBrandOption[] | undefined> {
-    const result = await this.clientService.executeAgentTool('get_brands', {});
-    const brands = isRecord(result.data) ? result.data.brands : undefined;
-    if (!result.success || !Array.isArray(brands)) return undefined;
-    return brands.flatMap((brand): McpBrandOption[] => {
-      if (!isRecord(brand) || typeof brand.id !== 'string') return [];
-      const label =
-        typeof brand.label === 'string' && brand.label.trim()
-          ? brand.label
-          : typeof brand.name === 'string' && brand.name.trim()
-            ? brand.name
-            : brand.id;
-      return [{ id: brand.id, label }];
-    });
+  private listCallerBrands() {
+    return listCallerBrands(this.clientService);
   }
 
   static classify(name: string): ExecutorKind {
@@ -648,7 +650,12 @@ export class ToolRegistryService implements OnModuleInit {
       case 'remix':
         return handleRemixTool(this.clientService, name, args);
       case 'scheduler':
-        return handleSchedulerTool(this.clientService, name, args);
+        return handleSchedulerTool(
+          this.clientService,
+          name,
+          args,
+          approvedApprovalId,
+        );
       case 'skills-pro':
         return handleSkillsProTool(this.clientService, name, args);
       default:
@@ -796,14 +803,23 @@ export class ToolRegistryService implements OnModuleInit {
     }
   }
 
-  private pendingResult(
+  private async pendingResult(
     approval: McpApprovalResource,
     args: Record<string, unknown>,
+    invalidReleases: IScheduledReleaseBatchItemError[] = [],
   ) {
     const canResolveApproval = this.getTools().some(
       (candidate) => candidate.name === 'resolve_approval',
     );
-    return pendingApprovalResult(approval, args, canResolveApproval);
+    const batch = await batchPendingFor(
+      this.clientService,
+      approval,
+      invalidReleases,
+      this.logger,
+    );
+    return withApprovalCard(
+      pendingApprovalResult(approval, args, canResolveApproval, batch),
+    );
   }
 
   private textResult(text: string) {
