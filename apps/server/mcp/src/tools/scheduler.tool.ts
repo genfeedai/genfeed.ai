@@ -192,7 +192,7 @@ async function createReleaseBatch(
 }
 
 /** The `releases` of a batch call, each checked for the fields every release needs. */
-export function batchReleases(
+function batchReleases(
   args: Record<string, unknown>,
 ): Record<string, unknown>[] {
   const releases = args.releases;

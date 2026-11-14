@@ -277,7 +277,7 @@ export default function ScheduledReleaseBatchReview({
       ) : null}
 
       {isPending && !batch.isDeciding ? (
-        <div className="sticky top-0 z-10 -mx-1 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-background/95 px-1 py-2 backdrop-blur">
+        <div className="sticky top-0 z-10 -mx-1 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-background/90 px-1 py-2 backdrop-blur">
           <div className="flex flex-col">
             <span className="text-sm font-medium text-foreground">
               {translate('barSummary', {
