@@ -738,7 +738,7 @@ describe('PostGroupsService', () => {
         }),
       }),
     );
-    expect(result.targets[0]?.settings).toEqual({
+    expect(result.targets?.[0]?.settings).toEqual({
       quotedPost: '1856322244019101979',
       replyPolicy: 'everyone',
     });
