@@ -2,9 +2,17 @@
   "dependencies": {
     "@genfeedai/libs": "workspace:*",
     "@genfeedai/config": "workspace:*",
+    "@nestjs/common": "12.5.0",
+    "@nestjs/core": "12.5.0",
+    "@nestjs/platform-express": "12.5.0",
+    "@nestjs/websockets": "12.5.0",
+    "@sentry/nestjs": "11.12.0",
     "@slack/web-api": "8.4.0",
+    "axios": "1.21.1",
+    "joi": "18.3.2",
     "jose": "^6.2.17",
     "node-pty": "1.1.0",
+    "socket.io": "4.8.4",
     "tsconfig-paths": "4.2.0",
     "@genfeedai/contracts": "workspace:*"
   },
@@ -37,5 +45,8 @@
     "dev:debug": "bun run dev:process"
   },
   "version": "1.0.0",
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "express": "5.3.0"
+  }
 }

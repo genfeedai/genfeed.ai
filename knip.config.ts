@@ -64,9 +64,11 @@ const config: KnipConfig = {
         'docker/**',
       ],
       // The web next.config test pins one hoisted next-intl copy at the repo
-      // root for turbopack (apps/web/next.config.test.ts), so the root keeps
-      // it although only workspaces import it.
-      ignoreDependencies: ['next-intl'],
+      // root for turbopack (apps/web/next.config.test.ts), and root `overrides`
+      // sets `"socket.io": "$socket.io"`, which Bun resolves from this
+      // manifest's own dependency. Both stay listed here although only
+      // workspaces import them.
+      ignoreDependencies: ['next-intl', 'socket.io'],
     },
 
     // Backend services — NestJS apps
