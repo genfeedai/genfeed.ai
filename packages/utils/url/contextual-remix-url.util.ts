@@ -1,7 +1,7 @@
 import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 
-export const CONTEXTUAL_REMIX_SOURCE_QUERY_KEY = 'sourceArtifact';
-export const CONTEXTUAL_REMIX_SOURCE_VERSION_QUERY_KEY = 'sourceVersion';
+const CONTEXTUAL_REMIX_SOURCE_QUERY_KEY = 'sourceArtifact';
+const CONTEXTUAL_REMIX_SOURCE_VERSION_QUERY_KEY = 'sourceVersion';
 
 type ContextualRemixArtifactReference = Extract<
   AgentArtifactReference,

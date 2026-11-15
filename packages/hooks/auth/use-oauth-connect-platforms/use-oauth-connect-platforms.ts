@@ -10,7 +10,7 @@ import { ServicesService } from '@services/external/services.service';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
-export const OAUTH_CONNECT_READINESS_QUERY_KEY = 'oauth-connect-readiness';
+const OAUTH_CONNECT_READINESS_QUERY_KEY = 'oauth-connect-readiness';
 
 /**
  * Resolve the shared OAuth catalog against live server readiness. A missing,

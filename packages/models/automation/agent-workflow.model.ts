@@ -1,4 +1,4 @@
-export const AGENT_WORKFLOW_PHASES = [
+const AGENT_WORKFLOW_PHASES = [
   'exploring',
   'clarifying',
   'proposing',

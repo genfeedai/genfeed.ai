@@ -1,12 +1,12 @@
 import { BaseEntity } from '@genfeedai/client/models';
 
 export type LivestreamSessionStatus = 'active' | 'paused' | 'stopped';
-export type LivestreamMessageType =
+type LivestreamMessageType =
   | 'scheduled_link_drop'
   | 'scheduled_host_prompt'
   | 'context_aware_question';
 
-export interface LivestreamManualOverride {
+interface LivestreamManualOverride {
   topic?: string;
   promotionAngle?: string;
   activeLinkId?: string;

@@ -42,7 +42,7 @@ const QUOTED_VALUE_PATTERN = /^(['"])([\s\S]*)\1$/;
 export const DOCS_ORIGIN = 'https://docs.genfeed.ai';
 
 /** Keep going past this length so descriptions are not truncated in results. */
-export const DESCRIPTION_MIN_LENGTH = 110;
+const DESCRIPTION_MIN_LENGTH = 110;
 
 /** Google truncates around here; stay inside it. */
 export const DESCRIPTION_MAX_LENGTH = 160;
@@ -203,7 +203,7 @@ export function deriveDescription(source: string): string | null {
  * this, but reading it here too means the fallback chain holds even if the
  * caller passes nothing — and lets tests assert the real shipped values.
  */
-export function readFrontmatterDescription(source: string): string | null {
+function readFrontmatterDescription(source: string): string | null {
   const block = FRONTMATTER_BLOCK_PATTERN.exec(source);
   if (block === null) {
     return null;

@@ -8,8 +8,6 @@ import {
   readPinnedAppRuntime,
 } from './request-serializer-build-receipt';
 
-export { readPinnedAppRuntime } from './request-serializer-build-receipt';
-
 const SERIALIZERS_PACKAGE_PATH_PATTERN = /\/packages\/serializers\//;
 const FORBIDDEN_NODE_MODULE_PATH_PATTERN =
   /\/node_modules\/(?:ts-jsonapi|lodash)\//;
@@ -88,7 +86,7 @@ type DeferredEvidence = {
   alreadyInitialOutputEvidence: OutputEvidence[];
 };
 
-export type BundleFailureDiagnostic = {
+type BundleFailureDiagnostic = {
   status: 'failed';
   route: string;
   reason: string;

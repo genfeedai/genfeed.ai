@@ -1,7 +1,7 @@
 import type { ContextSidebarSelectionKind } from '@props/ui/context-sidebar.props';
 import type { Key, ReactNode } from 'react';
 
-export interface TableGroupHeading {
+interface TableGroupHeading {
   key: string;
   content: ReactNode;
 }
@@ -197,7 +197,7 @@ interface TableActionBase<T> {
 export type TableActionTone = 'default' | 'success' | 'destructive';
 
 /** Row action that acts in place. */
-export interface TableButtonAction<T> extends TableActionBase<T> {
+interface TableButtonAction<T> extends TableActionBase<T> {
   href?: never;
   isExternal?: never;
   onClick?: (item: T) => void;
@@ -209,7 +209,7 @@ export interface TableButtonAction<T> extends TableActionBase<T> {
  * a row with nowhere to go — the action is then omitted for that row.
  * `onClick` runs alongside the navigation (for tracking), not instead of it.
  */
-export interface TableLinkAction<T> extends TableActionBase<T> {
+interface TableLinkAction<T> extends TableActionBase<T> {
   href: string | ((item: T) => string | undefined);
   /** Off-site destination: opens in a new tab with `noopener noreferrer`. */
   isExternal?: boolean;

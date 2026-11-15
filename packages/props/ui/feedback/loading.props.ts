@@ -6,17 +6,3 @@ export interface LoadingProps {
   message?: string;
   className?: string;
 }
-
-/**
- * Loading states for tracking multiple async operations
- */
-export interface LoadingStates {
-  isPublishing?: boolean;
-  isUpscaling?: boolean;
-  isDeleting?: boolean;
-  isLoading?: boolean;
-  isSubmitting?: boolean;
-  isSaving?: boolean;
-  isFetching?: boolean;
-  [key: string]: boolean | undefined;
-}

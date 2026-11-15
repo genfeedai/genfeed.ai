@@ -9,8 +9,8 @@ import type {
  */
 export const MOOD_BOARD_TILE_WIDTH = 280;
 export const MOOD_BOARD_TILE_HEIGHT = 320;
-export const MOOD_BOARD_GRID_GAP = 32;
-export const MOOD_BOARD_DEFAULT_COLUMNS = 5;
+const MOOD_BOARD_GRID_GAP = 32;
+const MOOD_BOARD_DEFAULT_COLUMNS = 5;
 /**
  * Fallback aspect ratio (width / height) when an ingredient has no usable
  * dimensions. Must match `MediaAssetNode`, which renders each tile at
@@ -25,7 +25,7 @@ export const MOOD_BOARD_DEFAULT_ASPECT_RATIO = 4 / 5;
  * `MediaAssetNode` sizing so auto-placement can sit below saved tiles without
  * overlapping their lower edge.
  */
-export function moodBoardTileHeight(ingredient?: {
+function moodBoardTileHeight(ingredient?: {
   metadataWidth?: number;
   metadataHeight?: number;
 }): number {
@@ -42,7 +42,7 @@ export function moodBoardTileHeight(ingredient?: {
  * A canvas-ready asset: a live ingredient paired with the position it should
  * render at. Produced by {@link mergeMoodBoardLayout}.
  */
-export interface MoodBoardNodeSeed {
+interface MoodBoardNodeSeed {
   assetId: string;
   ingredient: IIngredient;
   position: { x: number; y: number };

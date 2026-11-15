@@ -6,7 +6,7 @@ import type { ViewOption } from '@genfeedai/props/ui/navigation/view-option.prop
  * - `label` — the active option's name, for views an icon cannot tell apart
  *   (a calendar's Day, Week, Month).
  */
-export type ViewMenuTrigger = 'icon' | 'label';
+type ViewMenuTrigger = 'icon' | 'label';
 
 export interface ViewMenuProps<TView extends string = ViewType> {
   /** Layouts this page supports. A single option renders nothing. */

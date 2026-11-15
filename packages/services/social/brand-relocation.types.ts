@@ -7,7 +7,7 @@ import type { Brand } from '@genfeedai/models/organization/brand.model';
 /**
  * Counts returned by the relocation preview endpoint.
  */
-export interface IBrandRelocationCounts {
+interface IBrandRelocationCounts {
   soleBrandWorkflows: number;
   staleMembers: number;
   schedulesToHold: number;

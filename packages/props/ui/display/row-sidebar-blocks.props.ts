@@ -6,7 +6,7 @@ export interface RowSidebarSectionProps {
   title: string;
 }
 
-export interface RowSidebarStat {
+interface RowSidebarStat {
   id: string;
   label: string;
   /** Already formatted for display. */
@@ -31,7 +31,7 @@ export interface RowSidebarTrendProps {
   points: number[];
 }
 
-export interface RowSidebarBreakdownRow {
+interface RowSidebarBreakdownRow {
   id: string;
   /** Leading mark, e.g. a platform icon. */
   icon?: ReactNode;
@@ -48,7 +48,7 @@ export interface RowSidebarBreakdownProps {
   rows: RowSidebarBreakdownRow[];
 }
 
-export interface RowSidebarItem {
+interface RowSidebarItem {
   id: string;
   /** Page the item opens; omit for a plain row. */
   href?: string;
