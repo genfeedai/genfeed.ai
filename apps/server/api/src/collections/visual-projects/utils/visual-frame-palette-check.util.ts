@@ -13,12 +13,12 @@ const BUCKET_SHIFT = 5;
 const MAX_ISSUES = 3;
 const FRAME_NAMES = ['first', 'middle', 'last'] as const;
 
-export interface IVisualPaletteColor {
+interface IVisualPaletteColor {
   role: string;
   color: string;
 }
 
-export type VisualPaletteCheckStatus = 'passed' | 'failed' | 'not_checked';
+type VisualPaletteCheckStatus = 'passed' | 'failed' | 'not_checked';
 
 export interface IVisualPaletteCheck {
   status: VisualPaletteCheckStatus;
