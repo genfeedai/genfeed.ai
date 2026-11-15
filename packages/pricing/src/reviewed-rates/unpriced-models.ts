@@ -85,8 +85,10 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
  * quiet about them: the reason is already recorded above.
  */
 export function isKnownUnavailableModel(modelKey: string): boolean {
-  const reason = Object.getOwnPropertyDescriptor(UNPRICED_MODELS, modelKey)
-    ?.value;
+  const reason = Object.getOwnPropertyDescriptor(
+    UNPRICED_MODELS,
+    modelKey,
+  )?.value;
   return reason === IDENTITY_404 || reason === FAL_ENDPOINT_GONE;
 }
 

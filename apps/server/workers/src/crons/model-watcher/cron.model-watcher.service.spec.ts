@@ -10,6 +10,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@workers/config/config.service';
 import { CronModelWatcherService } from '@workers/crons/model-watcher/cron.model-watcher.service';
+import type { IReplicateModel } from '@workers/interfaces/model-discovery.interface';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 import { PlatformMarginService } from '@workers/services/platform-margin.service';
 import { ReplicateModelContractSyncService } from '@workers/services/replicate-model-contract-sync.service';
@@ -1253,7 +1254,7 @@ describe('CronModelWatcherService', () => {
               name === 'upscaler'
                 ? { status: 'not_found' as const }
                 : {
-                    model: listed(owner, name),
+                    model: listed(owner, name) as unknown as IReplicateModel,
                     status: 'ok' as const,
                   },
             ),
