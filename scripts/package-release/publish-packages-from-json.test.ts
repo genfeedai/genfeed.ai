@@ -436,6 +436,24 @@ describe('publish package release planning', () => {
     ]);
   });
 
+  it('reads declaration imports without matching comments or string literal types', () => {
+    const source = `
+      import type { Foo } from './foo.js';
+      import type { RefObject } from 'react';
+      export type { Bar } from "bar-package";
+      export type Lazy = import('lazy-package').Lazy;
+      /** Sent from "Brand" on the shared domain, never "captured empty". */
+      export type DataAction = 'copy' | 'paste' | 'import' | 'export';
+    `;
+
+    expect(collectModuleSpecifiers(source, 'dist/types/input.d.ts')).toEqual([
+      './foo.js',
+      'react',
+      'bar-package',
+      'lazy-package',
+    ]);
+  });
+
   it('parses non-strict CommonJS files as scripts', () => {
     const source = "with ({}) { require('common-package'); }";
 

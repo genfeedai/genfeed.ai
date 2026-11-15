@@ -1,9 +1,7 @@
 {
   "dependencies": {
-    "@genfeedai/client": "workspace:*",
     "@genfeedai/contracts": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
-    "@genfeedai/pricing": "workspace:*",
     "@google/model-viewer": "4.4.0",
     "@hookform/resolvers": "7.0.6",
     "@tanstack/react-query": "5.107.1",
@@ -63,30 +61,13 @@
       "import": "./dist/*.js",
       "default": "./dist/*.js"
     },
-    "./web-tokens.css": "./web-tokens.css",
-    "./components/display/video-player/VideoPlayer": {
-      "types": "./src/components/display/video-player/VideoPlayer.tsx",
-      "import": "./src/components/display/video-player/VideoPlayer.tsx",
-      "default": "./src/components/display/video-player/VideoPlayer.tsx"
-    },
-    "./components/display/video-player/VideoPlayerControls": {
-      "types": "./src/components/display/video-player/VideoPlayerControls.tsx",
-      "import": "./src/components/display/video-player/VideoPlayerControls.tsx",
-      "default": "./src/components/display/video-player/VideoPlayerControls.tsx"
-    },
-    "./components/media-player/MediaPlayer": {
-      "types": "./src/components/media-player/MediaPlayer.tsx",
-      "import": "./src/components/media-player/MediaPlayer.tsx",
-      "default": "./src/components/media-player/MediaPlayer.tsx"
-    }
+    "./web-tokens.css": "./web-tokens.css"
   },
   "files": [
     "dist",
-    "web-tokens.css",
-    "src/components/display/video-player",
-    "src/components/media-player"
+    "web-tokens.css"
   ],
-  "license": "MIT",
+  "license": "AGPL-3.0",
   "main": "./dist/index.js",
   "name": "@genfeedai/ui",
   "peerDependencies": {
@@ -126,7 +107,10 @@
     "sonner": "2.0.8",
     "tailwind-merge": "3.5.0"
   },
-  "private": true,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "repository": {
     "directory": "packages/ui",
     "type": "git",

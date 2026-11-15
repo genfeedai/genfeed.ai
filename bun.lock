@@ -901,6 +901,18 @@
         "typescript": "6.0.3",
         "vitest": "5.1.0",
       },
+      "peerDependencies": {
+        "@xyflow/react": ">=12.0.0",
+        "next": ">=14.0.0",
+        "react": ">=18.0.0",
+        "react-hook-form": ">=7.0.0",
+      },
+      "optionalPeers": [
+        "@xyflow/react",
+        "next",
+        "react",
+        "react-hook-form",
+      ],
     },
     "packages/create": {
       "name": "@genfeedai/create",
@@ -978,6 +990,7 @@
       "dependencies": {
         "@genfeedai/contracts": "workspace:*",
         "clsx": "2.1.1",
+        "date-fns": "4.4.0",
         "htmlparser2": "12.0.0",
         "lucide-react": "1.72.0",
         "sanitize-html": "2.18.2",
@@ -992,13 +1005,21 @@
         "@types/sanitize-html": "2.16.2",
         "@types/twitter-text": "3.1.10",
         "@typescript/native": "npm:typescript@7.0.2",
-        "date-fns": "4.4.0",
         "file-saver": "2.0.5",
         "next": "16.4.6",
         "react": "19.3.1",
         "react-dom": "19.3.1",
         "react-hook-form": "7.92.0",
       },
+      "peerDependencies": {
+        "next": ">=14.0.0",
+        "react": ">=18.0.0",
+        "react-hook-form": ">=7.0.0",
+      },
+      "optionalPeers": [
+        "next",
+        "react-hook-form",
+      ],
     },
     "packages/hooks": {
       "name": "@genfeedai/hooks",
@@ -1198,6 +1219,10 @@
         "@tailwindcss/typography": "0.5.20",
         "tailwindcss": "4.3.5",
       },
+      "peerDependencies": {
+        "@tailwindcss/typography": ">=0.5.0",
+        "tailwindcss": ">=4.0.0",
+      },
     },
     "packages/tsconfig": {
       "name": "@genfeedai/tsconfig",
@@ -1207,10 +1232,8 @@
       "name": "@genfeedai/ui",
       "version": "2.0.1",
       "dependencies": {
-        "@genfeedai/client": "workspace:*",
         "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
-        "@genfeedai/pricing": "workspace:*",
         "@google/model-viewer": "4.4.0",
         "@hookform/resolvers": "7.0.6",
         "@tanstack/react-query": "5.107.1",

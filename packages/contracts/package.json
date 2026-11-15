@@ -127,7 +127,30 @@
   "license": "AGPL-3.0",
   "main": "./dist/index.js",
   "name": "@genfeedai/contracts",
-  "private": true,
+  "peerDependencies": {
+    "@xyflow/react": ">=12.0.0",
+    "next": ">=14.0.0",
+    "react": ">=18.0.0",
+    "react-hook-form": ">=7.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@xyflow/react": {
+      "optional": true
+    },
+    "next": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-hook-form": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "repository": {
     "directory": "packages/contracts",
     "type": "git",
