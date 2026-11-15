@@ -38,7 +38,7 @@ const NETWORK_ERROR_CODES = new Set([
   'ETIMEDOUT',
 ]);
 
-export type LinkedInOAuthErrorKind =
+type LinkedInOAuthErrorKind =
   | 'config'
   | 'provider_client'
   | 'provider_unavailable'

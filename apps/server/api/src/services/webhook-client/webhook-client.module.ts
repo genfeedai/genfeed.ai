@@ -11,11 +11,7 @@ import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 
-export { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
-export { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
 export { WebhookDispatchService } from '@api/services/webhook-client/webhook-dispatch.service';
-export { WorkflowEventWebhookService } from '@api/services/webhook-client/workflow-event-webhook.service';
-
 export const WEBHOOK_CLIENT_DEFAULT_JOB_OPTIONS = {
   attempts: 5,
   backoff: {

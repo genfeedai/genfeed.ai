@@ -4,7 +4,7 @@ import type {
   UnifiedInsights,
 } from '@genfeedai/contracts/interfaces';
 
-export const ADS_INSIGHTS_PRESETS = [
+const ADS_INSIGHTS_PRESETS = [
   'today',
   'yesterday',
   'last_7d',

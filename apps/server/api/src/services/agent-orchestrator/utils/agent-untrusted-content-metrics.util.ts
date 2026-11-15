@@ -10,7 +10,7 @@ import * as Sentry from '@sentry/nestjs';
  *   limit, sent as a bounded sample) left an unclassified tail.
  * - `adapter`: the gate itself failed and the content passed through.
  */
-export type AgentUntrustedContentGapCategory = 'adapter' | 'oversize';
+type AgentUntrustedContentGapCategory = 'adapter' | 'oversize';
 
 /** Every gate metric carries the origin and the mode that produced it. */
 export interface AgentUntrustedContentMetricAttributes {

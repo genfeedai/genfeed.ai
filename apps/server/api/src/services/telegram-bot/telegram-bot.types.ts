@@ -49,7 +49,7 @@ export interface WorkflowInput {
 }
 
 /** Conversation state machine step per chat */
-export type ConversationStep =
+type ConversationStep =
   | 'idle'
   | 'selecting_workflow'
   | 'collecting_inputs'
@@ -84,9 +84,3 @@ export type TelegramWorkflowName =
   | 'image-to-video'
   | 'single-image'
   | 'single-video';
-
-export interface ReplicatePredictionResult {
-  status?: string;
-  output?: unknown;
-  error?: string;
-}

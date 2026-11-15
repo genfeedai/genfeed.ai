@@ -49,11 +49,7 @@ import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 const LEADING_AT_SIGN_PATTERN = /^@/;
 const WWW_PREFIX_PATTERN = /^www\./;
 
-export type SignupPrefillStatus =
-  | 'completed'
-  | 'failed'
-  | 'running'
-  | 'skipped';
+type SignupPrefillStatus = 'completed' | 'failed' | 'running' | 'skipped';
 
 export interface SignupPrefillMarker {
   brandDomain?: string;

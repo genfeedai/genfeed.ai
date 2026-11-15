@@ -213,7 +213,7 @@ function singleActionWorkflow(
   return definition(canonicalId, label, description, [action], [], action.id);
 }
 
-export function buildAiInfluencerDailyPostWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildAiInfluencerDailyPostWorkflowDefinition(): SystemWorkflowGraphDefinition {
   const prepare = actionNode(
     AI_INFLUENCER_ACTION_IDS.DAILY_PREPARE,
     'prepare-daily-post',

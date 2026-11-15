@@ -70,7 +70,7 @@ export function parsePlanQuestion(
  * The steps a JSON plan lists: `{ step }` as the planner is asked, or a bare
  * string. Steps with no text drop out.
  */
-export function readPlanSteps(
+function readPlanSteps(
   parsed: Record<string, unknown>,
 ): Record<string, unknown>[] {
   if (!Array.isArray(parsed.steps)) return [];

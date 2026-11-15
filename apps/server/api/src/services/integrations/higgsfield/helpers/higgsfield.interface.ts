@@ -17,10 +17,14 @@ export type HiggsFieldRequestStatus =
  * `canceled` is terminal too: a job cancelled through `/requests/{id}/cancel`
  * never reaches `completed`, so omitting it polls until the timeout.
  */
-export const HIGGSFIELD_TERMINAL_STATUSES: readonly HiggsFieldRequestStatus[] =
-  ['completed', 'failed', 'nsfw', 'canceled'];
+const HIGGSFIELD_TERMINAL_STATUSES: readonly HiggsFieldRequestStatus[] = [
+  'completed',
+  'failed',
+  'nsfw',
+  'canceled',
+];
 
-export interface HiggsFieldMediaRef {
+interface HiggsFieldMediaRef {
   url: string;
 }
 
@@ -53,7 +57,7 @@ export interface HiggsFieldDopInput {
   image_url: string;
 }
 
-export type HiggsFieldGenjutsuResolution = '480p' | '720p' | '1080p';
+type HiggsFieldGenjutsuResolution = '480p' | '720p' | '1080p';
 
 /** `POST /higgsfield/genjutsu/motion-transfer/v1.0` */
 export interface HiggsFieldGenjutsuInput {

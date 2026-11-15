@@ -27,7 +27,7 @@ const AI_INFLUENCER_PREFIX_PATTERN = /^ai-influencer/;
 /** Supported social platforms for AI influencer posts */
 export type AiInfluencerPlatform = 'instagram' | 'twitter';
 
-export type AiInfluencerPublishStatus = 'published' | 'queued' | 'failed';
+type AiInfluencerPublishStatus = 'published' | 'queued' | 'failed';
 
 /** Result of publishing to a single platform */
 export interface PlatformPublishResult {

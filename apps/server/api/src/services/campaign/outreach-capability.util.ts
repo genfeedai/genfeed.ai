@@ -42,7 +42,7 @@ export function requireInactiveOutreachCapabilityChange(): void {
   );
 }
 
-export function toOutreachCapabilityException(
+function toOutreachCapabilityException(
   error: OutreachCapabilityClientError,
 ): BadRequestException {
   return new BadRequestException({

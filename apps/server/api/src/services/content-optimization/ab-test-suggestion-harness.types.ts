@@ -1,7 +1,7 @@
 export const AB_TEST_SUGGESTION_SOURCE = 'ab-test-suggestion';
 export const AB_TEST_OUTCOME_ENTRY_TYPE = 'ab_test_outcome';
 
-export interface AbTestSuggestionInput {
+interface AbTestSuggestionInput {
   hypothesis: string;
   platform: string;
   suggestionId?: string;
@@ -24,7 +24,7 @@ export interface ExecuteAbTestSuggestionResult {
   suggestionId: string;
 }
 
-export type AbTestOutcomeStatus = 'resolved' | 'insufficient_evidence';
+type AbTestOutcomeStatus = 'resolved' | 'insufficient_evidence';
 
 export interface AbTestOutcome {
   groupId: string;
@@ -34,7 +34,7 @@ export interface AbTestOutcome {
   winnerVariantId?: string;
 }
 
-export interface BrandMemoryOutcomeEntry {
+interface BrandMemoryOutcomeEntry {
   content?: string;
   metadata?: {
     groupId?: string;

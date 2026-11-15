@@ -9,7 +9,7 @@ export interface WebsiteStylesheetEvidence {
   url: string;
   cssText: string;
 }
-export interface WebsiteFontCandidate {
+interface WebsiteFontCandidate {
   family: string;
   sourceUrl: string;
   weight?: string;

@@ -9,7 +9,7 @@ import type { BrandArtifactValidationInputV1 } from '@genfeedai/contracts/interf
 
 const VISUAL_ROLES = ['primary', 'image', 'video'];
 
-export interface BrandVisualPart {
+interface BrandVisualPart {
   id: string;
   version: string;
   hash: string;

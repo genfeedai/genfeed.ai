@@ -12,7 +12,7 @@ export const CAMPAIGN_DISPATCH_ACTION_IDS = {
   FINALIZE: 'campaign.dispatch.finalize',
 } as const;
 
-export const CAMPAIGN_DISPATCH_WORKFLOW_ID = 'campaign.dispatch.active';
+const CAMPAIGN_DISPATCH_WORKFLOW_ID = 'campaign.dispatch.active';
 
 function actionNode(
   actionId: (typeof CAMPAIGN_DISPATCH_ACTION_IDS)[keyof typeof CAMPAIGN_DISPATCH_ACTION_IDS],

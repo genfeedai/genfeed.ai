@@ -15,7 +15,7 @@ import sharp, { type Sharp } from 'sharp';
 /** A detected region is compared with the approved asset only at or above this confidence. */
 export const BRAND_PLACEMENT_MIN_DETECTION_SCORE = 0.3;
 /** A region matches the approved asset at or above this zero-mean normalized correlation. */
-export const BRAND_PLACEMENT_MIN_SIMILARITY = 0.7;
+const BRAND_PLACEMENT_MIN_SIMILARITY = 0.7;
 const MAX_REGIONS_PER_FRAME = 5;
 const MAX_MATCHES = 8;
 const COMPARE_EDGE = 32;

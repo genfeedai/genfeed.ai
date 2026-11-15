@@ -60,14 +60,6 @@ import {
   YT_ANALYTICS_READONLY_SCOPE,
 } from './youtube-authorized-signals-evidence.mapper';
 
-export {
-  YOUTUBE_FORCE_SSL_SCOPE,
-  YOUTUBE_READONLY_SCOPE,
-  YOUTUBE_SCOPE,
-  YOUTUBE_UPLOAD_SCOPE,
-  YT_ANALYTICS_READONLY_SCOPE,
-} from './youtube-authorized-signals-evidence.mapper';
-
 const YOUTUBE_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS = 5 * 60;
 const YOUTUBE_STALE_SIGNALS_CACHE_TTL_SECONDS = 60;
 const YOUTUBE_AUTHORIZED_SIGNALS_STORAGE_KEY = 'youtubeAuthorized';

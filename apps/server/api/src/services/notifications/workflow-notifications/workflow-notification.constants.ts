@@ -5,8 +5,6 @@ const RELATIVE_PATH_PATTERN = /^\/[^/]/;
 export const AGENT_STATUS_NOTIFICATION_TOPIC = 'agent.status';
 export const WORKFLOW_STATUS_NOTIFICATION_TOPIC = 'workflow.status';
 export const EMAIL_NOTIFICATION_CHANNEL = 'email';
-export const RESEND_NOTIFICATION_PROVIDER = 'resend';
-
 export type WorkflowOutcome = 'completed' | 'failed';
 
 export interface WorkflowStatusNotificationPayload {

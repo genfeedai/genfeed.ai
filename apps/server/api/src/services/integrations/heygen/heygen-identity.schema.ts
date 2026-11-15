@@ -1,7 +1,7 @@
 import { VoiceProvider } from '@genfeedai/contracts';
 import { z } from 'zod';
 
-export const heyGenConnectionSchema = z.object({
+const heyGenConnectionSchema = z.object({
   provider: z.literal('heygen'),
   kind: z.enum(['byok', 'platform']),
   organizationId: z.string().min(1),

@@ -18,7 +18,7 @@ export const HIGGSFIELD_CREDENTIAL_PROBE_PATH = '/v1/text2image/soul-styles/v2';
 export const HIGGSFIELD_SOUL_ENDPOINT = MODEL_KEYS.HIGGSFIELD_SOUL;
 
 /** Soul 2 documented `aspect_ratio` values. Unknown ratios snap to the default. */
-export const HIGGSFIELD_SOUL_ASPECT_RATIOS = [
+const HIGGSFIELD_SOUL_ASPECT_RATIOS = [
   '1:1',
   '2:3',
   '3:2',
@@ -31,8 +31,7 @@ export const HIGGSFIELD_SOUL_ASPECT_RATIOS = [
 export type HiggsFieldSoulAspectRatio =
   (typeof HIGGSFIELD_SOUL_ASPECT_RATIOS)[number];
 
-export const HIGGSFIELD_SOUL_DEFAULT_ASPECT_RATIO: HiggsFieldSoulAspectRatio =
-  '4:3';
+const HIGGSFIELD_SOUL_DEFAULT_ASPECT_RATIO: HiggsFieldSoulAspectRatio = '4:3';
 
 export type HiggsFieldSoulQuality = '720p' | '1080p';
 
@@ -72,7 +71,7 @@ export function resolveDopEndpoint(modelKey: string): string | undefined {
  * Older Higgsfield docs spelled the org `higgsfiled`. The catalog key is the
  * corrected endpoint id. A stored typo still dispatches there.
  */
-export const HIGGSFIELD_GENJUTSU_LEGACY_ENDPOINT =
+const HIGGSFIELD_GENJUTSU_LEGACY_ENDPOINT =
   'higgsfiled/genjutsu/motion-transfer/v1.0';
 
 export const HIGGSFIELD_GENJUTSU_RESOLUTIONS = [
