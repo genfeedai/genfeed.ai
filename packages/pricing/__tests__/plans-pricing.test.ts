@@ -93,16 +93,16 @@ describe('plan price formatting', () => {
 
   it('formats included credits per tier', () => {
     expect(formatPlanIncludedCredits('pro')).toBe('4,900 credits');
-    expect(formatPlanIncludedCredits('scale')).toBe('60,000 credits');
+    expect(formatPlanIncludedCredits('scale')).toBe('70,000 credits');
     expect(formatPlanIncludedCredits('payg')).toBe('');
     expect(formatPlanIncludedCredits('enterprise')).toBe('');
   });
 
   it('builds PLAN_COPY tokens from the same sources', () => {
     expect(PLAN_COPY.scale).toEqual({
-      creditRateAdvantage: '~17%',
-      includedCredits: '60,000 credits',
-      includedCreditsValue: '$600',
+      creditRateAdvantage: '~29%',
+      includedCredits: '70,000 credits',
+      includedCreditsValue: '$700',
       monthlyPrice: '$499/month',
       name: 'Scale',
       nameWithPrice: 'Scale ($499/month)',
@@ -122,7 +122,7 @@ describe('plan price formatting', () => {
   // Pro is priced at the PAYG rate (no bonus); only Scale carries a bonus.
   it.each([
     { bonus: 0, margin: 0.7, tier: 'pro' },
-    { bonus: 0.2, margin: 0.64, tier: 'scale' },
+    { bonus: 0.4, margin: 0.58, tier: 'scale' },
   ] as const)(
     'prices $tier at a $bonus credit bonus over the PAYG rate',
     ({ bonus, margin, tier }) => {
@@ -314,7 +314,7 @@ describe('pricing constants', () => {
     });
     expect(SUBSCRIPTION_PRICE_CONTRACTS.scale).toEqual({
       currency: 'usd',
-      includedMonthlyCredits: 60_000,
+      includedMonthlyCredits: 70_000,
       interval: 'month',
       unitAmount: 49_900,
     });
@@ -424,7 +424,7 @@ describe('website plan catalogue', () => {
     const scale = getScalePlan();
 
     expect(scale.interval).toBe('month');
-    expect(scale.includedCredits).toBe(60_000);
+    expect(scale.includedCredits).toBe(70_000);
     expect(scale.includedCredits).toBe(TIER_INCLUDED_MONTHLY_CREDITS.scale);
     expect(scale.features).toContain('Unlimited seats and client workspaces');
     expect(scale.features).toContain('Brand model training');

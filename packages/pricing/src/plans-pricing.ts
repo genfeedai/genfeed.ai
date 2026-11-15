@@ -15,7 +15,7 @@ import { FREE_API_RATE_LIMIT, PRO_API_RATE_LIMIT } from './tier-entitlements';
  * - Pay As You Go is free to join: buy credit packs, spend on any output
  * - Pro matches the pay-as-you-go rate (Pro $49 → 4,900 credits) and sells
  *   access to every app. Scale sells a better credit rate: its included
- *   monthly credits carry a ~20% bonus (Scale $499 → 60,000 credits ≈ $600
+ *   monthly credits carry a ~40% bonus (Scale $499 → 70,000 credits ≈ $700
  *   of PAYG output).
  * - Seats are never a usage meter: FREE is solo (1 seat); every paid tier
  *   (Scale, Enterprise) has unlimited seats. Multi-organization workflows
@@ -26,7 +26,7 @@ import { FREE_API_RATE_LIMIT, PRO_API_RATE_LIMIT } from './tier-entitlements';
  * - Models are never user-selected: the Genfeed router picks the best model
  *   for each format, brief, and budget
  *
- * @updated 2026-07-06
+ * @updated 2026-11-15
  */
 
 import { MODEL_KEYS } from '@genfeedai/contracts/constants/model-keys.constant';
@@ -162,7 +162,7 @@ export function getLaunchPrice(tier: PlanTier): number | null {
  */
 export const TIER_INCLUDED_MONTHLY_CREDITS: Record<string, number> = {
   pro: 4_900,
-  scale: 60_000,
+  scale: 70_000,
 };
 
 export type SubscriptionPriceTier = 'pro' | 'scale';
