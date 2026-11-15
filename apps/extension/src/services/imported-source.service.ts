@@ -169,7 +169,7 @@ const MEDIA_KEYS = [
   'canRetry',
 ] as const;
 
-export function parseImportedSource(resource: unknown): ImportedSourceView {
+function parseImportedSource(resource: unknown): ImportedSourceView {
   const parsed = importedSourceViewSchema.safeParse(
     pick(resource, SOURCE_KEYS),
   );

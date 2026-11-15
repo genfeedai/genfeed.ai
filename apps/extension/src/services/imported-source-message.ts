@@ -93,7 +93,7 @@ function readCaptureRequest(value: unknown): SourceCaptureRequest {
 }
 
 /** Captures what the user sees in the active tab. It never fetches media. */
-export async function captureActiveTab(
+async function captureActiveTab(
   request: SourceCaptureRequest,
   expectedUrl?: string,
 ): Promise<RawSourceCapture> {

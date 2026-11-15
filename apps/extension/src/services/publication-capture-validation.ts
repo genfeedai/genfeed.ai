@@ -44,7 +44,7 @@ export function publicationCaptureUuid(value: unknown): value is string {
 export function publicationCaptureHandle(value: unknown): value is string {
   return typeof value === 'string' && X_HANDLE_PATTERN.test(value);
 }
-export function publicationCaptureNumericId(value: unknown): value is string {
+function publicationCaptureNumericId(value: unknown): value is string {
   return (
     typeof value === 'string' &&
     DIGITS_ONLY_PATTERN.test(value) &&
