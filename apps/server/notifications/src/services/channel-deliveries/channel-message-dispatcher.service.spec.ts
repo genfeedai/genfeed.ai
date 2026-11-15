@@ -1,5 +1,8 @@
 import { IngredientCategory } from '@genfeedai/contracts';
-import type { IChannelDeliveryRequest } from '@genfeedai/contracts/interfaces';
+import type {
+  IChannelDeliveryRequest,
+  ModelScanReport,
+} from '@genfeedai/contracts/interfaces';
 import {
   ChannelMessageDispatcherService,
   InvalidChannelMessageError,
@@ -11,9 +14,7 @@ function makeDispatcher() {
     sendBillingEventNotification: vi.fn().mockResolvedValue(true),
     sendIngredientNotification: vi.fn().mockResolvedValue(true),
     sendLowCreditsAlert: vi.fn().mockResolvedValue(true),
-    sendModelDiscoveryNotification: vi.fn().mockResolvedValue(true),
-    sendModelPriceChangeNotification: vi.fn().mockResolvedValue(true),
-    sendModelPricingUnavailableNotification: vi.fn().mockResolvedValue(true),
+    sendModelScanNotification: vi.fn().mockResolvedValue(true),
     sendRevenueNotification: vi.fn().mockResolvedValue(true),
     sendStreakNotification: vi.fn().mockResolvedValue(true),
     sendUserCreatedNotification: vi.fn().mockResolvedValue(true),
@@ -115,50 +116,54 @@ describe('ChannelMessageDispatcherService', () => {
     ).rejects.toBeInstanceOf(InvalidChannelMessageError);
   });
 
-  it('routes provider price changes and pricing outages to the operator models channel', async () => {
+  it('routes a model scan report to the operator models channel', async () => {
     const { discord, dispatcher } = makeDispatcher();
-    const change = {
-      newPriceUsd: 0.21,
-      oldPriceUsd: 0.19,
-      unit: 'output' as const,
-      variant: 'duration=6 · resolution=768P',
-      component: 'video_output_count',
+    const report: ModelScanReport = {
+      dataErrors: [],
+      delisted: [],
+      newDrafts: [],
+      priceChanges: [],
+      provider: 'fal',
+      removedByProvider: [
+        {
+          modelKey: 'fal-ai/runway-gen3',
+          reason: 'API returned 404',
+          sourceUrl: null,
+        },
+      ],
+      startedAt: '2026-11-15T07:00:00.000Z',
+      totals: {
+        drifted: 0,
+        draftsCreated: 0,
+        errors: 0,
+        newModelsFound: 0,
+        polled: 1,
+        quarantined: 0,
+        synchronized: 0,
+      },
+      unreadable: [],
     };
+
+    await expect(
+      dispatcher.dispatch(
+        request({ action: 'model_scan', payload: report, type: 'discord' }),
+      ),
+    ).resolves.toEqual({ messageId: 'delivery/key', status: 'delivered' });
+    expect(discord.sendModelScanNotification).toHaveBeenCalledWith(report);
+  });
+
+  it('no longer renders the per-model discovery and price cards', async () => {
+    const { dispatcher } = makeDispatcher();
 
     await expect(
       dispatcher.dispatch(
         request({
           action: 'model_price_change',
-          payload: {
-            changes: [change],
-            modelKey: 'minimax/hailuo-2.3-fast',
-            provider: 'replicate',
-            sourceUrl: 'https://replicate.com/minimax/hailuo-2.3-fast',
-          },
+          payload: {} as never,
           type: 'discord',
         }),
       ),
-    ).resolves.toEqual({ messageId: 'delivery/key', status: 'delivered' });
-    expect(discord.sendModelPriceChangeNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ changes: [change] }),
-    );
-
-    await dispatcher.dispatch(
-      request({
-        action: 'model_pricing_unavailable',
-        payload: {
-          modelKey: 'minimax/hailuo-2.3-fast',
-          provider: 'replicate',
-          reason: 'unmapped_criterion:camera motion',
-        },
-        type: 'discord',
-      }),
-    );
-    expect(
-      discord.sendModelPricingUnavailableNotification,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({ reason: 'unmapped_criterion:camera motion' }),
-    );
+    ).rejects.toBeInstanceOf(InvalidChannelMessageError);
   });
 
   it('reports a skip when the Discord channel is not configured', async () => {

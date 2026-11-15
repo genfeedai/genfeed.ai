@@ -346,6 +346,24 @@ export function buildCollaborationEmailBody(
   return `<p style="margin:0 0 16px;">${pill}<span style="color:#949494;font-size:12px;padding-left:10px;">Team</span></p><p style="color:#EDEDED;font-size:18px;font-weight:600;line-height:26px;margin:0 0 16px;">${escapeSystemEmailHtml(input.label)}</p>${buildSystemEmailParagraph(input.summary)}`;
 }
 
+export interface AlertEmailInput {
+  /** What happened, for example "Post failed". */
+  headline: string;
+  tone: 'danger' | 'warning';
+  /** The part of the product the alert is about, for example "Publishing". */
+  area: string;
+  /** The post or channel the alert is about. */
+  label: string;
+  /** What happened and why, in one sentence. */
+  summary: string;
+}
+
+/** A publishing or channel alert that reaches the owner off screen. */
+export function buildAlertEmailBody(input: AlertEmailInput): string {
+  const pill = buildEmailPill(input.headline, input.tone);
+  return `<p style="margin:0 0 16px;">${pill}<span style="color:#949494;font-size:12px;padding-left:10px;">${escapeSystemEmailHtml(input.area)}</span></p><p style="color:#EDEDED;font-size:18px;font-weight:600;line-height:26px;margin:0 0 16px;">${escapeSystemEmailHtml(input.label)}</p>${buildSystemEmailParagraph(input.summary)}`;
+}
+
 /** The receipt id and the command that uses it, ready to copy. */
 export function buildSkillsProReceiptEmailBody(input: {
   receiptId: string;

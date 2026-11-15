@@ -212,42 +212,25 @@ export class AgentWorkflowToolOfficialResolverService {
       type: 'workflow',
     });
 
-    const listingDocs = Array.isArray(
-      (officialListings as { docs?: unknown[] } | undefined)?.docs,
-    )
-      ? (((
-          officialListings as unknown as {
-            docs: Array<Record<string, unknown>>;
-          }
-        ).docs ?? []) as Array<Record<string, unknown>>)
-      : [];
-
-    const marketplaceCandidates: OfficialWorkflowSource[] = listingDocs.map(
-      (listing) => ({
-        confidence: this.scoreOfficialWorkflowSource(
-          {
-            description:
-              (listing.shortDescription as string | undefined) ||
-              (listing.description as string | undefined),
-            kind: 'marketplace-listing',
-            name: String(listing.title || ''),
-          },
-          params,
-        ),
-        description:
-          (listing.shortDescription as string | undefined) ||
-          (listing.description as string | undefined),
-        id: String(listing._id || ''),
-        kind: 'marketplace-listing',
-        name: String(listing.title || 'Official workflow'),
-        price: typeof listing.price === 'number' ? listing.price : Number.NaN,
-        pricingTier:
-          typeof listing.pricingTier === 'string'
-            ? listing.pricingTier
-            : undefined,
-        slug: typeof listing.slug === 'string' ? listing.slug : undefined,
-      }),
-    );
+    const marketplaceCandidates: OfficialWorkflowSource[] = (
+      officialListings?.listings ?? []
+    ).map((listing) => ({
+      confidence: this.scoreOfficialWorkflowSource(
+        {
+          description: listing.shortDescription || listing.description,
+          kind: 'marketplace-listing',
+          name: listing.title,
+        },
+        params,
+      ),
+      description: listing.shortDescription || listing.description,
+      id: listing.id,
+      kind: 'marketplace-listing',
+      name: listing.title || 'Official workflow',
+      price: listing.price ?? Number.NaN,
+      pricingTier: listing.pricingTier,
+      slug: listing.slug,
+    }));
 
     return marketplaceCandidates.sort(
       (left, right) => right.confidence - left.confidence,

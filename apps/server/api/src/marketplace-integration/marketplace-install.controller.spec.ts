@@ -1,7 +1,12 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { MarketplaceInstallController } from '@api/marketplace-integration/marketplace-install.controller';
 import type { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
+import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+function requestWith(authorization: string | undefined): Request {
+  return { headers: { authorization } } as unknown as Request;
+}
 
 describe('MarketplaceInstallController', () => {
   let controller: MarketplaceInstallController;
@@ -28,12 +33,17 @@ describe('MarketplaceInstallController', () => {
       userId: 'user-1',
     } as unknown as User;
 
-    const response = await controller.install('listing-1', user);
+    const response = await controller.install(
+      'listing-1',
+      user,
+      requestWith('Bearer buyer-token'),
+    );
 
     expect(installService.installToWorkspace).toHaveBeenCalledWith(
       'listing-1',
       'user-1',
       'org-1',
+      'buyer-token',
     );
     expect(response).toEqual({ data: installResult });
   });
@@ -45,6 +55,25 @@ describe('MarketplaceInstallController', () => {
       userId: 'user-1',
     } as unknown as User;
 
-    await expect(controller.install('listing-1', user)).rejects.toThrow('boom');
+    await expect(
+      controller.install('listing-1', user, requestWith('Bearer t')),
+    ).rejects.toThrow('boom');
+  });
+
+  it('passes no token on when the request has no bearer header', async () => {
+    installService.installToWorkspace.mockResolvedValue({});
+    const user = {
+      organizationId: 'org-1',
+      userId: 'user-1',
+    } as unknown as User;
+
+    await controller.install('listing-1', user, requestWith(undefined));
+
+    expect(installService.installToWorkspace).toHaveBeenCalledWith(
+      'listing-1',
+      'user-1',
+      'org-1',
+      undefined,
+    );
   });
 });

@@ -104,6 +104,7 @@ export class PostThreadGenerationService {
       );
       try {
         await this.activityRecorder.update(activity, {
+          alert: { channels: ['in_app'] },
           key:
             completedCount === childPosts.length
               ? ActivityKey.POST_GENERATED
@@ -322,6 +323,7 @@ export class PostThreadGenerationService {
 
     try {
       await this.activityRecorder.update(activity, {
+        alert: { channels: ['in_app'] },
         key: ActivityKey.POST_FAILED,
         value: JSON.stringify({
           error: (error as Error)?.message || 'Thread expansion failed',

@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { Text } from 'react-native';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import ScreenErrorBoundary from '@/components/ScreenErrorBoundary';
+import { ScreenErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 describe('ErrorBoundary', () => {
   beforeEach(() => {

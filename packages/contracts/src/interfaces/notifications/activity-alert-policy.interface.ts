@@ -92,8 +92,10 @@ export const ACTIVITY_ALERT_POLICIES = {
     severity: 'warning',
     topic: 'generation.status',
   },
+  // A scheduled post that ended FAILED reaches the owner off screen. Producers
+  // that record POST_FAILED for a failed generation narrow this to the bell.
   [ActivityKey.POST_FAILED]: {
-    recipients: [{ channels: ['in_app'], recipient: 'actor' }],
+    recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
     severity: 'critical',
     topic: 'publishing.status',
   },
@@ -104,8 +106,10 @@ export const ACTIVITY_ALERT_POLICIES = {
     severity: 'warning',
     topic: 'publishing.status',
   },
+  // A channel that lost its connection stops every post scheduled on it, so
+  // the owner is told off screen as well.
   [ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED]: {
-    recipients: [{ channels: ['in_app'], recipient: 'actor' }],
+    recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
     severity: 'warning',
     topic: 'integration.status',
   },

@@ -1,11 +1,1 @@
-export {
-  type BorderRadius,
-  borderRadius,
-  type Colors,
-  type FontSize,
-  fontSize,
-  type NativeThemeColors,
-  nativeThemeColors,
-  type Spacing,
-  spacing,
-} from '@/constants/theme';
+export { borderRadius, fontSize, spacing } from '@/constants/theme';

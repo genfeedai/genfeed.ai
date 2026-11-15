@@ -1,5 +1,8 @@
 {
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1168.0",
+    "@aws-sdk/lib-storage": "3.1168.0",
+    "@aws-sdk/s3-request-presigner": "3.1168.0",
     "@genfeedai/libs": "workspace:*",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
@@ -16,6 +19,9 @@
     "axios": "1.21.1",
     "bullmq": "6.7.6",
     "express": "5.3.0",
+    "ffmpeg-static": "5.3.0",
+    "ffprobe-static": "3.1.0",
+    "googleapis": "190.0.0",
     "ioredis": "6.0.0",
     "joi": "18.3.2",
     "multer": "2.5.0",
@@ -23,8 +29,10 @@
     "react-dom": "19.3.1",
     "remotion": "4.0.543",
     "rxjs": "7.8.2",
+    "sharp": "0.35.5",
     "tsconfig-paths": "4.2.0",
-    "@genfeedai/contracts": "workspace:*"
+    "@genfeedai/contracts": "workspace:*",
+    "zod": "4.6.7"
   },
   "description": "Genfeed Files Service",
   "devDependencies": {

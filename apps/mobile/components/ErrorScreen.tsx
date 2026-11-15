@@ -36,5 +36,3 @@ export function ErrorScreen({
     </View>
   );
 }
-
-export default ErrorScreen;

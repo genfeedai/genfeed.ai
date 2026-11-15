@@ -123,6 +123,3 @@ class SentryService {
 }
 
 export const sentryService = new SentryService();
-
-// Export Sentry for direct usage when needed
-export { Sentry };

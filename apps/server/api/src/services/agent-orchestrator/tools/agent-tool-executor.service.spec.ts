@@ -462,13 +462,8 @@ describe('AgentToolExecutorService', () => {
       }),
     };
     const marketplaceApiClient = {
-      checkListingOwnership: vi.fn(),
-      claimFreeItem: vi.fn(),
       getListing: vi.fn(),
-      searchListings: vi.fn().mockResolvedValue({ docs: [] }),
-    };
-    const marketplaceInstallService = {
-      installToWorkspace: vi.fn(),
+      searchListings: vi.fn().mockResolvedValue({ listings: [] }),
     };
     const workflowExecutorService = {
       executeManualWorkflow: vi.fn().mockResolvedValue({
@@ -1115,7 +1110,6 @@ describe('AgentToolExecutorService', () => {
         ),
         workflowSchedulerService as never,
         marketplaceApiClient as never,
-        marketplaceInstallService as never,
         workflowInstallCacheService as never,
       ),
       workflowCreateService,
@@ -1340,7 +1334,6 @@ describe('AgentToolExecutorService', () => {
       instagramInspirationHandler,
       instagramInspirationService,
       marketplaceApiClient,
-      marketplaceInstallService,
       livestreamBotId: livestreamBotId.toString(),
       loggerService,
       organizationSettingsService,
@@ -6949,65 +6942,67 @@ describe('AgentToolExecutorService', () => {
     });
   });
 
-  it('returns purchase CTA only for paid official marketplace workflows', async () => {
-    const { marketplaceApiClient, service, workflowInstallCacheService } =
-      createService();
-    const organizationId = testId('org2');
-    const userId = testId('user');
-    const sourceActionId = 'workflow-install-marketplace-action-1';
+  it.each([
+    ['a paid', 49, 'premium'],
+    ['a free', 0, 'free'],
+  ])(
+    'sends %s official marketplace workflow to the marketplace, never installing it',
+    async (_label, price, pricingTier) => {
+      const { marketplaceApiClient, service, workflowInstallCacheService } =
+        createService();
+      const organizationId = testId('org2');
+      const userId = testId('user');
+      const sourceActionId = 'workflow-install-marketplace-action-1';
 
-    marketplaceApiClient.getListing.mockResolvedValue({
-      id: 'listing-1',
-      isDeleted: false,
-      price: 49,
-      pricingTier: 'premium',
-      slug: 'official-linkedin-workflow',
-    });
-    marketplaceApiClient.checkListingOwnership.mockResolvedValue({
-      owned: false,
-      purchase: null,
-    });
-    workflowInstallCacheService.get.mockResolvedValueOnce({
-      organizationId,
-      sourceActionId,
-      threadId: '',
-      toolName: 'install_official_workflow',
-    });
-
-    const result = await service.executeTool(
-      'install_official_workflow',
-      {
-        prompt: 'Install the official LinkedIn workflow',
-        sourceActionId,
-        sourceDescription: 'Official LinkedIn workflow',
-        sourceId: 'listing-1',
-        sourceName: 'Official LinkedIn Workflow',
-        sourceSlug: 'official-linkedin-workflow',
-        sourceType: 'marketplace-listing',
-      },
-      {
-        confirmationOrigin: 'thread-ui-action',
+      marketplaceApiClient.getListing.mockResolvedValue({
+        id: 'listing-1',
+        price,
+        pricingTier,
+        slug: 'official-linkedin-workflow',
+        title: 'Official LinkedIn Workflow',
+      });
+      workflowInstallCacheService.get.mockResolvedValueOnce({
         organizationId,
-        userId,
-      },
-    );
+        sourceActionId,
+        threadId: '',
+        toolName: 'install_official_workflow',
+      });
 
-    expect(result.success).toBe(true);
-    expect(result.data).toMatchObject({
-      listingId: 'listing-1',
-      requiresPurchase: true,
-    });
-    expect(result.nextActions?.[0]).toMatchObject({
-      ctas: [
+      const result = await service.executeTool(
+        'install_official_workflow',
         {
-          href: expect.stringContaining('/official-linkedin-workflow'),
-          label: 'Open marketplace listing',
+          prompt: 'Install the official LinkedIn workflow',
+          sourceActionId,
+          sourceDescription: 'Official LinkedIn workflow',
+          sourceId: 'listing-1',
+          sourceName: 'Official LinkedIn Workflow',
+          sourceSlug: 'official-linkedin-workflow',
+          sourceType: 'marketplace-listing',
         },
-      ],
-      title: 'Purchase required',
-      type: 'workflow_created_card',
-    });
-  });
+        {
+          confirmationOrigin: 'thread-ui-action',
+          organizationId,
+          userId,
+        },
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toMatchObject({
+        listingId: 'listing-1',
+        requiresMarketplaceLibrary: true,
+      });
+      expect(result.nextActions?.[0]).toMatchObject({
+        ctas: [
+          {
+            href: expect.stringContaining('/official-linkedin-workflow'),
+            label: 'Open marketplace listing',
+          },
+        ],
+        title: 'Get it from the marketplace',
+        type: 'workflow_created_card',
+      });
+    },
+  );
 
   // Workflow agent-tool path tests
 
