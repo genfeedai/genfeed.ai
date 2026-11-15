@@ -20,9 +20,8 @@ const TIER_WITHOUT_PRICE =
   'Replicate lists a billing tier without a price (2026-10-27).';
 const LOCAL_MODEL =
   'Self-hosted local model: there is no provider list price to import.';
-const NO_RATE_SHEET_PROVIDER =
-  'The rate sheet seeds Replicate, fal, HeyGen and ElevenLabs only; this provider has no public list price to import.';
-
+const HIGGSFIELD_DOP_NOT_LISTED =
+  'Higgsfield no longer lists this DoP endpoint in its docs catalog (checked 2026-11-15), so no estimate can price it; retire it unless Higgsfield confirms it still answers.';
 /**
  * Models that deliberately have no rate-sheet entry, with the reason. A paid,
  * non-retired catalog model needs a sheet entry or a line here (checked in CI).
@@ -52,11 +51,9 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
     'fal prices per second by output resolution band and frame rate; dispatch does not supply the output band.',
   'heygen/heygen-video-1':
     'HeyGen publishes no per-video list price for this legacy endpoint; the priced HeyGen avatar engines replace it.',
-  'higgsfield-ai/dop/lite': NO_RATE_SHEET_PROVIDER,
-  'higgsfield-ai/dop/standard': NO_RATE_SHEET_PROVIDER,
-  'higgsfield-ai/dop/turbo': NO_RATE_SHEET_PROVIDER,
-  'higgsfield-ai/soul/v2/standard': NO_RATE_SHEET_PROVIDER,
-  'higgsfield/genjutsu/motion-transfer/v1.0': NO_RATE_SHEET_PROVIDER,
+  'higgsfield-ai/dop/lite': HIGGSFIELD_DOP_NOT_LISTED,
+  'higgsfield-ai/dop/standard': HIGGSFIELD_DOP_NOT_LISTED,
+  'higgsfield-ai/dop/turbo': HIGGSFIELD_DOP_NOT_LISTED,
   'klingai-v2': LEGACY_KEY,
   'kwaivgi/kling-v1.6-pro': IDENTITY_404,
   leonardoai: LEGACY_KEY,
