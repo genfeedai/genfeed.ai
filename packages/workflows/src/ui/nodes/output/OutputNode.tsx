@@ -1,11 +1,11 @@
 'use client';
 
 import type { DownloadNodeData } from '@genfeedai/contracts/types';
-import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
 import LoadingOverlay from '@genfeedai/ui/primitives/loading-overlay';
 import Spinner from '@genfeedai/ui/primitives/spinner';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import type { NodeProps } from '@xyflow/react';
 import { Clock, Download } from 'lucide-react';
 import Image from 'next/image';

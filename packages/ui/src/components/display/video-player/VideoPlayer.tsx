@@ -5,8 +5,8 @@ import { cn } from '@genfeedai/helpers/formatting/cn';
 import type { VideoPlayerProps } from '@genfeedai/props/studio/video-player.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
-import VideoPlayerControls from '@ui/display/video-player/VideoPlayerControls';
 import Spinner from '@genfeedai/ui/primitives/spinner';
+import VideoPlayerControls from '@ui/display/video-player/VideoPlayerControls';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 

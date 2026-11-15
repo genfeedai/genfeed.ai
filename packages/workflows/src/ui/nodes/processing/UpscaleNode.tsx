@@ -9,7 +9,6 @@ import type {
   UpscaleNodeData,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
-import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Alert } from '@genfeedai/ui/primitives/alert';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
@@ -23,6 +22,7 @@ import {
 } from '@genfeedai/ui/primitives/select';
 import { Slider } from '@genfeedai/ui/primitives/slider';
 import Spinner from '@genfeedai/ui/primitives/spinner';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import type { NodeProps } from '@xyflow/react';
 import { Expand, RefreshCw, SquareSplitHorizontal } from 'lucide-react';
 import Image from 'next/image';

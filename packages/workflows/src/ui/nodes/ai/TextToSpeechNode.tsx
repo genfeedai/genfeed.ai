@@ -7,7 +7,6 @@ import type {
   TTSVoice,
 } from '@genfeedai/contracts/types';
 import { Code } from '@genfeedai/ui';
-import MediaPlayer from '@ui/media-player/MediaPlayer';
 import {
   Alert,
   AlertDescription,
@@ -24,6 +23,7 @@ import {
 } from '@genfeedai/ui/primitives/select';
 import { Slider } from '@genfeedai/ui/primitives/slider';
 import Spinner from '@genfeedai/ui/primitives/spinner';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import type { NodeProps } from '@xyflow/react';
 import { AudioLines, RefreshCw, Volume2 } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';

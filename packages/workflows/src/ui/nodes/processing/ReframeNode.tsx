@@ -8,7 +8,6 @@ import type {
   ReframeNodeData,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
-import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Alert } from '@genfeedai/ui/primitives/alert';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
@@ -21,6 +20,7 @@ import {
   SelectValue,
 } from '@genfeedai/ui/primitives/select';
 import Spinner from '@genfeedai/ui/primitives/spinner';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import type { NodeProps } from '@xyflow/react';
 import { RefreshCw } from 'lucide-react';
 import Image from 'next/image';
