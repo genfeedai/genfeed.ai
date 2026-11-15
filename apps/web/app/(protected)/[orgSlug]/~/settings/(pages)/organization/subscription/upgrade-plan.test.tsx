@@ -131,7 +131,7 @@ describe('UpgradePlan', () => {
   it('lists the price, monthly credits and key benefits next to the button', () => {
     render(<UpgradePlan tiers={['scale']} />);
 
-    expect(screen.getByText('60,000 credits / month')).toBeInTheDocument();
+    expect(screen.getByText('70,000 credits / month')).toBeInTheDocument();
     expect(
       screen.getByText('Unlimited seats and client workspaces'),
     ).toBeInTheDocument();
