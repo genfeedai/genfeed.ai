@@ -6,16 +6,14 @@ import type {
   IFalModelsResponse,
 } from '@workers/interfaces/model-discovery.interface';
 
-export const FAL_PLATFORM_CLIENT_OPTIONS = Symbol(
-  'FAL_PLATFORM_CLIENT_OPTIONS',
-);
+const FAL_PLATFORM_CLIENT_OPTIONS = Symbol('FAL_PLATFORM_CLIENT_OPTIONS');
 
 export interface FalPlatformClientOptions {
   fetcher?: typeof fetch;
   sleep?: (milliseconds: number) => Promise<void>;
 }
 
-export interface FalPricingResponse {
+interface FalPricingResponse {
   has_more: boolean;
   next_cursor: string | null;
   prices: Array<Record<string, unknown>>;
@@ -35,7 +33,7 @@ const MAX_RETRY_DELAY_MS = 30_000;
  * Fal answers 404 for the whole request when any one requested endpoint is not
  * addressable by its exact id, so callers split the batch to isolate it.
  */
-export class FalEndpointNotFoundError extends Error {
+class FalEndpointNotFoundError extends Error {
   override readonly name = 'FalEndpointNotFoundError';
 }
 

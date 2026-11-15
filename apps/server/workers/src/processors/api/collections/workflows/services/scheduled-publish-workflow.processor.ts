@@ -18,8 +18,8 @@ import { WorkflowExecutionProcessor } from '@workers/processors/api/collections/
  * so 120/min drains up to 1,800 due posts within one sweep interval, while
  * 60/min would drain 900. Both numbers are per worker process.
  */
-export const SCHEDULED_PUBLISH_CONCURRENCY = 8;
-export const SCHEDULED_PUBLISH_LIMITER = { duration: 60000, max: 120 };
+const SCHEDULED_PUBLISH_CONCURRENCY = 8;
+const SCHEDULED_PUBLISH_LIMITER = { duration: 60000, max: 120 };
 
 /**
  * Dedicated worker for `dispatchClass: SCHEDULED_PUBLISH` — the 15-minute
