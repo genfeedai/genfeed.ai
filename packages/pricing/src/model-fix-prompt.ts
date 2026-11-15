@@ -82,9 +82,11 @@ function sortItems(items: ModelFixPromptItem[]): ModelFixPromptItem[] {
 
 function itemLines(item: ModelFixPromptItem, index: number): string[] {
   const urgent = item.isUrgent ? 'URGENT: ' : '';
-  const lines = [
-    `${index}. ${urgent}${item.key} (${item.provider}, ${item.category}): ${item.detail}`,
-  ];
+  const place =
+    item.category === 'unknown'
+      ? item.provider
+      : `${item.provider}, ${item.category}`;
+  const lines = [`${index}. ${urgent}${item.key} (${place}): ${item.detail}`];
   if (item.sourceUrl) lines.push(`   Source: ${item.sourceUrl}`);
   return lines;
 }
