@@ -1,7 +1,7 @@
 import type { AgentContentMentionItem } from '@genfeedai/contracts/interfaces';
 import type { ReactNode } from 'react';
 
-export interface ContentLibraryPickerBaseProps {
+interface ContentLibraryPickerBaseProps {
   isOpen: boolean;
   title?: string;
   description?: string;
@@ -13,10 +13,10 @@ export interface ContentLibraryPickerBaseProps {
   onOpenChange: (open: boolean) => void;
   onSelect: (item: AgentContentMentionItem) => void;
 }
-export interface ContentLibraryPickerLocalSearchProps {
+interface ContentLibraryPickerLocalSearchProps {
   searchMode?: 'local';
 }
-export interface ContentLibraryPickerRemoteSearchProps {
+interface ContentLibraryPickerRemoteSearchProps {
   searchMode: 'remote';
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;

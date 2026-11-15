@@ -33,26 +33,14 @@ import type {
   CrunQuoteReasonCode,
   CrunVideoQuoteRequest,
 } from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
-import type { IGenerationItem } from '@genfeedai/contracts/interfaces/components/generation.interface';
 import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type { GlobalModalGalleryConfig } from '@genfeedai/props/modals/global-modals.props';
 import type { CrunVideoPromptBinding } from '@genfeedai/props/studio/crun-video-prompt-binding.props';
 import type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
 import type { AnyExtension, JSONContent } from '@tiptap/core';
-import type {
-  Dispatch,
-  DragEvent,
-  FormEvent,
-  ReactNode,
-  RefObject,
-  SetStateAction,
-} from 'react';
-import type {
-  Path,
-  UseFormRegisterReturn,
-  UseFormReturn,
-} from 'react-hook-form';
+import type { Dispatch, ReactNode, RefObject, SetStateAction } from 'react';
+import type { UseFormReturn } from 'react-hook-form';
 
 export type { CrunVideoPromptBinding } from '@genfeedai/props/studio/crun-video-prompt-binding.props';
 
@@ -214,39 +202,6 @@ export interface PromptBarFormatControlsProps {
   triggerConfigChange: () => void;
   isDisabledState: boolean;
   controlClass: string;
-}
-
-export interface PromptAdvancedSettingsProps {
-  onResolutionChange?: (resolution: string) => void;
-  onSeedChange?: (seed: number | undefined) => void;
-  defaultResolution?: string;
-  defaultSeed?: number;
-  showResolution?: boolean;
-  showSeed?: boolean;
-  isDisabled?: boolean;
-}
-
-export interface PromptSuggestion {
-  label: string;
-  value: string;
-  category: 'style' | 'camera' | 'mood' | 'general';
-}
-
-export interface PromptSuggestionsProps {
-  model: string;
-  style: string;
-  onSuggestionClick: (suggestion: string) => void;
-  isVisible?: boolean;
-  onClose?: () => void;
-}
-
-export interface PromptTextareaProps {
-  form: UseFormReturn<PromptTextareaSchema>;
-  isDisabled?: boolean;
-  showCaptionToggle?: boolean;
-  promptType?: string;
-  placeholder?: string;
-  className?: string;
 }
 
 export type GalleryModalOptions = GlobalModalGalleryConfig;
@@ -506,134 +461,6 @@ export interface PromptBarVariationPresetsProps {
   shouldRender: boolean;
   form: UseFormReturn<PromptTextareaSchema>;
   setTextValue: Dispatch<SetStateAction<string>>;
-}
-
-export interface PromptBarExpandedViewProps {
-  currentConfig: PromptBarConfig;
-  pathname: string;
-  categoryType?: IngredientCategory;
-  currentModelCategory?: ModelCategory | null;
-  features?: PromptBarFeatures;
-
-  form: UseFormReturn<PromptTextareaSchema>;
-  isCollapsed?: boolean;
-  setIsCollapsed?: Dispatch<SetStateAction<boolean>>;
-  isAutoMode: boolean;
-  setIsAutoMode: Dispatch<SetStateAction<boolean>>;
-
-  isDisabledState: boolean;
-  isGenerateBlocked: boolean;
-  controlClass: string;
-  iconButtonClass: string;
-
-  isAdvancedMode: boolean;
-  isAdvancedControlsEnabled: boolean;
-
-  models: IModel[];
-  trainings: ITraining[];
-  selectedModels: IModel[];
-  trainingIds: Set<string>;
-  normalizedWatchedModels: string[];
-  watchedModels: string[];
-  watchedModel: string;
-  watchedFormat: IngredientFormat;
-  watchedWidth?: number;
-  watchedHeight?: number;
-  watchedDuration?: number;
-  watchedSpeech?: string;
-  watchedQuality: QualityTier | undefined;
-  subscriptionTier?: SubscriptionTier;
-  isModelNotSet: boolean;
-
-  hasAudioToggleValue: boolean;
-  hasSpeechValue: boolean;
-  hasModelWithoutDurationEditingValue: boolean;
-  hasAnyResolutionOptionsValue: boolean;
-  hasEndFrameValue: boolean;
-  hasAnyImagenModelValue: boolean;
-  isOnlyImagenModelsValue: boolean;
-  supportsInterpolation: boolean;
-  supportsMultipleReferences: boolean;
-  requiresReferences: boolean;
-  maxReferenceCount: number;
-
-  folders?: IFolder[];
-  profiles?: Array<{ id: string; name: string; description?: string }>;
-  filteredPresets: IPreset[];
-  filteredScenes: IElementScene[];
-  filteredFontFamilies: IFontFamily[];
-  filteredStyles: IElementStyle[];
-  filteredCameras: IElementCamera[];
-  filteredLightings: IElementLighting[];
-  filteredLenses: IElementLens[];
-  filteredCameraMovements: IElementCameraMovement[];
-  filteredMoods: IElementMood[];
-  filteredSounds: ISound[];
-  filteredBlacklists: IElementBlacklist[];
-
-  references: MediaReference[];
-  setReferences: Dispatch<SetStateAction<MediaReference[]>>;
-  endFrame: MediaReference | null;
-  setEndFrame: Dispatch<SetStateAction<MediaReference | null>>;
-  referenceSource: 'brand' | 'ingredient' | '';
-  setReferenceSource: Dispatch<SetStateAction<'brand' | 'ingredient' | ''>>;
-
-  selectedPreset: string;
-  setSelectedPreset: Dispatch<SetStateAction<string>>;
-  selectedProfile: string;
-  setSelectedProfile: Dispatch<SetStateAction<string>>;
-
-  formatIcon: ReactNode;
-
-  videoDurations: number[];
-
-  triggerConfigChange: () => void;
-  refocusTextarea: () => void;
-  handleTextareaChange: () => void;
-  onTextChange?: (text: string) => void;
-  handleCopy: (text: string) => Promise<void>;
-  handleSubmitForm: (e?: FormEvent<HTMLFormElement>) => void;
-  suggestions?: PromptBarSuggestionItem[];
-  onSuggestionSelect?: (item: PromptBarSuggestionItem) => void;
-  showSuggestionsWhenEmpty?: boolean;
-
-  openGallery: (options: GalleryModalOptions) => void;
-  openUpload: (options: UploadModalOptions) => void;
-  isDragActive?: boolean;
-  dragError?: string | null;
-  attachedPromptAssets?: PromptBarAttachedAsset[];
-  onDragEnter?: (event: DragEvent<HTMLDivElement>) => void;
-  onDragLeave?: (event: DragEvent<HTMLDivElement>) => void;
-  onDropFiles?: (event: DragEvent<HTMLDivElement>) => Promise<void>;
-  onRemoveAttachedAsset?: (assetId: string) => void;
-  onBrowseAssets?: () => void;
-
-  textareaRef: RefObject<HTMLTextAreaElement | null>;
-  textareaRegister: UseFormRegisterReturn<Path<PromptTextareaSchema>>;
-  modelDropdownRef: RefObject<HTMLButtonElement | null>;
-  promptBarHeight: number;
-
-  getModelDefaultDuration: (modelKey: string) => number | undefined;
-  getDefaultVideoResolution: (modelKey: string | string) => string | undefined;
-  getMinFromAllModels: (getter: (modelKey: string) => number) => number;
-  getModelMaxOutputs: (modelKey: string) => number;
-
-  setTextValue: Dispatch<SetStateAction<string>>;
-
-  isSupported: boolean;
-  toggleVoice: () => void;
-  isRecording: boolean;
-  isProcessing: boolean;
-
-  isGenerating: boolean;
-  isGenerateDisabled: boolean;
-  selectedModelCost: number | null;
-  activeGenerations: IGenerationItem[];
-  generateLabel: string;
-
-  /** For AVATAR category */
-  avatars?: DropdownFieldOption[];
-  voices?: DropdownFieldOption[];
 }
 
 export interface PromptBarCrunControlsProps {

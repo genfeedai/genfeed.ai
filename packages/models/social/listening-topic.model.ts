@@ -14,7 +14,7 @@ import { Organization } from '@models/organization/organization.model';
 import { SocialSource } from './social-source.model';
 import { SourcePost } from './source-post.model';
 
-export class ListeningTopicSource extends BaseListeningTopicSource {
+class ListeningTopicSource extends BaseListeningTopicSource {
   constructor(partial: Partial<IListeningTopicSource> = {}) {
     super(partial);
 

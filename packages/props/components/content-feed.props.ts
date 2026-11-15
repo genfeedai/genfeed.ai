@@ -1,4 +1,4 @@
-export type ContentFeedMedia = {
+type ContentFeedMedia = {
   kind: 'image' | 'video';
   url: string;
 };

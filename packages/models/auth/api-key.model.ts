@@ -3,10 +3,7 @@ import type {
   IApiKeyAttributes,
 } from '@genfeedai/contracts/interfaces';
 
-export type {
-  IApiKey,
-  IApiKeyAttributes,
-} from '@genfeedai/contracts/interfaces';
+export type { IApiKey } from '@genfeedai/contracts/interfaces';
 
 interface ApiKeyOrganizationReference {
   id: string;

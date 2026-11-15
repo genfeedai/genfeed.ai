@@ -6,7 +6,7 @@ import { io, type Socket } from 'socket.io-client';
 const HYPHENS_PATTERN = /-/g;
 const UNDERSCORES_PATTERN = /_/g;
 
-export type SocketDisconnectRecovery = 'automatic' | 'manual' | 'none';
+type SocketDisconnectRecovery = 'automatic' | 'manual' | 'none';
 
 export interface SocketDisconnectDisposition {
   expected: boolean;

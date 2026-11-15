@@ -8,9 +8,9 @@ import type {
 } from '@genfeedai/contracts/interfaces/utils/scoped-outbox.interface';
 import { isRecord } from '../data/extract.util';
 
-export const SCOPED_OUTBOX_IDLE_TIMEOUT_MS = 5000;
-export const SCOPED_OUTBOX_RETRY_BASE_MS = 2000;
-export const SCOPED_OUTBOX_RETRY_MAX_MS = 30_000;
+const SCOPED_OUTBOX_IDLE_TIMEOUT_MS = 5000;
+const SCOPED_OUTBOX_RETRY_BASE_MS = 2000;
+const SCOPED_OUTBOX_RETRY_MAX_MS = 30_000;
 
 function defaultStorage(): ScopedOutboxStorage | null {
   try {

@@ -23,7 +23,7 @@ export const ORG_INTEGRATION_PLATFORMS = [
   IntegrationPlatform.TELEGRAM,
 ] as const;
 
-export interface IOrgIntegrationConfig {
+interface IOrgIntegrationConfig {
   allowedUserIds?: string[];
   appToken?: string;
   defaultWorkflow?: string;

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export type ListRowDensity = 'compact' | 'comfortable';
+type ListRowDensity = 'compact' | 'comfortable';
 
 interface ListRowBaseProps {
   /** Optional leading slot — state dot, icon, or PlatformBadge. */
@@ -19,19 +19,19 @@ interface ListRowBaseProps {
   'data-testid'?: string;
 }
 
-export interface ListRowButtonProps extends ListRowBaseProps {
+interface ListRowButtonProps extends ListRowBaseProps {
   onClick: () => void;
   ariaLabel: string;
   href?: undefined;
 }
 
-export interface ListRowLinkProps extends ListRowBaseProps {
+interface ListRowLinkProps extends ListRowBaseProps {
   href: string;
   onClick?: undefined;
   ariaLabel?: string;
 }
 
-export interface ListRowStaticProps extends ListRowBaseProps {
+interface ListRowStaticProps extends ListRowBaseProps {
   onClick?: undefined;
   href?: undefined;
   ariaLabel?: string;

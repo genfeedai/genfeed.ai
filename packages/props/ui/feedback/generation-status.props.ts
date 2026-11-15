@@ -1,4 +1,4 @@
-export type GenerationStatusPhase =
+type GenerationStatusPhase =
   | 'submitting'
   | 'queued'
   | 'generating'
