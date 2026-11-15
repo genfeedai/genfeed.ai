@@ -22,12 +22,24 @@ export interface ModelScanPriceChange {
 }
 
 /**
- * The provider's page (or API) says the model no longer exists. Reported once;
- * the scanner never retires a row. An operator retires it and names a successor.
+ * The provider's public price page is gone (404) but its API still serves the
+ * model. The approved rate keeps charging; there is no public price left to
+ * watch, so an operator names a successor. Reported once.
+ */
+export interface ModelScanDelistedModel {
+  modelKey: string;
+  /** Human-readable evidence, for example "model page returned 404". */
+  reason: string;
+  sourceUrl: string | null;
+}
+
+/**
+ * The provider's API says the model no longer exists (404). Reported once; the
+ * scanner never retires a row. An operator retires it and names a successor.
  */
 export interface ModelScanRemovedModel {
   modelKey: string;
-  /** Human-readable evidence, for example "model page returned 404". */
+  /** Human-readable evidence, for example "API returned 404". */
   reason: string;
   sourceUrl: string | null;
 }
@@ -80,6 +92,7 @@ export interface ModelScanTotals {
  */
 export interface ModelScanReport {
   dataErrors: ModelScanDataError[];
+  delisted: ModelScanDelistedModel[];
   newDrafts: ModelScanNewDraft[];
   priceChanges: ModelScanPriceChange[];
   provider: ModelScanProvider;
