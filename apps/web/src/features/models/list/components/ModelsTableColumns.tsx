@@ -11,6 +11,7 @@ import {
   getQualityTierForModel,
   getQualityTierLabel,
 } from '@genfeedai/helpers/quality-routing.helper';
+import { getModelProviderLabel } from '@genfeedai/helpers/ui/model-badge.helper';
 import {
   CREDIT_VALUE_DOLLARS,
   resolveProviderCostUnits,
@@ -404,7 +405,7 @@ export function buildModelsTableColumns({
       sortable: true,
       render: (model: IModel) => (
         <div className="flex min-w-0 items-center gap-3">
-          <ModelAvatar model={model} />
+          <ModelAvatar model={model} isProviderVisible={!isAdminScope} />
           <div className="min-w-0">
             {/* Outside the admin the row opens the model in the sidebar. */}
             {isAdminScope ? (
@@ -433,6 +434,14 @@ export function buildModelsTableColumns({
     },
     ...(isAdminScope
       ? [
+          {
+            header: translate('table.providerHeader'),
+            key: 'provider',
+            sortable: true,
+            render: (model: IModel) => (
+              <Badge>{getModelProviderLabel(model.provider)}</Badge>
+            ),
+          },
           {
             header: translate('table.registryHeader'),
             key: 'reviewStatus',

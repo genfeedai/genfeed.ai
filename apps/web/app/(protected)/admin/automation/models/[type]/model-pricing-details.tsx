@@ -14,7 +14,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { Download } from 'lucide-react';
+import { ClipboardCopy, Download } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import type {
@@ -393,7 +393,12 @@ export default function ModelPricingDetails({
   );
 }
 
-export function ModelPricingToolbar({ models }: ModelPricingToolbarProps) {
+export function ModelPricingToolbar({
+  hasAttention,
+  models,
+  onCopyAuditPrompt,
+  onCopyFixPrompt,
+}: ModelPricingToolbarProps) {
   const t = useTranslations('pages.adminModelPricing');
   const { data: report, isFetching, error } = useAdminModelPricingReport();
   const rows = useMemo(
@@ -426,6 +431,19 @@ export function ModelPricingToolbar({ models }: ModelPricingToolbarProps) {
             link.remove();
             URL.revokeObjectURL(url);
           },
+        },
+        {
+          icon: <ClipboardCopy className="size-4" />,
+          id: 'copy-fix-prompt',
+          isDisabled: !hasAttention,
+          label: t('copyFixPrompt'),
+          onSelect: onCopyFixPrompt,
+        },
+        {
+          icon: <ClipboardCopy className="size-4" />,
+          id: 'copy-audit-prompt',
+          label: t('copyAuditPrompt'),
+          onSelect: onCopyAuditPrompt,
         },
       ]}
     />

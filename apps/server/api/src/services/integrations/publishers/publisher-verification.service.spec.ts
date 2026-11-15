@@ -1,6 +1,7 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { SERVER_TOKENS } from '@api/server.dependencies';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
 import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
@@ -280,6 +281,7 @@ describe.each(cases)(
             },
           },
           { provide: HttpService, useValue: http },
+          { provide: ActivityRecorderService, useValue: { record: vi.fn() } },
           {
             provide: ConfigService,
             useValue: {
