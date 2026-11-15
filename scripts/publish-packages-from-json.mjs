@@ -7,6 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parse } from 'acorn';
+import ts from 'typescript';
 import { fixEsmRelativeImports } from './fix-esm-relative-imports.mjs';
 
 const NPM_NOT_FOUND_ERROR_PATTERN = /E404|No match found|Not Found/i;
@@ -419,9 +420,13 @@ function dependencyNameFromSpecifier(specifier) {
 
 export function collectModuleSpecifiers(source, filePath = 'dist/index.js') {
   if (DECLARATION_FILE_PATTERN.test(filePath)) {
-    const declarationPattern =
-      /(?:\bfrom\s*|\bimport\s*(?:\(\s*)?|\brequire\s*\(\s*)['"]([^'"\r\n]+)['"]/g;
-    return Array.from(source.matchAll(declarationPattern), (match) => match[1]);
+    // The compiler's own pre-processor reads real import positions. A regex over
+    // declaration text also matched the words "from" and "import" inside doc
+    // comments and string literal types ('import' | 'export'), which reported
+    // phantom packages such as "Brand" as undeclared dependencies.
+    return ts
+      .preProcessFile(source, true, true)
+      .importedFiles.map((importedFile) => importedFile.fileName);
   }
 
   let ast;
