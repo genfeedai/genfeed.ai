@@ -10,10 +10,7 @@ export default defineConfig([
   {
     rules: {
       'import/namespace': 'off',
-      'import/no-unresolved': [
-        'error',
-        { ignore: ['@shopify/flash-list', 'react-native'] },
-      ],
+      'import/no-unresolved': ['error', { ignore: ['react-native'] }],
     },
     settings: {
       react: {
