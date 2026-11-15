@@ -24,6 +24,13 @@ function isJsonObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+/**
+ * Selector value of the tier Replicate prices for "the field is not set" (a
+ * criterion of subtype `null`, for example video edits that take no
+ * resolution). Dispatch selects it only when the input omits the field.
+ */
+export const REPLICATE_UNSET_SELECTOR_VALUE = 'unset';
+
 /** What the Replicate public model page said about billing. */
 export type ReplicateBillingObservation =
   | { status: 'ok'; sourceUrl: string; tiers: unknown[] }
@@ -252,6 +259,9 @@ function mapBillingCriterion(
     ? { reason: `unmapped_criterion:${title}` }
     : matchInputProperty(title, properties);
   if (!('reason' in matched)) {
+    // The tier Replicate prices when the field is not set.
+    if (criterion.subtype === 'null' && criterion.value === null)
+      return { key: matched.key, value: REPLICATE_UNSET_SELECTOR_VALUE };
     const value = coerceCriterionValue(
       matched.key,
       criterion.value,
@@ -506,4 +516,53 @@ export function mapReplicateBillingTiers(
         }
       : {}),
   };
+}
+
+/** The media a Replicate billing metric bills, before any finer category. */
+export type ReplicateBillingMediaFamily =
+  | 'audio'
+  | 'image'
+  | 'text'
+  | 'video'
+  | 'voice';
+
+const METRIC_FAMILY_PREFIXES: ReadonlyArray<
+  readonly [string, ReplicateBillingMediaFamily]
+> = [
+  ['video_output', 'video'],
+  ['image_output', 'image'],
+  ['audio_output', 'audio'],
+  ['character_input', 'voice'],
+  ['token_', 'text'],
+  ['image_input', 'image'],
+];
+
+/**
+ * What the page's billing metrics say the model produces: per output video
+ * second means video, per output image or megapixel means image, per token
+ * means text, per input character means voice, per output audio means audio
+ * (music or voice). A flat `run_count` price says nothing. When metrics of
+ * several families appear, the output-bearing family wins in the order above,
+ * because the page bills what the model makes before what it reads.
+ */
+export function replicateBillingMediaFamily(
+  tiers: readonly unknown[],
+): ReplicateBillingMediaFamily | null {
+  const found = new Set<ReplicateBillingMediaFamily>();
+  for (const tier of tiers) {
+    if (!isJsonObject(tier) || !Array.isArray(tier.prices)) continue;
+    for (const price of tier.prices) {
+      if (!isJsonObject(price) || typeof price.metric !== 'string') continue;
+      const metric = price.metric;
+      const match = METRIC_FAMILY_PREFIXES.find(([prefix]) =>
+        metric.startsWith(prefix),
+      );
+      if (match) found.add(match[1]);
+    }
+  }
+  return (
+    METRIC_FAMILY_PREFIXES.map(([, family]) => family).find((family) =>
+      found.has(family),
+    ) ?? null
+  );
 }
