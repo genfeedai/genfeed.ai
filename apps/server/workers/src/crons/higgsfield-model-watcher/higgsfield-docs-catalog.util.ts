@@ -1,7 +1,7 @@
 import { ModelCategory } from '@genfeedai/contracts';
 
 /** Public Higgsfield docs host. The `.md` form of each page is the stable text. */
-export const HIGGSFIELD_DOCS_MODELS_BASE =
+const HIGGSFIELD_DOCS_MODELS_BASE =
   'https://docs.higgsfield.ai/docs/models';
 
 export const HIGGSFIELD_CATALOG_URL = `${HIGGSFIELD_DOCS_MODELS_BASE}.md`;
