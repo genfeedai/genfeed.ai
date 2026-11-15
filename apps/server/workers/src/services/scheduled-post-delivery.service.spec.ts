@@ -1961,10 +1961,10 @@ describe('ScheduledPostDeliveryService', () => {
           isRetryable: true,
         }),
         executionState: TargetExecutionState.SCHEDULED,
-        retryCount: 1,
+        retryCount: 0,
         workflowExecutionId: 'execution-1',
       }),
-      '429 rate limit',
+      expect.stringMatching(/^429 rate limit Next attempt at \d{4}-/),
       {
         expectedWorkflowExecutionId: 'execution-1',
         priorExecutionStates: [TargetExecutionState.PUBLISHING],
@@ -1973,6 +1973,148 @@ describe('ScheduledPostDeliveryService', () => {
     expect(
       mocks.publishEventWebhookService.emitPostFailed,
     ).not.toHaveBeenCalled();
+  });
+
+  describe('provider rate limits', () => {
+    function mockRateLimitedPublisher(retryAfterMs?: number) {
+      const publish = vi.fn().mockResolvedValue({
+        error: '429 rate limit',
+        executionState: TargetExecutionState.FAILED,
+        externalId: null,
+        platform: CredentialPlatform.TWITTER,
+        retryAfterMs,
+        success: false,
+        url: '',
+      });
+      mocks.publisherFactory.getPublisher.mockReturnValue({
+        publish,
+        supportsThreads: false,
+      });
+      return publish;
+    }
+
+    function lastScheduledWrite() {
+      const writes =
+        mocks.schedulerPublishStateService.transitionPost.mock.calls
+          .map((call) => call[1])
+          .filter(
+            (update) =>
+              update.executionState === TargetExecutionState.SCHEDULED,
+          );
+      return writes[writes.length - 1];
+    }
+
+    it('waits for the reset the provider named without spending a retry', async () => {
+      mockRateLimitedPublisher(30 * 60 * 1000);
+      const before = Date.now();
+
+      await executeDelivery(
+        mocks,
+        createScheduledPost({ retryCount: 1 }),
+        'scheduled_sweep',
+      );
+
+      const write = lastScheduledWrite();
+      expect(write.retryCount).toBe(1);
+      // The sweep retries 60s after lastAttemptAt, so the post is next due at
+      // the reset: 30 minutes out.
+      const dueAt = write.lastAttemptAt.getTime() + 60 * 1000;
+      expect(dueAt).toBeGreaterThanOrEqual(before + 30 * 60 * 1000);
+      expect(dueAt).toBeLessThanOrEqual(Date.now() + 30 * 60 * 1000);
+      expect(write.error.message).toContain('Next attempt at');
+      expect(
+        mocks.publishEventWebhookService.emitPostFailed,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('waits the default when the provider gave no reset, and never longer than the cap', async () => {
+      mockRateLimitedPublisher();
+      await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+      const defaultDueAt = lastScheduledWrite().lastAttemptAt.getTime() + 60000;
+      expect(defaultDueAt - Date.now()).toBeGreaterThan(14 * 60 * 1000);
+      expect(defaultDueAt - Date.now()).toBeLessThanOrEqual(15 * 60 * 1000);
+
+      mocks.schedulerPublishStateService.transitionPost.mockClear();
+      mockRateLimitedPublisher(48 * 60 * 60 * 1000);
+      await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+      const cappedDueAt = lastScheduledWrite().lastAttemptAt.getTime() + 60000;
+      expect(cappedDueAt - Date.now()).toBeLessThanOrEqual(6 * 60 * 60 * 1000);
+      expect(cappedDueAt - Date.now()).toBeGreaterThan(5 * 60 * 60 * 1000);
+    });
+
+    it('does not fail a post that is rate limited on every attempt within the give-up window', async () => {
+      mockRateLimitedPublisher(60 * 1000);
+      let post = createScheduledPost({ retryCount: 0 });
+
+      for (let attempt = 0; attempt < 5; attempt++) {
+        await executeDelivery(mocks, post, 'scheduled_sweep');
+        const write = lastScheduledWrite();
+        post = {
+          ...post,
+          retryCount: write.retryCount,
+          targetError: write.error,
+        };
+      }
+
+      expect(post.retryCount).toBe(0);
+      expect(
+        mocks.schedulerPublishStateService.transitionPost.mock.calls.map(
+          (call) => call[1].executionState,
+        ),
+      ).not.toContain(TargetExecutionState.FAILED);
+      expect(
+        mocks.publishEventWebhookService.emitPostFailed,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('fails the post with rate_limited once it has been limited past the give-up window', async () => {
+      mockRateLimitedPublisher(60 * 1000);
+      const post = createScheduledPost({
+        retryCount: 0,
+        targetError: {
+          code: 'rate_limited',
+          failedAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
+          isRetryable: true,
+          message: '429 rate limit',
+        },
+      });
+
+      const result = await executeDelivery(mocks, post, 'scheduled_sweep');
+
+      expect(result.executionState).toBe(TargetExecutionState.FAILED);
+      const failed =
+        mocks.schedulerPublishStateService.transitionPost.mock.calls
+          .map((call) => call[1])
+          .find(
+            (update) => update.executionState === TargetExecutionState.FAILED,
+          );
+      expect(failed.error.code).toBe('rate_limited');
+      expect(failed.error.message).toContain(
+        'Still rate limited by the provider after 24 hours.',
+      );
+    });
+
+    it('keeps spending the retry budget on a failure that is not a rate limit', async () => {
+      mocks.publisherFactory.getPublisher.mockReturnValue({
+        publish: vi.fn().mockResolvedValue({
+          error: '503 service unavailable',
+          executionState: TargetExecutionState.FAILED,
+          externalId: null,
+          platform: CredentialPlatform.TWITTER,
+          success: false,
+          url: '',
+        }),
+        supportsThreads: false,
+      });
+
+      await executeDelivery(
+        mocks,
+        createScheduledPost({ retryCount: 1 }),
+        'scheduled_sweep',
+      );
+
+      expect(lastScheduledWrite().retryCount).toBe(2);
+    });
   });
 
   it('records a publisher validation failure as terminally failed without retry', async () => {

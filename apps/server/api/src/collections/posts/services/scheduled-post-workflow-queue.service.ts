@@ -18,7 +18,7 @@ export class ScheduledPostWorkflowQueueService {
     // Threaded from the caller via the existing `source` discriminator
     // (already used just below to pick `trigger`) rather than a new
     // parameter every one of this producer's several callers would need to
-    // pass: `scheduled_sweep` is the 15-min cron; `publish_now`,
+    // pass: `scheduled_sweep` is the per-minute cron; `publish_now`,
     // `manual_retry`, and `tiktok_app` are all direct user actions
     // (approve/retry/publish-now, a TikTok-app-side publish confirmation) —
     // see #5271. The sweep gets its own class and queue (#5890) so the
