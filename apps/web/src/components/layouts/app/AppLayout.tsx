@@ -291,10 +291,11 @@ export default function AppLayout({
               'flex flex-1 flex-col bg-background',
               // Menu and page share one block directly beside the rail and
               // below the topbar. It keeps its border and rounding in every
-              // state. The inspector is a separate card to its right: opening
-              // it only narrows this block, one inset gap away.
+              // state. The inspector sits against its right edge: opening it
+              // narrows this block to the panel's left border, with no gap,
+              // and squares the two touching corners.
               hasChrome &&
-                'md:mr-[var(--shell-inset)] md:mb-[var(--shell-inset)] md:min-h-0 md:flex-row md:overflow-hidden md:rounded-lg md:border md:border-border xl:mr-[calc(var(--workspace-inspector-width,0px)+var(--shell-inset))] xl:[[data-inspector-open=true]_&]:mr-[calc(var(--workspace-inspector-width,0px)+var(--shell-inset)*2)]',
+                'md:mr-[var(--shell-inset)] md:mb-[var(--shell-inset)] md:min-h-0 md:flex-row md:overflow-hidden md:rounded-lg md:border md:border-border xl:mr-[calc(var(--workspace-inspector-width,0px)+var(--shell-inset))] xl:[[data-inspector-open=true]_&]:rounded-r-none xl:[[data-inspector-open=true]_&]:border-r-0',
             )}
           >
             {hasChrome ? desktopSidebar : null}

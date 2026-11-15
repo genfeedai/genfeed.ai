@@ -1417,16 +1417,16 @@ function UniversalWorkspaceShellContent({
             </section>
           </div>
 
-          {/* The side panel is a detached card: it starts under the topbar,
-              level with the page block, keeps its own border and rounding,
-              and clips its fixed-width contents as it closes. */}
+          {/* The side panel starts under the topbar, level with the page
+              block, and sits flush against it (left border is the divider,
+              left corners square). It clips its contents as it closes. */}
           <aside
             // Nothing open: the empty, zero-width column is not a landmark.
             aria-hidden={isPanelOpen ? undefined : true}
             aria-label={translateSidePanel('label')}
             className={cn(
               'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-lg bg-background xl:flex',
-              isPanelOpen && 'border border-border',
+              isPanelOpen && 'rounded-l-none border border-border',
             )}
             id="workspace-context-inspector"
             data-motion="layout"

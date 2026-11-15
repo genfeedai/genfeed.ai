@@ -52,12 +52,13 @@ import {
   releaseOutcomeSummary,
   visibleTargets,
 } from '@/features/posts/rail/release-rail-row.helpers';
-import ReleaseDetailDrawer, {
+import {
   RELEASE_RESCHEDULE_ACTION,
   targetManualPostAction,
   targetRescheduleAction,
   targetRetryAction,
-} from '@/features/posts/release/release-detail-drawer';
+} from '@/features/posts/release/release-actions';
+import ReleaseDetailDrawer from '@/features/posts/release/release-detail-drawer';
 import { createReleaseMutationRunner } from '@/features/posts/release/release-mutation-runner';
 import CapturedPostsList from './captured-posts-list';
 import {
