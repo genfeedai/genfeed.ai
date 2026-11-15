@@ -305,7 +305,6 @@ export class ImageGenerationService {
       brand,
       createImageDto,
       generationHarness,
-      organizationId: user.organizationId,
       model,
     });
     const compiledBrief = editing

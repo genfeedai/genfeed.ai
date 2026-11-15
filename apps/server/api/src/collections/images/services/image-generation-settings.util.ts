@@ -11,7 +11,6 @@ import type { LoggerService } from '@libs/logger/logger.service';
 export interface ImageGenerationSettingsParams {
   brand: ImageGenerationResolvedBrand;
   createImageDto: CreateImageDto;
-  organizationId: string;
   model: string;
   generationHarness: GenerationHarnessReceipt;
 }
