@@ -75,7 +75,14 @@ export class AgentThreadAccessService {
       if (actor.isApiKey && (!viewer || !this.hasBrandReach(viewer, thread))) {
         throw this.denied(threadId);
       }
-      return this.accessFor(thread, AgentThreadAccessLevel.OWNER, true);
+      // The owner wrote the thread, so an own thread keeps its whole history;
+      // only a brand-limited key narrows it.
+      return this.accessFor(
+        thread,
+        AgentThreadAccessLevel.OWNER,
+        true,
+        viewer?.brandIds,
+      );
     }
 
     // A master thread belongs to its owner alone, admins included.
@@ -90,7 +97,12 @@ export class AgentThreadAccessService {
       (viewer.brandIds === undefined || this.hasBrandReach(viewer, thread)) &&
       (viewer.brandIds === undefined || thread.brandId !== null)
     ) {
-      return this.accessFor(thread, AgentThreadAccessLevel.OWNER, true);
+      return this.accessFor(
+        thread,
+        AgentThreadAccessLevel.OWNER,
+        true,
+        viewer.brandIds,
+      );
     }
 
     const level = await this.resolveSharedLevel(actor, thread, viewer);
@@ -110,7 +122,12 @@ export class AgentThreadAccessService {
         'This thread is shared with you to view only.',
       );
     }
-    return this.accessFor(thread, level, viewer?.isAdmin === true);
+    return this.accessFor(
+      thread,
+      level,
+      viewer?.isAdmin === true,
+      viewer?.brandIds,
+    );
   }
 
   /**
@@ -536,8 +553,9 @@ export class AgentThreadAccessService {
     thread: AgentThreadAccessRow,
     accessLevel: AgentThreadAccessLevel,
     canManageShares: boolean,
+    historyBrandIds?: string[],
   ): AgentThreadAccess {
-    return { accessLevel, canManageShares, thread };
+    return { accessLevel, canManageShares, historyBrandIds, thread };
   }
 
   private denied(threadId: string): NotFoundException {

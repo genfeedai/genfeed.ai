@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { buildAgentMessageBrandWhere } from '@api/collections/agent-messages/utils/agent-message-brand.util';
 import { CreateAgentThreadDto } from '@api/collections/agent-threads/dto/create-agent-thread.dto';
 import { UpdateAgentModeDto } from '@api/collections/agent-threads/dto/update-agent-mode.dto';
 import { UpdateAgentThreadContextDto } from '@api/collections/agent-threads/dto/update-agent-thread-context.dto';
@@ -166,7 +167,7 @@ export class AgentThreadsController {
   ) {
     try {
       const organizationId = resolveAgentThreadReadOrganizationId(req, user);
-      await this.assertThreadAccess(
+      const access = await this.assertThreadAccess(
         user,
         organizationId,
         threadId,
@@ -178,7 +179,11 @@ export class AgentThreadsController {
       const page = await this.agentMessagesService.getMessagesPage(
         threadId,
         organizationId,
-        { cursor, limit: messageLimit },
+        {
+          brandIds: access.historyBrandIds,
+          cursor,
+          limit: messageLimit,
+        },
       );
 
       const chronological = await this.teammateMentionsService.attachMentions(
@@ -212,13 +217,19 @@ export class AgentThreadsController {
         organizationId: this.resolveOrganizationId(user),
         brandId: user.brandId,
       }).organizationId;
-      await this.assertThreadAccess(user, organizationId, threadId, 'view');
+      const access = await this.assertThreadAccess(
+        user,
+        organizationId,
+        threadId,
+        'view',
+      );
       const references =
         await this.agentMessagesService.resolveMessageArtifactReferences(
           threadId,
           messageId,
           organizationId,
           { client: 'api', deployment: 'server' },
+          access.historyBrandIds,
         );
 
       return { data: references };
@@ -245,7 +256,7 @@ export class AgentThreadsController {
         organizationId: this.resolveOrganizationId(user),
         brandId: user.brandId,
       }).organizationId;
-      await this.assertThreadAccess(
+      const access = await this.assertThreadAccess(
         user,
         organizationId,
         threadId,
@@ -253,6 +264,7 @@ export class AgentThreadsController {
         req,
       );
       const message = await this.agentMessagesService.findOne({
+        ...buildAgentMessageBrandWhere(access.historyBrandIds),
         id: messageId,
         organizationId: organizationId,
         threadId,
