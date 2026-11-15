@@ -10,6 +10,7 @@
     "clsx": "2.1.1",
     "lucide-react": "1.72.0",
     "nanoid": "6.0.2",
+    "next-intl": "4.15.1",
     "recheck": "4.6.2",
     "tailwind-merge": "3.7.0",
     "uuid": "14.0.3",
