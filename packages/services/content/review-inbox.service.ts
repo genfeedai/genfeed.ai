@@ -19,6 +19,24 @@ import {
 import { logger } from '@services/core/logger.service';
 
 /**
+ * The batch page reads `posts` straight off the response, so a body that is
+ * not a batch (an error document, an empty collection) has to fail the request
+ * and show the page's load-failed state rather than crash the page.
+ */
+function isScheduledReleaseBatchReview(
+  value: unknown,
+): value is IScheduledReleaseBatchReview {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'approvalId' in value &&
+    typeof value.approvalId === 'string' &&
+    'posts' in value &&
+    Array.isArray(value.posts)
+  );
+}
+
+/**
  * Workflow review gates and MCP approvals waiting on a human (#7340). Turbo
  * run drafts stay on {@link TurboRunsService}.
  */
@@ -64,6 +82,9 @@ export class ReviewInboxService extends HTTPBaseService {
         `/batches/${encodeURIComponent(approvalId)}`,
         { signal },
       );
+      if (!isScheduledReleaseBatchReview(response.data)) {
+        throw new Error('GET /review-inbox/batches returned no batch');
+      }
       return response.data;
     } catch (error) {
       logger.error('GET /review-inbox/batches failed', error);

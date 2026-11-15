@@ -1,8 +1,8 @@
 # Editor Remotion export QA
 
 Use the representative 9:16 branded-avatar composition when validating an
-Editor export. HyperFrames is a future comparison candidate only; it is not
-part of the runtime or this verification path.
+Editor export. An HTML-based coded-video framework is a future comparison
+candidate only; it is not part of the runtime or this verification path.
 
 ## Preview and export parity
 
