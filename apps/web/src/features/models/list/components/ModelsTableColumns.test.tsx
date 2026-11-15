@@ -202,7 +202,7 @@ describe('buildModelsTableColumns', () => {
   it.each(Object.values(ModelProvider))(
     'renders a named provider logo for %s',
     (provider) => {
-      renderColumn('Label', buildModel({ provider }), true);
+      renderColumn('Label', buildModel({ provider }), false);
 
       const logo = screen.getByRole('img', {
         name: getModelProviderLabel(provider),
@@ -220,7 +220,7 @@ describe('buildModelsTableColumns', () => {
     renderColumn(
       'Label',
       buildModel({ provider: 'future-provider' as ModelProvider }),
-      true,
+      false,
     );
 
     const provider = screen.getByRole('img', { name: 'Future-provider' });
@@ -247,7 +247,7 @@ describe('buildModelsTableColumns', () => {
         label: 'Avatar',
         provider: ModelProvider.HEYGEN,
       }),
-      true,
+      false,
     );
 
     expect(screen.getByRole('img', { name: 'HeyGen' })).toBeInTheDocument();
@@ -431,11 +431,54 @@ describe('buildModelsTableColumns', () => {
     });
 
     expect(columns.map((column) => column.key)).not.toContain('key');
-    expect(columns.map((column) => column.header)).not.toContain('Provider');
+    expect(columns.map((column) => column.header)).toContain('Provider');
     expect(columns.map((column) => column.header)).not.toContain('Category');
     const labelColumn = columns.find((column) => column.header === 'Label');
 
     expect(labelColumn?.subtext).toBeUndefined();
+  });
+
+  const brandModel = buildModel({
+    category: ModelCategory.IMAGE,
+    key: 'black-forest-labs/flux-3',
+    provider: ModelProvider.REPLICATE,
+  });
+
+  it('shows the brand behind the model, not the provider, as the admin avatar', () => {
+    renderColumn('Label', brandModel, true);
+
+    expect(
+      screen.queryByRole('img', {
+        name: getModelProviderLabel(ModelProvider.REPLICATE),
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('img', {
+        name: getModelCategoryLabel(ModelCategory.IMAGE),
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the provider in its own admin column', () => {
+    renderColumn('Provider', brandModel, true);
+
+    expect(
+      screen.getByText(getModelProviderLabel(ModelProvider.REPLICATE)),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the provider as the avatar outside admin', () => {
+    renderColumn(
+      'Label',
+      buildModel({ provider: ModelProvider.REPLICATE }),
+      false,
+    );
+
+    expect(
+      screen.getByRole('img', {
+        name: getModelProviderLabel(ModelProvider.REPLICATE),
+      }),
+    ).toBeInTheDocument();
   });
 
   it('places the model description under its label outside admin', () => {

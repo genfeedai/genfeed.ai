@@ -8,11 +8,20 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import { CircleAlert, TriangleAlert, Wrench } from 'lucide-react';
+import {
+  CircleAlert,
+  ClipboardCopy,
+  TriangleAlert,
+  Wrench,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { useAdminModelPricingReport } from './use-admin-model-pricing-report';
 import { useFixModelPricing } from './use-fix-model-pricing';
+
+interface ModelPricingAttentionPanelProps {
+  onCopyFixPrompt: () => void;
+}
 
 function reasonsFor(
   row: AdminModelPricingRow,
@@ -28,7 +37,9 @@ function reasonsFor(
  * Models that need an operator, red first (cannot be priced: price missing, zero
  * credits or unpriceable) then orange (a price still charges but needs review).
  */
-export default function ModelPricingAttentionPanel() {
+export default function ModelPricingAttentionPanel({
+  onCopyFixPrompt,
+}: ModelPricingAttentionPanelProps) {
   const t = useTranslations('pages.adminModelPricing');
   const [isRedExpanded, setIsRedExpanded] = useState(false);
   const [isOrangeExpanded, setIsOrangeExpanded] = useState(false);
@@ -65,6 +76,21 @@ export default function ModelPricingAttentionPanel() {
     </Button>
   );
 
+  const actionButtons = (
+    <div className="flex shrink-0 gap-2">
+      <Button
+        className="shrink-0"
+        icon={<ClipboardCopy aria-hidden="true" className="size-3.5" />}
+        onClick={onCopyFixPrompt}
+        variant={ButtonVariant.SECONDARY}
+        withWrapper={false}
+      >
+        {t('copyFixPrompt')}
+      </Button>
+      {fixAllButton}
+    </div>
+  );
+
   return (
     <section
       className="mb-4 space-y-3"
@@ -86,7 +112,7 @@ export default function ModelPricingAttentionPanel() {
                 <p>{t('attentionRedHint')}</p>
               </AlertDescription>
             </div>
-            {fixAllButton}
+            {actionButtons}
           </div>
           <AlertDescription>
             <ul className="mt-2 list-disc space-y-1 pl-4">
@@ -128,7 +154,7 @@ export default function ModelPricingAttentionPanel() {
                 <p>{t('attentionOrangeHint')}</p>
               </AlertDescription>
             </div>
-            {red.length === 0 ? fixAllButton : null}
+            {red.length === 0 ? actionButtons : null}
           </div>
           <AlertDescription>
             <ul className="mt-2 list-disc space-y-1 pl-4">
