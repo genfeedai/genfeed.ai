@@ -101,6 +101,10 @@ function fixture() {
     approvedFonts: vi.fn().mockResolvedValue([]),
     stage: vi.fn().mockResolvedValue({ assets: [], totalBytes: 0 }),
   };
+  const brandLogos = {
+    stage: vi.fn().mockResolvedValue({ assets: [], totalBytes: 0 }),
+  };
+  const brandContext = { stagedLogos: vi.fn().mockResolvedValue([]) };
   const service = new VisualProjectAssetsService(
     prisma as never,
     { authorizeBrand: vi.fn().mockResolvedValue(undefined) } as never,
@@ -111,6 +115,8 @@ function fixture() {
       { warn: vi.fn() } as never,
     ),
     brandFonts as never,
+    brandLogos as never,
+    brandContext as never,
   );
   const media: IVisualSandboxMedia = {
     format: 'png',
@@ -125,7 +131,9 @@ function fixture() {
   const commit = (item = media) =>
     service.commit(user, revision, [item], async () => {});
   return {
+    brandContext,
     brandFonts,
+    brandLogos,
     commit,
     media,
     preview,
@@ -400,6 +408,112 @@ describe('brand font staging', () => {
     const denied = new Error('denied');
     brandFonts.stage.mockRejectedValue(denied);
     await expect(service.stage(user, revision)).rejects.toBe(denied);
+  });
+});
+
+describe('brand logo staging', () => {
+  const logo = {
+    id: 'brand-logo',
+    mime: 'image/png',
+    bytes: Buffer.from('png-logo').toString('base64'),
+  };
+
+  it('stages the approved brand logos between the media and the fonts', async () => {
+    const { service, user, revision, brandLogos, brandContext, brandFonts } =
+      fixture();
+    brandContext.stagedLogos.mockResolvedValue([
+      { assetId: 'brand-logo', mimeType: 'image/png', isRequired: true },
+    ]);
+    brandLogos.stage.mockResolvedValue({ assets: [logo], totalBytes: 8 });
+    brandFonts.stage.mockResolvedValue({
+      assets: [{ id: 'brand-font', mime: 'font/woff2', bytes: 'd09GMg==' }],
+      totalBytes: 4,
+    });
+    const staged = await service.stage(user, revision);
+    expect(staged.map((asset) => asset.id)).toEqual([
+      'brand-logo',
+      'brand-font',
+    ]);
+  });
+
+  it('stages nothing extra for a brand without a stageable logo', async () => {
+    const { service, user, revision } = fixture();
+    expect(await service.stage(user, revision)).toEqual([]);
+  });
+
+  it('refuses a brand logo that would shadow a source asset', async () => {
+    const staged = fixture();
+    staged.ingredient.findMany.mockResolvedValue([
+      {
+        id: 'brand-logo',
+        s3Key: 'library/brand-logo.png',
+        category: IngredientCategory.IMAGE,
+        fileSize: 3,
+        metadata: { extension: 'PNG', size: 3 },
+      },
+    ]);
+    storage.download.mockImplementation(async (_key: string, target: string) =>
+      writeFile(target, 'png'),
+    );
+    staged.brandLogos.stage.mockResolvedValue({
+      assets: [logo],
+      totalBytes: 8,
+    });
+    await expect(
+      staged.service.stage(staged.user, {
+        ...staged.revision,
+        sourceAssetIds: ['brand-logo'],
+      } as VisualRevision),
+    ).rejects.toThrow('visual_brand_logo_id_collision');
+  });
+
+  it('keeps media, logos and fonts together inside the staging budget', async () => {
+    const { service, user, revision, brandLogos } = fixture();
+    brandLogos.stage.mockResolvedValue({
+      assets: [logo],
+      totalBytes: 48 * 1024 * 1024 + 1,
+    });
+    await expect(service.stage(user, revision)).rejects.toThrow(
+      'visual_source_assets_too_large',
+    );
+  });
+});
+
+describe('brand logo evidence', () => {
+  const rendered: IVisualSandboxMedia = {
+    format: 'png',
+    width: realRender.width,
+    height: realRender.height,
+    frame: realRender.frame,
+    bytes: realRender.png,
+    evidence: realRender.evidence,
+  };
+  const placedLogoOf = (create: { mock: { calls: unknown[][] } }) =>
+    (
+      create.mock.calls[0][0] as {
+        data: {
+          providerData: {
+            renderEvidence: {
+              placedAssets: { assetId: string | null }[];
+            };
+          };
+        };
+      }
+    ).data.providerData.renderEvidence.placedAssets[0];
+
+  it('credits a placed logo to its asset when the brand staged it', async () => {
+    const { brandContext, commit, ingredient } = fixture();
+    brandContext.stagedLogos.mockResolvedValue([
+      { assetId: 'logo-png', mimeType: 'image/png', isRequired: true },
+    ]);
+    await commit(rendered);
+    expect(placedLogoOf(ingredient.create)?.assetId).toBe('logo-png');
+  });
+
+  it('leaves a placed logo unknown when the brand did not stage it', async () => {
+    const { commit, ingredient } = fixture();
+    await commit(rendered);
+    expect(placedLogoOf(ingredient.create)?.assetId).toBeNull();
   });
 });
 
