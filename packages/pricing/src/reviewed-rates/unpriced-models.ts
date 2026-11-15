@@ -56,6 +56,8 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'higgsfield-ai/dop/standard': NO_RATE_SHEET_PROVIDER,
   'higgsfield-ai/dop/turbo': NO_RATE_SHEET_PROVIDER,
   'higgsfield-ai/soul/v2/standard': NO_RATE_SHEET_PROVIDER,
+  'higgsfield/cinema-studio/4.0':
+    'Metered in provider tokens from request parameters; the reconciled rate lands with the Higgsfield pricing work.',
   'higgsfield/genjutsu/motion-transfer/v1.0': NO_RATE_SHEET_PROVIDER,
   'klingai-v2': LEGACY_KEY,
   'kwaivgi/kling-v1.6-pro': IDENTITY_404,

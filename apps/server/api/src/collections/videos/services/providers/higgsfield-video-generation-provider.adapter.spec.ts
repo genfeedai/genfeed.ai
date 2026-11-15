@@ -53,6 +53,66 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
     });
   });
 
+  describe('Cinema Studio', () => {
+    it('matches the Cinema Studio 4.0 endpoint', () => {
+      expect(
+        buildAdapter({}).supports(MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO),
+      ).toBe(true);
+    });
+
+    it('submits text-to-video without a source image and returns remote output', async () => {
+      const generateImageToVideo = vi.fn();
+      const generateCinemaStudioVideo = vi
+        .fn()
+        .mockResolvedValue({ requestId: 'req-cinema' });
+      const waitForVideoCompletion = vi
+        .fn()
+        .mockResolvedValue({ videoUrl: 'https://cdn.test/cinema.mp4' });
+      const adapter = buildAdapter({
+        generateCinemaStudioVideo,
+        generateImageToVideo,
+        waitForVideoCompletion,
+      });
+
+      const result = await adapter.generate(
+        buildParams({
+          model: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
+          organizationId: 'org-1',
+          prompt: 'rain on neon',
+          promptParams: {
+            aspect_ratio: '21:9',
+            duration: 8,
+            image_urls: ['https://cdn.test/a.png', 'http://cdn.test/skip.png'],
+            prompt: 'rain on neon',
+            reference_video_urls: ['https://cdn.test/ref.mp4'],
+            resolution: '480p',
+          },
+        }),
+      );
+
+      expect(generateImageToVideo).not.toHaveBeenCalled();
+      expect(generateCinemaStudioVideo).toHaveBeenCalledWith({
+        aspectRatio: '21:9',
+        duration: 8,
+        imageUrls: ['https://cdn.test/a.png'],
+        onProviderSubmissionStarted: undefined,
+        organizationId: 'org-1',
+        prompt: 'rain on neon',
+        resolution: '480p',
+        videoUrls: ['https://cdn.test/ref.mp4'],
+      });
+      expect(waitForVideoCompletion).toHaveBeenCalledWith('req-cinema', {
+        organizationId: 'org-1',
+        timeoutMs: 900_000,
+      });
+      expect(result).toEqual({
+        completion: 'remote-output',
+        externalId: 'https://cdn.test/cinema.mp4',
+        provider: 'higgsfield',
+      });
+    });
+  });
+
   describe('generate', () => {
     it('rejects a missing source imageUrl as a bad request before provider dispatch', async () => {
       const generateImageToVideo = vi.fn();

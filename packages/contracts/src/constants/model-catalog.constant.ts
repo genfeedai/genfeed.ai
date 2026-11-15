@@ -135,6 +135,7 @@ function labelFromKey(key: string): string {
 const MEDIA_LABEL_OVERRIDES: Record<string, string> = {
   [MODEL_KEYS.HEYGEN_VIDEO]: 'HeyGen Video',
   [MODEL_KEYS.HIGGSFIELD_GENJUTSU]: 'Genjutsu',
+  [MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO]: 'Cinema Studio 4.0',
 };
 
 function providerFromMediaKey(key: string): ModelProvider {

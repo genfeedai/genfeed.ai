@@ -249,6 +249,8 @@ export const MINIMAX_H3_VARIANT_VIDEO_COMPILER_ID =
 export const HEYGEN_VIDEO_COMPILER_ID = 'heygen-video-compiler';
 export const HIGGSFIELD_GENJUTSU_VIDEO_COMPILER_ID =
   'higgsfield-genjutsu-video-compiler';
+export const HIGGSFIELD_CINEMA_STUDIO_VIDEO_COMPILER_ID =
+  'higgsfield-cinema-studio-video-compiler';
 
 export const prunaaiPVideoDispatchSchema = z
   .object({
