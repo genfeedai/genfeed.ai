@@ -114,7 +114,7 @@ const retrySchema = z.strictObject({
   expectedRevision: positive,
   maximumCredits,
 });
-export function validateOutputs(value: unknown, settings: IVisualCodeSettings) {
+function validateOutputs(value: unknown, settings: IVisualCodeSettings) {
   const parsed = outputs.parse(value);
   for (const item of parsed)
     if (

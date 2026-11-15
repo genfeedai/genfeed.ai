@@ -133,15 +133,13 @@ export function instructionOf(
   return skill.label ?? '';
 }
 
-export function audienceOf(value: string | null | undefined): SkillAudience {
+function audienceOf(value: string | null | undefined): SkillAudience {
   if (value === 'public' || value === 'organization' || value === 'private')
     return value;
   return 'private';
 }
 
-export function ownerOf(
-  value: string | null | undefined,
-): SkillOwnerKind | null {
+function ownerOf(value: string | null | undefined): SkillOwnerKind | null {
   if (
     value === 'system' ||
     value === 'user' ||

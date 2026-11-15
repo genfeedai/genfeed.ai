@@ -37,9 +37,9 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 
 /** An instant clone is usually ready within seconds. */
-export const HEYGEN_CLONE_POLL_INTERVAL_MS = 2_000;
+const HEYGEN_CLONE_POLL_INTERVAL_MS = 2_000;
 /** Stay well inside the HTTP request timeout. */
-export const HEYGEN_CLONE_WAIT_MS = 40_000;
+const HEYGEN_CLONE_WAIT_MS = 40_000;
 
 @Traced()
 @Injectable()

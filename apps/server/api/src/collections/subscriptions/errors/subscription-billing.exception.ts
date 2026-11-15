@@ -5,9 +5,9 @@ import type {
 import { HttpException, type HttpStatus } from '@nestjs/common';
 
 /** Seconds a client should wait before its single bounded retry. */
-export const SUBSCRIPTION_BILLING_RETRY_AFTER_SECONDS = 5;
+const SUBSCRIPTION_BILLING_RETRY_AFTER_SECONDS = 5;
 /** Further attempts a client may make after a retryable failure. */
-export const SUBSCRIPTION_BILLING_MAX_RETRIES = 1;
+const SUBSCRIPTION_BILLING_MAX_RETRIES = 1;
 
 type SubscriptionBillingExceptionInput<TCode extends SubscriptionFailureCode> =
   {

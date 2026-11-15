@@ -10,10 +10,10 @@ import { Injectable } from '@nestjs/common';
 
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
-export const BREAKOUT_REMIX_OFFER_ENTITY_MODEL = 'BreakoutResponse';
-export const BREAKOUT_REMIX_OFFER_SOURCE_TYPE = 'breakout_response';
+const BREAKOUT_REMIX_OFFER_ENTITY_MODEL = 'BreakoutResponse';
+const BREAKOUT_REMIX_OFFER_SOURCE_TYPE = 'breakout_response';
 /** A breakout older than this is history, not something to act on now. */
-export const BREAKOUT_REMIX_OFFER_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+const BREAKOUT_REMIX_OFFER_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const SNIPPET_LENGTH = 80;
 
 /**
@@ -21,7 +21,7 @@ const SNIPPET_LENGTH = 80;
  * `postId` (a post published from Genfeed) or `sourcePostId` (a native account
  * post) is set.
  */
-export interface BreakoutRemixOfferPayload {
+interface BreakoutRemixOfferPayload {
   version: 1;
   kind: 'breakout_remix_offer';
   brandId: string;

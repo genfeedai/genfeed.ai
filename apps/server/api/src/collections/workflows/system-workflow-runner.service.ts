@@ -89,7 +89,6 @@ const MAX_NESTED_WORKFLOW_DEPTH = 8;
 export type {
   RunSystemWorkflowInput,
   SystemWorkflowGraphDefinition,
-  SystemWorkflowGraphMetadata,
 } from '@api/collections/workflows/system-workflow-definition';
 
 @Traced()

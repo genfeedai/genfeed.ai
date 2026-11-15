@@ -11,7 +11,6 @@ import {
 } from '@api/collections/videos/dto/create-crun-video-quote.dto';
 import {
   authorizeCrunSelection,
-  type CrunPreparedInput,
   type CrunPreparedResult,
   normalizeCrunQuoteIntent,
   prepareCrunPricing,
@@ -37,7 +36,6 @@ import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
-export type CrunPreparedImageInput = CrunPreparedInput<CrunVideoQuoteIntent>;
 export type CrunPreparedImageResult = CrunPreparedResult<CrunVideoQuoteIntent>;
 
 @Traced()

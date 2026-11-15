@@ -45,9 +45,9 @@ const UNAVAILABLE_POST_ERROR_PATTERN = /not found|deleted|private|incomplete/i;
 const LEADING_AT_SIGN_PATTERN = /^@/;
 
 /** How far back a scheduled own-account resync reaches. */
-export const SOCIAL_OWN_ACCOUNT_RESYNC_WINDOW_DAYS = 90;
+const SOCIAL_OWN_ACCOUNT_RESYNC_WINDOW_DAYS = 90;
 /** Upper bound on posts pulled per scheduled own-account resync. */
-export const SOCIAL_OWN_ACCOUNT_RESYNC_LIMIT = 100;
+const SOCIAL_OWN_ACCOUNT_RESYNC_LIMIT = 100;
 
 export interface SocialSourcesFeedResult {
   sources: SocialSourceDocument[];

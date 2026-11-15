@@ -1,7 +1,7 @@
 import { MemberRole } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
 
-export const OWNER_MEMBERSHIP_CHANGE_FORBIDDEN_MESSAGE =
+const OWNER_MEMBERSHIP_CHANGE_FORBIDDEN_MESSAGE =
   "Only an organization owner can grant the owner role or change an owner's membership.";
 
 /**

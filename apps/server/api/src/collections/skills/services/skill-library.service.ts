@@ -75,7 +75,6 @@ export type {
   RecordedSkillExclusion,
   RecordedSkillVersion,
 } from '@api/collections/skills/services/skill-resolution-evidence';
-export { isVerifiedOrdinaryUploadVersionReadV1 } from '@api/collections/skills/services/skill-version-reader';
 
 const PROMPT_SNAPSHOT_TOKEN_PATTERN =
   /^[0-9a-fA-F]{32}:[0-9a-fA-F]+:[0-9a-fA-F]{32}$/;

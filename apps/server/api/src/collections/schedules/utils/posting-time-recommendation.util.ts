@@ -18,7 +18,7 @@ export interface PostingMeasurementRow {
 }
 
 /** Platform guesses (local hours, end exclusive) shown until enough data exists. */
-export const DEFAULT_POSTING_HOURS: Readonly<Record<string, number[][]>> = {
+const DEFAULT_POSTING_HOURS: Readonly<Record<string, number[][]>> = {
   facebook: [[13, 16]],
   general: [
     [9, 11],

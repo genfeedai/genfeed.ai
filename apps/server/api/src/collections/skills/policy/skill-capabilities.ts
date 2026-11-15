@@ -1,12 +1,7 @@
-export const SKILL_OWNER_KINDS = [
-  'system',
-  'user',
-  'organization',
-  'brand',
-] as const;
+const SKILL_OWNER_KINDS = ['system', 'user', 'organization', 'brand'] as const;
 export type SkillOwnerKind = (typeof SKILL_OWNER_KINDS)[number];
 
-export const SKILL_AUDIENCES = ['private', 'organization', 'public'] as const;
+const SKILL_AUDIENCES = ['private', 'organization', 'public'] as const;
 export type SkillAudience = (typeof SKILL_AUDIENCES)[number];
 
 export const SKILL_GRANT_ACCESS = ['use', 'use_and_read'] as const;

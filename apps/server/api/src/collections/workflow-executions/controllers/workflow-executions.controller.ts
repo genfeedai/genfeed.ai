@@ -69,7 +69,7 @@ import type { Request } from 'express';
  * Columns the run history can be ordered by. A run's name and credits are
  * derived from its workflow and its accounting, which the list cannot order by.
  */
-export const WORKFLOW_EXECUTION_SORT_FIELDS: readonly string[] = [
+const WORKFLOW_EXECUTION_SORT_FIELDS: readonly string[] = [
   'completedAt',
   'createdAt',
   'durationMs',

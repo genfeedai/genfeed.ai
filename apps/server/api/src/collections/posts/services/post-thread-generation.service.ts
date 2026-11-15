@@ -40,7 +40,7 @@ type ThreadGenerationMetadata = Pick<
   'brandId' | 'organizationId' | 'userId'
 >;
 
-export const THREAD_BRAND_CONTEXT_UNAVAILABLE =
+const THREAD_BRAND_CONTEXT_UNAVAILABLE =
   'Brand context is unavailable for this thread. Please retry.';
 
 const TWITTER_THREAD_CONSTRAINTS: AccountPublishingConstraints = {

@@ -8,7 +8,7 @@ const PUBLISHABLE_EXECUTION_STATES = new Set<string>([
   TargetExecutionState.PUBLISHING,
 ]);
 
-export type ScheduledPublishPost = {
+type ScheduledPublishPost = {
   id: string;
   organizationId: string;
   parentId?: string | null;

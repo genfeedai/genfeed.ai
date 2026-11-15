@@ -77,8 +77,8 @@ type NewsletterGeneratedDraft = NewsletterDraftContext & {
   generatedContent: string;
 };
 
-export const NEWSLETTER_DRAFT_ACTION_ID = 'newsletter.generate-draft';
-export const NEWSLETTER_TOPICS_ACTION_ID = 'newsletter.generate-topics';
+const NEWSLETTER_DRAFT_ACTION_ID = 'newsletter.generate-draft';
+const NEWSLETTER_TOPICS_ACTION_ID = 'newsletter.generate-topics';
 const NEWSLETTER_LOAD_DRAFT_ACTION_ID = 'newsletter.load-draft-context';
 const NEWSLETTER_LOAD_TOPICS_ACTION_ID = 'newsletter.load-topic-context';
 const NEWSLETTER_PERSIST_DRAFT_ACTION_ID = 'newsletter.persist-draft';

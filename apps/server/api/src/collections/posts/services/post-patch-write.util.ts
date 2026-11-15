@@ -163,7 +163,7 @@ export type PostPatchServiceContext = {
   publishApprovalsService?: Pick<PublishApprovalsService, 'assertPostMutable'>;
 };
 
-export type PatchApprovalContext = {
+type PatchApprovalContext = {
   organizationId: string;
   publishApprovalId: string | null;
 } | null;

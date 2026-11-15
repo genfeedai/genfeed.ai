@@ -41,8 +41,6 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 
-export { PLATFORM_SETTING_KEY };
-
 type InternalCreatePlatformSettingPayload = CreatePlatformSettingDto & {
   key: typeof PLATFORM_SETTING_KEY;
 };

@@ -75,7 +75,7 @@ type FakeJob = {
  * In-memory BullMQ queue with the semantics the system-workflow producer depends on: an id
  * already in flight is refused and reported back, never enqueued twice.
  */
-export class FakeBullQueue {
+class FakeBullQueue {
   readonly jobs = new Map<string, FakeJob>();
   readonly adds: string[] = [];
 

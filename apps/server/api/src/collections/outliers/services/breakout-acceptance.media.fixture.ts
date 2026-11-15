@@ -28,7 +28,7 @@ export const VISUAL_GENERATION_CREDITS = 5;
  * The object storage the receipt material service reads a finished visual from: the gateway
  * writes the bytes it "generated" here, keyed by the ingredient's storage key.
  */
-export const acceptanceObjectStore = new Map<string, Uint8Array>();
+const acceptanceObjectStore = new Map<string, Uint8Array>();
 export const acceptanceStorage = {
   readVersionedBytes: async (key: string) => {
     const bytes = acceptanceObjectStore.get(key);
@@ -38,7 +38,7 @@ export const acceptanceStorage = {
 };
 
 /** A real PNG of one solid color, the file a fake image provider "generates". */
-export async function acceptancePng(color: string): Promise<Uint8Array> {
+async function acceptancePng(color: string): Promise<Uint8Array> {
   return new Uint8Array(
     await sharp({
       create: { background: color, channels: 3, height: 128, width: 128 },

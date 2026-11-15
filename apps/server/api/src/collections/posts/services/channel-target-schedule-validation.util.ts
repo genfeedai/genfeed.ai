@@ -91,7 +91,7 @@ export type SchedulableChannelTargetFields = {
   visibility?: string | null;
 };
 
-export function mediaKindForCategory(
+function mediaKindForCategory(
   category: string | null | undefined,
 ): ChannelValidationMedia[number]['kind'] {
   return category === PostCategory.VIDEO || category === PostCategory.REEL
@@ -204,7 +204,7 @@ export function toValidationMediaFromIngredients(
  * (DTOs), a populated relation array of `{ id }` (Prisma/PostDocument), or
  * `unknown` (JSON-shaped inputs). This normalizes all three.
  */
-export function extractIngredientIds(value: unknown): string[] {
+function extractIngredientIds(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -258,7 +258,7 @@ export function toValidationMedia(
  * Post, an autopilot draft) would fail validation on a required-with-default
  * setting it was never asked to fill in.
  */
-export function resolveTargetSettingsForValidation(
+function resolveTargetSettingsForValidation(
   platform: string | null | undefined,
   rawSettings: unknown,
 ): Record<string, unknown> {
@@ -273,7 +273,7 @@ export function resolveTargetSettingsForValidation(
  * when there is nothing to validate against yet (no platform chosen — still
  * an unassigned draft).
  */
-export function buildChannelTargetScheduleInput(
+function buildChannelTargetScheduleInput(
   fields: SchedulableChannelTargetFields,
 ): ValidateChannelTargetSettingsInput | null {
   if (!fields.platform) {
@@ -360,7 +360,7 @@ export function assertValidChannelTargetSchedule(
  * creating a post for them, rather than creating one per connected account
  * and letting the schedule-time choke point reject it after the fact.
  */
-export function channelAcceptsMedia(
+function channelAcceptsMedia(
   platform: string,
   media: ChannelValidationMedia | undefined,
 ): boolean {
