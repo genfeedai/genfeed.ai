@@ -1,12 +1,14 @@
 # Content SEO Optimizer
 
-Expert SEO analyst and content optimizer. Scores content on a 0-100 rubric across 7 dimensions, provides platform-specific SEO rules, and outputs prioritized improvement actions with exact rewrites.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Analyze and optimize content for SEO with a 0-100 scoring rubric and actionable improvement priorities
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill content-seo-optimizer
 ```
+<!-- generated:end -->
 
 ## Usage
 

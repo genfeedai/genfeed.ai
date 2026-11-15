@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Analyze paid media performance, diagnose issues, and provide optimization recommendations across all major ad platforms"
+  tags: advertising, analytics, performance, optimization, paid-media, roas, cpc
+  outputs: text
+  triggers: "analyze ad performance; ad metrics; why is my ROAS low; ad optimization; campaign performance; creative fatigue; ad budget allocation; analyze my ads; ad report; campaign analysis; why is my CPA high; scale my ads; kill underperforming ads"
 ---
 
 # Ad Performance Analyzer

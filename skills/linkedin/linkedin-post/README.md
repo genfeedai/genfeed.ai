@@ -1,5 +1,6 @@
 # LinkedIn Post
 
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
 Write a LinkedIn text post: story, insight, contrarian, listicle, celebration or objection-based thought leadership.
 
 ## Installation
@@ -7,6 +8,7 @@ Write a LinkedIn text post: story, insight, contrarian, listicle, celebration or
 ```bash
 bunx skills add genfeedai/skills --skill linkedin-post
 ```
+<!-- generated:end -->
 
 ## Usage
 

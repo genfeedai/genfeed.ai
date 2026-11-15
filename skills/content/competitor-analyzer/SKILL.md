@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Audit competitors' content strategy, formats, topics, and engagement gaps"
+  tags: competitive-analysis, market-research, content-strategy, competitor-intelligence, gap-analysis
+  outputs: text
+  triggers: "competitor content audit; competitor content strategy; content gap analysis; competitor social audit; analyze competitor posts; competitor posting frequency; competitor engagement patterns; competitive content report; competitor newsletter audit; competitor linkedin audit"
 ---
 
 # Competitor Analyzer

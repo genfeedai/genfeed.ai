@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Write a single X (Twitter) post, quote post or reply: hooks, the 280-character edit, algorithm signals and a checklist."
+  tags: x, twitter, social-media, content-creation, tweets, replies
+  outputs: text
+  triggers: "write a tweet; draft an X post; compose a tweet; write a quote tweet; write a reply to this post; tweet about; help me tweet"
 ---
 
 # X Post
@@ -191,7 +195,9 @@ Posts with an image or chart tend to travel further. For a branded image use `im
 
 If Genfeed tools are available:
 
-- `create_post` saves the chosen variant as a draft with `platforms: ["twitter"]`. It does not publish.
+- `create_post` saves the chosen variant as a draft with `platforms: ["twitter"]`. It does not publish, and no tool turns that draft into a scheduled release later.
+- A quote post that will be scheduled carries the original in the X target's `quotedPost` setting (a post link or id) when `check_channel` capabilities list it, not as a link at the end of the text. Quote posting needs an Enterprise plan on the X app, so X may refuse it; the person then posts it by hand from the release drawer.
+- When the post is meant to be scheduled, create it with `create_scheduled_release` and `status: "draft"` (no date) instead, so it can be scheduled later. A release with a date is held for the person's approval. For a whole week at a set cadence use `weekly-batch`.
 - Use `check_channel` with `{action: "capabilities", input: {platform: "twitter"}}` for limits and media rules.
 - Use brand context from the conversation for voice. Publishing goes through `social-poster` and only on explicit confirmation.
 
