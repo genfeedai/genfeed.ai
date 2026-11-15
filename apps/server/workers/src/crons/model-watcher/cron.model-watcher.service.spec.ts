@@ -32,6 +32,12 @@ describe('CronModelWatcherService', () => {
   let configService: Mocked<ConfigService>;
   let loggerService: Mocked<LoggerService>;
   let notificationsService: Mocked<ActivityRecorderService>;
+
+  /** The scan cards handed to the outbox, one payload per message. */
+  const sentScanCards = () =>
+    notificationsService.dispatch.mock.calls.flatMap((call) =>
+      call[0].messages.map((entry) => entry.message.payload),
+    );
   let replicateContractSyncService: Mocked<ReplicateModelContractSyncService>;
 
   const mockExistingModels = [
@@ -307,7 +313,7 @@ describe('CronModelWatcherService', () => {
       expect(result.providerContractsSynchronized).toBe(2);
     });
 
-    it('alerts ops Discord once per price change and per refresh failure, with the rates the page stated', async () => {
+    it('posts one card for a price change and a refresh failure, with the rates the page stated', async () => {
       globalThis.fetch = vi.fn().mockResolvedValueOnce({
         json: () => Promise.resolve({ next: null, results: [] }),
         ok: true,
@@ -349,34 +355,35 @@ describe('CronModelWatcherService', () => {
 
       await service.discoverNewModels();
 
-      expect(notificationsService.dispatch).toHaveBeenCalledWith(
+      // One card for the run, carrying both the price change and the failure.
+      expect(sentScanCards()).toEqual([
         expect.objectContaining({
-          deduplicationKey:
-            'message.model-price-change/google/imagen-4/rates:sha256:abc',
-          organizationId: null,
-          messages: [
+          priceChanges: [
             expect.objectContaining({
-              message: expect.objectContaining({
-                action: 'model_price_change',
-                payload: expect.objectContaining({
-                  changes: priceChange.changes,
-                  modelKey: 'google/imagen-4',
-                }),
-              }),
+              changes: priceChange.changes,
+              modelKey: 'google/imagen-4',
+            }),
+          ],
+          provider: 'replicate',
+          unreadable: [
+            expect.objectContaining({
+              code: 'rates_unavailable:unmapped_criterion:camera motion',
+              modelKey: 'google/imagen-4',
             }),
           ],
         }),
-      );
+      ]);
       expect(notificationsService.dispatch).toHaveBeenCalledWith(
         expect.objectContaining({
           deduplicationKey: expect.stringMatching(
-            /^message\.model-pricing-unavailable\/google\/imagen-4\/rates_unavailable:unmapped_criterion:camera motion\/\d{4}-\d{2}-\d{2}$/,
+            /^message\.model-scan\/replicate\/[0-9a-f]{16}$/,
           ),
+          organizationId: null,
         }),
       );
     });
 
-    it('alerts ops once per model and reason when a sync throws or a model cannot be fetched', async () => {
+    it('puts a sync that throws and a model that cannot be fetched on the one card', async () => {
       globalThis.fetch = vi.fn().mockResolvedValueOnce({
         json: () => Promise.resolve({ next: null, results: [] }),
         ok: true,
@@ -390,18 +397,14 @@ describe('CronModelWatcherService', () => {
 
       await service.discoverNewModels();
 
-      const keys = notificationsService.dispatch.mock.calls.map(
-        (call) => call[0].deduplicationKey,
-      );
-      expect(keys).toEqual(
-        expect.arrayContaining([
-          expect.stringMatching(
-            /^message\.model-pricing-unavailable\/.+\/The Replicate price refresh failed \(model_fetch_failed\).*\/\d{4}-\d{2}-\d{2}$/,
-          ),
-          expect.stringMatching(
-            /^message\.model-pricing-unavailable\/.+\/The Replicate price refresh failed \(contract_sync_failed\).*\/\d{4}-\d{2}-\d{2}$/,
-          ),
-        ]),
+      const [card] = sentScanCards();
+      expect(sentScanCards()).toHaveLength(1);
+      expect(
+        (card as { unreadable: Array<{ code: string }> }).unreadable.map(
+          (item) => item.code,
+        ),
+      ).toEqual(
+        expect.arrayContaining(['model_fetch_failed', 'contract_sync_failed']),
       );
     });
 
@@ -484,7 +487,7 @@ describe('CronModelWatcherService', () => {
       expect(result.errors).toBe(0);
     });
 
-    it('raises one deduped provider-level alert when the whole Replicate sync fails', async () => {
+    it('posts one provider-level failure on the card when the whole Replicate sync fails', async () => {
       Reflect.get(
         service,
         'platformMarginService',
@@ -493,16 +496,19 @@ describe('CronModelWatcherService', () => {
       const result = await service.discoverNewModels();
 
       expect(result.errors).toBe(1);
-      expect(notificationsService.dispatch).toHaveBeenCalledWith(
+      expect(sentScanCards()).toEqual([
         expect.objectContaining({
-          deduplicationKey: expect.stringMatching(
-            /^message\.model-pricing-unavailable\/provider:replicate\/The Replicate price refresh failed \(replicate_sync_failed\).*\/\d{4}-\d{2}-\d{2}$/,
-          ),
+          unreadable: [
+            expect.objectContaining({
+              code: 'replicate_sync_failed',
+              modelKey: 'provider:replicate',
+            }),
+          ],
         }),
-      );
+      ]);
     });
 
-    it('sends one provider-level alert, not one per model, when every exact fetch fails', async () => {
+    it('puts one provider-level failure, not one per model, on the card when every exact fetch fails', async () => {
       globalThis.fetch = vi.fn().mockResolvedValueOnce({
         json: () => Promise.resolve({ next: null, results: [] }),
         ok: true,
@@ -513,14 +519,17 @@ describe('CronModelWatcherService', () => {
 
       await service.discoverNewModels();
 
-      const keys = notificationsService.dispatch.mock.calls.map(
-        (call) => call[0].deduplicationKey,
-      );
-      const fetchAlerts = keys.filter((key) =>
-        key.includes('(model_fetch_failed)'),
-      );
-      expect(fetchAlerts).toHaveLength(1);
-      expect(fetchAlerts[0]).toContain('/provider:replicate/');
+      const [card] = sentScanCards();
+      expect(sentScanCards()).toHaveLength(1);
+      expect(
+        (card as { unreadable: Array<{ code: string; modelKey: string }> })
+          .unreadable,
+      ).toEqual([
+        expect.objectContaining({
+          code: 'model_fetch_failed',
+          modelKey: 'provider:replicate',
+        }),
+      ]);
     });
 
     it('should ignore models already in DB', async () => {
@@ -927,7 +936,7 @@ describe('CronModelWatcherService', () => {
       expect(
         replicateContractSyncService.synchronizeModel,
       ).not.toHaveBeenCalled();
-      expect(notificationsService.dispatch).not.toHaveBeenCalled();
+      expect(sentScanCards()).toEqual([first.report]);
 
       // The next run finds the row already recorded and says nothing.
       listModels(listed('google', 'veo-3'));
@@ -970,7 +979,7 @@ describe('CronModelWatcherService', () => {
         { code: 'removed_by_provider', status: 'removed' },
         expect.any(Date),
       );
-      expect(notificationsService.dispatch).not.toHaveBeenCalled();
+      expect(sentScanCards()).toEqual([report]);
     });
 
     it('does not count removed models toward a provider-wide outage', async () => {
@@ -1054,7 +1063,7 @@ describe('CronModelWatcherService', () => {
       ]);
       expect(modelDiscoveryService.fetchReplicateModel).not.toHaveBeenCalled();
       expect(report.unreadable).toEqual([]);
-      expect(notificationsService.dispatch).not.toHaveBeenCalled();
+      expect(sentScanCards()).toEqual([report]);
 
       listModels();
       rows(registryRow('argil/atom', { isActive: false }));
