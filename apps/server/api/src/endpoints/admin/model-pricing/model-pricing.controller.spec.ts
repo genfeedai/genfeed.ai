@@ -166,10 +166,11 @@ describe('private operator pricing boundary', () => {
 
       const response = await controller.sync(undefined);
 
-      expect(queuedImports).toEqual([['fal', 'replicate']]);
+      expect(queuedImports).toEqual([['fal', 'higgsfield', 'replicate']]);
       expect(response).toEqual({
         queued: [
           { jobId: 'job-fal', provider: 'fal' },
+          { jobId: 'job-higgsfield', provider: 'higgsfield' },
           { jobId: 'job-replicate', provider: 'replicate' },
         ],
       });

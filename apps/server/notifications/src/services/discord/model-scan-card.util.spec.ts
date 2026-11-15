@@ -259,6 +259,29 @@ describe('adminModelsUrl', () => {
     );
   });
 
+  it('titles a Higgsfield scan and lists an unpriced draft', () => {
+    const card = build({
+      ...emptyReport,
+      newDrafts: [
+        {
+          billingUnit: null,
+          category: 'video',
+          modelKey: 'higgsfield/genjutsu/restyle/v1.0',
+          providerCostUsd: null,
+          sourceUrl:
+            'https://docs.higgsfield.ai/docs/models/genjutsu/restyle.md',
+          unpricedReason: 'The price has not been sampled yet.',
+        },
+      ],
+      provider: 'higgsfield',
+    });
+
+    expect(card?.title).toBe('Model scan: Higgsfield');
+    expect(card?.fields?.map((field) => field.name)).toEqual([
+      'New on the provider',
+    ]);
+  });
+
   it('is null when the app origin is not configured', () => {
     expect(adminModelsUrl(undefined)).toBeNull();
   });

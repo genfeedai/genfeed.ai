@@ -1,7 +1,7 @@
 import type { ModelPricingRateChange } from '../billing/model-pricing.interface';
 
 /** Providers whose registry rows the model scanner refreshes. */
-export type ModelScanProvider = 'replicate' | 'fal';
+export type ModelScanProvider = 'replicate' | 'fal' | 'higgsfield';
 
 /**
  * A provider changed a price. The approved rate keeps charging until an

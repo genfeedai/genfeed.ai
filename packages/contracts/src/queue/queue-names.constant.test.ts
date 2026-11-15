@@ -45,6 +45,7 @@ describe('queue-names.constant', () => {
     expect(PLATFORM_SCHEDULE_QUEUE).toBe('system-sweeps');
     expect(PROVIDER_PRICE_SYNC_TASKS).toEqual({
       fal: 'fal-model-discovery',
+      higgsfield: 'higgsfield-model-discovery',
       replicate: 'replicate-model-discovery',
     });
   });

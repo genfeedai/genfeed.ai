@@ -30,6 +30,7 @@ import { CronCreditsModule } from '@workers/crons/credits/cron.credits.module';
 import { CronEngagementModule } from '@workers/crons/engagement/cron.engagement.module';
 import { CronExternalVoiceCatalogModule } from '@workers/crons/external-voice-catalog/cron.external-voice-catalog.module';
 import { CronFalModelWatcherModule } from '@workers/crons/fal-model-watcher/cron.fal-model-watcher.module';
+import { CronHiggsfieldModelWatcherModule } from '@workers/crons/higgsfield-model-watcher/cron.higgsfield-model-watcher.module';
 import { CronIngredientsModule } from '@workers/crons/ingredients/cron.ingredients.module';
 import { CronLifecycleEmailsModule } from '@workers/crons/lifecycle-emails/cron.lifecycle-emails.module';
 import { CronMediaDeliveryRecoveryModule } from '@workers/crons/media-delivery-recovery/cron.media-delivery-recovery.module';
@@ -104,6 +105,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     CronEngagementModule,
     CronExternalVoiceCatalogModule,
     CronFalModelWatcherModule,
+    CronHiggsfieldModelWatcherModule,
     CronIngredientsModule,
     CronLifecycleEmailsModule,
     CronMediaDeliveryRecoveryModule,
