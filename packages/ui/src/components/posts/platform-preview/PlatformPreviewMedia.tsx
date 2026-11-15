@@ -250,7 +250,7 @@ export function MediaCarousel({
               <span
                 className={cn(
                   'size-1.5 rounded-full',
-                  dotIndex === index ? 'bg-primary' : 'bg-foreground/30',
+                  dotIndex === index ? 'bg-primary' : 'bg-foreground/40',
                 )}
                 key={slideKey}
               />

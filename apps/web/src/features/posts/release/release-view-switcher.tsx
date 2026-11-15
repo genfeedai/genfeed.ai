@@ -65,6 +65,7 @@ export default function ReleaseViewSwitcher({
         const isActive = id === activeView;
         const label = translate(`views.${id}`);
         return (
+          // ui-guard-allow:selection-button -- icon-only view switcher in the sidebar header, the same borderless pattern as the topbar panel toggles; a SegmentedControl draws the grouped border this replaces
           <Button
             ariaLabel={label}
             aria-pressed={isActive}
@@ -82,6 +83,7 @@ export default function ReleaseViewSwitcher({
       })}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
+          {/* ui-guard-allow:selection-button -- shows the History view open, like the icon buttons beside it */}
           <Button
             ariaLabel={translate('views.more')}
             className="size-8"
