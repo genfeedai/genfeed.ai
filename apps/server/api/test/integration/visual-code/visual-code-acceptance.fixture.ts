@@ -34,10 +34,12 @@ import { VisualProjectAssetsService } from '@api/collections/visual-projects/ser
 import { VisualProjectAuthoringService } from '@api/collections/visual-projects/services/visual-project-authoring.service';
 import { VisualProjectAuthorizationService } from '@api/collections/visual-projects/services/visual-project-authorization.service';
 import { VisualProjectBillingService } from '@api/collections/visual-projects/services/visual-project-billing.service';
+import { VisualProjectBrandContextService } from '@api/collections/visual-projects/services/visual-project-brand-context.service';
 import { VisualProjectDispatchService } from '@api/collections/visual-projects/services/visual-project-dispatch.service';
 import { VisualProjectRendererClientService } from '@api/collections/visual-projects/services/visual-project-renderer-client.service';
 import { VisualProjectWorkflowService } from '@api/collections/visual-projects/services/visual-project-workflow.service';
 import { VisualProjectsService } from '@api/collections/visual-projects/services/visual-projects.service';
+import type { IVisualBrandContext } from '@api/collections/visual-projects/utils/visual-brand-context.util';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowEngineExecutorRegistryService } from '@api/collections/workflows/services/workflow-engine-executor-registry.service';
@@ -137,6 +139,25 @@ import { z } from 'zod';
 
 const RENDERER_ORIGIN = 'https://visual-renderer.example.test';
 const PAID_MODEL = 'openai/visual-acceptance';
+// The acceptance run scripts the model boundary; brand resolution has its own
+// specs, so the authoring step receives an empty approved-brand context.
+const FIXTURE_BRAND_CONTEXT: IVisualBrandContext = {
+  approval: 'approved',
+  revision: { id: 'fixture-brand-revision', version: 1 },
+  identity: { name: 'Fixture' },
+  voice: { audience: [], values: [], avoid: [] },
+  paletteRoles: [],
+  typeRoles: [],
+  logo: [],
+  brandAssets: [],
+  facts: [],
+  mandatory: [],
+  avoid: [],
+  examples: [],
+  videoIdentity: null,
+  harnessBrief: '',
+  skills: '',
+};
 const SOURCE =
   'import React from "react"; import { useCurrentFrame, interpolate } from "remotion"; export const VisualComposition = () => { const frame = useCurrentFrame(); return <div style={{opacity: interpolate(frame, [0, 29], [0, 1])}}>Visual acceptance</div>; };';
 const storageTransport = vi.hoisted(() => ({
@@ -1131,6 +1152,13 @@ export async function createVisualCodeAcceptanceFixture(
           },
         },
         VisualProjectAuthoringService,
+        {
+          provide: VisualProjectBrandContextService,
+          useValue: {
+            resolve: async (): Promise<IVisualBrandContext> =>
+              FIXTURE_BRAND_CONTEXT,
+          },
+        },
         VisualProjectRendererClientService,
         AgentChatModelRegistryService,
         AgentModelAccessService,

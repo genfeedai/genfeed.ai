@@ -16,7 +16,7 @@ const DISTINCT_DELTA_E = 12;
 /** A color has to cover this share of the opaque pixels to be offered. */
 const MIN_SHARE = 0.01;
 
-export const BRAND_LOGO_COLOR_LIMIT = 6;
+const BRAND_LOGO_COLOR_LIMIT = 6;
 
 interface Bucket {
   count: number;

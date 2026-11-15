@@ -506,5 +506,3 @@ export default function ReleaseBoard({
     </div>
   );
 }
-
-export { COLUMN_STATUSES, columnForRelease, REFUSED_DROP_COLUMNS };

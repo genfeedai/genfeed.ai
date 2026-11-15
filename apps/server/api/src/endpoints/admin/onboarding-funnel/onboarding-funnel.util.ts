@@ -6,7 +6,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 
-export const ONBOARDING_FUNNEL_STEPS: readonly OnboardingFunnelStep[] = [
+const ONBOARDING_FUNNEL_STEPS: readonly OnboardingFunnelStep[] = [
   'websiteLink',
   'brandScanned',
   'draftsStarted',
@@ -15,9 +15,6 @@ export const ONBOARDING_FUNNEL_STEPS: readonly OnboardingFunnelStep[] = [
   'accountConnected',
   'published',
 ];
-
-export const ONBOARDING_FUNNEL_EMAIL_CLASSES: readonly OnboardingFunnelEmailClass[] =
-  ['personal', 'company', 'unknown'];
 
 /** The signup prefill marker saved on a brand's agent config, when it has one. */
 export function readPrefillMarker(agentConfig: unknown): {

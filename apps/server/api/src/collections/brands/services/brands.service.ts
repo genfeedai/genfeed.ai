@@ -101,10 +101,8 @@ import {
 
 export type {
   BrandRelocationActingUser,
-  BrandRelocationMovingResource,
   BrandRelocationPreview,
   BrandRelocationResult,
-  BrandRelocationSummary,
 } from '@api/collections/brands/services/brand-relocation.service';
 
 type BrandCreateInput = CreateBrandDto & {

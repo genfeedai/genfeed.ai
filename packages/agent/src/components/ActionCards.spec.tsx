@@ -1,4 +1,5 @@
 import '@agent-tests/media-preview-mocks';
+import { PostVisibility } from '@genfeedai/contracts';
 import { IngredientPickerCard } from '@genfeedai/agent/components/IngredientPickerCard';
 import { ReviewGateCard } from '@genfeedai/agent/components/ReviewGateCard';
 import { SchedulePostCard } from '@genfeedai/agent/components/SchedulePostCard';
@@ -273,6 +274,46 @@ describe('SchedulePostCard', () => {
       target: { value: '2026-04-02T09:00' },
     });
     expect(screen.getByRole('button', { name: /schedule/i })).toBeEnabled();
+  });
+
+  it('gives two accounts on the same platform distinct toggle names', () => {
+    const target = {
+      blockers: [],
+      isSelected: true,
+      label: 'LinkedIn',
+      media: [{ id: 'ingredient-1', kind: 'image' }],
+      platform: 'linkedin',
+      settings: {},
+      visibility: PostVisibility.PUBLIC,
+      warnings: [],
+    };
+    render(
+      <SchedulePostCard
+        action={makeAction({
+          contentId: 'ingredient-1',
+          platforms: ['linkedin'],
+          targets: [
+            {
+              ...target,
+              credentialId: 'cred-linkedin-a',
+              id: 'schedule-target-cred-linkedin-a',
+            },
+            {
+              ...target,
+              credentialId: 'cred-linkedin-b',
+              id: 'schedule-target-cred-linkedin-b',
+            },
+          ],
+        } as Partial<AgentUiActionOf<'schedule_post_card'>>)}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'LinkedIn cred-linkedin-a' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'LinkedIn cred-linkedin-b' }),
+    ).toBeInTheDocument();
   });
 });
 

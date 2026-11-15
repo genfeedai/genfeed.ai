@@ -14,7 +14,7 @@ export const ANALYTICS_TENANT_FORBIDDEN = {
   title: 'Forbidden',
 } as const;
 
-export type AnalyticsPrivilege = 'customer' | 'superadmin';
+type AnalyticsPrivilege = 'customer' | 'superadmin';
 
 export type AnalyticsTenantScope =
   | {

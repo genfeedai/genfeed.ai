@@ -24,7 +24,7 @@ export const PLATFORM_WORKFLOW_SCHEDULE_SOURCE =
  */
 export const PROACTIVE_AGENT_TURN_SOURCE = 'proactive';
 
-export type SystemWorkflowGraphMetadata = {
+type SystemWorkflowGraphMetadata = {
   canonicalId: string;
   changeSummary?: string;
   description: string;

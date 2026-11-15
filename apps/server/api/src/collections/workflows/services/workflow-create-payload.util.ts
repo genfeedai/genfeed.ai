@@ -246,7 +246,7 @@ function isMissingInputValue(value: unknown): boolean {
  * When creating from a known template, fills graph/input-schema/schedule
  * fields the caller left empty. Non-template creates pass through unchanged.
  */
-export function applyWorkflowTemplateDefaults(
+function applyWorkflowTemplateDefaults(
   workflowData: CreateWorkflowDto,
   templateMetadata: Record<string, unknown> | undefined,
 ): CreateWorkflowDto {

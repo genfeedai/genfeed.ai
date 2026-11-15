@@ -13,7 +13,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 
-export const MODEL_REGISTRY_STATUSES = [
+const MODEL_REGISTRY_STATUSES = [
   'approved',
   'discovered',
   'legacy',

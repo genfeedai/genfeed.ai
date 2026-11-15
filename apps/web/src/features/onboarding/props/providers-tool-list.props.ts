@@ -1,4 +1,4 @@
-export interface ToolRow {
+interface ToolRow {
   description: string;
   enabled: boolean;
   key: string;

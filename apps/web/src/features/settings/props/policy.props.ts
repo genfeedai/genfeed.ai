@@ -18,7 +18,7 @@ export type OverrideCategoryModels = {
   thinking: Array<Pick<IModel, 'id' | 'key'>>;
 };
 
-export type QualityTierOption = {
+type QualityTierOption = {
   description: string;
   label: string;
   value: NonNullable<AgentPolicyState['qualityTierDefault']>;

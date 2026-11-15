@@ -13,7 +13,7 @@ import { Eye, Heart, ImageIcon, MessageSquare } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-export interface TopPost {
+interface TopPost {
   postId: string;
   label?: string;
   description?: string;

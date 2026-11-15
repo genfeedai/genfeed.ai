@@ -39,7 +39,7 @@ export function getStripeStatusCode(error: unknown): number | undefined {
   return typeof statusCode === 'number' ? statusCode : undefined;
 }
 
-export function getStripeErrorType(error: unknown): string | undefined {
+function getStripeErrorType(error: unknown): string | undefined {
   const type = asStripeLikeError(error)?.type;
   return typeof type === 'string' ? type : undefined;
 }

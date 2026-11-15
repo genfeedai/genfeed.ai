@@ -22,7 +22,7 @@ const DAY_MS = 24 * HOUR_MS;
  * usually settles within the first hour; consent can wait on the person for
  * days, so later checks space out.
  */
-export const AVATAR_TWIN_TRACKING_STEPS = [
+const AVATAR_TWIN_TRACKING_STEPS = [
   { maxAgeMs: HOUR_MS, intervalMs: 2 * MINUTE_MS },
   { maxAgeMs: DAY_MS, intervalMs: 15 * MINUTE_MS },
   { maxAgeMs: 7 * DAY_MS, intervalMs: HOUR_MS },

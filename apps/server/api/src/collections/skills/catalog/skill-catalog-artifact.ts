@@ -7,7 +7,7 @@ const FRONTMATTER_BLOCK_PATTERN = /^---\r?\n[\s\S]*?\r?\n---/;
 const FRONTMATTER_VERSION_PATTERN = /^\s+version:\s*["']?([^\s"']+)/m;
 const GIT_SHA_PATTERN = /^[a-f0-9]{40}$/;
 
-export const CATALOG_COMPILER_VERSION = 'legacy-v1-char-caps';
+const CATALOG_COMPILER_VERSION = 'legacy-v1-char-caps';
 export const SOURCE_REPOSITORY = 'https://github.com/genfeedai/skills';
 export const UPSTREAM_SLUGS = [
   'ad-copy-creator',
@@ -72,13 +72,13 @@ const APPLICATION_PROCEDURES = new Set([
   'openclaw-integration',
   'model-selector',
 ]);
-export const sha256 = (value: string | Buffer): string =>
+const sha256 = (value: string | Buffer): string =>
   createHash('sha256').update(value).digest('hex');
 export interface CatalogFile {
   path: string;
   sha256: string;
 }
-export interface CatalogEntry {
+interface CatalogEntry {
   slug: string;
   ownership: 'upstream' | 'application';
   reason?: string;
@@ -191,7 +191,7 @@ export function compileSkill(directory: string, files = inventory(directory)) {
     excludedReferences,
   };
 }
-export const APPLICATION_MODULE = 'app';
+const APPLICATION_MODULE = 'app';
 export interface CatalogSkillDirectory {
   slug: string;
   module: string;

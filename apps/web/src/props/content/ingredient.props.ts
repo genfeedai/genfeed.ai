@@ -1,6 +1,5 @@
 import type {
   AssetScope,
-  ComponentSize,
   IngredientFormat,
   IngredientLineageDirection,
   IngredientOrigin,
@@ -151,32 +150,13 @@ export interface IngredientSoundProps {
   setIngredients: Dispatch<SetStateAction<IIngredient[]>>;
 }
 
-export interface ChildrenManagerProps {
-  currentIngredient: IIngredient;
-  onUpdate: () => void;
-  isRealtime?: boolean;
-  format?: string;
-}
-
-export interface ParentsManagerProps {
-  currentIngredient: IIngredient;
-  onUpdate: () => void;
-  isRealtime?: boolean;
-}
-
 export interface IngredientTabsSharingProps {
   ingredient: IIngredient;
   isUpdating?: boolean;
   onUpdateSharing?: (field: string, value: boolean | string) => void;
 }
 
-export interface IngredientTabsTagsProps {
-  ingredient: IIngredient;
-  onUpdate?: () => void;
-  isPostMode?: boolean;
-}
-
-export interface IngredientTabsChildrenProps {
+interface IngredientTabsChildrenProps {
   ingredient: IIngredient;
   onUpdate?: () => void;
   format?: string;
@@ -300,17 +280,6 @@ export interface IngredientDetailVideoProps {
 }
 
 /**
- * Ingredient tabs component props
- */
-export interface IngredientTabsProps {
-  ingredient: IIngredient | null;
-  onClose?: () => void;
-  onUpdate?: (ingredient: IIngredient) => void;
-  activeTab?: string;
-  onTabChange?: (tab: string) => void;
-}
-
-/**
  * Individual tab component props
  */
 export interface TabsIngredientInfoProps {
@@ -337,51 +306,8 @@ export interface IngredientTabsPostsProps {
 }
 
 /**
- * Base ingredient action interface
- */
-export interface BaseIngredientAction<T extends IIngredient = IIngredient> {
-  ingredient: T;
-  onEdit?: (ingredient: T) => void;
-  onDelete?: (ingredient: T) => void;
-  onDownload?: (ingredient: T) => void;
-  onShare?: (ingredient: T) => void;
-  onDuplicate?: (ingredient: T) => void;
-  showAll?: boolean;
-  className?: string;
-}
-
-/**
- * Ingredient preview props
- */
-export interface IngredientPreviewProps {
-  ingredient: IIngredient;
-  size?:
-    | ComponentSize.SM
-    | ComponentSize.MD
-    | ComponentSize.LG
-    | ComponentSize.XL;
-  showOverlay?: boolean;
-  overlayContent?: ReactNode;
-  onClick?: () => void;
-  className?: string;
-}
-
-/**
  * Ingredient filter props
  */
-
-export interface IngredientFilters {
-  type?: string[];
-  status?: string[];
-  visibility?: string[];
-  tags?: string[];
-  dateRange?: {
-    start: string;
-    end: string;
-  };
-  search?: string;
-  [key: string]: unknown;
-}
 
 /**
  * Selection actions bar props

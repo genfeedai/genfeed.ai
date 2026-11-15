@@ -13,7 +13,6 @@ import type {
 } from '@genfeedai/contracts';
 import type {
   IAsset,
-  IBot,
   ICredential,
   IElementBlacklist,
   IElementCamera,
@@ -24,12 +23,10 @@ import type {
   ILink,
   IMember,
   IModel,
-  IMonitoredAccount,
   IOrganizationSetting,
   IPost,
   IPostPlatformConfig,
   IPreset,
-  IReplyBotConfig,
   ISound,
   ITag,
   IVideo,
@@ -79,11 +76,6 @@ type ModalVisibilityProps = {
   isOpen?: boolean;
   openKey?: number | string;
 };
-
-export interface ModalBotProps {
-  bot?: IBot | null;
-  onConfirm: () => void;
-}
 
 export interface ModalGalleryProps {
   isOpen: boolean;
@@ -487,19 +479,6 @@ export interface ModalNewsletterProps {
 export interface ModalArticleProps {
   onConfirm?: (isRefreshing?: boolean) => void;
   onCreated?: (articleId: string | string[]) => void;
-}
-
-export interface ModalReplyBotProps {
-  replyBot?: IReplyBotConfig | null;
-  onConfirm: (isRefreshing?: boolean) => void;
-  onClose?: () => void;
-}
-
-export interface ModalMonitoredAccountProps {
-  account?: IMonitoredAccount | null;
-  replyBotConfigId?: string;
-  onConfirm: (isRefreshing?: boolean) => void;
-  onClose?: () => void;
 }
 
 interface PostDraftGeneratedDraft {

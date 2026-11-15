@@ -52,7 +52,7 @@ const allowedCategories = new Set<string>([
   IngredientCategory.MUSIC,
   IngredientCategory.VOICE,
 ]);
-export function visualOutputId(
+function visualOutputId(
   label: string,
   revision: VisualRevision,
   index: number,

@@ -1,12 +1,12 @@
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
-export const CHARACTER_SHEET_PRESET_VERSION = '1.1.0';
+const CHARACTER_SHEET_PRESET_VERSION = '1.1.0';
 
 /**
  * Where the sheet is shot. A studio backdrop gives polished, CGI-looking
  * skin; an empty outdoor place gives realistic light (#9616).
  */
-export type CharacterSheetEnvironment = 'neutral' | 'outdoor';
+type CharacterSheetEnvironment = 'neutral' | 'outdoor';
 
 export interface CharacterSheetPresetInput {
   description: string;

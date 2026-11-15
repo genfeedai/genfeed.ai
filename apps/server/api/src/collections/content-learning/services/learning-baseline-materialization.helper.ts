@@ -15,7 +15,7 @@ import {
 import type { ContentLearningCheckpoint } from '@genfeedai/prisma';
 import { BadRequestException } from '@nestjs/common';
 
-export type LearningBaselineMaterializationContributor = Pick<
+type LearningBaselineMaterializationContributor = Pick<
   ContentLearningCheckpoint,
   'id' | 'postId' | 'revision' | 'receivedAt'
 >;

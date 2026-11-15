@@ -161,7 +161,7 @@ const STRIPE_PRICE_ID_PATTERN = /^price_[a-zA-Z0-9]+$/;
  * price id at handoff time; anything else (already-price ids, the free `payg`
  * slug, unknown values) passes through unchanged.
  */
-export function buildPlanSlugPriceIdMap(): Record<string, string | undefined> {
+function buildPlanSlugPriceIdMap(): Record<string, string | undefined> {
   const { pro, scale } = EnvironmentService.plans;
 
   return {

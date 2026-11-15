@@ -22,7 +22,3 @@ export type PostsLayoutAction =
   | { type: 'SET_OVERFLOW_NODE'; payload: ReactNode }
   | { type: 'SET_VIEW_TOGGLE_NODE'; payload: ReactNode }
   | { type: 'SET_SCHEDULE_ACTIONS_NODE'; payload: ReactNode };
-
-export interface AdminPostsPageProps {
-  searchParams: Promise<{ platform?: string }>;
-}

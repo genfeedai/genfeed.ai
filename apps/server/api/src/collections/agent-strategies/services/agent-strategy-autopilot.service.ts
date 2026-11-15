@@ -36,7 +36,6 @@ import { Injectable, Optional } from '@nestjs/common';
 export type {
   AgentStrategyPerformanceSnapshot,
   BudgetPacingState,
-  PublishGateResult,
 } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
 
 @Traced()

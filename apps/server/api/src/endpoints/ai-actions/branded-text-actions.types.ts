@@ -33,7 +33,7 @@ export interface ReplyVariantsRequestV1 {
 }
 
 /** Stable reasons a text action stops; the message is safe to show a user. */
-export type TextActionFailureCode =
+type TextActionFailureCode =
   | 'blocked'
   | 'in_progress'
   | 'limit_exceeded'
@@ -101,7 +101,7 @@ export interface ThreadRepliesRequestV1 {
 }
 
 /** Posts a receipt-backed generation proposed; the receipt's draft artifact holds the exact text. */
-export interface BrandedPostsResultV1 {
+interface BrandedPostsResultV1 {
   postId: string;
   maxCharacters: number;
   platform: string;

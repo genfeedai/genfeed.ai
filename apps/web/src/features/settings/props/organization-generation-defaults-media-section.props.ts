@@ -1,4 +1,4 @@
-export type MediaModel = {
+type MediaModel = {
   id: string;
   key: string;
   label: string;

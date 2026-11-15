@@ -2,7 +2,6 @@
 // props package can reference them without depending on the app.
 export type {
   StudioGenerateDraftPayload,
-  StudioGenerateDraftReference,
   StudioGenerateDraftSaveStatus,
   StudioPlaygroundAssetFacts,
   StudioPlaygroundCapabilities,

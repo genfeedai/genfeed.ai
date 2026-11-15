@@ -328,6 +328,60 @@ describe('buildMediaEnhancerBrief', () => {
     );
   });
 
+  it('adds how the brand moves for video, before the avoid rules', () => {
+    expect(
+      buildMediaEnhancerBrief(
+        brief({
+          guardrails: ['Never show competitor logos.'],
+          metadata,
+          styleDirectives: ['Soft natural light.'],
+        }),
+        {
+          motionStyle: { notes: 'Slow push-ins only.', style: 'cinematic' },
+          pacing: { averageShotSeconds: 3, tempo: 'slow' },
+          shotRules: [{ text: 'Open on the product.' }],
+        },
+      ),
+    ).toBe(
+      [
+        'Brand brief for this media (let it shape the look of the scene; never quote it or render it as text):',
+        'Look:\n- Soft natural light.',
+        'Motion: cinematic. Slow push-ins only.\nPacing: slow, about 3 seconds per shot.\nShots:\n- Open on the product.',
+        'Avoid:\n- Never show competitor logos.',
+      ].join('\n'),
+    );
+  });
+
+  it('keeps the video rules out of an image brief', () => {
+    expect(
+      buildMediaEnhancerBrief(
+        brief({
+          metadata: { contentType: 'image', objective: 'awareness' },
+          styleDirectives: ['Soft natural light.'],
+        }),
+        {
+          pacing: { tempo: 'fast' },
+          shotRules: [{ text: 'Open on the product.' }],
+        },
+      ),
+    ).toBe(
+      [
+        'Brand brief for this media (let it shape the look of the scene; never quote it or render it as text):',
+        'Look:\n- Soft natural light.',
+      ].join('\n'),
+    );
+  });
+
+  it('caps the shot rules and trims long notes', () => {
+    const result = buildMediaEnhancerBrief(brief({ metadata }), {
+      motionStyle: { notes: 'n'.repeat(300), style: 'kinetic' },
+      shotRules: ['a', 'b', 'c', 'd', 'e'].map((text) => ({ text })),
+    });
+    expect(result).toContain(`Motion: kinetic. ${'n'.repeat(199)}…`);
+    expect(result).toContain('- d');
+    expect(result).not.toContain('- e');
+  });
+
   it('leaves music to its own sound guidance', () => {
     expect(
       buildMediaEnhancerBrief(

@@ -47,7 +47,7 @@ function canonical(value: unknown): string {
     .join(',')}}`;
 }
 
-export function storyboardProviderMapping(key: string) {
+function storyboardProviderMapping(key: string) {
   const registry = getVideoGenerationBriefRegistryEntry(key);
   const family = REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES.find((value) =>
     value.profiles.some((profile) => profile.modelKey === key),

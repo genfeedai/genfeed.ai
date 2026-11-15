@@ -27,7 +27,7 @@ import {
 } from '@nestjs/common';
 
 /** A quote stays acceptable this long, as Brand Remix quotes do. */
-export const TURBO_PROJECT_QUOTE_TTL_MS = 15 * 60_000;
+const TURBO_PROJECT_QUOTE_TTL_MS = 15 * 60_000;
 
 type PricedModel = {
   billingMode: TurboProjectBillingMode;

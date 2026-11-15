@@ -8,10 +8,7 @@ import { IsBoolean, IsIn, IsOptional, IsString } from 'class-validator';
  * method (approve/reject) instead of a plain field write. Other stored
  * values (`pending`, `discovered`) are owned by sync jobs, not the API.
  */
-export const MODEL_REVIEW_STATUS_TRANSITIONS = [
-  'approved',
-  'rejected',
-] as const;
+const MODEL_REVIEW_STATUS_TRANSITIONS = ['approved', 'rejected'] as const;
 
 export type ModelReviewStatusTransition =
   (typeof MODEL_REVIEW_STATUS_TRANSITIONS)[number];

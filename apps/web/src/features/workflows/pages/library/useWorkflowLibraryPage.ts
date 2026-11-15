@@ -22,7 +22,7 @@ import {
 import { useCloudSession } from '@/hooks/useCloudSession';
 import { TURBO_WORKFLOW_OPTIONS_QUERY_KEY } from '@/lib/constants/workflow-query-keys';
 
-export const WORKFLOW_LIBRARY_PAGE_SIZE = ITEMS_PER_PAGE;
+const WORKFLOW_LIBRARY_PAGE_SIZE = ITEMS_PER_PAGE;
 
 interface WorkflowLibraryPageData {
   items: WorkflowSummary[];

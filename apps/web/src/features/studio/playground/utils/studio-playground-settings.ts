@@ -35,8 +35,8 @@ export const STUDIO_ASPECT_RATIOS = [
   '9:16',
 ] as const;
 
-export const STUDIO_IMAGE_RESOLUTIONS = ['1K', '2K'] as const;
-export const STUDIO_VIDEO_DURATIONS = [5, 8, 10] as const;
+const STUDIO_IMAGE_RESOLUTIONS = ['1K', '2K'] as const;
+const STUDIO_VIDEO_DURATIONS = [5, 8, 10] as const;
 
 export const STUDIO_MAX_OUTPUTS = 8;
 
@@ -73,7 +73,7 @@ export function resolveIngredientFormat(aspectRatio: string): IngredientFormat {
     : IngredientFormat.PORTRAIT;
 }
 
-export const resolveLongEdge = resolveStudioLongEdge;
+const resolveLongEdge = resolveStudioLongEdge;
 
 export function getStudioAspectRatios(
   type: StudioPlaygroundType,

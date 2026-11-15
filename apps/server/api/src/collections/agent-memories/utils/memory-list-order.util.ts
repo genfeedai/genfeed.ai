@@ -6,7 +6,7 @@ import type { Prisma } from '@genfeedai/prisma';
  * is the Status column (promoted memories first or last) and `user` is the
  * author.
  */
-export const MEMORY_SORT_FIELDS: readonly string[] = [
+const MEMORY_SORT_FIELDS: readonly string[] = [
   'createdAt',
   'promotedSkillId',
   'scope',

@@ -1,5 +1,5 @@
 /** Window in which the focus and visibilitychange of one tab return coalesce. */
-export const FOREGROUND_COALESCE_MS = 1_000;
+const FOREGROUND_COALESCE_MS = 1_000;
 
 /** Away time under which a tab return is a glance, not a reason to refetch. */
 export const FOREGROUND_MIN_AWAY_MS = 30_000;

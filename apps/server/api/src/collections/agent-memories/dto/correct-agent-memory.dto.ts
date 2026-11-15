@@ -13,11 +13,11 @@ import {
   MinLength,
 } from 'class-validator';
 
-export const AGENT_MEMORY_CONTENT_MAX = 20_000;
-export const AGENT_MEMORY_REASON_MAX = 2_000;
-export const AGENT_MEMORY_SUMMARY_MAX = 500;
-export const AGENT_MEMORY_TAGS_MAX = 50;
-export const AGENT_MEMORY_TAG_MAX = 64;
+const AGENT_MEMORY_CONTENT_MAX = 20_000;
+const AGENT_MEMORY_REASON_MAX = 2_000;
+const AGENT_MEMORY_SUMMARY_MAX = 500;
+const AGENT_MEMORY_TAGS_MAX = 50;
+const AGENT_MEMORY_TAG_MAX = 64;
 
 /**
  * Body of a memory correction. Who is correcting, in which organization and at

@@ -100,7 +100,7 @@ export function applyScannedBrandKitDraft(
   );
 }
 
-export function importAppliedBrandKitLogo(
+function importAppliedBrandKitLogo(
   assets: BrandKitAssetsService,
   findBrand: BrandKitApplyBrandFinder,
   brandId: string,
@@ -117,7 +117,7 @@ export function importAppliedBrandKitLogo(
   );
 }
 
-export async function saveAppliedBrandKitSocialLinks(
+async function saveAppliedBrandKitSocialLinks(
   prisma: PrismaService,
   brandId: string,
   organizationId: string,

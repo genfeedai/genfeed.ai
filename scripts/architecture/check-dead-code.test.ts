@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type DeadCodeSnapshot,
   evaluateDeadCode,
+  readBaseline,
   snapshotFromKnip,
 } from './check-dead-code';
 import { deadCodeEntryKeys, findRatchetGrowth } from './check-ratchet-growth';
@@ -11,6 +12,12 @@ const EMPTY: DeadCodeSnapshot = {
   unusedExports: {},
   unusedFiles: [],
 };
+
+describe('dead-code baseline', () => {
+  it('stays empty: files, exports, types and dependencies are at a floor of zero', () => {
+    expect(readBaseline()).toEqual(EMPTY);
+  });
+});
 
 describe('snapshotFromKnip', () => {
   it('reads unused files, export plus type counts and dependencies', () => {

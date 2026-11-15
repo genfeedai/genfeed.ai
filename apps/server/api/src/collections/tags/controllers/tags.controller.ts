@@ -47,7 +47,7 @@ import type { Request } from 'express';
 type MatchConditions = Record<string, unknown>;
 
 /** Columns the tags list can be ordered by. */
-export const TAG_SORT_FIELDS: readonly string[] = [
+const TAG_SORT_FIELDS: readonly string[] = [
   'category',
   'createdAt',
   'isActive',

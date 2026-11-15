@@ -46,7 +46,7 @@ import type { ZodType } from 'zod';
 
 const MUTATION_ATTEMPTS = 5;
 /** A chunk that left no placeholder for this long never reached HeyGen. */
-export const A_ROLL_ABANDONED_MS = 5 * 60_000;
+const A_ROLL_ABANDONED_MS = 5 * 60_000;
 
 const TRACKS: readonly StoryboardPresenterTrack[] = ['aRoll', 'animatic'];
 
@@ -73,7 +73,7 @@ function parseInput<T>(schema: ZodType<T>, value: unknown): T {
   return parsed.data;
 }
 
-export function isLiveARollChunk(chunk: StoryboardARollChunk): boolean {
+function isLiveARollChunk(chunk: StoryboardARollChunk): boolean {
   return chunk.state === 'pending' || chunk.state === 'submitted';
 }
 

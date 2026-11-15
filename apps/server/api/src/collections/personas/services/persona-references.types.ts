@@ -26,7 +26,7 @@ export type PersonaReferencesClient = Pick<
 >;
 
 /** Who is changing a character's references, for the sharing check. */
-export interface PersonaReferenceActor {
+interface PersonaReferenceActor {
   apiKeyContext?: Pick<AuthenticatedUser, 'isApiKey' | 'scopes'>;
   isSuperAdmin?: boolean;
   userId: string;

@@ -9,7 +9,7 @@ import type { Node, NodeChange, NodeProps } from '@xyflow/react';
  * beside the canvas rather than in `@genfeedai/props` — which carries no
  * `@xyflow/react` dependency. The canvas's own public props live there.
  */
-export interface LibraryCanvasNodeData extends Record<string, unknown> {
+interface LibraryCanvasNodeData extends Record<string, unknown> {
   ingredient: IIngredient;
 }
 

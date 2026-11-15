@@ -25,11 +25,7 @@ export interface ScoreBarProps {
   score: number;
 }
 
-export type PatternTypeBadgeVariant =
-  | 'default'
-  | 'info'
-  | 'success'
-  | 'warning';
+type PatternTypeBadgeVariant = 'default' | 'info' | 'success' | 'warning';
 
 export type PatternTypeVariantMap = Record<
   PatternType,

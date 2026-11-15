@@ -1,7 +1,3 @@
-export interface IngredientsListPageProps {
-  params: Promise<{ type: string }>;
-}
-
 export interface OAuthPageProps {
   params: Promise<{ platform: string }>;
 }
@@ -12,10 +8,6 @@ export interface TagsFilterPageProps {
   }>;
 }
 
-export interface PostsPlatformPageProps {
-  params: Promise<{ platform: string }>;
-}
-
 export interface BrandPlatformHomePageProps {
   params: Promise<{
     brandSlug: string;
@@ -24,55 +16,12 @@ export interface BrandPlatformHomePageProps {
   }>;
 }
 
-export interface AnalyticsBrandPageProps {
-  params: Promise<{ id: string }>;
-}
-
-export interface AnalyticsBrandPlatformPageProps {
-  params: Promise<{ id: string; platform: string }>;
-}
-
-export interface BrandAppPageProps {
-  params: Promise<{
-    brandSlug: string;
-    orgSlug: string;
-  }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}
-
-export interface PostsListPageProps {
-  searchParams: Promise<{ platform?: string; status?: string }>;
-}
-
-export interface ArticlesStatusPageProps {
-  params: Promise<{ status: string }>;
-}
-
 /**
  * Generic detail page props with id parameter
  * Used for /posts/[id], /brands/[id], /templates/[id], etc.
  */
 export interface DetailPageProps {
   params: Promise<{ id: string }>;
-}
-
-export interface ElementConfig {
-  visibleFilters: {
-    search?: boolean;
-    status?: boolean;
-    format?: boolean;
-    type?: boolean;
-    provider?: boolean;
-    model?: boolean;
-    sort?: boolean;
-  };
-  filterOptions?: {
-    sort?: Array<{ value: string; label: string }>;
-  };
-}
-
-export interface FilterPageProps {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 export interface StoryboardRunPageProps {

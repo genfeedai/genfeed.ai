@@ -11,7 +11,6 @@ import {
   createLibraryShelfRoute,
   LIBRARY_QUERY_KEYS,
   resolveAdminLibraryAxisRoute,
-  resolveLegacyLibraryRoute,
   resolveLibraryAxisRoute,
 } from './library-routes.constant';
 import { APP_ROUTES } from './routes.constant';
@@ -181,46 +180,5 @@ describe('resolveAdminLibraryAxisRoute', () => {
         IngredientCategory.VIDEO,
       ]).route,
     ).toBe('/admin/content/ingredients');
-  });
-});
-
-describe('resolveLegacyLibraryRoute', () => {
-  it.each([
-    [{ place: 'trash' }, '/library/trash'],
-    [{ place: 'recent', folder: 'f1' }, '/library/recent?folder=f1'],
-    [{ shelf: 'needs-review' }, '/library/shelf/needs-review'],
-    [
-      { categories: ['IMAGE', 'IMAGE_EDIT'], search: 'hero' },
-      '/library/images?search=hero',
-    ],
-    [{ categories: ['GIF'] }, '/library/gifs'],
-  ])('moves %j to its route', (search, route) => {
-    expect(resolveLegacyLibraryRoute(search)).toBe(route);
-  });
-
-  it('keeps the categories param when a place owns the path', () => {
-    expect(
-      resolveLegacyLibraryRoute({ categories: 'IMAGE', place: 'starred' }),
-    ).toBe('/library/starred?categories=IMAGE');
-  });
-
-  it('strips a legacy axis that names no view', () => {
-    expect(resolveLegacyLibraryRoute({ place: 'assets', folder: 'f1' })).toBe(
-      '/library/assets?folder=f1',
-    );
-    expect(resolveLegacyLibraryRoute({ shelf: 'nope' })).toBe(
-      '/library/assets',
-    );
-  });
-
-  it('leaves canonical All assets URLs alone', () => {
-    expect(resolveLegacyLibraryRoute({})).toBeNull();
-    expect(
-      resolveLegacyLibraryRoute({
-        categories: ['IMAGE', 'VIDEO'],
-        folder: 'f1',
-      }),
-    ).toBeNull();
-    expect(resolveLegacyLibraryRoute({ categories: '' })).toBeNull();
   });
 });

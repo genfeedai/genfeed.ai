@@ -46,7 +46,7 @@ import { Injectable, Optional } from '@nestjs/common';
 
 const LINE_BREAK_PATTERN = /\r?\n/;
 
-export type KnowledgeSourceIngestStatus =
+type KnowledgeSourceIngestStatus =
   | 'queued'
   | 'completed'
   | 'failed'
@@ -70,7 +70,7 @@ export interface KnowledgeSourceIngestSource {
   userId: string;
 }
 
-export interface KnowledgeSourceIngestVersion {
+interface KnowledgeSourceIngestVersion {
   id: string;
   isCurrent: boolean;
   isTranscriptGenerationAllowed?: boolean;
@@ -109,8 +109,8 @@ export interface KnowledgeSourceBackfillScanResult {
   queued: KnowledgeSourceIngestWorkflowInput[];
 }
 
-export const KNOWLEDGE_MAX_FAILURE_REASON_LENGTH = 500;
-export const KNOWLEDGE_CONTEXT_BASE_TYPE = 'knowledge';
+const KNOWLEDGE_MAX_FAILURE_REASON_LENGTH = 500;
+const KNOWLEDGE_CONTEXT_BASE_TYPE = 'knowledge';
 
 const FETCHED_CATEGORY_BY_KIND: Partial<
   Record<KnowledgeSourceKind, KnowledgeBaseCategory>

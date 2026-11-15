@@ -79,7 +79,7 @@ export interface ArticleHarnessContext {
   >;
 }
 
-export interface ArticleDraftFields {
+interface ArticleDraftFields {
   content: string;
   label: string;
   summary: string;

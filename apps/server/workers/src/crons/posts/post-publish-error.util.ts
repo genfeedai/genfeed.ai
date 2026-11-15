@@ -143,10 +143,11 @@ export function createChannelTargetError(
   code: string,
   message: string,
   isRetryable: boolean,
+  failedAt: Date = new Date(),
 ): IChannelTargetError {
   return {
     code,
-    failedAt: new Date().toISOString(),
+    failedAt: failedAt.toISOString(),
     isRetryable,
     message,
   };

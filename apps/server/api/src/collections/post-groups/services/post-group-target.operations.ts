@@ -365,7 +365,7 @@ function alignYouTubeVisibilityUpdate(
   };
 }
 
-export async function resolveCanonicalReleaseId(
+async function resolveCanonicalReleaseId(
   params: CanonicalReleaseLookup,
   dependencies: PostGroupTargetOperationDependencies,
 ): Promise<string> {

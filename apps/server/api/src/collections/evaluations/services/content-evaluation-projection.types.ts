@@ -5,14 +5,6 @@ export interface EvaluationReadScope {
   readonly contentType?: 'image' | 'video' | 'post' | 'article';
 }
 
-export interface EvaluationReadItem {
-  readonly id?: string;
-  readonly organizationId?: string | null;
-  readonly brandId?: string | null;
-  readonly category?: string | null;
-  readonly isDeleted?: boolean;
-}
-
 export interface EvaluationReadTarget {
   readonly organizationId: string;
   readonly contentType: NonNullable<IEvaluation['contentType']>;

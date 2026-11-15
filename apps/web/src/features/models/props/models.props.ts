@@ -19,7 +19,7 @@ export const ADMIN_MODEL_TYPE_TABS = [
 
 export type AdminModelType = (typeof ADMIN_MODEL_TYPE_TABS)[number]['value'];
 
-export function isAdminModelType(value: string): value is AdminModelType {
+function isAdminModelType(value: string): value is AdminModelType {
   return ADMIN_MODEL_TYPE_TABS.some((tab) => tab.value === value);
 }
 

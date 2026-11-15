@@ -16,7 +16,7 @@ export const SCHEDULED_POST_FAILURE_WORKFLOW_ID =
 // Mirrored by the closed `source` enum in
 // `packages/actions/.../scheduled-post-action-contracts.ts`, which cannot import
 // from the API.
-export const SCHEDULED_POST_WORKFLOW_SOURCES = [
+const SCHEDULED_POST_WORKFLOW_SOURCES = [
   'manual_retry',
   'publish_now',
   'scheduled_sweep',

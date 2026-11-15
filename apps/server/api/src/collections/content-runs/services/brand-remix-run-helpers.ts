@@ -53,7 +53,7 @@ export function parseBrandRemixPayload<T>(
   return parsed.data;
 }
 
-export function invalidBrandRemixPayload(
+function invalidBrandRemixPayload(
   action: string,
   error: ZodError,
 ): BadRequestException {

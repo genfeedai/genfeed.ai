@@ -100,7 +100,7 @@ export function isStudioTransformSource(
 }
 
 /** A clip the video composer can attach as a video reference. */
-export function isStudioVideoReferenceJob(
+function isStudioVideoReferenceJob(
   job: Pick<StudioPlaygroundJob, 'type'>,
 ): boolean {
   return job.type === 'video' || job.type === 'avatar';

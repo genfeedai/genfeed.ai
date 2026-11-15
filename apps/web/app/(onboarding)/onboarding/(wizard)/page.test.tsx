@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
+import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 import { render, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import OnboardingRootPage from './page';
+import OnboardingRootPage, * as PageModule from './page';
 
 const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
@@ -92,3 +93,5 @@ describe('onboarding entry redirects', () => {
     );
   });
 });
+
+runPageModuleTests('app/(onboarding)/onboarding/(wizard)/page', PageModule);

@@ -91,14 +91,3 @@ export class CreateSocialMediaPostDto {
   @ApiProperty({ required: false })
   readonly thumbnailUrl?: string;
 }
-
-export class BulkSocialMediaPostDto {
-  @IsArray()
-  @ApiProperty({ required: true, type: [CreateSocialMediaPostDto] })
-  readonly posts!: CreateSocialMediaPostDto[];
-
-  @IsBoolean()
-  @IsOptional()
-  @ApiProperty({ default: false, required: false })
-  readonly publishImmediately?: boolean;
-}

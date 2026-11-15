@@ -12,7 +12,7 @@ const positiveInteger = z
   .positive()
   .max(Number.MAX_SAFE_INTEGER);
 const money = z.number().finite().nonnegative();
-export const openrouterTextPricingSchema = z.discriminatedUnion('kind', [
+const openrouterTextPricingSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('bounded'),
     version: z.literal(1),

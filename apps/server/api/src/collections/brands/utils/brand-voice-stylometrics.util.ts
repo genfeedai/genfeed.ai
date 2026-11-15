@@ -20,7 +20,7 @@ const NON_LETTERS_PATTERN = /[^\p{L}]/gu;
  */
 
 /** Below this many samples the measured rules are too noisy to publish. */
-export const MIN_SAMPLES_FOR_STYLE_RULES = 10;
+const MIN_SAMPLES_FOR_STYLE_RULES = 10;
 
 const LEADING_MENTIONS_PATTERN = /^(?:\s*[.]?@[\w.]+[,:]?)+\s*/u;
 const URL_PATTERN = /(?:https?:\/\/|www\.)\S+/giu;

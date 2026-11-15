@@ -98,7 +98,7 @@ function comparePublishedDesc(
   return bTime - aTime;
 }
 
-export function buildFollowingDeckColumns(
+function buildFollowingDeckColumns(
   items: DiscoveryDeskItem[],
   sources: FollowingDeckProps['sources'],
 ): FollowingDeckColumn[] {

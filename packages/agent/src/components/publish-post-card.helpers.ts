@@ -223,16 +223,18 @@ export function readPublishTargetProposals(
   });
 }
 
-export function targetToggleName(
+/**
+ * The platform logo and name come from PlatformBadge; this is only the extra
+ * text that tells two accounts of the same platform apart.
+ */
+export function targetAccountSuffix(
   target: AgentPublishTargetProposal,
   all: AgentPublishTargetProposal[],
-): string {
+): string | null {
   const samePlatformCount = all.filter(
     (candidate) => candidate.platform === target.platform,
   ).length;
-  return samePlatformCount > 1
-    ? `${target.platform} ${target.credentialId}`
-    : target.platform;
+  return samePlatformCount > 1 ? target.credentialId : null;
 }
 
 export function resolveEffectiveCaption(

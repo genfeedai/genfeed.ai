@@ -28,5 +28,3 @@ export class ExecuteAiActionDto {
   @IsObject()
   context?: Record<string, string>;
 }
-
-export class StreamAiActionDto extends ExecuteAiActionDto {}

@@ -16,7 +16,7 @@ export {
   type ResearchFindingReferenceKind,
 } from '@genfeedai/contracts/interfaces';
 
-export interface ResearchFindingMetadataItem {
+interface ResearchFindingMetadataItem {
   readonly label: string;
   readonly value: string;
 }

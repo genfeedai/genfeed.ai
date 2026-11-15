@@ -1,29 +1,27 @@
 import { z } from 'zod';
 
-export const AGENT_SOURCE_KINDS = [
+const AGENT_SOURCE_KINDS = [
   'imported_posts',
   'saved_ads',
   'owned_outlier_posts',
   'trends',
   'long_form_videos',
 ] as const;
-export const AGENT_SOURCE_OUTPUT_KINDS = [
+const AGENT_SOURCE_OUTPUT_KINDS = [
   'copy',
   'image',
   'video',
   'avatar',
   'clips',
 ] as const;
-export const DEFAULT_AGENT_SOURCE_KINDS = Object.freeze([
+const DEFAULT_AGENT_SOURCE_KINDS = Object.freeze([
   'imported_posts',
   'saved_ads',
 ] as const);
-export const DEFAULT_AGENT_SOURCE_LIMIT = 1;
-export const DEFAULT_AGENT_SOURCE_OUTPUT_KINDS = Object.freeze([
-  'copy',
-] as const);
+const DEFAULT_AGENT_SOURCE_LIMIT = 1;
+const DEFAULT_AGENT_SOURCE_OUTPUT_KINDS = Object.freeze(['copy'] as const);
 export type AgentSourceKind = (typeof AGENT_SOURCE_KINDS)[number];
-export type AgentSourceOutputKind = (typeof AGENT_SOURCE_OUTPUT_KINDS)[number];
+type AgentSourceOutputKind = (typeof AGENT_SOURCE_OUTPUT_KINDS)[number];
 export interface AgentSourcePolicy {
   readonly version: 1;
   readonly enabledKinds: readonly AgentSourceKind[];

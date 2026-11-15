@@ -27,7 +27,7 @@ export function buildUserSearchWhere(
 }
 
 /** Columns the superadmin user list can be ordered by. */
-export const USER_SORT_FIELDS: readonly string[] = [
+const USER_SORT_FIELDS: readonly string[] = [
   'createdAt',
   'email',
   'lastActiveAt',

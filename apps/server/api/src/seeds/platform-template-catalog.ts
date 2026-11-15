@@ -6,7 +6,7 @@ import {
 
 // A type alias, not an interface: it is written to a Prisma Json column, and
 // only aliases carry the implicit index signature `InputJsonObject` needs.
-export type PlatformTemplateVariable = {
+type PlatformTemplateVariable = {
   description: string;
   label: string;
   name: string;

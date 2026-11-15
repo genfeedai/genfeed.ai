@@ -11,7 +11,7 @@ import { useAuthorizedMediaUrls } from '@/features/studio/hooks/use-authorized-m
 export type StoryboardAssetRequest = { id: string; kind: 'image' | 'video' };
 export type StoryboardAsset = Image | Video;
 const EMPTY_ASSETS: Record<string, StoryboardAsset> = {};
-export const storyboardAssetKey = (request: StoryboardAssetRequest) =>
+const storyboardAssetKey = (request: StoryboardAssetRequest) =>
   `${request.kind}:${request.id}`;
 
 interface StoryboardAssetServices {

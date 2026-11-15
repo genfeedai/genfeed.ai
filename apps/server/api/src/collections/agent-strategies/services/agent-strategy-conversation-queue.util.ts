@@ -60,7 +60,7 @@ function describeAge(hours: number): string {
   return hours < 1 ? 'under an hour ago' : `${Math.floor(hours)}h ago`;
 }
 
-export function isOwnPost(source: ConversationSource, ownHandle?: string) {
+function isOwnPost(source: ConversationSource, ownHandle?: string) {
   return (
     Boolean(ownHandle) &&
     source.authorUsername.replace(LEADING_AT_SIGN_PATTERN, '').toLowerCase() ===
@@ -172,7 +172,7 @@ export function topicFor(source: ConversationSource): string {
   return `Reply to @${source.authorUsername}: ${excerpt}`;
 }
 
-export function stateForStatus(
+function stateForStatus(
   status: AgentStrategyOpportunityStatus | string,
 ): ConversationQueueState | null {
   const entry = (

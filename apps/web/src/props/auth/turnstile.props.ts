@@ -1,5 +1,5 @@
 /** Options for the subset of `turnstile.render` the signup screens use. */
-export interface TurnstileRenderOptions {
+interface TurnstileRenderOptions {
   appearance: 'always' | 'execute' | 'interaction-only';
   callback: (token: string) => void;
   'error-callback': () => void;

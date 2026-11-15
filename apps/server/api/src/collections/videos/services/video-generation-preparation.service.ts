@@ -86,10 +86,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
-export {
-  assertSeedanceReferenceVideoDuration,
-  MAX_SEEDANCE_REFERENCE_VIDEO_SECONDS,
-} from '@api/collections/videos/services/seedance-reference-evidence.util';
+export { assertSeedanceReferenceVideoDuration } from '@api/collections/videos/services/seedance-reference-evidence.util';
 
 @Traced()
 @Injectable()

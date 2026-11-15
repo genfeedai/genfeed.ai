@@ -6,7 +6,7 @@ import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
-export async function resolveStoredAudioReference(
+async function resolveStoredAudioReference(
   ingredients: Pick<IngredientsService, 'findOne'>,
   files: Pick<FilesClientService, 'getPresignedDownloadUrlForObjectKey'>,
   referenceId: string,

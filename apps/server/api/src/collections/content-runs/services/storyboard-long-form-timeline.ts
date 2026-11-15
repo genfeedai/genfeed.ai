@@ -17,22 +17,22 @@ const NON_WHITESPACE_RUNS_PATTERN = /\S+/gu;
  */
 export const LONG_FORM_J_CUT_LEAD_SECONDS = 0.33;
 /** A cut this close to a sentence start snaps to it. */
-export const LONG_FORM_SENTENCE_SNAP_SECONDS = 1;
+const LONG_FORM_SENTENCE_SNAP_SECONDS = 1;
 /** B-roll covers each A-roll join by at least this much on both sides. */
-export const LONG_FORM_JOIN_COVER_SECONDS = 0.5;
+const LONG_FORM_JOIN_COVER_SECONDS = 0.5;
 /** A cutaway this close to a join is stretched to cover it. */
-export const LONG_FORM_JOIN_STRETCH_SECONDS = 3;
+const LONG_FORM_JOIN_STRETCH_SECONDS = 3;
 /** Shortest cutaway worth showing; shorter ones read as a flash. */
-export const LONG_FORM_MIN_CUTAWAY_SECONDS = 1;
+const LONG_FORM_MIN_CUTAWAY_SECONDS = 1;
 
-export interface LongFormARollPlacement {
+interface LongFormARollPlacement {
   chunkId: string;
   assetId: string;
   startSeconds: number;
   durationSeconds: number;
 }
 
-export interface LongFormCutawayPlacement {
+interface LongFormCutawayPlacement {
   cutawayId: string;
   segmentId: string;
   kind: StoryboardCutaway['kind'];

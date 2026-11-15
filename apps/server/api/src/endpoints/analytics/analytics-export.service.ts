@@ -29,7 +29,7 @@ const FORMULA_PREFIX_PATTERN = /^[=+\-@]/;
 const CSV_SPECIAL_CHARS_PATTERN = /[",\n]/;
 const DOUBLE_QUOTES_PATTERN = /"/g;
 
-export const MAX_ANALYTICS_EXPORT_ROWS = 5_000;
+const MAX_ANALYTICS_EXPORT_ROWS = 5_000;
 const MAX_ANALYTICS_EXPORT_RANGE_DAYS = 366;
 const ANALYTICS_EXPORT_FIELDS = new Set<string>([
   'comments',

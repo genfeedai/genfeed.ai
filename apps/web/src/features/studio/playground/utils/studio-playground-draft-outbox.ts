@@ -1,7 +1,4 @@
-import type {
-  ScopedOutboxOptions,
-  ScopedOutboxStorage,
-} from '@genfeedai/contracts/interfaces/utils/scoped-outbox.interface';
+import type { ScopedOutboxOptions } from '@genfeedai/contracts/interfaces/utils/scoped-outbox.interface';
 import { logger } from '@services/core/logger.service';
 import { isRecord } from '@utils/data/extract.util';
 import { createScopedOutbox } from '@utils/outbox/scoped-outbox.util';
@@ -28,12 +25,9 @@ export class StudioPlaygroundDraftRejectedError extends Error {
   }
 }
 
-export type StudioPlaygroundDraftStatusListener = (
+type StudioPlaygroundDraftStatusListener = (
   status: StudioGenerateDraftSaveStatus,
 ) => void;
-
-/** The slice of `Storage` the outbox persists unsent drafts through. */
-export type StudioPlaygroundDraftStorage = ScopedOutboxStorage;
 
 export type StudioPlaygroundDraftOutboxOptions = ScopedOutboxOptions;
 
@@ -95,7 +89,7 @@ function isDraftPayload(value: unknown): value is StudioGenerateDraftPayload {
 }
 
 /** Key order matches the composer's payload so equal content compares equal. */
-export function serializeStudioPlaygroundDraftPayload(
+function serializeStudioPlaygroundDraftPayload(
   payload: StudioGenerateDraftPayload,
 ): string {
   return JSON.stringify({

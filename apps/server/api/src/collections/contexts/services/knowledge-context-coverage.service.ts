@@ -29,7 +29,7 @@ import { Injectable } from '@nestjs/common';
 
 export const CONTEXT_COVERAGE_SOURCE_LIMIT = 200;
 export const CONTEXT_COVERAGE_CREDENTIAL_LIMIT = 50;
-export const CONTEXT_COVERAGE_MEMORY_LIMIT = 200;
+const CONTEXT_COVERAGE_MEMORY_LIMIT = 200;
 
 export interface ContextCoverageRequest {
   /** Knowledge purposes to report; omitted means every purpose the usage reads. */

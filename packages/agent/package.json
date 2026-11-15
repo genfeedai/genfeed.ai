@@ -33,7 +33,6 @@
   "devDependencies": {
     "@genfeedai/auth-client": "workspace:*",
     "@tailwindcss/postcss": "4.3.5",
-    "@tailwindcss/typography": "0.5.20",
     "@genfeedai/tsconfig": "workspace:*",
     "@tanstack/react-query": "5.107.1",
     "@testing-library/jest-dom": "7.0.1",

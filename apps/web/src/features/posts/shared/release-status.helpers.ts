@@ -174,7 +174,7 @@ export function isReleaseReschedulable(release: IReleaseGroup): boolean {
  * (`parseFutureScheduleDate`). The panel rejects the same instants before the
  * request goes out so the operator gets an inline reason, not a round trip.
  */
-export const SCHEDULE_PAST_TOLERANCE_MS = 1000;
+const SCHEDULE_PAST_TOLERANCE_MS = 1000;
 
 export function isPastScheduleInstant(
   instant: string,

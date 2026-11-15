@@ -48,15 +48,7 @@ export interface AgentWorkflowMessage {
   timestamp: number;
 }
 
-export interface AgentWorkflowPhaseHistoryEntry {
-  from: AgentWorkflowPhase;
-  to: AgentWorkflowPhase;
-  trigger: AgentWorkflowTrigger;
-  actor: AgentWorkflowActor;
-  timestamp: Date;
-}
-
-export interface AgentWorkflowStateSnapshot {
+interface AgentWorkflowStateSnapshot {
   questions: AgentWorkflowQuestion[];
   approaches: AgentWorkflowApproach[];
   selectedApproachId: string | null;

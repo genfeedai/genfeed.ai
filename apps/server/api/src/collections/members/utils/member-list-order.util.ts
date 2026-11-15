@@ -5,7 +5,7 @@ import type { Prisma } from '@genfeedai/prisma';
  * Columns the members list can be ordered by. Brands is assembled from
  * per-member brand access, which the list cannot order by.
  */
-export const MEMBER_SORT_FIELDS: readonly string[] = [
+const MEMBER_SORT_FIELDS: readonly string[] = [
   'createdAt',
   'isActive',
   'roleLabel',

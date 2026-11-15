@@ -16,7 +16,7 @@ const https = z
 const version = z
   .object({ id: z.string().min(1), updatedAt: z.string().datetime() })
   .strict();
-export const characterOperationSchema = z
+const characterOperationSchema = z
   .object({
     version: z.literal(1),
     operationId: z.string().uuid(),

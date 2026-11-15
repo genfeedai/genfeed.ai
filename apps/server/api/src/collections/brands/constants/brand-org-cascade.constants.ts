@@ -35,7 +35,7 @@ export interface FirstOrderCascadeTarget {
   readonly orgField: string;
 }
 
-export interface SecondOrderParentLink {
+interface SecondOrderParentLink {
   /** camelCase delegate of the parent whose brand we filter by. */
   readonly parentDelegate: string;
   /** Brand field on the parent (matches a FIRST_ORDER_TARGETS entry). */

@@ -21,7 +21,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 
 const SPEND_CONFIRMATION = 'confirm';
 
-export function toCampaignPaidActivation(
+function toCampaignPaidActivation(
   row: CampaignPaidActivation,
 ): ICampaignPaidActivation {
   return {

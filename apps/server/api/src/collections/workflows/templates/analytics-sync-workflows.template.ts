@@ -36,8 +36,7 @@ export const ANALYTICS_COLLECTION_CHILD_WORKFLOW_IDS = {
   YOUTUBE: 'analytics.youtube.collect-item',
 } as const;
 
-export const ANALYTICS_GENERIC_SYNC_ITEM_WORKFLOW_ID =
-  'analytics.generic.sync-item';
+const ANALYTICS_GENERIC_SYNC_ITEM_WORKFLOW_ID = 'analytics.generic.sync-item';
 
 function actionNode(
   actionId: string,

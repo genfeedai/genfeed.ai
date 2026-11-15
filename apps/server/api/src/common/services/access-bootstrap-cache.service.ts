@@ -16,7 +16,7 @@ import { RedisService } from '@libs/redis/redis.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
-export interface AccessBootstrapStatePayload {
+interface AccessBootstrapStatePayload {
   userId: string;
   organizationId: string;
   memberRole: MemberRole | null;

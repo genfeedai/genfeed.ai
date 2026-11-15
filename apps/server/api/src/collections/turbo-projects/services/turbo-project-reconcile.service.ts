@@ -952,7 +952,7 @@ export class TurboProjectReconcileService {
   }
 }
 
-export function toItemStatus(decision: ReviewDecision): TurboProjectItemStatus {
+function toItemStatus(decision: ReviewDecision): TurboProjectItemStatus {
   switch (decision) {
     case ReviewDecision.APPROVED:
       return TurboProjectItemStatus.APPROVED;

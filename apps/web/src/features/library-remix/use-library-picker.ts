@@ -46,9 +46,9 @@ type LibraryPickerLoadStatus =
   | 'permission-denied'
   | 'ready';
 
-export type LibraryPickerSelectionFailure = 'error' | 'stale' | 'unauthorized';
+type LibraryPickerSelectionFailure = 'error' | 'stale' | 'unauthorized';
 
-export interface LibraryPickerState {
+interface LibraryPickerState {
   readonly hasMore: boolean;
   readonly items: readonly IIngredient[];
   readonly status: LibraryPickerLoadStatus;

@@ -3,7 +3,7 @@
  * media and the prompts that never produced any in one ledger.
  */
 
-export type GenerationKind = 'generation' | 'prompt';
+type GenerationKind = 'generation' | 'prompt';
 
 export type GenerationMediaKind = 'image' | 'video' | 'audio' | 'none';
 

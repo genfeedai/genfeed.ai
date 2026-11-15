@@ -98,7 +98,7 @@ export const TASK_CONFIG_FIELDS = [
   'voiceProvider',
 ] as const;
 
-export function readTaskRecord(value: unknown): Record<string, unknown> {
+function readTaskRecord(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};

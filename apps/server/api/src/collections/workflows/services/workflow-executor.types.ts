@@ -1,7 +1,4 @@
-import type {
-  WorkflowExecutionStatus,
-  WorkflowExecutionTrigger,
-} from '@genfeedai/contracts';
+import type { WorkflowExecutionStatus } from '@genfeedai/contracts';
 
 /**
  * Trigger event payload that initiates workflow execution.
@@ -103,9 +100,4 @@ export interface ReviewGateTimeoutResolution {
   executionId: string;
   nodeId: string;
   resolution: 'approved' | 'rejected';
-}
-
-export interface ExecuteWorkflowDocumentOptions {
-  trigger: WorkflowExecutionTrigger;
-  metadata?: Record<string, unknown>;
 }

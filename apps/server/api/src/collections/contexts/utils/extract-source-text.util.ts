@@ -28,11 +28,11 @@ export const KNOWLEDGE_SOURCE_MAX_BYTES = 2_000_000;
  * megabytes on the request thread. Non-text streams never move the extracted
  * text counter, so the document budget is separate from that counter.
  */
-export const PDF_MAX_INFLATED_BYTES = 16 * 1024 * 1024;
-export const PDF_MAX_DOCUMENT_INFLATED_BYTES = PDF_MAX_INFLATED_BYTES;
+const PDF_MAX_INFLATED_BYTES = 16 * 1024 * 1024;
+const PDF_MAX_DOCUMENT_INFLATED_BYTES = PDF_MAX_INFLATED_BYTES;
 export const PDF_MAX_EXTRACTED_CHARS = 2_000_000;
 
-export const INGESTIBLE_KNOWLEDGE_SOURCE_CATEGORIES = [
+const INGESTIBLE_KNOWLEDGE_SOURCE_CATEGORIES = [
   KnowledgeBaseCategory.AUDIO,
   KnowledgeBaseCategory.DOCUMENT,
   KnowledgeBaseCategory.RSS,
@@ -40,7 +40,7 @@ export const INGESTIBLE_KNOWLEDGE_SOURCE_CATEGORIES = [
   KnowledgeBaseCategory.VIDEO,
 ] as const;
 
-export type IngestibleKnowledgeSourceCategory =
+type IngestibleKnowledgeSourceCategory =
   (typeof INGESTIBLE_KNOWLEDGE_SOURCE_CATEGORIES)[number];
 
 export class UnsupportedKnowledgeSourceError extends Error {
@@ -61,7 +61,7 @@ export interface ExtractedSourceText {
   text: string;
 }
 
-export type SourceTextFetch = (
+type SourceTextFetch = (
   input: string,
   init?: RequestInit,
 ) => Promise<{
@@ -87,7 +87,7 @@ const TEXT_FETCH_HEADERS = {
     'Mozilla/5.0 (compatible; GenfeedKnowledgeIngest/1.0; +https://genfeed.ai)',
 } as const;
 
-export function isIngestibleKnowledgeSourceCategory(
+function isIngestibleKnowledgeSourceCategory(
   category: KnowledgeBaseCategory,
 ): category is IngestibleKnowledgeSourceCategory {
   return (INGESTIBLE_KNOWLEDGE_SOURCE_CATEGORIES as readonly string[]).includes(
