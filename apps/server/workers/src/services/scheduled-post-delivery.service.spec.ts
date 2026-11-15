@@ -872,6 +872,18 @@ describe('ScheduledPostDeliveryService', () => {
     );
   });
 
+  it('tells the owner nothing while a retryable provider failure still has retries left', async () => {
+    mocks.activitiesService.record.mockClear();
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockRejectedValue(new Error('ETIMEDOUT')),
+      supportsThreads: false,
+    });
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(mocks.activitiesService.record).not.toHaveBeenCalled();
+  });
+
   it('does not report a retryable provider failure to Sentry', async () => {
     vi.mocked(Sentry.captureException).mockClear();
     mocks.publisherFactory.getPublisher.mockReturnValue({

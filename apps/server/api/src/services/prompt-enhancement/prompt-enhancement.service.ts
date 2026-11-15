@@ -22,6 +22,7 @@ import {
   PromptStatus,
   SystemPromptKey,
 } from '@genfeedai/contracts';
+import type { SkillSectionReceipt } from '@genfeedai/contracts/interfaces/ai';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -66,6 +67,8 @@ export interface PromptEnhancementResult {
   negativePrompt?: string;
   tokensUsed: number;
   isByok: boolean;
+  /** What each skill added to the system prompt: the sections loaded and left out. */
+  skillSections?: SkillSectionReceipt[];
 }
 
 export class PromptEnhancementResponseError extends Error {
@@ -138,12 +141,17 @@ export class PromptEnhancementService {
           .catch(() => fallback)
       )?.trim() ||
         fallback);
+    const sectionReceipts: SkillSectionReceipt[] = [];
     const skillSections =
       (await this.skills?.resolveGenerationSkillPromptSections(
         input.organizationId,
         input.brandId,
         requestedSkillSlugs,
-        { actorUserId: input.actorUserId, modality: input.contentType },
+        {
+          actorUserId: input.actorUserId,
+          modality: input.contentType,
+          sectionReceipts,
+        },
       )) ?? '';
     const guidance = skillSections
       ? `${basePrompt}\n\n${skillSections}`
@@ -192,6 +200,7 @@ export class PromptEnhancementService {
     const usage = {
       tokensUsed: response.usage?.total_tokens ?? 0,
       isByok: Boolean(options?.byokApiKey),
+      ...(sectionReceipts.length > 0 ? { skillSections: sectionReceipts } : {}),
     };
     if (!input.contentType) return { result, ...usage };
     const { prompt, negativePrompt } = parseMediaPromptOutput(result);

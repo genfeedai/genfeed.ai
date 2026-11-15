@@ -112,5 +112,3 @@ const createBannerStyles = (colors: NativeThemeColors) =>
       textAlign: 'center',
     },
   });
-
-export default OfflineIndicator;

@@ -56,6 +56,8 @@
     "serwist": "9.5.13",
     "sonner": "2.0.8",
     "tippy.js": "6.3.7",
+    "uuid": "14.0.3",
+    "zod": "4.6.7",
     "zustand": "5.1.0"
   },
   "description": "Genfeed Content Hub - Unified content management, publishing, and analytics",

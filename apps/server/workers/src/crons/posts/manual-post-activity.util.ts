@@ -103,10 +103,16 @@ export function createManualPostActivity(
     alert: {
       deduplicationKey: `${ActivityKey.POST_MANUAL_POST_NEEDED}/${post.id}/${refusedAt.getTime()}/${reminder}`,
       payload: {
+        event: 'manual_post_needed',
         groupId: post.groupId ?? null,
         intentUrl,
+        kind: 'alert_email',
+        label:
+          text.length > 80 ? `${text.slice(0, 79)}…` : text || 'Quote post',
         postId: post.id,
         reminder,
+        summary: `${lead} Open in X: ${intentUrl}`,
+        version: 1,
       },
       source: { id: post.id, type: 'post' },
     },

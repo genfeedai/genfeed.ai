@@ -31,7 +31,7 @@ export class ApiRequestError extends Error {
   }
 }
 
-export function apiRoot(): string {
+function apiRoot(): string {
   return `${API_URL.replace(TRAILING_SLASH_PATTERN, '').replace(API_VERSION_SUFFIX_PATTERN, '')}/v1`;
 }
 

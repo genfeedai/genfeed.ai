@@ -28,6 +28,17 @@ describe('CronFalModelWatcherService', () => {
   let loggerService: Mocked<LoggerService>;
   let activityRecorder: { dispatch: ReturnType<typeof vi.fn> };
 
+  /** The unreadable entries on the scan cards handed to the outbox. */
+  const unreadableOnCards = () =>
+    activityRecorder.dispatch.mock.calls.flatMap(
+      (call) =>
+        call[0].messages[0].message.payload.unreadable as Array<{
+          code: string;
+          modelKey: string;
+          reason: string;
+        }>,
+    );
+
   /** Operator-approved fal rows already in the registry. */
   const registryRows = [
     {
@@ -203,13 +214,14 @@ describe('CronFalModelWatcherService', () => {
         expect.any(Date),
         'model-2',
       );
-      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+      expect(activityRecorder.dispatch).toHaveBeenCalledTimes(1);
+      expect(unreadableOnCards()).toEqual([
         expect.objectContaining({
-          deduplicationKey: expect.stringContaining(
-            'message.model-pricing-unavailable/minimax/h3-max/text-to-video/The fal price refresh failed (model_fetch_failed)',
-          ),
+          code: 'model_fetch_failed',
+          modelKey: 'minimax/h3-max/text-to-video',
+          reason: expect.stringContaining('The fal price refresh failed'),
         }),
-      );
+      ]);
     });
 
     it('neither refreshes nor alerts for a retired registry row fal no longer serves', async () => {
@@ -248,13 +260,13 @@ describe('CronFalModelWatcherService', () => {
 
       await service.refreshRegistryModels();
 
-      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+      expect(unreadableOnCards()).toEqual([
         expect.objectContaining({
-          deduplicationKey: expect.stringContaining(
+          reason: expect.stringContaining(
             'this model has no approved rate yet',
           ),
         }),
-      );
+      ]);
     });
 
     it('keeps the approved-rate wording for a row with a reviewed contract', async () => {
@@ -271,13 +283,13 @@ describe('CronFalModelWatcherService', () => {
 
       await service.refreshRegistryModels();
 
-      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+      expect(unreadableOnCards()).toEqual([
         expect.objectContaining({
-          deduplicationKey: expect.stringContaining(
+          reason: expect.stringContaining(
             'the last approved rate keeps charging',
           ),
         }),
-      );
+      ]);
     });
 
     it('keeps the reviewed rate of an endpoint fal lists but cannot address', async () => {
@@ -320,7 +332,7 @@ describe('CronFalModelWatcherService', () => {
       expect(result.errors).toBe(0);
     });
 
-    it('alerts ops Discord about a fal price change and a failed refresh', async () => {
+    it('posts one card for a fal price change and a failed refresh', async () => {
       falPlatformClient.fetchModels.mockResolvedValueOnce([
         falModel('fal-ai/flux/dev'),
         falModel('minimax/h3-max/text-to-video'),
@@ -354,19 +366,18 @@ describe('CronFalModelWatcherService', () => {
       const result = await service.refreshRegistryModels();
 
       expect(result.providerContractsDrifted).toBe(1);
-      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+      expect(activityRecorder.dispatch).toHaveBeenCalledTimes(1);
+      const [message] = activityRecorder.dispatch.mock.calls[0][0].messages;
+      expect(message.message.action).toBe('model_scan');
+      expect(message.message.payload.priceChanges).toEqual([
         expect.objectContaining({
-          deduplicationKey:
-            'message.model-price-change/fal-ai/flux/dev/rates:sha256:fal',
+          modelKey: 'fal-ai/flux/dev',
+          pendingRateHash: 'rates:sha256:fal',
         }),
-      );
-      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
-        expect.objectContaining({
-          deduplicationKey: expect.stringContaining(
-            'message.model-pricing-unavailable/fal-ai/flux/dev/',
-          ),
-        }),
-      );
+      ]);
+      expect(unreadableOnCards()).toEqual([
+        expect.objectContaining({ modelKey: 'fal-ai/flux/dev' }),
+      ]);
     });
 
     it('keeps refreshing after one endpoint throws', async () => {
@@ -413,14 +424,13 @@ describe('CronFalModelWatcherService', () => {
         'fal_sync_failed',
         expect.any(Date),
       );
-      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+      expect(activityRecorder.dispatch).toHaveBeenCalledTimes(1);
+      expect(unreadableOnCards()).toEqual([
         expect.objectContaining({
-          deduplicationKey: expect.stringContaining(
-            'message.model-pricing-unavailable/provider:fal/The fal price refresh failed (fal_sync_failed)',
-          ),
-          source: { id: 'provider:fal', type: 'model' },
+          code: 'fal_sync_failed',
+          modelKey: 'provider:fal',
         }),
-      );
+      ]);
     });
   });
 });

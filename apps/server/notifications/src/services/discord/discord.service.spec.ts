@@ -1,6 +1,9 @@
 import { IngredientCategory } from '@genfeedai/contracts';
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
-import type { IDiscordEmbed } from '@genfeedai/contracts/interfaces';
+import type {
+  IDiscordEmbed,
+  ModelScanReport,
+} from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -656,181 +659,124 @@ describe('DiscordService', () => {
     });
   });
 
-  describe('model pricing alerts (#6196)', () => {
-    it('lists old and new prices per variant with the source link', async () => {
+  describe('sendModelScanNotification', () => {
+    afterEach(() => {
+      mockConfigService.get.mockReset();
+    });
+
+    const baseReport: ModelScanReport = {
+      dataErrors: [],
+      delisted: [],
+      newDrafts: [],
+      priceChanges: [],
+      provider: 'replicate',
+      removedByProvider: [],
+      startedAt: '2026-11-15T06:00:00.000Z',
+      totals: {
+        drifted: 0,
+        draftsCreated: 0,
+        errors: 0,
+        newModelsFound: 0,
+        polled: 0,
+        quarantined: 0,
+        synchronized: 0,
+      },
+      unreadable: [],
+    };
+
+    it('posts one card with the price change, the prompt and the admin button', async () => {
+      mockConfigService.get.mockImplementation((key: string) =>
+        key === 'GENFEEDAI_APP_URL' ? 'https://app.genfeed.ai' : undefined,
+      );
       const { service } = await createService();
 
-      await service.sendModelPriceChangeNotification({
-        changes: [
+      const isDelivered = await service.sendModelScanNotification({
+        ...baseReport,
+        priceChanges: [
           {
-            newPriceUsd: 0.21,
-            oldPriceUsd: 0.19,
-            unit: 'output',
-            variant: 'duration=6 · resolution=768P',
-          },
-          {
-            newPriceUsd: null,
-            oldPriceUsd: 0.33,
-            unit: 'output',
-            variant: 'duration=6 · resolution=1080P',
+            changes: [
+              {
+                component: 'image_output_count',
+                newPriceUsd: 0.1,
+                oldPriceUsd: 0.05,
+                unit: 'output',
+                variant: '2k',
+              },
+            ],
+            isUrgent: false,
+            modelKey: 'black-forest-labs/flux-3-image',
+            pendingRateHash: 'abc',
+            sourceUrl: 'https://replicate.com/black-forest-labs/flux-3-image',
+            urgentReason: null,
           },
         ],
-        modelKey: 'minimax/hailuo-2.3-fast',
-        provider: 'replicate',
-        sourceUrl: 'https://replicate.com/minimax/hailuo-2.3-fast',
       });
 
-      const embed = lastSendPayload().embeds?.[0] as {
-        fields: Array<{ name: string; value: string }>;
-        title: string;
-      };
-      expect(embed.title).toBe(
-        'Provider price changed: minimax/hailuo-2.3-fast',
-      );
-      const fields = new Map(embed.fields.map((f) => [f.name, f.value]));
-      expect(fields.get('Old → new price')).toBe(
-        'duration=6 · resolution=768P: $0.19 → $0.21 per output\nduration=6 · resolution=1080P: $0.33 → none per output',
-      );
-      expect(fields.get('Source')).toBe(
-        'https://replicate.com/minimax/hailuo-2.3-fast',
-      );
-    });
-
-    it('identifies billing-rule drift when dollar rates are unchanged', async () => {
-      const { service } = await createService();
-      await service.sendModelPriceChangeNotification({
-        changes: [],
-        modelKey: 'openai/gpt-image-2',
-        provider: 'replicate',
-        sourceUrl: 'https://replicate.com/openai/gpt-image-2',
-      });
-      const embed = lastSendPayload().embeds?.[0] as {
-        fields: Array<{ name: string; value: string }>;
-        title: string;
-      };
-      expect(embed.title).toBe(
-        'Provider billing rules changed: openai/gpt-image-2',
-      );
-      expect(embed.fields).toContainEqual(
-        expect.objectContaining({
-          name: 'Billing rules',
-          value: expect.stringContaining('selectors or defaults changed'),
-        }),
-      );
-    });
-
-    it('reports an unpriceable or unrefreshable model', async () => {
-      const { service } = await createService();
-
-      await service.sendModelPricingUnavailableNotification({
-        modelKey: 'minimax/hailuo-2.3-fast',
-        provider: 'replicate',
-        reason: 'unmapped_criterion:camera motion',
-      });
-
-      const embed = lastSendPayload().embeds?.[0] as {
+      expect(isDelivered).toBe(true);
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      const payload = lastSendPayload();
+      const embed = payload.embeds?.[0] as {
         description: string;
+        fields: Array<{ name: string; value: string }>;
         title: string;
       };
-      expect(embed.title).toBe(
-        'Model pricing needs attention: minimax/hailuo-2.3-fast',
+      expect(embed.title).toBe('Model scan: Replicate');
+      expect(embed.fields).toEqual([
+        {
+          inline: false,
+          name: 'Price changes',
+          value:
+            '**black-forest-labs/flux-3-image** 2k: $0.05 → $0.1 per output',
+        },
+      ]);
+      expect(embed.description).toContain('1 price change');
+      expect(embed.description).toContain('```');
+      expect(embed.description).toContain('black-forest-labs/flux-3-image');
+      expect(JSON.stringify(payload.components)).toContain(
+        'https://app.genfeed.ai/admin/automation/models',
       );
-      expect(embed.description).toBe('unmapped_criterion:camera motion');
+    });
+
+    it('sends no card when the run found nothing', async () => {
+      const { service } = await createService();
+
+      const isDelivered = await service.sendModelScanNotification(baseReport);
+
+      expect(isDelivered).toBe(true);
+      expect(mockSend).not.toHaveBeenCalled();
     });
 
     it('skips when the models webhook is unavailable', async () => {
       mockDiscordBotService.getModelsWebhook.mockResolvedValue(null);
       const { service } = await createService();
 
-      await service.sendModelPricingUnavailableNotification({
-        modelKey: 'm',
-        provider: 'fal',
-        reason: 'r',
+      const isDelivered = await service.sendModelScanNotification({
+        ...baseReport,
+        removedByProvider: [
+          {
+            modelKey: 'google/veo-3',
+            reason: 'API returned 404',
+            sourceUrl: null,
+          },
+        ],
       });
 
-      expect(mockSend).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('sendModelDiscoveryNotification', () => {
-    const basePayload = {
-      category: 'image',
-      estimatedCost: 10,
-      modelKey: 'flux-dev',
-      provider: 'fal',
-      providerCostUsd: 0.05,
-    };
-
-    it('should skip when webhook is unavailable', async () => {
-      mockDiscordBotService.getModelsWebhook.mockResolvedValue(null);
-      const { service } = await createService();
-
-      await service.sendModelDiscoveryNotification(basePayload);
-
+      expect(isDelivered).toBe(false);
       expect(mockSend).not.toHaveBeenCalled();
     });
 
-    it('should send model fields including margin for fal', async () => {
-      const { service } = await createService();
-
-      await service.sendModelDiscoveryNotification({
-        ...basePayload,
-        qualityTier: 'high',
-        speedTier: 'fast',
-      });
-
-      const embed = lastSendPayload().embeds?.[0] as {
-        color: number;
-        fields: Array<{ name: string; value: string }>;
-        title: string;
-      };
-      expect(embed.title).toBe('New Model Discovered: flux-dev');
-      expect(embed.color).toBe(0x7c3aed);
-
-      const fieldMap = new Map(
-        embed.fields.map((field) => [field.name, field.value]),
-      );
-      expect(fieldMap.get('Provider')).toBe('fal.ai');
-      expect(fieldMap.get('Credits')).toBe('10 ($0.10)');
-      expect(fieldMap.get('Provider Cost')).toBe('$0.0500');
-      expect(fieldMap.get('Margin')).toBe('50%');
-      expect(fieldMap.get('Quality')).toBe('high');
-      expect(fieldMap.get('Speed')).toBe('fast');
-    });
-
-    it('should report zero margin for replicate models without provider cost', async () => {
-      const { service } = await createService();
-
-      await service.sendModelDiscoveryNotification({
-        ...basePayload,
-        provider: 'replicate',
-        providerCostUsd: 0,
-      });
-
-      const embed = lastSendPayload().embeds?.[0] as {
-        color: number;
-        fields: Array<{ name: string; value: string }>;
-      };
-      expect(embed.color).toBe(0x2563eb);
-      const fieldMap = new Map(
-        embed.fields.map((field) => [field.name, field.value]),
-      );
-      expect(fieldMap.get('Provider')).toBe('Replicate');
-      expect(fieldMap.get('Margin')).toBe('0%');
-    });
-
-    it('should log error when webhook send fails', async () => {
+    it('lets a failed send retry', async () => {
       mockSend.mockRejectedValue(new Error('send failed'));
       const { service } = await createService();
 
       await expect(
-        service.sendModelDiscoveryNotification(basePayload),
+        service.sendModelScanNotification({
+          ...baseReport,
+          dataErrors: [
+            { modelKey: 'argil/atom', reason: 'not a Replicate model' },
+          ],
+        }),
       ).rejects.toThrow();
-
-      expect(mockLoggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('failed'),
-        expect.any(Error),
-      );
     });
   });
 
