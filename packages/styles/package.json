@@ -10,7 +10,7 @@
   "files": [
     "*.css"
   ],
-  "license": "MIT",
+  "license": "AGPL-3.0",
   "name": "@genfeedai/styles",
   "peerDependencies": {
     "@tailwindcss/typography": ">=0.5.0",

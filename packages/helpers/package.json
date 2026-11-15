@@ -54,7 +54,7 @@
   "files": [
     "dist"
   ],
-  "license": "MIT",
+  "license": "AGPL-3.0",
   "main": "./dist/index.js",
   "name": "@genfeedai/helpers",
   "peerDependencies": {
