@@ -817,19 +817,6 @@ export class ModelsService extends BaseService<
       updateDto.category,
     );
 
-    // A price needs a source. With no pending contract to approve and none
-    // reviewed before, activating the row would bill whatever credits the draft
-    // happens to store (`legacy-credits`), which nobody read from a provider.
-    if (
-      !pendingContract &&
-      !existing.reviewedProviderContractVersion &&
-      !existing.isFree
-    ) {
-      throw new BadRequestException(
-        'This model has no approved provider rate and no rate to approve; it cannot be activated until a price scan reads one',
-      );
-    }
-
     const patch: RegistryReviewPatch = {
       ...updateDto,
       isActive: existing.lifecycle !== ModelLifecycle.RETIRED,
