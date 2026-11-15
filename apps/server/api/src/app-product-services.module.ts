@@ -29,7 +29,6 @@ import { TurboContentModule } from '@api/services/turbo-content/turbo-content.mo
 import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { TwitterPipelineModule } from '@api/services/twitter-pipeline/twitter-pipeline.module';
 import { SkillsProModule } from '@api/skills-pro/skills-pro.module';
-import { CiTriageWebhookModule } from '@api/webhooks/ci-triage/ci-triage-webhook.module';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -60,7 +59,6 @@ import { Module } from '@nestjs/common';
     MemoryModule,
     AdsGatewayModule,
     QueuesModule,
-    CiTriageWebhookModule,
     SyncModule,
     DesktopSyncModule,
     SelfHostedSeedModule,
