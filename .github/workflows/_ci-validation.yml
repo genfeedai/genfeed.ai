@@ -181,9 +181,9 @@ jobs:
           retention-days: 7
 
       # Spec files are invisible to the Typecheck step inside Static Checks:
-      # every workspace tsconfig excludes them. The spec-typecheck ratchet
+      # every workspace tsconfig excludes them. The spec typecheck
       # checks them per workspace (tsconfig.typecheck.specs.json). On change
-      # runs this narrows the ratchet to the workspaces the diff can affect; a
+      # runs this narrows the check to the workspaces the diff can affect; a
       # `packages/**` change resolves through turbo's dependency graph below.
       # Anything genuinely global (root configs, scripts, the lockfile, this
       # workflow, shared apps/server files) escalates to every workspace, as do
@@ -227,7 +227,7 @@ jobs:
               apps/server/*/*)
                 workspace="${file#apps/server/}"
                 workspace="${workspace%%/*}"
-                # A changed workspace without its own ratchet config feeds
+                # A changed workspace without its own spec config feeds
                 # every program.
                 if [ -f "apps/server/${workspace}/tsconfig.typecheck.specs.json" ]; then
                   affected["${workspace}"]=1
@@ -244,7 +244,7 @@ jobs:
                 exit 0
                 ;;
               apps/*/*)
-                # Not every app is enrolled in the ratchet, so a missing config
+                # Not every app is enrolled in the spec typecheck, so a missing config
                 # means "not part of this guard" rather than "escalate".
                 workspace="${file#apps/}"
                 workspace="${workspace%%/*}"
@@ -653,12 +653,11 @@ jobs:
       - name: Run repository contracts
         run: bun run test:repository-contracts
 
-  # Typechecks spec/test files against each workspace's compiler options and
-  # ratchets the pre-existing debt. The Plan job decides the scope and splits
+  # Typechecks spec/test files against each workspace's compiler options; the
+  # pass condition is zero errors. The Plan job decides the scope and splits
   # it into legs (see "Build spec typecheck matrix"). Each workspace is checked
-  # in a fresh Bun process so TypeScript releases the previous program's
-  # memory, and every workspace in a leg runs even after one fails so one
-  # baseline fix never costs a CI round-trip per workspace.
+  # in its own process, and every workspace in a leg runs even after one fails
+  # so one fix never costs a CI round-trip per workspace.
   spec-typecheck:
     name: Spec Typecheck (${{ matrix.name }})
     runs-on: ubuntu-latest
@@ -688,35 +687,15 @@ jobs:
           else
             bunx turbo run build --filter='./packages/*' --concurrency=1
           fi
-      - name: Spec Typecheck Ratchet
+      # `bun check` reports the same errors as tsc, on every CPU core: all 33
+      # spec configs take about 30 s, against about 6 min for the compiler-API
+      # script this step used (#10270). Each workspace is its own process and
+      # every workspace runs even after one fails. The pass condition is zero
+      # errors; the ratchet baseline that allowed known errors is empty.
+      - name: Spec Typecheck
         env:
           SCOPED_WORKSPACES: ${{ matrix.workspaces }}
-        run: |
-          set -euo pipefail
-          log_dir="$(mktemp -d)"
-          failed=()
-          checked=0
-          for workspace in ${SCOPED_WORKSPACES}; do
-            checked=$((checked + 1))
-            echo "::group::Spec typecheck: ${workspace}"
-            if ! bun run check:spec-typecheck --workspace "${workspace}" 2>&1 \
-              | tee "${log_dir}/${workspace}.log"; then
-              failed+=("${workspace}")
-            fi
-            echo "::endgroup::"
-          done
-
-          if [ "${#failed[@]}" -eq 0 ]; then
-            echo "Spec typecheck ratchet passed across ${checked} workspace(s)."
-            exit 0
-          fi
-
-          echo "::error::Spec typecheck ratchet failed in ${#failed[@]} of ${checked} workspace(s): ${failed[*]}"
-          for workspace in "${failed[@]}"; do
-            echo "----- ${workspace} -----"
-            cat "${log_dir}/${workspace}.log"
-          done
-          exit 1
+        run: bun run check:spec-typecheck ${SCOPED_WORKSPACES}
 
   # Packages, server services (everything under apps/server except the API),
   # and web/mobile. One job definition, one matrix leg per applicable group:
