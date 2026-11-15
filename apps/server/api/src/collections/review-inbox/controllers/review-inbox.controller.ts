@@ -5,6 +5,7 @@ import {
 } from '@api/collections/review-inbox/dto/review-inbox-decision.dto';
 import { ReviewInboxService } from '@api/collections/review-inbox/services/review-inbox.service';
 import { ReviewInboxDecisionService } from '@api/collections/review-inbox/services/review-inbox-decision.service';
+import { ScheduledReleaseBatchApprovalService } from '@api/collections/review-inbox/services/scheduled-release-batch-approval.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -16,6 +17,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import type {
   IReviewInboxBatchDecisionResult,
+  IScheduledReleaseBatchReview,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
@@ -26,9 +28,11 @@ import {
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Req,
   UseGuards,
@@ -49,6 +53,7 @@ export class ReviewInboxController {
   constructor(
     private readonly reviewInbox: ReviewInboxService,
     private readonly decisions: ReviewInboxDecisionService,
+    private readonly scheduledBatches: ScheduledReleaseBatchApprovalService,
   ) {}
 
   @TenantReadPolicy('selected')
@@ -76,6 +81,34 @@ export class ReviewInboxController {
       docs: items,
       total: items.length,
     });
+  }
+
+  @TenantReadPolicy('selected')
+  @Get('batches/:approvalId')
+  @ApiOperation({
+    summary:
+      'Every post of a scheduled release batch an MCP client asked to schedule, for review before approving',
+  })
+  async getBatch(
+    @Req() req: Request,
+    @CurrentUser() user: User,
+    @Param('approvalId') approvalId: string,
+  ): Promise<IScheduledReleaseBatchReview> {
+    const scope = resolveTenantReadScope(user);
+    const access = await this.reviewInbox.resolveViewerAccess(
+      Object.assign(req, { user }),
+      scope,
+    );
+    if (!access.canResolveMcpApprovals) {
+      throw new ForbiddenException(
+        'Only organization owners and admins can review MCP approvals',
+      );
+    }
+    return this.scheduledBatches.getReview(
+      scope.organizationId,
+      approvalId,
+      access.brandIds,
+    );
   }
 
   @Post('decisions')

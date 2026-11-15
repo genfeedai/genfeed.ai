@@ -74,6 +74,15 @@ export function createPublishingApprovalsRoute({
   return query ? `${path}?${query}` : path;
 }
 
+/**
+ * Deep link to the review page of a scheduled release batch an MCP client
+ * asked to schedule: `/publishing/batches/:approvalId` (#10134). There is no
+ * page at `/publishing/batches` itself.
+ */
+export function createPublishingBatchRoute(approvalId: string): string {
+  return `${APP_ROUTES.PUBLISHING.ROOT}/batches/${encodeURIComponent(approvalId)}`;
+}
+
 export interface PublishingApprovalsPath {
   /** Pathname up to and including the `approvals` segment, scope included. */
   basePath: string;

@@ -1,3 +1,5 @@
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn((_req, _serializer, data) => data.docs),
   serializeSingle: vi.fn((_req, _serializer, data) => data),
@@ -6,10 +8,12 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PostGroupsController } from '@api/collections/post-groups/controllers/post-groups.controller';
 import type { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
+import { PostGroupBatchService } from '@api/collections/post-groups/services/post-group-batch.service';
 import { PostGroupRecurrenceService } from '@api/collections/post-groups/services/post-group-recurrence.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { ApiKeyScope, ReleaseStatus } from '@genfeedai/contracts';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -78,6 +82,43 @@ describe('PostGroupsController', () => {
             scheduleTarget: vi.fn().mockResolvedValue({ id: 'group-1' }),
             update: vi.fn().mockResolvedValue({ id: 'group-1' }),
             updateTarget: vi.fn().mockResolvedValue({ id: 'group-1' }),
+          },
+        },
+        {
+          provide: PostGroupBatchService,
+          useValue: {
+            assertBrandAccess: async (
+              _org: string,
+              _releases: unknown[],
+              allowed?: string[],
+            ) => {
+              if (allowed?.[0] === 'brand-limited') {
+                throw new NotFoundException('Brand');
+              }
+            },
+            assertBatchShape: (releases: unknown) => {
+              if (!Array.isArray(releases) || releases.length === 0) {
+                throw new BadRequestException('releases must be non-empty');
+              }
+            },
+            create: async (
+              _org: string,
+              _user: string,
+              releases: unknown[],
+              options: { keyBase: string },
+            ) => ({
+              created: releases.map((_, index) => ({
+                index,
+                releaseId: `${options.keyBase}:${index}`,
+              })),
+              errors: [],
+            }),
+            describe: async () => ({
+              brandIds: [],
+              brandLabel: null,
+              posts: [],
+            }),
+            validate: async () => [{ index: 1, message: 'no channel' }],
           },
         },
         {
@@ -400,6 +441,63 @@ describe('PostGroupsController', () => {
     );
   });
 
+  describe('release batches', () => {
+    it('names the releases a batch would be refused for, creating none', async () => {
+      expect(
+        await controller.validateBatch(user, { releases: [{}, {}] }),
+      ).toEqual({ errors: [{ index: 1, message: 'no channel' }] });
+    });
+
+    it('creates every release under the caller key', async () => {
+      expect(
+        await controller.createBatch(user, {
+          idempotencyKey: 'approval-1',
+          releases: [{}, {}],
+        }),
+      ).toEqual({
+        created: [
+          { index: 0, releaseId: 'approval-1:0' },
+          { index: 1, releaseId: 'approval-1:1' },
+        ],
+        errors: [],
+      });
+    });
+
+    it('refuses every batch route to a key limited to other brands', async () => {
+      const limited = { ...user, allowedBrandIds: ['brand-limited'] };
+      await expect(
+        controller.validateBatch(limited, { releases: [{}] }),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        controller.previewBatch(limited, { releases: [{}] }),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        controller.createBatch(limited, {
+          idempotencyKey: 'k',
+          releases: [{}],
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('refuses a key that would be cut short and collide with another', async () => {
+      await expect(
+        controller.createBatch(user, {
+          idempotencyKey: 'k'.repeat(201),
+          releases: [{}],
+        }),
+      ).rejects.toThrow('idempotencyKey must be at most 200 characters.');
+    });
+
+    it('refuses a batch with no idempotency key, or no releases', async () => {
+      await expect(
+        controller.createBatch(user, { releases: [{}] }),
+      ).rejects.toThrow('idempotencyKey is required for a batch.');
+      await expect(
+        controller.createBatch(user, { idempotencyKey: 'k', releases: [] }),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
   it('declares fail-closed publishing scopes on consequential routes', () => {
     expect(
       Reflect.getMetadata(
@@ -407,6 +505,18 @@ describe('PostGroupsController', () => {
         PostGroupsController.prototype.create,
       ),
     ).toEqual([ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_SCHEDULE]);
+    for (const route of [
+      'validateBatch',
+      'previewBatch',
+      'createBatch',
+    ] as const) {
+      expect(
+        Reflect.getMetadata(
+          API_KEY_SCOPES_KEY,
+          PostGroupsController.prototype[route],
+        ),
+      ).toEqual([ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_SCHEDULE]);
+    }
     expect(
       Reflect.getMetadata(
         API_KEY_SCOPES_KEY,

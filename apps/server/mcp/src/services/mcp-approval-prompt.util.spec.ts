@@ -319,3 +319,76 @@ describe('promptForApproval', () => {
     expect(createApprovalPromptCodec(serviceKey, token)).toBeNull();
   });
 });
+
+describe('batch approval prompt', () => {
+  function batchOf(count: number, total = count) {
+    return {
+      invalid: [],
+      isApprovableHere: total <= 3,
+      posts: Array.from({ length: count }, (_, index) => ({
+        accountHandle: 'brand',
+        accountLabel: 'Brand account',
+        error: null,
+        index,
+        isRemoved: false,
+        media: [
+          {
+            kind: 'image' as const,
+            order: 0,
+            url: 'https://cdn.example.com/a.jpg',
+          },
+          {
+            kind: 'image' as const,
+            order: 1,
+            url: 'https://cdn.example.com/b.jpg',
+          },
+        ],
+        platform: 'instagram',
+        releaseId: null,
+        scheduledAt: `2026-11-1${5 + index}T08:00:00.000Z`,
+        text: `Slide deck ${index + 1}`,
+        timezone: 'UTC',
+        title: `Post ${index + 1}`,
+      })),
+      total,
+    };
+  }
+
+  it('reads every post of a batch the chat can approve, with its slides in order', () => {
+    const message = approvalPromptMessage(
+      { batch: batchOf(2), toolName: 'create_scheduled_release' },
+      {},
+    );
+
+    expect(message).toBe(
+      [
+        'Genfeed needs your approval. Schedule 2 posts?',
+        'Post 1: instagram on Brand account, 2026-11-15T08:00:00.000Z',
+        '- text: Slide deck 1',
+        '- media: 2 files in this order: 1. image, 2. image',
+        'Post 2: instagram on Brand account, 2026-11-16T08:00:00.000Z',
+        '- text: Slide deck 2',
+        '- media: 2 files in this order: 1. image, 2. image',
+        'Accept to schedule them now, or decline to cancel.',
+      ].join('\n'),
+    );
+  });
+
+  it('offers no approval in the chat for a batch past three posts', () => {
+    expect(
+      approvalPromptMessage(
+        { batch: batchOf(3, 42), toolName: 'create_scheduled_release' },
+        {},
+      ),
+    ).toBeNull();
+  });
+
+  it('offers no approval when the posts could not be previewed', () => {
+    expect(
+      approvalPromptMessage(
+        { batch: batchOf(0, 2), toolName: 'create_scheduled_release' },
+        {},
+      ),
+    ).toBeNull();
+  });
+});

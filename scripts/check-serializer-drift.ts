@@ -73,7 +73,9 @@ const SERIALIZER_ROOT = 'packages/serializers/src';
 // left to pair with.
 // Removing the public Lead serializer triplet drops one more pair; the Lead
 // model stays in Prisma until the leads table is exported and dropped.
-const SERIALIZER_MATCH_FLOOR = 97;
+// Removing the dead Schedule serializer triplet (the bulk-schedule table that
+// nothing published from) drops one more pair.
+const SERIALIZER_MATCH_FLOOR = 96;
 
 const SCHEMA_TO_SERIALIZER_BASENAME_OVERRIDES: Record<string, string> = {
   analytic: 'analytics',
@@ -400,14 +402,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   ],
   'prompt:Prompt': ['modelSettings', 'systemPromptKey', 'tokens', 'version'],
   'reply-bot-config:ReplyBotConfig': ['platform', 'schedule', 'templateId'],
-  'schedule:Schedule': [
-    'content',
-    'errorMessage',
-    'expectedEngagement',
-    'performance',
-    'publishedAt',
-    'status',
-  ],
   'subscription-attribution:SubscriptionAttribution': [
     'amount',
     'currency',

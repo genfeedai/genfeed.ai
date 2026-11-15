@@ -1,8 +1,8 @@
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 /**
  * Schedules Module
- * Scheduling: learned posting windows, bulk content scheduling,
- * and performance tracking.
+ * Learned posting windows and channel capabilities. Releases are scheduled
+ * through post-groups.
  */
 
 import { SchedulesController } from '@api/collections/schedules/controllers/schedules.controller';

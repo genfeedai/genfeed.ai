@@ -83,6 +83,7 @@ describe('parseActivityKey', () => {
       [ActivityKey.POST_PUBLISHED, 'published'],
       [ActivityKey.POST_SCHEDULED, 'scheduled'],
       [ActivityKey.POST_FAILED, 'failed'],
+      [ActivityKey.POST_MANUAL_POST_NEEDED, 'failed'],
     ] as const) {
       expect(parseActivityKey(key)).toMatchObject({
         lifecycle,

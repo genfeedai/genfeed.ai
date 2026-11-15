@@ -4,8 +4,13 @@ import {
   createBrandAppRoute,
   createOrganizationAppRoute,
   createPublishingApprovalsRoute,
+  createPublishingBatchRoute,
 } from '@genfeedai/contracts/constants';
-import { buildReviewInboxItemId } from '@genfeedai/contracts/interfaces';
+import {
+  buildReviewInboxItemId,
+  type IScheduledReleaseBatchItemError,
+  type IScheduledReleaseBatchPending,
+} from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { getPublicAppUrl } from '@mcp/mcp/setup-page';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
@@ -58,6 +63,10 @@ export interface McpToolError {
   toolName?: string;
   approvalStatus?: string;
   canResolveApproval?: boolean;
+  /** A scheduled release batch waiting for approval (#10134). */
+  batch?: IScheduledReleaseBatchPending;
+  /** Releases of a batch left out as invalid, by position in the request. */
+  invalidReleases?: IScheduledReleaseBatchItemError[];
 }
 
 export interface McpApprovalCostEstimate {
@@ -139,6 +148,10 @@ function compactToolError(error: McpToolError): McpToolError {
         }
       : {}),
     ...(error.brands ? { brands: error.brands } : {}),
+    ...(error.batch ? { batch: error.batch } : {}),
+    ...(error.invalidReleases?.length
+      ? { invalidReleases: error.invalidReleases }
+      : {}),
     ...(error.errors && error.errors.length > 0
       ? { errors: error.errors }
       : {}),
@@ -247,41 +260,57 @@ export function approvalPendingToolResult(
   approval: McpApprovalResource,
   estimate?: McpApprovalCostEstimate,
   canResolveApproval = false,
+  batch?: IScheduledReleaseBatchPending,
 ): McpToolErrorResult {
+  // A batch opens on its own review page, where every post is read in full.
+  const reviewPath = batch
+    ? createPublishingBatchRoute(approval.id)
+    : createPublishingApprovalsRoute({
+        approval: buildReviewInboxItemId({
+          approvalId: approval.id,
+          kind: 'mcp_approval',
+        }),
+      });
   const result = mcpToolErrorResult({
     code: 'approval_pending',
     approvalId: approval.id,
     toolName: approval.toolName,
     approvalStatus: approval.status,
     canResolveApproval,
+    ...(batch ? { batch } : {}),
+    ...(batch?.invalid.length ? { invalidReleases: batch.invalid } : {}),
     ...(estimate?.estimatedCredits !== null &&
     estimate?.estimatedCredits !== undefined
       ? { estimatedCredits: estimate.estimatedCredits }
       : { pricingSummary: estimate?.pricingSummary }),
-    message:
-      `This action requires approval before it runs. ` +
-      'Review the pending action in Genfeed before continuing.' +
-      (canResolveApproval ? ' You can also approve or decline it here.' : '') +
-      approvalCostNote(estimate),
+    message: batch
+      ? batchPendingMessage(batch)
+      : `This action requires approval before it runs. ` +
+        'Review the pending action in Genfeed before continuing.' +
+        (canResolveApproval
+          ? ' You can also approve or decline it here.'
+          : '') +
+        approvalCostNote(estimate),
     nextStepUrl: approvalsUrl(approval, createPublishingApprovalsRoute()),
   });
   // Display text stays free of ids; the structured link opens this exact
-  // approval in the Genfeed review inbox (#7340).
+  // approval in the Genfeed review inbox (#7340), or its batch review page.
   return {
     ...result,
     structuredContent: {
       ...result.structuredContent,
-      nextStepUrl: approvalsUrl(
-        approval,
-        createPublishingApprovalsRoute({
-          approval: buildReviewInboxItemId({
-            approvalId: approval.id,
-            kind: 'mcp_approval',
-          }),
-        }),
-      ),
+      nextStepUrl: approvalsUrl(approval, reviewPath),
     },
   };
+}
+
+function batchPendingMessage(batch: IScheduledReleaseBatchPending): string {
+  const left = batch.invalid.length
+    ? ` ${batch.invalid.length} invalid ${batch.invalid.length === 1 ? 'release was' : 'releases were'} left out; see invalidReleases.`
+    : '';
+  return batch.isApprovableHere
+    ? `${batch.total} ${batch.total === 1 ? 'post is' : 'posts are'} waiting for approval and nothing is scheduled yet. Approve them in the chat or in Genfeed.${left}`
+    : `${batch.total} posts are waiting for approval and nothing is scheduled yet. Open the review link, read every post and approve once: Genfeed then schedules all of them, and you do not need to call again.${left}`;
 }
 
 /**

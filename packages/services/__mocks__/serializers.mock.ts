@@ -77,7 +77,6 @@ export const PresetSerializer = noop;
 export const FontFamilySerializer = noop;
 export const BlacklistSerializer = noop;
 export const MonitoredAccountSerializer = noop;
-export const ScheduleSerializer = noop;
 export const WorkflowSerializer = noop;
 export const BotSerializer = noop;
 export const ReplyBotConfigSerializer = noop;

@@ -625,6 +625,68 @@ describe('MCP Apps card contract', () => {
     ]);
   });
 
+  it('shows three posts of a queued batch in full, then the rest as a count with one link to the web review', () => {
+    const posts = Array.from({ length: 3 }, (_, index) => ({
+      accountHandle: 'brand',
+      accountLabel: 'Brand account',
+      index,
+      media: [
+        {
+          kind: 'image',
+          order: 0,
+          url: `https://cdn.genfeed.ai/${index}-a.png`,
+        },
+        {
+          kind: 'image',
+          order: 1,
+          url: `https://cdn.genfeed.ai/${index}-b.png`,
+        },
+      ],
+      platform: 'instagram',
+      scheduledAt: `2026-11-1${5 + index}T08:00:00.000Z`,
+      text: `Carousel ${index + 1}`,
+      title: `Post ${index + 1}`,
+    }));
+    const result = withApprovalCard({
+      content: [],
+      isError: true,
+      structuredContent: {
+        approvalId: 'apr-9',
+        batch: { invalid: [], isApprovableHere: false, posts, total: 42 },
+        canResolveApproval: true,
+        code: 'approval_pending',
+        nextStepUrl:
+          'https://app.genfeed.ai/acme/main/publishing/batches/apr-9',
+        toolName: 'create_scheduled_release',
+      },
+    });
+
+    const view = result.structuredContent?.genfeedCards as McpCardView;
+    expect(view.isApproval).toBe(true);
+    expect(view.cards.map((card) => card.kind)).toEqual([
+      'post',
+      'post',
+      'post',
+      'summary',
+    ]);
+    expect(view.cards[0]).toMatchObject({
+      description: 'Carousel 1',
+      platform: 'instagram',
+      status: 'pending_approval',
+    });
+    expect(view.cards[0].media?.map((item) => item.url)).toEqual([
+      'https://cdn.genfeed.ai/0-a.png',
+      'https://cdn.genfeed.ai/0-b.png',
+    ]);
+    expect(view.cards[3]).toMatchObject({
+      linkLabel: 'Review all 42 in Genfeed',
+      title: '+39 more posts',
+      url: 'https://app.genfeed.ai/acme/main/publishing/batches/apr-9',
+    });
+    expect(view.cards.some((card) => card.actions?.length)).toBe(false);
+    expect(new Set(view.cards.slice(0, 3).map((card) => card.id)).size).toBe(3);
+  });
+
   it('leaves out the buttons when this connection cannot resolve approvals, and ignores other errors', () => {
     const pending = withApprovalCard({
       content: [],
@@ -750,6 +812,41 @@ describe('MCP Apps card contract', () => {
       ['2026-10-05', true, []],
       ['2026-10-06', false, ['p3']],
     ]);
+  });
+
+  it('keeps every window day as a column and the gap verdict of the producer when posts are paged', () => {
+    const view = buildCardView('get_posts', {
+      dayKeys: ['2026-11-16', '2026-11-17', '2026-11-18'],
+      draftsCount: 0,
+      gapDays: ['2026-11-17'],
+      hasMore: true,
+      scheduled: [
+        {
+          id: 'p1',
+          localDate: '2026-11-16',
+          scheduledDate: '2026-11-16T09:00:00.000Z',
+        },
+        {
+          id: 'failed',
+          localDate: '2026-11-17',
+          scheduledDate: '2026-11-17T09:00:00.000Z',
+        },
+      ],
+      totalCount: 49,
+    });
+
+    expect(
+      view?.calendar?.days.map((day) => [
+        day.date,
+        day.isGap,
+        day.posts.map((post) => post.id),
+      ]),
+    ).toEqual([
+      ['2026-11-16', false, ['p1']],
+      ['2026-11-17', true, ['failed']],
+      ['2026-11-18', false, []],
+    ]);
+    expect(view?.total).toBe(49);
   });
 
   it('marks running media jobs pending with their progress, never posts or finished media', () => {

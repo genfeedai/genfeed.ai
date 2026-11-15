@@ -2,6 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { resolveBrandLogoCdnUrls } from '@api/collections/brands/utils/brand-logo-urls.util';
 import { approvalGenerationQuote } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.schema';
+import { expireStaleMcpApprovals } from '@api/collections/mcp-approvals/utils/mcp-approval-expiry.util';
 import {
   describeMcpApprovalAction,
   MCP_APPROVAL_CAPTION_ARGUMENT_KEYS,
@@ -24,6 +25,7 @@ import {
   buildReviewInboxItemId,
   type IReviewInboxItem,
   type IReviewInboxItemPreview,
+  readScheduledReleaseBatch,
 } from '@genfeedai/contracts/interfaces';
 import {
   McpApprovalStatus,
@@ -252,6 +254,7 @@ export class ReviewInboxService {
           actionSummary: `Continue ${workflowLabel} with the output waiting at its review gate`,
           actionTitle: `Continue ${workflowLabel}`,
           approvalId: null,
+          batchCount: null,
           brandId: execution.workflow.brandId ?? null,
           brandLabel: null,
           brandLogoUrl: null,
@@ -287,6 +290,7 @@ export class ReviewInboxService {
     organizationId: string,
     allowedBrandIds: string[] | undefined,
   ): Promise<IReviewInboxItem[]> {
+    await expireStaleMcpApprovals(this.prisma.mcpApproval, organizationId);
     const approvals = await this.prisma.mcpApproval.findMany({
       orderBy: { createdAt: 'asc' },
       select: {
@@ -305,13 +309,20 @@ export class ReviewInboxService {
 
     return approvals.flatMap((approval): IReviewInboxItem[] => {
       const args = isRecord(approval.arguments) ? approval.arguments : {};
-      const brandId = readString(args.brandId);
+      const batch = readScheduledReleaseBatch(approval.toolName, args);
+      const firstRelease = batch && isRecord(batch[0]) ? batch[0] : null;
+      const brandId =
+        readString(args.brandId) ?? readString(firstRelease?.brandId);
       if (brandId && allowedBrandIds && !allowedBrandIds.includes(brandId)) {
         return [];
       }
       const definition = getToolByName(approval.toolName);
-      const caption = MCP_APPROVAL_CAPTION_ARGUMENT_KEYS.map((key) =>
-        readString(args[key]),
+      const caption = (
+        firstRelease
+          ? [readString(firstRelease.baseContent)]
+          : MCP_APPROVAL_CAPTION_ARGUMENT_KEYS.map((key) =>
+              readString(args[key]),
+            )
       ).find((value): value is string => value !== null);
       const mediaUrl = MEDIA_ARGUMENT_KEYS.map((key) =>
         readHttpUrl(args[key]),
@@ -327,7 +338,12 @@ export class ReviewInboxService {
             )
           : null);
 
-      const action = describeMcpApprovalAction(approval.toolName, args);
+      const action = batch
+        ? {
+            details: null,
+            title: `Schedule ${batch.length} ${batch.length === 1 ? 'post' : 'posts'}`,
+          }
+        : describeMcpApprovalAction(approval.toolName, args);
       const requester = [approval.user?.firstName, approval.user?.lastName]
         .map((part) => readString(part))
         .filter((part): part is string => part !== null)
@@ -341,6 +357,7 @@ export class ReviewInboxService {
             : action.title,
           actionTitle: action.title,
           approvalId: approval.id,
+          batchCount: batch ? batch.length : null,
           brandId,
           brandLabel: null,
           brandLogoUrl: null,

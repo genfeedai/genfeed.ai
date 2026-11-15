@@ -1,6 +1,9 @@
 import type {
   IPublishingProviderReadiness,
   IReleaseGroup,
+  IScheduledReleaseBatchItemError,
+  IScheduledReleaseBatchPost,
+  IScheduledReleaseBatchResult,
 } from '@genfeedai/contracts/interfaces';
 import type { BaseApiClient } from './base-api-client';
 
@@ -51,6 +54,62 @@ export class SchedulerClient {
         return this.base.unwrapObject<IReleaseGroup>(response);
       },
       this.base.failWithDetail('Failed to create scheduled release'),
+    );
+  }
+
+  /** The releases of a batch the API would refuse, by position (#10134). */
+  validateScheduledReleaseBatch(
+    releases: readonly unknown[],
+  ): Promise<IScheduledReleaseBatchItemError[]> {
+    return this.base.request(
+      'validating scheduled releases',
+      async (http) => {
+        const response = await http.post('/post-groups/batch/validate', {
+          releases,
+        });
+        const body = response.data?.data ?? response.data;
+        return Array.isArray(body?.errors) ? body.errors : [];
+      },
+      this.base.failWithDetail('Failed to validate scheduled releases'),
+    );
+  }
+
+  /** The releases as a reviewer reads them: text, media in slide order, time, account. */
+  previewScheduledReleaseBatch(
+    releases: readonly unknown[],
+  ): Promise<IScheduledReleaseBatchPost[]> {
+    return this.base.request(
+      'previewing scheduled releases',
+      async (http) => {
+        const response = await http.post('/post-groups/batch/preview', {
+          releases,
+        });
+        const body = response.data?.data ?? response.data;
+        return Array.isArray(body?.posts) ? body.posts : [];
+      },
+      this.base.failWithDetail('Failed to preview scheduled releases'),
+    );
+  }
+
+  /** Creates the batch's releases; a bad one is reported by position, the rest go. */
+  createScheduledReleaseBatch(
+    releases: readonly unknown[],
+    idempotencyKey: string,
+  ): Promise<IScheduledReleaseBatchResult> {
+    return this.base.request(
+      'creating scheduled releases',
+      async (http) => {
+        const response = await http.post('/post-groups/batch', {
+          idempotencyKey,
+          releases,
+        });
+        const body = response.data?.data ?? response.data;
+        return {
+          created: Array.isArray(body?.created) ? body.created : [],
+          errors: Array.isArray(body?.errors) ? body.errors : [],
+        };
+      },
+      this.base.failWithDetail('Failed to create scheduled releases'),
     );
   }
 

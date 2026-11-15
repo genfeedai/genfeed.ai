@@ -7,6 +7,7 @@ import {
   readMcpApprovalPricing,
 } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.schema';
 import { McpApprovalPricingService } from '@api/collections/mcp-approvals/services/mcp-approval-pricing.service';
+import { expireStaleMcpApprovals } from '@api/collections/mcp-approvals/utils/mcp-approval-expiry.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
@@ -87,6 +88,9 @@ export class McpApprovalsService extends BaseService<
       >;
     },
   ): Promise<McpApproval> {
+    // An abandoned request is closed before it can match this call or count
+    // toward the cap.
+    await expireStaleMcpApprovals(this.prisma.mcpApproval, organizationId);
     const needsGenerationQuote =
       toolName === 'generate' &&
       (args.type === 'image' || args.type === 'video');
@@ -494,10 +498,16 @@ export class McpApprovalsService extends BaseService<
     approval: Pick<McpApproval, 'arguments' | 'organizationId'>,
   ): Promise<{ brandSlug: string | null; organizationSlug: string | null }> {
     const args = isRecord(approval.arguments) ? approval.arguments : {};
+    // A scheduled release batch names its brand on its first release.
+    const firstRelease = Array.isArray(args.releases) ? args.releases[0] : null;
     const brandId =
       typeof args.brandId === 'string' && args.brandId.length > 0
         ? args.brandId
-        : null;
+        : isRecord(firstRelease) &&
+            typeof firstRelease.brandId === 'string' &&
+            firstRelease.brandId.length > 0
+          ? firstRelease.brandId
+          : null;
     const [organization, brand] = await Promise.all([
       this.prisma.organization.findFirst({
         select: { slug: true },

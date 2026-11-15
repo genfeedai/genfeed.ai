@@ -37,10 +37,19 @@ const LINKEDIN_HOSTS = new Set(['linkedin.com']);
 const YOUTUBE_VIDEO_ID = /^[\w-]{6,}$/;
 const LINKEDIN_ACTIVITY_ID = /-(?:activity|ugcPost|share)-(\d+)/;
 
+/** `decodeURIComponent` that reports malformed percent-encoding as `undefined`. */
+function safeDecode(value: string): string | undefined {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return undefined;
+  }
+}
+
 /** Read one query-string parameter without the URL global (see above). */
 function readQueryParam(input: string, key: string): string | undefined {
   const match = new RegExp(`[?&]${key}=([^&#]+)`).exec(input);
-  return match ? decodeURIComponent(match[1]) : undefined;
+  return match ? safeDecode(match[1]) : undefined;
 }
 
 const INSTAGRAM_POST_SEGMENTS = new Set(['p', 'reel', 'reels', 'tv']);
@@ -184,8 +193,8 @@ export function parseSocialPostUrl(
       };
     }
     if (segments[0] === 'feed' && segments[1] === 'update' && segments[2]) {
-      const urn = decodeURIComponent(segments[2]);
-      if (!LINKEDIN_URN_PATTERN.test(urn)) {
+      const urn = safeDecode(segments[2]);
+      if (urn === undefined || !LINKEDIN_URN_PATTERN.test(urn)) {
         return null;
       }
       return {

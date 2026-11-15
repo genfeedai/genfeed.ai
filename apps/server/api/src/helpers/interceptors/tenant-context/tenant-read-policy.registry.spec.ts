@@ -259,7 +259,6 @@ const observedTemplates = [
   '/v1/reply-bot-configs/author-reply/inbox',
   '/v1/reply-bot-configs/{id}',
   '/v1/saved-ads',
-  '/v1/schedules/calendar',
   '/v1/services/facebook/pages',
   '/v1/services/google-ads/ad-groups/{id}/insights',
   '/v1/services/google-ads/campaigns',
@@ -335,22 +334,22 @@ const observedTemplates = [
 ] as const;
 
 describe('combined tenant read policy registry', () => {
-  it('conserves exactly248 original canonical routes,74 prefixes and126 distinct owned controllers', () => {
-    expect(routes).toHaveLength(248);
-    expect(new Set(routes.map((entry) => entry.route)).size).toBe(248);
+  it('conserves exactly247 original canonical routes,73 prefixes and125 distinct owned controllers', () => {
+    expect(routes).toHaveLength(247);
+    expect(new Set(routes.map((entry) => entry.route)).size).toBe(247);
     expect(new Set(routes.map((entry) => entry.route.split('/')[2])).size).toBe(
-      74,
+      73,
     );
-    expect(new Set(routes.map((entry) => entry.controller)).size).toBe(126);
+    expect(new Set(routes.map((entry) => entry.controller)).size).toBe(125);
     expect(routes.map((entry) => entry.route).sort()).toEqual(
       [...observedTemplates].sort(),
     );
-    expect(cohorts.map((cohort) => cohort.length)).toEqual([54, 61, 133]);
+    expect(cohorts.map((cohort) => cohort.length)).toEqual([54, 61, 132]);
     expect(
       cohorts.map(
         (cohort) => new Set(cohort.map((entry) => entry.controller)).size,
       ),
-    ).toEqual([25, 32, 69]);
+    ).toEqual([25, 32, 68]);
     const owners = new Map<object, number>();
     cohorts.forEach((cohort, index) => {
       cohort.forEach((entry) => {
@@ -406,7 +405,7 @@ describe('combined tenant read policy registry', () => {
       expect(next.handle).toHaveBeenCalledTimes(2);
     },
   );
-  it('keeps persona grants owner-bound without adding it to the248-route repair', async () => {
+  it('keeps persona grants owner-bound without adding it to the247-route repair', async () => {
     const listForPersona = vi.fn();
     const controller = new PersonaGrantsController({
       listForPersona,

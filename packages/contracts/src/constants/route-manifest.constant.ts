@@ -1014,6 +1014,11 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
         title: 'Item',
         parent: { label: 'Approvals', href: '/publishing/approvals' },
       },
+      {
+        path: '/publishing/batches/:approvalId',
+        title: 'Scheduled posts',
+        parent: { label: 'Approvals', href: '/publishing/approvals' },
+      },
       { path: '/publishing/campaigns', help: 'publishingCampaigns' },
       {
         path: '/publishing/campaigns/new',

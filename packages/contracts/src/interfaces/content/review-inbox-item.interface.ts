@@ -57,6 +57,12 @@ export interface IReviewInboxItem {
   approvalId: string | null;
   toolName: string | null;
   estimatedCredits: number | null;
+  /**
+   * Releases this MCP approval would schedule, when it is a batch (#10134).
+   * A batch is reviewed in full before it is approved, so it has no quick
+   * approve or reject on its row.
+   */
+  batchCount: number | null;
 }
 
 /** `GET /review-inbox` query: the brand the page shows, when it has one. */
@@ -68,6 +74,8 @@ export interface IReviewInboxDecisionRequest {
   itemId: string;
   decision: ReviewInboxDecision;
   reason?: string;
+  /** Batch approvals only: posts (by index) the reviewer removed before approving. */
+  excludedIndexes?: number[];
 }
 
 export interface IReviewInboxDecisionResult {
@@ -77,6 +85,11 @@ export interface IReviewInboxDecisionResult {
   decision: ReviewInboxDecision;
   status: 'approved' | 'rejected';
   resolvedAt: string;
+  /** Batch approvals only: what the server did when approving scheduled the posts. */
+  scheduled?: {
+    created: number;
+    failed: number;
+  };
 }
 
 /** Most items one batch decision request may carry. */

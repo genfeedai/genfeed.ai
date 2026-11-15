@@ -297,12 +297,6 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     brandField: 'brandId',
     orgField: 'organizationId',
   },
-  {
-    delegate: 'schedule',
-    table: 'schedules',
-    brandField: 'brandId',
-    orgField: 'organizationId',
-  },
   // Preserve parent-before-child order because reservations may reference a
   // cadence while both composite tenant stamps are being rewritten.
   {

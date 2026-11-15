@@ -2,6 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { ReviewInboxController } from '@api/collections/review-inbox/controllers/review-inbox.controller';
 import type { ReviewInboxService } from '@api/collections/review-inbox/services/review-inbox.service';
 import type { ReviewInboxDecisionService } from '@api/collections/review-inbox/services/review-inbox-decision.service';
+import type { ScheduledReleaseBatchApprovalService } from '@api/collections/review-inbox/services/scheduled-release-batch-approval.service';
 import type { IReviewInboxItem } from '@genfeedai/contracts/interfaces';
 import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -25,6 +26,7 @@ const item: IReviewInboxItem = {
     'Continue Weekly posts with the output waiting at its review gate',
   actionTitle: 'Continue Weekly posts',
   approvalId: null,
+  batchCount: null,
   brandId: 'brand-1',
   brandLabel: 'Acme',
   brandLogoUrl: null,
@@ -72,6 +74,7 @@ describe('ReviewInboxController', () => {
     controller = new ReviewInboxController(
       reviewInbox as unknown as ReviewInboxService,
       decisions as unknown as ReviewInboxDecisionService,
+      {} as unknown as ScheduledReleaseBatchApprovalService,
     );
   });
 

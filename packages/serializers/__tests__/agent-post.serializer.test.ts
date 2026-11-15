@@ -117,4 +117,41 @@ describe('agent post preview projection', () => {
     expect(result.media).toEqual([]);
     expect(result.author).toEqual(expect.objectContaining({ avatarUrl: null }));
   });
+  it('carries the brand, the release id and the timezone so a row can be acted on', () => {
+    const result = serializeAgentPost({
+      ...post,
+      groupId: 'release-1',
+      timezone: 'Europe/Malta',
+    });
+    expect(result).toMatchObject({
+      brandId: 'brand-1',
+      releaseId: 'release-1',
+      timezone: 'Europe/Malta',
+    });
+    expect(serializeAgentPost(post).releaseId).toBeNull();
+  });
+  it('explains a failed post with its code and message, and nothing else from the error', () => {
+    const failed = serializeAgentPost({
+      ...post,
+      targetError: {
+        code: 'rate_limited',
+        isRetryable: true,
+        message: 'X rate limit reached',
+        providerPayload: { token: 'secret-token' },
+      },
+      targetExecutionState: 'failed',
+    });
+    expect(failed.error).toEqual({
+      code: 'rate_limited',
+      message: 'X rate limit reached',
+    });
+    expect(JSON.stringify(failed)).not.toContain('secret-token');
+    expect(
+      serializeAgentPost({
+        ...post,
+        targetError: { message: 'old error' },
+        targetExecutionState: 'scheduled',
+      }).error,
+    ).toBeUndefined();
+  });
 });

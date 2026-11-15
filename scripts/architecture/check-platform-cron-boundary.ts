@@ -293,6 +293,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform schedule handler that enqueues expired workflow-artifact cleanup for every tenant scope past its retention backstop.',
   },
   {
+    file: 'apps/server/workers/src/crons/posts/cron.manual-post-reminders.service.ts',
+    id: 'posts-manual-post-reminders',
+    methodName: 'sendDueReminders',
+    reason:
+      'Platform schedule handler; reminds the owner about posts they must publish by hand because X refused the quote, until they post or skip them.',
+  },
+  {
     file: 'apps/server/workers/src/crons/x-replies/cron.x-reply-watch.service.ts',
     id: 'x-reply-watch',
     methodName: 'watchRecentPostReplies',
