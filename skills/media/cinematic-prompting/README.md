@@ -1,12 +1,14 @@
 # Cinematic Prompting
 
-Rewrite naive image and video prompts with precise cinematography vocabulary so generation models get camera, framing, lighting, editing, and style terms they actually understand.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Rewrite naive image and video prompts with precise cinematography vocabulary across camera, framing, lighting, editing, and style.
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill cinematic-prompting
 ```
+<!-- generated:end -->
 
 ## Usage
 

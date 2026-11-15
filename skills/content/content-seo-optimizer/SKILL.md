@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.1.0
+  short-description: "Analyze and optimize content for SEO with a 0-100 scoring rubric and actionable improvement priorities"
+  tags: seo, optimization, content-optimization, keywords, meta-tags, search
+  outputs: text
+  triggers: "optimize for SEO; SEO score; check SEO; audit content; improve search ranking; SEO audit; analyze SEO; content optimization; keyword optimization; check my SEO score"
 ---
 
 # Content SEO Optimizer

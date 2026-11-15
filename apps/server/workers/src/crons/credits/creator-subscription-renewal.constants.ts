@@ -3,7 +3,7 @@
  * 15-minute cadence charges a renewal close to its period end without
  * scanning every minute.
  */
-export const CREATOR_SUBSCRIPTION_RENEWAL_INTERVAL_MINUTES = 15;
+const CREATOR_SUBSCRIPTION_RENEWAL_INTERVAL_MINUTES = 15;
 export const CREATOR_SUBSCRIPTION_RENEWAL_SCHEDULE = `*/${CREATOR_SUBSCRIPTION_RENEWAL_INTERVAL_MINUTES} * * * *`;
 
 /** Held for less than one interval so a crashed sweep never skips two ticks. */

@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Write an Instagram feed post: caption, hashtags, alt text and the image brief."
+  tags: instagram, social-media, content-creation, captions, hashtags
+  outputs: text
+  triggers: "write an instagram caption; instagram post; write ig caption; hashtag strategy; caption for this photo"
 ---
 
 # Instagram Post

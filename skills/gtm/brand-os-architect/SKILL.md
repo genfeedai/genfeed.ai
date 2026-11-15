@@ -5,7 +5,11 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
-  tags: brand, brand-os, positioning, visual-identity, content-strategy, launch-storytelling
+  short-description: "Create source-backed Brand OS systems for AI-era brands"
+  tags: branding, brand-os, positioning, visual-identity, content-strategy, launch-storytelling, source-backed, brand
+  outputs: text
+  triggers: "brand os; brand operating system; brand system; ai-readable brand book; brand kit generator; source-backed brand strategy; launch storytelling; japanese color references; cute studies; build a brand os"
+  references: "{\"source_pack\":\"references/source-pack.md\"}"
 ---
 
 # Brand OS Architect

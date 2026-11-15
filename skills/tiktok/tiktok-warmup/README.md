@@ -1,12 +1,14 @@
 # TikTok Warm-up Skill
 
-Evidence-aware TikTok 5–7 day guidance: native-app consumption and niche engagement on Days 1–3, profile and feed tuning on Days 4–5, then gradual first uploads and continued engagement on Days 6–7.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Guide a transparent TikTok 5–7 day warm-up with native-app engagement, profile and feed tuning, gradual first uploads, and evidence-aware assessment
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill tiktok-warmup
 ```
+<!-- generated:end -->
 
 ## Usage
 

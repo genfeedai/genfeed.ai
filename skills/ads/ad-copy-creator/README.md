@@ -1,12 +1,14 @@
 # Ad Copy Creator
 
-Create paid ad copy with direct-response frameworks, platform-specific constraints, variants, and test plans.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Create paid ad copy with platform-specific variants and test plans
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill ad-copy-creator
 ```
+<!-- generated:end -->
 
 ## Usage
 

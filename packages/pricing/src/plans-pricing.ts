@@ -321,6 +321,24 @@ function taperedSellPriceUsd(
 }
 
 /**
+ * What a generation sells for, in USD and before credit rounding, for a given
+ * provider cost: the same tapered multiplier `applyMargin` converts to credits,
+ * without the whole-credit rounding and the two credit floor. Use it to compare
+ * a provider rate with what the rate sheet charges; a per-token or per-second
+ * rate is far below one credit, so rounding would hide a loss.
+ */
+export function sellPriceUsdForProviderCost(
+  providerCostUsd: number,
+  marginMultiplier: number = runtimeGenerationMarginMultiplier,
+): number {
+  const safeMultiplier = normalizeMarginMultiplier(
+    marginMultiplier,
+    DEFAULT_GENERATION_MARGIN_MULTIPLIER,
+  );
+  return taperedSellPriceUsd(providerCostUsd, safeMultiplier);
+}
+
+/**
  * Apply the operator-configured **generation** margin multiplier to provider
  * cost and return the sell price in credits (1 credit = $0.01).
  *
@@ -614,7 +632,7 @@ export function formatTierLabel(
     return fallback;
   }
 
-  if (Object.prototype.hasOwnProperty.call(PLAN_LABELS, tier)) {
+  if (Object.getOwnPropertyDescriptor(PLAN_LABELS, tier)) {
     return PLAN_LABELS[tier as PlanTier];
   }
 

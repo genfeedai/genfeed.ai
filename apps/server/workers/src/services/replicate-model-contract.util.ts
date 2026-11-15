@@ -23,7 +23,7 @@ export interface ReplicateContractPricing {
   /** What the public model page said about billing (#6196). */
   billing?: ReplicateBillingObservation;
   pricingType: string | null;
-  source: 'curated-known-cost' | 'reviewed-registry';
+  source: 'reviewed-registry';
   unitPriceUsd: number | null;
 }
 
@@ -54,8 +54,54 @@ export interface ReplicateCandidateContract {
   version: string;
 }
 
+/** The price a draft shows, read from the provider's page and nowhere else. */
+export interface ReplicateDraftPrice {
+  /** Billed unit of `providerCostUsd`; null when no rate was readable. */
+  billingUnit: string | null;
+  /** Lowest provider list price in USD per billed unit; null when unreadable. */
+  providerCostUsd: number | null;
+  sourceUrl: string | null;
+  /** Why no price was read; null when one was. */
+  unpricedReason: string | null;
+}
+
+/**
+ * What a new draft is shown to cost. Credits are never part of it: they exist
+ * only once an operator approves the rates this reads. A model whose page lists
+ * several variants shows its cheapest output rate; the full set stays on the
+ * pending contract.
+ */
+export function readReplicateDraftPrice(
+  candidate: ReplicateCandidateContract,
+  billing: ReplicateBillingObservation,
+): ReplicateDraftPrice {
+  const sourceUrl = billing.status === 'ok' ? billing.sourceUrl : null;
+  const rates = candidate.observed?.rates ?? [];
+  // A draft's headline price is what the model produces: `output` for media,
+  // `output-token` for text.
+  const outputRates = rates.filter(
+    (rate) => rate.component === 'output' || rate.component === 'output-token',
+  );
+  const [cheapest] = [...(outputRates.length ? outputRates : rates)].sort(
+    (left, right) => left.unitPriceUsd - right.unitPriceUsd,
+  );
+  if (!cheapest)
+    return {
+      billingUnit: null,
+      providerCostUsd: null,
+      sourceUrl,
+      unpricedReason: candidate.billingFailure ?? 'no_billing_observation',
+    };
+  return {
+    billingUnit: cheapest.unit,
+    providerCostUsd: cheapest.unitPriceUsd,
+    sourceUrl: candidate.observed?.sourceUrl ?? sourceUrl,
+    unpricedReason: null,
+  };
+}
+
 const SUPPORTED_PRICING_TYPES = new Set<string>(Object.values(PricingType));
-export const REPLICATE_BILLING_SOURCE = 'replicate-billing-config';
+const REPLICATE_BILLING_SOURCE = 'replicate-billing-config';
 
 function billingUnitForPricingType(pricingType: string): string {
   switch (pricingType) {

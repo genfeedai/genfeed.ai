@@ -1,12 +1,14 @@
 # Content Atomizer
 
-Expert content repurposing strategist. Takes a single piece of source content and systematically produces dozens of platform-optimized derivatives with adapted tone, format, length, and a staggered scheduling cadence.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Repurpose one piece of content into dozens of platform-optimized derivatives with scheduling cadence
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill content-atomizer
 ```
+<!-- generated:end -->
 
 ## Usage
 

@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import {
   describeProviderRateChanges,
+  findRateChangesAboveSellPrice,
   hashReviewedRateSheetEntry,
 } from '@genfeedai/pricing';
 import type { ModelProviderContract, Prisma } from '@genfeedai/prisma';
@@ -100,6 +101,34 @@ export function compareProviderRates(
     changes: describeProviderRateChanges(reviewed.rates, observed.rates),
     pendingRateHash,
     status: 'changed',
+  };
+}
+
+/** Whether a pending rate costs more than we sell the variant for today. */
+export interface RateChangeUrgency {
+  isUrgent: boolean;
+  urgentReason: string | null;
+}
+
+const usd = (value: number): string =>
+  `$${value >= 0.01 ? value.toFixed(2) : String(Number(value.toPrecision(3)))}`;
+
+/**
+ * Urgent when the provider's new cost is above our current sell price for a
+ * variant: every run at the new rate loses money until an operator approves it.
+ * The sell price is the approved rate through the live generation margin.
+ */
+export function assessRateChangeUrgency(
+  changes: readonly ModelPricingRateChange[],
+): RateChangeUrgency {
+  const losses = findRateChangesAboveSellPrice(changes);
+  const [first] = losses;
+  if (!first) return { isUrgent: false, urgentReason: null };
+  const { change, sellPriceUsd } = first;
+  const more = losses.length > 1 ? ` (and ${losses.length - 1} more)` : '';
+  return {
+    isUrgent: true,
+    urgentReason: `${change.variant || change.component}: provider cost ${usd(change.newPriceUsd ?? 0)} per ${change.unit} is above our sell price ${usd(sellPriceUsd)}${more}`,
   };
 }
 

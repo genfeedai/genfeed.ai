@@ -4,7 +4,7 @@
  * leftover free credits; every 15 minutes keeps the balance the app shows
  * close to that moment without scanning wallets every minute.
  */
-export const FREE_TRIAL_EXPIRY_INTERVAL_MINUTES = 15;
+const FREE_TRIAL_EXPIRY_INTERVAL_MINUTES = 15;
 export const FREE_TRIAL_EXPIRY_SCHEDULE = `*/${FREE_TRIAL_EXPIRY_INTERVAL_MINUTES} * * * *`;
 
 /** Held for less than one interval so a crashed sweep never skips two ticks. */
