@@ -4,6 +4,7 @@
     "@genfeedai/auth-client": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/next-config": "workspace:*",
+    "@genfeedai/props": "workspace:*",
     "@genfeedai/ui": "workspace:*",
     "@genfeedai/utils": "workspace:*",
     "@plasmohq/storage": "1.15.0",
