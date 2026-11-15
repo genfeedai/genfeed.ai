@@ -43,6 +43,11 @@ export interface GenerationTypeEntry {
   smoke: SmokeMedium | null;
   /** Why the path is `exempt`, or what the gap is (and how it is tracked). */
   note?: string;
+  /**
+   * Other model-calling files this row accounts for, repo-relative. `source`
+   * holds the brand-context marker; these are the callers that go through it.
+   */
+  alsoCovers?: readonly string[];
 }
 
 const API = 'apps/server/api/src';
@@ -174,6 +179,11 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
     source: `${API}/collections/campaigns/services/campaign-planning.service.ts`,
   },
   {
+    alsoCovers: [
+      `${API}/services/skill-executor/handlers/content-geo-optimizer.handler.ts`,
+      `${API}/services/skill-executor/handlers/content-writing.handler.ts`,
+      `${API}/services/skill-executor/handlers/trend-remix.handler.ts`,
+    ],
     enumRefs: {},
     id: 'skill-handlers',
     marker: 'resolveBrief',
@@ -224,6 +234,25 @@ export const GENERATION_TYPES: readonly GenerationTypeEntry[] = [
     path: 'harness',
     smoke: null,
     source: `${API}/collections/content-runs/services/storyboard-plan-draft.service.ts`,
+  },
+  {
+    alsoCovers: [
+      `${API}/collections/visual-projects/services/visual-project-authoring.service.ts`,
+    ],
+    enumRefs: {},
+    id: 'coded-video',
+    marker: 'resolveBrief',
+    note: 'Motion (Remotion) compositions are authored against the approved Brand OS revision through VisualProjectBrandContextService: palette roles, type roles, logo and brand assets, media rules, the media harness brief and the video skills. The first authoring call for a revision writes a branded receipt that pins the snapshot. The harness brief is optional context: when it is unavailable the receipt records the pack layer as unavailable and authoring continues.',
+    path: 'harness',
+    smoke: null,
+    source: `${API}/collections/visual-projects/services/visual-project-brand-context.service.ts`,
+  },
+  {
+    enumRefs: {},
+    id: 'storyboard-shots',
+    note: "Storyboard shot and asset renders run with `harness: false` and `brandingMode: 'off'` on purpose (storyboard-shot-renders.service.ts): the plan that scripted them was drafted against the composed brief (see storyboard-plan), so the brand is already in each shot prompt. Applying it again would double-brand the shot.",
+    path: 'exempt',
+    smoke: null,
   },
   {
     enumRefs: { GenerationType: ['CLIP'] },
