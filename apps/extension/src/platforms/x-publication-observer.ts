@@ -15,7 +15,6 @@ export {
   findXPublicationComposer,
   isTrustedXSubmission,
   isXHome,
-  isXPublicationPage,
   matchingXPublicationCandidates,
 } from '~platforms/x-publication-dom';
 

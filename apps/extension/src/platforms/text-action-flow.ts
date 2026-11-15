@@ -14,7 +14,7 @@ export interface TextActionFlowHooks {
   notify: (message: string, isError?: boolean) => void;
 }
 
-export const TEXT_ACTION_PROGRESS: Record<TextActionMode, string> = {
+const TEXT_ACTION_PROGRESS: Record<TextActionMode, string> = {
   proofread: 'Proofreading your draft…',
   rewrite: 'Rewriting in your voice…',
 };

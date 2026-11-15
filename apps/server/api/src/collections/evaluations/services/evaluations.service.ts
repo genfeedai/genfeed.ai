@@ -33,6 +33,7 @@ import { scopedWhere } from '@api/index';
 import type { TextByokDispatch } from '@api/services/byok/text-dispatch-byok.util';
 import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { CacheService } from '@api/services/cache/cache.service';
+import { BrandVideoContextService } from '@api/services/content-quality/brand-video-context.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -88,6 +89,8 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     @Optional() private readonly configService?: ConfigService,
     @Optional() private readonly mediaUrlService?: MediaUrlService,
     @Optional() private readonly evaluationReadCache?: CacheService,
+    @Optional()
+    private readonly brandVideoContextService?: BrandVideoContextService,
   ) {
     super(prisma, 'evaluation', logger);
   }
@@ -325,7 +328,14 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     const storedDuration = (video.metadata as { duration?: unknown } | null)
       ?.duration;
 
-    const context = buildVideoJudgeContext(prompt, brand, storedDuration);
+    const videoBrandContext = await this.brandVideoContextService?.resolve(
+      (video as { brandId?: string | null }).brandId ?? brandId,
+      organizationId,
+    );
+    const context = buildVideoJudgeContext(prompt, brand, storedDuration, {
+      brandName: videoBrandContext?.brandName,
+      rulesText: videoBrandContext?.rulesText,
+    });
 
     let billedCredits = 0;
     const aiResult = (await this.evaluationsOperationsService.evaluateVideo(

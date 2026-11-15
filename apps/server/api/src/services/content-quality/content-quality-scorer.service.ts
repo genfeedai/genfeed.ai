@@ -1,13 +1,18 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
+import { BrandVideoContextService } from '@api/services/content-quality/brand-video-context.service';
 import {
   buildTextScoringPrompt,
+  buildVideoScoringPrompt,
   IMAGE_SCORING_PROMPT,
   TEXT_SCORING_PROMPT,
-  VIDEO_SCORING_PROMPT,
   VISION_RUBRIC_PROMPT,
 } from '@api/services/content-quality/content-quality-scorer.prompts';
+import {
+  FIRST_MIDDLE_LAST_POSITIONS,
+  VideoFrameSamplerService,
+} from '@api/services/content-quality/video-frame-sampler.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
@@ -58,6 +63,10 @@ export class ContentQualityScorerService {
     private readonly harnessGenerationService?: HarnessGenerationService,
     @Optional()
     private readonly moduleRef?: ModuleRef,
+    @Optional()
+    private readonly videoFrameSampler?: VideoFrameSamplerService,
+    @Optional()
+    private readonly brandVideoContextService?: BrandVideoContextService,
   ) {
     this.defaultModel = LLM_DEFAULTS.background;
   }
@@ -232,32 +241,66 @@ export class ContentQualityScorerService {
   }
 
   /**
-   * Score video ingredient by analyzing thumbnail or metadata.
+   * Score a video from frames sampled across it (first, middle and last), with
+   * the brand's approved palette, logo and video rules when it has them.
    */
   private async scoreVideoContent(
     contentId: string,
     context?: string,
     organizationId?: string,
   ): Promise<ContentQualityResult> {
-    const videoUrl = await this.resolveIngredientUrl(contentId, organizationId);
+    const video = await this.resolveVideo(contentId, organizationId);
 
-    if (!videoUrl) {
+    if (!video) {
       return this.buildErrorResult('video', 'Could not resolve video URL');
     }
+    if (!this.videoFrameSampler) {
+      return this.buildErrorResult('video', 'Video frame sampling unavailable');
+    }
 
-    // For video, we analyze the thumbnail/preview frame via vision
-    // and supplement with metadata analysis
-    const prompt = context
-      ? `${VIDEO_SCORING_PROMPT}\n\nAdditional context: ${context}`
-      : VIDEO_SCORING_PROMPT;
+    let sample: Awaited<ReturnType<VideoFrameSamplerService['sample']>>;
+    try {
+      sample = await this.videoFrameSampler.sample(
+        video.url,
+        FIRST_MIDDLE_LAST_POSITIONS,
+        video.durationSeconds,
+      );
+    } catch (error: unknown) {
+      this.logger.error(
+        `${this.constructorName} video frame sampling failed: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      );
+      return this.buildErrorResult('video', 'Video frame sampling failed');
+    }
 
-    const llmResult = await this.callVisionModel(
-      videoUrl,
-      prompt,
-      organizationId,
-    );
+    try {
+      const brand = await this.brandVideoContextService?.resolve(
+        video.brandId,
+        organizationId,
+      );
+      const prompt = buildVideoScoringPrompt({
+        brandName: brand?.brandName,
+        brandRules: brand?.rulesText || undefined,
+        context,
+        frames: sample.frames,
+        hasLogoReference: Boolean(brand?.rulesText && brand.logoUrl),
+      });
+      const imageUrls = [
+        ...sample.frames.map((frame) => frame.url),
+        ...(brand?.rulesText && brand.logoUrl ? [brand.logoUrl] : []),
+      ];
 
-    return this.buildResult(llmResult, 'video');
+      const llmResult = await this.callVisionModel(
+        imageUrls,
+        prompt,
+        organizationId,
+      );
+
+      return this.buildResult(llmResult, 'video');
+    } finally {
+      await sample.cleanup();
+    }
   }
 
   /**
@@ -372,10 +415,11 @@ export class ContentQualityScorerService {
    * Call vision-capable model with an image URL.
    */
   private async callVisionModel(
-    imageUrl: string,
+    imageUrl: string | readonly string[],
     prompt: string,
     organizationId?: string,
   ): Promise<ContentQualityScoring> {
+    const imageUrls = typeof imageUrl === 'string' ? [imageUrl] : imageUrl;
     return this.score(
       LLM_DEFAULTS.fastText,
       'vision',
@@ -384,7 +428,10 @@ export class ContentQualityScorerService {
         {
           content: [
             { text: 'Analyze this content.', type: 'text' },
-            { image_url: { url: imageUrl }, type: 'image_url' },
+            ...imageUrls.map((url) => ({
+              image_url: { url },
+              type: 'image_url' as const,
+            })),
           ],
           role: 'user',
         },
@@ -464,6 +511,47 @@ export class ContentQualityScorerService {
       }
       const ingredient = await this.ingredientsService.findOne(query);
       return readIngredientMediaUrl(ingredient);
+    } catch {
+      return undefined;
+    }
+  }
+
+  private async resolveVideo(
+    contentId: string,
+    organizationId?: string,
+  ): Promise<
+    { brandId?: string; durationSeconds?: number; url: string } | undefined
+  > {
+    if (!this.ingredientsService) {
+      return undefined;
+    }
+
+    try {
+      const query: Record<string, unknown> = {
+        id: contentId,
+        isDeleted: false,
+      };
+      if (organizationId) {
+        query.organizationId = organizationId;
+      }
+      const ingredient = await this.ingredientsService.findOne(query, [
+        { path: 'metadata' },
+      ]);
+      const url = readIngredientMediaUrl(ingredient);
+      if (!url) {
+        return undefined;
+      }
+      const duration = (ingredient?.metadata as { duration?: unknown } | null)
+        ?.duration;
+      return {
+        brandId:
+          typeof ingredient?.brandId === 'string'
+            ? ingredient.brandId
+            : undefined,
+        durationSeconds:
+          typeof duration === 'number' && duration > 0 ? duration : undefined,
+        url,
+      };
     } catch {
       return undefined;
     }

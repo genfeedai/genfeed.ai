@@ -4,7 +4,7 @@ import type {
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { ImportedSourceView } from '~models/imported-source.model';
 
-export type { BrandRemixDraftEdits, BrandRemixRunView };
+export type { BrandRemixRunView };
 
 /** A registered image model the user can pick before a quote. */
 export interface SourceRemixImageModel {

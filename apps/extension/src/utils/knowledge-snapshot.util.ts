@@ -16,8 +16,8 @@ const SECRET_ASSIGNMENT_PATTERN =
   /\b(password|passwd|secret|api.?key|access.?token|refresh.?token|authorization|cookie|session.?id)\s*[:=]\s*[^\s,;]+/gi;
 const HTTP_URLS_PATTERN = /https?:\/\/[^\s<>"']+/gi;
 
-export const CAPTURE_TEXT_LIMIT = 200_000;
-export const CAPTURE_BYTES_LIMIT = 800_000;
+const CAPTURE_TEXT_LIMIT = 200_000;
+const CAPTURE_BYTES_LIMIT = 800_000;
 
 export function sanitizeCaptureUrl(value: string): string {
   const url = new URL(value);
