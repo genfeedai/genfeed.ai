@@ -1,7 +1,7 @@
 import type { IIngredient, IPrompt } from '@genfeedai/contracts/interfaces';
 import type { StudioPlaygroundType } from '@/features/studio/playground/types';
 
-export const STUDIO_PROMPT_SLOT_KEYS = [
+const STUDIO_PROMPT_SLOT_KEYS = [
   'subject',
   'action',
   'scene',
@@ -18,7 +18,7 @@ export const STUDIO_PROMPT_SLOT_KEYS = [
 
 export type StudioPromptSlotKey = (typeof STUDIO_PROMPT_SLOT_KEYS)[number];
 
-export interface StudioStoredPromptSlot {
+interface StudioStoredPromptSlot {
   key: StudioPromptSlotKey;
   value: string;
 }

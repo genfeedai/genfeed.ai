@@ -226,5 +226,3 @@ export function ViralVideoLeaderboard({
     </div>
   );
 }
-
-export default ViralVideoLeaderboard;

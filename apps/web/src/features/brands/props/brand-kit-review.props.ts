@@ -90,7 +90,7 @@ export interface BrandKitReviewAssetsProps {
 }
 
 /** An async step of the Brand Kit review flow (#9743). */
-export type BrandKitReviewOperation = 'scan' | 'apply' | 'import-assets';
+type BrandKitReviewOperation = 'scan' | 'apply' | 'import-assets';
 
 /**
  * Which review steps are in flight, and the last error with the step that

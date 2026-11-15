@@ -114,7 +114,7 @@ export interface UseStudioGenerationReturn {
   ) => Promise<boolean>;
 }
 
-export interface StudioGenerationOptions {
+interface StudioGenerationOptions {
   originalText?: string;
   crunRequest?: CrunImageQuoteRequest;
   crunVideoRequest?: CrunVideoQuoteRequest;
@@ -139,7 +139,7 @@ export interface StudioGenerationOptions {
   isDraft?: boolean;
 }
 
-export interface StudioGenerationReferences {
+interface StudioGenerationReferences {
   audioReferenceIds?: string[];
   editSourceIds?: string[];
   editMaskId?: string;

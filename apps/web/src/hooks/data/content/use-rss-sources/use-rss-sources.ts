@@ -16,7 +16,7 @@ import type {
   UseRssSourcesResult,
 } from '@/props/scheduler/rss-sources-section.props';
 
-export const RSS_SOURCES_QUERY_KEY = 'rss-sources';
+const RSS_SOURCES_QUERY_KEY = 'rss-sources';
 
 export function useRssSources(
   options: UseRssSourcesOptions = {},

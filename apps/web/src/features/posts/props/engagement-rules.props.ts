@@ -11,10 +11,6 @@ export interface ReleaseEngagementRulesProps {
   target: IChannelTarget;
 }
 
-export interface ReleaseEngagementRuleRowProps {
-  rule: IEngagementRule;
-}
-
 export interface UseEngagementRulesOptions {
   autoLoad?: boolean;
   postGroupId?: string;

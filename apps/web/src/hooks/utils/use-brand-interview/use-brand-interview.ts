@@ -19,7 +19,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 
-export type BrandInterviewUiStatus = 'idle' | 'in_progress' | 'complete';
+type BrandInterviewUiStatus = 'idle' | 'in_progress' | 'complete';
 
 export interface UseBrandInterviewReturn {
   status: BrandInterviewUiStatus;

@@ -15,7 +15,7 @@ import { useCallback, useState } from 'react';
 
 const HTML_TAGS_PATTERN = /<[^>]*>/g;
 
-export type XArticlePhase = 'idle' | 'generating' | 'generated' | 'error';
+type XArticlePhase = 'idle' | 'generating' | 'generated' | 'error';
 
 export interface UseXArticleComposeReturn {
   phase: XArticlePhase;

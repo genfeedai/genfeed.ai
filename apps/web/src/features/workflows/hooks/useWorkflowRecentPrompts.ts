@@ -6,7 +6,7 @@ import { logger } from '@services/core/logger.service';
 
 const RECENT_PROMPT_LIMIT = 50;
 
-export interface WorkflowRecentPrompt {
+interface WorkflowRecentPrompt {
   id: string;
   text: string;
 }

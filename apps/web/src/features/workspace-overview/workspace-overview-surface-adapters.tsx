@@ -12,7 +12,7 @@ interface WorkspaceOverviewSurfaceAdapterProps {
   readonly children: ReactNode;
 }
 
-export const ORGANIZATION_WORKSPACE_OVERVIEW_ADAPTER = Object.freeze({
+const ORGANIZATION_WORKSPACE_OVERVIEW_ADAPTER = Object.freeze({
   canonicalFallback: 'same-route',
   description: 'Metrics and performance across every brand in this workspace.',
   key: 'organization-workspace-overview',
@@ -22,7 +22,7 @@ export const ORGANIZATION_WORKSPACE_OVERVIEW_ADAPTER = Object.freeze({
   title: 'Organization Workspace overview',
 } as const satisfies WorkspaceSurfaceAdapterRegistrationContract);
 
-export const BRAND_WORKSPACE_OVERVIEW_ADAPTER = Object.freeze({
+const BRAND_WORKSPACE_OVERVIEW_ADAPTER = Object.freeze({
   canonicalFallback: 'same-route',
   description: 'Tasks, activity, inbox, and trends for this brand.',
   key: 'brand-workspace-overview',

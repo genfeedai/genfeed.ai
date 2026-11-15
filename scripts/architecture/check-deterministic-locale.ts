@@ -240,11 +240,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     2,
   ),
   legacyUiAllowance(
-    'apps/web/src/components/modals/automation/useModalBot.ts',
-    'intl-date-time-format',
-    1,
-  ),
-  legacyUiAllowance(
     'packages/ui/src/components/time/ClientDateTime.tsx',
     'to-locale-string',
     1,

@@ -652,5 +652,3 @@ export function AppRail({
     </TooltipProvider>
   );
 }
-
-export default AppRail;

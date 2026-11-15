@@ -6,7 +6,7 @@ const STORYBOARD_RUN_PATH_PATTERN = /^\/storyboard\/([^/]+)\/?$/;
 const AGENT_CONVERSATION_ID_EXCLUSIONS = new Set(['journey', 'new', 'threads']);
 
 /** Max chars for agent conversation leaf in topbar breadcrumb. */
-export const BREADCRUMB_CONVERSATION_TITLE_MAX = 25;
+const BREADCRUMB_CONVERSATION_TITLE_MAX = 25;
 
 export function extractAgentConversationId(
   pathname: string | null,

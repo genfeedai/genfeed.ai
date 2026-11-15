@@ -2,7 +2,7 @@ import type { ButtonVariant } from '@genfeedai/contracts';
 
 export type AnalyticsDashboardState = 'empty' | 'warming_up' | 'active';
 
-export interface AnalyticsOverviewHeroAction {
+interface AnalyticsOverviewHeroAction {
   href: string;
   label: string;
   variant: ButtonVariant;

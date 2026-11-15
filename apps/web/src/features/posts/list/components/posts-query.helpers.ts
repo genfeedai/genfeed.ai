@@ -44,9 +44,7 @@ export interface PostsListResult {
   posts: IPost[];
 }
 
-export function mapPostsListStatusFilter(
-  status: string | PostStatus | undefined,
-): {
+function mapPostsListStatusFilter(status: string | PostStatus | undefined): {
   executionState?: TargetExecutionState;
   visibility?: PostVisibility;
 } {

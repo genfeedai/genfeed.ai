@@ -11,13 +11,6 @@ export interface PublishingRssSourcesSectionProps {
   timezone: string;
 }
 
-export interface RssSourceListItemProps {
-  onDelete: (source: IRssSource) => void;
-  onPollNow: (source: IRssSource) => void;
-  onToggleEnabled: (source: IRssSource, isEnabled: boolean) => void;
-  source: IRssSource;
-}
-
 export interface UseRssSourcesOptions {
   autoLoad?: boolean;
   brandId?: string;

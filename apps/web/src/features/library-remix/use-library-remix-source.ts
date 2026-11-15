@@ -14,9 +14,9 @@ import {
   readRelationshipId,
 } from './library-remix-reference';
 
-export type LibraryRemixSourceRecord = IAsset | IIngredient;
+type LibraryRemixSourceRecord = IAsset | IIngredient;
 
-export type LibraryRemixSourceStatus =
+type LibraryRemixSourceStatus =
   | 'error'
   | 'invalid'
   | 'loading'

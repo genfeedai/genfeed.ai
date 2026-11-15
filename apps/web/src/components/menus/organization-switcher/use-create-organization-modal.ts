@@ -8,9 +8,9 @@ import { getJsonApiErrorMember } from '@genfeedai/services/core/json-api-error-m
 import type { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { useCallback, useMemo, useReducer } from 'react';
 
-export type CreateOrganizationField = keyof CreateOrganizationFormValues;
+type CreateOrganizationField = keyof CreateOrganizationFormValues;
 
-export type CreateOrganizationFieldErrors = Partial<
+type CreateOrganizationFieldErrors = Partial<
   Record<CreateOrganizationField, string>
 >;
 

@@ -1,6 +1,6 @@
 import type { AlertProps } from '@ui/primitives/alert';
 
-export type LoginMode = 'chooser' | 'magic-link' | 'password';
+type LoginMode = 'chooser' | 'magic-link' | 'password';
 
 export type InvitationNotice = {
   message: string;

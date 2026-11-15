@@ -98,7 +98,7 @@ export interface PlatformModeSettingFieldProps<
 }
 
 /** The margin multipliers an operator edits as percentages on /admin/settings/billing. */
-export interface PlatformMarginFieldsState {
+interface PlatformMarginFieldsState {
   agentChatPercentInput: string;
   agentChatReadout: string;
   generationPercentInput: string;

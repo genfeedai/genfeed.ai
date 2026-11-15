@@ -54,7 +54,7 @@ export interface UseFailedIngredientRecoveryReturn {
   retriedIds: string[];
 }
 
-export interface FailedIngredientRecoveryDeleteOptions {
+interface FailedIngredientRecoveryDeleteOptions {
   getService: () => Promise<Pick<IngredientsService, 'bulkDelete'>>;
   setIngredients: Dispatch<SetStateAction<IIngredient[]>>;
   setSelectedIds: Dispatch<SetStateAction<string[]>>;

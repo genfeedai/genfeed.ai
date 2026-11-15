@@ -27,11 +27,11 @@ import type {
   UseFailedIngredientRecoveryReturn,
 } from '@/props/content/ingredient-recovery.props';
 
-export type ImageToVideoPromptDraft = Partial<PromptTextareaSchema> & {
+type ImageToVideoPromptDraft = Partial<PromptTextareaSchema> & {
   isValid: boolean;
 };
 
-export type ImageToVideoPromptSubmit = PromptTextareaSchema & {
+type ImageToVideoPromptSubmit = PromptTextareaSchema & {
   isValid: boolean;
 };
 

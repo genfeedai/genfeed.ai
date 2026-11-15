@@ -222,9 +222,7 @@ function toPersistedInputNode(
  * whitelist keeps only `label`/`config`/`inputVariableKeys`, so those
  * fields must be folded into `config` before save.
  */
-export function toPersistedWorkflowNodeData(
-  data: unknown,
-): Record<string, unknown> {
+function toPersistedWorkflowNodeData(data: unknown): Record<string, unknown> {
   const record = isNodeDataRecord(data) ? data : {};
   const existingConfig = isNodeDataRecord(record.config) ? record.config : {};
   const extracted = extractEditorConfigFields(record);
@@ -244,9 +242,7 @@ export function toPersistedWorkflowNodeData(
  * Hydrate persisted `data.config` back onto the editor node so Prompt and
  * Prompt Constructor can read `data.prompt` / `data.template`.
  */
-export function toEditorWorkflowNodeData(
-  data: unknown,
-): Record<string, unknown> {
+function toEditorWorkflowNodeData(data: unknown): Record<string, unknown> {
   const record = isNodeDataRecord(data) ? data : {};
   const config = isNodeDataRecord(record.config) ? record.config : {};
 

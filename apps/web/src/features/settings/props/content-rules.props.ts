@@ -4,23 +4,23 @@ import type {
   IHarnessProfile,
 } from '@genfeedai/contracts/interfaces';
 
-export type HarnessDraftChange = <Key extends keyof IHarnessProfile>(
+type HarnessDraftChange = <Key extends keyof IHarnessProfile>(
   key: Key,
   value: IHarnessProfile[Key],
 ) => void;
 
-export type HarnessVoiceChange = (
+type HarnessVoiceChange = (
   key: keyof NonNullable<IHarnessProfile['voice']>,
   value: string | string[],
 ) => void;
 
-export type HarnessListChange = (
+type HarnessListChange = (
   section: 'examples' | 'structure' | 'thesis',
   key: string,
   value: string,
 ) => void;
 
-export type HarnessSplitLines = (value: string) => string[];
+type HarnessSplitLines = (value: string) => string[];
 
 export interface HarnessIdentityTabProps {
   draft: ICreateHarnessProfilePayload;

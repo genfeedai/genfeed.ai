@@ -15,7 +15,7 @@ import type {
   UseEngagementRulesResult,
 } from '@/features/posts/props/engagement-rules.props';
 
-export const ENGAGEMENT_RULES_QUERY_KEY = 'engagement-rules';
+const ENGAGEMENT_RULES_QUERY_KEY = 'engagement-rules';
 
 export function useEngagementRules(
   options: UseEngagementRulesOptions = {},

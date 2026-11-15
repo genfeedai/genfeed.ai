@@ -14,7 +14,7 @@ import {
   parsePostsSource,
 } from '@/features/posts/list/posts-list-query';
 
-export interface PostsListToolbarOption {
+interface PostsListToolbarOption {
   label: string;
   value: string;
 }

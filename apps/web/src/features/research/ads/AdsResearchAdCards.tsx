@@ -38,7 +38,7 @@ type AdGridCardProps = {
   savedMutating: boolean;
 };
 
-export function AdGridCard({
+function AdGridCard({
   isSelected,
   item,
   metric,

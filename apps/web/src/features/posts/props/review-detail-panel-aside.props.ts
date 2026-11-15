@@ -1,6 +1,6 @@
 import type { ReviewPanelItem } from '@/props/publishing/review-panel-item.props';
 
-export type ReviewEvent = NonNullable<ReviewPanelItem['reviewEvents']>[number];
+type ReviewEvent = NonNullable<ReviewPanelItem['reviewEvents']>[number];
 
 export interface ReviewDetailPanelAsideProps {
   browserTimezone: string;

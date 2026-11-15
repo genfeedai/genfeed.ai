@@ -4,7 +4,7 @@ import type {
   ReviewStatusFilter,
 } from '@/props/publishing/review-filters.props';
 
-export interface ReviewFilterMenuBatchOption {
+interface ReviewFilterMenuBatchOption {
   label: string;
   value: string;
 }

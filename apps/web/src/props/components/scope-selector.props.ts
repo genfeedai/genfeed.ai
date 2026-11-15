@@ -1,6 +1,6 @@
 import type { AssetScope } from '@genfeedai/contracts';
 
-export type ScopeSelectorVariant = 'default' | 'panel' | 'segmented';
+type ScopeSelectorVariant = 'default' | 'panel' | 'segmented';
 
 export interface ScopeSelectorProps {
   value: AssetScope;

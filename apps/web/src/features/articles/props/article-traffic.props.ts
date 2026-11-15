@@ -1,7 +1,4 @@
-import type {
-  ArticleTrafficDay,
-  ArticleTrafficPeriod,
-} from '@genfeedai/contracts/interfaces/content/article-traffic.interface';
+import type { ArticleTrafficDay } from '@genfeedai/contracts/interfaces/content/article-traffic.interface';
 import type { Article } from '@models/content/article.model';
 
 export interface ArticleTrafficPanelProps {
@@ -13,9 +10,4 @@ export interface ArticleTrafficPanelProps {
 
 export interface ArticleTrafficChartProps {
   days: ArticleTrafficDay[];
-}
-
-export interface ArticleTrafficPeriodOption {
-  value: ArticleTrafficPeriod;
-  label: string;
 }
