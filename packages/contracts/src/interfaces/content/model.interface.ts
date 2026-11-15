@@ -99,7 +99,6 @@ export interface IModel extends IBaseEntity {
   hasDurationEditing?: boolean;
 
   // Lifecycle fields
-  succeededBy?: string;
   predecessorOf?: string;
 
   // Provider auto-discovery fields (issue #93)

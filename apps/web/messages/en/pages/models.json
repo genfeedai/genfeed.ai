@@ -9,7 +9,6 @@
   "table": {
     "approvedStatus": "Approved",
     "categoryHeader": "Category",
-    "chooseSuccessor": "Choose successor",
     "costBasisPerMegapixel": "Basis: {units} megapixel",
     "costBasisPerSecond": "Basis: {duration} {unit}",
     "costBreakdown": "Provider {base} + Margin {margin} = Total {total} ({credits} credits)",
@@ -30,7 +29,6 @@
     "secondUnit": "second",
     "secondsUnit": "seconds",
     "seededStatus": "Seeded",
-    "successorWithLabel": "Successor: {label}",
     "variablePricing": "Variable",
     "variablePricingDescription": "Uses reviewed rates. Final cost depends on the generation settings."
   },
