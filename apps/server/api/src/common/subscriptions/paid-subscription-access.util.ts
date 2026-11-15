@@ -25,8 +25,8 @@ import {
  */
 export interface PaidSubscriptionSnapshot {
   cancelAtPeriodEnd: boolean;
-  currentPeriodEnd: Date | string | null;
-  plan: string | null;
+  currentPeriodEnd?: Date | string | null;
+  plan?: string | null;
   status: string;
 }
 
@@ -34,6 +34,7 @@ export type PaidSubscriptionGrant = 'active_paid' | 'paid_through';
 
 const PAID_PLANS = new Set<string>([
   SubscriptionPlan.ENTERPRISE,
+  SubscriptionPlan.LIFETIME,
   SubscriptionPlan.MONTHLY,
   SubscriptionPlan.PAYG,
   SubscriptionPlan.YEARLY,
@@ -50,7 +51,7 @@ function normalize(value: string | null | undefined): string {
 }
 
 function periodIsOpen(
-  currentPeriodEnd: Date | string | null,
+  currentPeriodEnd: Date | string | null | undefined,
   now: Date,
 ): boolean {
   if (!currentPeriodEnd) return false;
