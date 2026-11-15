@@ -44,9 +44,6 @@ import BrandOsSettingsCard from '@/features/brands/components/brand-kit/BrandOsS
 import BrandWritingVoiceEditor from '@/features/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor';
 import BrandDetailManualKitCard from '@/features/brands/components/sidebar/BrandDetailManualKitCard';
 import BrandDetailReferencesCard from '@/features/brands/components/sidebar/BrandDetailReferencesCard';
-import BrandEndCardSettings from '@/features/brands/components/sidebar/BrandEndCardSettings';
-import BrandLutSettings from '@/features/brands/components/sidebar/BrandLutSettings';
-import BrandWatermarkSettings from '@/features/brands/components/sidebar/BrandWatermarkSettings';
 import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 import { captureBrandOsFunnelStage } from '@/lib/analytics';
@@ -57,6 +54,7 @@ const FIELD_GROUPS: Record<string, readonly BrandKitFieldGroup[]> = {
   visual: ['visual'],
   voice: ['voice'],
   strategy: ['strategy'],
+  video: [],
 };
 
 export default function BrandKitPage() {
@@ -153,6 +151,7 @@ export default function BrandKitPage() {
             }}
             onScan={() => setWorkflow('scan')}
             onManualImport={() => setWorkflow('manual')}
+            onRefreshBrand={() => handleRefreshBrand()}
             guidedSetupHref={href('/settings/brand-kit/setup')}
             contentRulesHref={href('/settings/brand-kit/rules')}
             overview={
@@ -216,21 +215,6 @@ export default function BrandKitPage() {
                     }}
                   />
                 ) : null}
-                <BrandWatermarkSettings
-                  brand={brand}
-                  brandId={brandId}
-                  onRefreshBrand={() => handleRefreshBrand()}
-                />
-                <BrandEndCardSettings
-                  brand={brand}
-                  brandId={brandId}
-                  onRefreshBrand={() => handleRefreshBrand()}
-                />
-                <BrandLutSettings
-                  brand={brand}
-                  brandId={brandId}
-                  onRefreshBrand={() => handleRefreshBrand()}
-                />
                 <BrandDetailReferencesCard
                   brand={brand}
                   deletingRefId={deletingRefId}

@@ -10,7 +10,6 @@ import type {
   IActivity,
   IAnalytics,
   IArticle,
-  IBrand,
   IBrandAgentPrompting,
   IBrandKitApplyRequest,
   IBrandKitApplyResult,
@@ -614,26 +613,6 @@ export class BrandsService extends BaseService<Brand> {
       .then((res) => res.data?.data ?? {});
   }
 
-  public async updateWatermark(
-    id: string,
-    settings: Pick<
-      IBrand,
-      | 'watermarkText'
-      | 'watermarkLogoId'
-      | 'watermarkOpacity'
-      | 'watermarkPosition'
-      | 'watermarkSizeRatio'
-      | 'watermarkLightLogoId'
-      | 'watermarkLiveLogoId'
-      | 'watermarkInsetXRatio'
-      | 'watermarkInsetYRatio'
-    >,
-  ): Promise<Brand> {
-    return this.instance
-      .patch<JsonApiResponseDocument>(`/${id}`, settings)
-      .then((res) => this.mapOne(res.data));
-  }
-
   /** Resize the master banner into the chosen platform image slots. */
   public async fillPlatformImagesFromMaster(
     id: string,
@@ -716,28 +695,6 @@ export class BrandsService extends BaseService<Brand> {
         timeout: 120000,
       })
       .then((res) => res.data.data);
-  }
-
-  public async updateEndCard(
-    id: string,
-    settings: Pick<
-      IBrand,
-      'endCardAssetId' | 'endCardDurationSeconds' | 'isEndCardEnabled'
-    >,
-  ): Promise<Brand> {
-    return this.instance
-      .patch<JsonApiResponseDocument>(`/${id}`, settings)
-      .then((res) => this.mapOne(res.data));
-  }
-
-  /** Turns the brand's colour grade on or off; the file itself is set by {@link uploadLut}. */
-  public async updateLut(
-    id: string,
-    settings: Pick<IBrand, 'isLutEnabled'>,
-  ): Promise<Brand> {
-    return this.instance
-      .patch<JsonApiResponseDocument>(`/${id}`, settings)
-      .then((res) => this.mapOne(res.data));
   }
 
   /** Stores a `.cube` colour LUT on the brand, replacing the current one. */

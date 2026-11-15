@@ -4,143 +4,75 @@ import type {
   BrandReferenceImage,
 } from '@api/collections/brands/schemas/brand.schema';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { BRAND_END_CARD_LIMITS } from '@genfeedai/contracts/constants';
 import { ApiHideProperty, ApiProperty, PartialType } from '@nestjs/swagger';
 import {
   Equals,
   IsArray,
   IsBoolean,
-  IsIn,
-  IsNumber,
   IsObject,
   IsOptional,
   IsString,
-  Max,
   MaxLength,
-  Min,
-  ValidateIf,
 } from 'class-validator';
 
+const BRAND_FINISHING_REVISION_MESSAGE =
+  'End card, colour grade and watermark change through a Brand OS revision, not a brand update';
+
 export class UpdateBrandDto extends PartialType(CreateBrandDto) {
-  @IsOptional()
-  @IsString()
-  @MaxLength(120)
-  @ApiProperty({ required: false, nullable: true })
-  readonly watermarkText?: string | null;
+  // End card, colour grade and watermark change only through a Brand OS
+  // revision (#10187), so a change has a version and an approver. Approving the
+  // revision writes these columns; a plain PATCH never does.
+  @Equals(undefined, { message: BRAND_FINISHING_REVISION_MESSAGE })
+  @ApiHideProperty()
+  readonly watermarkText?: unknown;
 
-  @IsOptional()
-  @IsEntityId()
-  @ApiProperty({
-    required: false,
-    nullable: true,
-    description: 'Brand image asset used as a watermark',
-  })
-  readonly watermarkLogoId?: string | null;
+  @Equals(undefined, { message: BRAND_FINISHING_REVISION_MESSAGE })
+  @ApiHideProperty()
+  readonly watermarkLogoId?: unknown;
 
-  @ValidateIf((_object, value) => value !== undefined)
-  @IsNumber()
-  @Min(0.05)
-  @Max(1)
-  @ApiProperty({ required: false, minimum: 0.05, maximum: 1 })
-  readonly watermarkOpacity?: number;
+  @Equals(undefined, { message: BRAND_FINISHING_REVISION_MESSAGE })
+  @ApiHideProperty()
+  readonly watermarkOpacity?: unknown;
 
-  @ValidateIf((_object, value) => value !== undefined)
-  @IsIn(['top-left', 'top-right', 'bottom-left', 'bottom-right'])
-  @ApiProperty({
-    required: false,
-    enum: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
-  })
-  readonly watermarkPosition?: string;
+  @Equals(undefined, { message: BRAND_FINISHING_REVISION_MESSAGE })
+  @ApiHideProperty()
+  readonly watermarkPosition?: unknown;
 
-  @IsOptional()
-  @IsEntityId()
-  @ApiProperty({
-    required: false,
-    nullable: true,
-    description: 'Brand image asset used as the mark on light footage',
-  })
-  readonly watermarkLightLogoId?: string | null;
+  @Equals(undefined, { message: BRAND_FINISHING_REVISION_MESSAGE })
+  @ApiHideProperty()
+  readonly watermarkLightLogoId?: unknown;
 
-  @IsOptional()
-  @IsEntityId()
-  @ApiProperty({
-    required: false,
-    nullable: true,
-    description: 'Brand image asset used as the mark on livestreams',
-  })
-  readonly watermarkLiveLogoId?: string | null;
+  @Equals(undefined, { message: BRAND_FINISHING_REVISION_MESSAGE })
+  @ApiHideProperty()
+  readonly watermarkLiveLogoId?: unknown;
 
-  @IsOptional()
-  @IsNumber()
-  @Min(0.01)
-  @Max(0.5)
-  @ApiProperty({
-    required: false,
-    nullable: true,
-    minimum: 0.01,
-    maximum: 0.5,
-    description: 'Watermark width as a share of the canvas width',
-  })
-  readonly watermarkSizeRatio?: number | null;
+  @Equals(undefined, { message: BRAND_FINISHING_REVISION_MESSAGE })
+  @ApiHideProperty()
+  readonly watermarkSizeRatio?: unknown;
 
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(0.5)
-  @ApiProperty({
-    required: false,
-    nullable: true,
-    minimum: 0,
-    maximum: 0.5,
-    description:
-      'Distance from the left or right edge as a share of the canvas width',
-  })
-  readonly watermarkInsetXRatio?: number | null;
+  @Equals(undefined, { message: BRAND_FINISHING_REVISION_MESSAGE })
+  @ApiHideProperty()
+  readonly watermarkInsetXRatio?: unknown;
 
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(0.5)
-  @ApiProperty({
-    required: false,
-    nullable: true,
-    minimum: 0,
-    maximum: 0.5,
-    description:
-      'Distance from the top or bottom edge as a share of the canvas width',
-  })
-  readonly watermarkInsetYRatio?: number | null;
+  @Equals(undefined, { message: BRAND_FINISHING_REVISION_MESSAGE })
+  @ApiHideProperty()
+  readonly watermarkInsetYRatio?: unknown;
 
-  @IsOptional()
-  @IsEntityId()
-  @ApiProperty({
-    required: false,
-    nullable: true,
-    description: 'Brand image asset appended to the end of finished videos',
-  })
-  readonly endCardAssetId?: string | null;
+  @Equals(undefined, { message: BRAND_FINISHING_REVISION_MESSAGE })
+  @ApiHideProperty()
+  readonly endCardAssetId?: unknown;
 
-  @ValidateIf((_object, value) => value !== undefined)
-  @IsNumber()
-  @Min(BRAND_END_CARD_LIMITS.MIN_DURATION_SECONDS)
-  @Max(BRAND_END_CARD_LIMITS.MAX_DURATION_SECONDS)
-  @ApiProperty({
-    required: false,
-    minimum: BRAND_END_CARD_LIMITS.MIN_DURATION_SECONDS,
-    maximum: BRAND_END_CARD_LIMITS.MAX_DURATION_SECONDS,
-  })
-  readonly endCardDurationSeconds?: number;
+  @Equals(undefined, { message: BRAND_FINISHING_REVISION_MESSAGE })
+  @ApiHideProperty()
+  readonly endCardDurationSeconds?: unknown;
 
-  @ValidateIf((_object, value) => value !== undefined)
-  @IsBoolean()
-  @ApiProperty({ required: false })
-  readonly isEndCardEnabled?: boolean;
+  @Equals(undefined, { message: BRAND_FINISHING_REVISION_MESSAGE })
+  @ApiHideProperty()
+  readonly isEndCardEnabled?: unknown;
 
-  // The LUT file itself only arrives through PUT /brands/:id/lut, never here.
-  @ValidateIf((_object, value) => value !== undefined)
-  @IsBoolean()
-  @ApiProperty({ required: false })
-  readonly isLutEnabled?: boolean;
+  @Equals(undefined, { message: BRAND_FINISHING_REVISION_MESSAGE })
+  @ApiHideProperty()
+  readonly isLutEnabled?: unknown;
 
   // isDeleted is deliberately not a settable field here (#5295). A plain
   // PATCH bypassed remove()'s last-brand guard and member reassignment,

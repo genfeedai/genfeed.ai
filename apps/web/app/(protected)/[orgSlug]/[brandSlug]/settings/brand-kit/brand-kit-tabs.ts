@@ -3,6 +3,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 /** Brand Kit sections that have a path of their own; Overview is the base path. */
 export const BRAND_KIT_TAB_PATHS = {
   strategy: APP_ROUTES.SETTINGS.BRAND_KIT_STRATEGY,
+  video: APP_ROUTES.SETTINGS.BRAND_KIT_VIDEO,
   visual: APP_ROUTES.SETTINGS.BRAND_KIT_VISUAL,
   voice: APP_ROUTES.SETTINGS.BRAND_KIT_VOICE,
 } as const;

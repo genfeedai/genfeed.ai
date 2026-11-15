@@ -14,7 +14,7 @@ describe('BrandKitTabRoute', () => {
     notFoundMock.mockClear();
   });
 
-  it.each(['voice', 'visual', 'strategy'])(
+  it.each(['voice', 'visual', 'strategy', 'video'])(
     'renders nothing for the %s section',
     async (tab) => {
       await expect(

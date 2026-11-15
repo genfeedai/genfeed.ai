@@ -27,6 +27,9 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { BrandKitWorkspaceProps } from '@/features/brands/props/brand-kit-workspace.props';
 import BrandKitLocalPreview from './BrandKitLocalPreview';
+import BrandVideoFramePreview from './BrandVideoFramePreview';
+import BrandVideoTab from './BrandVideoTab';
+import { finishingFromBrand } from './brand-video-kit.helpers';
 
 export default function BrandKitWorkspace({
   brand,
@@ -34,6 +37,7 @@ export default function BrandKitWorkspace({
   onTabChange,
   onScan,
   onManualImport,
+  onRefreshBrand,
   guidedSetupHref,
   contentRulesHref,
   overview,
@@ -46,8 +50,11 @@ export default function BrandKitWorkspace({
   isDirty,
   isLoading,
   isSaveDisabled,
+  isReadOnly,
   error,
   onSave,
+  onVideoChange,
+  onFinishingChange,
 }: BrandKitWorkspaceProps) {
   const t = useTranslations('pages.brandKitSettings');
   const [isReviewOpen, setIsReviewOpen] = useState(false);
@@ -76,6 +83,7 @@ export default function BrandKitWorkspace({
           { id: 'visual', label: t('visual') },
           { id: 'voice', label: t('voice') },
           { id: 'strategy', label: t('strategy') },
+          { id: 'video', label: t('video') },
         ],
       }}
       right={
@@ -133,6 +141,22 @@ export default function BrandKitWorkspace({
               <p role="status" className="text-sm text-muted-foreground">
                 {t('loading')}
               </p>
+            ) : tab === 'video' ? (
+              content ? (
+                <BrandVideoTab
+                  brand={brand}
+                  brandId={brand.id}
+                  content={content}
+                  isDisabled={isReadOnly}
+                  onVideoChange={onVideoChange}
+                  onFinishingChange={onFinishingChange}
+                  onRefreshBrand={onRefreshBrand}
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {t('startDraft')}
+                </p>
+              )
             ) : (
               editor || (
                 <p className="text-sm text-muted-foreground">
@@ -163,12 +187,20 @@ export default function BrandKitWorkspace({
             {tab === 'voice' || tab === 'strategy' ? null : revisionStatus}
           </div>
           <div className="min-w-0 xl:sticky xl:top-4 xl:self-start">
-            <BrandKitLocalPreview
-              key={brand.id}
-              brand={brand}
-              content={content}
-              approvedContent={approvedContent}
-            />
+            {tab === 'video' && content ? (
+              <BrandVideoFramePreview
+                brand={brand}
+                video={content.video}
+                finishing={content.finishing ?? finishingFromBrand(brand)}
+              />
+            ) : (
+              <BrandKitLocalPreview
+                key={brand.id}
+                brand={brand}
+                content={content}
+                approvedContent={approvedContent}
+              />
+            )}
           </div>
         </div>
         <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
