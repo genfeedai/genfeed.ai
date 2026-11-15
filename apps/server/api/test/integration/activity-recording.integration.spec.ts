@@ -269,20 +269,38 @@ describe('Activity recording atomicity (real Postgres)', () => {
         {
           destination: null,
           message: {
-            action: 'model_discovery',
+            action: 'model_scan',
             payload: {
-              category: 'image',
-              estimatedCost: 1,
-              modelKey: 'fal-ai/new-model',
+              dataErrors: [],
+              delisted: [],
+              newDrafts: [],
+              priceChanges: [],
               provider: 'fal',
-              providerCostUsd: 0.01,
+              removedByProvider: [
+                {
+                  modelKey: 'fal-ai/old-model',
+                  reason: 'model page returned 404',
+                  sourceUrl: null,
+                },
+              ],
+              startedAt: '2026-11-15T07:00:00.000Z',
+              totals: {
+                drifted: 0,
+                draftsCreated: 0,
+                errors: 0,
+                newModelsFound: 0,
+                polled: 1,
+                quarantined: 0,
+                synchronized: 0,
+              },
+              unreadable: [],
             },
             type: 'discord',
           },
         },
       ],
       organizationId: null,
-      source: { id: 'fal-ai/new-model', type: 'model_discovery' },
+      source: { id: 'fal', type: 'model_scan' },
       topic: 'operator.alerts',
     });
 
@@ -297,7 +315,7 @@ describe('Activity recording atomicity (real Postgres)', () => {
       }),
     );
     expect(delivery.message).toEqual(
-      expect.objectContaining({ action: 'model_discovery', type: 'discord' }),
+      expect.objectContaining({ action: 'model_scan', type: 'discord' }),
     );
     expect(queue.enqueue).toHaveBeenCalledWith(delivery.id);
     expect(

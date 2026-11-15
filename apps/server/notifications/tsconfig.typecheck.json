@@ -22,6 +22,8 @@
       "@genfeedai/contracts/interfaces/*": [
         "../../../packages/contracts/dist/interfaces/*"
       ],
+      "@genfeedai/pricing": ["../../../packages/pricing/dist/index.d.ts"],
+      "@genfeedai/pricing/*": ["../../../packages/pricing/dist/*"],
       "@genfeedai/prisma": ["../../../packages/prisma/dist/src/index.d.ts"],
       "@genfeedai/prisma/*": ["../../../packages/prisma/dist/src/*"],
       "@genfeedai/storage": ["../../../packages/storage/dist/index.d.ts"],
