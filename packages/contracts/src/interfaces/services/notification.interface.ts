@@ -1,4 +1,4 @@
-import type { ModelPricingRateChange } from '../billing/model-pricing.interface';
+import type { ModelScanReport } from '../models/model-scan-report.interface';
 
 /**
  * Channel message payloads the notifications service renders. Messages are
@@ -14,9 +14,7 @@ export type INotificationPayloadTypes =
   | IVercelNotificationPayload
   | IUserCreatedPayload
   | IIngredientNotificationPayload
-  | IModelDiscoveryNotificationPayload
-  | IModelPriceChangePayload
-  | IModelPricingUnavailablePayload
+  | ModelScanReport
   | IReviewGatePendingEmailPayload
   | ILowCreditsAlertPayload
   | IRevenueNotificationPayload
@@ -230,31 +228,6 @@ export interface IIngredientNotificationData {
   status?: string;
   thumbnailUrl?: string;
   [key: string]: unknown;
-}
-
-export interface IModelDiscoveryNotificationPayload {
-  modelKey: string;
-  category: string;
-  estimatedCost: number;
-  providerCostUsd: number;
-  provider: string;
-  qualityTier?: string;
-  speedTier?: string;
-}
-
-/** A provider changed its price; the approved rate keeps charging until approval. */
-export interface IModelPriceChangePayload {
-  modelKey: string;
-  provider: string;
-  changes: ModelPricingRateChange[];
-  sourceUrl: string | null;
-}
-
-/** An active model became unpriceable, or its price refresh failed. */
-export interface IModelPricingUnavailablePayload {
-  modelKey: string;
-  provider: string;
-  reason: string;
 }
 
 export interface ILowCreditsAlertPayload {

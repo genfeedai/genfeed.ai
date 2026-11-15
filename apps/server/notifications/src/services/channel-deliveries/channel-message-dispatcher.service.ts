@@ -212,21 +212,9 @@ export class ChannelMessageDispatcherService {
           return this.discordService.sendBillingEventNotification(payload);
         }
         break;
-      case 'model_discovery':
-        if ('modelKey' in payload && 'estimatedCost' in payload) {
-          return this.discordService.sendModelDiscoveryNotification(payload);
-        }
-        break;
-      case 'model_price_change':
-        if ('modelKey' in payload && 'changes' in payload) {
-          return this.discordService.sendModelPriceChangeNotification(payload);
-        }
-        break;
-      case 'model_pricing_unavailable':
-        if ('modelKey' in payload && 'reason' in payload) {
-          return this.discordService.sendModelPricingUnavailableNotification(
-            payload,
-          );
+      case 'model_scan':
+        if ('priceChanges' in payload && 'removedByProvider' in payload) {
+          return this.discordService.sendModelScanNotification(payload);
         }
         break;
       case 'low_credits_alert':
