@@ -1,8 +1,8 @@
 {
   "dependencies": {
-    "@aws-sdk/client-s3": "3.1168.0",
-    "@aws-sdk/lib-storage": "3.1168.0",
-    "@aws-sdk/s3-request-presigner": "3.1168.0",
+    "@aws-sdk/client-s3": "3.1169.0",
+    "@aws-sdk/lib-storage": "3.1169.0",
+    "@aws-sdk/s3-request-presigner": "3.1169.0",
     "@genfeedai/libs": "workspace:*",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
