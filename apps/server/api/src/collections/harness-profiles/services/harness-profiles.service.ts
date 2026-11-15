@@ -149,6 +149,16 @@ export class HarnessProfilesService {
       source: HarnessProfileRevisionSource.USER_EDIT,
     },
   ): Promise<HarnessProfileDocument> {
+    // The brand key is a foreign key now: a brand id from another organization
+    // must never be accepted from the caller.
+    const brand = await this.prisma.brand.findFirst({
+      select: { id: true },
+      where: scopedWhere(organizationId, { id: dto.brandId }),
+    });
+    if (!brand) {
+      throw new NotFoundException('Brand', dto.brandId);
+    }
+
     const existingProfiles = await this.findForBrand(
       organizationId,
       dto.brandId,

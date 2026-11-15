@@ -324,6 +324,19 @@ describe('HarnessProfilesService revisions', () => {
     ]);
   });
 
+  it("refuses to create a profile for another organization's brand", async () => {
+    await expect(
+      service.create(
+        { brandId: 'brand-1', label: 'Planted', scope: 'brand' },
+        'org-2',
+        'user-9',
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(store.profiles).toEqual([]);
+    expect(store.revisions).toEqual([]);
+  });
+
   it('lists the history newest first', async () => {
     const profile = await createProfile();
     await service.update(profile.id, { label: 'Renamed' }, 'org-1');
