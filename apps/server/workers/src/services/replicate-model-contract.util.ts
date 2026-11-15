@@ -55,7 +55,7 @@ export interface ReplicateCandidateContract {
 }
 
 const SUPPORTED_PRICING_TYPES = new Set<string>(Object.values(PricingType));
-export const REPLICATE_BILLING_SOURCE = 'replicate-billing-config';
+const REPLICATE_BILLING_SOURCE = 'replicate-billing-config';
 
 function billingUnitForPricingType(pricingType: string): string {
   switch (pricingType) {

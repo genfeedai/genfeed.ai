@@ -6,7 +6,6 @@ import {
 } from '@workers/services/replicate-model-contract.util';
 
 export type { ReplicateContractPricing } from '@workers/services/replicate-model-contract.util';
-export { REPLICATE_BILLING_SOURCE } from '@workers/services/replicate-model-contract.util';
 
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
