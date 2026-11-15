@@ -10,15 +10,15 @@ const FACT_LIMIT = 16;
 const EXAMPLE_LIMIT = 8;
 
 export const VISUAL_BRAND_HARNESS_CHAR_LIMIT = 12_000;
-export const VISUAL_BRAND_SKILLS_CHAR_LIMIT = 24_000;
+const VISUAL_BRAND_SKILLS_CHAR_LIMIT = 24_000;
 
-export interface IVisualBrandPaletteRole {
+interface IVisualBrandPaletteRole {
   role: string;
   color: string;
   isRequired: boolean;
 }
 
-export interface IVisualBrandTypeRole {
+interface IVisualBrandTypeRole {
   role: string;
   family: string;
   weight: number;
@@ -27,7 +27,7 @@ export interface IVisualBrandTypeRole {
   isRequired: boolean;
 }
 
-export interface IVisualBrandAsset {
+interface IVisualBrandAsset {
   assetId: string;
   role: string;
   isRequired: boolean;
@@ -36,7 +36,7 @@ export interface IVisualBrandAsset {
   isStaged: boolean;
 }
 
-export interface IVisualBrandFact {
+interface IVisualBrandFact {
   subject: string;
   predicate: string;
   value: string | number | boolean;
