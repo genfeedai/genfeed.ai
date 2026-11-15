@@ -1,3 +1,4 @@
+import { isRecord, readString } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -7,7 +8,7 @@ import {
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
-export interface MarketplaceListing {
+interface MarketplaceListing {
   id: string;
   title: string;
   slug?: string;
@@ -20,7 +21,7 @@ export interface MarketplaceListing {
   publishedAt?: string;
 }
 
-export interface MarketplaceListingPage {
+interface MarketplaceListingPage {
   listings: MarketplaceListing[];
   limit: number;
   page: number;
@@ -28,7 +29,7 @@ export interface MarketplaceListingPage {
   total: number;
 }
 
-export interface MarketplaceSeller {
+interface MarketplaceSeller {
   id: string;
   storeName?: string;
   status?: string;
@@ -39,7 +40,7 @@ export interface MarketplaceSeller {
  * never carry `downloadData`; only this route does, and only for a completed
  * purchase made by the token's owner.
  */
-export interface MarketplaceInstallPayload {
+interface MarketplaceInstallPayload {
   downloadData: Record<string, unknown>;
   listingId: string;
   purchaseId: string;
@@ -54,7 +55,7 @@ export type MarketplaceInstallPayloadResult =
   | { status: 'unauthorized' }
   | { status: 'unavailable' };
 
-export interface MarketplaceListingQuery {
+interface MarketplaceListingQuery {
   search?: string;
   type?: string;
   isOfficial?: boolean;
@@ -66,10 +67,6 @@ export interface MarketplaceListingQuery {
 interface JsonApiResource {
   id: string;
   attributes: Record<string, unknown>;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function toResource(value: unknown): JsonApiResource | null {
@@ -84,29 +81,25 @@ function toResource(value: unknown): JsonApiResource | null {
   return { attributes: value.attributes, id: value.id };
 }
 
-function optionalString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
-
 function toListing(resource: JsonApiResource): MarketplaceListing | null {
   const { attributes } = resource;
   if (typeof attributes.title !== 'string') {
     return null;
   }
   return {
-    description: optionalString(attributes.description),
+    description: readString(attributes.description),
     id: resource.id,
     isOfficial:
       typeof attributes.isOfficial === 'boolean'
         ? attributes.isOfficial
         : undefined,
     price: typeof attributes.price === 'number' ? attributes.price : undefined,
-    pricingTier: optionalString(attributes.pricingTier),
-    publishedAt: optionalString(attributes.publishedAt),
-    shortDescription: optionalString(attributes.shortDescription),
-    slug: optionalString(attributes.slug),
+    pricingTier: readString(attributes.pricingTier),
+    publishedAt: readString(attributes.publishedAt),
+    shortDescription: readString(attributes.shortDescription),
+    slug: readString(attributes.slug),
     title: attributes.title,
-    type: optionalString(attributes.type),
+    type: readString(attributes.type),
   };
 }
 
@@ -416,8 +409,8 @@ export class MarketplaceApiClient {
       if (!resource) return null;
       return {
         id: resource.id,
-        status: optionalString(resource.attributes.status),
-        storeName: optionalString(resource.attributes.displayName),
+        status: readString(resource.attributes.status),
+        storeName: readString(resource.attributes.displayName),
       };
     } catch (error: unknown) {
       this.logger.warn(
