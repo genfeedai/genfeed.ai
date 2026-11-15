@@ -24,12 +24,15 @@
     "lucide-react": "1.72.0",
     "next-intl": "4.15.1",
     "react-markdown": "10.1.0",
+    "recharts": "3.10.1",
     "remark-gfm": "4.0.1",
     "socket.io-client": "4.8.4",
     "zustand": "5.1.0",
     "@genfeedai/contracts": "workspace:*"
   },
   "devDependencies": {
+    "@genfeedai/auth-client": "workspace:*",
+    "@tailwindcss/postcss": "4.3.5",
     "@tailwindcss/typography": "0.5.20",
     "@genfeedai/tsconfig": "workspace:*",
     "@tanstack/react-query": "5.107.1",
