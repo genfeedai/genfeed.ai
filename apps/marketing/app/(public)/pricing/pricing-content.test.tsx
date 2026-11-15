@@ -177,7 +177,7 @@ describe('PricingContent', () => {
 
       expect(screen.getByText('$1,000')).toBeInTheDocument();
       expect(screen.getByText('100,000 credits')).toBeInTheDocument();
-      expect(screen.getByText('60,000 credits included')).toBeInTheDocument();
+      expect(screen.getByText('70,000 credits included')).toBeInTheDocument();
       expect(screen.getByText('4,900 credits included')).toBeInTheDocument();
     });
   });
@@ -203,7 +203,7 @@ describe('PricingContent', () => {
   it('says nothing but the credit grant under the price', () => {
     // Seats, organizations, and API access are bullets. Repeating any of them
     // here is what made the Scale card read "Unlimited seats" twice.
-    expect(getPriceQualifier(getScalePlan())).toBe('60,000 credits included');
+    expect(getPriceQualifier(getScalePlan())).toBe('70,000 credits included');
     expect(getPriceQualifier(getPlanByTier('payg'))).toBe('No monthly fee');
   });
 

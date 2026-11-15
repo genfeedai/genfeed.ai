@@ -168,7 +168,7 @@ describe('StripeService — coverage spec', () => {
           active: true,
           currency: 'usd',
           id: 'scale_id',
-          metadata: { included_monthly_credits: '60000' },
+          metadata: { included_monthly_credits: '70000' },
           recurring: { interval: 'month', interval_count: 1 },
           unit_amount: 49_900,
         } as unknown as Stripe.Response<Stripe.Price>);
@@ -214,7 +214,7 @@ describe('StripeService — coverage spec', () => {
         active: true,
         currency: 'usd',
         id: 'scale_id',
-        metadata: { included_monthly_credits: '60000' },
+        metadata: { included_monthly_credits: '70000' },
         recurring: { interval: 'month', interval_count: 1 },
         unit_amount: 49_900,
         ...override,
