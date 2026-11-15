@@ -731,10 +731,10 @@ jobs:
     strategy:
       fail-fast: false
       # Up to three balanced legs (packages, web and the extension) plus the
-      # server leg, or four package pools when UI shards are selected. Bound
+      # server leg, or four UI pools plus the server leg (five). Bound
       # simultaneous setup and test workers rather than allowing an unbounded
-      # fan-out; the planner sizes the matrix so a run needs one wave of four.
-      max-parallel: 4
+      # fan-out; the planner sizes the matrix so a run needs one wave of five.
+      max-parallel: 5
       matrix: ${{ fromJSON(needs.plan.outputs.workspace_matrix) }}
     services:
       postgres:
