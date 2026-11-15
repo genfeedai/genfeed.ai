@@ -826,7 +826,7 @@ export class WorkflowsService extends BaseService<
         const nodeTypes = [...new Set(nodes.map((node) => node.type))];
 
         const listing = await this.marketplaceApiClient.createListing(
-          seller._id.toString(),
+          seller.id,
           organizationId,
           {
             description:
@@ -858,8 +858,8 @@ export class WorkflowsService extends BaseService<
         if (listing) {
           // Auto-approve (submit for review)
           await this.marketplaceApiClient.submitForReview(
-            listing._id.toString(),
-            seller._id.toString(),
+            listing.id,
+            seller.id,
           );
         }
       }

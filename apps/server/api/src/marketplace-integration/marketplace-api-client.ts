@@ -7,8 +7,8 @@ import {
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
-interface MarketplaceListingResponse {
-  _id: string;
+export interface MarketplaceListing {
+  id: string;
   title: string;
   slug?: string;
   description?: string;
@@ -16,33 +16,102 @@ interface MarketplaceListingResponse {
   price?: number;
   pricingTier?: string;
   type?: string;
-  downloadData?: Record<string, unknown>;
   isOfficial?: boolean;
   publishedAt?: string;
 }
 
-interface MarketplaceSearchResult {
-  docs: MarketplaceListingResponse[];
-  totalDocs: number;
+export interface MarketplaceListingPage {
+  listings: MarketplaceListing[];
   limit: number;
   page: number;
-  totalPages: number;
+  pages: number;
+  total: number;
 }
 
-interface MarketplaceSellerResponse {
-  _id: string;
-  userId: string;
+export interface MarketplaceSeller {
+  id: string;
   storeName?: string;
   status?: string;
 }
 
-interface MarketplaceListingQuery {
+/**
+ * What a buyer receives for a listing they own. The public listing endpoints
+ * never carry `downloadData`; only this route does, and only for a completed
+ * purchase made by the token's owner.
+ */
+export interface MarketplaceInstallPayload {
+  downloadData: Record<string, unknown>;
+  listingId: string;
+  purchaseId: string;
+  title: string;
+  type: string;
+}
+
+export type MarketplaceInstallPayloadResult =
+  | { status: 'ok'; payload: MarketplaceInstallPayload }
+  | { status: 'not-purchased' }
+  | { status: 'not-found' }
+  | { status: 'unauthorized' }
+  | { status: 'unavailable' };
+
+export interface MarketplaceListingQuery {
   search?: string;
   type?: string;
   isOfficial?: boolean;
   limit?: number;
   page?: number;
   sort?: string;
+}
+
+interface JsonApiResource {
+  id: string;
+  attributes: Record<string, unknown>;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function toResource(value: unknown): JsonApiResource | null {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== 'string' ||
+    !value.id ||
+    !isRecord(value.attributes)
+  ) {
+    return null;
+  }
+  return { attributes: value.attributes, id: value.id };
+}
+
+function optionalString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function toListing(resource: JsonApiResource): MarketplaceListing | null {
+  const { attributes } = resource;
+  if (typeof attributes.title !== 'string') {
+    return null;
+  }
+  return {
+    description: optionalString(attributes.description),
+    id: resource.id,
+    isOfficial:
+      typeof attributes.isOfficial === 'boolean'
+        ? attributes.isOfficial
+        : undefined,
+    price: typeof attributes.price === 'number' ? attributes.price : undefined,
+    pricingTier: optionalString(attributes.pricingTier),
+    publishedAt: optionalString(attributes.publishedAt),
+    shortDescription: optionalString(attributes.shortDescription),
+    slug: optionalString(attributes.slug),
+    title: attributes.title,
+    type: optionalString(attributes.type),
+  };
+}
+
+function numberOr(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
 @Traced()
@@ -68,18 +137,18 @@ export class MarketplaceApiClient {
   }
 
   /**
-   * Search marketplace listings via the marketplace API.
-   * Gracefully returns empty result on failure.
+   * Search published marketplace listings (public route).
+   * Gracefully returns an empty page on failure.
    */
   async searchListings(
     query: MarketplaceListingQuery,
-  ): Promise<MarketplaceSearchResult> {
-    const emptyResult: MarketplaceSearchResult = {
-      docs: [],
+  ): Promise<MarketplaceListingPage> {
+    const emptyResult: MarketplaceListingPage = {
       limit: query.limit ?? 20,
+      listings: [],
       page: query.page ?? 1,
-      totalDocs: 0,
-      totalPages: 0,
+      pages: 0,
+      total: 0,
     };
 
     try {
@@ -92,11 +161,10 @@ export class MarketplaceApiClient {
       if (query.page) params.set('page', String(query.page));
       if (query.sort) params.set('sort', query.sort);
 
-      const url = `${this.baseUrl}/marketplace/listings?${params.toString()}`;
       const response = await safeFetch(
-        url,
+        `${this.baseUrl}/marketplace/listings?${params.toString()}`,
         {
-          headers: { 'Content-Type': 'application/json' },
+          headers: { Accept: 'application/json' },
           method: 'GET',
           signal: AbortSignal.timeout(5_000),
         },
@@ -112,7 +180,29 @@ export class MarketplaceApiClient {
         return emptyResult;
       }
 
-      return (await response.json()) as MarketplaceSearchResult;
+      const body: unknown = await response.json();
+      if (!isRecord(body) || !Array.isArray(body.data)) {
+        this.logger.warn(
+          'MarketplaceApiClient searchListings: unexpected response shape',
+          'MarketplaceApiClient',
+        );
+        return emptyResult;
+      }
+
+      const listings = body.data
+        .map(toResource)
+        .map((resource) => (resource ? toListing(resource) : null))
+        .filter((listing): listing is MarketplaceListing => listing !== null);
+      const links = isRecord(body.topLevelLinks) ? body.topLevelLinks : {};
+      const pagination = isRecord(links.pagination) ? links.pagination : {};
+
+      return {
+        limit: numberOr(pagination.limit, emptyResult.limit),
+        listings,
+        page: numberOr(pagination.page, emptyResult.page),
+        pages: numberOr(pagination.pages, 0),
+        total: numberOr(pagination.total, listings.length),
+      };
     } catch (error: unknown) {
       this.logger.warn(
         `MarketplaceApiClient searchListings error: ${(error as Error).message}`,
@@ -123,18 +213,15 @@ export class MarketplaceApiClient {
   }
 
   /**
-   * Get a single listing by ID.
+   * Get a single published listing by id (public route).
    * Returns null on failure.
    */
-  async getListing(
-    listingId: string,
-  ): Promise<MarketplaceListingResponse | null> {
+  async getListing(listingId: string): Promise<MarketplaceListing | null> {
     try {
-      const url = `${this.baseUrl}/marketplace/listings/${encodeURIComponent(listingId)}`;
       const response = await safeFetch(
-        url,
+        `${this.baseUrl}/marketplace/listings/${encodeURIComponent(listingId)}`,
         {
-          headers: { 'Content-Type': 'application/json' },
+          headers: { Accept: 'application/json' },
           method: 'GET',
           signal: AbortSignal.timeout(5_000),
         },
@@ -150,7 +237,9 @@ export class MarketplaceApiClient {
         return null;
       }
 
-      return (await response.json()) as MarketplaceListingResponse;
+      const body: unknown = await response.json();
+      const resource = isRecord(body) ? toResource(body.data) : null;
+      return resource ? toListing(resource) : null;
     } catch (error: unknown) {
       this.logger.warn(
         `MarketplaceApiClient getListing error: ${(error as Error).message}`,
@@ -161,29 +250,73 @@ export class MarketplaceApiClient {
   }
 
   /**
-   * Get the download data for a listing (used during install).
-   * Returns null on failure.
+   * Read the install payload of a listing the token's owner has bought.
+   * The marketplace checks the signed buyer token and a completed purchase;
+   * this client only relays the buyer's own bearer token.
    */
-  async getListingDownloadData(listingId: string): Promise<{
-    downloadData: Record<string, unknown>;
-    title: string;
-    type: string;
-  } | null> {
+  async getInstallPayload(
+    listingId: string,
+    buyerToken: string,
+  ): Promise<MarketplaceInstallPayloadResult> {
     try {
-      const listing = await this.getListing(listingId);
-      if (!listing) return null;
+      const response = await safeFetch(
+        `${this.baseUrl}/marketplace/purchases/by-listing/${encodeURIComponent(listingId)}/install-data`,
+        {
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${buyerToken}`,
+          },
+          method: 'GET',
+          signal: AbortSignal.timeout(10_000),
+        },
+        this.destinationGuard,
+      );
+
+      if (!response.ok) {
+        await response.body?.cancel();
+        if (response.status === 401) return { status: 'unauthorized' };
+        if (response.status === 403) return { status: 'not-purchased' };
+        if (response.status === 404) return { status: 'not-found' };
+        this.logger.warn(
+          `MarketplaceApiClient getInstallPayload failed: ${response.status}`,
+          'MarketplaceApiClient',
+        );
+        return { status: 'unavailable' };
+      }
+
+      const body: unknown = await response.json();
+      const resource = isRecord(body) ? toResource(body.data) : null;
+      const attributes = resource?.attributes;
+      if (
+        !attributes ||
+        typeof attributes.listingId !== 'string' ||
+        typeof attributes.title !== 'string' ||
+        typeof attributes.type !== 'string' ||
+        !isRecord(attributes.downloadData)
+      ) {
+        this.logger.warn(
+          'MarketplaceApiClient getInstallPayload: unexpected response shape',
+          'MarketplaceApiClient',
+        );
+        return { status: 'unavailable' };
+      }
 
       return {
-        downloadData: listing.downloadData ?? {},
-        title: listing.title,
-        type: listing.type ?? '',
+        payload: {
+          downloadData: attributes.downloadData,
+          listingId: attributes.listingId,
+          purchaseId: resource.id,
+          title: attributes.title,
+          type: attributes.type,
+        },
+        status: 'ok',
       };
     } catch (error: unknown) {
       this.logger.warn(
-        `MarketplaceApiClient getListingDownloadData error: ${(error as Error).message}`,
+        `MarketplaceApiClient getInstallPayload error: ${(error as Error).message}`,
         'MarketplaceApiClient',
       );
-      return null;
+      return { status: 'unavailable' };
     }
   }
 
@@ -195,11 +328,10 @@ export class MarketplaceApiClient {
     sellerId: string,
     organizationId: string,
     dto: Record<string, unknown>,
-  ): Promise<MarketplaceListingResponse | null> {
+  ): Promise<MarketplaceListing | null> {
     try {
-      const url = `${this.baseUrl}/seller/listings`;
       const response = await safeFetch(
-        url,
+        `${this.baseUrl}/seller/listings`,
         {
           body: JSON.stringify({ ...dto, organizationId, sellerId }),
           headers: { 'Content-Type': 'application/json' },
@@ -218,7 +350,9 @@ export class MarketplaceApiClient {
         return null;
       }
 
-      return (await response.json()) as MarketplaceListingResponse;
+      const body: unknown = await response.json();
+      const resource = isRecord(body) ? toResource(body.data) : null;
+      return resource ? toListing(resource) : null;
     } catch (error: unknown) {
       this.logger.warn(
         `MarketplaceApiClient createListing error: ${(error as Error).message}`,
@@ -233,9 +367,8 @@ export class MarketplaceApiClient {
    */
   async submitForReview(listingId: string, sellerId: string): Promise<boolean> {
     try {
-      const url = `${this.baseUrl}/seller/listings/${encodeURIComponent(listingId)}/submit`;
       const response = await safeFetch(
-        url,
+        `${this.baseUrl}/seller/listings/${encodeURIComponent(listingId)}/submit`,
         {
           body: JSON.stringify({ sellerId }),
           headers: { 'Content-Type': 'application/json' },
@@ -261,15 +394,12 @@ export class MarketplaceApiClient {
    * Get seller profile by user ID.
    * Returns null on failure.
    */
-  async getSellerByUserId(
-    userId: string,
-  ): Promise<MarketplaceSellerResponse | null> {
+  async getSellerByUserId(userId: string): Promise<MarketplaceSeller | null> {
     try {
-      const url = `${this.baseUrl}/sellers/by-user/${encodeURIComponent(userId)}`;
       const response = await safeFetch(
-        url,
+        `${this.baseUrl}/sellers/by-user/${encodeURIComponent(userId)}`,
         {
-          headers: { 'Content-Type': 'application/json' },
+          headers: { Accept: 'application/json' },
           method: 'GET',
           signal: AbortSignal.timeout(5_000),
         },
@@ -281,84 +411,19 @@ export class MarketplaceApiClient {
         return null;
       }
 
-      return (await response.json()) as MarketplaceSellerResponse;
+      const body: unknown = await response.json();
+      const resource = isRecord(body) ? toResource(body.data) : null;
+      if (!resource) return null;
+      return {
+        id: resource.id,
+        status: optionalString(resource.attributes.status),
+        storeName: optionalString(resource.attributes.displayName),
+      };
     } catch (error: unknown) {
       this.logger.warn(
         `MarketplaceApiClient getSellerByUserId error: ${(error as Error).message}`,
         'MarketplaceApiClient',
       );
-      return null;
-    }
-  }
-
-  /**
-   * Check if a user/org owns a listing (purchase check).
-   * Returns { owned: false } on failure.
-   */
-  async checkListingOwnership(
-    listingId: string,
-    userId: string,
-    organizationId: string,
-  ): Promise<{
-    owned: boolean;
-    purchase?: { _id: string };
-  }> {
-    try {
-      const url = `${this.baseUrl}/purchases/ownership-check`;
-      const response = await safeFetch(
-        url,
-        {
-          body: JSON.stringify({ listingId, organizationId, userId }),
-          headers: { 'Content-Type': 'application/json' },
-          method: 'POST',
-          signal: AbortSignal.timeout(5_000),
-        },
-        this.destinationGuard,
-      );
-
-      if (!response.ok) {
-        await response.body?.cancel();
-        return { owned: false };
-      }
-
-      return (await response.json()) as {
-        owned: boolean;
-        purchase?: { _id: string };
-      };
-    } catch {
-      return { owned: false };
-    }
-  }
-
-  /**
-   * Claim a free marketplace item.
-   * Returns a minimal purchase record or null on failure.
-   */
-  async claimFreeItem(
-    listingId: string,
-    userId: string,
-    organizationId: string,
-  ): Promise<{ _id: string } | null> {
-    try {
-      const url = `${this.baseUrl}/purchases/claim-free`;
-      const response = await safeFetch(
-        url,
-        {
-          body: JSON.stringify({ listingId, organizationId, userId }),
-          headers: { 'Content-Type': 'application/json' },
-          method: 'POST',
-          signal: AbortSignal.timeout(5_000),
-        },
-        this.destinationGuard,
-      );
-
-      if (!response.ok) {
-        await response.body?.cancel();
-        return null;
-      }
-
-      return (await response.json()) as { _id: string };
-    } catch {
       return null;
     }
   }

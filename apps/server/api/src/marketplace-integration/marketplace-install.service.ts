@@ -7,7 +7,13 @@ import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-a
 import { ListingType, PromptCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
@@ -37,20 +43,51 @@ export class MarketplaceInstallService {
     private readonly skillsService: SkillsService,
   ) {}
 
+  /**
+   * Install a listing the caller has bought into their workspace.
+   *
+   * The payload is read from a marketplace route that checks the buyer's own
+   * signed token and a completed purchase, so a caller without a purchase
+   * never receives the payload and nothing is created.
+   */
   @HandleErrors('install to workspace', 'marketplace-install')
   async installToWorkspace(
     listingId: string,
     userId: string,
     organizationId: string,
+    buyerToken: string | undefined,
   ): Promise<InstallResult> {
-    const listingData =
-      await this.marketplaceApiClient.getListingDownloadData(listingId);
-
-    if (!listingData) {
-      throw new NotFoundException('Listing');
+    if (!buyerToken) {
+      throw new UnauthorizedException(
+        'Sign in to Genfeed again to add marketplace items.',
+      );
     }
 
-    const { downloadData, title, type } = listingData;
+    const result = await this.marketplaceApiClient.getInstallPayload(
+      listingId,
+      buyerToken,
+    );
+
+    switch (result.status) {
+      case 'ok':
+        break;
+      case 'not-purchased':
+        throw new ForbiddenException(
+          'This item is not in your marketplace library.',
+        );
+      case 'not-found':
+        throw new NotFoundException('Listing');
+      case 'unauthorized':
+        throw new UnauthorizedException(
+          'Sign in to Genfeed again to add marketplace items.',
+        );
+      default:
+        throw new ServiceUnavailableException(
+          'The marketplace is unavailable. Try again in a moment.',
+        );
+    }
+
+    const { downloadData, title, type } = result.payload;
 
     switch (type) {
       case ListingType.WORKFLOW:

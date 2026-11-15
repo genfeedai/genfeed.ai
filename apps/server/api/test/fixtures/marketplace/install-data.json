@@ -1,0 +1,16 @@
+{
+  "data": {
+    "attributes": {
+      "downloadData": {
+        "workflow": {
+          "nodes": []
+        }
+      },
+      "listingId": "57c19bba-411d-438f-98d4-a5d268671ccf",
+      "title": "Test Workflow",
+      "type": "workflow"
+    },
+    "id": "7b82a86e-fc17-4a75-b30d-92d4b33d99a5",
+    "type": "install-data"
+  }
+}
