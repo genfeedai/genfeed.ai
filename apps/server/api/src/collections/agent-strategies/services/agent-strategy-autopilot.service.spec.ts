@@ -202,7 +202,7 @@ describe('AgentStrategyAutopilotService', () => {
         }),
       },
       ingredient: { findMany: vi.fn().mockResolvedValue([]) },
-      profile: { findMany: vi.fn().mockResolvedValue([]) },
+      harnessProfile: { findMany: vi.fn().mockResolvedValue([]) },
       $executeRaw: vi.fn().mockResolvedValue(0),
     };
     const autonomousPublishPolicy = new AutonomousPublishPolicyService(

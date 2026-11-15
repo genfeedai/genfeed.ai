@@ -46,7 +46,7 @@ describe('AutonomousPublishPolicyService', () => {
     agentPublishAudit: { create: vi.fn() },
     brandOsRevision: { findFirst: vi.fn() },
     ingredient: { findMany: vi.fn() },
-    profile: { findMany: vi.fn() },
+    harnessProfile: { findMany: vi.fn() },
     $executeRaw: vi.fn(),
     $queryRaw: vi.fn(),
   };
@@ -87,7 +87,7 @@ describe('AutonomousPublishPolicyService', () => {
     });
     db.brandOsRevision.findFirst.mockResolvedValue(approvedPolicy());
     db.ingredient.findMany.mockResolvedValue([]);
-    db.profile.findMany.mockResolvedValue([]);
+    db.harnessProfile.findMany.mockResolvedValue([]);
     db.$executeRaw.mockResolvedValue(0);
     service = new AutonomousPublishPolicyService(
       db as never,

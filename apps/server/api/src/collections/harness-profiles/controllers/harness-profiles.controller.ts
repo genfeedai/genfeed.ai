@@ -212,6 +212,7 @@ export class HarnessProfilesController {
   }
 
   /** The profile's history, newest first. */
+  @TenantReadPolicy('selected')
   @Get(':profileId/revisions')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async listRevisions(
@@ -221,7 +222,7 @@ export class HarnessProfilesController {
   ) {
     const docs = await this.harnessProfilesService.listRevisions(
       profileId,
-      user.organizationId,
+      resolveTenantReadScope(user).organizationId,
     );
 
     return serializeCollection(request, HarnessProfileRevisionSerializer, {
