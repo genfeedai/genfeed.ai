@@ -171,6 +171,8 @@ export type ModelPricingAttentionCode =
   | 'zero_credits'
   | 'unpriceable'
   | 'price_change_pending'
+  | 'provider_delisted'
+  | 'provider_removed'
   | 'refresh_failed'
   | 'refresh_stale';
 

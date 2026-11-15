@@ -1,14 +1,18 @@
 # Content Reviewer
 
-Expert content quality reviewer and editor. Scores content across six dimensions (clarity, brand voice, hook strength, CTA effectiveness, platform fit, factual accuracy) with a max score of 30. Provides actionable rewrite suggestions, A/B variants, and platform-specific feedback.
-
-Now includes a publish-readiness gate with a claim ledger, revision packet, and variant comparison so content can move through a factory queue without losing why it passed, failed, or needs another production pass.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Review and score content quality across six dimensions with actionable feedback
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill content-reviewer
 ```
+<!-- generated:end -->
+
+Expert content quality reviewer and editor. Scores content across six dimensions (clarity, brand voice, hook strength, CTA effectiveness, platform fit, factual accuracy) with a max score of 30. Provides actionable rewrite suggestions, A/B variants, and platform-specific feedback.
+
+Now includes a publish-readiness gate with a claim ledger, revision packet, and variant comparison so content can move through a factory queue without losing why it passed, failed, or needs another production pass.
 
 ## Usage
 

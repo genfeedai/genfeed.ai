@@ -1,5 +1,6 @@
 # LinkedIn Article
 
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
 Write a LinkedIn article or newsletter edition with a hook, sections, action steps and a promo post.
 
 ## Installation
@@ -7,6 +8,7 @@ Write a LinkedIn article or newsletter edition with a hook, sections, action ste
 ```bash
 bunx skills add genfeedai/skills --skill linkedin-article
 ```
+<!-- generated:end -->
 
 ## Usage
 

@@ -1220,4 +1220,140 @@ describe('channel message delivery (#5197)', () => {
       );
     });
   });
+
+  describe('publishing and channel alert emails', () => {
+    function setupAlert(options: {
+      payload: unknown;
+      preference?: { isEnabled: boolean } | null;
+      topic: string;
+    }) {
+      const delivery = {
+        attemptCount: 1,
+        channel: 'email',
+        event: {
+          eventKey: 'post-failed',
+          payload: options.payload,
+          sourceType: 'post',
+        },
+        idempotencyKey: 'post-failed/activity-1/owner-1/email',
+        message: null,
+        organizationId: 'org-1',
+        topic: options.topic,
+        user: { email: 'owner@example.com', isDeleted: false },
+        userId: 'owner-1',
+      };
+      const prisma = {
+        member: { findFirst: vi.fn().mockResolvedValue({ id: 'm' }) },
+        notificationDelivery: {
+          findUnique: vi.fn().mockResolvedValue(delivery),
+          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        },
+        notificationPreference: {
+          findFirst: vi.fn().mockResolvedValue(options.preference ?? null),
+        },
+      };
+      const notifications = {
+        deliverEmail: vi.fn().mockResolvedValue('resend-message-3'),
+      };
+      const service = new WorkflowNotificationDeliveryService(
+        prisma as never,
+        notifications as never,
+        { enqueue: vi.fn() } as never,
+        { warn: vi.fn() } as never,
+      );
+      return { notifications, prisma, service };
+    }
+
+    it.each([
+      {
+        payload: {
+          event: 'post_failed',
+          kind: 'alert_email',
+          label: 'Shipped the weekly batch',
+          summary: 'It was not published to twitter: the account is gone.',
+          version: 1,
+        },
+        subject: 'Post failed: Shipped the weekly batch',
+        text: 'Post failed: Shipped the weekly batch\nIt was not published to twitter: the account is gone.',
+        topic: 'publishing.status',
+      },
+      {
+        payload: {
+          event: 'channel_disconnected',
+          kind: 'alert_email',
+          label: '@vincentshipsit',
+          summary: 'X refused to renew the connection (invalid_grant).',
+          version: 1,
+        },
+        subject: 'Channel disconnected: @vincentshipsit',
+        text: 'Channel disconnected: @vincentshipsit\nX refused to renew the connection (invalid_grant).',
+        topic: 'integration.status',
+      },
+    ])(
+      'emails the owner who never chose, because the alert is on by default ($subject)',
+      async ({ payload, subject, text, topic }) => {
+        const { notifications, prisma, service } = setupAlert({
+          payload,
+          topic,
+        });
+
+        await service.deliver('delivery-1');
+
+        expect(notifications.deliverEmail).toHaveBeenCalledWith(
+          expect.objectContaining({
+            subject,
+            text,
+            to: 'owner@example.com',
+          }),
+        );
+        expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              providerMessageId: 'resend-message-3',
+              status: 'delivered',
+            }),
+          }),
+        );
+      },
+    );
+
+    it('sends nothing to an owner who turned the email off', async () => {
+      const { notifications, prisma, service } = setupAlert({
+        payload: {
+          event: 'post_failed',
+          kind: 'alert_email',
+          label: 'A post',
+          summary: 'It failed.',
+          version: 1,
+        },
+        preference: { isEnabled: false },
+        topic: 'publishing.status',
+      });
+
+      await service.deliver('delivery-1');
+
+      expect(notifications.deliverEmail).not.toHaveBeenCalled();
+      expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'skipped' }),
+        }),
+      );
+    });
+
+    it('fails an alert whose event carries no email payload', async () => {
+      const { notifications, prisma, service } = setupAlert({
+        payload: { kind: 'activity', version: 1 },
+        topic: 'publishing.status',
+      });
+
+      await service.deliver('delivery-1');
+
+      expect(notifications.deliverEmail).not.toHaveBeenCalled();
+      expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'failed' }),
+        }),
+      );
+    });
+  });
 });

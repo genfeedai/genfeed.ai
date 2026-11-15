@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Write an Instagram Reel: hook, timed script with text overlays, caption and production handoff."
+  tags: instagram, reels, video, social-media, content-creation
+  outputs: text
+  triggers: "write a reel script; instagram reel idea; create reels content; short video script for instagram"
 ---
 
 # Instagram Reel

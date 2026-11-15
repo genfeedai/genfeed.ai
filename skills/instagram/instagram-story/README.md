@@ -1,5 +1,6 @@
 # Instagram Story
 
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
 Write an Instagram Story sequence with stickers, a CTA and a weekly theme calendar.
 
 ## Installation
@@ -7,6 +8,7 @@ Write an Instagram Story sequence with stickers, a CTA and a weekly theme calend
 ```bash
 bunx skills add genfeedai/skills --skill instagram-story
 ```
+<!-- generated:end -->
 
 ## Usage
 

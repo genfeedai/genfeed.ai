@@ -18,6 +18,7 @@ import type {
   ModelPricingUnavailableAlert,
 } from '@workers/services/model-pricing-alerts.util';
 import {
+  assessRateChangeUrgency,
   compareProviderRates,
   loadReviewedRateContract,
   markRateReview,
@@ -33,6 +34,7 @@ export interface FalSyncModelRecord {
   key?: string;
   lifecycle?: string | null;
   provider: string;
+  providerSyncFailureCode?: string | null;
   reviewedProviderContractVersion?: string | null;
 }
 
@@ -160,6 +162,7 @@ export class FalModelContractSyncService {
           pendingRateHash: comparison.pendingRateHash,
           provider: ModelProvider.FAL,
           sourceUrl: FAL_PRICING_SOURCE_URL,
+          ...assessRateChangeUrgency(comparison.changes),
         },
         quarantined,
         version: contract.version,
@@ -181,6 +184,7 @@ export class FalModelContractSyncService {
         drifted: false,
         quarantined,
         refreshFailure: {
+          code: reason,
           modelKey,
           provider: ModelProvider.FAL,
           reason: `The fal price refresh produced no readable rate (${reason}); the last approved rate keeps charging.`,

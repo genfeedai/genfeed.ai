@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Plan and write an Instagram carousel: slide copy, design spec, caption and handoff to a local renderer."
+  tags: instagram, carousel, social-media, content-creation
+  outputs: text
+  triggers: "instagram carousel; carousel outline; draft a carousel; swipeable slides for instagram"
 ---
 
 # Instagram Carousel
@@ -92,7 +96,8 @@ If rendered, add the PNG paths and what you checked by viewing them.
 
 If Genfeed tools are available:
 
-- `upload_media` stores the slides; `create_post` saves a draft with `platforms: ["instagram"]` and `mediaUrls`. It does not publish.
+- `upload_media` stores the slides; `create_post` saves a draft with `platforms: ["instagram"]` and `mediaUrls`. It does not publish, and no tool turns that draft into a scheduled release later.
+- When the carousel is meant to be scheduled, create it with `create_scheduled_release` and `status: "draft"` (no date) instead, with the slides as `media` asset ids in slide order and the Instagram `credentialId` from `get_brand_publishing_readiness`. A release with a date is held for the person's approval. For a week of carousels use `weekly-batch`.
 - Use `check_channel` with `{action: "capabilities", input: {platform: "instagram"}}` for the carousel slide limit and media rules before building the deck.
 - Publishing goes through `social-poster`, only on explicit confirmation.
 

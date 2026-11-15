@@ -1,12 +1,14 @@
 # Visual Brand Kit
 
-Create a visual identity system for AI-generated images, videos, graphics, and prompt presets.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Create visual identity systems for AI-generated content
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill visual-brand-kit
 ```
+<!-- generated:end -->
 
 ## Usage
 

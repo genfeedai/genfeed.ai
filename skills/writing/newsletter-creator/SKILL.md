@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Create high-performing email newsletters with subject lines, editorial structures, and subscriber growth tactics"
+  tags: newsletter, email, content-creation, email-marketing, subscriber-growth
+  outputs: text
+  triggers: "write a newsletter; create a newsletter; draft newsletter; email newsletter; newsletter edition; write a newsletter subject line; create newsletter content; draft an email newsletter; help me with my newsletter; newsletter about"
 ---
 
 # Newsletter Creator
@@ -367,7 +371,7 @@ Every newsletter should have CTAs, but placement matters more than quantity.
 | **Sparkloop/Beehiiv boosts** | $1-5/subscriber | Pay-per-subscriber via newsletter recommendation networks |
 | **Social ads** | Variable | Lead gen ads on Meta/LinkedIn driving to landing page |
 | **Sponsoring other newsletters** | $50-500/placement | Buy a shoutout in a complementary newsletter |
-| **Content syndication** | Variable | Republish on Medium, Substack Notes, LinkedIn for discovery |
+| **Content syndication** | Variable | Republish on Medium, LinkedIn for discovery |
 
 ---
 
@@ -399,7 +403,6 @@ Every newsletter should have CTAs, but placement matters more than quantity.
 | Platform | Strengths | Limitations | Best For |
 |----------|-----------|-------------|----------|
 | **Beehiiv** | Built-in referral program, boost network, monetization tools, analytics | Newer platform, smaller ecosystem | Creator newsletters, growth-focused |
-| **Substack** | Built-in audience, social features, paid subscription support | Limited design customization, platform takes cut | Writers, essayists, paid newsletters |
 | **ConvertKit (Kit)** | Powerful automation, creator-focused, good segmentation | Less newsletter-specific, steeper learning curve | Creators with complex funnels |
 | **Ghost** | Self-hostable, beautiful design, membership built-in | Requires more setup, smaller community | Publication-style newsletters, owned platforms |
 | **Mailchimp** | Widely known, good templates, solid analytics | Expensive at scale, less creator-focused | Small businesses, legacy users |

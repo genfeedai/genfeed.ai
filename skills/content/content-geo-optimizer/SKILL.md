@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Optimize content for generative answer engines with GEO scoring, citation-ready rewrites, source attribution, and schema recommendations"
+  tags: geo, generative-engine-optimization, answer-engines, structured-data, schema, citation-ready
+  outputs: text
+  triggers: "optimize for GEO; AI answer engine optimization; make this citation-ready; improve AI Overviews; optimize for ChatGPT citations; optimize for Perplexity; generative engine optimization; GEO score"
 ---
 
 # Content GEO Optimizer

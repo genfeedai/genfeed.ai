@@ -1,5 +1,6 @@
 # Instagram Reel
 
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
 Write an Instagram Reel: hook, timed script with text overlays, caption and production handoff.
 
 ## Installation
@@ -7,6 +8,7 @@ Write an Instagram Reel: hook, timed script with text overlays, caption and prod
 ```bash
 bunx skills add genfeedai/skills --skill instagram-reel
 ```
+<!-- generated:end -->
 
 ## Usage
 

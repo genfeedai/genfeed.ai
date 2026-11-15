@@ -1,6 +1,10 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ModelLifecycle, ModelProvider } from '@genfeedai/contracts';
+import {
+  isKnownUnavailableModel,
+  PROVIDER_ENDPOINT_DATA_ERRORS,
+} from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -19,9 +23,31 @@ import {
   dispatchModelPriceChangeAlert,
   dispatchModelPricingUnavailableAlert,
 } from '@workers/services/model-pricing-alerts.util';
+import {
+  createModelDiscoveryRunSummary,
+  finalizeModelScanReport,
+} from '@workers/services/model-scan-report.util';
 
 /** Lifecycle status fal reports for endpoints that still accept requests */
 const FAL_MODEL_STATUS_ACTIVE = 'active';
+
+/** Sync failure code of a row that names an endpoint fal does not host. */
+const DATA_ERROR_CODE = 'data_error:wrong_provider_endpoint';
+
+/**
+ * A row nobody can act on a failure for: inactive, or already recorded as
+ * unavailable in the rate sheet's exception list. It never raises a failure
+ * alert and never appears in a scan report.
+ */
+function isQuietRow(
+  row: Pick<FalSyncModelRecord, 'endpoint' | 'isActive' | 'key'>,
+): boolean {
+  return (
+    !row.isActive ||
+    isKnownUnavailableModel(row.key ?? row.endpoint) ||
+    isKnownUnavailableModel(row.endpoint)
+  );
+}
 
 @Injectable()
 export class CronFalModelWatcherService {
@@ -45,16 +71,7 @@ export class CronFalModelWatcherService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} started`);
 
-    const summary: IModelDiscoveryRunSummary = {
-      draftsCreated: 0,
-      errors: 0,
-      newModelsFound: 0,
-      providerContractsDrifted: 0,
-      providerContractsQuarantined: 0,
-      providerContractsSynchronized: 0,
-      timestamp: new Date(),
-      totalPolled: 0,
-    };
+    const summary = createModelDiscoveryRunSummary('fal');
 
     if (!this.configService.get('FAL_API_KEY')) {
       this.logger.warn(`${url} FAL_API_KEY not configured, skipping sync`);
@@ -71,6 +88,7 @@ export class CronFalModelWatcherService {
           key: true,
           lifecycle: true,
           provider: true,
+          providerSyncFailureCode: true,
           reviewedProviderContractVersion: true,
         },
         where: {
@@ -86,6 +104,13 @@ export class CronFalModelWatcherService {
           .filter((row) => row.lifecycle !== ModelLifecycle.RETIRED)
           .map((row) => [row.endpoint || row.key, row] as const),
       );
+      // A row stored under fal for an endpoint fal never served is a data
+      // error, reported once. Asking fal about it every run only alerts.
+      for (const [endpoint, row] of registryModels) {
+        if (!Object.hasOwn(PROVIDER_ENDPOINT_DATA_ERRORS, endpoint)) continue;
+        registryModels.delete(endpoint);
+        await this.recordDataError(row, endpoint, summary);
+      }
 
       this.logger.log(
         `${url} loaded ${registryModels.size} registry fal endpoints`,
@@ -142,16 +167,18 @@ export class CronFalModelWatcherService {
           summary.timestamp,
           registryModel.id,
         );
-        await this.sendFailureAlert(
-          endpoint,
-          'model_fetch_failed',
-          summary.timestamp,
-          Boolean(registryModel.reviewedProviderContractVersion),
-        );
+        if (!isQuietRow(registryModel))
+          await this.sendFailureAlert(
+            summary,
+            endpoint,
+            'model_fetch_failed',
+            Boolean(registryModel.reviewedProviderContractVersion),
+          );
       }
 
       // Low-cardinality observability only. Raw schemas, pricing, account
       // metadata, and credentials never enter logs.
+      finalizeModelScanReport(summary);
       this.logger.log(`${url} completed`, {
         errors: summary.errors,
         providerContractsDrifted: summary.providerContractsDrifted,
@@ -168,16 +195,31 @@ export class CronFalModelWatcherService {
         summary.timestamp,
       );
       // One deduped provider-level alert: every fal rate is unconfirmed.
-      await this.sendFailureAlert(
-        'provider:fal',
-        'fal_sync_failed',
-        summary.timestamp,
-      );
+      await this.sendFailureAlert(summary, 'provider:fal', 'fal_sync_failed');
+      finalizeModelScanReport(summary);
       this.logger.error(`${url} failed`, {
         reason: error instanceof Error ? error.name : 'unknown',
       });
       return summary;
     }
+  }
+
+  /** The row names an endpoint fal never hosted. Reported once. */
+  private async recordDataError(
+    row: FalSyncModelRecord,
+    modelKey: string,
+    summary: IModelDiscoveryRunSummary,
+  ): Promise<void> {
+    if (row.providerSyncFailureCode === DATA_ERROR_CODE) return;
+    await this.falContractSyncService.recordFailure(
+      DATA_ERROR_CODE,
+      summary.timestamp,
+      row.id,
+    );
+    summary.report.dataErrors.push({
+      modelKey,
+      reason: PROVIDER_ENDPOINT_DATA_ERRORS[modelKey] ?? DATA_ERROR_CODE,
+    });
   }
 
   private async isListedButUnaddressable(endpoint: string): Promise<boolean> {
@@ -210,7 +252,7 @@ export class CronFalModelWatcherService {
         pricingByEndpoint.get(model.endpoint_id) ?? [],
         summary.timestamp,
       );
-      await this.sendPricingAlerts(syncResult, summary.timestamp);
+      await this.reportSyncResult(syncResult, registryModel, summary);
       summary.providerContractsSynchronized =
         (summary.providerContractsSynchronized ?? 0) + 1;
       if (syncResult.drifted) {
@@ -228,35 +270,34 @@ export class CronFalModelWatcherService {
         summary.timestamp,
         registryModel.id,
       );
-      await this.sendFailureAlert(
-        model.endpoint_id,
-        'contract_sync_failed',
-        summary.timestamp,
-      );
+      if (!isQuietRow(registryModel))
+        await this.sendFailureAlert(
+          summary,
+          model.endpoint_id,
+          'contract_sync_failed',
+        );
       this.logger.error(`${url} failed to process model ${model.endpoint_id}`, {
         reason: error instanceof Error ? error.name : 'unknown',
       });
     }
   }
 
-  /** Ops Discord for a model whose refresh threw or could not be fetched. */
+  /** Report a model whose refresh threw or could not be fetched, and tell ops. */
   private async sendFailureAlert(
+    summary: IModelDiscoveryRunSummary,
     modelKey: string,
     code: string,
-    now: Date,
     hasApprovedRate = true,
   ): Promise<void> {
+    const reason = hasApprovedRate
+      ? `The fal price refresh failed (${code}); the last approved rate keeps charging.`
+      : `The fal price refresh failed (${code}); this model has no approved rate yet.`;
+    summary.report.unreadable.push({ code, modelKey, reason });
     try {
       await dispatchModelPricingUnavailableAlert(
         this.activityRecorder,
-        {
-          modelKey,
-          provider: ModelProvider.FAL,
-          reason: hasApprovedRate
-            ? `The fal price refresh failed (${code}); the last approved rate keeps charging.`
-            : `The fal price refresh failed (${code}); this model has no approved rate yet.`,
-        },
-        now,
+        { code, modelKey, provider: ModelProvider.FAL, reason },
+        summary.timestamp,
       );
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} failure alert failed`, {
@@ -266,25 +307,41 @@ export class CronFalModelWatcherService {
   }
 
   /**
-   * Ops Discord for a refresh that found a changed price or could not read one.
-   * Silently swallows errors: an alert failure must never fail the watcher.
+   * Put a refresh's outcome on the report and tell ops about a changed price or
+   * one that could not be read. Silently swallows errors: an alert failure must
+   * never fail the watcher.
    */
-  private async sendPricingAlerts(
+  private async reportSyncResult(
     result: FalContractSyncResult,
-    now: Date,
+    row: FalSyncModelRecord,
+    summary: IModelDiscoveryRunSummary,
   ): Promise<void> {
     try {
-      if (result.priceChange)
-        await dispatchModelPriceChangeAlert(
-          this.activityRecorder,
-          result.priceChange,
-        );
-      if (result.refreshFailure)
+      if (result.priceChange) {
+        const change = result.priceChange;
+        summary.report.priceChanges.push({
+          changes: change.changes,
+          isUrgent: change.isUrgent,
+          modelKey: change.modelKey,
+          pendingRateHash: change.pendingRateHash,
+          sourceUrl: change.sourceUrl,
+          urgentReason: change.urgentReason,
+        });
+        await dispatchModelPriceChangeAlert(this.activityRecorder, change);
+      }
+      if (result.refreshFailure && !isQuietRow(row)) {
+        const failure = result.refreshFailure;
+        summary.report.unreadable.push({
+          code: failure.code,
+          modelKey: failure.modelKey,
+          reason: failure.reason,
+        });
         await dispatchModelPricingUnavailableAlert(
           this.activityRecorder,
-          result.refreshFailure,
-          now,
+          failure,
+          summary.timestamp,
         );
+      }
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} pricing alert failed`, {
         error,

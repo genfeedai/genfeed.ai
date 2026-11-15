@@ -15,7 +15,7 @@ export const STREAK_MAINTENANCE_ACTION_IDS = {
   NOTIFY_FREEZE: 'streak.record.notify-freeze',
 } as const;
 
-export const STREAK_MAINTENANCE_WORKFLOW_IDS = {
+const STREAK_MAINTENANCE_WORKFLOW_IDS = {
   ORGANIZATION: 'streak.organization.process',
   RECORD: 'streak.record.process',
   SWEEP: 'streak.sweep',
