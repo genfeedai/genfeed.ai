@@ -320,6 +320,23 @@ describe('PromptEnhancementService', () => {
     expect(user).toEqual({ role: 'user', content: input.userPrompt });
   });
 
+  it('puts the brand brief in the system content, before the user prompt, for a media rewrite', async () => {
+    const { service, openRouter } = setup();
+
+    await service.enhance({
+      ...input,
+      contentType: 'video',
+      brandBrief: 'Brand brief for this media:\nPalette: red.',
+    });
+
+    const { messages } = openRouter.chatCompletion.mock.calls[0]?.[0] ?? {};
+    const [system, user] = messages;
+    expect(system.content).toContain(
+      'Brand brief for this media:\nPalette: red.',
+    );
+    expect(user).toEqual({ role: 'user', content: input.userPrompt });
+  });
+
   it('keeps the image contract for image rewrites and adds no direction block', async () => {
     const { service, openRouter } = setup();
 

@@ -1,12 +1,14 @@
 # Image Prompt Engineer
 
-Craft optimized prompts for image and short video generation across major visual models and content formats.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Craft optimized prompts for AI image and short video generation
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill image-prompt-engineer
 ```
+<!-- generated:end -->
 
 ## Usage
 

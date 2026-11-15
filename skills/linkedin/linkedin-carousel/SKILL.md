@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Plan and write a LinkedIn carousel (PDF document post) with slide copy, a design spec and a caption."
+  tags: linkedin, carousel, pdf, social-media, content-creation
+  outputs: text
+  triggers: "linkedin carousel; linkedin pdf post; turn this into slides for linkedin; document post for linkedin"
 ---
 
 # LinkedIn Carousel

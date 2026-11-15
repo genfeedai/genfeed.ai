@@ -77,7 +77,6 @@ describe('video selection transport', () => {
       unused,
       unused,
       { createMediaDocuments } as never,
-      unused,
       { enhance } as never,
     );
     await expect(
@@ -373,7 +372,6 @@ describe('authorized native Seedance reference evidence', () => {
         unused,
         unused,
         personasServiceStub(),
-        unused,
         unused,
         unused,
         unused,

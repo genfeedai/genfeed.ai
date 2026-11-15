@@ -94,7 +94,7 @@ function registryModel(reviewedVersion: string | null = null) {
 function pricing(unitPriceUsd: number | null = 0.04) {
   return {
     pricingType: PricingType.PER_REQUEST,
-    source: 'curated-known-cost' as const,
+    source: 'reviewed-registry' as const,
     unitPriceUsd,
   };
 }

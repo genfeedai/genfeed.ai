@@ -337,9 +337,6 @@ const createImageGenerationService = () => {
       cancelProcessingIngredient: vi.fn(),
     } as never,
     {
-      getPromptByKey: vi.fn().mockResolvedValue(null),
-    } as never,
-    {
       enhance: vi
         .fn()
         .mockImplementation(async (input: MediaPromptEnhancementInput) => ({

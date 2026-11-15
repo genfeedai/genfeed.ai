@@ -1,12 +1,14 @@
 # X/Twitter Warmup Skill
 
-Expert X/Twitter account warmup guide - evidence-backed engagement plans, source-backed content hardening, reply-first strategy, Day 8-10 warmup thread content, and post-warmup assessment for new accounts before posting promotional content.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Guide evidence-backed X/Twitter account warmup and source-backed content hardening with engagement plans, reply strategies, warmup thread content, and post-warmup assessment frameworks for new accounts before posting promotional content
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill x-warmup
 ```
+<!-- generated:end -->
 
 ## Usage
 

@@ -40,7 +40,7 @@ Write 80 to 140 words of flowing sentences in this order:
 4. Look: one lighting line and one style line.
 Stay on what the user asked for. Never introduce a different story, occupation, scenario or object that the user did not name, and never turn a brand description into a scene about hiring, devices or products the user did not mention.
 When creative direction is given below, every line is binding: do not contradict it and do not add a second camera movement, lens, lighting setup or visual style.
-Do not specify aperture, f-stops, film grain, brand colors, hex codes, fonts or on-screen text unless the user asked for them.
+Do not specify aperture, f-stops, film grain, hex codes, fonts or on-screen text unless the user asked for them. Use brand colours only as plain colour words, and only the ones in the brand brief below.
 If something should be excluded, add one final line that starts with "Negative prompt:" followed by comma-separated artifacts and defects. Omit that line when nothing needs excluding.
 Never mention model names or model recommendations, aspect ratio, resolution, steps, guidance, sampler or any other generation setting, and never add notes or explanations.`;
 

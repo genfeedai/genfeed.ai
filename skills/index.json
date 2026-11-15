@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-31T22:10:10.000Z",
+  "generatedAt": "2026-11-15T09:45:43.000Z",
   "skills": [
     {
       "description": "Create paid ad copy for Meta, Google, LinkedIn, TikTok, and X using direct-response frameworks, platform limits, variants, and test plans. Triggers on ad headlines, ad creative, paid social ads, Google ads, and ad variants.",
@@ -132,6 +132,11 @@
       "slug": "model-selector"
     },
     {
+      "description": "Write a Remotion composition with your own Claude or Codex subscription, render it to MP4 or PNG locally, check the frames yourself and package it as Genfeed Motion-style output. No model API, no credits. Triggers on \"make a motion video\", \"motion graphic\", \"animate this\", \"remotion video\", \"kinetic typography\", \"animated explainer\", \"code-driven video\".",
+      "path": "skills/media/motion-video/SKILL.md",
+      "slug": "motion-video"
+    },
+    {
       "description": "Create high-performing email newsletters with subject lines, editorial structures, and subscriber growth tactics. Triggers on \"write a newsletter\", \"create a newsletter\", \"draft newsletter\", \"email newsletter\", \"newsletter edition\".",
       "path": "skills/writing/newsletter-creator/SKILL.md",
       "slug": "newsletter-creator"
@@ -165,6 +170,11 @@
       "description": "Guide a transparent TikTok 5–7 day warm-up with native-app engagement, profile and feed tuning, gradual first uploads, and evidence-aware assessment. Triggers on \"tiktok warmup\", \"warm up tiktok account\", \"new tiktok account\", \"tiktok account warmup plan\", \"tiktok engagement plan\", \"warmup content tiktok\".",
       "path": "skills/tiktok/tiktok-warmup/SKILL.md",
       "slug": "tiktok-warmup"
+    },
+    {
+      "description": "Define and apply a reusable video brand profile (logo or signature placement, caption font and position, thumbnail rules, export sizes) so every clip, Short, recap and thumbnail looks like one channel. Use before editing or packaging video, or when asked where the logo goes, which caption font to use, or to write a video brand kit.",
+      "path": "skills/media/video-brand-profile/SKILL.md",
+      "slug": "video-brand-profile"
     },
     {
       "description": "Create visual identity systems for AI-generated content: colors, typography feel, photography style, composition rules, and prompt presets. Triggers on brand kits, visual guidelines, image style, and brand photography.",
@@ -207,5 +217,5 @@
       "slug": "youtube-warmup"
     }
   ],
-  "total": 41
+  "total": 43
 }

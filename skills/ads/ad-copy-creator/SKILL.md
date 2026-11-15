@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Create paid ad copy with platform-specific variants and test plans"
+  tags: advertising, copywriting, direct-response, ads, meta-ads, google-ads, facebook-ads, ppc
+  outputs: text
+  triggers: "paid ad copy; write ad copy; create an ad; facebook ad copy; meta ad copy; google ad headlines; google responsive search ad; linkedin sponsored content; tiktok ad script; x ad copy; ad variants; ad creative testing"
 ---
 
 # Ad Copy Creator

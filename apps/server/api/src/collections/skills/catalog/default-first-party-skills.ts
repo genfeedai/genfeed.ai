@@ -17,7 +17,7 @@ const AGENT_TYPE_DEFAULTS: Record<string, readonly string[]> = {
   [AgentType.SHORT_FORM_WRITER]: ['instagram-reel'],
   [AgentType.VIDEO_CREATOR]: [
     'model-selector',
-    'image-prompt-engineer',
+    'cinematic-prompting',
     'clip-editor',
   ],
   [AgentType.X_CONTENT]: ['x-post', 'x-thread'],
@@ -49,7 +49,7 @@ const HARNESS_PLATFORM_CHANNELS = new Set([
 const MODALITY_DEFAULTS: Record<string, readonly string[]> = {
   audio: ['model-selector'],
   image: ['image-prompt-engineer', 'model-selector'],
-  video: ['model-selector', 'image-prompt-engineer'],
+  video: ['model-selector', 'cinematic-prompting'],
 };
 
 const GENERIC_DEFAULTS = ['content-writing'] as const;

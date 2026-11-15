@@ -391,6 +391,20 @@ function prefetchedPathnames(page: Page): string[] {
   return pathnames;
 }
 
+// The pathnames of the prefetches, each with the time it was asked for.
+function timedPrefetches(page: Page): { at: number; pathname: string }[] {
+  const requests: { at: number; pathname: string }[] = [];
+  page.on('request', (request) => {
+    if (isPrefetchRequest(request)) {
+      requests.push({
+        at: Date.now(),
+        pathname: new URL(request.url()).pathname,
+      });
+    }
+  });
+  return requests;
+}
+
 // The first sidebar destination that is not the page the person is on.
 async function pickSidebarDestination(page: Page) {
   const sidebar = page.getByTestId('sidebar-shell').first();
@@ -516,20 +530,31 @@ test('the first prefetches after the shell paints are for the shell, not the pag
 }) => {
   await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
   await mockLibraryData(page);
-  const requested = prefetchedPathnames(page);
+  const requested = timedPrefetches(page);
   await page.goto(
     createBrandAppRoute('test-org', 'brand-1', APP_ROUTES.LIBRARY.ASSETS),
   );
   await expect(page.getByTestId('sidebar-shell').first()).toBeVisible();
   await expect(page.getByTestId('app-rail')).toBeVisible();
-  const startedAt = Date.now();
   await expect
     .poll(() => requested.length, { timeout: PREFETCH_TIMEOUT_MS })
     .toBeGreaterThan(0);
-  await page.waitForTimeout(
-    Math.max(0, FIRST_SECOND_MS - (Date.now() - startedAt)),
-  );
-  const firstSecond = [...new Set(requested)];
+  // Count from the first prefetch, not from when the test noticed it: the poll
+  // above backs off up to a second, and on a loaded runner the rail's own
+  // delayed pass over every destination (1.5s after it mounts, behind More
+  // items that are not on screen) would land inside a window started by the
+  // test's clock.
+  const firstAt = requested[0].at;
+  await expect
+    .poll(() => Date.now() - firstAt, { timeout: PREFETCH_TIMEOUT_MS })
+    .toBeGreaterThanOrEqual(FIRST_SECOND_MS);
+  const firstSecond = [
+    ...new Set(
+      requested
+        .filter((request) => request.at - firstAt <= FIRST_SECOND_MS)
+        .map((request) => request.pathname),
+    ),
+  ];
 
   const hrefsWithin = (selector: string) =>
     page

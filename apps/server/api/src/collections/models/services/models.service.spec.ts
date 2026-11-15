@@ -1185,6 +1185,25 @@ describe('ModelsService', () => {
     );
   });
 
+  it('refuses to activate a draft with no approved rate and no pending rate', async () => {
+    modelDelegate.findFirst.mockResolvedValue(
+      makeModel({
+        cost: 1445,
+        endpoint: 'recraft-ai/recraft-v3',
+        isActive: false,
+        isFree: false,
+        pendingProviderContractVersion: null,
+        provider: ModelProvider.REPLICATE,
+        reviewedProviderContractVersion: null,
+      }),
+    );
+
+    await expect(
+      service.approveRegistryModel('model-1', {}, 'operator-1'),
+    ).rejects.toThrow('no approved provider rate');
+    expect(modelDelegate.update).not.toHaveBeenCalled();
+  });
+
   it('blocks a Replicate contract whose detected category does not match', async () => {
     modelDelegate.findFirst.mockResolvedValue(
       makeModel({

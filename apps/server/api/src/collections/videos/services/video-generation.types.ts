@@ -76,7 +76,7 @@ export interface CreateVideoPlaceholderActivityParams {
   userId: string;
 }
 
-export type VideoGenerationResolvedBrand = NonNullable<
+type VideoGenerationResolvedBrand = NonNullable<
   Awaited<ReturnType<BrandsService['findOne']>>
 >;
 export type VideoGenerationResolvedPrompt = Awaited<

@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.1.0
+  short-description: "Review and score content quality across six dimensions with actionable feedback"
+  tags: content-review, quality, editing, brand-voice, content-optimization
+  outputs: text
+  triggers: "review this content; score this post; check content quality; review my copy; is this post ready to publish; critique this content; grade this post; content review; does this content pass"
 ---
 
 # Content Reviewer

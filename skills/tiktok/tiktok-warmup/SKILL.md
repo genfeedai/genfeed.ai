@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 2.0.0
+  short-description: "Guide a transparent TikTok 5–7 day warm-up with native-app engagement, profile and feed tuning, gradual first uploads, and evidence-aware assessment"
+  tags: tiktok, social-media, warmup, engagement, account-growth, content-strategy, carousel, slideshow, new-account
+  outputs: text
+  triggers: "tiktok warmup; warm up tiktok account; new tiktok account; tiktok account warmup plan; tiktok engagement plan; warmup content tiktok; start a tiktok account; tiktok from scratch; tiktok warmup strategy; how to warm up tiktok; tiktok trust score; first post on tiktok; tiktok slideshow warmup; tiktok warmup carousel; tiktok 7 day plan; tiktok 5 day plan"
 ---
 
 # TikTok Warm-up Skill
