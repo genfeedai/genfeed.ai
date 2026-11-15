@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const presetKinds = [
+const presetKinds = [
   'image',
   'image-edit',
   'video',
@@ -27,5 +27,3 @@ export const presetToolSchemas = {
 };
 
 export type PresetKind = (typeof presetKinds)[number];
-export type PresetToolInput<Name extends keyof typeof presetToolSchemas> =
-  z.infer<(typeof presetToolSchemas)[Name]>;

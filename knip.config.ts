@@ -166,8 +166,15 @@ const config: KnipConfig = {
       ignore: ['dist/**'],
     },
     'apps/server/mcp': {
-      // `ui-bundle.cjs` bundles the preview UI from these paths.
-      entry: ['src/main.ts', 'src/ui/next-image.tsx', 'src/ui/preview.css'],
+      // `ui-bundle.cjs` bundles the preview UI from these paths. esbuild loads
+      // `preview-client.tsx` as the bundle entry; the app only imports it as a
+      // `?mcp-preview` string, so its own exports look unused.
+      entry: [
+        'src/main.ts',
+        'src/ui/next-image.tsx',
+        'src/ui/preview-client.tsx',
+        'src/ui/preview.css',
+      ],
       ignore: ['dist/**'],
       // Path aliases from tsconfig.preview.json (`@ui/*` to packages/ui,
       // `@preview-messages/ui` to the web messages), not packages.

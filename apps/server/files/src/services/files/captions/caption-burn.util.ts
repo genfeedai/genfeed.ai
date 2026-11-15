@@ -36,7 +36,7 @@ export interface ResolvedCaptionBurnStyle {
 }
 
 /** Used for every field a caller leaves out. */
-export const DEFAULT_CAPTION_BURN_STYLE: ResolvedCaptionBurnStyle = {
+const DEFAULT_CAPTION_BURN_STYLE: ResolvedCaptionBurnStyle = {
   activeWordColor: null,
   backgroundColor: null,
   backgroundOpacity: 0.96,
@@ -51,10 +51,10 @@ export const DEFAULT_CAPTION_BURN_STYLE: ResolvedCaptionBurnStyle = {
 };
 
 /** More groups than this make a filter script no encode should wait for. */
-export const MAX_CAPTION_GROUPS = 1500;
+const MAX_CAPTION_GROUPS = 1500;
 
 /** Every filter is evaluated per frame; this keeps one encode tractable. */
-export const MAX_CAPTION_FILTERS = 12_000;
+const MAX_CAPTION_FILTERS = 12_000;
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 const POSITIONS = new Set<string>(['top', 'center', 'bottom']);

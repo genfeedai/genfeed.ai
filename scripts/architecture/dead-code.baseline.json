@@ -49,17 +49,6 @@
     "packages/utils/package.json|@genfeedai/client",
     "packages/utils/package.json|@genfeedai/tsconfig"
   ],
-  "unusedExports": {
-    "apps/server/files/src/guards/files-service-key.guard.ts": 1,
-    "apps/server/files/src/services/ffmpeg/helpers/beat-grid.helper.ts": 1,
-    "apps/server/files/src/services/ffmpeg/helpers/transition-filter-graph.helper.ts": 1,
-    "apps/server/files/src/services/files/captions/caption-burn.util.ts": 3,
-    "apps/server/files/src/services/hook-remix/hook-remix.interfaces.ts": 1,
-    "apps/server/files/src/shared/interfaces/job.interface.ts": 1,
-    "apps/server/mcp/src/mcp/resource-catalog.ts": 1,
-    "apps/server/mcp/src/shared/interfaces/api-response.interface.ts": 9,
-    "apps/server/mcp/src/tools/presets.schemas.ts": 2,
-    "apps/server/mcp/src/ui/preview-client.tsx": 1
-  },
+  "unusedExports": {},
   "unusedFiles": []
 }
