@@ -1,3 +1,8 @@
+import {
+  compileGenerationSections,
+  generationSkillBudget,
+  skillSectionReceipt,
+} from '@api/collections/skills/catalog/skill-generation-sections';
 import { isTrustedProductSkill } from '@api/collections/skills/constants/skill-validation.constant';
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import {
@@ -18,6 +23,7 @@ import type {
   PinnedRuntimeSkill,
   ResolveActiveSkillsContext,
   ResolvedRuntimeSkill,
+  SkillSectionReceipt,
 } from '@genfeedai/contracts/interfaces/ai';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -140,7 +146,11 @@ export class SkillRuntimeService {
           undefined,
           { ...context, requestedSkillSlugs: requested },
         );
-        return this.buildSkillPromptSections(skills, requested);
+        return this.buildGenerationSkillSections(skills, {
+          modality: context.modality,
+          receipts: context.sectionReceipts,
+          requiredSlugs: requested,
+        });
       } catch (error) {
         if (error instanceof BadRequestException) throw error;
         this.logger.error(
@@ -161,7 +171,11 @@ export class SkillRuntimeService {
         requestedSkillSlugs: requested,
       },
     );
-    return this.buildSkillPromptSections(skills, requested);
+    return this.buildGenerationSkillSections(skills, {
+      modality: context.modality,
+      receipts: context.sectionReceipts,
+      requiredSlugs: requested,
+    });
   }
 
   async collectAuthorizedPins(input: {
@@ -321,6 +335,106 @@ export class SkillRuntimeService {
 
     if (requiredSlugs.some((slug) => !included.has(slug)))
       throw unavailableRequestedSkill();
+    return this.renderSkillSections(trustedSections, untrustedSections);
+  }
+
+  /**
+   * Skill text for a generation prompt: each skill's sections for the
+   * modality, kept whole and bounded by the modality's budget. Agent turns
+   * keep `buildSkillPromptSections`, which carries the full body.
+   */
+  buildGenerationSkillSections(
+    skills: ResolvedRuntimeSkill[],
+    options: {
+      modality?: string;
+      receipts?: SkillSectionReceipt[];
+      requiredSlugs?: string[];
+    } = {},
+  ): string {
+    const requiredSlugs = options.requiredSlugs ?? [];
+    if (
+      requiredSlugs.some((slug) => !skills.some((skill) => skill.slug === slug))
+    )
+      throw unavailableRequestedSkill();
+    if (skills.length === 0) return '';
+
+    const required = new Set(requiredSlugs);
+    const budget = generationSkillBudget(options.modality);
+    const trustedSections: string[] = [];
+    const untrustedSections: string[] = [];
+    const receipts: SkillSectionReceipt[] = [];
+    const included = new Set<string>();
+
+    const orderedSkills = required.size
+      ? [...skills].sort(
+          (left, right) =>
+            Number(required.has(right.slug)) - Number(required.has(left.slug)),
+        )
+      : skills;
+    for (const skill of orderedSkills) {
+      if (!skill.instructions) {
+        if (required.has(skill.slug)) throw unavailableRequestedSkill();
+        continue;
+      }
+      const isTrusted = isTrustedProductSkill(skill);
+      const prepared = isTrusted
+        ? skill.instructions.trim()
+        : sanitizeAgentUntrustedInput(
+            skill.instructions,
+            Number.POSITIVE_INFINITY,
+          );
+      if (!prepared) {
+        if (required.has(skill.slug)) throw unavailableRequestedSkill();
+        continue;
+      }
+
+      const header = `## Skill: ${skill.name}\n`;
+      const used = this.renderSkillSections(
+        trustedSections,
+        untrustedSections,
+      ).length;
+      const framing =
+        !isTrusted && untrustedSections.length === 0
+          ? UNTRUSTED_ORG_SKILL_FRAMING.length + 2
+          : 0;
+      const compiled = compileGenerationSections({
+        budget: Math.max(0, budget - used - header.length - 2 - framing),
+        instructions: prepared,
+        modality: options.modality,
+        ...(isTrusted ? { planSlug: skill.slug } : {}),
+      });
+      receipts.push(
+        skillSectionReceipt({
+          compiled,
+          contentHash: skill.contentHash,
+          modality: options.modality,
+          slug: skill.slug,
+          versionId: skill.versionId,
+        }),
+      );
+
+      if (!compiled.text) {
+        if (required.has(skill.slug)) {
+          throw new BadRequestException(
+            'The selected skill instructions exceed the generation budget. Select fewer skills or shorten their instructions.',
+          );
+        }
+        this.logger.warn(
+          `Skill ${skill.slug} left out of the ${options.modality ?? 'text'} prompt: no section fits the ${budget} character budget`,
+          'SkillRuntimeService',
+        );
+        continue;
+      }
+
+      const section = `${header}${compiled.text}`;
+      if (isTrusted) trustedSections.push(section);
+      else untrustedSections.push(section);
+      included.add(skill.slug);
+    }
+
+    if (requiredSlugs.some((slug) => !included.has(slug)))
+      throw unavailableRequestedSkill();
+    options.receipts?.push(...receipts);
     return this.renderSkillSections(trustedSections, untrustedSections);
   }
 

@@ -37,6 +37,20 @@ export interface PinnedRuntimeSkill {
   versionId: string;
 }
 
+/** What one skill added to a generation prompt: the sections, not the whole body. */
+export interface SkillSectionReceipt {
+  characters: number;
+  compilerVersion: string;
+  contentHash?: string;
+  /** Headings kept whole; `preamble` is the intro above the first heading. */
+  loadedSections: string[];
+  modality?: string;
+  /** Headings left out because they were off-plan or over the budget. */
+  omittedSections: string[];
+  slug: string;
+  versionId?: string;
+}
+
 export interface ResolveActiveSkillsContext {
   actorUserId?: string;
   /** Empty array collects pins. A non-empty array is the retry source. */
@@ -50,5 +64,7 @@ export interface ResolveActiveSkillsContext {
    * brand guidance without changing the brand's saved configuration.
    */
   requestedSkillSlugs?: string[];
+  /** Collects what each skill loaded into a generation prompt. */
+  sectionReceipts?: SkillSectionReceipt[];
   workflowStage?: string;
 }
