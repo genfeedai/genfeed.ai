@@ -372,7 +372,6 @@
     "zod": "4.6.7"
   },
   "patchedDependencies": {
-    "log-symbols@4.1.0": "patches/log-symbols@4.1.0.patch",
     "nextra-theme-docs@4.6.1": "patches/nextra-theme-docs@4.6.1.patch"
   },
   "overrides": {
