@@ -573,6 +573,11 @@ export function PublishPostCard({
                 <div key={target.id} className="border border-border p-3">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <Toggle
+                      aria-label={
+                        accountSuffix
+                          ? `${target.label} ${accountSuffix}`
+                          : undefined
+                      }
                       onPressedChange={() => toggleTarget(target.id)}
                       pressed={isSelected}
                       size="sm"

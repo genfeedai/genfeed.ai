@@ -348,4 +348,34 @@ describe('PublishPostCard', () => {
       screen.getByRole('button', { name: 'Confirm publish' }),
     ).toBeDisabled();
   });
+
+  it('gives two accounts on the same platform distinct toggle names', () => {
+    const action: AgentUiAction = {
+      contentId: 'ingredient-1',
+      id: 'publish-card-two-accounts',
+      platforms: ['linkedin'],
+      targets: [
+        makeTarget({
+          credentialId: 'cred-linkedin-a',
+          id: 'publish-target-cred-linkedin-a',
+        }),
+        makeTarget({
+          credentialId: 'cred-linkedin-b',
+          id: 'publish-target-cred-linkedin-b',
+        }),
+      ],
+      textContent: 'Shared caption',
+      title: 'Publish selected content',
+      type: 'publish_post_card',
+    };
+
+    render(<PublishPostCard action={action} />);
+
+    expect(
+      screen.getByRole('button', { name: 'LinkedIn cred-linkedin-a' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'LinkedIn cred-linkedin-b' }),
+    ).toBeInTheDocument();
+  });
 });
