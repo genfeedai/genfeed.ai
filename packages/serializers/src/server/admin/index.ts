@@ -6,5 +6,6 @@ export * from '@serializers/server/admin/harness-activation-report.serializer';
 export * from '@serializers/server/admin/model-detail.serializer';
 export * from '@serializers/server/admin/model-pricing-report.serializer';
 export * from '@serializers/server/admin/system-notification-overview.serializer';
+export * from '@serializers/server/admin/waitlist-entry.serializer';
 export * from '@serializers/server/admin/warmup-account.serializer';
 export * from './credit-hold-report.serializer';

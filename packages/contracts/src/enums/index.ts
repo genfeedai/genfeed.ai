@@ -158,6 +158,7 @@ export * from './view-type.enum';
 export * from './visual-code.enum';
 export * from './voice.enum';
 export * from './vote.enum';
+export * from './waitlist-status.enum';
 export * from './warmup.enum';
 export * from './watchlist.enum';
 export * from './websocket-events.enum';

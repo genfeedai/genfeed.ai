@@ -19,6 +19,7 @@ describe('parsePlatformFeatureSettings', () => {
       flags: { studio: false },
       isEmailVerificationRequired: true,
       isMediaPerceptionEnabled: false,
+      isSignupInviteOnly: true,
       mediaPerceptionFrameCount: 12,
       mediaPerceptionVisionModel: ' google/gemini ',
       moderationMode: 'live',
@@ -31,6 +32,7 @@ describe('parsePlatformFeatureSettings', () => {
       flags: { agent: true, studio: false },
       isEmailVerificationRequired: true,
       isMediaPerceptionEnabled: false,
+      isSignupInviteOnly: true,
       mediaPerceptionFrameCount: 12,
       mediaPerceptionVisionModel: 'google/gemini',
       moderationMode: 'live',
@@ -38,6 +40,18 @@ describe('parsePlatformFeatureSettings', () => {
       replyBotIntentMinConfidence: 0,
       systemEventsEnabledAt: '2026-09-20T10:00:00.000Z',
     });
+  });
+
+  it('keeps signup open unless the operator closes it', () => {
+    expect(parsePlatformFeatureSettings({}).isSignupInviteOnly).toBe(false);
+    expect(
+      parsePlatformFeatureSettings({ isSignupInviteOnly: 'true' })
+        .isSignupInviteOnly,
+    ).toBe(false);
+    expect(
+      parsePlatformFeatureSettings({ isSignupInviteOnly: true })
+        .isSignupInviteOnly,
+    ).toBe(true);
   });
 
   it('never resolves live on a shadow-capped decision point', () => {
