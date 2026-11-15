@@ -7,7 +7,7 @@ import type { TargetPreviewCredential } from '@/props/ui/previews.props';
 
 export type AccountGridLaneKind = 'cards' | 'grid' | 'landscape' | 'portrait';
 
-export type AccountGridItemKind = 'gap' | 'target';
+type AccountGridItemKind = 'gap' | 'target';
 
 export interface AccountGridLaneItem {
   gapAt?: string;

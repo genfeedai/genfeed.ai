@@ -27,7 +27,7 @@ export interface DesktopWindowChrome {
   hasInlineTrafficLights: boolean;
 }
 
-export function isMacPlatform(): boolean {
+function isMacPlatform(): boolean {
   if (typeof navigator === 'undefined') {
     return false;
   }

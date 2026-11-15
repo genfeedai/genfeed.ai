@@ -34,7 +34,7 @@ import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { LockKeyhole } from 'lucide-react';
 import { useState } from 'react';
 
-export type ModelsTableTranslate = (
+type ModelsTableTranslate = (
   key: string,
   values?: Record<string, string | number>,
 ) => string;

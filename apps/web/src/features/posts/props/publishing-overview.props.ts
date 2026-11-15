@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 import type { AsyncState } from '@/props/shared/async-state.types';
 
 /** One SCHEDULED channel target due within the next 24 hours. */
-export interface PublishingOverviewQueueItem {
+interface PublishingOverviewQueueItem {
   accountLabel: string;
   href: string;
   platform: string;
@@ -17,7 +17,7 @@ export interface PublishingOverviewQueueItem {
   title: string;
 }
 
-export interface PublishingOverviewQueueGroup {
+interface PublishingOverviewQueueGroup {
   bucket: 'near' | 'later';
   items: PublishingOverviewQueueItem[];
 }
@@ -28,7 +28,7 @@ export interface PublishingOverviewQueueSectionProps {
 }
 
 /** FAILED channel targets grouped by their structured error code. */
-export interface PublishingOverviewBlockedGroup {
+interface PublishingOverviewBlockedGroup {
   accounts: string[];
   code: string;
   count: number;
@@ -42,7 +42,7 @@ export interface PublishingOverviewBlockedSectionProps {
 }
 
 /** Per-connected-account gap since the last publish, and whether one is queued. */
-export interface PublishingOverviewCadenceGap {
+interface PublishingOverviewCadenceGap {
   accountLabel: string;
   credentialId: string;
   gapDays: number | null;

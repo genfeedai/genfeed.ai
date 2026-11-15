@@ -111,7 +111,7 @@ async function resolveServerRequestIp(): Promise<string> {
   );
 }
 
-export async function isAdminIpAllowedForServerRequest(): Promise<boolean> {
+async function isAdminIpAllowedForServerRequest(): Promise<boolean> {
   const allowedIps = (process.env.ADMIN_ALLOWED_IPS || '')
     .split(',')
     .map(normalizeIp)

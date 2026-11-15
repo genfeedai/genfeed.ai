@@ -1,12 +1,12 @@
 import type { DefaultVoiceRef } from '@helpers/voice/default-voice-ref.helper';
 import type { Voice } from '@models/ingredients/voice.model';
 
-export type OrgDefaultContext = {
+type OrgDefaultContext = {
   defaultVoiceId?: string | null;
   defaultVoiceRef?: DefaultVoiceRef | null;
 };
 
-export type BrandDefaultContext = {
+type BrandDefaultContext = {
   defaultVoiceId?: string | null;
   defaultVoiceRef?: DefaultVoiceRef | null;
 };

@@ -11,13 +11,13 @@ const PUBLISHING_PLATFORMS = new Set<string>([
   Platform.LINKEDIN,
 ]);
 
-export interface WorkflowScopedAccount {
+interface WorkflowScopedAccount {
   id: string;
   label: string;
   platform: string;
 }
 
-export interface WorkflowScopedBrand {
+interface WorkflowScopedBrand {
   id: string;
   label: string;
 }

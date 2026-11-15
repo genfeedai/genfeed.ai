@@ -1,7 +1,6 @@
 import type {
   IWarmupAccount,
   IWarmupAccountCreateRequest,
-  IWarmupAccountStatus,
 } from '@genfeedai/contracts/interfaces';
 
 export type ConciergeInvitationAction =
@@ -23,10 +22,6 @@ export interface ConciergeHandoffProps {
 export interface ConciergePreparationProps {
   account: IWarmupAccount;
   onUpdated: (account: IWarmupAccount) => void;
-}
-
-export interface ConciergeStageBadgeProps {
-  status: IWarmupAccountStatus;
 }
 
 export interface ProvisionConciergeDialogProps {

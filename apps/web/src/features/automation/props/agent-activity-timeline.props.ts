@@ -1,4 +1,4 @@
-export type AgentActivityType = 'content' | 'report' | 'run';
+type AgentActivityType = 'content' | 'report' | 'run';
 
 export type AgentActivityFilter = 'all' | AgentActivityType;
 

@@ -1,6 +1,6 @@
 import type { IByokProviderStatus } from '@genfeedai/contracts/interfaces';
 
-export type ByokProviderCardState = {
+type ByokProviderCardState = {
   isExpanded: boolean;
   isRemoving: boolean;
   isValidating: boolean;

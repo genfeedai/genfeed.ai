@@ -10,9 +10,7 @@ import type { CreateAgentStrategyInput } from '@services/automation/agent-strate
  * Default seeded workflow template per content-team role.
  * Mirrors server `AGENT_TYPE_WORKFLOW_DEFAULTS` so hire/launch pins graphs.
  */
-export const ROLE_WORKFLOW_TEMPLATE_BY_TYPE: Partial<
-  Record<AgentType, string>
-> = {
+const ROLE_WORKFLOW_TEMPLATE_BY_TYPE: Partial<Record<AgentType, string>> = {
   [AgentType.GENERAL]: 'founder-x-post',
   [AgentType.X_CONTENT]: 'founder-x-post',
   [AgentType.IMAGE_CREATOR]: 'founder-editorial-illustration',

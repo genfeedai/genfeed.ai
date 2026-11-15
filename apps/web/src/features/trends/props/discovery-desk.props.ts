@@ -3,7 +3,7 @@ import type { ISourcePost, ITrendVideo } from '@genfeedai/contracts/interfaces';
 
 import type { TrendContentItem } from '@props/trends/trends-page.props';
 
-export type DiscoveryDeskItemKind = 'trend' | 'source_post' | 'viral_video';
+type DiscoveryDeskItemKind = 'trend' | 'source_post' | 'viral_video';
 
 /**
  * `trends` = public platform trend surface, `following` = creators the brand

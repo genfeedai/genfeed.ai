@@ -1,7 +1,7 @@
 import type { ClipperResultMode } from '@genfeedai/contracts/interfaces';
 import type { LucideIcon } from 'lucide-react';
 
-export type ClipperPresetId =
+type ClipperPresetId =
   | 'podcastHighlights'
   | 'webinarSnippets'
   | 'interviewSoundbites';

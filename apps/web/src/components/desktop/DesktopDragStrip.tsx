@@ -12,7 +12,7 @@ const AUTH_FULL_BLEED_PREFIXES = [
   '/oauth',
 ] as const;
 
-export function isDesktopAuthFullBleedPath(pathname: string): boolean {
+function isDesktopAuthFullBleedPath(pathname: string): boolean {
   return AUTH_FULL_BLEED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );

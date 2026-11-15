@@ -5,7 +5,7 @@ import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { RolesService } from '@services/organization/roles.service';
 import type { UseQueryResult } from '@tanstack/react-query';
 
-export const ORGANIZATION_ROLES_QUERY_KEY = ['organization-roles'] as const;
+const ORGANIZATION_ROLES_QUERY_KEY = ['organization-roles'] as const;
 
 /**
  * The roles a member can hold, cached per viewer. The invite dialog and the

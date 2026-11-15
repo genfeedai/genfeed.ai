@@ -6,7 +6,7 @@ import type {
 
 export type DiscoveryDeskContentTypeFilter = 'all' | 'video' | 'image' | 'post';
 
-export interface DiscoveryDeskFilters {
+interface DiscoveryDeskFilters {
   platforms: Set<string>;
   source: DiscoveryDeskSource | 'all';
   contentType: DiscoveryDeskContentTypeFilter;

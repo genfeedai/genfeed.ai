@@ -1,6 +1,6 @@
 import type { SetupCardStep } from '@/hooks/utils/use-setup-card/use-setup-card';
 
-export type NextMilestone = {
+type NextMilestone = {
   days: number;
   remaining: number;
   rewardCredits: number;

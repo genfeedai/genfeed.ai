@@ -3,7 +3,7 @@ import type {
   ReleaseItemId,
 } from '@genfeedai/contracts/constants';
 
-export interface OrganizationAppAccessChange {
+interface OrganizationAppAccessChange {
   moduleOverrides?: OrganizationModuleOverrides;
   releasedItemIds?: ReleaseItemId[];
 }
@@ -16,7 +16,7 @@ export interface OrganizationAppAccessProps {
   onChange: (change: OrganizationAppAccessChange) => Promise<void>;
 }
 
-export type OrganizationAppAccessGroup = 'apps' | 'analyticsPages';
+type OrganizationAppAccessGroup = 'apps' | 'analyticsPages';
 
 export interface OrganizationAppAccessRow {
   description: string | null;

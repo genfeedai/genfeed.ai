@@ -36,7 +36,7 @@ const PUBLISHED_ACTIVITY_PATTERN = /Published to (\w+):\s*(https?:\/\/\S+)/i;
  * Background / media-ish tasks that show progress UI.
  * Prefer lifecycle parsing over enumerating every key when possible.
  */
-export const BACKGROUND_TASK_KEYS = [
+const BACKGROUND_TASK_KEYS = [
   ActivityKeys.video.generate.processing,
   ActivityKeys.video.generate.completed,
   ActivityKeys.video.generate.finished,
@@ -67,7 +67,7 @@ const CREDIT_ACTIVITY_KEYS = [
   ActivityKeys.credits.reset,
 ] as const;
 
-export function isCreditActivity(key: string): boolean {
+function isCreditActivity(key: string): boolean {
   return (CREDIT_ACTIVITY_KEYS as readonly string[]).includes(key);
 }
 
@@ -592,7 +592,7 @@ export function formatActivityDayHeading(
 }
 
 /** The credit movement an activity records, or null when it has none. */
-export function getActivityCreditsChange(
+function getActivityCreditsChange(
   activity: IActivity,
 ): ReturnType<typeof getCreditActivityChangeDescriptor> | null {
   if (isCreditActivity(activity.key)) {

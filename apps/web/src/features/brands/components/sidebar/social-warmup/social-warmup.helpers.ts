@@ -50,7 +50,7 @@ export function canRefreshAuthorizedSignals(
   return isSocialWarmupEnrollmentAllowed(platform);
 }
 
-export function getSocialWarmupElapsedDays(
+function getSocialWarmupElapsedDays(
   startedAt: string,
   now: Date = new Date(),
 ): number {
@@ -62,9 +62,7 @@ export function getSocialWarmupElapsedDays(
   return Math.max(1, Math.floor((now.getTime() - started) / MS_PER_DAY) + 1);
 }
 
-export function getSocialWarmupLastDay(
-  blueprint: SocialWarmupBlueprintLike,
-): number {
+function getSocialWarmupLastDay(blueprint: SocialWarmupBlueprintLike): number {
   const phaseEnd = Math.max(
     ...blueprint.phases.map((phase) => phase.endDay),
     1,
@@ -128,7 +126,7 @@ export function listTodaySocialWarmupChecks(
   );
 }
 
-export function findSignalForCheck(
+function findSignalForCheck(
   check: Pick<SocialWarmupCheckView, 'completionKey'>,
   enrollment: ISocialWarmupEnrollment,
 ): ISocialWarmupSignal | undefined {
@@ -236,7 +234,7 @@ function isBlockingCheck(
   return isSocialWarmupJourneyCheckBlocking(check, enrollment);
 }
 
-export function getSocialWarmupProgress(
+function getSocialWarmupProgress(
   checks: readonly SocialWarmupResolvedCheck[],
 ): SocialWarmupProgress {
   const applicable = checks.filter((check) => check.requirement !== 'optional');
@@ -250,7 +248,7 @@ export function getSocialWarmupProgress(
   };
 }
 
-export function getSocialWarmupLastRefreshAt(
+function getSocialWarmupLastRefreshAt(
   enrollment: ISocialWarmupEnrollment,
 ): string | null {
   const observed = enrollment.signals
@@ -261,7 +259,7 @@ export function getSocialWarmupLastRefreshAt(
   return observed.at(-1) ?? enrollment.updatedAt ?? null;
 }
 
-export function getSocialWarmupPhaseTitle(
+function getSocialWarmupPhaseTitle(
   blueprint: SocialWarmupBlueprintLike,
   currentDay: number,
   currentPhaseId: string,
@@ -285,7 +283,7 @@ export function getSocialWarmupPhaseTitle(
   };
 }
 
-export function getSocialWarmupNextAction(
+function getSocialWarmupNextAction(
   checks: readonly SocialWarmupResolvedCheck[],
   currentDay: number,
   currentPhaseId: string,

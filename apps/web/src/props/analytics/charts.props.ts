@@ -3,7 +3,7 @@ import type { BrandPerformanceData } from '@genfeedai/services/analytics/analyti
 import type { EmptyStateAction } from '@ui/primitives/empty-state';
 
 /** Product {@link Platform} ids. Chart series keys stay lowercase enum values. */
-export type SocialPlatform = Platform;
+type SocialPlatform = Platform;
 
 export interface PlatformTimeSeriesDataPoint {
   date: string;

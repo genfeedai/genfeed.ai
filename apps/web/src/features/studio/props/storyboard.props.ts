@@ -48,7 +48,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { ReactNode, Ref } from 'react';
 
-export interface StoryboardWorkspaceReference {
+interface StoryboardWorkspaceReference {
   readonly id: string;
   readonly title: string;
   readonly group: string;
@@ -65,7 +65,7 @@ export interface StoryboardReferencesPanelProps {
 }
 
 /** Scene-pipeline commands a storyboard run exposes to its shot editor. */
-export interface StoryboardRunSceneActions {
+interface StoryboardRunSceneActions {
   readonly attachSceneSource: (assetId: string | null) => Promise<void>;
   readonly cancelScenes: () => Promise<void>;
   readonly executeScenes: () => Promise<void>;
@@ -98,7 +98,7 @@ export interface StoryboardRunRecipeProps {
   readonly run: BrandRemixRunView;
 }
 
-export interface StoryboardSelectOption extends StoryboardRunSelectOption {
+interface StoryboardSelectOption extends StoryboardRunSelectOption {
   readonly isDisabled?: boolean;
 }
 
@@ -115,7 +115,7 @@ export interface StoryboardRunPageProps {
   readonly runId: string;
 }
 
-export interface StoryboardAnimaticShot {
+interface StoryboardAnimaticShot {
   readonly id: string;
   readonly ordinal: number;
   readonly durationSeconds: number | null;
@@ -256,7 +256,7 @@ export type StoryboardAssetBibleRequest = Omit<
 >;
 
 /** The paid asset bible images (#9616), each call priced before it starts. */
-export interface StoryboardAssetBibleActions {
+interface StoryboardAssetBibleActions {
   readonly quote: (
     revision: number,
     request: StoryboardAssetBibleRequest,
@@ -283,7 +283,7 @@ export interface StoryboardAssetBibleProps {
 }
 
 /** The paid draft and final video render of each approved shot (#9618). */
-export interface StoryboardShotRenderActions {
+interface StoryboardShotRenderActions {
   readonly quote: (
     revision: number,
     stage: StoryboardShotRenderStage,
@@ -435,7 +435,7 @@ export interface StoryboardAgentThreadProps
   readonly requests: readonly StoryboardAgentRequest[];
 }
 
-export interface StoryboardShotCardStill {
+interface StoryboardShotCardStill {
   readonly url: string;
   readonly title: string;
   readonly width?: number;
@@ -482,7 +482,7 @@ export interface StoryboardShotJointProps {
   readonly transition: StoryboardShot['transition'];
 }
 
-export interface StoryboardInspectorShot {
+interface StoryboardInspectorShot {
   readonly durationSeconds: number | null;
   readonly id: string;
   readonly isStillFresh: boolean;

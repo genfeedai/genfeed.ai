@@ -21,13 +21,6 @@ export interface BrandKitTransferCardProps {
   onImported: () => void;
 }
 
-export interface BrandFontPreviewProps {
-  font: BrandFontAssetReadV1;
-  /** The CSS family the font is registered under, once it has loaded. */
-  cssFamily: string | undefined;
-  text: string;
-}
-
 export interface UseBrandFontsResult {
   fonts: BrandFontAssetReadV1[];
   isLoading: boolean;

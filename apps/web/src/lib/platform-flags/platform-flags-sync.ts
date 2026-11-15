@@ -2,7 +2,7 @@
 export const PLATFORM_FLAGS_REFRESH_INTERVAL_MS = 60_000;
 
 /** Event and channel name that tells every open tab to re-read the flags. */
-export const PLATFORM_FLAGS_CHANGED = 'genfeed:platform-flags-changed';
+const PLATFORM_FLAGS_CHANGED = 'genfeed:platform-flags-changed';
 
 /**
  * Tell every shell in this browser — this tab and the others — that an

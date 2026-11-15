@@ -5,10 +5,10 @@ export type CatalogSource = 'all' | 'installed' | 'available';
 export type DataSource = 'templates' | 'systemCatalog' | 'featured';
 export type DataSourceStatus = 'loading' | 'ready' | 'error';
 
-export type ActionErrorKey = 'bootstrap' | 'install' | 'copyFeatured';
+type ActionErrorKey = 'bootstrap' | 'install' | 'copyFeatured';
 
 /** Copy is resolved at render, so a stored error follows the active locale. */
-export type ActionError = {
+type ActionError = {
   detail?: string;
   key: ActionErrorKey;
 };

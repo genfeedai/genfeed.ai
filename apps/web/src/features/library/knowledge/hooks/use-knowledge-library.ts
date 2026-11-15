@@ -15,7 +15,7 @@ import { useCallback, useEffect } from 'react';
 
 const UNSAFE_ID_CHAR_PATTERN = /[^A-Za-z0-9_-]/;
 
-export const KNOWLEDGE_LIBRARY_PAGE_SIZE = 25;
+const KNOWLEDGE_LIBRARY_PAGE_SIZE = 25;
 /** How often the list re-reads while a capture is still being processed. */
 export const KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS = 4_000;
 

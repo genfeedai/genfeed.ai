@@ -66,8 +66,8 @@ export const ANALYTICS_APP_PATH_ROOTS: readonly AppRailPathRoots[] = [
   },
 ];
 
-export const ANALYTICS_APP_SETTINGS = 'settings';
-export const ANALYTICS_APP_OTHER = 'other';
+const ANALYTICS_APP_SETTINGS = 'settings';
+const ANALYTICS_APP_OTHER = 'other';
 export const ANALYTICS_APP_PUBLIC = 'public';
 
 /** `/settings/*` (personal) or `/:org/~/settings/*` and `/:org/:brand/settings/*`. */

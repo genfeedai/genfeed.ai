@@ -1,6 +1,6 @@
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 
-export interface BrandSwitcherClearSelectionAction {
+interface BrandSwitcherClearSelectionAction {
   ariaLabel?: string;
   onSelect: () => void;
 }

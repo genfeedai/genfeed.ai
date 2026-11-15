@@ -40,7 +40,7 @@ export interface ActiveWorkspaceSurfaceAdapter {
   readonly registration: WorkspaceSurfaceAdapterRegistration;
 }
 
-export interface WorkspaceSurfaceComposerReference {
+interface WorkspaceSurfaceComposerReference {
   readonly label: string;
   readonly reference: AgentArtifactReference;
 }

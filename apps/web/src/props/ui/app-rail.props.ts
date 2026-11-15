@@ -20,13 +20,13 @@ import type {
   RefObject,
 } from 'react';
 
-export interface AppRailNavigationTarget {
+interface AppRailNavigationTarget {
   announcement?: string;
   href: string;
 }
 
 /** Count pill on one rail item, e.g. unread Messages conversations. */
-export interface AppRailBadge {
+interface AppRailBadge {
   count: number;
   kind?: 'count' | 'dot';
   /** Accessible description of the count, already localized. */

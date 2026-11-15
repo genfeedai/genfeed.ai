@@ -32,13 +32,6 @@ export interface TrendingSoundsProps {
   className?: string;
 }
 
-export interface PlatformTrendsTabsProps {
-  selectedPlatform: string;
-  onPlatformChange: (platform: string) => void;
-  platforms?: string[];
-  className?: string;
-}
-
 export interface SocialMediaPlayerProps {
   contentType: string;
   mediaUrl?: string | null;

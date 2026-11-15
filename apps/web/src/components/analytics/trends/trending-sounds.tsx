@@ -217,5 +217,3 @@ export function TrendingSounds({
     </div>
   );
 }
-
-export default TrendingSounds;

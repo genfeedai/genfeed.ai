@@ -4,7 +4,7 @@ export type OAuthDecisionResponse = {
   redirectUrl?: string;
 };
 
-export type ConsentDecision = 'approved' | 'denied';
+type ConsentDecision = 'approved' | 'denied';
 
 export type ConsentState = {
   error: string | null;

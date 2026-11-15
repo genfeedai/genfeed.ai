@@ -28,10 +28,10 @@ import {
   onForeground,
 } from '@/hooks/utils/on-foreground/on-foreground';
 
-export const LIVE_ACTIVITY_LIMIT = 50;
+const LIVE_ACTIVITY_LIMIT = 50;
 export const ACTIVITY_RECONCILE_MS = 15_000;
 /** A connect-time reconcile skips activity reads newer than this. */
-export const ACTIVITY_CONNECT_FRESH_MS = 5_000;
+const ACTIVITY_CONNECT_FRESH_MS = 5_000;
 const REFRESH_EVENTS = [
   'background-task-update',
   'ingredient-status',

@@ -1,4 +1,4 @@
-export interface SeriesChartSeries {
+interface SeriesChartSeries {
   /** CSS color, e.g. `hsl(var(--foreground))`. */
   color: string;
   /** Key of the value on each data point. */
