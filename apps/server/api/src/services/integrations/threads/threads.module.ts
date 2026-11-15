@@ -1,3 +1,4 @@
+import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { ThreadsController } from '@api/services/integrations/threads/controllers/threads.controller';
@@ -9,7 +10,12 @@ import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(ThreadsService, {
-  additionalImports: [HttpModule, BrandsCoreModule, CredentialsCoreModule],
+  additionalImports: [
+    HttpModule,
+    BrandsCoreModule,
+    CredentialsCoreModule,
+    ActivitiesModule,
+  ],
 });
 
 @Module({

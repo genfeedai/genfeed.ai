@@ -19,6 +19,7 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
 }));
 
 import { SERVER_TOKENS } from '@api/server.dependencies';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import {
   type ThreadsCarouselMediaItem,
   ThreadsContainerStatus,
@@ -38,7 +39,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const MOCK_CREDENTIAL = {
   id: 'credential-1',
   accessToken: 'enc-access-token',
+  externalHandle: 'vincentshipsit',
   externalId: 'threads-user-1',
+  userId: 'user-1',
 };
 
 // ---------------------------------------------------------------------------
@@ -46,6 +49,7 @@ const MOCK_CREDENTIAL = {
 // ---------------------------------------------------------------------------
 describe('ThreadsService (coverage)', () => {
   let service: ThreadsService;
+  let activityRecorder: { record: ReturnType<typeof vi.fn> };
   let credentialsService: {
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
@@ -67,6 +71,7 @@ describe('ThreadsService (coverage)', () => {
       ),
     };
     const httpServiceMock = { get: vi.fn(), post: vi.fn() };
+    activityRecorder = { record: vi.fn().mockResolvedValue({}) };
     const loggerServiceMock = { error: vi.fn(), log: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -88,6 +93,7 @@ describe('ThreadsService (coverage)', () => {
           provide: HttpService,
           useValue: httpServiceMock,
         },
+        { provide: ActivityRecorderService, useValue: activityRecorder },
       ],
     }).compile();
 
@@ -134,6 +140,7 @@ describe('ThreadsService (coverage)', () => {
       expect(credentialsService.patch).toHaveBeenCalledWith('credential-1', {
         isConnected: false,
       });
+      expect(activityRecorder.record).toHaveBeenCalledTimes(1);
     });
 
     it('should refresh the token and patch credential on success', async () => {
@@ -179,19 +186,89 @@ describe('ThreadsService (coverage)', () => {
       );
     });
 
-    it('should patch isConnected=false and rethrow on HTTP error', async () => {
+    it('disconnects the channel and tells the owner when Threads rejects the token', async () => {
       mockCredentialFound();
-      const apiError = new Error('refresh API error');
-      httpService.get.mockReturnValue(throwError(() => apiError));
+      httpService.get.mockReturnValue(
+        throwError(() =>
+          Object.assign(new Error('Request failed with status code 400'), {
+            response: {
+              data: { error: { code: 190, type: 'OAuthException' } },
+              status: 400,
+            },
+          }),
+        ),
+      );
       credentialsService.patch.mockResolvedValue({});
 
       await expect(service.refreshToken('org-1', 'brand-1')).rejects.toThrow(
-        'refresh API error',
+        'Request failed with status code 400',
       );
 
       expect(credentialsService.patch).toHaveBeenCalledWith('credential-1', {
         isConnected: false,
       });
+      expect(activityRecorder.record).toHaveBeenCalledTimes(1);
+      expect(activityRecorder.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          alert: {
+            payload: expect.objectContaining({
+              event: 'channel_disconnected',
+              label: 'vincentshipsit',
+            }),
+          },
+          brandId: 'brand-1',
+          key: 'integration-social-disconnected',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        }),
+      );
+    });
+
+    it.each([
+      ['a network error', new Error('ECONNRESET')],
+      [
+        'a server error',
+        Object.assign(new Error('Bad gateway'), {
+          response: { data: {}, status: 502 },
+        }),
+      ],
+      [
+        'a rate limit',
+        Object.assign(new Error('Too many calls'), {
+          response: {
+            data: { error: { code: 4, type: 'OAuthException' } },
+            status: 400,
+          },
+        }),
+      ],
+    ])(
+      'keeps the channel connected and silent after %s, so a later run retries',
+      async (_label, failure) => {
+        mockCredentialFound();
+        httpService.get.mockReturnValue(throwError(() => failure));
+
+        await expect(service.refreshToken('org-1', 'brand-1')).rejects.toBe(
+          failure,
+        );
+
+        expect(credentialsService.patch).not.toHaveBeenCalled();
+        expect(activityRecorder.record).not.toHaveBeenCalled();
+      },
+    );
+
+    it('records the disconnect once: an already disconnected channel adds nothing', async () => {
+      credentialsService.findOne.mockResolvedValue({
+        ...MOCK_CREDENTIAL,
+        accessToken: null,
+        isConnected: false,
+      });
+
+      await expect(service.refreshToken('org-1', 'brand-1')).rejects.toThrow(
+        'Threads access token not found',
+      );
+
+      expect(credentialsService.patch).not.toHaveBeenCalled();
+      expect(activityRecorder.record).not.toHaveBeenCalled();
     });
   });
 
