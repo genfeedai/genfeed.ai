@@ -3,7 +3,7 @@
  * per seat, so an hourly sweep lands it within the hour without scanning the
  * seats every minute.
  */
-export const LIFETIME_DEAL_CREDIT_GRANT_INTERVAL_MINUTES = 60;
+const LIFETIME_DEAL_CREDIT_GRANT_INTERVAL_MINUTES = 60;
 export const LIFETIME_DEAL_CREDIT_GRANT_SCHEDULE = '0 * * * *';
 
 /** Held for less than one interval so a crashed sweep never skips two ticks. */

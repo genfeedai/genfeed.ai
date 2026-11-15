@@ -1,8 +1,4 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import {
-  type PaidSubscriptionSnapshot,
-  resolveOrganizationPaidGrant,
-} from '@api/common/subscriptions/paid-subscription-access.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { ActivitySource, SubscriptionPlan } from '@genfeedai/contracts';
@@ -17,26 +13,16 @@ import {
 } from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const SEAT_CLAIM_LOCK_KEY = 'lifetime-deal:seat-claim';
 const UNIQUE_CONSTRAINT_ERROR_CODE = 'P2002';
 
-export interface LifetimeDealAvailability {
-  claimed: number;
-  remaining: number;
-  total: number;
-}
-
 export interface LifetimeSeatClaimInput {
   monthlyCredits: number;
   organizationId: string;
-  stripeCheckoutSessionId: string;
+  sourceReference: string;
   userId: string;
 }
 
@@ -69,45 +55,6 @@ export class LifetimeDealService {
     private readonly logger: LoggerService,
   ) {}
 
-  async getAvailability(): Promise<LifetimeDealAvailability> {
-    const claimed = await this.prisma.lifetimeDealSeat.count();
-    return {
-      claimed,
-      remaining: Math.max(0, LIFETIME_DEAL_SEAT_CAP - claimed),
-      total: LIFETIME_DEAL_SEAT_CAP,
-    };
-  }
-
-  async isLifetimeOrganization(organizationId: string): Promise<boolean> {
-    const seat = await this.prisma.lifetimeDealSeat.findUnique({
-      select: { id: true },
-      where: { organizationId },
-    });
-    return seat !== null;
-  }
-
-  /**
-   * Rejects a lifetime checkout the organization cannot complete: every seat
-   * is taken, or it already pays through a subscription. Seats are claimed
-   * only after payment, so this check keeps a buyer from paying into a race
-   * they can already see they would lose; the claim itself stays the cap.
-   */
-  async assertSeatPurchasable(
-    subscription: PaidSubscriptionSnapshot | null,
-  ): Promise<void> {
-    if (
-      subscription &&
-      resolveOrganizationPaidGrant([subscription], null, new Date())
-    ) {
-      throw new BadRequestException(
-        'This organization already has a paid plan. Cancel it before buying the lifetime plan.',
-      );
-    }
-    if ((await this.getAvailability()).remaining === 0) {
-      throw new ConflictException('All lifetime seats are taken.');
-    }
-  }
-
   /**
    * Claims the next seat for a paid checkout session. Safe to replay: the
    * same session returns its existing seat, and the 101st payer gets
@@ -116,13 +63,14 @@ export class LifetimeDealService {
    */
   async claimSeat(input: LifetimeSeatClaimInput): Promise<LifetimeSeatClaim> {
     return await this.prisma.$transaction(async (tx) => {
+      // sql-risk-audit: ignore raw-sql-review -- Takes a transaction-scoped advisory lock on a constant key; no table, tenant data or index is read.
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${SEAT_CLAIM_LOCK_KEY}, 0))::text`;
 
       const existing = await tx.lifetimeDealSeat.findFirst({
         select: { id: true, seatNumber: true },
         where: {
           OR: [
-            { stripeCheckoutSessionId: input.stripeCheckoutSessionId },
+            { sourceReference: input.sourceReference },
             { organizationId: input.organizationId },
           ],
         },
@@ -150,7 +98,7 @@ export class LifetimeDealService {
           nextCreditGrantAt: now,
           organizationId: input.organizationId,
           seatNumber: (highest._max.seatNumber ?? 0) + 1,
-          stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+          sourceReference: input.sourceReference,
         },
         select: { id: true, seatNumber: true },
       });
@@ -208,7 +156,11 @@ export class LifetimeDealService {
         data: {
           nextCreditGrantAt: nextLifetimeGrantDate(seat.nextCreditGrantAt),
         },
-        where: { id: seat.id, nextCreditGrantAt: seat.nextCreditGrantAt },
+        where: {
+          id: seat.id,
+          nextCreditGrantAt: seat.nextCreditGrantAt,
+          organizationId: seat.organizationId,
+        },
       });
       if (advanced.count === 0) {
         break;
@@ -223,6 +175,7 @@ export class LifetimeDealService {
     cursor: string | undefined,
     take: number,
   ): Promise<string[]> {
+    // sql-risk-audit: ignore unbounded-read -- Paged by `take` and an id cursor; the table holds at most the seat cap.
     const seats = await this.prisma.lifetimeDealSeat.findMany({
       orderBy: { id: 'asc' },
       select: { id: true },
@@ -285,7 +238,10 @@ export class LifetimeDealService {
       where: scopedWhere(input.organizationId),
     });
     if (existing) {
-      await tx.subscription.update({ data, where: { id: existing.id } });
+      await tx.subscription.update({
+        data,
+        where: scopedWhere(input.organizationId, { id: existing.id }),
+      });
       return;
     }
     await tx.subscription.create({

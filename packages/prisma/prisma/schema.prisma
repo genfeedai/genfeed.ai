@@ -4469,8 +4469,8 @@ model LifetimeDealSeat {
   organizationId          String       @unique
   organization            Organization @relation(fields: [organizationId], references: [id])
   seatNumber              Int          @unique
-  /// The paid Checkout Session; one payment backs at most one seat.
-  stripeCheckoutSessionId String       @unique
+  /// The seller's reference for the sale, such as a license key; one sale backs at most one seat.
+  sourceReference         String       @unique
   monthlyCredits          Int
   /// When the next monthly credit grant is due. Advanced one month after each grant.
   nextCreditGrantAt       DateTime
