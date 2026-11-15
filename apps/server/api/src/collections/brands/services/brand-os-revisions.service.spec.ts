@@ -1140,6 +1140,39 @@ describe('BrandOsRevisionsService', () => {
       const created = await service.create(ORG, BRAND, draft());
       expect(created.content.video).toEqual(video);
     });
+
+    it('drops an inherited caption font the new draft no longer has', async () => {
+      const approved = row('rev-1', 1, BrandOsRevisionStatus.APPROVED);
+      const withFont = {
+        ...video,
+        captions: { ...video.captions, typographyRuleId: 'font-rule' },
+      } as NonNullable<IBrandKitDraft['video']>;
+      approved.content = {
+        ...draft(),
+        video: withFont,
+      } as unknown as Prisma.JsonValue;
+      const { service } = harness([approved]);
+      const created = await service.create(ORG, BRAND, draft());
+      expect(created.content.video?.captions).toEqual(video.captions);
+    });
+
+    it('rejects a shot rule id that collides with a provisional palette rule', async () => {
+      const { service } = harness();
+      const content = draft();
+      content.fields.primaryColor = {
+        ...(content.fields.primaryColor as NonNullable<
+          IBrandKitDraft['fields']['primaryColor']
+        >),
+        currentValue: '#112233',
+      };
+      const colliding = {
+        ...video,
+        shotRules: [{ ...video.shotRules[0], id: 'palette_primary' }],
+      };
+      await expect(
+        service.create(ORG, BRAND, { ...content, video: colliding }),
+      ).rejects.toThrow('Invalid Brand OS video identity');
+    });
   });
 
   it('persists a claim as draft v1 and follows the complete approval and revision lifecycle', async () => {

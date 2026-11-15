@@ -1,6 +1,7 @@
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { rulesOwnerVideoJoins } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -13,7 +14,10 @@ import {
   buildBrandVideoFinishing,
   parseBrandVideoFinishing,
 } from '@genfeedai/contracts/api-types/contracts/brand-video-finishing.contract';
-import { isOwnerVideoRulesValid } from '@genfeedai/contracts/api-types/contracts/brand-video-identity.contract';
+import {
+  isOwnerVideoRulesValid,
+  reconcileOwnerVideoRules,
+} from '@genfeedai/contracts/api-types/contracts/brand-video-identity.contract';
 import { brandVideoRulesV1Schema } from '@genfeedai/contracts/api-types/contracts/brand-video-rules.contract';
 import type {
   IBrandKitDraft,
@@ -509,7 +513,10 @@ export class BrandOsRevisionsService {
       | undefined;
     const next = { ...content };
     const video = brandVideoRulesV1Schema.safeParse(approvedContent?.video);
-    if (next.video === undefined && video.success) next.video = video.data;
+    const inherited = video.success
+      ? reconcileOwnerVideoRules(rulesOwnerVideoJoins(next), video.data)
+      : undefined;
+    if (next.video === undefined && inherited) next.video = inherited;
     if (next.finishing !== undefined) return next;
     const carried = parseBrandVideoFinishing(approvedContent?.finishing);
     if (carried) return { ...next, finishing: carried };
@@ -866,7 +873,7 @@ export class BrandOsRevisionsService {
       const video = brandVideoRulesV1Schema.safeParse(content.video);
       if (
         !video.success ||
-        !isOwnerVideoRulesValid(content.generationRules, video.data)
+        !isOwnerVideoRulesValid(rulesOwnerVideoJoins(content), video.data)
       )
         throw new BadRequestException('Invalid Brand OS video identity');
       normalized.video = video.data;

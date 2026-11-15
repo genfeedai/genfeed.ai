@@ -150,6 +150,20 @@ function synthesizeProvisionalRules(
 }
 
 /**
+ * The rules the owner's video section joins at projection: the saved ones, or
+ * the provisional rules built from the draft fields. Undefined when the fields
+ * are unreadable, which the video checks treat as no rules at all.
+ */
+export function rulesOwnerVideoJoins(content: {
+  fields: unknown;
+  generationRules?: BrandGenerationRulesV1;
+}): BrandGenerationRulesV1 | undefined {
+  if (content.generationRules) return content.generationRules;
+  const parsed = provisionalContent.shape.fields.safeParse(content.fields);
+  return parsed.success ? synthesizeProvisionalRules(parsed.data) : undefined;
+}
+
+/**
  * Font roles become typography rules. An uploaded font is an owned asset the
  * renderer stages by its approved hash; a preset font is named only. A brand
  * without a body role keeps the single font family it always had.

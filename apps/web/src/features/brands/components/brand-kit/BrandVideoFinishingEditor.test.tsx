@@ -108,6 +108,37 @@ describe('BrandVideoFinishingEditor', () => {
     expect(screen.getByText('No LUT uploaded yet.')).toBeInTheDocument();
   });
 
+  it('keeps a watermark edit made while the LUT is being removed', async () => {
+    let finishRemoval: () => void = () => undefined;
+    mocks.removeLut.mockReturnValue(
+      new Promise<void>((resolve) => {
+        finishRemoval = resolve;
+      }),
+    );
+    renderEditor({ isLutEnabled: true, lutFileName: 'warm.cube' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove LUT' }));
+    fireEvent.change(screen.getByLabelText('Size (% of width)'), {
+      target: { value: '12' },
+    });
+    finishRemoval();
+
+    expect(await screen.findByRole('status')).toHaveTextContent('LUT removed.');
+    expect(screen.getByLabelText('Size (% of width)')).toHaveValue(12);
+  });
+
+  it('shows an error and allows a retry when removing the LUT fails', async () => {
+    mocks.removeLut.mockRejectedValueOnce(new Error('offline'));
+    renderEditor({ isLutEnabled: true, lutFileName: 'warm.cube' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove LUT' }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText('warm.cube')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove LUT' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('LUT removed.');
+  });
+
   it('switches the colour grade off after the LUT is removed', async () => {
     renderEditor({ isLutEnabled: true, lutFileName: 'warm.cube' });
     expect(screen.getByText('warm.cube')).toBeInTheDocument();

@@ -123,8 +123,13 @@
       "lutFile": "LUT file",
       "watermarkText": "Watermark text",
       "watermarkLogo": "Watermark logo",
+      "watermarkLightLogo": "Watermark logo (light)",
+      "watermarkLiveLogo": "Watermark logo (live)",
       "watermarkPosition": "Watermark position",
-      "watermarkOpacity": "Watermark opacity (%)"
+      "watermarkOpacity": "Watermark opacity (%)",
+      "watermarkSize": "Watermark size (% of width)",
+      "watermarkInsetX": "Watermark distance from the side (% of width)",
+      "watermarkInsetY": "Watermark distance from top or bottom (% of width)"
     }
   }
 }

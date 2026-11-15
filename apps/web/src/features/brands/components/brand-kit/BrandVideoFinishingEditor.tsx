@@ -22,7 +22,7 @@ import {
 import { Slider } from '@ui/primitives/slider';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
-import { type ChangeEvent, useState } from 'react';
+import { type ChangeEvent, useRef, useState } from 'react';
 import type { BrandVideoFinishingEditorProps } from '@/features/brands/props/brand-video-kit.props';
 import BrandVideoLogoSelect from './BrandVideoLogoSelect';
 
@@ -61,6 +61,9 @@ export default function BrandVideoFinishingEditor({
     BrandsService.getInstance(token),
   );
   const [isLutBusy, setIsLutBusy] = useState(false);
+  // Edits made while a LUT request is in flight must survive its completion.
+  const latestFinishing = useRef(finishing);
+  latestFinishing.current = finishing;
   const [lutStatus, setLutStatus] = useState<LutStatus | null>(null);
   const { endCard, lut, watermark } = finishing;
   const hasLut = Boolean(brand.lutFileName);
@@ -279,7 +282,7 @@ export default function BrandVideoFinishingEditor({
                   void runLut('removed', async (service) => {
                     await service.removeLut(brandId);
                     onChange({
-                      ...finishing,
+                      ...latestFinishing.current,
                       lut: { isEnabled: false },
                     });
                   });

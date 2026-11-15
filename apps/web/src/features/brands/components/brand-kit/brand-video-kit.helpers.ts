@@ -84,6 +84,10 @@ export function emptyVideoRules(): BrandVideoRulesV1 {
 
 type VideoKitFlat = Record<string, BrandVideoKitValue>;
 
+function percentOrNull(ratio: number | undefined): number | null {
+  return ratio === undefined ? null : Math.round(ratio * 10000) / 100;
+}
+
 function flatten(content: IBrandKitDraft | null): {
   video: VideoKitFlat;
   finishing: VideoKitFlat;
@@ -114,14 +118,24 @@ function flatten(content: IBrandKitDraft | null): {
           lutFile: finishing.lut.fileName ?? null,
           watermarkText: finishing.watermark.text ?? null,
           watermarkLogo: finishing.watermark.logoId ?? null,
+          watermarkLightLogo: finishing.watermark.lightLogoId ?? null,
+          watermarkLiveLogo: finishing.watermark.liveLogoId ?? null,
           watermarkPosition: finishing.watermark.position,
           watermarkOpacity: Math.round(finishing.watermark.opacity * 100),
+          watermarkSize: percentOrNull(finishing.watermark.sizeRatio),
+          watermarkInsetX: percentOrNull(finishing.watermark.insetXRatio),
+          watermarkInsetY: percentOrNull(finishing.watermark.insetYRatio),
         }
       : {},
   };
 }
 
-const IMAGE_KEYS = new Set(['endCardImage', 'watermarkLogo']);
+const IMAGE_KEYS = new Set([
+  'endCardImage',
+  'watermarkLogo',
+  'watermarkLightLogo',
+  'watermarkLiveLogo',
+]);
 
 function sameValue(a: BrandVideoKitValue, b: BrandVideoKitValue): boolean {
   return JSON.stringify(a) === JSON.stringify(b);

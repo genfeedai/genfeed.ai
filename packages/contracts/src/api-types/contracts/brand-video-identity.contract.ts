@@ -64,3 +64,32 @@ export function isOwnerVideoRulesValid(
     mergeOwnerVideoRules(rules ?? EMPTY_BRAND_GENERATION_RULES, video),
   ).success;
 }
+
+/**
+ * An approved video section inherited by a draft with different rules can lose
+ * what it points at. Drops the typography and logo references that no longer
+ * resolve, and returns undefined when the section is still invalid.
+ */
+export function reconcileOwnerVideoRules(
+  rules: BrandGenerationRulesV1 | undefined,
+  video: BrandVideoRulesV1,
+): BrandVideoRulesV1 | undefined {
+  const known = rules ?? EMPTY_BRAND_GENERATION_RULES;
+  const { captions, logoPlacement } = video;
+  const fontId = captions?.typographyRuleId;
+  const logoId = logoPlacement?.assetReferenceId;
+  const next: BrandVideoRulesV1 = { ...video };
+  if (captions && fontId && !known.typography.some((t) => t.id === fontId)) {
+    const { typographyRuleId: _dropped, ...rest } = captions;
+    next.captions = rest;
+  }
+  if (
+    logoPlacement &&
+    logoId &&
+    !known.assets.some((a) => a.id === logoId && a.role === 'logo')
+  ) {
+    const { assetReferenceId: _dropped, ...rest } = logoPlacement;
+    next.logoPlacement = rest;
+  }
+  return isOwnerVideoRulesValid(rules, next) ? next : undefined;
+}

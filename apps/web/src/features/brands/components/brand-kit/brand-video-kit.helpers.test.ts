@@ -122,6 +122,27 @@ describe('diffVideoKit', () => {
     ]);
   });
 
+  it.each([
+    [{ lightLogoId: 'asset-9' }, 'watermarkLightLogo', 'image'],
+    [{ liveLogoId: 'asset-9' }, 'watermarkLiveLogo', 'image'],
+    [{ sizeRatio: 0.1 }, 'watermarkSize', 10],
+    [{ insetXRatio: 0.05 }, 'watermarkInsetX', 5],
+    [{ insetYRatio: 0.235 }, 'watermarkInsetY', 23.5],
+  ])('reports a changed watermark %j as %s', (patch, key, after) => {
+    const changed = draft({
+      finishing: {
+        ...FINISHING,
+        watermark: { ...FINISHING.watermark, ...patch },
+      },
+    });
+    expect(
+      diffVideoKit(draft({ finishing: FINISHING }), changed).map((change) => ({
+        after: change.after,
+        key: change.key,
+      })),
+    ).toEqual([{ after, key }]);
+  });
+
   it('skips finishing when the approved revision predates it', () => {
     expect(diffVideoKit(draft(), draft({ finishing: FINISHING }))).toEqual([]);
   });
