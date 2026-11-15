@@ -451,6 +451,32 @@ describe('AgentThreadsController', () => {
   });
 
   describe('getMessages', () => {
+    it('limits a shared viewer to the brands they may read history from (#10148)', async () => {
+      accessService.assertAccess.mockResolvedValueOnce({
+        accessLevel: 'view',
+        canManageShares: false,
+        historyBrandIds: ['brand-b'],
+        thread: { userId: 'someone-else' },
+      });
+      messagesService.getMessagesPage.mockResolvedValue({
+        docs: [],
+        hasMore: false,
+        nextCursor: null,
+      });
+
+      await controller.getMessages(
+        { originalUrl: '/v1/agent/threads/thread-1/messages' } as never,
+        'thread-1',
+        mockUser,
+      );
+
+      expect(messagesService.getMessagesPage).toHaveBeenCalledWith(
+        'thread-1',
+        'org_current',
+        { brandIds: ['brand-b'], cursor: undefined, limit: 50 },
+      );
+    });
+
     it('forwards the cursor and computed limit to getMessagesPage, org-scoped', async () => {
       messagesService.getMessagesPage.mockResolvedValue({
         docs: [],
@@ -667,10 +693,13 @@ describe('AgentThreadsController', () => {
 
       expect(
         messagesService.resolveMessageArtifactReferences,
-      ).toHaveBeenCalledWith('thread-id', 'message-id', 'org_current', {
-        client: 'api',
-        deployment: 'server',
-      });
+      ).toHaveBeenCalledWith(
+        'thread-id',
+        'message-id',
+        'org_current',
+        { client: 'api', deployment: 'server' },
+        undefined,
+      );
     });
   });
 
