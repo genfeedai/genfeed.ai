@@ -1,12 +1,14 @@
 # YouTube Warmup Skill
 
-Expert YouTube channel warmup guide — engagement plans, channel optimization, Day 7-10 warmup Shorts content, SEO-first setup, thumbnail briefs, and post-warmup assessment for new channels before scaling to long-form content.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Guide YouTube channel warmup with engagement plans, warmup Shorts content, SEO setup, channel optimization, and post-warmup assessment frameworks
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill youtube-warmup
 ```
+<!-- generated:end -->
 
 ## Usage
 

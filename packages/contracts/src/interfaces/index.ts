@@ -292,6 +292,7 @@ export * from './marketplace/seller.interface';
 export * from './modals/error-debug.interface';
 export * from './modals/file-upload-status.interface';
 export * from './modals/platform-submission-status.interface';
+export * from './models/model-scan-report.interface';
 export * from './models/models-context.interface';
 export * from './models/trainings-context.interface';
 export * from './notifications/activity-alert-policy.interface';

@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Write a LinkedIn text post: story, insight, contrarian, listicle, celebration or objection-based thought leadership."
+  tags: linkedin, social-media, content-creation, professional, b2b, thought-leadership
+  outputs: text
+  triggers: "write a linkedin post; thought leadership post; professional post; linkedin update; compose linkedin post"
 ---
 
 # LinkedIn Post

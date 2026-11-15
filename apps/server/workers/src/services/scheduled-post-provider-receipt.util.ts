@@ -123,7 +123,7 @@ function readIngredientIds(post: PostEntity): string[] {
  * its schedule and its publishable content. Retries keep the key; a reapproval,
  * reschedule or content edit starts a new occurrence.
  */
-export function providerPublishOccurrenceKey(post: PostEntity): string {
+function providerPublishOccurrenceKey(post: PostEntity): string {
   return createHash('sha256')
     .update(
       JSON.stringify([

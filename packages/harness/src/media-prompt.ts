@@ -90,15 +90,11 @@ function isTransparentBackground(line: string): boolean {
   );
 }
 
-function selectVisualCues(
-  brief: ContentHarnessBrief,
-  options: { shouldKeepPolicy: boolean } = { shouldKeepPolicy: true },
+function toVisualCues(
+  lines: string[],
+  options: { shouldKeepPolicy: boolean },
 ): string[] {
-  const cues = [
-    ...brief.styleDirectives,
-    ...brief.systemDirectives,
-    ...brief.guardrails,
-  ]
+  const cues = lines
     .filter(isVisualCue)
     .filter(
       (line) =>
@@ -106,7 +102,17 @@ function selectVisualCues(
     )
     .filter((line) => !isTransparentBackground(line))
     .map((line) => toSentence(humanizeCue(line)));
-  return [...new Set(cues)].slice(0, MAX_VISUAL_CUES);
+  return [...new Set(cues)];
+}
+
+function selectVisualCues(
+  brief: ContentHarnessBrief,
+  options: { shouldKeepPolicy: boolean } = { shouldKeepPolicy: true },
+): string[] {
+  return toVisualCues(
+    [...brief.styleDirectives, ...brief.systemDirectives, ...brief.guardrails],
+    options,
+  ).slice(0, MAX_VISUAL_CUES);
 }
 
 /**
@@ -349,6 +355,49 @@ function buildMusicHarnessSuffix(brief: ContentHarnessBrief): string {
     "Brand guidance for sound (advisory): the prompt's genre/style, lyrics and instrumental choice take precedence. Do not infer a genre from the brand, and never sing brand names, facts or these notes.",
     ...lines,
   ].join('\n');
+}
+
+const MAX_ENHANCER_LOOK_CUES = 8;
+const MAX_ENHANCER_AVOID_CUES = 6;
+
+/**
+ * The media-relevant part of a brief, for the enhancer's system content: the
+ * palette in plain colour words, the authored look, and what to avoid. Voice,
+ * copy rules, hex codes and fonts stay out, as in the prompt suffix, so the
+ * rewrite is written with the brand in view without a model rendering copy
+ * guidance as scene content. Empty when the brief has nothing visual.
+ */
+export function buildMediaEnhancerBrief(
+  brief: ContentHarnessBrief | null | undefined,
+): string {
+  if (!brief || brief.metadata.contentType === 'music') return '';
+  const palette = selectMotionPalette(brief);
+  const isLookLine = (line: string) =>
+    !PALETTE_LINE.test(line) && !FONT_LINE.test(line);
+  const look = toVisualCues(
+    [...brief.styleDirectives, ...brief.systemDirectives],
+    { shouldKeepPolicy: false },
+  )
+    .filter(isLookLine)
+    .slice(0, MAX_ENHANCER_LOOK_CUES);
+  const avoid = toVisualCues(brief.guardrails, { shouldKeepPolicy: false })
+    .filter((line) => isLookLine(line) && !look.includes(line))
+    .slice(0, MAX_ENHANCER_AVOID_CUES);
+  const sections = [
+    palette.length > 0 ? `Palette: ${palette.join(' and ')}.` : '',
+    look.length > 0
+      ? `Look:\n${look.map((line) => `- ${line}`).join('\n')}`
+      : '',
+    avoid.length > 0
+      ? `Avoid:\n${avoid.map((line) => `- ${line}`).join('\n')}`
+      : '',
+  ].filter(Boolean);
+  return sections.length > 0
+    ? [
+        'Brand brief for this media (let it shape the look of the scene; never quote it or render it as text):',
+        ...sections,
+      ].join('\n')
+    : '';
 }
 
 /**

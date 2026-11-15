@@ -39,11 +39,6 @@ export type QuotaCheckResult = {
   dailyLimit: number;
 };
 
-export type QueuedPostPublishSkip = {
-  reason: 'not_eligible';
-  skipped: true;
-};
-
 export function getPublishErrorMessage(error: unknown): string {
   return getErrorMessage(error, {
     fallback: (value) => String(value || 'Post failed'),

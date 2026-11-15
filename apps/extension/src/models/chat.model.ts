@@ -1,5 +1,6 @@
 import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
-export interface ChatMessageMetadata {
+
+interface ChatMessageMetadata {
   artifactReferences?: AgentArtifactReference[];
   generatedContent?: string;
   contentType?: string;
@@ -11,7 +12,7 @@ export interface ChatMessageMetadata {
   reviewRequired?: boolean;
 }
 
-export interface ProposedPlan {
+interface ProposedPlan {
   content?: string;
   steps?: { status?: string; step?: string }[];
 }

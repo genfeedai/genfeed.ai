@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Generate optimized image and video prompts for AI generation"
+  tags: prompt, image-generation, video-generation, ai, creative
+  outputs: json, text
+  triggers: "generate a prompt for; write me a prompt; create an image prompt; create a video prompt; optimize this prompt; improve this prompt; make a prompt for; prompt for generating"
 ---
 
 # Prompt Generator

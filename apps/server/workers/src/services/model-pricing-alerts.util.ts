@@ -4,14 +4,19 @@ import type { ModelPricingRateChange } from '@genfeedai/contracts/interfaces';
 /** A provider changed a price; the approved rate keeps charging. */
 export interface ModelPriceChangeAlert {
   changes: ModelPricingRateChange[];
+  /** The new provider cost is above our current sell price. */
+  isUrgent: boolean;
   modelKey: string;
   pendingRateHash: string;
   provider: string;
   sourceUrl: string | null;
+  urgentReason: string | null;
 }
 
 /** A reviewed model's price refresh failed, so its last approved rate is unconfirmed. */
 export interface ModelPricingUnavailableAlert {
+  /** Sync failure code, for example `rates_unavailable:unmapped_metric:gpu_seconds`. */
+  code: string;
   modelKey: string;
   provider: string;
   reason: string;

@@ -1,12 +1,14 @@
 # Competitor Analyzer
 
-Audit competitors' content programs to find topic, format, channel, engagement, and differentiation opportunities.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Audit competitors' content strategy, formats, topics, and engagement gaps
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill competitor-analyzer
 ```
+<!-- generated:end -->
 
 ## Usage
 

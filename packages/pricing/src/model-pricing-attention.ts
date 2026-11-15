@@ -229,6 +229,23 @@ export function classifyModelPricingAttention(
     }
   }
 
+  // The provider no longer serves the model, or no longer publishes its price.
+  // Neither is retired automatically: an operator names a successor.
+  if (input.providerSyncStatus === 'removed')
+    attention.push({
+      code: 'provider_removed',
+      level: 'red',
+      reason:
+        'The provider no longer serves this model: retire it and name a successor',
+    });
+  else if (input.providerSyncStatus === 'delisted')
+    attention.push({
+      code: 'provider_delisted',
+      level: 'orange',
+      reason:
+        'No public price: the provider took the price page down but still serves the model; decide a successor',
+    });
+
   if (profile.hasPendingRate)
     attention.push({
       code: 'price_change_pending',

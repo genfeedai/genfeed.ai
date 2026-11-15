@@ -1,0 +1,19 @@
+{
+  "name": "motion-video",
+  "version": "1.2.0",
+  "description": "Author a Remotion composition with your own Claude or Codex sub, render it locally and package it as Genfeed Motion-style output, no model API",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "make a motion video",
+    "motion graphic",
+    "animate this",
+    "remotion video",
+    "kinetic typography",
+    "animated explainer",
+    "code-driven video"
+  ],
+  "references": {},
+  "outputs": ["files", "json"],
+  "tags": ["motion", "remotion", "video", "local", "worker", "genfeed"]
+}

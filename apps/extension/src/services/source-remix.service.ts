@@ -113,7 +113,7 @@ async function request(
 }
 
 /** Parses the remix view without letting the document mapper rewrite scene keys. */
-export function parseRemixRun(
+function parseRemixRun(
   payload: unknown,
   workspace: ExtensionWorkspaceSnapshot,
 ): BrandRemixRunView {

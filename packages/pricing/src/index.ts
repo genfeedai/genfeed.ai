@@ -16,6 +16,7 @@
 export * from './agent-chat-margin';
 export * from './crun-provider-credits';
 export * from './generation-credit-calculator';
+export * from './lifetime-deal';
 export * from './live-model-pricing';
 export * from './margin-conversions';
 export * from './model-billable-quote';
@@ -24,6 +25,7 @@ export * from './model-pricing-attention';
 export * from './model-pricing-export';
 export * from './plans-pricing';
 export * from './provider-pricing';
+export * from './provider-rate-margin';
 export * from './reviewed-provider-pricing';
 export * from './reviewed-rate-hash';
 export * from './reviewed-rates';
