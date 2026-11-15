@@ -14,7 +14,6 @@ import type { OrgRootAppPageProps } from '@/props/layout/org-root-app-page.props
 const {
   loadProtectedBootstrapMock,
   notFoundMock,
-  permanentRedirectMock,
   redirectMock,
   renderPostsListPageMock,
   routeContext,
@@ -22,9 +21,6 @@ const {
   loadProtectedBootstrapMock: vi.fn(),
   notFoundMock: vi.fn(() => {
     throw new Error('NEXT_NOT_FOUND');
-  }),
-  permanentRedirectMock: vi.fn((destination: string) => {
-    throw new Error(`NEXT_PERMANENT_REDIRECT:${destination}`);
   }),
   redirectMock: vi.fn((destination: string) => {
     throw new Error(`NEXT_REDIRECT:${destination}`);
@@ -49,7 +45,6 @@ vi.mock('next/navigation', () => ({
     brandSlug: routeContext.brandSlug,
   }),
   notFound: notFoundMock,
-  permanentRedirect: permanentRedirectMock,
   redirect: redirectMock,
 }));
 
@@ -346,28 +341,24 @@ describe('OrgRootAppSurface', () => {
   });
 
   it.each([
-    [{ place: 'trash' }, '/acme/~/library/trash'],
-    [
-      { shelf: 'approved', folder: 'f1' },
-      '/acme/~/library/shelf/approved?folder=f1',
-    ],
-    [
-      { categories: ['IMAGE', 'IMAGE_EDIT'], search: 'hero' },
-      '/acme/~/library/images?search=hero',
-    ],
+    { place: 'trash' },
+    { folder: 'f1', shelf: 'approved' },
+    { categories: ['IMAGE', 'IMAGE_EDIT'], search: 'hero' },
   ])(
-    'permanently moves the legacy library query %j to its route',
-    async (search, destination) => {
-      await expect(
-        OrgRootAppPage({
-          params: Promise.resolve({
-            orgRootApp: 'library',
-            orgSlug: 'acme',
-            segments: ['assets'],
-          }),
-          searchParams: Promise.resolve(search),
+    'renders All assets and ignores the old library query %j',
+    async (search) => {
+      const element = await OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'library',
+          orgSlug: 'acme',
+          segments: ['assets'],
         }),
-      ).rejects.toThrow(`NEXT_PERMANENT_REDIRECT:${destination}`);
+        searchParams: Promise.resolve(search),
+      });
+
+      render(element);
+
+      expect(screen.getByTestId('library-browser')).toBeInTheDocument();
     },
   );
 
@@ -384,7 +375,6 @@ describe('OrgRootAppSurface', () => {
     render(element);
 
     expect(screen.getByTestId('library-browser')).toBeInTheDocument();
-    expect(permanentRedirectMock).not.toHaveBeenCalled();
   });
 
   it('renders org type routes as presets over the unified browser', async () => {
@@ -750,7 +740,6 @@ describe('OrgRootAppSurface', () => {
         searchParams: Promise.resolve({ view }),
       });
 
-      expect(permanentRedirectMock).not.toHaveBeenCalled();
       expect(redirectMock).not.toHaveBeenCalled();
     },
   );

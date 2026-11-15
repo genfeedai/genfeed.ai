@@ -41,9 +41,8 @@ export function DiscoveryReadinessCards({
 
 /**
  * The Desk's "nothing here" state. Mirrors the retired
- * `TrendContentEmptyState`, corrected: the Following link is now
- * `${OVERVIEW}?source=following` (brand-scoped `href`) since Discovery no
- * longer has a standalone `/discovery/following` route.
+ * `TrendContentEmptyState`, corrected: the Following link is the brand-scoped
+ * `/discovery/following` route.
  */
 export function DeskEmptyState({
   followingHref,

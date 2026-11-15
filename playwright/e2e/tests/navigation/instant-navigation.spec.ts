@@ -202,8 +202,8 @@ test('rail navigation paints without waiting for a server render', async ({
 // no rail item is active). The destination's own page must be in the route
 // shell: a page that reads request data at its top level prerenders as an
 // empty hole, and the click waits for the server render with the progress bar
-// running even though the route was prefetched (Library did, until it moved
-// its legacy-query redirect behind a Suspense boundary).
+// running even though the route was prefetched (Library did, while its page
+// read the query string).
 for (const appId of [
   'workspace',
   'agent',
