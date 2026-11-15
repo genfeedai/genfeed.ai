@@ -80,6 +80,9 @@ function resource<T extends { id: string }>(value: T, type: string) {
 }
 
 test.describe('Brand Kit video tab', () => {
+  // Brand OS edits need an owner or admin; the default member role is read-only.
+  test.use({ memberRole: 'admin' });
+
   let brand: VideoBrand;
   let revisions: IBrandOsRevision[];
   let brandWrites: string[];
@@ -224,9 +227,11 @@ test.describe('Brand Kit video tab', () => {
       mimeType: 'image/png',
       name: 'look.png',
     });
-    await expect(authenticatedPage.getByRole('alert')).toContainText(
-      'Choose a .cube file',
-    );
+    await expect(
+      authenticatedPage
+        .getByRole('alert')
+        .filter({ hasText: 'Choose a .cube file' }),
+    ).toBeVisible();
     expect(brandWrites).toEqual([]);
 
     await authenticatedPage.getByLabel('Upload .cube file').setInputFiles({
