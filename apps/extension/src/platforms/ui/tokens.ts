@@ -8,7 +8,7 @@ export const GENFEED_FONT_STACK =
   'TwitterChirp, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
 /** Theme tokens shared by every Genfeed surface injected into a page. */
-export const GENFEED_TOKENS_CSS = `
+const GENFEED_TOKENS_CSS = `
   :host {
     --card: #fff; --border: #cfd9de; --text: #0f1419; --muted: #536471;
     --accent: #1d9bf0; --accent-text: #fff; --hover: #f7f9f9; --error: #f4212e;

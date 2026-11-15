@@ -62,7 +62,7 @@ export function samePublicationCaptureObservation(
   );
 }
 
-export function publicationCaptureSurfaceKind(
+function publicationCaptureSurfaceKind(
   surface: PublicationCaptureSurface,
 ): 'post' | 'reply' {
   return surface.kind === 'x-reply-modal' || surface.kind === 'linkedin-comment'
@@ -74,7 +74,7 @@ export function publicationCaptureSurfaceKind(
  * LinkedIn post carries it only when its permalink URN is already a share/UGC URN, and
  * otherwise (activity URN, or any comment) is recorded by URL alone.
  */
-export function publicationCaptureProviderId(
+function publicationCaptureProviderId(
   platform: PublicationCapturePlatform,
   kind: 'post' | 'reply',
   observedExternalId: string,

@@ -10,7 +10,7 @@ import { useCallback, useReducer, useRef } from 'react';
 import { usePlatformStore } from '~store/use-platform-store';
 import type { TextActionResponse } from '~types/extension';
 
-export type TextActionPhase = 'idle' | 'working' | 'preview' | 'applied';
+type TextActionPhase = 'idle' | 'working' | 'preview' | 'applied';
 
 /** A request that failed in a way the user can retry: same key, same draft. */
 interface FailedTextRequest {
@@ -21,7 +21,7 @@ interface FailedTextRequest {
   snapshotId: string;
 }
 
-export interface TextActionState {
+interface TextActionState {
   error: string | null;
   failedRequest: FailedTextRequest | null;
   mode: TextActionMode | null;

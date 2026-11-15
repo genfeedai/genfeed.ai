@@ -14,11 +14,11 @@ const DIGITS_ONLY_PATTERN = /^\d+$/;
  */
 export const NOT_WRITTEN_BY_GENFEED = 'Not written with Genfeed';
 export const PUBLICATION_WRITTEN_KEY = 'genfeed-publication-written-v1';
-export const PUBLICATION_WRITTEN_LIFETIME_MS = 30 * 60 * 1000;
+const PUBLICATION_WRITTEN_LIFETIME_MS = 30 * 60 * 1000;
 const MAX_WRITTEN_PER_TAB = 10;
 const MAX_WRITTEN_BYTES = 1048576;
 
-export interface PublicationWrittenText {
+interface PublicationWrittenText {
   text: string;
   origin: string;
   scope: PublicationCaptureScope;

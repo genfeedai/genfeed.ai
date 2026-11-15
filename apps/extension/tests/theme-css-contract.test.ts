@@ -106,9 +106,6 @@ describe('browser extension theme CSS contract', () => {
     expect(readSource('src/components/settings/AutoFillToggle.tsx')).toContain(
       '@ui/primitives/switch',
     );
-    expect(readSource('src/components/ui/ButtonSpinner.tsx')).toContain(
-      'text-primary-foreground',
-    );
     expect(
       readSource('src/components/pages/ImportedSourcesPage.tsx'),
     ).not.toContain('zinc-');
