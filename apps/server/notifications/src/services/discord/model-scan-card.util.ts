@@ -30,7 +30,7 @@ const FOOTER =
   'The approved rate keeps charging until an operator approves a change.';
 
 /** True when the run found nothing an operator has to act on. */
-export function isModelScanReportEmpty(report: ModelScanReport): boolean {
+function isModelScanReportEmpty(report: ModelScanReport): boolean {
   return (
     report.priceChanges.length === 0 &&
     report.removedByProvider.length === 0 &&
