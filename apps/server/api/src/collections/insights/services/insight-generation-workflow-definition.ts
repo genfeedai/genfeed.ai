@@ -7,7 +7,7 @@ export const INSIGHT_GENERATION_ACTION_IDS = {
   PERSIST: 'insight.persist-generated',
 } as const;
 
-export const INSIGHT_GENERATION_WORKFLOW_ID = 'insight.generation';
+const INSIGHT_GENERATION_WORKFLOW_ID = 'insight.generation';
 
 export function buildInsightGenerationWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {

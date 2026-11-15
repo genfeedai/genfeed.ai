@@ -84,7 +84,7 @@ export function dataProperties(
   }
   return result;
 }
-export function text(value: unknown, max: number): value is string {
+function text(value: unknown, max: number): value is string {
   return typeof value === 'string' && value.length > 0 && value.length <= max;
 }
 export function id(value: unknown): value is string {
@@ -319,7 +319,7 @@ export function learningPublicationDependencyRefsV1(
     },
   ];
 }
-export function supportedPost(post: LearningPublicationPostRow): boolean {
+function supportedPost(post: LearningPublicationPostRow): boolean {
   return (
     !post.isDeleted &&
     post.targetExecutionState === TargetExecutionState.PUBLISHED &&

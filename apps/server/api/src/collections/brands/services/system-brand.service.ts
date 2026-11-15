@@ -7,7 +7,7 @@ import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 export const SYSTEM_BRAND_ID = 'genfeed-system-brand';
-export const SYSTEM_BRAND_SLUG = 'genfeed-system-brand';
+const SYSTEM_BRAND_SLUG = 'genfeed-system-brand';
 const SYSTEM_BRAND_LABEL = 'Genfeed';
 const SYSTEM_BRAND_DESCRIPTION =
   'Genfeed’s own voice for generation that has no customer brand: system, lifecycle and internal content.';

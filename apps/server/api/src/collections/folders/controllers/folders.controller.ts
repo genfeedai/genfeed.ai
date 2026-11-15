@@ -36,7 +36,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 /** Columns the folders list can be ordered by. */
-export const FOLDER_SORT_FIELDS: readonly string[] = [
+const FOLDER_SORT_FIELDS: readonly string[] = [
   'createdAt',
   'isActive',
   'label',

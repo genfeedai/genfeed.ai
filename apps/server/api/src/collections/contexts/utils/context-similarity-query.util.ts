@@ -9,7 +9,7 @@ import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
 
 /** Weight of the exact-name match in the hybrid score; the vector similarity weighs 1. */
-export const KNOWLEDGE_SEARCH_EXACT_TERM_WEIGHT = 0.5;
+const KNOWLEDGE_SEARCH_EXACT_TERM_WEIGHT = 0.5;
 
 /**
  * Explicit Knowledge search: hybrid keyword + vector ranking, filters and
@@ -19,7 +19,7 @@ export const KNOWLEDGE_SEARCH_EXACT_TERM_WEIGHT = 0.5;
  * loosens. Each row's score is immutable for a given query, so `after` pages
  * deterministically.
  */
-export interface KnowledgeSearchQueryOptions {
+interface KnowledgeSearchQueryOptions {
   after?: KnowledgeSearchPosition;
   exactTerms: string[];
   kinds?: KnowledgeSourceKind[];

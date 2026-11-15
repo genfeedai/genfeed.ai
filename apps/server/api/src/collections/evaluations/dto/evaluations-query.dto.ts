@@ -10,7 +10,7 @@ import { IsEnum, IsOptional } from 'class-validator';
  * `/evaluations/images/:id`, `/evaluations/videos/:id`) and are mapped to the
  * internal `contentType` storage values by the controller.
  */
-export const EVALUATION_ENTITY_TYPES = [
+const EVALUATION_ENTITY_TYPES = [
   'posts',
   'articles',
   'images',

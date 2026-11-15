@@ -86,7 +86,7 @@ export interface ClipEditorHandoffResult {
   videoUrl: string;
 }
 
-export interface PublishAsset {
+interface PublishAsset {
   assetId: string;
   mediaUrl: string;
   mimeType: string;

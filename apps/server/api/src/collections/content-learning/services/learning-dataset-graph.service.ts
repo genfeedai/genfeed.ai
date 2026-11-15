@@ -57,7 +57,7 @@ type GraphEdge = {
 export const nodeKey = (node: DatasetNode) =>
   `${node.kind}\u0000${node.organizationId ?? '\u0001'}\u0000${node.id}`;
 
-export const REWARD_SELECT = {
+const REWARD_SELECT = {
   id: true,
   organizationId: true,
   credentialId: true,

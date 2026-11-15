@@ -21,7 +21,7 @@ export function networkAccountsWhere(brandId?: string) {
 }
 
 /** The label every member sees for the built-in channel. */
-export const GENFEED_PROFILE_CHANNEL_LABEL = 'Genfeed profile';
+const GENFEED_PROFILE_CHANNEL_LABEL = 'Genfeed profile';
 
 export interface GenfeedProfileChannelBrand {
   id: string;

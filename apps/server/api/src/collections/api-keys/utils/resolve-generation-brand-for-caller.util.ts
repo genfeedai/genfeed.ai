@@ -40,13 +40,13 @@ export interface ResolveGenerationBrandApiKeysServiceLike {
   ): Promise<{ defaultBrandId?: unknown; metadata?: unknown } | null>;
 }
 
-export interface ResolveGenerationBrandForCallerServices {
+interface ResolveGenerationBrandForCallerServices {
   readonly apiKeysService: ResolveGenerationBrandApiKeysServiceLike;
   readonly brandsService: ResolveGenerationBrandServiceLike;
   readonly membersService: ResolveGenerationBrandMembersServiceLike;
 }
 
-export interface ResolveGenerationBrandCaller {
+interface ResolveGenerationBrandCaller {
   readonly apiKeyId?: string | null;
   readonly brandId?: string | null;
   readonly id: string;

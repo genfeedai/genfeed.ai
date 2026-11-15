@@ -31,7 +31,7 @@ export interface ScrapedPost {
   hashtags: string[];
 }
 
-export interface ScrapedCreatorProfile {
+interface ScrapedCreatorProfile {
   handle: string;
   displayName: string;
   avatarUrl?: string;

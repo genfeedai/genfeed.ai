@@ -28,7 +28,7 @@ import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 /** A check that started this long ago and never finished is run again. */
-export const SHOT_QA_STALE_MS = 10 * 60_000;
+const SHOT_QA_STALE_MS = 10 * 60_000;
 const HARD_FAILURES = new Set<string>(STORYBOARD_SHOT_QA_HARD_FAILURES);
 
 function needsCheck(op: ShotRenderOperation, now: number): boolean {

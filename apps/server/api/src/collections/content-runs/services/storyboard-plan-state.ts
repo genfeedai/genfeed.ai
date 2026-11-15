@@ -166,7 +166,7 @@ export function editStoryboardPlan(
   });
 }
 
-export function assertStoryboardComplete(plan: StoryboardPlan): void {
+function assertStoryboardComplete(plan: StoryboardPlan): void {
   if (
     plan.runtimeBudgetSeconds === null ||
     plan.shots.length < 2 ||

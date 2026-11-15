@@ -14,7 +14,7 @@ export { BRAND_INTERVIEW_CREDIT_COST } from '@genfeedai/contracts/constants';
  * In-scope storage location for a field: which sub-object on the Brand holds
  * it, or `positioning` for Expert Path answers kept as typed brand memory.
  */
-export type BrandFieldStorage = 'brand' | 'voice' | 'strategy' | 'positioning';
+type BrandFieldStorage = 'brand' | 'voice' | 'strategy' | 'positioning';
 
 export interface BrandFieldMeta {
   group: BrandInterviewGroup;
@@ -64,7 +64,7 @@ export const BRAND_FIELD_META: Record<string, BrandFieldMeta> = {
  * Order = catalog order from spec: identity → voice → strategy.
  * This order determines the sequence in which gaps are asked.
  */
-export const BRAND_INTERVIEW_QUESTION_CATALOG: IBrandInterviewQuestion[] = [
+const BRAND_INTERVIEW_QUESTION_CATALOG: IBrandInterviewQuestion[] = [
   // IDENTITY
   {
     answerType: 'text',
@@ -260,7 +260,7 @@ export const BRAND_INTERVIEW_QUESTION_CATALOG: IBrandInterviewQuestion[] = [
  * organizations; answers persist as typed brand memory and feed the generated
  * harness profile and its `expert-validator` scorecard.
  */
-export const EXPERT_INTERVIEW_QUESTION_CATALOG: (IBrandInterviewQuestion & {
+const EXPERT_INTERVIEW_QUESTION_CATALOG: (IBrandInterviewQuestion & {
   fieldKey: ExpertPositioningFieldKey;
 })[] = [
   {

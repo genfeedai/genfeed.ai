@@ -15,14 +15,14 @@ const NEWLINE_PATTERN = /\n/;
  * `PostAnalytics` snapshots) or posts the brand published elsewhere and
  * imported through its own-account social source.
  */
-export type PerformanceContentOrigin = 'genfeed' | 'imported';
+type PerformanceContentOrigin = 'genfeed' | 'imported';
 
-export type PerformanceDatasetConfidence = 'none' | 'low' | 'medium' | 'high';
+type PerformanceDatasetConfidence = 'none' | 'low' | 'medium' | 'high';
 
 /** Fewer distinct posts than this in the window reads as low confidence. */
-export const PERFORMANCE_DATASET_LOW_MAX_POSTS = 5;
+const PERFORMANCE_DATASET_LOW_MAX_POSTS = 5;
 /** Fewer distinct posts than this in the window reads as medium confidence. */
-export const PERFORMANCE_DATASET_MEDIUM_MAX_POSTS = 20;
+const PERFORMANCE_DATASET_MEDIUM_MAX_POSTS = 20;
 /** Upper bound on imported posts folded into one summary window. */
 const IMPORTED_PERFORMANCE_LIMIT = 500;
 

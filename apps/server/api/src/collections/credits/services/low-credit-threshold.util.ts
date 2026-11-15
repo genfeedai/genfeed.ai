@@ -2,7 +2,7 @@
  * Share of the latest paid grant (a plan period or a credit pack) below which
  * a paying organization is "running low".
  */
-export const PAID_LOW_CREDIT_ALLOWANCE_SHARE = 0.1;
+const PAID_LOW_CREDIT_ALLOWANCE_SHARE = 0.1;
 
 export type LowCreditThresholdInput = {
   /** Price of one image on the organization's default image model. */

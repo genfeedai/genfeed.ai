@@ -10,7 +10,7 @@ const ISO_TIMESTAMP_MS_PATTERN =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 export const FONT_UPLOAD_MAX_BYTES = 4194304;
-export const FONT_UPLOAD_MIN_BYTES = 48;
+const FONT_UPLOAD_MIN_BYTES = 48;
 interface ValidatedBrandFontUpload {
   buffer: Buffer;
   sizeBytes: number;
