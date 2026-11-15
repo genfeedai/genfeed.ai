@@ -60,9 +60,39 @@ describe('PromptEnhancementService', () => {
       'org',
       'selected-brand',
       ['cinema'],
-      { actorUserId: 'user', modality: 'video' },
+      { actorUserId: 'user', modality: 'video', sectionReceipts: [] },
     );
     expect(openRouter.chatCompletion).toHaveBeenCalledOnce();
+  });
+  it('returns what each skill added to the system prompt', async () => {
+    const { service, skills } = setup();
+    skills.resolveGenerationSkillPromptSections.mockImplementation(
+      async (
+        _org: string,
+        _brand: string,
+        _slugs: string[],
+        context: { sectionReceipts: unknown[] },
+      ) => {
+        context.sectionReceipts.push({
+          characters: 12,
+          compilerVersion: 'generation-sections-v1',
+          loadedSections: ['Camera movement'],
+          omittedSections: [],
+          slug: 'cinematic-prompting',
+        });
+        return 'Selected skill';
+      },
+    );
+    const result = await service.enhance({ ...input, contentType: 'video' });
+    expect(result.skillSections).toEqual([
+      {
+        characters: 12,
+        compilerVersion: 'generation-sections-v1',
+        loadedSections: ['Camera movement'],
+        omittedSections: [],
+        slug: 'cinematic-prompting',
+      },
+    ]);
   });
   it('rejects invalid or unresolved selections before a model call', async () => {
     const { service, skills, openRouter } = setup();
@@ -129,7 +159,7 @@ describe('PromptEnhancementService', () => {
       'org',
       'selected-brand',
       ['cinema'],
-      { actorUserId: 'user', modality: 'image' },
+      { actorUserId: 'user', modality: 'image', sectionReceipts: [] },
     );
     expect(openRouter.chatCompletion).toHaveBeenCalledWith(
       {
