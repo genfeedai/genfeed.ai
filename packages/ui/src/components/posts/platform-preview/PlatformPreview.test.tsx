@@ -133,6 +133,36 @@ describe('PlatformPreview', () => {
     ).toEqual(['Slide a', 'Slide b', 'Slide c', 'Slide d', 'Slide e']);
   });
 
+  it('shows which slide a carousel is on and offers only the way forward from the first', () => {
+    render(
+      <PlatformPreview
+        headerPresentation="account"
+        target={{
+          platform: CredentialPlatform.INSTAGRAM,
+          caption: 'Five slides',
+          media: ['a', 'b', 'c', 'd', 'e'].map((slide) => ({
+            id: slide,
+            kind: 'image' as const,
+            url: `/${slide}.png`,
+            alt: `Slide ${slide}`,
+          })),
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId('preview-carousel-counter')).toHaveTextContent(
+      'ui.platformPreview.carouselPosition',
+    );
+    expect(
+      screen.getByRole('button', { name: 'ui.platformPreview.carouselNext' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: 'ui.platformPreview.carouselPrevious',
+      }),
+    ).not.toBeInTheDocument();
+  });
+
   it('keeps compact hover video previews idle until playback is requested', () => {
     const { container } = render(
       <PlatformPreview
