@@ -52,7 +52,7 @@ export const UPSTREAM_SLUGS = [
  * pinned package leaves them out, so the catalog keeps only the instruction
  * files and its extension rule still rejects any other code.
  */
-export const UPSTREAM_LOCAL_TOOLING_PATHS: Readonly<
+const UPSTREAM_LOCAL_TOOLING_PATHS: Readonly<
   Record<string, readonly string[]>
 > = {
   'motion-video': ['scripts', 'templates'],
