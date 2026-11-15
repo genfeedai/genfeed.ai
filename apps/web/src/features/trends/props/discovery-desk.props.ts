@@ -105,8 +105,3 @@ export interface DeskMediaPreviewProps {
   mediaClassName?: string;
   onThumbnailError?: () => void;
 }
-
-export interface DiscoveryOverviewPageProps {
-  params: Promise<{ orgSlug: string; brandSlug?: string }>;
-  searchParams: Promise<{ source?: string }>;
-}
