@@ -1,7 +1,6 @@
 'use client';
 
 import type { IAsset } from '@genfeedai/contracts/interfaces';
-import type { BrandWatermarkLogoSelectProps } from '@props/pages/brand-detail.props';
 import { Label } from '@ui/primitives/label';
 import {
   Select,
@@ -11,9 +10,10 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
+import type { BrandVideoLogoSelectProps } from '@/features/brands/props/brand-video-kit.props';
 
 /** One choice of brand image for a watermark mark. `none` is the empty choice. */
-export default function BrandWatermarkLogoSelect({
+export default function BrandVideoLogoSelect({
   assets,
   brand,
   id,
@@ -22,19 +22,19 @@ export default function BrandWatermarkLogoSelect({
   noneLabel,
   onChange,
   value,
-}: BrandWatermarkLogoSelectProps) {
-  const translate = useTranslations('pages.brandWatermark');
+}: BrandVideoLogoSelectProps) {
+  const t = useTranslations('pages.brandVideoKit');
   const translateSlot = useTranslations('pages.brandKitSettings.slots');
   const logoIds = new Set((brand.logos ?? []).map((logo) => logo.id));
 
   function labelFor(asset: IAsset): string {
     if (logoIds.has(asset.id) && asset.kitSlot) {
-      return translate('logoVariant', {
+      return t('logoVariant', {
         variant: translateSlot(`slot.${asset.kitSlot}`),
       });
     }
-    if (asset.id === brand.logo?.id) return translate('currentLogo');
-    return translate('reference', {
+    if (asset.id === brand.logo?.id) return t('currentLogo');
+    return t('reference', {
       number:
         (brand.references ?? []).findIndex(
           (reference) => reference.id === asset.id,
@@ -52,7 +52,7 @@ export default function BrandWatermarkLogoSelect({
         <SelectContent>
           <SelectItem value="none">{noneLabel}</SelectItem>
           {value !== 'none' && !assets.some((asset) => asset.id === value) && (
-            <SelectItem value={value}>{translate('savedLogo')}</SelectItem>
+            <SelectItem value={value}>{t('savedLogo')}</SelectItem>
           )}
           {assets.map((asset) => (
             <SelectItem key={asset.id} value={asset.id}>

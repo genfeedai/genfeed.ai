@@ -238,6 +238,56 @@ export const brandAssetReferenceV1Schema = z
         'Asset text coverage requires a nonfont asset with content hash',
       );
   });
+const videoPlacement = z.enum([
+  'top-left',
+  'top-right',
+  'bottom-left',
+  'bottom-right',
+  'center',
+]);
+/**
+ * How the brand moves on screen (#10187). Optional on the rules: a brand with
+ * no video identity has no `video` key, and every reader treats that as a
+ * no-op. Rule lists reuse the text-rule shape, so ids and evidence follow the
+ * same global checks as `mandatory` and `avoid`.
+ */
+export const brandVideoRulesV1Schema = z.strictObject({
+  motionStyle: z
+    .strictObject({
+      style: z.enum(['static', 'subtle', 'kinetic', 'cinematic', 'handheld']),
+      notes: z.string().max(2000).optional(),
+      evidenceIds: refs,
+    })
+    .optional(),
+  pacing: z
+    .strictObject({
+      tempo: z.enum(['slow', 'medium', 'fast']),
+      averageShotSeconds: z.number().min(0.5).max(30).optional(),
+      evidenceIds: refs,
+    })
+    .optional(),
+  shotRules: keyed(brandTextRuleV1Schema, 32),
+  captions: z
+    .strictObject({
+      style: z.enum(['none', 'minimal', 'bold_word', 'karaoke', 'boxed']),
+      position: z.enum(['top', 'middle', 'bottom']),
+      maxWordsPerLine: z.number().int().min(1).max(12).optional(),
+      typographyRuleId: id.optional(),
+      evidenceIds: refs,
+    })
+    .optional(),
+  thumbnailRules: keyed(brandTextRuleV1Schema, 16),
+  logoPlacement: z
+    .strictObject({
+      position: videoPlacement,
+      sizeRatio: z.number().min(0.02).max(0.5),
+      insetRatio: z.number().min(0).max(0.25),
+      appliesTo: z.enum(['intro', 'outro', 'throughout']),
+      assetReferenceId: id.optional(),
+      evidenceIds: refs,
+    })
+    .optional(),
+});
 export const brandGenerationRulesV1Schema = bounded(
   z
     .strictObject({
@@ -251,8 +301,13 @@ export const brandGenerationRulesV1Schema = bounded(
       examples: keyed(brandExampleRuleV1Schema, 32),
       assets: keyed(brandAssetReferenceV1Schema, 64),
       approvedLiterals: keyed(brandApprovedLiteralV1Schema, 128).optional(),
+      video: brandVideoRulesV1Schema.optional(),
     })
     .superRefine((v, ctx) => {
+      const videoRules = [
+        ...(v.video?.shotRules ?? []),
+        ...(v.video?.thumbnailRules ?? []),
+      ];
       const allRules = [
         ...v.facts,
         ...v.palette,
@@ -261,6 +316,7 @@ export const brandGenerationRulesV1Schema = bounded(
         ...v.avoid,
         ...v.examples,
         ...v.assets,
+        ...videoRules,
       ];
       if (new Set(allRules.map((rule) => rule.id)).size !== allRules.length)
         issue(ctx, 'Rule IDs must be globally unique');
@@ -273,10 +329,24 @@ export const brandGenerationRulesV1Schema = bounded(
         ...v.avoid,
         ...v.examples,
         ...v.assets,
+        ...videoRules,
+        ...(v.video?.motionStyle ? [v.video.motionStyle] : []),
+        ...(v.video?.pacing ? [v.video.pacing] : []),
+        ...(v.video?.captions ? [v.video.captions] : []),
+        ...(v.video?.logoPlacement ? [v.video.logoPlacement] : []),
         ...(v.approvedLiterals ?? []),
       ])
         for (const ref of row.evidenceIds)
           if (!evidence.has(ref)) issue(ctx, `Unresolved evidence: ${ref}`);
+      const captionFont = v.video?.captions?.typographyRuleId;
+      if (captionFont && !v.typography.some((t) => t.id === captionFont))
+        issue(ctx, 'Unresolved caption typography rule');
+      const logoAsset = v.video?.logoPlacement?.assetReferenceId;
+      if (
+        logoAsset &&
+        !v.assets.some((a) => a.id === logoAsset && a.role === 'logo')
+      )
+        issue(ctx, 'Unresolved logo placement asset');
       const literalIds = new Set(
         (v.approvedLiterals ?? []).map((literal) => literal.id),
       );
@@ -353,6 +423,8 @@ export const brandIdentitySnapshotV1Schema = bounded(
           ...v.generationRules.avoid,
           ...v.generationRules.examples,
           ...v.generationRules.assets,
+          ...(v.generationRules.video?.shotRules ?? []),
+          ...(v.generationRules.video?.thumbnailRules ?? []),
         ].map((r) => r.id),
       );
       for (const d of v.diagnostics) {
@@ -1170,6 +1242,7 @@ export type BrandPaletteRuleV1 = z.infer<typeof brandPaletteRuleV1Schema>;
 export type BrandTypographyRuleV1 = z.infer<typeof brandTypographyRuleV1Schema>;
 export type BrandTextRuleV1 = z.infer<typeof brandTextRuleV1Schema>;
 export type BrandExampleRuleV1 = z.infer<typeof brandExampleRuleV1Schema>;
+export type BrandVideoRulesV1 = z.infer<typeof brandVideoRulesV1Schema>;
 export type BrandApprovedLiteralV1 = z.infer<
   typeof brandApprovedLiteralV1Schema
 >;

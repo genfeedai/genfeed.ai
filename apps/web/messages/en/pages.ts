@@ -28,16 +28,14 @@ import brandAgentProfile from './pages/brandAgentProfile.json';
 import brandAgentSettings from './pages/brandAgentSettings.json';
 import brandDetailOverview from './pages/brandDetailOverview.json';
 import brandDetailPosts from './pages/brandDetailPosts.json';
-import brandEndCard from './pages/brandEndCard.json';
 import brandHarnessSettings from './pages/brandHarnessSettings.json';
 import brandKitReview from './pages/brandKitReview.json';
 import brandKitSettings from './pages/brandKitSettings.json';
 import brandLinks from './pages/brandLinks.json';
-import brandLut from './pages/brandLut.json';
 import brandOsSettings from './pages/brandOsSettings.json';
 import brandPublishingSettings from './pages/brandPublishingSettings.json';
 import brandSocialMedia from './pages/brandSocialMedia.json';
-import brandWatermark from './pages/brandWatermark.json';
+import brandVideoKit from './pages/brandVideoKit.json';
 import connectGenfeed from './pages/connectGenfeed.json';
 import connectors from './pages/connectors.json';
 import connectSocial from './pages/connectSocial.json';
@@ -111,16 +109,14 @@ const pages = {
   brandAgentSettings,
   brandDetailOverview,
   brandDetailPosts,
-  brandEndCard,
   brandHarnessSettings,
   brandKitReview,
   brandKitSettings,
   brandLinks,
-  brandLut,
   brandOsSettings,
   brandPublishingSettings,
   brandSocialMedia,
-  brandWatermark,
+  brandVideoKit,
   connectGenfeed,
   connectors,
   connectSocial,

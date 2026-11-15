@@ -57,11 +57,36 @@ const CONTEXT: ToolExecutionContext = {
   } as ToolExecutionContext['validatedScope'],
 };
 
-function createHandler() {
+const VIDEO_RULES = {
+  captions: {
+    evidenceIds: ['evidence'],
+    position: 'bottom',
+    style: 'minimal',
+  },
+  shotRules: [],
+  thumbnailRules: [],
+};
+
+function createHandler(
+  approved: { content: unknown; id: string; version: number } | null = null,
+) {
   const buildSnapshot = vi.fn().mockResolvedValue(SNAPSHOT);
+  const findApproved = vi.fn().mockResolvedValue(approved);
+  const findOneSelect = vi.fn().mockResolvedValue({
+    endCardDurationSeconds: 3,
+    isEndCardEnabled: false,
+    isLutEnabled: false,
+    watermarkOpacity: 0.35,
+    watermarkPosition: 'bottom-right',
+    watermarkText: 'acme.coffee',
+  });
   return {
     buildSnapshot,
-    handler: new AgentBrandContextToolHandler({ buildSnapshot } as never),
+    handler: new AgentBrandContextToolHandler(
+      { buildSnapshot } as never,
+      { findApproved } as never,
+      { findOneSelect } as never,
+    ),
   };
 }
 
@@ -121,6 +146,46 @@ describe('AgentBrandContextToolHandler', () => {
 
     expect(result.data).not.toHaveProperty('systemPrompt');
     expect(result.data).not.toHaveProperty('memoryPrompt');
+  });
+
+  it('returns the approved video rules and the live finishing settings', async () => {
+    const { handler } = createHandler({
+      content: { generationRules: { video: VIDEO_RULES } },
+      id: 'rev-7',
+      version: 7,
+    });
+    const result = await handler.execute('get_brand_context', {}, CONTEXT);
+    expect(result.data?.video).toEqual({
+      approval: 'approved',
+      finishing: {
+        endCard: { durationSeconds: 3, isEnabled: false },
+        lut: { isEnabled: false },
+        watermark: {
+          opacity: 0.35,
+          position: 'bottom-right',
+          text: 'acme.coffee',
+        },
+      },
+      revisionId: 'rev-7',
+      revisionVersion: 7,
+      rules: VIDEO_RULES,
+    });
+  });
+
+  it('prefers the owner-authored video identity stored on the revision', async () => {
+    const { handler } = createHandler({
+      content: { video: VIDEO_RULES },
+      id: 'rev-8',
+      version: 8,
+    });
+    const result = await handler.execute('get_brand_context', {}, CONTEXT);
+    expect(result.data?.video).toMatchObject({ rules: VIDEO_RULES });
+  });
+
+  it('returns no video rules for a brand with no approved revision', async () => {
+    const { handler } = createHandler(null);
+    const result = await handler.execute('get_brand_context', {}, CONTEXT);
+    expect(result.data?.video).toMatchObject({ approval: 'none', rules: null });
   });
 
   it('fails closed without a brand', async () => {

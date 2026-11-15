@@ -35,6 +35,7 @@ export type {
   BrandRuleEvidenceV1,
   BrandTextRuleV1,
   BrandTypographyRuleV1,
+  BrandVideoRulesV1,
   GlobalLearningApplicationV1,
   LearningGenerationResolutionInputV1,
 } from '../../api-types/contracts/branded-generation.contract';

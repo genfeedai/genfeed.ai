@@ -14,91 +14,30 @@ describe('UpdateBrandDto', () => {
   });
 
   describe('validation', () => {
-    it.each(['watermarkOpacity', 'watermarkPosition'])(
-      'rejects null for required watermark setting %s',
-      async (field) => {
+    // #10187: end card, colour grade and watermark change through a Brand OS
+    // revision, so a brand update that carries one is refused, not stripped.
+    it.each([
+      ['watermarkText', 'acme.coffee'],
+      ['watermarkLogoId', 'cmasset0000000000000000001'],
+      ['watermarkOpacity', 0.5],
+      ['watermarkPosition', 'top-left'],
+      ['watermarkLightLogoId', null],
+      ['watermarkLiveLogoId', null],
+      ['watermarkSizeRatio', 0.1],
+      ['watermarkInsetXRatio', 0.05],
+      ['watermarkInsetYRatio', 0.05],
+      ['endCardAssetId', 'cmasset0000000000000000001'],
+      ['endCardDurationSeconds', 3],
+      ['isEndCardEnabled', true],
+      ['isLutEnabled', true],
+    ])(
+      'rejects %s so finishing changes go through a revision',
+      async (field, value) => {
         await expect(
-          pipe.transform({ [field]: null }, metadata),
+          pipe.transform({ [field]: value, label: 'Renamed Brand' }, metadata),
         ).rejects.toMatchObject({ status: 400 });
       },
     );
-
-    it.each([
-      ['endCardDurationSeconds', 0.5],
-      ['endCardDurationSeconds', 11],
-      ['endCardDurationSeconds', null],
-      ['isEndCardEnabled', 'yes'],
-      ['isEndCardEnabled', null],
-    ])('rejects %s of %s', async (field, value) => {
-      await expect(
-        pipe.transform({ [field]: value }, metadata),
-      ).rejects.toMatchObject({ status: 400 });
-    });
-
-    it('accepts end card boundaries and clearing the image', async () => {
-      const result = await pipe.transform(
-        {
-          endCardAssetId: null,
-          endCardDurationSeconds: 10,
-          isEndCardEnabled: false,
-        },
-        metadata,
-      );
-      expect(result).toMatchObject({
-        endCardAssetId: null,
-        endCardDurationSeconds: 10,
-        isEndCardEnabled: false,
-      });
-    });
-
-    it('allows clearing text and logo while preserving omitted watermark settings', async () => {
-      const result = await pipe.transform(
-        { watermarkText: null, watermarkLogoId: null },
-        metadata,
-      );
-      expect(result).toMatchObject({
-        watermarkText: null,
-        watermarkLogoId: null,
-      });
-    });
-
-    it('accepts watermark boundary opacity and position', async () => {
-      const result = await pipe.transform(
-        { watermarkOpacity: 0.05, watermarkPosition: 'bottom-right' },
-        metadata,
-      );
-      expect(result).toMatchObject({
-        watermarkOpacity: 0.05,
-        watermarkPosition: 'bottom-right',
-      });
-    });
-
-    it('accepts watermark size and insets, or null to clear them', async () => {
-      const result = await pipe.transform(
-        {
-          watermarkInsetXRatio: 0.096,
-          watermarkInsetYRatio: null,
-          watermarkSizeRatio: 0.0667,
-        },
-        metadata,
-      );
-      expect(result).toMatchObject({
-        watermarkInsetXRatio: 0.096,
-        watermarkInsetYRatio: null,
-        watermarkSizeRatio: 0.0667,
-      });
-    });
-
-    it.each([
-      ['watermarkSizeRatio', 0],
-      ['watermarkSizeRatio', 0.9],
-      ['watermarkInsetXRatio', -0.1],
-      ['watermarkInsetYRatio', 0.6],
-    ])('rejects %s = %s', async (field, value) => {
-      await expect(
-        pipe.transform({ [field]: value }, metadata),
-      ).rejects.toMatchObject({ status: 400 });
-    });
 
     it('should create an instance', () => {
       const dto = new UpdateBrandDto();

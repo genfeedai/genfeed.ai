@@ -13,6 +13,8 @@ import {
   readBrandFontRoles,
   readBrandPalette,
 } from '@genfeedai/contracts/api-types/contracts/brand-kit-style.contract';
+import { mergeOwnerVideoRules } from '@genfeedai/contracts/api-types/contracts/brand-video-identity.contract';
+import { brandVideoRulesV1Schema } from '@genfeedai/contracts/api-types/contracts/branded-generation.contract';
 import { learningContractIdSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
 import type {
   BrandGenerationRulesV1,
@@ -268,12 +270,20 @@ export function projectApprovedBrandIdentitySnapshot(
 
 function buildIdentitySnapshot(
   revision: BrandOsRevision,
-  content: { fields: z.infer<typeof savedContent>['fields'] },
-  generationRules: BrandGenerationRulesV1,
+  content: { fields: z.infer<typeof savedContent>['fields']; video?: unknown },
+  scannedRules: BrandGenerationRulesV1,
   approval: 'approved' | 'provisional',
   resolvedAt: string,
 ): BrandIdentitySnapshotV1 {
   const value = (key: string) => content.fields[key]?.currentValue;
+  // The owner's video identity (Brand Kit Video tab) joins the rules here, so
+  // readers find it at `generationRules.video` whatever authored the rules.
+  const generationRules = mergeOwnerVideoRules(
+    scannedRules,
+    content.video === undefined
+      ? undefined
+      : brandVideoRulesV1Schema.parse(content.video),
+  );
   const snapshot = {
     schemaVersion: 1 as const,
     organizationId: revision.organizationId,

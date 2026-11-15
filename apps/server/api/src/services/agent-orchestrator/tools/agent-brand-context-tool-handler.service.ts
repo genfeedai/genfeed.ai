@@ -1,6 +1,9 @@
+import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AgentBrandContextSnapshotService } from '@api/services/agent-orchestrator/agent-brand-context-snapshot.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import { buildBrandVideoFinishing } from '@genfeedai/contracts/api-types/contracts/brand-video-finishing.contract';
 import type {
   AgentToolResult,
   IAgentBrandContextLayers,
@@ -41,6 +44,8 @@ function clipList<T>(values: T[], max = MAX_LIST_ITEMS): T[] {
 export class AgentBrandContextToolHandler {
   constructor(
     private readonly snapshotService: AgentBrandContextSnapshotService,
+    private readonly revisions: BrandOsRevisionsService,
+    private readonly brandsService: BrandsService,
   ) {}
 
   execute(
@@ -80,8 +85,55 @@ export class AgentBrandContextToolHandler {
 
     return {
       creditsUsed: 0,
-      data: this.summarize(snapshot, params.includeSystemPrompt === true),
+      data: {
+        ...this.summarize(snapshot, params.includeSystemPrompt === true),
+        video: await this.readVideo(brandId, ctx.organizationId),
+      },
       success: true,
+    };
+  }
+
+  /**
+   * The brand's video identity (#10187): the rules from the approved Brand OS
+   * revision, and the end card, colour grade and watermark the brand row holds
+   * (approving a revision is the only way those change). No storage keys or
+   * signed URLs; asset ids only.
+   */
+  private async readVideo(
+    brandId: string,
+    organizationId: string,
+  ): Promise<Record<string, unknown>> {
+    const [approved, brand] = await Promise.all([
+      this.revisions.findApproved(organizationId, brandId),
+      this.brandsService.findOneSelect(
+        { id: brandId, isDeleted: false, organizationId },
+        {
+          endCardAssetId: true,
+          endCardDurationSeconds: true,
+          isEndCardEnabled: true,
+          isLutEnabled: true,
+          lutFileName: true,
+          watermarkInsetXRatio: true,
+          watermarkInsetYRatio: true,
+          watermarkLightLogoId: true,
+          watermarkLiveLogoId: true,
+          watermarkLogoId: true,
+          watermarkOpacity: true,
+          watermarkPosition: true,
+          watermarkSizeRatio: true,
+          watermarkText: true,
+        },
+      ),
+    ]);
+    return {
+      approval: approved ? 'approved' : 'none',
+      finishing: brand ? buildBrandVideoFinishing(brand) : null,
+      revisionId: approved?.id,
+      revisionVersion: approved?.version,
+      rules:
+        approved?.content.video ??
+        approved?.content.generationRules?.video ??
+        null,
     };
   }
 

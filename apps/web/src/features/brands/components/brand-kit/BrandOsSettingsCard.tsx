@@ -6,7 +6,10 @@ import {
   CardGap,
   MemberRole,
 } from '@genfeedai/contracts';
-import { brandGenerationRulesV1Schema } from '@genfeedai/contracts/api-types/contracts';
+import {
+  type BrandVideoFinishingV1,
+  brandGenerationRulesV1Schema,
+} from '@genfeedai/contracts/api-types/contracts';
 import type {
   BrandKitFieldKey,
   IBrandKitDraft,
@@ -16,6 +19,7 @@ import type {
   IBrandPublishPolicy,
 } from '@genfeedai/contracts/interfaces';
 import { BRAND_KIT_FIELD_OWNERSHIP } from '@genfeedai/contracts/interfaces';
+import type { BrandVideoRulesV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
@@ -41,6 +45,7 @@ import BrandOsGenerationRulesReview from './BrandOsGenerationRulesReview';
 import BrandOsIdentityPreview from './BrandOsIdentityPreview';
 import BrandOsPolicyEditor from './BrandOsPolicyEditor';
 import BrandOsRevisionFields from './BrandOsRevisionFields';
+import BrandVideoRevisionDiff from './BrandVideoRevisionDiff';
 
 const SHA256_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
 
@@ -367,6 +372,20 @@ export default function BrandOsSettingsCard({
       else Reflect.deleteProperty(next, 'policy');
       return next;
     });
+    setNotice(null);
+  }
+
+  function changeVideo(video: BrandVideoRulesV1) {
+    if (!hasCurrentScope || !canManage || pendingRef.current) return;
+    clearAcknowledgement();
+    setContent((current) => (current ? { ...current, video } : current));
+    setNotice(null);
+  }
+
+  function changeFinishing(finishing: BrandVideoFinishingV1) {
+    if (!hasCurrentScope || !canManage || pendingRef.current) return;
+    clearAcknowledgement();
+    setContent((current) => (current ? { ...current, finishing } : current));
     setNotice(null);
   }
 
@@ -749,6 +768,17 @@ export default function BrandOsSettingsCard({
               />
             )}
             {content && (
+              <BrandVideoRevisionDiff
+                approved={
+                  revisions.find(
+                    (revision) =>
+                      revision.status === BrandOsRevisionStatus.APPROVED,
+                  )?.content ?? null
+                }
+                draft={content}
+              />
+            )}
+            {content && (
               <BrandOsPolicyEditor
                 policy={content.policy}
                 isDisabled={
@@ -967,6 +997,12 @@ export default function BrandOsSettingsCard({
     isDirty: dirty,
     isLoading: loading,
     error,
+    isReadOnly:
+      !canManage ||
+      busy ||
+      selected?.status === BrandOsRevisionStatus.SUPERSEDED,
+    onFinishingChange: changeFinishing,
+    onVideoChange: changeVideo,
     isSaveDisabled:
       !canManage ||
       busy ||
