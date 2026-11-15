@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export interface FilterMenuOption {
+interface FilterMenuOption {
   /** Wire value reported back to the owner; never shown. */
   value: string;
   label: string;
@@ -22,7 +22,7 @@ interface FilterMenuFacetBase {
 }
 
 /** Any number of values; none selected means "all". */
-export interface FilterMenuMultipleFacet extends FilterMenuFacetBase {
+interface FilterMenuMultipleFacet extends FilterMenuFacetBase {
   selection: 'multiple';
   values: readonly string[];
   onChange: (values: string[]) => void;
@@ -33,7 +33,7 @@ export interface FilterMenuMultipleFacet extends FilterMenuFacetBase {
 }
 
 /** Exactly one value; `defaultValue` is the "no filter" choice. */
-export interface FilterMenuSingleFacet extends FilterMenuFacetBase {
+interface FilterMenuSingleFacet extends FilterMenuFacetBase {
   selection: 'single';
   value: string;
   defaultValue?: string;

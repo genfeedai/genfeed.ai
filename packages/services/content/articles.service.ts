@@ -33,7 +33,7 @@ export interface GenerateArticlesRequest {
   generateHeaderImage?: boolean;
 }
 
-export interface TwitterThread {
+interface TwitterThread {
   order: number;
   content: string;
   characterCount: number;
@@ -44,7 +44,7 @@ export interface TwitterThreadResponse {
   totalTweets: number;
 }
 
-export interface ArticlePromptVersion {
+interface ArticlePromptVersion {
   id: string;
   version: number;
   prompt: string;

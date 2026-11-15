@@ -55,7 +55,7 @@ export interface IPaginatedBrandsResponse {
   };
 }
 
-export interface IAnalyticsDateRange {
+interface IAnalyticsDateRange {
   startDate?: string;
   endDate?: string;
 }
@@ -111,7 +111,7 @@ export interface PlatformBreakdownData {
 }
 
 // Business Analytics Types (Super Admin)
-export interface IBusinessAnalyticsRevenue {
+interface IBusinessAnalyticsRevenue {
   today: number;
   last7d: number;
   last30d: number;
@@ -120,7 +120,7 @@ export interface IBusinessAnalyticsRevenue {
   wowGrowth: number;
 }
 
-export interface IBusinessAnalyticsCredits {
+interface IBusinessAnalyticsCredits {
   sold: number;
   consumed: number;
   dailySoldSeries: Array<{ date: string; amount: number }>;
@@ -128,7 +128,7 @@ export interface IBusinessAnalyticsCredits {
   wowGrowth: number;
 }
 
-export interface IBusinessAnalyticsIngredients {
+interface IBusinessAnalyticsIngredients {
   today: number;
   last7d: number;
   last30d: number;
@@ -137,14 +137,14 @@ export interface IBusinessAnalyticsIngredients {
   wowGrowth: number;
 }
 
-export interface IBusinessAnalyticsLeader {
+interface IBusinessAnalyticsLeader {
   organizationId: string;
   organizationName: string;
   amount: number;
   count?: number;
 }
 
-export interface IBusinessAnalyticsProjections {
+interface IBusinessAnalyticsProjections {
   revenueNext30d: number | null;
   creditsNext30d: number | null;
   ingredientsNext30d: number | null;
@@ -152,7 +152,7 @@ export interface IBusinessAnalyticsProjections {
   insufficientData: boolean;
 }
 
-export interface IBusinessAnalyticsComparisons {
+interface IBusinessAnalyticsComparisons {
   cashInVsUsageValue: { cashIn: number; usageValue: number };
   soldVsConsumed: { sold: number; consumed: number };
   outstandingPrepaid: number;

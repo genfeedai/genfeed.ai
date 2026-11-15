@@ -7,7 +7,7 @@ export interface ElevenLabsVoice {
   preview?: string;
 }
 
-export interface ElevenLabsVoicesResponse {
+interface ElevenLabsVoicesResponse {
   data: {
     id: string;
     type: string;

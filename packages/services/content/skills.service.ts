@@ -201,7 +201,7 @@ export class Skill {
   }
 }
 
-export class SkillVersionReadUnavailableError extends Error {
+class SkillVersionReadUnavailableError extends Error {
   constructor() {
     super('Skill versions are unavailable.');
     this.name = 'SkillVersionReadUnavailableError';
@@ -306,7 +306,7 @@ function versionMetadata(
     createdAt: attributes.createdAt,
   };
 }
-export function parseSkillVersionReadPageV1(
+function parseSkillVersionReadPageV1(
   input: unknown,
   skillId: string,
   query: SkillVersionListQueryV1 = {},
@@ -346,7 +346,7 @@ export function parseSkillVersionReadPageV1(
     return versionReadInvalid();
   return { items, limit: requested.limit, hasMore: cursor.hasMore, nextCursor };
 }
-export function parseSkillVersionReadV1(
+function parseSkillVersionReadV1(
   input: unknown,
   skillId: string,
   versionId: string,

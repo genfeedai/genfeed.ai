@@ -5,7 +5,7 @@
  * a prefix, `skill` invokes a catalog skill against the current turn, and
  * `preset` applies a generation preset the page registered for itself.
  */
-export type PromptCommandKind = 'action' | 'preset' | 'prompt' | 'skill';
+type PromptCommandKind = 'action' | 'preset' | 'prompt' | 'skill';
 
 export interface PromptCommand {
   description: string;

@@ -14,7 +14,7 @@ const WHITESPACE_RUN_PATTERN = /\s+/;
 const SENTENCE_TERMINATORS_PATTERN = /[.!?]+/;
 const VOWEL_GROUPS_PATTERN = /[aeiouy]{1,2}/g;
 
-export interface IContentScore {
+interface IContentScore {
   overall: number;
   breakdown: {
     readability: number;
@@ -26,7 +26,7 @@ export interface IContentScore {
   suggestions: IOptimizationSuggestion[];
 }
 
-export interface IOptimizationSuggestion {
+interface IOptimizationSuggestion {
   type: 'improvement' | 'warning' | 'critical';
   category:
     | 'readability'
@@ -41,7 +41,7 @@ export interface IOptimizationSuggestion {
   impact: 'high' | 'medium' | 'low';
 }
 
-export interface IHashtagOptimization {
+interface IHashtagOptimization {
   suggested: string[];
   trending: string[];
   optimal: string[];
@@ -49,7 +49,7 @@ export interface IHashtagOptimization {
   reasoning: string[];
 }
 
-export interface IBestTimeToPost {
+interface IBestTimeToPost {
   platform: string;
   recommendedTimes: Array<{
     day: string;
@@ -59,7 +59,7 @@ export interface IBestTimeToPost {
   }>;
 }
 
-export interface IContentVariant {
+interface IContentVariant {
   id: string;
   variant: string;
   content: string;

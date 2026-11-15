@@ -1,4 +1,4 @@
-export interface VideoThumbnail {
+interface VideoThumbnail {
   time: number;
   dataUrl: string;
 }

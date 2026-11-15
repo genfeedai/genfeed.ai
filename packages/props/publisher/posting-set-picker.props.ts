@@ -1,6 +1,5 @@
 import type {
   IPostingSet,
-  IPostingSetTargetValidation,
   IPostingSignature,
 } from '@genfeedai/contracts/interfaces';
 import type { ReactNode } from 'react';
@@ -30,8 +29,4 @@ export interface PostingSignaturePickerProps {
   platform: string;
   selectedIds: string[];
   signatures: IPostingSignature[];
-}
-
-export interface PostingSetTargetHealthProps {
-  validation?: IPostingSetTargetValidation;
 }

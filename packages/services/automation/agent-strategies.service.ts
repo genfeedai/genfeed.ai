@@ -12,7 +12,7 @@ import {
 } from '@services/core/json-api';
 import { toPaginatedResponse } from '@services/core/paginated-response';
 
-export interface AgentStrategyBudgetCap {
+interface AgentStrategyBudgetCap {
   creditBudget: number;
   key: string;
 }

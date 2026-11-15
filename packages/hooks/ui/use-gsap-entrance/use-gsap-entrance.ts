@@ -290,7 +290,7 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
   return containerRef;
 }
 
-export interface GsapTimelineStep {
+interface GsapTimelineStep {
   selector: string;
   from: {
     opacity?: number;

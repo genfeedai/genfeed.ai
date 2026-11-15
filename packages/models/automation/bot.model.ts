@@ -10,13 +10,13 @@ import type {
   IBotTarget,
 } from '@genfeedai/contracts/interfaces';
 
-export interface BotLivestreamLink {
+interface BotLivestreamLink {
   id: string;
   label: string;
   url: string;
 }
 
-export interface BotLivestreamMessageTemplate {
+interface BotLivestreamMessageTemplate {
   enabled: boolean;
   id: string;
   platforms?: BotPlatform[];
