@@ -93,6 +93,7 @@ export const INTEGRATION_STATUS_NOTIFICATION_TOPIC = 'integration.status';
 export type AlertEmailEvent =
   | 'post_failed'
   | 'manual_post_needed'
+  | 'publish_unverified'
   | 'channel_disconnected';
 
 /**

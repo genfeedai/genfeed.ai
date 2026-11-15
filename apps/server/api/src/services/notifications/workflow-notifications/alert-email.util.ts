@@ -20,6 +20,11 @@ const ALERT_EMAIL_HEADLINES: Record<
     tone: 'warning',
   },
   post_failed: { area: 'Publishing', text: 'Post failed', tone: 'danger' },
+  publish_unverified: {
+    area: 'Publishing',
+    text: 'Check this post before reposting',
+    tone: 'warning',
+  },
 };
 
 export function readAlertEmailPayload(
@@ -46,7 +51,7 @@ export function readAlertEmailPayload(
   };
 }
 
-/** The email for a failed post, a post to make by hand or a lost channel. */
+/** The email for a failed post, an unconfirmed one, a post to make by hand or a lost channel. */
 export function buildAlertEmail(payload: AlertEmailNotificationPayload): {
   html: string;
   subject: string;
