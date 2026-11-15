@@ -5,6 +5,9 @@
     "@genfeedai/contracts": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
+    "lucide-react": "1.72.0",
+    "socket.io-client": "4.8.4",
+    "sonner": "2.0.8",
     "zod": "4.6.7",
     "@sentry/browser": "11.12.0"
   },

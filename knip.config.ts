@@ -63,6 +63,10 @@ const config: KnipConfig = {
         'playwright/artifacts/**',
         'docker/**',
       ],
+      // The web next.config test pins one hoisted next-intl copy at the repo
+      // root for turbopack (apps/web/next.config.test.ts), so the root keeps
+      // it although only workspaces import it.
+      ignoreDependencies: ['next-intl'],
     },
 
     // Backend services — NestJS apps
