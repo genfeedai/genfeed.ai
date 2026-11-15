@@ -222,7 +222,10 @@ export class MediaPromptEnhancementService {
         input.prompt,
         brandOfferingCorpus(snapshot, brief, input.prompt),
       );
-      const enhancerBrief = buildMediaEnhancerBrief(brief);
+      const enhancerBrief = buildMediaEnhancerBrief(
+        brief,
+        snapshot.generationRules.video,
+      );
       const brandVoice = renderGenerationBriefBrandVoice(snapshot);
       const { result, negativePrompt } = await this.promptEnhancement.enhance({
         actorUserId: input.actorUserId,

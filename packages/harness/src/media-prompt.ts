@@ -359,6 +359,56 @@ function buildMusicHarnessSuffix(brief: ContentHarnessBrief): string {
 
 const MAX_ENHANCER_LOOK_CUES = 8;
 const MAX_ENHANCER_AVOID_CUES = 6;
+const MAX_ENHANCER_SHOT_RULES = 4;
+const MAX_ENHANCER_VIDEO_NOTE_CHARS = 200;
+
+/**
+ * The owner's video identity as the enhancer needs it: how the brand moves.
+ * Captions, logo placement and thumbnails are applied by the renderer, so they
+ * stay out. `BrandVideoRulesV1` is assignable to this.
+ */
+export interface MediaEnhancerVideoRules {
+  motionStyle?: { notes?: string; style: string };
+  pacing?: { averageShotSeconds?: number; tempo: string };
+  shotRules: ReadonlyArray<{ text: string }>;
+}
+
+function buildEnhancerVideoSection(video: MediaEnhancerVideoRules | undefined) {
+  if (!video) return '';
+  const motion = video.motionStyle
+    ? [
+        `Motion: ${video.motionStyle.style}.`,
+        video.motionStyle.notes
+          ? truncate(
+              video.motionStyle.notes.trim(),
+              MAX_ENHANCER_VIDEO_NOTE_CHARS,
+            )
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' ')
+    : '';
+  const pacing = video.pacing
+    ? `Pacing: ${video.pacing.tempo}${
+        video.pacing.averageShotSeconds
+          ? `, about ${video.pacing.averageShotSeconds} seconds per shot`
+          : ''
+      }.`
+    : '';
+  const shots = video.shotRules
+    .map((rule) => truncate(rule.text.trim(), MAX_ENHANCER_VIDEO_NOTE_CHARS))
+    .filter(Boolean)
+    .slice(0, MAX_ENHANCER_SHOT_RULES);
+  return [
+    motion,
+    pacing,
+    shots.length > 0
+      ? `Shots:\n${shots.map((line) => `- ${line}`).join('\n')}`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
 
 /**
  * The media-relevant part of a brief, for the enhancer's system content: the
@@ -369,6 +419,7 @@ const MAX_ENHANCER_AVOID_CUES = 6;
  */
 export function buildMediaEnhancerBrief(
   brief: ContentHarnessBrief | null | undefined,
+  video?: MediaEnhancerVideoRules,
 ): string {
   if (!brief || brief.metadata.contentType === 'music') return '';
   const palette = selectMotionPalette(brief);
@@ -387,6 +438,9 @@ export function buildMediaEnhancerBrief(
     palette.length > 0 ? `Palette: ${palette.join(' and ')}.` : '',
     look.length > 0
       ? `Look:\n${look.map((line) => `- ${line}`).join('\n')}`
+      : '',
+    MOTION_KINDS.has(brief.metadata.contentType)
+      ? buildEnhancerVideoSection(video)
       : '',
     avoid.length > 0
       ? `Avoid:\n${avoid.map((line) => `- ${line}`).join('\n')}`
