@@ -49,7 +49,7 @@ function isRawQuerySerializationFailure(error: unknown): boolean {
   );
 }
 
-export function isTransactionStartFailure(error: unknown): boolean {
+function isTransactionStartFailure(error: unknown): boolean {
   if (error === null || typeof error !== 'object') {
     return false;
   }

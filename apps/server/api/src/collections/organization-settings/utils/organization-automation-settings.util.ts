@@ -14,12 +14,11 @@ export type OrganizationAutomationSettings = Readonly<{
 }>;
 
 /** What a missing settings row reads as: nothing is enabled. */
-export const ORGANIZATION_AUTOMATION_SETTINGS_OFF: OrganizationAutomationSettings =
-  {
-    isBrandVisionChecksEnabled: false,
-    isBreakoutAutoPublishEnabled: false,
-    isBreakoutResponsesEnabled: false,
-  };
+const ORGANIZATION_AUTOMATION_SETTINGS_OFF: OrganizationAutomationSettings = {
+  isBrandVisionChecksEnabled: false,
+  isBreakoutAutoPublishEnabled: false,
+  isBreakoutResponsesEnabled: false,
+};
 
 type OrganizationAutomationSettingsReader = Pick<
   Prisma.TransactionClient,

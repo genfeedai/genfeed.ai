@@ -2,7 +2,7 @@ import { handleStableAllowedQuerySort } from '@api/helpers/utils/sort/sort.util'
 import type { SortObject } from '@genfeedai/contracts/interfaces';
 
 /** Columns the workflows list can be ordered by. */
-export const WORKFLOW_SORT_FIELDS: readonly string[] = [
+const WORKFLOW_SORT_FIELDS: readonly string[] = [
   'createdAt',
   'executionCount',
   'label',

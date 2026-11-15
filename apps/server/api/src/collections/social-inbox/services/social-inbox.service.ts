@@ -35,7 +35,6 @@ export type {
   SocialInboxScope,
   XPostRepliesIngestInput,
   XPostRepliesIngestResult,
-  XReplyTargetPost,
 } from '@api/collections/social-inbox/services/social-inbox.types';
 
 @Traced()

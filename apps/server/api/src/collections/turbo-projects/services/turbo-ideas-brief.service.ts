@@ -6,7 +6,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
-export const TURBO_IDEAS_BRAND_CONTEXT_UNAVAILABLE =
+const TURBO_IDEAS_BRAND_CONTEXT_UNAVAILABLE =
   'Brand context is unavailable for these ideas. Please retry.';
 
 /**

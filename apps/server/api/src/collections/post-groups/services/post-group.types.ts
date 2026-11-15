@@ -53,7 +53,7 @@ export type SchedulerPostGroup = {
   updatedAt: Date;
 };
 
-export type SchedulerPostTag = {
+type SchedulerPostTag = {
   backgroundColor: string;
   id: string;
   isDeleted: boolean;
@@ -126,7 +126,7 @@ export type SchedulerPostAnalytics = {
   updatedAt: Date;
 };
 
-export type PublishListPublicationState = 'posted' | 'not-posted';
+type PublishListPublicationState = 'posted' | 'not-posted';
 
 export type ReleaseGroupListSort =
   | 'createdAt: -1'

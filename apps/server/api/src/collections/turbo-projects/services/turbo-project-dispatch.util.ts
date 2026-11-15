@@ -14,8 +14,8 @@ import {
 
 /** Idea generation renders portrait short-form media. */
 export const IDEA_OUTPUT_ASPECT_RATIO = '9:16';
-export const IDEA_OUTPUT_WIDTH = 1080;
-export const IDEA_OUTPUT_HEIGHT = 1920;
+const IDEA_OUTPUT_WIDTH = 1080;
+const IDEA_OUTPUT_HEIGHT = 1920;
 
 export type IdeaGenerationParams = {
   aspectRatio: string;

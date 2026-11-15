@@ -10,7 +10,7 @@ import { BadRequestException } from '@nestjs/common';
 
 export const DEFAULT_CAMPAIGN_SCHEDULE_VERSION = 1;
 
-export const OUTREACH_SCHEDULE_ERRORS: Record<
+const OUTREACH_SCHEDULE_ERRORS: Record<
   ScheduledBlastDueTimeError,
   { code: string; message: string }
 > = {

@@ -8,7 +8,7 @@ export const SOCIAL_SOURCE_HISTORY_IMPORT_ACTION_IDS = {
 export const SOCIAL_SOURCE_HISTORY_IMPORT_WORKFLOW_ID =
   'social-source.history-import';
 
-export const SOCIAL_SOURCE_HISTORY_IMPORT_WORKFLOW_LABEL =
+const SOCIAL_SOURCE_HISTORY_IMPORT_WORKFLOW_LABEL =
   'Social account history import';
 
 export function buildSocialSourceHistoryImportWorkflowDefinition(): SystemWorkflowGraphDefinition {

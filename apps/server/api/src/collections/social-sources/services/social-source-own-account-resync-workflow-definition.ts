@@ -9,7 +9,7 @@ export const SOCIAL_SOURCE_OWN_ACCOUNT_RESYNC_ACTION_IDS = {
 export const SOCIAL_SOURCE_OWN_ACCOUNT_RESYNC_WORKFLOW_ID =
   'social-source.own-account-resync';
 
-export const SOCIAL_SOURCE_OWN_ACCOUNT_RESYNC_ITEM_WORKFLOW_ID =
+const SOCIAL_SOURCE_OWN_ACCOUNT_RESYNC_ITEM_WORKFLOW_ID =
   'social-source.own-account-resync.item';
 
 /**

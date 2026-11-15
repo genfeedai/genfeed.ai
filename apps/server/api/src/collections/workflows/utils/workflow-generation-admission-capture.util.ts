@@ -91,7 +91,7 @@ function isGlobalHiddenMirror(version: {
   );
 }
 
-export function buildWorkflowGenerationAdmissionSource(
+function buildWorkflowGenerationAdmissionSource(
   input: WorkflowGenerationAdmissionCaptureInput,
   workflow: WorkflowAdmissionAvailableSourceV1['workflow'],
   workflowVersionContentHash: string,

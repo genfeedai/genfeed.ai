@@ -3,15 +3,6 @@ import { createTemplateActionNode } from '@api/collections/workflows/templates/t
 import type { WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
 
 export const DAILY_PUBLISHING_ACCOUNT_WORKFLOW_ID = 'daily-publishing.account';
-export const DAILY_PUBLISHING_ACTION_IDS = [
-  'daily-publishing.resolve',
-  'daily-publishing.refresh',
-  'daily-publishing.collect-analytics',
-  'daily-publishing.select',
-  'daily-publishing.generate',
-  'daily-publishing.evaluate',
-  'daily-publishing.schedule',
-] as const;
 const node = (
   actionId: string,
   id: string,

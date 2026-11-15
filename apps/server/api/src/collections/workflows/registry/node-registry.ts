@@ -9,7 +9,7 @@ import { IO_NODE_DEFINITIONS } from '@api/collections/workflows/registry/node-re
  * Each product node resolves to a registered Genfeed action at persistence time.
  */
 
-export type NodeInputType =
+type NodeInputType =
   | 'image'
   | 'video'
   | 'audio'
@@ -25,7 +25,7 @@ export interface NodePort {
   multiple?: boolean;
 }
 
-export interface NodeConfigField {
+interface NodeConfigField {
   type: 'string' | 'number' | 'boolean' | 'select' | 'asset' | 'variable';
   label: string;
   description?: string;
@@ -56,28 +56,6 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
   ...FLOW_NODE_DEFINITIONS,
   ...IO_NODE_DEFINITIONS,
 };
-
-/**
- * Get all nodes grouped by category
- */
-export function getNodesByCategory(): Record<string, NodeDefinition[]> {
-  const categories: Record<string, NodeDefinition[]> = {
-    ai: [],
-    control: [],
-    effects: [],
-    input: [],
-    output: [],
-    processing: [],
-  };
-
-  for (const [key, node] of Object.entries(NODE_REGISTRY)) {
-    if (node.isEnabled !== false) {
-      categories[node.category].push({ ...node, type: key });
-    }
-  }
-
-  return categories;
-}
 
 /**
  * Get node definition by type

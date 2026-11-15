@@ -50,7 +50,7 @@ function toFilterArray({ value }: { value: unknown }): unknown {
 }
 
 @ValidatorConstraint({ async: false, name: 'releaseWindow' })
-export class ReleaseWindowConstraint implements ValidatorConstraintInterface {
+class ReleaseWindowConstraint implements ValidatorConstraintInterface {
   validate(endDate: unknown, args: ValidationArguments): boolean {
     const { startDate } = args.object as PostGroupsQueryDto;
     const hasStart = typeof startDate === 'string';

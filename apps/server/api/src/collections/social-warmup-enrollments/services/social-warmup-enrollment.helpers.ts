@@ -6,7 +6,6 @@ import {
   SocialWarmupSignalStatus,
 } from '@genfeedai/contracts';
 import type {
-  ISocialWarmupEnrollmentDocument,
   ISocialWarmupEventRecord,
   ISocialWarmupSignalRecord,
   SocialWarmupAccountAge,
@@ -49,10 +48,10 @@ const LINKEDIN_REQUIRED_WARMUP_SCOPES = [
   'w_member_social',
 ] as const;
 
-export const ENROLLMENT_UNIQUE_CONSTRAINT =
+const ENROLLMENT_UNIQUE_CONSTRAINT =
   'social_warmup_enrollments_org_credential_alive_key';
 
-export const SIGNAL_UNIQUE_CONSTRAINT =
+const SIGNAL_UNIQUE_CONSTRAINT =
   'social_warmup_signals_enrollment_key_alive_key';
 
 export type StoredSocialWarmupEventRecord = Omit<
@@ -344,31 +343,6 @@ export function reconnectForCredential(params: {
   }
 
   return undefined;
-}
-
-export function withEnrollmentComputedFields(
-  enrollment: Omit<
-    ISocialWarmupEnrollmentDocument,
-    | 'completedItemIds'
-    | 'hasPartialScopes'
-    | 'isCredentialConnected'
-    | 'reconnect'
-  > & {
-    completedItemIds?: string[];
-    hasPartialScopes?: boolean;
-    isCredentialConnected?: boolean;
-    reconnect?: SocialWarmupReconnect;
-  },
-): ISocialWarmupEnrollmentDocument {
-  const events = enrollment.events ?? [];
-  return {
-    ...enrollment,
-    completedItemIds:
-      enrollment.completedItemIds ?? completedItemIdsFromEvents(events),
-    hasPartialScopes: enrollment.hasPartialScopes ?? false,
-    isCredentialConnected: enrollment.isCredentialConnected ?? true,
-    reconnect: enrollment.reconnect,
-  };
 }
 
 function ageFromSignal(

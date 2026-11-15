@@ -9,10 +9,10 @@ import type {
 
 /** A complete valid approved-brand text receipt, shared by the breakout recovery and composition specs. */
 export const hash = `sha256:${'a'.repeat(64)}`;
-export const time = '2026-10-01T00:00:00.000Z';
+const time = '2026-10-01T00:00:00.000Z';
 export const text = 'Acme follows up with a useful new observation.';
-export const textVersion = hashBrandedGenerationTextV1(text);
-export const artifactHash = hashBrandedGenerationArtifactManifestV1({
+const textVersion = hashBrandedGenerationTextV1(text);
+const artifactHash = hashBrandedGenerationArtifactManifestV1({
   mediaKind: 'text',
   textHash: textVersion,
   parts: [],

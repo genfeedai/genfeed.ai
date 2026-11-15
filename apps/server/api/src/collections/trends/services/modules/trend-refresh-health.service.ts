@@ -6,7 +6,7 @@ import { withPlatformTenantArm } from '@libs/prisma/platform-scope';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
-export const TREND_REFRESH_EVENT_TYPE = 'trend_refresh_health';
+const TREND_REFRESH_EVENT_TYPE = 'trend_refresh_health';
 export const TREND_REFRESH_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const TREND_REFRESH_DATASETS = [
   ...[

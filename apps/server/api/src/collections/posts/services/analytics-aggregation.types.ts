@@ -96,7 +96,7 @@ export interface EngagementBreakdown {
   savesPercentage: number;
 }
 
-export type NumericSqlValue = bigint | number | string | null;
+type NumericSqlValue = bigint | number | string | null;
 
 export type DistinctPostCountRow = {
   post_count: NumericSqlValue;
@@ -111,11 +111,6 @@ export type PlatformComparisonRow = {
   saves: NumericSqlValue;
   shares: NumericSqlValue;
   views: NumericSqlValue;
-};
-
-export type PostViewsRow = {
-  post_id: string;
-  total_views: NumericSqlValue;
 };
 
 export interface AnalyticsAggregateResult {

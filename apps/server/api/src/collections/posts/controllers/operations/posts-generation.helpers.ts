@@ -15,7 +15,7 @@ export function resolveByokApiKeyOverride(
   return (request as CreditsGuardRequest).creditsConfig?.byokApiKeyOverride;
 }
 
-export const MAX_RECEIPTED_THREAD_POSTS = 9;
+const MAX_RECEIPTED_THREAD_POSTS = 9;
 
 export function invalidThreadCountMessage(
   count: number,

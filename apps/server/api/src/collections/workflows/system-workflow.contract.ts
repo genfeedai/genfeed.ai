@@ -1,10 +1,4 @@
-export type {
-  BuildSystemWorkflowMetadataInput,
-  SystemWorkflowCredentialPolicy,
-  SystemWorkflowDuplicateMetadata,
-  SystemWorkflowMetadata,
-  SystemWorkflowUpgradeStatus,
-} from '@genfeedai/contracts/interfaces';
+export type { SystemWorkflowMetadata } from '@genfeedai/contracts/interfaces';
 export {
   buildHiddenSystemWorkflowMetadata,
   buildSystemWorkflowDuplicateMetadata,
@@ -18,7 +12,6 @@ export {
   isProtectedSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY,
   SYSTEM_WORKFLOW_METADATA_KEY,
-  SYSTEM_WORKFLOW_OWNER,
   SYSTEM_WORKFLOW_PRINCIPAL_ID,
   SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE,
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
