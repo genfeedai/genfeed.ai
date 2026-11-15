@@ -1,6 +1,7 @@
 'use client';
 
 import Card from '@ui/card/Card';
+import { Badge } from '@ui/primitives/badge';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -53,32 +54,32 @@ export default function BrandVideoFramePreview({
             ]}
           />
         </div>
-        <div className="relative mx-auto aspect-[9/16] w-full max-w-[260px] overflow-hidden rounded-xl border border-border bg-gradient-to-b from-zinc-700 to-zinc-900 text-white">
+        <div className="relative mx-auto aspect-[9/16] w-full max-w-[260px] overflow-hidden rounded-xl border border-border bg-muted text-foreground">
           {isEndCard ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-zinc-950">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background">
               {finishing.endCard.isEnabled ? (
                 <>
                   <span className="text-lg font-semibold">{brand.label}</span>
-                  <span className="text-xs text-zinc-400">
+                  <span className="text-xs text-muted-foreground">
                     {t('preview.endCardSeconds', {
                       seconds: finishing.endCard.durationSeconds,
                     })}
                   </span>
                 </>
               ) : (
-                <span className="px-6 text-center text-xs text-zinc-400">
+                <span className="px-6 text-center text-xs text-muted-foreground">
                   {t('preview.endCardOff')}
                 </span>
               )}
             </div>
           ) : (
             <>
-              <div className="absolute inset-x-6 top-1/3 h-1/4 rounded-lg bg-white/10" />
+              <div className="absolute inset-x-6 top-1/3 h-1/4 rounded-lg bg-foreground/10" />
               {captions && captions.style !== 'none' ? (
                 <div
                   className={`absolute inset-x-4 text-center text-sm font-semibold ${CAPTION_CLASS[captions.position]} ${
                     captions.style === 'boxed'
-                      ? 'rounded bg-black/70 px-2 py-1'
+                      ? 'rounded bg-background/80 px-2 py-1'
                       : ''
                   } ${captions.style === 'bold_word' ? 'uppercase tracking-wide' : ''}`}
                 >
@@ -89,12 +90,12 @@ export default function BrandVideoFramePreview({
           )}
           {logo && logoVisible ? (
             <div
-              className={`absolute rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-zinc-900 ${CORNER_CLASS[logo.position]}`}
+              className={`absolute ${CORNER_CLASS[logo.position]}`}
               style={{
                 transform: `scale(${Math.max(0.6, logo.sizeRatio * 8)})`,
               }}
             >
-              {brand.label}
+              <Badge variant="secondary">{brand.label}</Badge>
             </div>
           ) : null}
           {mark && !isEndCard ? (
@@ -106,7 +107,7 @@ export default function BrandVideoFramePreview({
             </div>
           ) : null}
           {finishing.lut.isEnabled ? (
-            <div className="pointer-events-none absolute inset-0 bg-amber-500/10 mix-blend-overlay" />
+            <div className="pointer-events-none absolute inset-0 bg-warning/10 mix-blend-overlay" />
           ) : null}
         </div>
       </div>
