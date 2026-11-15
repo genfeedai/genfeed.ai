@@ -105,6 +105,7 @@ export const DEFAULT_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSetting
     isBrandVisualAnalysisEnabled: false,
     isEmailVerificationRequired: false,
     isMediaPerceptionEnabled: true,
+    isSignupInviteOnly: false,
     mediaGateVisionMode: 'off',
     mediaPerceptionFrameCount: 6,
     mediaPerceptionLookbackHours: 24,
@@ -137,6 +138,7 @@ export const UNRESOLVED_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSett
     ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
     isEmailVerificationRequired: true,
     isMediaPerceptionEnabled: false,
+    isSignupInviteOnly: true,
   };
 
 const MODERATION_CATEGORIES = new Set<string>(
@@ -464,6 +466,10 @@ export function parsePlatformFeatureSettings(
     isMediaPerceptionEnabled: pickBoolean(
       row.isMediaPerceptionEnabled,
       defaults.isMediaPerceptionEnabled,
+    ),
+    isSignupInviteOnly: pickBoolean(
+      row.isSignupInviteOnly,
+      defaults.isSignupInviteOnly,
     ),
     mediaGateVisionMode: pickOption(
       row.mediaGateVisionMode,

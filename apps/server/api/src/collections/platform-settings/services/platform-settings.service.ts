@@ -102,6 +102,7 @@ const PATCHABLE_FEATURE_KEYS = [
   'isAgentContextCompressionEnabled',
   'isBrandVisualAnalysisEnabled',
   'isEmailVerificationRequired',
+  'isSignupInviteOnly',
   'isMediaPerceptionEnabled',
   'mediaGateVisionMode',
   'mediaPerceptionFrameCount',

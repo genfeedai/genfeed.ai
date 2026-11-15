@@ -11,6 +11,7 @@ import { PlatformSettingsModule } from '@api/collections/platform-settings/platf
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { ReferralsModule } from '@api/collections/referrals/referrals.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
+import { WaitlistModule } from '@api/collections/waitlist/waitlist.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { PublicArticlesController } from '@api/endpoints/public/controllers/articles/public.articles.controller';
 import { PublicBrandOsController } from '@api/endpoints/public/controllers/brand-os/public.brand-os.controller';
@@ -24,6 +25,7 @@ import { PublicPostsController } from '@api/endpoints/public/controllers/posts/p
 import { PublicPreviewsController } from '@api/endpoints/public/controllers/previews/public.previews.controller';
 import { PublicRSSController } from '@api/endpoints/public/controllers/rss/rss.controller';
 import { PublicVideosController } from '@api/endpoints/public/controllers/videos/public.videos.controller';
+import { PublicWaitlistController } from '@api/endpoints/public/controllers/waitlist/public.waitlist.controller';
 import { PublicYoutubeClipperController } from '@api/endpoints/public/controllers/youtube-clipper/public-youtube-clipper.controller';
 import { PublicYoutubeLongFormController } from '@api/endpoints/public/controllers/youtube-long-form/public-youtube-long-form.controller';
 import { PublicArticleGenerationsService } from '@api/endpoints/public/services/public-article-generations.service';
@@ -53,6 +55,7 @@ import { Module } from '@nestjs/common';
     PublicPreviewsController,
     PublicRSSController,
     PublicVideosController,
+    PublicWaitlistController,
     PublicYoutubeClipperController,
     PublicYoutubeLongFormController,
   ],
@@ -76,6 +79,7 @@ import { Module } from '@nestjs/common';
     ReferralsModule,
     PublicClipperToolStoreModule,
     VideosModule,
+    WaitlistModule,
     WorkflowsModule,
   ],
   providers: [

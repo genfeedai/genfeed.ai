@@ -19,6 +19,21 @@ export interface IEmailVerificationEnforcementSources {
   onMailerMissing?: () => void;
 }
 
+/**
+ * Closed-signup policy. Both checks are no-ops while signup is open, and throw
+ * a `SIGNUP_INVITE_ONLY` API error when it is closed and the email may not
+ * create an account.
+ */
+export interface IBetterAuthSignupGate {
+  /** Gate the creation of a new user row (any sign-up path). */
+  assertCanCreateAccount: (email: string | null | undefined) => Promise<void>;
+  /**
+   * Gate a magic-link request before the mail is sent: an unknown email would
+   * otherwise get a link that fails only after the click.
+   */
+  assertCanRequestMagicLink: (email: string) => Promise<void>;
+}
+
 export interface IBetterAuthSocialProviderConfig {
   clientId: string;
   clientSecret: string;
@@ -310,6 +325,8 @@ export interface ICreateBetterAuthOptions {
    * user creation; true only where free trial credits are on offer.
    */
   shouldBlockDisposableEmail?: () => boolean;
+  /** Closed-signup policy (operator platform setting `isSignupInviteOnly`). */
+  signupGate?: IBetterAuthSignupGate;
   /**
    * Cloudflare Turnstile secret. When set, account-creating endpoints require a
    * valid `x-captcha-response` token; when unset no captcha is requested.

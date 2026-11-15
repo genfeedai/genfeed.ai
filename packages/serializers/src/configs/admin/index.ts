@@ -6,5 +6,6 @@ export * from '@serializers/configs/admin/harness-activation-report.config';
 export * from '@serializers/configs/admin/model-detail.config';
 export * from '@serializers/configs/admin/model-pricing-report.config';
 export * from '@serializers/configs/admin/system-notification-overview.config';
+export * from '@serializers/configs/admin/waitlist-entry.config';
 export * from '@serializers/configs/admin/warmup-account.config';
 export * from './credit-hold-report.config';
