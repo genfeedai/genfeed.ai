@@ -1,13 +1,17 @@
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
-import type { ServerCredentialStore } from '@api/server.dependencies';
-import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import {
+  SERVER_TOKENS,
+  type ServerCredentialStore,
+} from '@api/server.dependencies';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { isTwitterRefreshTokenRejectedError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
-import type { ConfigService } from '@libs/config/config.service';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
+import { Inject } from '@nestjs/common';
 import { TwitterApi } from 'twitter-api-v2';
 
 const TWITTER_TOKEN_REFRESH_BUFFER_MS = 15 * 60 * 1000;
@@ -53,6 +57,7 @@ export class TwitterTokenRefreshService {
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly activityRecorder: ActivityRecorderService,
+    @Inject(SERVER_TOKENS.credentials)
     private readonly credentialsService: ServerCredentialStore,
     private readonly findCredential: FindTwitterCredential,
   ) {}
