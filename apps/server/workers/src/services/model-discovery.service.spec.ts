@@ -48,7 +48,6 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import type { ConfigService } from '@workers/config/config.service';
 import type { IModelDiscoveryInput } from '@workers/interfaces/model-discovery.interface';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
-import type { ModelPricingService } from '@workers/services/model-pricing.service';
 
 describe('ModelDiscoveryService', () => {
   let service: ModelDiscoveryService;
@@ -63,11 +62,6 @@ describe('ModelDiscoveryService', () => {
     create: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
-  let mockModelPricingService: {
-    estimateCost: ReturnType<typeof vi.fn>;
-    estimateFromProviderCost: ReturnType<typeof vi.fn>;
-    getKnownReplicateCost: ReturnType<typeof vi.fn>;
-  };
   let mockConfigService: {
     get: ReturnType<typeof vi.fn>;
   };
@@ -78,13 +72,6 @@ describe('ModelDiscoveryService', () => {
     choose: ReturnType<typeof vi.fn>;
   };
   let decisionConfig: Partial<IPlatformFeatureSettings>;
-
-  const mockPricing = {
-    cost: 25,
-    costPerUnit: 5,
-    minCost: 5,
-    pricingType: 'per_megapixel',
-  };
 
   beforeEach(() => {
     mockLoggerService = {
@@ -98,15 +85,6 @@ describe('ModelDiscoveryService', () => {
       findAllActive: vi.fn().mockResolvedValue([]),
       findOne: vi.fn().mockResolvedValue(null),
       patch: vi.fn().mockResolvedValue(undefined),
-    };
-
-    mockModelPricingService = {
-      estimateCost: vi.fn().mockReturnValue(mockPricing),
-      estimateFromProviderCost: vi.fn().mockReturnValue({
-        ...mockPricing,
-        cost: 34,
-      }),
-      getKnownReplicateCost: vi.fn().mockReturnValue(null),
     };
 
     // The Jev adapter's wire format is still being fixed (#4910), so every
@@ -130,7 +108,6 @@ describe('ModelDiscoveryService', () => {
     service = new ModelDiscoveryService(
       mockLoggerService as unknown as LoggerService,
       mockModelsService as unknown as ModelsService,
-      mockModelPricingService as unknown as ModelPricingService,
       mockConfigService as unknown as ConfigService,
       mockTypedDecisionService as unknown as TypedDecisionService,
       mockPlatformSettingsService as unknown as PlatformSettingsService,
@@ -212,38 +189,64 @@ describe('ModelDiscoveryService', () => {
       );
     });
 
-    it('uses provider cost pricing when a provider cost is available', async () => {
-      const draftDoc = { id: 'draft-id' };
-      mockModelsService.create.mockResolvedValue(draftDoc);
+    it('stores the provider price from the page, the unit and its source, and no credits', async () => {
+      mockModelsService.create.mockResolvedValue({ id: 'draft-id' });
 
       await service.createDraftModel({
         ...modelInfo,
-        providerCostUsd: 0.1,
+        billingUnit: 'output',
+        pricingSourceUrl: 'https://replicate.com/acme-labs/test-model',
+        providerCostUsd: 0.04,
       });
 
-      expect(
-        mockModelPricingService.estimateFromProviderCost,
-      ).toHaveBeenCalledWith(0.1, ModelCategory.IMAGE);
-      expect(mockModelsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          cost: 34,
-          margin: 0.7,
-          providerCostUsd: 0.1,
-        }),
+      const created = mockModelsService.create.mock.calls[0]?.[0];
+      expect(created).toMatchObject({
+        cost: 0,
+        isActive: false,
+        providerConfig: {
+          billingUnit: 'output',
+          pricingSourceUrl: 'https://replicate.com/acme-labs/test-model',
+        },
+        providerCostUsd: 0.04,
+      });
+      expect(created.providerConfig).not.toHaveProperty('unpricedReason');
+      expect(mockModelsService.findAllActive).not.toHaveBeenCalled();
+    });
+
+    it('stores a draft with no readable rate unpriced, with the reason', async () => {
+      mockModelsService.create.mockResolvedValue({ id: 'draft-id' });
+
+      await service.createDraftModel({
+        ...modelInfo,
+        unpricedReason: 'unmapped_metric:gpu_seconds',
+      });
+
+      const created = mockModelsService.create.mock.calls[0]?.[0];
+      expect(created.cost).toBe(0);
+      expect(created.providerCostUsd).toBeUndefined();
+      expect(created.providerConfig.unpricedReason).toBe(
+        'unmapped_metric:gpu_seconds',
       );
     });
 
-    it('should patch model with pricing after creation', async () => {
-      const draftDoc = { id: 'draft-id' };
-      mockModelsService.create.mockResolvedValue(draftDoc);
+    it.each([
+      ['second', 'per-second'],
+      ['megapixel', 'per-megapixel'],
+      ['output', 'flat'],
+      [undefined, 'flat'],
+    ])(
+      'types a draft billed per %s as %s',
+      async (billingUnit, pricingType) => {
+        mockModelsService.create.mockResolvedValue({ id: 'draft-id' });
 
-      await service.createDraftModel(modelInfo);
+        await service.createDraftModel({ ...modelInfo, billingUnit });
 
-      expect(mockModelsService.patch).toHaveBeenCalledWith(
-        'draft-id',
-        expect.objectContaining({ pricingType: mockPricing.pricingType }),
-      );
-    });
+        expect(mockModelsService.patch).toHaveBeenCalledWith(
+          'draft-id',
+          expect.objectContaining({ pricingType }),
+        );
+      },
+    );
 
     it('persists the category confidence so admin review can show it', async () => {
       mockModelsService.create.mockResolvedValue({ id: 'draft-id' });
@@ -751,7 +754,7 @@ describe('ModelDiscoveryService', () => {
 
       await expect(
         service.fetchReplicateModel('google', 'imagen-4'),
-      ).resolves.toEqual(mockData);
+      ).resolves.toEqual({ model: mockData, status: 'ok' });
       expect(fetchSpy).toHaveBeenCalledWith(
         'https://api.replicate.com/v1/models/google/imagen-4',
         expect.objectContaining({ method: 'GET' }),
@@ -759,7 +762,7 @@ describe('ModelDiscoveryService', () => {
       fetchSpy.mockRestore();
     });
 
-    it('returns null without leaking an upstream response body', async () => {
+    it('says the model does not exist on a 404, without leaking the body', async () => {
       const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue({
         ok: false,
         status: 404,
@@ -767,11 +770,130 @@ describe('ModelDiscoveryService', () => {
 
       await expect(
         service.fetchReplicateModel('google', 'missing'),
-      ).resolves.toBeNull();
+      ).resolves.toEqual({ status: 'not_found' });
       expect(mockLoggerService.warn).toHaveBeenCalledWith(
         expect.stringContaining('Replicate API returned 404'),
       );
       fetchSpy.mockRestore();
+    });
+
+    it('reports any other failure as failed, not as a missing model', async () => {
+      const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue({
+        ok: false,
+        status: 503,
+      } as Response);
+
+      await expect(
+        service.fetchReplicateModel('google', 'imagen-4'),
+      ).resolves.toEqual({ status: 'failed' });
+      fetchSpy.mockRestore();
+    });
+  });
+
+  describe('classifyCategory from the billing metric', () => {
+    const recraftSchema = {
+      components: {
+        schemas: {
+          Input: {
+            properties: {
+              prompt: { description: 'A text prompt', type: 'string' },
+              style: {
+                enum: ['any', 'realistic_image/motion_blur'],
+                type: 'string',
+              },
+            },
+          },
+          Output: { format: 'uri', type: 'string' },
+        },
+      },
+    };
+
+    it('reads recraft-v3 as an image although its style list says motion', async () => {
+      await expect(
+        service.classifyCategory({
+          billingFamily: 'image',
+          description: 'Generate images in any style',
+          endpoint: 'recraft-ai/recraft-v3',
+          provider: ModelProvider.REPLICATE,
+          schema: recraftSchema,
+        }),
+      ).resolves.toEqual({ category: ModelCategory.IMAGE, source: 'billing' });
+    });
+
+    it('reads a model billed per input character as voice, not music', async () => {
+      await expect(
+        service.classifyCategory({
+          billingFamily: 'voice',
+          description: 'Text to speech with audio output',
+          endpoint: 'xai/grok-text-to-speech',
+          provider: ModelProvider.REPLICATE,
+        }),
+      ).resolves.toEqual({ category: ModelCategory.VOICE, source: 'billing' });
+    });
+
+    it('reads a model billed per token as text', async () => {
+      await expect(
+        service.classifyCategory({
+          billingFamily: 'text',
+          description: 'A model that makes images and video from a prompt',
+          endpoint: 'google/gemini-4-carbon',
+          provider: ModelProvider.REPLICATE,
+        }),
+      ).resolves.toEqual({ category: ModelCategory.TEXT, source: 'billing' });
+    });
+
+    it.each([
+      ['image', 'black-forest-labs/flux-3-image', ModelCategory.IMAGE],
+      ['image', 'prunaai/p-image-upscale', ModelCategory.IMAGE_UPSCALE],
+      [
+        'image',
+        'black-forest-labs/flux-kontext-edit',
+        ModelCategory.IMAGE_EDIT,
+      ],
+      ['video', 'wan-video/wan-2.5-t2v', ModelCategory.VIDEO],
+      ['video', 'prunaai/p-video-upscale', ModelCategory.VIDEO_UPSCALE],
+      ['video', 'luma/modify-video', ModelCategory.VIDEO_EDIT],
+    ] as const)(
+      'narrows the %s family for %s to %s',
+      async (billingFamily, endpoint, category) => {
+        await expect(
+          service.classifyCategory({
+            billingFamily,
+            endpoint,
+            provider: ModelProvider.REPLICATE,
+          }),
+        ).resolves.toEqual({ category, source: 'billing' });
+      },
+    );
+
+    it('splits audio output into voice and music by what the model says it is', async () => {
+      await expect(
+        service.classifyCategory({
+          billingFamily: 'audio',
+          description: 'Turns text into natural speech',
+          endpoint: 'acme/narrator',
+          provider: ModelProvider.REPLICATE,
+        }),
+      ).resolves.toMatchObject({ category: ModelCategory.VOICE });
+      await expect(
+        service.classifyCategory({
+          billingFamily: 'audio',
+          description: 'Generates a song from a prompt',
+          endpoint: 'minimax/music-2.6',
+          provider: ModelProvider.REPLICATE,
+        }),
+      ).resolves.toMatchObject({ category: ModelCategory.MUSIC });
+    });
+
+    it('falls back to the keyword table when the page bills nothing readable', async () => {
+      await expect(
+        service.classifyCategory({
+          billingFamily: null,
+          description: 'Generate a video from a prompt',
+          endpoint: 'acme/clip-maker',
+          provider: ModelProvider.REPLICATE,
+        }),
+      ).resolves.toMatchObject({ source: 'keyword' });
     });
   });
 });

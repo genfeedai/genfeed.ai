@@ -78,3 +78,30 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   sdxl: LEGACY_KEY,
   'x-ai/grok-4.1-fast': IDENTITY_404,
 };
+
+/**
+ * Registry rows whose provider says nothing can be refreshed because the
+ * provider no longer serves the endpoint (404 or gone). The scanner stays
+ * quiet about them: the reason is already recorded above.
+ */
+export function isKnownUnavailableModel(modelKey: string): boolean {
+  const reason = Object.getOwnPropertyDescriptor(
+    UNPRICED_MODELS,
+    modelKey,
+  )?.value;
+  return reason === IDENTITY_404 || reason === FAL_ENDPOINT_GONE;
+}
+
+/**
+ * Rows stored under a provider that never hosted the endpoint. The row is
+ * wrong, not the provider: the scanner reports each once as a data error
+ * instead of asking the provider about it every run.
+ */
+export const PROVIDER_ENDPOINT_DATA_ERRORS: Readonly<Record<string, string>> = {
+  'argil/atom':
+    'Stored under Replicate, but argil/atom is not a Replicate model (the page and the API both return 404).',
+  'baai/bge-large-en-v1.5':
+    'Stored under Replicate, but baai/bge-large-en-v1.5 is not a Replicate model (the page and the API both return 404).',
+  'fal-ai/runway-gen3':
+    'Stored under fal, but fal no longer serves fal-ai/runway-gen3 (checked 2026-10-21).',
+};

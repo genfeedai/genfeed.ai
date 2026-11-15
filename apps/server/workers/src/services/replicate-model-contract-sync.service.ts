@@ -20,6 +20,7 @@ import type {
   ModelPricingUnavailableAlert,
 } from '@workers/services/model-pricing-alerts.util';
 import {
+  assessRateChangeUrgency,
   compareProviderRates,
   loadReviewedRateContract,
   markRateReview,
@@ -36,7 +37,15 @@ export interface ReplicateSyncModelRecord {
   lifecycle?: string | null;
   pricingType?: string | null;
   providerCostUsd?: number | null;
+  providerSyncFailureCode?: string | null;
+  providerSyncStatus?: string | null;
   reviewedProviderContractVersion?: string | null;
+}
+
+/** A state the provider put a row in that no price refresh can change. */
+export interface ReplicateProviderState {
+  code: string;
+  status: 'delisted' | 'failed' | 'removed';
 }
 
 export interface ReplicateContractSyncResult {
@@ -162,6 +171,7 @@ export class ReplicateModelContractSyncService {
           pendingRateHash: comparison.pendingRateHash,
           provider: ModelProvider.REPLICATE,
           sourceUrl: candidate.observed?.sourceUrl ?? null,
+          ...assessRateChangeUrgency(comparison.changes),
         },
         quarantined,
         version: contract.version,
@@ -193,6 +203,7 @@ export class ReplicateModelContractSyncService {
         drifted: false,
         quarantined,
         refreshFailure: {
+          code,
           modelKey,
           provider: ModelProvider.REPLICATE,
           reason: `The Replicate price refresh failed (${code}); the last approved rate keeps charging.`,
@@ -247,6 +258,9 @@ export class ReplicateModelContractSyncService {
     )
       return undefined;
     return {
+      code: candidate.observed
+        ? 'price_unapproved'
+        : `rates_unavailable:${candidate.billingFailure ?? 'no_billing_observation'}`,
       modelKey,
       provider: ModelProvider.REPLICATE,
       reason: candidate.observed
@@ -326,6 +340,33 @@ export class ReplicateModelContractSyncService {
         },
       },
     });
+  }
+
+  /**
+   * Record that the provider delisted or removed a model, or that the row
+   * names an endpoint the provider never hosted. Returns true the first time a
+   * row enters the state, so the scan reports it once and stays quiet after.
+   */
+  async recordProviderState(
+    model: ReplicateSyncModelRecord,
+    state: ReplicateProviderState,
+    now = new Date(),
+  ): Promise<boolean> {
+    if (model.providerSyncFailureCode === state.code) return false;
+    await this.modelsService.prisma.model.updateMany({
+      data: {
+        providerSyncFailedAt: now,
+        providerSyncFailureCode: state.code,
+        providerSyncStatus: state.status,
+      },
+      where: {
+        id: model.id,
+        isDeleted: false,
+        organizationId: null,
+        provider: ModelProvider.REPLICATE,
+      },
+    });
+    return true;
   }
 
   async recordFailure(
