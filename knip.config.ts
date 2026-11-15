@@ -63,10 +63,56 @@ const config: KnipConfig = {
         'playwright/artifacts/**',
         'docker/**',
       ],
-      // The web next.config test pins one hoisted next-intl copy at the repo
-      // root for turbopack (apps/web/next.config.test.ts), so the root keeps
-      // it although only workspaces import it.
-      ignoreDependencies: ['next-intl'],
+      // Root dependencies that only workspaces import, kept on purpose:
+      // - The server webpack config (webpack.base.config.js) externalizes
+      //   whatever sits in the root node_modules and resolves it from there at
+      //   runtime, so the server runtime packages must stay hoisted at the
+      //   root. A package missing from the root is bundled instead, which
+      //   breaks native modules (bcrypt) and bare externals (class-transformer)
+      //   under the default isolated install. Every workspace that imports
+      //   them also declares them.
+      // - The web next.config test pins one hoisted next-intl copy for
+      //   turbopack (apps/web/next.config.test.ts).
+      // - Root `overrides` sets `"socket.io": "$socket.io"`, which Bun resolves
+      //   from this manifest's own dependency.
+      ignoreDependencies: [
+        '@bull-board/api',
+        '@bull-board/express',
+        '@nestjs/axios',
+        '@nestjs/cache-manager',
+        '@nestjs/config',
+        '@nestjs/passport',
+        '@nestjs/platform-express',
+        '@nestjs/platform-socket.io',
+        '@nestjs/swagger',
+        '@nestjs/websockets',
+        '@sentry/nestjs',
+        '@socket.io/redis-adapter',
+        'axios',
+        'bcrypt',
+        'bullmq',
+        'cache-manager',
+        'class-transformer',
+        'class-validator',
+        'compression',
+        'cookie-parser',
+        'cron',
+        'express',
+        'express-rate-limit',
+        'helmet',
+        'ioredis',
+        'joi',
+        'jsonapi-serializer',
+        'jsonwebtoken',
+        'nest-winston',
+        'next-intl',
+        'passport',
+        'passport-custom',
+        'pino',
+        'reflect-metadata',
+        'rxjs',
+        'socket.io',
+      ],
     },
 
     // Backend services — NestJS apps
