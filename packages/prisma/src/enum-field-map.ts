@@ -4682,6 +4682,24 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       user: 'userId',
     },
   },
+  LifetimeDealSeat: {
+    allFields: [
+      'createdAt',
+      'id',
+      'monthlyCredits',
+      'nextCreditGrantAt',
+      'organization',
+      'organizationId',
+      'seatNumber',
+      'sourceReference',
+      'updatedAt',
+    ],
+    listFields: [],
+    enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
+  },
   Link: {
     allFields: [
       'brand',
@@ -5876,6 +5894,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'isProactiveOnboarding',
       'isSelected',
       'label',
+      'lifetimeDealSeat',
       'metadata',
       'onboardingCompleted',
       'prefix',
