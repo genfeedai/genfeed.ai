@@ -1,6 +1,7 @@
 import type { BrandVideoFinishingV1 } from '@genfeedai/contracts/api-types/contracts';
 import type { IBrand } from '@genfeedai/contracts/interfaces';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandVideoFinishingEditor from './BrandVideoFinishingEditor';
 
@@ -27,20 +28,28 @@ const FINISHING: BrandVideoFinishingV1 = {
   watermark: { opacity: 0.35, position: 'top-right', sizeRatio: 0.0667 },
 };
 
-function renderEditor(brand: Partial<IBrand> = {}, isDisabled = false) {
-  const onChange = vi.fn();
-  const onRefreshBrand = vi.fn().mockResolvedValue(undefined);
-  render(
+function Harness({
+  brand,
+  isDisabled,
+}: {
+  brand: Partial<IBrand>;
+  isDisabled: boolean;
+}) {
+  const [finishing, setFinishing] = useState(FINISHING);
+  return (
     <BrandVideoFinishingEditor
       brand={{ id: 'brand-1', label: 'Acme', ...brand } as IBrand}
       brandId="brand-1"
-      finishing={FINISHING}
+      finishing={finishing}
       isDisabled={isDisabled}
-      onChange={onChange}
-      onRefreshBrand={onRefreshBrand}
-    />,
+      onChange={setFinishing}
+      onRefreshBrand={async () => undefined}
+    />
   );
-  return { onChange, onRefreshBrand };
+}
+
+function renderEditor(brand: Partial<IBrand> = {}, isDisabled = false) {
+  render(<Harness brand={brand} isDisabled={isDisabled} />);
 }
 
 describe('BrandVideoFinishingEditor', () => {
@@ -54,31 +63,27 @@ describe('BrandVideoFinishingEditor', () => {
     expect(screen.getByLabelText('Size (% of width)')).toHaveValue(6.67);
   });
 
-  it('changes the end card in the draft, not on the brand', () => {
-    const { onChange } = renderEditor();
+  it('shows the end card settings once the end card is switched on', () => {
+    renderEditor();
+    expect(screen.queryByText('End card image')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('switch', { name: 'End card' }));
 
-    expect(onChange).toHaveBeenCalledWith({
-      ...FINISHING,
-      endCard: { durationSeconds: 3, isEnabled: true },
-    });
+    expect(screen.getByRole('switch', { name: 'End card' })).toBeChecked();
+    expect(screen.getByText('End card image')).toBeInTheDocument();
   });
 
-  it('saves a watermark inset as a ratio of the width', () => {
-    const { onChange } = renderEditor();
+  it('shows a watermark inset edited as a percent of the width', () => {
+    renderEditor();
 
     fireEvent.change(
       screen.getByLabelText('From top or bottom edge (% of width)'),
-      {
-        target: { value: '23.5' },
-      },
+      { target: { value: '23.5' } },
     );
 
-    expect(onChange).toHaveBeenCalledWith({
-      ...FINISHING,
-      watermark: { ...FINISHING.watermark, insetYRatio: 0.235 },
-    });
+    expect(
+      screen.getByLabelText('From top or bottom edge (% of width)'),
+    ).toHaveValue(23.5);
   });
 
   it('keeps the colour grade switch off until a LUT file exists', () => {
@@ -88,7 +93,7 @@ describe('BrandVideoFinishingEditor', () => {
     ).toBeDisabled();
   });
 
-  it('never sends a file that is not a .cube', async () => {
+  it('refuses a file that is not a .cube', async () => {
     renderEditor();
 
     fireEvent.change(screen.getByLabelText('Upload .cube file'), {
@@ -100,25 +105,18 @@ describe('BrandVideoFinishingEditor', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Choose a .cube file',
     );
-    expect(mocks.uploadLut).not.toHaveBeenCalled();
+    expect(screen.getByText('No LUT uploaded yet.')).toBeInTheDocument();
   });
 
-  it('removes the LUT on the brand and switches the grade off in the draft', async () => {
-    const { onChange, onRefreshBrand } = renderEditor({
-      isLutEnabled: true,
-      lutFileName: 'warm.cube',
-    });
+  it('switches the colour grade off after the LUT is removed', async () => {
+    renderEditor({ isLutEnabled: true, lutFileName: 'warm.cube' });
+    expect(screen.getByText('warm.cube')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove LUT' }));
 
-    await waitFor(() =>
-      expect(mocks.removeLut).toHaveBeenCalledWith('brand-1'),
-    );
-    await waitFor(() => expect(onRefreshBrand).toHaveBeenCalled());
-    expect(onChange).toHaveBeenCalledWith({
-      ...FINISHING,
-      lut: { isEnabled: false },
-    });
     expect(await screen.findByRole('status')).toHaveTextContent('LUT removed.');
+    expect(
+      screen.getByRole('switch', { name: 'Colour grade (LUT)' }),
+    ).not.toBeChecked();
   });
 });

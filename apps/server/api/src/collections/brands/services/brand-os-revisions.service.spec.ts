@@ -1121,7 +1121,7 @@ describe('BrandOsRevisionsService', () => {
       const dangling = {
         ...video,
         captions: {
-          ...video.captions,
+          evidenceIds: ['owner-video'],
           position: 'bottom' as const,
           style: 'karaoke' as const,
           typographyRuleId: 'missing-font-rule',
