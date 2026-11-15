@@ -3,10 +3,10 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { ExternalServiceException } from '@api/helpers/exceptions/external/external-service.exception';
+import { VideoFrameSamplerService } from '@api/services/content-quality/video-frame-sampler.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
-import { VideoFrameSamplerService } from '@api/services/content-quality/video-frame-sampler.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { isSelfHostedDeployment } from '@genfeedai/config';
@@ -403,7 +403,7 @@ describe('EvaluationsOperationsService', () => {
       const thumbnailCalls =
         mockServices.filesClientService.generateThumbnail.mock.calls;
       expect(thumbnailCalls.map((call) => call[2])).toEqual([
-        2.5, 7.5, 12.5, 17.5,
+        0, 5, 10, 15, 19.9,
       ]);
       for (const call of thumbnailCalls) {
         expect(call[0]).toBe('https://example.com/video.mp4');
@@ -487,8 +487,7 @@ describe('EvaluationsOperationsService', () => {
         undefined as unknown as ReplicateService,
         undefined as unknown as PromptBuilderService,
         loggerService,
-        undefined as unknown as FilesClientService,
-        undefined as unknown as MediaUrlService,
+        undefined as unknown as VideoFrameSamplerService,
       );
 
       await expect(

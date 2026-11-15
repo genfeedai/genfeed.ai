@@ -1,3 +1,4 @@
+import { ExternalServiceException } from '@api/helpers/exceptions/external/external-service.exception';
 import {
   FIRST_MIDDLE_LAST_POSITIONS,
   VideoFrameSamplerService,
@@ -84,7 +85,7 @@ describe('VideoFrameSamplerService', () => {
         FIRST_MIDDLE_LAST_POSITIONS,
         40,
       ),
-    ).rejects.toThrow('Video frame sampling failed');
+    ).rejects.toThrow(ExternalServiceException);
     expect(ctx.filesClient.deleteStoredObject).toHaveBeenCalledTimes(2);
   });
 
@@ -96,7 +97,7 @@ describe('VideoFrameSamplerService', () => {
         'https://example.com/v.mp4',
         FIRST_MIDDLE_LAST_POSITIONS,
       ),
-    ).rejects.toThrow('Video frame sampling failed');
+    ).rejects.toThrow(ExternalServiceException);
     expect(ctx.filesClient.generateThumbnail).not.toHaveBeenCalled();
   });
 });

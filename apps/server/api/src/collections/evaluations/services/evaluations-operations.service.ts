@@ -8,9 +8,7 @@ import {
   type TextByokDispatch,
   textDispatchApiKey,
 } from '@api/services/byok/text-dispatch-byok.util';
-import {
-  VideoFrameSamplerService,
-} from '@api/services/content-quality/video-frame-sampler.service';
+import { VideoFrameSamplerService } from '@api/services/content-quality/video-frame-sampler.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';

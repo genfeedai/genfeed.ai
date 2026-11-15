@@ -393,9 +393,10 @@ describe('ContentQualityScorerService video scoring', () => {
     return { brandVideoContext, cleanup, mocks, sampler, service };
   }
 
-  function sentImages(
-    mocks: ReturnType<typeof createMocks>,
-  ): { text: string; urls: string[] } {
+  function sentImages(mocks: ReturnType<typeof createMocks>): {
+    text: string;
+    urls: string[];
+  } {
     const request = mocks.llmDispatcherService.completeStructured.mock
       .calls[0][0] as {
       messages: {
@@ -408,14 +409,21 @@ describe('ContentQualityScorerService video scoring', () => {
     }[];
     return {
       text: String(request.messages[0].content),
-      urls: user.flatMap((part) => (part.image_url ? [part.image_url.url] : [])),
+      urls: user.flatMap((part) =>
+        part.image_url ? [part.image_url.url] : [],
+      ),
     };
   }
 
   it('shows the model the first, middle and last frame, not the video file', async () => {
     const { mocks, sampler, service } = setup();
 
-    const result = await service.scoreContent('video-1', 'video', undefined, 'org-1');
+    const result = await service.scoreContent(
+      'video-1',
+      'video',
+      undefined,
+      'org-1',
+    );
 
     expect(sampler.sample).toHaveBeenCalledWith(
       'https://cdn.example.com/video.mp4',
@@ -474,7 +482,12 @@ describe('ContentQualityScorerService video scoring', () => {
       new Error('provider down'),
     );
 
-    const result = await service.scoreContent('video-1', 'video', undefined, 'org-1');
+    const result = await service.scoreContent(
+      'video-1',
+      'video',
+      undefined,
+      'org-1',
+    );
 
     expect(result.feedback).toEqual(['Analysis failed']);
     expect(cleanup).toHaveBeenCalledTimes(1);
@@ -484,7 +497,12 @@ describe('ContentQualityScorerService video scoring', () => {
     const { mocks, sampler, service } = setup();
     sampler.sample.mockRejectedValue(new Error('files down'));
 
-    const result = await service.scoreContent('video-1', 'video', undefined, 'org-1');
+    const result = await service.scoreContent(
+      'video-1',
+      'video',
+      undefined,
+      'org-1',
+    );
 
     expect(result.score).toBe(0);
     expect(result.feedback).toEqual(['Video frame sampling failed']);

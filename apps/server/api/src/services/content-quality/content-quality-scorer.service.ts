@@ -1,6 +1,7 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
+import { BrandVideoContextService } from '@api/services/content-quality/brand-video-context.service';
 import {
   buildTextScoringPrompt,
   buildVideoScoringPrompt,
@@ -8,7 +9,6 @@ import {
   TEXT_SCORING_PROMPT,
   VISION_RUBRIC_PROMPT,
 } from '@api/services/content-quality/content-quality-scorer.prompts';
-import { BrandVideoContextService } from '@api/services/content-quality/brand-video-context.service';
 import {
   FIRST_MIDDLE_LAST_POSITIONS,
   VideoFrameSamplerService,

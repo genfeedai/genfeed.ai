@@ -31,7 +31,9 @@ describe('BrandVideoContextService', () => {
     const { service } = setup({});
 
     await expect(service.resolve(null, 'org-1')).resolves.toBeUndefined();
-    await expect(service.resolve('brand-1', undefined)).resolves.toBeUndefined();
+    await expect(
+      service.resolve('brand-1', undefined),
+    ).resolves.toBeUndefined();
   });
 
   it('returns nothing for a brand outside the organization', async () => {
