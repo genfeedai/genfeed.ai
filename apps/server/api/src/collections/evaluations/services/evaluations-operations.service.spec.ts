@@ -6,6 +6,7 @@ import { ExternalServiceException } from '@api/helpers/exceptions/external/exter
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
+import { VideoFrameSamplerService } from '@api/services/content-quality/video-frame-sampler.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { isSelfHostedDeployment } from '@genfeedai/config';
@@ -91,6 +92,7 @@ describe('EvaluationsOperationsService', () => {
           useValue: mockServices.filesClientService,
         },
         { provide: MediaUrlService, useValue: mockServices.mediaUrlService },
+        VideoFrameSamplerService,
       ],
     }).compile();
 
@@ -202,7 +204,7 @@ describe('EvaluationsOperationsService', () => {
         mockServices.filesClientService.generateThumbnail.mock.calls.map(
           (call) => call[2],
         ),
-      ).toEqual([5, 15, 25, 35]);
+      ).toEqual([0, 10, 20, 30, 39.9]);
     });
 
     it('fails cleanly without billing where media storage is local', async () => {
@@ -256,7 +258,7 @@ describe('EvaluationsOperationsService', () => {
         organizationId,
       );
 
-      expect(frameIds()).toHaveLength(4);
+      expect(frameIds()).toHaveLength(5);
       expect(deletedKeys()).toEqual(
         frameIds().map((id) => `ingredients/thumbnails/${id}`),
       );
@@ -319,7 +321,7 @@ describe('EvaluationsOperationsService', () => {
         );
         await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
 
-        expect(deletedKeys()).toHaveLength(4);
+        expect(deletedKeys()).toHaveLength(5);
       });
 
       it('logs a failed late sweep without throwing', async () => {
@@ -362,7 +364,7 @@ describe('EvaluationsOperationsService', () => {
         ),
       ).rejects.toThrow(ExternalServiceException);
 
-      expect(deletedKeys()).toHaveLength(4);
+      expect(deletedKeys()).toHaveLength(5);
     });
 
     it('logs a failed frame deletion without failing the evaluation', async () => {

@@ -1,6 +1,7 @@
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
+import { VideoScoringModule } from '@api/services/content-quality/video-scoring.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -14,6 +15,7 @@ import { Module } from '@nestjs/common';
     LlmDispatcherModule,
     IngredientsModule,
     PostsCoreModule,
+    VideoScoringModule,
   ],
   providers: [ContentQualityScorerService],
 })

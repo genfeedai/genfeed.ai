@@ -33,13 +33,47 @@ function readPromptText(prompt?: IJudgePromptSource): string | undefined {
   );
 }
 
+type JudgeBrandContext = ReturnType<
+  EvaluationResultProjection['buildBrandContext']
+>;
+
+// The brand's approved palette, logo and video rules ride on the brand block
+// the video judge already receives, so a video is scored against more than the
+// brand's name and written guidelines.
+function withVideoBrandRules(
+  brandContext: JudgeBrandContext,
+  brandName: string | undefined,
+  rules: string | undefined,
+): JudgeBrandContext {
+  const trimmed = rules?.trim();
+  if (!trimmed) {
+    return brandContext;
+  }
+  const label = brandContext?.label ?? brandName;
+  if (!label) {
+    return brandContext;
+  }
+  const append = (existing: string | undefined) =>
+    existing ? `${existing}\n\n${trimmed}` : trimmed;
+  return {
+    description: append(brandContext?.description),
+    label,
+    text: append(brandContext?.text),
+  };
+}
+
 export function buildVideoJudgeContext(
   prompt: IJudgePromptSource | undefined,
   brand: IJudgeBrandSource | undefined,
   storedDuration: unknown,
+  videoBrandRules?: { brandName?: string; rulesText?: string },
 ): EvaluationJudgeContext {
   return {
-    brand: projection.buildBrandContext(brand),
+    brand: withVideoBrandRules(
+      projection.buildBrandContext(brand),
+      videoBrandRules?.brandName,
+      videoBrandRules?.rulesText,
+    ),
     durationSeconds:
       typeof storedDuration === 'number' && storedDuration > 0
         ? storedDuration

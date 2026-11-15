@@ -8,6 +8,7 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
+import { VideoScoringModule } from '@api/services/content-quality/video-scoring.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { CacheModule } from '@api/services/cache/cache.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
@@ -36,6 +37,7 @@ import { Module } from '@nestjs/common';
     PostsCoreModule,
     PromptBuilderModule,
     ReplicateModule,
+    VideoScoringModule,
     VideosCoreModule,
   ],
   providers: [EvaluationsService, EvaluationsOperationsService],

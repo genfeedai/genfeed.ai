@@ -357,3 +357,139 @@ describe('ContentQualityScorerService', () => {
     });
   });
 });
+
+describe('ContentQualityScorerService video scoring', () => {
+  function setup(options: { brandContext?: unknown } = {}) {
+    const mocks = createMocks();
+    mocks.ingredientsService.findOne.mockResolvedValue({
+      brandId: 'brand-1',
+      cdnUrl: 'https://cdn.example.com/video.mp4',
+      metadata: { duration: 12 },
+    });
+    const cleanup = vi.fn().mockResolvedValue(undefined);
+    const sampler = {
+      sample: vi.fn().mockResolvedValue({
+        cleanup,
+        frames: [
+          { position: 0, seconds: 0, url: 'https://cdn.example.com/f1.jpg' },
+          { position: 0.5, seconds: 6, url: 'https://cdn.example.com/f2.jpg' },
+          { position: 1, seconds: 11.9, url: 'https://cdn.example.com/f3.jpg' },
+        ],
+      }),
+    };
+    const brandVideoContext = {
+      resolve: vi.fn().mockResolvedValue(options.brandContext),
+    };
+    const service = new ContentQualityScorerService(
+      mocks.logger as never,
+      mocks.llmDispatcherService as never,
+      mocks.ingredientsService as never,
+      mocks.postsService as never,
+      undefined,
+      undefined,
+      sampler as never,
+      brandVideoContext as never,
+    );
+    return { brandVideoContext, cleanup, mocks, sampler, service };
+  }
+
+  function sentImages(
+    mocks: ReturnType<typeof createMocks>,
+  ): { text: string; urls: string[] } {
+    const request = mocks.llmDispatcherService.completeStructured.mock
+      .calls[0][0] as {
+      messages: {
+        content: string | { image_url?: { url: string }; text?: string }[];
+        role: string;
+      }[];
+    };
+    const user = request.messages[1].content as {
+      image_url?: { url: string };
+    }[];
+    return {
+      text: String(request.messages[0].content),
+      urls: user.flatMap((part) => (part.image_url ? [part.image_url.url] : [])),
+    };
+  }
+
+  it('shows the model the first, middle and last frame, not the video file', async () => {
+    const { mocks, sampler, service } = setup();
+
+    const result = await service.scoreContent('video-1', 'video', undefined, 'org-1');
+
+    expect(sampler.sample).toHaveBeenCalledWith(
+      'https://cdn.example.com/video.mp4',
+      [0, 0.5, 1],
+      12,
+    );
+    const { text, urls } = sentImages(mocks);
+    expect(urls).toEqual([
+      'https://cdn.example.com/f1.jpg',
+      'https://cdn.example.com/f2.jpg',
+      'https://cdn.example.com/f3.jpg',
+    ]);
+    expect(text).toContain(VIDEO_SCORING_PROMPT);
+    expect(text).toContain('Frame 1: first frame (0.0s)');
+    expect(text).toContain('Frame 2: middle frame (6.0s)');
+    expect(text).toContain('Frame 3: last frame (11.9s)');
+    expect(result.contentType).toBe('video');
+    expect(result.score).toBe(7);
+  });
+
+  it('adds the approved palette, logo and video rules and the logo image when the brand has them', async () => {
+    const { brandVideoContext, mocks, service } = setup({
+      brandContext: {
+        brandName: 'Genfeed',
+        logoUrl: 'https://cdn.example.com/logo.png',
+        rulesText: 'Approved palette:\n- #112233 (primary), required',
+      },
+    });
+
+    await service.scoreContent('video-1', 'video', undefined, 'org-1');
+
+    expect(brandVideoContext.resolve).toHaveBeenCalledWith('brand-1', 'org-1');
+    const { text, urls } = sentImages(mocks);
+    expect(text).toContain('Brand: Genfeed');
+    expect(text).toContain('Approved palette:\n- #112233 (primary), required');
+    expect(text).toContain('The final image is the approved logo reference');
+    expect(urls).toHaveLength(4);
+    expect(urls[3]).toBe('https://cdn.example.com/logo.png');
+  });
+
+  it('scores the frames without brand text when the brand states no video rules', async () => {
+    const { mocks, service } = setup({
+      brandContext: { brandName: 'Genfeed', rulesText: '' },
+    });
+
+    await service.scoreContent('video-1', 'video', undefined, 'org-1');
+
+    const { text, urls } = sentImages(mocks);
+    expect(text).not.toContain('Brand: Genfeed');
+    expect(urls).toHaveLength(3);
+  });
+
+  it('deletes the sampled frames after scoring, even when the model call throws', async () => {
+    const { cleanup, mocks, service } = setup();
+    mocks.llmDispatcherService.completeStructured.mockRejectedValue(
+      new Error('provider down'),
+    );
+
+    const result = await service.scoreContent('video-1', 'video', undefined, 'org-1');
+
+    expect(result.feedback).toEqual(['Analysis failed']);
+    expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns a zero score that says why when frames cannot be sampled', async () => {
+    const { mocks, sampler, service } = setup();
+    sampler.sample.mockRejectedValue(new Error('files down'));
+
+    const result = await service.scoreContent('video-1', 'video', undefined, 'org-1');
+
+    expect(result.score).toBe(0);
+    expect(result.feedback).toEqual(['Video frame sampling failed']);
+    expect(
+      mocks.llmDispatcherService.completeStructured,
+    ).not.toHaveBeenCalled();
+  });
+});
