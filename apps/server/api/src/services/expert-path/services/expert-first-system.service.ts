@@ -80,6 +80,9 @@ function readProvenance(value: unknown): IContentPlanProvenance {
     ...(typeof record.harnessProfileId === 'string'
       ? { harnessProfileId: record.harnessProfileId }
       : {}),
+    ...(typeof record.harnessProfileRevision === 'number'
+      ? { harnessProfileRevision: record.harnessProfileRevision }
+      : {}),
     ...(typeof record.brandOsRevisionId === 'string'
       ? { brandOsRevisionId: record.brandOsRevisionId }
       : {}),
@@ -421,6 +424,9 @@ export class ExpertFirstSystemService {
       source: EXPERT_FIRST_SYSTEM_PLAN_SOURCE,
       ...(brief.receipts?.harnessProfileId
         ? { harnessProfileId: brief.receipts.harnessProfileId }
+        : {}),
+      ...(brief.receipts?.harnessProfileRevision !== undefined
+        ? { harnessProfileRevision: brief.receipts.harnessProfileRevision }
         : {}),
       ...(brief.receipts?.brandOs === 'approved'
         ? { brandOsRevisionId: brief.receipts.brandOsRevisionId }

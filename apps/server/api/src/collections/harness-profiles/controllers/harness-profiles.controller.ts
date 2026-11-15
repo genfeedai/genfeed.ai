@@ -4,6 +4,7 @@ import {
   SaveBrandRulesDto,
 } from '@api/collections/harness-profiles/dto/brand-rules.dto';
 import { PromoteWinnersDto } from '@api/collections/harness-profiles/dto/promote-winners.dto';
+import { RollbackHarnessProfileDto } from '@api/collections/harness-profiles/dto/rollback-harness-profile.dto';
 import { UpdateHarnessProfileDto } from '@api/collections/harness-profiles/dto/update-harness-profile.dto';
 import { UpsertHarnessProfileDto } from '@api/collections/harness-profiles/dto/upsert-harness-profile.dto';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
@@ -22,7 +23,11 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
-import { HarnessProfileSerializer } from '@genfeedai/serializers';
+import { HarnessProfileRevisionSource } from '@genfeedai/prisma';
+import {
+  HarnessProfileRevisionSerializer,
+  HarnessProfileSerializer,
+} from '@genfeedai/serializers';
 import {
   BadRequestException,
   Body,
@@ -89,6 +94,8 @@ export class HarnessProfilesController {
       dto,
       organization,
       userId,
+      {},
+      { actorUserId: userId, source: HarnessProfileRevisionSource.USER_EDIT },
     );
 
     return serializeSingle(request, HarnessProfileSerializer, profile);
@@ -194,6 +201,48 @@ export class HarnessProfilesController {
       profileId,
       dto,
       organization,
+      {},
+      {
+        actorUserId: user.userId ?? user.id,
+        source: HarnessProfileRevisionSource.USER_EDIT,
+      },
+    );
+
+    return serializeSingle(request, HarnessProfileSerializer, profile);
+  }
+
+  /** The profile's history, newest first. */
+  @Get(':profileId/revisions')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async listRevisions(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('profileId') profileId: string,
+  ) {
+    const docs = await this.harnessProfilesService.listRevisions(
+      profileId,
+      user.organizationId,
+    );
+
+    return serializeCollection(request, HarnessProfileRevisionSerializer, {
+      docs,
+    });
+  }
+
+  /** Restores an earlier revision as a new one; the next generation uses it. */
+  @Post(':profileId/rollback')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async rollback(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('profileId') profileId: string,
+    @Body() dto: RollbackHarnessProfileDto,
+  ) {
+    const profile = await this.harnessProfilesService.rollback(
+      profileId,
+      dto.version,
+      user.organizationId,
+      user.userId ?? user.id,
     );
 
     return serializeSingle(request, HarnessProfileSerializer, profile);
@@ -206,7 +255,11 @@ export class HarnessProfilesController {
     @Param('profileId') profileId: string,
   ) {
     const organization = user.organizationId;
-    await this.harnessProfilesService.remove(profileId, organization);
+    await this.harnessProfilesService.remove(
+      profileId,
+      organization,
+      user.userId ?? user.id,
+    );
     return { message: 'Harness profile deleted successfully' };
   }
 }

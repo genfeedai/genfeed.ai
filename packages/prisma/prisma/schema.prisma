@@ -663,6 +663,8 @@ contentLearningOperations ContentLearningOperation[]
   visualProjects VisualProject[]
   visualRevisions VisualRevision[]
   approvedBrandOsRevisions BrandOsRevision[] @relation("BrandOsApprover")
+  createdHarnessProfiles HarnessProfile[] @relation("HarnessProfileCreator")
+  harnessProfileRevisions HarnessProfileRevision[] @relation("HarnessProfileRevisionActor")
   publishedBrandOsPublications BrandOsPublication[] @relation("BrandOsPublisher")
   revokedBrandOsPublications BrandOsPublication[] @relation("BrandOsRevoker")
   knowledgeSources KnowledgeSource[]
@@ -864,6 +866,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   visualRevisions VisualRevision[]
   brandOsRevisions BrandOsRevision[]
   brandOsPublications BrandOsPublication[]
+  harnessProfiles HarnessProfile[]
+  harnessProfileRevisions HarnessProfileRevision[]
   knowledgeSources KnowledgeSource[]
   knowledgeSpaces KnowledgeSpace[]
   knowledgeSourceRefreshRuns KnowledgeSourceRefreshRun[]
@@ -1143,6 +1147,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   brandOsRevisionVersion Int @default(0)
   brandOsRevisions BrandOsRevision[]
   brandOsPublications BrandOsPublication[]
+  harnessProfiles HarnessProfile[]
+  harnessProfileRevisions HarnessProfileRevision[]
   watermarkText            String?
   watermarkLogoId          String?
   watermarkOpacity         Float        @default(0.35)
@@ -9121,6 +9127,64 @@ model BrandOsRevision {
   @@unique([organizationId, brandId, version])
   @@index([organizationId, brandId, isDeleted, status])
   @@map("brand_os_revisions")
+}
+
+enum HarnessProfileRevisionSource {
+  USER_EDIT
+  RULE_PROPOSAL
+  WINNER_PROMOTION
+  REVIEW_FEEDBACK
+  EXPERT_PATH
+  SEED
+  MIGRATION
+  ROLLBACK
+}
+
+model HarnessProfile {
+  id String @id @default(cuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id])
+  brandId String
+  brand Brand @relation(fields: [brandId], references: [id])
+  label String
+  description String?
+  scope String @default("brand")
+  status String @default("active")
+  isDefault Boolean @default(false)
+  content Json @default("{}")
+  currentVersion Int @default(1)
+  createdById String?
+  createdBy User? @relation("HarnessProfileCreator", fields: [createdById], references: [id])
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  revisions HarnessProfileRevision[]
+
+  @@index([organizationId, brandId, isDeleted])
+  @@map("harness_profiles")
+}
+
+model HarnessProfileRevision {
+  id String @id @default(cuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id])
+  brandId String
+  brand Brand @relation(fields: [brandId], references: [id])
+  harnessProfileId String
+  harnessProfile HarnessProfile @relation(fields: [harnessProfileId], references: [id])
+  version Int
+  snapshot Json
+  source HarnessProfileRevisionSource
+  actorUserId String?
+  actor User? @relation("HarnessProfileRevisionActor", fields: [actorUserId], references: [id])
+  actorLabel String?
+  rolledBackToVersion Int?
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([harnessProfileId, version])
+  @@index([organizationId, harnessProfileId, isDeleted, version])
+  @@map("harness_profile_revisions")
 }
 
 model BrandOsPublication {

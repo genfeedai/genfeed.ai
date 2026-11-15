@@ -18,6 +18,7 @@ export interface IContentPlanProvenance {
   /** Generating surface, e.g. `expert-first-system`. */
   source: string;
   harnessProfileId?: string;
+  harnessProfileRevision?: number;
   brandOsRevisionId?: string;
   knowledgeReceipts: KnowledgeReceipt[];
   /** Authoritative corpus sources that were ready when the plan was built. */

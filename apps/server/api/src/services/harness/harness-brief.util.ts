@@ -277,6 +277,7 @@ export const buildHarnessInput = (params: {
   brand?: BrandSource | null;
   brandOsRevision?: IBrandOsRevision | null;
   harnessProfileId?: string;
+  harnessProfileRevision?: number;
   intent: ContentHarnessIntent;
   organizationId: string;
   persona?: PersonaSource | null;
@@ -296,6 +297,7 @@ export const buildHarnessInput = (params: {
       : toOptionalString(params.brand?.label),
     brandOsRevisionId: params.brandOsRevision?.id,
     harnessProfileId: params.harnessProfileId,
+    harnessProfileRevision: params.harnessProfileRevision,
     identityContribution: params.brandOsRevision
       ? buildApprovedBrandOsIdentity(
           params.brandOsRevision,

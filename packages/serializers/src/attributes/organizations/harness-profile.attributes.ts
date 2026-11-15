@@ -20,4 +20,5 @@ export const harnessProfileAttributes = createEntityAttributes([
   'guardrails',
   'metadata',
   'positioning',
+  'currentVersion',
 ]);
