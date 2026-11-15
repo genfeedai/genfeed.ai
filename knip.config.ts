@@ -244,6 +244,8 @@ const config: KnipConfig = {
         'packages/**/*.{ts,tsx}',
         // Aliased from `vitest.config.mts`.
         'tests/*.stub.ts',
+        // Run by scripts/ci/source-contracts.mjs (`--config`), not imported.
+        'vitest.source-contracts.config.mts',
       ],
       ignore: ['dist/**', '.next/**', 'node_modules/**'],
     },
