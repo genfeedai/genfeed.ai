@@ -68,7 +68,7 @@ export interface XAdsTweet {
   id: string;
 }
 
-export interface XAdsInsightsMetrics {
+interface XAdsInsightsMetrics {
   impressions: number;
   clicks: number;
   billedCharge: number;
@@ -102,13 +102,6 @@ export interface XAdsApiResponse<T> {
   data: T;
   data_type?: string;
   next_cursor?: string | null;
-}
-
-export interface XAdsApiError {
-  errors: Array<{
-    code: number;
-    message: string;
-  }>;
 }
 
 export interface XAdsCreateCampaignParams {

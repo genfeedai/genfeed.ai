@@ -244,7 +244,6 @@ export const TRACED_DEFINITIONS_BASELINE: Readonly<Record<string, number>> = {
   'apps/server/api/src/services/brand-validation/brand-validation-placement.util.ts': 1,
   'apps/server/api/src/services/branded-generation-receipts/branded-generation-recovery.util.ts': 2,
   'apps/server/api/src/services/branded-text-generation/accountless-learning-receipt.util.ts': 1,
-  'apps/server/api/src/services/branded-text-generation/branded-publish-hold.service.ts': 1,
   'apps/server/api/src/services/byok/byok-provider-map.util.ts': 1,
   'apps/server/api/src/services/files-microservice/client/files-request-retry.util.ts': 1,
   'apps/server/api/src/services/generation-brief/schnell-live-ablation.ts': 1,

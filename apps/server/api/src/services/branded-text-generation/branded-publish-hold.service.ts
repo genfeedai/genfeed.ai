@@ -90,7 +90,7 @@ export class BrandedPublishHoldException extends ConflictException {
  * workflow or MCP asked for. Those requests chose to publish, so autonomy,
  * brand and channel are theirs; the Policy is what binds them.
  */
-export async function evaluatePolicyHold(
+async function evaluatePolicyHold(
   policy: HoldPolicy,
   facts: BrandPolicyDraftFacts,
   transaction?: Prisma.TransactionClient,

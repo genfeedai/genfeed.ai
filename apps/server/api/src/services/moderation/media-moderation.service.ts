@@ -52,7 +52,7 @@ import { Inject, Injectable } from '@nestjs/common';
  * suspects minors in the asset, a visual input's sexual score also counts as
  * `sexual_minors`, so the strict minors threshold applies to it.
  */
-export function withVisualMinorSafety(
+function withVisualMinorSafety(
   scores: ModerationScores,
   isMinorSuspected: boolean,
 ): ModerationScores {

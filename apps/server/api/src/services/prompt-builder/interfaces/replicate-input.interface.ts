@@ -585,7 +585,7 @@ export interface GPT52Input extends Record<string, unknown> {
 }
 
 /** Anthropic Claude 4.5 Sonnet */
-export interface Claude45SonnetInput extends Record<string, unknown> {
+interface Claude45SonnetInput extends Record<string, unknown> {
   max_tokens: number;
   prompt: string;
   system_prompt?: string;

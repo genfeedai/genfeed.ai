@@ -8,7 +8,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
-export const SCRIPT_BRAND_CONTEXT_UNAVAILABLE =
+const SCRIPT_BRAND_CONTEXT_UNAVAILABLE =
   'Brand context is unavailable for this script. Please retry.';
 
 const SCRIPT_SYSTEM_PROMPT =

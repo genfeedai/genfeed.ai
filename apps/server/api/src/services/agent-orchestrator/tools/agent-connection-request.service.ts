@@ -11,7 +11,6 @@ import {
 import {
   APP_ROUTES,
   createOrganizationAppRoute,
-  OAUTH_STATE_TTL_MS,
 } from '@genfeedai/contracts/constants';
 import type {
   AgentToolResult,
@@ -333,5 +332,3 @@ export class AgentConnectionRequestService {
       : undefined;
   }
 }
-
-export const CONNECTION_REQUEST_TTL_MS = OAUTH_STATE_TTL_MS;

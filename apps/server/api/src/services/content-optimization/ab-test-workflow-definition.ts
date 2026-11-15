@@ -88,7 +88,7 @@ export function buildAbTestExecutionWorkflowDefinition(): SystemWorkflowGraphDef
   };
 }
 
-export function buildAbTestArmWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildAbTestArmWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return singleItemDefinition(
     AB_TEST_WORKFLOW_IDS.EXECUTE_ARM,
     AB_TEST_ACTION_IDS.CREATE_ARM,
@@ -151,7 +151,7 @@ export function buildAbTestResolutionWorkflowDefinition(): SystemWorkflowGraphDe
   };
 }
 
-export function buildAbTestOutcomeWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildAbTestOutcomeWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return singleItemDefinition(
     AB_TEST_WORKFLOW_IDS.RESOLVE_OUTCOME,
     AB_TEST_ACTION_IDS.PERSIST_OUTCOME,
@@ -160,7 +160,7 @@ export function buildAbTestOutcomeWorkflowDefinition(): SystemWorkflowGraphDefin
   );
 }
 
-export function buildValidatedAbTestsWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildValidatedAbTestsWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
     canonicalId: AB_TEST_WORKFLOW_IDS.LOAD_VALIDATED,
     organizationModule: 'analytics',

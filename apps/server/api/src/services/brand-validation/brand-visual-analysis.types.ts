@@ -1,5 +1,5 @@
 /** Who a paid analysis is attributed to; taken from the validated snapshot, never from a caller. */
-export interface BrandVisualAnalysisScope {
+interface BrandVisualAnalysisScope {
   organizationId: string;
   brandId: string;
 }

@@ -1,14 +1,14 @@
 export const HEYGEN_API_ORIGIN = 'https://api.heygen.com';
-export const HEYGEN_VIDEO_MODEL_ID = 'heygen-video-1';
+const HEYGEN_VIDEO_MODEL_ID = 'heygen-video-1';
 export const HEYGEN_VIDEO_CREATE_PATH = '/v3/models/videos';
 export const HEYGEN_VIDEO_PROMPT_MAX = 5_000;
-export const HEYGEN_VIDEO_MIN_DURATION = 5;
-export const HEYGEN_VIDEO_MAX_DURATION = 15;
-export const HEYGEN_VIDEO_DEFAULT_DURATION = 5;
-export const HEYGEN_VIDEO_DEFAULT_RESOLUTION = '768p';
-export const HEYGEN_VIDEO_MAX_IMAGES = 9;
-export const HEYGEN_VIDEO_MAX_VIDEOS = 3;
-export const HEYGEN_VIDEO_MAX_REFERENCES = 12;
+const HEYGEN_VIDEO_MIN_DURATION = 5;
+const HEYGEN_VIDEO_MAX_DURATION = 15;
+const HEYGEN_VIDEO_DEFAULT_DURATION = 5;
+const HEYGEN_VIDEO_DEFAULT_RESOLUTION = '768p';
+const HEYGEN_VIDEO_MAX_IMAGES = 9;
+const HEYGEN_VIDEO_MAX_VIDEOS = 3;
+const HEYGEN_VIDEO_MAX_REFERENCES = 12;
 export const HEYGEN_VIDEO_POLL_INTERVAL_MS = 5_000;
 export const HEYGEN_VIDEO_POLL_TIMEOUT_MS = 600_000;
 
@@ -22,15 +22,14 @@ const HEYGEN_VIDEO_ASPECT_RATIOS = [
   '9:16',
 ] as const;
 
-export type HeyGenVideoResolution = (typeof HEYGEN_VIDEO_RESOLUTIONS)[number];
-export type HeyGenVideoAspectRatio =
-  (typeof HEYGEN_VIDEO_ASPECT_RATIOS)[number];
-export type HeyGenVideoMode =
+type HeyGenVideoResolution = (typeof HEYGEN_VIDEO_RESOLUTIONS)[number];
+type HeyGenVideoAspectRatio = (typeof HEYGEN_VIDEO_ASPECT_RATIOS)[number];
+type HeyGenVideoMode =
   | 'image_to_video'
   | 'reference_to_video'
   | 'text_to_video';
 
-export interface HeyGenUrlAsset {
+interface HeyGenUrlAsset {
   type: 'url';
   url: string;
 }

@@ -51,8 +51,6 @@ import {
 
 export type {
   TwitterDirectMessageListing,
-  TwitterInboxDmMessage,
-  TwitterInboxDmThread,
   TwitterInboxTweet,
   TwitterMentionsPage,
 } from './twitter-inbox.service';

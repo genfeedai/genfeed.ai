@@ -107,7 +107,7 @@ export function toBrandedPostMaterialRecord<
   } as unknown as Omit<P, 'children' | 'ingredientLinks'> &
     BrandedPostMaterialRecord;
 }
-export type BrandedPostMaterialEntry =
+type BrandedPostMaterialEntry =
   | { kind: 'media'; id: string; role: 'image' | 'video' }
   | {
       kind: 'text';

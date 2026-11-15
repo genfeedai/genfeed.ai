@@ -5,11 +5,11 @@ import {
   getToolsForSurface,
 } from '@genfeedai/actions';
 
-export function agentToolWorkflowId(toolName: CuratedActionName): string {
+function agentToolWorkflowId(toolName: CuratedActionName): string {
   return `agent.tool.${toolName}`;
 }
 
-export function buildAgentToolWorkflowDefinition(
+function buildAgentToolWorkflowDefinition(
   toolName: CuratedActionName,
 ): SystemWorkflowGraphDefinition {
   const canonicalId = agentToolWorkflowId(toolName);

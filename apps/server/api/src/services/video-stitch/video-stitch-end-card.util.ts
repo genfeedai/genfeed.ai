@@ -23,14 +23,14 @@ const END_CARD_ASSET_FOLDERS: Partial<Record<AssetCategory, string>> = {
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 const DEFAULT_END_CARD_BACKGROUND = '#000000';
 
-export interface BrandEndCardRow {
+interface BrandEndCardRow {
   backgroundColor: string;
   endCardAssetId: string | null;
   endCardDurationSeconds: number;
   isEndCardEnabled: boolean;
 }
 
-export interface BrandEndCardAssetRow {
+interface BrandEndCardAssetRow {
   category: AssetCategory;
   cloudObjectKey: string | null;
   id: string;
@@ -41,7 +41,7 @@ export interface BrandEndCardAssetRow {
  * The brand's setting decides, unless the caller marked this output as not
  * final (`isEndCardEnabled: false`), such as a clip a later stitch joins.
  */
-export function isBrandEndCardRequested(
+function isBrandEndCardRequested(
   brand: Pick<BrandEndCardRow, 'endCardAssetId' | 'isEndCardEnabled'> | null,
   settings: IVideoMergeSettings,
 ): boolean {
@@ -57,7 +57,7 @@ export function isBrandEndCardRequested(
  * on. A configured card that cannot be used fails the stitch instead of
  * shipping the video without the brand's closing frame.
  */
-export function resolveVideoStitchEndCard(
+function resolveVideoStitchEndCard(
   brand: BrandEndCardRow,
   asset: BrandEndCardAssetRow | null,
 ): VideoStitchEndCard {

@@ -5,7 +5,7 @@
  */
 
 /** A single property definition from a Replicate JSON Schema */
-export interface ReplicateSchemaProperty {
+interface ReplicateSchemaProperty {
   type: string;
   title?: string;
   description?: string;

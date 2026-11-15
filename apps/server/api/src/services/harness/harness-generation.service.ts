@@ -81,10 +81,9 @@ import {
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
-export const HARNESS_MEMORY_LIMIT = 5;
-export const HARNESS_SELECTED_KNOWLEDGE_LIMIT =
-  SELECTED_KNOWLEDGE_PASSAGE_BUDGET;
-export const HARNESS_MEMORY_MIN_RELEVANCE = 0.65;
+const HARNESS_MEMORY_LIMIT = 5;
+const HARNESS_SELECTED_KNOWLEDGE_LIMIT = SELECTED_KNOWLEDGE_PASSAGE_BUDGET;
+const HARNESS_MEMORY_MIN_RELEVANCE = 0.65;
 
 export type ResolveHarnessBriefParams = {
   userId?: string;

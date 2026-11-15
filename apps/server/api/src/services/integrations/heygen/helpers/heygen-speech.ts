@@ -16,18 +16,17 @@ import {
 } from '@nestjs/common';
 
 /** HeyGen Voice speaks through the synchronous text-to-speech model endpoint. */
-export const HEYGEN_SPEECH_PATH = '/v3/models/audio/tts';
+const HEYGEN_SPEECH_PATH = '/v3/models/audio/tts';
 export const HEYGEN_SPEECH_URL = `${HEYGEN_API_ORIGIN}${HEYGEN_SPEECH_PATH}`;
 
 /**
  * The only model id we send. The pricing page also lists a `heygen-voice-1-turbo`
  * id that the API reference never mentions, so it is not offered.
  */
-export const HEYGEN_SPEECH_MODEL_ID: HeyGenSpeechBody['model'] =
-  'heygen-voice-1';
+const HEYGEN_SPEECH_MODEL_ID: HeyGenSpeechBody['model'] = 'heygen-voice-1';
 
 /** Documented request limit: 1 to 5,000 characters per call. */
-export const HEYGEN_SPEECH_TEXT_MAX = 5_000;
+const HEYGEN_SPEECH_TEXT_MAX = 5_000;
 
 /**
  * The docs say the request stays open until the file is assembled but give no

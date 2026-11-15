@@ -24,7 +24,7 @@ const IMAGE_CATEGORIES: readonly string[] = [
   IngredientCategory.GIF,
 ];
 
-export interface DraftMediaIngredient {
+interface DraftMediaIngredient {
   brandId?: string | null;
   category?: string;
   id?: string;
@@ -44,7 +44,7 @@ export type DraftMediaResolution =
   | { error: string };
 
 /** The Library asset id carried by a hosted media URL, if it has one. */
-export function readLibraryMediaId(url: string): string | undefined {
+function readLibraryMediaId(url: string): string | undefined {
   return url.match(LIBRARY_MEDIA_URL_ID)?.[1];
 }
 

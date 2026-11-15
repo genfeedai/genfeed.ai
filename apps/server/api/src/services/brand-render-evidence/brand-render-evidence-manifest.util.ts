@@ -18,7 +18,7 @@ import { sha256Hex, stableStringify } from '@libs/utils/canonical-hash.util';
 const CSS_MATRIX_PATTERN = /^matrix\(([^)]*)\)$/;
 const FONT_WEIGHT_PATTERN = /^\d{1,4}$/;
 
-export const VISUAL_CODE_RENDERER_ID = 'genfeed-visual-code';
+const VISUAL_CODE_RENDERER_ID = 'genfeed-visual-code';
 
 /** Diagnostics from the renderer that mean it could not observe the export. */
 const BLOCKING_DIAGNOSTICS = new Set([
@@ -29,7 +29,7 @@ const BLOCKING_DIAGNOSTICS = new Set([
   'snapshot_empty',
 ]);
 
-export type BrandRenderEvidenceOmissionReason =
+type BrandRenderEvidenceOmissionReason =
   | 'observations_missing'
   | 'observations_invalid'
   | 'observations_incomplete'

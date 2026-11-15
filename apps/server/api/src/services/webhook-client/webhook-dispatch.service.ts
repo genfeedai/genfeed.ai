@@ -29,8 +29,8 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 
-export const WEBHOOK_DEDUPE_RETENTION_SECONDS = 24 * 60 * 60;
-export const WEBHOOK_FAILED_RETENTION_SECONDS = 7 * 24 * 60 * 60;
+const WEBHOOK_DEDUPE_RETENTION_SECONDS = 24 * 60 * 60;
+const WEBHOOK_FAILED_RETENTION_SECONDS = 7 * 24 * 60 * 60;
 
 export const PUBLISH_WEBHOOK_JOB_ID_PREFIX = 'publish-webhook-';
 export const GENERATION_WEBHOOK_JOB_ID_PREFIX = 'generation-webhook-';

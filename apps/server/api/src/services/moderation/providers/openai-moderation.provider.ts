@@ -4,7 +4,7 @@ import type { IModerationProvider } from '@genfeedai/contracts/interfaces';
 import OpenAI from 'openai';
 import type { ModerationMultiModalInput } from 'openai/resources/moderations';
 
-export const OPENAI_MODERATION_MODEL = 'omni-moderation-latest';
+const OPENAI_MODERATION_MODEL = 'omni-moderation-latest';
 
 /** Transcripts are classified in chunks; the verdict takes the max. */
 const MAX_TEXT_CHUNK = 10_000;

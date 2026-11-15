@@ -197,9 +197,3 @@ export interface AgentThreadUiActionRequest {
   payload?: Record<string, unknown>;
   threadId: string;
 }
-
-export interface ThreadResolutionResult {
-  isCreated: boolean;
-  seedTitle: string;
-  threadId: string;
-}

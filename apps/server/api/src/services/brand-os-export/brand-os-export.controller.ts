@@ -34,7 +34,7 @@ import {
 import type { Request, Response } from 'express';
 
 @Catch(UnauthorizedException)
-export class BrandOsExportAuthFilter implements ExceptionFilter {
+class BrandOsExportAuthFilter implements ExceptionFilter {
   catch(_error: UnauthorizedException, host: ArgumentsHost): void {
     host
       .switchToHttp()

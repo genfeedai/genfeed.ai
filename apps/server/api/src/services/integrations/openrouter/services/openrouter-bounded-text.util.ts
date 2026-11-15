@@ -35,7 +35,7 @@ const textResponseSchema = z.object({
     is_byok: z.boolean().optional(),
   }),
 });
-export const openrouterTextResponseEvidenceSchema = z.strictObject({
+const openrouterTextResponseEvidenceSchema = z.strictObject({
   kind: z.literal('openrouter-text-response-evidence'),
   version: z.literal(1),
   contractVersion: z.string().regex(/^[a-f0-9]{64}$/),
@@ -58,7 +58,7 @@ export const openrouterTextResponseEvidenceSchema = z.strictObject({
   providerByok: z.boolean().nullable(),
   observedAt: z.iso.datetime(),
 });
-export type OpenRouterTextResponseEvidence = z.infer<
+type OpenRouterTextResponseEvidence = z.infer<
   typeof openrouterTextResponseEvidenceSchema
 >;
 export type ObservedOpenRouterTextResult =

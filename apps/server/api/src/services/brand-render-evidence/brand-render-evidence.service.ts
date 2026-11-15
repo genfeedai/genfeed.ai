@@ -27,7 +27,7 @@ const SNAPSHOT_UNAVAILABLE_CODES = new Set([
   'brand_identity_integrity_failed',
 ]);
 
-export interface RenderedOutput {
+interface RenderedOutput {
   /** Ingredient ID the output is stored under. */
   artifactId: string;
   storageKey: string;
