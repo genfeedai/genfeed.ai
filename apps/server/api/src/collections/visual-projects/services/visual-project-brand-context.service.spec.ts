@@ -118,7 +118,10 @@ function fixture(options: { pinned?: BrandIdentitySnapshotV1 } = {}) {
     buildSkillPromptSections: vi.fn().mockReturnValue('SKILL: Pick the model'),
   };
   const logger = { warn: vi.fn() };
-  const logoStaging = { approvedLogos: vi.fn().mockResolvedValue([]) };
+  const logoStaging = {
+    approvedLogos: vi.fn().mockResolvedValue([]),
+    stage: vi.fn().mockResolvedValue({ assets: [], totalBytes: 0 }),
+  };
   const service = new VisualProjectBrandContextService(
     prisma as never,
     modes as never,
@@ -192,6 +195,54 @@ describe('Motion brand logo', () => {
     );
     expect(await service.stagedLogos(revision, [])).toEqual([]);
     expect(logoStaging.approvedLogos).not.toHaveBeenCalled();
+  });
+});
+
+describe('Motion inspection brief', () => {
+  const staged = {
+    assetId: 'brand-logo',
+    isRequired: true,
+    mimeType: 'image/png' as const,
+  };
+
+  it('carries the approved palette and the staged required logo', async () => {
+    const { logoStaging, service } = fixture();
+    logoStaging.approvedLogos.mockResolvedValue([staged]);
+    logoStaging.stage.mockResolvedValue({
+      assets: [{ id: 'brand-logo', mime: 'image/png', bytes: 'bG9nbw==' }],
+      totalBytes: 4,
+    });
+    expect(await service.inspectionBrief(revision, [])).toEqual({
+      paletteRoles: [{ role: 'Primary', color: '#112233', isRequired: true }],
+      requiredLogo: {
+        assetId: 'brand-logo',
+        mime: 'image/png',
+        bytes: 'bG9nbw==',
+      },
+    });
+  });
+
+  it('asks for no logo when the logo is optional or cannot be read', async () => {
+    const { logoStaging, service } = fixture();
+    logoStaging.approvedLogos.mockResolvedValue([
+      { ...staged, isRequired: false },
+    ]);
+    expect(
+      (await service.inspectionBrief(revision, []))?.requiredLogo,
+    ).toBeNull();
+    logoStaging.approvedLogos.mockResolvedValue([staged]);
+    logoStaging.stage.mockRejectedValue(new Error('storage down'));
+    expect(
+      (await service.inspectionBrief(revision, []))?.requiredLogo,
+    ).toBeNull();
+  });
+
+  it('has no brief for a brand without an approved identity', async () => {
+    const { service, snapshots } = fixture();
+    snapshots.preview.mockRejectedValue(
+      new ConflictException('brand_identity_unavailable'),
+    );
+    expect(await service.inspectionBrief(revision, [])).toBeNull();
   });
 });
 

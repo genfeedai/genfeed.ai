@@ -32,8 +32,17 @@ import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import {
   type IVisualBrandContext,
+  type IVisualBrandPaletteRole,
   projectVisualBrandContext,
+  projectVisualBrandPalette,
 } from '../utils/visual-brand-context.util';
+
+/** What a render's frame inspection checks the pixels against. */
+export interface IVisualInspectionBrief {
+  paletteRoles: IVisualBrandPaletteRole[];
+  /** The required logo this render staged, as the reference image to find. */
+  requiredLogo: { assetId: string; mime: string; bytes: string } | null;
+}
 
 const pinnedReceiptSchema = z.object({
   mode: z.enum(['approved_brand', 'provisional_brand']),
@@ -125,8 +134,61 @@ export class VisualProjectBrandContextService {
     revision: VisualRevision,
     sourceAssetIds: readonly string[],
   ): Promise<ApprovedBrandLogo[]> {
+    const snapshot = await this.renderSnapshot(revision, 'logo staging');
+    return snapshot ? this.logosFor(revision, snapshot, sourceAssetIds) : [];
+  }
+
+  /**
+   * What the frame inspection checks a render against: the approved palette and
+   * the required logo this render staged. Null when the brand states neither, so
+   * an unbranded render is inspected as before.
+   */
+  async inspectionBrief(
+    revision: VisualRevision,
+    sourceAssetIds: readonly string[],
+  ): Promise<IVisualInspectionBrief | null> {
+    const snapshot = await this.renderSnapshot(revision, 'frame inspection');
+    if (!snapshot) return null;
+    const paletteRoles = projectVisualBrandPalette(snapshot);
+    const logos = await this.logosFor(revision, snapshot, sourceAssetIds);
+    const required = logos.find((logo) => logo.isRequired);
+    const requiredLogo = required
+      ? await this.readLogo(revision, required)
+      : null;
+    return paletteRoles.length === 0 && !requiredLogo
+      ? null
+      : { paletteRoles, requiredLogo };
+  }
+
+  private async readLogo(revision: VisualRevision, logo: ApprovedBrandLogo) {
+    try {
+      const { assets } = await this.logoStaging.stage(
+        { organizationId: revision.organizationId, brandId: revision.brandId },
+        [logo],
+      );
+      return assets[0]
+        ? {
+            assetId: logo.assetId,
+            mime: assets[0].mime,
+            bytes: assets[0].bytes,
+          }
+        : null;
+    } catch (error: unknown) {
+      this.logger.warn('Brand logo unavailable for frame inspection', {
+        errorName: error instanceof Error ? error.constructor.name : 'NonError',
+        revisionId: revision.id,
+      });
+      return null;
+    }
+  }
+
+  /**
+   * The snapshot this revision was authored against; a revision that was never
+   * authored (an imported source) uses the approved brand now.
+   */
+  private async renderSnapshot(revision: VisualRevision, purpose: string) {
     const pinned = await this.pinnedSnapshot(revision);
-    const snapshot =
+    return (
       pinned?.snapshot ??
       (await resolveApprovedRenderSnapshot(
         this.snapshots,
@@ -136,9 +198,9 @@ export class VisualProjectBrandContextService {
           brandId: revision.brandId,
           userId: revision.userId,
         },
-        'logo staging',
-      ));
-    return snapshot ? this.logosFor(revision, snapshot, sourceAssetIds) : [];
+        purpose,
+      ))
+    );
   }
 
   private logosFor(
