@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -8,7 +10,25 @@ vi.mock('@libs/security/destination-guard', () => ({
     globalThis.fetch(input, init),
 }));
 
-type FetchMock = ReturnType<typeof vi.fn>;
+/**
+ * Bodies recorded from the marketplace API's own journey spec
+ * (apps/api/src/ops/marketplace.integration.spec.ts in
+ * genfeedai/marketplace.genfeed.ai) running against a real PostgreSQL
+ * database. If the marketplace changes a response shape, re-record these.
+ */
+function recorded(name: string): unknown {
+  return JSON.parse(
+    readFileSync(
+      fileURLToPath(
+        new URL(
+          `../../test/fixtures/marketplace/${name}.json`,
+          import.meta.url,
+        ),
+      ),
+      'utf8',
+    ),
+  );
+}
 
 function okResponse(body: unknown): Response {
   return {
@@ -34,7 +54,7 @@ describe('MarketplaceApiClient', () => {
     log: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
-  let fetchMock: FetchMock;
+  let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -52,9 +72,13 @@ describe('MarketplaceApiClient', () => {
     return String(fetchMock.mock.calls.at(-1)?.[0]);
   }
 
-  describe('constructor / base URL', () => {
+  function lastFetchInit(): RequestInit {
+    return (fetchMock.mock.calls.at(-1)?.[1] ?? {}) as RequestInit;
+  }
+
+  describe('base URL', () => {
     it('falls back to the localhost base URL when config is unset', async () => {
-      fetchMock.mockResolvedValue(okResponse({ docs: [] }));
+      fetchMock.mockResolvedValue(okResponse({ data: [] }));
       await client.searchListings({});
       expect(lastFetchUrl()).toContain('http://localhost:3200/marketplace/');
     });
@@ -65,25 +89,47 @@ describe('MarketplaceApiClient', () => {
         configService as unknown as ConfigService,
         logger as unknown as LoggerService,
       );
-      fetchMock.mockResolvedValue(okResponse({ docs: [] }));
+      fetchMock.mockResolvedValue(okResponse({ data: null }));
       await configured.getListing('listing-1');
       expect(lastFetchUrl()).toContain('https://market.example.com/');
+    });
+
+    it('rejects a base URL that is not absolute', () => {
+      configService.get.mockReturnValue('not a url');
+      expect(
+        () =>
+          new MarketplaceApiClient(
+            configService as unknown as ConfigService,
+            logger as unknown as LoggerService,
+          ),
+      ).toThrow('MARKETPLACE_API_URL must be a valid absolute URL');
     });
   });
 
   describe('searchListings', () => {
-    it('returns the parsed search result and builds every query param', async () => {
-      const payload = {
-        docs: [{ _id: 'a', title: 'A' }],
-        limit: 5,
-        page: 2,
-        totalDocs: 1,
-        totalPages: 1,
-      };
-      fetchMock.mockResolvedValue(okResponse(payload));
+    it('reads the id, attributes and pagination of a recorded marketplace page', async () => {
+      fetchMock.mockResolvedValue(okResponse(recorded('listing-page')));
 
       const result = await client.searchListings({
-        isOfficial: true,
+        limit: 10,
+        type: 'workflow',
+      });
+
+      expect(result.listings).toHaveLength(1);
+      expect(result.listings[0]).toMatchObject({
+        id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+        price: 0,
+        title: 'Test Workflow',
+        type: 'workflow',
+      });
+      expect(result).toMatchObject({ limit: 10, page: 1, pages: 1, total: 1 });
+    });
+
+    it('sends every query param', async () => {
+      fetchMock.mockResolvedValue(okResponse({ data: [] }));
+
+      await client.searchListings({
+        isOfficial: false,
         limit: 5,
         page: 2,
         search: 'logo',
@@ -91,245 +137,214 @@ describe('MarketplaceApiClient', () => {
         type: 'workflow',
       });
 
-      expect(result).toEqual(payload);
       const url = lastFetchUrl();
-      expect(url).toContain('search=logo');
-      expect(url).toContain('type=workflow');
-      expect(url).toContain('isOfficial=true');
-      expect(url).toContain('limit=5');
-      expect(url).toContain('page=2');
-      expect(url).toContain('sort=-createdAt');
+      expect(url).toContain('/marketplace/listings?');
+      for (const part of [
+        'search=logo',
+        'type=workflow',
+        'isOfficial=false',
+        'limit=5',
+        'page=2',
+        'sort=-createdAt',
+      ]) {
+        expect(url).toContain(part);
+      }
     });
 
-    it('includes isOfficial=false explicitly when provided', async () => {
-      fetchMock.mockResolvedValue(okResponse({ docs: [] }));
-      await client.searchListings({ isOfficial: false });
-      expect(lastFetchUrl()).toContain('isOfficial=false');
-    });
-
-    it('returns an empty result and warns on a non-ok response', async () => {
-      fetchMock.mockResolvedValue(errorResponse(503));
+    it('returns an empty page for the retired { docs } shape', async () => {
+      fetchMock.mockResolvedValue(okResponse({ docs: [{ _id: 'a' }] }));
       const result = await client.searchListings({ limit: 7, page: 3 });
       expect(result).toEqual({
-        docs: [],
         limit: 7,
+        listings: [],
         page: 3,
-        totalDocs: 0,
-        totalPages: 0,
+        pages: 0,
+        total: 0,
       });
+    });
+
+    it('skips rows that have no id or title', async () => {
+      fetchMock.mockResolvedValue(
+        okResponse({
+          data: [
+            { attributes: { title: 'No id' } },
+            { attributes: {}, id: 'no-title' },
+            { attributes: { title: 'Kept' }, id: 'kept' },
+          ],
+        }),
+      );
+      const result = await client.searchListings({});
+      expect(result.listings.map((listing) => listing.id)).toEqual(['kept']);
+    });
+
+    it('returns an empty page and warns on a non-ok response', async () => {
+      fetchMock.mockResolvedValue(errorResponse(503));
+      const result = await client.searchListings({});
+      expect(result.listings).toEqual([]);
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining('searchListings failed: 503'),
         'MarketplaceApiClient',
       );
     });
 
-    it('returns an empty result with defaults and warns on a thrown error', async () => {
+    it('returns an empty page and warns on a thrown error', async () => {
       fetchMock.mockRejectedValue(new Error('network down'));
       const result = await client.searchListings({});
-      expect(result).toEqual({
-        docs: [],
-        limit: 20,
-        page: 1,
-        totalDocs: 0,
-        totalPages: 0,
-      });
+      expect(result.listings).toEqual([]);
       expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('searchListings error: network down'),
+        expect.stringContaining('network down'),
         'MarketplaceApiClient',
       );
     });
   });
 
   describe('getListing', () => {
-    it('returns the listing on success', async () => {
-      const listing = { _id: 'l1', title: 'Listing' };
-      fetchMock.mockResolvedValue(okResponse(listing));
-      await expect(client.getListing('l1')).resolves.toEqual(listing);
-      expect(lastFetchUrl()).toContain('/marketplace/listings/l1');
+    it('reads a recorded single listing and never exposes the payload', async () => {
+      fetchMock.mockResolvedValue(okResponse(recorded('listing')));
+
+      const listing = await client.getListing('listing-1');
+
+      expect(listing).toMatchObject({
+        id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+        title: 'Test Workflow',
+        type: 'workflow',
+      });
+      expect(listing).not.toHaveProperty('downloadData');
+      expect(lastFetchUrl()).toBe(
+        'http://localhost:3200/marketplace/listings/listing-1',
+      );
     });
 
     it('returns null and warns on a non-ok response', async () => {
       fetchMock.mockResolvedValue(errorResponse(404));
-      await expect(client.getListing('l1')).resolves.toBeNull();
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('getListing failed: 404'),
-        'MarketplaceApiClient',
-      );
+      expect(await client.getListing('missing')).toBeNull();
+      expect(logger.warn).toHaveBeenCalled();
     });
 
-    it('returns null and warns on a thrown error', async () => {
-      fetchMock.mockRejectedValue(new Error('boom'));
-      await expect(client.getListing('l1')).resolves.toBeNull();
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('getListing error: boom'),
-        'MarketplaceApiClient',
-      );
+    it('returns null for a body without a resource', async () => {
+      fetchMock.mockResolvedValue(okResponse({ _id: 'old-shape', title: 'X' }));
+      expect(await client.getListing('x')).toBeNull();
     });
   });
 
-  describe('getListingDownloadData', () => {
-    it('maps the listing into download data, defaulting missing fields', async () => {
-      fetchMock.mockResolvedValue(okResponse({ _id: 'l1', title: 'Pack' }));
-      const data = await client.getListingDownloadData('l1');
-      expect(data).toEqual({ downloadData: {}, title: 'Pack', type: '' });
-    });
+  describe('getInstallPayload', () => {
+    it('reads the recorded install payload and relays only the buyer token', async () => {
+      fetchMock.mockResolvedValue(okResponse(recorded('install-data')));
 
-    it('passes through download data and type when present', async () => {
-      fetchMock.mockResolvedValue(
-        okResponse({
-          _id: 'l1',
-          downloadData: { nodes: [] },
-          title: 'Pack',
+      const result = await client.getInstallPayload('listing-1', 'buyer-jwt');
+
+      expect(result).toEqual({
+        payload: {
+          downloadData: { workflow: { nodes: [] } },
+          listingId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+          purchaseId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+          title: 'Test Workflow',
           type: 'workflow',
-        }),
+        },
+        status: 'ok',
+      });
+      expect(lastFetchUrl()).toBe(
+        'http://localhost:3200/marketplace/purchases/by-listing/listing-1/install-data',
       );
-      const data = await client.getListingDownloadData('l1');
-      expect(data).toEqual({
-        downloadData: { nodes: [] },
-        title: 'Pack',
-        type: 'workflow',
+      expect(lastFetchInit().method).toBe('GET');
+      expect(lastFetchInit().headers).toEqual({
+        Accept: 'application/json',
+        Authorization: 'Bearer buyer-jwt',
       });
     });
 
-    it('returns null when the underlying listing is missing', async () => {
-      fetchMock.mockResolvedValue(errorResponse(404));
-      await expect(client.getListingDownloadData('l1')).resolves.toBeNull();
+    it.each([
+      [401, 'unauthorized'],
+      [403, 'not-purchased'],
+      [404, 'not-found'],
+      [500, 'unavailable'],
+    ])('maps a %s response to %s', async (status, expected) => {
+      fetchMock.mockResolvedValue(errorResponse(status));
+      expect(await client.getInstallPayload('listing-1', 't')).toEqual({
+        status: expected,
+      });
+    });
+
+    it('treats a body without a payload as unavailable', async () => {
+      fetchMock.mockResolvedValue(
+        okResponse({ data: { attributes: { title: 'X' }, id: 'p' } }),
+      );
+      expect(await client.getInstallPayload('listing-1', 't')).toEqual({
+        status: 'unavailable',
+      });
+    });
+
+    it('treats a thrown error as unavailable and never logs the token', async () => {
+      fetchMock.mockRejectedValue(new Error('timeout'));
+      expect(await client.getInstallPayload('listing-1', 'secret-jwt')).toEqual(
+        {
+          status: 'unavailable',
+        },
+      );
+      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+        'secret-jwt',
+      );
     });
   });
 
   describe('createListing', () => {
-    it('posts the merged payload and returns the created listing', async () => {
-      const created = { _id: 'new', title: 'New' };
-      fetchMock.mockResolvedValue(okResponse(created));
-      const result = await client.createListing('seller-1', 'org-1', {
-        title: 'New',
+    it('posts the merged payload and returns the created listing id', async () => {
+      fetchMock.mockResolvedValue(
+        okResponse({
+          data: { attributes: { title: 'T' }, id: 'new-1', type: 'listing' },
+        }),
+      );
+
+      const listing = await client.createListing('seller-1', 'org-1', {
+        title: 'T',
       });
-      expect(result).toEqual(created);
-      const body = JSON.parse(String(fetchMock.mock.calls.at(-1)?.[1]?.body));
-      expect(body).toMatchObject({
+
+      expect(listing).toMatchObject({ id: 'new-1', title: 'T' });
+      expect(JSON.parse(String(lastFetchInit().body))).toEqual({
         organizationId: 'org-1',
         sellerId: 'seller-1',
-        title: 'New',
+        title: 'T',
       });
     });
 
-    it('returns null and warns on a non-ok response', async () => {
+    it('returns null on a non-ok response', async () => {
       fetchMock.mockResolvedValue(errorResponse(400));
-      await expect(
-        client.createListing('seller-1', 'org-1', {}),
-      ).resolves.toBeNull();
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('createListing failed: 400'),
-        'MarketplaceApiClient',
-      );
-    });
-
-    it('returns null and warns on a thrown error', async () => {
-      fetchMock.mockRejectedValue(new Error('boom'));
-      await expect(
-        client.createListing('seller-1', 'org-1', {}),
-      ).resolves.toBeNull();
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('createListing error: boom'),
-        'MarketplaceApiClient',
-      );
+      expect(await client.createListing('s', 'o', {})).toBeNull();
     });
   });
 
   describe('submitForReview', () => {
-    it('returns true on an ok response', async () => {
-      fetchMock.mockResolvedValue(okResponse({}));
-      await expect(client.submitForReview('l1', 'seller-1')).resolves.toBe(
-        true,
-      );
-    });
-
-    it('returns false on a non-ok response', async () => {
-      fetchMock.mockResolvedValue(errorResponse(500));
-      await expect(client.submitForReview('l1', 'seller-1')).resolves.toBe(
-        false,
-      );
-    });
-
-    it('returns false and warns on a thrown error', async () => {
-      fetchMock.mockRejectedValue(new Error('boom'));
-      await expect(client.submitForReview('l1', 'seller-1')).resolves.toBe(
-        false,
-      );
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('submitForReview error: boom'),
-        'MarketplaceApiClient',
-      );
+    it('returns true on an ok response and false otherwise', async () => {
+      fetchMock.mockResolvedValueOnce(okResponse({}));
+      expect(await client.submitForReview('l', 's')).toBe(true);
+      fetchMock.mockResolvedValueOnce(errorResponse(500));
+      expect(await client.submitForReview('l', 's')).toBe(false);
+      fetchMock.mockRejectedValueOnce(new Error('x'));
+      expect(await client.submitForReview('l', 's')).toBe(false);
     });
   });
 
   describe('getSellerByUserId', () => {
-    it('returns the seller on success', async () => {
-      const seller = { _id: 's1', userId: 'u1' };
-      fetchMock.mockResolvedValue(okResponse(seller));
-      await expect(client.getSellerByUserId('u1')).resolves.toEqual(seller);
-    });
-
-    it('returns null on a non-ok response', async () => {
-      fetchMock.mockResolvedValue(errorResponse(404));
-      await expect(client.getSellerByUserId('u1')).resolves.toBeNull();
-    });
-
-    it('returns null and warns on a thrown error', async () => {
-      fetchMock.mockRejectedValue(new Error('boom'));
-      await expect(client.getSellerByUserId('u1')).resolves.toBeNull();
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('getSellerByUserId error: boom'),
-        'MarketplaceApiClient',
-      );
-    });
-  });
-
-  describe('checkListingOwnership', () => {
-    it('returns the ownership payload on success', async () => {
+    it('returns the seller id from the resource', async () => {
       fetchMock.mockResolvedValue(
-        okResponse({ owned: true, purchase: { _id: 'p1' } }),
+        okResponse({
+          data: {
+            attributes: { displayName: 'Shop', status: 'approved' },
+            id: 'seller-1',
+            type: 'seller',
+          },
+        }),
       );
-      await expect(
-        client.checkListingOwnership('l1', 'u1', 'org-1'),
-      ).resolves.toEqual({ owned: true, purchase: { _id: 'p1' } });
-    });
-
-    it('returns { owned: false } on a non-ok response', async () => {
-      fetchMock.mockResolvedValue(errorResponse(500));
-      await expect(
-        client.checkListingOwnership('l1', 'u1', 'org-1'),
-      ).resolves.toEqual({ owned: false });
-    });
-
-    it('returns { owned: false } on a thrown error', async () => {
-      fetchMock.mockRejectedValue(new Error('boom'));
-      await expect(
-        client.checkListingOwnership('l1', 'u1', 'org-1'),
-      ).resolves.toEqual({ owned: false });
-    });
-  });
-
-  describe('claimFreeItem', () => {
-    it('returns the purchase record on success', async () => {
-      fetchMock.mockResolvedValue(okResponse({ _id: 'p1' }));
-      await expect(client.claimFreeItem('l1', 'u1', 'org-1')).resolves.toEqual({
-        _id: 'p1',
+      expect(await client.getSellerByUserId('user-1')).toEqual({
+        id: 'seller-1',
+        status: 'approved',
+        storeName: 'Shop',
       });
     });
 
     it('returns null on a non-ok response', async () => {
-      fetchMock.mockResolvedValue(errorResponse(409));
-      await expect(
-        client.claimFreeItem('l1', 'u1', 'org-1'),
-      ).resolves.toBeNull();
-    });
-
-    it('returns null on a thrown error', async () => {
-      fetchMock.mockRejectedValue(new Error('boom'));
-      await expect(
-        client.claimFreeItem('l1', 'u1', 'org-1'),
-      ).resolves.toBeNull();
+      fetchMock.mockResolvedValue(errorResponse(404));
+      expect(await client.getSellerByUserId('user-1')).toBeNull();
     });
   });
 });

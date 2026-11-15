@@ -229,7 +229,6 @@ describe('AgentWorkflowToolInstallService schedule binding', () => {
       ),
       workflowSchedulerService as never,
       undefined,
-      undefined,
       cacheService as never,
     );
   });

@@ -1,0 +1,60 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "canBeSoldSeparately": true,
+        "changelog": null,
+        "createdAt": "2026-11-15T10:49:56.893Z",
+        "currency": "usd",
+        "description": "Integration contract",
+        "downloads": 0,
+        "id": "57c19bba-411d-438f-98d4-a5d268671ccf",
+        "installCount": 0,
+        "isDeleted": false,
+        "isOfficial": false,
+        "likeCount": 0,
+        "organization": "seller-org",
+        "packageSlug": null,
+        "packageSource": null,
+        "previewData": {},
+        "previewImages": [],
+        "previewVideo": null,
+        "price": 0,
+        "pricingTier": "free",
+        "publishedAt": "2026-11-15T10:49:56.943Z",
+        "purchases": 0,
+        "rating": 0,
+        "reviewCount": 0,
+        "revenue": 0,
+        "seller": "e52a8341-639d-4a7e-a565-77c9ee4f4ed1",
+        "shortDescription": "A free workflow",
+        "slug": "contract-seller-3d3b3146e3/test-workflow",
+        "status": "published",
+        "tags": [],
+        "thumbnail": null,
+        "title": "Test Workflow",
+        "type": "workflow",
+        "updatedAt": "2026-11-15T10:49:56.944Z",
+        "version": "1.0.0",
+        "views": 0,
+        "sellerInfo": {
+          "avatar": null,
+          "badgeTier": "new",
+          "displayName": "Contract Seller 3d3b3146e3",
+          "slug": "contract-seller-3d3b3146e3"
+        }
+      },
+      "id": "57c19bba-411d-438f-98d4-a5d268671ccf",
+      "type": "listing"
+    }
+  ],
+  "topLevelLinks": {
+    "pagination": {
+      "limit": 10,
+      "page": 1,
+      "pages": 1,
+      "total": 1
+    },
+    "self": "/marketplace/listings?type=workflow"
+  }
+}
