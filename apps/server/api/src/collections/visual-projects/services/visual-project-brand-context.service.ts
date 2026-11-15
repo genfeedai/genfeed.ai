@@ -1,3 +1,8 @@
+import {
+  type ApprovedBrandLogo,
+  BrandRenderLogoStagingService,
+} from '@api/services/brand-render-evidence/brand-render-logo-staging.service';
+import { resolveApprovedRenderSnapshot } from '@api/services/brand-render-evidence/brand-render-snapshot.util';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
@@ -12,6 +17,7 @@ import {
   brandGenerationLayerReceiptV1Schema,
   brandIdentitySnapshotV1Schema,
 } from '@genfeedai/contracts/api-types/contracts/branded-generation.contract';
+import { VISUAL_CODE_LIMITS } from '@genfeedai/contracts/constants';
 import type {
   BrandedGenerationInputV1,
   BrandedGenerationResolutionV1,
@@ -66,6 +72,7 @@ export class VisualProjectBrandContextService {
     private readonly harness: HarnessGenerationService,
     private readonly contentHarness: ContentHarnessService,
     private readonly skillRuntime: SkillRuntimeService,
+    private readonly logoStaging: BrandRenderLogoStagingService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -89,9 +96,13 @@ export class VisualProjectBrandContextService {
           brief.appliedPacks.includes(pack.id),
         )
       : [];
+    // A logo the renderer will stage is loadable by the composition; the same
+    // snapshot decides both, so the model is never told a logo is staged that
+    // the render does not receive.
+    const logos = await this.logosFor(revision, snapshot, stagedAssetIds);
     const context = projectVisualBrandContext({
       snapshot,
-      stagedAssetIds,
+      stagedAssetIds: [...stagedAssetIds, ...logos.map((logo) => logo.assetId)],
       harnessBrief: formatHarnessBrief(brief),
       skills: skills.text,
     });
@@ -103,6 +114,47 @@ export class VisualProjectBrandContextService {
         layers: [...this.packLayers(brief !== null, packs), ...skills.layers],
       });
     return context;
+  }
+
+  /**
+   * The brand logos to stage beside the revision's source assets, from the
+   * snapshot this revision was authored against; a revision that was never
+   * authored (an imported source) uses the approved brand now.
+   */
+  async stagedLogos(
+    revision: VisualRevision,
+    sourceAssetIds: readonly string[],
+  ): Promise<ApprovedBrandLogo[]> {
+    const pinned = await this.pinnedSnapshot(revision);
+    const snapshot =
+      pinned?.snapshot ??
+      (await resolveApprovedRenderSnapshot(
+        this.snapshots,
+        this.logger,
+        {
+          organizationId: revision.organizationId,
+          brandId: revision.brandId,
+          userId: revision.userId,
+        },
+        'logo staging',
+      ));
+    return snapshot ? this.logosFor(revision, snapshot, sourceAssetIds) : [];
+  }
+
+  private logosFor(
+    revision: VisualRevision,
+    snapshot: BrandIdentitySnapshotV1,
+    sourceAssetIds: readonly string[],
+  ): Promise<ApprovedBrandLogo[]> {
+    return this.logoStaging.approvedLogos(
+      {
+        organizationId: revision.organizationId,
+        brandId: revision.brandId,
+      },
+      snapshot,
+      VISUAL_CODE_LIMITS.sourceAssets - sourceAssetIds.length,
+      sourceAssetIds,
+    );
   }
 
   private async pinnedSnapshot(revision: VisualRevision) {
