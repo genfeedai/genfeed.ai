@@ -497,6 +497,7 @@
         "@genfeedai/config": "workspace:*",
         "@genfeedai/contracts": "workspace:*",
         "@genfeedai/libs": "workspace:*",
+        "@genfeedai/pricing": "workspace:*",
         "@nestjs/common": "12.5.0",
         "@nestjs/core": "12.5.0",
         "@nestjs/platform-express": "12.5.0",
