@@ -194,7 +194,11 @@ test.describe('Brand Kit video tab', () => {
       .getByRole('button', { name: 'Save draft', exact: true })
       .click();
 
-    await expect(authenticatedPage.getByRole('status')).toHaveText('Saved');
+    await expect(
+      authenticatedPage
+        .getByRole('status')
+        .filter({ hasText: 'No unsaved changes' }),
+    ).toBeVisible();
     expect(savedContents).toHaveLength(1);
     expect(savedContents[0].finishing?.watermark).toMatchObject({
       insetXRatio: 0.096,
