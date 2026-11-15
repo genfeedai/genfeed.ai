@@ -232,3 +232,37 @@ export function createPublishFailedActivity(
     value: errorMessage,
   };
 }
+
+/**
+ * The owner is told once per publish attempt that the provider never confirmed
+ * whether the post went out. The key is the post and the attempt's start, so
+ * the hourly re-verification that follows records nothing new.
+ */
+export function createPublishUnverifiedActivity(
+  post: PostEntity,
+  attemptStartedAt: Date,
+): RecordActivityInput {
+  const platform = readPostString(post, ['platform']) ?? 'its channel';
+  const summary = `We could not confirm whether this post went out to ${platform}. It may already be live. Check your ${platform} account before posting it again.`;
+  const payload: AlertEmailNotificationPayload = {
+    event: 'publish_unverified',
+    kind: 'alert_email',
+    label: describePostForAlert(post),
+    summary,
+    version: 1,
+  };
+  return {
+    alert: {
+      deduplicationKey: `${ActivityKey.POST_PUBLISH_UNVERIFIED}/${post.id}/${attemptStartedAt.getTime()}`,
+      payload,
+    },
+    brandId: readPostString(post, ['brandId']) ?? null,
+    entityId: post.id,
+    entityModel: ActivityEntityModel.POST,
+    key: ActivityKey.POST_PUBLISH_UNVERIFIED,
+    organizationId: readPostString(post, ['organizationId']) ?? null,
+    source: ActivitySource.POST,
+    userId: readPostString(post, ['userId']) ?? null,
+    value: summary,
+  };
+}

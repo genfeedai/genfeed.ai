@@ -16,6 +16,7 @@ import {
 import {
   createChannelTargetError,
   createPublishFailedActivity,
+  createPublishUnverifiedActivity,
 } from '@workers/crons/posts/post-publish-error.util';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
@@ -60,6 +61,21 @@ export class ScheduledPostFailureService {
         },
       );
     }
+  }
+
+  /**
+   * Tells the owner the provider never confirmed a publish. The activity is
+   * keyed on the attempt, so the hourly re-verification that follows finds the
+   * alert already recorded and tells the owner nothing new.
+   */
+  async notifyPublishUnverified(
+    post: PostEntity,
+    attemptStartedAt: Date,
+  ): Promise<void> {
+    await this.notifyPublishFailed(
+      post,
+      createPublishUnverifiedActivity(post, attemptStartedAt),
+    );
   }
 
   /**

@@ -147,6 +147,7 @@ describe('activity.enum', () => {
         'POST_GENERATED',
         'POST_FAILED',
         'POST_MANUAL_POST_NEEDED',
+        'POST_PUBLISH_UNVERIFIED',
         'POST_SCHEDULED',
         'POST_PUBLISHED',
         'POST_CREATED',
@@ -238,6 +239,9 @@ describe('activity.enum', () => {
       expect(ActivityKey.POST_FAILED).toBe('content-publish-failed');
       expect(ActivityKey.POST_MANUAL_POST_NEEDED).toBe(
         'content-publish-manual',
+      );
+      expect(ActivityKey.POST_PUBLISH_UNVERIFIED).toBe(
+        'content-publish-unverified',
       );
       expect(ActivityKey.POST_SCHEDULED).toBe('content-publish-scheduled');
       expect(ActivityKey.POST_PUBLISHED).toBe('content-publish-published');
