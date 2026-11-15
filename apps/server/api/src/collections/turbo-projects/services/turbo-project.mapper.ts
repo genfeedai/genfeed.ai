@@ -52,7 +52,7 @@ export function toTurboProjectBase(
   };
 }
 
-export function toTurboProjectItem(item: TurboProjectItem): ITurboProjectItem {
+function toTurboProjectItem(item: TurboProjectItem): ITurboProjectItem {
   return {
     caption: item.caption,
     createdAt: item.createdAt.toISOString(),

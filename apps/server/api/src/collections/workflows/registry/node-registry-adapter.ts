@@ -121,13 +121,6 @@ function isPersistablePresentationNodeType(type: string): boolean {
 export const UNIFIED_NODE_REGISTRY = buildUnifiedRegistry();
 
 /**
- * Check if a node type exists in the unified registry
- */
-export function isValidNodeType(type: string): boolean {
-  return type in UNIFIED_NODE_REGISTRY;
-}
-
-/**
  * Get a node definition from the unified registry
  */
 export function getNodeDefinition(

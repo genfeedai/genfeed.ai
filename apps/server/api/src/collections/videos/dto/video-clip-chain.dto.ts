@@ -17,8 +17,8 @@ import {
 const NON_WHITESPACE_CHAR_PATTERN = /\S/u;
 const ASPECT_RATIO_PATTERN = /^[1-9]\d{0,3}:[1-9]\d{0,3}$/u;
 
-export const CLIP_CHAIN_MAX_SEGMENTS = 30;
-export const CLIP_CHAIN_MAX_IDENTITY_REFERENCES = 10;
+const CLIP_CHAIN_MAX_SEGMENTS = 30;
+const CLIP_CHAIN_MAX_IDENTITY_REFERENCES = 10;
 
 /**
  * Creates an identity-locked clip-chain run (#4653). Character stills come

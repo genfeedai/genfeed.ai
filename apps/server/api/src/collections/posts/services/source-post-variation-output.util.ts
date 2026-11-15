@@ -7,7 +7,7 @@ const HTTP_URLS_PATTERN = /https?:\/\/\S+/gu;
 const NON_WORD_RUNS_PATTERN = /[^\p{L}\p{N}]+/gu;
 const WHITESPACE_RUNS_PATTERN = /\s+/gu;
 
-export type VariationRejectionReason =
+type VariationRejectionReason =
   | 'duplicate'
   | 'empty'
   | 'platform-limit'

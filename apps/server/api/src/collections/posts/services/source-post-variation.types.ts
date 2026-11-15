@@ -2,10 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import type { ContentIntelligencePlatform } from '@genfeedai/contracts';
 import type { Request } from 'express';
 
-export type PostVariationSourceKind =
-  | 'owned-post'
-  | 'source-post'
-  | 'trend-reference';
+type PostVariationSourceKind = 'owned-post' | 'source-post' | 'trend-reference';
 
 export interface ResolvedPostVariationSource {
   id: string;

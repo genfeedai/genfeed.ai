@@ -2,7 +2,7 @@ import { buildForEachChildIdempotencyKey } from '@api/collections/workflows/syst
 import { readRecord, readString } from '@genfeedai/utils/data/extract.util';
 
 /** Node id of the for-each step in the hidden workflow-project parent graph. */
-export const BATCH_WORKFLOW_FOR_EACH_NODE_ID = 'execute-items';
+const BATCH_WORKFLOW_FOR_EACH_NODE_ID = 'execute-items';
 
 const OUTPUT_MEDIA_KEYS = ['video', 'image'] as const;
 const OUTPUT_ID_KEYS = ['outputIngredientId', 'ingredientId', 'id'] as const;

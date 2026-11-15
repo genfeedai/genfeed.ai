@@ -166,7 +166,7 @@ function singleActionWorkflow(options: {
   };
 }
 
-export function buildAgentUiActionWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildAgentUiActionWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return singleActionWorkflow({
     actionId: AGENT_RUNTIME_ACTION_IDS.UI_ACTION,
     canonicalId: AGENT_RUNTIME_WORKFLOW_IDS.UI_ACTION,
@@ -185,7 +185,7 @@ export function buildAgentUiActionWorkflowDefinition(): SystemWorkflowGraphDefin
   });
 }
 
-export function buildAgentInputResponseWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildAgentInputResponseWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return singleActionWorkflow({
     actionId: AGENT_RUNTIME_ACTION_IDS.INPUT_RESPONSE,
     canonicalId: AGENT_RUNTIME_WORKFLOW_IDS.INPUT_RESPONSE,
@@ -204,7 +204,7 @@ export function buildAgentInputResponseWorkflowDefinition(): SystemWorkflowGraph
   });
 }
 
-export function buildVoiceGenerationWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildVoiceGenerationWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return singleActionWorkflow({
     actionId: AGENT_RUNTIME_ACTION_IDS.VOICE_GENERATION,
     canonicalId: AGENT_RUNTIME_WORKFLOW_IDS.VOICE_GENERATION,

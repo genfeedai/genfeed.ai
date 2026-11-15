@@ -71,12 +71,8 @@ export function must<T>(value: T | null | undefined, what = 'value'): T {
 }
 
 export const MINUTE_MS = 60_000;
-export const HOUR_MS = 60 * MINUTE_MS;
+const HOUR_MS = 60 * MINUTE_MS;
 export const DAY_MS = 24 * HOUR_MS;
-
-/** The source of impressions evidence the real X mapper emits for an organic post. */
-export const X_ORGANIC_IMPRESSIONS_SOURCE =
-  'twitter:post:organic_metrics.impression_count';
 
 /** Breakout role keys the brand-access policy resolves. Shared rows, never deleted. */
 const ROLE_KEYS = ['owner', 'admin', 'creator', 'user'] as const;
@@ -556,9 +552,7 @@ export async function publishOwnPost(
 }
 
 /** The impressions evidence the real X mapper produces for an organic post metric. */
-export function organicImpressions(
-  impressions: number,
-): BreakoutExposureEvidence {
+function organicImpressions(impressions: number): BreakoutExposureEvidence {
   const analytics = new TwitterResponseMapper().mapAnalytics({
     data: [
       {
@@ -573,7 +567,7 @@ export function organicImpressions(
   return evidence;
 }
 
-export function exposureSourceInput(
+function exposureSourceInput(
   world: AcceptanceWorld,
   post: Pick<PublishedPost, 'externalId' | 'postId'>,
 ) {
@@ -694,17 +688,6 @@ export async function removeBrandAccess(
 ): Promise<void> {
   await db.member.update({
     data: { brands: { disconnect: [{ id: world.brandId }] } },
-    where: scopedWhere(world.organizationId, { id: user.memberId }),
-  });
-}
-
-export async function grantBrandAccess(
-  db: PrismaClient<'query'>,
-  world: AcceptanceWorld,
-  user: AcceptanceUser,
-): Promise<void> {
-  await db.member.update({
-    data: { brands: { connect: [{ id: world.brandId }] } },
     where: scopedWhere(world.organizationId, { id: user.memberId }),
   });
 }

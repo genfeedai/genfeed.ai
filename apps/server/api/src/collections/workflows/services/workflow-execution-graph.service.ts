@@ -12,7 +12,7 @@ import {
 } from '@genfeedai/workflows/engine';
 import { mapEngineNodeStatus } from './workflow-execution-status.util';
 
-export const WORKFLOW_FAILURE_EDGE_HANDLE = 'failure';
+const WORKFLOW_FAILURE_EDGE_HANDLE = 'failure';
 
 type NodeExecutionStates = ReadonlyMap<
   string,

@@ -6,7 +6,7 @@ import type { Prisma } from '@genfeedai/prisma';
  * referrer, referred and checkout columns show shortened ids, which have no
  * order worth sorting by.
  */
-export const REFERRAL_REWARD_SORT_FIELDS: readonly string[] = [
+const REFERRAL_REWARD_SORT_FIELDS: readonly string[] = [
   'attemptCount',
   'eligibleAt',
   'netAmountCents',

@@ -13,7 +13,7 @@ export interface CoreWorkflowNode {
   data: Record<string, unknown>;
 }
 
-export interface CoreWorkflowEdge {
+interface CoreWorkflowEdge {
   id: string;
   source: string;
   target: string;

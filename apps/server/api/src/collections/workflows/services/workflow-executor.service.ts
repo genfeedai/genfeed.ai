@@ -65,7 +65,6 @@ export {
 } from '@api/collections/workflows/services/workflow-executor.constants';
 export type {
   DelayResumeJobData,
-  NodeExecutionSummary,
   ReviewGateApprovalResult,
   TriggerEvent,
   WorkflowExecutionResult,

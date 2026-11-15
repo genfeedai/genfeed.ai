@@ -41,7 +41,7 @@ export interface DispatchVideoGenerationParams {
   width: number;
 }
 
-export type VideoGenerationProvider =
+type VideoGenerationProvider =
   | 'kie'
   | 'fal'
   | 'heygen'
@@ -79,7 +79,7 @@ export interface CreateVideoPlaceholderActivityParams {
 type VideoGenerationResolvedBrand = NonNullable<
   Awaited<ReturnType<BrandsService['findOne']>>
 >;
-export type VideoGenerationResolvedPrompt = Awaited<
+type VideoGenerationResolvedPrompt = Awaited<
   ReturnType<PromptsService['create']>
 >;
 export type VideoGenerationSaveDocumentsResult = Awaited<

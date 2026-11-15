@@ -37,7 +37,7 @@ export interface CompiledDispatchReferenceDeps {
   referenceUrls: VideoReferenceUrlService;
 }
 
-export function compileVideoGenerationBrief(params: {
+function compileVideoGenerationBrief(params: {
   briefBrandContext?: string;
   createVideoDto: CreateVideoDto;
   height: number;
@@ -127,7 +127,7 @@ export function compileVideoGenerationBrief(params: {
   }
 }
 
-export async function resolveCompiledDispatchReferenceUrls(
+async function resolveCompiledDispatchReferenceUrls(
   deps: CompiledDispatchReferenceDeps,
   dispatch: Record<string, unknown>,
   organizationId: string,
