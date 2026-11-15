@@ -25,9 +25,11 @@ const PACKAGE_SECONDS = {
 const WEB_SECONDS = 500;
 const BROWSER_EXTENSION_SECONDS = 200;
 // A leg is worth its setup once it carries about this much test work (about
-// 250 s measured). Test Workspaces runs at most four legs at once, so the
-// server leg plus three pools fit one wave; seven legs waited for a second one
-// (median span 797 s against a 397 s longest leg over 39 runs).
+// 250 s measured). Test Workspaces runs at most five legs at once (the
+// `max-parallel` in _ci-validation.yml): the server leg plus three pools, or
+// plus the four UI pools. Seven legs waited for a second wave (median span
+// 797 s against a 397 s longest leg over 39 runs); a fifth leg held back by a
+// limit of four started a median 242 s late.
 const POOL_TARGET_SECONDS = 1000;
 const MAX_POOLS = 3;
 const UI_SHARD_POOLS = 4;

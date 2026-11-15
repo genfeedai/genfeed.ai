@@ -73,9 +73,8 @@ import PublishingViewToggle from '@/features/posts/library/publishing-view-toggl
 import CapturedPostsList from '@/features/posts/list/captured-posts-list';
 import { needsPostAttention } from '@/features/posts/list/post-attention.helpers';
 import { parsePostsSource } from '@/features/posts/list/posts-list-query';
-import ReleaseDetailDrawer, {
-  targetManualPostAction,
-} from '@/features/posts/release/release-detail-drawer';
+import { targetManualPostAction } from '@/features/posts/release/release-actions';
+import ReleaseDetailDrawer from '@/features/posts/release/release-detail-drawer';
 import { isTargetBlockedByReadiness } from '@/features/posts/shared/release-status.helpers';
 
 interface PublishingContentCollections {

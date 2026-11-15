@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { buildWorkspaceTestMatrix } from './workspace-test-matrix.mjs';
 
@@ -156,4 +157,27 @@ test('rejects malformed or non-package task IDs instead of constructing shell co
       () => buildWorkspaceTestMatrix({ packageTasks: [task] }),
       /Invalid package test task/,
     );
+});
+
+test('Test Workspaces lets every leg of the widest matrix start at once', () => {
+  const workflow = readFileSync(
+    new URL('../../.github/workflows/_ci-validation.yml', import.meta.url),
+    'utf8',
+  );
+  const job = workflow.slice(
+    workflow.indexOf('\n  test-workspaces:\n'),
+    workflow.indexOf(
+      '\n    services:',
+      workflow.indexOf('\n  test-workspaces:\n'),
+    ),
+  );
+  const maxParallel = Number(job.match(/max-parallel: (\d+)/)?.[1]);
+  const widest = buildWorkspaceTestMatrix({
+    packageTasks: tasks,
+    serverFilters: SERVER,
+    webFilters: WEB,
+    browserExtension: true,
+  });
+  assert.equal(widest.length, 5);
+  assert.ok(maxParallel >= widest.length);
 });

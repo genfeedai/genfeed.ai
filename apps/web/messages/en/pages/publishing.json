@@ -261,8 +261,8 @@
   },
   "release": {
     "actions": {
-      "preview": "Preview",
-      "reconnect": "Reconnect {target}"
+      "reconnect": "Reconnect {target}",
+      "viewOnPlatform": "View on {platform}"
     },
     "addChannel": "Add channel",
     "addChannelTooltip": "Adapt this post's content into a draft for another channel",
@@ -275,14 +275,9 @@
       "target": "Target",
       "title": "Analytics"
     },
-    "badgePost": "Post",
     "openEditor": "Open editor",
     "pausedHold": "This post is paused, so the publisher will not send it at the scheduled time.",
     "resume": "Resume post",
-    "tabs": {
-      "analytics": "Analytics",
-      "preview": "Preview"
-    },
     "warmupHold": "Publishing is held for this account: {reason}",
     "engagement": {
       "approval": "Approval",
@@ -337,8 +332,34 @@
     "retryTarget": "Retry target",
     "schedule": "Schedule",
     "targets": "Targets",
-    "targetsSummary": "{count, plural, one {# channel target} other {# channel targets}} · {timezone}",
-    "untitledPost": "Post detail"
+    "untitledPost": "Post detail",
+    "channelCount": "{count, plural, one {# channel} other {# channels}}",
+    "details": {
+      "failed": "Failed",
+      "published": "Published",
+      "scheduled": "Scheduled",
+      "status": "Status"
+    },
+    "preview": {
+      "channel": "Preview channel",
+      "emptyCaption": "No caption",
+      "global": "Global"
+    },
+    "summary": {
+      "failed": "Failed",
+      "published": "Published",
+      "scheduled": "Scheduled"
+    },
+    "views": {
+      "analytics": "Analytics",
+      "copyLink": "Copy link",
+      "details": "Details",
+      "history": "History",
+      "label": "Post view",
+      "linkCopied": "Link copied",
+      "more": "More actions",
+      "preview": "Preview"
+    }
   },
   "review": {
     "lineage": {

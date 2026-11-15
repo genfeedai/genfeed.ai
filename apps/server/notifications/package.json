@@ -15,7 +15,7 @@
     "joi": "18.3.2",
     "jose": "^6.2.17",
     "node-pty": "1.1.0",
-    "resend": "6.38.0",
+    "resend": "6.38.1",
     "socket.io": "4.8.4",
     "tsconfig-paths": "4.2.0",
     "@genfeedai/contracts": "workspace:*"

@@ -150,6 +150,45 @@ export function releaseScheduledInstant(
   );
 }
 
+export type ReleaseTimelineKind = 'failed' | 'published' | 'scheduled';
+
+function latestInstant(values: Array<string | null | undefined>) {
+  return values
+    .filter((value): value is string => Boolean(value))
+    .sort((left, right) => Date.parse(right) - Date.parse(left))[0];
+}
+
+/**
+ * The one moment that describes where a release stands: when it went out, when
+ * it failed, or when it is due. A published release reports when it published
+ * and never a schedule, so a live post does not read as still queued.
+ */
+export function releaseTimeline(
+  release: IReleaseGroup,
+): { at: string; kind: ReleaseTimelineKind } | null {
+  const targets = releaseTargets(release);
+
+  if (LIVE_RELEASE_STATUSES.has(release.status)) {
+    const at =
+      release.publishedAt ??
+      latestInstant(targets.map((target) => target.publishedAt)) ??
+      releaseScheduledInstant(release);
+    return at ? { at, kind: 'published' } : null;
+  }
+
+  if (release.status === ReleaseStatus.FAILED) {
+    const at = latestInstant(targets.map((target) => target.lastAttemptAt));
+    return at ? { at, kind: 'failed' } : null;
+  }
+
+  if (release.status === ReleaseStatus.CANCELLED) {
+    return null;
+  }
+
+  const at = releaseScheduledInstant(release);
+  return at ? { at, kind: 'scheduled' } : null;
+}
+
 /**
  * In-place reschedule without a republish prompt: draft, scheduled, and paused
  * releases whose targets have not gone live. The drawer still uses this so a

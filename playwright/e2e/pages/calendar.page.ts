@@ -41,6 +41,8 @@ export class CalendarPage {
   readonly postSidebarTitle: Locator;
   readonly modalCloseButton: Locator;
   readonly viewDetailsButton: Locator;
+  readonly postMoreActionsButton: Locator;
+  readonly postDetailsViewButton: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -105,8 +107,9 @@ export class CalendarPage {
     // (`ReleaseDetailDrawer` registers it as a `post` selection). At >=1280px
     // that is the desktop rail, not a dialog; below it the same content is a
     // drawer. The panel unmounts on close, so it is the visibility signal.
-    // It has no "View Details" control -- its one navigation affordance is a
-    // link to the target's editor, labelled "Open editor"
+    // It has no "View Details" control. Its view switcher is icon-only in the
+    // sidebar header (Preview, Details, Analytics, then a "..." menu), and the
+    // one navigation affordance is the menu's "Open editor" link
     // (`pages.publishing.release.openEditor`). See #5381.
     this.postModal = page.locator('[data-testid="release-detail-panel"]');
     this.postSidebarTitle = page.locator(
@@ -117,9 +120,18 @@ export class CalendarPage {
     this.modalCloseButton = page.locator(
       '[data-testid="topbar-context-toggle"]',
     );
-    this.viewDetailsButton = this.postModal.locator(
-      'a:has-text("Open editor")',
+    const postHeaderActions = page.getByTestId(
+      'context-sidebar-header-actions',
     );
+    this.postMoreActionsButton = postHeaderActions.getByRole('button', {
+      name: 'More actions',
+    });
+    this.postDetailsViewButton = postHeaderActions.getByRole('button', {
+      name: 'Details',
+    });
+    this.viewDetailsButton = page.getByRole('menuitem', {
+      name: 'Open editor',
+    });
   }
 
   // ── Navigation ──────────────────────────────────────────
@@ -227,7 +239,13 @@ export class CalendarPage {
   }
 
   async clickViewDetails(): Promise<void> {
+    await this.postMoreActionsButton.click();
     await this.viewDetailsButton.first().click();
+  }
+
+  /** Swaps the sidebar from the post preview to its details and channels. */
+  async openPostDetails(): Promise<void> {
+    await this.postDetailsViewButton.click();
   }
 
   // ── Assertions ─────────────────────────────────────────
