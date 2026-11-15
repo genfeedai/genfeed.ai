@@ -167,7 +167,7 @@ export class AgentThreadsController {
   ) {
     try {
       const organizationId = resolveAgentThreadReadOrganizationId(req, user);
-      const access = await this.assertThreadAccess(
+      const { historyBrandIds: brandIds } = await this.assertThreadAccess(
         user,
         organizationId,
         threadId,
@@ -179,11 +179,7 @@ export class AgentThreadsController {
       const page = await this.agentMessagesService.getMessagesPage(
         threadId,
         organizationId,
-        {
-          brandIds: access.historyBrandIds,
-          cursor,
-          limit: messageLimit,
-        },
+        { brandIds, cursor, limit: messageLimit },
       );
 
       const chronological = await this.teammateMentionsService.attachMentions(
