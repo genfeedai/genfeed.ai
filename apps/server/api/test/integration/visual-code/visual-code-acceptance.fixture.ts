@@ -1160,6 +1160,7 @@ export async function createVisualCodeAcceptanceFixture(
             resolve: async (): Promise<IVisualBrandContext> =>
               FIXTURE_BRAND_CONTEXT,
             stagedLogos: async () => [],
+            inspectionBrief: async () => null,
           },
         },
         VisualProjectRendererClientService,
