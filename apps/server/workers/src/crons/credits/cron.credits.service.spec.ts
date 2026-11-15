@@ -5,6 +5,10 @@ import {
   FREE_TRIAL_EXPIRY_PAGE_SIZE,
   FREE_TRIAL_EXPIRY_SCHEDULE,
 } from '@workers/crons/credits/free-trial-expiry.constants';
+import {
+  LIFETIME_DEAL_CREDIT_GRANT_LOCK_KEY,
+  LIFETIME_DEAL_CREDIT_GRANT_LOCK_TTL_SECONDS,
+} from '@workers/crons/credits/lifetime-deal-credit-grant.constants';
 import { describe, expect, it } from 'vitest';
 
 const NOW = new Date('2026-10-10T12:00:00.000Z');
@@ -32,6 +36,7 @@ function buildService(options: {
   const logs: Log[] = [];
   const pages: { after: string | undefined; asOf: Date; size: number }[] = [];
   const referralSettlements: Date[] = [];
+  const lifetimeSweeps: { asOf: Date; size: number }[] = [];
 
   const freeTrial = {
     expireTrialCredits: async (organizationId: string) => {
@@ -80,8 +85,22 @@ function buildService(options: {
       log: record('log'),
     } as unknown as ConstructorParameters<typeof CronCreditsService>[3],
     {} as ConstructorParameters<typeof CronCreditsService>[4],
+    {
+      grantAllDueCredits: async (asOf: Date, size: number) => {
+        lifetimeSweeps.push({ asOf, size });
+        return { failed: 0, grants: 2, seats: 3 };
+      },
+    } as unknown as ConstructorParameters<typeof CronCreditsService>[5],
   );
-  return { balances, locks, logs, pages, referralSettlements, service };
+  return {
+    balances,
+    lifetimeSweeps,
+    locks,
+    logs,
+    pages,
+    referralSettlements,
+    service,
+  };
 }
 
 function firstPageOrganizations(): Record<string, number> {
@@ -105,6 +124,31 @@ describe('CronCreditsService', () => {
     await service.settleReferralRewards();
 
     expect(referralSettlements).toHaveLength(1);
+  });
+
+  it('grants due lifetime-deal credits as of the tick and releases the lock', async () => {
+    const { lifetimeSweeps, locks, service } = buildService({});
+
+    await expect(service.grantLifetimeDealCredits(NOW)).resolves.toEqual({
+      failed: 0,
+      grants: 2,
+      seats: 3,
+    });
+
+    expect(lifetimeSweeps).toEqual([{ asOf: NOW, size: 100 }]);
+    expect(locks.size).toBe(0);
+  });
+
+  it('skips the lifetime-deal sweep while another worker holds it', async () => {
+    const { lifetimeSweeps, locks, service } = buildService({});
+    locks.set(LIFETIME_DEAL_CREDIT_GRANT_LOCK_KEY, {
+      owner: 'other-worker',
+      ttlSeconds: LIFETIME_DEAL_CREDIT_GRANT_LOCK_TTL_SECONDS,
+    });
+
+    await expect(service.grantLifetimeDealCredits(NOW)).resolves.toBeNull();
+
+    expect(lifetimeSweeps).toEqual([]);
   });
 
   it('skips the tick while another worker holds the sweep', async () => {

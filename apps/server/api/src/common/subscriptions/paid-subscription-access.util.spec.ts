@@ -21,6 +21,21 @@ function subscription(
 }
 
 describe('resolveOrganizationPaidGrant', () => {
+  it('grants a lifetime row with an open-ended period', () => {
+    expect(
+      resolveOrganizationPaidGrant(
+        [
+          subscription({
+            currentPeriodEnd: '2126-01-01T00:00:00.000Z',
+            plan: 'lifetime',
+          }),
+        ],
+        null,
+        NOW,
+      ),
+    ).toBe('active_paid');
+  });
+
   it('grants an operator-granted tier with no subscription row at all (#5293)', () => {
     for (const tier of [
       SubscriptionTier.PRO,
