@@ -24,7 +24,7 @@ import { globSync } from 'glob';
 import ts from 'typescript';
 
 const TSC_PROJECT_FLAGS_PATTERN = /(?:^|\s)(?:-p|--project)\s+(\S+)/g;
-const TSC_WORD_PATTERN = /\btsc\b/;
+const TSC_WORD_PATTERN = /\b(?:tsc|bun check)\b/;
 
 const TURBO_ROOT_PREFIX = '$TURBO_ROOT$/';
 const TURBO_DEFAULT = '$TURBO_DEFAULT$';
@@ -300,7 +300,7 @@ export function isHashedBy(
   return globs.some((glob) => path.posix.matchesGlob(filePath, glob));
 }
 
-/** The tsconfig files a `type-check` script hands to `tsc`. */
+/** The tsconfig files a `type-check` script hands to `tsc` or `bun check`. */
 export function typecheckTsconfigs(script: string): string[] {
   const projects = [...script.matchAll(TSC_PROJECT_FLAGS_PATTERN)]
     .map((match) => match[1])
