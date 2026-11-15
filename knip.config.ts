@@ -45,6 +45,25 @@ const config: KnipConfig = {
     // Peer dependency of @google/model-viewer (packages/ui ModelViewer); the
     // viewer imports it itself, so nothing in this repo does.
     'three',
+    // Workspace links declared as turbo and `--affected` graph edges. The
+    // consumers reach these packages through tsconfig `paths`, vitest aliases,
+    // relative imports (`../../packages/libs/...`) or CSS `@import` of
+    // `packages/styles/*.css`, which knip resolves as files, not as a use of
+    // the dependency. Removing a link drops the edge, so a change in the
+    // package stops marking its consumers affected and turbo no longer builds
+    // the package first. `scripts/ci/spec-typecheck-scope.test.ts` enforces the
+    // `@genfeedai/tsconfig` link. The list is explicit so a new link that
+    // nothing reaches is still reported.
+    '@genfeedai/api',
+    '@genfeedai/client',
+    '@genfeedai/config',
+    '@genfeedai/helpers',
+    '@genfeedai/libs',
+    '@genfeedai/models',
+    '@genfeedai/pricing',
+    '@genfeedai/serializers',
+    '@genfeedai/styles',
+    '@genfeedai/tsconfig',
   ],
   workspaces: {
     // Root
@@ -137,6 +156,20 @@ const config: KnipConfig = {
         'socket.io',
         'stripe',
         'uuid',
+        // The server webpack config resolves modules from the root
+        // node_modules, and the generated Prisma clients import
+        // `@prisma/client/runtime` from there.
+        '@prisma/client',
+        // packages/ui imports both and declares them only as peers, so the
+        // root pins the installed versions (the lockfile has an older
+        // `@radix-ui/react-dialog` under `react-alert-dialog`).
+        '@radix-ui/react-dialog',
+        '@radix-ui/react-slot',
+        // Loaded by name from `.secretlintrc.json`.
+        '@secretlint/secretlint-rule-no-homedir',
+        '@secretlint/secretlint-rule-preset-recommend',
+        // `scripts/check-import-cycles.ts` loads it with `createRequire`.
+        'madge',
       ],
     },
 
@@ -183,6 +216,9 @@ const config: KnipConfig = {
     'apps/server/notifications': {
       entry: ['src/main.ts'],
       ignore: ['dist/**'],
+      // The terminal gateway verifies sessions with packages/libs/auth, which
+      // imports `jose`; the service bundles that source and declares it.
+      ignoreDependencies: ['jose'],
     },
     'apps/server/slack': {
       entry: ['src/main.ts'],
@@ -229,6 +265,9 @@ const config: KnipConfig = {
         'src/tailwind.css',
         'src/theme/theme-prepaint.ts',
       ],
+      // `scripts/ui/build-extension-theme-css.ts` loads it with a
+      // `createRequire` rooted in the extension.
+      ignoreDependencies: ['postcss'],
     },
     'apps/desktop': {
       entry: ['scripts/*.cjs'],
@@ -239,14 +278,26 @@ const config: KnipConfig = {
     'packages/prisma': {
       // `scripts/*.ts` are run by hand against a development database.
       entry: ['src/index.ts', 'src/**/*.ts', 'scripts/*.ts'],
+      // The generated client under `generated/` imports `@prisma/client`.
+      ignoreDependencies: ['@prisma/client'],
     },
 
     // Shared packages — barrel exports
     'packages/*': {
       entry: ['src/index.ts', 'src/**/*.ts', 'src/**/*.tsx'],
       ignore: ['dist/**', 'node_modules/**'],
-      // `@ui/*` is a path alias for packages/ui, not a package.
-      ignoreDependencies: [/^@ui\//],
+      ignoreDependencies: [
+        // `@ui/*` is a path alias for packages/ui, not a package.
+        /^@ui\//,
+        // packages/desktop-prisma: its generated client imports it.
+        '@prisma/client',
+        // packages/agent: `vitest/browser`, imported by the `*.browser.test.tsx`
+        // files, is served by this package.
+        '@vitest/browser',
+        // packages/props: `remotion-version-contract.spec.ts` requires props
+        // to pin the same `@remotion/player` version as the web app.
+        '@remotion/player',
+      ],
     },
   },
 };
