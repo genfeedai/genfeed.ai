@@ -3,13 +3,15 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
 import {
   readThreadsAccountDetails,
   readThreadsVerificationPage,
   requireThreadsString,
 } from '@api/services/integrations/threads/services/threads-account-reader.util';
-import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
+import { ThreadsTokenRefreshService } from '@api/services/integrations/threads/services/threads-token-refresh.service';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   captureLearningMetrics,
   type LearningMetrics,
@@ -55,6 +57,7 @@ export class ThreadsService {
 
   private readonly graphUrl: string;
   private readonly apiVersion: string;
+  private readonly tokenRefreshService: ThreadsTokenRefreshService;
 
   constructor(
     private readonly configService: ConfigService,
@@ -62,11 +65,19 @@ export class ThreadsService {
     private readonly credentialsService: ServerCredentialStore,
     private readonly loggerService: LoggerService,
     private readonly httpService: HttpService,
+    private readonly activityRecorder: ActivityRecorderService,
   ) {
     this.graphUrl =
       this.configService.get('THREADS_GRAPH_URL') || THREADS_GRAPH_URL;
     this.apiVersion =
       this.configService.get('THREADS_API_VERSION') || THREADS_API_VERSION;
+    this.tokenRefreshService = new ThreadsTokenRefreshService(
+      this.loggerService,
+      this.activityRecorder,
+      this.credentialsService,
+      this.httpService,
+      this.graphUrl,
+    );
   }
 
   /**
@@ -88,80 +99,16 @@ export class ThreadsService {
    * Refresh access token for Threads
    * Threads uses long-lived tokens that can be refreshed
    */
-  public async refreshToken(
+  public refreshToken(
     organizationId: string,
     brandId: string,
     credentialId?: string,
   ): Promise<unknown> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    const credential = await this.credentialsService.resolveBrandAccount({
+    return this.tokenRefreshService.refreshToken(
+      organizationId,
       brandId,
       credentialId,
-      // Token repair has to find the row even after a failed refresh
-      // flipped `isConnected` off.
-      isDisconnectedIncluded: true,
-      organizationId,
-      platform: CredentialPlatform.THREADS,
-    });
-
-    if (!credential) {
-      throw new Error('Threads credential not found');
-    }
-
-    if (!credential.accessToken) {
-      await this.credentialsService.patch(credential.id, {
-        isConnected: false,
-      });
-      throw new Error(
-        'Threads access token not found. Please reconnect your account.',
-      );
-    }
-
-    // Decrypt access token before use
-    const decryptedAccessToken = EncryptionUtil.decrypt(credential.accessToken);
-
-    try {
-      // Token endpoints are unversioned; resource endpoints use the Threads API version.
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.graphUrl}/refresh_access_token`, {
-          params: {
-            access_token: decryptedAccessToken,
-            grant_type: OAuthGrantType.TH_REFRESH_TOKEN,
-          },
-        }),
-      );
-
-      const { access_token, expires_in } = response.data || {};
-
-      if (!access_token) {
-        throw new Error('Threads refresh response missing access token');
-      }
-
-      this.loggerService.log(`${url} succeeded`, {
-        expiresIn: expires_in,
-        hasAccessToken: true,
-      });
-
-      const updatedCredential = await this.credentialsService.patch(
-        credential.id,
-        {
-          accessToken: access_token,
-          accessTokenExpiry: expires_in
-            ? new Date(Date.now() + expires_in * 1000)
-            : undefined,
-          isConnected: true,
-        },
-      );
-
-      return updatedCredential;
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      await this.credentialsService.patch(credential.id, {
-        isConnected: false,
-      });
-      throw error;
-    }
+    );
   }
 
   /**
