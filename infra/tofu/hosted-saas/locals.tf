@@ -156,7 +156,7 @@ locals {
     )
   }
 
-  # ── Service catalogue (mirrors docker-compose.production.yml) ─────────
+  # ── Service catalogue ─────────────────────────────────────────────────
   # Fargate launch type: cpu/mem MUST be valid Fargate task pairs (256→512-2048,
   # 512→1024-4096, 1024→2048-8192). Each task gets its own ENI from the private
   # subnets (NAT egress) — no per-instance ENI cap. Every service registers in
