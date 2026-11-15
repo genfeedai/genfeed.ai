@@ -66,9 +66,6 @@ export const learningPublicationPostSelect = {
     },
   },
 } satisfies Prisma.PostSelect;
-export type LearningPublicationPostScalarRow = Prisma.PostGetPayload<{
-  select: typeof learningPublicationPostScalarSelect;
-}>;
 export const learningPublicationOrganizationSelect = {
   id: true,
   isDeleted: true,

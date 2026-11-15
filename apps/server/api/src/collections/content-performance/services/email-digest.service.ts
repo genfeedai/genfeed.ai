@@ -52,7 +52,7 @@ export interface EmailDigestOptions {
   endDate?: Date | string;
 }
 
-export interface EmailDigestExpertWinner {
+interface EmailDigestExpertWinner {
   content: string;
   platform: string;
   engagementRate: number;

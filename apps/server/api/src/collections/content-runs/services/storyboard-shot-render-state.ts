@@ -23,7 +23,7 @@ export const SHOT_RENDER_ABANDONED_MS = 10 * 60_000;
 /** The longest video prompt a render journals and sends. */
 export const SHOT_RENDER_PROMPT_MAX_CHARACTERS = 8_000;
 
-export const shotRenderOperationSchema = z
+const shotRenderOperationSchema = z
   .object({
     version: z.literal(1),
     operationId: z.string().uuid(),
@@ -66,7 +66,7 @@ function slotKey(op: Pick<ShotRenderOperation, 'shotId' | 'stage'>): string {
 }
 
 /** The newest operation of each shot and stage, in journal order. */
-export function latestShotRenderOperations(
+function latestShotRenderOperations(
   journal: readonly ShotRenderOperation[],
 ): Map<string, ShotRenderOperation> {
   const latest = new Map<string, ShotRenderOperation>();

@@ -12,7 +12,7 @@ export interface OptimizationCycleOptions {
   topN?: number;
 }
 
-export interface PatternInsight {
+interface PatternInsight {
   pattern: string;
   frequency: number;
   avgEngagementRate: number;

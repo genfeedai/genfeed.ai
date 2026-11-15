@@ -68,7 +68,7 @@ export interface LearningPilotAssignmentScope {
   credentialId: string;
 }
 /** Decision columns the assignment decides; everything else stays baseline. */
-export type LearningPilotDecisionFields = Required<
+type LearningPilotDecisionFields = Required<
   Pick<
     Prisma.ContentLearningDecisionUncheckedCreateInput,
     | 'opportunityId'

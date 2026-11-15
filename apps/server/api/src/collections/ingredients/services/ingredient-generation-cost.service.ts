@@ -5,7 +5,7 @@ import { MEDIA_GENERATION_WORKLOAD_TYPE } from '@genfeedai/contracts/constants';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
-export type IngredientGenerationCostStatus = 'reserved' | 'settled';
+type IngredientGenerationCostStatus = 'reserved' | 'settled';
 
 export interface IngredientGenerationCost {
   /** Credits the output costs; null when no credit hold paid for it. */

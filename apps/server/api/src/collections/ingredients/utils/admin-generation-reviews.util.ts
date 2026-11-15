@@ -21,7 +21,7 @@ export const ADMIN_GENERATION_STATUSES: readonly IngredientStatus[] = [
  * generations are dead rows, reachable only by choosing the Failed status, the
  * same way the Library keeps them on their own shelf.
  */
-export const ADMIN_GENERATION_DEFAULT_STATUSES: readonly IngredientStatus[] = [
+const ADMIN_GENERATION_DEFAULT_STATUSES: readonly IngredientStatus[] = [
   IngredientStatus.PROCESSING,
   IngredientStatus.GENERATED,
 ];

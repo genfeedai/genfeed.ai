@@ -6,7 +6,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
 const EDGE_HYPHENS_PATTERN = /^-+|-+$/g;
 
-export interface BrandWebsitePreviewData {
+interface BrandWebsitePreviewData {
   description?: string;
   label?: string;
   logoUrl?: string;

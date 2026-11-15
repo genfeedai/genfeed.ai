@@ -10,7 +10,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-export const MAX_CREATOR_IMPORT_ITEMS = 50;
+const MAX_CREATOR_IMPORT_ITEMS = 50;
 
 export enum ImportFormat {
   JSON = 'json',
@@ -41,14 +41,4 @@ export class ImportCreatorsDto {
     required: false,
   })
   format?: ImportFormat;
-}
-
-export class ImportCreatorsFromFileDto {
-  @IsEnum(ImportFormat)
-  @ApiProperty({
-    description: 'Format of the uploaded file',
-    enum: ImportFormat,
-    enumName: 'ImportFormat',
-  })
-  format!: ImportFormat;
 }

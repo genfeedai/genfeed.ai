@@ -35,7 +35,7 @@ export interface KnowledgeVersionIngestResult {
   version: KnowledgeSourceVersion;
 }
 
-export const KNOWLEDGE_CAPTURE_SOURCE = 'api';
+const KNOWLEDGE_CAPTURE_SOURCE = 'api';
 
 export function hashKnowledgeContent(content: string): string {
   return `sha256:${createHash('sha256').update(content).digest('hex')}`;

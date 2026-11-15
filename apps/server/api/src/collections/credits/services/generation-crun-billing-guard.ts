@@ -131,7 +131,7 @@ export async function runCrunBillingMutation<T>(
   }
 }
 
-export async function recordCrunSubmissionFailure(
+async function recordCrunSubmissionFailure(
   prisma: PrismaService,
   ingredientId: string,
   organizationId: string,

@@ -2,7 +2,7 @@ export class ArticleToThreadDto {
   // No body params needed - uses article ID from URL
 }
 
-export interface TwitterThread {
+interface TwitterThread {
   order: number;
   content: string;
   characterCount: number;

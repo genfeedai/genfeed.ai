@@ -33,7 +33,7 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Largest single creator payment, in credits. */
-export const MAX_CREDIT_TRANSFER_AMOUNT = 100_000;
+const MAX_CREDIT_TRANSFER_AMOUNT = 100_000;
 const MAX_TRANSFER_ATTEMPTS = 5;
 const TRANSFER_RETRY_BACKOFF_MS = 25;
 const MAX_MESSAGE_LENGTH = 280;
@@ -53,7 +53,7 @@ type TransferOutcome = {
 };
 
 /** Fee withheld from a gross amount, rounded down to whole credits. */
-export function creatorPaymentFee(grossAmount: number): number {
+function creatorPaymentFee(grossAmount: number): number {
   return Math.floor((grossAmount * CREATOR_PAYMENT_FEE_BPS) / 10_000);
 }
 

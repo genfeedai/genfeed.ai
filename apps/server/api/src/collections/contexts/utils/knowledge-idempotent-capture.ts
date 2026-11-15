@@ -14,7 +14,7 @@ import type {
 } from '@genfeedai/prisma';
 import { ConflictException } from '@nestjs/common';
 
-export interface IdempotentKnowledgeCaptureHelpers {
+interface IdempotentKnowledgeCaptureHelpers {
   createSource: (
     tx: Prisma.TransactionClient,
     actor: KnowledgeActor,

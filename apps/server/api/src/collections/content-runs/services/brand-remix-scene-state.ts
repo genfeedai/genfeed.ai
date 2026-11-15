@@ -12,7 +12,7 @@ import { ConflictException } from '@nestjs/common';
 const WHITESPACE_RUN_PATTERN = /\s+/;
 const NON_WORD_CHARS_PATTERN = /[^\p{L}\p{N}\s]/gu;
 
-export const UNSUPPORTED_SCENE_STRICT_FIDELITY =
+const UNSUPPORTED_SCENE_STRICT_FIDELITY =
   'Strict fidelity is not supported by the selected generation path. Use Guided fidelity instead.';
 
 export function initialScenePipeline(): BrandRemixScenePipeline {
@@ -252,9 +252,9 @@ export function invalidateScenePipeline(
  * It exceeds the longest synchronous platform call a step makes (sampled
  * frames plus semantic analysis, or a transcription).
  */
-export const STALE_SCENE_CLAIM_MS = 15 * 60_000;
+const STALE_SCENE_CLAIM_MS = 15 * 60_000;
 /** A run not written for this long has lost its step chain. */
-export const STALLED_SCENE_CHAIN_MS = 15 * 60_000;
+const STALLED_SCENE_CHAIN_MS = 15 * 60_000;
 type SceneStage = BrandRemixScenePipeline['scenes'][string]['image'];
 
 export function isStaleSceneClaim(stage: SceneStage, now = Date.now()) {

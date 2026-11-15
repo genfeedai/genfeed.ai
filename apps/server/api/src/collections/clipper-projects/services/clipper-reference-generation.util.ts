@@ -10,7 +10,7 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { BadRequestException } from '@nestjs/common';
 
-export type ClipperReferenceRoute =
+type ClipperReferenceRoute =
   | {
       mode: 'avatar';
       provider: AvatarVideoProviderName;
@@ -20,7 +20,7 @@ export type ClipperReferenceRoute =
       provider: 'raw-cut';
     };
 
-export interface ClipperReferenceCapability {
+interface ClipperReferenceCapability {
   nativeField?: string;
   reason?: string;
   supported: boolean;

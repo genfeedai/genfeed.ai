@@ -2,7 +2,7 @@ import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/s
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const CLIPPER_CONTINUITY_WORKFLOW_ID = 'clipper.continuity';
-export const CLIPPER_CONTINUITY_QA_WORKFLOW_ID = 'clipper.continuity.qa-one';
+const CLIPPER_CONTINUITY_QA_WORKFLOW_ID = 'clipper.continuity.qa-one';
 export const CLIPPER_CONTINUITY_FAILURE_WORKFLOW_ID =
   'clipper.continuity.failure';
 

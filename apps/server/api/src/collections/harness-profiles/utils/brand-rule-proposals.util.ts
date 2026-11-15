@@ -9,7 +9,7 @@ const NON_WORD_CHARS_PATTERN = /[^\p{L}\p{N}\s]/gu;
 const MAX_SPAN_WORDS = 6;
 /** Posts longer than this many words are not diffed; the cost grows with both texts. */
 const MAX_DIFF_WORDS = 400;
-export const MAX_RULE_PROPOSALS = 3;
+const MAX_RULE_PROPOSALS = 3;
 export const MAX_BRAND_RULE_LENGTH = 200;
 
 const FILLER_WORDS = new Set([

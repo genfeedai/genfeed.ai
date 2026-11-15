@@ -39,9 +39,9 @@ import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import type { ZodType } from 'zod';
 
-export const CONTENT_INTELLIGENCE_GENERATION_ACTION_ID =
+const CONTENT_INTELLIGENCE_GENERATION_ACTION_ID =
   'content-intelligence.generate';
-export const LINKEDIN_CONTENT_GENERATION_TOOL_ID = 'generate_content';
+const LINKEDIN_CONTENT_GENERATION_TOOL_ID = 'generate_content';
 const LINKEDIN_PATTERN_GENERATION_ACTION_ID =
   'content-intelligence.generate-linkedin-pattern';
 const CONTENT_INTELLIGENCE_WORKFLOW_ID = 'content-intelligence.generation';

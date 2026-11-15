@@ -21,11 +21,11 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Chunk pairs judged for one scanned version; the most similar come first. */
-export const CONFLICT_MAX_JUDGED_PAIRS_PER_SCAN = 8;
+const CONFLICT_MAX_JUDGED_PAIRS_PER_SCAN = 8;
 /** A scan the judge could not finish is retried this many times, then closed. */
-export const CONFLICT_MAX_SCAN_ATTEMPTS = 3;
+const CONFLICT_MAX_SCAN_ATTEMPTS = 3;
 /** Versions scanned per sweep, so a backfill cannot flood the judge. */
-export const CONFLICT_SWEEP_BATCH = 20;
+const CONFLICT_SWEEP_BATCH = 20;
 const RETRY_AFTER_MINUTES = 10;
 
 export interface KnowledgeConflictScanResult {

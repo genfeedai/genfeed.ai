@@ -1,6 +1,6 @@
 import { IsEnum, IsOptional } from 'class-validator';
 
-export const REWRITE_PLATFORMS = [
+const REWRITE_PLATFORMS = [
   'tiktok',
   'instagram',
   'twitter',
@@ -8,7 +8,7 @@ export const REWRITE_PLATFORMS = [
   'youtube',
 ] as const;
 
-export const REWRITE_TONES = [
+const REWRITE_TONES = [
   'hook',
   'story',
   'educational',

@@ -24,8 +24,6 @@ export const CREDENTIAL_SECRET_FIELDS = [
   'refreshToken',
 ] as const;
 
-export type CredentialSecretField = (typeof CREDENTIAL_SECRET_FIELDS)[number];
-
 /**
  * Encrypts and decrypts Credential secrets at rest.
  *

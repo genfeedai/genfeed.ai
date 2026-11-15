@@ -39,7 +39,7 @@ export interface VariationGroupPostScore {
   variantId?: string;
 }
 
-export interface VariationGroupScore {
+interface VariationGroupScore {
   groupId: string;
   scores: VariationGroupPostScore[];
   winner: VariationGroupPostScore;

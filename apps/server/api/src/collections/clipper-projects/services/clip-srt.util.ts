@@ -7,7 +7,7 @@ const CAPTION_VISUAL_LEAD_SECONDS = 0.04;
 const CAPTION_VISUAL_TAIL_SECONDS = 0.12;
 const MAX_CAPTION_PHRASE_WORDS = 6;
 
-export interface TranscriptWord {
+interface TranscriptWord {
   end: number;
   start: number;
   word: string;
