@@ -18,7 +18,7 @@ export interface ApiResponse<T> {
 /**
  * JSON:API resource object
  */
-export interface ApiResource<TAttributes> {
+interface ApiResource<TAttributes> {
   id: string;
   type: string;
   attributes?: TAttributes;
@@ -34,7 +34,7 @@ export interface ApiResource<TAttributes> {
  * `excerpt`, or `wordCount` attribute on the wire — declaring them made three
  * read sites here type-check while always resolving to `undefined`.
  */
-export interface ArticleAttributes {
+interface ArticleAttributes {
   category?: string;
   content?: string;
   createdAt?: string;
@@ -48,7 +48,7 @@ export interface ArticleAttributes {
 /**
  * Post resource attributes from API
  */
-export interface PostAttributes {
+interface PostAttributes {
   contentId?: string;
   createdAt?: string;
   executionState?: string;
@@ -64,7 +64,7 @@ export interface PostAttributes {
 /**
  * Trend resource attributes from API
  */
-export interface TrendAttributes {
+interface TrendAttributes {
   category?: string;
   growth?: number;
   name?: string;
@@ -74,26 +74,9 @@ export interface TrendAttributes {
 }
 
 /**
- * Workflow resource attributes from API
- */
-export interface WorkflowAttributes {
-  createdAt?: string;
-  description?: string;
-  id?: string;
-  lastRunAt?: string;
-  name?: string;
-  nextRunAt?: string;
-  status?: string;
-  nodes?: unknown[];
-  version?: number;
-  versionId?: string;
-  updatedAt?: string;
-}
-
-/**
  * Workflow template resource attributes from API
  */
-export interface WorkflowTemplateAttributes {
+interface WorkflowTemplateAttributes {
   category?: string;
   creditsRequired?: number;
   description?: string;
@@ -103,24 +86,9 @@ export interface WorkflowTemplateAttributes {
 }
 
 /**
- * Workflow execution attributes from API
- */
-export interface WorkflowExecutionAttributes {
-  completedAt?: string;
-  error?: string;
-  id?: string;
-  results?: unknown;
-  startedAt?: string;
-  status?: string;
-}
-
-/**
  * Type aliases for common API resource types
  */
 export type ArticleResource = ApiResource<ArticleAttributes>;
 export type PostResource = ApiResource<PostAttributes>;
 export type TrendResource = ApiResource<TrendAttributes>;
-export type WorkflowResource = ApiResource<WorkflowAttributes>;
 export type WorkflowTemplateResource = ApiResource<WorkflowTemplateAttributes>;
-export type WorkflowExecutionResource =
-  ApiResource<WorkflowExecutionAttributes>;
