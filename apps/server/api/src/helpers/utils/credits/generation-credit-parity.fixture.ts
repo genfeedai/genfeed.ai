@@ -10,7 +10,7 @@ import type { ReviewedProviderPricing } from '@genfeedai/contracts/interfaces';
  * equal `expectedCredits`, which is derived by hand from the pricing rules.
  * No fixture contacts a provider or debits a balance.
  */
-export interface GenerationCreditParityModel {
+interface GenerationCreditParityModel {
   readonly cost: number;
   readonly isFree?: boolean;
   readonly reviewedPricing?: ReviewedProviderPricing;

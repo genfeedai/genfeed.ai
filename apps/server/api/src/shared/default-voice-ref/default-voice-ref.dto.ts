@@ -2,7 +2,6 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { VoiceProvider } from '@genfeedai/contracts';
 import type { HeyGenConnectionRef } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
 import {
   IsEnum,
   IsIn,
@@ -11,7 +10,6 @@ import {
   IsString,
   IsUrl,
   MaxLength,
-  ValidateNested,
 } from 'class-validator';
 import {
   DEFAULT_VOICE_REF_SOURCES,
@@ -79,11 +77,4 @@ export class DefaultVoiceRefDto {
     type: String,
   })
   readonly preview?: string | null;
-}
-
-export class NullableDefaultVoiceRefDto {
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => DefaultVoiceRefDto)
-  readonly defaultVoiceRef?: DefaultVoiceRefDto;
 }

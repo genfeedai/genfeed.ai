@@ -9,20 +9,20 @@ export type AnalyticsCollectionCredentialResolution =
   | { kind: 'missing' }
   | { kind: 'mismatch' };
 
-export const ANALYTICS_ACCOUNT_AMBIGUOUS_FAILURE = {
+const ANALYTICS_ACCOUNT_AMBIGUOUS_FAILURE = {
   code: 'analytics.account_ambiguous',
   isRetryable: false,
   message:
     'Analytics could not choose an account because more than one connected credential matches this post.',
 } as const;
 
-export const ANALYTICS_ACCOUNT_MISSING_FAILURE = {
+const ANALYTICS_ACCOUNT_MISSING_FAILURE = {
   code: 'analytics.account_missing',
   isRetryable: false,
   message: 'Analytics could not find a connected account for this post.',
 } as const;
 
-export const ANALYTICS_ACCOUNT_MISMATCH_FAILURE = {
+const ANALYTICS_ACCOUNT_MISMATCH_FAILURE = {
   code: 'analytics.account_mismatch',
   isRetryable: false,
   message:

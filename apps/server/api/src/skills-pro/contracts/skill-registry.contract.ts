@@ -12,7 +12,7 @@ export interface SkillsProRegistryEntryDto {
   version: string;
 }
 
-export interface SkillsProRegistryEntryAttributes {
+interface SkillsProRegistryEntryAttributes {
   category: string;
   description: string;
   name: string;
@@ -20,7 +20,7 @@ export interface SkillsProRegistryEntryAttributes {
   version: string;
 }
 
-export interface SkillsProRegistryMeta extends JsonApiMeta {
+interface SkillsProRegistryMeta extends JsonApiMeta {
   bundlePrice: number;
   updatedAt: string;
 }

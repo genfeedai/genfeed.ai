@@ -1,7 +1,7 @@
 import { HttpException } from '@nestjs/common';
 
 /** The non-standard 499 status for a client that closed the connection first. */
-export const CLIENT_CLOSED_REQUEST_STATUS = 499;
+const CLIENT_CLOSED_REQUEST_STATUS = 499;
 
 export type ClientClosedRequestStage =
   | 'before-upstream'

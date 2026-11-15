@@ -75,7 +75,7 @@ type DesktopAuthRecord = {
   userName?: string;
 };
 
-export type DesktopAuthCodeStatus = 'exchanged' | 'expired' | 'pending';
+type DesktopAuthCodeStatus = 'exchanged' | 'expired' | 'pending';
 
 interface DesktopAuthCodeStatusResult {
   status: DesktopAuthCodeStatus;

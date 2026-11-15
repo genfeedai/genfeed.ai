@@ -14,11 +14,7 @@ import {
   type ValidatorConstraintInterface,
 } from 'class-validator';
 
-export const AGENT_WORKFLOW_PATCH_EVENTS = [
-  'advance',
-  'approve',
-  'rollback',
-] as const;
+const AGENT_WORKFLOW_PATCH_EVENTS = ['advance', 'approve', 'rollback'] as const;
 
 export type AgentWorkflowPatchEvent =
   (typeof AGENT_WORKFLOW_PATCH_EVENTS)[number];

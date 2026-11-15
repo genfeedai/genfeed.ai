@@ -20,7 +20,7 @@ export type StudioElementModel =
   | 'elementCameraMovement'
   | 'elementSound';
 
-export type StudioElementEntry = {
+type StudioElementEntry = {
   description: string;
   key: string;
   label: string;

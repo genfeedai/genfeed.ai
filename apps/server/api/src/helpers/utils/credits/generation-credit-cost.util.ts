@@ -11,7 +11,7 @@ import type {
  * `calculateVideoGenerationCredits`) so quotes and charges share one contract.
  */
 
-export type ApprovedImageQuoteConstraint = {
+type ApprovedImageQuoteConstraint = {
   model: string;
   unitCredits: number;
   billingMode: 'credits' | 'byok';
@@ -25,7 +25,7 @@ export type ApprovedGenerationQuoteConstraint = ApprovedImageQuoteConstraint & {
   quantities: ModelBillableQuoteSnapshot['quantities'];
 };
 
-export type DeferredCreditsConfig = {
+type DeferredCreditsConfig = {
   approvedImageQuote?: ApprovedImageQuoteConstraint;
   approvedGenerationQuote?: ApprovedGenerationQuoteConstraint;
   amount?: number;

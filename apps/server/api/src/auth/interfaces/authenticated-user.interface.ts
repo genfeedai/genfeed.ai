@@ -2,7 +2,7 @@ import type { IRequestContext } from '@api/common/interfaces/request-context.int
 import type { McpAccessMode } from '@genfeedai/actions';
 import type { ActionOrigin } from '@genfeedai/contracts';
 
-export interface IAuthenticatedEmailAddress {
+interface IAuthenticatedEmailAddress {
   emailAddress?: string | null;
   id?: string | null;
   verification?: {

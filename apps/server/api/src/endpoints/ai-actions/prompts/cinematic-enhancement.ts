@@ -39,7 +39,7 @@ export function isCinematicPromptCategory(
   return CINEMATIC_PROMPT_CATEGORIES.has(category);
 }
 
-export function formatCinematicLexiconGuidance(
+function formatCinematicLexiconGuidance(
   lexicon: readonly CinematicTechnique[] = CINEMATIC_LEXICON,
 ): string {
   const grouped = new Map<CinematicLexiconCategory, CinematicTechnique[]>();
@@ -74,7 +74,7 @@ export function formatCinematicLexiconGuidance(
   ].join('\n\n');
 }
 
-export function loadCinematicLexiconModule(): readonly CinematicTechnique[] {
+function loadCinematicLexiconModule(): readonly CinematicTechnique[] {
   return CINEMATIC_LEXICON;
 }
 

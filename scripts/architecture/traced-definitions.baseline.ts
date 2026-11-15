@@ -203,7 +203,7 @@ export const TRACED_DEFINITIONS_BASELINE: Readonly<Record<string, number>> = {
   'apps/server/api/src/helpers/utils/credits/workflow-execution-admission.util.ts': 2,
   'apps/server/api/src/helpers/utils/credits/workflow-generation-recovery.util.ts': 1,
   'apps/server/api/src/helpers/utils/first-run-image-generation/first-run-image-generation.util.ts': 1,
-  'apps/server/api/src/helpers/utils/idempotency/idempotency.util.ts': 3,
+  'apps/server/api/src/helpers/utils/idempotency/idempotency.util.ts': 1,
   'apps/server/api/src/helpers/utils/reference/reference.util.ts': 2,
   'apps/server/api/src/helpers/utils/stream-attachment/stream-attachment.util.ts': 1,
   'apps/server/api/src/publish-approvals/publish-approval-lease.util.ts': 1,

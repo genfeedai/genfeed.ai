@@ -8,7 +8,7 @@ import type { Response } from 'express';
 
 const UNSAFE_FILENAME_CHARS_PATTERN = /["\\\r\n]/g;
 
-export function sanitizeAttachmentFilename(filename: string): string {
+function sanitizeAttachmentFilename(filename: string): string {
   const trimmed = filename.trim() || 'download';
   return trimmed.replace(UNSAFE_FILENAME_CHARS_PATTERN, '_').slice(0, 180);
 }

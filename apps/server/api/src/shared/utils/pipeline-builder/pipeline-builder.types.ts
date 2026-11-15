@@ -16,7 +16,7 @@ export type MatchConditions = {
 
 type PrismaValue = string | number | boolean | Date | null;
 
-export interface MatchOperator {
+interface MatchOperator {
   AND?: MatchConditions[];
   OR?: MatchConditions[];
   contains?: string | RegExp;

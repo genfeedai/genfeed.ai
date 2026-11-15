@@ -34,7 +34,7 @@ const WHITESPACE_RUN_PATTERN = /\s+/;
 /** Lifetime of the API key that backs an MCP OAuth access token. */
 export const MCP_OAUTH_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 /** Lifetime of a refresh token; each rotation issues a fresh window. */
-export const MCP_OAUTH_REFRESH_TOKEN_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+const MCP_OAUTH_REFRESH_TOKEN_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 /** Bound on the rotation chain walked during reuse detection. */
 const MAX_REFRESH_CHAIN_DEPTH = 64;
 
@@ -71,7 +71,7 @@ function invalidGrant(): BadRequestException {
   return oauthError('invalid_grant', 'Invalid refresh token');
 }
 
-export function buildTokenResponse(
+function buildTokenResponse(
   plainKey: string,
   expiresAt: Date,
   scopes: string[],
