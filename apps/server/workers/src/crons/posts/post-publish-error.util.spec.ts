@@ -149,4 +149,43 @@ describe('post publish error policy', () => {
       value: 'Provider failed',
     });
   });
+
+  it('writes the failure email: the post, the channel and why', () => {
+    const post = new PostEntity({
+      brandId: 'brand-1',
+      description: '<p>Shipped the   weekly batch</p>',
+      id: 'post-1',
+      organizationId: 'org-1',
+      platform: 'twitter',
+      userId: 'user-1',
+    });
+
+    expect(createPublishFailedActivity(post, 'Provider failed').alert).toEqual({
+      payload: {
+        event: 'post_failed',
+        kind: 'alert_email',
+        label: 'Shipped the weekly batch',
+        summary: 'It was not published to twitter: Provider failed',
+        version: 1,
+      },
+    });
+  });
+
+  it('shortens a long post and a long reason in the failure email', () => {
+    const post = new PostEntity({
+      description: 'x'.repeat(200),
+      id: 'post-1',
+      organizationId: 'org-1',
+      platform: 'twitter',
+      userId: 'user-1',
+    });
+
+    const payload = createPublishFailedActivity(post, 'y'.repeat(500)).alert
+      ?.payload as { label: string; summary: string };
+
+    expect(payload.label).toBe(`${'x'.repeat(79)}…`);
+    expect(payload.summary).toBe(
+      `It was not published to twitter: ${'y'.repeat(300)}`,
+    );
+  });
 });

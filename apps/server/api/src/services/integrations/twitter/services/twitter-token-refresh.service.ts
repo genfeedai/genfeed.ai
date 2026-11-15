@@ -5,6 +5,7 @@ import {
 } from '@api/server.dependencies';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { isTwitterRefreshTokenRejectedError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
+import type { AlertEmailNotificationPayload } from '@api/services/notifications/workflow-notifications/workflow-notification.constants';
 import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
@@ -234,14 +235,26 @@ export class TwitterTokenRefreshService {
       isConnected: false,
     });
 
+    const reason = (error as Error)?.message ?? 'Token refresh failed';
+    const handle =
+      credentials.externalHandle ?? credentials.externalName ?? 'X account';
+    const alertPayload: AlertEmailNotificationPayload = {
+      event: 'channel_disconnected',
+      kind: 'alert_email',
+      label: handle,
+      summary: `X refused to renew the connection (${reason}). Posts scheduled on this account will fail until you reconnect it.`,
+      version: 1,
+    };
+
     // Create activity for social integration disconnection
     await this.activityRecorder.record({
+      alert: { payload: alertPayload },
       brandId: brandId,
       key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
       organizationId: organizationId,
       source: ActivitySource.SOCIAL_INTEGRATION,
       userId: credentials.userId ?? undefined,
-      value: `Twitter integration disconnected: ${(error as Error)?.message ?? 'Token refresh failed'}`,
+      value: `Twitter integration disconnected: ${reason}`,
     });
   }
 }
