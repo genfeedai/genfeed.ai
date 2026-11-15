@@ -4,7 +4,7 @@ import {
   readPublishTargetProposals,
   resolveEffectiveCaption,
   resolveLiveTargetBlockers,
-  targetToggleName,
+  targetAccountSuffix,
 } from './publish-post-card.helpers';
 
 describe('publish-post-card.helpers', () => {
@@ -59,9 +59,9 @@ describe('publish-post-card.helpers', () => {
       id: 'publish-target-cred-twitter-b',
     };
 
-    expect(targetToggleName(linkedin, [linkedin, twitterA])).toBe('linkedin');
-    expect(targetToggleName(twitterA, [twitterA, twitterB])).toBe(
-      'twitter cred-twitter-a',
+    expect(targetAccountSuffix(linkedin, [linkedin, twitterA])).toBeNull();
+    expect(targetAccountSuffix(twitterA, [twitterA, twitterB])).toBe(
+      'cred-twitter-a',
     );
   });
 
