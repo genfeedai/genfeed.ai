@@ -14,8 +14,32 @@ const TEST_SUPPORT_FILE_PATTERN =
   /(?:^|\/)(?:test[-.]?(?:helpers?|utils?)|source[-.]?(?:reader|contracts?)|[^/]+\.(?:test-utils|test-helpers|fixtures))\.[cm]?[jt]sx?$/;
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
+// Files in `domFiles` render components and need jsdom plus the DOM setup. The
+// rest of a surface that names a `nodeConfig` runs there, without a DOM: creating
+// jsdom for each of 223 web files took about 160 s (#10271).
+export const WEB_DOM_SOURCE_CONTRACT_FILES = Object.freeze([
+  'app/(onboarding)/layout.test.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/messages/page.test.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/publishing/batches/[approvalId]/page.test.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/publishing/campaigns/[id]/content/page.test.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/publishing/posts/[id]/page.test.tsx',
+  'app/(protected)/[orgSlug]/~/messages/page.test.tsx',
+  'src/components/workspace-shell/WorkspaceContextSidebar.test.tsx',
+  'src/features/articles/analytics/article-traffic-panel.test.tsx',
+  'src/features/articles/list/articles-list.test.tsx',
+  'src/features/posts/library/publishing-post-hover-preview.test.tsx',
+  'src/features/posts/list/release-posts-list.test.tsx',
+  'src/features/trainings/list/trainings-list.test.tsx',
+  'src/features/workflows/components/schedule/WorkflowScheduleDialog.test.tsx',
+]);
+
 const SURFACES = [
-  { directory: 'apps/web', config: 'vitest.config.mts' },
+  {
+    directory: 'apps/web',
+    config: 'vitest.config.mts',
+    nodeConfig: 'vitest.source-contracts.config.mts',
+    domFiles: WEB_DOM_SOURCE_CONTRACT_FILES,
+  },
   { directory: 'apps/server/api', config: 'vitest.config.ts' },
 ];
 const FS_MODULES = new Set([
@@ -246,30 +270,55 @@ export async function runSourceContracts({
       // Two surfaces, two workers each: a bounded four-worker pool fits the
       // 4-vCPU Linux runner. Keep each original cwd and per-file isolation.
       // Selection is unconditional: imports cannot see filesystem reads.
-      executions.push({
-        command: 'bunx',
-        args: [
-          'vitest',
-          'run',
-          '--config',
-          surface.config,
-          '--maxWorkers=2',
-          ...relativeFiles,
-        ],
-        options: {
-          cwd: directory,
-          env: { ...process.env, NODE_ENV: 'test', CI: 'true' },
-        },
-      });
+      const domFiles = new Set(surface.domFiles ?? []);
+      const groups = surface.nodeConfig
+        ? [
+            {
+              config: surface.nodeConfig,
+              files: relativeFiles.filter((file) => !domFiles.has(file)),
+            },
+            {
+              config: surface.config,
+              files: relativeFiles.filter((file) => domFiles.has(file)),
+            },
+          ]
+        : [{ config: surface.config, files: relativeFiles }];
+      // One chain per surface: its groups run one after the other so the
+      // surfaces together stay within four workers.
+      executions.push(
+        groups
+          .filter((group) => group.files.length)
+          .map((group) => ({
+            command: 'bunx',
+            args: [
+              'vitest',
+              'run',
+              '--config',
+              group.config,
+              '--maxWorkers=2',
+              ...group.files,
+            ],
+            options: {
+              cwd: directory,
+              env: { ...process.env, NODE_ENV: 'test', CI: 'true' },
+            },
+          })),
+      );
     }
   }
   const settled = await Promise.allSettled(
-    executions.map(({ command, args, options }) => {
-      try {
-        return execute(command, args, options);
-      } catch (error) {
-        return Promise.reject(error);
+    executions.map(async (chain) => {
+      const errors = [];
+      for (const { command, args, options } of chain) {
+        try {
+          await execute(command, args, options);
+        } catch (error) {
+          errors.push(error);
+        }
       }
+      if (errors.length === 1) throw errors[0];
+      if (errors.length)
+        throw new AggregateError(errors, 'Source contracts failed');
     }),
   );
   const failures = settled
