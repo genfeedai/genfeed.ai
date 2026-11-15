@@ -166,7 +166,10 @@ test('Test Workspaces lets every leg of the widest matrix start at once', () => 
   );
   const job = workflow.slice(
     workflow.indexOf('\n  test-workspaces:\n'),
-    workflow.indexOf('\n    services:', workflow.indexOf('\n  test-workspaces:\n')),
+    workflow.indexOf(
+      '\n    services:',
+      workflow.indexOf('\n  test-workspaces:\n'),
+    ),
   );
   const maxParallel = Number(job.match(/max-parallel: (\d+)/)?.[1]);
   const widest = buildWorkspaceTestMatrix({
