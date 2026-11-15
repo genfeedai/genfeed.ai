@@ -4,10 +4,7 @@ export {
   toRedactedGenerationBriefProviderData,
   toRedactedVideoGenerationBriefProviderData,
 } from '@api/services/generation-brief/redact-generation-brief-evidence';
-export {
-  renderGenerationBriefBrandVoice,
-  resolveIsGenerationBriefBrandVoiceOn,
-} from '@api/services/generation-brief/resolve-generation-brief-brand-context';
+export { resolveIsGenerationBriefBrandVoiceOn } from '@api/services/generation-brief/resolve-generation-brief-brand-context';
 export { resolveVideoIdentityReferencePlan } from '@api/services/generation-brief/resolve-video-identity-reference-plan';
 export { runImageGenerationBrief } from '@api/services/generation-brief/run-image-generation-brief';
 export { runVideoGenerationBrief } from '@api/services/generation-brief/run-video-generation-brief';

@@ -368,7 +368,6 @@
     "apps/server/api/src/seeds/reviewed-provider-rates-seed.types.ts": 1,
     "apps/server/api/src/seeds/studio-element-catalog.ts": 1,
     "apps/server/api/src/server.dependencies.ts": 2,
-    "apps/server/api/src/services/generation-brief/index.ts": 1,
     "apps/server/api/src/shared/default-voice-ref/default-voice-ref.constants.ts": 1,
     "apps/server/api/src/shared/default-voice-ref/default-voice-ref.dto.ts": 1,
     "apps/server/api/src/shared/dto/base/base.dto.ts": 5,
