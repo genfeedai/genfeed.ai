@@ -1,9 +1,9 @@
+import type { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import type {
-  ModelCategory,
-  ModelProvider,
-  PricingType,
-} from '@genfeedai/contracts';
-import type { TypedDecisionMode } from '@genfeedai/contracts/interfaces';
+  ModelScanReport,
+  TypedDecisionMode,
+} from '@genfeedai/contracts/interfaces';
+import type { ReplicateBillingMediaFamily } from '@genfeedai/pricing';
 
 /**
  * Raw model data returned from Replicate API
@@ -25,6 +25,8 @@ export interface IReplicateModel {
   } | null;
   visibility: string;
   run_count: number;
+  /** Replicate's own flag for models it hosts and maintains. */
+  is_official?: boolean;
 }
 
 /**
@@ -90,7 +92,17 @@ export interface IModelDiscoveryInput {
   /** Preferred display label; falls back to a title-cased model name */
   label?: string;
   provider: ModelProvider.REPLICATE | ModelProvider.FAL;
+  /**
+   * Provider list price in USD per billing unit, read from the provider's page.
+   * Absent when no rate could be read; credits are never estimated.
+   */
   providerCostUsd?: number;
+  /** Billed unit of `providerCostUsd` (`output`, `second`, `megapixel`, ...). */
+  billingUnit?: string | null;
+  /** Page the price was read from. */
+  pricingSourceUrl?: string | null;
+  /** Why the draft carries no price; set only when `providerCostUsd` is absent. */
+  unpricedReason?: string | null;
   /**
    * Confidence of the typed category decision (#4869). Only set when a
    * provider answered; the keyword table and the schema sniffer carry none.
@@ -110,6 +122,7 @@ export interface IModelDiscoveryDecisionSettings {
 
 /** Which layer of the three-layer resolution produced a category (#4869). */
 export type ModelCategoryDecisionSource =
+  | 'billing'
   | 'keyword'
   | 'output-schema'
   | 'provider-metadata'
@@ -123,6 +136,11 @@ export interface IModelCategoryDetectionInput {
   provider: ModelProvider;
   /** Provider OpenAPI document, when discovery managed to fetch one. */
   schema?: Record<string, unknown>;
+  /**
+   * What the provider's billing metrics say the model makes. It outranks the
+   * schema and the keyword table, which read the model's own wording.
+   */
+  billingFamily?: ReplicateBillingMediaFamily | null;
   /** Provider-published labels (fal's task category, marketplace tags). */
   tags?: readonly string[];
 }
@@ -154,16 +172,6 @@ export interface IOutputSchemaCategorySignal {
 }
 
 /**
- * Result of cost estimation for a new model
- */
-export interface IModelPricingEstimate {
-  cost: number;
-  pricingType: PricingType;
-  costPerUnit: number;
-  minCost: number;
-}
-
-/**
  * Summary of a model discovery run
  */
 export interface IModelDiscoveryRunSummary {
@@ -178,4 +186,6 @@ export interface IModelDiscoveryRunSummary {
   providerContractsQuarantined?: number;
   /** Endpoint contracts observed in this run */
   providerContractsSynchronized?: number;
+  /** What the run found, grouped by what an operator has to do. */
+  report: ModelScanReport;
 }

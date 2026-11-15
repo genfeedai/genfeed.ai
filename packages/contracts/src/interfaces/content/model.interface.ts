@@ -25,9 +25,13 @@ export type ModelProviderContractReviewStatus =
 
 /** Freshness of a model's provider contract sync (`Model.providerSyncStatus`). */
 export type ModelProviderSyncStatus =
+  /** The provider's public price page is gone but its API still serves the model. */
+  | 'delisted'
   | 'failed'
   | 'fresh'
   | 'quarantined'
+  /** The provider's API says the model no longer exists. */
+  | 'removed'
   | 'review_required';
 
 export interface IModel extends IBaseEntity {
