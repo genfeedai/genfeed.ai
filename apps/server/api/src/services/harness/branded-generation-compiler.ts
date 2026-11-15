@@ -405,7 +405,7 @@ export function suppressSnapshotLearning(
   return brandLearningApplicationV1Schema.parse(copy);
 }
 
-export function buildSnapshotLayerReceipts(
+function buildSnapshotLayerReceipts(
   stages: readonly SnapshotContextStage[],
   rendered: ReadonlyMap<BrandContextContribution, string>,
   reports: BrandContextBudgetResult['sections'],

@@ -148,6 +148,8 @@ const config: KnipConfig = {
         '*.webpack.config.cjs',
         'vitest.learning-runtime.config.ts',
         'src/seeds/*.entrypoint.ts',
+        // Run by hand with bun (see the usage note in the script); nothing imports it.
+        'scripts/run-schnell-ablation.ts',
         // `scripts/check-serializer-drift.ts` globs these to match each
         // Prisma-backed schema with its serializer. Nothing imports them.
         'src/**/schemas/*.schema.ts',
@@ -167,6 +169,9 @@ const config: KnipConfig = {
       // `ui-bundle.cjs` bundles the preview UI from these paths.
       entry: ['src/main.ts', 'src/ui/next-image.tsx', 'src/ui/preview.css'],
       ignore: ['dist/**'],
+      // Path aliases from tsconfig.preview.json (`@ui/*` to packages/ui,
+      // `@preview-messages/ui` to the web messages), not packages.
+      ignoreDependencies: [/^@ui\//, '@preview-messages/ui'],
     },
     'apps/server/notifications': {
       entry: ['src/main.ts'],
@@ -233,6 +238,8 @@ const config: KnipConfig = {
     'packages/*': {
       entry: ['src/index.ts', 'src/**/*.ts', 'src/**/*.tsx'],
       ignore: ['dist/**', 'node_modules/**'],
+      // `@ui/*` is a path alias for packages/ui, not a package.
+      ignoreDependencies: [/^@ui\//],
     },
   },
 };

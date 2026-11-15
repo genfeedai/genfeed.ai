@@ -53,7 +53,7 @@ export function normalizeInstagramUsername(value: string): string {
   return value.trim().replace(LEADING_AT_SIGN_PATTERN, '').toLowerCase();
 }
 
-export function normalizeInstagramSeed(value: string): string {
+function normalizeInstagramSeed(value: string): string {
   return value
     .trim()
     .replace(LEADING_HASH_PATTERN, '')

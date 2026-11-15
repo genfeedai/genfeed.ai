@@ -220,6 +220,12 @@ export const TENANT_READ_AUTOMATION_ROUTES = [
     policy: 'selected',
   },
   {
+    controller: HarnessProfilesController,
+    handler: 'listRevisions',
+    route: '/v1/harness-profiles/{profileId}/revisions',
+    policy: 'selected',
+  },
+  {
     controller: PersonasContentController,
     handler: 'getPersonaPosts',
     route: '/v1/personas/{id}/posts',

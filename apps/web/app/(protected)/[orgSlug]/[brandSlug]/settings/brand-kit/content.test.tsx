@@ -88,8 +88,11 @@ vi.mock('@/features/brands/components/brand-kit/BrandOsSettingsCard', () => ({
       isDirty: true,
       isLoading: false,
       isSaveDisabled: false,
+      isReadOnly: false,
       error: null,
       onSave: vi.fn(),
+      onVideoChange: vi.fn(),
+      onFinishingChange: vi.fn(),
     }),
 }));
 vi.mock('@/features/brands/components/brand-kit/BrandKitReviewCard', () => ({
@@ -122,9 +125,6 @@ vi.mock(
     default: () => <p>References</p>,
   }),
 );
-vi.mock('@/features/brands/components/sidebar/BrandWatermarkSettings', () => ({
-  default: () => <p>Watermark</p>,
-}));
 vi.mock('@ui/cards/brand-completeness-card/BrandCompletenessCard', () => ({
   default: () => <p>Completeness</p>,
 }));
@@ -156,14 +156,20 @@ describe('Brand Kit workspace', () => {
     mocks.pathname = '/acme/acme/settings/brand-kit';
   });
 
-  it('keeps four sections, a local preview and focused revision review without a duplicate page heading', () => {
+  it('keeps five sections, a local preview and focused revision review without a duplicate page heading', () => {
     render(<BrandKitPage />);
     expect(
       screen
         .getAllByRole('tab')
-        .slice(0, 4)
+        .slice(0, 5)
         .map((tab) => tab.textContent),
-    ).toEqual(['Overview', 'Visual identity', 'Writing voice', 'Strategy']);
+    ).toEqual([
+      'Overview',
+      'Visual identity',
+      'Writing voice',
+      'Strategy',
+      'Video',
+    ]);
     expect(screen.getByTestId('brand-kit-local-preview')).toBeInTheDocument();
     expect(
       screen.queryByRole('heading', { name: 'Brand Kit' }),
@@ -177,7 +183,7 @@ describe('Brand Kit workspace', () => {
   it('puts the section tabs and actions in the shared subbar, not in the content', () => {
     render(<BrandKitPage />);
     const subbar = within(screen.getByTestId('subbar'));
-    expect(subbar.getAllByRole('tab')).toHaveLength(4);
+    expect(subbar.getAllByRole('tab')).toHaveLength(5);
     expect(
       subbar.getByRole('button', { name: 'Scan website' }),
     ).toBeInTheDocument();
@@ -249,6 +255,7 @@ describe('Brand Kit workspace', () => {
 
   it.each([
     ['Writing voice', '/acme/acme/settings/brand-kit/voice'],
+    ['Video', '/acme/acme/settings/brand-kit/video'],
     ['Overview', '/acme/acme/settings/brand-kit'],
   ])('navigates to a path, not a query param, for the %s tab', (name, href) => {
     mocks.pathname = '/acme/acme/settings/brand-kit/visual';

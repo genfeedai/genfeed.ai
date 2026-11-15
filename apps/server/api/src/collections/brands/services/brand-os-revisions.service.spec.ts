@@ -1,9 +1,11 @@
 import type { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
+import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createDefaultBrandPublishPolicy } from '@genfeedai/contracts/api-types/contracts/brand-publish-policy.contract';
+import type { BrandVideoFinishingV1 } from '@genfeedai/contracts/api-types/contracts/brand-video-finishing.contract';
 import { brandGenerationRulesV1Schema } from '@genfeedai/contracts/api-types/contracts/branded-generation.contract';
 import type { IBrandKitDraft } from '@genfeedai/contracts/interfaces';
 import type { BrandGenerationRulesV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
@@ -107,6 +109,7 @@ function assertApprovalMetadata(record: BrandOsRevision): void {
 
 function harness(initial: BrandOsRevision[] = [], legacyAgentConfig?: unknown) {
   const rows = structuredClone(initial);
+  const brandWrites: Record<string, unknown>[] = [];
   let counter = Math.max(0, ...rows.map((item) => item.version));
   let pending = Promise.resolve();
   const matches = (record: BrandOsRevision, where: Record<string, unknown>) =>
@@ -136,6 +139,10 @@ function harness(initial: BrandOsRevision[] = [], legacyAgentConfig?: unknown) {
             : null,
       ),
       update: vi.fn(async () => ({ brandOsRevisionVersion: ++counter })),
+      updateMany: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+        brandWrites.push(data);
+        return { count: 1 };
+      }),
     },
     brandOsRevision: {
       create: vi.fn(async ({ data }: { data: Partial<BrandOsRevision> }) => {
@@ -224,6 +231,7 @@ function harness(initial: BrandOsRevision[] = [], legacyAgentConfig?: unknown) {
     }),
   };
   return {
+    brandWrites,
     prisma,
     rows,
     service: new BrandOsRevisionsService(
@@ -231,6 +239,7 @@ function harness(initial: BrandOsRevision[] = [], legacyAgentConfig?: unknown) {
       {
         resolveBrandKitAssets: vi.fn().mockResolvedValue({ references: [] }),
       } as unknown as BrandKitAssetsService,
+      new BrandWatermarkLogoService(prisma as unknown as PrismaService),
     ),
     tx,
   };
@@ -987,6 +996,182 @@ describe('BrandOsRevisionsService', () => {
       const { service } = harness([row()]);
       const created = await service.create(ORG, BRAND, draft());
       expect(created.content.policy).toBeUndefined();
+    });
+  });
+
+  describe('Finishing section (#10187)', () => {
+    function withFinishing(
+      change: Partial<BrandVideoFinishingV1['watermark']> = {},
+      lut: BrandVideoFinishingV1['lut'] = { isEnabled: false },
+    ): IBrandKitDraft {
+      return {
+        ...draft(),
+        finishing: {
+          endCard: { durationSeconds: 3, isEnabled: false },
+          lut,
+          watermark: {
+            opacity: 0.5,
+            position: 'top-left',
+            text: 'acme.coffee',
+            ...change,
+          },
+        },
+      };
+    }
+
+    it('rejects an invalid finishing section before any transaction', async () => {
+      const { service, prisma } = harness();
+      const invalid = withFinishing({ opacity: 0 });
+      await expect(service.create(ORG, BRAND, invalid)).rejects.toThrow(
+        'Invalid Brand OS finishing',
+      );
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('writes the approved finishing to the brand row and nowhere before approval', async () => {
+      const { brandWrites, service } = harness();
+      const created = await service.create(ORG, BRAND, withFinishing());
+      expect(brandWrites).toEqual([]);
+      const approved = await service.approve(
+        ORG,
+        BRAND,
+        created.id,
+        USER,
+        created.updatedAt,
+      );
+      expect(approved.approvedById).toBe(USER);
+      expect(brandWrites).toEqual([
+        {
+          endCardAssetId: null,
+          endCardDurationSeconds: 3,
+          isEndCardEnabled: false,
+          isLutEnabled: false,
+          watermarkInsetXRatio: null,
+          watermarkInsetYRatio: null,
+          watermarkLightLogoId: null,
+          watermarkLiveLogoId: null,
+          watermarkLogoId: null,
+          watermarkOpacity: 0.5,
+          watermarkPosition: 'top-left',
+          watermarkSizeRatio: null,
+          watermarkText: 'acme.coffee',
+        },
+      ]);
+    });
+
+    it('refuses to approve a colour grade whose LUT file was never uploaded', async () => {
+      const { brandWrites, service } = harness();
+      const created = await service.create(
+        ORG,
+        BRAND,
+        withFinishing({}, { fileName: 'warm.cube', isEnabled: true }),
+      );
+      await expect(
+        service.approve(ORG, BRAND, created.id, USER, created.updatedAt),
+      ).rejects.toThrow('Upload a .cube LUT');
+      expect(brandWrites).toEqual([]);
+    });
+
+    it('carries the approved finishing into a new draft that brings none', async () => {
+      const approved = row('rev-1', 1, BrandOsRevisionStatus.APPROVED);
+      approved.content = withFinishing() as unknown as Prisma.JsonValue;
+      const { service } = harness([approved]);
+      const created = await service.create(ORG, BRAND, draft());
+      expect(created.content.finishing?.watermark.text).toBe('acme.coffee');
+    });
+
+    it('starts a new draft from the brand row when nothing was approved', async () => {
+      const { service } = harness([row()]);
+      const created = await service.create(ORG, BRAND, draft());
+      expect(created.content.finishing).toEqual({
+        endCard: { durationSeconds: 3, isEnabled: false },
+        lut: { isEnabled: false },
+        watermark: { opacity: 0.35, position: 'bottom-right' },
+      });
+    });
+  });
+
+  describe('Video identity section (#10187)', () => {
+    const video: NonNullable<IBrandKitDraft['video']> = {
+      captions: {
+        evidenceIds: ['owner-video'],
+        position: 'bottom',
+        style: 'karaoke',
+      },
+      shotRules: [
+        {
+          evidenceIds: ['owner-video'],
+          id: 'owner-video-shot-1',
+          match: 'semantic',
+          required: true,
+          text: 'Open on the product',
+        },
+      ],
+      thumbnailRules: [],
+    };
+
+    it('stores a valid video identity on the draft', async () => {
+      const { service } = harness();
+      const created = await service.create(ORG, BRAND, { ...draft(), video });
+      expect(created.content.video).toEqual(video);
+    });
+
+    it('rejects a video identity the snapshot could not read, before any transaction', async () => {
+      const { service, prisma } = harness();
+      const dangling = {
+        ...video,
+        captions: {
+          evidenceIds: ['owner-video'],
+          position: 'bottom' as const,
+          style: 'karaoke' as const,
+          typographyRuleId: 'missing-font-rule',
+        },
+      };
+      await expect(
+        service.create(ORG, BRAND, { ...draft(), video: dangling }),
+      ).rejects.toThrow('Invalid Brand OS video identity');
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('carries the approved video identity into a new draft that brings none', async () => {
+      const approved = row('rev-1', 1, BrandOsRevisionStatus.APPROVED);
+      approved.content = { ...draft(), video } as unknown as Prisma.JsonValue;
+      const { service } = harness([approved]);
+      const created = await service.create(ORG, BRAND, draft());
+      expect(created.content.video).toEqual(video);
+    });
+
+    it('drops an inherited caption font the new draft no longer has', async () => {
+      const approved = row('rev-1', 1, BrandOsRevisionStatus.APPROVED);
+      const withFont = {
+        ...video,
+        captions: { ...video.captions, typographyRuleId: 'font-rule' },
+      } as NonNullable<IBrandKitDraft['video']>;
+      approved.content = {
+        ...draft(),
+        video: withFont,
+      } as unknown as Prisma.JsonValue;
+      const { service } = harness([approved]);
+      const created = await service.create(ORG, BRAND, draft());
+      expect(created.content.video?.captions).toEqual(video.captions);
+    });
+
+    it('rejects a shot rule id that collides with a provisional palette rule', async () => {
+      const { service } = harness();
+      const content = draft();
+      content.fields.primaryColor = {
+        ...(content.fields.primaryColor as NonNullable<
+          IBrandKitDraft['fields']['primaryColor']
+        >),
+        currentValue: '#112233',
+      };
+      const colliding = {
+        ...video,
+        shotRules: [{ ...video.shotRules[0], id: 'palette_primary' }],
+      };
+      await expect(
+        service.create(ORG, BRAND, { ...content, video: colliding }),
+      ).rejects.toThrow('Invalid Brand OS video identity');
     });
   });
 

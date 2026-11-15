@@ -98,6 +98,8 @@ export enum ActivityKey {
   POST_FAILED = 'content-publish-failed',
   /** The platform refused an API publish; the person posts it by hand. */
   POST_MANUAL_POST_NEEDED = 'content-publish-manual',
+  /** The platform never confirmed whether a publish went out; check the account. */
+  POST_PUBLISH_UNVERIFIED = 'content-publish-unverified',
   POST_SCHEDULED = 'content-publish-scheduled',
   POST_PUBLISHED = 'content-publish-published',
   POST_CREATED = 'content-created',

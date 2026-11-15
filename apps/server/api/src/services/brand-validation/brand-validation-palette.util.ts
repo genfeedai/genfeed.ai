@@ -14,9 +14,9 @@ import type {
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 
 /** A pixel within this CIEDE2000 distance of the approved color counts as that color. */
-export const BRAND_PALETTE_MAX_DELTA_E = 8;
+const BRAND_PALETTE_MAX_DELTA_E = 8;
 /** The approved color must cover at least this share of opaque pixels to count as present. */
-export const BRAND_PALETTE_MIN_COVERAGE = 0.01;
+const BRAND_PALETTE_MIN_COVERAGE = 0.01;
 /** Fewer opaque pixels than this cannot support a pass or a fail. */
 export const BRAND_PALETTE_MIN_PIXELS = 1024;
 const ALPHA_THRESHOLD = 128;

@@ -11,14 +11,14 @@ import { Injectable } from '@nestjs/common';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
 
-export const SOCIAL_REPLY_SOURCE_TYPE = 'social_credential';
-export const SOCIAL_REPLY_ENTITY_MODEL = 'Credential';
+const SOCIAL_REPLY_SOURCE_TYPE = 'social_credential';
+const SOCIAL_REPLY_ENTITY_MODEL = 'Credential';
 
 /**
  * Carries the social inbox conversations the replies landed in, so the bell
  * deep-links to a thread and clears once every thread it covers is read.
  */
-export interface SocialReplyNotificationPayload {
+interface SocialReplyNotificationPayload {
   version: 2;
   kind: 'social_reply';
   platform: string;

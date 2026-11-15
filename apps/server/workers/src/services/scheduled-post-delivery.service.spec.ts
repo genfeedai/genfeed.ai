@@ -872,6 +872,18 @@ describe('ScheduledPostDeliveryService', () => {
     );
   });
 
+  it('tells the owner nothing while a retryable provider failure still has retries left', async () => {
+    mocks.activitiesService.record.mockClear();
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockRejectedValue(new Error('ETIMEDOUT')),
+      supportsThreads: false,
+    });
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(mocks.activitiesService.record).not.toHaveBeenCalled();
+  });
+
   it('does not report a retryable provider failure to Sentry', async () => {
     vi.mocked(Sentry.captureException).mockClear();
     mocks.publisherFactory.getPublisher.mockReturnValue({
@@ -1336,6 +1348,69 @@ describe('ScheduledPostDeliveryService', () => {
         executionState: TargetExecutionState.PUBLISHING,
       }),
     );
+  });
+
+  it('tells the owner once, naming the post and the channel, when the verification window passes', async () => {
+    mocks.activitiesService.record.mockClear();
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn(),
+      supportsThreads: false,
+      verifyPublished: vi.fn().mockRejectedValue(new Error('provider 503')),
+    });
+    const attemptStartedAt = new Date(Date.now() - 25 * 60 * 60_000);
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ attemptStartedAt, status: 'uncertain' }),
+    );
+
+    for (let delivery = 0; delivery < 3; delivery++) {
+      await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+    }
+
+    const recorded = mocks.activitiesService.record.mock.calls.map(
+      (call) => call[0],
+    );
+    expect(recorded).toHaveLength(3);
+    expect(
+      new Set(recorded.map((activity) => activity.alert?.deduplicationKey)),
+    ).toEqual(
+      new Set([
+        `${ActivityKey.POST_PUBLISH_UNVERIFIED}/post-1/${attemptStartedAt.getTime()}`,
+      ]),
+    );
+    expect(recorded[0]).toEqual(
+      expect.objectContaining({
+        entityId: 'post-1',
+        key: ActivityKey.POST_PUBLISH_UNVERIFIED,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
+    );
+    expect(recorded[0].alert?.payload).toEqual(
+      expect.objectContaining({
+        event: 'publish_unverified',
+        kind: 'alert_email',
+        summary: expect.stringContaining('Check your'),
+      }),
+    );
+  });
+
+  it('tells the owner nothing while the outcome is still inside the verification window', async () => {
+    mocks.activitiesService.record.mockClear();
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn(),
+      supportsThreads: false,
+      verifyPublished: vi.fn().mockRejectedValue(new Error('provider 503')),
+    });
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({
+        attemptStartedAt: new Date(Date.now() - 60 * 60_000),
+        status: 'uncertain',
+      }),
+    );
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(mocks.activitiesService.record).not.toHaveBeenCalled();
   });
 
   it('keeps a budget-exhausted ambiguous provider call publishing instead of failing it', async () => {

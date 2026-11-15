@@ -11,7 +11,7 @@ export type UpcomingInvoicePreview = Pick<
 // list size. Preview invoices carry a real id (`upcoming_in_...`) precisely
 // so `invoices.listLineItems` can page through the rest. Bound the number of
 // pages fetched so a pathological subscription can't loop forever.
-export const MAX_UPCOMING_INVOICE_LINE_PAGES = 20;
+const MAX_UPCOMING_INVOICE_LINE_PAGES = 20;
 
 export async function collectUpcomingInvoiceLines(input: {
   context: { customerId: string; subscriptionId: string; url: string };

@@ -11,7 +11,7 @@ export const catalogPageSchema = z.object({
   next_token: z.string().nullish(),
 });
 // HeyGen reports gender loosely ("Male", "female", "unknown"); keep only what it states.
-export const genderSchema = z
+const genderSchema = z
   .string()
   .nullish()
   .transform((value): HeyGenGender | null => {

@@ -70,6 +70,18 @@ A pinned package leaves out the folders listed in `UPSTREAM_LOCAL_TOOLING_PATHS`
 and its references, so the lock records those files, and any other code file in an
 upstream package is still rejected.
 
+## Generation sections
+
+A media prompt does not paste a whole `SKILL.md`. `skill-generation-sections.ts`
+cuts a skill into its `##` sections and keeps the ones that steer a prompt for the
+modality (`GENERATION_SECTION_PLANS` for first-party skills; any other skill keeps
+its sections in order while they fit). The prompt carries at most
+`GENERATION_SKILL_BUDGET` characters of skill text per modality, a section is in or
+out and never cut, and a linked `references/` file loads only when a kept section
+names it. Each generation returns a receipt with the sections loaded and left out.
+Agent turns that ask for a skill still get the full body. A catalog update that
+renames a planned heading fails `skill-generation-sections.spec.ts`.
+
 To deliberately update from a clean public checkout at an exact full commit:
 
 ```sh

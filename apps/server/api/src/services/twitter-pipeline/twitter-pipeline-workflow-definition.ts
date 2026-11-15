@@ -15,7 +15,7 @@ export const TWITTER_PIPELINE_ACTION_IDS = {
   SEARCH_RECENT: 'twitter.pipeline.search-recent',
 } as const;
 
-export const TWITTER_PIPELINE_WORKFLOW_IDS = {
+const TWITTER_PIPELINE_WORKFLOW_IDS = {
   DRAFT: 'twitter.pipeline.draft',
   PUBLISH: 'twitter.pipeline.publish',
   SEARCH: 'twitter.pipeline.search',

@@ -1,4 +1,4 @@
-export interface VideoEngagementMetrics {
+interface VideoEngagementMetrics {
   viewCount: number;
   likeCount: number;
   commentCount: number;
@@ -6,15 +6,10 @@ export interface VideoEngagementMetrics {
   hoursAgo?: number;
 }
 
-export interface ViralMetrics {
+interface ViralMetrics {
   viralScore: number;
   engagementRate: number;
   velocity: number;
-}
-
-export interface ContentMetrics {
-  views: number;
-  engagement: number;
 }
 
 function calibratedLogScore(

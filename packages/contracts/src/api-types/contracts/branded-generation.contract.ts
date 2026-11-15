@@ -3,6 +3,22 @@ import { z } from 'zod';
 import { ContentLearningArm } from '../../enums/content-learning.enum';
 import { brandArtifactProofV1Schema } from './brand-artifact-proof.contract';
 import {
+  applicableMediaKinds,
+  brandGenerationMediaKindV1Schema,
+  brandTextRuleV1Schema,
+  ids,
+  issue,
+  keyed,
+  refs,
+  text,
+} from './brand-generation-primitives.contract';
+import {
+  brandVideoRulesV1Schema,
+  checkVideoReferences,
+  videoEvidenceRows,
+  videoRuleRows,
+} from './brand-video-rules.contract';
+import {
   learningContractHashSchema as hash,
   learningContractIdSchema as id,
   learningDescriptorHashSchema,
@@ -13,40 +29,24 @@ import {
   learningContractVersionSchema as version,
 } from './content-learning-generation.contract';
 
+export { brandGenerationMediaKindV1Schema, brandTextRuleV1Schema };
+
 const SENSITIVE_QUERY_PARAM_PATTERN =
   /(token|secret|signature|credential|password|api[-_]?key|authorization|x-amz|x-goog)/i;
 const NON_WHITESPACE_CHAR_PATTERN = /\S/;
 
 const label = z.string().min(1).max(512);
-const text = z.string().max(16000);
 const code = z
   .string()
   .min(1)
   .max(96)
   .regex(/^[a-z][a-z0-9_.:-]*$/);
 const date = z.iso.datetime();
-const ids = z
-  .array(id)
-  .max(256)
-  .refine((v) => new Set(v).size === v.length, 'Duplicate IDs');
-const refs = ids.min(1);
-function issue(ctx: z.RefinementCtx, message: string) {
-  ctx.addIssue({ code: 'custom', message });
-}
 function bounded<T extends z.ZodType>(schema: T, limit: number) {
   return schema.refine(
     (v) => new TextEncoder().encode(JSON.stringify(v)).byteLength <= limit,
     `Serialized size exceeds ${limit} bytes`,
   );
-}
-function keyed<T extends z.ZodType<{ id: string }>>(schema: T, max: number) {
-  return z
-    .array(schema)
-    .max(max)
-    .refine(
-      (v) => new Set(v.map((x) => x.id)).size === v.length,
-      'Duplicate keyed IDs',
-    );
 }
 const prompt = z
   .string()
@@ -92,16 +92,6 @@ export const brandRuleEvidenceV1Schema = z.strictObject({
   contentHash: hash.optional(),
   confidence: z.number().min(0).max(1).optional(),
 });
-export const brandGenerationMediaKindV1Schema = z.enum([
-  'text',
-  'image',
-  'video',
-]);
-const applicableMediaKinds = z
-  .array(brandGenerationMediaKindV1Schema)
-  .min(1)
-  .max(3)
-  .refine((v) => new Set(v).size === v.length, 'Duplicate media kinds');
 export const brandFactRuleV1Schema = z
   .strictObject({
     id,
@@ -156,14 +146,6 @@ export const brandTypographyRuleV1Schema = z
     if (v.availability === 'verified_runtime' && !v.runtimeFontId)
       issue(ctx, 'Verified font requires runtime identity');
   });
-export const brandTextRuleV1Schema = z.strictObject({
-  id,
-  text,
-  match: z.enum(['literal', 'semantic']),
-  required: z.boolean(),
-  appliesToMediaKinds: applicableMediaKinds.optional(),
-  evidenceIds: refs,
-});
 export const brandExampleRuleV1Schema = z.strictObject({
   id,
   polarity: z.enum(['positive', 'negative']),
@@ -251,6 +233,7 @@ export const brandGenerationRulesV1Schema = bounded(
       examples: keyed(brandExampleRuleV1Schema, 32),
       assets: keyed(brandAssetReferenceV1Schema, 64),
       approvedLiterals: keyed(brandApprovedLiteralV1Schema, 128).optional(),
+      video: brandVideoRulesV1Schema.optional(),
     })
     .superRefine((v, ctx) => {
       const allRules = [
@@ -261,6 +244,7 @@ export const brandGenerationRulesV1Schema = bounded(
         ...v.avoid,
         ...v.examples,
         ...v.assets,
+        ...videoRuleRows(v.video),
       ];
       if (new Set(allRules.map((rule) => rule.id)).size !== allRules.length)
         issue(ctx, 'Rule IDs must be globally unique');
@@ -273,10 +257,12 @@ export const brandGenerationRulesV1Schema = bounded(
         ...v.avoid,
         ...v.examples,
         ...v.assets,
+        ...videoEvidenceRows(v.video),
         ...(v.approvedLiterals ?? []),
       ])
         for (const ref of row.evidenceIds)
           if (!evidence.has(ref)) issue(ctx, `Unresolved evidence: ${ref}`);
+      checkVideoReferences(v, ctx);
       const literalIds = new Set(
         (v.approvedLiterals ?? []).map((literal) => literal.id),
       );
@@ -353,6 +339,7 @@ export const brandIdentitySnapshotV1Schema = bounded(
           ...v.generationRules.avoid,
           ...v.generationRules.examples,
           ...v.generationRules.assets,
+          ...videoRuleRows(v.generationRules.video),
         ].map((r) => r.id),
       );
       for (const d of v.diagnostics) {

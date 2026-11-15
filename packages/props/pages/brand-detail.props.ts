@@ -6,7 +6,6 @@ import type {
 import type {
   AccountHealthSummary,
   DirectMessageCapability,
-  IAsset,
   IBrand,
   IBrandConversationStarter,
   IBrandKitAssetCandidate,
@@ -381,36 +380,6 @@ export interface UseBrandDetailReturn {
   selectLink: (link: ILink | null) => void;
   generateModalType: 'banner' | 'logo' | null;
   setGenerateModalType: (type: 'banner' | 'logo' | null) => void;
-}
-
-export interface BrandEndCardSettingsProps {
-  brand: IBrand;
-  brandId: string;
-  onRefreshBrand: () => Promise<void>;
-}
-
-export interface BrandLutSettingsProps {
-  brand: IBrand;
-  brandId: string;
-  onRefreshBrand: () => Promise<void>;
-}
-
-export interface BrandWatermarkLogoSelectProps {
-  assets: IAsset[];
-  brand: IBrand;
-  id: string;
-  isDisabled: boolean;
-  label: string;
-  /** Text for the empty choice: no logo, or the default mark. */
-  noneLabel: string;
-  onChange: (logoId: string) => void;
-  value: string;
-}
-
-export interface BrandWatermarkSettingsProps {
-  brand: IBrand;
-  brandId: string;
-  onRefreshBrand: () => Promise<void>;
 }
 
 export interface PostMetricProps {

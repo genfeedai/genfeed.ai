@@ -23,6 +23,7 @@ export class HarnessProfile implements IHarnessProfile {
   public guardrails: string[] = [];
   public metadata?: Record<string, unknown>;
   public positioning?: IHarnessProfile['positioning'];
+  public currentVersion?: number;
   public isDeleted = false;
   public createdAt!: string;
   public updatedAt!: string;

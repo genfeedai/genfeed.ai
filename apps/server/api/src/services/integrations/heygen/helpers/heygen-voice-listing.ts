@@ -3,17 +3,17 @@ import type {
   HeyGenConnectionRef,
 } from '@genfeedai/contracts/interfaces';
 
-export interface HeyGenVoiceCatalogConnection {
+interface HeyGenVoiceCatalogConnection {
   apiKey: string;
   binding: HeyGenConnectionRef;
 }
 
-export interface HeyGenPersonalVoiceCredential {
+interface HeyGenPersonalVoiceCredential {
   apiKey: string;
   credentialId: string;
 }
 
-export interface HeyGenVoiceListingWarning {
+interface HeyGenVoiceListingWarning {
   error: string;
 }
 

@@ -56,7 +56,7 @@ export function readCredentialId(value: unknown): string | undefined {
     : undefined;
 }
 
-export function readPostVisibility(
+function readPostVisibility(
   value: unknown,
   fallback: PostVisibility = PostVisibility.PUBLIC,
 ): PostVisibility {
@@ -181,7 +181,7 @@ function toValidationIssues(
   }));
 }
 
-export function defaultTargetSettings(
+function defaultTargetSettings(
   platform: CredentialPlatform,
   settings?: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -191,7 +191,7 @@ export function defaultTargetSettings(
   };
 }
 
-export function validatePublishTarget(params: {
+function validatePublishTarget(params: {
   caption?: string;
   credentialId: string;
   media?: AgentPublishTargetMedia[];
@@ -221,7 +221,7 @@ export function validatePublishTarget(params: {
   };
 }
 
-export function buildAgentPublishTargetProposal(params: {
+function buildAgentPublishTargetProposal(params: {
   caption?: string;
   credentialId: string;
   isSelected: boolean;

@@ -1,14 +1,29 @@
-import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
+import {
+  type HarnessProfileChange,
+  HarnessProfilesService,
+} from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { ReviewDecision } from '@genfeedai/contracts';
 import type {
   IHarnessAvoidFeedbackEntry,
   IHarnessGoodFeedbackEntry,
 } from '@genfeedai/contracts/interfaces';
+import { HarnessProfileRevisionSource } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+
+/** A review decision that feeds the profile is recorded as a review-feedback revision. */
+function reviewFeedbackChange(
+  userId: string | undefined,
+): HarnessProfileChange {
+  return {
+    actorLabel: 'review-feedback',
+    actorUserId: userId,
+    source: HarnessProfileRevisionSource.REVIEW_FEEDBACK,
+  };
+}
 
 /** Label of the profile created when a brand has none at its first review. */
 const FEEDBACK_PROFILE_LABEL = 'Brand harness';
@@ -172,6 +187,8 @@ export class HarnessReviewFeedbackService {
         },
         params.organizationId,
         params.userId,
+        {},
+        reviewFeedbackChange(params.userId),
       ));
 
     const source = `${params.sourceType}:${params.sourceId}`;
@@ -212,6 +229,8 @@ export class HarnessReviewFeedbackService {
       profile.id,
       { avoidFeedback: cappedFeedback },
       params.organizationId,
+      {},
+      reviewFeedbackChange(params.userId),
     );
 
     this.logger.log(
@@ -268,6 +287,8 @@ export class HarnessReviewFeedbackService {
         goodFeedback: cappedFeedback,
       },
       params.organizationId,
+      {},
+      reviewFeedbackChange(params.userId),
     );
 
     this.logger.log(

@@ -228,7 +228,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'isLocked',
     'name',
   ],
-  'harness-profile:Profile': [
+  'harness-profile:HarnessProfile': [
+    'currentVersion',
     'audience',
     'brandId',
     'description',

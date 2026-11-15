@@ -6,6 +6,7 @@ export * from '@serializers/configs/organizations/brand-relocation.config';
 export * from '@serializers/configs/organizations/credential.config';
 export * from '@serializers/configs/organizations/fleet-capabilities.config';
 export * from '@serializers/configs/organizations/harness-profile.config';
+export * from '@serializers/configs/organizations/harness-profile-revision.config';
 export * from '@serializers/configs/organizations/member.config';
 export * from '@serializers/configs/organizations/member-invitation.config';
 export * from '@serializers/configs/organizations/onboarding-drafts-review.config';

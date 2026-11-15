@@ -8,15 +8,15 @@ import {
 } from '@genfeedai/utils/knowledge/knowledge-receipt.util';
 
 /** Most passages one turn can offer; matches the resolver's own bound. */
-export const MAX_TURN_KNOWLEDGE_PASSAGES = 512;
+const MAX_TURN_KNOWLEDGE_PASSAGES = 512;
 
 const CITATION_MARKER = /\s?\[\[cite:([A-Za-z0-9_-]{1,128})\]\]/g;
 
-export const KNOWLEDGE_CITATION_INSTRUCTION =
+const KNOWLEDGE_CITATION_INSTRUCTION =
   'Cite a passage you rely on by writing [[cite:<passageId>]] right after the claim. Use only passageId values listed in this result; never write source titles, quotes or ids of your own.';
 
 /** A passage the model was shown this turn, with the brand it was searched under. */
-export interface TurnKnowledgePassage {
+interface TurnKnowledgePassage {
   brandId?: string;
   receipt: KnowledgeReceipt;
 }

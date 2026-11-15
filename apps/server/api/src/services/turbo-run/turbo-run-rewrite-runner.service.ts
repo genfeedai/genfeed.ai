@@ -101,6 +101,7 @@ export class TurboRunRewriteRunnerService {
       await this.activityRecorder.update(
         { id: data.activityId, organizationId: data.organizationId },
         {
+          alert: { channels: ['in_app'] },
           isRead: false,
           key: progress.completedItemIds.length
             ? ActivityKey.POST_GENERATED
@@ -119,6 +120,7 @@ export class TurboRunRewriteRunnerService {
       await this.activityRecorder.update(
         { id: data.activityId, organizationId: data.organizationId },
         {
+          alert: { channels: ['in_app'] },
           isRead: false,
           key: ActivityKey.POST_FAILED,
           source: ActivitySource.POST_ENHANCEMENT,

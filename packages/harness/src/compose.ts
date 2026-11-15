@@ -159,7 +159,12 @@ export async function composeContentHarnessBrief(
           }
         : { brandOs: 'none' as const }),
       ...(input.harnessProfileId
-        ? { harnessProfileId: input.harnessProfileId }
+        ? {
+            harnessProfileId: input.harnessProfileId,
+            ...(input.harnessProfileRevision !== undefined
+              ? { harnessProfileRevision: input.harnessProfileRevision }
+              : {}),
+          }
         : {}),
     },
     providerHints: aggregate.providerHints ?? [],

@@ -70,7 +70,7 @@ export type LinkedInInboxComment = {
   authorName?: string;
 };
 
-export type LinkedInInboxDmThread = {
+type LinkedInInboxDmThread = {
   conversationId: string;
   participantExternalId?: string;
   participantName?: string;

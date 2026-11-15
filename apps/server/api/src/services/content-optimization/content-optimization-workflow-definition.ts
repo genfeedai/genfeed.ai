@@ -129,7 +129,7 @@ export function buildPromptOptimizationWorkflowDefinition(): SystemWorkflowGraph
   };
 }
 
-export function buildContentRecommendationsWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildContentRecommendationsWorkflowDefinition(): SystemWorkflowGraphDefinition {
   const graph = analysisNodes(
     CONTENT_OPTIMIZATION_ACTION_IDS.DERIVE_RECOMMENDATIONS,
     'derive-recommendations',
@@ -166,7 +166,7 @@ export function buildContentRecommendationsWorkflowDefinition(): SystemWorkflowG
   };
 }
 
-export function buildContentSuggestionsWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildContentSuggestionsWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return singleActionDefinition(
     CONTENT_OPTIMIZATION_WORKFLOW_IDS.SUGGEST,
     CONTENT_OPTIMIZATION_ACTION_IDS.GENERATE_SUGGESTIONS,
@@ -212,7 +212,7 @@ export function buildApplySuggestionWorkflowDefinition(): SystemWorkflowGraphDef
   };
 }
 
-export function buildRequeueWinnerWorkflowDefinition(): SystemWorkflowGraphDefinition {
+function buildRequeueWinnerWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return singleActionDefinition(
     CONTENT_OPTIMIZATION_WORKFLOW_IDS.REQUEUE_WINNER,
     CONTENT_OPTIMIZATION_ACTION_IDS.REQUEUE_WINNER,

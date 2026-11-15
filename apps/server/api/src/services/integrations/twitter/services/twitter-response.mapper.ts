@@ -10,7 +10,7 @@ import {
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { Injectable } from '@nestjs/common';
 
-export interface TwitterTrendItem {
+interface TwitterTrendItem {
   trend_name: string;
   tweet_count?: number | null;
 }

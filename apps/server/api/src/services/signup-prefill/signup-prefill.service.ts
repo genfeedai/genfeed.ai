@@ -33,6 +33,7 @@ import type {
   SignupPrefillWorkflowInput,
 } from '@genfeedai/contracts/interfaces';
 import { resolveSignupBrandDomain } from '@genfeedai/helpers';
+import { HarnessProfileRevisionSource } from '@genfeedai/prisma';
 import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
@@ -49,11 +50,7 @@ import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 const LEADING_AT_SIGN_PATTERN = /^@/;
 const WWW_PREFIX_PATTERN = /^www\./;
 
-export type SignupPrefillStatus =
-  | 'completed'
-  | 'failed'
-  | 'running'
-  | 'skipped';
+type SignupPrefillStatus = 'completed' | 'failed' | 'running' | 'skipped';
 
 export interface SignupPrefillMarker {
   brandDomain?: string;
@@ -869,6 +866,12 @@ export class SignupPrefillService {
         }),
         input.organizationId,
         input.userId,
+        {},
+        {
+          actorLabel: 'signup-prefill',
+          actorUserId: input.userId,
+          source: HarnessProfileRevisionSource.SEED,
+        },
       );
 
       return true;

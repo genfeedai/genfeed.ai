@@ -1,4 +1,3 @@
-import { parseGrantedOAuthScopes } from '@genfeedai/helpers';
 import { isObjectLike } from '@genfeedai/utils/data/extract.util';
 import type { AxiosError } from 'axios';
 
@@ -40,13 +39,7 @@ const RATE_LIMIT_REASONS = new Set([
 const CHANNEL_SELECTION_PATTERN =
   /channel.*select|brand account|youtubeSignupRequired|no channel|multiple channels/i;
 
-export function parseYoutubeGrantedScopes(value: unknown): string[] {
-  return parseGrantedOAuthScopes(value);
-}
-
-export function getYoutubeApiError(
-  error: unknown,
-): YoutubeApiErrorBody | undefined {
+function getYoutubeApiError(error: unknown): YoutubeApiErrorBody | undefined {
   const axiosError = error as
     | AxiosError<YoutubeErrorPayload>
     | null

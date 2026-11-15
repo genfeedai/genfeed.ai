@@ -710,7 +710,7 @@ export async function resolveConfirmedFallbackPolicy(
   );
 }
 
-export function fallbackConfirmedPublishPolicy(
+function fallbackConfirmedPublishPolicy(
   ctx: ToolExecutionContext,
   mediaAssessment?: AgentPublishMediaAssessment,
 ): {

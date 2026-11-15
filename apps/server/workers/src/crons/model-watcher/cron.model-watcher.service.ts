@@ -20,10 +20,7 @@ import type {
   IReplicateModelsResponse,
 } from '@workers/interfaces/model-discovery.interface';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
-import {
-  dispatchModelPriceChangeAlert,
-  dispatchModelPricingUnavailableAlert,
-} from '@workers/services/model-pricing-alerts.util';
+import { dispatchModelScanCard } from '@workers/services/model-pricing-alerts.util';
 import {
   createModelDiscoveryRunSummary,
   finalizeModelScanReport,
@@ -107,6 +104,12 @@ export class CronModelWatcherService {
    * discovery pipeline is fully validated in production.
    */
   async discoverNewModels(): Promise<IModelDiscoveryRunSummary> {
+    const summary = await this.scanReplicate();
+    await this.sendScanCard(summary);
+    return summary;
+  }
+
+  private async scanReplicate(): Promise<IModelDiscoveryRunSummary> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} started`);
 
@@ -243,7 +246,7 @@ export class CronModelWatcherService {
         summary.timestamp,
       );
       // One deduped provider-level alert: every Replicate rate is unconfirmed.
-      await this.reportUnreadable(
+      this.reportUnreadable(
         summary,
         'provider:replicate',
         'replicate_sync_failed',
@@ -429,7 +432,7 @@ export class CronModelWatcherService {
           },
           summary.timestamp,
         );
-      await this.reportSyncResult(syncResult, registryModel, summary);
+      this.reportSyncResult(syncResult, registryModel, summary);
       summary.providerContractsSynchronized =
         (summary.providerContractsSynchronized ?? 0) + 1;
       if (syncResult.drifted) {
@@ -450,7 +453,7 @@ export class CronModelWatcherService {
           registryModel.id,
         );
         if (!isQuietRow(registryModel))
-          await this.reportUnreadable(
+          this.reportUnreadable(
             summary,
             modelKey,
             'contract_sync_failed',
@@ -526,7 +529,7 @@ export class CronModelWatcherService {
       failed.length === attempted ||
       (listedCount === 0 && existingModels.size > 0);
     if (isProviderWide) {
-      await this.reportUnreadable(
+      this.reportUnreadable(
         summary,
         'provider:replicate',
         'model_fetch_failed',
@@ -536,7 +539,7 @@ export class CronModelWatcherService {
     }
     for (const row of failed) {
       if (isQuietRow(row)) continue;
-      await this.reportUnreadable(
+      this.reportUnreadable(
         summary,
         row.key ?? row.endpoint,
         'model_fetch_failed',
@@ -605,70 +608,52 @@ export class CronModelWatcherService {
   }
 
   /**
-   * Put one refresh failure on the report and tell ops. The report is the
-   * record; the per-model Discord alert stays until one card per scan replaces
-   * it. Silently swallows alert errors: an alert failure must never fail the
-   * watcher.
+   * Post the run's one Discord card. Sends nothing when the run found nothing,
+   * and swallows errors: an alert failure must never fail the watcher.
    */
-  private async reportUnreadable(
+  private async sendScanCard(
+    summary: IModelDiscoveryRunSummary,
+  ): Promise<void> {
+    try {
+      await dispatchModelScanCard(this.activityRecorder, summary.report);
+    } catch (error: unknown) {
+      this.logger.error(`${this.constructorName} scan card failed`, { error });
+    }
+  }
+
+  /** Put one refresh failure on the report. */
+  private reportUnreadable(
     summary: IModelDiscoveryRunSummary,
     modelKey: string,
     code: string,
     reason: string,
-  ): Promise<void> {
+  ): void {
     summary.report.unreadable.push({ code, modelKey, reason });
-    try {
-      await dispatchModelPricingUnavailableAlert(
-        this.activityRecorder,
-        { code, modelKey, provider: ModelProvider.REPLICATE, reason },
-        summary.timestamp,
-      );
-    } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} failure alert failed`, {
-        error,
-      });
-    }
   }
 
-  /**
-   * Put a refresh's outcome on the report and tell ops about a changed price or
-   * one that could not be read. Silently swallows alert errors: an alert failure
-   * must never fail the watcher.
-   */
-  private async reportSyncResult(
+  /** Put a refresh's outcome on the report. */
+  private reportSyncResult(
     result: ReplicateContractSyncResult,
     row: ReplicateSyncModelRecord,
     summary: IModelDiscoveryRunSummary,
-  ): Promise<void> {
-    try {
-      if (result.priceChange) {
-        const change = result.priceChange;
-        summary.report.priceChanges.push({
-          changes: change.changes,
-          isUrgent: change.isUrgent,
-          modelKey: change.modelKey,
-          pendingRateHash: change.pendingRateHash,
-          sourceUrl: change.sourceUrl,
-          urgentReason: change.urgentReason,
-        });
-        await dispatchModelPriceChangeAlert(this.activityRecorder, change);
-      }
-      if (result.refreshFailure && !isQuietRow(row)) {
-        const failure = result.refreshFailure;
-        summary.report.unreadable.push({
-          code: failure.code,
-          modelKey: failure.modelKey,
-          reason: failure.reason,
-        });
-        await dispatchModelPricingUnavailableAlert(
-          this.activityRecorder,
-          failure,
-          summary.timestamp,
-        );
-      }
-    } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} pricing alert failed`, {
-        error,
+  ): void {
+    if (result.priceChange) {
+      const change = result.priceChange;
+      summary.report.priceChanges.push({
+        changes: change.changes,
+        isUrgent: change.isUrgent,
+        modelKey: change.modelKey,
+        pendingRateHash: change.pendingRateHash,
+        sourceUrl: change.sourceUrl,
+        urgentReason: change.urgentReason,
+      });
+    }
+    if (result.refreshFailure && !isQuietRow(row)) {
+      const failure = result.refreshFailure;
+      summary.report.unreadable.push({
+        code: failure.code,
+        modelKey: failure.modelKey,
+        reason: failure.reason,
       });
     }
   }

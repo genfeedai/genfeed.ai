@@ -54,9 +54,7 @@ const IN_APP_PROVIDER = 'inbox';
 const EMAIL_PROVIDER = 'resend';
 const CHANNEL_MESSAGE_PROVIDER = 'notifications';
 
-export function emptyCommit(
-  activities: ActivityDocument[] = [],
-): RecordingCommit {
+function emptyCommit(activities: ActivityDocument[] = []): RecordingCommit {
   return { activities, inbox: [], pendingDeliveryIds: [] };
 }
 

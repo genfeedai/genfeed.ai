@@ -2,11 +2,19 @@ import type { PromptsService } from '@api/collections/prompts/services/prompts.s
 import type { SkillsService } from '@api/collections/skills/services/skills.service';
 import type { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import type { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
+import type {
+  MarketplaceApiClient,
+  MarketplaceInstallPayloadResult,
+} from '@api/marketplace-integration/marketplace-api-client';
 import { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
 import { ListingType, PromptCategory } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 interface ListingDownload {
@@ -29,10 +37,12 @@ describe('MarketplaceInstallService', () => {
   const userId = 'user-1';
   const orgId = 'org-1';
   const listingId = 'listing-1';
+  const buyerToken = 'buyer-token';
 
   let listings: Map<string, ListingDownload>;
   let workspace: Workspace;
   let errors: string[];
+  let marketplaceIsDown: boolean;
   let service: MarketplaceInstallService;
 
   function publish(listing: ListingDownload): void {
@@ -41,6 +51,7 @@ describe('MarketplaceInstallService', () => {
 
   beforeEach(() => {
     listings = new Map();
+    marketplaceIsDown = false;
     workspace = { prompts: [], skills: [], workflows: [] };
     errors = [];
 
@@ -52,7 +63,21 @@ describe('MarketplaceInstallService', () => {
         log: () => undefined,
       } as unknown as LoggerService,
       {
-        getListingDownloadData: async (id: string) => listings.get(id) ?? null,
+        // Only the buyer token has a completed purchase of the listing.
+        getInstallPayload: async (
+          id: string,
+          token: string,
+        ): Promise<MarketplaceInstallPayloadResult> => {
+          if (marketplaceIsDown) return { status: 'unavailable' };
+          if (token === 'expired') return { status: 'unauthorized' };
+          const listing = listings.get(id);
+          if (!listing) return { status: 'not-found' };
+          if (token !== buyerToken) return { status: 'not-purchased' };
+          return {
+            payload: { ...listing, listingId: id, purchaseId: 'purchase-1' },
+            status: 'ok',
+          };
+        },
       } as unknown as MarketplaceApiClient,
       {
         createWorkflow: async (
@@ -90,13 +115,52 @@ describe('MarketplaceInstallService', () => {
     );
   });
 
-  it('throws NotFoundException when the listing download data is missing', async () => {
+  it('throws NotFoundException when the listing does not exist', async () => {
     await expect(
-      service.installToWorkspace(listingId, userId, orgId),
+      service.installToWorkspace(listingId, userId, orgId, buyerToken),
     ).rejects.toBeInstanceOf(NotFoundException);
     // @HandleErrors logs before re-throwing
     expect(errors).toHaveLength(1);
     expect(workspace).toEqual({ prompts: [], skills: [], workflows: [] });
+  });
+
+  describe('ownership', () => {
+    beforeEach(() => {
+      publish({
+        downloadData: { nodes: [{ id: 'n1' }] },
+        title: 'Paid Flow',
+        type: ListingType.WORKFLOW,
+      });
+    });
+
+    it('refuses a buyer with no completed purchase and creates nothing', async () => {
+      await expect(
+        service.installToWorkspace(listingId, userId, orgId, 'other-buyer'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(workspace).toEqual({ prompts: [], skills: [], workflows: [] });
+    });
+
+    it('refuses a call that carries no buyer token', async () => {
+      await expect(
+        service.installToWorkspace(listingId, userId, orgId, undefined),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(workspace).toEqual({ prompts: [], skills: [], workflows: [] });
+    });
+
+    it('refuses a token the marketplace rejects', async () => {
+      await expect(
+        service.installToWorkspace(listingId, userId, orgId, 'expired'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(workspace).toEqual({ prompts: [], skills: [], workflows: [] });
+    });
+
+    it('reports an unreachable marketplace as unavailable and creates nothing', async () => {
+      marketplaceIsDown = true;
+      await expect(
+        service.installToWorkspace(listingId, userId, orgId, buyerToken),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(workspace).toEqual({ prompts: [], skills: [], workflows: [] });
+    });
   });
 
   it('throws BadRequestException for an unsupported listing type', async () => {
@@ -107,7 +171,7 @@ describe('MarketplaceInstallService', () => {
     });
 
     await expect(
-      service.installToWorkspace(listingId, userId, orgId),
+      service.installToWorkspace(listingId, userId, orgId, buyerToken),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(workspace).toEqual({ prompts: [], skills: [], workflows: [] });
   });
@@ -124,7 +188,12 @@ describe('MarketplaceInstallService', () => {
         type: ListingType.WORKFLOW,
       });
 
-      const result = await service.installToWorkspace(listingId, userId, orgId);
+      const result = await service.installToWorkspace(
+        listingId,
+        userId,
+        orgId,
+        buyerToken,
+      );
 
       expect(result).toEqual({
         resourceId: 'wf-1',
@@ -157,7 +226,12 @@ describe('MarketplaceInstallService', () => {
         type: ListingType.WORKFLOW,
       });
 
-      const result = await service.installToWorkspace(listingId, userId, orgId);
+      const result = await service.installToWorkspace(
+        listingId,
+        userId,
+        orgId,
+        buyerToken,
+      );
 
       expect(result.title).toBe('Fallback Title');
       expect(workspace.workflows[0]?.input).toEqual(
@@ -189,6 +263,7 @@ describe('MarketplaceInstallService', () => {
           listingId,
           userId,
           orgId,
+          buyerToken,
         );
 
         expect(result).toEqual({
@@ -216,7 +291,7 @@ describe('MarketplaceInstallService', () => {
         type: ListingType.PRESET,
       });
 
-      await service.installToWorkspace(listingId, userId, orgId);
+      await service.installToWorkspace(listingId, userId, orgId, buyerToken);
 
       expect(workspace.prompts[0]).toEqual(
         expect.objectContaining({
@@ -239,7 +314,12 @@ describe('MarketplaceInstallService', () => {
         type: ListingType.SKILL,
       });
 
-      const result = await service.installToWorkspace(listingId, userId, orgId);
+      const result = await service.installToWorkspace(
+        listingId,
+        userId,
+        orgId,
+        buyerToken,
+      );
 
       expect(result).toEqual({
         resourceId: 's-1',
@@ -267,7 +347,7 @@ describe('MarketplaceInstallService', () => {
         type: ListingType.SKILL,
       });
 
-      await service.installToWorkspace(listingId, userId, orgId);
+      await service.installToWorkspace(listingId, userId, orgId, buyerToken);
 
       expect(workspace.skills[0]?.input).toEqual(
         expect.objectContaining({ files: [], slug: 'my-cool-skill' }),

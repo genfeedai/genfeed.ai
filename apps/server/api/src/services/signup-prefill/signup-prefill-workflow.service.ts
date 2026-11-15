@@ -24,7 +24,7 @@ export type SignupPrefillSource = 'organization-create' | 'signup';
  * while their signup prefill is still running must get a run of their own
  * (an in-flight job under the same id swallows the new one).
  */
-export function signupPrefillJobId(brandId: string): string {
+function signupPrefillJobId(brandId: string): string {
   return `signup-prefill-${brandId}`;
 }
 

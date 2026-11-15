@@ -13,8 +13,8 @@ import {
 import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 
-export const WORKFLOW_EXECUTION_ENTITY_MODEL = 'WorkflowExecution';
-export const AGENT_STRATEGY_ENTITY_MODEL = 'AgentStrategy';
+const WORKFLOW_EXECUTION_ENTITY_MODEL = 'WorkflowExecution';
+const AGENT_STRATEGY_ENTITY_MODEL = 'AgentStrategy';
 
 export interface RecordWorkflowOutcomeInput {
   summary?: string;

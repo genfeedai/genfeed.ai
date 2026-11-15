@@ -48,7 +48,7 @@ test.describe('Brand kit file', () => {
     await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
     await authenticatedPage
-      .getByRole('button', { name: /Assets, references & watermark/ })
+      .getByRole('button', { name: /Assets & references/ })
       .click();
 
     await expect(

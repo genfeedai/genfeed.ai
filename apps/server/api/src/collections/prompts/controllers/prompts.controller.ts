@@ -358,7 +358,7 @@ export class PromptsController {
     const promptTemplate = prompt.enhanced?.trim() || prompt.original;
 
     const listing = await this.marketplaceApiClient.createListing(
-      seller._id.toString(),
+      seller.id,
       user.organizationId,
       {
         description: promptText,
@@ -394,15 +394,12 @@ export class PromptsController {
     }
 
     // Auto-approve
-    await this.marketplaceApiClient.submitForReview(
-      listing._id.toString(),
-      seller._id.toString(),
-    );
+    await this.marketplaceApiClient.submitForReview(listing.id, seller.id);
 
     return {
       data: {
         attributes: {
-          listingId: listing._id.toString(),
+          listingId: listing.id,
           message: 'Published to marketplace',
           promptId,
         },

@@ -39,7 +39,7 @@ export interface ModelSelectionOptions {
  * no usable row and the last-resort constant was used — a broken install, not
  * a normal outcome.
  */
-export type ModelResolutionSource =
+type ModelResolutionSource =
   | 'candidate'
   | 'fallback-constant'
   | 'registry-best'
@@ -80,20 +80,6 @@ export interface ModelRecommendation {
     score: number;
   }>;
   analysis: PromptAnalysis;
-}
-
-export interface ModelCapabilities {
-  key: string;
-  provider: string;
-  category: ModelCategory;
-  capabilities: string[];
-  costTier: 'low' | 'medium' | 'high';
-  recommendedFor: string[];
-  minDimensions?: { width: number; height: number };
-  maxDimensions?: { width: number; height: number };
-  supportsFeatures?: string[];
-  speedTier: 'fast' | 'medium' | 'slow';
-  qualityTier: 'basic' | 'standard' | 'high' | 'ultra';
 }
 
 export interface DefaultGenerationAffordabilityInput {

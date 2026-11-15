@@ -106,6 +106,37 @@ export interface IHarnessProfile extends IBaseEntity {
   metadata?: Record<string, unknown>;
   /** Server-computed Expert Path positioning scorecard. Read-only for clients. */
   positioning?: IExpertPositioningScore;
+  /** Number of the revision the profile is currently at. Increases with every change. */
+  currentVersion?: number;
+}
+
+/** What produced a change to the harness profile. Matches the stored revision source. */
+export type HarnessProfileRevisionSource =
+  | 'EXPERT_PATH'
+  | 'MIGRATION'
+  | 'REVIEW_FEEDBACK'
+  | 'ROLLBACK'
+  | 'RULE_PROPOSAL'
+  | 'SEED'
+  | 'USER_EDIT'
+  | 'WINNER_PROMOTION';
+
+/** One immutable step in a harness profile's history. */
+export interface IHarnessProfileRevision extends IBaseEntity {
+  organization?: string;
+  organizationId?: string;
+  brandId: string;
+  harnessProfileId: string;
+  version: number;
+  source: HarnessProfileRevisionSource;
+  /** The user who made the change; empty for system changes. */
+  actorUserId?: string;
+  /** Names the system actor when there is no user, e.g. the workflow. */
+  actorLabel?: string;
+  /** Set on a rollback: the revision whose content was restored. */
+  rolledBackToVersion?: number;
+  /** The full profile as it stood after this change. */
+  snapshot: Record<string, unknown>;
 }
 
 export type ICreateHarnessProfilePayload = Partial<IHarnessProfile> & {

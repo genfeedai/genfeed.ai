@@ -112,6 +112,18 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'organizationId',
   },
   {
+    delegate: 'harnessProfile',
+    table: 'harness_profiles',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
+    delegate: 'harnessProfileRevision',
+    table: 'harness_profile_revisions',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
     delegate: 'engagementRule',
     table: 'engagement_rules',
     brandField: 'brandId',

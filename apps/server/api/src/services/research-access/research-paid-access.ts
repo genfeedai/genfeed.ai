@@ -7,7 +7,7 @@ import {
  * Server-side paid research decision. Callers must not consult API-key,
  * trial, or BYOK session flags — those do not grant hosted collection.
  */
-export type ResearchAccessReason =
+type ResearchAccessReason =
   | 'active_paid'
   | 'paid_through'
   | 'research_paid_access_required'

@@ -64,15 +64,15 @@ function makeDb(policy: IBrandPublishPolicy | null | 'invalid') {
       count: vi.fn().mockResolvedValue(0),
       findFirst: vi.fn(),
     },
-    profile: {
+    harnessProfile: {
       findMany: vi.fn().mockResolvedValue([
         {
-          data: {
+          content: {
             guardrails: ['Never mention competitors'],
-            isDefault: true,
-            status: 'active',
             voice: { bannedPhrases: ['game changer'] },
           },
+          isDefault: true,
+          status: 'active',
         },
       ]),
     },
@@ -191,7 +191,7 @@ describe('BrandPublishPolicyService', () => {
   });
 
   it('skips the judge when the Policy and the guardrails list nothing', async () => {
-    db.profile.findMany.mockResolvedValue([]);
+    db.harnessProfile.findMany.mockResolvedValue([]);
     db.brandOsRevision.findFirst.mockResolvedValue({
       content: { policy: createDefaultBrandPublishPolicy() },
     });

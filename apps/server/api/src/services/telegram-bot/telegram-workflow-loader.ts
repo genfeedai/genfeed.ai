@@ -167,7 +167,7 @@ export async function loadTelegramWorkflows(
   return workflows;
 }
 
-export function resolveWorkflowFallbackPath(name: string): string | null {
+function resolveWorkflowFallbackPath(name: string): string | null {
   const starts = [process.cwd(), dirname(fileURLToPath(import.meta.url))];
 
   for (const start of starts) {

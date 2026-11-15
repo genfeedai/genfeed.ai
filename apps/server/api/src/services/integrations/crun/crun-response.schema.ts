@@ -53,7 +53,7 @@ function successfulEnvelope(
 }
 
 /** Expand exponent notation to a normalized finite nonnegative decimal string. */
-export function normalizeCrunCreditNumber(value: number): string {
+function normalizeCrunCreditNumber(value: number): string {
   const [coefficient, exponent = '0'] = String(value).toLowerCase().split('e');
   const [whole, fraction = ''] = coefficient.split('.');
   const digits = `${whole}${fraction}`;

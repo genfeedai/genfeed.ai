@@ -5,7 +5,10 @@ import {
   MAX_TOTAL_SKILL_INSTRUCTIONS,
   SkillRuntimeService,
 } from '@api/services/skill-runtime/skill-runtime.service';
-import type { ResolvedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
+import type {
+  ResolvedRuntimeSkill,
+  SkillSectionReceipt,
+} from '@genfeedai/contracts/interfaces/ai';
 import { testId } from '@helpers/testing/test-id.helper';
 import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
@@ -747,5 +750,104 @@ describe('strict generation skill sections', () => {
       ),
     ).rejects.toThrow(BadRequestException);
     expect(logger.error).not.toHaveBeenCalled();
+  });
+});
+
+describe('SkillRuntimeService generation sections', () => {
+  const catalog = loadFirstPartySkillDefinitions();
+  const trusted = (slug: string): ResolvedRuntimeSkill => {
+    const definition = catalog.find((entry) => entry.slug === slug);
+    return skill({
+      contentHash: `hash-${slug}`,
+      instructions: definition?.instructions ?? '',
+      isBuiltIn: true,
+      name: definition?.name ?? slug,
+      slug,
+      source: 'built_in',
+      versionId: `version-${slug}`,
+    });
+  };
+
+  it('adds video sections for a video prompt and lists them in the receipt', () => {
+    const receipts: SkillSectionReceipt[] = [];
+    const text = createService().buildGenerationSkillSections(
+      [trusted('model-selector'), trusted('cinematic-prompting')],
+      { modality: 'video', receipts },
+    );
+
+    expect(text).toContain('## Camera movement');
+    expect(text).toContain('## Video Model Decision Matrix');
+    expect(text).not.toContain('## Image Model Decision Matrix');
+    expect(text.length).toBeLessThan(24_000);
+    expect(receipts.map((receipt) => receipt.slug)).toEqual([
+      'model-selector',
+      'cinematic-prompting',
+    ]);
+    expect(receipts[1]).toMatchObject({
+      compilerVersion: 'generation-sections-v1',
+      contentHash: 'hash-cinematic-prompting',
+      modality: 'video',
+      versionId: 'version-cinematic-prompting',
+    });
+    expect(receipts[1].loadedSections).toContain('Camera movement');
+    expect(receipts[1].omittedSections).toEqual(['Stylistic effects']);
+  });
+
+  it('keeps the whole image skill out of an image prompt without cutting it', () => {
+    const text = createService().buildGenerationSkillSections(
+      [trusted('image-prompt-engineer')],
+      { modality: 'image' },
+    );
+
+    expect(text).toContain('## Negative Prompt Guidance');
+    expect(text).not.toContain('## Bad vs Good Prompt Examples');
+    expect(text).not.toContain('…');
+  });
+
+  it('keeps a custom skill whole under the framing and ignores any plan', () => {
+    const text = createService().buildGenerationSkillSections(
+      [
+        skill({
+          instructions: '# Voice\n## Tone\nWarm.\n## Words\nShort.',
+          slug: 'cinematic-prompting',
+        }),
+      ],
+      { modality: 'video' },
+    );
+
+    expect(text).toContain(UNTRUSTED_ORG_SKILL_FRAMING);
+    expect(text).toContain('## Tone\nWarm.');
+    expect(text).toContain('## Words\nShort.');
+  });
+
+  it('leaves an optional skill out when none of its sections fit the budget', () => {
+    const text = createService().buildGenerationSkillSections(
+      [
+        skill({
+          instructions: `# Big\n${'x'.repeat(13_000)}`,
+          isBuiltIn: true,
+          source: 'built_in',
+        }),
+      ],
+      { modality: 'audio' },
+    );
+
+    expect(text).toBe('');
+  });
+
+  it('refuses a selected skill that cannot fit its modality budget', () => {
+    expect(() =>
+      createService().buildGenerationSkillSections(
+        [
+          skill({
+            instructions: `# Big\n${'x'.repeat(13_000)}`,
+            isBuiltIn: true,
+            slug: 'big',
+            source: 'built_in',
+          }),
+        ],
+        { modality: 'audio', requiredSlugs: ['big'] },
+      ),
+    ).toThrow(BadRequestException);
   });
 });
