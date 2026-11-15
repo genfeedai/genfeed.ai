@@ -14,7 +14,7 @@ import {
   parseBrandVideoFinishing,
 } from '@genfeedai/contracts/api-types/contracts/brand-video-finishing.contract';
 import { isOwnerVideoRulesValid } from '@genfeedai/contracts/api-types/contracts/brand-video-identity.contract';
-import { brandVideoRulesV1Schema } from '@genfeedai/contracts/api-types/contracts/branded-generation.contract';
+import { brandVideoRulesV1Schema } from '@genfeedai/contracts/api-types/contracts/brand-video-rules.contract';
 import type {
   IBrandKitDraft,
   IBrandOsRevision,
