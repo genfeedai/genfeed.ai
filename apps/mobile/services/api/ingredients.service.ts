@@ -73,7 +73,7 @@ function resolveMetadata(
   return isMetadata(match?.attributes) ? match.attributes : undefined;
 }
 
-export function libraryItemsFromResponse(
+function libraryItemsFromResponse(
   response: JsonApiCollectionResponse<Partial<IIngredient>>,
 ): LibraryItem[] {
   return response.data.map((resource) => {
