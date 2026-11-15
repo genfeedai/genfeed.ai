@@ -90,14 +90,6 @@ export default {
           sounds: ['./assets/sounds/notification.wav'],
         },
       ],
-      [
-        'sentry-expo',
-        {
-          authToken: process.env.SENTRY_AUTH_TOKEN,
-          organization: process.env.EXPO_PUBLIC_SENTRY_ORG,
-          project: process.env.EXPO_PUBLIC_SENTRY_PROJECT,
-        },
-      ],
     ],
     scheme: 'genfeed',
     slug: 'genfeed-mobile',
