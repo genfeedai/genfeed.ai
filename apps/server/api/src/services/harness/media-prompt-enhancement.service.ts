@@ -3,6 +3,7 @@ import { BrandIdentitySnapshotService } from '@api/services/branded-generation-r
 import { BrandIdentityIntegrityError } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import type { BrandedGenerationActorV1 } from '@api/services/branded-generation-receipts/branded-generation-receipts.types';
 import { BrandedModeResolverService } from '@api/services/branded-text-generation/branded-mode-resolver.service';
+import { renderGenerationBriefBrandVoice } from '@api/services/generation-brief/resolve-generation-brief-brand-context';
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import { collectKnowledgeReceipts } from '@api/services/harness/harness-context-sources.util';
@@ -20,6 +21,7 @@ import type {
   KnowledgeSelection,
 } from '@genfeedai/contracts/interfaces';
 import {
+  buildMediaEnhancerBrief,
   buildMediaPromptFromHarness,
   type ContentHarnessBrief,
   selectMediaKnowledgeSources,
@@ -220,12 +222,15 @@ export class MediaPromptEnhancementService {
         input.prompt,
         brandOfferingCorpus(snapshot, brief, input.prompt),
       );
+      const enhancerBrief = buildMediaEnhancerBrief(brief);
+      const brandVoice = renderGenerationBriefBrandVoice(snapshot);
       const { result, negativePrompt } = await this.promptEnhancement.enhance({
         actorUserId: input.actorUserId,
         organizationId: input.organizationId,
         brandId: input.brandId,
         userPrompt: input.prompt.trim(),
         subjectRule: subjectLock,
+        ...(enhancerBrief ? { brandBrief: enhancerBrief } : {}),
         ...(input.creativeDirection
           ? { creativeDirection: input.creativeDirection }
           : {}),
@@ -247,6 +252,8 @@ export class MediaPromptEnhancementService {
         ...receipt,
         enhancedPrompt,
         ...(negativePrompt ? { negativePrompt } : {}),
+        ...(enhancerBrief ? { enhancerBrief } : {}),
+        ...(brandVoice ? { brandVoice } : {}),
         brandMode: mode,
         brandRevisionId: snapshot.revisionId,
         brandRevisionVersion: snapshot.revisionVersion,

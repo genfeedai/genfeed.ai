@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildMediaEnhancerBrief,
   buildMediaPromptFromHarness,
   describeHexColor,
   isVisualContentKind,
@@ -284,5 +285,57 @@ describe('media prompt Knowledge', () => {
         brief({ metadata: { contentType: 'music', objective: 'awareness' } }),
       ),
     ).toBe('  original  ');
+  });
+});
+
+describe('buildMediaEnhancerBrief', () => {
+  const metadata = {
+    contentType: 'video',
+    objective: 'awareness',
+  } as const;
+
+  it('returns an empty string without a brief or a visual cue', () => {
+    expect(buildMediaEnhancerBrief(null)).toBe('');
+    expect(
+      buildMediaEnhancerBrief(
+        brief({ metadata, systemDirectives: ['Voice tone: playful.'] }),
+      ),
+    ).toBe('');
+  });
+
+  it('lists the palette in colour words, the look and the avoid rules, without voice, hex codes or fonts', () => {
+    expect(
+      buildMediaEnhancerBrief(
+        brief({
+          guardrails: ['Never show competitor logos.', 'Never write: hype.'],
+          metadata,
+          styleDirectives: [
+            'Primary color: #000000',
+            'Accent color: #ff0000',
+            'Font family: MONTSERRAT_REGULAR',
+            'Soft natural light.',
+          ],
+          systemDirectives: ['Voice tone: playful.'],
+        }),
+      ),
+    ).toBe(
+      [
+        'Brand brief for this media (let it shape the look of the scene; never quote it or render it as text):',
+        'Palette: black and red.',
+        'Look:\n- Soft natural light.',
+        'Avoid:\n- Never show competitor logos.',
+      ].join('\n'),
+    );
+  });
+
+  it('leaves music to its own sound guidance', () => {
+    expect(
+      buildMediaEnhancerBrief(
+        brief({
+          metadata: { contentType: 'music', objective: 'awareness' },
+          styleDirectives: ['Soft natural light.'],
+        }),
+      ),
+    ).toBe('');
   });
 });
