@@ -65,3 +65,32 @@ describe('pending approval link scope (#9646)', () => {
     );
   });
 });
+
+describe('pending batch review link', () => {
+  const batch = {
+    invalid: [],
+    isApprovableHere: false,
+    posts: [],
+    total: 12,
+  };
+
+  it('puts the direct batch review link in the text and the structured result', () => {
+    const result = approvalPendingToolResult(
+      {
+        brandSlug: 'itsshaylamonroe',
+        id: 'apr_batch',
+        organizationSlug: 'genfeedai',
+        status: 'PENDING' as const,
+        toolName: 'create_scheduled_release',
+      },
+      undefined,
+      false,
+      batch,
+    );
+    const link = String(result.structuredContent.nextStepUrl);
+
+    expect(link).toContain('apr_batch');
+    expect(link).not.toContain('publishing/approvals');
+    expect(result.content[0].text).toContain(`Continue in Genfeed: ${link}`);
+  });
+});

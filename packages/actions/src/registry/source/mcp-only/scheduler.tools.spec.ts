@@ -35,6 +35,10 @@ describe('MCP_SCHEDULER_TOOLS', () => {
     const releases = create?.parameters.properties.releases;
 
     expect(create?.parameters.required ?? []).not.toContain('release');
+    expect(create?.parameters.oneOf?.map((branch) => branch.required)).toEqual([
+      ['release'],
+      ['releases'],
+    ]);
     expect(releases).toEqual(
       expect.objectContaining({ maxItems: 50, minItems: 1, type: 'array' }),
     );

@@ -137,7 +137,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: one shared system-principal mirror lookup for normal and failure binding proofs; both callers retain exact principal/soft-delete fences.
     {
       file: 'apps/server/api/src/collections/visual-projects/services/visual-project-workflow.service.ts',
-      line: 106,
+      line: 112,
     },
     // #6120: superadmin-only cross-organization workflow failure feed.
     {

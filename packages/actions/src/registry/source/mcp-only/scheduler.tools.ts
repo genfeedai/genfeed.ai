@@ -235,6 +235,15 @@ const SCHEDULER_VALIDATE_PARAMETERS: ToolParameterSchema = {
   type: 'object',
 };
 
+const releasesBatchSchema = {
+  description:
+    'A batch of releases for one organization, approved once. Use instead of release. Each release is one post on one channel (one target; no recurrence, attachments or target settings): send one release per channel.',
+  items: releaseCreateSchema,
+  maxItems: MAX_BATCH_RELEASES,
+  minItems: 1,
+  type: 'array',
+} as const;
+
 export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     name: 'check_channel',
@@ -286,15 +295,22 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
       properties: {
         idempotencyKey: { type: 'string' },
         release: releaseCreateSchema,
-        releases: {
-          description:
-            'A batch of releases for one organization, approved once. Use instead of release. Each release is one post on one channel (one target; no recurrence, attachments or target settings): send one release per channel.',
-          items: releaseCreateSchema,
-          maxItems: MAX_BATCH_RELEASES,
-          minItems: 1,
-          type: 'array',
-        },
+        releases: releasesBatchSchema,
       },
+      // Exactly one of the two, so a client that validates against the schema
+      // refuses a call with both or neither before it reaches the server.
+      oneOf: [
+        {
+          properties: { release: releaseCreateSchema },
+          required: ['release'],
+          type: 'object',
+        },
+        {
+          properties: { releases: releasesBatchSchema },
+          required: ['releases'],
+          type: 'object',
+        },
+      ],
       type: 'object',
     },
     requiredRole: 'user',

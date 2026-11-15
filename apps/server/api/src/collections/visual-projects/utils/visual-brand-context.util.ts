@@ -12,7 +12,7 @@ const EXAMPLE_LIMIT = 8;
 export const VISUAL_BRAND_HARNESS_CHAR_LIMIT = 12_000;
 const VISUAL_BRAND_SKILLS_CHAR_LIMIT = 24_000;
 
-interface IVisualBrandPaletteRole {
+export interface IVisualBrandPaletteRole {
   role: string;
   color: string;
   isRequired: boolean;
@@ -117,11 +117,7 @@ export function projectVisualBrandContext(input: {
       values: snapshot.voice.values,
       avoid: snapshot.voice.avoid,
     },
-    paletteRoles: rules.palette.filter(appliesToVideo).map((rule) => ({
-      role: rule.usage,
-      color: rule.color,
-      isRequired: rule.required,
-    })),
+    paletteRoles: projectVisualBrandPalette(snapshot),
     typeRoles: rules.typography.filter(appliesToVideo).map((rule) => ({
       role: rule.role,
       family: rule.family,
@@ -159,4 +155,17 @@ export function projectVisualBrandContext(input: {
     harnessBrief: clip(input.harnessBrief, VISUAL_BRAND_HARNESS_CHAR_LIMIT),
     skills: clip(input.skills, VISUAL_BRAND_SKILLS_CHAR_LIMIT),
   };
+}
+
+/** The approved palette roles a video may use, for checks against rendered frames. */
+export function projectVisualBrandPalette(
+  snapshot: BrandIdentitySnapshotV1,
+): IVisualBrandPaletteRole[] {
+  return snapshot.generationRules.palette
+    .filter(appliesToVideo)
+    .map((rule) => ({
+      role: rule.usage,
+      color: rule.color,
+      isRequired: rule.required,
+    }));
 }

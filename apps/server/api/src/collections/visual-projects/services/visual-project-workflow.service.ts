@@ -74,6 +74,12 @@ const receiptSchema = z.object({
   boundCredits: z.number(),
   isResultApplied: z.boolean(),
   isAccepted: z.boolean().optional(),
+  brandChecks: z
+    .object({
+      palette: z.enum(['passed', 'failed', 'not_checked']),
+      logo: z.enum(['passed', 'failed', 'not_checked']),
+    })
+    .optional(),
   credits: z.number(),
   operatorCredits: z.number(),
   modelKey: z.string().optional(),
@@ -539,9 +545,17 @@ export class VisualProjectWorkflowService implements OnModuleInit {
         : quote.authoringCredits / Math.max(1, quote.maximumAuthoringCalls);
     if (bound > current.maximumCredits - current.consumedCredits + 1e-9)
       throw new Error('visual_credit_ceiling');
+    const brand =
+      kind === 'inspection'
+        ? await this.authoring.brandInspection(current, frames ?? [])
+        : undefined;
     const params =
       kind === 'inspection'
-        ? await this.authoring.inspectionParameters(current, frames ?? [])
+        ? await this.authoring.inspectionParameters(
+            current,
+            frames ?? [],
+            brand,
+          )
         : await this.authoring.authorParameters(current, diagnostics);
     // Preparation can outlive the admission that began this action. Deny
     // before creating a started receipt, so no unsubmitted call looks spent.
@@ -619,13 +633,16 @@ export class VisualProjectWorkflowService implements OnModuleInit {
         { cause: error },
       );
     }
-    return this.applyProviderResult(current, started, response, kind);
+    return this.applyProviderResult(current, started, response, kind, brand);
   }
   private async applyProviderResult(
     current: VisualRevision,
     started: IVisualCodeReceipt,
     response: Awaited<ReturnType<VisualProjectAuthoringService['call']>>,
     kind: 'authoring' | 'repair' | 'inspection',
+    brand?: Awaited<
+      ReturnType<VisualProjectAuthoringService['brandInspection']>
+    >,
   ) {
     await this.assertOwnership();
     const actual = await this.billing.actualCredits(
@@ -654,13 +671,16 @@ export class VisualProjectWorkflowService implements OnModuleInit {
       throw new Error('visual_provider_cost_overrun');
     if (current.cancelRequestedAt) throw new Error('visual_cancelled');
     if (kind === 'inspection') {
-      const inspection = this.authoring.parseInspection(response);
+      const inspection = this.authoring.parseInspection(response, brand);
       return this.replaceReceipt(
         current,
         {
           ...confirmed,
           isResultApplied: true,
           isAccepted: inspection.isAccepted,
+          ...(inspection.brandChecks
+            ? { brandChecks: inspection.brandChecks }
+            : {}),
         },
         { diagnostics: toPrismaJson(inspection.issues) },
       );

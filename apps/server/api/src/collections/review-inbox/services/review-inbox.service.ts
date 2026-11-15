@@ -54,6 +54,32 @@ const REVIEW_GATE_ROLES: MemberRole[] = [
 const DEFAULT_REVIEW_GATE_TIMEOUT_HOURS = 24;
 const MEDIA_ARGUMENT_KEYS = ['mediaUrl', 'imageUrl', 'videoUrl'] as const;
 
+function releaseCredentialIds(release: unknown): string[] {
+  const targets =
+    isRecord(release) && Array.isArray(release.targets) ? release.targets : [];
+  return targets.flatMap((target) =>
+    isRecord(target) ? (readString(target.credentialId) ?? []) : [],
+  );
+}
+
+/** Every brand a week's releases and their channel accounts belong to. */
+function batchBrandIds(
+  batch: readonly unknown[] | null,
+  accountBrandIds: ReadonlyMap<string, string | null>,
+): string[] {
+  return (batch ?? []).flatMap((release) => {
+    const releaseBrandId = isRecord(release)
+      ? readString(release.brandId)
+      : null;
+    const accounts = releaseCredentialIds(release).flatMap((credentialId) => {
+      const accountBrandId = accountBrandIds.get(credentialId);
+      // An account with no brand is outside every brand-limited member's reach.
+      return accountBrandId === undefined ? [] : [accountBrandId ?? ''];
+    });
+    return releaseBrandId ? [releaseBrandId, ...accounts] : accounts;
+  });
+}
+
 function excerpt(value: string | null): string | null {
   if (!value) return null;
   const text = value.trim();
@@ -307,13 +333,27 @@ export class ReviewInboxService {
       }),
     });
 
+    const accountBrandIds = allowedBrandIds
+      ? await this.loadBatchAccountBrandIds(organizationId, approvals)
+      : new Map<string, string | null>();
+
     return approvals.flatMap((approval): IReviewInboxItem[] => {
       const args = isRecord(approval.arguments) ? approval.arguments : {};
       const batch = readScheduledReleaseBatch(approval.toolName, args);
       const firstRelease = batch && isRecord(batch[0]) ? batch[0] : null;
       const brandId =
         readString(args.brandId) ?? readString(firstRelease?.brandId);
-      if (brandId && allowedBrandIds && !allowedBrandIds.includes(brandId)) {
+      // The row names the first release's brand, but a week may span brands:
+      // the review page and the approval check every one, so the row is hidden
+      // from a member who may not see any of them.
+      const rowBrandIds = [
+        ...(brandId ? [brandId] : []),
+        ...batchBrandIds(batch, accountBrandIds),
+      ];
+      if (
+        allowedBrandIds &&
+        rowBrandIds.some((id) => !allowedBrandIds.includes(id))
+      ) {
         return [];
       }
       const definition = getToolByName(approval.toolName);
@@ -388,6 +428,34 @@ export class ReviewInboxService {
         },
       ];
     });
+  }
+
+  /**
+   * The brand of every channel account a pending week posts to, by account id.
+   * An account with no brand maps to null, which no brand-limited member may see.
+   */
+  private async loadBatchAccountBrandIds(
+    organizationId: string,
+    approvals: readonly { arguments: unknown; toolName: string }[],
+  ): Promise<Map<string, string | null>> {
+    const credentialIds = [
+      ...new Set(
+        approvals.flatMap((approval) =>
+          (
+            readScheduledReleaseBatch(approval.toolName, approval.arguments) ??
+            []
+          ).flatMap(releaseCredentialIds),
+        ),
+      ),
+    ];
+    if (credentialIds.length === 0) return new Map();
+    const credentials = await this.prisma.credential.findMany({
+      select: { brandId: true, id: true },
+      where: scopedWhere(organizationId, { id: { in: credentialIds } }),
+    });
+    return new Map(
+      credentials.map((credential) => [credential.id, credential.brandId]),
+    );
   }
 
   private async loadBrands(

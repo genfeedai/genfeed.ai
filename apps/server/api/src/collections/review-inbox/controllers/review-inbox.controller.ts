@@ -104,11 +104,27 @@ export class ReviewInboxController {
         'Only organization owners and admins can review MCP approvals',
       );
     }
-    return this.scheduledBatches.getReview(
+    const review = await this.scheduledBatches.getReview(
       scope.organizationId,
       approvalId,
       access.brandIds,
     );
+    if (review.status !== 'scheduling') return review;
+    // An approved week with no outcome is one whose run stopped: finish it
+    // here, with the posts the reviewer kept, rather than leave it unscheduled.
+    const resumed = await this.scheduledBatches.resumeStalled(
+      scope.organizationId,
+      approvalId,
+      user,
+      access.brandIds,
+    );
+    return resumed
+      ? this.scheduledBatches.getReview(
+          scope.organizationId,
+          approvalId,
+          access.brandIds,
+        )
+      : review;
   }
 
   @Post('decisions')

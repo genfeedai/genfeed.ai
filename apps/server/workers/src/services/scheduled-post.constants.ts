@@ -24,3 +24,11 @@ export const PUBLISH_RATE_LIMITED_CODE = 'rate_limited';
 
 export const PUBLISH_OUTCOME_UNCONFIRMED_CODE = 'publish_outcome_unconfirmed';
 export const PUBLISH_OUTCOME_UNVERIFIED_CODE = 'publish_outcome_unverified';
+
+/**
+ * What the owner reads when a due post has no approval for its current version
+ * (it was invalidated by an edit, or never had one): nothing is sent, and
+ * scheduling the post again requests a fresh approval.
+ */
+export const SCHEDULED_POST_APPROVAL_MISSING_MESSAGE =
+  'This post has no approval for its current version, so it was not published. Review it and schedule it again.';

@@ -1,10 +1,10 @@
 import '@agent-tests/media-preview-mocks';
-import { PostVisibility } from '@genfeedai/contracts';
 import { IngredientPickerCard } from '@genfeedai/agent/components/IngredientPickerCard';
 import { ReviewGateCard } from '@genfeedai/agent/components/ReviewGateCard';
 import { SchedulePostCard } from '@genfeedai/agent/components/SchedulePostCard';
 import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { PostVisibility } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -314,6 +314,56 @@ describe('SchedulePostCard', () => {
     expect(
       screen.getByRole('button', { name: 'LinkedIn cred-linkedin-b' }),
     ).toBeInTheDocument();
+  });
+});
+
+describe('SchedulePostCard disconnected target', () => {
+  it('shows the disconnected status next to the account it belongs to', () => {
+    const target = {
+      blockers: [],
+      isSelected: true,
+      label: 'LinkedIn',
+      media: [{ id: 'ingredient-1', kind: 'image' }],
+      platform: 'linkedin',
+      settings: {},
+      visibility: PostVisibility.PUBLIC,
+      warnings: [],
+    };
+    render(
+      <SchedulePostCard
+        action={
+          {
+            contentId: 'ingredient-1',
+            id: 'schedule-disconnected',
+            platforms: ['linkedin'],
+            scheduledAt: '2026-04-01T10:00',
+            targets: [
+              {
+                ...target,
+                credentialId: 'cred-linkedin-a',
+                id: 'schedule-target-cred-linkedin-a',
+                referenceState: 'expired',
+              },
+              {
+                ...target,
+                credentialId: 'cred-linkedin-b',
+                id: 'schedule-target-cred-linkedin-b',
+              },
+            ],
+            title: 'Schedule launch post',
+            type: 'schedule_post_card',
+          } as AgentUiActionOf<'schedule_post_card'>
+        }
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'LinkedIn cred-linkedin-a' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('cred-linkedin-a · Disconnected'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('cred-linkedin-b')).toBeInTheDocument();
   });
 });
 

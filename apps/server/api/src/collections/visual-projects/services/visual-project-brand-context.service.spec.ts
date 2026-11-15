@@ -2,6 +2,7 @@ import { VisualProjectBrandContextService } from '@api/collections/visual-projec
 import { brandedGenerationResolutionV1Schema } from '@genfeedai/contracts/api-types/contracts/branded-generation.contract';
 import type { BrandIdentitySnapshotV1 } from '@genfeedai/contracts/interfaces';
 import type { VisualRevision } from '@genfeedai/prisma';
+import { ConflictException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 const hash = `sha256:${'b'.repeat(64)}`;
@@ -15,7 +16,19 @@ const revision = {
   rendererVersion: '4.0.530',
 } as unknown as VisualRevision;
 
-function snapshot(revisionId = 'brand-revision'): BrandIdentitySnapshotV1 {
+const logoReference = {
+  assetId: 'brand-logo',
+  evidenceIds: ['e1'],
+  id: 'logo-reference',
+  mimeType: 'image/png',
+  required: true,
+  role: 'logo' as const,
+};
+
+function snapshot(
+  revisionId = 'brand-revision',
+  assets: BrandIdentitySnapshotV1['generationRules']['assets'] = [],
+): BrandIdentitySnapshotV1 {
   return {
     schemaVersion: 1,
     organizationId: 'org',
@@ -43,7 +56,7 @@ function snapshot(revisionId = 'brand-revision'): BrandIdentitySnapshotV1 {
         },
       ],
       typography: [],
-      assets: [],
+      assets,
       examples: [],
     },
     diagnostics: [],
@@ -105,6 +118,10 @@ function fixture(options: { pinned?: BrandIdentitySnapshotV1 } = {}) {
     buildSkillPromptSections: vi.fn().mockReturnValue('SKILL: Pick the model'),
   };
   const logger = { warn: vi.fn() };
+  const logoStaging = {
+    approvedLogos: vi.fn().mockResolvedValue([]),
+    stage: vi.fn().mockResolvedValue({ assets: [], totalBytes: 0 }),
+  };
   const service = new VisualProjectBrandContextService(
     prisma as never,
     modes as never,
@@ -113,10 +130,121 @@ function fixture(options: { pinned?: BrandIdentitySnapshotV1 } = {}) {
     harness as never,
     contentHarness as never,
     skillRuntime as never,
+    logoStaging as never,
     logger as never,
   );
-  return { harness, receipts, service, skillRuntime, snapshots };
+  return { harness, logoStaging, receipts, service, skillRuntime, snapshots };
 }
+
+describe('Motion brand logo', () => {
+  const staged = {
+    assetId: 'brand-logo',
+    isRequired: true,
+    mimeType: 'image/png' as const,
+  };
+
+  it('marks a logo the renderer will stage as staged', async () => {
+    const { logoStaging, service, snapshots } = fixture();
+    snapshots.preview.mockResolvedValue(
+      snapshot('brand-revision', [logoReference]),
+    );
+    logoStaging.approvedLogos.mockResolvedValue([staged]);
+    const context = await service.resolve(revision, ['library-image']);
+    expect(context.logo).toEqual([
+      {
+        assetId: 'brand-logo',
+        role: 'logo',
+        isRequired: true,
+        mimeType: 'image/png',
+        isStaged: true,
+      },
+    ]);
+  });
+
+  it('leaves a logo the renderer cannot stage marked as not staged', async () => {
+    const { service, snapshots } = fixture();
+    snapshots.preview.mockResolvedValue(
+      snapshot('brand-revision', [logoReference]),
+    );
+    const context = await service.resolve(revision, []);
+    expect(context.logo.map((logo) => logo.isStaged)).toEqual([false]);
+  });
+
+  it('reserves the slots the source assets use, so the sandbox limit holds', async () => {
+    const { logoStaging, service } = fixture();
+    const sources = Array.from({ length: 10 }, (_, index) => `source-${index}`);
+    await service.resolve(revision, sources);
+    expect(logoStaging.approvedLogos.mock.calls[0]?.[2]).toBe(2);
+  });
+
+  it('stages the logo of the snapshot the revision was authored against', async () => {
+    const pinned = snapshot('pinned-revision', [logoReference]);
+    const { logoStaging, service, snapshots } = fixture({ pinned });
+    logoStaging.approvedLogos.mockImplementation(
+      async (_scope: unknown, from: BrandIdentitySnapshotV1) =>
+        from.revisionId === 'pinned-revision' ? [staged] : [],
+    );
+    expect(await service.stagedLogos(revision, [])).toEqual([staged]);
+    expect(snapshots.preview).not.toHaveBeenCalled();
+  });
+
+  it('stages no logo for a brand without an approved identity', async () => {
+    const { logoStaging, service, snapshots } = fixture();
+    snapshots.preview.mockRejectedValue(
+      new ConflictException('brand_identity_unavailable'),
+    );
+    expect(await service.stagedLogos(revision, [])).toEqual([]);
+    expect(logoStaging.approvedLogos).not.toHaveBeenCalled();
+  });
+});
+
+describe('Motion inspection brief', () => {
+  const staged = {
+    assetId: 'brand-logo',
+    isRequired: true,
+    mimeType: 'image/png' as const,
+  };
+
+  it('carries the approved palette and the staged required logo', async () => {
+    const { logoStaging, service } = fixture();
+    logoStaging.approvedLogos.mockResolvedValue([staged]);
+    logoStaging.stage.mockResolvedValue({
+      assets: [{ id: 'brand-logo', mime: 'image/png', bytes: 'bG9nbw==' }],
+      totalBytes: 4,
+    });
+    expect(await service.inspectionBrief(revision, [])).toEqual({
+      paletteRoles: [{ role: 'Primary', color: '#112233', isRequired: true }],
+      requiredLogo: {
+        assetId: 'brand-logo',
+        mime: 'image/png',
+        bytes: 'bG9nbw==',
+      },
+    });
+  });
+
+  it('asks for no logo when the logo is optional or cannot be read', async () => {
+    const { logoStaging, service } = fixture();
+    logoStaging.approvedLogos.mockResolvedValue([
+      { ...staged, isRequired: false },
+    ]);
+    expect(
+      (await service.inspectionBrief(revision, []))?.requiredLogo,
+    ).toBeNull();
+    logoStaging.approvedLogos.mockResolvedValue([staged]);
+    logoStaging.stage.mockRejectedValue(new Error('storage down'));
+    expect(
+      (await service.inspectionBrief(revision, []))?.requiredLogo,
+    ).toBeNull();
+  });
+
+  it('has no brief for a brand without an approved identity', async () => {
+    const { service, snapshots } = fixture();
+    snapshots.preview.mockRejectedValue(
+      new ConflictException('brand_identity_unavailable'),
+    );
+    expect(await service.inspectionBrief(revision, [])).toBeNull();
+  });
+});
 
 describe('Motion brand context', () => {
   it('reads the approved revision, the media brief and the video skills', async () => {
