@@ -1,5 +1,5 @@
 import type { IHarnessProfile } from '@genfeedai/contracts/interfaces';
-import type { Profile as PrismaProfile } from '@genfeedai/prisma';
+import type { HarnessProfile as PrismaHarnessProfile } from '@genfeedai/prisma';
 
 export type HarnessProfileData = Omit<
   IHarnessProfile,
@@ -14,5 +14,15 @@ export type HarnessProfileData = Omit<
 >;
 
 export interface HarnessProfileDocument
-  extends PrismaProfile,
+  extends Omit<
+      PrismaHarnessProfile,
+      | 'brandId'
+      | 'content'
+      | 'currentVersion'
+      | 'description'
+      | 'isDefault'
+      | 'label'
+      | 'scope'
+      | 'status'
+    >,
     HarnessProfileData {}

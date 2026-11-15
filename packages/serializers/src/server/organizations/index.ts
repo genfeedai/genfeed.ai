@@ -8,6 +8,7 @@ export * from '@serializers/server/organizations/brand-relocation.serializer';
 export * from '@serializers/server/organizations/credential.serializer';
 export * from '@serializers/server/organizations/fleet-capabilities.serializer';
 export * from '@serializers/server/organizations/harness-profile.serializer';
+export * from '@serializers/server/organizations/harness-profile-revision.serializer';
 export * from '@serializers/server/organizations/ingredient-export.serializer';
 export * from '@serializers/server/organizations/member.serializer';
 export * from '@serializers/server/organizations/member-invitation.serializer';

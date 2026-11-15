@@ -2,6 +2,15 @@ import type { UpdateHarnessProfileDto } from '@api/collections/harness-profiles/
 import type { UpsertHarnessProfileDto } from '@api/collections/harness-profiles/dto/upsert-harness-profile.dto';
 import type { HarnessProfileDocument } from '@api/collections/harness-profiles/schemas/harness-profile.schema';
 import { normalizeBrandRule } from '@api/collections/harness-profiles/utils/brand-rule-proposals.util';
+import {
+  mergeUnique,
+  readAvoidFeedback,
+  readGoodFeedback,
+  readPositioning,
+  readStringArray,
+  readStringArrayRecord,
+  readStringRecord,
+} from '@api/collections/harness-profiles/utils/harness-profile-readers.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ExpertHarnessDraft } from '@api/services/expert-path/utils/expert-harness-draft.util';
 import {
@@ -14,27 +23,32 @@ import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util'
 import { readRecordOrEmpty as readRecord } from '@api/shared/utils/object/read-record-or-empty.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type {
-  ExpertPositioningDimensionKey,
-  ExpertPositioningRating,
   HarnessProfileScope,
   HarnessProfileStatus,
-  IExpertPositioningDimensionScore,
   IExpertPositioningScore,
-  IHarnessAvoidFeedbackEntry,
-  IHarnessGoodFeedbackEntry,
   IHarnessProfileExamples,
   IHarnessProfileStructure,
   IHarnessProfileThesis,
   IHarnessProfileVoice,
 } from '@genfeedai/contracts/interfaces';
 import type { ContentHarnessContribution } from '@genfeedai/harness';
-import { type Profile as PrismaProfile, toPrismaJson } from '@genfeedai/prisma';
+import {
+  HarnessProfileRevisionSource,
+  type Prisma,
+  type HarnessProfile as PrismaHarnessProfile,
+  type HarnessProfileRevision as PrismaHarnessProfileRevision,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const HARNESS_PROFILE_TYPE = 'harness';
+/** A brand holds a handful of profiles; this only bounds a runaway read. */
+const MAX_PROFILES_PER_BRAND = 100;
+/** The newest revisions shown in a profile's history. */
+const MAX_REVISIONS_LISTED = 200;
 /** Label of the profile created when a brand has none yet and a rule is accepted. */
 const ACCEPTED_RULES_PROFILE_LABEL = 'Brand harness';
 
@@ -50,23 +64,41 @@ const EXPERT_OWNED_THESIS_KEYS = [
   'transformation',
 ] as const;
 
-const EXPERT_POSITIONING_DIMENSION_KEYS: readonly ExpertPositioningDimensionKey[] =
-  [
-    'attractiveCharacter',
-    'originStory',
-    'bigDomino',
-    'newOpportunity',
-    'authoritySignals',
-    'differentiation',
-  ];
+/** Who or what is making a change; every change is recorded as a revision. */
+export interface HarnessProfileChange {
+  /** The user behind the change, when there is one. */
+  actorUserId?: string;
+  /** Names a system actor (workflow, review pipeline) when there is no user. */
+  actorLabel?: string;
+  source: HarnessProfileRevisionSource;
+}
 
-const EXPERT_POSITIONING_RATINGS: readonly ExpertPositioningRating[] = [
-  'expert_positioned',
-  'good_foundation',
-  'needs_work',
-  'commodity_zone',
-  'invisible',
-];
+function expertPathChange(userId: string | undefined): HarnessProfileChange {
+  return {
+    actorLabel: 'expert-path',
+    actorUserId: userId,
+    source: HarnessProfileRevisionSource.EXPERT_PATH,
+  };
+}
+
+function seedChange(userId: string | undefined): HarnessProfileChange {
+  return {
+    actorLabel: 'harness-pack-seed',
+    actorUserId: userId,
+    source: HarnessProfileRevisionSource.SEED,
+  };
+}
+
+/** Fields of the profile that live in the `content` column, not in their own column. */
+const COLUMN_FIELDS = [
+  'brandId',
+  'description',
+  'isDefault',
+  'label',
+  'profileType',
+  'scope',
+  'status',
+] as const;
 
 /** Fields only the server writes; never accepted from the HTTP DTOs. */
 export interface HarnessProfileServerFields {
@@ -75,12 +107,7 @@ export interface HarnessProfileServerFields {
 
 /** The harness profile rows of a brand; callers add the tenant scope. */
 export function harnessProfileBrandFilter(brandId: string) {
-  return {
-    AND: [
-      { data: { equals: brandId, path: ['brandId'] } },
-      { data: { equals: HARNESS_PROFILE_TYPE, path: ['profileType'] } },
-    ],
-  };
+  return { brandId };
 }
 
 /** The brand's active profile: the active default, else any active one, else the newest. */
@@ -100,160 +127,8 @@ export function pickActiveHarnessProfile<
 export interface HarnessProfileContributionResult {
   contribution: ContentHarnessContribution;
   profileId: string;
-}
-
-function readStringArray(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value
-        .filter((item): item is string => typeof item === 'string')
-        .map((item) => item.trim())
-        .filter(Boolean)
-    : [];
-}
-
-function readStringRecord(value: unknown): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(readRecord(value))
-      .map(([key, item]) => [key, readString(item)])
-      .filter((entry): entry is [string, string] => Boolean(entry[1])),
-  );
-}
-
-function readStringArrayRecord(value: unknown): Record<string, string[]> {
-  return Object.fromEntries(
-    Object.entries(readRecord(value))
-      .map(([key, item]) => [key, readStringArray(item)])
-      .filter(([, items]) => items.length > 0),
-  );
-}
-
-/**
- * `avoidFeedback` entries carry non-string fields (isAutoAdded, nested
- * content/reason/source/addedAt), so they cannot round-trip through the
- * generic `readStringArrayRecord` helpers above — validate the shape
- * explicitly instead.
- */
-function readAvoidFeedbackEntry(
-  value: unknown,
-): IHarnessAvoidFeedbackEntry | undefined {
-  const record = readRecord(value);
-  const content = readString(record.content);
-  const source = readString(record.source);
-  const addedAt = readString(record.addedAt);
-  if (!content || !source || !addedAt) {
-    return undefined;
-  }
-
-  return {
-    addedAt,
-    content,
-    isAutoAdded: Boolean(record.isAutoAdded),
-    reason: readString(record.reason),
-    source,
-  };
-}
-
-function readAvoidFeedback(value: unknown): IHarnessAvoidFeedbackEntry[] {
-  return Array.isArray(value)
-    ? value
-        .map((item) => readAvoidFeedbackEntry(item))
-        .filter((item): item is IHarnessAvoidFeedbackEntry => Boolean(item))
-    : [];
-}
-
-function readGoodFeedback(value: unknown): IHarnessGoodFeedbackEntry[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.flatMap((item) => {
-    const record = readRecord(item);
-    const content = readString(record.content);
-    const source = readString(record.source);
-    const addedAt = readString(record.addedAt);
-    return content && source && addedAt ? [{ addedAt, content, source }] : [];
-  });
-}
-
-function readNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value)
-    ? value
-    : undefined;
-}
-
-function isPositioningDimensionKey(
-  value: unknown,
-): value is ExpertPositioningDimensionKey {
-  return (
-    typeof value === 'string' &&
-    (EXPERT_POSITIONING_DIMENSION_KEYS as readonly string[]).includes(value)
-  );
-}
-
-function readPositioningDimension(
-  value: unknown,
-): IExpertPositioningDimensionScore | undefined {
-  const record = readRecord(value);
-  const score = readNumber(record.score);
-  const weight = readNumber(record.weight);
-  if (
-    !isPositioningDimensionKey(record.key) ||
-    score === undefined ||
-    !weight
-  ) {
-    return undefined;
-  }
-
-  return {
-    followUpFieldKey: readString(record.followUpFieldKey) ?? '',
-    followUpQuestion: readString(record.followUpQuestion) ?? '',
-    key: record.key,
-    label: readString(record.label) ?? record.key,
-    maxWeightedScore: readNumber(record.maxWeightedScore) ?? weight * 10,
-    score,
-    weight,
-    weightedScore: readNumber(record.weightedScore) ?? score * weight,
-  };
-}
-
-/**
- * The positioning scorecard is server-computed; validate the stored JSON
- * shape instead of trusting it so a malformed row never reaches the UI.
- */
-function readPositioning(value: unknown): IExpertPositioningScore | undefined {
-  const record = readRecord(value);
-  const totalScore = readNumber(record.totalScore);
-  const scoredAt = readString(record.scoredAt);
-  const rating = record.rating;
-  if (
-    totalScore === undefined ||
-    !scoredAt ||
-    !isPositioningDimensionKey(record.weakestDimension) ||
-    typeof rating !== 'string' ||
-    !(EXPERT_POSITIONING_RATINGS as readonly string[]).includes(rating)
-  ) {
-    return undefined;
-  }
-
-  const dimensions = Array.isArray(record.dimensions)
-    ? record.dimensions
-        .map((item) => readPositioningDimension(item))
-        .filter((item): item is IExpertPositioningDimensionScore =>
-          Boolean(item),
-        )
-    : [];
-
-  return {
-    dimensions,
-    rating: rating as ExpertPositioningRating,
-    scoredAt,
-    totalScore,
-    version: 1,
-    weakestDimension: record.weakestDimension,
-  };
-}
-
-function mergeUnique(...lists: (string[] | undefined)[]): string[] {
-  return Array.from(new Set(lists.flatMap((list) => list ?? [])));
+  /** The revision of the profile that shaped the contribution. */
+  profileRevision: number;
 }
 
 @Traced()
@@ -269,7 +144,21 @@ export class HarnessProfilesService {
     organizationId: string,
     userId: string | undefined,
     serverFields: HarnessProfileServerFields = {},
+    change: HarnessProfileChange = {
+      actorUserId: userId,
+      source: HarnessProfileRevisionSource.USER_EDIT,
+    },
   ): Promise<HarnessProfileDocument> {
+    // The brand key is a foreign key now: a brand id from another organization
+    // must never be accepted from the caller.
+    const brand = await this.prisma.brand.findFirst({
+      select: { id: true },
+      where: scopedWhere(organizationId, { id: dto.brandId }),
+    });
+    if (!brand) {
+      throw new NotFoundException('Brand', dto.brandId);
+    }
+
     const existingProfiles = await this.findForBrand(
       organizationId,
       dto.brandId,
@@ -278,16 +167,29 @@ export class HarnessProfilesService {
     const data = this.normalizePayload(dto, isDefault, serverFields);
 
     if (data.isDefault) {
-      await this.unsetDefaultForBrand(organizationId, dto.brandId);
+      await this.unsetDefaultForBrand(
+        organizationId,
+        dto.brandId,
+        undefined,
+        change,
+      );
     }
 
-    const profile = await this.prisma.profile.create({
-      data: {
-        createdById: userId,
-        data: toPrismaJson(data),
-        isDeleted: false,
-        organizationId,
-      },
+    const { columns, content } = this.splitPayload(data);
+    const profile = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.harnessProfile.create({
+        data: {
+          ...columns,
+          brandId: dto.brandId,
+          content: toPrismaJson(content),
+          createdById: userId,
+          currentVersion: 1,
+          isDeleted: false,
+          organizationId,
+        },
+      });
+      await this.recordRevision(tx, created, change);
+      return created;
     });
 
     this.logger.log('Harness profile created', {
@@ -304,8 +206,9 @@ export class HarnessProfilesService {
     brandId: string,
     filters?: { isActive?: boolean },
   ): Promise<HarnessProfileDocument[]> {
-    const profiles = await this.prisma.profile.findMany({
+    const profiles = await this.prisma.harnessProfile.findMany({
       orderBy: { updatedAt: 'desc' },
+      take: MAX_PROFILES_PER_BRAND,
       where: scopedWhere(organizationId, harnessProfileBrandFilter(brandId)),
     });
 
@@ -336,6 +239,9 @@ export class HarnessProfilesService {
     dto: UpdateHarnessProfileDto,
     organizationId: string,
     serverFields: HarnessProfileServerFields = {},
+    change: HarnessProfileChange = {
+      source: HarnessProfileRevisionSource.USER_EDIT,
+    },
   ): Promise<HarnessProfileDocument> {
     const existing = await this.findOneRaw(id, organizationId);
     const existingProfile = this.normalizeProfile(existing);
@@ -379,17 +285,94 @@ export class HarnessProfilesService {
     );
 
     if (data.isDefault && data.brandId) {
-      await this.unsetDefaultForBrand(organizationId, data.brandId, id);
+      await this.unsetDefaultForBrand(organizationId, data.brandId, id, change);
     }
 
-    const updated = await this.prisma.profile.update({
-      data: {
-        data: toPrismaJson(data),
+    const { columns, content } = this.splitPayload(data);
+    const updated = await this.applyChange(
+      organizationId,
+      existing.id,
+      { ...columns, content: toPrismaJson(content) },
+      change,
+    );
+
+    return this.normalizeProfile(updated);
+  }
+
+  /**
+   * Restores the profile to the content it had at an earlier revision. The
+   * restore is itself a new revision (source ROLLBACK) so history only grows,
+   * and the next generation reads the restored content.
+   */
+  async rollback(
+    id: string,
+    version: number,
+    organizationId: string,
+    userId?: string,
+  ): Promise<HarnessProfileDocument> {
+    const existing = await this.findOneRaw(id, organizationId);
+    const target = await this.prisma.harnessProfileRevision.findFirst({
+      where: scopedWhere(organizationId, {
+        harnessProfileId: existing.id,
+        version,
+      }),
+    });
+    if (!target) {
+      throw new NotFoundException('Harness profile revision', String(version));
+    }
+
+    const snapshot = readRecord(target.snapshot);
+    const content = toPrismaJson(readRecord(snapshot.content));
+    const isDefault = Boolean(snapshot.isDefault);
+    const change: HarnessProfileChange = {
+      actorUserId: userId,
+      source: HarnessProfileRevisionSource.ROLLBACK,
+    };
+    if (isDefault) {
+      await this.unsetDefaultForBrand(
+        organizationId,
+        existing.brandId,
+        existing.id,
+        change,
+      );
+    }
+
+    const updated = await this.applyChange(
+      organizationId,
+      existing.id,
+      {
+        content,
+        description: readString(snapshot.description) ?? null,
+        isDefault,
+        label: readString(snapshot.label) ?? existing.label,
+        scope: this.readScope(snapshot.scope),
+        status: this.readStatus(snapshot.status),
       },
-      where: scopedWhere(organizationId, { id: existing.id }),
+      change,
+      version,
+    );
+
+    this.logger.log('Harness profile rolled back', {
+      organizationId,
+      profileId: existing.id,
+      restoredVersion: version,
+      version: updated.currentVersion,
     });
 
     return this.normalizeProfile(updated);
+  }
+
+  /** The profile's history, newest first. */
+  async listRevisions(
+    id: string,
+    organizationId: string,
+  ): Promise<PrismaHarnessProfileRevision[]> {
+    const existing = await this.findOneRaw(id, organizationId);
+    return this.prisma.harnessProfileRevision.findMany({
+      orderBy: { version: 'desc' },
+      take: MAX_REVISIONS_LISTED,
+      where: scopedWhere(organizationId, { harnessProfileId: existing.id }),
+    });
   }
 
   /**
@@ -424,6 +407,11 @@ export class HarnessProfilesService {
         },
         organizationId,
         params.userId,
+        {},
+        {
+          actorUserId: params.userId,
+          source: HarnessProfileRevisionSource.RULE_PROPOSAL,
+        },
       ));
 
     const known = new Set(profile.guardrails.map(normalizeBrandRule));
@@ -443,6 +431,11 @@ export class HarnessProfilesService {
       profile.id,
       { guardrails: [...profile.guardrails, ...added] },
       organizationId,
+      {},
+      {
+        actorUserId: params.userId,
+        source: HarnessProfileRevisionSource.RULE_PROPOSAL,
+      },
     );
     this.logger.log('Brand rules saved from accepted proposals', {
       addedCount: added.length,
@@ -453,12 +446,18 @@ export class HarnessProfilesService {
     return { added, profile: updated };
   }
 
-  async remove(id: string, organizationId: string): Promise<void> {
+  async remove(
+    id: string,
+    organizationId: string,
+    userId?: string,
+  ): Promise<void> {
     const existing = await this.findOneRaw(id, organizationId);
-    await this.prisma.profile.update({
-      data: { isDeleted: true },
-      where: scopedWhere(organizationId, { id: existing.id }),
-    });
+    await this.applyChange(
+      organizationId,
+      existing.id,
+      { isDeleted: true },
+      { actorUserId: userId, source: HarnessProfileRevisionSource.USER_EDIT },
+    );
   }
 
   async buildContributionForBrand(
@@ -489,6 +488,7 @@ export class HarnessProfilesService {
     return {
       contribution: this.toContribution(profile),
       profileId: profile.id,
+      profileRevision: profile.currentVersion ?? 1,
     };
   }
 
@@ -519,6 +519,7 @@ export class HarnessProfilesService {
         params.organizationId,
         params.userId,
         { positioning: draft.positioning },
+        expertPathChange(params.userId),
       );
     }
 
@@ -568,6 +569,7 @@ export class HarnessProfilesService {
       },
       params.organizationId,
       { positioning: draft.positioning },
+      expertPathChange(params.userId),
     );
   }
 
@@ -599,6 +601,8 @@ export class HarnessProfilesService {
         },
         params.organizationId,
         params.userId,
+        {},
+        seedChange(params.userId),
       );
     }
 
@@ -641,60 +645,104 @@ export class HarnessProfilesService {
         },
       },
       params.organizationId,
+      {},
+      seedChange(params.userId),
     );
   }
 
   private async findOneRaw(
     id: string,
     organizationId: string,
-  ): Promise<PrismaProfile> {
-    const profile = await findOrThrow(
-      this.prisma.profile,
+  ): Promise<PrismaHarnessProfile> {
+    return findOrThrow(
+      this.prisma.harnessProfile,
       {
         where: scopedWhere(organizationId, { id }),
       },
       'Harness profile',
     );
+  }
 
-    const normalized = this.normalizeProfile(profile);
-    if (normalized.profileType !== HARNESS_PROFILE_TYPE) {
-      throw new NotFoundException('Harness profile');
-    }
+  /**
+   * Writes a change to the profile row and appends the revision that records
+   * it, in one transaction. The version comes from an atomic increment, so
+   * concurrent writers each get their own revision number.
+   */
+  private async applyChange(
+    organizationId: string,
+    id: string,
+    data: Prisma.HarnessProfileUpdateManyMutationInput,
+    change: HarnessProfileChange,
+    rolledBackToVersion?: number,
+  ): Promise<PrismaHarnessProfile> {
+    return this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.harnessProfile.updateManyAndReturn({
+        data: { ...data, currentVersion: { increment: 1 } },
+        where: scopedWhere(organizationId, { id }),
+      });
+      const updated = claimed[0];
+      if (!updated) {
+        throw new NotFoundException('Harness profile');
+      }
+      await this.recordRevision(tx, updated, change, rolledBackToVersion);
+      return updated;
+    });
+  }
 
-    return profile;
+  private async recordRevision(
+    tx: Pick<Prisma.TransactionClient, 'harnessProfileRevision'>,
+    profile: PrismaHarnessProfile,
+    change: HarnessProfileChange,
+    rolledBackToVersion?: number,
+  ): Promise<void> {
+    await tx.harnessProfileRevision.create({
+      data: {
+        actorLabel: change.actorLabel,
+        actorUserId: change.actorUserId,
+        brandId: profile.brandId,
+        harnessProfileId: profile.id,
+        organizationId: profile.organizationId,
+        rolledBackToVersion,
+        snapshot: toPrismaJson({
+          content: readRecord(profile.content),
+          description: profile.description,
+          isDefault: profile.isDefault,
+          isDeleted: profile.isDeleted,
+          label: profile.label,
+          scope: profile.scope,
+          status: profile.status,
+        }),
+        source: change.source,
+        version: profile.currentVersion,
+      },
+    });
   }
 
   private async unsetDefaultForBrand(
     organizationId: string,
     brandId: string,
-    excludeId?: string,
+    excludeId: string | undefined,
+    change: HarnessProfileChange,
   ): Promise<void> {
     const profiles = await this.findForBrand(organizationId, brandId);
     const profilesToUpdate = profiles.filter(
       (profile) => profile.id !== excludeId && profile.isDefault,
     );
 
-    if (profilesToUpdate.length === 0) {
-      return;
+    for (const profile of profilesToUpdate) {
+      await this.applyChange(
+        organizationId,
+        profile.id,
+        { isDefault: false },
+        change,
+      );
     }
-
-    await this.prisma.$transaction(
-      profilesToUpdate.map((profile) =>
-        this.prisma.profile.update({
-          data: {
-            data: toPrismaJson({
-              ...readRecord(profile.data),
-              isDefault: false,
-            }),
-          },
-          where: scopedWhere(organizationId, { id: profile.id }),
-        }),
-      ),
-    );
   }
 
-  private normalizeProfile(profile: PrismaProfile): HarnessProfileDocument {
-    const data = readRecord(profile.data);
+  private normalizeProfile(
+    profile: PrismaHarnessProfile,
+  ): HarnessProfileDocument {
+    const data = readRecord(profile.content);
     const voiceRecord = readRecord(data.voice);
 
     return {
@@ -703,21 +751,21 @@ export class HarnessProfilesService {
       audience: readStringArray(data.audience),
       avoidFeedback: readAvoidFeedback(data.avoidFeedback),
       goodFeedback: readGoodFeedback(data.goodFeedback),
-      brandId: readString(data.brandId) ?? '',
+      brandId: profile.brandId,
       createdBy: profile.createdById,
-      description: readString(data.description),
+      description: profile.description ?? undefined,
       examples: readStringArrayRecord(data.examples) as IHarnessProfileExamples,
       guardrails: readStringArray(data.guardrails),
       handles: readStringRecord(data.handles),
-      isDefault: Boolean(data.isDefault),
-      label: readString(data.label) ?? 'Harness profile',
+      isDefault: profile.isDefault,
+      label: profile.label,
       metadata: readRecord(data.metadata),
       organization: profile.organizationId,
       platforms: readStringArray(data.platforms),
       positioning: readPositioning(data.positioning),
       profileType: HARNESS_PROFILE_TYPE,
-      scope: this.readScope(data.scope),
-      status: this.readStatus(data.status),
+      scope: this.readScope(profile.scope),
+      status: this.readStatus(profile.status),
       structure: readStringArrayRecord(
         data.structure,
       ) as IHarnessProfileStructure,
@@ -733,6 +781,26 @@ export class HarnessProfilesService {
         vocabulary: readStringArray(voiceRecord.vocabulary),
       } as IHarnessProfileVoice,
     } as HarnessProfileDocument;
+  }
+
+  /** Splits the normalized payload into the profile's columns and its `content`. */
+  private splitPayload(
+    data: ReturnType<HarnessProfilesService['normalizePayload']>,
+  ) {
+    const content: Record<string, unknown> = { ...data };
+    for (const field of COLUMN_FIELDS) {
+      delete content[field];
+    }
+    return {
+      columns: {
+        description: data.description ?? null,
+        isDefault: data.isDefault,
+        label: data.label,
+        scope: data.scope,
+        status: data.status,
+      },
+      content,
+    };
   }
 
   private normalizePayload(

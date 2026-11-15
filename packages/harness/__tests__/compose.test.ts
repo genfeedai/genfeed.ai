@@ -211,6 +211,22 @@ describe('Brand OS identity receipts', () => {
       harnessProfileId: 'profile-7',
     });
   });
+
+  it('records the revision of the profile that was applied', async () => {
+    const brief = await composeContentHarnessBrief(
+      new ContentHarnessRegistry(),
+      {
+        harnessProfileId: 'profile-7',
+        harnessProfileRevision: 3,
+        intent: { contentType: 'post', objective: 'engagement' },
+      },
+    );
+    expect(brief.receipts).toEqual({
+      brandOs: 'none',
+      harnessProfileId: 'profile-7',
+      harnessProfileRevision: 3,
+    });
+  });
 });
 
 describe('composeContentHarnessBrief surfaces', () => {

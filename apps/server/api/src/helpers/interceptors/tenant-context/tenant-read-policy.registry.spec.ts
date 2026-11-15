@@ -208,6 +208,7 @@ const observedTemplates = [
   '/v1/generation-harness/settings',
   '/v1/gifs/{gifId}',
   '/v1/harness-profiles',
+  '/v1/harness-profiles/{profileId}/revisions',
   '/v1/images/{imageId}',
   '/v1/ingredients/batch',
   '/v1/ingredients/{ingredientId}/lineage/made-from',
@@ -335,8 +336,8 @@ const observedTemplates = [
 
 describe('combined tenant read policy registry', () => {
   it('conserves exactly247 original canonical routes,73 prefixes and125 distinct owned controllers', () => {
-    expect(routes).toHaveLength(247);
-    expect(new Set(routes.map((entry) => entry.route)).size).toBe(247);
+    expect(routes).toHaveLength(248);
+    expect(new Set(routes.map((entry) => entry.route)).size).toBe(248);
     expect(new Set(routes.map((entry) => entry.route.split('/')[2])).size).toBe(
       73,
     );
@@ -344,7 +345,7 @@ describe('combined tenant read policy registry', () => {
     expect(routes.map((entry) => entry.route).sort()).toEqual(
       [...observedTemplates].sort(),
     );
-    expect(cohorts.map((cohort) => cohort.length)).toEqual([54, 61, 132]);
+    expect(cohorts.map((cohort) => cohort.length)).toEqual([54, 62, 132]);
     expect(
       cohorts.map(
         (cohort) => new Set(cohort.map((entry) => entry.controller)).size,

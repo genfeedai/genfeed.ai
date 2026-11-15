@@ -413,6 +413,7 @@ export class HarnessGenerationService {
     const layer = brandGenerationLayerReceiptV1Schema.parse({
       kind: 'harness_profile',
       id: learningContractIdSchema.parse(profile.profileId),
+      version: profile.profileRevision,
       status: 'not_applicable',
       evidenceIds: [],
       omittedIds: [],
@@ -820,6 +821,7 @@ export class HarnessGenerationService {
         brand,
         brandOsRevision,
         harnessProfileId: profile?.profileId,
+        harnessProfileRevision: profile?.profileRevision,
         intent: {
           contentType: params.contentType,
           objective: params.objective ?? 'engagement',
