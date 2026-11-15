@@ -90,7 +90,7 @@ describe('parseWorkflowPage', () => {
       markdown:
         '# SOUL V2 — Text to image API\n\n**Endpoint ID:** `higgsfield-ai/soul/v2/standard`\n',
     },
-  ])(
+  ] as const)(
     'reads $endpoint as $expectedCategory',
     ({ category, endpoint, expectedCategory, expectedLabel, markdown }) => {
       expect(parseWorkflowPage(markdown, sourceUrl, category)).toEqual({
