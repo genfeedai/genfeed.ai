@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import type { ModelFixPromptFallbackDialogProps } from '@props/admin/model-fix-prompt.props';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -11,12 +12,6 @@ import {
   DialogTitle,
 } from '@ui/primitives/dialog';
 import { useTranslations } from 'next-intl';
-import type { ModelFixPromptFallback } from './use-model-fix-prompt';
-
-interface ModelFixPromptFallbackDialogProps {
-  fallback: ModelFixPromptFallback | null;
-  onClose: () => void;
-}
 
 /** The prompt as selectable text, for browsers that refuse clipboard writes. */
 export default function ModelFixPromptFallbackDialog({

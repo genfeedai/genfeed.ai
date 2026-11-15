@@ -6,6 +6,7 @@ import type {
   AdminModelPricingRow,
   ModelPricingAttentionLevel,
 } from '@genfeedai/contracts/interfaces';
+import type { ModelPricingAttentionPanelProps } from '@props/admin/model-fix-prompt.props';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import {
@@ -18,10 +19,6 @@ import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { useAdminModelPricingReport } from './use-admin-model-pricing-report';
 import { useFixModelPricing } from './use-fix-model-pricing';
-
-interface ModelPricingAttentionPanelProps {
-  onCopyFixPrompt: () => void;
-}
 
 function reasonsFor(
   row: AdminModelPricingRow,

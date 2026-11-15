@@ -6,15 +6,11 @@ import {
   buildModelFixPrompt,
   modelFixItemsFromPricingRows,
 } from '@genfeedai/pricing';
+import type { ModelFixPromptFallback } from '@props/admin/model-fix-prompt.props';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import { useAdminModelPricingReport } from './use-admin-model-pricing-report';
-
-export interface ModelFixPromptFallback {
-  text: string;
-  title: string;
-}
 
 function adminModelsUrl(): string | null {
   if (typeof window === 'undefined') return null;
