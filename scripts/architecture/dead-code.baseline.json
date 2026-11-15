@@ -65,8 +65,7 @@
     "apps/server/mcp/src/mcp/resource-catalog.ts": 1,
     "apps/server/mcp/src/shared/interfaces/api-response.interface.ts": 9,
     "apps/server/mcp/src/tools/presets.schemas.ts": 2,
-    "apps/server/mcp/src/ui/preview-client.tsx": 1,
-    "packages/props/modals/modal.props.ts": 3
+    "apps/server/mcp/src/ui/preview-client.tsx": 1
   },
   "unusedFiles": []
 }
