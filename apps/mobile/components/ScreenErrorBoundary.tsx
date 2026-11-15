@@ -144,5 +144,3 @@ const createStyles = (colors: NativeThemeColors) =>
       marginBottom: 8,
     },
   });
-
-export default ScreenErrorBoundary;
