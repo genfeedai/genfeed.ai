@@ -100,7 +100,7 @@
     "check:route-inventory": "bun run scripts/architecture/check-product-route-inventory.ts",
     "check:route-shadowing": "bun run scripts/architecture/check-route-shadowing.ts",
     "check:single-claude-md": "bun run scripts/architecture/check-single-claude-md.ts",
-    "check:spec-typecheck": "bun run scripts/architecture/check-spec-typecheck.ts",
+    "check:spec-typecheck": "bun run scripts/ci/spec-typecheck-workspaces.ts",
     "ci:cloud-tenant-guard-sweep": "bun scripts/ci/cloud-tenant-guard-sweep/run.mjs",
     "check:tenant-scope": "bun run scripts/architecture/check-tenant-scope.ts",
     "check:traced-definitions": "bun run scripts/architecture/check-traced-definitions.ts",

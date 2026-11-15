@@ -119,7 +119,7 @@ bun run preflight --list     # print the plan without running it
 It refreshes `origin/master`, takes everything that differs from it (commits, staged,
 unstaged and untracked files), and runs the Static Checks (ratchet growth, e2e spec impact,
 skills, env drift, Biome, secretlint, gitleaks when installed, migration safety), the
-affected-workspace typecheck, the Spec Typecheck Ratchet for the affected workspaces, and the
+affected-workspace typecheck, the Spec Typecheck for the affected workspaces, and the
 executable contracts. It stops at the first failure; `--keep-going` runs everything.
 It works in a cloud container after `bun install` and
 `cd packages/prisma && bunx prisma generate`. The contracts run under the Node in `.node-version`,
