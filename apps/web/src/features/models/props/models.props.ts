@@ -107,7 +107,10 @@ export interface ModelPricingDetailsProps {
   modelId: string;
 }
 export interface ModelPricingToolbarProps {
+  hasAttention: boolean;
   models: IModel[];
+  onCopyAuditPrompt: () => void;
+  onCopyFixPrompt: () => void;
 }
 export interface AdminModelsPageContentProps {
   type: AdminModelType;

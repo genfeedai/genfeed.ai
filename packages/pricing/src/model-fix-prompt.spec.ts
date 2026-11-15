@@ -52,6 +52,23 @@ describe('buildModelFixPrompt', () => {
     );
   });
 
+  it('leaves the category out when the report has none', () => {
+    const prompt = buildModelFixPrompt({
+      items: [
+        {
+          category: 'unknown',
+          detail: 'page returned 404',
+          key: 'meta/musicgen',
+          problem: 'removed-by-provider',
+          provider: 'replicate',
+        },
+      ],
+      scope: 'scan-run',
+    });
+    expect(prompt).toContain('1. meta/musicgen (replicate): page returned 404');
+    expect(prompt).not.toContain('unknown');
+  });
+
   it('keeps the safety rules in every prompt', () => {
     for (const scope of ['scan-run', 'attention', 'audit-all'] as const) {
       const prompt = buildModelFixPrompt({ items, scope });
