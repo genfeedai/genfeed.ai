@@ -41,7 +41,6 @@
     "package.json|jsonapi-serializer",
     "package.json|jsonwebtoken",
     "package.json|madge",
-    "package.json|next-intl",
     "package.json|sanitize-html",
     "packages/agent/package.json|@genfeedai/pricing",
     "packages/agent/package.json|@genfeedai/tsconfig",
