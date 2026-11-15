@@ -91,7 +91,10 @@ export interface IModelDiscoveryInput {
   category: ModelCategory;
   /** Preferred display label; falls back to a title-cased model name */
   label?: string;
-  provider: ModelProvider.REPLICATE | ModelProvider.FAL;
+  provider:
+    | ModelProvider.REPLICATE
+    | ModelProvider.FAL
+    | ModelProvider.HIGGSFIELD;
   /**
    * Provider list price in USD per billing unit, read from the provider's page.
    * Absent when no rate could be read; credits are never estimated.

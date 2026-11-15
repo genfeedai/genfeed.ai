@@ -10,6 +10,7 @@ import type {
 
 const PROVIDER_NAMES: Record<ModelScanProvider, string> = {
   fal: 'fal.ai',
+  higgsfield: 'Higgsfield',
   replicate: 'Replicate',
 };
 
