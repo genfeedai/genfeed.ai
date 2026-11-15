@@ -142,7 +142,7 @@ const profile = z.object({
     .optional(),
 });
 
-export const crunProviderQuoteSnapshotSchema = z
+const crunProviderQuoteSnapshotSchema = z
   .object({
     provider: z.literal('crun'),
     estimated: z.literal(false),

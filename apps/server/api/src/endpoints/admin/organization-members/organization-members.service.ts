@@ -8,7 +8,7 @@ import { Injectable } from '@nestjs/common';
 const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
 const EDGE_HYPHENS_PATTERN = /^-+|-+$/g;
 
-export type AdminMemberRoleKey = 'admin' | 'member';
+type AdminMemberRoleKey = 'admin' | 'member';
 
 export interface AdminAddMemberInput {
   email: string;

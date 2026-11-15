@@ -1,7 +1,7 @@
 import { ActivitySource } from '@genfeedai/contracts';
 import { z } from 'zod';
 
-export const generationFailureProofSchema = z.object({
+const generationFailureProofSchema = z.object({
   version: z.literal(1),
   ingredientId: z.string().min(1),
   provider: z.string().min(1),

@@ -41,7 +41,7 @@ const shared = {
   quotedAt: z.iso.datetime(),
   preparedHash: hash,
 };
-export const preparedOpenrouterTextLineSchema = z.discriminatedUnion('kind', [
+const preparedOpenrouterTextLineSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     ...shared,
     kind: z.literal('openrouter-text-platform-quote'),

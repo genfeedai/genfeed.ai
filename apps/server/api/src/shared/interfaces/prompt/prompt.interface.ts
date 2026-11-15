@@ -1,6 +1,6 @@
 import { PromptCategory } from '@genfeedai/contracts';
 
-export interface IAccountData {
+interface IAccountData {
   label: string;
   description: string;
   systemPrompt: string;

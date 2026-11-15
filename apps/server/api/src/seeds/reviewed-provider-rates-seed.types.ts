@@ -1,7 +1,7 @@
 import type { Prisma } from '@genfeedai/prisma';
 
 /** OpenAPI-shaped JSON document whose Input and Output schemas the seed ships. */
-export interface SchemaFixtureOpenapi extends Prisma.InputJsonObject {
+interface SchemaFixtureOpenapi extends Prisma.InputJsonObject {
   components: {
     schemas: {
       Input: Prisma.InputJsonObject;

@@ -1,7 +1,7 @@
 import { ALL_QUEUE_NAMES } from '@genfeedai/contracts/queue';
 
 /** Service-local queues that have not moved into the API/workers contract. */
-export const BULL_BOARD_AUXILIARY_QUEUE_NAMES = [
+const BULL_BOARD_AUXILIARY_QUEUE_NAMES = [
   'file-processing',
   'image-processing',
   'task-processing',

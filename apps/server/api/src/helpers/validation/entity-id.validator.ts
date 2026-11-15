@@ -5,7 +5,7 @@ import {
   type ValidationOptions,
 } from 'class-validator';
 
-export const IS_ENTITY_ID = 'isEntityId';
+const IS_ENTITY_ID = 'isEntityId';
 
 export { isEntityId } from '@genfeedai/contracts/api-types/helpers/entity-id';
 

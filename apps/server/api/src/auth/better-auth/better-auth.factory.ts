@@ -80,7 +80,7 @@ export const CAPTCHA_PROTECTED_ENDPOINTS = [
   '/sign-in/magic-link',
 ];
 
-export const DISPOSABLE_EMAIL_MESSAGE =
+const DISPOSABLE_EMAIL_MESSAGE =
   'Temporary email addresses are not supported. Sign up with a permanent address.';
 
 export const SIGN_UP_MAGIC_LINK_EXISTING_USER_MESSAGE =

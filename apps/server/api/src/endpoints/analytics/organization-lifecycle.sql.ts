@@ -32,7 +32,7 @@ const hasSubscription = (status: string): PrismaSql =>
       AND s."status" = ${Prisma.raw(`'${status}'`)}::"SubscriptionStatus")`;
 
 /** `CASE` over `organizations e` yielding an {@link OrganizationLifecycleStatus} value. */
-export function lifecycleStatusSql(): PrismaSql {
+function lifecycleStatusSql(): PrismaSql {
   return Prisma.sql`(CASE
     WHEN ${hasSubscription('ACTIVE')} THEN ${literal(OrganizationLifecycleStatus.SUBSCRIBED)}
     WHEN ${hasSubscription('TRIALING')} THEN ${literal(OrganizationLifecycleStatus.TRIAL)}

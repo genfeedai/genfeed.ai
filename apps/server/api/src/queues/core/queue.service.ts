@@ -12,12 +12,6 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Job, JobsOptions, Queue } from 'bullmq';
 
-export interface QueueJob<T = Record<string, unknown>> {
-  id?: string;
-  data: T;
-  options?: JobsOptions;
-}
-
 @Traced()
 @Injectable()
 export class QueueService {

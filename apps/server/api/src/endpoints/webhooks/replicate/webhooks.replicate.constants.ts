@@ -11,7 +11,7 @@
  * Predictions are delivered from `*.replicate.delivery`; `replicate.com` covers
  * the API and CDN hosts the same payloads occasionally reference.
  */
-export const REPLICATE_OUTPUT_HOST_SUFFIXES: readonly string[] = [
+const REPLICATE_OUTPUT_HOST_SUFFIXES: readonly string[] = [
   'replicate.com',
   'replicate.delivery',
 ];

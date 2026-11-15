@@ -73,7 +73,7 @@ function isPaidProduct(
 }
 
 /** Grant carried by one subscription row, or null when it grants nothing. */
-export function resolvePaidSubscriptionGrant(
+function resolvePaidSubscriptionGrant(
   subscription: PaidSubscriptionSnapshot,
   subscriptionTier: string | null,
   now: Date,
