@@ -32,6 +32,12 @@ describe('harness profile table (#10191)', () => {
     );
   });
 
+  it('lets a brand move change the organization of its revisions and nothing else', () => {
+    expect(tableMigration).toContain(
+      "to_jsonb(NEW) - 'actorUserId' - 'organizationId'",
+    );
+  });
+
   it('keeps one revision per version and refuses to rewrite or delete one', () => {
     expect(tableMigration).toContain(
       'CREATE UNIQUE INDEX "harness_profile_revisions_harnessProfileId_version_key"',

@@ -76,16 +76,19 @@ ALTER TABLE "harness_profile_revisions" ADD CONSTRAINT "harness_profile_revision
 -- AddForeignKey
 ALTER TABLE "harness_profile_revisions" ADD CONSTRAINT "harness_profile_revisions_actorUserId_fkey" FOREIGN KEY ("actorUserId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- Revisions are append-only: no row is ever rewritten or removed. The one
--- allowed UPDATE is the actor foreign key being nulled when a user is erased.
+-- Revisions are append-only: no row is ever rewritten or removed. Two column
+-- changes are allowed because other code owns them: the actor foreign key being
+-- nulled when a user is erased, and `organizationId` when a brand moves to
+-- another organization (the brand-relocation cascade).
 CREATE OR REPLACE FUNCTION prevent_harness_profile_revision_mutation()
 RETURNS trigger AS $$
 BEGIN
   IF TG_OP = 'DELETE' THEN
     RAISE EXCEPTION 'harness profile revisions are append-only';
   END IF;
-  IF NEW."actorUserId" IS NULL
-    AND (to_jsonb(NEW) - 'actorUserId') = (to_jsonb(OLD) - 'actorUserId') THEN
+  IF (NEW."actorUserId" IS NULL OR NEW."actorUserId" = OLD."actorUserId")
+    AND (to_jsonb(NEW) - 'actorUserId' - 'organizationId')
+      = (to_jsonb(OLD) - 'actorUserId' - 'organizationId') THEN
     RETURN NEW;
   END IF;
   RAISE EXCEPTION 'harness profile revisions are append-only';
