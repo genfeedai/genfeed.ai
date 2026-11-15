@@ -23,6 +23,7 @@ export * from './brand-remix-scene.contract';
 export * from './brand-render-evidence.contract';
 export * from './brand-video-finishing.contract';
 export * from './brand-video-identity.contract';
+export * from './brand-video-rules.contract';
 export * from './branded-generation.contract';
 export * from './branded-generation-feedback.contract';
 export * from './cadence-expansion.contract';

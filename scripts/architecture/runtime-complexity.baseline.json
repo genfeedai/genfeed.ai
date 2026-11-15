@@ -372,7 +372,7 @@
     "symbol": "packages/cli/src/commands/admin/index.ts"
   },
   {
-    "actual": 1234,
+    "actual": 1221,
     "file": "packages/contracts/src/api-types/contracts/branded-generation.contract.ts",
     "metric": "file-lines",
     "symbol": "packages/contracts/src/api-types/contracts/branded-generation.contract.ts"

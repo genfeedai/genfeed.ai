@@ -336,14 +336,12 @@ export default function BrandOsSettingsCard({
     key: BrandKitFieldKey,
     update: Partial<IBrandKitDraftField>,
   ) {
-    if (!hasCurrentScope || !canManage || pendingRef.current) return;
-    clearAcknowledgement();
-    setContent((current) => {
+    editContent((current) => {
       const owner = BRAND_KIT_FIELD_OWNERSHIP.find(
         (entry) => entry.key === key,
       );
       const field: IBrandKitDraftField | null =
-        current?.fields[key] ??
+        current.fields[key] ??
         (owner
           ? {
               ...owner,
@@ -352,41 +350,29 @@ export default function BrandOsSettingsCard({
               diagnostics: [],
             }
           : null);
-      return current && field
+      return field
         ? {
             ...current,
             fields: { ...current.fields, [key]: { ...field, ...update } },
           }
         : current;
     });
+  }
+
+  function editContent(update: (current: IBrandKitDraft) => IBrandKitDraft) {
+    if (!hasCurrentScope || !canManage || pendingRef.current) return;
+    clearAcknowledgement();
+    setContent((current) => (current ? update(current) : current));
     setNotice(null);
   }
 
   function changePolicy(policy: IBrandPublishPolicy | undefined) {
-    if (!hasCurrentScope || !canManage || pendingRef.current) return;
-    clearAcknowledgement();
-    setContent((current) => {
-      if (!current) return current;
+    editContent((current) => {
       const next = { ...current };
       if (policy) next.policy = policy;
       else Reflect.deleteProperty(next, 'policy');
       return next;
     });
-    setNotice(null);
-  }
-
-  function changeVideo(video: BrandVideoRulesV1) {
-    if (!hasCurrentScope || !canManage || pendingRef.current) return;
-    clearAcknowledgement();
-    setContent((current) => (current ? { ...current, video } : current));
-    setNotice(null);
-  }
-
-  function changeFinishing(finishing: BrandVideoFinishingV1) {
-    if (!hasCurrentScope || !canManage || pendingRef.current) return;
-    clearAcknowledgement();
-    setContent((current) => (current ? { ...current, finishing } : current));
-    setNotice(null);
   }
 
   async function perform(
@@ -625,6 +611,10 @@ export default function BrandOsSettingsCard({
     selected?.status ?? null,
     exportState?.revisionId ?? null,
   ]);
+  const approvedContent =
+    revisions.find(
+      (revision) => revision.status === BrandOsRevisionStatus.APPROVED,
+    )?.content ?? null;
   const currentApproved = revisions.find(
     (revision) => revision.id === exportState?.revisionId,
   );
@@ -769,12 +759,7 @@ export default function BrandOsSettingsCard({
             )}
             {content && (
               <BrandVideoRevisionDiff
-                approved={
-                  revisions.find(
-                    (revision) =>
-                      revision.status === BrandOsRevisionStatus.APPROVED,
-                  )?.content ?? null
-                }
+                approved={approvedContent}
                 draft={content}
               />
             )}
@@ -976,10 +961,7 @@ export default function BrandOsSettingsCard({
   if (!renderWorkspace) return review;
   return renderWorkspace({
     content,
-    approvedContent:
-      revisions.find(
-        (revision) => revision.status === BrandOsRevisionStatus.APPROVED,
-      )?.content ?? null,
+    approvedContent,
     editor: content ? (
       <BrandOsRevisionFields
         content={content}
@@ -1001,8 +983,10 @@ export default function BrandOsSettingsCard({
       !canManage ||
       busy ||
       selected?.status === BrandOsRevisionStatus.SUPERSEDED,
-    onFinishingChange: changeFinishing,
-    onVideoChange: changeVideo,
+    onFinishingChange: (finishing: BrandVideoFinishingV1) =>
+      editContent((current) => ({ ...current, finishing })),
+    onVideoChange: (video: BrandVideoRulesV1) =>
+      editContent((current) => ({ ...current, video })),
     isSaveDisabled:
       !canManage ||
       busy ||

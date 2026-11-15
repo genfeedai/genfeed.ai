@@ -3,6 +3,22 @@ import { z } from 'zod';
 import { ContentLearningArm } from '../../enums/content-learning.enum';
 import { brandArtifactProofV1Schema } from './brand-artifact-proof.contract';
 import {
+  applicableMediaKinds,
+  brandGenerationMediaKindV1Schema,
+  brandTextRuleV1Schema,
+  ids,
+  issue,
+  keyed,
+  refs,
+  text,
+} from './brand-generation-primitives.contract';
+import {
+  brandVideoRulesV1Schema,
+  checkVideoReferences,
+  videoEvidenceRows,
+  videoRuleRows,
+} from './brand-video-rules.contract';
+import {
   learningContractHashSchema as hash,
   learningContractIdSchema as id,
   learningDescriptorHashSchema,
@@ -13,40 +29,24 @@ import {
   learningContractVersionSchema as version,
 } from './content-learning-generation.contract';
 
+export { brandGenerationMediaKindV1Schema, brandTextRuleV1Schema };
+
 const SENSITIVE_QUERY_PARAM_PATTERN =
   /(token|secret|signature|credential|password|api[-_]?key|authorization|x-amz|x-goog)/i;
 const NON_WHITESPACE_CHAR_PATTERN = /\S/;
 
 const label = z.string().min(1).max(512);
-const text = z.string().max(16000);
 const code = z
   .string()
   .min(1)
   .max(96)
   .regex(/^[a-z][a-z0-9_.:-]*$/);
 const date = z.iso.datetime();
-const ids = z
-  .array(id)
-  .max(256)
-  .refine((v) => new Set(v).size === v.length, 'Duplicate IDs');
-const refs = ids.min(1);
-function issue(ctx: z.RefinementCtx, message: string) {
-  ctx.addIssue({ code: 'custom', message });
-}
 function bounded<T extends z.ZodType>(schema: T, limit: number) {
   return schema.refine(
     (v) => new TextEncoder().encode(JSON.stringify(v)).byteLength <= limit,
     `Serialized size exceeds ${limit} bytes`,
   );
-}
-function keyed<T extends z.ZodType<{ id: string }>>(schema: T, max: number) {
-  return z
-    .array(schema)
-    .max(max)
-    .refine(
-      (v) => new Set(v.map((x) => x.id)).size === v.length,
-      'Duplicate keyed IDs',
-    );
 }
 const prompt = z
   .string()
@@ -92,16 +92,6 @@ export const brandRuleEvidenceV1Schema = z.strictObject({
   contentHash: hash.optional(),
   confidence: z.number().min(0).max(1).optional(),
 });
-export const brandGenerationMediaKindV1Schema = z.enum([
-  'text',
-  'image',
-  'video',
-]);
-const applicableMediaKinds = z
-  .array(brandGenerationMediaKindV1Schema)
-  .min(1)
-  .max(3)
-  .refine((v) => new Set(v).size === v.length, 'Duplicate media kinds');
 export const brandFactRuleV1Schema = z
   .strictObject({
     id,
@@ -156,14 +146,6 @@ export const brandTypographyRuleV1Schema = z
     if (v.availability === 'verified_runtime' && !v.runtimeFontId)
       issue(ctx, 'Verified font requires runtime identity');
   });
-export const brandTextRuleV1Schema = z.strictObject({
-  id,
-  text,
-  match: z.enum(['literal', 'semantic']),
-  required: z.boolean(),
-  appliesToMediaKinds: applicableMediaKinds.optional(),
-  evidenceIds: refs,
-});
 export const brandExampleRuleV1Schema = z.strictObject({
   id,
   polarity: z.enum(['positive', 'negative']),
@@ -238,56 +220,6 @@ export const brandAssetReferenceV1Schema = z
         'Asset text coverage requires a nonfont asset with content hash',
       );
   });
-const videoPlacement = z.enum([
-  'top-left',
-  'top-right',
-  'bottom-left',
-  'bottom-right',
-  'center',
-]);
-/**
- * How the brand moves on screen (#10187). Optional on the rules: a brand with
- * no video identity has no `video` key, and every reader treats that as a
- * no-op. Rule lists reuse the text-rule shape, so ids and evidence follow the
- * same global checks as `mandatory` and `avoid`.
- */
-export const brandVideoRulesV1Schema = z.strictObject({
-  motionStyle: z
-    .strictObject({
-      style: z.enum(['static', 'subtle', 'kinetic', 'cinematic', 'handheld']),
-      notes: z.string().max(2000).optional(),
-      evidenceIds: refs,
-    })
-    .optional(),
-  pacing: z
-    .strictObject({
-      tempo: z.enum(['slow', 'medium', 'fast']),
-      averageShotSeconds: z.number().min(0.5).max(30).optional(),
-      evidenceIds: refs,
-    })
-    .optional(),
-  shotRules: keyed(brandTextRuleV1Schema, 32),
-  captions: z
-    .strictObject({
-      style: z.enum(['none', 'minimal', 'bold_word', 'karaoke', 'boxed']),
-      position: z.enum(['top', 'middle', 'bottom']),
-      maxWordsPerLine: z.number().int().min(1).max(12).optional(),
-      typographyRuleId: id.optional(),
-      evidenceIds: refs,
-    })
-    .optional(),
-  thumbnailRules: keyed(brandTextRuleV1Schema, 16),
-  logoPlacement: z
-    .strictObject({
-      position: videoPlacement,
-      sizeRatio: z.number().min(0.02).max(0.5),
-      insetRatio: z.number().min(0).max(0.25),
-      appliesTo: z.enum(['intro', 'outro', 'throughout']),
-      assetReferenceId: id.optional(),
-      evidenceIds: refs,
-    })
-    .optional(),
-});
 export const brandGenerationRulesV1Schema = bounded(
   z
     .strictObject({
@@ -304,10 +236,6 @@ export const brandGenerationRulesV1Schema = bounded(
       video: brandVideoRulesV1Schema.optional(),
     })
     .superRefine((v, ctx) => {
-      const videoRules = [
-        ...(v.video?.shotRules ?? []),
-        ...(v.video?.thumbnailRules ?? []),
-      ];
       const allRules = [
         ...v.facts,
         ...v.palette,
@@ -316,7 +244,7 @@ export const brandGenerationRulesV1Schema = bounded(
         ...v.avoid,
         ...v.examples,
         ...v.assets,
-        ...videoRules,
+        ...videoRuleRows(v.video),
       ];
       if (new Set(allRules.map((rule) => rule.id)).size !== allRules.length)
         issue(ctx, 'Rule IDs must be globally unique');
@@ -329,24 +257,12 @@ export const brandGenerationRulesV1Schema = bounded(
         ...v.avoid,
         ...v.examples,
         ...v.assets,
-        ...videoRules,
-        ...(v.video?.motionStyle ? [v.video.motionStyle] : []),
-        ...(v.video?.pacing ? [v.video.pacing] : []),
-        ...(v.video?.captions ? [v.video.captions] : []),
-        ...(v.video?.logoPlacement ? [v.video.logoPlacement] : []),
+        ...videoEvidenceRows(v.video),
         ...(v.approvedLiterals ?? []),
       ])
         for (const ref of row.evidenceIds)
           if (!evidence.has(ref)) issue(ctx, `Unresolved evidence: ${ref}`);
-      const captionFont = v.video?.captions?.typographyRuleId;
-      if (captionFont && !v.typography.some((t) => t.id === captionFont))
-        issue(ctx, 'Unresolved caption typography rule');
-      const logoAsset = v.video?.logoPlacement?.assetReferenceId;
-      if (
-        logoAsset &&
-        !v.assets.some((a) => a.id === logoAsset && a.role === 'logo')
-      )
-        issue(ctx, 'Unresolved logo placement asset');
+      checkVideoReferences(v, ctx);
       const literalIds = new Set(
         (v.approvedLiterals ?? []).map((literal) => literal.id),
       );
@@ -423,8 +339,7 @@ export const brandIdentitySnapshotV1Schema = bounded(
           ...v.generationRules.avoid,
           ...v.generationRules.examples,
           ...v.generationRules.assets,
-          ...(v.generationRules.video?.shotRules ?? []),
-          ...(v.generationRules.video?.thumbnailRules ?? []),
+          ...videoRuleRows(v.generationRules.video),
         ].map((r) => r.id),
       );
       for (const d of v.diagnostics) {
@@ -1242,7 +1157,6 @@ export type BrandPaletteRuleV1 = z.infer<typeof brandPaletteRuleV1Schema>;
 export type BrandTypographyRuleV1 = z.infer<typeof brandTypographyRuleV1Schema>;
 export type BrandTextRuleV1 = z.infer<typeof brandTextRuleV1Schema>;
 export type BrandExampleRuleV1 = z.infer<typeof brandExampleRuleV1Schema>;
-export type BrandVideoRulesV1 = z.infer<typeof brandVideoRulesV1Schema>;
 export type BrandApprovedLiteralV1 = z.infer<
   typeof brandApprovedLiteralV1Schema
 >;
