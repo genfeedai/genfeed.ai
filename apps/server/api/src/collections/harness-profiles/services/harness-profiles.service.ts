@@ -45,6 +45,10 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const HARNESS_PROFILE_TYPE = 'harness';
+/** A brand holds a handful of profiles; this only bounds a runaway read. */
+const MAX_PROFILES_PER_BRAND = 100;
+/** The newest revisions shown in a profile's history. */
+const MAX_REVISIONS_LISTED = 200;
 /** Label of the profile created when a brand has none yet and a rule is accepted. */
 const ACCEPTED_RULES_PROFILE_LABEL = 'Brand harness';
 
@@ -194,6 +198,7 @@ export class HarnessProfilesService {
   ): Promise<HarnessProfileDocument[]> {
     const profiles = await this.prisma.harnessProfile.findMany({
       orderBy: { updatedAt: 'desc' },
+      take: MAX_PROFILES_PER_BRAND,
       where: scopedWhere(organizationId, harnessProfileBrandFilter(brandId)),
     });
 
@@ -355,6 +360,7 @@ export class HarnessProfilesService {
     const existing = await this.findOneRaw(id, organizationId);
     return this.prisma.harnessProfileRevision.findMany({
       orderBy: { version: 'desc' },
+      take: MAX_REVISIONS_LISTED,
       where: scopedWhere(organizationId, { harnessProfileId: existing.id }),
     });
   }
