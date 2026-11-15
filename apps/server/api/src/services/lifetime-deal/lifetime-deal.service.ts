@@ -13,6 +13,7 @@ import {
 } from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -45,6 +46,7 @@ export interface LifetimeGrantTotals {
  * open-ended period, so every paid-access gate that already reads
  * subscription rows treats it as paid without a change of its own.
  */
+@Traced()
 @Injectable()
 export class LifetimeDealService {
   private readonly context = { service: LifetimeDealService.name };
