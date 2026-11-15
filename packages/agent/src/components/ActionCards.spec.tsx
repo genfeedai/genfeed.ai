@@ -1,4 +1,5 @@
 import '@agent-tests/media-preview-mocks';
+import { PostVisibility } from '@genfeedai/contracts';
 import { IngredientPickerCard } from '@genfeedai/agent/components/IngredientPickerCard';
 import { ReviewGateCard } from '@genfeedai/agent/components/ReviewGateCard';
 import { SchedulePostCard } from '@genfeedai/agent/components/SchedulePostCard';
@@ -283,6 +284,7 @@ describe('SchedulePostCard', () => {
       media: [{ id: 'ingredient-1', kind: 'image' }],
       platform: 'linkedin',
       settings: {},
+      visibility: PostVisibility.PUBLIC,
       warnings: [],
     };
     render(
