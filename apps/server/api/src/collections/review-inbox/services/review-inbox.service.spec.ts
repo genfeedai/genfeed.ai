@@ -57,6 +57,7 @@ describe('ReviewInboxService', () => {
   const prisma = {
     asset: { findMany: vi.fn() },
     brand: { findMany: vi.fn() },
+    credential: { findMany: vi.fn() },
     mcpApproval: { findMany: vi.fn(), updateMany: vi.fn() },
     workflowExecution: { findMany: vi.fn() },
   };
@@ -68,6 +69,7 @@ describe('ReviewInboxService', () => {
     vi.clearAllMocks();
     prisma.brand.findMany.mockResolvedValue([{ id: 'brand-1', label: 'Acme' }]);
     prisma.asset.findMany.mockResolvedValue([]);
+    prisma.credential.findMany.mockResolvedValue([]);
     prisma.mcpApproval.findMany.mockResolvedValue([]);
     prisma.mcpApproval.updateMany.mockResolvedValue({ count: 0 });
     prisma.workflowExecution.findMany.mockResolvedValue([]);
@@ -365,6 +367,65 @@ describe('ReviewInboxService', () => {
         { brandId: { in: [] } },
         { brandId: null },
       ]);
+    });
+
+    it('hides a mixed-brand week from a member who cannot see all of its brands', async () => {
+      prisma.credential.findMany.mockResolvedValue([
+        { brandId: 'brand-1', id: 'cred-own' },
+        { brandId: 'brand-2', id: 'cred-other' },
+      ]);
+      prisma.mcpApproval.findMany.mockResolvedValue([
+        {
+          arguments: {
+            releases: [
+              { baseContent: 'Own brand', brandId: 'brand-1' },
+              { baseContent: 'Other brand', brandId: 'brand-2' },
+            ],
+          },
+          createdAt: new Date('2026-10-02T00:00:00.000Z'),
+          id: 'apr-mixed',
+          pricingQuote: null,
+          toolName: 'create_scheduled_release',
+        },
+        {
+          arguments: {
+            releases: [
+              {
+                baseContent: 'Own brand, other account',
+                brandId: 'brand-1',
+                targets: [{ credentialId: 'cred-other' }],
+              },
+            ],
+          },
+          createdAt: new Date('2026-10-02T01:00:00.000Z'),
+          id: 'apr-other-account',
+          pricingQuote: null,
+          toolName: 'create_scheduled_release',
+        },
+        {
+          arguments: {
+            releases: [
+              {
+                baseContent: 'All own',
+                brandId: 'brand-1',
+                targets: [{ credentialId: 'cred-own' }],
+              },
+              { baseContent: 'All own too', brandId: 'brand-1' },
+            ],
+          },
+          createdAt: new Date('2026-10-02T02:00:00.000Z'),
+          id: 'apr-own',
+          pricingQuote: null,
+          toolName: 'create_scheduled_release',
+        },
+      ]);
+
+      const items = await service.listPending(
+        { organizationId: 'org-1' },
+        { ...ownerAccess, brandIds: ['brand-1'] },
+      );
+
+      expect(items.map((item) => item.approvalId)).toEqual(['apr-own']);
     });
 
     it('sorts every source by request time', async () => {

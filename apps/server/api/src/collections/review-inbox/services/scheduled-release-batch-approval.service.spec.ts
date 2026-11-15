@@ -38,17 +38,28 @@ function approval(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function build(row: unknown, brandIds: string[] = ['brand-1']) {
+function build(
+  row: unknown,
+  brandIds: string[] = ['brand-1'],
+  options: { isReclaimable?: boolean } = {},
+) {
   const claims: string[] = [];
   const attached: unknown[] = [];
+  const recordedArguments: unknown[] = [];
   const service = new ScheduledReleaseBatchApprovalService(
     {
       mcpApproval: {
         findFirst: async () => row,
-        updateMany: async () => ({ count: 0 }),
+        updateMany: async (input: { data: { arguments?: unknown } }) => {
+          if (input.data.arguments) {
+            recordedArguments.push(input.data.arguments);
+          }
+          return { count: 1 };
+        },
       },
     } as never,
     {
+      reclaimStaleExecution: async () => options.isReclaimable ?? true,
       attachResult: async (_id: string, _org: string, result: unknown) => {
         attached.push(result);
       },
@@ -88,8 +99,9 @@ function build(row: unknown, brandIds: string[] = ['brand-1']) {
         posts: described(4),
       }),
     } as never,
+    { error: () => undefined } as never,
   );
-  return { attached, claims, service };
+  return { attached, claims, recordedArguments, service };
 }
 
 const apiKeyContext = {} as never;
@@ -180,6 +192,90 @@ describe('ScheduledReleaseBatchApprovalService.schedule', () => {
         apiKeyContext,
       ),
     ).toBeNull();
+  });
+});
+
+describe('ScheduledReleaseBatchApprovalService.resumeStalled', () => {
+  const stalled = (overrides: Record<string, unknown> = {}) =>
+    approval({
+      arguments: {
+        releases: [{}, {}, {}, {}],
+        reviewedExcludedIndexes: [1],
+      },
+      executionClaimedAt: null,
+      resolvedAt: new Date('2026-11-14T08:00:00.000Z'),
+      status: 'APPROVED',
+      ...overrides,
+    });
+
+  it('keeps the removed posts of a reviewer when the review is recorded before the approval', async () => {
+    const { recordedArguments, service } = build(null);
+
+    await service.recordReview(approval() as never, [1, 1, 9]);
+
+    expect(recordedArguments).toEqual([
+      { releases: [{}, {}, {}, {}], reviewedExcludedIndexes: [1] },
+    ]);
+  });
+
+  it('finishes an approved week that was never scheduled, without the removed posts', async () => {
+    const { attached, service } = build(stalled());
+
+    const result = await service.resumeStalled(
+      'org-1',
+      'apr-1',
+      apiKeyContext,
+      undefined,
+      new Date('2026-11-14T08:10:00.000Z'),
+    );
+
+    expect(result?.created.map((entry) => entry.index)).toEqual([0, 2, 3]);
+    expect(attached).toEqual([
+      {
+        created: result?.created,
+        errors: [],
+        excludedIndexes: [1],
+        total: 4,
+      },
+    ]);
+  });
+
+  it('leaves a run that is still inside its window alone', async () => {
+    const { attached, service } = build(stalled(), ['brand-1'], {
+      isReclaimable: false,
+    });
+
+    expect(
+      await service.resumeStalled('org-1', 'apr-1', apiKeyContext, undefined),
+    ).toBeNull();
+    expect(attached).toEqual([]);
+  });
+
+  it.each([
+    [
+      'an outcome already recorded',
+      stalled({ result: { created: [], errors: [] } }),
+    ],
+    ['a batch still waiting for a decision', stalled({ status: 'PENDING' })],
+    ['another tool', stalled({ arguments: {}, toolName: 'create_post' })],
+  ])('resumes nothing for %s', async (_label, row) => {
+    const { attached, service } = build(row);
+
+    expect(
+      await service.resumeStalled('org-1', 'apr-1', apiKeyContext, undefined),
+    ).toBeNull();
+    expect(attached).toEqual([]);
+  });
+
+  it('refuses a week that reaches brands a limited key cannot use', async () => {
+    const { attached, service } = build(
+      stalled({ arguments: { releases: [{ brandId: 'brand-2' }] } }),
+    );
+
+    expect(
+      await service.resumeStalled('org-1', 'apr-1', apiKeyContext, ['brand-1']),
+    ).toBeNull();
+    expect(attached).toEqual([]);
   });
 });
 

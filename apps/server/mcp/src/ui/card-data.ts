@@ -765,23 +765,27 @@ function buildBatchApprovalView(
       ...item,
       assetId: `${text(item, 'order')}`,
     }));
-    return card(
-      {
-        author: {
-          handle: text(post, 'accountHandle'),
-          name: text(post, 'accountLabel'),
+    return {
+      ...card(
+        {
+          author: {
+            handle: text(post, 'accountHandle'),
+            name: text(post, 'accountLabel'),
+          },
+          id: `${approvalId}:${typeof post.index === 'number' ? post.index : ''}`,
+          kind: 'post',
+          media,
+          platform: text(post, 'platform'),
+          scheduledAt: text(post, 'scheduledAt'),
+          status: 'pending_approval',
+          title: text(post, 'title'),
         },
-        description: text(post, 'text'),
-        id: `${approvalId}:${typeof post.index === 'number' ? post.index : ''}`,
-        kind: 'post',
-        media,
-        platform: text(post, 'platform'),
-        scheduledAt: text(post, 'scheduledAt'),
-        status: 'pending_approval',
-        title: text(post, 'title'),
-      },
-      'post',
-    );
+        'post',
+      ),
+      // Whatever a card lists is capped; a post waiting for approval is not:
+      // the person approves exactly the text they can read.
+      description: text(post, 'text'),
+    };
   });
   const reviewUrl = safeCardUrl(text(data, 'nextStepUrl'));
   const closing = summaryCard(

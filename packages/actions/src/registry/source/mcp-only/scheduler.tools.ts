@@ -295,6 +295,9 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
           type: 'array',
         },
       },
+      // Exactly one of the two, so a client that validates against the schema
+      // refuses a call with both or neither before it reaches the server.
+      oneOf: [{ required: ['release'] }, { required: ['releases'] }],
       type: 'object',
     },
     requiredRole: 'user',
