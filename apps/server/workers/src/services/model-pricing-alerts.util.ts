@@ -1,9 +1,9 @@
+import { createHash } from 'node:crypto';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type {
   ModelPricingRateChange,
   ModelScanReport,
 } from '@genfeedai/contracts/interfaces';
-import { createHash } from 'node:crypto';
 
 /** A provider changed a price; the approved rate keeps charging. */
 export interface ModelPriceChangeAlert {
