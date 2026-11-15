@@ -57,7 +57,10 @@
   "license": "MIT",
   "main": "./dist/index.js",
   "name": "@genfeedai/helpers",
-  "private": true,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "repository": {
     "directory": "packages/helpers",
     "type": "git",

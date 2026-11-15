@@ -9,7 +9,7 @@ import type {
   UpscaleNodeData,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
-import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Alert } from '@genfeedai/ui/primitives/alert';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';

@@ -127,7 +127,10 @@
   "license": "AGPL-3.0",
   "main": "./dist/index.js",
   "name": "@genfeedai/contracts",
-  "private": true,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "repository": {
     "directory": "packages/contracts",
     "type": "git",

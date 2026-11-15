@@ -4,8 +4,8 @@ import type {
   HandleType,
   WorkflowOutputNodeData,
 } from '@genfeedai/contracts/types';
-import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
-import MediaPlayer from '@genfeedai/ui/components/media-player/MediaPlayer';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { Alert } from '@genfeedai/ui/primitives/alert';
 import { Input } from '@genfeedai/ui/primitives/input';
 import { Label } from '@genfeedai/ui/primitives/label';

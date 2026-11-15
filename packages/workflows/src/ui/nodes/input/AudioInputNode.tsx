@@ -3,7 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AudioInputNodeData } from '@genfeedai/contracts/types';
 import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/duration.helper';
-import MediaPlayer from '@genfeedai/ui/components/media-player/MediaPlayer';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
 import type { NodeProps } from '@xyflow/react';

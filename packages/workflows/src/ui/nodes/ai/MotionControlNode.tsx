@@ -7,7 +7,7 @@ import type {
   MotionControlMode,
   MotionControlNodeData,
 } from '@genfeedai/contracts/types';
-import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
 import { Label } from '@genfeedai/ui/primitives/label';

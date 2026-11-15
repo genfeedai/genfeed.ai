@@ -4,7 +4,7 @@ import { DownloadNode } from './OutputNode';
 
 const { videoPlayerMock } = vi.hoisted(() => ({ videoPlayerMock: vi.fn() }));
 
-vi.mock('@genfeedai/ui/components/display/video-player/VideoPlayer', () => ({
+vi.mock('@ui/display/video-player/VideoPlayer', () => ({
   default: (props: { src: string; ariaLabel: string }) => {
     videoPlayerMock(props);
     return (

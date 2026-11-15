@@ -7,7 +7,7 @@ import type {
   SubtitleStyle,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
-import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
 import { Label } from '@genfeedai/ui/primitives/label';

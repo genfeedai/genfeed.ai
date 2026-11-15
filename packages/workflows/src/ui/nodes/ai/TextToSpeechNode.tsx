@@ -7,7 +7,7 @@ import type {
   TTSVoice,
 } from '@genfeedai/contracts/types';
 import { Code } from '@genfeedai/ui';
-import MediaPlayer from '@genfeedai/ui/components/media-player/MediaPlayer';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import {
   Alert,
   AlertDescription,

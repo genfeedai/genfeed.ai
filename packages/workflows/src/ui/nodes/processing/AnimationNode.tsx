@@ -6,7 +6,7 @@ import type {
   EasingPreset,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
-import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Label } from '@genfeedai/ui/primitives/label';
 import { SegmentedControl } from '@genfeedai/ui/primitives/segmented-control';
