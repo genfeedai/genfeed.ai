@@ -6,6 +6,7 @@ import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { TwitterApi } from 'twitter-api-v2';
 
@@ -41,6 +42,7 @@ type FindTwitterCredential = (
 ) => Promise<CredentialDocument | null>;
 
 /** Refreshes X OAuth 2.0 access tokens and owns the disconnect lifecycle. */
+@Traced()
 export class TwitterTokenRefreshService {
   private readonly refreshesInFlight = new Map<
     string,
