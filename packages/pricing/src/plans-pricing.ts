@@ -3,7 +3,11 @@ import {
   multiplyDecimalPricing,
   sumDecimalPricing,
 } from './decimal-pricing';
-import { FREE_API_RATE_LIMIT, PRO_API_RATE_LIMIT } from './tier-entitlements';
+import {
+  FREE_API_RATE_LIMIT,
+  PRO_API_RATE_LIMIT,
+  SCALE_API_RATE_LIMIT,
+} from './tier-entitlements';
 /**
  * Genfeed.ai Pricing Configuration
  *
@@ -497,7 +501,7 @@ export const websitePlans: WebsitePlanProps[] = [
     features: [
       '1 seat, 1 workspace',
       'Unlimited brands and channels',
-      `API access (${FREE_API_RATE_LIMIT} requests/min)`,
+      `${FREE_API_RATE_LIMIT} API requests/min`,
     ],
     interval: 'payg',
     label: PLAN_LABELS.payg,
@@ -517,10 +521,9 @@ export const websitePlans: WebsitePlanProps[] = [
     description: 'Every app for one creator or brand',
     features: [
       'Automation, Messages, Discovery',
-      'Clean exports, any agent model',
       'Bring your own key',
       'Unlimited brands and channels',
-      `API access (${PRO_API_RATE_LIMIT} requests/min)`,
+      `${PRO_API_RATE_LIMIT} API requests/min`,
     ],
     includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.pro,
     interval: 'month',
@@ -541,11 +544,10 @@ export const websitePlans: WebsitePlanProps[] = [
     ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=scale`,
     description: 'One studio for teams, organizations, and brands',
     features: [
-      'Unlimited seats and client workspaces',
       'Everything in Pro',
-      'Ultra quality',
-      'Brand model training',
-      'Higher API limits',
+      'Unlimited seats and workspaces',
+      'Ultra quality, model training',
+      `${SCALE_API_RATE_LIMIT} API requests/min`,
     ],
     includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.scale,
     interval: 'month',
