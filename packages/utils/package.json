@@ -4,7 +4,8 @@
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/props": "workspace:*",
     "@genfeedai/services": "workspace:*",
-    "@genfeedai/contracts": "workspace:*"
+    "@genfeedai/contracts": "workspace:*",
+    "axios": "1.21.1"
   },
   "description": "Shared framework-agnostic utility functions for Genfeed applications",
   "devDependencies": {

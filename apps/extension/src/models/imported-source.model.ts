@@ -17,7 +17,7 @@ export type ImportedSourceMediaAvailability = NonNullable<
 >['availability'];
 
 /** What the user asked to capture. `media` is a right-clicked image, video or audio. */
-export type SourceCaptureScope = 'page' | 'selection' | 'link' | 'media';
+type SourceCaptureScope = 'page' | 'selection' | 'link' | 'media';
 
 export interface SourceCaptureRequest {
   mediaKind?: ImportedSourceMediaKind;
@@ -32,7 +32,7 @@ export interface SourceCaptureRequest {
 export type SourceCaptureHost = 'x' | 'reddit' | 'youtube' | 'social';
 
 /** Where a media candidate was found; players are platform-hosted. */
-export type SourceMediaOrigin =
+type SourceMediaOrigin =
   | 'element'
   | 'player'
   | 'meta'

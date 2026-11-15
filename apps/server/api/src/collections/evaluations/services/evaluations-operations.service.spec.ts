@@ -3,6 +3,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { ExternalServiceException } from '@api/helpers/exceptions/external/external-service.exception';
+import { VideoFrameSamplerService } from '@api/services/content-quality/video-frame-sampler.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
@@ -91,6 +92,7 @@ describe('EvaluationsOperationsService', () => {
           useValue: mockServices.filesClientService,
         },
         { provide: MediaUrlService, useValue: mockServices.mediaUrlService },
+        VideoFrameSamplerService,
       ],
     }).compile();
 
@@ -202,7 +204,7 @@ describe('EvaluationsOperationsService', () => {
         mockServices.filesClientService.generateThumbnail.mock.calls.map(
           (call) => call[2],
         ),
-      ).toEqual([5, 15, 25, 35]);
+      ).toEqual([0, 10, 20, 30, 39.9]);
     });
 
     it('fails cleanly without billing where media storage is local', async () => {
@@ -256,7 +258,7 @@ describe('EvaluationsOperationsService', () => {
         organizationId,
       );
 
-      expect(frameIds()).toHaveLength(4);
+      expect(frameIds()).toHaveLength(5);
       expect(deletedKeys()).toEqual(
         frameIds().map((id) => `ingredients/thumbnails/${id}`),
       );
@@ -319,7 +321,7 @@ describe('EvaluationsOperationsService', () => {
         );
         await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
 
-        expect(deletedKeys()).toHaveLength(4);
+        expect(deletedKeys()).toHaveLength(5);
       });
 
       it('logs a failed late sweep without throwing', async () => {
@@ -362,7 +364,7 @@ describe('EvaluationsOperationsService', () => {
         ),
       ).rejects.toThrow(ExternalServiceException);
 
-      expect(deletedKeys()).toHaveLength(4);
+      expect(deletedKeys()).toHaveLength(5);
     });
 
     it('logs a failed frame deletion without failing the evaluation', async () => {
@@ -401,7 +403,7 @@ describe('EvaluationsOperationsService', () => {
       const thumbnailCalls =
         mockServices.filesClientService.generateThumbnail.mock.calls;
       expect(thumbnailCalls.map((call) => call[2])).toEqual([
-        2.5, 7.5, 12.5, 17.5,
+        0, 5, 10, 15, 19.9,
       ]);
       for (const call of thumbnailCalls) {
         expect(call[0]).toBe('https://example.com/video.mp4');
@@ -485,8 +487,7 @@ describe('EvaluationsOperationsService', () => {
         undefined as unknown as ReplicateService,
         undefined as unknown as PromptBuilderService,
         loggerService,
-        undefined as unknown as FilesClientService,
-        undefined as unknown as MediaUrlService,
+        undefined as unknown as VideoFrameSamplerService,
       );
 
       await expect(

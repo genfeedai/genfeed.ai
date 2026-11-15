@@ -4,21 +4,17 @@ import type {
   ImageGenerationContext,
   ImageGenerationResolvedBrand,
 } from '@api/collections/images/services/image-generation.types';
-import type { TemplatesService } from '@api/collections/templates/services/templates.service';
-import {
-  resolveGenerationBriefBrandContext,
-  resolveIsGenerationBriefBrandVoiceOn,
-} from '@api/services/generation-brief';
+import { resolveIsGenerationBriefBrandVoiceOn } from '@api/services/generation-brief';
+import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 export interface ImageGenerationSettingsParams {
   brand: ImageGenerationResolvedBrand;
   createImageDto: CreateImageDto;
-  organizationId: string;
   model: string;
+  generationHarness: GenerationHarnessReceipt;
 }
 export interface ImageGenerationSettingsDependencies {
-  templatesService: TemplatesService;
   loggerService: LoggerService;
 }
 export interface ImageGenerationSettingsResult {
@@ -30,17 +26,11 @@ export interface ImageGenerationSettingsResult {
   outputs: number;
   briefBrandContext: string | undefined;
 }
-interface ImageGenerationBriefBrandContextParams {
-  brandPromptBranding: ReturnType<typeof buildPromptBrandingFromBrand>;
-  createImageDto: CreateImageDto;
-  organizationId: string;
-  promptBuilderBrand: ImageGenerationContext['promptBuilderBrand'];
-}
 export async function prepareImageGenerationSettings(
   params: ImageGenerationSettingsParams,
   dependencies: ImageGenerationSettingsDependencies,
 ): Promise<ImageGenerationSettingsResult> {
-  const { brand, createImageDto, organizationId, model } = params;
+  const { brand, createImageDto, generationHarness, model } = params;
   const brandPromptBranding = buildPromptBrandingFromBrand(brand);
   const promptBuilderBrand = {
     description: brand.description ?? undefined,
@@ -61,15 +51,13 @@ export async function prepareImageGenerationSettings(
     rawOutputs: createImageDto.outputs,
   });
 
-  const briefBrandContext = await resolveBriefBrandContext(
-    {
-      brandPromptBranding,
-      createImageDto,
-      organizationId: organizationId,
-      promptBuilderBrand,
-    },
-    dependencies,
-  );
+  // The pinned revision's brand voice, carried on the enhancement receipt.
+  const briefBrandContext = resolveIsGenerationBriefBrandVoiceOn({
+    brandingMode: createImageDto.brandingMode,
+    isBrandingEnabled: createImageDto.isBrandingEnabled,
+  })
+    ? generationHarness.brandVoice
+    : undefined;
 
   return {
     brandPromptBranding,
@@ -80,40 +68,4 @@ export async function prepareImageGenerationSettings(
     outputs,
     briefBrandContext,
   };
-}
-
-async function resolveBriefBrandContext(
-  params: ImageGenerationBriefBrandContextParams,
-  dependencies: ImageGenerationSettingsDependencies,
-): Promise<string | undefined> {
-  const {
-    brandPromptBranding,
-    createImageDto,
-    organizationId,
-    promptBuilderBrand,
-  } = params;
-
-  if (
-    !resolveIsGenerationBriefBrandVoiceOn({
-      brandingMode: createImageDto.brandingMode,
-      isBrandingEnabled: createImageDto.isBrandingEnabled,
-    })
-  ) {
-    return undefined;
-  }
-
-  try {
-    return await resolveGenerationBriefBrandContext({
-      brand: promptBuilderBrand,
-      branding: brandPromptBranding,
-      organizationId,
-      templatesService: dependencies.templatesService,
-    });
-  } catch (error: unknown) {
-    dependencies.loggerService.error(
-      'Failed to resolve brand context for the generation brief; proceeding without it',
-      { error, organizationId },
-    );
-    return undefined;
-  }
 }

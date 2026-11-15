@@ -14,12 +14,7 @@ import type { CaptureMode } from '~models/knowledge-capture.model';
 
 // Extension message types for Remix / Reply / Idea (Knowledge) / Source flows
 
-export type ExtensionMessageType =
-  | 'REMIX'
-  | 'REPLY'
-  | 'IDEA'
-  | 'SOURCE'
-  | 'SETTINGS';
+type ExtensionMessageType = 'REMIX' | 'REPLY' | 'IDEA' | 'SOURCE' | 'SETTINGS';
 
 export interface ExtensionMessage {
   type: ExtensionMessageType;
@@ -32,13 +27,6 @@ export interface ExtensionMessage {
   /** What a SOURCE message asks the panel to capture. */
   sourceCapture?: SourceCaptureRequest;
 }
-
-export type SocialPlatform =
-  | 'twitter'
-  | 'tiktok'
-  | 'linkedin'
-  | 'instagram'
-  | 'youtube';
 
 /** What the page or the side panel sends the background to draft reply options. */
 export interface ReplyVariantsRequest {
@@ -74,7 +62,7 @@ export type TextActionResponse =
   | { success: false; error: string; recovery?: ActionRecovery };
 
 /** The part of a composer a text action reads and later replaces. */
-export type ComposerTextScope = 'selection' | 'draft';
+type ComposerTextScope = 'selection' | 'draft';
 
 /** The composer text captured for a text action; held in the page, never sent as a handle. */
 export interface ComposerTextSnapshot {

@@ -15,7 +15,7 @@ const TIKTOK_VIDEO_ID_PATTERN = /\/video\/(\d+)/;
 const TIKTOK_AUTHOR_VIDEO_ID_PATTERN = /@[^/]+\/video\/(\d+)/;
 const THREADS_POST_ID_PATTERN = /\/post\/([^/?#]+)/;
 
-export interface MediaReplyConfig {
+interface MediaReplyConfig {
   // File input that takes the media once it exists, or after the button is clicked
   fileInput: string;
   image: boolean;
