@@ -49,16 +49,22 @@ locals {
   # shared GENFEEDAI_API_KEY, so applying this before the parameters exist
   # cannot point a task at a missing secret.
   internal_caller_key_secret_names = {
-    discord       = "GENFEEDAI_API_KEY_DISCORD"
     files         = "GENFEEDAI_API_KEY_FILES"
     notifications = "GENFEEDAI_API_KEY_NOTIFICATIONS"
-    slack         = "GENFEEDAI_API_KEY_SLACK"
-    telegram      = "GENFEEDAI_API_KEY_TELEGRAM"
   }
+  # The Discord, Slack and Telegram bots are not deployed on the hosted stack.
+  # Their keys stay out of the recursive SSM injection so no task receives them
+  # while the bots are parked; the API then reads its shared key for those callers.
+  undeployed_caller_key_secret_names = [
+    "GENFEEDAI_API_KEY_DISCORD",
+    "GENFEEDAI_API_KEY_SLACK",
+    "GENFEEDAI_API_KEY_TELEGRAM",
+  ]
   excluded_ssm_secret_names = setunion(
     local.reserved_env_names,
     local.ignored_ssm_secret_names,
     toset(values(local.internal_caller_key_secret_names)),
+    toset(local.undeployed_caller_key_secret_names),
   )
   internal_caller_task_secrets = {
     for caller, secret_name in local.internal_caller_key_secret_names : caller => [
@@ -163,19 +169,15 @@ locals {
   # Cloud Map for internal DNS; api/mcp/notifications are also behind the public
   # ALB. (Tune api/workers cpu up if boot/throughput needs it — these are lean
   # starting points.)
-  # desired=0 keeps the service + task def defined (code stays, flip on anytime)
-  # but runs zero tasks => ~$0. Bots/clipper are built but unused, so they're parked
-  # at 0. Core set (api + its boot-required deps files/mcp/notifications, +
-  # workers) runs at 1.
+  # Core set (api + its boot-required deps files/mcp/notifications, + workers)
+  # runs at 1. The Discord, Slack and Telegram bots are not deployed here; their
+  # code stays in the repository and runs from source or the development compose.
   services = {
     api           = { filter = "@genfeedai/api", port = 3010, cpu = 1024, mem = 2048, alb = true, health_grace = 600, desired = 1 }
     workers       = { filter = "@genfeedai/workers", port = 3013, cpu = 512, mem = 2048, alb = false, health_grace = 600, desired = 1 }
     files         = { filter = "@genfeedai/files", port = 3012, cpu = 512, mem = 2048, alb = false, health_grace = 60, desired = 1 }
     mcp           = { filter = "@genfeedai/mcp", port = 3014, cpu = 256, mem = 512, alb = true, health_grace = 60, desired = 1 }
     notifications = { filter = "@genfeedai/notifications", port = 3011, cpu = 256, mem = 512, alb = true, health_grace = 60, desired = 1 }
-    discord       = { filter = "@genfeedai/discord", port = 3016, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 0 }
-    slack         = { filter = "@genfeedai/slack", port = 3018, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 0 }
-    telegram      = { filter = "@genfeedai/telegram", port = 3019, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 0 }
   }
 }
 
