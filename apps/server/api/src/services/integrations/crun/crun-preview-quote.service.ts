@@ -4,10 +4,7 @@ import { CrunImageInputService } from '@api/collections/images/services/crun-ima
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { CacheService } from '@api/services/cache/cache.service';
-import {
-  type CrunConsumedQuoteOf,
-  CrunPreviewQuoteLifecycle,
-} from '@api/services/integrations/crun/crun-preview-quote-lifecycle';
+import { CrunPreviewQuoteLifecycle } from '@api/services/integrations/crun/crun-preview-quote-lifecycle';
 import { CrunQuoteService } from '@api/services/integrations/crun/crun-quote.service';
 import type { CrunFrozenImageQuote } from '@api/services/integrations/crun/crun-task.schema';
 import { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
@@ -15,8 +12,6 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
-
-export type CrunConsumedQuote = CrunConsumedQuoteOf<CrunFrozenImageQuote>;
 
 @Traced()
 @Injectable()

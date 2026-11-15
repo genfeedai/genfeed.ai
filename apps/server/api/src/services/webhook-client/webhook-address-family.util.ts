@@ -1,12 +1,8 @@
-export function isIpv4LookupFamily(
-  family: number | string | undefined,
-): boolean {
+function isIpv4LookupFamily(family: number | string | undefined): boolean {
   return family === 4 || family === 'IPv4';
 }
 
-export function isIpv6LookupFamily(
-  family: number | string | undefined,
-): boolean {
+function isIpv6LookupFamily(family: number | string | undefined): boolean {
   return family === 6 || family === 'IPv6';
 }
 

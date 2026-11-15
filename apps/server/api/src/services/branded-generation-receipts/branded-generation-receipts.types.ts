@@ -43,7 +43,7 @@ export type BrandedGenerationPromptReadV1 =
         | 'prompt_payload_purged'
         | 'prompt_integrity_failed';
     };
-export type BrandedGenerationPromptFormatV1 =
+type BrandedGenerationPromptFormatV1 =
   | 'genfeed.branded-generation-prompt.v1'
   | 'genfeed.branded-generation-compiled.v1';
 export type BrandedGenerationCompiledReadV1 =

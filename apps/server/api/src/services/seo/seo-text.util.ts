@@ -52,7 +52,7 @@ export function splitSentences(text: string): string[] {
 }
 
 /** Estimate syllables in a single word (heuristic, English). */
-export function countSyllablesInWord(word: string): number {
+function countSyllablesInWord(word: string): number {
   const normalised = word.toLowerCase().replace(NON_LETTERS_PATTERN, '');
   if (!normalised) {
     return 0;

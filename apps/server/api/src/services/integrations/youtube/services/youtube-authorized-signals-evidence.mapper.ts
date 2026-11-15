@@ -107,7 +107,7 @@ export type PlatformEvidenceKey = Exclude<
   'genfeed-publish-outcomes-observed'
 >;
 
-export function readHttpUrl(value: unknown): string | undefined {
+function readHttpUrl(value: unknown): string | undefined {
   const candidate = readString(value);
   if (!candidate) {
     return undefined;
@@ -121,7 +121,7 @@ export function readHttpUrl(value: unknown): string | undefined {
   }
 }
 
-export function readBoolean(value: unknown): boolean | undefined {
+function readBoolean(value: unknown): boolean | undefined {
   return typeof value === 'boolean' ? value : undefined;
 }
 

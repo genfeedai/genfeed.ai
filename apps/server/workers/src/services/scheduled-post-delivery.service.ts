@@ -39,15 +39,11 @@ import {
   isAmbiguousPublishError,
   isRetryablePublishError,
 } from '@workers/crons/posts/post-publish-error.util';
+import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 import {
-  PUBLISH_OUTCOME_UNCONFIRMED_CODE,
-  PUBLISH_OUTCOME_UNVERIFIED_CODE,
-  SCHEDULED_POST_RETRY_BACKOFF_SECONDS,
-  SCHEDULED_POST_UNVERIFIED_BACKOFF_SECONDS,
-  SCHEDULED_POST_VERIFICATION_BACKOFF_SECONDS,
-  SCHEDULED_POST_VERIFICATION_WINDOW_SECONDS,
-} from '@workers/services/scheduled-post.constants';
-import { readPostString } from '@workers/services/scheduled-post.utils';
+  readPostString,
+  resolveUnverifiedDeferral,
+} from '@workers/services/scheduled-post.utils';
 import { loadScheduledActionPost } from '@workers/services/scheduled-post-action-load.util';
 import type {
   DeliveryGateFailure,
@@ -470,18 +466,8 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     workflowExecutionId: string,
   ): Promise<PublishResult> {
     const now = new Date();
-    const isWindowExpired =
-      now.getTime() - attemptStartedAt.getTime() >=
-      SCHEDULED_POST_VERIFICATION_WINDOW_SECONDS * 1000;
-    const message = isWindowExpired
-      ? 'Provider publish outcome could not be verified within the verification window; operator review needed.'
-      : 'Provider publish outcome is not confirmed yet; verification will retry.';
-    const backoffSeconds = isWindowExpired
-      ? SCHEDULED_POST_UNVERIFIED_BACKOFF_SECONDS
-      : SCHEDULED_POST_VERIFICATION_BACKOFF_SECONDS;
-    const code = isWindowExpired
-      ? PUBLISH_OUTCOME_UNVERIFIED_CODE
-      : PUBLISH_OUTCOME_UNCONFIRMED_CODE;
+    const { backoffSeconds, code, isWindowExpired, message } =
+      resolveUnverifiedDeferral(attemptStartedAt, now);
 
     this.logger.warn(`${this.constructorName} deferring unverified publish`, {
       code,
@@ -490,7 +476,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     });
     // Discovery re-queues PUBLISHING posts once lastAttemptAt is older than the
     // retry backoff; date it ahead so the verification backoff applies instead.
-    await this.persistPublishState(
+    const persisted = await this.persistPublishState(
       post,
       {
         error: createChannelTargetError(code, message, true),
@@ -507,6 +493,12 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         priorExecutionStates: [TargetExecutionState.PUBLISHING],
       },
     );
+    if (isWindowExpired && persisted) {
+      await this.postFailureService.notifyPublishUnverified(
+        post,
+        attemptStartedAt,
+      );
+    }
     return {
       ...createFailedPublishResult('', message),
       executionState: TargetExecutionState.PUBLISHING,

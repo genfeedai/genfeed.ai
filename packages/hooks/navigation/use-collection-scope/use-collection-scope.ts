@@ -1,7 +1,7 @@
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { usePageScope } from '@hooks/navigation/use-page-scope/use-page-scope';
 
-export type CollectionListScope = 'org' | 'brand';
+type CollectionListScope = 'org' | 'brand';
 
 export type CollectionScope = {
   /** Present only when a brand is selected in the URL. */

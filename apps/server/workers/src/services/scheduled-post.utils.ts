@@ -1,4 +1,11 @@
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
+import {
+  PUBLISH_OUTCOME_UNCONFIRMED_CODE,
+  PUBLISH_OUTCOME_UNVERIFIED_CODE,
+  SCHEDULED_POST_UNVERIFIED_BACKOFF_SECONDS,
+  SCHEDULED_POST_VERIFICATION_BACKOFF_SECONDS,
+  SCHEDULED_POST_VERIFICATION_WINDOW_SECONDS,
+} from '@workers/services/scheduled-post.constants';
 
 export function readPostString(
   post: PostEntity,
@@ -19,4 +26,40 @@ export function readPostString(
   }
 
   return undefined;
+}
+
+type UnverifiedDeferral = {
+  backoffSeconds: number;
+  code: string;
+  isWindowExpired: boolean;
+  message: string;
+};
+
+/**
+ * How an occurrence whose provider outcome is unknown is deferred: short
+ * verification backoff inside the window, an operator-visible error and the
+ * slow backoff once it passed.
+ */
+export function resolveUnverifiedDeferral(
+  attemptStartedAt: Date,
+  now: Date,
+): UnverifiedDeferral {
+  const isWindowExpired =
+    now.getTime() - attemptStartedAt.getTime() >=
+    SCHEDULED_POST_VERIFICATION_WINDOW_SECONDS * 1000;
+  return isWindowExpired
+    ? {
+        backoffSeconds: SCHEDULED_POST_UNVERIFIED_BACKOFF_SECONDS,
+        code: PUBLISH_OUTCOME_UNVERIFIED_CODE,
+        isWindowExpired,
+        message:
+          'Provider publish outcome could not be verified within the verification window; operator review needed.',
+      }
+    : {
+        backoffSeconds: SCHEDULED_POST_VERIFICATION_BACKOFF_SECONDS,
+        code: PUBLISH_OUTCOME_UNCONFIRMED_CODE,
+        isWindowExpired,
+        message:
+          'Provider publish outcome is not confirmed yet; verification will retry.',
+      };
 }

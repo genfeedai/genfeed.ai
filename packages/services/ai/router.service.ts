@@ -19,7 +19,7 @@ export interface SelectModelRequest {
   outputs?: number;
 }
 
-export interface PromptAnalysis {
+interface PromptAnalysis {
   complexity: 'simple' | 'medium' | 'complex';
   keywords: string[];
   hasSpecificStyle: boolean;

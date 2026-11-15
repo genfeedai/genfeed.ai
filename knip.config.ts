@@ -148,6 +148,8 @@ const config: KnipConfig = {
         '*.webpack.config.cjs',
         'vitest.learning-runtime.config.ts',
         'src/seeds/*.entrypoint.ts',
+        // Run by hand with bun (see the usage note in the script); nothing imports it.
+        'scripts/run-schnell-ablation.ts',
         // `scripts/check-serializer-drift.ts` globs these to match each
         // Prisma-backed schema with its serializer. Nothing imports them.
         'src/**/schemas/*.schema.ts',

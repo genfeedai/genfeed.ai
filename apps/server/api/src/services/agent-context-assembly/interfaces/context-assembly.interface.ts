@@ -86,7 +86,7 @@ export type AssembledContextLayerName =
  * source id, version id, title, kind, purpose and URL — every entry here was
  * matched to a live, visible, non-deleted Knowledge source.
  */
-export interface AssembledRagEntry {
+interface AssembledRagEntry {
   citation: KnowledgeRetrievalCitation;
   content: string;
   relevance: number;
@@ -97,7 +97,7 @@ export interface AssembledRagEntry {
  * active brand (or shared organization-wide) reach this list; `citation`
  * carries the source id, version id, title, kind and purpose.
  */
-export interface AssembledBrandKnowledgeEntry {
+interface AssembledBrandKnowledgeEntry {
   citation: KnowledgeRetrievalCitation;
   /** Passage exactly as rendered into the prompt (normalized, capped). */
   content: string;

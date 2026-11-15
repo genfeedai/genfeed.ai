@@ -1,4 +1,4 @@
-export interface InlineFieldOption {
+interface InlineFieldOption {
   label: string;
   value: string;
 }
@@ -9,7 +9,7 @@ interface InlineFieldBase {
   isDisabled?: boolean;
 }
 
-export interface InlineTextFieldEditor extends InlineFieldBase {
+interface InlineTextFieldEditor extends InlineFieldBase {
   kind: 'text';
   isMultiline?: boolean;
   isRequired?: boolean;

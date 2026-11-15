@@ -6,6 +6,7 @@ import type {
   BrandIdentitySnapshotV1,
 } from '../../api-types/contracts/branded-generation.contract';
 
+export type { BrandVideoRulesV1 } from '../../api-types/contracts/brand-video-rules.contract';
 export type {
   BrandApprovedLiteralV1,
   BrandArtifactValidationCheckV1,

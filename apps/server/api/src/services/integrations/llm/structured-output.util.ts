@@ -12,7 +12,7 @@ import { type ZodType, z } from 'zod';
  * final) attempt, and the raw text the model produced on the first, so a
  * provider adapter can append both to its own message list.
  */
-export type StructuredCompletionAttempt = (repair?: {
+type StructuredCompletionAttempt = (repair?: {
   instruction: string;
   previousRaw: string;
 }) => Promise<string | null>;
@@ -171,7 +171,7 @@ export function buildStructuredResponseFormat(
   return { json_schema: spec, type: 'json_schema' };
 }
 
-export function toStructuredOutputIssues(
+function toStructuredOutputIssues(
   error: z.ZodError,
 ): ILlmStructuredOutputIssue[] {
   return error.issues.map((issue) => ({
@@ -185,7 +185,7 @@ export function toStructuredOutputIssues(
  * The repair turn. Names every failing field so the second attempt is a
  * correction rather than a re-roll of the same prompt.
  */
-export function buildRepairInstruction(
+function buildRepairInstruction(
   schemaName: string,
   issues: ILlmStructuredOutputIssue[],
 ): string {

@@ -35,7 +35,7 @@ function isOfferableSkill(skill: Skill): boolean {
   return skill.isEnabled !== false && skill.status !== 'disabled';
 }
 
-export function toSkillCommand(skill: Skill): PromptCommand {
+function toSkillCommand(skill: Skill): PromptCommand {
   return {
     description: skill.description,
     iconKey: skill.category,

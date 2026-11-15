@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 /** Name logged for a run whose entry point did not name itself. */
-export const UNATTRIBUTED_APIFY_CALLER = 'unattributed';
+const UNATTRIBUTED_APIFY_CALLER = 'unattributed';
 
 const storage = new AsyncLocalStorage<string>();
 

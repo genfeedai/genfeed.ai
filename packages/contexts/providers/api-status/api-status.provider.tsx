@@ -9,14 +9,13 @@ import { RefreshCw, TriangleAlert } from 'lucide-react';
 import {
   createContext,
   type ReactNode,
-  use,
   useCallback,
   useEffect,
   useMemo,
   useState,
 } from 'react';
 
-export type ApiStatus = 'checking' | 'connected' | 'error';
+type ApiStatus = 'checking' | 'connected' | 'error';
 
 interface ApiHealthCacheEntry {
   endpoint: string;
@@ -35,14 +34,6 @@ const ApiStatusContext = createContext<ApiStatusContextValue | null>(null);
 const API_HEALTH_CACHE_TTL_MS = 60_000;
 
 let lastApiHealthCheck: ApiHealthCacheEntry | null = null;
-
-export function useApiStatus(): ApiStatusContextValue {
-  const context = use(ApiStatusContext);
-  if (!context) {
-    throw new Error('useApiStatus must be used within ApiStatusProvider');
-  }
-  return context;
-}
 
 interface ApiStatusProviderProps {
   children: ReactNode;

@@ -103,27 +103,6 @@ export const CRUN_VIDEO_MANIFEST = [
   },
 ] as const;
 
-// Compile-time guard: every model key has exactly one manifest entry.
-type CrunManifestKeysMatch<
-  Keys extends string,
-  Entries extends { key: string },
-> = [Exclude<Keys, Entries['key']>, Exclude<Entries['key'], Keys>] extends [
-  never,
-  never,
-]
-  ? true
-  : never;
-export const CRUN_MANIFEST_KEYS_MATCH: [
-  CrunManifestKeysMatch<
-    (typeof CRUN_IMAGE_MODEL_KEYS)[number],
-    (typeof CRUN_IMAGE_MANIFEST)[number]
-  >,
-  CrunManifestKeysMatch<
-    (typeof CRUN_VIDEO_MODEL_KEYS)[number],
-    (typeof CRUN_VIDEO_MANIFEST)[number]
-  >,
-] = [true, true];
-
 export const CRUN_MODEL_MANIFEST = [
   ...CRUN_IMAGE_MANIFEST,
   ...CRUN_VIDEO_MANIFEST,

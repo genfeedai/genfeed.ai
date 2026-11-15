@@ -12,7 +12,7 @@ export const SIGNUP_PREFILL_ACTION_IDS = {
   SCRAPE: 'signup.prefill.scrape',
 } as const;
 
-export const SIGNUP_PREFILL_WORKFLOW_ID = 'signup.prefill';
+const SIGNUP_PREFILL_WORKFLOW_ID = 'signup.prefill';
 
 export function buildSignupPrefillWorkflowDefinition(): SystemWorkflowGraphDefinition {
   const stepIds = [

@@ -38,7 +38,7 @@ const AUDIO_CONTENT_TYPES: readonly string[] = [
   'audio/x-wav',
 ];
 
-export interface PresignedUploadPolicy {
+interface PresignedUploadPolicy {
   readonly allowedContentTypes: readonly string[];
   readonly maxBytes: number;
 }
@@ -73,7 +73,7 @@ const POLICY_BY_CATEGORY: Readonly<
 };
 
 /** Policy for a category, or `undefined` when it cannot be uploaded directly. */
-export function resolvePresignedUploadPolicy(
+function resolvePresignedUploadPolicy(
   category: IngredientCategory,
 ): PresignedUploadPolicy | undefined {
   return POLICY_BY_CATEGORY[category];
@@ -88,7 +88,7 @@ export function isAudioCategory(category: IngredientCategory): boolean {
   return resolvePresignedUploadPolicy(category) === AUDIO_POLICY;
 }
 
-export function normalizeUploadContentType(contentType: unknown): string {
+function normalizeUploadContentType(contentType: unknown): string {
   return typeof contentType === 'string'
     ? (contentType.split(';')[0]?.trim().toLowerCase() ?? '')
     : '';

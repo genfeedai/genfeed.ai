@@ -1279,6 +1279,19 @@ describe('channel message delivery (#5197)', () => {
       },
       {
         payload: {
+          event: 'publish_unverified',
+          kind: 'alert_email',
+          label: 'Shipped the weekly batch',
+          summary:
+            'We could not confirm whether this post went out to twitter. It may already be live. Check your twitter account before posting it again.',
+          version: 1,
+        },
+        subject: 'Check this post before reposting: Shipped the weekly batch',
+        text: 'Check this post before reposting: Shipped the weekly batch\nWe could not confirm whether this post went out to twitter. It may already be live. Check your twitter account before posting it again.',
+        topic: 'publishing.status',
+      },
+      {
+        payload: {
           event: 'channel_disconnected',
           kind: 'alert_email',
           label: '@vincentshipsit',

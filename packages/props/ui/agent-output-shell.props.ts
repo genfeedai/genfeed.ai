@@ -11,12 +11,12 @@ export interface AgentOutputTabDefinition {
  * render, the final file. It docks on wide screens only; below that the page
  * keeps its own inline version, so nothing is lost on a laptop or phone.
  */
-export interface AgentOutputPreviewDefinition {
+interface AgentOutputPreviewDefinition {
   readonly content: ReactNode;
   readonly label: string;
 }
 
-export interface AgentOutputLayoutLabels {
+interface AgentOutputLayoutLabels {
   readonly agent: string;
   readonly collapseOutput: string;
   readonly expandOutput: string;

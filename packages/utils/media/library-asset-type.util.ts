@@ -17,11 +17,7 @@ export type LibraryAssetTypeId =
   | 'text'
   | 'model3d';
 
-export type LibraryAssetBadgeVariant =
-  | 'default'
-  | 'info'
-  | 'success'
-  | 'warning';
+type LibraryAssetBadgeVariant = 'default' | 'info' | 'success' | 'warning';
 
 export interface LibraryAssetType {
   readonly badgeVariant: LibraryAssetBadgeVariant;

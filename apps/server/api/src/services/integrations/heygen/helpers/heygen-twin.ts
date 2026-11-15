@@ -17,18 +17,13 @@ import { z } from 'zod';
 // Contracts: developers.heygen.com/docs/avatar-from-video.md, /docs/avatar-consent.md,
 // /docs/direct-upload.md and /reference/get-avatar-look.md (read 2026-11-08).
 
-/** Training footage the provider accepts: 15 s to 10 min of mp4 or webm. */
-export const HEYGEN_TWIN_FOOTAGE_MIN_SECONDS = 15;
-export const HEYGEN_TWIN_FOOTAGE_MAX_SECONDS = 600;
-export const HEYGEN_TWIN_FOOTAGE_CONTENT_TYPES = [
+const HEYGEN_TWIN_FOOTAGE_CONTENT_TYPES = [
   'video/mp4',
   'video/webm',
   'video/quicktime',
 ] as const;
 /** Direct upload caps video at 200 MB; the simple endpoints stop at 50 MB. */
-export const HEYGEN_DIRECT_UPLOAD_VIDEO_MAX_BYTES = 200 * 1024 * 1024;
-/** A consent video longer than this is rejected by the provider. */
-export const HEYGEN_CONSENT_VIDEO_MAX_SECONDS = 35;
+const HEYGEN_DIRECT_UPLOAD_VIDEO_MAX_BYTES = 200 * 1024 * 1024;
 /** The consent link the provider returns stays valid for 24 hours. */
 export const HEYGEN_CONSENT_LINK_TTL_MS = 24 * 60 * 60 * 1000;
 export const HEYGEN_TWIN_REQUEST_TIMEOUT_MS = 30_000;
@@ -152,14 +147,12 @@ const KNOWN_STATUSES: readonly HeyGenTwinStatus[] = [
  * twin that only happens before it is processed, so it reads as `processing`
  * rather than as ready.
  */
-export function toTwinStatus(
-  value: string | null | undefined,
-): HeyGenTwinStatus {
+function toTwinStatus(value: string | null | undefined): HeyGenTwinStatus {
   const status = value?.trim().toLowerCase();
   return KNOWN_STATUSES.find((known) => known === status) ?? 'processing';
 }
 
-export function toConsentStatus(
+function toConsentStatus(
   value: string | null | undefined,
 ): HeyGenConsentStatus | null {
   const status = value?.trim().toLowerCase();
@@ -203,16 +196,13 @@ export function toTwinGroup(
 // (read 2026-11-08).
 
 /** Inline (base64) audio the provider accepts for an instant clone. */
-export const HEYGEN_VOICE_SAMPLE_CONTENT_TYPES = [
-  'audio/wav',
-  'audio/mpeg',
-] as const;
+const HEYGEN_VOICE_SAMPLE_CONTENT_TYPES = ['audio/wav', 'audio/mpeg'] as const;
 /** Inline audio is capped at 16 MB after decoding. */
-export const HEYGEN_VOICE_SAMPLE_MAX_BYTES = 16 * 1000 * 1000;
+const HEYGEN_VOICE_SAMPLE_MAX_BYTES = 16 * 1000 * 1000;
 /** The provider names a voice with at most 64 characters. */
 export const HEYGEN_VOICE_NAME_MAX_LENGTH = 64;
 
-export type HeyGenVoiceStatus = 'pending' | 'active' | 'failed';
+type HeyGenVoiceStatus = 'pending' | 'active' | 'failed';
 
 export interface HeyGenClonedVoice {
   failureReason: string | null;

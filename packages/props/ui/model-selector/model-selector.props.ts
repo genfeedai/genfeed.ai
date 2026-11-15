@@ -42,7 +42,7 @@ export interface ModelSelectorFilter {
 }
 
 /** Optional generation kind shown inside the same picker as model routing. */
-export interface ModelSelectorContextOption {
+interface ModelSelectorContextOption {
   description?: string;
   icon?: IconType;
   label: string;

@@ -19,7 +19,7 @@ import { Injectable } from '@nestjs/common';
  * (`agent-untrusted-content-gate.service.ts`) and reply-bot intent
  * (`reply-intent-classifier.service.ts`) — neither is touched here.
  */
-export const AGENT_AUTO_ROUTING_DECISION_POINT = 'agent.auto_routing_candidate';
+const AGENT_AUTO_ROUTING_DECISION_POINT = 'agent.auto_routing_candidate';
 
 @Traced()
 @Injectable()

@@ -7,7 +7,7 @@ import { isBlockedDestinationAddress } from '@libs/security/destination-guard';
 
 const BLOCKED_HOSTNAMES = new Set(['localhost']);
 
-export interface ValidatedWebhookAddress {
+interface ValidatedWebhookAddress {
   address: string;
   family: 4 | 6;
 }

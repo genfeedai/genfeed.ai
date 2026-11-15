@@ -1,13 +1,11 @@
-import {
+import type {
   ButtonSize,
   ButtonVariant,
-  type DropdownDirection,
+  DropdownDirection,
 } from '@genfeedai/contracts';
 import type { ButtonHTMLAttributes, MouseEvent, ReactNode } from 'react';
 
-export { ButtonSize, ButtonVariant };
-
-export interface ButtonDropdownOption {
+interface ButtonDropdownOption {
   value: string;
   label: string;
   icon?: ReactNode;

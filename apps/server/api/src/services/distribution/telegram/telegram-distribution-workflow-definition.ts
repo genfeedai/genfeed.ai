@@ -7,8 +7,7 @@ export const TELEGRAM_DISTRIBUTION_ACTION_IDS = {
   RESOLVE_CREDENTIAL: 'telegram.distribution.resolve-credential',
   SEND: 'telegram.distribution.send',
 } as const;
-export const TELEGRAM_DISTRIBUTION_WORKFLOW_ID =
-  'telegram.distribution.delivery';
+const TELEGRAM_DISTRIBUTION_WORKFLOW_ID = 'telegram.distribution.delivery';
 
 export function buildTelegramDistributionWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {

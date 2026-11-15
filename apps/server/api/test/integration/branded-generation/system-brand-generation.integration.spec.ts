@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
+import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { SystemBrandService } from '@api/collections/brands/services/system-brand.service';
 import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-workflow.contract';
 import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
@@ -177,7 +178,11 @@ describe.each([true, false])(
       const access = new BrandedGenerationReceiptAccessService(
         new BrandAccessService(db),
       );
-      const revisions = new BrandOsRevisionsService(db, {} as never);
+      const revisions = new BrandOsRevisionsService(
+        db,
+        {} as never,
+        new BrandWatermarkLogoService(db),
+      );
       const resolver = new BrandedModeResolverService(
         revisions,
         new BrandAccessService(db),

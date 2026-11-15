@@ -62,7 +62,7 @@ export interface AnalyzePerformanceOptions {
   topN?: number;
 }
 
-export interface ContentRecommendation {
+interface ContentRecommendation {
   category: string;
   recommendation: string;
   priority: 'high' | 'medium' | 'low';
@@ -94,15 +94,15 @@ export interface OptimizationRecommendations {
   validatedAbTests: AbTestOutcome[];
 }
 
-export interface TimingSuggestionPayload {
+interface TimingSuggestionPayload {
   preferredTime: string;
 }
 
-export interface FormatSuggestionPayload {
+interface FormatSuggestionPayload {
   preferredFormat: string;
 }
 
-export interface HookSuggestionPayload {
+interface HookSuggestionPayload {
   hook: string;
 }
 
@@ -120,7 +120,7 @@ export interface OptimizationSuggestion {
   payload: OptimizationSuggestionPayload;
 }
 
-export type AutoApplyStatus =
+type AutoApplyStatus =
   | 'applied'
   | 'not_found'
   | 'below_threshold'

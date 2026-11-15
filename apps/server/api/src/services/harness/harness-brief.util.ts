@@ -135,7 +135,7 @@ const resolvePlatformOverride = (
   return null;
 };
 
-export const buildHarnessVoiceProfile = (
+const buildHarnessVoiceProfile = (
   brand: BrandSource,
   platform?: string,
 ): HarnessVoiceProfile | undefined => {
@@ -162,7 +162,7 @@ export const buildHarnessVoiceProfile = (
   };
 };
 
-export const buildHarnessPersonaProfile = (
+const buildHarnessPersonaProfile = (
   persona?: PersonaSource | null,
 ): HarnessPersonaProfile | undefined => {
   if (!persona) {

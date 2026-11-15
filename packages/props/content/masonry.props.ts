@@ -41,7 +41,7 @@ export interface MasonryTransformActions {
 /**
  * Base masonry props shared between image and video components
  */
-export interface BaseMasonryProps<T extends IIngredient = IIngredient> {
+interface BaseMasonryProps<T extends IIngredient = IIngredient> {
   /** Surface-specific asset name, separate from the provider prompt. */
   accessibleLabel?: string;
   isSelected?: boolean;

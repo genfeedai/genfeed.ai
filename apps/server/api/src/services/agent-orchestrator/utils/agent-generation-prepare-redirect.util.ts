@@ -156,7 +156,7 @@ function toVisualMediaType(
   return mode === AgentGenerationMode.VIDEO ? 'video' : 'image';
 }
 
-export function resolveVisualGenerationType(
+function resolveVisualGenerationType(
   toolName: string,
   options: GenerationRedirectOptions,
 ): VisualMediaGenerationType | undefined {

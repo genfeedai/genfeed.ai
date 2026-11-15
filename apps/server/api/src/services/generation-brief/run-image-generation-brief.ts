@@ -64,7 +64,7 @@ const IMAGE_TASK_MODEL_KEYS: Record<string, string> = {
   [ImageTaskModel.SDXL]: MODEL_KEYS.SDXL,
 };
 
-export function resolveImageGenerationBriefModelKey(model: string): string {
+function resolveImageGenerationBriefModelKey(model: string): string {
   return IMAGE_TASK_MODEL_KEYS[model] ?? model;
 }
 

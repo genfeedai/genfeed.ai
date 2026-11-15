@@ -62,17 +62,6 @@ import {
   readNonNegativeInteger,
 } from './linkedin-authorized-signals-evidence.mapper';
 
-export {
-  LINKEDIN_EMAIL_SCOPE,
-  LINKEDIN_MEMBER_POSTS_SCOPE,
-  LINKEDIN_MEMBER_PUBLISH_SCOPE,
-  LINKEDIN_OPENID_SCOPE,
-  LINKEDIN_ORG_ADMIN_SCOPE,
-  LINKEDIN_ORG_PUBLISH_SCOPE,
-  LINKEDIN_ORG_READ_SCOPE,
-  LINKEDIN_PROFILE_SCOPE,
-} from './linkedin-authorized-signals-evidence.mapper';
-
 const LINKEDIN_ORGANIZATION_URN_PATTERN = /urn:li:organization:(\d+)/;
 
 const LINKEDIN_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS = 5 * 60;

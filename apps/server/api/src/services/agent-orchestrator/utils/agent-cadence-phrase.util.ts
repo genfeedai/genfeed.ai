@@ -57,9 +57,7 @@ function to24Hour(params: {
   return { hour, minute };
 }
 
-export function extractTimezoneFromMessage(
-  content: string,
-): string | undefined {
+function extractTimezoneFromMessage(content: string): string | undefined {
   const ianaMatch = content.match(IANA_TIMEZONE_PATTERN);
   if (ianaMatch?.[1]) {
     return ianaMatch[1];

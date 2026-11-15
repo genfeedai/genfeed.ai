@@ -31,10 +31,6 @@ export interface ApifyActorRunResponse {
   data: ApifyActorRun;
 }
 
-export interface ApifyDatasetItem {
-  [key: string]: unknown;
-}
-
 /**
  * An Apify account (hosted token or a single organization's BYOK token) that
  * exhausted its plan usage. Every further call fails identically until the
@@ -43,10 +39,6 @@ export interface ApifyDatasetItem {
 export interface ApifyAccountLimitSuspension {
   reason: string;
   suspendedUntilMs: number;
-}
-
-export interface ApifyDatasetResponse<T = ApifyDatasetItem> {
-  data: T[];
 }
 
 export interface TrendOptions {
@@ -95,16 +87,6 @@ export interface ApifyTikTokTrend {
   coverUrl?: string;
   createTime?: number;
   isCommerce?: boolean;
-}
-
-export interface ApifyTikTokSound {
-  id: string;
-  title: string;
-  authorName?: string;
-  coverUrl?: string;
-  playUrl?: string;
-  duration?: number;
-  videoCount?: number;
 }
 
 export interface ApifyTikTokVideo {
@@ -275,7 +257,7 @@ export interface ApifyPinterestPin {
   };
 }
 
-export interface ApifyPinterestImage {
+interface ApifyPinterestImage {
   url?: string;
 }
 
@@ -380,22 +362,6 @@ export interface ApifyNormalizedInstagramComment {
 }
 
 /**
- * Instagram user profile from Apify
- */
-export interface ApifyInstagramUser {
-  id: string;
-  username: string;
-  fullName?: string;
-  biography?: string;
-  profilePicUrl?: string;
-  followersCount?: number;
-  followingCount?: number;
-  postsCount?: number;
-  isVerified?: boolean;
-  isPrivate?: boolean;
-}
-
-/**
  * Raw TikTok comment data from Apify scraper
  */
 export interface ApifyTikTokComment {
@@ -435,22 +401,6 @@ export interface ApifyNormalizedTikTokComment {
 }
 
 /**
- * TikTok user profile from Apify
- */
-export interface ApifyTikTokUser {
-  id: string;
-  uniqueId: string;
-  nickname?: string;
-  avatarThumb?: string;
-  signature?: string;
-  verified?: boolean;
-  followersCount?: number;
-  followingCount?: number;
-  heartCount?: number;
-  videoCount?: number;
-}
-
-/**
  * Raw YouTube comment data from Apify scraper
  */
 export interface ApifyYouTubeComment {
@@ -483,18 +433,4 @@ export interface ApifyNormalizedYouTubeComment {
     likes: number;
     replies: number;
   };
-}
-
-/**
- * YouTube channel data from Apify
- */
-export interface ApifyYouTubeChannel {
-  id: string;
-  title: string;
-  description?: string;
-  thumbnailUrl?: string;
-  subscriberCount?: number;
-  videoCount?: number;
-  viewCount?: number;
-  customUrl?: string;
 }

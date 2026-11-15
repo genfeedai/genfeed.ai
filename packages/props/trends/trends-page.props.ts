@@ -48,13 +48,9 @@ export interface TrendsResponse {
   trends: TrendItem[];
 }
 
-export type TrendCorpusFreshnessStatus =
-  | 'degraded'
-  | 'empty'
-  | 'healthy'
-  | 'stale';
+type TrendCorpusFreshnessStatus = 'degraded' | 'empty' | 'healthy' | 'stale';
 
-export interface TrendCorpusFreshnessSegment {
+interface TrendCorpusFreshnessSegment {
   id: string;
   latestSeenAt?: string;
   platform: string;
@@ -62,7 +58,7 @@ export interface TrendCorpusFreshnessSegment {
   status: TrendCorpusFreshnessStatus;
 }
 
-export interface TrendCorpusFreshnessProviderFailure {
+interface TrendCorpusFreshnessProviderFailure {
   affectedTrendCount: number;
   latestObservedAt?: string;
   message: string;
@@ -100,14 +96,14 @@ export interface RefreshTrendsResponse {
   count: number;
 }
 
-export type TrendSourceConfidence = 'high' | 'low' | 'medium';
+type TrendSourceConfidence = 'high' | 'low' | 'medium';
 
-export type TrendSourceIntendedUse =
+type TrendSourceIntendedUse =
   | 'evergreen_prompt_context'
   | 'organic_trend_discovery'
   | 'paid_creative_analysis';
 
-export type TrendSourceKind =
+type TrendSourceKind =
   | 'manual_curated_reference'
   | 'owned_brand_reference'
   | 'paid_creative_reference'
@@ -158,29 +154,6 @@ export interface TrendContentItem {
 export interface TrendContentResponse {
   summary: TrendsSummary;
   items: TrendContentItem[];
-}
-
-export interface TrendsPageProps {
-  className?: string;
-}
-
-export interface TrendsState {
-  trends: TrendItem[];
-  summary: TrendsSummary | null;
-  isLoading: boolean;
-  error: string | null;
-  isRefreshing: boolean;
-}
-
-export interface SummaryCardProps {
-  label: string;
-  value: string;
-  detail: string;
-  icon: React.ReactNode;
-}
-
-export interface TrendCardProps {
-  trend: TrendItem;
 }
 
 export interface TrendDetailData {

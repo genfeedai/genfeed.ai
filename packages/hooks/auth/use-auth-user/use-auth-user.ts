@@ -10,9 +10,9 @@ import { useMemo } from 'react';
 
 const WHITESPACE_RUN_PATTERN = /\s+/;
 
-export type AuthPublicMetadata = Partial<IAuthPublicData>;
+type AuthPublicMetadata = Partial<IAuthPublicData>;
 
-export interface AuthPrimaryEmailAddress {
+interface AuthPrimaryEmailAddress {
   emailAddress: string | null;
 }
 
