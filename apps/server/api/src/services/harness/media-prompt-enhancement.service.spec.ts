@@ -73,10 +73,12 @@ function setup(enabled = true) {
     preview: vi.fn().mockResolvedValue({
       revisionId: 'revision-approved',
       revisionVersion: 3,
+      generationRules: {},
       identity: { name: 'Brand' },
       voice: SNAPSHOT_VOICE,
     }),
     previewProvisional: vi.fn().mockResolvedValue({
+      generationRules: {},
       identity: { name: 'Brand' },
       revisionId: 'revision-draft',
       revisionVersion: 4,
@@ -695,6 +697,7 @@ describe('MediaPromptEnhancementService', () => {
   it('records the approved revision brand voice, without hashtags or taglines', async () => {
     const { service, snapshots } = setup();
     snapshots.preview.mockResolvedValue({
+      generationRules: {},
       identity: { name: 'Acme' },
       revisionId: 'revision-approved',
       revisionVersion: 3,
@@ -709,6 +712,34 @@ describe('MediaPromptEnhancementService', () => {
     const receipt = await service.enhance({ ...input, contentType: 'video' });
     expect(receipt.brandVoice).toBe(
       'Brand voice for Acme:\nTone: warm\nAudience: founders',
+    );
+  });
+
+  it('tells the enhancer how the approved brand moves in video', async () => {
+    const { service, harness, snapshots } = setup();
+    harness.resolveBrief.mockResolvedValue({
+      appliedPacks: [],
+      guardrails: [],
+      metadata: { contentType: 'video' },
+      sources: [],
+      styleDirectives: [],
+      systemDirectives: [],
+    });
+    snapshots.preview.mockResolvedValue({
+      generationRules: {
+        video: {
+          pacing: { tempo: 'fast' },
+          shotRules: [{ text: 'Open on the product.' }],
+        },
+      },
+      identity: { name: 'Brand' },
+      revisionId: 'revision-approved',
+      revisionVersion: 3,
+      voice: SNAPSHOT_VOICE,
+    });
+    const receipt = await service.enhance({ ...input, contentType: 'video' });
+    expect(receipt.enhancerBrief).toContain(
+      'Pacing: fast.\nShots:\n- Open on the product.',
     );
   });
 
@@ -789,6 +820,7 @@ describe('MediaPromptEnhancementService', () => {
           preview: vi.fn().mockResolvedValue({
             revisionId: 'revision-approved',
             revisionVersion: 1,
+            generationRules: {},
             identity: { name: 'Brand' },
             voice: SNAPSHOT_VOICE,
           }),
