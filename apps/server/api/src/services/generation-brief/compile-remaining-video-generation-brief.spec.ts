@@ -1150,4 +1150,57 @@ describe('compileRemainingVideoGenerationBrief', () => {
       }),
     ).toThrow('at most 10 video references');
   });
+
+  it('accepts the Cinema Studio maximum of 30 images plus 10 videos', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'a street' },
+      mediaKind: 'video',
+      output: {},
+      references: [
+        ...Array.from({ length: 30 }, (_, index) => ({
+          assetId: `img-${index}`,
+          role: 'subject' as const,
+        })),
+        ...Array.from({ length: 10 }, (_, index) => ({
+          assetId: `clip-${index}`,
+          role: 'reference_video' as const,
+        })),
+      ],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO),
+      modelKey: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
+    });
+
+    expect(result.dispatch.image_urls).toHaveLength(30);
+    expect(result.dispatch.reference_video_urls).toHaveLength(10);
+  });
+
+  it('rejects more than 30 Cinema Studio image references', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'a street' },
+      mediaKind: 'video',
+      output: {},
+      references: Array.from({ length: 31 }, (_, index) => ({
+        assetId: `img-${index}`,
+        role: 'subject' as const,
+      })),
+      version: 1,
+    });
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO),
+        modelKey: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
+      }),
+    ).toThrow();
+  });
 });

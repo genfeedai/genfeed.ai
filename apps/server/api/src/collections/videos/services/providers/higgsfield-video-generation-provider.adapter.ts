@@ -23,6 +23,23 @@ function httpsUrls(value: unknown): string[] {
   );
 }
 
+// Cinema Studio takes caller-supplied reference media, so a bad entry fails the
+// request instead of being silently dropped and generating without it.
+function strictHttpsUrls(field: string, value: unknown): string[] {
+  if (value === undefined || value === null) {
+    return [];
+  }
+  const entries = Array.isArray(value) ? value : [value];
+  for (const entry of entries) {
+    if (typeof entry !== 'string' || !entry.startsWith('https://')) {
+      throw new BadRequestException(
+        `Higgsfield Cinema Studio ${field} must be https URLs`,
+      );
+    }
+  }
+  return entries as string[];
+}
+
 /**
  * Higgsfield video is DoP image-to-video, Genjutsu motion transfer or
  * Cinema Studio 4.0 text/reference-to-video. All paths poll to a video URL and return `remote-output`, matching Fal:
@@ -128,12 +145,15 @@ export class HiggsFieldVideoGenerationProviderAdapter
     const { promptParams } = params;
     const imageUrls = [
       ...new Set([
-        ...httpsUrls(promptParams.image_urls),
-        ...httpsUrls(params.imageUrl),
+        ...strictHttpsUrls('image_urls', promptParams.image_urls),
+        ...strictHttpsUrls('imageUrl', params.imageUrl),
       ]),
     ];
-    const videoUrls = httpsUrls(promptParams.reference_video_urls);
-    const audioUrls = httpsUrls(promptParams.audio_urls);
+    const videoUrls = strictHttpsUrls(
+      'reference_video_urls',
+      promptParams.reference_video_urls,
+    );
+    const audioUrls = strictHttpsUrls('audio_urls', promptParams.audio_urls);
     const duration =
       typeof promptParams.duration === 'number'
         ? promptParams.duration

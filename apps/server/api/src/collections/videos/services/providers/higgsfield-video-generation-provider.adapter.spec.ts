@@ -82,7 +82,7 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
           promptParams: {
             aspect_ratio: '21:9',
             duration: 8,
-            image_urls: ['https://cdn.test/a.png', 'http://cdn.test/skip.png'],
+            image_urls: ['https://cdn.test/a.png'],
             prompt: 'rain on neon',
             reference_video_urls: ['https://cdn.test/ref.mp4'],
             resolution: '480p',
@@ -111,6 +111,40 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
         provider: 'higgsfield',
       });
     });
+  });
+
+  describe('Cinema Studio reference validation', () => {
+    it.each([
+      [
+        'image_urls',
+        { image_urls: ['https://cdn.test/a.png', 'http://x/b.png'] },
+      ],
+      ['image_urls', { image_urls: ['https://cdn.test/a.png', 42] }],
+      [
+        'reference_video_urls',
+        { reference_video_urls: ['ftp://cdn.test/r.mp4'] },
+      ],
+      ['audio_urls', { audio_urls: ['not-a-url'] }],
+    ])(
+      'rejects an invalid %s entry instead of dropping it',
+      async (field, extra) => {
+        const generateCinemaStudioVideo = vi.fn();
+        const adapter = buildAdapter({ generateCinemaStudioVideo });
+
+        const request = adapter.generate(
+          buildParams({
+            model: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
+            organizationId: 'org-1',
+            prompt: 'rain on neon',
+            promptParams: { prompt: 'rain on neon', ...extra },
+          }),
+        );
+
+        await expect(request).rejects.toBeInstanceOf(BadRequestException);
+        await expect(request).rejects.toThrow(field);
+        expect(generateCinemaStudioVideo).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('generate', () => {

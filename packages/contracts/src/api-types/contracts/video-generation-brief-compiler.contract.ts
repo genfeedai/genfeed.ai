@@ -199,7 +199,7 @@ export const remainingVideoCompileEvidenceSchema = z
     output: remainingVideoCompileEvidenceOutputSchema,
     profileId: z.string().trim().min(1).max(255),
     profileVersion: z.number().int().positive(),
-    referenceAssetIds: z.array(z.string().trim().min(1).max(255)).max(20),
+    referenceAssetIds: z.array(z.string().trim().min(1).max(255)).max(40),
     status: z.literal('compiled'),
     surface: generationBriefSurfaceSchema.optional(),
   })
