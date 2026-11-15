@@ -452,6 +452,7 @@ describe('buildModelsTableColumns', () => {
         name: getModelProviderLabel(ModelProvider.REPLICATE),
       }),
     ).not.toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'BFL' })).toBeInTheDocument();
     expect(
       screen.getByRole('img', {
         name: getModelCategoryLabel(ModelCategory.IMAGE),

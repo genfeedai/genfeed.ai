@@ -2,7 +2,13 @@
 
 import type { AdminModelPricingRow } from '@genfeedai/contracts/interfaces';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -508,7 +514,11 @@ describe('copy fix prompt', () => {
     expect(dialog).toHaveTextContent(
       'Your browser blocked copying. Select the text and copy it yourself.',
     );
-    expect(dialog).toHaveTextContent('genfeed-ai/z-image-turbo');
+    const prompt = within(dialog).getByRole<HTMLTextAreaElement>('textbox', {
+      name: 'Fix prompt',
+    });
+    expect(prompt).toHaveAttribute('readonly');
+    expect(prompt.value).toContain('genfeed-ai/z-image-turbo');
     expect(fixture.notifyError).toHaveBeenCalledWith(
       'Could not copy the prompt',
     );

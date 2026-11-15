@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 
 /** The prompt as selectable text, for browsers that refuse clipboard writes. */
@@ -31,9 +32,13 @@ export default function ModelFixPromptFallbackDialog({
           <DialogTitle>{fallback?.title}</DialogTitle>
           <DialogDescription>{t('promptFallbackHint')}</DialogDescription>
         </DialogHeader>
-        <pre className="max-h-96 select-all overflow-auto whitespace-pre-wrap rounded-md border border-border bg-muted p-3 text-xs">
-          {fallback?.text}
-        </pre>
+        <Textarea
+          aria-label={fallback?.title}
+          className="max-h-96 font-mono text-xs"
+          isReadOnly
+          rows={14}
+          value={fallback?.text ?? ''}
+        />
         <DialogFooter>
           <Button variant={ButtonVariant.SECONDARY} onClick={onClose}>
             {t('promptFallbackClose')}
