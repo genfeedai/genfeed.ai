@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Repurpose one piece of content into dozens of platform-optimized derivatives with scheduling cadence"
+  tags: content-repurposing, atomization, cross-platform, content-strategy, social-media
+  outputs: text
+  triggers: "atomize content; repurpose content; turn this into; create derivatives; cross-platform content; repurpose this blog post; atomize this article; create social posts from this; break this into pieces; content repurposing"
 ---
 
 # Content Atomizer

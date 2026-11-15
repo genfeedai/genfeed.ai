@@ -1,0 +1,268 @@
+{
+  "profileVersion": "1",
+  "id": "ship-shit-show",
+  "label": "Ship Sh!t Show",
+  "baseline": "Think AI",
+  "status": "Shorts values are the built, approved Studio values (editing/projects 260929 to 261027, thumbnails approved 2026-10-29). Kit values (2026-10-16) apply where nothing was built. Contradictions are listed under contradictions.",
+  "sources": {
+    "kit": "shipshitshow/vault brand/ (tokens.json, identity.md, applications.md, editing.md, production.md), kit version 2026-10-16",
+    "teaser": "shipshitshow/vault production/2026-10-15-podcast-teaser/edit/render_teaser.py (the one built vertical clip; predates the 16 Oct kit)",
+    "thumbnailRule": "docs/branding.md in show.shipshit.dev, topic-first thumbnails without host faces, decided 2026-10-26",
+    "proposed": "none left for shorts; the older proposed values were replaced by the built ones",
+    "studioEditing": "show.shipshit.dev editing/projects/{260929,261006,261013,261020,261027}: manifests, approved-style.json, assets/captions/shipshitshow-v1.json, assets/thumbnails/shorts-v1 (read 2026-10-29)"
+  },
+  "channels": {
+    "main": {
+      "name": "Ship Sh!t Show",
+      "youtube": "@shipshitshow",
+      "avatar": "black six-arm asterisk on red #E83B3B"
+    },
+    "clips": {
+      "name": "Ship Sh!t Show Clips",
+      "youtube": "@ShipShitShowClips",
+      "avatar": "white six-arm asterisk on charcoal #0D0D0D"
+    },
+    "x": "@shipshitdev"
+  },
+  "colors": {
+    "ink": "#0D0D0D",
+    "white": "#FFFFFF",
+    "accentRed": "#E83B3B",
+    "surfaceCard": "#1A1A1A",
+    "surfaceBorder": "#303030",
+    "textMuted": "#AAAAAA",
+    "source": "kit"
+  },
+  "typography": {
+    "family": "Space Grotesk",
+    "weights": {
+      "display": 700,
+      "body": 400
+    },
+    "maxFamilies": 2,
+    "rules": [
+      "broad readable type",
+      "no compressed, stacked or stretched lettering",
+      "no font-glyph asterisk"
+    ],
+    "source": "kit (web); applied to captions and thumbnail text by proposal"
+  },
+  "signature": {
+    "mark": "six-arm asterisk",
+    "geometry": {
+      "viewBox": [96, 96],
+      "bar": {
+        "x": 38,
+        "y": 4,
+        "width": 20,
+        "height": 88
+      },
+      "rotationsDeg": [0, 60, 120],
+      "centerPx": [48, 48]
+    },
+    "colorByContext": {
+      "editedVideoOnDark": "#FFFFFF",
+      "editedVideoOnLight": "#0D0D0D",
+      "livestream": "#E83B3B"
+    },
+    "exclusions": [
+      "box or square behind the mark",
+      "extra dot",
+      "waves",
+      "font glyph",
+      "second copy over a baked-in signature"
+    ],
+    "placements": {
+      "thumbnail16x9": {
+        "referenceCanvas": [1280, 720],
+        "viewport": [96, 96],
+        "topLeft": [1136, 576],
+        "insetRightBottom": 48,
+        "widthRatio": 0.075,
+        "insetRatio": 0.0375,
+        "rule": "scale uniformly for other 16:9 exports (3840x2160: 288px at x3408/y1728)",
+        "source": "kit"
+      },
+      "slate1080p": {
+        "canvas": [1920, 1080],
+        "viewport": [144, 144],
+        "topLeft": [1704, 864],
+        "outerClearance": 48,
+        "source": "kit (house starting value, verify against actual camera/caption/UI)"
+      },
+      "verticalCover9x16": {
+        "referenceCanvas": [1080, 1920],
+        "widthRatio": 0.075,
+        "viewportPx": 81,
+        "insetPx": 40,
+        "anchor": "bottom-right",
+        "source": "proposed: same ratios as the 16:9 thumbnail; a cover is shown in grids, not over the Shorts feed UI"
+      },
+      "verticalClipInVideo": {
+        "default": "white six-arm asterisk for the whole duration, as a transparent full-canvas PNG layer; no footer or logo bar",
+        "portrait1080x1920": {
+          "center": [940, 290],
+          "heightPx": 72,
+          "anchor": "upper-right (lowered)"
+        },
+        "landscape1920x1080": {
+          "center": [1780, 190]
+        },
+        "color": "#FFFFFF",
+        "history": "the old default was bottom-right; the Shorts decision moved it to the lowered upper-right",
+        "source": "built (Studio manifests)"
+      },
+      "endCard": {
+        "built": "none. No end card and no opening title in any manifest (opening_title: none).",
+        "source": "built"
+      }
+    }
+  },
+  "captions": {
+    "tool": "Tesseract 0.4.0 native text layers, one karaoke layer per word, burned into the render",
+    "font": "Arial Bold",
+    "fontFallbackInGenfeed": "Liberation Sans Bold (metric-compatible, OFL) or INTER_BOLD; Arial itself cannot ship",
+    "case": "UPPERCASE",
+    "color": "#FFFFFF",
+    "activeWordColor": "#E83B3B",
+    "outline": {
+      "color": "#000000"
+    },
+    "backing": "none (no band, no card)",
+    "motion": "none, no bounce",
+    "grouping": {
+      "wordsPerPhrase": 3
+    },
+    "size": {
+      "shortPortrait1080x1920": {
+        "fontPx": 52,
+        "outlinePx": 3,
+        "gapPx": 18,
+        "ratioOfShortSide": 0.048
+      },
+      "shortLandscape1920x1080": {
+        "fontPx": 48
+      },
+      "recapCaptioned1920x1080": {
+        "fontPx": 72,
+        "outlinePx": 4.5,
+        "placement": "bottom-centre above the host lower-thirds"
+      }
+    },
+    "verticalPlacement": {
+      "y": 1490,
+      "canvas": [1080, 1920],
+      "anchor": "horizontally centred on the speaker, below the mouth",
+      "ratioY": 0.776
+    },
+    "presetFile": "assets/captions/shipshitshow-v1.json",
+    "presetConflict": "the preset and its README say 72px with a 4.5px outline for 1080-short-edge exports; the shorts as built use 52px with a 3px outline (recap manifest records 52/3 at gap 18). Built values are used here.",
+    "timing": "from the final timeline, never full-stream timestamps; word timing only when it exists (YouTube word-timed subtitles can 429)",
+    "verification": "names, numbers and qualifications checked against the recording"
+  },
+  "clipLayout": {
+    "twoHostStackVertical": "two 480x420 crops (host cams) scaled to 960x840, stacked, padded to 1080x1920 on #0D0D0D, 60px side margin",
+    "twoHostLandscape": "two crops side by side scaled 1920x840 on 1920x1080, 125px header",
+    "header": "teaser used a 210px black band with SHIP SH!T SHOW (red, 30px) and the topic (82px); the 16 Oct kit asks for modest names and one small topic label, so shrink it",
+    "audio": "two-pass, target -15.25 LUFS / -3 dBTP (delivered -15.4 / -2.9)",
+    "encode": "H.264 about 10 Mb/s, AAC 192k, 30 fps, 1080x1920 shorts (landscape versions exist for 261027 shorts 05 to 08); recap 1920x1080, 564.8 s",
+    "source": "teaser"
+  },
+  "thumbnails": {
+    "subjects": "topic first, no host faces or likenesses (decided 2026-10-26); official topic logos in their own colors",
+    "background": "predominantly monochrome or charcoal",
+    "text": "optional, episode-specific, at most 4 words over 2 lines; thumbnails used uppercase Space Grotesk Bold, white, with one red line at most (the teaser thumbnails did this)",
+    "variants": "exactly three distinct hypotheses per video; title held fixed for a thumbnail-only test; never call one a winner without a result",
+    "modes": {
+      "livestream": {
+        "signature": "#E83B3B",
+        "abTest": "not for scheduled lives; allowed on completed live archives"
+      },
+      "recap": {
+        "signature": "white on dark, black on light",
+        "abTest": "allowed on eligible long-form uploads"
+      },
+      "short": {
+        "signature": "white on dark",
+        "canvas": "9:16",
+        "abTest": "not supported by YouTube"
+      }
+    },
+    "export": {
+      "workingCanvas": [1280, 720],
+      "recommended16x9": [3840, 2160],
+      "minimumWidth": 640,
+      "shortsCover": {
+        "recommended": [2160, 3840],
+        "minimumHeight": 640
+      },
+      "fileLimit": "thumbnails.set reference currently says 50 MB (checked in PR 8653); older copies say 2 MB. Keep JPEG exports under 2 MB.",
+      "format": "JPEG or PNG"
+    },
+    "inspection": "feed size: topic readable, text inside canvas, contrast, official logo accuracy, no duplicate signature",
+    "source": "kit + 26 Oct rule",
+    "shorts": {
+      "approved": "2026-10-29",
+      "specDir": "assets/thumbnails/shorts-v1",
+      "size": [941, 1672],
+      "headline": "1 to 2 words, UPPERCASE, heavy condensed sans, stacked upper-left, first word white, second word red #E83B3B (SELL / EXECUTION)",
+      "subject": "host large in natural colour, wearing headphones, with a mic, dark blue/charcoal studio background",
+      "mark": {
+        "color": "#FFFFFF",
+        "normalisedCenter": [0.87, 0.151],
+        "heightPx": 72,
+        "position": "upper-right"
+      },
+      "references": ["YOUR MOAT", "AI SLOP", "ALREADY OBSOLETE", "SELL EXECUTION"],
+      "generation": "the four references were AI-generated from the host portraits",
+      "source": "built (Studio)"
+    },
+    "recaps": "one host plus a logo or result and a short headline (recap thumbnails not readable by the review: they sit in ~/Desktop/thumbnails/2610/261027/recap/)"
+  },
+  "copyRules": {
+    "name": "Ship Sh!t Show, with no exclamation mark after Show",
+    "baseline": "Think AI, without a colon or trailing punctuation",
+    "titles": {
+      "shorts": "35 to 60 characters",
+      "cutdown": "45 to 75 characters",
+      "limit": 100,
+      "rule": "name the subject and the conflict, title the observable result, no vague hype"
+    },
+    "hooks": "named topic and tension in the first 2 seconds; the clip must work cold in a feed",
+    "hashtags": "3 to 5, specific",
+    "description": "short human opener, specific takeaway, accurate chapters, sources, footer: Subscribe so you don't miss the next build. Follow us: https://x.com/shipshitdev",
+    "forbidden": [
+      "engagement bait (agree?, comment if)",
+      "invented quotes, results or endorsements",
+      "claims stronger than what was said"
+    ]
+  },
+  "handoffRecord": [
+    "kit revision",
+    "logo hash",
+    "actual fonts",
+    "caption style",
+    "approved deviations",
+    "technical checks reported separately from a watch-through review",
+    "Studio editing review 2026-10-29"
+  ],
+  "github": {
+    "org": "shipshitshow",
+    "repos": ["shipshitshow/show.shipshit.dev", "shipshitshow/vault"],
+    "note": "shipshit.dev is the domain and a folder name, not a GitHub org"
+  },
+  "audio": {
+    "music": "none, dialogue only",
+    "chain": "NARA-WPE de-reverb 25%, afftdn, highpass 80 Hz, -1.5 dB EQ at 300 Hz, compressor 2.2:1, deesser",
+    "loudness": "two-pass, target -15.25 LUFS / -3 dBTP (delivered -15.4 / -2.9)",
+    "source": "built (not listened to)"
+  },
+  "contradictions": [
+    "Kit says Space Grotesk; captions are built in Arial Bold (the kit font is only used where Genfeed renders it)",
+    "Kit says no karaoke colour by default; the built captions colour the active word red",
+    "Kit and the 26 Oct rule say thumbnails are topic-first without host faces; the approved 29 Oct shorts-v1 thumbnails use a large host portrait. The later approved spec is followed for Shorts, the 26 Oct rule for long-form",
+    "Kit says no mark in clips; the built Shorts carry the white asterisk upper-right",
+    "Kit thumbnail mark spot is bottom-right 7.5% of the width; Shorts thumbnails and clips put it upper-right at about 72 px",
+    "Caption preset file says 72/4.5 px, built shorts use 52/3 px"
+  ]
+}

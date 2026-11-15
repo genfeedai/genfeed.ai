@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Build editorial content strategy, platform cadence, calendars, and KPI frameworks"
+  tags: content-strategy, editorial-calendar, content-planning, social-media-strategy, marketing
+  outputs: text
+  triggers: "content strategy; editorial calendar; content plan; what should I post; posting schedule; content pillars; content calendar; social media strategy; platform strategy; content mix; posting frequency; build a content plan"
 ---
 
 # Content Strategist

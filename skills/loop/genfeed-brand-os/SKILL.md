@@ -5,7 +5,11 @@ license: MIT
 metadata:
   author: genfeedai
   version: 0.1.0
+  short-description: "Apply the Genfeed.ai Brand OS to product copy, prompts, launch content, and website CTAs"
   tags: genfeed, brand-os, product-copy, website, launch, prompts
+  outputs: text
+  triggers: "genfeed brand os; genfeed brand voice; genfeed website copy; genfeed launch content; genfeed product messaging; build your brand os; genfeed cta; genfeed prompt context; genfeed brand guidance"
+  references: "{\"brand_os\":\"references/brand-os.md\",\"brand_showcase_prompt\":\"references/brand-showcase-prompt.md\"}"
 ---
 
 # Genfeed.ai Brand OS

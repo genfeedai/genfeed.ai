@@ -1,5 +1,6 @@
 # Instagram Post
 
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
 Write an Instagram feed post: caption, hashtags, alt text and the image brief.
 
 ## Installation
@@ -7,6 +8,7 @@ Write an Instagram feed post: caption, hashtags, alt text and the image brief.
 ```bash
 bunx skills add genfeedai/skills --skill instagram-post
 ```
+<!-- generated:end -->
 
 ## Usage
 
