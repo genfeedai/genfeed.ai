@@ -71,6 +71,14 @@ const LEADING_AT_SIGN_PATTERN = /^@/;
  */
 const TWITTER_TOKEN_REFRESH_BUFFER_MS = 15 * 60 * 1000;
 
+/**
+ * How long a refresh the provider rejected waits before it re-reads the stored
+ * credential. A refresh that lost a race is rejected after the winner already
+ * consumed the refresh token, but the winner's database write can still be in
+ * flight.
+ */
+const TWITTER_REFRESH_RACE_GRACE_MS = 750;
+
 function requireString(
   value: string | null | undefined,
   field: string,
@@ -90,6 +98,10 @@ export class TwitterService {
   private readonly inboxService: TwitterInboxService;
   private readonly publishingService: TwitterPublishingService;
   private readonly readService: TwitterReadService;
+  private readonly refreshesInFlight = new Map<
+    string,
+    Promise<CredentialDocument>
+  >();
 
   public twitterClient: TwitterApi;
 
@@ -305,6 +317,29 @@ export class TwitterService {
       throw new Error('Twitter credential not found');
     }
 
+    // Refreshes of one credential in this process share a single provider call:
+    // X rotates the refresh token, so a second concurrent call is refused.
+    const inFlight = this.refreshesInFlight.get(credentials.id);
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const refresh = this.refreshLoadedCredential(
+      credentials,
+      organizationId,
+      brandId,
+    ).finally(() => {
+      this.refreshesInFlight.delete(credentials.id);
+    });
+    this.refreshesInFlight.set(credentials.id, refresh);
+    return refresh;
+  }
+
+  private async refreshLoadedCredential(
+    credentials: CredentialDocument,
+    organizationId: string,
+    brandId: string,
+  ): Promise<CredentialDocument> {
     if (!credentials.refreshToken) {
       // OAuth 1.0a credential — requires reconnection via OAuth 2.0
       const error = new Error(
@@ -353,16 +388,78 @@ export class TwitterService {
       // Only a definitive rejection of the grant disconnects the credential.
       // Network errors and 5xx keep it connected so the next run can retry.
       if (isTwitterRefreshTokenRejectedError(error)) {
-        await this.markRefreshDisconnected(
-          credentials,
-          organizationId,
-          brandId,
-          error,
-        );
+        // A concurrent refresh may have consumed the refresh token first and
+        // stored a fresh one. That credential is healthy, so return it.
+        const { refreshed: refreshedByPeer, stored } =
+          await this.findCredentialRefreshedByPeer(
+            credentials,
+            organizationId,
+            brandId,
+          );
+        if (refreshedByPeer) {
+          this.loggerService.warn(
+            `${this.constructorName} refresh rejected after a concurrent refresh stored a new token; reusing it`,
+            { credentialId: credentials.id },
+          );
+          return refreshedByPeer;
+        }
+
+        // A refresh in another process may already have disconnected it.
+        if (stored?.isConnected !== false) {
+          await this.markRefreshDisconnected(
+            credentials,
+            organizationId,
+            brandId,
+            error,
+          );
+        }
       }
 
       throw error;
     }
+  }
+
+  /**
+   * The credential another refresh stored while this one was in flight, or null
+   * when the stored credential is unchanged and the grant really was rejected.
+   * "Refreshed" means the stored refresh token differs from the one this call
+   * loaded and the stored access token is still usable.
+   */
+  private async findCredentialRefreshedByPeer(
+    loaded: CredentialDocument,
+    organizationId: string,
+    brandId: string,
+  ): Promise<{
+    refreshed: CredentialDocument | null;
+    stored: CredentialDocument | null;
+  }> {
+    let stored: CredentialDocument | null = null;
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      if (attempt > 0) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, TWITTER_REFRESH_RACE_GRACE_MS),
+        );
+      }
+
+      stored = await this.findTwitterCredential(
+        organizationId,
+        brandId,
+        loaded.id,
+      );
+
+      if (
+        stored?.accessToken &&
+        stored.isConnected !== false &&
+        stored.refreshToken &&
+        stored.refreshToken !== loaded.refreshToken &&
+        !this.shouldRefreshAccessToken(stored.accessTokenExpiry)
+      ) {
+        return { refreshed: stored, stored };
+      }
+    }
+
+    return { refreshed: null, stored };
   }
 
   private async markRefreshDisconnected(
@@ -371,6 +468,12 @@ export class TwitterService {
     brandId: string,
     error: unknown,
   ): Promise<void> {
+    // The channel is already disconnected and its activity already recorded:
+    // every later refresh of it would otherwise add another one.
+    if (credentials.isConnected === false) {
+      return;
+    }
+
     await this.credentialsService.patch(credentials.id, {
       isConnected: false,
     });
