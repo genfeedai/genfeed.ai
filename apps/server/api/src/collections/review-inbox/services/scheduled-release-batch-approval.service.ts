@@ -14,21 +14,40 @@ import {
   readScheduledReleaseBatch,
   type ScheduledReleaseBatchStatus,
 } from '@genfeedai/contracts/interfaces';
-import { type McpApproval, McpApprovalStatus } from '@genfeedai/prisma';
+import {
+  type McpApproval,
+  McpApprovalStatus,
+  type Prisma,
+} from '@genfeedai/prisma';
 import {
   isRecord,
   readNonBlankStringOrNull as readString,
 } from '@genfeedai/utils/data/extract.util';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const MS_PER_DAY = 86_400_000;
+
+/** How long an approved week may sit unscheduled before it is taken over. */
+const STALLED_AFTER_MS = 2 * 60_000;
+
+/** Where the reviewer's removed posts are kept on the approval, until it runs. */
+const REVIEWED_EXCLUDED_KEY = 'reviewedExcludedIndexes';
 
 /** What approving a batch recorded on its approval. */
 interface RecordedBatchResult {
   created: Map<number, string>;
   errors: Map<number, string>;
   excluded: Set<number>;
+}
+
+/** The positions a reviewer removed, as kept on the approval. */
+function readReviewedExcluded(args: unknown): number[] {
+  const value = isRecord(args) ? args[REVIEWED_EXCLUDED_KEY] : null;
+  return Array.isArray(value)
+    ? value.filter((entry): entry is number => readIndex(entry) !== null)
+    : [];
 }
 
 function readIndex(value: unknown): number | null {
@@ -88,6 +107,7 @@ export class ScheduledReleaseBatchApprovalService {
     private readonly prisma: PrismaService,
     private readonly mcpApprovals: McpApprovalsService,
     private readonly postGroupBatch: PostGroupBatchService,
+    private readonly logger: LoggerService,
   ) {}
 
   /**
@@ -139,6 +159,38 @@ export class ScheduledReleaseBatchApprovalService {
   }
 
   /**
+   * Keeps the posts a reviewer removed on the approval, before it is approved,
+   * so a run that stops after the approval can be resumed with the same kept
+   * posts instead of scheduling the removed ones.
+   */
+  async recordReview(
+    approval: Pick<
+      McpApproval,
+      'arguments' | 'id' | 'organizationId' | 'toolName'
+    >,
+    excludedIndexes: readonly number[],
+  ): Promise<void> {
+    const releases = readScheduledReleaseBatch(
+      approval.toolName,
+      approval.arguments,
+    );
+    if (!releases || !isRecord(approval.arguments)) return;
+    const { excluded } = this.keptPosts(releases, excludedIndexes);
+    await this.prisma.mcpApproval.updateMany({
+      data: {
+        arguments: {
+          ...approval.arguments,
+          [REVIEWED_EXCLUDED_KEY]: excluded,
+        } as Prisma.InputJsonObject,
+      },
+      where: scopedWhere(approval.organizationId, {
+        id: approval.id,
+        status: McpApprovalStatus.PENDING,
+      }),
+    });
+  }
+
+  /**
    * Creates the posts a reviewer kept and records the outcome on the approval.
    * Null when the approval is not a batch, or another run already claimed it.
    */
@@ -158,7 +210,85 @@ export class ScheduledReleaseBatchApprovalService {
       approval.organizationId,
     );
     if (!isClaimed) return null;
+    return this.createAndRecord(
+      approval,
+      releases,
+      excluded,
+      indexes,
+      apiKeyContext,
+    );
+  }
 
+  /**
+   * Finishes an approved week whose run stopped before it recorded an outcome
+   * (the server failed after the approval, or during creation). It schedules
+   * the posts the reviewer kept, and each release is keyed by its position, so
+   * the ones already created are returned, not made twice. Null when there is
+   * nothing to resume: not a batch, still running, or already recorded.
+   */
+  async resumeStalled(
+    organizationId: string,
+    approvalId: string,
+    apiKeyContext: ApiKeyPublishingContext,
+    allowedBrandIds: readonly string[] | undefined,
+    now: Date = new Date(),
+  ): Promise<IScheduledReleaseBatchResult | null> {
+    const approval = await this.prisma.mcpApproval.findFirst({
+      where: scopedWhere(organizationId, {
+        id: approvalId,
+        status: McpApprovalStatus.APPROVED,
+      }),
+    });
+    const releases = approval
+      ? readScheduledReleaseBatch(approval.toolName, approval.arguments)
+      : null;
+    if (
+      !approval ||
+      !releases ||
+      approval.status !== McpApprovalStatus.APPROVED ||
+      approval.result !== null
+    ) {
+      return null;
+    }
+    try {
+      await this.postGroupBatch.assertBrandAccess(
+        organizationId,
+        releases,
+        allowedBrandIds,
+      );
+      const { excluded, indexes } = this.keptPosts(
+        releases,
+        readReviewedExcluded(approval.arguments),
+      );
+      const isClaimed = await this.mcpApprovals.reclaimStaleExecution(
+        approval.id,
+        organizationId,
+        new Date(now.getTime() - STALLED_AFTER_MS),
+      );
+      if (!isClaimed) return null;
+      return await this.createAndRecord(
+        approval,
+        releases,
+        excluded,
+        indexes,
+        apiKeyContext,
+      );
+    } catch (error: unknown) {
+      this.logger.error('Could not resume the scheduled release batch', {
+        approvalId,
+        error: error instanceof Error ? error.stack : String(error),
+      });
+      return null;
+    }
+  }
+
+  private async createAndRecord(
+    approval: McpApproval,
+    releases: readonly unknown[],
+    excluded: number[],
+    indexes: number[],
+    apiKeyContext: ApiKeyPublishingContext,
+  ): Promise<IScheduledReleaseBatchResult> {
     const result = await this.postGroupBatch.create(
       approval.organizationId,
       approval.userId,

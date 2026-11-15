@@ -291,10 +291,15 @@ export function approvalPendingToolResult(
           ? ' You can also approve or decline it here.'
           : '') +
         approvalCostNote(estimate),
-    nextStepUrl: approvalsUrl(approval, createPublishingApprovalsRoute()),
+    // A batch is read and approved on its own page, so its text links that page
+    // directly: the general queue would leave the person to find the week.
+    nextStepUrl: approvalsUrl(
+      approval,
+      batch ? reviewPath : createPublishingApprovalsRoute(),
+    ),
   });
-  // Display text stays free of ids; the structured link opens this exact
-  // approval in the Genfeed review inbox (#7340), or its batch review page.
+  // Display text of any other approval stays free of ids; the structured link
+  // opens this exact approval in the Genfeed review inbox (#7340).
   return {
     ...result,
     structuredContent: {

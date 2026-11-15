@@ -416,6 +416,32 @@ export class McpApprovalsService extends BaseService<
   }
 
   /**
+   * Takes over an approved action whose run stopped before it recorded a
+   * result: the claim is older than `staleBefore`, or the approval was never
+   * claimed and was approved before it. A run still inside its window is left
+   * alone, so two runs never hold the claim at once.
+   */
+  async reclaimStaleExecution(
+    id: string,
+    organizationId: string,
+    staleBefore: Date,
+  ): Promise<boolean> {
+    const { count } = await this.delegate.updateMany({
+      where: scopedWhere(organizationId, {
+        id,
+        status: McpApprovalStatus.APPROVED,
+        result: { equals: Prisma.DbNull },
+        OR: [
+          { executionClaimedAt: { lt: staleBefore } },
+          { executionClaimedAt: null, resolvedAt: { lt: staleBefore } },
+        ],
+      }),
+      data: { executionClaimedAt: new Date() },
+    });
+    return count === 1;
+  }
+
+  /**
    * Claim an approved action for its one execution on behalf of the caller.
    * The requester redeems an approval a reviewer granted in the app; an owner
    * or admin redeems one they approved over MCP. Anyone else is refused.

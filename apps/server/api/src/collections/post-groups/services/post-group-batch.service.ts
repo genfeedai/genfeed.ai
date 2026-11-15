@@ -405,12 +405,22 @@ export class PostGroupBatchService {
       organizationId,
       input.targets,
     );
-    await this.persistenceService.resolveBrandId(
+    const brandId = await this.persistenceService.resolveBrandId(
       this.prisma,
       organizationId,
       input.brandId,
       credentials,
     );
+    // The same check creation makes, so a campaign outside this brand is named
+    // before the approval is queued, not as a creation error after it.
+    if (input.campaignId) {
+      await this.persistenceService.assertCampaignScope(
+        this.prisma,
+        organizationId,
+        input.campaignId,
+        brandId,
+      );
+    }
     const readiness = await this.readinessService.resolveForCredentials(
       this.prisma,
       organizationId,

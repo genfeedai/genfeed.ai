@@ -1,3 +1,8 @@
+import {
+  type ApprovedBrandLogo,
+  BrandRenderLogoStagingService,
+} from '@api/services/brand-render-evidence/brand-render-logo-staging.service';
+import { resolveApprovedRenderSnapshot } from '@api/services/brand-render-evidence/brand-render-snapshot.util';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
@@ -12,6 +17,7 @@ import {
   brandGenerationLayerReceiptV1Schema,
   brandIdentitySnapshotV1Schema,
 } from '@genfeedai/contracts/api-types/contracts/branded-generation.contract';
+import { VISUAL_CODE_LIMITS } from '@genfeedai/contracts/constants';
 import type {
   BrandedGenerationInputV1,
   BrandedGenerationResolutionV1,
@@ -26,8 +32,17 @@ import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import {
   type IVisualBrandContext,
+  type IVisualBrandPaletteRole,
   projectVisualBrandContext,
+  projectVisualBrandPalette,
 } from '../utils/visual-brand-context.util';
+
+/** What a render's frame inspection checks the pixels against. */
+export interface IVisualInspectionBrief {
+  paletteRoles: IVisualBrandPaletteRole[];
+  /** The required logo this render staged, as the reference image to find. */
+  requiredLogo: { assetId: string; mime: string; bytes: string } | null;
+}
 
 const pinnedReceiptSchema = z.object({
   mode: z.enum(['approved_brand', 'provisional_brand']),
@@ -66,6 +81,7 @@ export class VisualProjectBrandContextService {
     private readonly harness: HarnessGenerationService,
     private readonly contentHarness: ContentHarnessService,
     private readonly skillRuntime: SkillRuntimeService,
+    private readonly logoStaging: BrandRenderLogoStagingService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -89,9 +105,13 @@ export class VisualProjectBrandContextService {
           brief.appliedPacks.includes(pack.id),
         )
       : [];
+    // A logo the renderer will stage is loadable by the composition; the same
+    // snapshot decides both, so the model is never told a logo is staged that
+    // the render does not receive.
+    const logos = await this.logosFor(revision, snapshot, stagedAssetIds);
     const context = projectVisualBrandContext({
       snapshot,
-      stagedAssetIds,
+      stagedAssetIds: [...stagedAssetIds, ...logos.map((logo) => logo.assetId)],
       harnessBrief: formatHarnessBrief(brief),
       skills: skills.text,
     });
@@ -103,6 +123,100 @@ export class VisualProjectBrandContextService {
         layers: [...this.packLayers(brief !== null, packs), ...skills.layers],
       });
     return context;
+  }
+
+  /**
+   * The brand logos to stage beside the revision's source assets, from the
+   * snapshot this revision was authored against; a revision that was never
+   * authored (an imported source) uses the approved brand now.
+   */
+  async stagedLogos(
+    revision: VisualRevision,
+    sourceAssetIds: readonly string[],
+  ): Promise<ApprovedBrandLogo[]> {
+    const snapshot = await this.renderSnapshot(revision, 'logo staging');
+    return snapshot ? this.logosFor(revision, snapshot, sourceAssetIds) : [];
+  }
+
+  /**
+   * What the frame inspection checks a render against: the approved palette and
+   * the required logo this render staged. Null when the brand states neither, so
+   * an unbranded render is inspected as before.
+   */
+  async inspectionBrief(
+    revision: VisualRevision,
+    sourceAssetIds: readonly string[],
+  ): Promise<IVisualInspectionBrief | null> {
+    const snapshot = await this.renderSnapshot(revision, 'frame inspection');
+    if (!snapshot) return null;
+    const paletteRoles = projectVisualBrandPalette(snapshot);
+    const logos = await this.logosFor(revision, snapshot, sourceAssetIds);
+    const required = logos.find((logo) => logo.isRequired);
+    const requiredLogo = required
+      ? await this.readLogo(revision, required)
+      : null;
+    return paletteRoles.length === 0 && !requiredLogo
+      ? null
+      : { paletteRoles, requiredLogo };
+  }
+
+  private async readLogo(revision: VisualRevision, logo: ApprovedBrandLogo) {
+    try {
+      const { assets } = await this.logoStaging.stage(
+        { organizationId: revision.organizationId, brandId: revision.brandId },
+        [logo],
+      );
+      return assets[0]
+        ? {
+            assetId: logo.assetId,
+            mime: assets[0].mime,
+            bytes: assets[0].bytes,
+          }
+        : null;
+    } catch (error: unknown) {
+      this.logger.warn('Brand logo unavailable for frame inspection', {
+        errorName: error instanceof Error ? error.constructor.name : 'NonError',
+        revisionId: revision.id,
+      });
+      return null;
+    }
+  }
+
+  /**
+   * The snapshot this revision was authored against; a revision that was never
+   * authored (an imported source) uses the approved brand now.
+   */
+  private async renderSnapshot(revision: VisualRevision, purpose: string) {
+    const pinned = await this.pinnedSnapshot(revision);
+    return (
+      pinned?.snapshot ??
+      (await resolveApprovedRenderSnapshot(
+        this.snapshots,
+        this.logger,
+        {
+          organizationId: revision.organizationId,
+          brandId: revision.brandId,
+          userId: revision.userId,
+        },
+        purpose,
+      ))
+    );
+  }
+
+  private logosFor(
+    revision: VisualRevision,
+    snapshot: BrandIdentitySnapshotV1,
+    sourceAssetIds: readonly string[],
+  ): Promise<ApprovedBrandLogo[]> {
+    return this.logoStaging.approvedLogos(
+      {
+        organizationId: revision.organizationId,
+        brandId: revision.brandId,
+      },
+      snapshot,
+      VISUAL_CODE_LIMITS.sourceAssets - sourceAssetIds.length,
+      sourceAssetIds,
+    );
   }
 
   private async pinnedSnapshot(revision: VisualRevision) {

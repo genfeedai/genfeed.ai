@@ -261,7 +261,10 @@ function postPromptLines(
 ): string[] {
   const media = post.media.length
     ? `${post.media.length} ${post.media.length === 1 ? 'file' : 'files'} in this order: ${post.media
-        .map((item) => `${item.order + 1}. ${item.kind}`)
+        .map(
+          (item) =>
+            `${item.order + 1}. ${item.kind} ${item.url ? previewString(item.url) : '(no link)'}`,
+        )
         .join(', ')}`
     : 'no media';
   return [

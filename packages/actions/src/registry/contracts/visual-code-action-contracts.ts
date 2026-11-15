@@ -132,6 +132,14 @@ const quoteSnapshot = {
     outputCostPerMillion: credits,
   },
 };
+const brandCheck = {
+  type: 'string',
+  enum: ['passed', 'failed', 'not_checked'],
+} as const;
+const brandChecks = closedObjectSchema(
+  { palette: brandCheck, logo: brandCheck },
+  ['palette', 'logo'],
+);
 const receipt = closedObjectSchema(
   {
     id: STRING_SCHEMA,
@@ -151,6 +159,7 @@ const receipt = closedObjectSchema(
     boundCredits: credits,
     isResultApplied: { type: 'boolean' },
     isAccepted: { type: 'boolean' },
+    brandChecks,
     credits,
     operatorCredits: credits,
     modelKey: STRING_SCHEMA,
