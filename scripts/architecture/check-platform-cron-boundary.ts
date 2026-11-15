@@ -157,6 +157,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform model catalog maintenance (fal provider discovery, #2422). Writes operator-reviewed draft rows only; never tenant-scoped.',
   },
   {
+    file: 'apps/server/workers/src/crons/higgsfield-model-watcher/cron.higgsfield-model-watcher.service.ts',
+    id: 'higgsfield-model-watcher',
+    methodName: 'discoverModels',
+    reason:
+      'Platform model catalog maintenance (Higgsfield docs catalog scan). Writes operator-reviewed draft rows only; never tenant-scoped.',
+  },
+  {
     file: 'apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts',
     id: 'model-watcher',
     methodName: 'discoverNewModels',
