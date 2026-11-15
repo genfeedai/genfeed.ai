@@ -168,7 +168,7 @@ export function compileSkill(directory: string, files = inventory(directory)) {
     excludedReferences,
   };
 }
-export const APPLICATION_MODULE = 'app';
+const APPLICATION_MODULE = 'app';
 export interface CatalogSkillDirectory {
   slug: string;
   module: string;

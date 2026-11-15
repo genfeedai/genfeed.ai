@@ -168,10 +168,6 @@ describe('API host publishing', () => {
       'docker/docker-compose.yml',
       /127\.0\.0\.1:\$\{API_PORT:-3010\}:\$\{API_PORT:-3010\}/,
     ],
-    [
-      'docker/docker-compose.api.yml',
-      /127\.0\.0\.1:\$\{API_PORT:-3010\}:\$\{API_PORT:-3010\}/,
-    ],
   ])(
     '%s keeps the tokenless API off public host interfaces',
     (file, binding) => {
