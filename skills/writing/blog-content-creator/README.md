@@ -1,12 +1,14 @@
 # Blog Content Creator
 
-Expert SEO blog writer and content strategist. Creates blog posts in six proven structures with proper heading hierarchy, meta descriptions, internal link strategy, and featured snippet optimization.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Create SEO-optimized blog posts in multiple formats with heading hierarchy, meta descriptions, and internal link strategy
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill blog-content-creator
 ```
+<!-- generated:end -->
 
 ## Usage
 

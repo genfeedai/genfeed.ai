@@ -1,5 +1,6 @@
 # X Article
 
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
 Write a long-form X Article and the promo post that sends the timeline to it.
 
 ## Installation
@@ -7,6 +8,7 @@ Write a long-form X Article and the promo post that sends the timeline to it.
 ```bash
 bunx skills add genfeedai/skills --skill x-article
 ```
+<!-- generated:end -->
 
 ## Usage
 

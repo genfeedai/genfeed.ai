@@ -20,6 +20,7 @@ import {
   compileSkill,
   createCatalogLock,
   inventory,
+  isLocalToolingPath,
   SOURCE_REPOSITORY,
   UPSTREAM_SLUGS,
   validateCatalogLock,
@@ -113,11 +114,14 @@ function sourcePackages(source: string) {
     if (lstatSync(join(source, path.split('/')[0])).isSymbolicLink())
       throw new Error(`Source symlink rejected: ${path}`);
     const directory = join(source, path);
-    const files = inventory(directory, true);
+    const files = inventory(directory, true, (path) =>
+      isLocalToolingPath(slug, path),
+    );
     const tracked = git(source, 'ls-files', '-z', '--', path)
       .split('\0')
       .filter(Boolean)
       .map((file) => file.slice(path.length + 1))
+      .filter((file) => !isLocalToolingPath(slug, file))
       .sort();
     if (
       JSON.stringify(tracked) !==

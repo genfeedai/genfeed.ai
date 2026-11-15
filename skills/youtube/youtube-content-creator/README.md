@@ -1,12 +1,14 @@
 # YouTube Content Creator
 
-Expert YouTube content strategist covering SEO, retention, and growth. Creates titles, descriptions, tags, thumbnail briefs, Shorts scripts, and retention strategies.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Create YouTube content including titles, descriptions, tags, thumbnail briefs, Shorts scripts, and retention strategies
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill youtube-content-creator
 ```
+<!-- generated:end -->
 
 ## Usage
 

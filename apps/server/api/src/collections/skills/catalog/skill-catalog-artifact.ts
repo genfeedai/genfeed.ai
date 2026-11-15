@@ -33,9 +33,11 @@ export const UPSTREAM_SLUGS = [
   'linkedin-carousel',
   'linkedin-post',
   'linkedin-warmup',
+  'motion-video',
   'newsletter-creator',
   'prompt-generator',
   'tiktok-warmup',
+  'video-brand-profile',
   'visual-brand-kit',
   'x-article',
   'x-post',
@@ -44,6 +46,22 @@ export const UPSTREAM_SLUGS = [
   'youtube-content-creator',
   'youtube-warmup',
 ];
+/**
+ * Folders of an upstream package that run in the user's own client (a local
+ * render script, a Remotion template) and are never loaded by the app. The
+ * pinned package leaves them out, so the catalog keeps only the instruction
+ * files and its extension rule still rejects any other code.
+ */
+export const UPSTREAM_LOCAL_TOOLING_PATHS: Readonly<
+  Record<string, readonly string[]>
+> = {
+  'motion-video': ['scripts', 'templates'],
+};
+export function isLocalToolingPath(slug: string, path: string): boolean {
+  return (UPSTREAM_LOCAL_TOOLING_PATHS[slug] ?? []).some(
+    (folder) => path === folder || path.startsWith(`${folder}/`),
+  );
+}
 const APPLICATION_PROCEDURES = new Set([
   'clip-editor',
   'brand-interview',
@@ -97,10 +115,15 @@ export function assertSafePath(path: string): void {
   )
     throw new Error(`Unsafe catalog path: ${path}`);
 }
-export function inventory(directory: string, upstream = false): CatalogFile[] {
+export function inventory(
+  directory: string,
+  upstream = false,
+  skip: (path: string) => boolean = () => false,
+): CatalogFile[] {
   const files: CatalogFile[] = [];
   const seen = new Set<string>();
   function walk(path: string): void {
+    if (path && skip(path)) return;
     const absolute = path ? join(directory, path) : directory;
     const stat = lstatSync(absolute);
     if (stat.isSymbolicLink())

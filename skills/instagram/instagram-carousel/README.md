@@ -1,5 +1,6 @@
 # Instagram Carousel
 
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
 Plan and write an Instagram carousel: slide copy, design spec, caption and handoff to a local renderer.
 
 ## Installation
@@ -7,6 +8,7 @@ Plan and write an Instagram carousel: slide copy, design spec, caption and hando
 ```bash
 bunx skills add genfeedai/skills --skill instagram-carousel
 ```
+<!-- generated:end -->
 
 ## Usage
 

@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Generate channel-conform launch copy for Hacker News (Show HN) and Product Hunt — titles, taglines, and maker/first comments that respect each community's norms"
+  tags: launch, copywriting, hacker-news, product-hunt, distribution, developer-marketing
+  outputs: text
+  triggers: "write a show hn; show hn title; hacker news launch; product hunt tagline; product hunt launch copy; maker comment; launch copy; launch kit copy; write launch copy"
 ---
 
 # Launch Copy Creator

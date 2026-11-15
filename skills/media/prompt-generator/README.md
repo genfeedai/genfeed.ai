@@ -1,12 +1,14 @@
 # Prompt Generator
 
-Generate optimized prompts for AI image and video generation.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Generate optimized image and video prompts for AI generation
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill prompt-generator
 ```
+<!-- generated:end -->
 
 ## Usage
 

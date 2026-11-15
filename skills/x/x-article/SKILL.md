@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Write a long-form X Article and the promo post that sends the timeline to it."
+  tags: x, twitter, article, long-form, content-creation
+  outputs: text
+  triggers: "write an X article; long-form post on X; turn this into an X article; X article about"
 ---
 
 # X Article
