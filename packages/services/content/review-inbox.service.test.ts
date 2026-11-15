@@ -83,6 +83,40 @@ describe('ReviewInboxService', () => {
     });
   });
 
+  describe('getBatch', () => {
+    it('returns the batch the API sent', async () => {
+      const batch = {
+        approvalId: 'apr-1',
+        brandLabel: 'Brand',
+        expiresAt: '2026-11-16T00:00:00.000Z',
+        posts: [],
+        requestedAt: '2026-11-15T00:00:00.000Z',
+        requestedByLabel: 'Claude',
+        status: 'pending',
+        total: 0,
+      };
+      mockGet.mockResolvedValue({ data: batch });
+
+      await expect(service.getBatch('apr-1')).resolves.toEqual(batch);
+    });
+
+    it.each([
+      ['an empty collection', { data: [] }],
+      ['a body without posts', { approvalId: 'apr-1' }],
+      ['a body without an approval id', { posts: [] }],
+      ['no body', ''],
+    ])(
+      'rejects %s so the page shows its load-failed state',
+      async (_name, data) => {
+        mockGet.mockResolvedValue({ data });
+
+        await expect(service.getBatch('apr-1')).rejects.toThrow(
+          'returned no batch',
+        );
+      },
+    );
+  });
+
   it('posts one decision and returns its result', async () => {
     mockPost.mockResolvedValue({
       data: {
