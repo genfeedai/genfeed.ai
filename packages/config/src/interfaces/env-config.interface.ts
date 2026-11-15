@@ -107,8 +107,6 @@ export interface IEnvConfig {
 
   CRUN_API_KEY?: string;
 
-  GITHUB_TOKEN?: string;
-
   KIE_API_KEY?: string;
 
   MUREKA_API_KEY?: string;
@@ -275,7 +273,6 @@ export interface IEnvConfig {
   WEBSOCKET_URL?: string;
 
   VERCEL_WEBHOOK_SECRET?: string;
-  CI_TRIAGE_WEBHOOK_SECRET?: string;
 
   CHROME_EXTENSION_ID?: string;
 
