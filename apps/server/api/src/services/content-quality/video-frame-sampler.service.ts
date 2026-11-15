@@ -22,7 +22,7 @@ const LATE_FRAME_SWEEP_DELAY_MS = 5 * 60 * 1000;
 /** First, middle and last frame: the least a score may look at. */
 export const FIRST_MIDDLE_LAST_POSITIONS: readonly number[] = [0, 0.5, 1];
 
-export interface SampledVideoFrame {
+interface SampledVideoFrame {
   /** Signed CDN URL the model provider can fetch. */
   url: string;
   /** Position in the video, 0 (first frame) to 1 (last frame). */

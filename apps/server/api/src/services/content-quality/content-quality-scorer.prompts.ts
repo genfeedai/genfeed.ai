@@ -22,7 +22,7 @@ Criteria:
 - Brand-readiness (professional production quality)
 - Audio quality (if applicable)`;
 
-export interface VideoScoringFrameInfo {
+interface VideoScoringFrameInfo {
   position: number;
   seconds: number;
 }
