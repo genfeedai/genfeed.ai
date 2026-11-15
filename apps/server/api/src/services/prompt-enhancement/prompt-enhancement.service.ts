@@ -46,6 +46,12 @@ export interface PromptEnhancementInput {
    * it as a scene to illustrate.
    */
   subjectRule?: string;
+  /**
+   * The media-relevant part of the brand brief (palette, look, avoid), from
+   * `buildMediaEnhancerBrief`. Sent as guidance so the rewrite is written with
+   * the brand in view.
+   */
+  brandBrief?: string;
 }
 
 /** Existing AiActions context assembly and BYOK credentials; never accepted from an HTTP DTO. */
@@ -149,6 +155,7 @@ export class PromptEnhancementService {
           input.subjectRule?.trim()
             ? `Subject rule (applies to what is depicted, never to be quoted):\n${input.subjectRule.trim()}`
             : '',
+          input.brandBrief?.trim() ?? '',
           formatCreativeDirection(input.creativeDirection),
         ]
           .filter(Boolean)

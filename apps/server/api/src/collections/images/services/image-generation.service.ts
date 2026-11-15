@@ -33,7 +33,6 @@ import { IngredientGenerationCancellationService } from '@api/collections/ingred
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import type {
   GenerationPlaceholderCreatedCallback,
   GenerationPlaceholderScope,
@@ -117,7 +116,6 @@ export class ImageGenerationService {
     private readonly routerService: RouterService,
     private readonly sharedService: SharedService,
     private readonly cancellationService: IngredientGenerationCancellationService,
-    private readonly templatesService: TemplatesService,
     private readonly enhancementService: MediaPromptEnhancementService,
   ) {}
 
@@ -306,6 +304,7 @@ export class ImageGenerationService {
     } = await this.prepareImageGenerationSettings({
       brand,
       createImageDto,
+      generationHarness,
       organizationId: user.organizationId,
       model,
     });
@@ -841,7 +840,6 @@ export class ImageGenerationService {
     params: ImageGenerationSettingsParams,
   ): Promise<ImageGenerationSettingsResult> {
     return prepareImageGenerationSettings(params, {
-      templatesService: this.templatesService,
       loggerService: this.loggerService,
     });
   }
