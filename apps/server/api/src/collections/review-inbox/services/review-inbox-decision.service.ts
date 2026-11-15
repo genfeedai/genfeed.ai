@@ -130,6 +130,12 @@ export class ReviewInboxDecisionService {
           request.excludedIndexes ?? [],
           user.allowedBrandIds,
         );
+        // Kept before the approval is granted, so a run that stops after it
+        // resumes with the posts this reviewer kept.
+        await this.scheduledBatches.recordReview(
+          pending,
+          request.excludedIndexes ?? [],
+        );
       }
       const approval = await this.mcpApprovals.resolve(
         parsed.approvalId,

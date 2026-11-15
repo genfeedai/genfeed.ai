@@ -21,6 +21,7 @@ function build(
     credentials?: Record<string, unknown>[];
     ingredients?: Record<string, unknown>[];
     brands?: Record<string, unknown>[];
+    outsideCampaignIds?: string[];
   } = {},
 ) {
   const createdKeys: unknown[] = [];
@@ -54,7 +55,16 @@ function build(
     logger as never,
     contractService as never,
     {
-      resolveBrandId: async () => undefined,
+      assertCampaignScope: async (
+        _tx: unknown,
+        _organizationId: string,
+        campaignId: string,
+      ) => {
+        if (overrides.outsideCampaignIds?.includes(campaignId)) {
+          throw new NotFoundException('Campaign', campaignId);
+        }
+      },
+      resolveBrandId: async () => 'brand-1',
       resolveCredentials: async () => [],
     } as never,
     { resolveForCredentials: async () => new Map() } as never,
@@ -103,6 +113,30 @@ describe('PostGroupBatchService.validate', () => {
     expect(errors).toEqual([
       { index: 1, message: 'title is too long for twitter' },
     ]);
+  });
+
+  it('names a release whose campaign is outside its brand, before approval', async () => {
+    const { service } = build({
+      outsideCampaignIds: ['campaign-other-brand'],
+      parse: (release) =>
+        ({
+          campaignId: (release as { campaignId?: string }).campaignId,
+          targets: [],
+        }) as never,
+    });
+
+    const errors = await service.validate('org-1', [
+      { campaignId: 'campaign-own-brand', targets: ONE_CHANNEL, title: 'ok' },
+      {
+        campaignId: 'campaign-other-brand',
+        targets: ONE_CHANNEL,
+        title: 'wrong campaign',
+      },
+      { targets: ONE_CHANNEL, title: 'no campaign' },
+    ]);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]?.index).toBe(1);
   });
 
   it('reports nothing for a batch the rules accept', async () => {
