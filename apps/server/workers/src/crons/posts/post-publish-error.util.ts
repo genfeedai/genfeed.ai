@@ -1,6 +1,11 @@
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PublishResult } from '@api/index';
-import type { RecordActivityInput } from '@api/services/activity-recording/activity-recording.types';
+import type {
+  ActivityAlertOptions,
+  RecordActivityInput,
+} from '@api/services/activity-recording/activity-recording.types';
+import type { AlertEmailNotificationPayload } from '@api/services/notifications/workflow-notifications/workflow-notification.constants';
+import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -166,12 +171,45 @@ export function createFailedPublishResult(
   };
 }
 
+const ALERT_POST_LABEL_LENGTH = 80;
+const ALERT_REASON_LENGTH = 300;
+
+function describePostForAlert(post: PostEntity): string {
+  const text = htmlToText(post.description ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!text) {
+    return 'Scheduled post';
+  }
+  return text.length > ALERT_POST_LABEL_LENGTH
+    ? `${text.slice(0, ALERT_POST_LABEL_LENGTH - 1)}…`
+    : text;
+}
+
+/** What the failure email says: the post, the channel and why it failed. */
+function buildPublishFailedAlert(
+  post: PostEntity,
+  reason: string,
+): ActivityAlertOptions {
+  const platform = readPostString(post, ['platform']) ?? 'its channel';
+  const payload: AlertEmailNotificationPayload = {
+    event: 'post_failed',
+    kind: 'alert_email',
+    label: describePostForAlert(post),
+    summary: `It was not published to ${platform}: ${reason.slice(0, ALERT_REASON_LENGTH)}`,
+    version: 1,
+  };
+  return { payload };
+}
+
 export function createQuotaExceededActivity(
   post: PostEntity,
   quotaCheck: QuotaCheckResult,
   platform: string,
 ): RecordActivityInput {
+  const value = `Quota exceeded: ${quotaCheck.currentCount}/${quotaCheck.dailyLimit} posts for ${platform}`;
   return {
+    alert: buildPublishFailedAlert(post, value),
     brandId: readPostString(post, ['brandId']) ?? null,
     entityId: post.id,
     entityModel: ActivityEntityModel.POST,
@@ -179,7 +217,7 @@ export function createQuotaExceededActivity(
     organizationId: readPostString(post, ['organizationId']) ?? null,
     source: ActivitySource.POST,
     userId: readPostString(post, ['userId']) ?? null,
-    value: `Quota exceeded: ${quotaCheck.currentCount}/${quotaCheck.dailyLimit} posts for ${platform}`,
+    value,
   };
 }
 
@@ -188,6 +226,7 @@ export function createPublishFailedActivity(
   errorMessage: string,
 ): RecordActivityInput {
   return {
+    alert: buildPublishFailedAlert(post, errorMessage),
     brandId: readPostString(post, ['brandId']) ?? null,
     entityId: post.id,
     entityModel: ActivityEntityModel.POST,

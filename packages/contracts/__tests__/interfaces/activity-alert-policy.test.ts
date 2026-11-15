@@ -20,8 +20,11 @@ describe('activity alert policy map (#5197)', () => {
         topic: 'generation.status',
       }),
     );
-    expect(getActivityAlertPolicy(ActivityKey.POST_FAILED)?.topic).toBe(
-      'publishing.status',
+    expect(getActivityAlertPolicy(ActivityKey.POST_FAILED)).toEqual(
+      expect.objectContaining({
+        recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
+        topic: 'publishing.status',
+      }),
     );
     expect(getActivityAlertPolicy(ActivityKey.POST_MANUAL_POST_NEEDED)).toEqual(
       expect.objectContaining({
@@ -30,9 +33,13 @@ describe('activity alert policy map (#5197)', () => {
       }),
     );
     expect(
-      getActivityAlertPolicy(ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED)
-        ?.topic,
-    ).toBe('integration.status');
+      getActivityAlertPolicy(ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED),
+    ).toEqual(
+      expect.objectContaining({
+        recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
+        topic: 'integration.status',
+      }),
+    );
     expect(getActivityAlertPolicy(ActivityKey.IMAGE_GENERATED)).toBeNull();
     expect(getActivityAlertPolicy(ActivityKey.CREDITS_REMOVE)).toBeNull();
     expect(getActivityAlertPolicy('not-a-key')).toBeNull();

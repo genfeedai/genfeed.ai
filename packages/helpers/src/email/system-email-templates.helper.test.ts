@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildAlertEmailBody,
   buildCollaborationEmailBody,
   buildContentRecapEmailBody,
   buildCreditAlertEmailBody,
@@ -181,5 +182,36 @@ describe('collaboration email', () => {
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;');
     expect(html).toContain('A &amp; B');
+  });
+});
+
+describe('alert email', () => {
+  it('names what happened, the post or channel and why', () => {
+    const html = buildAlertEmailBody({
+      area: 'Publishing',
+      headline: 'Post failed',
+      label: 'Shipped the weekly batch',
+      summary: 'It was not published to X: the account is disconnected.',
+      tone: 'danger',
+    });
+
+    expect(html).toContain('Post failed');
+    expect(html).toContain('Publishing');
+    expect(html).toContain('Shipped the weekly batch');
+    expect(html).toContain('the account is disconnected');
+  });
+
+  it('escapes what the post and the provider said', () => {
+    const html = buildAlertEmailBody({
+      area: 'Channels',
+      headline: 'Channel disconnected',
+      label: '<script>alert(1)</script>',
+      summary: 'Refused: A & B',
+      tone: 'warning',
+    });
+
+    expect(html).not.toContain('<script>');
+    expect(html).toContain('&lt;script&gt;');
+    expect(html).toContain('Refused: A &amp; B');
   });
 });

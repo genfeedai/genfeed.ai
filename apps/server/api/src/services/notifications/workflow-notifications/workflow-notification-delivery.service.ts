@@ -5,16 +5,14 @@ import {
   EmailDeliveryError,
   NotificationsService,
 } from '@api/services/notifications/notifications.service';
-import {
-  buildCollaborationEmail,
-  readCollaborationPayload,
-} from '@api/services/notifications/workflow-notifications/collaboration-email.util';
+import { readTopicEmail } from '@api/services/notifications/workflow-notifications/topic-email.util';
 import {
   AGENT_STATUS_NOTIFICATION_TOPIC,
   type AgentReviewNotificationPayload,
   COLLABORATION_NOTIFICATION_TOPIC,
-  COLLABORATION_SOURCE_TYPE,
   EMAIL_NOTIFICATION_CHANNEL,
+  INTEGRATION_STATUS_NOTIFICATION_TOPIC,
+  PUBLISHING_STATUS_NOTIFICATION_TOPIC,
   readNotificationSourcePath,
   WORKFLOW_STATUS_NOTIFICATION_TOPIC,
   type WorkflowStatusNotificationPayload,
@@ -30,7 +28,6 @@ import {
 } from '@genfeedai/contracts';
 import {
   CHANNEL_MESSAGE_TYPES,
-  defaultProductEmailPreference,
   type IChannelMessage,
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
@@ -213,8 +210,12 @@ export class WorkflowNotificationDeliveryService {
     recipient: RecipientDelivery,
   ): Promise<void> {
     if (await this.deliverAgentMessagingReport(deliveryId, recipient)) return;
-    if (recipient.topic === COLLABORATION_NOTIFICATION_TOPIC) {
-      await this.deliverCollaborationEmail(deliveryId, recipient);
+    if (
+      recipient.topic === COLLABORATION_NOTIFICATION_TOPIC ||
+      recipient.topic === PUBLISHING_STATUS_NOTIFICATION_TOPIC ||
+      recipient.topic === INTEGRATION_STATUS_NOTIFICATION_TOPIC
+    ) {
+      await this.deliverTopicEmail(deliveryId, recipient);
       return;
     }
 
@@ -329,24 +330,21 @@ export class WorkflowNotificationDeliveryService {
   }
 
   /**
-   * Email for a review request, a review decision or a mention (#9947). It
-   * follows the member's "Reviews and mentions" choice: a stored preference
-   * wins, and without one the topic's default applies.
+   * Email that follows the topic's own rules instead of the workflow or agent
+   * ones: a review request, a review decision or a mention (#9947), and the
+   * publishing and channel alerts that must reach the owner off screen. A
+   * stored preference wins; without one the topic's default applies.
    */
-  private async deliverCollaborationEmail(
+  private async deliverTopicEmail(
     deliveryId: string,
     recipient: RecipientDelivery,
   ): Promise<void> {
-    const payload = readCollaborationPayload(recipient.event.payload);
-    if (
-      recipient.channel !== EMAIL_NOTIFICATION_CHANNEL ||
-      recipient.event.sourceType !== COLLABORATION_SOURCE_TYPE ||
-      !payload
-    ) {
+    const topicEmail = readTopicEmail(recipient);
+    if (!topicEmail) {
       await this.failPermanently(
         deliveryId,
         recipient.organizationId,
-        'Invalid collaboration notification',
+        'Invalid notification payload',
       );
       return;
     }
@@ -357,13 +355,11 @@ export class WorkflowNotificationDeliveryService {
       where: {
         channel: EMAIL_NOTIFICATION_CHANNEL,
         isDeleted: false,
-        topic: COLLABORATION_NOTIFICATION_TOPIC,
+        topic: recipient.topic,
         userId: recipient.userId,
       },
     });
-    const isEnabled =
-      preference?.isEnabled ??
-      defaultProductEmailPreference(COLLABORATION_NOTIFICATION_TOPIC);
+    const isEnabled = preference?.isEnabled ?? topicEmail.isEnabledByDefault;
     if (!isEnabled || recipient.user.isDeleted || !recipient.user.email) {
       await this.skip(
         deliveryId,
@@ -387,11 +383,10 @@ export class WorkflowNotificationDeliveryService {
     }
 
     try {
-      const email = buildCollaborationEmail(
-        payload,
+      const email = topicEmail.build(
         this.agentReportHref(
           this.configService?.get('GENFEEDAI_APP_URL'),
-          payload.sourcePath,
+          topicEmail.sourcePath,
         ),
       );
       const providerMessageId = await this.notificationsService.deliverEmail({
