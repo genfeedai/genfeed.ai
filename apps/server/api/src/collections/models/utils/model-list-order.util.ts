@@ -10,6 +10,7 @@ export const MODEL_SORT_FIELDS: readonly string[] = [
   'isDefault',
   'label',
   'lifecycle',
+  'provider',
   'qualityTier',
   'reviewStatus',
 ];
