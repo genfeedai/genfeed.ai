@@ -27,7 +27,7 @@
   "scripts": {
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",
-    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit"
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && bun check --no-script"
   },
   "sideEffects": false,
   "version": "0.1.0"

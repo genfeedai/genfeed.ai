@@ -40,7 +40,7 @@
     "test": "vitest run --config vitest.config.ts",
     "test:cov": "vitest run --coverage --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",
-    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit -p tsconfig.json"
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && bun check --no-script -p tsconfig.json"
   },
   "sideEffects": false,
   "type": "module",
