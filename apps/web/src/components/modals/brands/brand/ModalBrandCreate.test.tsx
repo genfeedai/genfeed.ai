@@ -170,7 +170,7 @@ describe('ModalBrandCreate', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create brand' }));
 
     await waitFor(() => {
-      expect(pushMock).toHaveBeenCalledWith('/acme-org/acme/settings');
+      expect(pushMock).toHaveBeenCalledWith('/acme-org/acme/settings/profile');
     });
     expect(onConfirm).toHaveBeenCalledWith('brand-created');
   });

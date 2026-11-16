@@ -44,7 +44,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
       rewardCredits: 25,
       selfHostedCtaHref: '/onboarding/brand',
       whyItMatters:
-        'Better company context gives GenFeed better prompts, voice, and visual direction.',
+        'Better company context gives Genfeed better prompts, voice, and visual direction.',
     },
     {
       ctaHref: APP_ROUTES.CONNECTORS.AGENTS,
@@ -62,7 +62,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
       ctaHref: APP_ROUTES.CONNECTORS.CHANNELS,
       ctaLabel: 'Connect channels',
       description:
-        'Connect your first social account so GenFeed can tailor content to real channels.',
+        'Connect your first social account so Genfeed can tailor content to real channels.',
       id: 'connect_social_account',
       label: 'Connect a social account',
       rewardCredits: 45,

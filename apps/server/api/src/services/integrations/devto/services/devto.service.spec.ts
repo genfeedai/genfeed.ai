@@ -151,4 +151,58 @@ describe('DevtoService', () => {
       expect(loggerMock.error).toHaveBeenCalled();
     });
   });
+  describe('listPublishVerificationPage', () => {
+    const startedAt = new Date('2026-10-03T10:00:00Z');
+
+    it('reads the published articles with the account key and a fixed page size', async () => {
+      httpGetMock.mockReturnValue(
+        of({
+          data: [
+            {
+              created_at: '2026-10-03T10:00:03Z',
+              id: 999,
+              published_at: '2026-10-03T10:00:03Z',
+              title: 'Hello dev.to',
+              url: 'https://dev.to/devfounder/hello-devto-abc',
+            },
+          ],
+        }),
+      );
+
+      const page = await service.listPublishVerificationPage(
+        'api-key',
+        false,
+        startedAt,
+        '2',
+      );
+
+      expect(page.items.map((item) => item.id)).toEqual(['999']);
+      expect(httpGetMock).toHaveBeenCalledWith(
+        'https://dev.to/api/articles/me/published',
+        expect.objectContaining({
+          headers: { 'api-key': 'api-key' },
+          maxRedirects: 0,
+          params: { page: 2, per_page: 30 },
+        }),
+      );
+    });
+
+    it('reads the drafts for a scheduler draft', async () => {
+      httpGetMock.mockReturnValue(of({ data: [] }));
+
+      await service.listPublishVerificationPage('api-key', true, startedAt);
+
+      expect(httpGetMock).toHaveBeenCalledWith(
+        'https://dev.to/api/articles/me/unpublished',
+        expect.objectContaining({ params: { page: 1, per_page: 30 } }),
+      );
+    });
+
+    it('refuses a cursor that is not a page number', async () => {
+      await expect(
+        service.listPublishVerificationPage('api-key', false, startedAt, 'x'),
+      ).rejects.toThrow('Invalid Dev.to verification cursor');
+      expect(httpGetMock).not.toHaveBeenCalled();
+    });
+  });
 });

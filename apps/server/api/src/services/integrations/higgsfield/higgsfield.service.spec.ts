@@ -461,6 +461,238 @@ describe('HiggsFieldService', () => {
     });
   });
 
+  describe('Soul Standard and Soul Cinema', () => {
+    it.each([
+      MODEL_KEYS.HIGGSFIELD_SOUL_STANDARD,
+      MODEL_KEYS.HIGGSFIELD_SOUL_CINEMA,
+    ])('posts %s at the documented 720p default', async (modelKey) => {
+      mockHttpService.post.mockReturnValue(
+        of({ data: { request_id: 'req-soul', status: 'queued' }, status: 200 }),
+      );
+
+      await service.generateTextToImage({
+        modelKey,
+        prompt: 'A portrait',
+      });
+
+      expect(mockHttpService.post).toHaveBeenCalledWith(
+        `${PLATFORM}/${modelKey}`,
+        {
+          aspect_ratio: '4:3',
+          batch_size: 1,
+          prompt: 'A portrait',
+          resolution: '720p',
+        },
+        expect.any(Object),
+      );
+    });
+
+    it('falls back to Soul 2 for a key that is not a Soul endpoint', async () => {
+      mockHttpService.post.mockReturnValue(
+        of({ data: { request_id: 'req-soul', status: 'queued' }, status: 200 }),
+      );
+
+      await service.generateTextToImage({
+        modelKey: 'some/other-model',
+        prompt: 'A portrait',
+      });
+
+      expect(mockHttpService.post).toHaveBeenCalledWith(
+        `${PLATFORM}/${MODEL_KEYS.HIGGSFIELD_SOUL}`,
+        expect.objectContaining({ resolution: '1080p' }),
+        expect.any(Object),
+      );
+    });
+  });
+
+  describe('generateObjectSwap', () => {
+    it('posts the object swap endpoint with the clip and reference stills', async () => {
+      mockHttpService.post.mockReturnValue(
+        of({ data: { request_id: 'req-swap', status: 'queued' }, status: 200 }),
+      );
+
+      const result = await service.generateObjectSwap({
+        imageUrls: ['https://cdn.test/mug.png'],
+        videoUrl: 'https://cdn.test/desk.mp4',
+      });
+
+      expect(result).toEqual({
+        requestId: 'req-swap',
+        status: 'queued',
+        videoUrl: undefined,
+      });
+      expect(mockHttpService.post).toHaveBeenCalledWith(
+        `${PLATFORM}/${MODEL_KEYS.HIGGSFIELD_GENJUTSU_OBJECT_SWAP}`,
+        {
+          image_urls: ['https://cdn.test/mug.png'],
+          prompt: '',
+          resolution: '720p',
+          video_url: 'https://cdn.test/desk.mp4',
+        },
+        expect.any(Object),
+      );
+    });
+
+    it('rejects a request with no reference still', async () => {
+      await expect(
+        service.generateObjectSwap({
+          imageUrls: [],
+          videoUrl: 'https://cdn.test/desk.mp4',
+        }),
+      ).rejects.toThrow('1 to 8 https character image URLs');
+      expect(mockHttpService.post).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('generateRestyle', () => {
+    const presetId = 'c2143317-f28d-4c3c-a0b8-39bd547e08a7';
+
+    it('posts the restyle endpoint with the preset and no character stills', async () => {
+      mockHttpService.post.mockReturnValue(
+        of({
+          data: { request_id: 'req-style', status: 'queued' },
+          status: 200,
+        }),
+      );
+
+      const result = await service.generateRestyle({
+        presetId,
+        resolution: '480p',
+        videoUrl: 'https://cdn.test/walk.mp4',
+      });
+
+      expect(result.requestId).toBe('req-style');
+      expect(mockHttpService.post).toHaveBeenCalledWith(
+        `${PLATFORM}/${MODEL_KEYS.HIGGSFIELD_GENJUTSU_RESTYLE}`,
+        {
+          image_urls: [],
+          preset_id: presetId,
+          prompt: '',
+          resolution: '480p',
+          video_url: 'https://cdn.test/walk.mp4',
+        },
+        expect.any(Object),
+      );
+    });
+
+    it('rejects a preset that is not a UUID instead of guessing a style', async () => {
+      await expect(
+        service.generateRestyle({
+          presetId: 'cel-shaded-anime',
+          videoUrl: 'https://cdn.test/walk.mp4',
+        }),
+      ).rejects.toThrow('style preset id');
+      expect(mockHttpService.post).not.toHaveBeenCalled();
+    });
+
+    it('rejects more than five character stills', async () => {
+      await expect(
+        service.generateRestyle({
+          imageUrls: Array.from(
+            { length: 6 },
+            (_, index) => `https://cdn.test/face-${index}.png`,
+          ),
+          presetId,
+          videoUrl: 'https://cdn.test/walk.mp4',
+        }),
+      ).rejects.toThrow('at most 5 https character image URLs');
+    });
+  });
+
+  describe('listRestylePresets', () => {
+    it('returns the catalog items from the documented path', async () => {
+      mockHttpService.get.mockReturnValue(
+        of({
+          data: {
+            items: [
+              { id: 'c2143317-f28d-4c3c-a0b8-39bd547e08a7', name: 'Cel' },
+            ],
+            model: 'higgsfield/genjutsu/restyle/v1.0',
+          },
+          status: 200,
+        }),
+      );
+
+      const presets = await service.listRestylePresets();
+
+      expect(presets).toEqual([
+        { id: 'c2143317-f28d-4c3c-a0b8-39bd547e08a7', name: 'Cel' },
+      ]);
+      expect(mockHttpService.get).toHaveBeenCalledWith(
+        `${PLATFORM}/models/higgsfield/genjutsu/restyle/v1.0/presets`,
+        expect.any(Object),
+      );
+    });
+  });
+
+  describe('generateAdsStudioImages', () => {
+    const okResponse = () =>
+      of({ data: { request_id: 'req-ads', status: 'queued' }, status: 200 });
+
+    it('posts the brief with documented defaults and an idempotency key', async () => {
+      mockHttpService.post.mockReturnValue(okResponse());
+
+      const result = await service.generateAdsStudioImages({
+        prompt: '  Ad for Quiet Evening tea  ',
+      });
+
+      expect(result).toEqual({ imageUrls: [], requestId: 'req-ads' });
+      expect(mockHttpService.post).toHaveBeenCalledWith(
+        `${PLATFORM}/${MODEL_KEYS.HIGGSFIELD_ADS_STUDIO}`,
+        {
+          aspect_ratio: '1:1',
+          batch_size: 1,
+          prompt: 'Ad for Quiet Evening tea',
+        },
+        {
+          headers: expect.objectContaining({
+            'Idempotency-Key': expect.any(String),
+          }),
+        },
+      );
+    });
+
+    it('sends audience, niche, language and references when given', async () => {
+      mockHttpService.post.mockReturnValue(okResponse());
+
+      await service.generateAdsStudioImages({
+        aspectRatio: '9:16',
+        batchSize: 2,
+        imageUrls: ['https://cdn.test/tin.png'],
+        language: 'en',
+        niche: 'Herbal tea',
+        prompt: 'Two ads',
+        targetAudience: 'Busy professionals',
+      });
+
+      expect(mockHttpService.post).toHaveBeenCalledWith(
+        expect.any(String),
+        {
+          aspect_ratio: '9:16',
+          batch_size: 2,
+          image_urls: ['https://cdn.test/tin.png'],
+          language: 'en',
+          niche: 'Herbal tea',
+          prompt: 'Two ads',
+          target_audience: 'Busy professionals',
+        },
+        expect.any(Object),
+      );
+    });
+
+    it.each([
+      { batchSize: 0, message: 'batch size' },
+      { batchSize: 9, message: 'batch size' },
+      { aspectRatio: 'auto', message: 'aspect ratio' },
+      { prompt: '   ', message: 'brief of 1 to 8000 characters' },
+    ])('rejects an invalid request ($message)', async (overrides) => {
+      await expect(
+        service.generateAdsStudioImages({ prompt: 'An ad', ...overrides }),
+      ).rejects.toThrow(overrides.message);
+      expect(mockHttpService.post).not.toHaveBeenCalled();
+    });
+  });
+
   describe('generateCinemaStudioVideo', () => {
     const okResponse = () =>
       of({ data: { request_id: 'req-cinema', status: 'queued' }, status: 200 });

@@ -271,6 +271,7 @@ export class AgentMessagesService extends BaseService<
     roomId: string,
     limit = 20,
     organizationId?: string,
+    brandIds?: string[],
   ): Promise<AgentMessageDocument[]> {
     const safeLimit = this.normalizeLimit(limit, 20, MAX_AGENT_MESSAGE_LIMIT);
     // Prefer org-scoped reads so Postgres can use the composite
@@ -278,8 +279,12 @@ export class AgentMessagesService extends BaseService<
     // instead of a threadId-only filter that may sequential-scan.
     const messages = await this.delegate.findMany({
       where: organizationId
-        ? scopedWhere(organizationId, { threadId: roomId })
+        ? scopedWhere(organizationId, {
+            ...buildAgentMessageBrandWhere(brandIds),
+            threadId: roomId,
+          })
         : {
+            ...buildAgentMessageBrandWhere(brandIds),
             isDeleted: false,
             threadId: roomId,
           },

@@ -54,7 +54,7 @@
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/messages/messages-surface-adapter.tsx": 1,
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/messages/replies/replies-page.tsx": 5,
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/messages/reply-drip/reply-drip-page.tsx": 23,
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/profile/brand-detail.tsx": 2,
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/profile/brand-detail.tsx": 2,
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/cadence-form-sheet.tsx": 9,
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/content-calendar-page.tsx": 2,
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/evergreen-series-controls.tsx": 17,

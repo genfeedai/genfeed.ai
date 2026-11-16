@@ -115,6 +115,7 @@ export * from './posting-cadence.enum';
 export * from './priority.enum';
 export * from './prompt.enum';
 export * from './publish-approval.enum';
+export * from './publish-error-kind.enum';
 export * from './publish-status.enum';
 export * from './reference.enum';
 export * from './referral.enum';

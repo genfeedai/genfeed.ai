@@ -7,6 +7,7 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { verifyMediaPublish } from '@api/services/integrations/publishers/publisher-media-verification.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
@@ -32,6 +33,52 @@ export class FacebookPublisherService extends BasePublisherService {
     private readonly postsService: PostsService,
   ) {
     super(configService, logger);
+  }
+
+  /**
+   * Whether an earlier, unconfirmed publish landed on the Page.
+   *
+   * Matches the exact caption and media kind (photo or video) among the Page's
+   * published feed items created since the attempt began. The Page is the one
+   * the publish targets: the explicit page setting, else the credential's page.
+   */
+  async verifyPublished(
+    context: PublishContext,
+    attemptStartedAt: Date,
+  ): Promise<PublishResult | null> {
+    const mediaInfo = this.extractMediaInfo(context.post);
+    const pageId =
+      readChannelSettingString(context.settings, 'pageId') ??
+      context.credential.externalId;
+    if (!pageId || mediaInfo.isCarousel) {
+      throw new Error(
+        'Provider verification lacks exact Facebook page/media proof',
+      );
+    }
+    const found = await verifyMediaPublish(
+      attemptStartedAt,
+      (cursor) =>
+        this.facebookService.listPublishVerificationPage(
+          context.organizationId,
+          context.brandId,
+          context.credential.id,
+          pageId,
+          attemptStartedAt,
+          cursor,
+        ),
+      {
+        mediaCount: 1,
+        mediaKind: mediaInfo.isImagePost ? 'image' : 'video',
+        text: this.sanitizeDescription(context.post.description),
+      },
+    );
+    return found
+      ? this.createSuccessResult(
+          found.id,
+          this.platform,
+          this.buildPostUrl(found.id, context.credential),
+        )
+      : null;
   }
 
   /**

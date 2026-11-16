@@ -34,9 +34,12 @@ import {
   createChannelTargetError,
   createFailedPublishResult,
   createPublishFailedActivity,
+  createRetryScheduledResult,
   getPublishErrorCode,
   getPublishErrorMessage,
   isAmbiguousPublishError,
+  isAmbiguousPublishResult,
+  toPublishFailureCause,
 } from '@workers/crons/posts/post-publish-error.util';
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 import {
@@ -44,6 +47,7 @@ import {
   resolveUnverifiedDeferral,
 } from '@workers/services/scheduled-post.utils';
 import { loadScheduledActionPost } from '@workers/services/scheduled-post-action-load.util';
+import { ScheduledPostChannelRecoveryService } from '@workers/services/scheduled-post-channel-recovery.service';
 import type {
   DeliveryGateFailure,
   PostDeliveryIds,
@@ -68,11 +72,11 @@ import {
   ProviderPublishPersistenceError,
 } from '@workers/services/scheduled-post-provider-receipt.util';
 import { ScheduledPostPublishFollowUps } from '@workers/services/scheduled-post-publish-follow-ups';
-import type { RateLimitPlan } from '@workers/services/scheduled-post-rate-limit.util';
 import {
   buildFailureWrite,
   buildRetryWrite,
   decideRetry,
+  type RetryPlan,
 } from '@workers/services/scheduled-post-retry-state.util';
 import {
   queueLearningPublicationRefreshV1,
@@ -124,6 +128,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     private readonly prisma: PrismaService,
     mediaReadinessService: MediaReadinessService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
+    private readonly channelRecovery: ScheduledPostChannelRecoveryService,
   ) {
     this.gates = new ScheduledPostDeliveryGates(
       logger,
@@ -544,10 +549,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       return await this.handlePublishError(post, error, workflowExecutionId);
     }
     if (!result.success) {
-      // A pre-publish validation code is deterministic; anything else that
-      // looks like a timeout or 5xx may hide an accepted publish.
-      const isAmbiguous =
-        !result.errorCode && isAmbiguousPublishError(result.error ?? '');
+      const isAmbiguous = isAmbiguousPublishResult(result);
       await this.attempts.settle(
         post,
         attempt,
@@ -878,7 +880,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     errorCode = getPublishErrorCode(errorMessage),
     workflowExecutionId?: string,
     failureGuard?: SchedulerPublishTransitionGuard,
-    rateLimit: RateLimitPlan | null = null,
+    plan: RetryPlan | null = null,
   ): Promise<boolean | undefined> {
     const url = `${this.constructorName} attemptRetry`;
     const currentRetryCount = post.retryCount || 0;
@@ -888,7 +890,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         post,
         errorCode,
         errorMessage,
-        rateLimit,
+        plan,
         workflowExecutionId,
       );
       const persisted = await this.persistPublishState(
@@ -903,7 +905,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
       this.logger.log(
         `${url} will retry post (attempt ${currentRetryCount + 1}/${this.MAX_RETRY_ATTEMPTS}) after ${SCHEDULED_POST_RETRY_BACKOFF_SECONDS}s backoff`,
-        { postId: post.id, rateLimit },
+        { plan, postId: post.id },
       );
 
       return true;
@@ -944,34 +946,33 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     platform: CredentialPlatform | string,
     workflowExecutionId?: string,
   ): Promise<PublishResult> {
-    const { canRetry, errorMessage, rateLimit } = decideRetry(
+    const recovery = await this.channelRecovery.recover(
+      post,
+      toPublishFailureCause(result),
+    );
+    const { canRetry, errorMessage, plan } = decideRetry(
       post,
       {
-        error: result.errorCode ? undefined : (result.error ?? ''),
+        error: result.errorCode ? undefined : recovery.cause,
         message: result.error || 'Max retries reached',
         retryAfterMs: result.retryAfterMs,
       },
       this.MAX_RETRY_ATTEMPTS,
+      recovery.plan,
     );
 
     const scheduledForRetry = await this.attemptRetry(
       post,
       canRetry,
       errorMessage,
-      result.errorCode ?? getPublishErrorCode(result.error),
+      result.errorCode ?? getPublishErrorCode(recovery.cause),
       workflowExecutionId,
       undefined,
-      rateLimit,
+      plan,
     );
 
     if (scheduledForRetry) {
-      return {
-        externalId: null,
-        executionState: TargetExecutionState.SCHEDULED,
-        platform,
-        success: false,
-        url: '',
-      };
+      return createRetryScheduledResult(platform);
     }
 
     if (scheduledForRetry === undefined) {
@@ -989,10 +990,12 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
   ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const currentRetryCount = post.retryCount || 0;
-    const { canRetry, errorMessage, isRetryable, rateLimit } = decideRetry(
+    const recovery = await this.channelRecovery.recover(post, error);
+    const { canRetry, errorMessage, isRetryable, plan } = decideRetry(
       post,
-      { error, message: getPublishErrorMessage(error) },
+      { error: recovery.cause, message: getPublishErrorMessage(error) },
       this.MAX_RETRY_ATTEMPTS,
+      recovery.plan,
     );
 
     this.logger.error(`${url} failed to publish post`, {
@@ -1007,20 +1010,14 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       post,
       canRetry,
       errorMessage,
-      getPublishErrorCode(error),
+      getPublishErrorCode(recovery.cause),
       workflowExecutionId,
       undefined,
-      rateLimit,
+      plan,
     );
 
     if (scheduledForRetry) {
-      return {
-        externalId: null,
-        executionState: TargetExecutionState.SCHEDULED,
-        platform: '',
-        success: false,
-        url: '',
-      };
+      return createRetryScheduledResult('');
     }
 
     if (scheduledForRetry === undefined) {

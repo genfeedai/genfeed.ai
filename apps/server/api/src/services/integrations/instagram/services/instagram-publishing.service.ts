@@ -1,4 +1,6 @@
 import { requireMetaScopes } from '@api/services/integrations/_shared/meta-page-access.util';
+import { readInstagramVerificationPage } from '@api/services/integrations/instagram/services/instagram-verification-reader.util';
+import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
 import { InstagramMediaType } from '@genfeedai/contracts';
 import type {
   InstagramCredentialResponse,
@@ -351,6 +353,41 @@ export class InstagramPublishingService {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  /**
+   * One page of the account's media created since a publish attempt began, for
+   * confirming an uncertain publish. Reads only the account the post was
+   * scheduled for: a changed or reconnected account is refused.
+   */
+  @Traced()
+  async listPublishVerificationPage(
+    organizationId: string,
+    brandId: string,
+    credentialId: string,
+    expectedExternalId: string | null,
+    attemptStartedAt: Date,
+    cursor?: string,
+  ): Promise<ProviderVerificationPage> {
+    const credential = await this.resolveCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
+    if (
+      !credential.externalId ||
+      credential.externalId !== expectedExternalId
+    ) {
+      throw new Error('Instagram verification account unavailable or changed');
+    }
+    return readInstagramVerificationPage(
+      this.httpService,
+      `${this.graphUrl}/${this.apiVersion}`,
+      credential.externalId,
+      EncryptionUtil.decrypt(credential.accessToken),
+      attemptStartedAt,
+      cursor,
+    );
   }
 
   @Traced()

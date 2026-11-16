@@ -22,6 +22,13 @@ export const SCHEDULED_POST_RATE_LIMIT_MAX_WAIT_SECONDS = 6 * 60 * 60;
 export const SCHEDULED_POST_RATE_LIMIT_GIVE_UP_SECONDS = 24 * 60 * 60;
 export const PUBLISH_RATE_LIMITED_CODE = 'rate_limited';
 
+/**
+ * Stored on a post whose token the worker refreshed after the provider
+ * rejected it. A second rejection with this code on the post means the refresh
+ * did not help, so the channel is disconnected instead of refreshed again.
+ */
+export const PUBLISH_TOKEN_REFRESHED_CODE = 'token_refreshed';
+
 export const PUBLISH_OUTCOME_UNCONFIRMED_CODE = 'publish_outcome_unconfirmed';
 export const PUBLISH_OUTCOME_UNVERIFIED_CODE = 'publish_outcome_unverified';
 
@@ -32,3 +39,22 @@ export const PUBLISH_OUTCOME_UNVERIFIED_CODE = 'publish_outcome_unverified';
  */
 export const SCHEDULED_POST_APPROVAL_MISSING_MESSAGE =
   'This post has no approval for its current version, so it was not published. Review it and schedule it again.';
+
+/**
+ * One sweep run reads due posts in pages of this size, after a cursor on the
+ * sort keys, so a burst is enqueued in the minute it is due rather than 50 a
+ * minute.
+ */
+export const SCHEDULED_POST_SWEEP_PAGE_SIZE = 100;
+
+/**
+ * Most due posts one sweep run reads. Posts past it are logged and picked up by
+ * the next run. A post already enqueued stays due until a worker claims it, so
+ * it is read again (and skipped by its job id) until then; the cap bounds that
+ * work, and the queue's FIFO order means a post past the cap waits no longer
+ * than it would have behind the ones before it.
+ */
+export const SCHEDULED_POST_SWEEP_MAX_POSTS = 2000;
+
+/** A sweep lock not renewed within this window is taken to belong to a dead run. */
+export const SCHEDULED_POST_SWEEP_LOCK_TTL_MS = 2 * 60 * 1000;

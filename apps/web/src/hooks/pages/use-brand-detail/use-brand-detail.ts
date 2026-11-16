@@ -43,7 +43,6 @@ import { useSaveQueue } from '@/hooks/utils/use-save-queue/use-save-queue';
 
 const BRAND_SETTINGS_PATH_PATTERN = /\/~\/settings\/brands\/[^/]+(\/.*)?$/;
 const SETTINGS_PATH_PATTERN = /\/settings(\/.*)?$/;
-const PROFILE_PATH_PATTERN = /\/profile(\/.*)?$/;
 const BRAND_ID_PATH_PATTERN = /\/brands\/([^/]+)/;
 const BRAND_PATH_SEGMENT_PATTERN = /\/brands\/[^/]+/;
 
@@ -179,13 +178,11 @@ export function useBrandDetail({
 
     const oldRouteMatch = pathname.match(BRAND_SETTINGS_PATH_PATTERN);
     const canonicalRouteMatch = pathname.match(SETTINGS_PATH_PATTERN);
-    const profileRouteMatch = pathname.match(PROFILE_PATH_PATTERN);
     const suffix = oldRouteMatch?.[1] ?? canonicalRouteMatch?.[1] ?? '';
-    // The brand profile has its own route; every other page stays in settings.
-    const canonicalSegment =
-      profileRouteMatch || (oldRouteMatch && !suffix)
-        ? `${APP_ROUTES.PROFILE.ROOT}${profileRouteMatch?.[1] ?? ''}`
-        : `/settings${suffix}`;
+    // A bare settings root (legacy URL) lands on the profile page.
+    const canonicalSegment = suffix
+      ? `/settings${suffix}`
+      : APP_ROUTES.SETTINGS.PROFILE;
     const canonicalPath = createBrandAppRoute(
       orgSlug,
       matchedRouteBrand.slug,
@@ -373,7 +370,7 @@ export function useBrandDetail({
         const currentPrefix = createBrandAppRoute(orgSlug, routeBrandParam);
         const suffix = pathname.startsWith(currentPrefix)
           ? pathname.slice(currentPrefix.length)
-          : APP_ROUTES.PROFILE.ROOT;
+          : APP_ROUTES.SETTINGS.PROFILE;
         router.replace(createBrandAppRoute(orgSlug, handle, suffix));
       }
 
