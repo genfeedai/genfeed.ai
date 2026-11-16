@@ -17,15 +17,19 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: 'brand-1' }),
 }));
 
+// One getter for every render, as the real hook returns, so the picker's load
+// effect runs once per brand and workspace.
+const getService = vi.hoisted(() => async () => ({
+  getSlackChannels: async () => {
+    if (slack.isFailing) {
+      throw new Error('slack down');
+    }
+    return slack.channels;
+  },
+}));
+
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({
-    getSlackChannels: async () => {
-      if (slack.isFailing) {
-        throw new Error('slack down');
-      }
-      return slack.channels;
-    },
-  }),
+  useAuthedService: () => getService,
 }));
 
 vi.mock('next-intl', async () => {

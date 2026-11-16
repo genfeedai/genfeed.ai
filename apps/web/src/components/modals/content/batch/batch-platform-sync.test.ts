@@ -116,29 +116,6 @@ describe('syncPlatformConfigs', () => {
     ).toBe(false);
   });
 
-  it('keeps the Slack channel the user chose when the channels re-sync', () => {
-    const synced = syncPlatformConfigs({
-      credentials: [
-        {
-          externalHandle: 'acme',
-          id: 'slack-1',
-          isValid: true,
-          platform: CredentialPlatform.SLACK,
-        },
-      ],
-      hasUserEdited: true,
-      isImage: false,
-      platforms: [CredentialPlatform.SLACK],
-      previous: [
-        config(CredentialPlatform.SLACK, {
-          targetSettings: { channelId: 'C0123456789' },
-        }),
-      ],
-    });
-
-    expect(synced[0].targetSettings).toEqual({ channelId: 'C0123456789' });
-  });
-
   it('disables a target whose credential is no longer valid and does not add one', () => {
     const next = syncPlatformConfigs({
       credentials: [

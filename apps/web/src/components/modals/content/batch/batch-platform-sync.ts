@@ -113,7 +113,6 @@ export function syncPlatformConfigs(input: {
       platform,
       targetExecutionState:
         kept?.targetExecutionState ?? TargetExecutionState.SCHEDULED,
-      targetSettings: kept?.targetSettings,
       visibility: kept?.visibility ?? defaultPlatformVisibility(platform),
     };
   });

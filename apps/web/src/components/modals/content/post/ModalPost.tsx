@@ -160,7 +160,7 @@ export default function ModalPost({
   }, [brandScope, credentials, isDestinationComposer, openVersion]);
   const isThreadRef = useRef(isThread);
   isThreadRef.current = isThread;
-  const slackTargets = useSlackChannelTargets();
+  const slackTargets = useSlackChannelTargets(openVersion);
 
   // Refs for callbacks to prevent re-renders
   const onConfirmRef = useRef(onConfirm);

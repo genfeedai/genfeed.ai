@@ -51,7 +51,6 @@ export default function ModalPostChannelList({
   onToggleExpanded,
   onAddChannels,
   renderEditor,
-  renderRequiredField,
 }: ModalPostChannelListProps) {
   const translate = useTranslations('ui.postBatch.channels');
   const selectableCount = platformConfigs.filter(isSelectable).length;
@@ -174,9 +173,6 @@ export default function ModalPostChannelList({
                   />
                 )}
               </div>
-              {canToggle && config.enabled
-                ? renderRequiredField?.(config)
-                : null}
               {isExpanded ? renderEditor(config) : null}
             </li>
           );

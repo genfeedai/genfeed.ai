@@ -213,8 +213,6 @@ export interface ModalPostChannelListProps {
   onAddChannels?: () => void;
   /** The per-channel editor revealed by Edit. */
   renderEditor: (config: IPostPlatformConfig) => ReactNode;
-  /** A setting the channel cannot publish without, shown on its row while it is on. */
-  renderRequiredField?: (config: IPostPlatformConfig) => ReactNode;
 }
 
 export interface ModalPostSetupTabProps {

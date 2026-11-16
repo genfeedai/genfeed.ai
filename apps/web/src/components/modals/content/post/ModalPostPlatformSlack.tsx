@@ -42,6 +42,7 @@ export default function ModalPostPlatformSlack({
     }
 
     const controller = new AbortController();
+    setChannels([]);
     setIsLoadingChannels(true);
     setHasLoadFailed(false);
 

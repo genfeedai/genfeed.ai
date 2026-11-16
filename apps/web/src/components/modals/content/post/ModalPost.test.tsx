@@ -74,8 +74,10 @@ vi.mock('next-intl', async () => {
 vi.mock('@ui/modals/modal/Modal', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
+// One getter for every render, as the real hook returns.
+const getService = vi.hoisted(() => async () => mocks);
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => mocks,
+  useAuthedService: () => getService,
 }));
 vi.mock('@/hooks/ui/use-crud-modal/use-crud-modal', async () => {
   const { useForm } = await import('react-hook-form');
