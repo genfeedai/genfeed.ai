@@ -14,6 +14,7 @@ const VERIFIABLE_PLATFORMS = [
   CredentialPlatform.LINKEDIN,
   CredentialPlatform.MASTODON,
   CredentialPlatform.SHOPIFY,
+  CredentialPlatform.SLACK,
   CredentialPlatform.THREADS,
   CredentialPlatform.TWITTER,
   CredentialPlatform.WORDPRESS,
@@ -21,12 +22,14 @@ const VERIFIABLE_PLATFORMS = [
 ];
 
 const UNVERIFIABLE_PLATFORMS = [
+  CredentialPlatform.DISCORD,
   CredentialPlatform.FANVUE,
   CredentialPlatform.GENFEED,
   CredentialPlatform.MEDIUM,
   CredentialPlatform.PINTEREST,
   CredentialPlatform.REDDIT,
   CredentialPlatform.SNAPCHAT,
+  CredentialPlatform.TELEGRAM,
   CredentialPlatform.TIKTOK,
   CredentialPlatform.WHATSAPP,
 ];

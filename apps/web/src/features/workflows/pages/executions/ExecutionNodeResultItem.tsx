@@ -5,13 +5,12 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type { WorkflowNodeAccounting } from '@genfeedai/contracts/interfaces';
 import { Pre } from '@genfeedai/ui';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-import {
-  getStatusBorderColor,
-  getStatusIcon,
-} from '@/features/workflows/utils/status-helpers';
+import { getStatusBorderColor } from '@/features/workflows/utils/status-helpers';
 
 type NodeResult = {
   nodeId: string;
@@ -50,7 +49,7 @@ export default function ExecutionNodeResultItem({
         className="flex w-full items-center justify-between px-4 py-3 text-left"
       >
         <div className="flex items-center gap-3">
-          <span>{getStatusIcon(result.status)}</span>
+          <Badge status={result.status} />
           <span className="font-medium">{result.nodeLabel}</span>
           <span className="text-sm text-muted-foreground">
             ({result.nodeId})
@@ -69,7 +68,11 @@ export default function ExecutionNodeResultItem({
               {translate('accounting.retries', { count: result.retryCount })}
             </span>
           )}
-          <span>{isExpanded ? '▼' : '▶'}</span>
+          {isExpanded ? (
+            <ChevronDown className="size-4" />
+          ) : (
+            <ChevronRight className="size-4" />
+          )}
         </div>
       </Button>
 

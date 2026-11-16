@@ -7,7 +7,7 @@ import { DiscordService } from '@api/services/integrations/discord/services/disc
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
 
@@ -89,7 +89,7 @@ describe('DiscordService', () => {
           encodeURIComponent('https://app.genfeed.ai/oauth/discord'),
       );
       expect(url).toContain('response_type=code');
-      expect(url).toContain('scope=identify+email');
+      expect(url).toContain('scope=identify+guilds+webhook.incoming');
       expect(url).toContain('state=test-state');
     });
 
@@ -149,42 +149,32 @@ describe('DiscordService', () => {
     });
   });
 
-  describe('getUserInfo', () => {
-    it('should fetch user info with correct authorization header', async () => {
-      const userData = {
-        avatar: 'abc123',
-        global_name: 'Test User',
-        id: '123456789',
-        username: 'testuser',
-      };
-
-      mockHttpService.get.mockReturnValue(of({ data: userData }));
-
-      const result = await service.getUserInfo('access-token');
-
-      expect(result).toEqual(userData);
-      expect(mockHttpService.get).toHaveBeenCalledWith(
-        'https://discord.com/api/users/@me',
-        { headers: { Authorization: 'Bearer access-token' } },
+  describe('getGuildName', () => {
+    it('returns the name of the matching server', async () => {
+      mockHttpService.get.mockReturnValue(
+        of({
+          data: [
+            { id: '1', name: 'Other' },
+            { id: '777', name: 'Genfeed' },
+          ],
+        }),
       );
+
+      expect(await service.getGuildName('access-token', '777')).toBe('Genfeed');
     });
 
-    it('should throw UNAUTHORIZED HttpException on user info failure', async () => {
+    it('returns null when Discord does not list the server', async () => {
+      mockHttpService.get.mockReturnValue(of({ data: [] }));
+
+      expect(await service.getGuildName('access-token', '777')).toBeNull();
+    });
+
+    it('returns null when the lookup fails', async () => {
       mockHttpService.get.mockReturnValue(
-        throwError(() => ({
-          response: { data: { message: 'Invalid token' } },
-        })),
+        throwError(() => ({ response: { data: { message: 'nope' } } })),
       );
 
-      await expect(service.getUserInfo('bad-token')).rejects.toThrow(
-        HttpException,
-      );
-
-      try {
-        await service.getUserInfo('bad-token');
-      } catch (e) {
-        expect((e as HttpException).getStatus()).toBe(HttpStatus.UNAUTHORIZED);
-      }
+      expect(await service.getGuildName('access-token', '777')).toBeNull();
     });
   });
 

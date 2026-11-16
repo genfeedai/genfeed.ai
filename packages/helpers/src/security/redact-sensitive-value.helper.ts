@@ -15,6 +15,10 @@ const INLINE_SECRET_PATTERN =
   /\b((?:access[_-]?token|api[_-]?key|authorization|client[_-]?secret|id[_-]?token|password|private[_-]?key|refresh[_-]?token|secret|session|token)\s*[:=]\s*)["']?[^\s,&"'#]+/gi;
 const PROVIDER_TOKEN_PATTERN =
   /\b(?:sk-(?:proj-)?[A-Za-z0-9_-]{10,}|gh[pousr]_[A-Za-z0-9_]{10,})\b/g;
+// Secrets that ride in the URL path, so a logged request URL leaks them:
+// Discord `/webhooks/<id>/<token>` and Telegram `/bot<id>:<token>/<method>`.
+const DISCORD_WEBHOOK_PATH_PATTERN = /(\/webhooks\/\d+\/)[\w-]+/gi;
+const TELEGRAM_BOT_PATH_PATTERN = /(\/bot)\d+:[\w-]+/gi;
 const PRIVATE_KEY_BEGIN_PREFIX = '-----BEGIN ';
 const PRIVATE_KEY_END_PREFIX = '-----END ';
 const PRIVATE_KEY_MARKER_SUFFIX = 'PRIVATE KEY-----';
@@ -172,6 +176,8 @@ export function redactSensitiveString(value: string): string {
       return `${scheme} ${REDACTED_VALUE}`;
     })
     .replace(SENSITIVE_QUERY_PARAM_PATTERN, `$1${REDACTED_VALUE}`)
+    .replace(DISCORD_WEBHOOK_PATH_PATTERN, `$1${REDACTED_VALUE}`)
+    .replace(TELEGRAM_BOT_PATH_PATTERN, `$1${REDACTED_VALUE}`)
     .replace(INLINE_SECRET_PATTERN, `$1${REDACTED_VALUE}`)
     .replace(PROVIDER_TOKEN_PATTERN, REDACTED_VALUE);
 }

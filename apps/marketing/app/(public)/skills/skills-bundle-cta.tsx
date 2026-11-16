@@ -24,10 +24,10 @@ export default function SkillsBundleCta({
         >
           <div className="max-w-2xl mx-auto py-8">
             <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
-              All Pro Skills Included
+              All Pro skills included
             </div>
             <h2 className="text-5xl font-semibold text-foreground mb-4">
-              Get Pro Skills
+              Get Pro skills
             </h2>
             <div className="text-6xl font-semibold text-foreground mb-8">
               ${bundlePrice}

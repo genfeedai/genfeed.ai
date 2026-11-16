@@ -6,6 +6,12 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import ModalGalleryItemReference from '@/components/modals/gallery/items/ModalGalleryItemReference';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 // Mock dependencies
 vi.mock('next/image', () => ({
   default: ({ src, alt }: import('react').ComponentProps<'input'>) => (
@@ -38,12 +44,14 @@ describe('ModalGalleryItemReference', () => {
   it('renders reference item', () => {
     render(<ModalGalleryItemReference {...defaultProps} />);
     expect(screen.getByAltText('ref-1')).toBeInTheDocument();
-    expect(screen.queryByText('✓')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: 'Selected' }),
+    ).not.toBeInTheDocument();
   });
 
   it('displays selection indicator when selected', () => {
     render(<ModalGalleryItemReference {...defaultProps} isSelected={true} />);
-    expect(screen.getByText('✓')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Selected' })).toBeInTheDocument();
   });
 
   it('calls onSelect when clicked and not selected', async () => {
@@ -86,7 +94,9 @@ describe('ModalGalleryItemReference', () => {
     const item = screen.getByAltText('ref-1').closest('div');
     await user.click(item!);
     expect(onSelectionLimit).toHaveBeenCalled();
-    expect(screen.queryByText('✓')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: 'Selected' }),
+    ).not.toBeInTheDocument();
   });
 
   it('replaces selection when selectionLimit is 1', async () => {
