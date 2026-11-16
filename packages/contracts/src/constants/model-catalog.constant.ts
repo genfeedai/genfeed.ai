@@ -136,6 +136,11 @@ const MEDIA_LABEL_OVERRIDES: Record<string, string> = {
   [MODEL_KEYS.HEYGEN_VIDEO]: 'HeyGen Video',
   [MODEL_KEYS.HIGGSFIELD_GENJUTSU]: 'Genjutsu',
   [MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO]: 'Cinema Studio 4.0',
+  [MODEL_KEYS.HIGGSFIELD_GENJUTSU_OBJECT_SWAP]: 'Genjutsu Object Swap',
+  [MODEL_KEYS.HIGGSFIELD_GENJUTSU_RESTYLE]: 'Genjutsu Restyle',
+  [MODEL_KEYS.HIGGSFIELD_ADS_STUDIO]: 'Ads Studio',
+  [MODEL_KEYS.HIGGSFIELD_SOUL_STANDARD]: 'Soul Standard',
+  [MODEL_KEYS.HIGGSFIELD_SOUL_CINEMA]: 'Soul Cinema',
 };
 
 function providerFromMediaKey(key: string): ModelProvider {
