@@ -42,7 +42,7 @@ export default function ProvidersStatusCard({
           billing.
         </p>
         <p className="mt-3">{translate('keyValidationNotice')}</p>
-        <p className="mt-3 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+        <p className="mt-3 text-xs uppercase tracking-label text-muted-foreground">
           {accessStatusLabel}
         </p>
       </div>

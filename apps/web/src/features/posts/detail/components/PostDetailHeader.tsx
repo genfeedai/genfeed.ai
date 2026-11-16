@@ -325,7 +325,9 @@ export default function PostDetailHeader({
     <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div>
         <p className="text-sm text-foreground/60">Post detail</p>
-        <Heading className="text-2xl font-bold">{getPostLabel(post)}</Heading>
+        <Heading className="text-2xl font-semibold">
+          {getPostLabel(post)}
+        </Heading>
       </div>
 
       {actions}

@@ -74,18 +74,18 @@ describe('Heading', () => {
       expect(screen.getByRole('heading')).toHaveClass('text-xl');
     });
 
-    it('applies text-2xl and font-bold for 2xl size', () => {
+    it('applies text-2xl and font-semibold for 2xl size', () => {
       render(<Heading size="2xl">Title</Heading>);
       const heading = screen.getByRole('heading');
       expect(heading).toHaveClass('text-2xl');
-      expect(heading).toHaveClass('font-bold');
+      expect(heading).toHaveClass('font-semibold');
     });
 
-    it('applies text-3xl and font-bold for 3xl size', () => {
+    it('applies text-3xl and font-semibold for 3xl size', () => {
       render(<Heading size="3xl">Title</Heading>);
       const heading = screen.getByRole('heading');
       expect(heading).toHaveClass('text-3xl');
-      expect(heading).toHaveClass('font-bold');
+      expect(heading).toHaveClass('font-semibold');
     });
   });
 

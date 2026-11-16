@@ -112,7 +112,7 @@ export default function ModalPostDestinations({
         <Separator />
 
         <div className="space-y-2.5">
-          <p className="text-2xs font-medium uppercase tracking-wider text-foreground/60">
+          <p className="text-2xs font-medium uppercase tracking-label text-foreground/60">
             {translate('editorsHeading')}
           </p>
           <OptionTileGroup

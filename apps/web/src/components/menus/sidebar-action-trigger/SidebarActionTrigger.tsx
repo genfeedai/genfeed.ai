@@ -58,7 +58,7 @@ export default function SidebarActionTrigger({
         <Kbd
           variant="ghost"
           className={cn(
-            'ml-auto rounded-md border border-foreground/10 bg-foreground/5 text-xs tracking-[0.2em] text-foreground/60 transition-opacity duration-200',
+            'ml-auto rounded-md border border-foreground/10 bg-foreground/5 text-xs text-foreground/60 transition-opacity duration-200',
             hoverRevealClassName({ isInteractive: false }),
           )}
         >

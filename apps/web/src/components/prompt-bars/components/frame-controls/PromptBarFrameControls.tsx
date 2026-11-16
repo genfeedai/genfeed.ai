@@ -301,7 +301,7 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
                 size={40}
               />
               {references.length > 1 && (
-                <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground text-2xs font-bold size-4 rounded-tl flex items-center justify-center tabular-nums">
+                <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground text-2xs font-semibold size-4 rounded-tl flex items-center justify-center tabular-nums">
                   {references.length}
                 </div>
               )}

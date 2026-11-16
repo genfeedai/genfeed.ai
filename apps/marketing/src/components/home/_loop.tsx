@@ -34,7 +34,7 @@ export default function HomeLoop(): React.ReactElement {
     >
       <div className="container mx-auto px-6">
         <div className="mb-10 flex max-w-3xl flex-col gap-4" data-reveal="up">
-          <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/80">
+          <Text className="text-xs font-semibold uppercase tracking-label text-foreground/80">
             What it manages
           </Text>
           <Heading
@@ -60,7 +60,7 @@ export default function HomeLoop(): React.ReactElement {
               className="flex flex-col gap-3 bg-background p-8"
               data-reveal="up"
             >
-              <Text className="text-xs font-bold tabular-nums text-foreground/50">
+              <Text className="text-xs font-semibold tabular-nums text-foreground/50">
                 0{index + 1}
               </Text>
               <Heading

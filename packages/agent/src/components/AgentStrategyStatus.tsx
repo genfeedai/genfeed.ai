@@ -121,7 +121,7 @@ export function AgentStrategyStatus({
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <h3 className="text-xs font-semibold uppercase tracking-label text-muted-foreground">
             Status
           </h3>
           {!strategy.isEnabled && <Badge variant="secondary">Paused</Badge>}

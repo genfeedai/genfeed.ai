@@ -139,7 +139,7 @@ export default function IngredientLineageStrip({
       aria-label={translate(SECTION_LABEL_KEYS[direction])}
       className={cn('flex min-w-0 flex-col gap-2', className)}
     >
-      <h4 className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+      <h4 className="text-2xs uppercase tracking-label text-muted-foreground">
         {translate(SECTION_LABEL_KEYS[direction])}
       </h4>
 

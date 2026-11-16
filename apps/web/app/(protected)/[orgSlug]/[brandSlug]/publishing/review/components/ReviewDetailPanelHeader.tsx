@@ -20,7 +20,7 @@ export default function ReviewDetailPanelHeader({
   return (
     <div className="flex flex-col gap-3 px-4 pt-4 lg:flex-row lg:items-start lg:justify-between">
       <div className="min-w-0">
-        <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        <p className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
           {translate('approvalQueue.title')}
         </p>
         <h2 className="mt-1 line-clamp-2 text-base font-semibold text-foreground">

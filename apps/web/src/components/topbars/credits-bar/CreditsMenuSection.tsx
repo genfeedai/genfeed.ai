@@ -89,7 +89,7 @@ export default function CreditsMenuSection({
           <span className="tabular-nums">{fullBalance}</span>
           <span
             className={cn(
-              'ml-1 text-2xs font-medium uppercase tracking-[0.08em]',
+              'ml-1 text-2xs font-medium uppercase tracking-label',
               isCritical ? 'text-destructive/80' : 'text-muted-foreground',
             )}
           >
@@ -135,7 +135,7 @@ export default function CreditsMenuSection({
         <>
           <DropdownMenuSeparator />
           <div className="px-2 py-1.5">
-            <p className="mb-1.5 text-2xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="mb-1.5 text-2xs font-medium uppercase tracking-label text-muted-foreground">
               Providers
             </p>
             <div className="flex flex-col gap-1">

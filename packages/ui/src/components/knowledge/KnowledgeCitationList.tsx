@@ -30,7 +30,7 @@ export default function KnowledgeCitationList({
     >
       {rows.length > 0 ? (
         <>
-          <p className="text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+          <p className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
             {translate('citationsTitle')}
           </p>
           <ol className="space-y-1.5">
@@ -77,7 +77,7 @@ export default function KnowledgeCitationList({
           className="space-y-1.5 rounded-md border border-warning/40 bg-warning/5 p-2"
           data-testid="knowledge-conflicts"
         >
-          <p className="text-2xs font-bold uppercase tracking-wide text-warning">
+          <p className="text-2xs font-semibold uppercase tracking-label text-warning">
             {translate('conflictsTitle')}
           </p>
           <ul className="space-y-2">

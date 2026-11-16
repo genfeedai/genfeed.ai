@@ -26,8 +26,6 @@ export const textVariants = cva('', {
       xs: 'text-xs',
     },
     weight: {
-      black: 'font-black',
-      bold: 'font-bold',
       medium: 'font-medium',
       normal: 'font-normal',
       semibold: 'font-semibold',

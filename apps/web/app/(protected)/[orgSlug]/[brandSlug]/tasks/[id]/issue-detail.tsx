@@ -371,7 +371,7 @@ export default function IssueDetail({
             {issue.description ? (
               <Card>
                 <div className="p-4">
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-800">
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-label text-gray-800">
                     Description
                   </h3>
                   <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">

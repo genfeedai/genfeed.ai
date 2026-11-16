@@ -637,7 +637,7 @@ export default function OAuthConsentContent() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+                    <p className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
                       {translate('request.clientLabel')}
                     </p>
                     <h2 className="truncate text-base font-semibold">

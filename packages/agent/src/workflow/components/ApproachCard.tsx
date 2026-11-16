@@ -55,7 +55,7 @@ function ApproachCardInner({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <p className="text-xs font-medium text-success/80 uppercase tracking-wider">
+          <p className="text-xs font-medium text-success/80 uppercase tracking-label">
             Pros
           </p>
           {approach.tradeoffs.pros.map((pro) => (
@@ -69,7 +69,7 @@ function ApproachCardInner({
           ))}
         </div>
         <div className="space-y-1.5">
-          <p className="text-xs font-medium text-destructive/80 uppercase tracking-wider">
+          <p className="text-xs font-medium text-destructive/80 uppercase tracking-label">
             Cons
           </p>
           {approach.tradeoffs.cons.map((con) => (

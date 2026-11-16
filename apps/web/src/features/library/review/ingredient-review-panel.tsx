@@ -150,7 +150,7 @@ export default function IngredientReviewPanel({
   return (
     <section aria-label={translate('section')} className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+        <h3 className="text-2xs uppercase tracking-label text-muted-foreground">
           {translate('section')}
         </h3>
         <LibraryReviewBadge state={summary} />

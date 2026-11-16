@@ -406,7 +406,7 @@ export function SchedulePostCard({
       />
 
       <div className="mb-3">
-        <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+        <span className="mb-1 block text-2xs font-medium uppercase tracking-label text-muted-foreground">
           {translate('timezone')}
         </span>
         <Select value={timezone} onValueChange={setTimezone}>
@@ -425,7 +425,7 @@ export function SchedulePostCard({
 
       <div className="flex flex-col gap-1.5 mb-3">
         <Label
-          className="text-2xs uppercase tracking-wider text-muted-foreground"
+          className="text-2xs uppercase tracking-label text-muted-foreground"
           htmlFor="schedule-post-date-time"
         >
           <Clock className="mr-1 inline size-3.5" />
@@ -441,7 +441,7 @@ export function SchedulePostCard({
 
       {targetProposals.length > 0 ? (
         <div className="mb-3">
-          <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+          <span className="mb-1 block text-2xs font-medium uppercase tracking-label text-muted-foreground">
             {translate('channels')}
           </span>
           <div className="space-y-3">
@@ -537,7 +537,7 @@ export function SchedulePostCard({
         </div>
       ) : availablePlatforms.length > 0 ? (
         <div className="mb-3">
-          <div className="mb-1 text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+          <div className="mb-1 text-2xs font-medium uppercase tracking-label text-muted-foreground">
             {translate('channels')}
           </div>
           <div className="flex flex-wrap gap-2">

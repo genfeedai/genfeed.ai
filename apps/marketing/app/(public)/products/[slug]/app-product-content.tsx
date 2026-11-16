@@ -28,7 +28,7 @@ function SectionHeading({
 }) {
   return (
     <div className="mb-10 max-w-2xl">
-      <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/60">
+      <Text className="text-xs font-semibold uppercase tracking-label text-foreground/60">
         {eyebrow}
       </Text>
       <Heading
@@ -72,7 +72,7 @@ export default function AppProductContent({ product }: AppProductContentProps) {
         <section className="gsap-section mx-auto max-w-6xl px-6 pb-24">
           <div className="grid gap-12 border-y border-foreground/10 py-14 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-24 lg:py-20">
             <div>
-              <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/60">
+              <Text className="text-xs font-semibold uppercase tracking-label text-foreground/60">
                 What it is
               </Text>
               <Heading
@@ -230,7 +230,7 @@ export default function AppProductContent({ product }: AppProductContentProps) {
           <div className="border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)] p-6 text-center sm:p-12">
             <Heading
               as="h2"
-              className="mb-2 text-2xl font-bold text-foreground"
+              className="mb-2 text-2xl font-semibold text-foreground"
             >
               Try {product.name}
             </Heading>

@@ -44,7 +44,7 @@ export default function AgentCampaignAgentsList({
                   <span className="block truncate text-sm font-medium text-foreground">
                     {strategy?.label ?? translate('agents.unavailable')}
                   </span>
-                  <span className="block text-xs uppercase tracking-wide text-muted-foreground">
+                  <span className="block text-xs uppercase tracking-label text-muted-foreground">
                     {strategy?.agentType ?? translate('agents.unavailableRole')}
                   </span>
                 </span>

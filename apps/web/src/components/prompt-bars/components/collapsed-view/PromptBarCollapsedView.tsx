@@ -109,7 +109,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
                   {references.length > 1 && (
                     <div
                       className={
-                        'absolute inset-0 flex items-center justify-center text-xs font-bold text-black tabular-nums' /* design-system-allow-content-color -- media overlay */
+                        'absolute inset-0 flex items-center justify-center text-xs font-semibold text-black tabular-nums' /* design-system-allow-content-color -- media overlay */
                       }
                     >
                       {references.length}

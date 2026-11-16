@@ -174,7 +174,7 @@ function SettingsSubscriptionContent() {
         ) : displayedStatus ? (
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div className="flex items-center gap-3">
-              <Text as="p" size="xl" weight="bold">
+              <Text as="p" size="xl" weight="semibold">
                 {tierLabel}
               </Text>
               <Badge
