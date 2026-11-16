@@ -54,6 +54,8 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'higgsfield-ai/dop/lite': HIGGSFIELD_DOP_NOT_LISTED,
   'higgsfield-ai/dop/standard': HIGGSFIELD_DOP_NOT_LISTED,
   'higgsfield-ai/dop/turbo': HIGGSFIELD_DOP_NOT_LISTED,
+  'higgsfield/cinema-studio/4.0':
+    'Metered in provider tokens from request parameters; the reconciled rate lands with the Higgsfield pricing work.',
   'klingai-v2': LEGACY_KEY,
   'kwaivgi/kling-v1.6-pro': IDENTITY_404,
   leonardoai: LEGACY_KEY,
