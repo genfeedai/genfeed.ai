@@ -33,14 +33,14 @@ const legalInfo = [
       'All content generated through our platform is subject to our intellectual property policies. Users retain rights to their created content as specified in our licensing terms.',
     icon: Scale,
     shortLabel: 'IP',
-    title: 'Intellectual Property',
+    title: 'Intellectual property',
   },
   {
     content:
       'All purchases are final. Credits are non-refundable but valid for 12 months from purchase date. If you experience technical issues preventing you from using the platform, contact support within 30 days for resolution.',
     icon: Gavel,
     shortLabel: 'Refunds',
-    title: 'Refund Policy',
+    title: 'Refund policy',
   },
   {
     content:
@@ -54,7 +54,7 @@ const legalInfo = [
       'These terms shall be governed by and construed in accordance with the laws of the jurisdiction in which Genfeed.ai operates, without regard to conflict of law principles.',
     icon: FileText,
     shortLabel: 'Law',
-    title: 'Governing Law',
+    title: 'Governing law',
   },
 ];
 
@@ -114,7 +114,7 @@ export default function TermsPage() {
           <div className="container mx-auto px-6">
             <div className="text-center mb-16">
               <h2 className="text-5xl font-semibold mb-6">
-                Additional Legal Info
+                Additional legal info
               </h2>
               <p className="text-foreground/70 max-w-xl mx-auto">
                 Important policies governing your use of Genfeed.

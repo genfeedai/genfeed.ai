@@ -29,7 +29,7 @@ describe('FAQContent headings', () => {
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: 'Frequently Asked Questions',
+        name: 'Frequently asked questions',
       }),
     ).toBeInTheDocument();
   });
