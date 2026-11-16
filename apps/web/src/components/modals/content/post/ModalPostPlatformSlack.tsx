@@ -10,6 +10,7 @@ import {
 } from '@services/external/services.service';
 import FormControl from '@ui/primitives/field';
 import { SelectField } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 type Props = {
@@ -29,6 +30,7 @@ export default function ModalPostPlatformSlack({
   isLoading,
   updatePlatformConfig,
 }: Props) {
+  const t = useTranslations('ui.postComposer');
   const { brandId } = useBrand();
   const getServicesService = useAuthedService(
     (token) => new ServicesService('slack', token),
@@ -77,14 +79,10 @@ export default function ModalPostPlatformSlack({
 
   return (
     <FormControl
-      error={
-        hasLoadFailed
-          ? 'Channels could not be loaded. Reconnect Slack and try again.'
-          : undefined
-      }
-      helpText="Invite the Genfeed app to a private channel before posting to it."
+      error={hasLoadFailed ? t('slackChannelLoadFailed') : undefined}
+      helpText={t('slackChannelHelp')}
       isRequired
-      label="Slack channel"
+      label={t('slackChannel')}
     >
       <SelectField
         name={`slackChannel-${credentialId}`}
@@ -101,11 +99,13 @@ export default function ModalPostPlatformSlack({
         isDisabled={!isEnabled || isLoading || isLoadingChannels}
       >
         <option value="">
-          {isLoadingChannels ? 'Loading channels…' : 'Choose a channel'}
+          {isLoadingChannels
+            ? t('slackChannelLoading')
+            : t('slackChannelPlaceholder')}
         </option>
         {channels.map((channel) => (
           <option key={channel.id} value={channel.id}>
-            {`#${channel.name}${channel.isPrivate ? ' (private)' : ''}`}
+            {`#${channel.name}${channel.isPrivate ? t('slackChannelPrivateSuffix') : ''}`}
           </option>
         ))}
       </SelectField>

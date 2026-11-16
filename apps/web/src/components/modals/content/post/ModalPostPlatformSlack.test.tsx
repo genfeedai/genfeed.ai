@@ -34,6 +34,11 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   }),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@services/core/logger.service', () => ({
   logger: { error: () => undefined },
 }));

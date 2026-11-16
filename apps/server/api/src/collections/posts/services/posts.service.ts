@@ -93,10 +93,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
-export type PostCreateInput = Omit<
-  CreatePostDto,
-  'credentialId' | 'targetSettings'
-> & {
+export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
   agentContextSource?: string;
   agentContextVersion?: number;
   workflowExecutionId?: string;

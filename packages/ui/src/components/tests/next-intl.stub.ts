@@ -750,6 +750,14 @@ const UI_TEST_MESSAGES = {
       tweetPlaceholder: 'Write the tweet',
     },
     postComposer: {
+      slackChannel: 'Slack channel',
+      slackChannelHelp:
+        'Invite the Genfeed app to a private channel before posting to it.',
+      slackChannelLoadFailed:
+        'Channels could not be loaded. Reconnect Slack and try again.',
+      slackChannelLoading: 'Loading channels…',
+      slackChannelPlaceholder: 'Choose a channel',
+      slackChannelPrivateSuffix: ' (private)',
       destinations: 'Post to',
       destinationsDescription:
         'Pick one or more accounts, or choose Article or Newsletter to write it in its own editor.',
