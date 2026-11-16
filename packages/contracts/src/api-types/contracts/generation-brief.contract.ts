@@ -236,7 +236,9 @@ export const videoGenerationBriefSchema = z
     audioReferences: z.array(generationBriefIdSchema).max(3).optional(),
     mediaKind: z.literal('video'),
     output: videoGenerationBriefOutputSchema,
-    references: z.array(generationBriefReferenceSchema).max(20).default([]),
+    // 30 image + 10 video references (Cinema Studio); compilers enforce
+    // each model's own cap.
+    references: z.array(generationBriefReferenceSchema).max(40).default([]),
   })
   .strict();
 
