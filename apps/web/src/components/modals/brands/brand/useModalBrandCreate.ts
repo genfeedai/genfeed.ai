@@ -2,6 +2,7 @@
 
 import { LinkCategory, ModalEnum } from '@genfeedai/contracts';
 import {
+  APP_ROUTES,
   BRAND_HANDLE_FORMAT_MESSAGE,
   BRAND_HANDLE_MAX_LENGTH,
   createBrandAppRoute,
@@ -251,7 +252,7 @@ export function useModalBrandCreate(
       closeModal(ModalEnum.BRAND);
 
       if (createdBrandSlug) {
-        push(createBrandAppRoute(orgSlug, createdBrandSlug, '/settings'));
+        push(createBrandAppRoute(orgSlug, createdBrandSlug, APP_ROUTES.SETTINGS.PROFILE));
       }
     } catch (submitError) {
       logger.error('Failed to create brand', submitError);

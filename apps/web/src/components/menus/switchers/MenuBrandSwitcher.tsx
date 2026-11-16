@@ -5,6 +5,7 @@ import { saveLastBrand } from '@genfeedai/contexts/providers/protected-bootstrap
 import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonVariant } from '@genfeedai/contracts';
 import {
+  APP_ROUTES,
   createBrandAppRoute,
   creatorProfilePath,
 } from '@genfeedai/contracts/constants';
@@ -117,7 +118,7 @@ export default function MenuBrandSwitcher({
           orgSlug && b.slug
             ? {
                 ariaLabel: `Open ${b.label ?? 'brand'} settings`,
-                href: createBrandAppRoute(orgSlug, b.slug, '/settings'),
+                href: createBrandAppRoute(orgSlug, b.slug, APP_ROUTES.SETTINGS.PROFILE),
                 icon: Settings,
                 onAction: () => undefined,
               }
