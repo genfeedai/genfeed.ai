@@ -191,7 +191,7 @@ function SelectLabel({
     <SelectPrimitive.Label
       ref={ref}
       className={cn(
-        'px-2 py-1.5 font-semibold text-2xs text-muted-foreground uppercase tracking-wide',
+        'px-2 py-1.5 font-semibold text-2xs text-muted-foreground uppercase tracking-label',
         className,
       )}
       {...props}

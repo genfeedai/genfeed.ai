@@ -58,19 +58,19 @@ export default function EngagementPreview({
       </div>
       <div className="grid grid-cols-3 gap-3 text-center">
         <div>
-          <p className="text-lg font-bold tabular-nums">
+          <p className="text-lg font-semibold tabular-nums">
             {formatNumber(estimatedReach)}
           </p>
           <p className="text-xs text-muted-foreground">Reach</p>
         </div>
         <div>
-          <p className="text-lg font-bold tabular-nums">
+          <p className="text-lg font-semibold tabular-nums">
             {formatNumber(estimatedLikes)}
           </p>
           <p className="text-xs text-muted-foreground">Likes</p>
         </div>
         <div>
-          <p className="text-lg font-bold tabular-nums">
+          <p className="text-lg font-semibold tabular-nums">
             {formatNumber(estimatedComments)}
           </p>
           <p className="text-xs text-muted-foreground">Comments</p>

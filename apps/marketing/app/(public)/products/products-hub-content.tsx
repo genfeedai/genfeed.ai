@@ -86,7 +86,7 @@ export default function ProductsHubContent() {
                     <Text className="mt-2 text-sm leading-6 text-foreground/70">
                       {product.tagline}
                     </Text>
-                    <Text className="mt-4 text-xs font-bold uppercase tracking-[0.12em] text-foreground/50">
+                    <Text className="mt-4 text-xs font-semibold uppercase tracking-label text-foreground/50">
                       {APP_PRODUCT_ACCESS_LABELS[product.access]}
                     </Text>
                     <span className="mt-auto inline-flex items-center gap-2 pt-5 text-sm font-semibold text-foreground">

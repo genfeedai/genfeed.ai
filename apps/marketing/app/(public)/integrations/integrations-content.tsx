@@ -152,7 +152,7 @@ export default function IntegrationsContent() {
             </div>
             <Heading
               as="h3"
-              className="text-2xl font-bold mb-2 text-foreground"
+              className="text-2xl font-semibold mb-2 text-foreground"
             >
               Your agent, every channel
             </Heading>

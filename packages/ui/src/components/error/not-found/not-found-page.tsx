@@ -7,7 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 const DIGIT_CLASS =
-  'select-none text-[5.5rem] font-extrabold leading-[0.8] tracking-tight tabular-nums sm:text-[8rem] md:text-[10rem]';
+  'select-none text-[5.5rem] font-semibold leading-[0.8] tracking-tight tabular-nums sm:text-[8rem] md:text-[10rem]';
 
 export default function NotFoundPage({
   homeHref = '/',
@@ -90,7 +90,7 @@ export default function NotFoundPage({
           </span>
         </div>
 
-        <h1 className="text-3xl font-extrabold tracking-tight text-balance md:text-4xl">
+        <h1 className="text-3xl font-semibold tracking-tight text-balance md:text-4xl">
           This page wandered off
         </h1>
         <p className="max-w-[44ch] text-pretty text-foreground/70">

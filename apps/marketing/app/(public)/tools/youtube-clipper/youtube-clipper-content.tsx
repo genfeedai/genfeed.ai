@@ -71,7 +71,7 @@ function RecommendationCard({
     <article className="grid gap-4 bg-background p-5 shadow-border">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <Text className="text-xs font-semibold uppercase tracking-wider text-foreground/60">
+          <Text className="text-xs font-semibold uppercase tracking-label text-foreground/60">
             Clip {index + 1} · {recommendation.clipType}
           </Text>
           <Heading as="h3" className="mt-2 text-lg">

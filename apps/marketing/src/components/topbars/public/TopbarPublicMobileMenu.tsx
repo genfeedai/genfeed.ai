@@ -117,7 +117,7 @@ export default function TopbarPublicMobileMenu({
 
             {dropdowns.map((dropdown) => (
               <li key={dropdown.label}>
-                <span className="mb-2 block px-4 text-xs font-bold uppercase tracking-[0.16em] text-foreground/60">
+                <span className="mb-2 block px-4 text-xs font-semibold uppercase tracking-label text-foreground/60">
                   {dropdown.label}
                 </span>
                 <ul className="space-y-1">

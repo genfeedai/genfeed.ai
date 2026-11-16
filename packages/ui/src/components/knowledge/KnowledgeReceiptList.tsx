@@ -37,7 +37,7 @@ export default function KnowledgeReceiptList({
       className="space-y-1.5 border-t border-border/50 pt-2"
       data-testid="knowledge-receipts"
     >
-      <p className="text-2xs font-bold uppercase tracking-wide text-muted-foreground">
+      <p className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
         {translate('title')}
       </p>
       <ul className="space-y-1.5">

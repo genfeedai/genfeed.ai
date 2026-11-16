@@ -45,7 +45,7 @@ export default function IngredientPromptBlock({
       className={cn('flex min-w-0 flex-col gap-2', className)}
     >
       <div className="flex items-center justify-between gap-2">
-        <h4 className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+        <h4 className="text-2xs uppercase tracking-label text-muted-foreground">
           {translate('prompt')}
         </h4>
         <Button

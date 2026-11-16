@@ -111,7 +111,7 @@ export function TimelineStreamingRow({
             <Sparkles className="size-3.5 shrink-0 text-primary/70" />
             <AnimatedStatusText
               text={progressSummary.label}
-              className="min-w-0 font-medium tracking-[0.01em]"
+              className="min-w-0 font-medium"
             />
             {hasRunDuration && streamState.isStreaming ? (
               <span className="shrink-0 tabular-nums text-gray-800">

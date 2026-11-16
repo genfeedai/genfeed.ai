@@ -105,7 +105,7 @@ typography:
     fontSize: 11px
     fontWeight: 500
     lineHeight: 14px
-    letterSpacing: "0.02em"
+    letterSpacing: "0.18em"
   label:
     fontFamily: 'Satoshi, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     fontSize: 12px
@@ -609,7 +609,7 @@ before contrast does.
 
 | token              | size | leading | weight | use                                  |
 |--------------------|------|---------|--------|--------------------------------------|
-| `caption`          | 11px | 14px    | 500    | badges, chips, uppercase micro-labels |
+| `caption`          | 11px | 14px    | 500    | badges, chips, uppercase micro-labels (0.18em tracking) |
 | `label`            | 12px | 16px    | 500    | table cells, button labels, metadata  |
 | `body-md`          | 14px | 20px    | 400    | body copy and controls — the default  |
 | `body-lg`          | 15px | 24px    | 400    | comfortable reading columns           |
@@ -628,10 +628,21 @@ complaint, and one point of size buys more legibility here than any contrast cha
 
 ### Tracking
 
-`-0.011em` on body and controls, `-0.02em` on anything 18px and up, `0.02em` on
+`-0.011em` on body and controls, `-0.02em` on anything 18px and up, `0.18em` on
 uppercase micro-labels. `-0.02em` is the floor for negative tracking at every
 size; display type does not get tighter. `tracking-tight` is that value. The
 design-system check fails on any `tracking-[-…em]` below `-0.02em`.
+
+`tracking-label` (`0.18em`, the `--tracking-label` token) is the only positive
+tracking value. Use it on uppercase micro-labels and nowhere else; lowercase text
+is never tracked out. `tracking-wide`, `tracking-wider`, `tracking-widest` and
+`tracking-[0.Nem]` fail the design-system check (`off-token-tracking`).
+
+### Weights
+
+Three weights: 400 for reading text, 500 for labels and controls, 600 for headings
+and emphasis. Nothing heavier ships. `font-bold`, `font-extrabold` and `font-black`
+fail the design-system check (`heavy-weight`); use `font-semibold`.
 
 ### Fonts
 

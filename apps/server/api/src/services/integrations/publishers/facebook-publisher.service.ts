@@ -7,8 +7,13 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import {
+  throwAsPublishError,
+  withErrorKind,
+} from '@api/services/integrations/publishers/publish-error.util';
 import { verifyMediaPublish } from '@api/services/integrations/publishers/publisher-media-verification.util';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { mapMetaFailure } from '@api/services/integrations/publishers/social-publish-error.mappers';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -118,9 +123,12 @@ export class FacebookPublisherService extends BasePublisherService {
         this.logger.error(`${url} Facebook credential or page ID not found`, {
           postId: context.postId,
         });
-        return this.createFailedResult(
-          this.platform,
-          'Facebook credential or page ID not found',
+        return withErrorKind(
+          this.createFailedResult(
+            this.platform,
+            'Facebook credential or page ID not found',
+          ),
+          PublishErrorKind.CHANNEL_DISCONNECTED,
         );
       }
 
@@ -136,9 +144,12 @@ export class FacebookPublisherService extends BasePublisherService {
         this.logger.error(`${url} Facebook page access token not found`, {
           postId: context.postId,
         });
-        return this.createFailedResult(
-          this.platform,
-          'Facebook page access token not found',
+        return withErrorKind(
+          this.createFailedResult(
+            this.platform,
+            'Facebook page access token not found',
+          ),
+          PublishErrorKind.CHANNEL_DISCONNECTED,
         );
       }
 
@@ -167,9 +178,9 @@ export class FacebookPublisherService extends BasePublisherService {
       }
 
       if (!externalId) {
-        return this.createFailedResult(
-          this.platform,
-          'Failed to get external ID',
+        return withErrorKind(
+          this.createFailedResult(this.platform, 'Failed to get external ID'),
+          PublishErrorKind.OUTCOME_UNKNOWN,
         );
       }
 
@@ -180,7 +191,7 @@ export class FacebookPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throwAsPublishError(error, mapMetaFailure);
     }
   }
 

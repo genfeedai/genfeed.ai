@@ -79,7 +79,7 @@ export function BrandInterviewOfferCard({
 
       {completenessScore !== null ? (
         <div className="mb-3 border border-border bg-card/40 p-3">
-          <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
             Current completeness
           </p>
           <p className="mt-1 text-sm font-semibold text-foreground">
@@ -90,7 +90,7 @@ export function BrandInterviewOfferCard({
 
       {currentQuestion ? (
         <div className="mb-3 border border-border bg-card/40 p-3">
-          <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
             First question
           </p>
           <p className="mt-1 text-sm text-foreground">

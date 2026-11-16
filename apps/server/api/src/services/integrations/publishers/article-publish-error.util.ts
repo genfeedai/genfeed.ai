@@ -1,4 +1,7 @@
-import { classifyHttpPublishError } from '@api/shared/utils/publish-error/classify-http-publish-error.util';
+import {
+  type ProviderErrorMapper,
+  toPublishErrorOrUnknown,
+} from '@api/services/integrations/publishers/publish-error.util';
 import { PublishErrorKind } from '@genfeedai/contracts';
 import type { PublishError } from '@genfeedai/contracts/interfaces';
 
@@ -18,6 +21,23 @@ export interface ArticlePublishErrorOptions {
  */
 const ACCOUNT_STATUSES: ReadonlySet<number> = new Set([402, 404, 423]);
 
+function mapArticleFailure(
+  options: ArticlePublishErrorOptions,
+): ProviderErrorMapper {
+  return ({ httpStatus }) => {
+    if (httpStatus === 401) {
+      return {
+        kind: options.isTokenRefreshable
+          ? PublishErrorKind.TOKEN_MUST_REFRESH
+          : PublishErrorKind.CHANNEL_DISCONNECTED,
+      };
+    }
+    return httpStatus !== undefined && ACCOUNT_STATUSES.has(httpStatus)
+      ? { kind: PublishErrorKind.CHANNEL_DISCONNECTED }
+      : null;
+  };
+}
+
 /**
  * The typed failure for a request that failed while creating an article, post
  * or product. The shared classifier reads the HTTP status and the network
@@ -28,17 +48,5 @@ export function toArticlePublishError(
   error: unknown,
   options: ArticlePublishErrorOptions = {},
 ): PublishError {
-  return classifyHttpPublishError(error, {
-    isPublishRequest: true,
-    kindForStatus: (status) => {
-      if (status === 401) {
-        return options.isTokenRefreshable
-          ? PublishErrorKind.TOKEN_MUST_REFRESH
-          : PublishErrorKind.CHANNEL_DISCONNECTED;
-      }
-      return ACCOUNT_STATUSES.has(status)
-        ? PublishErrorKind.CHANNEL_DISCONNECTED
-        : undefined;
-    },
-  });
+  return toPublishErrorOrUnknown(error, mapArticleFailure(options));
 }

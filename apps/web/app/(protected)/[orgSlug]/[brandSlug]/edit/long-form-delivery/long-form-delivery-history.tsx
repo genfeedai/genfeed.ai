@@ -22,7 +22,7 @@ export default function LongFormDeliveryHistory({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium uppercase tracking-wider text-foreground/60">
+      <p className="text-xs font-medium uppercase tracking-label text-foreground/60">
         {translate('history')}
       </p>
       {targets.length === 0 ? (

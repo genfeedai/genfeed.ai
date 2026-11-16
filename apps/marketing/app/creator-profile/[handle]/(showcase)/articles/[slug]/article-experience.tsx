@@ -220,7 +220,7 @@ function EffectPreview({
           }}
         />
 
-        <div className="absolute left-3 top-3 bg-background/80 px-2 py-1 text-2xs font-medium uppercase tracking-[0.14em] text-foreground/70 backdrop-blur-sm">
+        <div className="absolute left-3 top-3 bg-background/80 px-2 py-1 text-2xs font-medium uppercase tracking-label text-foreground/70 backdrop-blur-sm">
           {isApplied ? effect.label : 'Before'}
         </div>
       </div>
@@ -256,7 +256,7 @@ function FilmmakingEffectLab(): React.ReactElement {
           <Sparkles className="size-4" aria-hidden="true" />
         </div>
         <div>
-          <p className="mb-1 text-xs font-medium uppercase tracking-[0.16em] text-foreground/50">
+          <p className="mb-1 text-xs font-medium uppercase tracking-label text-foreground/50">
             Interactive filmmaking lexicon
           </p>
           <h2

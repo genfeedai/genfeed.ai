@@ -66,7 +66,7 @@ export function CreditsBalanceCard({
             <a
               key={cta.label}
               href={cta.href}
-              className="flex flex-1 items-center justify-center gap-1.5 bg-primary px-3 py-2 text-xs font-black text-primary-foreground transition-colors hover:bg-primary/90"
+              className="flex flex-1 items-center justify-center gap-1.5 bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
             >
               {cta.label}
             </a>
@@ -75,7 +75,7 @@ export function CreditsBalanceCard({
       ) : (
         <a
           href={billingHref}
-          className="flex w-full items-center justify-center gap-1.5 bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90"
+          className="flex w-full items-center justify-center gap-1.5 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <DollarSign className="size-4" />
           Buy Credits

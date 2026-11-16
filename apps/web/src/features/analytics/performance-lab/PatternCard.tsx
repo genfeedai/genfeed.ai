@@ -50,7 +50,7 @@ function ScoreBar({ score }: ScoreBarProps) {
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <span className="text-2xs text-foreground/50 uppercase tracking-wider">
+        <span className="text-2xs text-foreground/50 uppercase tracking-label">
           Avg Score
         </span>
         <span className="text-xs font-mono font-medium text-foreground/80">
@@ -111,7 +111,7 @@ export default function PatternCard({ pattern }: PatternCardProps) {
       {/* Example texts */}
       {previewExamples.length > 0 && (
         <div className="space-y-1.5">
-          <span className="text-2xs text-muted-foreground uppercase tracking-wider">
+          <span className="text-2xs text-muted-foreground uppercase tracking-label">
             Examples
           </span>
           <ul className="space-y-1">

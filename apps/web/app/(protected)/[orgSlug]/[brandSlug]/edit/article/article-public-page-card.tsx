@@ -62,7 +62,7 @@ export default function ArticlePublicPageCard({
   if (!isHostedOnWebsite || !publicUrl) {
     return (
       <Card gap={CardGap.SM}>
-        <h3 className="text-sm font-semibold text-foreground/60 uppercase tracking-wider">
+        <h3 className="text-sm font-semibold text-foreground/60 uppercase tracking-label">
           {translate('title')}
         </h3>
         <p className="text-sm text-foreground/70">{translate('notHosted')}</p>
@@ -73,7 +73,7 @@ export default function ArticlePublicPageCard({
   return (
     <Card>
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-foreground/60 uppercase tracking-wider">
+        <h3 className="text-sm font-semibold text-foreground/60 uppercase tracking-label">
           {translate('title')}
         </h3>
         <span className="text-xs font-medium text-foreground/60">
@@ -143,7 +143,7 @@ export default function ArticlePublicPageCard({
           </div>
         )}
         <div className="space-y-1 p-3">
-          <p className="text-xs uppercase tracking-wider text-foreground/50">
+          <p className="text-xs uppercase tracking-label text-foreground/50">
             {translate('shareDomain')}
           </p>
           <p className="line-clamp-2 text-sm font-semibold">

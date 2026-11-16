@@ -106,7 +106,7 @@ export function AgentInputRequestOverlay({
         )}
       >
         <div className="mb-3">
-          <p className="mb-1 text-2xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="mb-1 text-2xs font-medium uppercase tracking-label text-muted-foreground">
             {translate(
               request.isMultiSelect ? 'chooseMultiple' : 'interaction',
             )}
@@ -218,7 +218,7 @@ export function AgentInputRequestOverlay({
         ) : null}
         {request.allowFreeText !== false ? (
           <div className="mt-3">
-            <p className="mb-1 text-2xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="mb-1 text-2xs font-medium uppercase tracking-label text-muted-foreground">
               {translate('other')}
             </p>
             <Textarea

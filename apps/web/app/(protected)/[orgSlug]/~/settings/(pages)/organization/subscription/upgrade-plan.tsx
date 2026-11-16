@@ -297,7 +297,7 @@ export default function UpgradePlan({ tiers }: UpgradePlanProps) {
                   })}
                 </Text>
               </div>
-              <Text as="p" size="xl" weight="bold">
+              <Text as="p" size="xl" weight="semibold">
                 {formatPlanPriceLabel(tier)}
               </Text>
             </div>

@@ -16,7 +16,7 @@ export default function PositioningScorecard({
   return (
     <div className="max-w-2xl space-y-5 border border-border bg-tertiary p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
           {translate('scoreTitle')}
         </p>
         <div className="flex items-center gap-3">

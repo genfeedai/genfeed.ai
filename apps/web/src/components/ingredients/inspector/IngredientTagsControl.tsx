@@ -112,7 +112,7 @@ export default function IngredientTagsControl({
       aria-label={translate('sectionLabel')}
       className="flex flex-col gap-2"
     >
-      <div className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+      <div className="text-2xs uppercase tracking-label text-muted-foreground">
         {translate('sectionLabel')}
       </div>
       <div className="flex flex-wrap items-center gap-1.5">

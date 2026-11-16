@@ -838,7 +838,11 @@ describe('ScheduledPostDeliveryService', () => {
 
   it('keeps a timed-out attempt for verification and soft-retries it', async () => {
     mocks.publisherFactory.getPublisher.mockReturnValue({
-      publish: vi.fn().mockRejectedValue(new Error('ETIMEDOUT')),
+      publish: vi
+        .fn()
+        .mockRejectedValue(
+          new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
+        ),
       supportsThreads: false,
     });
 
@@ -890,7 +894,11 @@ describe('ScheduledPostDeliveryService', () => {
   it('tells the owner nothing while a retryable provider failure still has retries left', async () => {
     mocks.activitiesService.record.mockClear();
     mocks.publisherFactory.getPublisher.mockReturnValue({
-      publish: vi.fn().mockRejectedValue(new Error('ETIMEDOUT')),
+      publish: vi
+        .fn()
+        .mockRejectedValue(
+          new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
+        ),
       supportsThreads: false,
     });
 
@@ -902,7 +910,11 @@ describe('ScheduledPostDeliveryService', () => {
   it('does not report a retryable provider failure to Sentry', async () => {
     vi.mocked(Sentry.captureException).mockClear();
     mocks.publisherFactory.getPublisher.mockReturnValue({
-      publish: vi.fn().mockRejectedValue(new Error('ETIMEDOUT')),
+      publish: vi
+        .fn()
+        .mockRejectedValue(
+          new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
+        ),
       supportsThreads: false,
     });
 
@@ -1220,7 +1232,11 @@ describe('ScheduledPostDeliveryService', () => {
   });
 
   it('never calls an unverifiable publisher again once its retry budget is spent, however often it is delivered', async () => {
-    const publish = vi.fn().mockRejectedValue(new Error('ETIMEDOUT'));
+    const publish = vi
+      .fn()
+      .mockRejectedValue(
+        new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
+      );
     mocks.publisherFactory.getPublisher.mockReturnValue({
       publish,
       supportsThreads: false,
@@ -1248,7 +1264,11 @@ describe('ScheduledPostDeliveryService', () => {
   });
 
   it('never calls a verifying publisher again while its verification is unavailable, at any retry count', async () => {
-    const publish = vi.fn().mockRejectedValue(new Error('ETIMEDOUT'));
+    const publish = vi
+      .fn()
+      .mockRejectedValue(
+        new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
+      );
     mocks.publisherFactory.getPublisher.mockReturnValue({
       publish,
       supportsThreads: false,
@@ -1430,7 +1450,11 @@ describe('ScheduledPostDeliveryService', () => {
 
   it('keeps a budget-exhausted ambiguous provider call publishing instead of failing it', async () => {
     mocks.publisherFactory.getPublisher.mockReturnValue({
-      publish: vi.fn().mockRejectedValue(new Error('ETIMEDOUT')),
+      publish: vi
+        .fn()
+        .mockRejectedValue(
+          new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
+        ),
       supportsThreads: false,
     });
 
@@ -1456,6 +1480,7 @@ describe('ScheduledPostDeliveryService', () => {
   it('keeps a returned timeout uncertain instead of releasing it', async () => {
     mockSuccessfulPublisher(mocks, {
       error: 'ETIMEDOUT while publishing',
+      errorKind: PublishErrorKind.OUTCOME_UNKNOWN,
       executionState: TargetExecutionState.FAILED,
       success: false,
     });
@@ -1947,6 +1972,7 @@ describe('ScheduledPostDeliveryService', () => {
     mocks.publisherFactory.getPublisher.mockReturnValue({
       publish: vi.fn().mockResolvedValue({
         error: '429 rate limit',
+        errorKind: PublishErrorKind.RATE_LIMITED,
         executionState: TargetExecutionState.FAILED,
         externalId: null,
         platform: CredentialPlatform.TWITTER,
@@ -2144,6 +2170,7 @@ describe('ScheduledPostDeliveryService', () => {
     function mockRateLimitedPublisher(retryAfterMs?: number) {
       const publish = vi.fn().mockResolvedValue({
         error: '429 rate limit',
+        errorKind: PublishErrorKind.RATE_LIMITED,
         executionState: TargetExecutionState.FAILED,
         externalId: null,
         platform: CredentialPlatform.TWITTER,
@@ -2263,6 +2290,7 @@ describe('ScheduledPostDeliveryService', () => {
       mocks.publisherFactory.getPublisher.mockReturnValue({
         publish: vi.fn().mockResolvedValue({
           error: '503 service unavailable',
+          errorKind: PublishErrorKind.RETRY_LATER,
           executionState: TargetExecutionState.FAILED,
           externalId: null,
           platform: CredentialPlatform.TWITTER,

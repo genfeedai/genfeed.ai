@@ -284,7 +284,7 @@ function OrganizationIdentityEditor({
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <EditableText
             ariaLabel={translate('editName')}
-            displayClassName="text-2xl font-bold"
+            displayClassName="text-2xl font-semibold"
             isDisabled={!canEdit}
             isRequired
             onSave={handleSaveName}
