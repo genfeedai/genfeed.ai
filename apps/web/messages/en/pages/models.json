@@ -66,5 +66,12 @@
   "editModel": "Edit model",
   "noModelsFound": "No models found",
   "clearSearch": "Clear search",
-  "refresh": "Refresh"
+  "refresh": "Refresh",
+  "retired": {
+    "title": "{model} was retired",
+    "description": "Runs that use it stop until you pick a new model.",
+    "pickAction": "Pick a new model",
+    "badge": "Retired",
+    "saveError": "The new model could not be saved. Try again."
+  }
 }
