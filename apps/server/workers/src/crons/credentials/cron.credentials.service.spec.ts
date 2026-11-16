@@ -90,6 +90,7 @@ describe('CronCredentialsService.refreshExpiringTokens', () => {
         } as unknown as ServerCredentialStore,
         refresher('facebook'),
         refresher('google-ads'),
+        refresher('google-business'),
         refresher('instagram'),
         refresher('linkedin'),
         refresher('pinterest'),
@@ -115,6 +116,16 @@ describe('CronCredentialsService.refreshExpiringTokens', () => {
       { args: ['org-1', 'brand-1', 'cred-1'], refresher: 'twitter' },
     ]);
     expect(summaries).toEqual([{ failures: 0, successes: 1, total: 1 }]);
+  });
+
+  it('refreshes a Google Business location through its own refresher', async () => {
+    credentials = [credential('cred-gb', { platform: 'GOOGLE_BUSINESS' })];
+
+    await service.refreshExpiringTokens();
+
+    expect(refreshed).toEqual([
+      { args: ['org-1', 'brand-1', 'cred-gb'], refresher: 'google-business' },
+    ]);
   });
 
   it('refreshes each X account of a multi-account brand by its credential id', async () => {
