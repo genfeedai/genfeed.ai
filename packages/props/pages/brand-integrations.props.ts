@@ -92,7 +92,7 @@ export type ConnectPlatformReadiness = 'available' | 'unavailable' | 'unknown';
  */
 export interface ConnectAccountPlatform {
   category: string;
-  connectMethod?: 'oauth' | 'api_key';
+  connectMethod?: 'oauth' | 'api_key' | 'add_bot_link';
   connectId?: string;
   Icon: IconComponent;
   iconClassName: string;

@@ -7,6 +7,7 @@
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
+import { TelegramGroupLinkModule } from '@api/services/integrations/telegram/telegram-group-link.module';
 import { TelegramBotController } from '@api/services/telegram-bot/telegram-bot.controller';
 import { TelegramBotService } from '@api/services/telegram-bot/telegram-bot.service';
 import { ConfigModule } from '@libs/config/config.module';
@@ -21,6 +22,7 @@ import { Module } from '@nestjs/common';
     ConfigModule,
     FilesClientModule,
     LoggerModule,
+    TelegramGroupLinkModule,
     WorkflowsModule,
   ],
   providers: [TelegramBotService],

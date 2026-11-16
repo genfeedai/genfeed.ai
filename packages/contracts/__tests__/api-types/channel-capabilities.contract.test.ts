@@ -229,12 +229,7 @@ describe('validateChannelTargetSettings', () => {
     expect(valid.valid).toBe(true);
   });
 
-  test('requires the Telegram chat and takes one photo or video', () => {
-    const missingChat = validateChannelTargetSettings({
-      caption: 'Update',
-      platform: CredentialPlatform.TELEGRAM,
-      publishMode: 'scheduled',
-    });
+  test('takes one photo or video for the connected Telegram group', () => {
     const twoPhotos = validateChannelTargetSettings({
       caption: 'Update',
       media: [
@@ -243,23 +238,21 @@ describe('validateChannelTargetSettings', () => {
       ],
       platform: CredentialPlatform.TELEGRAM,
       publishMode: 'scheduled',
-      settings: { chatId: '@genfeed' },
     });
     const valid = validateChannelTargetSettings({
       caption: 'Update',
       media: [{ id: 'asset_1', kind: 'video' }],
       platform: CredentialPlatform.TELEGRAM,
       publishMode: 'scheduled',
-      settings: { chatId: '@genfeed' },
     });
 
-    expect(missingChat.errors.map((issue) => issue.code)).toEqual([
-      'channel_target.required_setting',
-    ]);
     expect(twoPhotos.errors.map((issue) => issue.code)).toEqual([
       'channel_target.too_many_media_items',
     ]);
     expect(valid.valid).toBe(true);
+    expect(getChannelCapability(CredentialPlatform.TELEGRAM)?.settings).toEqual(
+      [],
+    );
   });
 
   test('exposes Beehiiv draft, immediate, and scheduled execution', () => {

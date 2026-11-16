@@ -15,13 +15,13 @@ import {
 import {
   CredentialPlatform,
   DistributionContentType,
+  PublishErrorKind,
 } from '@genfeedai/contracts';
-import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { PublishError } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 
 /** Telegram caps the caption of a photo or video at 1024 characters. */
@@ -118,20 +118,23 @@ export class TelegramPublisherService extends BasePublisherService {
       );
     }
 
-    const chatId = readChannelSettingString(context.settings, 'chatId');
+    // The connected group is the credential's identity: the bot is added to it
+    // from Genfeed, and the platform bot's token sends for every brand.
+    const chatId = credential?.externalId;
     if (!chatId) {
       return this.createFailedResult(
         this.platform,
-        'Telegram requires the chat to post to',
-        'chat_required',
+        'No Telegram group is connected',
+        'credential_missing',
       );
     }
 
-    if (!credential?.accessToken) {
+    const botToken = this.configService.get('TELEGRAM_BOT_TOKEN');
+    if (!botToken) {
       return this.createFailedResult(
         this.platform,
-        'Telegram bot token not found',
-        'credential_missing',
+        'Telegram is not set up on this deployment',
+        'platform_unavailable',
       );
     }
 
@@ -144,14 +147,11 @@ export class TelegramPublisherService extends BasePublisherService {
         : DistributionContentType.VIDEO;
 
     try {
-      const { messageId } = await this.telegramBotApi.send(
-        EncryptionUtil.decrypt(credential.accessToken),
-        {
-          ...(mediaUrl ? { caption: text, mediaUrl } : { text }),
-          chatId,
-          contentType,
-        },
-      );
+      const { messageId } = await this.telegramBotApi.send(String(botToken), {
+        ...(mediaUrl ? { caption: text, mediaUrl } : { text }),
+        chatId,
+        contentType,
+      });
       return this.createSuccessResult(
         messageId,
         this.platform,
@@ -163,10 +163,21 @@ export class TelegramPublisherService extends BasePublisherService {
         postId: context.postId,
       });
       if (error instanceof TelegramApiError) {
-        if (error.kind === 'token_invalid' || error.kind === 'bot_removed') {
+        // A bad platform token is not this group's fault; only a removed bot
+        // disconnects it.
+        if (error.kind === 'bot_removed') {
           await this.credentialsService.patch(credential.id, {
             isConnected: false,
           });
+        }
+        if (error.kind === 'token_invalid') {
+          // The deployment's bot token is bad, which reconnecting the group
+          // cannot fix. Nothing was sent, so the post can go out once it is.
+          throw new PublishError(
+            PublishErrorKind.RETRY_LATER,
+            'Telegram is unavailable on this deployment right now',
+            { cause: error, httpStatus: error.statusCode },
+          );
         }
         throw toChatPublishError(error);
       }
@@ -176,7 +187,7 @@ export class TelegramPublisherService extends BasePublisherService {
 
   /**
    * The Bot API cannot look a sent message up by id, and the message does not
-   * carry the chat, so the link is built at publish time from the chat setting.
+   * carry the chat, so the link is built at publish time from the connected group.
    */
   buildPostUrl(
     _externalId: string,
