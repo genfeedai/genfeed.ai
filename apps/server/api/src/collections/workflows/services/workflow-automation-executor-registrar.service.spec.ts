@@ -1,4 +1,4 @@
-import { AUTOMATION_ACTION_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
+import { AUTOMATION_ACTION_IDS } from '@api/collections/workflows/services/automation-action-ids';
 import { ContentLearningWorkflowService } from '@api/collections/workflows/services/content-learning-workflow.service';
 import { WorkflowAutomationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-automation-executor-registrar.service';
 import { CONTENT_LEARNING_ACTION_IDS } from '@api/collections/workflows/templates/content-learning-workflows.template';

@@ -6,7 +6,12 @@ import {
   PLATFORM_WORKFLOW_SCHEDULE_SOURCE,
   PROACTIVE_AGENT_TURN_SOURCE,
 } from '@api/collections/workflows/system-workflow-definition';
-import { WORKFLOW_EXECUTION_RETENTION_METADATA_KEY } from '@api/collections/workflows/workflow-execution-retention.contract';
+import {
+  resolveRunRetention,
+  type SystemWorkflowRetention,
+  WORKFLOW_EXECUTION_RETENTION_METADATA_KEY,
+  WORKFLOW_RUN_RETENTION_METADATA_KEY,
+} from '@api/collections/workflows/workflow-execution-retention.contract';
 import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -257,4 +262,23 @@ export async function resolveInheritedRetentionMetadata(
   return retention === undefined || retention === null
     ? {}
     : { [WORKFLOW_EXECUTION_RETENTION_METADATA_KEY]: retention };
+}
+
+/**
+ * Metadata every system-workflow run carries: the system-action marker and the
+ * run's retention class. A background definition stays background unless a user
+ * or agent dispatched it interactively (see `resolveRunRetention`), so the
+ * purge never deletes a run somebody started on purpose.
+ */
+export function systemRunMetadata(
+  retention: SystemWorkflowRetention,
+  dispatchClass?: SystemWorkflowDispatchClass,
+): Record<string, unknown> {
+  return {
+    isSystemAction: true,
+    [WORKFLOW_RUN_RETENTION_METADATA_KEY]: resolveRunRetention(
+      retention,
+      dispatchClass,
+    ),
+  };
 }

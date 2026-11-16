@@ -2,6 +2,7 @@ import { SOCIAL_INBOX_OUTBOUND_ACTION_IDS } from '@api/collections/social-inbox/
 import type { WorkflowEdge } from '@api/collections/workflows/schemas/workflow.schema';
 import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 
 export const SOCIAL_REPLY_CAMPAIGN_ACTION_IDS = {
   CLAIM: 'social.reply-campaign.claim',
@@ -55,5 +56,6 @@ export function buildSocialReplyCampaignWorkflowDefinition(): SystemWorkflowGrap
       'Loads, reclaims, throttles, claims, prepares, sends, and finalizes one social campaign recipient tick.',
     label: 'Social Reply Campaign Tick',
     resultNodeId: 'finalize-tick',
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }

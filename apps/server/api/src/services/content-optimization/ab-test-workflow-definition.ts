@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const AB_TEST_WORKFLOW_IDS = {
@@ -84,6 +85,7 @@ export function buildAbTestExecutionWorkflowDefinition(): SystemWorkflowGraphDef
       'Plans and creates each A/B test arm through a child workflow.',
     label: 'Execute Content A/B Test',
     resultNodeId: 'finalize-execution',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -147,6 +149,7 @@ export function buildAbTestResolutionWorkflowDefinition(): SystemWorkflowGraphDe
       'Scores candidate experiments and persists each resolved outcome through a child workflow.',
     label: 'Resolve Content A/B Tests',
     resultNodeId: 'finalize-resolution',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -179,6 +182,7 @@ function buildValidatedAbTestsWorkflowDefinition(): SystemWorkflowGraphDefinitio
     description: 'Loads validated A/B test outcomes for one brand.',
     label: 'Load Validated Content A/B Tests',
     resultNodeId: 'load-validated',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -217,6 +221,7 @@ function singleItemDefinition(
     description: label,
     label,
     resultNodeId: nodeId,
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const BREAKOUT_RESPONSE_ACTION_ID = 'breakout.response.execute';
@@ -32,6 +33,7 @@ export function buildBreakoutResponseExecutionWorkflowDefinition(): SystemWorkfl
       'Prices, reserves and generates the planned outputs of one detected own-account breakout while it is still hot.',
     label: 'Breakout Response Execution',
     resultNodeId: 'execute-response',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

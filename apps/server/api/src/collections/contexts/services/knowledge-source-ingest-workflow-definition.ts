@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const KNOWLEDGE_SOURCE_ACTION_IDS = {
@@ -120,6 +121,7 @@ export function buildKnowledgeSourceIngestWorkflowDefinition(): SystemWorkflowGr
       'Extracts and stages bounded Knowledge chunks; asynchronous indexing completes retrieval readiness.',
     label: 'Knowledge Source Ingest',
     resultNodeId: 'finalize-source',
+    retention: SystemWorkflowRetention.KEPT,
     version: 2,
   };
 }
@@ -167,6 +169,7 @@ export function buildKnowledgeSourceBackfillWorkflowDefinition(): SystemWorkflow
       'Discovers stale knowledge sources and schedules one ingest workflow each.',
     label: 'Knowledge Source Backfill',
     resultNodeId: 'ingest-sources',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

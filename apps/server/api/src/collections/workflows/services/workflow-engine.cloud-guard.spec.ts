@@ -11,6 +11,7 @@ import {
   type SystemWorkflowGraphDefinition,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createVersionedWorkflow } from '@api/collections/workflows/workflow-version-definition';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { WorkflowExecutionStatus } from '@genfeedai/prisma';
@@ -304,6 +305,7 @@ describe('workflow engine in CLOUD tenant context', () => {
       description: 'Review one generated hook clip.',
       label: 'Clip Hook Review',
       resultNodeId: 'review-hook',
+      retention: SystemWorkflowRetention.BACKGROUND,
     };
 
     type RunnerInternals = {

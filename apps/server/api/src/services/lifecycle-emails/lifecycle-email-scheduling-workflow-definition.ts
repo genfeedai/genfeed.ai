@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import type {
   LifecycleEmailSequence,
@@ -145,6 +146,7 @@ export function buildLifecycleSchedulingWorkflowDefinition(): SystemWorkflowGrap
       'Plans lifecycle email deliveries or checkout cancellation and executes each atomic child workflow.',
     label: 'Schedule Lifecycle Emails',
     resultNodeId: finalize.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }
@@ -172,6 +174,7 @@ function singleActionWorkflow(
     description: label,
     label,
     resultNodeId: action.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }
@@ -218,6 +221,7 @@ export function buildLifecycleScheduleDeliveryWorkflowDefinition(): SystemWorkfl
       'Persists one idempotent lifecycle delivery and enqueues it only when newly created.',
     label: 'Schedule One Lifecycle Email',
     resultNodeId: enqueue.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }

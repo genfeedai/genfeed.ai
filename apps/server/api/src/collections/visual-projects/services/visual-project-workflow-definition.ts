@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 export function buildVisualProjectWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
@@ -10,6 +11,7 @@ export function buildVisualProjectWorkflowDefinition(): SystemWorkflowGraphDefin
       'Author, inspect and export one scoped immutable visual revision.',
     version: 1,
     resultNodeId: 'execute',
+    retention: SystemWorkflowRetention.KEPT,
     definition: {
       edges: [],
       inputVariables: [
@@ -35,6 +37,7 @@ export function buildVisualProjectFailureWorkflowDefinition(): SystemWorkflowGra
       'Reconcile one admitted terminal failure without new provider work.',
     version: 1,
     resultNodeId: 'fail',
+    retention: SystemWorkflowRetention.KEPT,
     definition: {
       edges: [],
       inputVariables: [

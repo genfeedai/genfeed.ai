@@ -9,6 +9,7 @@ import type { FormattedAgentError } from '@genfeedai/agent/server';
 export type WorkflowExecutionCompletionRow = {
   estimatedDurationMs: number | null;
   organizationId: string;
+  retentionPolicy: string | null;
   startedAt: Date | null;
   trigger: string | null;
   workflowId: string;

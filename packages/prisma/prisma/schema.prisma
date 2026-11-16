@@ -3229,6 +3229,7 @@ learningCheckpoints ContentLearningCheckpoint[]
   @@index([externalId])
   @@index([originalPostId])
   @@index([groupId])
+  @@index([workflowExecutionId])
   @@index([organizationId, entityArticleId], map: "posts_org_entity_article_idx")
   @@index([organizationId, entityNewsletterId], map: "posts_org_entity_newsletter_idx")
   @@index([contentRunId])
@@ -6036,6 +6037,10 @@ model WorkflowExecution {
   payloadScrubbedAt    DateTime?
   purgeAfterHours      Int?
   purgeAt              DateTime?
+  /// The run's system workflow retention (#10382): `background` runs get a
+  /// `purgeAt` at their terminal transition and the platform purge task deletes
+  /// them in bulk; `kept` and null runs keep their history.
+  retentionPolicy      String?
 
   /// Durable intent to silently cancel this `PENDING` execution, written by the
   /// deploy drain before it removes the execution's queued job (#5450). The
@@ -6046,6 +6051,7 @@ model WorkflowExecution {
 
   posts                    Post[]
   nodeResults              WorkflowExecutionNodeResult[]
+  nodeClaims               WorkflowNodeClaim[]
   artifacts                WorkflowArtifact[]
   nodeContinuations        WorkflowNodeContinuation[]
   workspaceTasks           Task[]                        @relation("task_linked_executions")
@@ -6161,6 +6167,7 @@ model WorkflowNodeClaim {
   id             String   @id @default(cuid())
   organizationId String
   executionId    String
+  execution      WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
   nodeId         String
   /// running | completed | failed
   status         String

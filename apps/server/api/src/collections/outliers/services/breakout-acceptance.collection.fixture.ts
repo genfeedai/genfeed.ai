@@ -29,6 +29,7 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
 import { ensureHiddenSystemWorkflowMirror } from '@api/collections/workflows/system-workflow-mirror.util';
 import { DAILY_PUBLISHING_ACCOUNT_WORKFLOW_ID } from '@api/collections/workflows/templates/daily-publishing-workflow.template';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createVersionedWorkflow } from '@api/collections/workflows/workflow-version-definition';
 import type { AccountAnalyticsSnapshotService } from '@api/endpoints/analytics/account-analytics-snapshot.service';
 import type {
@@ -60,6 +61,7 @@ export function hiddenFixtureDefinition(
     description: 'Breakout acceptance fixture',
     label: canonicalId,
     resultNodeId: 'none',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

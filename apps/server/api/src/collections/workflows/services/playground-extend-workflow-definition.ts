@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const PLAYGROUND_NATIVE_EXTEND_WORKFLOW_ID =
@@ -28,6 +29,7 @@ export function buildPlaygroundNativeExtendWorkflowDefinition(): SystemWorkflowG
     organizationModule: 'playground',
     generationAdmission: true,
     resultNodeId: 'extension-video',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
     definition: {
       edges: [],
@@ -84,6 +86,7 @@ export function buildPlaygroundFabricatedExtendWorkflowDefinition(): SystemWorkf
     organizationModule: 'playground',
     generationAdmission: true,
     resultNodeId: 'extended-video',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
     definition: {
       inputVariables: [...keys, 'sourceVideo', 'parentId'].map((key) => ({

@@ -14,8 +14,10 @@ import {
 } from '@api/collections/workflows/services/youtube-url.util';
 import {
   type SystemWorkflowActionRequest,
+  type SystemWorkflowGraphDefinition,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import {
   PublicClipperToolStoreService,
@@ -219,36 +221,10 @@ export class PublicYoutubeClipperService implements OnModuleInit {
         'Resolves a YouTube source, creates an idempotent session, and dispatches clip analysis.',
       label: 'Public YouTube Clip Creation',
       resultNodeId: 'read-session',
+      retention: SystemWorkflowRetention.KEPT,
       version: 1,
     });
-    this.runner.registerWorkflow({
-      canonicalId: PUBLIC_YOUTUBE_CLIPPER_READ_WORKFLOW_ID,
-      definition: {
-        edges: [],
-        inputVariables: [
-          {
-            key: 'previewToken',
-            label: 'Preview token',
-            required: true,
-            type: 'string',
-          },
-        ],
-        nodes: [
-          this.actionNode(
-            'read-session',
-            PUBLIC_YOUTUBE_CLIPPER_ACTION_IDS.READ_SESSION,
-            'Read clip session',
-            ['previewToken'],
-            0,
-          ),
-        ],
-      },
-      description:
-        'Reads one public YouTube clip session through the workflow engine.',
-      label: 'Public YouTube Clip Read',
-      resultNodeId: 'read-session',
-      version: 1,
-    });
+    this.runner.registerWorkflow(this.readWorkflowDefinition());
     this.runner.registerWorkflow({
       canonicalId: PUBLIC_YOUTUBE_CLIPPER_PREVIEW_WORKFLOW_ID,
       definition: {
@@ -294,8 +270,41 @@ export class PublicYoutubeClipperService implements OnModuleInit {
       description: 'Reserves and dispatches one public YouTube clip preview.',
       label: 'Public YouTube Clip Preview',
       resultNodeId: 'dispatch-preview',
+      retention: SystemWorkflowRetention.KEPT,
       version: 1,
     });
+  }
+
+  private readWorkflowDefinition(): SystemWorkflowGraphDefinition {
+    return {
+      canonicalId: PUBLIC_YOUTUBE_CLIPPER_READ_WORKFLOW_ID,
+      definition: {
+        edges: [],
+        inputVariables: [
+          {
+            key: 'previewToken',
+            label: 'Preview token',
+            required: true,
+            type: 'string',
+          },
+        ],
+        nodes: [
+          this.actionNode(
+            'read-session',
+            PUBLIC_YOUTUBE_CLIPPER_ACTION_IDS.READ_SESSION,
+            'Read clip session',
+            ['previewToken'],
+            0,
+          ),
+        ],
+      },
+      description:
+        'Reads one public YouTube clip session through the workflow engine.',
+      label: 'Public YouTube Clip Read',
+      resultNodeId: 'read-session',
+      retention: SystemWorkflowRetention.KEPT,
+      version: 1,
+    };
   }
 
   async create(

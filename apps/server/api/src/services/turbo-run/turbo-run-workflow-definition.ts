@@ -3,6 +3,7 @@ import type {
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const TURBO_RUN_ACTION_IDS = {
@@ -95,6 +96,7 @@ export function buildTurboRunWorkflowDefinition(): SystemWorkflowGraphDefinition
     description: 'Claims, processes, and settles one durable generation run.',
     label: 'Turbo run Generation',
     resultNodeId: 'process-run',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

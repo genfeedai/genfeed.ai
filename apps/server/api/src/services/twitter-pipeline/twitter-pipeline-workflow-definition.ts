@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import type { OrganizationModuleId } from '@genfeedai/contracts/constants';
 
 export const TWITTER_PIPELINE_ACTION_IDS = {
@@ -53,6 +54,7 @@ function definition(
     description,
     label,
     resultNodeId: resultNode.id,
+    retention: SystemWorkflowRetention.KEPT,
   };
 }
 
