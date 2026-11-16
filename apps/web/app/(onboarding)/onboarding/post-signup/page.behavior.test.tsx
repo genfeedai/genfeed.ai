@@ -8,8 +8,10 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
+import commonMessages from '../../../../messages/en/common.json';
 import PostSignupPage from './page';
 
 const {
@@ -750,7 +752,11 @@ describe('PostSignupPage behavior', () => {
       { id: 'brand-2', slug: 'second-brand' },
     ]);
 
-    render(<PostSignupPage />);
+    render(
+      <NextIntlClientProvider locale="en" messages={{ common: commonMessages }}>
+        <PostSignupPage />
+      </NextIntlClientProvider>,
+    );
 
     expect(
       await screen.findByText('@acme-studio was not applied'),
