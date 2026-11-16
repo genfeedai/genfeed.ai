@@ -19,6 +19,7 @@ import { readPackageInventory } from './publish-packages-from-json.mjs';
 const NPM_NOT_FOUND_ERROR_PATTERN = /E404|No match found|Not Found/i;
 
 const ENROLLMENT_FILE = 'scripts/npm-release-enrollment.json';
+const WORKFLOW_FILE_PATTERN = /^[A-Za-z0-9._-]+\.ya?ml$/;
 const RUNTIME_DEPENDENCY_FIELDS = [
   'dependencies',
   'optionalDependencies',
@@ -59,11 +60,7 @@ export function readEnrollment(root) {
   }
 
   const dedicated = parsed.dedicated ?? {};
-  if (
-    !dedicated ||
-    typeof dedicated !== 'object' ||
-    Array.isArray(dedicated)
-  ) {
+  if (!dedicated || typeof dedicated !== 'object' || Array.isArray(dedicated)) {
     fail(
       `${ENROLLMENT_FILE} "dedicated" must be an object of path->workflow file`,
     );
@@ -137,7 +134,7 @@ export function validateEnrollment({ enrollment, inventory }) {
   for (const [packagePath, workflowFile] of Object.entries(dedicated)) {
     if (
       typeof workflowFile !== 'string' ||
-      !/^[A-Za-z0-9._-]+\.ya?ml$/.test(workflowFile)
+      !WORKFLOW_FILE_PATTERN.test(workflowFile)
     ) {
       violations.push(
         `${ENROLLMENT_FILE}: ${packagePath} must name the workflow file that publishes it, such as "publish-shared-packages.yml"`,
@@ -215,8 +212,11 @@ export function validateEnrollment({ enrollment, inventory }) {
 // layer. A package is in exactly one lane (validateEnrollment).
 export function lanePackagePaths(enrollment, lane) {
   if (lane === 'release') return [...enrollment.enrolled].sort();
-  if (lane === 'dedicated') return Object.keys(enrollment.dedicated ?? {}).sort();
-  return fail(`Unknown npm release lane "${lane}". Use "release" or "dedicated".`);
+  if (lane === 'dedicated')
+    return Object.keys(enrollment.dedicated ?? {}).sort();
+  return fail(
+    `Unknown npm release lane "${lane}". Use "release" or "dedicated".`,
+  );
 }
 
 // publishedVersions: Map<packageName, Set<version> | null>, null = name has

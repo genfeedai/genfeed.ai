@@ -153,11 +153,11 @@ describe('package and worktree review follow-ups', () => {
 
     // npm matches the caller's filename, and every dedicated package names it.
     expect(Object.values(enrollment.dedicated)).toEqual(
-      Object.keys(enrollment.dedicated).map(() => 'publish-shared-packages.yml'),
+      Object.keys(enrollment.dedicated).map(
+        () => 'publish-shared-packages.yml',
+      ),
     );
-    expect(caller).toContain(
-      'uses: ./.github/workflows/publish-packages.yml',
-    );
+    expect(caller).toContain('uses: ./.github/workflows/publish-packages.yml');
     expect(caller).toContain('lane: dedicated');
     expect(caller).toContain('trusted_release_call: true');
     expect(caller).toContain('checkout_ref: ${{ github.sha }}');
