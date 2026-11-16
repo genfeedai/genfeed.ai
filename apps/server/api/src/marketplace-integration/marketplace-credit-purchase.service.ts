@@ -1,8 +1,10 @@
 import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
+import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { scopedWhere } from '@api/index';
 import {
   MarketplaceApiClient,
   type MarketplaceCreditPurchaseInput,
@@ -15,7 +17,10 @@ import {
   type MarketplaceServiceScope,
 } from '@api/marketplace-integration/marketplace-service-auth';
 import { usesMeteredCredits } from '@genfeedai/config';
-import { ActivitySource } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  CreditTransactionCategory,
+} from '@genfeedai/contracts';
 import type { IMarketplaceCreditPurchaseResult } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -50,6 +55,7 @@ export class MarketplaceCreditPurchaseService {
     private readonly logger: LoggerService,
     private readonly marketplaceApiClient: MarketplaceApiClient,
     private readonly creditsUtilsService: CreditsUtilsService,
+    private readonly creditTransactionsService: CreditTransactionsService,
     private readonly betterAuthService: BetterAuthService,
   ) {}
 
@@ -87,6 +93,15 @@ export class MarketplaceCreditPurchaseService {
     // key space cannot be shared with another organization.
     const callKey = `marketplace-purchase:${organizationId}:${userId}:${listingId}:${input.idempotencyKey.trim()}`;
 
+    // An attempt whose credits went back is over. Charging it again would be
+    // a no-op on the ledger (the charge key already exists), so a retry of the
+    // same attempt could complete the listing without a net payment.
+    if (await this.wasReturned(organizationId, callKey)) {
+      throw new ConflictException(
+        'This purchase attempt ended and your credits were returned. Start a new purchase to try again.',
+      );
+    }
+
     await this.takeCredits({
       callKey,
       credits,
@@ -108,6 +123,24 @@ export class MarketplaceCreditPurchaseService {
     );
 
     if (recorded.status === 'recorded') {
+      // A concurrent request for the same attempt may have returned the
+      // credits while this one was recording. Undo the purchase it made.
+      if (await this.wasReturned(organizationId, callKey)) {
+        const undone = await this.marketplaceApiClient.refundCreditPurchase(
+          purchase,
+          await this.serviceToken(MARKETPLACE_SERVICE_SCOPES.refundPurchase),
+        );
+        if (undone.status === 'unavailable') {
+          this.logger.error(
+            'marketplace purchase could not be undone after the credits were returned',
+            undefined,
+            { listingId, organizationId },
+          );
+        }
+        throw new ConflictException(
+          'This purchase attempt ended and your credits were returned. Start a new purchase to try again.',
+        );
+      }
       return {
         creditsPaid: credits,
         listingId,
@@ -145,7 +178,7 @@ export class MarketplaceCreditPurchaseService {
     // Ask it to refund by the call key: only when it confirms the purchase is
     // gone (refunded, or never recorded) do the credits go back.
     const refund = await this.marketplaceApiClient.refundCreditPurchase(
-      callKey,
+      purchase,
       await this.serviceToken(MARKETPLACE_SERVICE_SCOPES.refundPurchase),
     );
     if (refund.status === 'unavailable') {
@@ -180,6 +213,21 @@ export class MarketplaceCreditPurchaseService {
       scope,
       subject: MARKETPLACE_SERVICE_SUBJECT,
     });
+  }
+
+  /** Whether the credits taken for this attempt have already gone back. */
+  private async wasReturned(
+    organizationId: string,
+    callKey: string,
+  ): Promise<boolean> {
+    const refund = await this.creditTransactionsService.findOne(
+      scopedWhere(organizationId, {
+        category: CreditTransactionCategory.REFUND,
+        referenceId: callKey,
+        referenceType: PURCHASE_REFERENCE_TYPE,
+      }),
+    );
+    return Boolean(refund);
   }
 
   /** Take the credits once for this attempt; a low balance takes nothing. */

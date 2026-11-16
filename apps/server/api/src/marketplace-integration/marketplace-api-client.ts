@@ -458,18 +458,22 @@ export class MarketplaceApiClient {
   }
 
   /**
-   * Refund a credit purchase by its call key. `absent` means the marketplace
-   * holds no purchase under the key, so no credits may stay taken for it.
+   * Refund a credit purchase by its call key. The call's buyer, listing and
+   * amount ride along so that, when no purchase exists yet, the marketplace
+   * writes the key as refunded and a record call still in flight cannot
+   * complete it afterwards. `absent` means the marketplace holds no purchase
+   * under the key and could not write that marker (the listing can no longer
+   * be sold, so a late record is refused anyway).
    */
   async refundCreditPurchase(
-    idempotencyKey: string,
+    purchase: MarketplaceCreditPurchaseInput,
     serviceToken: string,
   ): Promise<MarketplaceCreditRefundResult> {
     try {
       const response = await safeFetch(
         `${this.baseUrl}/marketplace/service/purchases/refund`,
         {
-          body: JSON.stringify({ idempotencyKey }),
+          body: JSON.stringify(purchase),
           headers: {
             Accept: 'application/json',
             Authorization: `Bearer ${serviceToken}`,

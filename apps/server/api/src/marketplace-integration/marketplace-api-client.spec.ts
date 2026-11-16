@@ -461,23 +461,26 @@ describe('MarketplaceApiClient', () => {
       fetchMock.mockResolvedValueOnce(
         okResponse(recorded('credit-purchase-refunded')),
       );
-      expect(await client.refundCreditPurchase('call-1', 't')).toEqual({
+      expect(await client.refundCreditPurchase(call, 't')).toEqual({
         status: 'refunded',
       });
       expect(lastFetchUrl()).toBe(
         'http://localhost:3200/marketplace/service/purchases/refund',
       );
-      expect(JSON.parse(String(lastFetchInit().body))).toEqual({
-        idempotencyKey: 'call-1',
-      });
+      expect(JSON.parse(String(lastFetchInit().body))).toEqual(call);
 
       fetchMock.mockResolvedValueOnce(errorResponse(404));
-      expect(await client.refundCreditPurchase('call-9', 't')).toEqual({
+      expect(
+        await client.refundCreditPurchase(
+          { ...call, idempotencyKey: 'call-9' },
+          't',
+        ),
+      ).toEqual({
         status: 'absent',
       });
 
       fetchMock.mockResolvedValueOnce(errorResponse(500));
-      expect(await client.refundCreditPurchase('call-1', 't')).toEqual({
+      expect(await client.refundCreditPurchase(call, 't')).toEqual({
         status: 'unavailable',
       });
     });

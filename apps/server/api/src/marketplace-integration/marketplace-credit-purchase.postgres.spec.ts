@@ -80,6 +80,10 @@ class FakeMarketplace {
   /** A down marketplace still stores the purchase when it answers late. */
   storeWhenDown = false;
   refundMode: 'ok' | 'down' = 'ok';
+  /** Call keys the marketplace wrote as refunded, so a late record is refused. */
+  tombstones = new Set<string>();
+  /** Runs after a purchase is stored and before the answer reaches the caller. */
+  beforeAnswer: (() => Promise<void>) | null = null;
 
   asClient(): MarketplaceApiClient {
     return {
@@ -88,6 +92,13 @@ class FakeMarketplace {
         input: MarketplaceCreditPurchaseInput,
       ): Promise<MarketplaceCreditPurchaseResult> => {
         this.recordCalls += 1;
+        if (this.tombstones.has(input.idempotencyKey)) {
+          return {
+            httpStatus: 409,
+            reason: 'This purchase was refunded',
+            status: 'rejected',
+          };
+        }
         if (this.recordMode === 'reject-409') {
           return {
             httpStatus: 409,
@@ -110,13 +121,19 @@ class FakeMarketplace {
           id: `purchase-${this.purchases.size + 1}`,
         };
         this.purchases.set(input.idempotencyKey, purchase);
+        await this.beforeAnswer?.();
         return { purchaseId: purchase.id, status: 'recorded' };
       },
       refundCreditPurchase: async (
-        idempotencyKey: string,
+        input: MarketplaceCreditPurchaseInput,
       ): Promise<MarketplaceCreditRefundResult> => {
         if (this.refundMode === 'down') return { status: 'unavailable' };
-        if (!this.purchases.delete(idempotencyKey)) return { status: 'absent' };
+        if (!this.purchases.delete(input.idempotencyKey)) {
+          // Like the real service: with the call's fields, write the key as
+          // refunded; without them there is nothing to write.
+          if (!input.buyerId || !input.listingId) return { status: 'absent' };
+          this.tombstones.add(input.idempotencyKey);
+        }
         return { status: 'refunded' };
       },
     } as unknown as MarketplaceApiClient;
@@ -145,6 +162,7 @@ describe.skipIf(!connectionString)(
     let userId: string;
     let marketplace: FakeMarketplace;
     let service: MarketplaceCreditPurchaseService;
+    let credits: CreditsUtilsService;
 
     async function seedWallet(balance: number): Promise<void> {
       const db = database();
@@ -222,15 +240,21 @@ describe.skipIf(!connectionString)(
         }),
       ) as unknown as PrismaService;
       const balances = new CreditBalanceService(prisma, logger);
-      const credits = new CreditsUtilsService(
+      const transactions = new CreditTransactionsService(
+        prisma,
+        logger,
+        balances,
+        {
+          invalidate: vi.fn().mockResolvedValue(undefined),
+        } as unknown as CacheInvalidationService,
+      );
+      credits = new CreditsUtilsService(
         logger,
         prisma,
         new BillingAccountsService(prisma, logger),
         balances,
         {} as CreditReservationService,
-        new CreditTransactionsService(prisma, logger, balances, {
-          invalidate: vi.fn().mockResolvedValue(undefined),
-        } as unknown as CacheInvalidationService),
+        transactions,
         {} as OrganizationSettingsService,
         {
           emit: vi.fn().mockResolvedValue(undefined),
@@ -247,6 +271,7 @@ describe.skipIf(!connectionString)(
         logger,
         marketplace.asClient(),
         credits,
+        transactions,
         {
           signServiceToken: vi.fn().mockResolvedValue('signed-service-token'),
         } as unknown as BetterAuthService,
@@ -386,6 +411,78 @@ describe.skipIf(!connectionString)(
         `deduct:${GEN_PRICE}`,
         `refund:${GEN_PRICE}`,
         `deduct:${GEN_PRICE}`,
+      ]);
+    });
+
+    it('refuses to charge the same attempt again once its credits went back', async () => {
+      await seedWallet(5000);
+      marketplace.recordMode = 'reject-409';
+      await expect(pay('attempt-1')).rejects.toMatchObject({ status: 409 });
+
+      marketplace.recordMode = 'ok';
+      const retry = pay('attempt-1');
+
+      await expect(retry).rejects.toThrow('Start a new purchase');
+      expect(await balance()).toBe(5000);
+      expect(marketplace.purchases.size).toBe(0);
+      expect(await ledger()).toEqual([
+        `deduct:${GEN_PRICE}`,
+        `refund:${GEN_PRICE}`,
+      ]);
+    });
+
+    it('does not let a record that lands after the credits went back complete the purchase', async () => {
+      await seedWallet(5000);
+      marketplace.recordMode = 'down';
+      await expect(pay('attempt-1')).rejects.toThrow('credits were returned');
+      const lateCall = {
+        buyerId: userId,
+        creditsPaid: GEN_PRICE,
+        idempotencyKey: `marketplace-purchase:${organizationId}:${userId}:${LISTING_ID}:attempt-1`,
+        listingId: LISTING_ID,
+        organizationId,
+      };
+
+      marketplace.recordMode = 'ok';
+      const late = await marketplace
+        .asClient()
+        .recordCreditPurchase(lateCall, 'signed-service-token');
+
+      expect(late).toMatchObject({ status: 'rejected' });
+      expect(marketplace.purchases.size).toBe(0);
+      expect(await balance()).toBe(5000);
+    });
+
+    it('undoes the purchase when another request returned the credits while this one was recording', async () => {
+      await seedWallet(5000);
+      const callKey = `marketplace-purchase:${organizationId}:${userId}:${LISTING_ID}:attempt-1`;
+      marketplace.beforeAnswer = async () => {
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 365);
+        await runWithTenantContext({ organizationId }, () =>
+          credits.refundOrganizationCredits(
+            organizationId,
+            GEN_PRICE,
+            'marketplace-purchase-refund',
+            'Marketplace purchase not completed - credit refund',
+            expiresAt,
+            {
+              actorUserId: userId,
+              idempotencyKey: `${callKey}:refund`,
+              referenceId: callKey,
+              referenceType: 'marketplace_purchase',
+            },
+          ),
+        );
+      };
+
+      await expect(pay('attempt-1')).rejects.toThrow('Start a new purchase');
+
+      expect(marketplace.purchases.size).toBe(0);
+      expect(await balance()).toBe(5000);
+      expect(await ledger()).toEqual([
+        `deduct:${GEN_PRICE}`,
+        `refund:${GEN_PRICE}`,
       ]);
     });
 
