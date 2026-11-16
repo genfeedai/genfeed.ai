@@ -5,11 +5,15 @@ import {
   type ReactElement,
   type ReactNode,
 } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const findAllPublicArticles = vi.fn<() => Promise<Article[]>>();
 const getPublicArticleBySlug = vi.fn<() => Promise<Article | null>>();
 const findPublicProfileBySlug = vi.fn(async () => null);
+
+vi.mock('@services/core/logger.service', () => ({
+  logger: { warn: vi.fn() },
+}));
 
 vi.mock('@services/external/public.service', () => ({
   PublicService: {
@@ -100,6 +104,40 @@ describe('getPublicArticleBySlugCached', () => {
       { id: 'article-1' },
     );
     expect(getPublicArticleBySlug).toHaveBeenCalledWith('a-slug', undefined);
+  });
+
+  describe('when the API answers with a gateway error', () => {
+    const badGateway = Object.assign(new Error('Bad Gateway'), { status: 502 });
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('serves the article once a retry gets through', async () => {
+      getPublicArticleBySlug
+        .mockRejectedValueOnce(badGateway)
+        .mockResolvedValueOnce(article());
+
+      const result = getPublicArticleBySlugCached('a-slug');
+      await vi.runAllTimersAsync();
+
+      await expect(result).resolves.toMatchObject({ id: 'article-1' });
+    });
+
+    it('still fails when the API stays down, so no 404 is cached', async () => {
+      getPublicArticleBySlug.mockRejectedValue(badGateway);
+
+      const result = getPublicArticleBySlugCached('a-slug');
+      const assertion = expect(result).rejects.toBe(badGateway);
+      await vi.runAllTimersAsync();
+
+      await assertion;
+      expect(getPublicArticleBySlug).toHaveBeenCalledTimes(3);
+    });
   });
 });
 
