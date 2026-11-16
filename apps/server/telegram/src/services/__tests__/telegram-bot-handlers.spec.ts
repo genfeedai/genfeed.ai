@@ -355,7 +355,7 @@ describe('TelegramBotManager handlers', () => {
       await getCommandHandler('start')(asContext(ctx));
 
       expect(ctx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('GenFeed AI Bot'),
+        expect.stringContaining('Genfeed AI Bot'),
         expect.objectContaining({ parse_mode: 'Markdown' }),
       );
     });

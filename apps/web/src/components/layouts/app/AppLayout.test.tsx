@@ -315,7 +315,8 @@ describe('AppLayout', () => {
       'md:mb-[var(--shell-inset)]',
       'md:mr-[var(--shell-inset)]',
       'xl:mr-[calc(var(--workspace-inspector-width,0px)+var(--shell-inset))]',
-      'xl:[[data-inspector-open=true]_&]:mr-[calc(var(--workspace-inspector-width,0px)+var(--shell-inset)*2)]',
+      'xl:[[data-inspector-open=true]_&]:rounded-r-none',
+      'xl:[[data-inspector-open=true]_&]:border-r-0',
       'md:flex-row',
       'md:overflow-hidden',
       'md:rounded-lg',
@@ -323,10 +324,10 @@ describe('AppLayout', () => {
       'md:border-border',
     );
     expect(panel).not.toHaveClass('md:ml-[var(--shell-inset)]');
-    // The block keeps its border and rounding when the inspector opens.
+    // The inspector sits flush against the block: no extra gap when it opens,
+    // and the block keeps its bottom edge and inset.
     expect(panel).not.toHaveClass(
-      'xl:[[data-inspector-open=true]_&]:rounded-none',
-      'xl:[[data-inspector-open=true]_&]:border-r-0',
+      'xl:[[data-inspector-open=true]_&]:mr-[calc(var(--workspace-inspector-width,0px)+var(--shell-inset)*2)]',
       'xl:[[data-inspector-open=true]_&]:border-b-0',
       'xl:[[data-inspector-open=true]_&]:mb-0',
     );

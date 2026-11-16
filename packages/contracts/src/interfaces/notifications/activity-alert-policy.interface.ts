@@ -92,13 +92,31 @@ export const ACTIVITY_ALERT_POLICIES = {
     severity: 'warning',
     topic: 'generation.status',
   },
+  // A scheduled post that ended FAILED reaches the owner off screen. Producers
+  // that record POST_FAILED for a failed generation narrow this to the bell.
   [ActivityKey.POST_FAILED]: {
-    recipients: [{ channels: ['in_app'], recipient: 'actor' }],
+    recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
     severity: 'critical',
     topic: 'publishing.status',
   },
+  // X would not take a quote post through the API: the person posts it by hand
+  // and is reminded until they do. Email as well, so it reaches them off screen.
+  [ActivityKey.POST_MANUAL_POST_NEEDED]: {
+    recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
+    severity: 'warning',
+    topic: 'publishing.status',
+  },
+  // The platform never confirmed a publish: the post may be live or not, and
+  // only the owner can check the account. Email as well, so it reaches them.
+  [ActivityKey.POST_PUBLISH_UNVERIFIED]: {
+    recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
+    severity: 'warning',
+    topic: 'publishing.status',
+  },
+  // A channel that lost its connection stops every post scheduled on it, so
+  // the owner is told off screen as well.
   [ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED]: {
-    recipients: [{ channels: ['in_app'], recipient: 'actor' }],
+    recipients: [{ channels: ['in_app', 'email'], recipient: 'actor' }],
     severity: 'warning',
     topic: 'integration.status',
   },

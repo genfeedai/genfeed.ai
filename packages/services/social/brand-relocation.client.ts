@@ -17,7 +17,7 @@ export interface BrandRelocationPollResponse {
   brand?: JsonApiResponseDocument;
 }
 
-export class BrandRelocationFailedError extends Error {
+class BrandRelocationFailedError extends Error {
   readonly status = 409;
 }
 

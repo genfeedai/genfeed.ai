@@ -65,7 +65,7 @@ class SkillRuntimeFieldsDto {
   status?: (typeof SKILL_STATUSES)[number];
 }
 
-export class SkillPayloadDto extends SkillRuntimeFieldsDto {
+class SkillPayloadDto extends SkillRuntimeFieldsDto {
   @IsString()
   @MaxLength(140)
   @ApiProperty({ type: String })

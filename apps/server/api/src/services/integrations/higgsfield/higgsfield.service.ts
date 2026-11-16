@@ -9,20 +9,39 @@ import {
   toHiggsFieldProviderError,
 } from '@api/services/integrations/higgsfield/errors/higgsfield-provider.error';
 import {
+  HIGGSFIELD_ADS_STUDIO_DEFAULT_ASPECT_RATIO,
+  HIGGSFIELD_ADS_STUDIO_MAX_BATCH_SIZE,
+  HIGGSFIELD_ADS_STUDIO_MAX_IMAGE_URLS,
+  HIGGSFIELD_ADS_STUDIO_MAX_PROMPT_LENGTH,
   HIGGSFIELD_API_BASE,
+  HIGGSFIELD_CINEMA_STUDIO_DEFAULT_DURATION_SECONDS,
+  HIGGSFIELD_CINEMA_STUDIO_DEFAULT_RESOLUTION,
+  HIGGSFIELD_CINEMA_STUDIO_MAX_AUDIO_URLS,
+  HIGGSFIELD_CINEMA_STUDIO_MAX_DURATION_SECONDS,
+  HIGGSFIELD_CINEMA_STUDIO_MAX_IMAGE_URLS,
+  HIGGSFIELD_CINEMA_STUDIO_MAX_VIDEO_URLS,
+  HIGGSFIELD_CINEMA_STUDIO_MIN_DURATION_SECONDS,
+  HIGGSFIELD_CINEMA_STUDIO_RESOLUTIONS,
   HIGGSFIELD_GENJUTSU_DEFAULT_RESOLUTION,
   HIGGSFIELD_GENJUTSU_RESOLUTIONS,
+  HIGGSFIELD_GENJUTSU_RESTYLE_MAX_IMAGE_URLS,
+  HIGGSFIELD_GENJUTSU_RESTYLE_PRESETS_PATH,
   HIGGSFIELD_SOUL_ENDPOINT,
   type HiggsFieldSoulQuality,
   resolveDopEndpoint,
+  resolveSoulEndpoint,
   toSoulAspectRatio,
   toSoulBatchSize,
 } from '@api/services/integrations/higgsfield/helpers/higgsfield.catalog';
 import {
+  type HiggsFieldAdsStudioInput,
+  type HiggsFieldCinemaStudioInput,
   type HiggsFieldCredentials,
   type HiggsFieldDopInput,
   type HiggsFieldGenjutsuInput,
+  type HiggsFieldGenjutsuRestyleInput,
   type HiggsFieldResponse,
+  type HiggsFieldRestylePreset,
   type HiggsFieldSoulInput,
   type HiggsFieldWebhook,
   isTerminalStatus,
@@ -31,7 +50,7 @@ import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { createConcurrencyLimit } from '@api/shared/utils/create-concurrency-limit.util';
 import { AgentFailureReason, ByokProvider } from '@genfeedai/contracts';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { ASPECT_RATIOS, MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -41,6 +60,26 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 const TRAILING_SLASHES_PATTERN = /\/+$/;
+const HTTP_URL_PATTERN = /^https?:\/\//;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+interface HiggsFieldGenjutsuEditParams {
+  expectedCredentialFingerprint?: string;
+  idempotencyKey?: string;
+  imageUrls: readonly string[];
+  onProviderSubmissionStarted?: () => void;
+  organizationId?: string;
+  prompt?: string;
+  resolution?: string;
+  videoUrl: string;
+}
+
+interface HiggsFieldVideoSubmission {
+  requestId: string;
+  status: HiggsFieldResponse['status'];
+  videoUrl?: string;
+}
 
 interface HiggsFieldRequestOptions {
   expectedCredentialFingerprint?: string;
@@ -330,10 +369,12 @@ export class HiggsFieldService {
   }
 
   /**
-   * Soul text-to-image. Returns every rendered image — Soul renders a batch of
-   * 1 or 4, so callers that asked for more than one get the whole set.
+   * Soul text-to-image on Soul 2 (default), Soul Standard or Soul Cinema.
+   * Returns every rendered image — Soul renders a batch of 1 or 4, so callers
+   * that asked for more than one get the whole set.
    */
   async generateTextToImage(params: {
+    modelKey?: string;
     prompt: string;
     onProviderSubmissionStarted?: () => void;
     aspectRatio?: string;
@@ -343,15 +384,20 @@ export class HiggsFieldService {
     organizationId?: string;
     webhook?: HiggsFieldWebhook;
   }): Promise<{ requestId: string; imageUrls: string[] }> {
+    const endpointId = resolveSoulEndpoint(params.modelKey);
     const input: HiggsFieldSoulInput = {
       aspect_ratio: toSoulAspectRatio(params.aspectRatio),
       batch_size: toSoulBatchSize(params.batchSize),
       prompt: params.prompt,
-      resolution: params.quality ?? '1080p',
+      // Soul 2 has always dispatched at 1080p; the other two follow the
+      // documented 720p default so an unpriced tier is never reached by default.
+      resolution:
+        params.quality ??
+        (endpointId === HIGGSFIELD_SOUL_ENDPOINT ? '1080p' : '720p'),
       ...(params.seed === undefined ? {} : { seed: params.seed }),
     };
 
-    const submitted = await this.submit(HIGGSFIELD_SOUL_ENDPOINT, input, {
+    const submitted = await this.submit(endpointId, input, {
       organizationId: params.organizationId,
       onProviderSubmissionStarted: params.onProviderSubmissionStarted,
       webhook: params.webhook,
@@ -424,20 +470,54 @@ export class HiggsFieldService {
    * Genjutsu motion transfer. The source clip is at least 4s and trimmed at
    * 30s by Higgsfield. One to eight character stills ride `image_urls`.
    */
-  async generateMotionTransfer(params: {
-    idempotencyKey?: string;
-    expectedCredentialFingerprint?: string;
-    imageUrls: readonly string[];
-    onProviderSubmissionStarted?: () => void;
-    organizationId?: string;
-    prompt?: string;
-    resolution?: string;
-    videoUrl: string;
-  }): Promise<{
-    requestId: string;
-    videoUrl?: string;
-    status: HiggsFieldResponse['status'];
-  }> {
+  generateMotionTransfer(
+    params: HiggsFieldGenjutsuEditParams,
+  ): Promise<HiggsFieldVideoSubmission> {
+    return this.submitGenjutsuEdit(MODEL_KEYS.HIGGSFIELD_GENJUTSU, params);
+  }
+
+  /**
+   * Genjutsu object swap. Same request shape as motion transfer: the source
+   * clip (4s minimum, 30s kept) and one to eight reference stills.
+   */
+  generateObjectSwap(
+    params: HiggsFieldGenjutsuEditParams,
+  ): Promise<HiggsFieldVideoSubmission> {
+    return this.submitGenjutsuEdit(
+      MODEL_KEYS.HIGGSFIELD_GENJUTSU_OBJECT_SWAP,
+      params,
+    );
+  }
+
+  private async submitGenjutsuEdit(
+    endpointId: string,
+    params: HiggsFieldGenjutsuEditParams,
+  ): Promise<HiggsFieldVideoSubmission> {
+    const videoUrl = this.readSourceVideoUrl(params);
+    const imageUrls = this.readGenjutsuImageUrls(params, 1, 8);
+
+    const input: HiggsFieldGenjutsuInput = {
+      image_urls: imageUrls,
+      prompt: params.prompt?.trim() ?? '',
+      resolution: this.toGenjutsuResolution(params.resolution),
+      video_url: videoUrl,
+    };
+
+    const submitted = await this.submit(endpointId, input, {
+      idempotencyKey: params.idempotencyKey ?? randomUUID(),
+      expectedCredentialFingerprint: params.expectedCredentialFingerprint,
+      onProviderSubmissionStarted: params.onProviderSubmissionStarted,
+      organizationId: params.organizationId,
+    });
+
+    return {
+      status: submitted.status,
+      requestId: submitted.request_id,
+      videoUrl: submitted.video?.url,
+    };
+  }
+
+  private readSourceVideoUrl(params: HiggsFieldGenjutsuEditParams): string {
     const videoUrl = params.idempotencyKey
       ? params.videoUrl
       : params.videoUrl.trim();
@@ -446,7 +526,18 @@ export class HiggsFieldService {
         'Higgsfield Genjutsu requires an https source video URL.',
       );
     }
+    return videoUrl;
+  }
 
+  /**
+   * With a caller-supplied idempotency key the payload must stay identical to
+   * the first attempt, so URLs are checked but not trimmed or deduplicated.
+   */
+  private readGenjutsuImageUrls(
+    params: Pick<HiggsFieldGenjutsuEditParams, 'idempotencyKey' | 'imageUrls'>,
+    min: number,
+    max: number,
+  ): string[] {
     const imageUrls = params.idempotencyKey
       ? [...params.imageUrls]
       : [
@@ -457,35 +548,316 @@ export class HiggsFieldService {
           ),
         ];
     if (
-      imageUrls.length < 1 ||
-      imageUrls.length > 8 ||
+      imageUrls.length < min ||
+      imageUrls.length > max ||
       imageUrls.some((url) => !url.startsWith('https://'))
     ) {
       throw new BadRequestException(
-        'Higgsfield Genjutsu requires 1 to 8 https character image URLs.',
+        min === 0
+          ? `Higgsfield Genjutsu accepts at most ${max} https character image URLs.`
+          : `Higgsfield Genjutsu requires ${min} to ${max} https character image URLs.`,
       );
     }
+    return imageUrls;
+  }
 
-    const resolution = HIGGSFIELD_GENJUTSU_RESOLUTIONS.find(
-      (value) => value === params.resolution,
+  private toGenjutsuResolution(
+    resolution: string | undefined,
+  ): (typeof HIGGSFIELD_GENJUTSU_RESOLUTIONS)[number] {
+    return (
+      HIGGSFIELD_GENJUTSU_RESOLUTIONS.find((value) => value === resolution) ??
+      HIGGSFIELD_GENJUTSU_DEFAULT_RESOLUTION
     );
-    const input: HiggsFieldGenjutsuInput = {
+  }
+
+  /**
+   * Genjutsu restyle: re-renders the source clip in one catalog style preset.
+   * The preset id must come from {@link listRestylePresets}; Higgsfield fails
+   * an unknown or hidden preset and never substitutes another style.
+   */
+  async generateRestyle(
+    params: Omit<HiggsFieldGenjutsuEditParams, 'imageUrls'> & {
+      imageUrls?: readonly string[];
+      presetId: string;
+    },
+  ): Promise<HiggsFieldVideoSubmission> {
+    if (!UUID_PATTERN.test(params.presetId)) {
+      throw new BadRequestException(
+        'Higgsfield Genjutsu restyle requires a style preset id (a UUID from the preset catalog).',
+      );
+    }
+    const videoUrl = this.readSourceVideoUrl({
+      ...params,
+      imageUrls: params.imageUrls ?? [],
+    });
+    const imageUrls = this.readGenjutsuImageUrls(
+      {
+        idempotencyKey: params.idempotencyKey,
+        imageUrls: params.imageUrls ?? [],
+      },
+      0,
+      HIGGSFIELD_GENJUTSU_RESTYLE_MAX_IMAGE_URLS,
+    );
+
+    const input: HiggsFieldGenjutsuRestyleInput = {
       image_urls: imageUrls,
+      preset_id: params.presetId,
       prompt: params.prompt?.trim() ?? '',
-      resolution: resolution ?? HIGGSFIELD_GENJUTSU_DEFAULT_RESOLUTION,
+      resolution: this.toGenjutsuResolution(params.resolution),
       video_url: videoUrl,
     };
 
-    const submitted = await this.submit(MODEL_KEYS.HIGGSFIELD_GENJUTSU, input, {
-      idempotencyKey: params.idempotencyKey ?? randomUUID(),
-      expectedCredentialFingerprint: params.expectedCredentialFingerprint,
-      onProviderSubmissionStarted: params.onProviderSubmissionStarted,
-      organizationId: params.organizationId,
-    });
+    const submitted = await this.submit(
+      MODEL_KEYS.HIGGSFIELD_GENJUTSU_RESTYLE,
+      input,
+      {
+        idempotencyKey: params.idempotencyKey ?? randomUUID(),
+        expectedCredentialFingerprint: params.expectedCredentialFingerprint,
+        onProviderSubmissionStarted: params.onProviderSubmissionStarted,
+        organizationId: params.organizationId,
+      },
+    );
 
     return {
       status: submitted.status,
       requestId: submitted.request_id,
+      videoUrl: submitted.video?.url,
+    };
+  }
+
+  /** Selectable system styles for {@link generateRestyle}, ordered by name. */
+  async listRestylePresets(
+    organizationId?: string,
+  ): Promise<HiggsFieldRestylePreset[]> {
+    const credentials = await this.resolveCredentials(organizationId);
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get<{ items?: HiggsFieldRestylePreset[] }>(
+          `${this.endpoint}${HIGGSFIELD_GENJUTSU_RESTYLE_PRESETS_PATH}`,
+          { headers: this.getHeaders(credentials) },
+        ),
+      );
+      return response.data.items ?? [];
+    } catch (error: unknown) {
+      throw toHiggsFieldProviderError(error);
+    }
+  }
+
+  /**
+   * Ads Studio: one brief becomes `batchSize` ad concepts rendered as images.
+   * Billing is per rendered image and token-metered, so every value is
+   * validated rather than coerced; the caller picks a supported ratio.
+   */
+  async generateAdsStudioImages(params: {
+    aspectRatio?: string;
+    batchSize?: number;
+    expectedCredentialFingerprint?: string;
+    idempotencyKey?: string;
+    imageUrls?: readonly string[];
+    language?: string;
+    niche?: string;
+    onProviderSubmissionStarted?: () => void;
+    organizationId?: string;
+    prompt: string;
+    targetAudience?: string;
+  }): Promise<{ requestId: string; imageUrls: string[] }> {
+    const prompt = params.prompt.trim();
+    if (!prompt || prompt.length > HIGGSFIELD_ADS_STUDIO_MAX_PROMPT_LENGTH) {
+      throw new BadRequestException(
+        `Higgsfield Ads Studio requires a brief of 1 to ${HIGGSFIELD_ADS_STUDIO_MAX_PROMPT_LENGTH} characters.`,
+      );
+    }
+
+    const batchSize = params.batchSize ?? 1;
+    if (
+      !Number.isInteger(batchSize) ||
+      batchSize < 1 ||
+      batchSize > HIGGSFIELD_ADS_STUDIO_MAX_BATCH_SIZE
+    ) {
+      throw new BadRequestException(
+        `Higgsfield Ads Studio batch size must be a whole number from 1 to ${HIGGSFIELD_ADS_STUDIO_MAX_BATCH_SIZE}.`,
+      );
+    }
+
+    const aspectRatio =
+      params.aspectRatio ?? HIGGSFIELD_ADS_STUDIO_DEFAULT_ASPECT_RATIO;
+    const supportedAspectRatios: readonly string[] =
+      ASPECT_RATIOS.HIGGSFIELD_ADS_STUDIO;
+    if (!supportedAspectRatios.includes(aspectRatio)) {
+      throw new BadRequestException(
+        `Higgsfield Ads Studio aspect ratio must be one of ${supportedAspectRatios.join(', ')}.`,
+      );
+    }
+
+    const imageUrls = params.imageUrls ? [...params.imageUrls] : [];
+    if (
+      imageUrls.length > HIGGSFIELD_ADS_STUDIO_MAX_IMAGE_URLS ||
+      imageUrls.some((url) => !HTTP_URL_PATTERN.test(url))
+    ) {
+      throw new BadRequestException(
+        `Higgsfield Ads Studio accepts at most ${HIGGSFIELD_ADS_STUDIO_MAX_IMAGE_URLS} http(s) reference image URLs.`,
+      );
+    }
+
+    const input: HiggsFieldAdsStudioInput = {
+      aspect_ratio: aspectRatio,
+      batch_size: batchSize,
+      prompt,
+      ...(imageUrls.length > 0 ? { image_urls: imageUrls } : {}),
+      ...(params.language ? { language: params.language } : {}),
+      ...(params.niche ? { niche: params.niche } : {}),
+      ...(params.targetAudience
+        ? { target_audience: params.targetAudience }
+        : {}),
+    };
+
+    const submitted = await this.submit(
+      MODEL_KEYS.HIGGSFIELD_ADS_STUDIO,
+      input,
+      {
+        expectedCredentialFingerprint: params.expectedCredentialFingerprint,
+        idempotencyKey: params.idempotencyKey ?? randomUUID(),
+        onProviderSubmissionStarted: params.onProviderSubmissionStarted,
+        organizationId: params.organizationId,
+      },
+    );
+
+    return {
+      imageUrls: (submitted.images ?? []).map((image) => image.url),
+      requestId: submitted.request_id,
+    };
+  }
+
+  /**
+   * Cinema Studio 4.0. Text-to-video with no media, reference-to-video with
+   * any. Every value is validated, never coerced: the request is metered in
+   * provider tokens from these parameters, so a silently adjusted duration or
+   * resolution would bill something other than what was quoted. The
+   * idempotency key is fixed before the first attempt so an ambiguous
+   * submission is never blindly resubmitted as a second paid generation.
+   */
+  async generateCinemaStudioVideo(params: {
+    aspectRatio?: string;
+    audioUrls?: readonly string[];
+    duration?: number;
+    expectedCredentialFingerprint?: string;
+    generateAudio?: boolean;
+    idempotencyKey?: string;
+    imageUrls?: readonly string[];
+    onProviderSubmissionStarted?: () => void;
+    organizationId?: string;
+    prompt: string;
+    resolution?: string;
+    videoUrls?: readonly string[];
+  }): Promise<{
+    requestId: string;
+    videoUrl?: string;
+    status: HiggsFieldResponse['status'];
+  }> {
+    const prompt = params.prompt.trim();
+    if (!prompt) {
+      throw new BadRequestException(
+        'Higgsfield Cinema Studio requires a non-empty prompt.',
+      );
+    }
+
+    const duration =
+      params.duration ?? HIGGSFIELD_CINEMA_STUDIO_DEFAULT_DURATION_SECONDS;
+    if (
+      !Number.isInteger(duration) ||
+      duration < HIGGSFIELD_CINEMA_STUDIO_MIN_DURATION_SECONDS ||
+      duration > HIGGSFIELD_CINEMA_STUDIO_MAX_DURATION_SECONDS
+    ) {
+      throw new BadRequestException(
+        `Higgsfield Cinema Studio duration must be a whole number of seconds from ${HIGGSFIELD_CINEMA_STUDIO_MIN_DURATION_SECONDS} to ${HIGGSFIELD_CINEMA_STUDIO_MAX_DURATION_SECONDS}.`,
+      );
+    }
+
+    const resolution =
+      params.resolution ?? HIGGSFIELD_CINEMA_STUDIO_DEFAULT_RESOLUTION;
+    const supportedResolution = HIGGSFIELD_CINEMA_STUDIO_RESOLUTIONS.find(
+      (value) => value === resolution,
+    );
+    if (!supportedResolution) {
+      throw new BadRequestException(
+        `Higgsfield Cinema Studio resolution must be one of ${HIGGSFIELD_CINEMA_STUDIO_RESOLUTIONS.join(', ')}.`,
+      );
+    }
+
+    const aspectRatio = params.aspectRatio ?? '16:9';
+    const supportedAspectRatios: readonly string[] =
+      ASPECT_RATIOS.HIGGSFIELD_CINEMA_STUDIO;
+    if (!supportedAspectRatios.includes(aspectRatio)) {
+      throw new BadRequestException(
+        `Higgsfield Cinema Studio aspect ratio must be one of ${supportedAspectRatios.join(', ')}.`,
+      );
+    }
+
+    const normalizeUrls = (
+      urls: readonly string[] | undefined,
+      label: string,
+      max: number,
+    ): string[] | undefined => {
+      if (!urls || urls.length === 0) {
+        return undefined;
+      }
+      // With a caller-supplied key the payload must stay byte-identical to
+      // the first attempt, so URLs are validated but not trimmed or deduped.
+      const normalized = params.idempotencyKey
+        ? [...urls]
+        : [...new Set(urls.map((url) => url.trim()))];
+      if (
+        normalized.length > max ||
+        normalized.some((url) => !url.startsWith('https://'))
+      ) {
+        throw new BadRequestException(
+          `Higgsfield Cinema Studio accepts at most ${max} https ${label} URLs.`,
+        );
+      }
+      return normalized;
+    };
+
+    const imageUrls = normalizeUrls(
+      params.imageUrls,
+      'image',
+      HIGGSFIELD_CINEMA_STUDIO_MAX_IMAGE_URLS,
+    );
+    const videoUrls = normalizeUrls(
+      params.videoUrls,
+      'video',
+      HIGGSFIELD_CINEMA_STUDIO_MAX_VIDEO_URLS,
+    );
+    const audioUrls = normalizeUrls(
+      params.audioUrls,
+      'audio',
+      HIGGSFIELD_CINEMA_STUDIO_MAX_AUDIO_URLS,
+    );
+    const input: HiggsFieldCinemaStudioInput = {
+      aspect_ratio: aspectRatio,
+      duration,
+      generate_audio: params.generateAudio ?? true,
+      prompt,
+      resolution: supportedResolution,
+      ...(imageUrls ? { image_urls: imageUrls } : {}),
+      ...(videoUrls ? { video_urls: videoUrls } : {}),
+      ...(audioUrls ? { audio_urls: audioUrls } : {}),
+    };
+
+    const submitted = await this.submit(
+      MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
+      input,
+      {
+        expectedCredentialFingerprint: params.expectedCredentialFingerprint,
+        idempotencyKey: params.idempotencyKey ?? randomUUID(),
+        onProviderSubmissionStarted: params.onProviderSubmissionStarted,
+        organizationId: params.organizationId,
+      },
+    );
+
+    return {
+      requestId: submitted.request_id,
+      status: submitted.status,
       videoUrl: submitted.video?.url,
     };
   }

@@ -15,7 +15,10 @@ const revision = {
   sourceCode: null,
 } as unknown as VisualRevision;
 
+const brandContext = { paletteRoles: [{ role: 'Primary', color: '#112233' }] };
+
 function fixture(faces: unknown[]) {
+  const resolve = vi.fn().mockResolvedValue(brandContext);
   const approvedFonts = vi
     .fn()
     .mockResolvedValue(
@@ -29,8 +32,9 @@ function fixture(faces: unknown[]) {
       },
     } as never,
     { approvedFonts } as never,
+    { resolve } as never,
   );
-  return { approvedFonts, service };
+  return { approvedFonts, resolve, service };
 }
 
 describe('authoring with brand fonts', () => {
@@ -57,6 +61,26 @@ describe('authoring with brand fonts', () => {
     const params = await service.authorParameters(revision, []);
     expect(JSON.parse(String(params.messages[1].content)).brandFonts).toBe(
       '[]',
+    );
+  });
+});
+
+describe('authoring with the approved brand', () => {
+  it('sends the resolved brand context to the model and tells it to design from it', async () => {
+    const { resolve, service } = fixture([]);
+    const params = await service.authorParameters(
+      { ...revision, sourceAssetIds: ['asset-1'] } as unknown as VisualRevision,
+      [],
+    );
+    expect(resolve).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'revision' }),
+      ['asset-1'],
+    );
+    expect(JSON.parse(String(params.messages[1].content)).brandContext).toBe(
+      JSON.stringify(brandContext),
+    );
+    expect(String(params.messages[0].content)).toContain(
+      'use only paletteRoles colours',
     );
   });
 });

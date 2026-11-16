@@ -1,11 +1,15 @@
 import { randomUUID } from 'node:crypto';
+import { AgentScopeContextService } from '@api/agent-context/agent-scope-context.service';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { buildAgentMessageBrandWhere } from '@api/collections/agent-messages/utils/agent-message-brand.util';
 import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentThreadAudienceService } from '@api/collections/agent-threads/services/agent-thread-audience.service';
 import { AgentThreadSharesService } from '@api/collections/agent-threads/services/agent-thread-shares.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { prepareAgentThreadsForRelocation } from '@api/collections/agent-threads/utils/agent-thread-relocation.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentThreadAccessLevel,
@@ -19,6 +23,7 @@ import {
   AGENT_CHAT_CHANNEL,
   AGENT_THREAD_ACCESS_REVOKED_EVENT_TYPE,
 } from '@genfeedai/contracts/constants';
+import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
 import { PrismaClient } from '@genfeedai/prisma';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -926,6 +931,326 @@ describe.skipIf(!connectionString)(
         await expect(
           access().assertAccess(actor(owner), mine.id, 'view'),
         ).resolves.toBeDefined();
+      });
+    });
+
+    describe('shared history across a brand change (#10148)', () => {
+      const messages = () =>
+        new AgentMessagesService(
+          database() as unknown as PrismaService,
+          logger as never,
+          {} as never,
+        );
+
+      async function addMessage(
+        threadId: string,
+        label: string,
+        brandId: string | null,
+        createdAt: Date,
+      ) {
+        await database().agentMessage.create({
+          data: {
+            brandId,
+            content: label,
+            createdAt,
+            id: id(label),
+            organizationId,
+            role: 'assistant',
+            threadId,
+            userId: owner,
+          },
+        });
+      }
+
+      /** Every page of the history `viewer` reads, oldest page last, by content. */
+      async function readHistory(viewer: string, threadId: string, limit = 50) {
+        const { historyBrandIds } = await access().assertAccess(
+          actor(viewer),
+          threadId,
+          'view',
+        );
+        const contents: Array<string | null> = [];
+        let cursor: string | undefined;
+        do {
+          const page = await messages().getMessagesPage(
+            threadId,
+            organizationId,
+            { brandIds: historyBrandIds, cursor, limit },
+          );
+          contents.push(...page.docs.map((doc) => doc.content ?? null));
+          cursor = page.nextCursor ?? undefined;
+        } while (cursor);
+        return contents;
+      }
+
+      /** A thread that held brand A messages, then moved to brand B. */
+      async function createMovedThread() {
+        const thread = await createThread(owner, { brandId: brandA });
+        const start = Date.now() - 60_000;
+        await addMessage(thread.id, 'a-one', brandA, new Date(start));
+        await addMessage(thread.id, 'a-two', brandA, new Date(start + 1_000));
+        await addMessage(thread.id, 'no-brand', null, new Date(start + 2_000));
+        await database().agentThread.update({
+          data: { brandId: brandB },
+          where: { id: thread.id },
+        });
+        await addMessage(thread.id, 'b-one', brandB, new Date(start + 3_000));
+        return thread;
+      }
+
+      it('hides messages from the earlier brand from a viewer on an existing share', async () => {
+        const thread = await createThread(owner, { brandId: brandA });
+        const start = Date.now() - 60_000;
+        await addMessage(thread.id, 'a-one', brandA, new Date(start));
+        await share(
+          thread.id,
+          AgentThreadShareScope.ORGANIZATION,
+          AgentThreadShareLevel.VIEW,
+        );
+        await database().agentThread.update({
+          data: { brandId: brandB },
+          where: { id: thread.id },
+        });
+        await addMessage(thread.id, 'b-one', brandB, new Date(start + 1_000));
+
+        expect(await readHistory(brandBOnly, thread.id)).toEqual(['b-one']);
+      });
+
+      it('hides messages from the earlier brand from a viewer on a share granted afterwards', async () => {
+        const thread = await createMovedThread();
+        await share(
+          thread.id,
+          AgentThreadShareScope.MEMBER,
+          AgentThreadShareLevel.VIEW,
+          { targetUserId: brandBOnly },
+        );
+
+        expect(await readHistory(brandBOnly, thread.id)).toEqual([
+          'b-one',
+          'no-brand',
+        ]);
+      });
+
+      it('applies the same decision to every page', async () => {
+        const thread = await createMovedThread();
+        await share(
+          thread.id,
+          AgentThreadShareScope.ORGANIZATION,
+          AgentThreadShareLevel.VIEW,
+        );
+
+        expect(await readHistory(brandBOnly, thread.id, 1)).toEqual([
+          'b-one',
+          'no-brand',
+        ]);
+      });
+
+      it('keeps the whole history for the owner', async () => {
+        const thread = await createMovedThread();
+
+        expect(await readHistory(owner, thread.id, 1)).toEqual([
+          'b-one',
+          'no-brand',
+          'a-two',
+          'a-one',
+        ]);
+      });
+
+      it('keeps the whole history for a viewer who reaches every brand', async () => {
+        const thread = await createMovedThread();
+        await share(
+          thread.id,
+          AgentThreadShareScope.ORGANIZATION,
+          AgentThreadShareLevel.VIEW,
+        );
+
+        expect(await readHistory(admin, thread.id)).toEqual([
+          'b-one',
+          'no-brand',
+          'a-two',
+          'a-one',
+        ]);
+      });
+
+      it('does not return a single message from the earlier brand', async () => {
+        const thread = await createMovedThread();
+        await share(
+          thread.id,
+          AgentThreadShareScope.ORGANIZATION,
+          AgentThreadShareLevel.VIEW,
+        );
+        const { historyBrandIds } = await access().assertAccess(
+          actor(brandBOnly),
+          thread.id,
+          'view',
+        );
+
+        const earlier = await messages().findOne({
+          ...buildAgentMessageBrandWhere(historyBrandIds),
+          id: id('a-one'),
+          organizationId,
+          threadId: thread.id,
+        });
+        const current = await messages().findOne({
+          ...buildAgentMessageBrandWhere(historyBrandIds),
+          id: id('b-one'),
+          organizationId,
+          threadId: thread.id,
+        });
+
+        expect(earlier).toBeNull();
+        expect(current?.content).toBe('b-one');
+      });
+    });
+
+    describe('agent context for a collaborator (#10256)', () => {
+      const compressed = vi.fn();
+      const messages = () =>
+        new AgentMessagesService(
+          database() as unknown as PrismaService,
+          logger as never,
+          {} as never,
+        );
+      const contextService = () =>
+        new AgentOrchestratorContextService(
+          {} as never,
+          logger as never,
+          {} as never,
+          new AgentScopeContextService(
+            database() as never,
+            logger as never,
+            brandAccess(),
+            access(),
+          ),
+          {} as never,
+          messages(),
+          {} as never,
+          {} as never,
+          {} as never,
+          {} as never,
+          undefined,
+          undefined,
+          {
+            getStateOrCompact: compressed,
+            getWindowMessages: vi.fn().mockResolvedValue([]),
+            renderStateAsUserMessage: vi.fn().mockReturnValue('summary'),
+          } as never,
+        );
+
+      const scopeFor = (userId: string, threadId: string) =>
+        ({
+          organizationId,
+          threadId,
+          threadOwnerUserId: owner,
+          userId,
+        }) as unknown as ValidatedAgentScope;
+
+      async function createMovedThread() {
+        const thread = await createThread(owner, { brandId: brandA });
+        const start = Date.now() - 60_000;
+        const rows: Array<[string, string | null, number]> = [
+          ['a-one', brandA, 0],
+          ['no-brand', null, 1_000],
+        ];
+        for (const [label, brandId, offset] of rows) {
+          await database().agentMessage.create({
+            data: {
+              brandId,
+              content: label,
+              createdAt: new Date(start + offset),
+              id: id(label),
+              organizationId,
+              role: 'assistant',
+              threadId: thread.id,
+              userId: owner,
+            },
+          });
+        }
+        await database().agentThread.update({
+          data: { brandId: brandB },
+          where: { id: thread.id },
+        });
+        await database().agentMessage.create({
+          data: {
+            brandId: brandB,
+            content: 'b-one',
+            createdAt: new Date(start + 2_000),
+            id: id('b-one'),
+            organizationId,
+            role: 'assistant',
+            threadId: thread.id,
+            userId: owner,
+          },
+        });
+        await share(
+          thread.id,
+          AgentThreadShareScope.ORGANIZATION,
+          AgentThreadShareLevel.COLLABORATE,
+        );
+        return thread;
+      }
+
+      it('builds a brand-B-only collaborator context without the earlier brand and without a summary', async () => {
+        const thread = await createMovedThread();
+
+        const result = await contextService().resolveThreadMessages(
+          thread.id,
+          organizationId,
+          scopeFor(brandBOnly, thread.id),
+        );
+
+        expect(result.messages.map((message) => message.content)).toEqual([
+          'no-brand',
+          'b-one',
+        ]);
+        expect(result.compressedContext).toBeUndefined();
+        expect(compressed).not.toHaveBeenCalled();
+      });
+
+      it('keeps the whole context for a collaborator who reaches every brand', async () => {
+        const thread = await createMovedThread();
+        compressed.mockResolvedValue(null);
+
+        const result = await contextService().resolveThreadMessages(
+          thread.id,
+          organizationId,
+          scopeFor(admin, thread.id),
+        );
+
+        expect(result.messages.map((message) => message.content)).toEqual([
+          'a-one',
+          'no-brand',
+          'b-one',
+        ]);
+      });
+
+      it('refuses a collaborator whose share no longer reaches them', async () => {
+        const thread = await createMovedThread();
+
+        await expect(
+          contextService().resolveThreadMessages(
+            thread.id,
+            organizationId,
+            scopeFor(teammate, thread.id),
+          ),
+        ).rejects.toBeInstanceOf(NotFoundException);
+      });
+
+      it("leaves the owner's own turn context unchanged", async () => {
+        const thread = await createMovedThread();
+        compressed.mockResolvedValue(null);
+
+        const result = await contextService().resolveThreadMessages(
+          thread.id,
+          organizationId,
+          { organizationId, threadId: thread.id, userId: owner } as never,
+        );
+
+        expect(result.messages.map((message) => message.content)).toEqual([
+          'a-one',
+          'no-brand',
+          'b-one',
+        ]);
       });
     });
 

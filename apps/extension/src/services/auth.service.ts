@@ -12,23 +12,13 @@ const TOKEN_STORAGE_KEY = 'genfeed_token';
 const AUTH_CONTEXT_STORAGE_KEY = 'genfeed_auth_context';
 const AUTH_CONTEXT_TTL_MS = 30_000;
 
-export async function getJWTToken(
-  getToken: (options?: { template?: string }) => Promise<string | null>,
-): Promise<string | null> {
-  try {
-    return await getToken({ template: 'genfeed-jwt' });
-  } catch {
-    return null;
-  }
-}
-
-export interface AuthState {
+interface AuthState {
   isAuthenticated: boolean;
   token: string | null;
   error?: string;
 }
 
-export interface TokenInfo {
+interface TokenInfo {
   token: string;
   expiresAt?: number;
 }
@@ -44,7 +34,7 @@ interface AuthOrganization {
   name?: string;
 }
 
-export interface AuthContext {
+interface AuthContext {
   user: AuthIdentity;
   organization: AuthOrganization;
   scopes: string[];
@@ -55,7 +45,7 @@ interface AuthContextResponse {
   data?: AuthContext;
 }
 
-export type AuthenticatedRequestGuard = (
+type AuthenticatedRequestGuard = (
   verifiedContext: AuthContext,
 ) => void | Promise<void>;
 
@@ -445,12 +435,3 @@ class AuthService {
 }
 
 export const authService = AuthService.getInstance();
-
-export const getToken = () => authService.getToken();
-export const setToken = (token: string) => authService.setToken(token);
-export const clearToken = () => authService.clearToken();
-export const isAuthenticated = () => authService.isAuthenticated();
-export const makeAuthenticatedRequest = (url: string, options?: RequestInit) =>
-  authService.makeAuthenticatedRequest(url, options);
-export const getAuthContext = (forceRefresh?: boolean) =>
-  authService.getAuthContext(forceRefresh);

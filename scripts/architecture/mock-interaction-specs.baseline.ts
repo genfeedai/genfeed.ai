@@ -114,7 +114,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/server/api/src/collections/organizations/services/organizations.service.spec.ts',
   'apps/server/api/src/collections/outliers/services/breakout-text-output-generation.service.spec.ts',
   'apps/server/api/src/collections/outreach-campaigns/services/outreach-campaign-target-operations.service.spec.ts',
-  'apps/server/api/src/collections/post-groups/controllers/post-groups.controller.spec.ts',
   'apps/server/api/src/collections/post-groups/services/post-group-target.operations.spec.ts',
   'apps/server/api/src/collections/post-groups/services/post-groups.service.spec.ts',
   'apps/server/api/src/collections/posts/services/post-generation.service.spec.ts',

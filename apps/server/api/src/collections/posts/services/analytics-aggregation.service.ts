@@ -5,11 +5,8 @@ import type {
   DistinctPostCountRow,
   EngagementBreakdown,
   GrowthTrends,
-  NumericSqlValue,
   OverviewMetrics,
   PlatformComparisonRow,
-  PlatformMetrics,
-  PostViewsRow,
   TimeSeriesDataPoint,
   TimeSeriesDataPointWithPlatforms,
   TopContent,
@@ -38,14 +35,9 @@ import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export type {
-  DistinctPostCountRow,
   EngagementBreakdown,
   GrowthTrends,
-  NumericSqlValue,
   OverviewMetrics,
-  PlatformComparisonRow,
-  PlatformMetrics,
-  PostViewsRow,
   TimeSeriesDataPoint,
   TimeSeriesDataPointWithPlatforms,
   TopContent,

@@ -35,7 +35,7 @@ export const REMIX_TARGET_PLATFORMS: readonly {
 ];
 
 /** Video and avatar remixes use the scene plan in Studio, which has its own quotes. */
-export function isStudioOutput(run: BrandRemixRunView): boolean {
+function isStudioOutput(run: BrandRemixRunView): boolean {
   return (
     run.draft.output.kind === 'video' || run.draft.output.kind === 'avatar'
   );

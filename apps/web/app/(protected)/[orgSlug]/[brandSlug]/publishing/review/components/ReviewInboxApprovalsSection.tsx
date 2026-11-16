@@ -40,9 +40,10 @@ export default function ReviewInboxApprovalsSection({
   );
 
   // Only rows that can be decided are ever picked, and a row another reviewer
-  // resolved drops out of the selection with the refetch.
+  // resolved drops out of the selection with the refetch. A scheduled week is
+  // read and approved on its own page, so it is never part of a bulk decision.
   const resolvableItems = useMemo(
-    () => items.filter((item) => item.isResolvable),
+    () => items.filter((item) => item.isResolvable && item.batchCount === null),
     [items],
   );
   const selectedItems = useMemo(

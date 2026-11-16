@@ -30,7 +30,6 @@ import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
-import * as Sentry from '@sentry/nestjs';
 import {
   createChannelTargetError,
   createFailedPublishResult,
@@ -38,17 +37,14 @@ import {
   getPublishErrorCode,
   getPublishErrorMessage,
   isAmbiguousPublishError,
-  isRetryablePublishError,
+  isAmbiguousPublishResult,
+  toPublishFailureCause,
 } from '@workers/crons/posts/post-publish-error.util';
+import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 import {
-  PUBLISH_OUTCOME_UNCONFIRMED_CODE,
-  PUBLISH_OUTCOME_UNVERIFIED_CODE,
-  SCHEDULED_POST_RETRY_BACKOFF_SECONDS,
-  SCHEDULED_POST_UNVERIFIED_BACKOFF_SECONDS,
-  SCHEDULED_POST_VERIFICATION_BACKOFF_SECONDS,
-  SCHEDULED_POST_VERIFICATION_WINDOW_SECONDS,
-} from '@workers/services/scheduled-post.constants';
-import { readPostString } from '@workers/services/scheduled-post.utils';
+  readPostString,
+  resolveUnverifiedDeferral,
+} from '@workers/services/scheduled-post.utils';
 import { loadScheduledActionPost } from '@workers/services/scheduled-post-action-load.util';
 import type {
   DeliveryGateFailure,
@@ -74,6 +70,12 @@ import {
   ProviderPublishPersistenceError,
 } from '@workers/services/scheduled-post-provider-receipt.util';
 import { ScheduledPostPublishFollowUps } from '@workers/services/scheduled-post-publish-follow-ups';
+import type { RateLimitPlan } from '@workers/services/scheduled-post-rate-limit.util';
+import {
+  buildFailureWrite,
+  buildRetryWrite,
+  decideRetry,
+} from '@workers/services/scheduled-post-retry-state.util';
 import {
   queueLearningPublicationRefreshV1,
   type SchedulerPublishFinalizationInput,
@@ -471,18 +473,8 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     workflowExecutionId: string,
   ): Promise<PublishResult> {
     const now = new Date();
-    const isWindowExpired =
-      now.getTime() - attemptStartedAt.getTime() >=
-      SCHEDULED_POST_VERIFICATION_WINDOW_SECONDS * 1000;
-    const message = isWindowExpired
-      ? 'Provider publish outcome could not be verified within the verification window; operator review needed.'
-      : 'Provider publish outcome is not confirmed yet; verification will retry.';
-    const backoffSeconds = isWindowExpired
-      ? SCHEDULED_POST_UNVERIFIED_BACKOFF_SECONDS
-      : SCHEDULED_POST_VERIFICATION_BACKOFF_SECONDS;
-    const code = isWindowExpired
-      ? PUBLISH_OUTCOME_UNVERIFIED_CODE
-      : PUBLISH_OUTCOME_UNCONFIRMED_CODE;
+    const { backoffSeconds, code, isWindowExpired, message } =
+      resolveUnverifiedDeferral(attemptStartedAt, now);
 
     this.logger.warn(`${this.constructorName} deferring unverified publish`, {
       code,
@@ -491,7 +483,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     });
     // Discovery re-queues PUBLISHING posts once lastAttemptAt is older than the
     // retry backoff; date it ahead so the verification backoff applies instead.
-    await this.persistPublishState(
+    const persisted = await this.persistPublishState(
       post,
       {
         error: createChannelTargetError(code, message, true),
@@ -508,6 +500,12 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         priorExecutionStates: [TargetExecutionState.PUBLISHING],
       },
     );
+    if (isWindowExpired && persisted) {
+      await this.postFailureService.notifyPublishUnverified(
+        post,
+        attemptStartedAt,
+      );
+    }
     return {
       ...createFailedPublishResult('', message),
       executionState: TargetExecutionState.PUBLISHING,
@@ -548,10 +546,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       return await this.handlePublishError(post, error, workflowExecutionId);
     }
     if (!result.success) {
-      // A pre-publish validation code is deterministic; anything else that
-      // looks like a timeout or 5xx may hide an accepted publish.
-      const isAmbiguous =
-        !result.errorCode && isAmbiguousPublishError(result.error ?? '');
+      const isAmbiguous = isAmbiguousPublishResult(result);
       await this.attempts.settle(
         post,
         attempt,
@@ -882,32 +877,24 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     errorCode = getPublishErrorCode(errorMessage),
     workflowExecutionId?: string,
     failureGuard?: SchedulerPublishTransitionGuard,
+    rateLimit: RateLimitPlan | null = null,
   ): Promise<boolean | undefined> {
     const url = `${this.constructorName} attemptRetry`;
     const currentRetryCount = post.retryCount || 0;
 
     if (canRetry) {
-      const targetError = createChannelTargetError(
+      const retry = buildRetryWrite(
+        post,
         errorCode,
         errorMessage,
-        true,
+        rateLimit,
+        workflowExecutionId,
       );
       const persisted = await this.persistPublishState(
         post,
-        {
-          error: targetError,
-          executionState: TargetExecutionState.SCHEDULED,
-          lastAttemptAt: new Date(),
-          retryCount: currentRetryCount + 1,
-          ...(workflowExecutionId ? { workflowExecutionId } : {}),
-        },
+        retry.update,
         errorMessage,
-        workflowExecutionId
-          ? {
-              expectedWorkflowExecutionId: workflowExecutionId,
-              priorExecutionStates: [TargetExecutionState.PUBLISHING],
-            }
-          : undefined,
+        retry.guard,
       );
       if (!persisted) {
         return undefined;
@@ -915,32 +902,23 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
       this.logger.log(
         `${url} will retry post (attempt ${currentRetryCount + 1}/${this.MAX_RETRY_ATTEMPTS}) after ${SCHEDULED_POST_RETRY_BACKOFF_SECONDS}s backoff`,
-        { postId: post.id },
+        { postId: post.id, rateLimit },
       );
 
       return true;
     }
 
+    const failure = buildFailureWrite(
+      errorCode,
+      errorMessage,
+      workflowExecutionId,
+      failureGuard,
+    );
     const persisted = await this.persistPublishState(
       post,
-      {
-        error: createChannelTargetError(errorCode, errorMessage, false),
-        executionState: TargetExecutionState.FAILED,
-        lastAttemptAt: new Date(),
-        ...(workflowExecutionId ? { workflowExecutionId } : {}),
-      },
+      failure.update,
       errorMessage,
-      workflowExecutionId || failureGuard
-        ? {
-            ...(workflowExecutionId
-              ? {
-                  expectedWorkflowExecutionId: workflowExecutionId,
-                  priorExecutionStates: [TargetExecutionState.PUBLISHING],
-                }
-              : {}),
-            ...failureGuard,
-          }
-        : undefined,
+      failure.guard,
     );
     if (!persisted) {
       return undefined;
@@ -950,42 +928,13 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       'parent_failed',
       'Parent post failed',
     );
-    await this.postFailureService.notifyPublishFailed(
+    await this.postFailureService.notifyTerminalFailure(
       post,
-      createPublishFailedActivity(post, errorMessage),
+      errorCode,
+      errorMessage,
     );
-    this.captureTerminalPublishFailure(post, errorCode, errorMessage);
 
     return false;
-  }
-
-  /**
-   * A publish that ended FAILED is handled here and persisted on the post, so
-   * nothing rethrows it to Sentry's global handlers. Report it once, when the
-   * transition actually moved the target to FAILED. Content the owner must fix
-   * (validation) stays out; provider and credential failures are the signal.
-   */
-  private captureTerminalPublishFailure(
-    post: PostEntity,
-    errorCode: string,
-    errorMessage: string,
-  ): void {
-    if (errorCode === 'publish_validation_failed') {
-      return;
-    }
-    Sentry.captureException(new Error(errorMessage), {
-      extra: {
-        organizationId: readPostString(post, ['organizationId']),
-        postId: post.id.toString(),
-        retryCount: post.retryCount || 0,
-      },
-      fingerprint: ['scheduled-post-publish-failed', errorCode],
-      level: 'error',
-      tags: {
-        'publish.error_code': errorCode,
-        'publish.platform': readPostString(post, ['platform']) ?? 'unknown',
-      },
-    });
   }
 
   private async handlePublishFailure(
@@ -994,20 +943,24 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     platform: CredentialPlatform | string,
     workflowExecutionId?: string,
   ): Promise<PublishResult> {
-    const currentRetryCount = post.retryCount || 0;
-    const isRetryable = result.errorCode
-      ? false
-      : isRetryablePublishError(result.error) ||
-        isAmbiguousPublishError(result.error ?? '');
-    const canRetry = isRetryable && currentRetryCount < this.MAX_RETRY_ATTEMPTS;
-    const errorMessage = result.error || 'Max retries reached';
+    const { canRetry, errorMessage, rateLimit } = decideRetry(
+      post,
+      {
+        error: result.errorCode ? undefined : toPublishFailureCause(result),
+        message: result.error || 'Max retries reached',
+        retryAfterMs: result.retryAfterMs,
+      },
+      this.MAX_RETRY_ATTEMPTS,
+    );
 
     const scheduledForRetry = await this.attemptRetry(
       post,
       canRetry,
       errorMessage,
-      result.errorCode ?? getPublishErrorCode(result.error),
+      result.errorCode ?? getPublishErrorCode(toPublishFailureCause(result)),
       workflowExecutionId,
+      undefined,
+      rateLimit,
     );
 
     if (scheduledForRetry) {
@@ -1035,11 +988,11 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
   ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const currentRetryCount = post.retryCount || 0;
-    // An ambiguous outcome must reach the soft retry that verifies it.
-    const isRetryable =
-      isRetryablePublishError(error) || isAmbiguousPublishError(error);
-    const canRetry = isRetryable && currentRetryCount < this.MAX_RETRY_ATTEMPTS;
-    const errorMessage = getPublishErrorMessage(error);
+    const { canRetry, errorMessage, isRetryable, rateLimit } = decideRetry(
+      post,
+      { error, message: getPublishErrorMessage(error) },
+      this.MAX_RETRY_ATTEMPTS,
+    );
 
     this.logger.error(`${url} failed to publish post`, {
       canRetry,
@@ -1055,6 +1008,8 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       errorMessage,
       getPublishErrorCode(error),
       workflowExecutionId,
+      undefined,
+      rateLimit,
     );
 
     if (scheduledForRetry) {

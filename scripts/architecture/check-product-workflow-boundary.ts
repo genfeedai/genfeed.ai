@@ -194,6 +194,14 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
       systemWorkflowIds: ['scheduled-post.publish'],
     },
     {
+      classification: 'platform-maintenance',
+      file: 'apps/server/workers/src/crons/posts/cron.manual-post-reminders.service.ts',
+      id: 'manual-post-reminders',
+      issue: 10135,
+      reason:
+        'Reminds the person about a refused X quote they were asked to post by hand. It only records an in-app and email notification, calls no provider and starts no content work.',
+    },
+    {
       classification: 'workflow-adapter',
       file: 'apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts',
       id: 'reply-bot-orchestration',

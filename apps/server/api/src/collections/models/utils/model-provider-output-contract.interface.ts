@@ -1,7 +1,7 @@
 import type { ReplicatePredictionTarget } from '@api/services/integrations/replicate/helpers/replicate-prediction-target.util';
 import type { WorkflowReviewedOutputContract } from '@genfeedai/contracts/interfaces/billing';
 
-export interface SingleMediaOutputContract {
+interface SingleMediaOutputContract {
   adapterVersion: 1;
   representation: 'uri' | 'uri-array';
   outputs: 1;
@@ -12,7 +12,7 @@ export type SingleMediaOutputContractResult =
   | { status: 'supported'; contract: SingleMediaOutputContract }
   | { status: 'unresolved'; reason: string };
 
-export interface ReviewedReplicateOutputContract {
+interface ReviewedReplicateOutputContract {
   modelKey: string;
   provider: 'replicate';
   endpoint: string;
@@ -24,7 +24,7 @@ export type ReviewedReplicateOutputContractResult =
   | { status: 'reviewed'; contract: ReviewedReplicateOutputContract }
   | { status: 'unresolved'; reason: string };
 
-export type ReviewedFalVideoOutputContract = Extract<
+type ReviewedFalVideoOutputContract = Extract<
   WorkflowReviewedOutputContract,
   { provider: 'fal' }
 >;

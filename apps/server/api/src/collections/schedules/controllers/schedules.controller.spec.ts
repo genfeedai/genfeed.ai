@@ -1,11 +1,5 @@
-vi.mock('@api/helpers/utils/response/response.util', () => ({
-  serializeCollection: vi.fn((_req, _serializer, data) => data.docs || data),
-  serializeSingle: vi.fn((_req, _serializer, data) => data),
-}));
-
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { SchedulesController } from '@api/collections/schedules/controllers/schedules.controller';
-import { BulkScheduleDto } from '@api/collections/schedules/dto/bulk-schedule.dto';
 import { GetOptimalTimeDto } from '@api/collections/schedules/dto/optimal-time.dto';
 import { SchedulesService } from '@api/collections/schedules/services/schedules.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -13,7 +7,6 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import type { Request } from 'express';
 
 const MOCK_ORGANIZATION_ID = testId('org');
 const MOCK_USER_ID = testId('user');
@@ -21,7 +14,6 @@ const MOCK_USER_ID = testId('user');
 describe('SchedulesController', () => {
   let controller: SchedulesController;
   let service: SchedulesService;
-  let mockReq: Request;
 
   const mockUser: User = {
     id: 'user_123',
@@ -30,8 +22,6 @@ describe('SchedulesController', () => {
   } as unknown as User;
 
   const mockSchedulesService = {
-    bulkSchedule: vi.fn(),
-    getCalendar: vi.fn(),
     getChannelCapability: vi.fn(),
     listChannelCapabilities: vi.fn(),
     getOptimalTime: vi.fn(),
@@ -39,8 +29,6 @@ describe('SchedulesController', () => {
   };
 
   beforeEach(async () => {
-    mockReq = {} as Request;
-
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SchedulesController],
       providers: [
@@ -142,76 +130,6 @@ describe('SchedulesController', () => {
         MOCK_ORGANIZATION_ID,
       );
       expect(result).toEqual(recommendation);
-    });
-  });
-
-  describe('bulkSchedule', () => {
-    it('should bulk schedule content', async () => {
-      const dto: BulkScheduleDto = {
-        brandIds: ['brand-1'],
-        contentIds: ['id1', 'id2', 'id3'],
-        platforms: ['twitter'],
-        schedulingStrategy: 'evenly-distributed',
-        staggerMinutes: 60,
-      };
-
-      const scheduled = {
-        items: [
-          { id: 'id1', time: '10:00' },
-          { id: 'id2', time: '11:00' },
-          { id: 'id3', time: '12:00' },
-        ],
-        scheduled: 3,
-      };
-
-      mockSchedulesService.bulkSchedule.mockResolvedValue(scheduled);
-
-      const result = await controller.bulkSchedule(dto, mockUser);
-
-      expect(service.bulkSchedule).toHaveBeenCalledWith(
-        dto,
-        MOCK_ORGANIZATION_ID,
-        mockUser.id,
-      );
-      expect(result).toEqual(scheduled);
-    });
-  });
-
-  describe('getCalendar', () => {
-    it('should return schedule calendar', async () => {
-      const calendar = {
-        events: [
-          { content: 'Post 1', id: '1', time: '2024-01-01T10:00:00Z' },
-          { content: 'Post 2', id: '2', time: '2024-01-02T10:00:00Z' },
-        ],
-      };
-
-      mockSchedulesService.getCalendar.mockResolvedValue(calendar);
-
-      const result = await controller.getCalendar(mockReq, mockUser);
-
-      expect(service.getCalendar).toHaveBeenCalledWith(
-        MOCK_ORGANIZATION_ID,
-        expect.any(String),
-        expect.any(String),
-      );
-      expect(result).toEqual(calendar);
-    });
-
-    it('should use custom date range', async () => {
-      const start = '2024-01-01';
-      const end = '2024-01-31';
-      const calendar = { events: [] };
-
-      mockSchedulesService.getCalendar.mockResolvedValue(calendar);
-
-      await controller.getCalendar(mockReq, mockUser, start, end);
-
-      expect(service.getCalendar).toHaveBeenCalledWith(
-        MOCK_ORGANIZATION_ID,
-        start,
-        end,
-      );
     });
   });
 });

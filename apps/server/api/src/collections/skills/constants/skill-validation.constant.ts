@@ -9,13 +9,7 @@ export const MAX_CONFIGURED_SKILL_SLUGS = 100;
 export const MAX_SKILL_SLUG_LENGTH = 160;
 
 export type { BuiltInSkillIdentity } from '@api/collections/skills/constants/skill-catalog-identity';
-export {
-  BUILT_IN_SKILL_ID_PREFIX,
-  builtInSkillIdentityForSlug,
-  compactBuiltInSkillId,
-  isOriginalBuiltInSkillSlug,
-  ORIGINAL_BUILT_IN_SKILL_CATALOG,
-} from '@api/collections/skills/constants/skill-catalog-identity';
+export { ORIGINAL_BUILT_IN_SKILL_CATALOG } from '@api/collections/skills/constants/skill-catalog-identity';
 
 /**
  * Global skill rows are readable by every tenant, so null ownership and

@@ -12,7 +12,7 @@ import type {
   UseSocialWarmupEnrollmentResult,
 } from '@/features/brands/props/social-warmup-enrollments.props';
 
-export const SOCIAL_WARMUP_ENROLLMENT_QUERY_KEY = 'social-warmup-enrollment';
+const SOCIAL_WARMUP_ENROLLMENT_QUERY_KEY = 'social-warmup-enrollment';
 
 export function useSocialWarmupEnrollment(
   options: UseSocialWarmupEnrollmentOptions = {},

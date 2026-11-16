@@ -1,4 +1,4 @@
-export type HelpResourceId =
+type HelpResourceId =
   | 'gettingStarted'
   | 'documentation'
   | 'workflows'

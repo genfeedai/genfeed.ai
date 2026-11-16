@@ -6,7 +6,7 @@ import type { Prisma } from '@genfeedai/prisma';
  * them. `provider` and `externalVoiceId` are stored as `externalProvider` and
  * `externalId`; `status` orders by whether the voice is active.
  */
-export const VOICE_CATALOG_SORT_FIELDS: readonly string[] = [
+const VOICE_CATALOG_SORT_FIELDS: readonly string[] = [
   'externalVoiceId',
   'language',
   'name',

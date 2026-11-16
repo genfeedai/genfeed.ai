@@ -107,6 +107,9 @@ const PLATFORM_FORMAT_BRIEF: Record<
 };
 
 /** Own posts quoted to the draft prompt: enough to show the voice, few enough to stay cheap. */
+/** What a brand's colours are before anyone sets them (the Brand column defaults). */
+const DEFAULT_BRAND_PRIMARY_COLOR = '#000000';
+const DEFAULT_BRAND_SECONDARY_COLOR = '#ffffff';
 const VOICE_EVIDENCE_SAMPLE_LIMIT = 6;
 
 const TONE_DIRECTION: Record<
@@ -239,33 +242,40 @@ export class OnboardingFirstDraftsService {
     brandId: string,
     dto: OnboardingDraftsDto,
   ): Promise<IOnboardingFirstDraftsResult> {
-    return this.runs.execute(
-      user,
-      brandId,
-      dto.previousRequestKey,
-      async (save) => {
-        const options = {
-          hasContext: Boolean(dto.context),
-          isRedo: Boolean(dto.previousRequestKey),
-        };
-        try {
-          const result = await this.generateOnce(user, brandId, dto, save);
-          this.captureFunnel(
-            user,
-            ONBOARDING_DRAFTS_GENERATED_EVENT,
-            buildDraftsFunnelProperties(result, options),
-          );
-          return result;
-        } catch (error: unknown) {
-          this.captureFunnel(
-            user,
-            ONBOARDING_DRAFTS_GENERATED_EVENT,
-            buildDraftsFunnelProperties(null, options),
-          );
-          throw error;
-        }
-      },
-    );
+    const options = {
+      hasContext: Boolean(dto.context),
+      isRedo: Boolean(dto.previousRequestKey),
+    };
+    // A replayed run or a reservation conflict never calls the generator, so
+    // it reports nothing; a run that did generate is reported once, after its
+    // final save, as ready, partial, unavailable or failed.
+    let didGenerate = false;
+    try {
+      const result = await this.runs.execute(
+        user,
+        brandId,
+        dto.previousRequestKey,
+        (save) => {
+          didGenerate = true;
+          return this.generateOnce(user, brandId, dto, save);
+        },
+      );
+      if (didGenerate)
+        this.captureFunnel(
+          user,
+          ONBOARDING_DRAFTS_GENERATED_EVENT,
+          buildDraftsFunnelProperties(result, options),
+        );
+      return result;
+    } catch (error: unknown) {
+      if (didGenerate)
+        this.captureFunnel(
+          user,
+          ONBOARDING_DRAFTS_GENERATED_EVENT,
+          buildDraftsFunnelProperties(null, options),
+        );
+      throw error;
+    }
   }
 
   private async generateOnce(
@@ -297,12 +307,7 @@ export class OnboardingFirstDraftsService {
       platform: 'twitter',
       previousRequestKey: dto.previousRequestKey,
       voiceEvidence,
-      prompt: [
-        "Write a useful, specific post for the brand's audience about what the brand offers.",
-        PLATFORM_ANGLE.twitter,
-        GROUNDING_RULE,
-        ...(direction ? [`Apply these requested changes: ${direction}`] : []),
-      ].join(' '),
+      prompt: this.buildDraftPrompt('twitter', direction),
     }).catch((error: unknown) => {
       this.loggerService.error('Onboarding X draft failed', error);
       return null;
@@ -351,12 +356,7 @@ export class OnboardingFirstDraftsService {
         identity,
         platform,
         voiceEvidence,
-        prompt: [
-          PLATFORM_FORMAT_BRIEF[platform],
-          PLATFORM_ANGLE[platform],
-          GROUNDING_RULE,
-          ...(direction ? [`Apply these requested changes: ${direction}`] : []),
-        ].join(' '),
+        prompt: this.buildDraftPrompt(platform, direction),
       }).catch((error: unknown) => {
         this.loggerService.warn('Onboarding platform draft failed', {
           error: error instanceof Error ? error.message : String(error),
@@ -400,6 +400,27 @@ export class OnboardingFirstDraftsService {
     return result;
   }
 
+  /** The brief one channel's post is written from, shared by a full run and a rewrite. */
+  private buildDraftPrompt(
+    platform: OnboardingDraftPlatform,
+    direction: string,
+    previousText?: string,
+  ): string {
+    return [
+      platform === 'twitter'
+        ? "Write a useful, specific post for the brand's audience about what the brand offers."
+        : PLATFORM_FORMAT_BRIEF[platform],
+      PLATFORM_ANGLE[platform],
+      GROUNDING_RULE,
+      ...(direction ? [`Apply these requested changes: ${direction}`] : []),
+      ...(previousText
+        ? [
+            `Write a different post from this earlier draft: take a new angle and a new opening, and do not reuse its wording.\nEarlier draft:\n${previousText}`,
+          ]
+        : []),
+    ].join(' ');
+  }
+
   private unavailable(): IOnboardingFirstDraftsResult {
     return {
       drafts: [],
@@ -408,6 +429,35 @@ export class OnboardingFirstDraftsService {
       requestKey: null,
       status: 'unavailable',
     };
+  }
+
+  /**
+   * Writes one channel's post again from the brand as it is saved now, as a
+   * different post from the one it replaces. Nothing else in the run changes.
+   */
+  async rewriteDraft(
+    user: User,
+    brandId: string,
+    platform: OnboardingDraftPlatform,
+  ): Promise<IOnboardingFirstDraftsResult> {
+    return this.runs.rewriteDraft(user, brandId, platform, async (previous) => {
+      const organizationId = String(user.organizationId);
+      const brand = await this.brandsService.findOne(
+        { id: brandId, isDeleted: false, organizationId },
+        'none',
+      );
+      if (!brand) throw new NotFoundException('Brand');
+      const { brandFacts } = this.readBrandContext(brand);
+      return this.generateDraft({
+        brandFacts,
+        direction: '',
+        identity: { brandId, organizationId, userId: String(user.id) },
+        platform,
+        previousRequestKey: previous?.requestKey,
+        prompt: this.buildDraftPrompt(platform, '', previous?.text),
+        voiceEvidence: await this.readVoiceEvidence(brandId, organizationId),
+      });
+    });
   }
 
   /** Regenerates only the image or video a finished run is missing. */
@@ -478,7 +528,13 @@ export class OnboardingFirstDraftsService {
   }
 
   private readBrandContext(
-    brand: { agentConfig?: unknown; description?: unknown; label?: unknown },
+    brand: {
+      agentConfig?: unknown;
+      description?: unknown;
+      label?: unknown;
+      primaryColor?: unknown;
+      secondaryColor?: unknown;
+    },
     context?: OnboardingDraftContextDto,
   ) {
     const savedConfig = this.brandDataMapper.readBrandAgentConfig(
@@ -512,12 +568,31 @@ export class OnboardingFirstDraftsService {
           normalizeBrandAudience(savedConfig.voice?.audience)[0],
         goals: context?.goals ?? savedConfig.strategy?.goals,
         offer: context?.offer ?? savedConfig.strategy?.offers?.[0],
+        palette: this.readBrandPalette(brand),
         tone:
           context?.tone && context.tone !== 'keep'
             ? context.tone
             : savedConfig.voice?.tone,
       },
     };
+  }
+
+  /**
+   * The colours the brand actually chose. A brand that never set any keeps the
+   * database defaults, black and white, and those say nothing about its look.
+   */
+  private readBrandPalette(brand: {
+    primaryColor?: unknown;
+    secondaryColor?: unknown;
+  }): string[] | undefined {
+    const colors = [brand.primaryColor, brand.secondaryColor].filter(
+      (color): color is string => typeof color === 'string' && color !== '',
+    );
+    const isDefault =
+      colors.length === 2 &&
+      colors[0]?.toLowerCase() === DEFAULT_BRAND_PRIMARY_COLOR &&
+      colors[1]?.toLowerCase() === DEFAULT_BRAND_SECONDARY_COLOR;
+    return colors.length && !isDefault ? colors : undefined;
   }
 
   private resolveStatus(
@@ -545,7 +620,7 @@ export class OnboardingFirstDraftsService {
     identity: { brandId: string; organizationId: string; userId: string };
     imageContext: Pick<
       OnboardingImageBriefInput,
-      'audience' | 'goals' | 'offer' | 'tone'
+      'audience' | 'goals' | 'offer' | 'palette' | 'tone'
     >;
     isMasterShort: boolean;
     result: IOnboardingFirstDraftsResult;
@@ -755,7 +830,7 @@ export class OnboardingFirstDraftsService {
     identity: { brandId: string; organizationId: string; userId: string };
     imageContext: Pick<
       OnboardingImageBriefInput,
-      'audience' | 'goals' | 'offer' | 'tone'
+      'audience' | 'goals' | 'offer' | 'palette' | 'tone'
     >;
     leadingReferenceIds?: string[];
     promptPrefix?: string;

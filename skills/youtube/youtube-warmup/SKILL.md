@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Guide YouTube channel warmup with engagement plans, warmup Shorts content, SEO setup, channel optimization, and post-warmup assessment frameworks"
+  tags: youtube, social-media, warmup, engagement, account-growth, content-strategy, shorts, seo, new-account, thumbnails, watch-time
+  outputs: text
+  triggers: "youtube warmup; warm up youtube channel; new youtube channel; youtube channel warmup plan; youtube engagement plan; warmup content youtube; start a youtube channel; youtube from scratch; youtube warmup strategy; how to warm up youtube; youtube trust score; first video on youtube; youtube shorts warmup; youtube channel setup; new youtube account; youtube channel optimization; youtube warmup shorts"
 ---
 
 # YouTube Warmup Skill

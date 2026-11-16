@@ -22,7 +22,7 @@ const credentialModel = schemaSource.slice(
 );
 const postAnalyticsModel = schemaSource.slice(
   schemaSource.indexOf('model PostAnalytics {'),
-  schemaSource.indexOf('model Schedule {'),
+  schemaSource.indexOf('model Distribution {'),
 );
 
 describe('posts.platform casing migration (#3274)', () => {

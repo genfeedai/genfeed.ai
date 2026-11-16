@@ -24,7 +24,19 @@ vi.mock('@services/content/posts.service', () => ({
   PostsService: { getInstance: () => ({ findOne }) },
 }));
 vi.mock('@/components/previews/TargetPreview', () => ({
-  default: () => <div data-testid="target-preview" />,
+  default: ({
+    credential,
+    release,
+  }: {
+    credential: { externalName?: string };
+    release: { media?: Array<{ url?: string | null }> };
+  }) => (
+    <div
+      data-author={credential.externalName}
+      data-media={(release.media ?? []).map((item) => item.url).join(',')}
+      data-testid="target-preview"
+    />
+  ),
 }));
 vi.mock(
   '@/features/posts/components/posts/preview/thread-preview-panel/ThreadPreviewPanel',
@@ -108,15 +120,66 @@ describe('ReleaseTargetPreview', () => {
     expect(screen.queryByTestId('thread-preview')).not.toBeInTheDocument();
   });
 
-  it('does not load a thread for platforms without replies', () => {
+  it('draws the connected account and slides from the post when the release has no media', async () => {
+    findOne.mockResolvedValue({
+      credential: { externalName: 'Shayla', platform: 'instagram' },
+      id: 'target-1',
+      ingredients: [
+        { category: 'image', cdnUrl: 'https://cdn.test/1.jpg', id: 'a' },
+        { category: 'image', cdnUrl: 'https://cdn.test/2.jpg', id: 'b' },
+      ],
+    });
+
     render(
       <ReleaseTargetPreview
-        release={release}
+        release={{ ...release, media: [] } as IReleaseGroup}
         target={target(CredentialPlatform.INSTAGRAM)}
       />,
     );
 
-    expect(findOne).not.toHaveBeenCalled();
-    expect(screen.getByTestId('target-preview')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByTestId('target-preview')).toHaveAttribute(
+        'data-media',
+        'https://cdn.test/1.jpg,https://cdn.test/2.jpg',
+      ),
+    );
+    expect(screen.getByTestId('target-preview')).toHaveAttribute(
+      'data-author',
+      'Shayla',
+    );
+  });
+
+  it('keeps the release media when the release already carries it', async () => {
+    findOne.mockResolvedValue({
+      id: 'target-1',
+      ingredients: [
+        { category: 'image', cdnUrl: 'https://cdn.test/x.jpg', id: 'x' },
+      ],
+    });
+
+    render(
+      <ReleaseTargetPreview
+        release={
+          {
+            ...release,
+            media: [
+              {
+                assetId: 'r',
+                kind: 'image',
+                order: 0,
+                url: 'https://cdn.test/r.jpg',
+              },
+            ],
+          } as unknown as IReleaseGroup
+        }
+        target={target(CredentialPlatform.INSTAGRAM)}
+      />,
+    );
+
+    await waitFor(() => expect(findOne).toHaveBeenCalled());
+    expect(screen.getByTestId('target-preview')).toHaveAttribute(
+      'data-media',
+      'https://cdn.test/r.jpg',
+    );
   });
 });

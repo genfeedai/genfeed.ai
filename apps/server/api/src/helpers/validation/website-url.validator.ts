@@ -4,7 +4,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import { ValidateBy, type ValidationOptions } from 'class-validator';
 
-export const IS_WEBSITE_URL = 'isWebsiteUrl';
+const IS_WEBSITE_URL = 'isWebsiteUrl';
 
 /**
  * Same predicate the web forms validate with, so a website the form accepts

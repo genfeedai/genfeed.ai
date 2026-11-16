@@ -8,12 +8,13 @@ import { normalizeTrendSourceClassification } from '@api/collections/trends/util
 import { CacheService } from '@api/services/cache/cache.service';
 import type {
   ApifyInstagramPost,
-  ApifyNormalizedTweet,
   ApifyRedditPost,
   ApifyTikTokVideo,
   ApifyYouTubeVideo,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import type { ITwitterSearchResult } from '@genfeedai/contracts/interfaces';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
@@ -41,6 +42,7 @@ export class TrendSourceItemsService {
   constructor(
     private readonly apifyService: ApifyService,
     private readonly cacheService: CacheService,
+    private readonly twitterService: TwitterService,
   ) {}
 
   /**
@@ -118,10 +120,12 @@ export class TrendSourceItemsService {
         );
       },
       twitter: async () => {
-        const tweets = await this.apifyService.searchTwitterTweets(searchTerm, {
-          limit,
-        });
-        return this.normalizeSourceItems(tweets, (tweet) =>
+        // X recent search accepts 10-100 results per request.
+        const tweets = await this.twitterService.searchRecentTweets(
+          `${searchTerm} lang:en`,
+          { maxResults: Math.min(Math.max(limit, 10), 100) },
+        );
+        return this.normalizeSourceItems(tweets.slice(0, limit), (tweet) =>
           this.mapTweetToSourceItem(tweet),
         );
       },
@@ -309,25 +313,22 @@ export class TrendSourceItemsService {
     };
   }
 
-  private mapTweetToSourceItem(tweet: ApifyNormalizedTweet): TrendSourceItem {
-    const sourceUrl = tweet.authorUsername
-      ? `https://x.com/${tweet.authorUsername}/status/${tweet.id}`
-      : `https://x.com/i/web/status/${tweet.id}`;
+  private mapTweetToSourceItem(tweet: ITwitterSearchResult): TrendSourceItem {
+    const sourceUrl = `https://x.com/${tweet.authorUsername}/status/${tweet.id}`;
 
     return {
-      authorHandle: tweet.authorUsername || undefined,
+      authorHandle: tweet.authorUsername,
       contentType: 'tweet',
       id: tweet.id,
       metrics: {
-        comments: tweet.metrics?.replies,
-        likes: tweet.metrics?.likes,
-        shares: tweet.metrics?.retweets,
+        comments: tweet.replies,
+        likes: tweet.likes,
+        shares: tweet.retweets,
       },
       platform: 'twitter',
-      publishedAt: tweet.createdAt?.toISOString(),
+      publishedAt: tweet.createdAt,
       sourceUrl,
       text: tweet.text,
-      thumbnailUrl: tweet.authorAvatarUrl,
       title: this.truncateText(tweet.text, 100),
     };
   }

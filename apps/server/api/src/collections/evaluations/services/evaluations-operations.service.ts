@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
@@ -9,9 +8,8 @@ import {
   type TextByokDispatch,
   textDispatchApiKey,
 } from '@api/services/byok/text-dispatch-byok.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { VideoFrameSamplerService } from '@api/services/content-quality/video-frame-sampler.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
-import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
@@ -83,19 +81,12 @@ interface EvaluationResponsePayload {
 
 /**
  * The evaluation model reads images, not video, so a video is evaluated from
- * frames sampled evenly across its duration.
+ * frames sampled across its duration: first, last and three between, so the
+ * middle of the video is always seen.
  */
-const VIDEO_EVALUATION_FRAME_COUNT = 4;
-const VIDEO_EVALUATION_FRAME_WIDTH = 512;
-/** Where the files service stores a thumbnail generated under a given id. */
-const THUMBNAIL_STORAGE_PREFIX = 'ingredients/thumbnails/';
-/**
- * The files client gives up on a frame after 30s, but the files service may
- * still finish and upload it afterwards, past the cleanup. A failed sample
- * sweeps its keys again after this grace period; the bucket lifecycle rule on
- * the evaluation-frame prefix is the durable backstop if the sweep is lost.
- */
-const LATE_FRAME_SWEEP_DELAY_MS = 5 * 60 * 1000;
+const VIDEO_EVALUATION_FRAME_POSITIONS: readonly number[] = [
+  0, 0.25, 0.5, 0.75, 1,
+];
 
 type EvaluationPromptOptions = PromptBuilderParams & {
   isThread?: boolean;
@@ -114,8 +105,7 @@ export class EvaluationsOperationsService {
     private readonly replicateService: ReplicateService,
     private readonly promptBuilderService: PromptBuilderService,
     private readonly logger: LoggerService,
-    private readonly filesClientService: FilesClientService,
-    private readonly mediaUrlService: MediaUrlService,
+    private readonly videoFrameSampler: VideoFrameSamplerService,
   ) {}
 
   private toEvaluationResponsePayload(
@@ -251,7 +241,11 @@ export class EvaluationsOperationsService {
         'Video evaluation needs cloud media storage; this deployment stores media locally.',
       );
     }
-    const frameStorageKeys: string[] = [];
+    const sample = await this.videoFrameSampler.sample(
+      videoUrl,
+      VIDEO_EVALUATION_FRAME_POSITIONS,
+      context.durationSeconds,
+    );
     try {
       return await this.evaluate(
         context.prompt || 'No context provided',
@@ -259,11 +253,7 @@ export class EvaluationsOperationsService {
         organizationId,
         {
           contentType: 'Video',
-          imageUrls: await this.sampleVideoFrames(
-            videoUrl,
-            context.durationSeconds,
-            frameStorageKeys,
-          ),
+          imageUrls: sample.frames.map((frame) => frame.url),
           maxContentLength: 4000,
           promptTemplate: PromptTemplateKey.EVALUATION_VIDEO,
         },
@@ -271,89 +261,8 @@ export class EvaluationsOperationsService {
         byok,
       );
     } finally {
-      await this.deleteVideoFrames(frameStorageKeys);
+      await sample.cleanup();
     }
-  }
-
-  /**
-   * Frames at the midpoints of equal slices of the video, signed for the CDN
-   * so the model provider can fetch them. Each frame gets its own thumbnail id
-   * so it never overwrites the video's own thumbnail; its storage key is
-   * recorded before extraction so the caller deletes even a partial sample.
-   */
-  private async sampleVideoFrames(
-    videoUrl: string,
-    storedDuration: number | undefined,
-    frameStorageKeys: string[],
-  ): Promise<string[]> {
-    try {
-      // The probe downloads the whole file (capped), so the stored duration
-      // wins whenever the video has one.
-      const duration =
-        storedDuration && Number.isFinite(storedDuration) && storedDuration > 0
-          ? storedDuration
-          : (await this.filesClientService.extractMetadataFromUrl(videoUrl))
-              .duration;
-      if (!duration || !Number.isFinite(duration) || duration <= 0) {
-        throw new Error('Video duration could not be read');
-      }
-      const frameUrls: string[] = [];
-      for (let index = 0; index < VIDEO_EVALUATION_FRAME_COUNT; index += 1) {
-        const frameId = `evaluation-frame-${randomUUID()}`;
-        frameStorageKeys.push(`${THUMBNAIL_STORAGE_PREFIX}${frameId}`);
-        const { thumbnailUrl } =
-          (await this.filesClientService.generateThumbnail(
-            videoUrl,
-            frameId,
-            (duration * (index + 0.5)) / VIDEO_EVALUATION_FRAME_COUNT,
-            VIDEO_EVALUATION_FRAME_WIDTH,
-          )) as { thumbnailUrl?: unknown };
-        if (typeof thumbnailUrl !== 'string' || !thumbnailUrl) {
-          throw new Error('Frame extraction returned no image');
-        }
-        frameUrls.push(this.mediaUrlService.buildUrlFromAbsolute(thumbnailUrl));
-      }
-      return frameUrls;
-    } catch (error: unknown) {
-      this.logger.error('Video frame sampling failed', { error });
-      this.scheduleLateFrameSweep(frameStorageKeys);
-      throw new ExternalServiceException(
-        'Files',
-        'Video frame sampling failed',
-        error,
-      );
-    }
-  }
-
-  /**
-   * A failed sample can leave a frame upload still in flight (the client
-   * timed out, the files service did not). Delete the keys once more after a
-   * grace period so a late upload does not outlive the evaluation.
-   */
-  private scheduleLateFrameSweep(storageKeys: readonly string[]) {
-    if (storageKeys.length === 0) {
-      return;
-    }
-    const keys = [...storageKeys];
-    setTimeout(() => {
-      void this.deleteVideoFrames(keys);
-    }, LATE_FRAME_SWEEP_DELAY_MS).unref();
-  }
-
-  /** Sampled frames are transient: a failed delete is logged, never thrown. */
-  private async deleteVideoFrames(storageKeys: readonly string[]) {
-    await Promise.all(
-      storageKeys.map(async (storageKey) => {
-        try {
-          await this.filesClientService.deleteStoredObject(storageKey);
-        } catch (error: unknown) {
-          this.logger.warn('Evaluation frame cleanup failed', {
-            error,
-            storageKey,
-          });
-        }
-      }),
-    );
   }
 
   evaluateImage(

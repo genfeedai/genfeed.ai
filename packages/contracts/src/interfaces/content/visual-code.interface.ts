@@ -46,11 +46,20 @@ export interface IExportVisualProject {
   outputs?: IVisualCodeOutputRequest[];
   maximumCredits: number;
 }
+/** What the frame inspection proved about the approved brand, from the pixels. */
+export interface IVisualCodeBrandChecks {
+  /** Dominant colours stay inside the approved palette. */
+  palette: 'passed' | 'failed' | 'not_checked';
+  /** A required, staged logo appears in the inspected frames. */
+  logo: 'passed' | 'failed' | 'not_checked';
+}
 export interface IVisualCodeReceipt {
   state: 'started' | 'confirmed' | 'indeterminate';
   boundCredits: number;
   isResultApplied: boolean;
   isAccepted?: boolean;
+  /** On an inspection: the brand checks behind `isAccepted`. */
+  brandChecks?: IVisualCodeBrandChecks;
 
   id: string;
   kind:

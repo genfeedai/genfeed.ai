@@ -20,6 +20,9 @@ export const CLI_OAUTH_PATH = '/oauth/cli';
 const LOCAL_API_PORT = '3010';
 const LOCAL_APP_PORT = '3000';
 
+/** Local dev port of the marketplace API (`apps/api` in the marketplace repository). */
+const LOCAL_MARKETPLACE_API_PORT = '3200';
+
 // `URL.hostname` keeps the brackets on IPv6 literals.
 const LOCAL_HOSTNAMES = new Set(['127.0.0.1', '[::1]', 'genfeed.localhost', 'localhost']);
 
@@ -73,6 +76,57 @@ export function deriveAppUrl(apiUrl: string): string {
   // Single-domain deployments serve the API under a path prefix
   // (`https://example.com/api/v1`), so the origin is the app.
   return normalizeBaseUrl(parsed.origin);
+}
+
+/**
+ * Derive the marketplace API origin from the Genfeed API base URL.
+ *
+ * - `https://api.example.com/v1` -> `https://api.marketplace.example.com`
+ * - `http://localhost:3010/v1`   -> `http://localhost:3200`
+ *
+ * Returns undefined when neither rule applies (a single-domain deployment has
+ * no marketplace host to guess), so the caller can ask for an explicit URL.
+ */
+export function deriveMarketplaceApiUrl(apiUrl: string): string | undefined {
+  let parsed: URL;
+
+  try {
+    parsed = new URL(apiUrl);
+  } catch {
+    return undefined;
+  }
+
+  if (isLocalHostname(parsed.hostname)) {
+    if (parsed.port !== LOCAL_API_PORT) return undefined;
+    parsed.port = LOCAL_MARKETPLACE_API_PORT;
+    return normalizeBaseUrl(parsed.origin);
+  }
+
+  if (parsed.hostname.startsWith('api.')) {
+    parsed.hostname = `api.marketplace.${parsed.hostname.slice('api.'.length)}`;
+    return normalizeBaseUrl(parsed.origin);
+  }
+
+  return undefined;
+}
+
+/**
+ * Validate an operator-supplied marketplace API URL. The admin bearer token is
+ * sent to it, so it must be HTTPS unless it points at this machine.
+ */
+export function parseMarketplaceApiUrl(value: string): string | undefined {
+  let parsed: URL;
+
+  try {
+    parsed = new URL(value);
+  } catch {
+    return undefined;
+  }
+
+  const isLocalHttp = parsed.protocol === 'http:' && isLocalHostname(parsed.hostname);
+  if (parsed.protocol !== 'https:' && !isLocalHttp) return undefined;
+
+  return normalizeBaseUrl(`${parsed.origin}${parsed.pathname}`);
 }
 
 /**

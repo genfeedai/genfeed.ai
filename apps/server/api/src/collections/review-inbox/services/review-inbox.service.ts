@@ -2,6 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { resolveBrandLogoCdnUrls } from '@api/collections/brands/utils/brand-logo-urls.util';
 import { approvalGenerationQuote } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.schema';
+import { expireStaleMcpApprovals } from '@api/collections/mcp-approvals/utils/mcp-approval-expiry.util';
 import {
   describeMcpApprovalAction,
   MCP_APPROVAL_CAPTION_ARGUMENT_KEYS,
@@ -24,6 +25,7 @@ import {
   buildReviewInboxItemId,
   type IReviewInboxItem,
   type IReviewInboxItemPreview,
+  readScheduledReleaseBatch,
 } from '@genfeedai/contracts/interfaces';
 import {
   McpApprovalStatus,
@@ -51,6 +53,32 @@ const REVIEW_GATE_ROLES: MemberRole[] = [
 ];
 const DEFAULT_REVIEW_GATE_TIMEOUT_HOURS = 24;
 const MEDIA_ARGUMENT_KEYS = ['mediaUrl', 'imageUrl', 'videoUrl'] as const;
+
+function releaseCredentialIds(release: unknown): string[] {
+  const targets =
+    isRecord(release) && Array.isArray(release.targets) ? release.targets : [];
+  return targets.flatMap((target) =>
+    isRecord(target) ? (readString(target.credentialId) ?? []) : [],
+  );
+}
+
+/** Every brand a week's releases and their channel accounts belong to. */
+function batchBrandIds(
+  batch: readonly unknown[] | null,
+  accountBrandIds: ReadonlyMap<string, string | null>,
+): string[] {
+  return (batch ?? []).flatMap((release) => {
+    const releaseBrandId = isRecord(release)
+      ? readString(release.brandId)
+      : null;
+    const accounts = releaseCredentialIds(release).flatMap((credentialId) => {
+      const accountBrandId = accountBrandIds.get(credentialId);
+      // An account with no brand is outside every brand-limited member's reach.
+      return accountBrandId === undefined ? [] : [accountBrandId ?? ''];
+    });
+    return releaseBrandId ? [releaseBrandId, ...accounts] : accounts;
+  });
+}
 
 function excerpt(value: string | null): string | null {
   if (!value) return null;
@@ -252,6 +280,7 @@ export class ReviewInboxService {
           actionSummary: `Continue ${workflowLabel} with the output waiting at its review gate`,
           actionTitle: `Continue ${workflowLabel}`,
           approvalId: null,
+          batchCount: null,
           brandId: execution.workflow.brandId ?? null,
           brandLabel: null,
           brandLogoUrl: null,
@@ -287,6 +316,7 @@ export class ReviewInboxService {
     organizationId: string,
     allowedBrandIds: string[] | undefined,
   ): Promise<IReviewInboxItem[]> {
+    await expireStaleMcpApprovals(this.prisma.mcpApproval, organizationId);
     const approvals = await this.prisma.mcpApproval.findMany({
       orderBy: { createdAt: 'asc' },
       select: {
@@ -303,15 +333,36 @@ export class ReviewInboxService {
       }),
     });
 
+    const accountBrandIds = allowedBrandIds
+      ? await this.loadBatchAccountBrandIds(organizationId, approvals)
+      : new Map<string, string | null>();
+
     return approvals.flatMap((approval): IReviewInboxItem[] => {
       const args = isRecord(approval.arguments) ? approval.arguments : {};
-      const brandId = readString(args.brandId);
-      if (brandId && allowedBrandIds && !allowedBrandIds.includes(brandId)) {
+      const batch = readScheduledReleaseBatch(approval.toolName, args);
+      const firstRelease = batch && isRecord(batch[0]) ? batch[0] : null;
+      const brandId =
+        readString(args.brandId) ?? readString(firstRelease?.brandId);
+      // The row names the first release's brand, but a week may span brands:
+      // the review page and the approval check every one, so the row is hidden
+      // from a member who may not see any of them.
+      const rowBrandIds = [
+        ...(brandId ? [brandId] : []),
+        ...batchBrandIds(batch, accountBrandIds),
+      ];
+      if (
+        allowedBrandIds &&
+        rowBrandIds.some((id) => !allowedBrandIds.includes(id))
+      ) {
         return [];
       }
       const definition = getToolByName(approval.toolName);
-      const caption = MCP_APPROVAL_CAPTION_ARGUMENT_KEYS.map((key) =>
-        readString(args[key]),
+      const caption = (
+        firstRelease
+          ? [readString(firstRelease.baseContent)]
+          : MCP_APPROVAL_CAPTION_ARGUMENT_KEYS.map((key) =>
+              readString(args[key]),
+            )
       ).find((value): value is string => value !== null);
       const mediaUrl = MEDIA_ARGUMENT_KEYS.map((key) =>
         readHttpUrl(args[key]),
@@ -327,7 +378,12 @@ export class ReviewInboxService {
             )
           : null);
 
-      const action = describeMcpApprovalAction(approval.toolName, args);
+      const action = batch
+        ? {
+            details: null,
+            title: `Schedule ${batch.length} ${batch.length === 1 ? 'post' : 'posts'}`,
+          }
+        : describeMcpApprovalAction(approval.toolName, args);
       const requester = [approval.user?.firstName, approval.user?.lastName]
         .map((part) => readString(part))
         .filter((part): part is string => part !== null)
@@ -341,6 +397,7 @@ export class ReviewInboxService {
             : action.title,
           actionTitle: action.title,
           approvalId: approval.id,
+          batchCount: batch ? batch.length : null,
           brandId,
           brandLabel: null,
           brandLogoUrl: null,
@@ -371,6 +428,34 @@ export class ReviewInboxService {
         },
       ];
     });
+  }
+
+  /**
+   * The brand of every channel account a pending week posts to, by account id.
+   * An account with no brand maps to null, which no brand-limited member may see.
+   */
+  private async loadBatchAccountBrandIds(
+    organizationId: string,
+    approvals: readonly { arguments: unknown; toolName: string }[],
+  ): Promise<Map<string, string | null>> {
+    const credentialIds = [
+      ...new Set(
+        approvals.flatMap((approval) =>
+          (
+            readScheduledReleaseBatch(approval.toolName, approval.arguments) ??
+            []
+          ).flatMap(releaseCredentialIds),
+        ),
+      ),
+    ];
+    if (credentialIds.length === 0) return new Map();
+    const credentials = await this.prisma.credential.findMany({
+      select: { brandId: true, id: true },
+      where: scopedWhere(organizationId, { id: { in: credentialIds } }),
+    });
+    return new Map(
+      credentials.map((credential) => [credential.id, credential.brandId]),
+    );
   }
 
   private async loadBrands(

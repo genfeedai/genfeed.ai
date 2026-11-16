@@ -12,8 +12,7 @@ export const SOCIAL_REPLY_CAMPAIGN_ACTION_IDS = {
   THROTTLE: 'social.reply-campaign.throttle',
 } as const;
 
-export const SOCIAL_REPLY_CAMPAIGN_WORKFLOW_ID =
-  'social.reply-campaign.dispatch-tick';
+const SOCIAL_REPLY_CAMPAIGN_WORKFLOW_ID = 'social.reply-campaign.dispatch-tick';
 
 export function buildSocialReplyCampaignWorkflowDefinition(): SystemWorkflowGraphDefinition {
   const sequence = [

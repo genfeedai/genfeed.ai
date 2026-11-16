@@ -1,6 +1,6 @@
 /**
  * Guardrail: the public repo may only keep narrow marketplace integration
- * DTOs (#2896). Private marketplace packages and persistence/workflow
+ * DTOs (#2896). Marketplace packages and persistence/workflow
  * models belong in the marketplace service, not this repository.
  */
 
@@ -149,7 +149,7 @@ function collectManifestViolations(
 
       violations.push({
         file,
-        message: `Private marketplace packages must not be declared in ${section}.`,
+        message: `Marketplace packages must not be declared in ${section}.`,
         specifier,
       });
     }
@@ -179,7 +179,7 @@ function collectSourceViolations(
       file,
       line: getLine(sourceFile, node),
       message:
-        'Private marketplace packages must not be imported. Use the public preview and checkout DTOs.',
+        'Marketplace packages must not be imported. Use the public preview and checkout DTOs.',
       specifier,
     });
   };

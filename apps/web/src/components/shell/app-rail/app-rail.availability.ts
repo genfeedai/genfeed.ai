@@ -20,7 +20,7 @@ interface LauncherAvailabilityInput
  * absent `installedAppIds` or `moduleAccess` is a neutral surface with no
  * member or organization to consult.
  */
-export function isLauncherAppAvailable(
+function isLauncherAppAvailable(
   app: AppRailItemConfig,
   { flags, installedAppIds, moduleAccess }: LauncherAvailabilityInput,
 ): boolean {

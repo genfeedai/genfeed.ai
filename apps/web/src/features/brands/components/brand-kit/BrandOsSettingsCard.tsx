@@ -6,7 +6,10 @@ import {
   CardGap,
   MemberRole,
 } from '@genfeedai/contracts';
-import { brandGenerationRulesV1Schema } from '@genfeedai/contracts/api-types/contracts';
+import {
+  type BrandVideoFinishingV1,
+  brandGenerationRulesV1Schema,
+} from '@genfeedai/contracts/api-types/contracts';
 import type {
   BrandKitFieldKey,
   IBrandKitDraft,
@@ -16,6 +19,7 @@ import type {
   IBrandPublishPolicy,
 } from '@genfeedai/contracts/interfaces';
 import { BRAND_KIT_FIELD_OWNERSHIP } from '@genfeedai/contracts/interfaces';
+import type { BrandVideoRulesV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
@@ -41,6 +45,7 @@ import BrandOsGenerationRulesReview from './BrandOsGenerationRulesReview';
 import BrandOsIdentityPreview from './BrandOsIdentityPreview';
 import BrandOsPolicyEditor from './BrandOsPolicyEditor';
 import BrandOsRevisionFields from './BrandOsRevisionFields';
+import BrandVideoRevisionDiff from './BrandVideoRevisionDiff';
 
 const SHA256_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
 
@@ -331,14 +336,12 @@ export default function BrandOsSettingsCard({
     key: BrandKitFieldKey,
     update: Partial<IBrandKitDraftField>,
   ) {
-    if (!hasCurrentScope || !canManage || pendingRef.current) return;
-    clearAcknowledgement();
-    setContent((current) => {
+    editContent((current) => {
       const owner = BRAND_KIT_FIELD_OWNERSHIP.find(
         (entry) => entry.key === key,
       );
       const field: IBrandKitDraftField | null =
-        current?.fields[key] ??
+        current.fields[key] ??
         (owner
           ? {
               ...owner,
@@ -347,27 +350,29 @@ export default function BrandOsSettingsCard({
               diagnostics: [],
             }
           : null);
-      return current && field
+      return field
         ? {
             ...current,
             fields: { ...current.fields, [key]: { ...field, ...update } },
           }
         : current;
     });
+  }
+
+  function editContent(update: (current: IBrandKitDraft) => IBrandKitDraft) {
+    if (!hasCurrentScope || !canManage || pendingRef.current) return;
+    clearAcknowledgement();
+    setContent((current) => (current ? update(current) : current));
     setNotice(null);
   }
 
   function changePolicy(policy: IBrandPublishPolicy | undefined) {
-    if (!hasCurrentScope || !canManage || pendingRef.current) return;
-    clearAcknowledgement();
-    setContent((current) => {
-      if (!current) return current;
+    editContent((current) => {
       const next = { ...current };
       if (policy) next.policy = policy;
       else Reflect.deleteProperty(next, 'policy');
       return next;
     });
-    setNotice(null);
   }
 
   async function perform(
@@ -606,6 +611,10 @@ export default function BrandOsSettingsCard({
     selected?.status ?? null,
     exportState?.revisionId ?? null,
   ]);
+  const approvedContent =
+    revisions.find(
+      (revision) => revision.status === BrandOsRevisionStatus.APPROVED,
+    )?.content ?? null;
   const currentApproved = revisions.find(
     (revision) => revision.id === exportState?.revisionId,
   );
@@ -746,6 +755,12 @@ export default function BrandOsSettingsCard({
                   acknowledgementRef.current = checked ? binding : null;
                   setAcknowledgement(checked ? binding : null);
                 }}
+              />
+            )}
+            {content && (
+              <BrandVideoRevisionDiff
+                approved={approvedContent}
+                draft={content}
               />
             )}
             {content && (
@@ -946,10 +961,7 @@ export default function BrandOsSettingsCard({
   if (!renderWorkspace) return review;
   return renderWorkspace({
     content,
-    approvedContent:
-      revisions.find(
-        (revision) => revision.status === BrandOsRevisionStatus.APPROVED,
-      )?.content ?? null,
+    approvedContent,
     editor: content ? (
       <BrandOsRevisionFields
         content={content}
@@ -967,6 +979,14 @@ export default function BrandOsSettingsCard({
     isDirty: dirty,
     isLoading: loading,
     error,
+    isReadOnly:
+      !canManage ||
+      busy ||
+      selected?.status === BrandOsRevisionStatus.SUPERSEDED,
+    onFinishingChange: (finishing: BrandVideoFinishingV1) =>
+      editContent((current) => ({ ...current, finishing })),
+    onVideoChange: (video: BrandVideoRulesV1) =>
+      editContent((current) => ({ ...current, video })),
     isSaveDisabled:
       !canManage ||
       busy ||

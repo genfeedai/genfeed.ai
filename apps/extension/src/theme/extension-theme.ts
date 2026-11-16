@@ -10,7 +10,7 @@ import {
   readStoredTheme,
 } from '~theme/theme-storage';
 
-export const EXTENSION_THEME_MEDIA_QUERY = '(prefers-color-scheme: dark)';
+const EXTENSION_THEME_MEDIA_QUERY = '(prefers-color-scheme: dark)';
 
 function applyResolvedTheme(
   theme: ResolvedTheme,

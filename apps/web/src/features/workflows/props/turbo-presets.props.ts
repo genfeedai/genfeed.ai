@@ -1,7 +1,7 @@
 import type { TurboIdeaFormat } from '@genfeedai/contracts/interfaces';
 import type { LucideIcon } from 'lucide-react';
 
-export type TurboPresetId = 'weeklyMix' | 'videoShorts' | 'avatarExplainers';
+type TurboPresetId = 'weeklyMix' | 'videoShorts' | 'avatarExplainers';
 
 /** What a starter fills into the composer: the angle, the formats and the batch size. */
 export interface TurboStarter {

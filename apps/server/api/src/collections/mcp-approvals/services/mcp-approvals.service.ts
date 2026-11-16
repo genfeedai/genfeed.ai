@@ -7,6 +7,7 @@ import {
   readMcpApprovalPricing,
 } from '@api/collections/mcp-approvals/schemas/mcp-approval-pricing.schema';
 import { McpApprovalPricingService } from '@api/collections/mcp-approvals/services/mcp-approval-pricing.service';
+import { expireStaleMcpApprovals } from '@api/collections/mcp-approvals/utils/mcp-approval-expiry.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
@@ -87,6 +88,9 @@ export class McpApprovalsService extends BaseService<
       >;
     },
   ): Promise<McpApproval> {
+    // An abandoned request is closed before it can match this call or count
+    // toward the cap.
+    await expireStaleMcpApprovals(this.prisma.mcpApproval, organizationId);
     const needsGenerationQuote =
       toolName === 'generate' &&
       (args.type === 'image' || args.type === 'video');
@@ -412,6 +416,32 @@ export class McpApprovalsService extends BaseService<
   }
 
   /**
+   * Takes over an approved action whose run stopped before it recorded a
+   * result: the claim is older than `staleBefore`, or the approval was never
+   * claimed and was approved before it. A run still inside its window is left
+   * alone, so two runs never hold the claim at once.
+   */
+  async reclaimStaleExecution(
+    id: string,
+    organizationId: string,
+    staleBefore: Date,
+  ): Promise<boolean> {
+    const { count } = await this.delegate.updateMany({
+      where: scopedWhere(organizationId, {
+        id,
+        status: McpApprovalStatus.APPROVED,
+        result: { equals: Prisma.DbNull },
+        OR: [
+          { executionClaimedAt: { lt: staleBefore } },
+          { executionClaimedAt: null, resolvedAt: { lt: staleBefore } },
+        ],
+      }),
+      data: { executionClaimedAt: new Date() },
+    });
+    return count === 1;
+  }
+
+  /**
    * Claim an approved action for its one execution on behalf of the caller.
    * The requester redeems an approval a reviewer granted in the app; an owner
    * or admin redeems one they approved over MCP. Anyone else is refused.
@@ -494,10 +524,16 @@ export class McpApprovalsService extends BaseService<
     approval: Pick<McpApproval, 'arguments' | 'organizationId'>,
   ): Promise<{ brandSlug: string | null; organizationSlug: string | null }> {
     const args = isRecord(approval.arguments) ? approval.arguments : {};
+    // A scheduled release batch names its brand on its first release.
+    const firstRelease = Array.isArray(args.releases) ? args.releases[0] : null;
     const brandId =
       typeof args.brandId === 'string' && args.brandId.length > 0
         ? args.brandId
-        : null;
+        : isRecord(firstRelease) &&
+            typeof firstRelease.brandId === 'string' &&
+            firstRelease.brandId.length > 0
+          ? firstRelease.brandId
+          : null;
     const [organization, brand] = await Promise.all([
       this.prisma.organization.findFirst({
         select: { slug: true },

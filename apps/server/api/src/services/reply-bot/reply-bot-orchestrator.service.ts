@@ -966,7 +966,6 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
                   : undefined,
               limit: 50,
               organizationId,
-              preferOfficialApi: true,
             },
           );
           return rows.map((comment) => ({

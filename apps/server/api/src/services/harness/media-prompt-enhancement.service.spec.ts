@@ -29,6 +29,13 @@ import {
 } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
+const SNAPSHOT_VOICE = {
+  audience: [],
+  avoid: [],
+  messagingPillars: [],
+  values: [],
+};
+
 function setup(enabled = true) {
   const settings = {
     get: vi.fn().mockResolvedValue({ isEnabled: enabled, source: 'brand' }),
@@ -66,10 +73,17 @@ function setup(enabled = true) {
     preview: vi.fn().mockResolvedValue({
       revisionId: 'revision-approved',
       revisionVersion: 3,
+      generationRules: {},
+      identity: { name: 'Brand' },
+      voice: SNAPSHOT_VOICE,
     }),
-    previewProvisional: vi
-      .fn()
-      .mockResolvedValue({ revisionId: 'revision-draft', revisionVersion: 4 }),
+    previewProvisional: vi.fn().mockResolvedValue({
+      generationRules: {},
+      identity: { name: 'Brand' },
+      revisionId: 'revision-draft',
+      revisionVersion: 4,
+      voice: SNAPSHOT_VOICE,
+    }),
   };
   return {
     logger,
@@ -612,7 +626,7 @@ describe('MediaPromptEnhancementService', () => {
     });
   });
 
-  it('folds existing harness guidance locally without sending it to the text enhancer', async () => {
+  it('hands the media brand brief to the text enhancer and records it on the receipt', async () => {
     const { service, harness, promptEnhancement } = setup();
     const privateGuidance = 'Private brand rendering guidance';
     harness.resolveBrief.mockResolvedValue({
@@ -642,13 +656,106 @@ describe('MediaPromptEnhancementService', () => {
       brandId: 'selected-brand',
       userPrompt: input.prompt.trim(),
       subjectRule: brandOfferingSubjectLock('unknown'),
+      brandBrief: expect.stringContaining(`- ${privateGuidance}.`),
       contentType: 'video',
       model: input.model,
     });
-    expect(JSON.stringify(promptEnhancement.enhance.mock.calls)).not.toContain(
-      privateGuidance,
+    expect(receipt.enhancerBrief).toBe(
+      promptEnhancement.enhance.mock.calls[0]?.[0].brandBrief,
     );
     expect(harness.formatBrief).not.toHaveBeenCalled();
+  });
+
+  it('keeps voice and copy rules out of the brief sent to the enhancer', async () => {
+    const { service, harness, promptEnhancement } = setup();
+    harness.resolveBrief.mockResolvedValue({
+      appliedPacks: [],
+      systemDirectives: ['Voice tone: playful and direct.'],
+      styleDirectives: [
+        'Primary color: #ff0000',
+        'Font family: MONTSERRAT_REGULAR',
+        'Soft natural light.',
+      ],
+      guardrails: ['Never show competitor logos.'],
+      sources: [],
+      metadata: { contentType: 'video' },
+    });
+    const receipt = await service.enhance({ ...input, contentType: 'video' });
+    expect(receipt.enhancerBrief).toBe(
+      [
+        'Brand brief for this media (let it shape the look of the scene; never quote it or render it as text):',
+        'Palette: red.',
+        'Look:\n- Soft natural light.',
+        'Avoid:\n- Never show competitor logos.',
+      ].join('\n'),
+    );
+    expect(promptEnhancement.enhance.mock.calls[0]?.[0].brandBrief).toBe(
+      receipt.enhancerBrief,
+    );
+  });
+
+  it('records the approved revision brand voice, without hashtags or taglines', async () => {
+    const { service, snapshots } = setup();
+    snapshots.preview.mockResolvedValue({
+      generationRules: {},
+      identity: { name: 'Acme' },
+      revisionId: 'revision-approved',
+      revisionVersion: 3,
+      voice: {
+        audience: ['founders'],
+        avoid: ['#hashtags'],
+        messagingPillars: ['Ship daily #ship'],
+        tone: 'warm',
+        values: [],
+      },
+    });
+    const receipt = await service.enhance({ ...input, contentType: 'video' });
+    expect(receipt.brandVoice).toBe(
+      'Brand voice for Acme:\nTone: warm\nAudience: founders',
+    );
+  });
+
+  it('tells the enhancer how the approved brand moves in video', async () => {
+    const { service, harness, snapshots } = setup();
+    harness.resolveBrief.mockResolvedValue({
+      appliedPacks: [],
+      guardrails: [],
+      metadata: { contentType: 'video' },
+      sources: [],
+      styleDirectives: [],
+      systemDirectives: [],
+    });
+    snapshots.preview.mockResolvedValue({
+      generationRules: {
+        video: {
+          pacing: { tempo: 'fast' },
+          shotRules: [{ text: 'Open on the product.' }],
+        },
+      },
+      identity: { name: 'Brand' },
+      revisionId: 'revision-approved',
+      revisionVersion: 3,
+      voice: SNAPSHOT_VOICE,
+    });
+    const receipt = await service.enhance({ ...input, contentType: 'video' });
+    expect(receipt.enhancerBrief).toContain(
+      'Pacing: fast.\nShots:\n- Open on the product.',
+    );
+  });
+
+  it('records no brand voice for a snapshot without one', async () => {
+    const { service } = setup();
+    const receipt = await service.enhance({ ...input, contentType: 'video' });
+    expect(receipt).not.toHaveProperty('brandVoice');
+  });
+
+  it('sends no brand brief when the brief has nothing visual', async () => {
+    const { service, promptEnhancement } = setup();
+    const receipt = await service.enhance({ ...input, contentType: 'image' });
+    expect(promptEnhancement.enhance.mock.calls[0]?.[0]).not.toHaveProperty(
+      'brandBrief',
+    );
+    expect(receipt).not.toHaveProperty('enhancerBrief');
   });
   it.each(['image', 'video'] as const)(
     'requests only media-applicable packs for %s prompts',
@@ -713,6 +820,9 @@ describe('MediaPromptEnhancementService', () => {
           preview: vi.fn().mockResolvedValue({
             revisionId: 'revision-approved',
             revisionVersion: 1,
+            generationRules: {},
+            identity: { name: 'Brand' },
+            voice: SNAPSHOT_VOICE,
           }),
         } as never,
         logger as LoggerService,

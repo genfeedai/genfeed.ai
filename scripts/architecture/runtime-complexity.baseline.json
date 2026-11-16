@@ -144,7 +144,7 @@
     "symbol": "AgentAnalyticsToolHandler.getAnalytics"
   },
   {
-    "actual": 1077,
+    "actual": 1074,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts"
@@ -186,7 +186,7 @@
     "symbol": "PromptBuilderService.buildPrompt"
   },
   {
-    "actual": 1060,
+    "actual": 1059,
     "file": "apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts"
@@ -198,7 +198,7 @@
     "symbol": "ImageGenerationHandler.execute"
   },
   {
-    "actual": 238,
+    "actual": 183,
     "file": "apps/server/api/src/services/source-collector/providers/apify-social.provider.ts",
     "metric": "method-lines",
     "symbol": "ApifySocialProvider.collectTimeline"
@@ -252,7 +252,7 @@
     "symbol": "CronIngredientsService.refreshMissingMetadataDimensions"
   },
   {
-    "actual": 1077,
+    "actual": 1032,
     "file": "apps/server/workers/src/services/scheduled-post-delivery.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/workers/src/services/scheduled-post-delivery.service.ts"
@@ -366,19 +366,19 @@
     "symbol": "packages/agent/src/stores/agent-chat.store.ts"
   },
   {
-    "actual": 1540,
+    "actual": 1304,
     "file": "packages/cli/src/commands/admin/index.ts",
     "metric": "file-lines",
     "symbol": "packages/cli/src/commands/admin/index.ts"
   },
   {
-    "actual": 1234,
+    "actual": 1221,
     "file": "packages/contracts/src/api-types/contracts/branded-generation.contract.ts",
     "metric": "file-lines",
     "symbol": "packages/contracts/src/api-types/contracts/branded-generation.contract.ts"
   },
   {
-    "actual": 1618,
+    "actual": 1499,
     "file": "packages/contracts/src/api-types/contracts/channel-capabilities.contract.ts",
     "metric": "file-lines",
     "symbol": "packages/contracts/src/api-types/contracts/channel-capabilities.contract.ts"

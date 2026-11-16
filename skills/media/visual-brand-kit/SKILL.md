@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Create visual identity systems for AI-generated content"
+  tags: branding, visual-identity, design-system, brand-guidelines, ai-art, consistency
+  outputs: text
+  triggers: "create a brand kit; visual brand identity; brand style guide; define brand visuals; brand colors and style; create visual guidelines; brand kit for; visual identity system; design brand kit; brand photography style; prompt presets"
 ---
 
 # Visual Brand Kit

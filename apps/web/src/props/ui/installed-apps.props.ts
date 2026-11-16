@@ -2,7 +2,7 @@ import type { NativeSecondaryAppId } from '@genfeedai/contracts/constants';
 import type { ReactNode } from 'react';
 
 /** Load state of the caller's personal app installations (#5502). */
-export type InstalledAppsStatus = 'loading' | 'ready' | 'error';
+type InstalledAppsStatus = 'loading' | 'ready' | 'error';
 
 export interface InstalledAppsContextValue {
   /** Server-confirmed installations in the current organization. */

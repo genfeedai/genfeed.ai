@@ -20,7 +20,7 @@ export const VOICE_CORPUS_MAX_PASTED = 50;
 /** Longest pasted sample kept, in characters. */
 export const VOICE_CORPUS_MAX_PASTED_LENGTH = 3000;
 /** Real posts quoted into the drafting prompt. */
-export const VOICE_PROMPT_SAMPLE_LIMIT = 40;
+const VOICE_PROMPT_SAMPLE_LIMIT = 40;
 /** Longest single sample quoted into the prompt. */
 const VOICE_PROMPT_SAMPLE_CHARS = 600;
 
@@ -333,9 +333,7 @@ export function pickPromptSamples(
 }
 
 /** Numbered, verbatim sample block for the drafting prompt. */
-export function formatPromptSamples(
-  samples: readonly IBrandVoiceSample[],
-): string {
+function formatPromptSamples(samples: readonly IBrandVoiceSample[]): string {
   return samples
     .map((sample, index) => {
       const meta = [

@@ -5,8 +5,25 @@
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/storage": "workspace:*",
+    "@nestjs/bullmq": "12.0.2",
+    "@nestjs/common": "12.5.0",
+    "@nestjs/core": "12.5.0",
+    "@nestjs/platform-express": "12.5.0",
+    "@nestjs/platform-socket.io": "12.5.0",
+    "@nestjs/websockets": "12.5.0",
+    "@sentry/nestjs": "11.12.0",
+    "@socket.io/redis-adapter": "8.3.0",
+    "bullmq": "6.7.6",
+    "dotenv": "18.0.10",
+    "express": "5.3.0",
+    "ioredis": "6.0.0",
+    "joi": "18.3.2",
     "jose": "^6.2.17",
-    "@genfeedai/contracts": "workspace:*"
+    "@genfeedai/contracts": "workspace:*",
+    "nest-winston": "2.0.0",
+    "reflect-metadata": "0.2.2",
+    "socket.io": "4.8.4",
+    "winston": "3.19.0"
   },
   "description": "Shared backend library modules and infrastructure helpers for Genfeed server applications",
   "exports": {
@@ -23,9 +40,12 @@
     "test": "vitest run --config vitest.config.ts",
     "test:cov": "vitest run --coverage --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",
-    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit -p tsconfig.json"
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && bun check --no-script -p tsconfig.json"
   },
   "sideEffects": false,
   "type": "module",
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "devDependencies": {
+    "socket.io-client": "4.8.4"
+  }
 }

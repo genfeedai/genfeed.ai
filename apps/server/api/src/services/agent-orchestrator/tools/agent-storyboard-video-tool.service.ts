@@ -68,7 +68,7 @@ function renderSummary(render: StoryboardShotRender | undefined) {
  * revision, each shot with its still, draft and final, the asset bible, and
  * what is still generating.
  */
-export function summarizeVideoRun(run: StoryboardRun) {
+function summarizeVideoRun(run: StoryboardRun) {
   const { config } = run;
   const renders = config.shotRenders ?? [];
   const render = (shotId: string, stage: 'draft' | 'final') =>

@@ -158,11 +158,7 @@ export default function FeaturesPage(): React.ReactElement {
                 </figure>
               ))}
             </div>
-            <div className="mt-12 flex flex-wrap items-center justify-between gap-6 border-t border-foreground/10 pt-8">
-              <p className="max-w-xl text-sm leading-6 text-foreground/60">
-                Model availability is read from the live registry. The website
-                does not maintain a model-name list in marketing copy.
-              </p>
+            <div className="mt-12 flex flex-wrap items-center justify-end gap-6 border-t border-foreground/10 pt-8">
               <Button
                 asChild
                 variant={ButtonVariant.SECONDARY}

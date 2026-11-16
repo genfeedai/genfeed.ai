@@ -83,17 +83,14 @@ export type AnalyticsOutcome = 'failure' | 'success';
 export type NavigationBlockedOutcome = 'abandoned' | 'committed';
 
 /** Expert Path onboarding steps tracked by the funnel. */
-export type ExpertOnboardingAnalyticsStep =
-  | 'positioning'
-  | 'corpus'
-  | 'first-system';
+type ExpertOnboardingAnalyticsStep = 'positioning' | 'corpus' | 'first-system';
 
 /** Whether an Expert Path step was finished or deferred to a workspace task. */
-export type ExpertOnboardingAnalyticsAction = 'completed' | 'skipped';
+type ExpertOnboardingAnalyticsAction = 'completed' | 'skipped';
 
-export type ClipperAnalyticsFlow = 'quick' | 'review';
-export type ClipperAnalyticsMode = 'avatar' | 'raw-cut';
-export type ClipperAnalyticsSourceKind = 'library' | 'upload' | 'youtube';
+type ClipperAnalyticsFlow = 'quick' | 'review';
+type ClipperAnalyticsMode = 'avatar' | 'raw-cut';
+type ClipperAnalyticsSourceKind = 'library' | 'upload' | 'youtube';
 
 export type ConnectGenfeedStep =
   | 'client_selected'
@@ -105,28 +102,28 @@ export type ConnectGenfeedStep =
   | 'verification';
 
 /** The public signup method the user selected. */
-export type SignupMethod = 'google' | 'magic_link' | 'password';
+type SignupMethod = 'google' | 'magic_link' | 'password';
 
 /** The checkout branch created from the onboarding handoff. */
 export type CheckoutKind = 'credits' | 'managed_credits' | 'plan';
 
 /** Bounded source marker for the funnel handoff being tracked. */
-export type FunnelHandoffSource = 'post_signup' | 'stripe_return';
+type FunnelHandoffSource = 'post_signup' | 'stripe_return';
 
 /** Content surface counted as activation after a successful publish. */
-export type ActivationSurface = 'newsletter';
+type ActivationSurface = 'newsletter';
 
 /**
  * Which generation path produced a compose-surface draft. Desktop paths run
  * over the local IPC bridge; the cloud path (no source) generates server-side.
  */
-export type PromptGeneratedSource = 'desktop-ipc' | 'desktop-ipc-fallback';
+type PromptGeneratedSource = 'desktop-ipc' | 'desktop-ipc-fallback';
 
 /** Which studio editor surface was opened — the project index or the canvas. */
-export type StudioEditorSurface = 'canvas' | 'index';
+type StudioEditorSurface = 'canvas' | 'index';
 
 /** Bounded workflow execution surface; node-level runs stay intentionally out. */
-export type WorkflowRunType = 'batch' | 'editor';
+type WorkflowRunType = 'batch' | 'editor';
 
 export type ConversationShellState = 'canvas' | 'conversation' | 'overlay';
 
@@ -143,7 +140,7 @@ export type ConversationShellRestorationFailureReason =
   | 'invalid_overlay'
   | 'invalid_thread';
 
-export type ConversationShellDeploymentMode =
+type ConversationShellDeploymentMode =
   | 'community'
   | 'desktop_cloud'
   | 'desktop_self_hosted'

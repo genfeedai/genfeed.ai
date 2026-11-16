@@ -1,11 +1,12 @@
+import { MAX_INSTRUCTIONS_PER_SKILL } from '@api/services/skill-runtime/skill-runtime.service';
 import { AgentType } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
-
 import {
   DEFAULT_FIRST_PARTY_SKILL_SLUGS,
   isDefaultFirstPartySkillSlug,
   resolveDefaultFirstPartySkillSlugs,
 } from './default-first-party-skills';
+import { loadFirstPartySkillDefinitions } from './first-party-skill-loader';
 
 describe('resolveDefaultFirstPartySkillSlugs', () => {
   it('packs image-prompt-engineer and model-selector for image generation', () => {
@@ -23,7 +24,27 @@ describe('resolveDefaultFirstPartySkillSlugs', () => {
         agentType: AgentType.VIDEO_CREATOR,
         modality: 'video',
       }),
-    ).toEqual(['model-selector', 'image-prompt-engineer', 'clip-editor']);
+    ).toEqual(['model-selector', 'cinematic-prompting', 'clip-editor']);
+  });
+
+  it.each([
+    ['audio', ['model-selector']],
+    ['image', ['image-prompt-engineer', 'model-selector']],
+    ['video', ['model-selector', 'cinematic-prompting']],
+  ])('pins the %s modality defaults', (modality, expected) => {
+    expect(resolveDefaultFirstPartySkillSlugs({ modality })).toEqual(expected);
+  });
+
+  it('never steers a video prompt with the image prompt skill', () => {
+    expect(
+      resolveDefaultFirstPartySkillSlugs({ modality: 'video' }),
+    ).not.toContain('image-prompt-engineer');
+    expect(
+      resolveDefaultFirstPartySkillSlugs({
+        agentType: AgentType.VIDEO_CREATOR,
+        modality: 'video',
+      }),
+    ).not.toContain('image-prompt-engineer');
   });
 
   it('gives the AI avatar agent the clip editor, since it can edit clips too', () => {
@@ -96,5 +117,31 @@ describe('resolveDefaultFirstPartySkillSlugs', () => {
       }
     }
     expect(isDefaultFirstPartySkillSlug('hook-writer')).toBe(false);
+  });
+
+  it.each([
+    ['video', ['model-selector', 'cinematic-prompting']],
+    ['audio', ['model-selector']],
+  ])(
+    'ships every %s default in the catalog and under the per-skill limit',
+    (modality, slugs) => {
+      const catalog = loadFirstPartySkillDefinitions();
+      for (const slug of slugs) {
+        const skill = catalog.find((definition) => definition.slug === slug);
+        expect(skill?.instructions.length).toBeGreaterThan(0);
+        expect(skill?.instructions.length).toBeLessThanOrEqual(
+          MAX_INSTRUCTIONS_PER_SKILL,
+        );
+      }
+      expect(resolveDefaultFirstPartySkillSlugs({ modality })).toEqual(slugs);
+    },
+  );
+
+  it('carries the video skills of the pinned skills repository', () => {
+    const slugs = loadFirstPartySkillDefinitions().map(
+      (definition) => definition.slug,
+    );
+    expect(slugs).toContain('motion-video');
+    expect(slugs).toContain('video-brand-profile');
   });
 });

@@ -251,7 +251,7 @@ describe('ToolRegistryService.getDiscoverableTools', () => {
   });
 });
 
-it('lists the real mixed default with canonical wrappers inside the 28-tool bare-URL cap', async () => {
+it('lists the real mixed default with canonical wrappers inside the 30-tool bare-URL cap', async () => {
   const actual =
     await vi.importActual<typeof import('@genfeedai/actions')>(
       '@genfeedai/actions',
@@ -266,6 +266,8 @@ it('lists the real mixed default with canonical wrappers inside the 28-tool bare
   expect(maximum.getTools()).toHaveLength(actual.BARE_MCP_URL_TOOL_CAP);
   const listed = names(user.getTools());
   expect(listed).toContain('check_channel');
+  expect(listed).toContain('get_trends');
+  expect(listed).toContain('get_analytics');
   expect(listed).toContain('upload_media');
   for (const name of [
     'get_scheduler_capabilities',

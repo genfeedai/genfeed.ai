@@ -139,7 +139,7 @@ export class GenerateClipsDto {
   readonly avatarProvider?: SupportedAvatarVideoProviderName;
 }
 
-export const HOOK_CLIPPER_DECISIONS = HOOK_CLIPPER_APPROVAL_ACTIONS;
+const HOOK_CLIPPER_DECISIONS = HOOK_CLIPPER_APPROVAL_ACTIONS;
 
 export type HookClipDecision = HookClipApprovalAction;
 

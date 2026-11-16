@@ -143,7 +143,8 @@ export class ClientService {
   private readonly clipper: ClipperClient;
   private readonly editor: EditorClient;
   private readonly workspaceApp: WorkspaceAppClient;
-  private readonly scheduler: SchedulerClient;
+  /** The scheduler proxy; release batches (#10134) call it directly. */
+  readonly scheduler: SchedulerClient;
   private readonly campaigns: CampaignClient;
   private readonly presets: PresetsClient;
   private readonly models3d: Models3dClient;

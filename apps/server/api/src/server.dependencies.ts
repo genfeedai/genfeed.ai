@@ -217,7 +217,7 @@ export interface ServerBrandMemorySync {
   ): Promise<void>;
 }
 
-export interface ServerPostAnalyticsRecord {
+interface ServerPostAnalyticsRecord {
   brandId: string | null;
   clicks: number | null;
   date: Date | string | number;
@@ -231,23 +231,6 @@ export interface ServerPostAnalyticsRecord {
   totalShares: number | null;
   totalViews: number | null;
   userId: string | null;
-}
-
-export interface ServerPostRecord {
-  category: string | null;
-  contentRunId: string | null;
-  creativeVersion: string | null;
-  description: string | null;
-  externalId: string | null;
-  generationId: string | null;
-  hookVersion: string | null;
-  id: string;
-  label: string | null;
-  personaId: string | null;
-  publicationDate: Date | null;
-  publishIntent: string | null;
-  scheduleSlot: string | null;
-  variantId: string | null;
 }
 
 export interface ServerPrisma {

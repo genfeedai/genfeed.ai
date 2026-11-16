@@ -1,0 +1,20 @@
+{
+  "name": "video-brand-profile",
+  "version": "1.0.0",
+  "description": "Define and apply a reusable video brand profile: signature placement, caption font and position, thumbnail rules and export sizes",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "video brand profile",
+    "where does the logo go",
+    "caption font and position",
+    "video brand kit",
+    "thumbnail style rules",
+    "channel visual identity for video"
+  ],
+  "references": {
+    "ship-shit-show.profile.json": "Complete worked example"
+  },
+  "outputs": ["json", "markdown"],
+  "tags": ["video", "branding", "captions", "thumbnails", "logo", "youtube", "tiktok"]
+}

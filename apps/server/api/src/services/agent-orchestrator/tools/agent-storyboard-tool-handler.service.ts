@@ -376,7 +376,7 @@ export class AgentStoryboardToolHandler {
  * What chat needs to take the next step: the revision to send back, and the
  * script with the segment and cutaway ids that edits, quotes and renders name.
  */
-export function summarizeRun(run: StoryboardRun) {
+function summarizeRun(run: StoryboardRun) {
   const { config } = run;
   const longForm = config.plan.longForm;
   return {

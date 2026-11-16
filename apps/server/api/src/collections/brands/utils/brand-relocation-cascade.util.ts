@@ -125,7 +125,7 @@ interface OrgOnlyChildCandidate {
 
 const SQL_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-export async function findUnhandledOrgOnlyChildren(
+async function findUnhandledOrgOnlyChildren(
   tx: Prisma.TransactionClient,
   brandId: string,
   destOrgId: string,

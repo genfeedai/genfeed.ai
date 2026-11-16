@@ -32,7 +32,7 @@ export function resolvePublishingTimezone(
   }
 }
 
-export function defaultPlatformVisibility(
+function defaultPlatformVisibility(
   platform: CredentialPlatform,
 ): PostVisibility {
   return platform === CredentialPlatform.YOUTUBE

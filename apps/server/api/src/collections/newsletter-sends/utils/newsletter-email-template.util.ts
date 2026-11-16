@@ -22,7 +22,7 @@ const MARKDOWN_RULE_PATTERN = /^(?:-{3,}|\*{3,}|_{3,})\s*$/gm;
 const EXCESS_BLANK_LINES_PATTERN = /\n{3,}/g;
 const PARAGRAPH_SPLIT_PATTERN = /\n\s*\n/;
 
-export const UNSUBSCRIBE_PLACEHOLDER = '{{unsubscribeUrl}}';
+const UNSUBSCRIBE_PLACEHOLDER = '{{unsubscribeUrl}}';
 
 /** Web-safe stack: mail clients do not load brand web fonts reliably. */
 const EMAIL_FONT_STACK =

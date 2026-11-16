@@ -106,6 +106,7 @@ export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/publishing/approvals',
   '/:orgSlug/~/publishing/approvals/:run',
   '/:orgSlug/~/publishing/approvals/:run/:item',
+  '/:orgSlug/~/publishing/batches/:approvalId',
   '/:orgSlug/~/publishing/campaigns',
   '/:orgSlug/~/publishing/campaigns/new',
   '/:orgSlug/~/publishing/campaigns/compare',

@@ -42,7 +42,7 @@ export function normalizeApiRoute(rawUrl: string): string {
     .join('/')}`;
 }
 
-export function isSentryPerformanceMetricsEnabled(
+function isSentryPerformanceMetricsEnabled(
   configService: PerformanceConfig,
 ): boolean {
   return (

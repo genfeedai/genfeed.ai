@@ -2,8 +2,10 @@ import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import {
   ActivityEntityModel,
   ActivityKey,
+  PublishErrorKind,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { PublishError } from '@genfeedai/contracts/interfaces';
 import {
   createChannelTargetError,
   createFailedPublishResult,
@@ -13,6 +15,7 @@ import {
   getPublishErrorMessage,
   isAmbiguousPublishError,
   isRetryablePublishError,
+  toPublishFailureCause,
 } from '@workers/crons/posts/post-publish-error.util';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -69,6 +72,57 @@ describe('post publish error policy', () => {
     [new Error('Provider rejected the payload'), 'provider_error'],
   ])('normalizes %p to error code %s', (error, expected) => {
     expect(getPublishErrorCode(error)).toBe(expected);
+  });
+
+  describe('a failure that carries a kind', () => {
+    it.each([
+      [PublishErrorKind.RATE_LIMITED, true, false, 'rate_limited'],
+      [PublishErrorKind.RETRY_LATER, true, false, 'provider_unavailable'],
+      [PublishErrorKind.OUTCOME_UNKNOWN, true, true, 'outcome_unknown'],
+      [PublishErrorKind.TOKEN_MUST_REFRESH, false, false, 'token_must_refresh'],
+      [PublishErrorKind.CONTENT_REJECTED, false, false, 'content_rejected'],
+      [
+        PublishErrorKind.CHANNEL_DISCONNECTED,
+        false,
+        false,
+        'channel_disconnected',
+      ],
+    ])(
+      '%s: retryable %s, outcome unknown %s, code %s',
+      (kind, isRetryable, isAmbiguous, code) => {
+        const error = new PublishError(kind, 'Provider said no');
+
+        expect(isRetryablePublishError(error)).toBe(isRetryable);
+        expect(isAmbiguousPublishError(error)).toBe(isAmbiguous);
+        expect(getPublishErrorCode(error)).toBe(code);
+      },
+    );
+
+    it('is not misread from fragments in the provider message', () => {
+      const rejected = new PublishError(
+        PublishErrorKind.CONTENT_REJECTED,
+        'Caption is longer than 500 characters; the request timed out the validator',
+        { httpStatus: 400 },
+      );
+
+      expect(isRetryablePublishError(rejected)).toBe(false);
+      expect(isAmbiguousPublishError(rejected)).toBe(false);
+      expect(getPublishErrorCode(rejected)).toBe('content_rejected');
+    });
+
+    it('classifies a returned failure from its kind, not its message', () => {
+      const cause = toPublishFailureCause({
+        error: 'Caption is longer than 500 characters',
+        errorKind: PublishErrorKind.CONTENT_REJECTED,
+        executionState: TargetExecutionState.FAILED,
+        externalId: null,
+        platform: 'twitter',
+        success: false,
+        url: '',
+      });
+
+      expect(isRetryablePublishError(cause)).toBe(false);
+    });
   });
 
   it('normalizes thrown values to the existing publish error message', () => {
@@ -148,5 +202,44 @@ describe('post publish error policy', () => {
       userId: 'user-1',
       value: 'Provider failed',
     });
+  });
+
+  it('writes the failure email: the post, the channel and why', () => {
+    const post = new PostEntity({
+      brandId: 'brand-1',
+      description: '<p>Shipped the   weekly batch</p>',
+      id: 'post-1',
+      organizationId: 'org-1',
+      platform: 'twitter',
+      userId: 'user-1',
+    });
+
+    expect(createPublishFailedActivity(post, 'Provider failed').alert).toEqual({
+      payload: {
+        event: 'post_failed',
+        kind: 'alert_email',
+        label: 'Shipped the weekly batch',
+        summary: 'It was not published to twitter: Provider failed',
+        version: 1,
+      },
+    });
+  });
+
+  it('shortens a long post and a long reason in the failure email', () => {
+    const post = new PostEntity({
+      description: 'x'.repeat(200),
+      id: 'post-1',
+      organizationId: 'org-1',
+      platform: 'twitter',
+      userId: 'user-1',
+    });
+
+    const payload = createPublishFailedActivity(post, 'y'.repeat(500)).alert
+      ?.payload as { label: string; summary: string };
+
+    expect(payload.label).toBe(`${'x'.repeat(79)}…`);
+    expect(payload.summary).toBe(
+      `It was not published to twitter: ${'y'.repeat(300)}`,
+    );
   });
 });

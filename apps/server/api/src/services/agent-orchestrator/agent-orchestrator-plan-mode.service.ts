@@ -224,6 +224,7 @@ export class AgentOrchestratorPlanModeService {
       await this.contextService.resolveThreadMessages(
         params.threadId,
         params.context.organizationId,
+        params.context.scope,
       );
     const history = this.contextService.buildMessageHistory(
       recentMessages,

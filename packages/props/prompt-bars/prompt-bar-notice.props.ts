@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export type PromptBarNoticeTone = 'error' | 'info';
+type PromptBarNoticeTone = 'error' | 'info';
 
 export interface PromptBarNoticeProps {
   children: ReactNode;

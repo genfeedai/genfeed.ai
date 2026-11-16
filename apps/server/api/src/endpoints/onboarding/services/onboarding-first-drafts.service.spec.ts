@@ -49,7 +49,11 @@ describe('OnboardingFirstDraftsService', () => {
   const postGeneration = { generateDraftText: vi.fn() };
   const signupPrefill = { scanBrandUrl: vi.fn() };
   const gateway = { generateImage: vi.fn() };
-  const runs = { execute: vi.fn(), retryMedia: vi.fn() };
+  const runs = {
+    execute: vi.fn(),
+    retryMedia: vi.fn(),
+    rewriteDraft: vi.fn(),
+  };
   const voiceCorpus = { buildCorpus: vi.fn() };
 
   let service: OnboardingFirstDraftsService;
@@ -150,6 +154,69 @@ describe('OnboardingFirstDraftsService', () => {
         reason: 'invalid_url',
         status: 'failed',
       });
+    });
+  });
+
+  describe('rewriteDraft', () => {
+    const previous = {
+      isProvisional: false,
+      platform: 'linkedin' as const,
+      postId: 'post_old',
+      receiptId: 'receipt_old',
+      requestKey: 'key_old',
+      text: 'The post we wrote the first time',
+    };
+
+    it('writes a different post for that channel, linked to the one it replaces', async () => {
+      runs.rewriteDraft.mockImplementation(
+        async (_user, _brand, _platform, write) => write(previous),
+      );
+
+      const draft = await service.rewriteDraft(user, 'brand_1', 'linkedin');
+
+      expect(draft).toMatchObject({
+        platform: 'linkedin',
+        postId: 'post_1',
+        receiptId: 'receipt_1',
+        text: 'linkedin draft',
+      });
+      const [input, , , options] =
+        postGeneration.generateDraftText.mock.calls[0];
+      expect(input.platform).toBe('linkedin');
+      expect(input.prompt).toContain('Write a LinkedIn post');
+      expect(input.prompt).toContain(
+        'Earlier draft:\nThe post we wrote the first time',
+      );
+      expect(options).toMatchObject({
+        parentRequestId: 'key_old',
+        surface: 'onboarding',
+      });
+      expect(postGeneration.generateDraftText).toHaveBeenCalledTimes(1);
+    });
+
+    it('writes a channel that had no post without an earlier draft to avoid', async () => {
+      runs.rewriteDraft.mockImplementation(
+        async (_user, _brand, _platform, write) => write(undefined),
+      );
+
+      await service.rewriteDraft(user, 'brand_1', 'twitter');
+
+      const [input, , , options] =
+        postGeneration.generateDraftText.mock.calls[0];
+      expect(input.prompt).not.toContain('Earlier draft');
+      expect(options.parentRequestId).toBeUndefined();
+    });
+
+    it('stops with not found when the brand is gone', async () => {
+      brandsService.findOne.mockResolvedValue(null);
+      runs.rewriteDraft.mockImplementation(
+        async (_user, _brand, _platform, write) => write(previous),
+      );
+
+      await expect(
+        service.rewriteDraft(user, 'brand_1', 'linkedin'),
+      ).rejects.toThrow('Brand');
+      expect(postGeneration.generateDraftText).not.toHaveBeenCalled();
     });
   });
 
@@ -392,6 +459,37 @@ describe('OnboardingFirstDraftsService', () => {
       );
     });
 
+    it('draws the image in the colours the brand chose, as words', async () => {
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        description: 'Scheduling for creators',
+        label: 'Acme',
+        primaryColor: '#1F6FEB',
+        secondaryColor: '#0D1117',
+      });
+
+      await service.generate(user, 'brand_1', {});
+
+      const [input] = vi.mocked(buildFirstRunOnboardingImageBody).mock.calls[0];
+      expect(input.slots?.style).toContain('blue and black color palette');
+      expect(JSON.stringify(input)).not.toContain('#1F6FEB');
+    });
+
+    it('ignores the default black and white a brand keeps until it picks colours', async () => {
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        description: 'Scheduling for creators',
+        label: 'Acme',
+        primaryColor: '#000000',
+        secondaryColor: '#FFFFFF',
+      });
+
+      await service.generate(user, 'brand_1', {});
+
+      const [input] = vi.mocked(buildFirstRunOnboardingImageBody).mock.calls[0];
+      expect(input.slots?.style).not.toContain('palette');
+    });
+
     it('is partial when the image fails', async () => {
       gateway.generateImage.mockRejectedValue(new Error('no key'));
 
@@ -631,6 +729,37 @@ describe('OnboardingFirstDraftsService', () => {
             status: 'ready',
           }),
         },
+      ]);
+    });
+
+    it('reports nothing for a replayed run that never generated', async () => {
+      runs.execute.mockResolvedValue({
+        drafts: [],
+        imageIngredientId: null,
+        imageUrl: null,
+        requestKey: null,
+        status: 'ready',
+      });
+
+      await reporting.generate(user, 'brand_1', {});
+
+      expect(events).toEqual([]);
+    });
+
+    it('reports a run whose final save fails as failed', async () => {
+      runs.execute.mockImplementation(
+        async (_user, _brand, _previous, generate) => {
+          await generate(vi.fn());
+          throw new Error('final save failed');
+        },
+      );
+
+      await expect(reporting.generate(user, 'brand_1', {})).rejects.toThrow(
+        'final save failed',
+      );
+
+      expect(events.map((event) => event.properties?.status)).toEqual([
+        'failed',
       ]);
     });
 

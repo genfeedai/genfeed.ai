@@ -14,7 +14,7 @@ import { readPersistedStudioReferencePreviewUrl } from './studio-reference-previ
 
 export const STUDIO_PLAYGROUND_SESSION_KEY =
   'genfeed.studio.generate.session.v1';
-export const STUDIO_PLAYGROUND_SESSION_LIMIT = 48;
+const STUDIO_PLAYGROUND_SESSION_LIMIT = 48;
 
 const SESSION_STATUSES = new Set<string>(Object.values(IngredientStatus));
 
@@ -202,7 +202,7 @@ function writeSessionStore(store: Record<string, unknown>): void {
   }
 }
 
-export function serializeStudioPlaygroundSessionJob(
+function serializeStudioPlaygroundSessionJob(
   job: StudioPlaygroundJob,
 ): StudioPlaygroundJob {
   const referencePreviewUrl = readPersistedStudioReferencePreviewUrl(

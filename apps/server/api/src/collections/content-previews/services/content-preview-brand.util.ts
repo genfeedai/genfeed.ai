@@ -49,7 +49,7 @@ function sameValue(left: unknown, right: unknown): boolean {
  * reviewed before the accepted list was recorded fall back to the fields whose
  * brand value still equals the reviewed draft's proposal.
  */
-export function reviewedContextFields(
+function reviewedContextFields(
   preparation: IWarmupPreparation | undefined,
   brandValues: Partial<Record<BrandKitFieldKey, unknown>>,
 ): Set<BrandKitFieldKey> {

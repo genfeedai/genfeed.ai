@@ -80,10 +80,10 @@ const RESERVED_GLOBAL_ROOT_SEGMENTS = new Set(
  * conversation already loaded.
  */
 export const AGENT_VIEW_PARAM = 'view';
-export const AGENT_FULL_VIEW = 'full';
+const AGENT_FULL_VIEW = 'full';
 
 /** Whether the search params ask for the one full-width conversation. */
-export function isAgentFullView(
+function isAgentFullView(
   searchParams: Pick<URLSearchParams, 'get'> | null | undefined,
 ): boolean {
   return searchParams?.get(AGENT_VIEW_PARAM) === AGENT_FULL_VIEW;

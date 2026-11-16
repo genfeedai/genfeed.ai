@@ -42,5 +42,3 @@ export interface CacheConfig extends CacheOptions {
    */
   namespace?: string;
 }
-
-export type { ServiceCacheOptions } from '@api/services/cache/cache.service';

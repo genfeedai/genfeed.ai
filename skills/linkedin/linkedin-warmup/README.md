@@ -1,12 +1,14 @@
 # LinkedIn Warmup Skill
 
-Evidence-aware LinkedIn account warmup: profile completion, comment-first engagement, a first value-first story post, and a post-warmup assessment before promotional content.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Guide LinkedIn account warmup with engagement plans, SSI-building strategy, comment-first content, and post-warmup assessment
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill linkedin-warmup
 ```
+<!-- generated:end -->
 
 ## Usage
 

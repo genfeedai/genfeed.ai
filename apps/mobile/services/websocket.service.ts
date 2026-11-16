@@ -8,7 +8,7 @@ const PING_INTERVAL_MS = 30000;
 const MAX_RECONNECT_ATTEMPTS = 5;
 const BASE_RECONNECT_DELAY_MS = 1000;
 
-export type WebSocketMessageType =
+type WebSocketMessageType =
   | 'approval_request'
   | 'approval_updated'
   | 'content_ready'

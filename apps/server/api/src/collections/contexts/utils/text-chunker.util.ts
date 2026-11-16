@@ -2,7 +2,7 @@ const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
 export const DEFAULT_KNOWLEDGE_SOURCE_CHUNK_SIZE = 1000;
 export const DEFAULT_KNOWLEDGE_SOURCE_CHUNK_OVERLAP = 200;
-export const DEFAULT_KNOWLEDGE_SOURCE_MAX_CHUNKS = 200;
+const DEFAULT_KNOWLEDGE_SOURCE_MAX_CHUNKS = 200;
 
 export interface ChunkTextOptions {
   maxChunks?: number;

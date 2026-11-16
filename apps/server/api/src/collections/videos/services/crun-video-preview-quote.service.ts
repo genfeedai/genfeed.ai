@@ -5,7 +5,6 @@ import type { CrunVideoQuoteIntent } from '@api/collections/videos/dto/create-cr
 import { CrunVideoInputService } from '@api/collections/videos/services/crun-video-input.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import {
-  type CrunConsumedQuoteOf,
   CrunPreviewQuoteLifecycle,
   type CrunQuoteTaskRow,
 } from '@api/services/integrations/crun/crun-preview-quote-lifecycle';
@@ -17,8 +16,6 @@ import { ModelCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
-
-export type CrunConsumedVideoQuote = CrunConsumedQuoteOf<CrunFrozenVideoQuote>;
 
 @Traced()
 @Injectable()

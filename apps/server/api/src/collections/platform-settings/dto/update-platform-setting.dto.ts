@@ -560,6 +560,11 @@ export class UpdatePlatformSettingDto {
   )
   readonly isEmailVerificationRequired?: boolean;
 
+  @SwitchProperty(
+    'New accounts need an invitation or an approved waitlist entry. Existing users sign in as usual.',
+  )
+  readonly isSignupInviteOnly?: boolean;
+
   @ApiProperty({
     description:
       'Module and feature flags to change (#5468), e.g. `{"studio":false}`. Omitted flags keep their value.',

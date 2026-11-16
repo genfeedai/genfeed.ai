@@ -34,7 +34,7 @@ const POLL_INTERVAL_MS = 2_000;
  * prediction is still `starting`. One prediction waits this long; the analysis
  * runs in a background job (`brand-vision` queue), never on a request.
  */
-export const BRAND_VISION_PREDICTION_TIMEOUT_MS = 300_000;
+const BRAND_VISION_PREDICTION_TIMEOUT_MS = 300_000;
 const MAX_POLLS = BRAND_VISION_PREDICTION_TIMEOUT_MS / POLL_INTERVAL_MS;
 const CACHE_LIMIT = 256;
 const OCR_TASK = 'OCR';

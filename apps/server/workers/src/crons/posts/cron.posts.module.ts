@@ -27,6 +27,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
+import { CronManualPostRemindersService } from '@workers/crons/posts/cron.manual-post-reminders.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
@@ -35,6 +36,7 @@ import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-d
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
+import { ScheduledPostSweepLockService } from '@workers/services/scheduled-post-sweep-lock.service';
 import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-delivery.service';
@@ -58,18 +60,21 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
     forwardRef(() => WorkflowsModule),
   ],
   exports: [
+    CronManualPostRemindersService,
     CronPostsService,
     ScheduledPostWorkflowService,
     ThreadCommentDeliveryService,
   ],
   providers: [
     AgentArtifactReferenceService,
+    CronManualPostRemindersService,
     CronPostsService,
     PostRepeatSchedulerService,
     ScheduledPostDeliveryService,
     ScheduledPostDiscoveryService,
     ScheduledPostExecutionGuardService,
     ScheduledPostFailureService,
+    ScheduledPostSweepLockService,
     ScheduledPostWorkflowQueueService,
     ScheduledPostWorkflowService,
     ThreadCommentDeliveryService,

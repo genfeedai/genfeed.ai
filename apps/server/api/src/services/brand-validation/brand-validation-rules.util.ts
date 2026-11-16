@@ -4,9 +4,7 @@ import type {
   BrandIdentitySnapshotV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 
-export function countBrandValidationRules(
-  snapshot: BrandIdentitySnapshotV1,
-): number {
+function countBrandValidationRules(snapshot: BrandIdentitySnapshotV1): number {
   const rules = snapshot.generationRules;
   return (
     rules.facts.length +

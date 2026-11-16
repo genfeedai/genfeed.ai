@@ -93,6 +93,7 @@ import { TurboRewriteProcessor } from '@workers/processors/api/queues/turbo-rewr
 import { WebhookClientProcessor } from '@workers/processors/api/services/webhook-client/webhook-client.processor';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 import { AdsServicesModule } from '@workers/services/ads-services.module';
+import { PublishProviderGateService } from '@workers/services/publish-provider-gate.service';
 import { SocialIntegrationsModule } from '@workers/services/social-integrations.module';
 
 @Module({
@@ -192,6 +193,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     BackgroundSystemWorkflowProcessor,
     AgentTurnWorkflowProcessor,
     ScheduledPublishWorkflowProcessor,
+    PublishProviderGateService,
   ],
 })
 export class ProcessorsModule {}

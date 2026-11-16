@@ -424,6 +424,135 @@ describe('TwitterService (coverage)', () => {
         expect(activitiesService.record).not.toHaveBeenCalled();
       },
     );
+
+    describe('when another refresh of the same credential won', () => {
+      const rejectedGrant = () =>
+        Object.assign(new Error('Request failed with code 400'), {
+          code: 400,
+          data: { error: 'invalid_grant' },
+        });
+
+      it('returns the credential the winning refresh stored and stays connected', async () => {
+        const loaded = makeCredential({ refreshToken: 'enc-rt-0' });
+        const storedByWinner = makeCredential({
+          accessToken: 'winner-access',
+          accessTokenExpiry: new Date(Date.now() + 2 * 60 * 60 * 1000),
+          refreshToken: 'enc-rt-1',
+        });
+        credentialsService.findOne
+          .mockResolvedValueOnce(loaded)
+          .mockResolvedValue(storedByWinner);
+        mockRefreshOAuth2Token.mockRejectedValue(rejectedGrant());
+
+        const result = await service.refreshToken('org', 'brand', 'cred-id');
+
+        expect(result).toBe(storedByWinner);
+        expect(credentialsService.patch).not.toHaveBeenCalled();
+        expect(activitiesService.record).not.toHaveBeenCalled();
+      });
+
+      it('tells the owner by email which account was disconnected and why', async () => {
+        const loaded = makeCredential({
+          externalHandle: '@vincentshipsit',
+          refreshToken: 'enc-rt-0',
+        });
+        credentialsService.findOne.mockResolvedValue(loaded);
+        mockRefreshOAuth2Token.mockRejectedValue(rejectedGrant());
+
+        await expect(
+          service.refreshToken('org', 'brand', 'cred-id'),
+        ).rejects.toThrow();
+
+        expect(activitiesService.record).toHaveBeenCalledWith(
+          expect.objectContaining({
+            alert: {
+              payload: {
+                event: 'channel_disconnected',
+                kind: 'alert_email',
+                label: '@vincentshipsit',
+                summary:
+                  'X refused to renew the connection (Request failed with code 400). Posts scheduled on this account will fail until you reconnect it.',
+                version: 1,
+              },
+            },
+            userId: 'user-id',
+          }),
+        );
+      });
+
+      it('disconnects when the stored credential has not changed', async () => {
+        const loaded = makeCredential({ refreshToken: 'enc-rt-0' });
+        credentialsService.findOne.mockResolvedValue(loaded);
+        const error = rejectedGrant();
+        mockRefreshOAuth2Token.mockRejectedValue(error);
+
+        await expect(
+          service.refreshToken('org', 'brand', 'cred-id'),
+        ).rejects.toBe(error);
+
+        expect(credentialsService.patch).toHaveBeenCalledWith('cred-id', {
+          isConnected: false,
+        });
+        expect(activitiesService.record).toHaveBeenCalledOnce();
+      });
+
+      it('does not record a second disconnect when a peer already disconnected it', async () => {
+        const loaded = makeCredential({ refreshToken: 'enc-rt-0' });
+        credentialsService.findOne
+          .mockResolvedValueOnce(loaded)
+          .mockResolvedValue({ ...loaded, isConnected: false });
+        const error = rejectedGrant();
+        mockRefreshOAuth2Token.mockRejectedValue(error);
+
+        await expect(
+          service.refreshToken('org', 'brand', 'cred-id'),
+        ).rejects.toBe(error);
+
+        expect(credentialsService.patch).not.toHaveBeenCalled();
+        expect(activitiesService.record).not.toHaveBeenCalled();
+      });
+
+      it('shares one provider call between concurrent refreshes in this process', async () => {
+        credentialsService.findOne.mockResolvedValue(
+          makeCredential({ refreshToken: 'enc-rt-0' }),
+        );
+        mockRefreshOAuth2Token.mockResolvedValueOnce({
+          accessToken: 'new-access',
+          expiresIn: 7200,
+          refreshToken: 'enc-rt-1',
+        });
+        mockRefreshOAuth2Token.mockRejectedValue(rejectedGrant());
+        const refreshed = makeCredential({ accessToken: 'new-access' });
+        credentialsService.patch.mockResolvedValue(refreshed);
+
+        const results = await Promise.all([
+          service.refreshToken('org', 'brand', 'cred-id'),
+          service.refreshToken('org', 'brand', 'cred-id'),
+        ]);
+
+        expect(results).toEqual([refreshed, refreshed]);
+        expect(mockRefreshOAuth2Token).toHaveBeenCalledOnce();
+        expect(activitiesService.record).not.toHaveBeenCalled();
+      });
+
+      it('records one disconnect when concurrent refreshes are both rejected', async () => {
+        credentialsService.findOne.mockResolvedValue(
+          makeCredential({ refreshToken: 'enc-rt-0' }),
+        );
+        mockRefreshOAuth2Token.mockRejectedValue(rejectedGrant());
+
+        const outcomes = await Promise.allSettled([
+          service.refreshToken('org', 'brand', 'cred-id'),
+          service.refreshToken('org', 'brand', 'cred-id'),
+        ]);
+
+        expect(outcomes.map((outcome) => outcome.status)).toEqual([
+          'rejected',
+          'rejected',
+        ]);
+        expect(activitiesService.record).toHaveBeenCalledOnce();
+      });
+    });
   });
 
   // searchRecentTweets

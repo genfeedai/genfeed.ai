@@ -4,6 +4,3 @@ export const PERSONAL_SETTINGS_ANCHOR = {
   LANGUAGE: 'language',
   SETUP_CHECKLIST: 'setup-checklist',
 } as const;
-
-export type PersonalSettingsAnchor =
-  (typeof PERSONAL_SETTINGS_ANCHOR)[keyof typeof PERSONAL_SETTINGS_ANCHOR];

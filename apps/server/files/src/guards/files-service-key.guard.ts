@@ -37,7 +37,7 @@ export const SelfHostedBrowserRoute = () =>
  * The self-hosted image always generates a key in its entrypoint.
  */
 @Injectable()
-export class FilesServiceKeyGuard implements CanActivate {
+class FilesServiceKeyGuard implements CanActivate {
   constructor(
     @Inject(ConfigService) private readonly configService: ConfigService,
     @Inject(Reflector) private readonly reflector: Reflector,

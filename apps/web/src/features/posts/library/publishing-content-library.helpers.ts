@@ -29,7 +29,7 @@ export const PUBLISHING_CONTENT_TYPES = [
   'newsletter',
 ] as const;
 
-export type PublishingContentType = (typeof PUBLISHING_CONTENT_TYPES)[number];
+type PublishingContentType = (typeof PUBLISHING_CONTENT_TYPES)[number];
 export type PublishingContentTypeFilter = PublishingContentType | 'all';
 
 export interface PublishingContentLibraryItem {
@@ -73,9 +73,7 @@ function newestFirst(
   return Date.parse(right.createdAt) - Date.parse(left.createdAt);
 }
 
-export function formatPublishingContentType(
-  type: PublishingContentType,
-): string {
+function formatPublishingContentType(type: PublishingContentType): string {
   switch (type) {
     case 'article':
       return 'Article';

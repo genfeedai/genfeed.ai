@@ -9,7 +9,7 @@ import {
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 
-export const SCHEDULER_ALLOWED_MINUTES: readonly number[] = [0, 15, 30, 45];
+const SCHEDULER_ALLOWED_MINUTES: readonly number[] = [0, 15, 30, 45];
 export const SCHEDULER_ALLOWED_MINUTES_SET = new Set(SCHEDULER_ALLOWED_MINUTES);
 
 // Platform icon mapping
@@ -21,7 +21,7 @@ export const PLATFORM_ICONS = {
 };
 
 // All supported platforms
-export const ALL_PLATFORMS = [
+const ALL_PLATFORMS = [
   CredentialPlatform.YOUTUBE,
   CredentialPlatform.TIKTOK,
   CredentialPlatform.INSTAGRAM,

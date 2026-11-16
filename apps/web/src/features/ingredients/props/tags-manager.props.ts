@@ -1,11 +1,4 @@
 import type { IIngredient, ITag } from '@genfeedai/contracts/interfaces';
-import type { Tag } from '@genfeedai/models/content/tag.model';
-
-export interface TagsManagerProps {
-  entityId: string;
-  entityModel: 'Credential' | 'Ingredient';
-  onTagsChange?: (tags: Tag[]) => void;
-}
 
 export interface TagsManagerComponentProps {
   ingredient: IIngredient;

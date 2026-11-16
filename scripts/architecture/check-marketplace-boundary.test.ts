@@ -45,7 +45,7 @@ describe('check-marketplace-boundary', () => {
     expect(runCheckMarketplaceBoundary({ rootDir }).violations).toEqual([]);
   });
 
-  it('flags private marketplace package imports and dependencies', () => {
+  it('flags marketplace package imports and dependencies', () => {
     const rootDir = fixture({
       'apps/web/src/example.ts':
         "import { SellerService } from '@marketplace/admin';\nexport { SellerService };",

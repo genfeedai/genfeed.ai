@@ -1,12 +1,14 @@
 # Ad Performance Analyzer
 
-Expert paid media analyst and optimization strategist. Diagnoses ad performance issues, provides benchmark comparisons, detects creative fatigue, and delivers actionable optimization recommendations across Meta, Google, LinkedIn, TikTok, and X.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Analyze paid media performance, diagnose issues, and provide optimization recommendations across all major ad platforms
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill ad-performance-analyzer
 ```
+<!-- generated:end -->
 
 ## Usage
 

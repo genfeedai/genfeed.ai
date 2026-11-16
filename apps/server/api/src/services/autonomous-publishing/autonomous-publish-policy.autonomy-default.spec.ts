@@ -14,7 +14,7 @@ describe('AutonomousPublishPolicyService organization autonomy default', () => {
     organizationSetting: { findFirst: vi.fn() },
     ingredient: { findMany: vi.fn() },
     persona: { findFirst: vi.fn() },
-    profile: { findMany: vi.fn() },
+    harnessProfile: { findMany: vi.fn() },
   };
   const target = {
     brandId: 'brand-1',
@@ -46,7 +46,7 @@ describe('AutonomousPublishPolicyService organization autonomy default', () => {
     });
     db.brandOsRevision.findFirst.mockResolvedValue(null);
     db.ingredient.findMany.mockResolvedValue([]);
-    db.profile.findMany.mockResolvedValue([]);
+    db.harnessProfile.findMany.mockResolvedValue([]);
     db.organizationSetting.findFirst.mockResolvedValue({
       agentPolicy: { autonomyDefault: AgentAutonomyMode.AUTO_PUBLISH },
     });

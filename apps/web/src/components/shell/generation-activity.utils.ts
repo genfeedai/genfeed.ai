@@ -20,7 +20,7 @@ import {
  * counted every created or scheduled post as a running generation and the bell
  * badge never cleared.
  */
-export function isInFlightGenerationKey(key: string): boolean {
+function isInFlightGenerationKey(key: string): boolean {
   return (
     key.endsWith('-processing') || key === ActivityKey.MODELS_TRAINING_CREATED
   );

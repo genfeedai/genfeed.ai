@@ -45,7 +45,7 @@ import { z } from 'zod';
 
 const PAGE_SIZE = 50;
 /** An unreadable provider status at the ceiling stays reserved for an operator this long. */
-export const UNKNOWN_PROVIDER_STATUS_RELEASE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+const UNKNOWN_PROVIDER_STATUS_RELEASE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 const COMPLETED = [IngredientStatus.GENERATED, IngredientStatus.VALIDATED];
 
 /** What a recovered charge settles a hold at, and who pays it. */

@@ -1,7 +1,7 @@
 import type { GenerationSetupLookPreviewKind } from '@/features/studio/props/generation-setup.props';
 
 /** Illustrations are contact sheets in `public/assets/look-previews`; a key's index is its tile. */
-export const GENERATION_SETUP_LOOK_PREVIEW_ATLAS =
+const GENERATION_SETUP_LOOK_PREVIEW_ATLAS =
   '/assets/look-previews/preview-atlas.png';
 
 export const GENERATION_SETUP_STYLE_PREVIEW_KEYS = [

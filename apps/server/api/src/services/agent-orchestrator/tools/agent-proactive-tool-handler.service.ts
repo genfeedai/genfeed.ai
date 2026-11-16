@@ -1,3 +1,4 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -11,6 +12,18 @@ import {
   parseSaveContentAgentArgs,
   resolveContentAgentPrincipal,
 } from '@api/services/agent-orchestrator/tools/save-content-agent';
+import { brandReadScope } from '@api/services/agent-orchestrator/utils/agent-brand-read-scope.util';
+import {
+  buildCalendarWindow,
+  CALENDAR_ACTIVE_STATES,
+  CALENDAR_DAY_SCAN_LIMIT,
+  CALENDAR_LISTED_STATES,
+  type CalendarPostDay,
+  findGapDays,
+  localDayKey,
+  mostCommonTimezone,
+  parseContentCalendarArgs,
+} from '@api/services/agent-orchestrator/utils/agent-content-calendar.util';
 import {
   buildStalledItemsResult,
   STALLED_DEFAULT_WINDOW_DAYS,
@@ -23,12 +36,14 @@ import { CreateManualReviewTurboRunDto } from '@api/services/turbo-run/dto/creat
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { isCloudDeployment } from '@genfeedai/config';
 import {
   AgentAutonomyMode,
   parsePlatform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { serializeAgentPost } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -63,6 +78,7 @@ export class AgentProactiveToolHandler {
     @Optional() private readonly prisma?: PrismaService,
     @Optional()
     private readonly agentStrategiesService?: AgentStrategiesService,
+    @Optional() private readonly brandAccessService?: BrandAccessService,
   ) {}
 
   async getApprovalSummary(
@@ -301,69 +317,171 @@ export class AgentProactiveToolHandler {
     };
   }
 
+  /**
+   * The upcoming queue for `get_posts {days}`. Every figure comes from the
+   * database, not from the page of rows returned: `scheduledCount` and
+   * `draftsCount` are counts, gap days are read from every queued post in the
+   * window, and the rows are paged (`page`, `limit`, `hasMore`). Drafts are
+   * counted and listed only with `includeDrafts`. Brand access is the rule the
+   * list mode applies; `brandId` narrows to one brand.
+   */
   async getContentCalendar(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const days = (params.days as number) || 7;
-    const now = new Date();
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() + days);
-
-    // Get scheduled and draft posts for the coming week
-    const posts = await this.postsService.findAll(
-      {
-        include: agentPostPreviewInclude(ctx.organizationId),
-        where: {
-          OR: [
-            { scheduledDate: { gte: now, lte: endDate } },
-            { targetExecutionState: TargetExecutionState.DRAFT },
-          ],
-          isDeleted: false,
-          organizationId: ctx.organizationId,
-        },
-        orderBy: { createdAt: -1, scheduledDate: 1 },
-      },
-      {},
-    );
-
-    const postDocs = (posts.docs ?? []) as unknown as Record<string, unknown>[];
-    const scheduled = postDocs.filter((p) => p.scheduledDate);
-    const drafts = postDocs.filter(
-      (p) =>
-        p.targetExecutionState === TargetExecutionState.DRAFT &&
-        !p.scheduledDate,
-    );
-
-    // Find gap days (days with no scheduled content)
-    const scheduledDates = new Set(
-      scheduled.map(
-        (p) => new Date(p.scheduledDate as string).toISOString().split('T')[0],
-      ),
-    );
-
-    const gapDays: string[] = [];
-    for (let d = 0; d < days; d++) {
-      const date = new Date(now);
-      date.setDate(date.getDate() + d);
-      const dateStr = date.toISOString().split('T')[0];
-      if (!scheduledDates.has(dateStr)) {
-        gapDays.push(dateStr);
-      }
+    const args = parseContentCalendarArgs(params);
+    if (typeof args === 'string') {
+      return { creditsUsed: 0, error: args, success: false };
     }
+
+    const access = await this.resolveCalendarBrandScope(args.brandId, ctx);
+    if (typeof access === 'string') {
+      return { creditsUsed: 0, error: access, success: false };
+    }
+
+    const scope: Record<string, unknown> = {
+      isDeleted: false,
+      organizationId: ctx.organizationId,
+      parentId: null,
+      ...(args.brandId ? { brandId: args.brandId } : {}),
+      ...(access.brandWhere ? { brand: { is: access.brandWhere } } : {}),
+    };
+    const read = (
+      where: Record<string, unknown>,
+      options: Parameters<PostsService['findAll']>[1],
+      shape: Record<string, unknown>,
+    ) =>
+      this.postsService.findAll(
+        { where: { ...scope, ...where }, ...shape },
+        options,
+        false,
+      );
+    const now = new Date();
+
+    // Every queued post near the window, with only the columns the day
+    // buckets need. It also gives the timezone the person scheduled in.
+    const scan = await read(
+      {
+        scheduledDate: {
+          gte: new Date(now.getTime() - 2 * 86_400_000),
+          lt: new Date(now.getTime() + (args.days + 2) * 86_400_000),
+        },
+        targetExecutionState: { in: [...CALENDAR_ACTIVE_STATES] },
+      },
+      { limit: CALENDAR_DAY_SCAN_LIMIT, pagination: false },
+      {
+        select: {
+          id: true,
+          scheduledDate: true,
+          targetExecutionState: true,
+          timezone: true,
+        },
+      },
+    );
+    const scanned = (scan.docs ?? []) as unknown as CalendarPostDay[];
+    const timezone = args.timezone ?? mostCommonTimezone(scanned);
+    const window = buildCalendarWindow(now, args.days, timezone);
+    const inWindow = { gte: window.start, lt: window.end };
+    const include = agentPostPreviewInclude(ctx.organizationId);
+
+    const [rows, scheduledOnly, drafts] = await Promise.all([
+      read(
+        {
+          scheduledDate: inWindow,
+          targetExecutionState: { in: CALENDAR_LISTED_STATES },
+        },
+        { limit: args.limit, page: args.page },
+        { include, orderBy: { scheduledDate: 1, id: 1 } },
+      ),
+      read(
+        {
+          scheduledDate: inWindow,
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+        },
+        { limit: 1 },
+        { select: { id: true } },
+      ),
+      read(
+        { targetExecutionState: TargetExecutionState.DRAFT },
+        args.includeDrafts
+          ? { limit: args.limit, page: args.page }
+          : { limit: 1 },
+        args.includeDrafts
+          ? { include, orderBy: { createdAt: -1, id: 1 } }
+          : { select: { id: true } },
+      ),
+    ]);
+
+    const serialize = (post: unknown) => {
+      const row = post as Record<string, unknown>;
+      return {
+        ...serializeAgentPost(row),
+        localDate: localDayKey(row.scheduledDate, timezone),
+      };
+    };
+    // A scan that hit its cap may have left occupied days out, so it cannot
+    // say which days are empty: report no gaps rather than false ones.
+    const isScanComplete = scanned.length < CALENDAR_DAY_SCAN_LIMIT;
+    const gapDays = isScanComplete ? findGapDays(window, scanned) : [];
 
     return {
       creditsUsed: 0,
       data: {
-        days,
-        draftsCount: drafts.length,
+        dayKeys: window.dayKeys,
+        days: args.days,
+        draftsCount: drafts.totalDocs ?? 0,
+        ...(args.includeDrafts
+          ? {
+              drafts: (drafts.docs ?? []).map(serialize),
+              draftsHasMore: Boolean(drafts.hasNextPage),
+            }
+          : {}),
         gapDays,
         gapsCount: gapDays.length,
-        scheduled: scheduled.map(serializeAgentPost),
-        scheduledCount: scheduled.length,
+        gapsVerified: isScanComplete,
+        hasMore: Boolean(rows.hasNextPage),
+        limit: args.limit,
+        page: args.page,
+        scheduled: (rows.docs ?? []).map(serialize),
+        scheduledCount: scheduledOnly.totalDocs ?? 0,
+        timezone,
+        totalCount: rows.totalDocs ?? 0,
+        window: {
+          end: window.end.toISOString(),
+          start: window.start.toISOString(),
+        },
       },
       success: true,
     };
+  }
+
+  /**
+   * The brand filter of the list mode (cloud only) and, when `brandId` is
+   * asked for, a check that this connection can reach that brand. Returns an
+   * error message instead when either cannot be resolved.
+   */
+  private async resolveCalendarBrandScope(
+    brandId: string | undefined,
+    ctx: ToolExecutionContext,
+  ): Promise<{ brandWhere?: Prisma.BrandWhereInput } | string> {
+    let brandWhere: Prisma.BrandWhereInput | undefined;
+    if (this.brandAccessService) {
+      brandWhere = (await brandReadScope(this.brandAccessService, ctx)).brand
+        ?.is;
+    } else if (isCloudDeployment()) {
+      return 'Content calendar is unavailable';
+    }
+    if (!brandId) return { brandWhere };
+    if (!this.prisma) return 'Content calendar is unavailable';
+
+    const brand = await this.prisma.brand.findFirst({
+      select: { id: true },
+      where: scopedWhere(ctx.organizationId, {
+        id: brandId,
+        ...(brandWhere ? { AND: [brandWhere] } : {}),
+      }),
+    });
+    return brand ? { brandWhere } : 'Brand was not found for this connection';
   }
 
   async saveContentAgent(

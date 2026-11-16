@@ -19,6 +19,7 @@ import { AdminSystemBrandModule } from '@api/endpoints/admin/system-brand/system
 import { AdminSystemEmailsModule } from '@api/endpoints/admin/system-emails/system-emails.module';
 import { AdminSystemNotificationsModule } from '@api/endpoints/admin/system-notifications/system-notifications.module';
 import { AdminUnitEconomicsModule } from '@api/endpoints/admin/unit-economics/unit-economics.module';
+import { AdminWaitlistModule } from '@api/endpoints/admin/waitlist/waitlist.module';
 import { AdminWarmupAccountsModule } from '@api/endpoints/admin/warmup-accounts/warmup-accounts.module';
 import { Module } from '@nestjs/common';
 
@@ -30,6 +31,7 @@ import { Module } from '@nestjs/common';
     AdminSystemNotificationsModule,
     AdminAnnouncementsModule,
     AdminWarmupAccountsModule,
+    AdminWaitlistModule,
     AdminPlatformSettingsModule,
     AdminFeaturedWorkflowsModule,
     AdminCommunityModule,

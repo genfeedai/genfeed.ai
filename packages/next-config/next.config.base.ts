@@ -159,6 +159,12 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
     resolvedSentryProject && process.env.SENTRY_AUTH_TOKEN && isProduction;
 
   if (sentryEnabled) {
+    // Turbopack's native debug IDs make Sentry's source map upload prepend a
+    // second debug-ID snippet that Turbopack's index maps do not account for,
+    // shifting every frame by one line. With them off, Sentry injects the only
+    // snippet and shifts the map itself.
+    config.turbopack = { ...config.turbopack, debugIds: false };
+
     return withSentryConfig(config, {
       authToken: process.env.SENTRY_AUTH_TOKEN,
       org: resolvedSentryOrg,

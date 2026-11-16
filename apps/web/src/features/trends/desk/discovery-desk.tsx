@@ -150,7 +150,7 @@ export default function DiscoveryDesk() {
 
   // URL params are the source of truth for filters/sort/view; reconcile the
   // reducer state on every param change (back/forward nav, shared links,
-  // sidebar `?source=following`).
+  // the source filter).
   useEffect(() => {
     if (state.filters.source !== sourceParam) {
       dispatch({ source: sourceParam, type: 'SET_SOURCE' });

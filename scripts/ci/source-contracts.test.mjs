@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -19,6 +20,7 @@ import {
   runSourceContracts,
   selectSourceContracts,
   sourceImports,
+  WEB_DOM_SOURCE_CONTRACT_FILES,
 } from './source-contracts.mjs';
 
 test('recognizes static, CommonJS, dynamic and Bun filesystem access', () => {
@@ -318,4 +320,84 @@ test('source-contract listing discovers all surfaces without executing tests', a
   assert.deepEqual(results, [
     { surface: 'app', files: ['guard.test.ts'], connectedFiles: [] },
   ]);
+});
+
+test('a surface with a node config runs its source-only files there and its DOM files in the standard config, one after the other', async () => {
+  const calls = [];
+  await runSourceContracts({
+    root: '/repo',
+    surfaces: [
+      {
+        directory: 'app',
+        config: 'app.config',
+        nodeConfig: 'app.node.config',
+        domFiles: ['render.test.tsx'],
+      },
+    ],
+    discover: () => [
+      '/repo/app/guard.test.ts',
+      '/repo/app/render.test.tsx',
+      '/repo/app/other.test.ts',
+    ],
+    execute: async (command, args) => {
+      calls.push({ args, command });
+    },
+  });
+  assert.deepEqual(
+    calls.map((call) => [
+      call.args[call.args.indexOf('--config') + 1],
+      call.args.filter((arg) => arg.endsWith('.tsx') || arg.endsWith('.ts')),
+    ]),
+    [
+      ['app.node.config', ['guard.test.ts', 'other.test.ts']],
+      ['app.config', ['render.test.tsx']],
+    ],
+  );
+});
+
+test('a node-config surface still runs the DOM group after the node group fails, and reports both', async () => {
+  const calls = [];
+  await assert.rejects(
+    runSourceContracts({
+      root: '/repo',
+      surfaces: [
+        {
+          directory: 'app',
+          config: 'app.config',
+          nodeConfig: 'app.node.config',
+          domFiles: ['render.test.tsx'],
+        },
+      ],
+      discover: () => ['/repo/app/guard.test.ts', '/repo/app/render.test.tsx'],
+      execute: async (_command, args) => {
+        calls.push(args[args.indexOf('--config') + 1]);
+        throw new Error(`failed in ${calls.at(-1)}`);
+      },
+    }),
+    (error) => {
+      assert.ok(error instanceof AggregateError);
+      assert.equal(error.errors.length, 1);
+      assert.ok(error.errors[0] instanceof AggregateError);
+      assert.equal(error.errors[0].errors.length, 2);
+      return true;
+    },
+  );
+  assert.deepEqual(calls, ['app.node.config', 'app.config']);
+});
+
+test('every web DOM source contract still exists and the web surface keeps the rest on a node config', () => {
+  const webDirectory = fileURLToPath(
+    new URL('../../apps/web', import.meta.url),
+  );
+  for (const file of WEB_DOM_SOURCE_CONTRACT_FILES)
+    assert.ok(
+      existsSync(path.join(webDirectory, file)),
+      `${file} was removed or renamed; drop it from WEB_DOM_SOURCE_CONTRACT_FILES`,
+    );
+  const config = readFileSync(
+    path.join(webDirectory, 'vitest.source-contracts.config.mts'),
+    'utf8',
+  );
+  assert.match(config, /environment: 'node'/);
+  assert.match(config, /setupFiles: \[\]/);
 });

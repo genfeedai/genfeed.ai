@@ -10,7 +10,7 @@ const WHITESPACE_RUN_PATTERN = /\s+/;
  * The scopes an MCP grant for `resource` may carry. Claude connector
  * resources stay under a narrower ceiling than the standard resource.
  */
-export function resolveMcpScopeCeiling(resource: string): readonly string[] {
+function resolveMcpScopeCeiling(resource: string): readonly string[] {
   return resolveMcpAccessModeForResource(resource) === 'claude'
     ? MCP_CLAUDE_SCOPE_CEILING
     : API_KEY_SCOPE_PRESETS.mcp;

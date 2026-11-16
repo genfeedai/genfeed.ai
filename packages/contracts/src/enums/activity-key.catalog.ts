@@ -97,6 +97,8 @@ export type ActivityMessageId =
   | 'activity.credits.reset'
   | 'activity.credits.remove_all'
   | 'activity.post.ready'
+  | 'activity.post.manual'
+  | 'activity.post.unverified'
   | 'activity.agent.review_changed'
   | 'activity.agent.review_expired'
   | 'activity.social.replies'
@@ -177,7 +179,9 @@ export const ACTIVITY_MESSAGE_ID_BY_KEY = {
   [ActivityKey.POST_CREATED]: 'activity.lifecycle.created',
   [ActivityKey.POST_FAILED]: 'activity.lifecycle.failed',
   [ActivityKey.POST_GENERATED]: 'activity.post.ready',
+  [ActivityKey.POST_MANUAL_POST_NEEDED]: 'activity.post.manual',
   [ActivityKey.POST_PROCESSING]: 'activity.lifecycle.processing',
+  [ActivityKey.POST_PUBLISH_UNVERIFIED]: 'activity.post.unverified',
   [ActivityKey.POST_PUBLISHED]: 'activity.lifecycle.published',
   [ActivityKey.POST_SCHEDULED]: 'activity.lifecycle.scheduled',
   [ActivityKey.PROMPT_ENHANCE_COMPLETED]: 'activity.lifecycle.completed',
@@ -364,6 +368,14 @@ const SPECIAL_PARSERS: Array<(key: string) => ActivityKeyParts | null> = [
     return null;
   },
   (key) => {
+    if (key === 'content-publish-manual') {
+      return {
+        key,
+        lifecycle: 'failed',
+        operation: 'publish',
+        subject: 'post',
+      };
+    }
     if (key.startsWith('content-publish-')) {
       const tail = key.slice('content-publish-'.length);
       return {
@@ -918,6 +930,12 @@ export function formatActivityMessage(
     }
     case 'activity.credits.remove_all':
       return 'Removed all credits';
+
+    case 'activity.post.manual':
+      return 'Post this by hand';
+
+    case 'activity.post.unverified':
+      return 'Could not confirm this post';
 
     case 'activity.post.ready':
       return 'Content is ready for review';

@@ -2,13 +2,13 @@ import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
 import { TrendSourceItemsService } from '@api/collections/trends/services/modules/trend-source-items.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 type ApifyMock = {
   searchInstagramByHashtag: ReturnType<typeof vi.fn>;
   searchRedditPosts: ReturnType<typeof vi.fn>;
   searchTikTokByHashtag: ReturnType<typeof vi.fn>;
-  searchTwitterTweets: ReturnType<typeof vi.fn>;
   searchYouTubeVideos: ReturnType<typeof vi.fn>;
 };
 
@@ -27,6 +27,7 @@ const makeTrend = (overrides: Record<string, unknown> = {}): TrendEntity =>
 describe('TrendSourceItemsService', () => {
   let service: TrendSourceItemsService;
   let apify: ApifyMock;
+  let twitter: { searchRecentTweets: ReturnType<typeof vi.fn> };
   let cache: {
     generateKey: ReturnType<typeof vi.fn>;
     get: ReturnType<typeof vi.fn>;
@@ -38,9 +39,10 @@ describe('TrendSourceItemsService', () => {
       searchInstagramByHashtag: vi.fn().mockResolvedValue([]),
       searchRedditPosts: vi.fn().mockResolvedValue([]),
       searchTikTokByHashtag: vi.fn().mockResolvedValue([]),
-      searchTwitterTweets: vi.fn().mockResolvedValue([]),
       searchYouTubeVideos: vi.fn().mockResolvedValue([]),
     };
+
+    twitter = { searchRecentTweets: vi.fn().mockResolvedValue([]) };
 
     cache = {
       generateKey: vi.fn((...parts: (string | number)[]) => parts.join(':')),
@@ -52,6 +54,7 @@ describe('TrendSourceItemsService', () => {
       providers: [
         TrendSourceItemsService,
         { provide: ApifyService, useValue: apify },
+        { provide: TwitterService, useValue: twitter },
         { provide: CacheService, useValue: cache },
       ],
     }).compile();
@@ -192,8 +195,19 @@ describe('TrendSourceItemsService', () => {
     });
 
     it('dispatches Twitter and maps tweets (never null)', async () => {
-      apify.searchTwitterTweets.mockResolvedValue([
-        { authorUsername: 'jack', id: 'tw-1', text: 'hello' },
+      twitter.searchRecentTweets.mockResolvedValue([
+        {
+          authorName: 'Jack',
+          authorUsername: 'jack',
+          createdAt: '2026-01-02T00:00:00.000Z',
+          engagement: 12,
+          id: 'tw-1',
+          likes: 10,
+          quotes: 0,
+          replies: 1,
+          retweets: 2,
+          text: 'hello',
+        },
       ]);
 
       const result = await service.fetchTrendSourceItems(
@@ -201,12 +215,15 @@ describe('TrendSourceItemsService', () => {
         5,
       );
 
-      expect(apify.searchTwitterTweets).toHaveBeenCalledWith('AI', {
-        limit: 5,
+      expect(twitter.searchRecentTweets).toHaveBeenCalledWith('AI lang:en', {
+        maxResults: 10,
       });
       expect(result[0]).toMatchObject({
+        authorHandle: 'jack',
         contentType: 'tweet',
+        metrics: { comments: 1, likes: 10, shares: 2 },
         platform: 'twitter',
+        publishedAt: '2026-01-02T00:00:00.000Z',
         sourceUrl: 'https://x.com/jack/status/tw-1',
       });
     });

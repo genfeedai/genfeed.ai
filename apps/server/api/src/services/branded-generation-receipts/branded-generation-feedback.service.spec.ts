@@ -243,7 +243,12 @@ describe('BrandedGenerationFeedbackService', () => {
       await service.withdraw(actor, 'receipt');
 
       expect(events).toEqual([
-        { event: 'generation_feedback_rated', rating: 'withdrawn' },
+        {
+          artifactKind: 'post',
+          event: 'generation_feedback_rated',
+          rating: 'withdrawn',
+          reasonCount: 0,
+        },
       ]);
     });
 

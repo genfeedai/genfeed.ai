@@ -17,7 +17,6 @@ import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandRelocationJobsService } from '@api/collections/brands/services/brand-relocation-jobs.service';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
-import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { withoutCuration } from '@api/collections/brands/utils/brand-curation-fields.util';
 import { buildBrandListOrderBy } from '@api/collections/brands/utils/brand-list-order.util';
@@ -100,7 +99,6 @@ export class BrandsController extends BaseCRUDController<
     public readonly analyticsAggregationService: AnalyticsAggregationService,
     public readonly loggerService: LoggerService,
     private readonly brandSetupService: BrandSetupService,
-    private readonly brandWatermarkLogoService: BrandWatermarkLogoService,
     private readonly relocationJobs: BrandRelocationJobsService,
   ) {
     super(
@@ -190,12 +188,6 @@ export class BrandsController extends BaseCRUDController<
         organizationLabel?: string;
         syncOrganizationName?: boolean;
       };
-
-    await this.brandWatermarkLogoService.validateKitSettings(
-      id,
-      user.organizationId.toString(),
-      rest,
-    );
 
     const requestedOrgId = (rest as { organizationId?: string }).organizationId;
     // A relocation checks the handle itself, after authorizing both orgs.

@@ -87,7 +87,7 @@ function fft(real: Float32Array, imaginary: Float32Array): void {
  * Onset strength per hop: summed positive change of the log spectrum, with
  * the local average removed so a loud passage does not read as a pulse.
  */
-export function computeOnsetEnvelope(
+function computeOnsetEnvelope(
   samples: Float32Array,
   sampleRate: number,
 ): Float32Array {

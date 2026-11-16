@@ -6182,3 +6182,81 @@ export async function mockAvatarTwinEnrollment(
 
   return { startRequests, uploads: () => uploadCount };
 }
+
+/**
+ * A scheduled release batch an MCP client asked to schedule (#10134): its
+ * review page reads every post, and the decision call records which posts the
+ * reviewer removed.
+ */
+export async function mockScheduledReleaseBatch(
+  page: Page,
+  options: {
+    approvalId?: string;
+    onDecision?: (body: Record<string, unknown>) => void;
+    postCount?: number;
+  } = {},
+): Promise<void> {
+  const approvalId = options.approvalId ?? 'batch-approval-1';
+  const postCount = options.postCount ?? 6;
+  const start = Date.now() + 2 * 24 * 60 * 60 * 1000;
+  const posts = Array.from({ length: postCount }, (_, index) => ({
+    accountHandle: 'brandhandle',
+    accountLabel: 'Brand account',
+    error: null,
+    index,
+    isRemoved: false,
+    media: [],
+    platform: 'twitter',
+    releaseId: null,
+    scheduledAt: new Date(start + index * 4 * 60 * 60 * 1000).toISOString(),
+    text: `Batch post number ${index + 1}`,
+    timezone: 'UTC',
+    title: `Post ${index + 1}`,
+  }));
+
+  await routeApiPattern(
+    page,
+    `/review-inbox/batches/${approvalId}`,
+    async (route) => {
+      await route.fulfill({
+        body: JSON.stringify({
+          approvalId,
+          brandLabel: 'Brand',
+          expiresAt: new Date(start + 5 * 24 * 60 * 60 * 1000).toISOString(),
+          posts,
+          requestedAt: new Date().toISOString(),
+          requestedByLabel: 'Test Reviewer',
+          status: 'pending',
+          total: postCount,
+        }),
+        contentType: 'application/json',
+        status: 200,
+      });
+    },
+  );
+  await routeApiPattern(page, '/review-inbox/decisions', async (route) => {
+    const body = route.request().postDataJSON() as Record<string, unknown>;
+    options.onDecision?.(body);
+    const excluded = Array.isArray(body.excludedIndexes)
+      ? body.excludedIndexes.length
+      : 0;
+    await route.fulfill({
+      body: JSON.stringify({
+        data: {
+          attributes: {
+            decision: body.decision,
+            itemId: body.itemId,
+            kind: 'mcp_approval',
+            resolvedAt: new Date().toISOString(),
+            scheduled: { created: postCount - excluded, failed: 0 },
+            status: body.decision === 'approve' ? 'approved' : 'rejected',
+          },
+          id: String(body.itemId),
+          type: 'review-inbox-decisions',
+        },
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+}

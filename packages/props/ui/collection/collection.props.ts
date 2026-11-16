@@ -104,8 +104,7 @@ interface CollectionOverflowActionBase {
 }
 
 /** A command: runs `onSelect` in place (rename, pause, delete). */
-export interface CollectionOverflowCommand
-  extends CollectionOverflowActionBase {
+interface CollectionOverflowCommand extends CollectionOverflowActionBase {
   onSelect: () => void;
   href?: undefined;
 }
@@ -114,7 +113,7 @@ export interface CollectionOverflowCommand
  * A destination: renders a real link, so Cmd/Ctrl-click, open-in-new-tab and
  * copy-link keep working. Every overflow item that navigates uses this form.
  */
-export interface CollectionOverflowLink extends CollectionOverflowActionBase {
+interface CollectionOverflowLink extends CollectionOverflowActionBase {
   href: string;
   /** Opens in a new tab with `rel="noopener noreferrer"`. */
   isExternal?: boolean;

@@ -2,6 +2,7 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import {
   ThreadsContainerStatus,
   ThreadsMediaType,
@@ -66,6 +67,7 @@ describe('ThreadsService', () => {
           provide: HttpService,
           useValue: { get: vi.fn(), post: vi.fn() },
         },
+        { provide: ActivityRecorderService, useValue: { record: vi.fn() } },
       ],
     }).compile();
 

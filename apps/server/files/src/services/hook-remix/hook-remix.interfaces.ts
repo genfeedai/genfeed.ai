@@ -21,18 +21,3 @@ export interface HookRemixResult {
   size?: number;
   error?: string;
 }
-
-export interface HookRemixBatchStatus {
-  batchId: string;
-  total: number;
-  completed: number;
-  failed: number;
-  pending: number;
-  jobs: Array<{
-    jobId: string;
-    youtubeUrl: string;
-    status: 'pending' | 'processing' | 'completed' | 'failed';
-    result?: HookRemixResult;
-    error?: string;
-  }>;
-}

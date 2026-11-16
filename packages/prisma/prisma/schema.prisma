@@ -663,6 +663,8 @@ contentLearningOperations ContentLearningOperation[]
   visualProjects VisualProject[]
   visualRevisions VisualRevision[]
   approvedBrandOsRevisions BrandOsRevision[] @relation("BrandOsApprover")
+  createdHarnessProfiles HarnessProfile[] @relation("HarnessProfileCreator")
+  harnessProfileRevisions HarnessProfileRevision[] @relation("HarnessProfileRevisionActor")
   publishedBrandOsPublications BrandOsPublication[] @relation("BrandOsPublisher")
   revokedBrandOsPublications BrandOsPublication[] @relation("BrandOsRevoker")
   knowledgeSources KnowledgeSource[]
@@ -864,6 +866,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   visualRevisions VisualRevision[]
   brandOsRevisions BrandOsRevision[]
   brandOsPublications BrandOsPublication[]
+  harnessProfiles HarnessProfile[]
+  harnessProfileRevisions HarnessProfileRevision[]
   knowledgeSources KnowledgeSource[]
   knowledgeSpaces KnowledgeSpace[]
   knowledgeSourceRefreshRuns KnowledgeSourceRefreshRun[]
@@ -921,6 +925,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   articleAnalytics              ArticleAnalytics[]
   newsletters                   Newsletter[]
   creatorSubscriptionPlans      CreatorSubscriptionPlan[]
+  lifetimeDealSeat              LifetimeDealSeat?
   creatorSubscriptions          CreatorSubscription[]
   creatorSubscriptionsPaid      CreatorSubscription[]          @relation("creator_subscription_payer_organization")
   articleUnlocks                ArticleUnlock[]
@@ -973,7 +978,6 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   socialWarmupSignals           SocialWarmupSignal[]
   processedTweets               ProcessedTweet[]
   trackedLinks                  TrackedLink[]
-  schedules                     Schedule[]
   postingSets                   PostingSet[]
   postingSignatures             PostingSignature[]
   rssSources                    RssSource[]
@@ -1144,6 +1148,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   brandOsRevisionVersion Int @default(0)
   brandOsRevisions BrandOsRevision[]
   brandOsPublications BrandOsPublication[]
+  harnessProfiles HarnessProfile[]
+  harnessProfileRevisions HarnessProfileRevision[]
   watermarkText            String?
   watermarkLogoId          String?
   watermarkOpacity         Float        @default(0.35)
@@ -1276,7 +1282,6 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   turboRunItems                 TurboRunItem[]
   activities                 Activity[]
   contextBases               ContextBase[]              @relation("context_base_source_brand")
-  schedules                  Schedule[]
   postingSets                PostingSet[]
   postingSignatures          PostingSignature[]
   rssSources                 RssSource[]
@@ -1833,6 +1838,32 @@ model UserSignupAttribution {
   @@map("user_signup_attributions")
 }
 
+/// Public waitlist for a closed signup. One row per lowercase email; the
+/// operator qualifies entries (status `approved`) and an approved email may
+/// create an account while signup is invite-only. Platform-level, not tenant
+/// scoped: an entry belongs to no organization until the lead is onboarded.
+model WaitlistEntry {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  name             String?
+  /// Site or social handle the lead gave, used to qualify them.
+  website          String?
+  /// What the lead makes, free text.
+  useCase          String?
+  /// `pending` | `approved` | `rejected` (WaitlistStatus in contracts).
+  status           String    @default("pending")
+  reviewNote       String?
+  reviewedAt       DateTime?
+  reviewedByUserId String?
+  referrerDomain   String?
+  isDeleted        Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([status, isDeleted, createdAt(sort: Desc)], map: "waitlist_entries_status_created_idx")
+  @@map("waitlist_entries")
+}
+
 // ═══════════════════════════════════════════════════════════════
 // SETTINGS
 // ══════��════════════════════════════════════════════════════════
@@ -2064,6 +2095,10 @@ model PlatformSetting {
   // Signup and billing system-event recording starts here; null = disabled.
   systemEventsEnabledAt            DateTime?
   isEmailVerificationRequired      Boolean   @default(false)
+  // Closed signup: new accounts need an invitation, an approved waitlist entry
+  // or a pre-provisioned (warm-up) user. Off by default so a self-hosted
+  // install can create its first account.
+  isSignupInviteOnly               Boolean   @default(false)
   // Module and feature flags (#5468), e.g. {"studio":false}. Only an explicit
   // false turns one off; missing keys are on. Release flags
   // ({"release_motion":true}) are the exception: missing means preview-only.
@@ -3594,31 +3629,6 @@ model AccountAnalyticsSnapshot {
   @@map("account_analytics_snapshots")
 }
 
-model Schedule {
-  id               String       @id @default(cuid())
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id])
-  userId           String
-  brandId          String?
-  brand            Brand?       @relation(fields: [brandId], references: [id])
-  label            String?
-  // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
-  platform         String?
-  timezone         String       @default("UTC")
-  slots            Json         @default("[]")
-  contentId        String?
-  contentType      String?
-  scheduledAt      DateTime?
-  schedulingMethod String?
-  isActive         Boolean      @default(true)
-  isDeleted        Boolean      @default(false)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-
-  @@index([organizationId, isDeleted, createdAt])
-  @@map("schedules")
-}
-
 model Distribution {
   id             String       @id @default(cuid())
   organizationId String
@@ -4483,6 +4493,28 @@ model CreatorSubscriptionPlan {
 
   @@index([organizationId, isDeleted])
   @@map("creator_subscription_plans")
+}
+
+/// One of the capped lifetime-deal seats: a one-time purchase that gives an
+/// organization the Pro plan and its monthly credits for good. The unique
+/// seat number is the cap (the API holds an advisory lock while it claims the
+/// next one), and the organization can hold only one. Platform-level: the
+/// seats are counted across organizations, so the row carries no `isDeleted`.
+model LifetimeDealSeat {
+  id                      String       @id @default(cuid())
+  organizationId          String       @unique
+  organization            Organization @relation(fields: [organizationId], references: [id])
+  seatNumber              Int          @unique
+  /// The seller's reference for the sale, such as a license key; one sale backs at most one seat.
+  sourceReference         String       @unique
+  monthlyCredits          Int
+  /// When the next monthly credit grant is due. Advanced one month after each grant.
+  nextCreditGrantAt       DateTime
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+
+  @@index([nextCreditGrantAt])
+  @@map("lifetime_deal_seats")
 }
 
 /// A reader paying a creator monthly in credits (#9717). The row belongs to
@@ -9148,6 +9180,64 @@ model BrandOsRevision {
   @@unique([organizationId, brandId, version])
   @@index([organizationId, brandId, isDeleted, status])
   @@map("brand_os_revisions")
+}
+
+enum HarnessProfileRevisionSource {
+  USER_EDIT
+  RULE_PROPOSAL
+  WINNER_PROMOTION
+  REVIEW_FEEDBACK
+  EXPERT_PATH
+  SEED
+  MIGRATION
+  ROLLBACK
+}
+
+model HarnessProfile {
+  id String @id @default(cuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id])
+  brandId String
+  brand Brand @relation(fields: [brandId], references: [id])
+  label String
+  description String?
+  scope String @default("brand")
+  status String @default("active")
+  isDefault Boolean @default(false)
+  content Json @default("{}")
+  currentVersion Int @default(1)
+  createdById String?
+  createdBy User? @relation("HarnessProfileCreator", fields: [createdById], references: [id])
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  revisions HarnessProfileRevision[]
+
+  @@index([organizationId, brandId, isDeleted])
+  @@map("harness_profiles")
+}
+
+model HarnessProfileRevision {
+  id String @id @default(cuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id])
+  brandId String
+  brand Brand @relation(fields: [brandId], references: [id])
+  harnessProfileId String
+  harnessProfile HarnessProfile @relation(fields: [harnessProfileId], references: [id])
+  version Int
+  snapshot Json
+  source HarnessProfileRevisionSource
+  actorUserId String?
+  actor User? @relation("HarnessProfileRevisionActor", fields: [actorUserId], references: [id])
+  actorLabel String?
+  rolledBackToVersion Int?
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([harnessProfileId, version])
+  @@index([organizationId, harnessProfileId, isDeleted, version])
+  @@map("harness_profile_revisions")
 }
 
 model BrandOsPublication {

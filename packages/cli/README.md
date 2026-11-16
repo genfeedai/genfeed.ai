@@ -408,7 +408,7 @@ genfeed template use <template-id> --variables '{"topic":"AI workflows"}'
 ### Scheduling and Insights
 
 ```bash
-genfeed schedule calendar
+genfeed schedule optimal --platform twitter
 genfeed insights
 genfeed insights times --platform twitter
 genfeed performance weekly
@@ -439,8 +439,15 @@ genfeed admin seed workflows --brand-id <id> [--yes]                      # --al
 genfeed admin brand show                          # system brand kit
 genfeed admin brand update <revision> --file draft.json --updated-at <iso>
 genfeed admin brand approve <revision> --updated-at <iso>
+genfeed admin marketplace listings                # store listings waiting for review
+genfeed admin marketplace approve <listing>       # preview; add --yes to publish it
+genfeed admin marketplace reject <listing> --reason "<text>" --yes
 genfeed admin logout                              # revoke the session
 ```
+
+The `marketplace` commands call the marketplace API with the same super admin
+token. Its URL is derived from the profile API URL (`api.example.com` becomes
+`api.marketplace.example.com`); pass `--marketplace-url <url>` to override it.
 
 ### Local AI bridge for the browser extension
 

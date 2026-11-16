@@ -104,5 +104,3 @@ export function AppRailItemMenu({
     </DropdownMenu>
   );
 }
-
-export default AppRailItemMenu;

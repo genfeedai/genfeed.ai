@@ -48,7 +48,7 @@ type YoutubeListedComment = {
   threadId: string;
 };
 
-export type ExistingSocialExternalIds = {
+type ExistingSocialExternalIds = {
   conversationIds: Set<string>;
   conversationsByExternalId: Map<string, SocialConversationDocument>;
   messageIds: Set<string>;

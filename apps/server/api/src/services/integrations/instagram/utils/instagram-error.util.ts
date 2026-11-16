@@ -41,7 +41,7 @@ const REDIRECT_MISMATCH_PATTERN =
 const PROFESSIONAL_ACCOUNT_PATTERN =
   /professional account|instagram professional|business account required|creator account|a professional instagram/i;
 
-export type InstagramOAuthErrorKind =
+type InstagramOAuthErrorKind =
   | 'authorization'
   | 'configuration'
   | 'http_exception'
@@ -50,7 +50,7 @@ export type InstagramOAuthErrorKind =
   | 'redirect_mismatch'
   | 'unknown';
 
-export type InstagramOAuthErrorClassification = {
+type InstagramOAuthErrorClassification = {
   detail: string;
   kind: InstagramOAuthErrorKind;
   status: number;
@@ -180,7 +180,7 @@ export function parseInstagramGrantedScopes(value: unknown): string[] {
   return parseGrantedOAuthScopes(value);
 }
 
-export function getInstagramGraphError(
+function getInstagramGraphError(
   error: unknown,
 ): InstagramGraphErrorBody | undefined {
   const graphError = readInstagramErrorRecord(error);
@@ -249,7 +249,7 @@ export function isInstagramRateLimitError(error: unknown): boolean {
   );
 }
 
-export function classifyInstagramOAuthError(
+function classifyInstagramOAuthError(
   error: unknown,
 ): InstagramOAuthErrorClassification {
   if (error instanceof HttpException) {

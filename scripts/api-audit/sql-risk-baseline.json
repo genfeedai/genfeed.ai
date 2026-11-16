@@ -1547,13 +1547,6 @@
     {
       "category": "unbounded-read",
       "count": 1,
-      "file": "apps/server/api/src/collections/harness-profiles/services/harness-profiles.service.ts",
-      "growth": "config",
-      "target": "profile"
-    },
-    {
-      "category": "unbounded-read",
-      "count": 1,
       "file": "apps/server/api/src/collections/ingredients/services/admin-generation-reviews.service.ts",
       "growth": "growing",
       "target": "activity"
@@ -1928,13 +1921,6 @@
       "file": "apps/server/api/src/collections/schedules/services/schedules.service.ts",
       "growth": "growing",
       "target": "contentPerformance"
-    },
-    {
-      "category": "unbounded-read",
-      "count": 1,
-      "file": "apps/server/api/src/collections/schedules/services/schedules.service.ts",
-      "growth": "config",
-      "target": "schedule"
     },
     {
       "category": "unbounded-read",

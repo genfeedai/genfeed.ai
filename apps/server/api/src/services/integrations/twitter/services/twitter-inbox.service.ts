@@ -16,7 +16,7 @@ export type TwitterInboxTweet = {
   tweetId: string;
 };
 
-export type TwitterInboxDmMessage = {
+type TwitterInboxDmMessage = {
   createdAt: Date;
   messageId: string;
   senderId?: string;
@@ -25,7 +25,7 @@ export type TwitterInboxDmMessage = {
   text: string;
 };
 
-export type TwitterInboxDmThread = {
+type TwitterInboxDmThread = {
   conversationId: string;
   messages: TwitterInboxDmMessage[];
   participantExternalId?: string;

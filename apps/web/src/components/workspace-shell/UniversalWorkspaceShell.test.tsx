@@ -892,15 +892,15 @@ describe('UniversalWorkspaceShell', () => {
 
     const layoutRoot = screen.getByTestId('layout-root');
     const aside = container.querySelector('#workspace-context-inspector');
-    // Open: a detached card beside the page block, with its own border and
-    // rounding; the panel starts under the full-width topbar.
+    // Open: flush against the page block, its left border the divider and its
+    // left corners square; the panel starts under the full-width topbar.
     expect(layoutRoot).toHaveAttribute('data-inspector-open', 'true');
     expect(
       layoutRoot.style.getPropertyValue('--workspace-inspector-width'),
     ).toBe('400px');
     expect(aside).toHaveClass(
       'bg-background',
-      'rounded-lg',
+      'rounded-l-none',
       'border',
       'border-border',
     );

@@ -17,10 +17,14 @@ export type HiggsFieldRequestStatus =
  * `canceled` is terminal too: a job cancelled through `/requests/{id}/cancel`
  * never reaches `completed`, so omitting it polls until the timeout.
  */
-export const HIGGSFIELD_TERMINAL_STATUSES: readonly HiggsFieldRequestStatus[] =
-  ['completed', 'failed', 'nsfw', 'canceled'];
+const HIGGSFIELD_TERMINAL_STATUSES: readonly HiggsFieldRequestStatus[] = [
+  'completed',
+  'failed',
+  'nsfw',
+  'canceled',
+];
 
-export interface HiggsFieldMediaRef {
+interface HiggsFieldMediaRef {
   url: string;
 }
 
@@ -53,7 +57,7 @@ export interface HiggsFieldDopInput {
   image_url: string;
 }
 
-export type HiggsFieldGenjutsuResolution = '480p' | '720p' | '1080p';
+type HiggsFieldGenjutsuResolution = '480p' | '720p' | '1080p';
 
 /** `POST /higgsfield/genjutsu/motion-transfer/v1.0` */
 export interface HiggsFieldGenjutsuInput {
@@ -61,6 +65,49 @@ export interface HiggsFieldGenjutsuInput {
   prompt: string;
   resolution: HiggsFieldGenjutsuResolution;
   video_url: string;
+}
+
+/** `POST /higgsfield/genjutsu/restyle/v1.0`. `image_urls` is optional (0 to 5). */
+export interface HiggsFieldGenjutsuRestyleInput {
+  image_urls: string[];
+  preset_id: string;
+  prompt: string;
+  resolution: HiggsFieldGenjutsuResolution;
+  video_url: string;
+}
+
+/** One selectable system style from `GET .../restyle/v1.0/presets`. */
+export interface HiggsFieldRestylePreset {
+  id: string;
+  name: string;
+  preview_url?: string;
+}
+
+/** `POST /higgsfield/ads-studio/v1.0`. Text fields are optional guidance. */
+export interface HiggsFieldAdsStudioInput {
+  prompt: string;
+  aspect_ratio: string;
+  batch_size: number;
+  image_urls?: string[];
+  language?: string;
+  niche?: string;
+  target_audience?: string;
+}
+
+/**
+ * `POST /higgsfield/cinema-studio/4.0`. Text-to-video when every media array
+ * is empty, reference-to-video otherwise. Creative controls are omitted for
+ * automatic selection; the provider rejects a literal "auto".
+ */
+export interface HiggsFieldCinemaStudioInput {
+  prompt: string;
+  duration: number;
+  resolution: '480p' | '720p';
+  aspect_ratio: string;
+  generate_audio: boolean;
+  image_urls?: string[];
+  video_urls?: string[];
+  audio_urls?: string[];
 }
 
 /** `POST /higgsfield-ai/soul/v2/standard` */

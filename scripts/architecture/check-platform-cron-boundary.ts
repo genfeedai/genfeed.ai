@@ -157,6 +157,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform model catalog maintenance (fal provider discovery, #2422). Writes operator-reviewed draft rows only; never tenant-scoped.',
   },
   {
+    file: 'apps/server/workers/src/crons/higgsfield-model-watcher/cron.higgsfield-model-watcher.service.ts',
+    id: 'higgsfield-model-watcher',
+    methodName: 'discoverModels',
+    reason:
+      'Platform model catalog maintenance (Higgsfield docs catalog scan). Writes operator-reviewed draft rows only; never tenant-scoped.',
+  },
+  {
     file: 'apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts',
     id: 'model-watcher',
     methodName: 'discoverNewModels',
@@ -291,6 +298,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
     methodName: 'queueExpiredArtifactCleanup',
     reason:
       'Platform schedule handler that enqueues expired workflow-artifact cleanup for every tenant scope past its retention backstop.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/posts/cron.manual-post-reminders.service.ts',
+    id: 'posts-manual-post-reminders',
+    methodName: 'sendDueReminders',
+    reason:
+      'Platform schedule handler; reminds the owner about posts they must publish by hand because X refused the quote, until they post or skip them.',
   },
   {
     file: 'apps/server/workers/src/crons/x-replies/cron.x-reply-watch.service.ts',

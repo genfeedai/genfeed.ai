@@ -39,6 +39,7 @@ describe('OnboardingDraftRunsService', () => {
   const prisma = {
     contentRun: {
       createMany: vi.fn(),
+      count: vi.fn(),
       findFirst: vi.fn(),
       updateMany: vi.fn(),
     },
@@ -56,6 +57,7 @@ describe('OnboardingDraftRunsService', () => {
     vi.resetAllMocks();
     prisma.contentRun.createMany.mockResolvedValue({ count: 1 });
     prisma.contentRun.updateMany.mockResolvedValue({ count: 1 });
+    prisma.contentRun.count.mockResolvedValue(0);
     prisma.brandedGenerationFeedback.findMany.mockResolvedValue([]);
     prisma.post.updateMany.mockResolvedValue({ count: 1 });
     prisma.brandedGenerationReceipt.findMany.mockResolvedValue([]);
@@ -186,6 +188,43 @@ describe('OnboardingDraftRunsService', () => {
       ([args]) => args.data[0].id,
     );
     expect(new Set(ids).size).toBe(3);
+  });
+
+  it('refuses a third round of drafts for a brand and generates nothing', async () => {
+    prisma.contentRun.count.mockResolvedValueOnce(2).mockResolvedValueOnce(0);
+    const generate = vi.fn().mockResolvedValue(result);
+    await expect(
+      service.execute(user, 'brand-1', 'second-request', generate),
+    ).rejects.toThrow('every round');
+    expect(generate).not.toHaveBeenCalled();
+    expect(prisma.contentRun.createMany).not.toHaveBeenCalled();
+  });
+
+  it('still replays the saved second round once the brand is at the cap', async () => {
+    const generate = vi.fn().mockResolvedValue(result);
+    await service.execute(user, 'brand-1', 'first-request', generate);
+    prisma.contentRun.count.mockResolvedValueOnce(2).mockResolvedValueOnce(1);
+    prisma.contentRun.createMany.mockResolvedValue({ count: 0 });
+    prisma.contentRun.findFirst.mockResolvedValue({
+      status: 'completed',
+      config: { surface: 'onboarding', result },
+    });
+    const replayed = await service.execute(
+      user,
+      'brand-1',
+      'first-request',
+      generate,
+    );
+    expect(replayed).toEqual(result);
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets a second round start while the brand has had only one', async () => {
+    prisma.contentRun.count.mockResolvedValue(1);
+    const generate = vi.fn().mockResolvedValue(result);
+    await expect(
+      service.execute(user, 'brand-1', 'first-request', generate),
+    ).resolves.toEqual(result);
   });
 
   it('reconciles a pending platform image from its saved ingredient without generating', async () => {
@@ -532,6 +571,177 @@ describe('OnboardingDraftRunsService', () => {
       prisma.contentRun.findFirst.mockResolvedValue(row({ mediaRetries: 1 }));
       await expect(service.latest(user, 'brand-1')).resolves.toMatchObject({
         mediaRetriesRemaining: 1,
+      });
+    });
+  });
+  describe('rewriteDraft', () => {
+    const updatedAt = new Date();
+    const row = (
+      config: Record<string, unknown> = {},
+      status = 'completed',
+    ) => ({
+      id: 'run-1',
+      status,
+      updatedAt,
+      config: { surface: 'onboarding', result, ...config },
+    });
+    const replacement = {
+      isProvisional: false,
+      platform: 'twitter' as const,
+      postId: 'post-2',
+      receiptId: 'receipt-2',
+      requestKey: 'key-2',
+      text: 'A different post',
+    };
+
+    it('replaces only that channel’s post, links the X key and spends one rewrite', async () => {
+      prisma.contentRun.findFirst.mockResolvedValue(row());
+      const write = vi.fn().mockResolvedValue(replacement);
+      const next = await service.rewriteDraft(
+        user,
+        'brand-1',
+        'twitter',
+        write,
+      );
+      expect(write).toHaveBeenCalledWith(result.drafts[0]);
+      expect(next.drafts).toEqual([replacement]);
+      expect(next.requestKey).toBe('key-2');
+      const writes = prisma.contentRun.updateMany.mock.calls.map(
+        ([args]) => args,
+      );
+      expect(writes[0]).toMatchObject({
+        where: { id: 'run-1', updatedAt },
+        data: {
+          status: 'running',
+          config: { draftRewrites: { twitter: 1 } },
+        },
+      });
+      expect(writes.at(-1)).toMatchObject({
+        data: {
+          status: 'completed',
+          config: {
+            draftRewrites: { twitter: 1 },
+            result: { drafts: [expect.objectContaining({ postId: 'post-2' })] },
+          },
+        },
+      });
+    });
+
+    it('adds a post for a channel that had none, in channel order', async () => {
+      prisma.contentRun.findFirst.mockResolvedValue(row());
+      const linkedin = {
+        ...replacement,
+        platform: 'linkedin' as const,
+        postId: 'post-li',
+      };
+      const write = vi.fn().mockResolvedValue(linkedin);
+      const next = await service.rewriteDraft(
+        user,
+        'brand-1',
+        'linkedin',
+        write,
+      );
+      expect(write).toHaveBeenCalledWith(undefined);
+      expect(next.drafts.map((draft) => draft.postId)).toEqual([
+        'post-1',
+        'post-li',
+      ]);
+      expect(next.requestKey).toBe('key-1');
+    });
+
+    it('keeps the old post, spends the attempt and finishes the run when writing fails', async () => {
+      prisma.contentRun.findFirst.mockResolvedValue(row());
+      const write = vi.fn().mockRejectedValue(new Error('provider down'));
+      await expect(
+        service.rewriteDraft(user, 'brand-1', 'twitter', write),
+      ).rejects.toThrow('provider down');
+      expect(prisma.contentRun.updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: {
+            status: 'completed',
+            config: expect.objectContaining({
+              draftRewrites: { twitter: 1 },
+              result: expect.objectContaining({
+                drafts: [expect.objectContaining({ postId: 'post-1' })],
+              }),
+            }),
+          },
+        }),
+      );
+    });
+
+    it('refuses once the channel has used its rewrites but not another channel', async () => {
+      prisma.contentRun.findFirst.mockResolvedValue(
+        row({ draftRewrites: { twitter: 2 } }),
+      );
+      const write = vi.fn().mockResolvedValue(replacement);
+      await expect(
+        service.rewriteDraft(user, 'brand-1', 'twitter', write),
+      ).rejects.toThrow('used all of its rewrites');
+      expect(write).not.toHaveBeenCalled();
+      await expect(
+        service.rewriteDraft(user, 'brand-1', 'instagram', write),
+      ).resolves.toBeDefined();
+    });
+
+    it('does not start a second rewrite from a tab that read the run earlier', async () => {
+      prisma.contentRun.findFirst.mockResolvedValue(row());
+      prisma.contentRun.updateMany.mockResolvedValue({ count: 0 });
+      const write = vi.fn();
+      await expect(
+        service.rewriteDraft(user, 'brand-1', 'twitter', write),
+      ).rejects.toThrow('still being written');
+      expect(write).not.toHaveBeenCalled();
+    });
+
+    it('refuses while the run is still working', async () => {
+      prisma.contentRun.findFirst.mockResolvedValue(row({}, 'running'));
+      const write = vi.fn();
+      await expect(
+        service.rewriteDraft(user, 'brand-1', 'twitter', write),
+      ).rejects.toThrow('still being written');
+      expect(write).not.toHaveBeenCalled();
+    });
+
+    it('refuses when there is no run or nothing saved to write again', async () => {
+      const write = vi.fn();
+      prisma.contentRun.findFirst.mockResolvedValue(null);
+      await expect(
+        service.rewriteDraft(user, 'brand-1', 'twitter', write),
+      ).rejects.toThrow('Onboarding run');
+      prisma.contentRun.findFirst.mockResolvedValue(row({ result: null }));
+      await expect(
+        service.rewriteDraft(user, 'brand-1', 'twitter', write),
+      ).rejects.toThrow('no saved posts');
+    });
+
+    it('reports the rewrites left per channel when reading a run', async () => {
+      prisma.contentRun.findFirst.mockResolvedValue(
+        row({ draftRewrites: { twitter: 1, linkedin: 2 } }),
+      );
+      await expect(service.latest(user, 'brand-1')).resolves.toMatchObject({
+        draftRewritesRemaining: {
+          instagram: 2,
+          linkedin: 0,
+          tiktok: 2,
+          twitter: 1,
+        },
+      });
+    });
+
+    it('keeps the rewrites already spent when media is retried', async () => {
+      prisma.contentRun.findFirst.mockResolvedValue(
+        row({ draftRewrites: { twitter: 1 } }),
+      );
+      await service.retryMedia(
+        user,
+        'brand-1',
+        vi.fn().mockResolvedValue({ ...result, imageUrl: 'u' }),
+      );
+      expect(prisma.contentRun.updateMany.mock.calls[0][0]).toMatchObject({
+        data: {
+          config: { draftRewrites: { twitter: 1 }, mediaRetries: 1 },
+        },
       });
     });
   });

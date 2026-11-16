@@ -2,7 +2,7 @@ import type { TrendItem } from '@props/trends/trends-page.props';
 import type { TableRowLink } from '@props/ui/display/table.props';
 import type { ComponentType, CSSProperties } from 'react';
 
-export type PlatformConfigEntry = {
+type PlatformConfigEntry = {
   icon?: ComponentType<{
     className?: string;
     style?: CSSProperties;

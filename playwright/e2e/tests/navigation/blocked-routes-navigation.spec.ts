@@ -3,6 +3,7 @@ import {
   mockLibraryData,
 } from '@e2e/fixtures/api-mocks.fixture';
 import { expect, test } from '@e2e/fixtures/auth.fixture';
+import { expectCommitWithinBudget } from '@e2e/utils/navigation-budget';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -132,7 +133,13 @@ function trackPrefetches(page: Page): (pathname: string) => boolean {
 }
 
 // Delays only the renders a click waits for. Prefetches stay fast.
+const pagesWithDelayedRenders = new WeakSet<Page>();
+
 async function delayServerRenders(page: Page): Promise<void> {
+  if (pagesWithDelayedRenders.has(page)) {
+    return;
+  }
+  pagesWithDelayedRenders.add(page);
   await page.route(
     (url) =>
       url.searchParams.has('_rsc') || url.pathname.startsWith('/_next/data'),
@@ -211,9 +218,12 @@ async function clickRouterLink(page: Page, href: string): Promise<void> {
   }, href);
 }
 
-async function openFrom(page: Page, startPath: string): Promise<void> {
+async function mockAppData(page: Page): Promise<void> {
   await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
   await mockLibraryData(page);
+}
+
+async function openFrom(page: Page, startPath: string): Promise<void> {
   await page.goto(startPath);
   await expect(page.locator('main').first()).toBeVisible();
 }
@@ -223,31 +233,35 @@ for (const route of ROUTES_OPENED_FROM_A_BRAND_PAGE) {
     authenticatedPage: page,
   }, testInfo) => {
     const isPrefetched = trackPrefetches(page);
-    await openFrom(
-      page,
-      route.from ?? brandRoute(APP_ROUTES.SETTINGS.BRAND_KIT),
-    );
+    await mockAppData(page);
 
-    await prefetchThroughRouter(page, route.href);
-    await expect
-      .poll(() => isPrefetched(new URL(route.href, page.url()).pathname), {
-        message: `${route.href} is prefetched before the click`,
-        timeout: PREFETCH_TIMEOUT_MS,
-      })
-      .toBe(true);
-    await delayServerRenders(page);
-    await recordNavigationTiming(page);
+    await expectCommitWithinBudget({
+      budgetMs: COMMIT_BUDGET_MS,
+      label: (elapsedMs) =>
+        `${elapsedMs}ms (server render delayed ${SERVER_LATENCY_MS}ms)`,
+      measure: async () => {
+        await openFrom(
+          page,
+          route.from ?? brandRoute(APP_ROUTES.SETTINGS.BRAND_KIT),
+        );
 
-    await clickRouterLink(page, route.href);
-    const destination = route.destination ?? route.href;
-    await page.waitForURL((url) => url.pathname === destination);
-    const elapsedMs = await readClickToCommitMs(page);
+        await prefetchThroughRouter(page, route.href);
+        await expect
+          .poll(() => isPrefetched(new URL(route.href, page.url()).pathname), {
+            message: `${route.href} is prefetched before the click`,
+            timeout: PREFETCH_TIMEOUT_MS,
+          })
+          .toBe(true);
+        await delayServerRenders(page);
+        await recordNavigationTiming(page);
 
-    testInfo.annotations.push({
-      description: `${elapsedMs}ms (server render delayed ${SERVER_LATENCY_MS}ms)`,
-      type: 'click-to-destination',
+        await clickRouterLink(page, route.href);
+        const destination = route.destination ?? route.href;
+        await page.waitForURL((url) => url.pathname === destination);
+        return readClickToCommitMs(page);
+      },
+      testInfo,
     });
-    expect(elapsedMs).toBeLessThan(COMMIT_BUDGET_MS);
   });
 }
 
@@ -255,38 +269,43 @@ test('the bare organization address commits within the budget after a prefetch',
   authenticatedPage: page,
 }, testInfo) => {
   const isPrefetched = trackPrefetches(page);
-  await openFrom(
-    page,
-    createOrganizationAppRoute(ORG, APP_ROUTES.SETTINGS.GENERAL),
-  );
-
+  await mockAppData(page);
   const href = `/${ORG}`;
-  await prefetchThroughRouter(page, href);
-  await expect
-    .poll(() => isPrefetched(href), {
-      message: `${href} is prefetched before the click`,
-      timeout: PREFETCH_TIMEOUT_MS,
-    })
-    .toBe(true);
-  await delayServerRenders(page);
-  await recordNavigationTiming(page);
 
-  await clickRouterLink(page, href);
-  // The landing frame commits first; it then sends the person to the home app
-  // of their only brand once the brand list is known.
-  await expect
-    .poll(() => readClickToCommitMs(page), { timeout: 5_000 })
-    .not.toBe(Number.POSITIVE_INFINITY);
-  const elapsedMs = await readClickToCommitMs(page);
-  await page.waitForURL(
-    (url) => url.pathname === brandRoute(APP_ROUTES.WORKSPACE.OVERVIEW),
-  );
+  await expectCommitWithinBudget({
+    budgetMs: COMMIT_BUDGET_MS,
+    label: (elapsedMs) =>
+      `${elapsedMs}ms (server render delayed ${SERVER_LATENCY_MS}ms)`,
+    measure: async () => {
+      await openFrom(
+        page,
+        createOrganizationAppRoute(ORG, APP_ROUTES.SETTINGS.GENERAL),
+      );
 
-  testInfo.annotations.push({
-    description: `${elapsedMs}ms (server render delayed ${SERVER_LATENCY_MS}ms)`,
-    type: 'click-to-destination',
+      await prefetchThroughRouter(page, href);
+      await expect
+        .poll(() => isPrefetched(href), {
+          message: `${href} is prefetched before the click`,
+          timeout: PREFETCH_TIMEOUT_MS,
+        })
+        .toBe(true);
+      await delayServerRenders(page);
+      await recordNavigationTiming(page);
+
+      await clickRouterLink(page, href);
+      // The landing frame commits first; it then sends the person to the home
+      // app of their only brand once the brand list is known.
+      await expect
+        .poll(() => readClickToCommitMs(page), { timeout: 5_000 })
+        .not.toBe(Number.POSITIVE_INFINITY);
+      const elapsedMs = await readClickToCommitMs(page);
+      await page.waitForURL(
+        (url) => url.pathname === brandRoute(APP_ROUTES.WORKSPACE.OVERVIEW),
+      );
+      return elapsedMs;
+    },
+    testInfo,
   });
-  expect(elapsedMs).toBeLessThan(COMMIT_BUDGET_MS);
 });
 
 // The organization-level Library and Publishing destinations are served by one
@@ -296,39 +315,43 @@ for (const appId of ['library', 'publishing'] as const) {
     authenticatedPage: page,
   }, testInfo) => {
     const isPrefetched = trackPrefetches(page);
-    await openFrom(
-      page,
-      createOrganizationAppRoute(ORG, APP_ROUTES.SETTINGS.GENERAL),
-    );
+    await mockAppData(page);
 
-    const target = page.getByTestId(`app-rail-item-${appId}`);
-    await expect(target).toBeVisible();
-    const href = await target.getAttribute('href');
-    expect(href).toBe(
-      createOrganizationAppRoute(
-        ORG,
-        appId === 'library'
-          ? APP_ROUTES.LIBRARY.ASSETS
-          : APP_ROUTES.PUBLISHING.OVERVIEW,
-      ),
-    );
-    await expect
-      .poll(() => isPrefetched(href ?? ''), {
-        message: 'rail destination is prefetched before the click',
-        timeout: PREFETCH_TIMEOUT_MS,
-      })
-      .toBe(true);
-    await delayServerRenders(page);
-    await recordNavigationTiming(page);
+    await expectCommitWithinBudget({
+      budgetMs: COMMIT_BUDGET_MS,
+      label: (elapsedMs) =>
+        `${elapsedMs}ms (server render delayed ${SERVER_LATENCY_MS}ms)`,
+      measure: async () => {
+        await openFrom(
+          page,
+          createOrganizationAppRoute(ORG, APP_ROUTES.SETTINGS.GENERAL),
+        );
 
-    await target.click();
-    await page.waitForURL((url) => url.pathname === href);
-    const elapsedMs = await readClickToCommitMs(page);
+        const target = page.getByTestId(`app-rail-item-${appId}`);
+        await expect(target).toBeVisible();
+        const href = await target.getAttribute('href');
+        expect(href).toBe(
+          createOrganizationAppRoute(
+            ORG,
+            appId === 'library'
+              ? APP_ROUTES.LIBRARY.ASSETS
+              : APP_ROUTES.PUBLISHING.OVERVIEW,
+          ),
+        );
+        await expect
+          .poll(() => isPrefetched(href ?? ''), {
+            message: 'rail destination is prefetched before the click',
+            timeout: PREFETCH_TIMEOUT_MS,
+          })
+          .toBe(true);
+        await delayServerRenders(page);
+        await recordNavigationTiming(page);
 
-    testInfo.annotations.push({
-      description: `${elapsedMs}ms (server render delayed ${SERVER_LATENCY_MS}ms)`,
-      type: 'click-to-destination',
+        await target.click();
+        await page.waitForURL((url) => url.pathname === href);
+        return readClickToCommitMs(page);
+      },
+      testInfo,
     });
-    expect(elapsedMs).toBeLessThan(COMMIT_BUDGET_MS);
   });
 }

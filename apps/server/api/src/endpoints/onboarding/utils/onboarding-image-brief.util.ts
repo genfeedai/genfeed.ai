@@ -11,6 +11,7 @@ const HTTP_URLS_PATTERN = /https?:\/\/\S+/g;
 const MENTIONS_AND_HASHTAGS_PATTERN = /[@#][\p{L}\p{N}_]+/gu;
 const EMOJI_SEQUENCES_PATTERN = /\p{Extended_Pictographic}|\u200d|\ufe0f/gu;
 const SENTENCE_BOUNDARY_PATTERN = /(?<=[.!?])\s+/u;
+const HEX_COLOR_PATTERN = /^#?([\da-f]{3}|[\da-f]{6})$/i;
 
 type VisualKind =
   | 'creator'
@@ -201,6 +202,66 @@ function pickKind(text: string): VisualKind {
   return best;
 }
 
+/** Hue ranges in degrees, upper bound exclusive; red wraps around at the end. */
+const HUE_NAMES: ReadonlyArray<readonly [number, string]> = [
+  [15, 'red'],
+  [40, 'orange'],
+  [65, 'yellow'],
+  [160, 'green'],
+  [200, 'teal'],
+  [250, 'blue'],
+  [290, 'purple'],
+  [335, 'pink'],
+  [361, 'red'],
+];
+
+/**
+ * A hex colour in plain words ("deep blue", "pale yellow", "black"). The image
+ * request gets words, not codes, because a model can draw "#1F6FEB" as text.
+ */
+export function describeColor(hex: string): string | undefined {
+  const match = HEX_COLOR_PATTERN.exec(hex.trim());
+  const digits = match?.[1];
+  if (!digits) return undefined;
+  const full =
+    digits.length === 3
+      ? [...digits].map((digit) => digit + digit).join('')
+      : digits;
+  const [red = 0, green = 0, blue = 0] = [0, 2, 4].map(
+    (offset) => Number.parseInt(full.slice(offset, offset + 2), 16) / 255,
+  );
+  const high = Math.max(red, green, blue);
+  const low = Math.min(red, green, blue);
+  const lightness = (high + low) / 2;
+  const spread = high - low;
+  const saturation =
+    spread === 0 ? 0 : spread / (1 - Math.abs(2 * lightness - 1));
+
+  if (lightness < 0.15) return 'black';
+  if (lightness > 0.92) return 'white';
+  if (saturation < 0.12) return lightness < 0.4 ? 'charcoal' : 'grey';
+
+  const hue =
+    60 *
+    (high === red
+      ? ((green - blue) / spread + 6) % 6
+      : high === green
+        ? (blue - red) / spread + 2
+        : (red - green) / spread + 4);
+  const name = HUE_NAMES.find(([limit]) => hue < limit)?.[1] ?? 'red';
+  if (lightness < 0.28) return `deep ${name}`;
+  if (lightness > 0.72) return `pale ${name}`;
+  return name;
+}
+
+/** "deep blue and black color palette", or nothing when no colour reads. */
+function describePalette(palette: readonly string[] | undefined) {
+  const names = [
+    ...new Set((palette ?? []).map(describeColor).filter(Boolean)),
+  ].slice(0, 3);
+  return names.length ? `${names.join(' and ')} color palette` : undefined;
+}
+
 function joinParts(...parts: Array<string | undefined>): string {
   return parts.filter(Boolean).join(', ');
 }
@@ -210,7 +271,8 @@ function joinParts(...parts: Array<string | undefined>): string {
  * structured slots (subject, scene, camera, lens, lighting, style, mood, avoid)
  * chosen from what the brand does. Built from what the person typed and the
  * post itself, so it still works for a personal signup with no website and no
- * scraped copy. Nothing here repeats a form answer or a brand name: image models
+ * scraped copy. The brand's saved colours join the style as plain colour
+ * words. Nothing here repeats a form answer or a brand name: image models
  * would draw them as text.
  */
 export function buildOnboardingImageBrief(
@@ -247,6 +309,7 @@ export function buildOnboardingImageBrief(
         SELL_GOAL.test(goals) ? 'clean commercial finish' : undefined,
         AUDIENCE_GOAL.test(goals) ? 'scroll-stopping contrast' : undefined,
         toneStyle,
+        describePalette(input.palette),
       ),
       subject: profile.subject,
     },

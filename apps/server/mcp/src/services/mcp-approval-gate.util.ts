@@ -15,18 +15,27 @@ export function isMcpApprovalGated(
   name: string,
   args?: Record<string, unknown>,
 ): boolean {
-  const release = args?.release;
-  if (
-    name === 'create_scheduled_release' &&
+  if (name === 'create_scheduled_release' && args) {
+    // A batch is a draft only when every release in it is.
+    const releases = Array.isArray(args.releases)
+      ? args.releases
+      : [args.release];
+    if (releases.length > 0 && releases.every(isUndatedDraftRelease)) {
+      return false;
+    }
+  }
+  return requiresMcpApproval(getToolByName(name));
+}
+
+/** A release that is a draft and carries no time to publish at. */
+function isUndatedDraftRelease(release: unknown): boolean {
+  return (
     isRecord(release) &&
     (release.status === undefined || release.status === 'draft') &&
     !release.scheduledDate &&
     Array.isArray(release.targets) &&
     release.targets.every((target) => isRecord(target) && !target.scheduledDate)
-  ) {
-    return false;
-  }
-  return requiresMcpApproval(getToolByName(name));
+  );
 }
 
 /**

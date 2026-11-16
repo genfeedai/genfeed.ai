@@ -3,7 +3,7 @@ import type { ISourcePost, ITrendVideo } from '@genfeedai/contracts/interfaces';
 
 import type { TrendContentItem } from '@props/trends/trends-page.props';
 
-export type DiscoveryDeskItemKind = 'trend' | 'source_post' | 'viral_video';
+type DiscoveryDeskItemKind = 'trend' | 'source_post' | 'viral_video';
 
 /**
  * `trends` = public platform trend surface, `following` = creators the brand
@@ -104,9 +104,4 @@ export interface DeskMediaPreviewProps {
   /** Extra classes on the poster image, e.g. the shared masonry hover motion. */
   mediaClassName?: string;
   onThumbnailError?: () => void;
-}
-
-export interface DiscoveryOverviewPageProps {
-  params: Promise<{ orgSlug: string; brandSlug?: string }>;
-  searchParams: Promise<{ source?: string }>;
 }

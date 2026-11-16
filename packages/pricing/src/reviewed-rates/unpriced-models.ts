@@ -20,9 +20,10 @@ const TIER_WITHOUT_PRICE =
   'Replicate lists a billing tier without a price (2026-10-27).';
 const LOCAL_MODEL =
   'Self-hosted local model: there is no provider list price to import.';
-const NO_RATE_SHEET_PROVIDER =
-  'The rate sheet seeds Replicate, fal, HeyGen and ElevenLabs only; this provider has no public list price to import.';
-
+const HIGGSFIELD_DOP_NOT_LISTED =
+  'Higgsfield no longer lists this DoP endpoint in its docs catalog (checked 2026-11-15), so no estimate can price it; retire it unless Higgsfield confirms it still answers.';
+const HIGGSFIELD_ESTIMATE_PENDING =
+  'Higgsfield publishes no price page; its own estimate for this endpoint has not been sampled yet, so it has no reviewed rate (2026-11-16).';
 /**
  * Models that deliberately have no rate-sheet entry, with the reason. A paid,
  * non-retired catalog model needs a sheet entry or a line here (checked in CI).
@@ -52,11 +53,17 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
     'fal prices per second by output resolution band and frame rate; dispatch does not supply the output band.',
   'heygen/heygen-video-1':
     'HeyGen publishes no per-video list price for this legacy endpoint; the priced HeyGen avatar engines replace it.',
-  'higgsfield-ai/dop/lite': NO_RATE_SHEET_PROVIDER,
-  'higgsfield-ai/dop/standard': NO_RATE_SHEET_PROVIDER,
-  'higgsfield-ai/dop/turbo': NO_RATE_SHEET_PROVIDER,
-  'higgsfield-ai/soul/v2/standard': NO_RATE_SHEET_PROVIDER,
-  'higgsfield/genjutsu/motion-transfer/v1.0': NO_RATE_SHEET_PROVIDER,
+  'higgsfield-ai/dop/lite': HIGGSFIELD_DOP_NOT_LISTED,
+  'higgsfield-ai/dop/standard': HIGGSFIELD_DOP_NOT_LISTED,
+  'higgsfield-ai/dop/turbo': HIGGSFIELD_DOP_NOT_LISTED,
+  'higgsfield/cinema-studio/4.0':
+    'Metered in provider tokens from request parameters; the reconciled rate lands with the Higgsfield pricing work.',
+  'higgsfield/ads-studio/v1.0':
+    'Metered per image in provider tokens (text, image input and image output rates differ); the reconciled rate lands with the Higgsfield pricing work.',
+  'higgsfield/genjutsu/object-swap/v1.0': HIGGSFIELD_ESTIMATE_PENDING,
+  'higgsfield/genjutsu/restyle/v1.0': HIGGSFIELD_ESTIMATE_PENDING,
+  'higgsfield-ai/soul/cinema': HIGGSFIELD_ESTIMATE_PENDING,
+  'higgsfield-ai/soul/standard': HIGGSFIELD_ESTIMATE_PENDING,
   'klingai-v2': LEGACY_KEY,
   'kwaivgi/kling-v1.6-pro': IDENTITY_404,
   leonardoai: LEGACY_KEY,
@@ -77,4 +84,31 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   runwayml: LEGACY_KEY,
   sdxl: LEGACY_KEY,
   'x-ai/grok-4.1-fast': IDENTITY_404,
+};
+
+/**
+ * Registry rows whose provider says nothing can be refreshed because the
+ * provider no longer serves the endpoint (404 or gone). The scanner stays
+ * quiet about them: the reason is already recorded above.
+ */
+export function isKnownUnavailableModel(modelKey: string): boolean {
+  const reason = Object.getOwnPropertyDescriptor(
+    UNPRICED_MODELS,
+    modelKey,
+  )?.value;
+  return reason === IDENTITY_404 || reason === FAL_ENDPOINT_GONE;
+}
+
+/**
+ * Rows stored under a provider that never hosted the endpoint. The row is
+ * wrong, not the provider: the scanner reports each once as a data error
+ * instead of asking the provider about it every run.
+ */
+export const PROVIDER_ENDPOINT_DATA_ERRORS: Readonly<Record<string, string>> = {
+  'argil/atom':
+    'Stored under Replicate, but argil/atom is not a Replicate model (the page and the API both return 404).',
+  'baai/bge-large-en-v1.5':
+    'Stored under Replicate, but baai/bge-large-en-v1.5 is not a Replicate model (the page and the API both return 404).',
+  'fal-ai/runway-gen3':
+    'Stored under fal, but fal no longer serves fal-ai/runway-gen3 (checked 2026-10-21).',
 };

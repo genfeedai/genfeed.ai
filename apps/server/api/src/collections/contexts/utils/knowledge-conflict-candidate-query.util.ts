@@ -2,13 +2,13 @@ import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 
 /** Chunk pairs below this cosine similarity are about different things. */
-export const CONFLICT_MIN_SIMILARITY = 0.78;
+const CONFLICT_MIN_SIMILARITY = 0.78;
 /** Chunks of the scanned version compared against the rest of the Brand Truth. */
-export const CONFLICT_MAX_TARGET_CHUNKS = 40;
+const CONFLICT_MAX_TARGET_CHUNKS = 40;
 /** Nearest chunks of other versions kept per scanned chunk. */
-export const CONFLICT_NEIGHBOURS_PER_CHUNK = 3;
+const CONFLICT_NEIGHBOURS_PER_CHUNK = 3;
 /** Chunk pairs returned for one scan, most similar first. */
-export const CONFLICT_MAX_CANDIDATE_PAIRS = 24;
+const CONFLICT_MAX_CANDIDATE_PAIRS = 24;
 
 export interface KnowledgeConflictScope {
   brandId: string | null;
@@ -29,7 +29,7 @@ export interface KnowledgeConflictCandidateRow {
  * other: an organization-wide source with any other, and a brand source with
  * the same brand's. Personal sources are never part of the shared truth.
  */
-export function conflictScopeFilter(
+function conflictScopeFilter(
   target: KnowledgeConflictScope,
 ): ReturnType<typeof Prisma.sql> | null {
   if (target.scope === KnowledgeMemoryScope.ORG) {

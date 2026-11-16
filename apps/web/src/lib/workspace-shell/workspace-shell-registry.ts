@@ -33,20 +33,8 @@ import { parseInternalHref } from './workspace-shell-url.util';
 
 export type {
   ResolvedWorkspaceShellRoute,
-  WorkspaceShellAccessPolicy,
-  WorkspaceShellAdapterSeam,
-  WorkspaceShellAvailability,
-  WorkspaceShellBreadcrumbMetadata,
-  WorkspaceShellDeployment,
-  WorkspaceShellLaunchTarget,
   WorkspaceShellOverlayRegistration,
-  WorkspaceShellProductClass,
-  WorkspaceShellRestorationPolicy,
-  WorkspaceShellRouteMode,
   WorkspaceShellRouteRegistration,
-  WorkspaceShellScopeRequirement,
-  WorkspaceShellSurfaceKey,
-  WorkspaceShellSurfaceMode,
 } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 
 const ROUTE_PARAMS_PATTERN = /:([A-Za-z][A-Za-z0-9]*)/g;
@@ -367,7 +355,7 @@ export const PROTECTED_ROUTE_INVENTORY = Object.freeze(
   buildProtectedRouteInventory(),
 );
 
-export const WORKSPACE_SHELL_OVERLAY_REGISTRY = Object.freeze([
+const WORKSPACE_SHELL_OVERLAY_REGISTRY = Object.freeze([
   Object.freeze({
     accessPolicy: 'organization-member',
     adapter: Object.freeze({ key: 'library-picker', status: 'ready' }),

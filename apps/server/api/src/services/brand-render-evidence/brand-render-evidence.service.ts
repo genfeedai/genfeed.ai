@@ -27,7 +27,7 @@ const SNAPSHOT_UNAVAILABLE_CODES = new Set([
   'brand_identity_integrity_failed',
 ]);
 
-export interface RenderedOutput {
+interface RenderedOutput {
   /** Ingredient ID the output is stored under. */
   artifactId: string;
   storageKey: string;
@@ -49,6 +49,8 @@ export interface VisualRenderScope {
    * font the renderer reports under any other ID is never credited to an asset.
    */
   brandFontAssetIds?: readonly string[];
+  /** Brand logo asset IDs staged beside the source assets, credited the same way. */
+  brandLogoAssetIds?: readonly string[];
   rendererVersion: string;
 }
 
@@ -122,6 +124,7 @@ export class BrandRenderEvidenceService {
     const authorizedAssetIds = new Set([
       ...z.array(z.string()).parse(scope.sourceAssetIds),
       ...(scope.brandFontAssetIds ?? []),
+      ...(scope.brandLogoAssetIds ?? []),
     ]);
     let snapshot: Promise<BrandRenderEvidenceSnapshotV1> | undefined;
     return {

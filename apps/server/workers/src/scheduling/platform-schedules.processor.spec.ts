@@ -28,6 +28,7 @@ describe('PlatformSchedulesProcessor', () => {
   const credentials = { refreshExpiringTokens: handler() };
   const engagement = { processArmedRules: handler() };
   const falModels = { refreshRegistryModels: handler() };
+  const higgsfieldModels = { discoverModels: handler() };
   const ingredients = {
     checkStuckProcessingIngredients: handler(),
     refreshMissingMetadataDimensions: handler(),
@@ -43,9 +44,11 @@ describe('PlatformSchedulesProcessor', () => {
   const oauthClientCleanup = { deleteAbandonedClients: handler() };
   const patterns = { computeDailyPatterns: handler() };
   const posts = { publishScheduledPosts: handler() };
+  const manualPostReminders = { sendDueReminders: handler() };
   const queueMetrics = { publishQueueMetrics: handler() };
   const credits = {
     expireFreeTrials: handler(),
+    grantLifetimeDealCredits: handler(),
     renewCreatorSubscriptions: handler(),
     settleReferralRewards: handler(),
   };
@@ -143,7 +146,15 @@ describe('PlatformSchedulesProcessor', () => {
         PLATFORM_SCHEDULED_TASKS.FAL_MODEL_DISCOVERY,
         falModels.refreshRegistryModels,
       ],
+      [
+        PLATFORM_SCHEDULED_TASKS.HIGGSFIELD_MODEL_DISCOVERY,
+        higgsfieldModels.discoverModels,
+      ],
       [PLATFORM_SCHEDULED_TASKS.FREE_TRIAL_EXPIRY, credits.expireFreeTrials],
+      [
+        PLATFORM_SCHEDULED_TASKS.LIFETIME_DEAL_CREDIT_GRANT,
+        credits.grantLifetimeDealCredits,
+      ],
       [
         PLATFORM_SCHEDULED_TASKS.GLOBAL_TRENDS_REFRESH,
         trends.refreshGlobalTrends,
@@ -191,6 +202,10 @@ describe('PlatformSchedulesProcessor', () => {
       [
         PLATFORM_SCHEDULED_TASKS.PENDING_WORKFLOW_EXECUTION_RECONCILE,
         workflowSchedules.reconcilePendingExecutions,
+      ],
+      [
+        PLATFORM_SCHEDULED_TASKS.POSTS_MANUAL_POST_REMINDERS,
+        manualPostReminders.sendDueReminders,
       ],
       [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH, posts.publishScheduledPosts],
       [
@@ -290,6 +305,7 @@ describe('PlatformSchedulesProcessor', () => {
       new PlatformMediaTaskHandlers(
         turboRun as never,
         falModels as never,
+        higgsfieldModels as never,
         ingredients as never,
         mediaPerception as never,
         modelDeprecation as never,
@@ -305,6 +321,7 @@ describe('PlatformSchedulesProcessor', () => {
       ),
       new PlatformPublishingTaskHandlers(
         posts as never,
+        manualPostReminders as never,
         threadComments as never,
         tiktok as never,
         youtubeMessages as never,

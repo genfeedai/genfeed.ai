@@ -4,7 +4,6 @@ import {
   AssetScope,
   ContentRating,
   FleetReviewStatus,
-  IngredientAvatarCategory,
   IngredientCategory,
   type IngredientOrigin,
   IngredientStatus,
@@ -28,29 +27,6 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
-
-export class CreateAvatarDto {
-  @IsString()
-  @IsEnum(IngredientAvatarCategory)
-  @ApiProperty({
-    enum: IngredientAvatarCategory,
-    enumName: 'IngredientAvatarCategory',
-    required: true,
-  })
-  readonly category!: IngredientAvatarCategory;
-
-  @IsString()
-  @ApiProperty({ required: true })
-  readonly avatarId!: string;
-
-  @IsString()
-  @ApiProperty({ required: true })
-  readonly voiceId!: string;
-
-  @IsString()
-  @ApiProperty({ required: true })
-  readonly text!: string;
-}
 
 export class CreateIngredientDto {
   @IsString()

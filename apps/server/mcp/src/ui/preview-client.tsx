@@ -1162,7 +1162,7 @@ function OrganizationSwitcher({
       {switcher.choices.length > 1 && !switcher.canSwitch && (
         <Text size="xs" color="muted">
           This connection is limited to one organization. Reconnect and choose
-          &ldquo;All my organizations&rdquo; to move between them.
+          &ldquo;All organizations&rdquo; to move between them.
         </Text>
       )}
       {error && (

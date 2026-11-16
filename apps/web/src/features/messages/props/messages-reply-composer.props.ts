@@ -1,6 +1,6 @@
 import type { SocialConversationAvailability } from '@genfeedai/contracts/interfaces';
 
-export type MessagesReplyComposerAction = 'draft' | 'dm' | 'reply';
+type MessagesReplyComposerAction = 'draft' | 'dm' | 'reply';
 
 export interface MessagesReplyComposerProps {
   readonly availability: SocialConversationAvailability;

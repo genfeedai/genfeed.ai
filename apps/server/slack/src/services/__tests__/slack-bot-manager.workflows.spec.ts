@@ -241,7 +241,7 @@ describe('SlackBotManager workflows', () => {
               text: { text: '*Plain*', type: 'mrkdwn' },
             }),
           ],
-          text: 'GenFeed AI Workflows',
+          text: 'Genfeed AI Workflows',
         });
       });
 
@@ -296,7 +296,7 @@ describe('SlackBotManager workflows', () => {
         });
 
         expect(respond).toHaveBeenCalledWith({
-          text: '*GenFeed Bot Status*\n\nYour status: Idle - no active workflow',
+          text: '*Genfeed Bot Status*\n\nYour status: Idle - no active workflow',
         });
       });
 
@@ -308,7 +308,7 @@ describe('SlackBotManager workflows', () => {
           respond,
         });
         expect(respond).toHaveBeenLastCalledWith({
-          text: '*GenFeed Bot Status*\n\nYour status: Selecting a workflow',
+          text: '*Genfeed Bot Status*\n\nYour status: Selecting a workflow',
         });
 
         sessions().set(
@@ -328,7 +328,7 @@ describe('SlackBotManager workflows', () => {
           respond,
         });
         expect(respond).toHaveBeenLastCalledWith({
-          text: '*GenFeed Bot Status*\n\nYour status: Collecting inputs (1/2)',
+          text: '*Genfeed Bot Status*\n\nYour status: Collecting inputs (1/2)',
         });
 
         sessions().set(USER_ID, makeSession({ state: 'confirming' }));
@@ -338,7 +338,7 @@ describe('SlackBotManager workflows', () => {
           respond,
         });
         expect(respond).toHaveBeenLastCalledWith({
-          text: '*GenFeed Bot Status*\n\nYour status: Waiting for confirmation',
+          text: '*Genfeed Bot Status*\n\nYour status: Waiting for confirmation',
         });
       });
 
@@ -368,7 +368,7 @@ describe('SlackBotManager workflows', () => {
           { headers: { Authorization: 'Bearer test-key' } },
         );
         expect(respond).toHaveBeenCalledWith({
-          text: '*GenFeed Bot Status*\n\nYour status: Running *Poster* (running)',
+          text: '*Genfeed Bot Status*\n\nYour status: Running *Poster* (running)',
         });
       });
 
@@ -394,7 +394,7 @@ describe('SlackBotManager workflows', () => {
           expect.objectContaining({ executionId: 'exec-1' }),
         );
         expect(respond).toHaveBeenCalledWith({
-          text: '*GenFeed Bot Status*\n\nYour status: Running *Poster*',
+          text: '*Genfeed Bot Status*\n\nYour status: Running *Poster*',
         });
       });
 
@@ -412,7 +412,7 @@ describe('SlackBotManager workflows', () => {
 
         expect(httpService.get).not.toHaveBeenCalled();
         expect(respond).toHaveBeenCalledWith({
-          text: '*GenFeed Bot Status*\n\nYour status: Running *Poster*',
+          text: '*Genfeed Bot Status*\n\nYour status: Running *Poster*',
         });
       });
     });

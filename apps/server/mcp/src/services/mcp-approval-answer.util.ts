@@ -4,6 +4,7 @@ import {
   getToolByName,
 } from '@genfeedai/actions';
 import { McpApprovalStatus } from '@genfeedai/contracts';
+import type { IScheduledReleaseBatchPending } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
 import type {
@@ -110,7 +111,16 @@ export function pendingApprovalResult(
   approval: McpApprovalResource,
   args: Record<string, unknown>,
   canResolveApproval: boolean,
+  batch?: IScheduledReleaseBatchPending,
 ) {
+  if (batch) {
+    return approvalPendingToolResult(
+      approval,
+      undefined,
+      canResolveApproval,
+      batch,
+    );
+  }
   const tool = getToolByName(approval.toolName);
   if (approval.toolName === 'generate') {
     return approvalPendingToolResult(

@@ -8,5 +8,3 @@ vi.mock('@helpers/formatting/cn/cn.util', () => ({
     'rounded-lg shadow-dropdown bg-popover/80 backdrop-blur-xl supports-[backdrop-filter]:bg-popover/70',
   cn,
 }));
-
-export { cn };

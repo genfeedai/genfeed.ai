@@ -1,7 +1,7 @@
 import type { IngredientFormat } from '@genfeedai/contracts';
 import type { LucideIcon } from 'lucide-react';
 
-export type EditorStarterId = 'landscape' | 'portrait' | 'square';
+type EditorStarterId = 'landscape' | 'portrait' | 'square';
 
 /** One starter for an Editor project. Titles live in i18n by `id`. */
 export interface EditorStarter {

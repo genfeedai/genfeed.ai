@@ -5,13 +5,13 @@
  */
 import { MonitoredAccountsController } from '@api/collections/monitored-accounts/controllers/monitored-accounts.controller';
 import { MonitoredAccountsService } from '@api/collections/monitored-accounts/services/monitored-accounts.service';
-import { ApifyModule } from '@api/services/integrations/apify/apify.module';
+import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [MonitoredAccountsController],
   exports: [MonitoredAccountsService],
-  imports: [ApifyModule],
+  imports: [TwitterModule],
   providers: [MonitoredAccountsService],
 })
 export class MonitoredAccountsModule {}

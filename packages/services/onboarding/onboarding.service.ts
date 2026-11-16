@@ -5,6 +5,7 @@ import type {
   IOnboardingFirstDraftsResult,
   IOnboardingScanResult,
   OnboardingAccessMode,
+  OnboardingDraftPlatform,
   OnboardingRuntimeAccessMode,
 } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -159,6 +160,25 @@ export class OnboardingService extends HTTPBaseService {
       return response.data;
     } catch (error) {
       logger.error('POST /brands/:brandId/drafts failed', error);
+      throw error;
+    }
+  }
+
+  /** Write one channel's post again; the other posts and all media are kept. */
+  async redoDraft(
+    brandId: string,
+    platform: OnboardingDraftPlatform,
+    signal?: AbortSignal,
+  ): Promise<IOnboardingFirstDraftsResult> {
+    try {
+      const response = await this.instance.post<IOnboardingFirstDraftsResult>(
+        `brands/${brandId}/drafts/redo`,
+        { platform },
+        { signal },
+      );
+      return response.data;
+    } catch (error) {
+      logger.error('POST /brands/:brandId/drafts/redo failed', error);
       throw error;
     }
   }

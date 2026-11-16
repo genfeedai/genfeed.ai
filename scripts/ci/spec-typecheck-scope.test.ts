@@ -192,7 +192,7 @@ describe('resolveSpecTypecheckScope (#5315)', () => {
     });
   }
 
-  it('keeps UI component tests enrolled in the spec typecheck ratchet', () => {
+  it('keeps UI component tests enrolled in the spec typecheck', () => {
     const config = readJson('packages/ui/tsconfig.typecheck.specs.json') as {
       exclude?: string[];
     };

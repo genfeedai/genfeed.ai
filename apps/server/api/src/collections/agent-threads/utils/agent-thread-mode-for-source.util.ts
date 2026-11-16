@@ -1,7 +1,7 @@
 import { AgentThreadMode } from '@genfeedai/contracts';
 
 /** Threads started from the browser extension's side panel. */
-export const EXTENSION_THREAD_SOURCE = 'extension';
+const EXTENSION_THREAD_SOURCE = 'extension';
 
 /**
  * Plan mode ends a turn on a plan that waits for approval. The extension's

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   deriveAppUrl,
+  deriveMarketplaceApiUrl,
   normalizeBaseUrl,
+  parseMarketplaceApiUrl,
   resolveLoginEndpoints,
   SAAS_API_URL,
   SAAS_APP_URL,
@@ -16,6 +18,44 @@ describe('config/endpoints', () => {
       ['https://api.genfeed.ai/v1', 'https://api.genfeed.ai/v1'],
     ])('normalizes %s to %s', (input, expected) => {
       expect(normalizeBaseUrl(input)).toBe(expected);
+    });
+  });
+
+  describe('deriveMarketplaceApiUrl', () => {
+    it.each([
+      ['https://api.genfeed.ai/v1', 'https://api.marketplace.genfeed.ai'],
+      ['https://api.example.com/v1/', 'https://api.marketplace.example.com'],
+      ['http://localhost:3010/v1', 'http://localhost:3200'],
+      ['http://127.0.0.1:3010/v1', 'http://127.0.0.1:3200'],
+    ])('derives %s to %s', (apiUrl, expected) => {
+      expect(deriveMarketplaceApiUrl(apiUrl)).toBe(expected);
+    });
+
+    it.each([
+      'https://example.com/api/v1',
+      'https://api.genfeed.localhost/v1',
+      'http://localhost:8080/v1',
+      'not a url',
+    ])('has no guess for %s', (apiUrl) => {
+      expect(deriveMarketplaceApiUrl(apiUrl)).toBeUndefined();
+    });
+  });
+
+  describe('parseMarketplaceApiUrl', () => {
+    it.each([
+      ['https://api.marketplace.genfeed.ai/', 'https://api.marketplace.genfeed.ai'],
+      ['https://example.com/marketplace-api/', 'https://example.com/marketplace-api'],
+      ['http://localhost:3200', 'http://localhost:3200'],
+    ])('accepts %s as %s', (value, expected) => {
+      expect(parseMarketplaceApiUrl(value)).toBe(expected);
+    });
+
+    it.each([
+      'http://api.marketplace.genfeed.ai',
+      'ftp://localhost:3200',
+      'api.marketplace.genfeed.ai',
+    ])('refuses %s, which would send the admin token over an unsafe channel', (value) => {
+      expect(parseMarketplaceApiUrl(value)).toBeUndefined();
     });
   });
 

@@ -2,7 +2,7 @@ const NON_ALPHANUMERIC_RUN_PATTERN = /[^a-z0-9]+/;
 
 const MIN_TOKEN_LENGTH = 3;
 
-export function tokenizeForOverlap(value: string): string[] {
+function tokenizeForOverlap(value: string): string[] {
   return value
     .toLowerCase()
     .split(NON_ALPHANUMERIC_RUN_PATTERN)

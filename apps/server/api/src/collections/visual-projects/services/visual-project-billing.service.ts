@@ -5,6 +5,8 @@ import { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  VISUAL_CODE_BRAND_INSPECTION_PROMPT,
+  VISUAL_CODE_BRAND_INSPECTION_TEXT_BYTES,
   VISUAL_CODE_DEFAULT_SETTINGS,
   VISUAL_CODE_INSPECTION_PROMPT,
   VISUAL_CODE_LIMITS,
@@ -201,7 +203,10 @@ export class VisualProjectBillingService {
         1_000_000,
     );
     const inspectionBound = this.registry.toRoundCredits(
-      ((3 * 4096 + Buffer.byteLength(VISUAL_CODE_INSPECTION_PROMPT)) *
+      ((4 * 4096 +
+        Buffer.byteLength(VISUAL_CODE_INSPECTION_PROMPT) +
+        Buffer.byteLength(VISUAL_CODE_BRAND_INSPECTION_PROMPT) +
+        VISUAL_CODE_BRAND_INSPECTION_TEXT_BYTES) *
         pricing.promptPerMillion +
         1024 * pricing.completionPerMillion) /
         1_000_000,

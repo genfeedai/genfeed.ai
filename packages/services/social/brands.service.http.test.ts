@@ -15,7 +15,6 @@ import {
 } from '@services/__mocks__/http.mock';
 
 import { BrandsService } from '@services/social/brands.service';
-import axios from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('BrandsService HTTP methods', () => {
@@ -215,43 +214,6 @@ describe('BrandsService HTTP methods', () => {
     await expect(service.getBrandOsScan(brandId)).rejects.toBe(error);
     expect(http.post).toHaveBeenCalledTimes(1);
     expect(http.get).toHaveBeenCalledTimes(1);
-  });
-
-  it('serializes explicit null watermark values so existing text and logo can be cleared', async () => {
-    let requestBody: unknown;
-    const instance = axios.create({
-      adapter: async (config) => {
-        requestBody = config.data;
-        return {
-          config,
-          data: resourceDocument(
-            { label: 'Acme', watermarkText: null, watermarkLogoId: null },
-            { id: brandId },
-          ),
-          headers: {},
-          status: 200,
-          statusText: 'OK',
-        };
-      },
-    });
-    Object.defineProperty(service, 'instance', {
-      value: instance,
-      configurable: true,
-    });
-    await service.updateWatermark(brandId, {
-      watermarkText: null,
-      watermarkLogoId: null,
-      watermarkOpacity: 0.35,
-      watermarkPosition: 'bottom-right',
-    });
-    expect(requestBody).toBe(
-      JSON.stringify({
-        watermarkText: null,
-        watermarkLogoId: null,
-        watermarkOpacity: 0.35,
-        watermarkPosition: 'bottom-right',
-      }),
-    );
   });
 
   it('findOneBySlug GETs the slug route and maps a Brand', async () => {

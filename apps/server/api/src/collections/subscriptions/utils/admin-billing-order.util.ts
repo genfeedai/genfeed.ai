@@ -7,7 +7,7 @@ import type { Prisma } from '@genfeedai/prisma';
  * assembled from other tables for the page after it is read, so ordering the
  * page by them would only reorder the rows already on screen.
  */
-export const ADMIN_BILLING_SORT_FIELDS: readonly string[] = [
+const ADMIN_BILLING_SORT_FIELDS: readonly string[] = [
   'organizationName',
   'ownerEmail',
 ];

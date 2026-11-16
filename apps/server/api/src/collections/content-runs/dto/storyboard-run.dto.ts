@@ -3,8 +3,6 @@ import type {
   StoryboardPlanSettings,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { STORYBOARD_TRANSLATION_LANGUAGES } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
-import type { CreateStoryboardRunQuote } from '@genfeedai/contracts/api-types/contracts/storyboard-run-quote.contract';
-import { storyboardOperationSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run-quote.contract';
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -39,7 +37,7 @@ export class CreateStoryboardRunDto {
   planSettings?: StoryboardPlanSettings;
 }
 
-export class ControlStoryboardRunDto {
+class ControlStoryboardRunDto {
   @ApiProperty({ minimum: 1 })
   @IsInt()
   @Min(1)
@@ -93,35 +91,6 @@ export class ListStoryboardRunsDto {
   @IsString()
   @MaxLength(200)
   search?: string;
-}
-
-export class CreateStoryboardRunQuoteDto extends ControlStoryboardRunDto {
-  @ApiProperty({ enum: storyboardOperationSchema.options })
-  @IsIn(storyboardOperationSchema.options)
-  operation!: CreateStoryboardRunQuote['operation'];
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  shotId?: string;
-  @ApiProperty({ enum: ['image', 'video'], required: false })
-  @IsOptional()
-  @IsIn(['image', 'video'])
-  repairStage?: 'image' | 'video';
-}
-export class ExecuteStoryboardRunDto extends ControlStoryboardRunDto {
-  @ApiProperty()
-  @IsString()
-  quoteId!: string;
-}
-export class CancelStoryboardRunDto extends ControlStoryboardRunDto {
-  @ApiProperty()
-  @IsString()
-  operationId!: string;
-}
-export class ResumeStoryboardRunDto extends ControlStoryboardRunDto {
-  @ApiProperty()
-  @IsString()
-  operationId!: string;
 }
 
 export class ReplaceStoryboardCharacterDto {

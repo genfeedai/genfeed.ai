@@ -9,7 +9,7 @@ import type { NavigationStartDetail } from '@genfeedai/contracts/interfaces';
  * `window`; `NavigationProgress` listens. The end of a transition is observed
  * from inside the tree instead: the committed pathname or search changes.
  */
-export const NAVIGATION_START_EVENT = 'genfeed:navigation:start';
+const NAVIGATION_START_EVENT = 'genfeed:navigation:start';
 
 export function dispatchNavigationStart(detail: NavigationStartDetail): void {
   if (typeof window === 'undefined') {

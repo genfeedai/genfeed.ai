@@ -8,7 +8,7 @@ import { AUTHOR_REPLY_WORKFLOW_IDS } from '@api/services/reply-bot/author-reply-
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import type { Platform } from '@genfeedai/contracts';
 
-export type ReplyInboundSource = 'manual' | 'poll' | 'post-watch' | 'xaa';
+type ReplyInboundSource = 'manual' | 'poll' | 'post-watch' | 'xaa';
 
 export interface ReplyInboundWorkflowInput {
   brandId?: string;

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const agentReportBindingSchema = z.object({
+const agentReportBindingSchema = z.object({
   enabled: z.literal(true),
   brandId: z.string().min(1),
   userId: z.string().min(1),

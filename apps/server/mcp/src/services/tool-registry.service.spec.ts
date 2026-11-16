@@ -485,6 +485,40 @@ describe('ToolRegistryService', () => {
       expect(calls).toEqual([]);
     });
 
+    it('tells an all-organizations connection which organization it started in and which others it can name', async () => {
+      clientService.executeAgentTool.mockResolvedValue({
+        creditsUsed: 0,
+        data: { profile: { organizationName: 'Acme', role: 'owner' } },
+        success: true,
+      });
+
+      const result = await service.handleToolCall({
+        arguments: {},
+        name: 'get_account',
+      });
+
+      expect(JSON.stringify(result)).toContain('Organization: Acme');
+      expect(JSON.stringify(result)).toContain(
+        'Organizations: Acme (default), Beta.',
+      );
+    });
+
+    it('does not list other organizations on a connection limited to one', async () => {
+      clientService.canSwitchOrganizations.mockResolvedValue(false);
+      clientService.executeAgentTool.mockResolvedValue({
+        creditsUsed: 0,
+        data: { profile: { organizationName: 'Acme', role: 'owner' } },
+        success: true,
+      });
+
+      const result = await service.handleToolCall({
+        arguments: {},
+        name: 'get_account',
+      });
+
+      expect(JSON.stringify(result)).not.toContain('Organizations:');
+    });
+
     it('acts in the active organization when none is named', async () => {
       const calls = recordToolCalls();
 
@@ -1254,6 +1288,7 @@ describe('ToolRegistryService', () => {
         userId: 'user-private',
       },
     };
+    clientService.canSwitchOrganizations.mockResolvedValue(false);
     clientService.executeAgentTool.mockResolvedValueOnce({
       creditsUsed: 0,
       data,

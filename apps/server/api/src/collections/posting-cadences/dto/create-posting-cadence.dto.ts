@@ -13,7 +13,7 @@ import {
   Min,
 } from 'class-validator';
 
-export const CADENCE_FORMATS = [
+const CADENCE_FORMATS = [
   PostCategory.ARTICLE,
   PostCategory.IMAGE,
   PostCategory.POST,

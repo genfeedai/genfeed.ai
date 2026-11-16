@@ -63,7 +63,7 @@ export function serializeProviderCatalog<TType extends string, TAttributes>({
   };
 }
 
-export type ProviderCatalogFailureCategory =
+type ProviderCatalogFailureCategory =
   | 'provider_config'
   | 'provider_rejected'
   | 'provider_timeout'
@@ -71,7 +71,7 @@ export type ProviderCatalogFailureCategory =
   | 'provider_invalid_response'
   | 'provider_unexpected';
 
-export interface ProviderCatalogFailure {
+interface ProviderCatalogFailure {
   category: ProviderCatalogFailureCategory;
   detail: string;
   status: HttpStatus;
@@ -177,9 +177,7 @@ function resolveCategory(error: unknown): {
  * Maps a provider catalog failure to a safe, actionable client response.
  * Raw provider messages, payloads and credentials never reach the response.
  */
-export function classifyProviderCatalogError(
-  error: unknown,
-): ProviderCatalogFailure {
+function classifyProviderCatalogError(error: unknown): ProviderCatalogFailure {
   // Failures authored by our own services carry a safe, intentional message
   // and status (e.g. "Connect HeyGen to load identities.").
   if (error instanceof HttpException && error.getStatus() < 500) {

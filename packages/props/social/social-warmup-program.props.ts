@@ -7,8 +7,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { BrandDetailSocialConnection } from '@props/pages/brand-detail.props';
 
-export type SocialWarmupProgramView = 'today' | 'full';
-
 export type SocialWarmupCheckUiState =
   | 'complete'
   | 'open'
@@ -20,14 +18,14 @@ export type SocialWarmupCheckUiState =
   | 'failed'
   | 'missing';
 
-export type SocialWarmupCheckKind = 'step' | 'graduation';
+type SocialWarmupCheckKind = 'step' | 'graduation';
 
-export type SocialWarmupRequirement =
+type SocialWarmupRequirement =
   | 'required'
   | 'required_when_available'
   | 'optional';
 
-export type SocialWarmupCompletionType = 'attestation' | 'signal' | 'event';
+type SocialWarmupCompletionType = 'attestation' | 'signal' | 'event';
 
 export interface SocialWarmupCheckView {
   completionKey: string;
@@ -75,7 +73,7 @@ export interface SocialWarmupBlueprintLike {
   phases: readonly SocialWarmupPhaseLike[];
 }
 
-export interface SocialWarmupPhaseLike {
+interface SocialWarmupPhaseLike {
   endDay: number;
   id: string;
   startDay: number;
@@ -83,7 +81,7 @@ export interface SocialWarmupPhaseLike {
   title: string;
 }
 
-export interface SocialWarmupCheckViewLike {
+interface SocialWarmupCheckViewLike {
   completion: {
     key: string;
     type: SocialWarmupCompletionType;
@@ -95,7 +93,7 @@ export interface SocialWarmupCheckViewLike {
   title: string;
 }
 
-export interface SocialWarmupStepLike extends SocialWarmupCheckViewLike {
+interface SocialWarmupStepLike extends SocialWarmupCheckViewLike {
   days: readonly number[];
 }
 

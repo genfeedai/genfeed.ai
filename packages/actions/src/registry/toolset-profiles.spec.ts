@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { resolveMcpAppToolsets } from './app-toolsets';
 import { CLAUDE_MCP_TOOL_NAMES } from './mcp-access-modes';
 import { getToolsForSurface } from './tool-registry';
 import type { ToolsetName } from './toolset-names';
@@ -41,9 +42,9 @@ describe('MCP toolset profiles', () => {
       getToolsForToolsets('mcp', toolsets).filter(
         (tool) => tool.requiredRole === 'user',
       ).length;
-    expect(BARE_MCP_URL_TOOL_CAP).toBe(28);
-    expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBe(28);
-    expect(userCount(DIRECTORY_MCP_PROFILE_TOOLSETS)).toBe(22);
+    expect(BARE_MCP_URL_TOOL_CAP).toBe(30);
+    expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBe(30);
+    expect(userCount(DIRECTORY_MCP_PROFILE_TOOLSETS)).toBe(24);
     expect(userCount(STUDIO_MCP_PROFILE_TOOLSETS)).toBe(43);
     expect(userCount(DEFAULT_MCP_PROFILE_TOOLSETS)).toBeLessThanOrEqual(
       BARE_MCP_URL_TOOL_CAP,
@@ -125,7 +126,25 @@ describe('MCP toolset profiles', () => {
       'content',
       'scheduler',
       'articles',
+      'insights',
     ]);
+  });
+
+  it('lists get_trends and get_analytics on the bare URL and on every selection that had them', () => {
+    const listed = (toolsets: readonly ToolsetName[]) =>
+      getToolsForToolsets('mcp', toolsets).map((tool) => tool.name);
+    for (const toolsets of [
+      DEFAULT_MCP_PROFILE_TOOLSETS,
+      DIRECTORY_MCP_PROFILE_TOOLSETS,
+      STUDIO_MCP_PROFILE_TOOLSETS,
+      ['analytics'] as const,
+      [...resolveMcpAppToolsets(['analytics'])],
+    ]) {
+      expect(listed(toolsets)).toEqual(
+        expect.arrayContaining(['get_trends', 'get_analytics']),
+      );
+    }
+    expect(listed(['content'])).not.toContain('get_analytics');
   });
 
   it('lets a bare-URL client draft, preview and request publication of an article (#10073)', () => {

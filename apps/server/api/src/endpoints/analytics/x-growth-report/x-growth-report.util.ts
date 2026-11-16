@@ -31,16 +31,16 @@ export const X_GROWTH_MAX_PERIOD_DAYS = 92;
 const RESET_DROP_RATIO = 0.3;
 const RESET_DROP_MIN_FOLLOWERS = 20;
 
-export const X_DIRECT_CONVERSIONS_UNAVAILABLE =
+const X_DIRECT_CONVERSIONS_UNAVAILABLE =
   'Direct conversions need a consent-aware tracked-link journey, which is not connected to this report.';
-export const X_PROFILE_TRAFFIC_UNAVAILABLE =
+const X_PROFILE_TRAFFIC_UNAVAILABLE =
   'Profile and bio traffic is not measured here; X does not give a profile-click metric.';
 
 function dayKey(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-export function periodDays(period: IXGrowthPeriod): number {
+function periodDays(period: IXGrowthPeriod): number {
   return Math.max(
     1,
     Math.ceil(
@@ -204,7 +204,7 @@ function kindOf(
   return insight.publicationKind;
 }
 
-export function toActivityRow(
+function toActivityRow(
   insight: PublicationInsight,
   now: Date,
   facts?: XPostFacts,
@@ -240,7 +240,7 @@ export function toActivityRow(
   };
 }
 
-export function summarizeActivity(rows: IXActivityRow[]): IXActivitySummary {
+function summarizeActivity(rows: IXActivityRow[]): IXActivitySummary {
   const byKind: Record<XActivityKind, number> = {
     post: 0,
     quote: 0,

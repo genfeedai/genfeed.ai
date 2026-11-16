@@ -15,7 +15,7 @@ export type TurboRunStreamedItem = {
   topic: string;
 };
 
-export type TurboRunPostPreviewItem = {
+type TurboRunPostPreviewItem = {
   id: string;
   platform?: string;
   title: string;

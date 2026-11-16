@@ -62,7 +62,7 @@ export function classifyCta(text: string): string {
   return 'soft_cta';
 }
 
-export function classifyContentStructure(text: string): string {
+function classifyContentStructure(text: string): string {
   if (NUMBERED_LIST_STRUCTURE_PATTERN.test(text)) {
     return 'list_structure';
   }
@@ -84,7 +84,7 @@ export function readObjectRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-export function readOptionalString(
+function readOptionalString(
   column: string | null | undefined,
   fallback: unknown,
 ): string | undefined {
@@ -96,7 +96,7 @@ export function readOptionalString(
     : undefined;
 }
 
-export function readScore(
+function readScore(
   column: number | null | undefined,
   data: Record<string, unknown>,
 ): number {
@@ -109,7 +109,7 @@ export function readScore(
     : 0;
 }
 
-export function isScoreEligible(score: number): boolean {
+function isScoreEligible(score: number): boolean {
   return score >= PATTERN_EXTRACTION_MIN_SCORE;
 }
 
@@ -152,7 +152,7 @@ export function patternGroupKey(
   return `${platform}|${industry}|${classifiedType}|${patternType}`;
 }
 
-export function emptyGroup(record: ClassifiedRecord): PatternGroupState {
+function emptyGroup(record: ClassifiedRecord): PatternGroupState {
   return {
     classifiedType: record.classifiedType,
     examples: [],
@@ -194,7 +194,7 @@ function insertTopKExample(
   }
 }
 
-export function mergeRecordIntoGroup(
+function mergeRecordIntoGroup(
   group: PatternGroupState,
   record: ClassifiedRecord,
 ): void {

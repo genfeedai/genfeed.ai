@@ -175,6 +175,10 @@ export function getToolsForToolsets(
   }
 
   const allowed = new Set<ToolsetName>([...toolsets, CORE_TOOLSET_NAME]);
+  // `analytics` includes the two headline reads that moved to `insights`.
+  if (allowed.has('analytics')) {
+    allowed.add('insights');
+  }
   return toolsOnSurface
     .filter((tool) => allowed.has(tool.toolset))
     .sort((a, b) => a.name.localeCompare(b.name));

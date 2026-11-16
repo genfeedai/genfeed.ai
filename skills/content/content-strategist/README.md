@@ -1,12 +1,14 @@
 # Content Strategist
 
-Build editorial strategy from audience and pillars through platform roles, cadence, calendar, and KPI framework.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Build editorial content strategy, platform cadence, calendars, and KPI frameworks
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill content-strategist
 ```
+<!-- generated:end -->
 
 ## Usage
 

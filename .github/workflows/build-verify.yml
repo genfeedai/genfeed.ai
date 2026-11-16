@@ -132,14 +132,11 @@ jobs:
               test -f apps/server/dist/apps/files/main.js && echo "✅ Files bundle" || (echo "❌ Files bundle missing" && exit 1)
               test -f apps/server/dist/apps/mcp/main.js && echo "✅ MCP bundle" || (echo "❌ MCP bundle missing" && exit 1)
               test -f apps/server/dist/apps/notifications/main.js && echo "✅ Notifications bundle" || (echo "❌ Notifications bundle missing" && exit 1)
-              test -f apps/server/dist/apps/telegram/main.js && echo "✅ Telegram bundle" || (echo "❌ Telegram bundle missing" && exit 1)
-              test -f apps/server/dist/apps/discord/main.js && echo "✅ Discord bundle" || (echo "❌ Discord bundle missing" && exit 1)
-              test -f apps/server/dist/apps/slack/main.js && echo "✅ Slack bundle" || (echo "❌ Slack bundle missing" && exit 1)
               echo ""
-              echo "All 8 service bundles verified ✅"
+              echo "All 5 service bundles verified ✅"
 
               # Check bundle sizes (catch empty/broken bundles)
-              for svc in api workers files mcp notifications telegram discord slack; do
+              for svc in api workers files mcp notifications; do
                 SIZE=$(stat -c%s "apps/server/dist/apps/$svc/main.js" 2>/dev/null || echo "0")
                 if [ "$SIZE" -lt 10000 ]; then
                   echo "❌ $svc bundle suspiciously small (${SIZE} bytes)"

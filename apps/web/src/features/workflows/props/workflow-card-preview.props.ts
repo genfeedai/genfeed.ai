@@ -1,11 +1,11 @@
-export interface WorkflowPreviewNode {
+interface WorkflowPreviewNode {
   id: string;
   type?: string;
   data?: Record<string, unknown>;
   position?: { x: number; y: number };
 }
 
-export interface WorkflowPreviewEdge {
+interface WorkflowPreviewEdge {
   id?: string;
   source: string;
   target: string;

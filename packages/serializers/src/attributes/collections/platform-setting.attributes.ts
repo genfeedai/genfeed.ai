@@ -60,6 +60,7 @@ export const platformSettingAttributes = createEntityAttributes([
   'brandVisionDetectModelKey',
   'systemEventsEnabledAt',
   'isEmailVerificationRequired',
+  'isSignupInviteOnly',
   'isEmailDeliveryConfigured',
   'flags',
   'featuredWorkflowIds',

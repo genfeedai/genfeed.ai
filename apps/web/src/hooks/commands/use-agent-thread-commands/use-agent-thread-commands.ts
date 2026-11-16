@@ -7,7 +7,7 @@ import { useCommandPalette } from '@/hooks/ui/use-command-palette/use-command-pa
 
 const WHITESPACE_RUN_PATTERN = /\s+/;
 
-export interface AgentThreadCommandItem {
+interface AgentThreadCommandItem {
   id: string;
   title?: string;
   lastMessage?: string;

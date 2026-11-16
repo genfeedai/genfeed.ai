@@ -28,8 +28,8 @@ const currentComparisonSchema = z.object({
   sampleSize: z.number().int().min(5).max(50),
 });
 
-export const BREAKOUT_GROWTH_FRESHNESS_MS = 15 * 60_000;
-export const BREAKOUT_GROWTH_MAX_SPACING_MS = 2 * 60 * 60_000;
+const BREAKOUT_GROWTH_FRESHNESS_MS = 15 * 60_000;
+const BREAKOUT_GROWTH_MAX_SPACING_MS = 2 * 60 * 60_000;
 
 function measurementTime(row: BreakoutObservation): number {
   return row.providerAsOfMs ?? (row.requestStartedAtMs + row.receivedAtMs) / 2;

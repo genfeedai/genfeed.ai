@@ -6,8 +6,8 @@ import type { StudioPlaygroundJob } from '@/features/studio/playground/types';
 import { filterStudioPlaygroundJobs } from '@/features/studio/playground/utils/studio-playground-asset';
 import type { StudioPlaygroundFilter } from '@/features/studio/props/studio-playground.props';
 
-export type StudioResultsSort = 'newest' | 'oldest';
-export type StudioResultsView = ViewType.GRID | ViewType.LIST;
+type StudioResultsSort = 'newest' | 'oldest';
+type StudioResultsView = ViewType.GRID | ViewType.LIST;
 
 export interface UseStudioResultsFiltersReturn {
   clearFilters: () => void;

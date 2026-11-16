@@ -73,6 +73,7 @@ import PublishingViewToggle from '@/features/posts/library/publishing-view-toggl
 import CapturedPostsList from '@/features/posts/list/captured-posts-list';
 import { needsPostAttention } from '@/features/posts/list/post-attention.helpers';
 import { parsePostsSource } from '@/features/posts/list/posts-list-query';
+import { targetManualPostAction } from '@/features/posts/release/release-actions';
 import ReleaseDetailDrawer from '@/features/posts/release/release-detail-drawer';
 import { isTargetBlockedByReadiness } from '@/features/posts/shared/release-status.helpers';
 
@@ -796,6 +797,18 @@ export default function PublishingContentLibrary() {
               service.updateTarget(selectedRelease.id, targetId, {
                 executionState: TargetExecutionState.SCHEDULED,
               }),
+            );
+        }}
+        onCompleteManualPost={(targetId, postUrl) => {
+          if (selectedRelease)
+            void mutateRelease(targetManualPostAction(targetId), (service) =>
+              service.completeManualPost(selectedRelease.id, targetId, postUrl),
+            );
+        }}
+        onSkipManualPost={(targetId) => {
+          if (selectedRelease)
+            void mutateRelease(targetManualPostAction(targetId), (service) =>
+              service.skipManualPost(selectedRelease.id, targetId),
             );
         }}
       />

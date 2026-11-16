@@ -549,15 +549,14 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(credentialUtil).toContain('readReplyBotCredentialId');
   });
 
-  it('reads X replies via official API first with Apify fallback only', () => {
+  it('reads X replies through the official API only', () => {
     const twitter = readSourceOf('TwitterService', { root: SERVER_SRC });
     const monitor = readSourceOf('SocialMonitorService', { root: API_SRC });
     expect(twitter).toContain('getTweetReplies');
     expect(twitter).toContain('tweets/search/recent');
     expect(twitter).toContain('conversation_id:');
     expect(monitor).toContain('getTweetReplies');
-    expect(monitor).toContain('falling back to Apify');
-    expect(monitor).toContain('preferOfficialApi');
+    expect(monitor).not.toContain('getTwitterTweetReplies');
   });
 
   it('schedules reply post-watch after successful X publish', () => {

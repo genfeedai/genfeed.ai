@@ -15,7 +15,7 @@ export function storyboardCapabilityError(
   throw error;
 }
 
-export function isStoryboardDeletion(
+function isStoryboardDeletion(
   previous: StoryboardPlan,
   next: StoryboardPlan,
 ): boolean {

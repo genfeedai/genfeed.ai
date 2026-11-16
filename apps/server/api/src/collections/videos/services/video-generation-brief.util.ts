@@ -1,20 +1,11 @@
-import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import type { TemplatesService } from '@api/collections/templates/services/templates.service';
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { resolveAdPresetBriefReferences } from '@api/collections/videos/services/ad-preset-submit.util';
 import { attachAvatarAudioToCompiledDispatch } from '@api/collections/videos/services/avatar-compiled-dispatch.util';
 import { assertMinimaxH3ReferenceDurations } from '@api/collections/videos/services/minimax-h3-reference.util';
 import { assertSeedanceReferenceVideoDuration } from '@api/collections/videos/services/seedance-reference-evidence.util';
-import type {
-  ResolvedVideoGenerationRequest,
-  VideoGenerationResolvedBrand,
-} from '@api/collections/videos/services/video-generation.types';
+import type { ResolvedVideoGenerationRequest } from '@api/collections/videos/services/video-generation.types';
 import { buildVideoDirection } from '@api/collections/videos/services/video-generation-direction.util';
-import {
-  brandPromptLabel,
-  optionalBrandString,
-} from '@api/collections/videos/services/video-generation-model.util';
 import {
   resolveCompiledAudioReferences,
   resolveStoredVideoReference,
@@ -23,7 +14,6 @@ import type { VideoReferenceUrlService } from '@api/collections/videos/services/
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   GenerationBriefCompileError,
-  resolveGenerationBriefBrandContext,
   resolveIsGenerationBriefBrandVoiceOn,
   runVideoGenerationBrief,
 } from '@api/services/generation-brief';
@@ -38,13 +28,7 @@ import { buildVideoGenerationBriefExemptionSource } from '@genfeedai/contracts/a
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
 import type { ConfigService } from '@libs/config/config.service';
-import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
-
-export interface BriefBrandContextDeps {
-  loggerService: LoggerService;
-  templatesService: TemplatesService;
-}
 
 export interface CompiledDispatchReferenceDeps {
   configService: ConfigService;
@@ -53,49 +37,7 @@ export interface CompiledDispatchReferenceDeps {
   referenceUrls: VideoReferenceUrlService;
 }
 
-/**
- * Brand voice must reach every model, including brief-compiled ones — see
- * `resolveGenerationBriefBrandContext`. Gated solely on the Brand voice
- * setting, never on the fidelity mode `avoid` terms can also force. A
- * template-lookup failure (e.g. a database error) must never fail the
- * whole generation (#4676) — proceed without brand context instead.
- */
-export async function resolveBriefBrandContext(
-  brand: VideoGenerationResolvedBrand,
-  createVideoDto: CreateVideoDto,
-  organizationId: string,
-  { loggerService, templatesService }: BriefBrandContextDeps,
-): Promise<string | undefined> {
-  if (
-    !resolveIsGenerationBriefBrandVoiceOn({
-      brandingMode: createVideoDto.brandingMode,
-      isBrandingEnabled: createVideoDto.isBrandingEnabled,
-    })
-  ) {
-    return undefined;
-  }
-
-  try {
-    return await resolveGenerationBriefBrandContext({
-      brand: {
-        description: optionalBrandString(brand.description),
-        label: brandPromptLabel(brand.label),
-        text: optionalBrandString(brand.text),
-      },
-      branding: buildPromptBrandingFromBrand(brand),
-      organizationId,
-      templatesService,
-    });
-  } catch (error: unknown) {
-    loggerService.error(
-      'Failed to resolve brand context for the generation brief; proceeding without it',
-      { error, organizationId },
-    );
-    return undefined;
-  }
-}
-
-export function compileVideoGenerationBrief(params: {
+function compileVideoGenerationBrief(params: {
   briefBrandContext?: string;
   createVideoDto: CreateVideoDto;
   height: number;
@@ -185,7 +127,7 @@ export function compileVideoGenerationBrief(params: {
   }
 }
 
-export async function resolveCompiledDispatchReferenceUrls(
+async function resolveCompiledDispatchReferenceUrls(
   deps: CompiledDispatchReferenceDeps,
   dispatch: Record<string, unknown>,
   organizationId: string,
@@ -319,7 +261,7 @@ export async function resolveCompiledDispatchReferenceUrls(
  * then the dispatch's reference ids resolved to URLs.
  */
 export async function prepareGenerationBrief(
-  deps: BriefBrandContextDeps & CompiledDispatchReferenceDeps,
+  deps: CompiledDispatchReferenceDeps,
   params: {
     generationHarness: GenerationHarnessReceipt;
     height: number;
@@ -333,13 +275,14 @@ export async function prepareGenerationBrief(
   evidence: VideoGenerationBriefPersistedEvidence;
   generationSource: string;
 }> {
-  const { brand, createVideoDto, model, referenceIds, user } = params.resolved;
-  const briefBrandContext = await resolveBriefBrandContext(
-    brand,
-    createVideoDto,
-    user.organizationId,
-    deps,
-  );
+  const { createVideoDto, model, referenceIds, user } = params.resolved;
+  // The pinned revision's brand voice, carried on the enhancement receipt.
+  const briefBrandContext = resolveIsGenerationBriefBrandVoiceOn({
+    brandingMode: createVideoDto.brandingMode,
+    isBrandingEnabled: createVideoDto.isBrandingEnabled,
+  })
+    ? params.generationHarness.brandVoice
+    : undefined;
   const {
     brief,
     dispatch: rawCompiledDispatch,

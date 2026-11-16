@@ -19,7 +19,7 @@ export interface IApiError {
   validationErrors?: Array<{ field: string; message: string; code?: string }>;
 }
 
-export interface IAxiosLikeError {
+interface IAxiosLikeError {
   response?: { data?: unknown; status?: number };
   message?: string;
   name?: string;

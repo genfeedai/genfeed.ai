@@ -24,7 +24,7 @@ function elementOf(node: Node): Element | null {
  * Whether a mutation happened inside the composer's editor or inside a node
  * Genfeed injected, and so can be ignored.
  */
-export function isQuietMutation(mutation: MutationRecord): boolean {
+function isQuietMutation(mutation: MutationRecord): boolean {
   const target = elementOf(mutation.target);
   return target !== null && target.closest(QUIET_SELECTOR) !== null;
 }

@@ -26,7 +26,7 @@ export interface UseAdminStatsReturn {
 }
 
 /** Days of platform activity the timeseries covers. */
-export const ADMIN_ACTIVITY_RANGE_DAYS = { '30d': 30, '7d': 7 } as const;
+const ADMIN_ACTIVITY_RANGE_DAYS = { '30d': 30, '7d': 7 } as const;
 export type AdminActivityRange = keyof typeof ADMIN_ACTIVITY_RANGE_DAYS;
 
 export function useAdminStats(

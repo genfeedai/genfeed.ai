@@ -86,6 +86,7 @@ function createHandler() {
   const agentScopeContextService = {
     assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
     assertResourceBrand: vi.fn(),
+    assertBrandAuthorized: vi.fn().mockResolvedValue(undefined),
   };
   const agentStrategiesService = {
     findOne: vi.fn().mockResolvedValue({
@@ -1477,5 +1478,100 @@ describe('authorized proactive text draft constraint', () => {
     expect(f.postGroupsService.create).not.toHaveBeenCalled();
     expect(f.turboRunService.createManualReviewTurboRun).not.toHaveBeenCalled();
     expect(f.postGroupsService.publishNow).not.toHaveBeenCalled();
+  });
+});
+
+describe('create_post text draft over MCP without a thread scope (#10081)', () => {
+  const unscoped: ToolExecutionContext = {
+    organizationId: 'org-1',
+    userId: 'user-1',
+  };
+
+  function setup() {
+    const f = createHandler();
+    f.postsService.create.mockImplementation(
+      async (dto: Record<string, unknown>) => ({ id: 'post-1', ...dto }),
+    );
+    return f;
+  }
+
+  it('saves the draft under a brand the caller is authorized for', async () => {
+    const f = setup();
+
+    const result = await runWithActionOrigin({ origin: ActionOrigin.MCP }, () =>
+      f.handler.createPost(
+        { brandId: 'brand-1', content: 'Hello world' },
+        unscoped,
+      ),
+    );
+
+    expect(result).toMatchObject({
+      data: { id: 'post-1' },
+      success: true,
+    });
+    await expect(
+      f.postsService.create.mock.results[0].value,
+    ).resolves.toMatchObject({ brandId: 'brand-1', organizationId: 'org-1' });
+  });
+
+  it('rejects a brand the caller is not authorized for and saves nothing', async () => {
+    const f = setup();
+    f.agentScopeContextService.assertBrandAuthorized.mockRejectedValueOnce(
+      new Error('Brand not authorized'),
+    );
+
+    await expect(
+      runWithActionOrigin({ origin: ActionOrigin.MCP }, () =>
+        f.handler.createPost(
+          { brandId: 'brand-2', content: 'Hello world' },
+          unscoped,
+        ),
+      ),
+    ).rejects.toThrow('Brand not authorized');
+    expect(f.postsService.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a call that names no brand and saves nothing', async () => {
+    const f = setup();
+
+    await expect(
+      runWithActionOrigin({ origin: ActionOrigin.MCP }, () =>
+        f.handler.createPost({ content: 'Hello world' }, unscoped),
+      ),
+    ).rejects.toThrow('brandId is required to save a post draft.');
+    expect(f.postsService.create).not.toHaveBeenCalled();
+  });
+
+  it('authorizes the named brand with the caller and its API key limits', async () => {
+    const f = setup();
+    const apiKeyContext = {
+      apiKeyId: 'key-1',
+      isApiKey: true,
+      scopes: ['posts:write'],
+    };
+
+    await runWithActionOrigin({ origin: ActionOrigin.MCP }, () =>
+      f.handler.createPost(
+        { brandId: 'brand-1', content: 'Hello world' },
+        { ...unscoped, apiKeyContext },
+      ),
+    );
+
+    expect(
+      f.agentScopeContextService.assertBrandAuthorized,
+    ).toHaveBeenCalledWith('brand-1', {
+      ...apiKeyContext,
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+  });
+
+  it('still requires a validated scope outside MCP', async () => {
+    const f = setup();
+
+    await expect(
+      f.handler.createPost({ brandId: 'brand-1', content: 'Hi' }, unscoped),
+    ).rejects.toThrow('Validated agent scope is required');
+    expect(f.postsService.create).not.toHaveBeenCalled();
   });
 });

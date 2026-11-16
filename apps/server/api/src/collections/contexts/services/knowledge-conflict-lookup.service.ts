@@ -10,7 +10,7 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Open conflicts returned for one lookup; a long list is not a useful answer. */
-export const MAX_CONFLICTS_PER_LOOKUP = 10;
+const MAX_CONFLICTS_PER_LOOKUP = 10;
 
 export interface KnowledgeConflictSide {
   excerpt: string;

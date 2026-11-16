@@ -13,10 +13,9 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   createOrganizationAppRoute,
-  resolveLegacyLibraryRoute,
 } from '@genfeedai/contracts/constants';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
-import { notFound, permanentRedirect, redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { type ComponentType, Suspense } from 'react';
 import {
   CampaignDetailAds,
@@ -314,14 +313,6 @@ export default async function OrgRootAppSurface({
 
     if (segments[0] === 'captions') {
       return <LibraryCaptionsPage />;
-    }
-
-    if (segments[0] === 'assets' && segments.length === 1) {
-      // Old links carried the view in the query; each view is a route now.
-      const legacyRoute = resolveLegacyLibraryRoute((await searchParams) ?? {});
-      if (legacyRoute) {
-        permanentRedirect(createOrganizationAppRoute(orgSlug, legacyRoute));
-      }
     }
 
     return <OrgLibraryBrowserPage segments={segments} />;

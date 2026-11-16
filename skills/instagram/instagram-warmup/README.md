@@ -1,12 +1,14 @@
 # Instagram Warmup Skill
 
-Expert Instagram account warmup guide — 14-day engagement plans, Stories trust-building strategy, first Reel warmup content briefs, carousel formats, and post-warmup assessment for new and purchased accounts before posting promotional content.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Guide Instagram account warmup with engagement plans, warmup content briefs, Stories strategy, Reel guidance, and post-warmup assessment frameworks for new and purchased accounts
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill instagram-warmup
 ```
+<!-- generated:end -->
 
 ## Usage
 

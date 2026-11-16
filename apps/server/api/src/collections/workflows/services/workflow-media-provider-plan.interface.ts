@@ -44,14 +44,13 @@ interface WorkflowVideoProviderPlanBase extends WorkflowMediaProviderPlanBase {
   identityLock?: VideoGenerationIdentityLock;
 }
 
-export interface WorkflowReplicateVideoProviderPlan
+interface WorkflowReplicateVideoProviderPlan
   extends WorkflowVideoProviderPlanBase {
   provider: 'replicate';
   target: ReplicatePredictionTarget;
 }
 
-export interface WorkflowFalVideoProviderPlan
-  extends WorkflowVideoProviderPlanBase {
+interface WorkflowFalVideoProviderPlan extends WorkflowVideoProviderPlanBase {
   provider: 'fal';
   target: { endpoint: string };
   preparedFalDispatch: PreparedFalVideoDispatch;

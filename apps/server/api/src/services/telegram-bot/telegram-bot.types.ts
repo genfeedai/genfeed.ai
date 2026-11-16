@@ -1,7 +1,7 @@
 /**
  * Telegram Bot Types
  *
- * Shared types for the GenFeed workflow execution bot, extracted so the
+ * Shared types for the Genfeed workflow execution bot, extracted so the
  * conversation, message-handler, and workflow-runner collaborators can share a
  * single canonical definition.
  */
@@ -49,7 +49,7 @@ export interface WorkflowInput {
 }
 
 /** Conversation state machine step per chat */
-export type ConversationStep =
+type ConversationStep =
   | 'idle'
   | 'selecting_workflow'
   | 'collecting_inputs'
@@ -84,9 +84,3 @@ export type TelegramWorkflowName =
   | 'image-to-video'
   | 'single-image'
   | 'single-video';
-
-export interface ReplicatePredictionResult {
-  status?: string;
-  output?: unknown;
-  error?: string;
-}

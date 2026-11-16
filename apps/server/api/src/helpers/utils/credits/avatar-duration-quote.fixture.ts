@@ -9,10 +9,10 @@ import {
   REVIEWED_RATE_SHEET_ENTRIES,
 } from '@genfeedai/pricing';
 
-export const AVATAR_QUOTED_AT = '2026-10-14T00:00:00.000Z';
+const AVATAR_QUOTED_AT = '2026-10-14T00:00:00.000Z';
 
 /** The reviewed HeyGen avatar engine tariff exactly as the rate sheet seeds it. */
-export function avatarEngineProfile(
+function avatarEngineProfile(
   endpoint: 'heygen/avatar-iv' | 'heygen/avatar-v',
 ): ModelBillablePricingProfile {
   const entry = REVIEWED_RATE_SHEET_ENTRIES.find(

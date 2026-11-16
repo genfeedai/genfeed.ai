@@ -5,6 +5,8 @@ import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
   APP_ROUTES,
   ONBOARDING_CAMPAIGN_IMAGE_SLOTS,
+  ONBOARDING_DRAFT_PLATFORMS,
+  ONBOARDING_MAX_DRAFT_REWRITES,
   ONBOARDING_MAX_DRAFT_ROUNDS,
   ONBOARDING_MAX_MEDIA_RETRIES,
 } from '@genfeedai/contracts/constants';
@@ -14,6 +16,7 @@ import type {
   IOnboardingFirstDraft,
   IOnboardingFirstDraftsResult,
   IOnboardingScanResult,
+  OnboardingDraftPlatform,
 } from '@genfeedai/contracts/interfaces';
 import { resolveSignupBrandDomain } from '@genfeedai/helpers';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -27,12 +30,20 @@ import type {
   FirstDraftsError,
   FirstDraftsPhase,
   FirstDraftsState,
+  FirstDraftsUnderstood,
   FirstDraftsWorkingStep,
   FirstDraftVerdict,
 } from '@/features/onboarding/props/first-drafts.props';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 import { useCompleteOnboarding } from '../../_expert/use-complete-onboarding.hook';
 import { isValidOnboardingLink, toOnboardingLink } from './first-drafts.util';
+
+const FULL_REWRITES = Object.fromEntries(
+  ONBOARDING_DRAFT_PLATFORMS.map((platform) => [
+    platform,
+    ONBOARDING_MAX_DRAFT_REWRITES,
+  ]),
+) as FirstDraftsState['draftRewritesRemaining'];
 
 const RESUMABLE_PHASES: readonly FirstDraftsPhase[] = [
   'agent',
@@ -63,6 +74,34 @@ function resolveResumePhase(
   );
 }
 
+function readUnderstood(view: unknown): FirstDraftsUnderstood | null {
+  if (typeof view !== 'object' || view === null || !('understood' in view))
+    return null;
+  const saved = view.understood;
+  if (typeof saved !== 'object' || saved === null) return null;
+  const offer =
+    'offer' in saved && typeof saved.offer === 'string' ? saved.offer : '';
+  const audience =
+    'audience' in saved && typeof saved.audience === 'string'
+      ? saved.audience
+      : '';
+  return offer || audience
+    ? { ...(audience ? { audience } : {}), ...(offer ? { offer } : {}) }
+    : null;
+}
+
+/** The first offer and audience the scan found on the site, if it found any. */
+function readScanUnderstood(
+  scan: IOnboardingScanResult,
+): FirstDraftsUnderstood | null {
+  const suggestions = scan.summary?.suggestions;
+  const offer = suggestions?.offers[0];
+  const audience = suggestions?.audiences[0];
+  return offer || audience
+    ? { ...(audience ? { audience } : {}), ...(offer ? { offer } : {}) }
+    : null;
+}
+
 export function useFirstDrafts(): FirstDraftsState {
   const { getToken } = useAuthIdentity();
   const { brandId, organizationId, isBrandScopeResolved } = useBrand();
@@ -80,6 +119,9 @@ export function useFirstDrafts(): FirstDraftsState {
     null,
   );
   const [round, setRound] = useState(0);
+  const [understood, setUnderstood] = useState<FirstDraftsUnderstood | null>(
+    null,
+  );
   const [savingPostIds, setSavingPostIds] = useState<string[]>([]);
   const pendingFeedback = useRef(new Set<string>());
   const [error, setError] = useState<FirstDraftsError | null>(null);
@@ -90,6 +132,10 @@ export function useFirstDrafts(): FirstDraftsState {
   const [mediaRetriesRemaining, setMediaRetriesRemaining] = useState(
     ONBOARDING_MAX_MEDIA_RETRIES,
   );
+  const [draftRewritesRemaining, setDraftRewritesRemaining] =
+    useState(FULL_REWRITES);
+  const [rewritingPlatform, setRewritingPlatform] =
+    useState<OnboardingDraftPlatform | null>(null);
   const [verdicts, setVerdicts] = useState<
     Readonly<Record<string, FirstDraftVerdict>>
   >({});
@@ -109,10 +155,11 @@ export function useFirstDrafts(): FirstDraftsState {
   const acceptRun = useCallback((run: IOnboardingDraftRun, initial = false) => {
     setResult(run.result);
     setMediaRetriesRemaining(run.mediaRetriesRemaining);
+    setDraftRewritesRemaining(run.draftRewritesRemaining);
     setIsGenerating(run.status === 'running');
     if (initial) setVerdicts(run.verdicts);
     if (run.result) {
-      setRound(1);
+      setRound((current) => Math.max(current, 1));
       setPhase((current) =>
         initial || current === 'working' ? 'review' : current,
       );
@@ -137,11 +184,14 @@ export function useFirstDrafts(): FirstDraftsState {
     setSavingPostIds([]);
     pendingFeedback.current.clear();
     setScan(null);
+    setUnderstood(null);
     setRound(0);
     setError(null);
     setPhase('url');
     setIsGenerating(false);
     setMediaRetriesRemaining(ONBOARDING_MAX_MEDIA_RETRIES);
+    setDraftRewritesRemaining(FULL_REWRITES);
+    setRewritingPlatform(null);
     void (async () => {
       try {
         let requestedDomain = searchParams.get('brandDomain');
@@ -170,6 +220,7 @@ export function useFirstDrafts(): FirstDraftsState {
             ? view.url
             : '';
         setUrl(storedUrl || resolved.websiteUrl || '');
+        setUnderstood(readUnderstood(view));
         const run = await (await getService()).readDrafts(
           brandId,
           controller.signal,
@@ -208,9 +259,20 @@ export function useFirstDrafts(): FirstDraftsState {
   useEffect(() => {
     if (isRestoring || resolvedScope !== scopeKey) return;
     try {
-      sessionStorage.setItem(storageKey, JSON.stringify({ url, phase }));
+      sessionStorage.setItem(
+        storageKey,
+        JSON.stringify({ phase, understood, url }),
+      );
     } catch {}
-  }, [isRestoring, resolvedScope, scopeKey, storageKey, url, phase]);
+  }, [
+    isRestoring,
+    resolvedScope,
+    scopeKey,
+    storageKey,
+    understood,
+    url,
+    phase,
+  ]);
 
   useEffect(() => {
     if (!isGenerating || !brandId) return;
@@ -249,6 +311,18 @@ export function useFirstDrafts(): FirstDraftsState {
       setError(null);
       setPhase('working');
       setWorkingStep('scanning');
+      // The member's answers replace the understood line only once the posts
+      // they produced are shown; a failed redo keeps the line that matches the
+      // posts still on screen.
+      const previousRequestKey = result?.requestKey;
+      const applyContext = () => {
+        if (context)
+          setUnderstood((current) => ({
+            ...(current ?? {}),
+            ...(context.audience ? { audience: context.audience } : {}),
+            ...(context.offer ? { offer: context.offer } : {}),
+          }));
+      };
       try {
         const service = await getService();
         const existing = await service.readDrafts(brandId, controller.signal);
@@ -270,6 +344,7 @@ export function useFirstDrafts(): FirstDraftsState {
           );
           if (controller.signal.aborted || liveScope.current !== epoch) return;
           setScan(scanned);
+          setUnderstood(readScanUnderstood(scanned));
           if (scanned.status !== 'scanned') {
             setPhase('context');
             return;
@@ -288,6 +363,7 @@ export function useFirstDrafts(): FirstDraftsState {
           controller.signal,
         );
         if (controller.signal.aborted || liveScope.current !== epoch) return;
+        applyContext();
         setResult(next);
         setRound((current) => current + 1);
         setPhase('review');
@@ -307,6 +383,9 @@ export function useFirstDrafts(): FirstDraftsState {
           if (controller.signal.aborted || liveScope.current !== epoch) return;
           if (run) {
             acceptRun(run, true);
+            if (context && run.result?.requestKey !== previousRequestKey)
+              applyContext();
+            else if (context) setError('generate');
             return;
           }
         } catch {}
@@ -372,6 +451,63 @@ export function useFirstDrafts(): FirstDraftsState {
     isRestoring,
     scopeKey,
   ]);
+
+  const rewriteDraft = useCallback(
+    async (platform: OnboardingDraftPlatform) => {
+      if (
+        !brandId ||
+        isRestoring ||
+        isGenerating ||
+        isReplay ||
+        rewritingPlatform
+      )
+        return;
+      const epoch = scopeKey;
+      const controller = new AbortController();
+      controllerRef.current?.abort();
+      controllerRef.current = controller;
+      setError(null);
+      setRewritingPlatform(platform);
+      try {
+        const next = await (await getService()).redoDraft(
+          brandId,
+          platform,
+          controller.signal,
+        );
+        if (controller.signal.aborted || liveScope.current !== epoch) return;
+        setResult(next);
+      } catch (caught) {
+        if (controller.signal.aborted || liveScope.current !== epoch) return;
+        logger.error('Failed to write another onboarding post', caught);
+        setError('rewrite');
+      }
+      // The saved run is the truth after a rewrite: it carries the rewrites
+      // left even when the request was cut off.
+      try {
+        const run = await (await getService()).readDrafts(
+          brandId,
+          controller.signal,
+        );
+        if (controller.signal.aborted || liveScope.current !== epoch) return;
+        if (run) acceptRun(run);
+      } catch (caught) {
+        if (controller.signal.aborted || liveScope.current !== epoch) return;
+        logger.error('Failed to reconcile onboarding rewrite', caught);
+      } finally {
+        if (liveScope.current === epoch) setRewritingPlatform(null);
+      }
+    },
+    [
+      acceptRun,
+      brandId,
+      getService,
+      isGenerating,
+      isReplay,
+      isRestoring,
+      rewritingPlatform,
+      scopeKey,
+    ],
+  );
 
   const onVerdict = useCallback(
     (item: IOnboardingFirstDraft, verdict: FirstDraftVerdict | null) => {
@@ -460,23 +596,29 @@ export function useFirstDrafts(): FirstDraftsState {
   };
 
   return {
-    canRetry: round < ONBOARDING_MAX_DRAFT_ROUNDS,
+    canRetry: round < ONBOARDING_MAX_DRAFT_ROUNDS && !isReplay,
     canRetryMedia:
       hasMissingMedia &&
       mediaRetriesRemaining > 0 &&
       !isReplay &&
       !isRestoring &&
       !isGenerating &&
+      !rewritingPlatform &&
       !isContinuing,
+    canRewrite: !isReplay && !isRestoring && !isGenerating && !isContinuing,
+    draftRewritesRemaining,
     isReady:
       isBrandScopeResolved && Boolean(brandId) && resolvedScope === scopeKey,
     isRestoring,
     isGenerating,
+    rewritingPlatform,
     savingPostIds,
     error,
     isContinuing,
     isScanFailed: scan?.status === 'failed',
     likedDrafts,
+    maxRounds: ONBOARDING_MAX_DRAFT_ROUNDS,
+    onCancelRedo: () => setPhase(result ? 'review' : 'url'),
     onContinue,
     onNotRight: () => setPhase('context'),
     onNavigate: (step) => {
@@ -524,6 +666,7 @@ export function useFirstDrafts(): FirstDraftsState {
       else if (phase === 'prompt') onContinue();
     },
     onRetryMedia: () => void retryMedia(),
+    onRewrite: (platform) => void rewriteDraft(platform),
     onVerdict,
     onSkipLink: () => setPhase('context'),
     onStart,
@@ -538,6 +681,7 @@ export function useFirstDrafts(): FirstDraftsState {
     result,
     round,
     scan,
+    understood,
     url,
     verdicts,
     workingStep,

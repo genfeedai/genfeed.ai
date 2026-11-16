@@ -216,7 +216,7 @@ export async function captureNativeSourceExposureObservation(
   return persistBreakoutExposureObservation(tx, current, input);
 }
 
-export function nativeExposureContentDigest(
+function nativeExposureContentDigest(
   material: Readonly<BreakoutNativeMaterialInput>,
 ): string {
   return digest({

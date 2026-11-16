@@ -22,6 +22,7 @@ import {
   PromptStatus,
   SystemPromptKey,
 } from '@genfeedai/contracts';
+import type { SkillSectionReceipt } from '@genfeedai/contracts/interfaces/ai';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -46,6 +47,12 @@ export interface PromptEnhancementInput {
    * it as a scene to illustrate.
    */
   subjectRule?: string;
+  /**
+   * The media-relevant part of the brand brief (palette, look, avoid), from
+   * `buildMediaEnhancerBrief`. Sent as guidance so the rewrite is written with
+   * the brand in view.
+   */
+  brandBrief?: string;
 }
 
 /** Existing AiActions context assembly and BYOK credentials; never accepted from an HTTP DTO. */
@@ -60,6 +67,8 @@ export interface PromptEnhancementResult {
   negativePrompt?: string;
   tokensUsed: number;
   isByok: boolean;
+  /** What each skill added to the system prompt: the sections loaded and left out. */
+  skillSections?: SkillSectionReceipt[];
 }
 
 export class PromptEnhancementResponseError extends Error {
@@ -132,12 +141,17 @@ export class PromptEnhancementService {
           .catch(() => fallback)
       )?.trim() ||
         fallback);
+    const sectionReceipts: SkillSectionReceipt[] = [];
     const skillSections =
       (await this.skills?.resolveGenerationSkillPromptSections(
         input.organizationId,
         input.brandId,
         requestedSkillSlugs,
-        { actorUserId: input.actorUserId, modality: input.contentType },
+        {
+          actorUserId: input.actorUserId,
+          modality: input.contentType,
+          sectionReceipts,
+        },
       )) ?? '';
     const guidance = skillSections
       ? `${basePrompt}\n\n${skillSections}`
@@ -149,6 +163,7 @@ export class PromptEnhancementService {
           input.subjectRule?.trim()
             ? `Subject rule (applies to what is depicted, never to be quoted):\n${input.subjectRule.trim()}`
             : '',
+          input.brandBrief?.trim() ?? '',
           formatCreativeDirection(input.creativeDirection),
         ]
           .filter(Boolean)
@@ -185,6 +200,7 @@ export class PromptEnhancementService {
     const usage = {
       tokensUsed: response.usage?.total_tokens ?? 0,
       isByok: Boolean(options?.byokApiKey),
+      ...(sectionReceipts.length > 0 ? { skillSections: sectionReceipts } : {}),
     };
     if (!input.contentType) return { result, ...usage };
     const { prompt, negativePrompt } = parseMediaPromptOutput(result);

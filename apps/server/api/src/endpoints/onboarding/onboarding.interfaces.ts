@@ -72,6 +72,8 @@ export interface OnboardingImageBriefInput {
   description?: string;
   goals?: string[];
   offer?: string;
+  /** The brand's saved colours as hex codes, main colour first. */
+  palette?: string[];
   /** The X post the image illustrates. */
   post: string;
   tone?: string;

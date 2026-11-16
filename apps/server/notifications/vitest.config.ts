@@ -31,10 +31,17 @@ export default defineConfig({
         ),
       },
       {
-        find: '@genfeedai/contracts/constants',
+        find: /^@genfeedai\/contracts\/constants$/,
         replacement: path.resolve(
           serviceDir,
           '../../../packages/contracts/src/constants/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/contracts\/constants\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/contracts/src/constants/$1',
         ),
       },
       {

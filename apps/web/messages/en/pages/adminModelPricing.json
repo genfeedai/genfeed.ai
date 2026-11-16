@@ -81,5 +81,16 @@
   "fixSummaryUnresolved": "{count, plural, one {# model needs a price set by hand.} other {# models need a price set by hand.}}",
   "fixSummaryChanged": "{count, plural, one {# model's rates changed while fixing; fix it again.} other {# models' rates changed while fixing; fix them again.}}",
   "fixNothing": "Nothing to fix.",
-  "fixFailed": "Could not fix pricing. Refresh the snapshot and try again."
+  "fixFailed": "Could not fix pricing. Refresh the snapshot and try again.",
+  "copyFixPrompt": "Copy fix prompt",
+  "copyFixPromptFor": "Copy fix prompt: {label}",
+  "copyAuditPrompt": "Copy audit prompt (every price)",
+  "fixPromptCopied": "{count, plural, one {Fix prompt copied for # model} other {Fix prompt copied for # models}}",
+  "auditPromptCopied": "Audit prompt copied",
+  "promptCopiedHint": "Paste it into your agent. Nothing runs until you say go.",
+  "promptCopyFailed": "Could not copy the prompt",
+  "promptFallbackHint": "Your browser blocked copying. Select the text and copy it yourself.",
+  "promptFallbackClose": "Close",
+  "fixPromptTitle": "Fix prompt",
+  "auditPromptTitle": "Audit prompt"
 }

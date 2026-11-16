@@ -48,6 +48,31 @@ describe('MCP readable tool results', () => {
     expect(text).not.toMatch(/private|brand-other/);
   });
 
+  it('names the other organizations an all-organizations connection can act in', () => {
+    const text = accountToolText({
+      organizations: [
+        { isDefault: true, name: 'Acme Studio' },
+        { isDefault: false, name: 'North Studio' },
+        { isDefault: false, name: 'South Studio' },
+      ],
+      profile: { organizationName: 'Acme Studio', role: 'owner' },
+    });
+
+    expect(text).toContain('Organization: Acme Studio');
+    expect(text).toContain(
+      'Organizations: Acme Studio (default), North Studio, South Studio.',
+    );
+  });
+
+  it('says nothing about other organizations for a single-organization connection', () => {
+    expect(
+      accountToolText({
+        organizations: [{ isDefault: true, name: 'Acme Studio' }],
+        profile: { organizationName: 'Acme Studio', role: 'owner' },
+      }),
+    ).not.toContain('Organizations:');
+  });
+
   it('reads a count when the brand names are unavailable (#7276)', () => {
     expect(accountToolText({ profile: { brandCount: 3, role: 'user' } })).toBe(
       'Connected to Genfeed.\nRole: User\nBrands: 3',

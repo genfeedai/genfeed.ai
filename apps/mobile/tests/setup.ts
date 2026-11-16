@@ -220,10 +220,6 @@ vi.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
-vi.mock('expo-web-browser', () => ({
-  maybeCompleteAuthSession: vi.fn(),
-}));
-
 vi.mock('expo-auth-session/providers/google', () => ({
   useIdTokenAuthRequest: vi.fn(() => [
     { clientId: 'google-client' },
@@ -270,14 +266,6 @@ vi.mock('expo-image-manipulator', () => ({
   FlipType: {},
   manipulateAsync: vi.fn(),
   SaveFormat: { JPEG: 'jpeg', PNG: 'png' },
-}));
-
-vi.mock('expo-haptics', () => ({
-  ImpactFeedbackStyle: {},
-  impactAsync: vi.fn(),
-  NotificationFeedbackType: {},
-  notificationAsync: vi.fn(),
-  selectionAsync: vi.fn(),
 }));
 
 vi.mock('react-native-reanimated', () => ({

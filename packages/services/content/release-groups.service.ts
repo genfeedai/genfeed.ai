@@ -1,8 +1,8 @@
-import type {
-  CredentialPlatform,
-  PostCategory,
-  ReleaseStatus,
-  ReleaseTargetSource,
+import {
+  type CredentialPlatform,
+  type PostCategory,
+  type ReleaseStatus,
+  type ReleaseTargetSource,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type {
@@ -307,6 +307,33 @@ export class ReleaseGroupsService extends HTTPBaseService {
       input,
     );
     return deserializeResource<IReleaseGroup>(response.data);
+  }
+
+  /**
+   * Closes a quote X would not take through the API as posted by the person.
+   * `postUrl` is the link they pasted; empty when they gave none.
+   */
+  async completeManualPost(
+    groupId: string,
+    targetId: string,
+    postUrl: string,
+  ): Promise<IReleaseGroup> {
+    return this.updateTarget(groupId, targetId, {
+      error: null,
+      executionState: TargetExecutionState.PUBLISHED,
+      ...(postUrl ? { url: postUrl } : {}),
+    });
+  }
+
+  /** Closes a quote the person chose not to post by hand. */
+  async skipManualPost(
+    groupId: string,
+    targetId: string,
+  ): Promise<IReleaseGroup> {
+    return this.updateTarget(groupId, targetId, {
+      error: null,
+      executionState: TargetExecutionState.SKIPPED,
+    });
   }
 
   async publishNow(groupId: string): Promise<IReleaseGroup> {

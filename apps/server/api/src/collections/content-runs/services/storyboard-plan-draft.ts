@@ -13,8 +13,8 @@ import { z } from 'zod';
 
 export const STORYBOARD_DEFAULT_RUNTIME_BUDGET_SECONDS = 30;
 export const STORYBOARD_MIN_SHOTS = 2;
-export const STORYBOARD_MAX_SHOTS = 12;
-export const STORYBOARD_NARRATOR_NAME = 'Narrator';
+const STORYBOARD_MAX_SHOTS = 12;
+const STORYBOARD_NARRATOR_NAME = 'Narrator';
 
 /**
  * Strict-mode JSON schema for the model reply. Optional values are nullable so
@@ -61,7 +61,7 @@ export const storyboardDraftOutputSchema = z
 export type StoryboardDraftOutput = z.infer<typeof storyboardDraftOutputSchema>;
 export type StoryboardDraftMode = 'draft' | 'revise';
 
-export interface StoryboardDraftModel {
+interface StoryboardDraftModel {
   hasInterpolation: boolean;
   supportedDurationsSeconds: readonly number[];
 }

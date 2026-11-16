@@ -18,10 +18,10 @@ import {
 const CALL_TO_ACTION_PATTERN = /comment|click|learn more|reply|share|visit/i;
 
 export const DEFAULT_EVENT_OPPORTUNITY_COST = 12;
-export const DEFAULT_IMAGE_OPPORTUNITY_COST = 24;
+const DEFAULT_IMAGE_OPPORTUNITY_COST = 24;
 export const DEFAULT_TEXT_OPPORTUNITY_COST = 10;
 /** Share of X text slots the agent writes as threads when the mix sets none. */
-export const DEFAULT_X_THREAD_PERCENT = 25;
+const DEFAULT_X_THREAD_PERCENT = 25;
 
 export function documentId(entity: unknown): string {
   return String((entity as Record<string, unknown>).id);

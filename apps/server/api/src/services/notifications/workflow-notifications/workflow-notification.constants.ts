@@ -5,8 +5,6 @@ const RELATIVE_PATH_PATTERN = /^\/[^/]/;
 export const AGENT_STATUS_NOTIFICATION_TOPIC = 'agent.status';
 export const WORKFLOW_STATUS_NOTIFICATION_TOPIC = 'workflow.status';
 export const EMAIL_NOTIFICATION_CHANNEL = 'email';
-export const RESEND_NOTIFICATION_PROVIDER = 'resend';
-
 export type WorkflowOutcome = 'completed' | 'failed';
 
 export interface WorkflowStatusNotificationPayload {
@@ -88,3 +86,27 @@ export interface CollaborationNotificationPayload {
   threadId?: string;
   sourcePath?: string;
 }
+
+export const PUBLISHING_STATUS_NOTIFICATION_TOPIC = 'publishing.status';
+export const INTEGRATION_STATUS_NOTIFICATION_TOPIC = 'integration.status';
+
+export type AlertEmailEvent =
+  | 'post_failed'
+  | 'manual_post_needed'
+  | 'publish_unverified'
+  | 'channel_disconnected';
+
+/**
+ * What an alert email says. The producer writes it when the failure happens:
+ * the email names the post or channel and the reason, and the renderer reads
+ * nothing else, so a later edit to the post never rewrites a sent alert.
+ */
+export type AlertEmailNotificationPayload = {
+  version: 1;
+  kind: 'alert_email';
+  event: AlertEmailEvent;
+  /** The post or channel, for display. */
+  label: string;
+  /** What happened and why, in one sentence. */
+  summary: string;
+};

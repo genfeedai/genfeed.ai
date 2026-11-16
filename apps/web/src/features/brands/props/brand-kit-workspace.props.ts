@@ -38,6 +38,7 @@ export interface BrandKitWorkspaceProps extends BrandKitRevisionWorkspace {
   onTabChange: (tab: string) => void;
   onScan: () => void;
   onManualImport: () => void;
+  onRefreshBrand: () => Promise<void>;
   guidedSetupHref: string;
   contentRulesHref: string;
   overview: ReactNode;

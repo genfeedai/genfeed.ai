@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Guide LinkedIn account warmup with engagement plans, SSI-building strategy, comment-first content, and post-warmup assessment"
+  tags: linkedin, social-media, warmup, engagement, account-growth, ssi, new-account
+  outputs: text
+  triggers: "linkedin warmup; warm up linkedin; new linkedin account; linkedin account warmup plan; linkedin engagement plan; warmup content linkedin; linkedin trust score; first post on linkedin; SSI score"
 ---
 
 # LinkedIn Warmup Skill

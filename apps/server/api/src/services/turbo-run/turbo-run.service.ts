@@ -13,10 +13,7 @@ import { TurboRunStatus } from '@genfeedai/contracts';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
-export type {
-  ReviewInboxItemSummary,
-  ReviewInboxSummary,
-} from '@api/services/turbo-run/turbo-run.types';
+export type { ReviewInboxSummary } from '@api/services/turbo-run/turbo-run.types';
 
 @Injectable()
 export class TurboRunService {

@@ -20,7 +20,7 @@ export const LIFECYCLE_EMAIL_ACTION_IDS = {
   LOAD: 'lifecycle-email.load-delivery',
   RENDER: 'lifecycle-email.render',
 } as const;
-export const LIFECYCLE_EMAIL_WORKFLOW_ID = 'lifecycle-email.delivery';
+const LIFECYCLE_EMAIL_WORKFLOW_ID = 'lifecycle-email.delivery';
 
 export function buildLifecycleEmailWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {

@@ -36,7 +36,7 @@ export type PreflightStep = {
 };
 
 export type SpecWorkspaceInventory = {
-  /** Every workspace enrolled in the spec typecheck ratchet, in run order. */
+  /** Every workspace enrolled in the spec typecheck, in run order. */
   all: readonly string[];
   /** Enrolled workspaces under `apps/server` (shared server configs escalate). */
   serverWorkspaces: ReadonlySet<string>;
@@ -329,12 +329,11 @@ export function planPreflight(input: PreflightPlanInput): PreflightStep[] {
         command: [
           'bun',
           'run',
-          'scripts/architecture/check-spec-typecheck.ts',
-          '--workspace',
+          'scripts/ci/spec-typecheck-workspaces.ts',
           workspace,
         ],
         id: `spec-typecheck:${workspace}`,
-        label: `Spec typecheck ratchet: ${workspace}`,
+        label: `Spec typecheck: ${workspace}`,
         stage: 'spec-typecheck',
       });
     }

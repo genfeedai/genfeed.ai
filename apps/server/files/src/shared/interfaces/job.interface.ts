@@ -14,7 +14,7 @@ import type {
   FileJobType as JobType,
 } from '@genfeedai/contracts/queue';
 
-export interface BaseJobData {
+interface BaseJobData {
   id: string;
   type: JobType;
   ingredientId: string;

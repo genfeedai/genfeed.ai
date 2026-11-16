@@ -1,5 +1,6 @@
 # LinkedIn Carousel
 
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
 Plan and write a LinkedIn carousel (PDF document post) with slide copy, a design spec and a caption.
 
 ## Installation
@@ -7,6 +8,7 @@ Plan and write a LinkedIn carousel (PDF document post) with slide copy, a design
 ```bash
 bunx skills add genfeedai/skills --skill linkedin-carousel
 ```
+<!-- generated:end -->
 
 ## Usage
 
