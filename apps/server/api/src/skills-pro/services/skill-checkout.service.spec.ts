@@ -370,6 +370,52 @@ describe('SkillCheckoutService', () => {
       ]);
     });
 
+    it('sends the buyer back to the marketplace when the store asks', async () => {
+      configService.get.mockImplementation(
+        buildConfigGetMock({
+          GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
+          GENFEEDAI_PUBLIC_URL: 'https://genfeed.ai',
+          STRIPE_PRICE_SKILLS_PRO: 'price_env_123',
+        }),
+      );
+
+      await service.createCheckoutSession({
+        cancelUrl: 'https://marketplace.genfeed.ai/skills',
+        successUrl:
+          'https://marketplace.genfeed.ai/skills/purchased?session_id={CHECKOUT_SESSION_ID}',
+      });
+
+      expect(createdSessions).toEqual([
+        expect.objectContaining({
+          cancel_url: 'https://marketplace.genfeed.ai/skills',
+          success_url:
+            'https://marketplace.genfeed.ai/skills/purchased?session_id={CHECKOUT_SESSION_ID}',
+        }),
+      ]);
+    });
+
+    it('ignores a look-alike of the marketplace origin', async () => {
+      configService.get.mockImplementation(
+        buildConfigGetMock({
+          GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
+          STRIPE_PRICE_SKILLS_PRO: 'price_env_123',
+        }),
+      );
+
+      await service.createCheckoutSession({
+        cancelUrl: 'https://marketplace.genfeed.ai.evil.example/skills',
+        successUrl: 'http://marketplace.genfeed.ai/skills/purchased',
+      });
+
+      expect(createdSessions).toEqual([
+        expect.objectContaining({
+          cancel_url: 'https://app.genfeed.ai/skills-pro',
+          success_url:
+            'https://app.genfeed.ai/skills-pro/success?session_id={CHECKOUT_SESSION_ID}',
+        }),
+      ]);
+    });
+
     it('should ignore checkout redirect URLs from unknown origins', async () => {
       configService.get.mockImplementation(
         buildConfigGetMock({
