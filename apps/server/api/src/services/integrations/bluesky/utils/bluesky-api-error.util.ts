@@ -1,3 +1,8 @@
+import {
+  TokenInvalidError,
+  TokenRefreshError,
+  TokenRevokedError,
+} from '@atproto/oauth-client-node';
 import { isAxiosError } from '@genfeedai/utils/error/json-api-status.util';
 
 /** AT Protocol error names a PDS sends when it refuses the account itself. */
@@ -7,19 +12,12 @@ const CREDENTIAL_REJECTION_ERROR_NAMES: ReadonlySet<string> = new Set([
   'AuthenticationRequired',
 ]);
 
-/** AT Protocol error names for a session token that needs replacing. */
-const SESSION_TOKEN_ERROR_NAMES: ReadonlySet<string> = new Set([
-  'ExpiredToken',
-  'InvalidToken',
-]);
-
 const HTTP_UNAUTHORIZED = 401;
-const HTTP_BAD_REQUEST = 400;
 const HTTP_TOO_MANY_REQUESTS = 429;
 const MILLISECONDS_PER_SECOND = 1_000;
 
 /**
- * Thrown when Bluesky refuses the stored app password or the account. The
+ * Thrown when Bluesky refuses or revokes the stored session or the account. The
  * channel has already been marked disconnected when this is thrown, and
  * retrying cannot help until the owner reconnects.
  */
@@ -32,43 +30,91 @@ export class BlueskyCredentialRejectedError extends Error {
   }
 }
 
-/** The `error` name in an XRPC error body, e.g. `ExpiredToken`. */
-function readBlueskyErrorName(error: unknown): string | undefined {
-  if (!isAxiosError(error)) {
-    return undefined;
+/** A non-2xx answer to a signed XRPC call, with what the rate-limit and rejection checks read. */
+export class BlueskyHttpError extends Error {
+  constructor(
+    readonly status: number,
+    readonly errorName: string | undefined,
+    message: string,
+    readonly headers: Record<string, string>,
+  ) {
+    super(message);
+    this.name = 'BlueskyHttpError';
   }
-  const data: unknown = error.response?.data;
-  if (data !== null && typeof data === 'object' && 'error' in data) {
-    const name = (data as { error?: unknown }).error;
-    return typeof name === 'string' ? name : undefined;
+
+  static fromResponse(response: Response, body: unknown): BlueskyHttpError {
+    const fields =
+      body !== null && typeof body === 'object'
+        ? (body as { error?: unknown; message?: unknown })
+        : {};
+    const errorName =
+      typeof fields.error === 'string' ? fields.error : undefined;
+    const message =
+      typeof fields.message === 'string'
+        ? fields.message
+        : `Bluesky answered ${response.status}`;
+    return new BlueskyHttpError(
+      response.status,
+      errorName,
+      message,
+      Object.fromEntries(response.headers.entries()),
+    );
   }
-  return undefined;
 }
 
-/** True when `createSession` refused the handle, app password or account. */
-export function isBlueskyCredentialRejection(error: unknown): boolean {
-  if (!isAxiosError(error)) {
-    return false;
+interface BlueskyErrorFacts {
+  headers: Record<string, unknown>;
+  name?: string;
+  status?: number;
+}
+
+/** What an error says about the answer: from a signed call or an unsigned axios one. */
+function describeBlueskyError(error: unknown): BlueskyErrorFacts | null {
+  if (error instanceof BlueskyHttpError) {
+    return {
+      headers: error.headers,
+      name: error.errorName,
+      status: error.status,
+    };
   }
-  const status = error.response?.status;
-  const name = readBlueskyErrorName(error);
+  if (!isAxiosError(error)) {
+    return null;
+  }
+  const data: unknown = error.response?.data;
+  const name =
+    data !== null && typeof data === 'object' && 'error' in data
+      ? (data as { error?: unknown }).error
+      : undefined;
+  return {
+    headers: error.response?.headers ?? {},
+    name: typeof name === 'string' ? name : undefined,
+    status: error.response?.status,
+  };
+}
+
+/**
+ * True when the stored session can no longer be opened: the person revoked
+ * access at Bluesky, the refresh token ran out, or the server no longer accepts
+ * this client. Retrying cannot help until the account is connected again.
+ */
+export function isBlueskySessionLost(error: unknown): boolean {
   return (
-    status === HTTP_UNAUTHORIZED ||
-    (name !== undefined && CREDENTIAL_REJECTION_ERROR_NAMES.has(name))
+    error instanceof TokenRefreshError ||
+    error instanceof TokenRevokedError ||
+    error instanceof TokenInvalidError
   );
 }
 
-/** True when an authenticated call failed because its session token lapsed. */
-export function isBlueskySessionTokenError(error: unknown): boolean {
-  if (!isAxiosError(error)) {
+/** True when an answer from Bluesky refuses the account or the session. */
+export function isBlueskyCredentialRejection(error: unknown): boolean {
+  const facts = describeBlueskyError(error);
+  if (!facts) {
     return false;
   }
-  const status = error.response?.status;
-  const name = readBlueskyErrorName(error);
   return (
-    (status === HTTP_BAD_REQUEST || status === HTTP_UNAUTHORIZED) &&
-    name !== undefined &&
-    SESSION_TOKEN_ERROR_NAMES.has(name)
+    facts.status === HTTP_UNAUTHORIZED ||
+    (facts.name !== undefined &&
+      CREDENTIAL_REJECTION_ERROR_NAMES.has(facts.name))
   );
 }
 
@@ -93,13 +139,11 @@ export class BlueskyMediaError extends Error {
 export function readBlueskyRateLimit(
   error: unknown,
 ): { resetAt?: Date; retryAfterMs: number } | null {
-  if (
-    !isAxiosError(error) ||
-    error.response?.status !== HTTP_TOO_MANY_REQUESTS
-  ) {
+  const facts = describeBlueskyError(error);
+  if (facts?.status !== HTTP_TOO_MANY_REQUESTS) {
     return null;
   }
-  const headers: Record<string, unknown> = error.response.headers ?? {};
+  const headers = facts.headers;
   const retryAfter = Number(headers['retry-after']);
   const reset = Number(headers['ratelimit-reset']);
   const resetAt = Number.isFinite(reset)

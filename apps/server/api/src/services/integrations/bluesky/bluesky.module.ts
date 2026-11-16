@@ -3,11 +3,14 @@ import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { BlueskyController } from '@api/services/integrations/bluesky/controllers/bluesky.controller';
 import { BlueskyService } from '@api/services/integrations/bluesky/services/bluesky.service';
+import { BlueskyOAuthService } from '@api/services/integrations/bluesky/services/bluesky-oauth.service';
+import { BlueskyOAuthKeyService } from '@api/services/integrations/bluesky/services/bluesky-oauth-key.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(BlueskyService, {
+  additionalProviders: [BlueskyOAuthService, BlueskyOAuthKeyService],
   additionalImports: [
     HttpModule,
     BrandsModule,

@@ -6566,6 +6566,19 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     },
     relationIdFields: {},
   },
+  PlatformSigningKey: {
+    allFields: [
+      'createdAt',
+      'id',
+      'keyId',
+      'privateJwk',
+      'provider',
+      'publicJwk',
+    ],
+    listFields: [],
+    enumFields: {},
+    relationIdFields: {},
+  },
   Post: {
     allFields: [
       'agentContextSource',

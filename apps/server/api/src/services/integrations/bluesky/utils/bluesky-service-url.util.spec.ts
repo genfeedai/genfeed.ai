@@ -1,6 +1,5 @@
 import {
   BLUESKY_DEFAULT_SERVICE_URL,
-  normalizeBlueskyIdentifier,
   parseBlueskyServiceUrl,
 } from '@api/services/integrations/bluesky/utils/bluesky-service-url.util';
 import { ApiKeyConnectErrorCode } from '@genfeedai/contracts';
@@ -29,17 +28,5 @@ describe('parseBlueskyServiceUrl', () => {
     ['not a url', ApiKeyConnectErrorCode.INVALID_URL],
   ])('rejects %j', (input, code) => {
     expect(parseBlueskyServiceUrl(input)).toEqual({ code, ok: false });
-  });
-});
-
-describe('normalizeBlueskyIdentifier', () => {
-  it('drops the @ and lower-cases a handle', () => {
-    expect(normalizeBlueskyIdentifier(' @Alice.Bsky.Social ')).toBe(
-      'alice.bsky.social',
-    );
-  });
-
-  it('keeps a DID exactly', () => {
-    expect(normalizeBlueskyIdentifier('did:plc:AbC123')).toBe('did:plc:AbC123');
   });
 });

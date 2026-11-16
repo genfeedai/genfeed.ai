@@ -1,4 +1,5 @@
 export { AnthropicIcon } from './anthropic-icon';
+export { BlueskyIcon } from './bluesky-icon';
 export { BytedanceIcon } from './bytedance-icon';
 export { DeepseekIcon } from './deepseek-icon';
 export { DevIcon } from './dev-icon';
