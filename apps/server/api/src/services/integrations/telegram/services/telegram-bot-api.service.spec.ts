@@ -54,18 +54,6 @@ describe('TelegramBotApiService', () => {
     ]);
   });
 
-  it('reports the bot identity from getMe', async () => {
-    const { service } = buildService(200, {
-      ok: true,
-      result: { id: 123, username: 'genfeed_bot' },
-    });
-
-    expect(await service.getMe('123:abc')).toEqual({
-      id: 123,
-      username: 'genfeed_bot',
-    });
-  });
-
   it('reads the stated wait on flood control', async () => {
     const { service } = buildService(429, {
       description: 'Too Many Requests',

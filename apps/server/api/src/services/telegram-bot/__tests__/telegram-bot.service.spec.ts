@@ -1,4 +1,5 @@
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import type { TelegramGroupLinkService } from '@api/services/integrations/telegram/services/telegram-group-link.service';
 import { TelegramBotService } from '@api/services/telegram-bot/telegram-bot.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ConfigService } from '@libs/config/config.service';
@@ -9,6 +10,7 @@ type Handler = (ctx: unknown, next?: () => Promise<void>) => unknown;
 // Every bot the service creates, with what it wired and whether it runs.
 const telegram = vi.hoisted(() => ({
   bots: [] as Array<{
+    commandHandlers: Array<{ handler: Handler; names: unknown }>;
     commands: unknown[];
     filters: Map<string, Handler>;
     isRunning: boolean;
@@ -19,6 +21,7 @@ const telegram = vi.hoisted(() => ({
 
 vi.mock('grammy', () => {
   class FakeBot {
+    readonly commandHandlers: Array<{ handler: Handler; names: unknown }> = [];
     readonly commands: unknown[] = [];
     readonly filters = new Map<string, Handler>();
     isRunning = false;
@@ -28,8 +31,9 @@ vi.mock('grammy', () => {
       telegram.bots.push(this);
     }
 
-    command(names: unknown) {
+    command(names: unknown, handler: Handler) {
       this.commands.push(names);
+      this.commandHandlers.push({ handler, names });
     }
 
     on(filter: string, handler: Handler) {
@@ -73,6 +77,8 @@ describe('TelegramBotService', () => {
   let registeredWorkflows: unknown[];
   let logs: string[];
   let service: TelegramBotService;
+  let linked: Array<{ chat: unknown; code: string }>;
+  let linkedBrandLabel: string | null;
 
   beforeEach(() => {
     telegram.bots.length = 0;
@@ -84,6 +90,8 @@ describe('TelegramBotService', () => {
     isDevPollingEnabled = true;
     registeredWorkflows = [];
     logs = [];
+    linked = [];
+    linkedBrandLabel = 'Acme';
 
     const record = (message: string) => {
       logs.push(message);
@@ -103,6 +111,16 @@ describe('TelegramBotService', () => {
         runWorkflow: async () => undefined,
       } as unknown as SystemWorkflowRunnerService,
       { brand: { findFirst: async () => null } } as unknown as PrismaService,
+      undefined,
+      undefined,
+      {
+        linkChat: async (code: string, chat: unknown) => {
+          linked.push({ chat, code });
+          return linkedBrandLabel === null
+            ? null
+            : { brandLabel: linkedBrandLabel };
+        },
+      } as unknown as TelegramGroupLinkService,
     );
   });
 
@@ -167,11 +185,12 @@ describe('TelegramBotService', () => {
     );
   });
 
-  async function sendFrom(userId: number) {
+  async function sendFrom(userId: number, chatType = 'private') {
     const replies: string[] = [];
     let isNextReached = false;
     await telegram.bots[0]?.middlewares[0]?.(
       {
+        chat: { type: chatType },
         from: { id: userId },
         reply: async (text: string) => {
           replies.push(text);
@@ -200,6 +219,76 @@ describe('TelegramBotService', () => {
       isNextReached: false,
       replies: ['⛔ You are not authorized to use this bot.'],
     });
+  });
+
+  it('stays silent when a stranger writes in a group the bot was added to', async () => {
+    await service.onModuleInit();
+
+    await expect(sendFrom(999, 'supergroup')).resolves.toEqual({
+      isNextReached: false,
+      replies: [],
+    });
+  });
+
+  async function startInGroup(payload: string, chatType = 'supergroup') {
+    const replies: string[] = [];
+    let isNextReached = false;
+    const start = telegram.bots[0]?.commandHandlers[0];
+    await start?.handler(
+      {
+        chat: { id: -1001, title: 'Acme Team', type: chatType },
+        match: payload,
+        reply: async (text: string) => {
+          replies.push(text);
+        },
+      },
+      async () => {
+        isNextReached = true;
+      },
+    );
+    return { isNextReached, replies, start };
+  }
+
+  it('connects a group that starts the bot with a link code, before the allowlist', async () => {
+    await service.onModuleInit();
+
+    const { isNextReached, replies, start } = await startInGroup('code-123');
+
+    expect(start?.names).toBe('start');
+    expect(telegram.bots[0]?.commandHandlers).toHaveLength(
+      telegram.bots[0]?.commands.length ?? 0,
+    );
+    expect(isNextReached).toBe(false);
+    expect(replies).toEqual([
+      'Connected. Posts for Acme can now go to this group.',
+    ]);
+    expect(linked).toEqual([
+      {
+        chat: { id: -1001, title: 'Acme Team', username: undefined },
+        code: 'code-123',
+      },
+    ]);
+  });
+
+  it('tells the group when the code is spent or expired', async () => {
+    linkedBrandLabel = null;
+    await service.onModuleInit();
+
+    const { replies } = await startInGroup('old-code');
+
+    expect(replies).toEqual([
+      'This link has expired or was already used. Start again from Genfeed to connect this group.',
+    ]);
+  });
+
+  it('leaves /start without a code, or in a private chat, to the operator flow', async () => {
+    await service.onModuleInit();
+
+    expect((await startInGroup('')).isNextReached).toBe(true);
+    expect((await startInGroup('code-123', 'private')).isNextReached).toBe(
+      true,
+    );
+    expect(linked).toEqual([]);
   });
 
   it('refuses everyone when the allowlist names nobody', async () => {

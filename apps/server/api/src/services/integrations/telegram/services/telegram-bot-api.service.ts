@@ -18,11 +18,6 @@ interface TelegramMessage {
   message_id: number;
 }
 
-export interface TelegramBotIdentity {
-  id: number;
-  username?: string;
-}
-
 export interface TelegramSendInput {
   caption?: string;
   chatId: string;
@@ -92,10 +87,6 @@ function classifyFailure(
 @Injectable()
 export class TelegramBotApiService {
   constructor(private readonly httpService: HttpService) {}
-
-  async getMe(botToken: string): Promise<TelegramBotIdentity> {
-    return this.call<TelegramBotIdentity>(botToken, 'getMe', {});
-  }
 
   async send(
     botToken: string,

@@ -149,6 +149,42 @@ test.describe('Connect account modal', () => {
     await expect.poll(() => connectRequests).toEqual(['discord']);
   });
 
+  test('connects Telegram from an add-bot link, never a pasted token', async ({
+    authenticatedPage,
+  }) => {
+    const connectRequests: string[] = [];
+    await authenticatedPage.route(
+      '**/api.genfeed.ai/**/services/telegram/connect',
+      async (route) => {
+        connectRequests.push(route.request().url());
+        await route.fulfill({
+          body: JSON.stringify({
+            data: {
+              attributes: { url: 'about:blank' },
+              id: 'credential-telegram-1',
+              type: 'credential',
+            },
+          }),
+          contentType: 'application/json',
+          status: 200,
+        });
+      },
+    );
+    const dialog = authenticatedPage.getByRole('dialog', {
+      name: 'Connect account',
+    });
+
+    await expect(
+      dialog.getByRole('button', { name: /Telegram/ }),
+    ).toBeVisible();
+    await dialog.getByRole('button', { name: /Telegram/ }).click();
+
+    await expect.poll(() => connectRequests).toHaveLength(1);
+    await expect(
+      authenticatedPage.getByRole('textbox', { name: /token/i }),
+    ).toHaveCount(0);
+  });
+
   test('lists Ghost under Publishing and connects it with a site URL and Admin API key', async ({
     authenticatedPage,
   }) => {

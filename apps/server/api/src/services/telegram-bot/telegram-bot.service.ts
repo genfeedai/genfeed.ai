@@ -17,6 +17,7 @@
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { TelegramGroupLinkService } from '@api/services/integrations/telegram/services/telegram-group-link.service';
 import { TelegramAuthContextService } from '@api/services/telegram-bot/telegram-auth-context.service';
 import {
   TELEGRAM_BOT_CONSTANTS,
@@ -61,6 +62,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     @Optional() private readonly apiKeysService?: ApiKeysService,
     @Optional() private readonly filesClientService?: FilesClientService,
+    @Optional() private readonly groupLinkService?: TelegramGroupLinkService,
   ) {
     this.authContexts = new TelegramAuthContextService(this.apiKeysService);
     this.runner = new TelegramWorkflowRunnerService(
@@ -180,11 +182,27 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
 
     const { COMMANDS } = TELEGRAM_BOT_CONSTANTS;
 
+    // A customer adds the bot to their group from the connect screen, which
+    // makes Telegram send `/start <code>` there. Anyone who can add a bot may
+    // do it, so it runs before the operator allowlist.
+    this.bot.command(COMMANDS.START, async (ctx, next) => {
+      const isGroup =
+        ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
+      if (!isGroup || !ctx.match || !this.groupLinkService) {
+        await next();
+        return;
+      }
+      await this.handleGroupLink(ctx, String(ctx.match).trim());
+    });
+
     // Authorization middleware
     this.bot.use(async (ctx, next) => {
       const userId = ctx.from?.id;
       if (!userId || !this.isAuthorized(userId)) {
-        await ctx.reply('⛔ You are not authorized to use this bot.');
+        // The bot sits in customers' groups too; only a private chat gets the refusal.
+        if (ctx.chat?.type === 'private') {
+          await ctx.reply('⛔ You are not authorized to use this bot.');
+        }
         return;
       }
       await next();
@@ -232,6 +250,26 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
 
     // Text messages (for prompt/text inputs)
     this.bot.on('message:text', (ctx) => this.messageHandler.handleText(ctx));
+  }
+
+  /** Connect the group that sent a one-time add-bot code to its brand. */
+  private async handleGroupLink(ctx: Context, code: string): Promise<void> {
+    const chat = ctx.chat;
+    if (!chat || !this.groupLinkService) {
+      return;
+    }
+
+    const linked = await this.groupLinkService.linkChat(code, {
+      id: chat.id,
+      title: 'title' in chat ? chat.title : undefined,
+      username: 'username' in chat ? chat.username : undefined,
+    });
+
+    await ctx.reply(
+      linked
+        ? `Connected. Posts for ${linked.brandLabel || 'your brand'} can now go to this group.`
+        : 'This link has expired or was already used. Start again from Genfeed to connect this group.',
+    );
   }
 
   /** /status - report workflow-bot status for this chat. */

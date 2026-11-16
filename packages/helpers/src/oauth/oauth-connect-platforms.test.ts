@@ -206,7 +206,7 @@ describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
 });
 
 describe('OAUTH_CONNECT_PLATFORMS messaging tiles', () => {
-  it('lists Discord and Slack in the Messaging group, each on its own service path', () => {
+  it('lists Discord, Slack and Telegram in the Messaging group, each on its own service path', () => {
     const messaging = groupOAuthConnectPlatforms(OAUTH_CONNECT_PLATFORMS).find(
       (group) => group.id === 'messaging',
     );
@@ -220,6 +220,7 @@ describe('OAUTH_CONNECT_PLATFORMS messaging tiles', () => {
     ).toEqual([
       ['Discord', CredentialPlatform.DISCORD, 'discord'],
       ['Slack', CredentialPlatform.SLACK, 'slack'],
+      ['Telegram', CredentialPlatform.TELEGRAM, 'telegram'],
     ]);
   });
 });

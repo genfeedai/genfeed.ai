@@ -40,7 +40,7 @@ import {
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AccountAvatar from '@/features/brands/components/integrations/AccountAvatar';
 import AccountSettingsDialog from '@/features/brands/components/integrations/AccountSettingsDialog';
 import AccountsTable from '@/features/brands/components/integrations/AccountsTable';
@@ -61,6 +61,8 @@ import {
 } from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
+const ADD_BOT_POLL_INTERVAL_MS = 5_000;
+const ADD_BOT_POLL_MAX_CHECKS = 24;
 
 type SocialConnection = BrandDetailSocialMediaCardProps['connections'][number];
 
@@ -408,6 +410,29 @@ export default function BrandDetailSocialMediaCard({
     };
   }, [loadAccountHealth]);
 
+  // Telegram connects when the bot is added to a group in Telegram, so this
+  // page re-reads the connections for a couple of minutes after the link opens.
+  const addBotPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stopAddBotPolling = useCallback(() => {
+    if (addBotPollRef.current) {
+      clearInterval(addBotPollRef.current);
+      addBotPollRef.current = null;
+    }
+  }, []);
+  useEffect(() => stopAddBotPolling, [stopAddBotPolling]);
+
+  const startAddBotPolling = () => {
+    stopAddBotPolling();
+    let remainingChecks = ADD_BOT_POLL_MAX_CHECKS;
+    addBotPollRef.current = setInterval(() => {
+      remainingChecks -= 1;
+      void Promise.all([onRefresh?.(), refreshBrands()]);
+      if (remainingChecks <= 0) {
+        stopAddBotPolling();
+      }
+    }, ADD_BOT_POLL_INTERVAL_MS);
+  };
+
   const handleConnectPlatform = async (
     item: ConnectablePlatform,
     credentialId?: string,
@@ -430,6 +455,31 @@ export default function BrandDetailSocialMediaCard({
         servicePath: resolveOAuthServicePath(item.platform, item.servicePath),
       });
       setIsApiKeyConnectOpen(true);
+      return;
+    }
+
+    if (item.connectMethod === 'add_bot_link') {
+      try {
+        setConnectingPlatform(item.platform);
+        const token = (await resolveAuthToken(getToken)) ?? '';
+        const service = new ServicesService(
+          resolveOAuthServicePath(item.platform, item.servicePath),
+          token,
+        );
+        const { url } = await service.postConnect({ brandId });
+        setIsConnectAccountModalOpen(false);
+        setIsDialogOpen(false);
+        window.open(url, '_blank', 'noopener,noreferrer');
+        NotificationsService.getInstance().info(translate('telegramAddBot'));
+        startAddBotPolling();
+      } catch (error) {
+        logger.error(`Failed to start ${item.platform} connect:`, error);
+        NotificationsService.getInstance().error(
+          translate('connectPlatformError', { platform: item.label }),
+        );
+      } finally {
+        setConnectingPlatform(null);
+      }
       return;
     }
 
