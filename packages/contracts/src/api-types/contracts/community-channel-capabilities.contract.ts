@@ -1,11 +1,12 @@
 /**
  * Scheduler capabilities of the community and messaging channels: Mastodon,
  * Discord, Slack and Telegram. Kept beside the main catalog, which merges them
- * into `CHANNEL_CAPABILITIES`.
+ * into `CHANNEL_CAPABILITIES`, where `channelCapabilitySchema` validates every
+ * entry at load. This file must not import from the main catalog, which would
+ * make an import cycle.
  */
 
 import { CredentialPlatform } from '../..';
-import type { ChannelCapability } from './channel-capabilities.contract';
 
 export const communityChannelCapabilities = [
   {
@@ -148,4 +149,4 @@ export const communityChannelCapabilities = [
     ],
     status: 'supported',
   },
-] satisfies ChannelCapability[];
+];
