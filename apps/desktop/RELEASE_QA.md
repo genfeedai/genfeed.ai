@@ -37,7 +37,7 @@ packaged Electron shell.
 - Cloud smoke confirms the canonical shell renders without creating a PGlite
   directory. Local mode explicitly initializes workspace/files/drafts, sync,
   terminal, and BYOK generation services.
-- Packaged artifacts include `GenFeed-*.dmg`, `GenFeed-*.zip`, and
+- Packaged artifacts include `Genfeed-*.dmg`, `Genfeed-*.zip`, and
   `genfeed-desktop-release.json`.
 
 ## Release Evidence
