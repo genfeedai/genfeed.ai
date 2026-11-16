@@ -39,6 +39,47 @@ function onePage(...items: ProviderVerificationItem[]) {
   return reader({ items, nextCursor: null });
 }
 
+describe('verifyMediaPublish with a title', () => {
+  const titled: ProviderMediaVerificationMatch = {
+    mediaCount: 1,
+    mediaKind: 'video',
+    text: '',
+    title: 'My video',
+  };
+
+  it('finds the video with the same title even when the description is empty', async () => {
+    const found = await verifyMediaPublish(
+      startedAt,
+      onePage(item({ mediaKind: 'video', text: '', title: 'My video' })),
+      titled,
+      afterGrace,
+    );
+    expect(found?.id).toBe('landed');
+  });
+
+  it('stays unknown when a video since the attempt has another title', async () => {
+    await expect(
+      verifyMediaPublish(
+        startedAt,
+        onePage(item({ mediaKind: 'video', text: '', title: 'Other video' })),
+        titled,
+        afterGrace,
+      ),
+    ).rejects.toThrow('another caption');
+  });
+
+  it('still refuses a post with neither a title nor a caption', async () => {
+    await expect(
+      verifyMediaPublish(
+        startedAt,
+        onePage(),
+        { ...titled, title: undefined },
+        afterGrace,
+      ),
+    ).rejects.toThrow('lacks exact caption/media proof');
+  });
+});
+
 describe('verifyMediaPublish', () => {
   it('finds the post that matches caption and media kind', async () => {
     const found = await verifyMediaPublish(

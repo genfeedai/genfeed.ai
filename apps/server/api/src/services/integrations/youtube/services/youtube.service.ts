@@ -180,6 +180,24 @@ export class YoutubeService {
     );
   }
 
+  listPublishVerificationPage(
+    organizationId: string,
+    brandId: string,
+    credentialId: string,
+    expectedChannelId: string,
+    attemptStartedAt: Date,
+    cursor?: string,
+  ) {
+    return this.metadataService.listPublishVerificationPage(
+      organizationId,
+      brandId,
+      credentialId,
+      expectedChannelId,
+      attemptStartedAt,
+      cursor,
+    );
+  }
+
   getChannelDetails(
     organizationId: string,
     brandId: string,
