@@ -49,7 +49,8 @@ describe.skipIf(!connectionString)(
       run: {
         purgeAt: Date | null;
         retentionPolicy: 'background' | 'kept' | null;
-        status: 'COMPLETED' | 'FAILED' | 'RUNNING';
+        status: 'COMPLETED' | 'FAILED' | 'PENDING' | 'RUNNING';
+        updatedAt?: Date;
       },
     ): Promise<string> {
       const id = `${name}-${suffix}`;
@@ -60,7 +61,7 @@ describe.skipIf(!connectionString)(
         VALUES
           (${id}, ${workflowId}, ${versionId}, ${userId}, ${orgId},
            ${run.status}::"WorkflowExecutionStatus", ${run.purgeAt},
-           ${run.retentionPolicy}, now())`;
+           ${run.retentionPolicy}, ${run.updatedAt ?? now})`;
       await db().$executeRaw`
         INSERT INTO workflow_execution_node_results
           (id, "organizationId", "executionId", "nodeId", "nodeType", status, "updatedAt")
@@ -285,6 +286,84 @@ describe.skipIf(!connectionString)(
         now,
       });
       expect(second).toEqual({ batches: 1, executions: 1 });
+    });
+
+    async function readRun(id: string) {
+      const rows = await db().$queryRawUnsafe<
+        Array<{ error: string | null; purgeAt: Date | null; status: string }>
+      >(
+        `SELECT status::text AS status, error, "purgeAt" FROM workflow_executions WHERE id = $1`,
+        id,
+      );
+      return rows[0];
+    }
+
+    describe('stale runs', () => {
+      const longAgo = new Date('2026-09-01T00:00:00.000Z');
+
+      it('fails a run left running for weeks and schedules a background one for purge in 14 days', async () => {
+        const background = await insertRun('stale-bg', {
+          purgeAt: null,
+          retentionPolicy: 'background',
+          status: 'RUNNING',
+          updatedAt: longAgo,
+        });
+        const legacy = await insertRun('stale-legacy', {
+          purgeAt: null,
+          retentionPolicy: null,
+          status: 'PENDING',
+          updatedAt: longAgo,
+        });
+
+        await service().failStaleExecutions({ now });
+
+        expect(await readRun(background)).toEqual({
+          error: 'Run abandoned: no progress for over 7 days',
+          purgeAt: new Date('2026-11-30T12:00:00.000Z'),
+          status: 'FAILED',
+        });
+        expect(await readRun(legacy)).toEqual({
+          error: 'Run abandoned: no progress for over 7 days',
+          purgeAt: null,
+          status: 'FAILED',
+        });
+      });
+
+      it('leaves a run that wrote recently and a finished run alone', async () => {
+        const recent = await insertRun('stale-recent', {
+          purgeAt: null,
+          retentionPolicy: 'background',
+          status: 'RUNNING',
+          updatedAt: new Date('2026-11-14T12:00:00.000Z'),
+        });
+        const done = await insertRun('stale-done', {
+          purgeAt: future,
+          retentionPolicy: 'background',
+          status: 'COMPLETED',
+          updatedAt: longAgo,
+        });
+
+        expect(await service().failStaleExecutions({ now })).toBe(0);
+
+        expect((await readRun(recent))?.status).toBe('RUNNING');
+        expect((await readRun(done))?.status).toBe('COMPLETED');
+      });
+
+      it('lets the purge delete a failed stale background run with its claim once due', async () => {
+        const id = await insertRun('stale-purged', {
+          purgeAt: null,
+          retentionPolicy: 'background',
+          status: 'RUNNING',
+          updatedAt: longAgo,
+        });
+
+        await service().failStaleExecutions({ now });
+        await service().purgeExpiredExecutions({
+          now: new Date('2026-12-01T00:00:00.000Z'),
+        });
+
+        expect(await remains(id)).toEqual(gone);
+      });
     });
   },
 );

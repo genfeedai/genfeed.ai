@@ -5,6 +5,16 @@ import { Injectable } from '@nestjs/common';
 
 const DEFAULT_PURGE_BATCH_SIZE = 2_000;
 const DEFAULT_PURGE_MAX_BATCHES = 25;
+const DEFAULT_STALE_BATCH_SIZE = 500;
+/**
+ * A run still `PENDING` or `RUNNING` this long after its last write is not
+ * waiting for anything: review gates time out after 24 hours and a delayed
+ * node resumes from a queued job, so a week of silence means the worker or the
+ * job is gone.
+ */
+export const STALE_RUN_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+const STALE_RUN_ERROR = 'Run abandoned: no progress for over 7 days';
+const BACKGROUND_FAILURE_PURGE_MS = 14 * 24 * 60 * 60 * 1000;
 
 export type WorkflowExecutionPurgeResult = {
   batches: number;
@@ -58,6 +68,64 @@ export class WorkflowExecutionPurgeService {
       executions,
     });
     return { batches, executions };
+  }
+
+  /**
+   * Closes runs that never reached a terminal state (#10382). Nothing else
+   * reaps a `RUNNING` run whose worker died, or a `PENDING` run that is not a
+   * system workflow, so they stayed live for months and kept their node claims.
+   * Each becomes `FAILED` without a notification, since nobody is waiting on
+   * it. A `background` run then gets the same 14 day `purgeAt` as any failed
+   * background run; a run with no policy stays as a failed row.
+   */
+  async failStaleExecutions(
+    options: { batchSize?: number; now?: Date; staleAfterMs?: number } = {},
+  ): Promise<number> {
+    const batchSize = options.batchSize ?? DEFAULT_STALE_BATCH_SIZE;
+    const now = options.now ?? new Date();
+    const staleBefore = new Date(
+      now.getTime() - (options.staleAfterMs ?? STALE_RUN_AFTER_MS),
+    );
+    const purgeAt = new Date(now.getTime() + BACKGROUND_FAILURE_PURGE_MS);
+
+    const failed = await this.prisma.$transaction(async (transaction) => {
+      // sql-risk-audit: ignore raw-sql-review -- fixed session timeout literal, no parameters
+      await transaction.$executeRaw`SET LOCAL statement_timeout = '60s'`;
+      // tenant-scope-ignore: platform sweep closes abandoned runs across tenants; every row is selected by its own status and last write, never by caller input
+      // sql-risk-audit: ignore raw-sql-review -- platform-wide bulk update bound to non-terminal status, updatedAt and a batch limit; no caller-supplied identifiers
+      return transaction.$executeRaw`
+        WITH stale AS (
+          SELECT execution."id"
+          FROM "workflow_executions" AS execution
+          WHERE execution."status" IN ('PENDING', 'RUNNING')
+            AND execution."isDeleted" = false
+            AND execution."updatedAt" < ${staleBefore}
+          ORDER BY execution."updatedAt"
+          LIMIT ${batchSize}
+          FOR UPDATE OF execution SKIP LOCKED
+        )
+        UPDATE "workflow_executions" AS execution
+        SET "status" = 'FAILED',
+            "completedAt" = ${now},
+            "error" = ${STALE_RUN_ERROR},
+            "etaCurrentPhase" = 'Failed',
+            "etaUpdatedAt" = ${now},
+            "remainingDurationMs" = 0,
+            "purgeAt" = CASE
+              WHEN execution."retentionPolicy" = 'background' THEN ${purgeAt}
+              ELSE execution."purgeAt"
+            END,
+            "updatedAt" = ${now}
+        FROM stale
+        WHERE execution."id" = stale."id"
+      `;
+    });
+
+    this.logger.log('Failed stale workflow executions', {
+      context: this.context,
+      executions: failed,
+    });
+    return failed;
   }
 
   private async purgeBatch(now: Date, batchSize: number): Promise<number> {
