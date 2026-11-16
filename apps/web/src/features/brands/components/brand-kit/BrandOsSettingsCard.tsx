@@ -101,6 +101,7 @@ export default function BrandOsSettingsCard({
   onRevisionSaved,
   onReadinessChange,
   fieldGroups,
+  finishingBaseline,
   renderWorkspace,
 }: BrandOsSettingsCardProps) {
   const t = useTranslations('pages.brandOsSettings');
@@ -761,6 +762,7 @@ export default function BrandOsSettingsCard({
               <BrandVideoRevisionDiff
                 approved={approvedContent}
                 draft={content}
+                finishingBaseline={finishingBaseline}
               />
             )}
             {content && (

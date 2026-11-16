@@ -88,12 +88,15 @@ function percentOrNull(ratio: number | undefined): number | null {
   return ratio === undefined ? null : Math.round(ratio * 10000) / 100;
 }
 
-function flatten(content: IBrandKitDraft | null): {
+function flatten(
+  content: IBrandKitDraft | null,
+  fallbackFinishing?: BrandVideoFinishingV1,
+): {
   video: VideoKitFlat;
   finishing: VideoKitFlat;
 } {
   const video = content?.video;
-  const finishing = content?.finishing;
+  const finishing = content?.finishing ?? fallbackFinishing;
   return {
     video: {
       motionStyle: video?.motionStyle?.style ?? null,
@@ -144,16 +147,21 @@ function sameValue(a: BrandVideoKitValue, b: BrandVideoKitValue): boolean {
 /**
  * What changed between the approved revision and the draft, in the order the
  * Video tab shows it. Image ids only say that an image is set or differs.
+ *
+ * A revision from before finishing joined the revision has no finishing of its
+ * own. The draft started from `finishingBaseline` (the brand's current
+ * finishing), so that is the baseline for the approved side too. Without a
+ * baseline, finishing is not compared against such a revision.
  */
 export function diffVideoKit(
   approved: IBrandKitDraft | null,
   draft: IBrandKitDraft,
+  finishingBaseline?: BrandVideoFinishingV1,
 ): BrandVideoKitChange[] {
-  const before = flatten(approved);
+  const before = flatten(approved, finishingBaseline);
   const after = flatten(draft);
   const changes: BrandVideoKitChange[] = [];
   for (const group of ['video', 'finishing'] as const) {
-    // A revision from before finishing joined the revision has no baseline.
     if (group === 'finishing' && Object.keys(before.finishing).length === 0)
       continue;
     for (const [key, next] of Object.entries(after[group])) {

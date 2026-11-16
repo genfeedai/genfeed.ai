@@ -41,6 +41,7 @@ import BrandKitSlotsCard from '@/features/brands/components/brand-kit/BrandKitSl
 import BrandKitTransferCard from '@/features/brands/components/brand-kit/BrandKitTransferCard';
 import BrandKitWorkspace from '@/features/brands/components/brand-kit/BrandKitWorkspace';
 import BrandOsSettingsCard from '@/features/brands/components/brand-kit/BrandOsSettingsCard';
+import { finishingFromBrand } from '@/features/brands/components/brand-kit/brand-video-kit.helpers';
 import BrandWritingVoiceEditor from '@/features/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor';
 import BrandDetailManualKitCard from '@/features/brands/components/sidebar/BrandDetailManualKitCard';
 import BrandDetailReferencesCard from '@/features/brands/components/sidebar/BrandDetailReferencesCard';
@@ -130,6 +131,7 @@ export default function BrandKitPage() {
         brandId={brandId}
         refreshKey={refreshKey}
         fieldGroups={FIELD_GROUPS[tab]}
+        finishingBaseline={finishingFromBrand(brand)}
         onRefreshBrand={() => handleRefreshBrand()}
         renderWorkspace={(workspace) => (
           <BrandKitWorkspace
