@@ -440,14 +440,20 @@ export class MarketplaceApiClient {
       if (!resource) {
         return { status: 'unavailable' };
       }
-      if (resource.attributes.status !== 'completed') {
+      // Only an explicit status settles the outcome. A body that omits it or
+      // names another status leaves the purchase unconfirmed, so the caller
+      // asks the marketplace to refund and keeps the credits until it answers.
+      if (resource.attributes.status === 'completed') {
+        return { purchaseId: resource.id, status: 'recorded' };
+      }
+      if (resource.attributes.status === 'refunded') {
         return {
           httpStatus: response.status,
           reason: 'The purchase was refunded',
           status: 'rejected',
         };
       }
-      return { purchaseId: resource.id, status: 'recorded' };
+      return { status: 'unavailable' };
     } catch (error: unknown) {
       this.logger.warn(
         `MarketplaceApiClient recordCreditPurchase error: ${(error as Error).message}`,

@@ -35,6 +35,8 @@ import {
 
 const PURCHASE_REFERENCE_TYPE = 'marketplace_purchase';
 const REFUND_EXPIRY_DAYS = 365;
+const ATTEMPT_ENDED_MESSAGE =
+  'This purchase attempt ended and your credits were returned. Start a new purchase to try again.';
 
 /**
  * Pays for a marketplace listing with the buyer organization's credits.
@@ -75,19 +77,6 @@ export class MarketplaceCreditPurchaseService {
     }
 
     const { listingId, organizationId, userId } = input;
-    const quote = await this.marketplaceApiClient.getCreditQuote(listingId);
-    if (quote.status === 'not-found') {
-      throw new NotFoundException('Listing', listingId);
-    }
-    if (quote.status === 'not-payable') {
-      throw new BadRequestException('This listing cannot be paid with credits');
-    }
-    if (quote.status === 'unavailable') {
-      throw new ServiceUnavailableException(
-        'The marketplace is unavailable. Nothing was charged.',
-      );
-    }
-    const credits = quote.creditPrice;
 
     // One key per buying attempt, scoped to the buyer, so the ledger's global
     // key space cannot be shared with another organization.
@@ -97,10 +86,23 @@ export class MarketplaceCreditPurchaseService {
     // a no-op on the ledger (the charge key already exists), so a retry of the
     // same attempt could complete the listing without a net payment.
     if (await this.wasReturned(organizationId, callKey)) {
-      throw new ConflictException(
-        'This purchase attempt ended and your credits were returned. Start a new purchase to try again.',
-      );
+      throw new ConflictException(ATTEMPT_ENDED_MESSAGE);
     }
+
+    // Both tokens are signed before any credit moves, so a signing failure
+    // cannot leave credits taken with no way to record or undo the purchase.
+    const recordToken = await this.serviceToken(
+      MARKETPLACE_SERVICE_SCOPES.recordPurchase,
+    );
+    const refundToken = await this.serviceToken(
+      MARKETPLACE_SERVICE_SCOPES.refundPurchase,
+    );
+
+    // A retry of an attempt that already took credits keeps the amount it
+    // took, whatever the listing costs now: the marketplace then records, or
+    // refuses, that same amount, and a refusal returns exactly what was taken.
+    const alreadyCharged = await this.chargedCredits(organizationId, callKey);
+    const credits = alreadyCharged ?? (await this.quotePrice(listingId));
 
     await this.takeCredits({
       callKey,
@@ -119,7 +121,7 @@ export class MarketplaceCreditPurchaseService {
     };
     const recorded = await this.marketplaceApiClient.recordCreditPurchase(
       purchase,
-      await this.serviceToken(MARKETPLACE_SERVICE_SCOPES.recordPurchase),
+      recordToken,
     );
 
     if (recorded.status === 'recorded') {
@@ -128,7 +130,7 @@ export class MarketplaceCreditPurchaseService {
       if (await this.wasReturned(organizationId, callKey)) {
         const undone = await this.marketplaceApiClient.refundCreditPurchase(
           purchase,
-          await this.serviceToken(MARKETPLACE_SERVICE_SCOPES.refundPurchase),
+          refundToken,
         );
         if (undone.status === 'unavailable') {
           this.logger.error(
@@ -137,9 +139,7 @@ export class MarketplaceCreditPurchaseService {
             { listingId, organizationId },
           );
         }
-        throw new ConflictException(
-          'This purchase attempt ended and your credits were returned. Start a new purchase to try again.',
-        );
+        throw new ConflictException(ATTEMPT_ENDED_MESSAGE);
       }
       return {
         creditsPaid: credits,
@@ -179,7 +179,7 @@ export class MarketplaceCreditPurchaseService {
     // gone (refunded, or never recorded) do the credits go back.
     const refund = await this.marketplaceApiClient.refundCreditPurchase(
       purchase,
-      await this.serviceToken(MARKETPLACE_SERVICE_SCOPES.refundPurchase),
+      refundToken,
     );
     if (refund.status === 'unavailable') {
       this.logger.error(
@@ -213,6 +213,38 @@ export class MarketplaceCreditPurchaseService {
       scope,
       subject: MARKETPLACE_SERVICE_SUBJECT,
     });
+  }
+
+  /** The listing's GEN price for a new attempt, or the error that ends it. */
+  private async quotePrice(listingId: string): Promise<number> {
+    const quote = await this.marketplaceApiClient.getCreditQuote(listingId);
+    if (quote.status === 'not-found') {
+      throw new NotFoundException('Listing', listingId);
+    }
+    if (quote.status === 'not-payable') {
+      throw new BadRequestException('This listing cannot be paid with credits');
+    }
+    if (quote.status === 'unavailable') {
+      throw new ServiceUnavailableException(
+        'The marketplace is unavailable. Nothing was charged.',
+      );
+    }
+    return quote.creditPrice;
+  }
+
+  /** The credits an earlier request of this attempt took, if any. */
+  private async chargedCredits(
+    organizationId: string,
+    callKey: string,
+  ): Promise<number | null> {
+    const charge = await this.creditTransactionsService.findOne(
+      scopedWhere(organizationId, {
+        category: CreditTransactionCategory.DEDUCT,
+        referenceId: callKey,
+        referenceType: PURCHASE_REFERENCE_TYPE,
+      }),
+    );
+    return charge ? Math.abs(charge.amount) : null;
   }
 
   /** Whether the credits taken for this attempt have already gone back. */

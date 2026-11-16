@@ -107,6 +107,18 @@ class FakeMarketplace {
           };
         }
         const existing = this.purchases.get(input.idempotencyKey);
+        if (
+          !existing &&
+          this.recordMode === 'ok' &&
+          this.quote.status === 'ok' &&
+          input.creditsPaid !== this.quote.creditPrice
+        ) {
+          return {
+            httpStatus: 409,
+            reason: `The GEN price of this listing is ${this.quote.creditPrice}`,
+            status: 'rejected',
+          };
+        }
         if (this.recordMode === 'down') {
           if (this.storeWhenDown && !existing) {
             this.purchases.set(input.idempotencyKey, {
@@ -163,6 +175,7 @@ describe.skipIf(!connectionString)(
     let marketplace: FakeMarketplace;
     let service: MarketplaceCreditPurchaseService;
     let credits: CreditsUtilsService;
+    let signServiceToken: ReturnType<typeof vi.fn>;
 
     async function seedWallet(balance: number): Promise<void> {
       const db = database();
@@ -230,6 +243,7 @@ describe.skipIf(!connectionString)(
       billingAccountId = `mkt-billing-${suffix}`;
       userId = `mkt-user-${suffix}`;
       marketplace = new FakeMarketplace();
+      signServiceToken = vi.fn().mockResolvedValue('signed-service-token');
       const prisma = database().$extends(
         createTenantGuardExtension({
           billingAccountModelNames: discoverBillingAccountModelNames(schema),
@@ -272,9 +286,7 @@ describe.skipIf(!connectionString)(
         marketplace.asClient(),
         credits,
         transactions,
-        {
-          signServiceToken: vi.fn().mockResolvedValue('signed-service-token'),
-        } as unknown as BetterAuthService,
+        { signServiceToken } as unknown as BetterAuthService,
       );
     });
 
@@ -484,6 +496,51 @@ describe.skipIf(!connectionString)(
         `deduct:${GEN_PRICE}`,
         `refund:${GEN_PRICE}`,
       ]);
+    });
+
+    it('keeps the amount an attempt took when the price changes before its retry', async () => {
+      await seedWallet(5000);
+      marketplace.recordMode = 'down';
+      marketplace.refundMode = 'down';
+      await expect(pay()).rejects.toThrow('could not confirm');
+
+      marketplace.recordMode = 'ok';
+      marketplace.refundMode = 'ok';
+      marketplace.quote = { creditPrice: 3000, status: 'ok' };
+      const retry = pay();
+
+      await expect(retry).rejects.toMatchObject({ status: 409 });
+      expect(await balance()).toBe(5000);
+      expect(marketplace.purchases.size).toBe(0);
+      expect(await ledger()).toEqual([
+        `deduct:${GEN_PRICE}`,
+        `refund:${GEN_PRICE}`,
+      ]);
+    });
+
+    it('can still return the credits when the listing is gone by the retry', async () => {
+      await seedWallet(5000);
+      marketplace.recordMode = 'down';
+      marketplace.refundMode = 'down';
+      await expect(pay()).rejects.toThrow('could not confirm');
+
+      marketplace.refundMode = 'ok';
+      marketplace.quote = { status: 'not-found' };
+      marketplace.recordMode = 'reject-409';
+      await expect(pay()).rejects.toMatchObject({ status: 409 });
+
+      expect(await balance()).toBe(5000);
+    });
+
+    it('takes no credits when the service token cannot be signed', async () => {
+      await seedWallet(5000);
+      signServiceToken.mockRejectedValue(new Error('no Better Auth instance'));
+
+      await expect(pay()).rejects.toThrow();
+
+      expect(await balance()).toBe(5000);
+      expect(await ledger()).toEqual([]);
+      expect(marketplace.recordCalls).toBe(0);
     });
 
     it('takes nothing for a listing that cannot be paid in credits', async () => {

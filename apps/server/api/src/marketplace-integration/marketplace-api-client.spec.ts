@@ -457,6 +457,34 @@ describe('MarketplaceApiClient', () => {
       });
     });
 
+    it.each([
+      ['no status', {}, { status: 'unavailable' }],
+      ['an unknown status', { status: 'pending' }, { status: 'unavailable' }],
+      [
+        'a refunded status',
+        { status: 'refunded' },
+        {
+          httpStatus: 200,
+          reason: 'The purchase was refunded',
+          status: 'rejected',
+        },
+      ],
+      [
+        'a completed status',
+        { status: 'completed' },
+        { purchaseId: 'p1', status: 'recorded' },
+      ],
+    ])(
+      'reads a 200 record answer with %s',
+      async (_name, attributes, expected) => {
+        fetchMock.mockResolvedValueOnce(
+          okResponse({ data: { id: 'p1', attributes } }),
+        );
+
+        expect(await client.recordCreditPurchase(call, 't')).toEqual(expected);
+      },
+    );
+
     it('refunds by call key and tells a refund from an absent purchase or an outage', async () => {
       fetchMock.mockResolvedValueOnce(
         okResponse(recorded('credit-purchase-refunded')),
