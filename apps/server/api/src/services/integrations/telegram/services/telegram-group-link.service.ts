@@ -4,6 +4,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { CacheService } from '@api/services/cache/cache.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 /** How long an add-bot link works before it has to be started again. */
@@ -11,7 +12,7 @@ const LEADING_AT_SIGN_PATTERN = /^@/;
 const LINK_TTL_SECONDS = 15 * 60;
 
 /** Telegram allows `A-Z a-z 0-9 _ -` in a start parameter, up to 64 characters. */
-export const TELEGRAM_LINK_CODE_PATTERN = /^[A-Za-z0-9_-]{16,64}$/;
+const TELEGRAM_LINK_CODE_PATTERN = /^[A-Za-z0-9_-]{16,64}$/;
 
 interface PendingGroupLink {
   brandId: string;
@@ -19,7 +20,7 @@ interface PendingGroupLink {
   userId: string;
 }
 
-export interface TelegramChatToLink {
+interface TelegramChatToLink {
   id: number;
   title?: string;
   username?: string;
@@ -36,6 +37,7 @@ function cacheKey(code: string): string {
  * names the brand. The code is the only link between the two, held in the
  * cache for a short time and spent by its first use.
  */
+@Traced()
 @Injectable()
 export class TelegramGroupLinkService {
   constructor(
