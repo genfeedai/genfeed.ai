@@ -1,11 +1,5 @@
 import '@testing-library/jest-dom/vitest';
 
-import {
-  CredentialPlatform,
-  PostVisibility,
-  TargetExecutionState,
-} from '@genfeedai/contracts';
-import type { IPostPlatformConfig } from '@genfeedai/contracts/interfaces';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -43,24 +37,6 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: () => undefined },
 }));
 
-function buildConfig(
-  targetSettings?: IPostPlatformConfig['targetSettings'],
-): IPostPlatformConfig {
-  return {
-    credentialId: 'slack-cred',
-    customScheduledDate: '',
-    description: '',
-    enabled: true,
-    handle: 'acme',
-    label: '',
-    overrideSchedule: false,
-    platform: CredentialPlatform.SLACK,
-    targetExecutionState: TargetExecutionState.SCHEDULED,
-    targetSettings,
-    visibility: PostVisibility.PUBLIC,
-  };
-}
-
 describe('ModalPostPlatformSlack', () => {
   beforeAll(() => {
     // Radix Select relies on pointer-capture and layout APIs jsdom omits.
@@ -71,13 +47,13 @@ describe('ModalPostPlatformSlack', () => {
   });
 
   it('lists the workspace channels and reports the one chosen', async () => {
-    const chosen: Array<Partial<IPostPlatformConfig>> = [];
+    const chosen: string[] = [];
     render(
       <ModalPostPlatformSlack
-        config={buildConfig()}
-        isEnabled
+        channelId=""
+        credentialId="slack-cred"
         isLoading={false}
-        updatePlatformConfig={(_id, updates) => chosen.push(updates)}
+        onChannelChange={(channelId) => chosen.push(channelId)}
       />,
     );
 
@@ -87,16 +63,16 @@ describe('ModalPostPlatformSlack', () => {
       await screen.findByRole('option', { name: '#announcements' }),
     );
 
-    expect(chosen).toEqual([{ targetSettings: { channelId: 'C01' } }]);
+    expect(chosen).toEqual(['C01']);
   });
 
   it('shows the channel already chosen', async () => {
     render(
       <ModalPostPlatformSlack
-        config={buildConfig({ channelId: 'C02' })}
-        isEnabled
+        channelId="C02"
+        credentialId="slack-cred"
         isLoading={false}
-        updatePlatformConfig={() => undefined}
+        onChannelChange={() => undefined}
       />,
     );
 
@@ -111,10 +87,10 @@ describe('ModalPostPlatformSlack', () => {
     slack.isFailing = true;
     render(
       <ModalPostPlatformSlack
-        config={buildConfig()}
-        isEnabled
+        channelId=""
+        credentialId="slack-cred"
         isLoading={false}
-        updatePlatformConfig={() => undefined}
+        onChannelChange={() => undefined}
       />,
     );
 

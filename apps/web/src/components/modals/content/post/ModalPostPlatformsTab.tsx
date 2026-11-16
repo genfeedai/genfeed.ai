@@ -373,10 +373,18 @@ export default function ModalPostPlatformsTab({
         renderRequiredField={(config) =>
           config.platform === CredentialPlatform.SLACK ? (
             <ModalPostPlatformSlack
-              config={config}
-              isEnabled
+              channelId={
+                typeof config.targetSettings?.channelId === 'string'
+                  ? config.targetSettings.channelId
+                  : ''
+              }
+              credentialId={config.credentialId}
               isLoading={isLoading}
-              updatePlatformConfig={updatePlatformConfig}
+              onChannelChange={(channelId) =>
+                updatePlatformConfig(config.credentialId, {
+                  targetSettings: { channelId },
+                })
+              }
             />
           ) : null
         }

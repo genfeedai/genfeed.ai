@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   post: vi.fn(),
   patch: vi.fn(),
   generateDraftText: vi.fn(),
+  getSlackChannels: vi.fn(),
   openGallery: vi.fn(),
   openUpload: vi.fn(),
 }));
@@ -601,6 +602,50 @@ describe('ModalPost', () => {
           credentialId: 'cred-li',
           platform: 'linkedin',
         }),
+      );
+    });
+
+    it('sends the Slack channel chosen for a selected Slack account with the post', async () => {
+      // Radix Select relies on pointer-capture and layout APIs jsdom omits.
+      Element.prototype.hasPointerCapture = () => false;
+      Element.prototype.setPointerCapture = () => undefined;
+      Element.prototype.releasePointerCapture = () => undefined;
+      Element.prototype.scrollIntoView = () => undefined;
+      mocks.getSlackChannels.mockResolvedValue([
+        { id: 'C01', isPrivate: false, name: 'announcements' },
+      ]);
+      const user = userEvent.setup();
+      render(
+        <ModalPost
+          isComposer
+          credentials={[
+            xAccount,
+            {
+              id: 'cred-slack',
+              label: 'Acme Slack',
+              platform: 'slack',
+            } as unknown as ICredential,
+          ]}
+          modalId={ModalEnum.POST_COMPOSE}
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: 'Acme Slack' }));
+      await goToContent(user);
+      await writeCaption(user, 'Shipping today');
+      await waitFor(() => expect(screen.getByRole('combobox')).toBeEnabled());
+      await user.click(screen.getByRole('combobox'));
+      await user.click(
+        await screen.findByRole('option', { name: '#announcements' }),
+      );
+      await user.click(screen.getByRole('button', { name: 'Save draft' }));
+
+      await waitFor(() =>
+        expect(mocks.post).toHaveBeenCalledWith(
+          expect.objectContaining({
+            credentialId: 'cred-slack',
+            targetSettings: { channelId: 'C01' },
+          }),
+        ),
       );
     });
 
