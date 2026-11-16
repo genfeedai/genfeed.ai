@@ -16,7 +16,7 @@ export default function SkillsSuccessContent() {
     <MarketingEntrance cards={false}>
       <PageLayout
         compact
-        title={<>Purchase Complete</>}
+        title={<>Purchase complete</>}
         description="Check your email for your receipt ID, then install your skills."
       >
         <WebSection maxWidth="md" className="gsap-hero">

@@ -55,7 +55,7 @@ export default function FAQContent() {
             <div className="space-y-12">
               <div className="gsap-hero">
                 <h2 className="text-4xl font-semibold mb-4">
-                  Frequently Asked Questions
+                  Frequently asked questions
                 </h2>
                 <p className="text-lg text-muted-foreground">
                   Everything you need to know about Genfeed
