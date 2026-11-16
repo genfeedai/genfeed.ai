@@ -75,7 +75,7 @@ Genfeed is an independent product and is not affiliated with or endorsed by any 
 | `storage` | Keeps the login session, settings and unsent drafts in the browser. |
 | `activeTab` | When the user picks "Save source to Genfeed", "Remix" or "Add to Genfeed Knowledge" from the right-click menu, reads the page or selection the user chose. |
 | `scripting` | Runs the capture above on the active tab, only after that click. |
-| `contextMenus` | Adds the three right-click items: Remix with GenFeed, Save source to Genfeed, Add to Genfeed Knowledge. |
+| `contextMenus` | Adds the three right-click items: Remix with Genfeed, Save source to Genfeed, Add to Genfeed Knowledge. |
 | `sidePanel` | Shows the Genfeed side panel for sources, library and analytics. |
 | `tabs` | Reads the active tab's URL and title to save the right source, and watches tab navigation on X and LinkedIn to confirm a post the user published. Also opens Genfeed links. |
 | `downloads` | Saves a generated image or video from the user's library to disk, after the user clicks Download. |
@@ -102,7 +102,7 @@ Reviewers need a working account. **Owner**: create a dedicated reviewer account
 ```
 1. Open https://app.genfeed.ai and sign in with the reviewer account below. Keep the tab open.
 2. Click the Genfeed toolbar icon. The popup should show the signed-in workspace.
-3. Open https://x.com, open any post and click Reply. A small outline GenFeed logo button appears beside the Reply button. Click it for the menu.
+3. Open https://x.com, open any post and click Reply. A small outline Genfeed logo button appears beside the Reply button. Click it for the menu.
 4. Choose "Generate reply". The reply box is filled. Nothing is posted.
 5. Right-click any page and choose "Save source to Genfeed". The side panel opens with the saved source.
 

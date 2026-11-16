@@ -6,6 +6,8 @@ import type {
 import {
   isCinemaStudioModel,
   isGenjutsuModel,
+  isGenjutsuObjectSwapModel,
+  isGenjutsuRestyleModel,
   resolveDopEndpoint,
 } from '@api/services/integrations/higgsfield/helpers/higgsfield.catalog';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
@@ -56,6 +58,8 @@ export class HiggsFieldVideoGenerationProviderAdapter
     return (
       resolveDopEndpoint(model) !== undefined ||
       isGenjutsuModel(model) ||
+      isGenjutsuObjectSwapModel(model) ||
+      isGenjutsuRestyleModel(model) ||
       isCinemaStudioModel(model)
     );
   }
@@ -64,7 +68,13 @@ export class HiggsFieldVideoGenerationProviderAdapter
     params: DispatchVideoGenerationParams,
   ): Promise<VideoGenerationProviderResult> {
     if (isGenjutsuModel(params.model)) {
-      return this.generateMotionTransfer(params);
+      return this.generateGenjutsuEdit(params, 'motion-transfer');
+    }
+    if (isGenjutsuObjectSwapModel(params.model)) {
+      return this.generateGenjutsuEdit(params, 'object-swap');
+    }
+    if (isGenjutsuRestyleModel(params.model)) {
+      return this.generateRestyle(params);
     }
     if (isCinemaStudioModel(params.model)) {
       return this.generateCinemaStudio(params);
@@ -98,8 +108,9 @@ export class HiggsFieldVideoGenerationProviderAdapter
     };
   }
 
-  private async generateMotionTransfer(
+  private async generateGenjutsuEdit(
     params: DispatchVideoGenerationParams,
+    workflow: 'motion-transfer' | 'object-swap',
   ): Promise<VideoGenerationProviderResult> {
     const imageUrls = [
       ...new Set([
@@ -116,10 +127,60 @@ export class HiggsFieldVideoGenerationProviderAdapter
     }
 
     const resolution = params.promptParams.resolution;
-    const { requestId } = await this.higgsFieldService.generateMotionTransfer({
+    const submit =
+      workflow === 'object-swap'
+        ? this.higgsFieldService.generateObjectSwap.bind(this.higgsFieldService)
+        : this.higgsFieldService.generateMotionTransfer.bind(
+            this.higgsFieldService,
+          );
+    const { requestId } = await submit({
       imageUrls,
       onProviderSubmissionStarted: params.onProviderSubmissionStarted,
       organizationId: params.organizationId,
+      prompt: params.prompt,
+      ...(typeof resolution === 'string' ? { resolution } : {}),
+      videoUrl,
+    });
+    const completed = await this.higgsFieldService.waitForVideoCompletion(
+      requestId,
+      {
+        organizationId: params.organizationId,
+        timeoutMs: GENJUTSU_POLL_TIMEOUT_MS,
+      },
+    );
+
+    return {
+      completion: 'remote-output',
+      externalId: completed.videoUrl,
+      provider: this.provider,
+    };
+  }
+
+  private async generateRestyle(
+    params: DispatchVideoGenerationParams,
+  ): Promise<VideoGenerationProviderResult> {
+    const { promptParams } = params;
+    const videoUrl = httpsUrls(promptParams.reference_video)[0];
+    const presetId = promptParams.preset_id;
+    if (!videoUrl || typeof presetId !== 'string') {
+      throw new BadRequestException(
+        'Higgsfield Genjutsu restyle requires a source video and a style preset id.',
+      );
+    }
+    const imageUrls = [
+      ...new Set([
+        ...httpsUrls(promptParams.image_url),
+        ...httpsUrls(promptParams.image_urls),
+        ...httpsUrls(params.imageUrl),
+      ]),
+    ];
+    const resolution = promptParams.resolution;
+
+    const { requestId } = await this.higgsFieldService.generateRestyle({
+      imageUrls,
+      onProviderSubmissionStarted: params.onProviderSubmissionStarted,
+      organizationId: params.organizationId,
+      presetId,
       prompt: params.prompt,
       ...(typeof resolution === 'string' ? { resolution } : {}),
       videoUrl,

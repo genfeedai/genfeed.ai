@@ -13,7 +13,7 @@ The extension only reads a page when you ask it to: by opening the Genfeed menu 
 | `storage` | Keeps your login session, settings, saved-source lists and unsent drafts in the browser. | Local only |
 | `activeTab` | After you pick a Genfeed item from the right-click menu, lets the extension read that page. | The page, selection, link or media you chose |
 | `scripting` | Runs the capture above on the active tab, after your click. | Same as above |
-| `contextMenus` | Adds "Remix with GenFeed", "Save source to Genfeed" and "Add to Genfeed Knowledge". | None |
+| `contextMenus` | Adds "Remix with Genfeed", "Save source to Genfeed" and "Add to Genfeed Knowledge". | None |
 | `sidePanel` | Shows the Genfeed side panel: saved sources, library, analytics. | None |
 | `tabs` | Reads the active tab's URL and title so a saved source points at the right page, watches tab navigation on X and LinkedIn to confirm a post you published, and opens Genfeed links. | Tab URL and title |
 | `downloads` | Saves a generated image or video from your library to disk when you click Download. The save dialog always opens. | The file you chose |
