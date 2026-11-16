@@ -128,6 +128,7 @@ import { WatchlistsModule } from '@api/collections/watchlists/watchlists.module'
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { HookRemixModule } from '@api/endpoints/v1/hook-remix/hook-remix.module';
+import { MarketplaceCreditPurchaseModule } from '@api/marketplace-integration/marketplace-credit-purchase.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { AgentThreadingModule } from '@api/services/agent-threading/agent-threading.module';
 import { PreflightModule } from '@api/services/preflight/preflight.module';
@@ -209,6 +210,7 @@ import { Module } from '@nestjs/common';
     ListeningTopicsModule,
     LongFormDeliveriesModule,
     OutliersModule,
+    MarketplaceCreditPurchaseModule,
     MarketplaceIntegrationModule,
     McpApprovalsModule,
     MembersModule,
