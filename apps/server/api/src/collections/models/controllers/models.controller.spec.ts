@@ -410,35 +410,6 @@ describe('ModelsController', () => {
     });
   });
 
-  describe('findRetired', () => {
-    it('lists only retired rows for a regular member, unpaginated', async () => {
-      const retired = createModelDocumentFixture({
-        id: 'retired-1',
-        key: 'genfeed-ai/old-flux',
-        label: 'Old Flux',
-        lifecycle: ModelLifecycle.RETIRED,
-      });
-      modelsService.findAll.mockResolvedValue(
-        createPaginatedFixture([retired]),
-      );
-
-      const result = await controller.findRetired(
-        mockRequest,
-        mockRegularUser,
-        tenantReadQuery(ModelsQueryDto, {}),
-      );
-
-      expect(findAllWhere(modelsService)).toMatchObject({
-        isDeleted: false,
-        lifecycle: ModelLifecycle.RETIRED,
-      });
-      expect(modelsService.findAll.mock.calls[0][1]).toMatchObject({
-        pagination: false,
-      });
-      expect(result.data).toEqual([retired]);
-    });
-  });
-
   describe('findAll', () => {
     it('should return paginated models', async () => {
       const mockModels = createPaginatedFixture([

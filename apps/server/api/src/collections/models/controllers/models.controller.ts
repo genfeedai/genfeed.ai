@@ -332,42 +332,6 @@ export class ModelsController extends BaseCRUDController<
   }
 
   /**
-   * The retired rows, readable by every member. The catalog hides them from
-   * non-admins, so a saved workflow step or default that still points at one
-   * uses this to show a retired flag and the model's name.
-   */
-  @Get('retired')
-  async findRetired(
-    @Req() request: RequestWithContext,
-    @CurrentUser() user: User,
-    @Query() query: ModelsQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    const tenant = CollectionFilterUtil.resolveListOrganizationId(
-      query,
-      user,
-      request,
-    );
-    const where: MatchConditions = {
-      isDeleted: false,
-      isProviderVariant: false,
-      lifecycle: ModelLifecycle.RETIRED,
-      ...(tenant.organizationId
-        ? {
-            OR: [
-              { organizationId: null },
-              { organizationId: tenant.organizationId },
-            ],
-          }
-        : {}),
-    };
-    const data = await this.modelsService.findAll(
-      { where },
-      { customLabels, pagination: false },
-    );
-    return serializeCollection(request, ModelSerializer, data);
-  }
-
-  /**
    * Override getPopulateForOwnershipCheck - Model entities don't have user field
    */
   public getPopulateForOwnershipCheck(): [] {
