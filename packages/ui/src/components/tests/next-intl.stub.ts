@@ -253,6 +253,9 @@ const UI_TEST_MESSAGES = {
             'Google shared more than one business location with Genfeed. Tick every location this brand should post to. Each one connects as its own channel.',
           empty: 'No locations were found.',
           error: 'Failed to load locations. Please try again.',
+          limit: 'Connect up to {max} locations at a time.',
+          limitReached:
+            '{max} locations selected, the most one connect can add. Untick one to choose another.',
           loading: 'Loading locations…',
           partial:
             'Connected {connected} of {selected} locations. Not connected: {missing}. Run connect again to add them.',

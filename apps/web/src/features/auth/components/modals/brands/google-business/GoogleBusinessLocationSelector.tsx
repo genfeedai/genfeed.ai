@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import { GOOGLE_BUSINESS_MAX_SELECTED_LOCATIONS } from '@genfeedai/contracts/constants';
 import type { IGoogleBusinessLocation } from '@genfeedai/contracts/interfaces';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -80,6 +81,8 @@ export default function GoogleBusinessLocationSelector({
   const selectedLocationIds = availableLocations
     .map((location) => location.id)
     .filter((locationId) => pickedLocationIds.includes(locationId));
+  const isSelectionFull =
+    selectedLocationIds.length >= GOOGLE_BUSINESS_MAX_SELECTED_LOCATIONS;
   const isLoading = locationsQuery.isLoading;
   // A failed background refresh keeps the cached locations on screen.
   const hasLoadError = Boolean(locationsQuery.error) && !locationsQuery.data;
@@ -97,6 +100,15 @@ export default function GoogleBusinessLocationSelector({
       onErrorRef.current?.(loadErrorMessage);
     }
   }, [loadError, loadErrorMessage]);
+
+  // The server rejects more than the maximum with one generic error, so a tick
+  // past it is ignored here and the limit is stated instead.
+  const handlePickedChange = (nextIds: string[]) => {
+    if (nextIds.length > GOOGLE_BUSINESS_MAX_SELECTED_LOCATIONS) {
+      return;
+    }
+    setPickedLocationIds(nextIds);
+  };
 
   const retry = () => {
     setPickedLocationIds([]);
@@ -179,7 +191,7 @@ export default function GoogleBusinessLocationSelector({
 
       {partialResult && (
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground" role="status">
             {partialResult.notice}
           </p>
           <Button
@@ -236,7 +248,7 @@ export default function GoogleBusinessLocationSelector({
           ariaLabel={translate('title')}
           className="max-h-72 overflow-y-auto"
           columns={1}
-          onValueChange={setPickedLocationIds}
+          onValueChange={handlePickedChange}
           type="multiple"
           value={selectedLocationIds}
         >
@@ -275,6 +287,23 @@ export default function GoogleBusinessLocationSelector({
           ))}
         </OptionTileGroup>
       )}
+
+      {!isLoading &&
+        !partialResult &&
+        availableLocations.length > GOOGLE_BUSINESS_MAX_SELECTED_LOCATIONS && (
+          <p
+            className={
+              isSelectionFull
+                ? 'text-sm text-destructive'
+                : 'text-sm text-muted-foreground'
+            }
+            role="status"
+          >
+            {translate(isSelectionFull ? 'limitReached' : 'limit', {
+              max: GOOGLE_BUSINESS_MAX_SELECTED_LOCATIONS,
+            })}
+          </p>
+        )}
 
       {!isLoading && !partialResult && availableLocations.length > 0 && (
         <div className="flex gap-2">

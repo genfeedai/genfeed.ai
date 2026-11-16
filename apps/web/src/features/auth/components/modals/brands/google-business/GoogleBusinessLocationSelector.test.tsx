@@ -59,6 +59,15 @@ const BAKERY = {
   title: 'Harbour Bakery',
 };
 
+function buildLocations(count: number) {
+  return Array.from({ length: count }, (_, index) => ({
+    address: `${index + 1} Chain Street`,
+    id: `accounts/1/locations/${index + 1}`,
+    isAlreadyConnected: false,
+    title: `Branch ${String(index + 1).padStart(2, '0')}`,
+  }));
+}
+
 describe('GoogleBusinessLocationSelector', () => {
   const credentialId = 'credential-pending-1';
 
@@ -155,11 +164,9 @@ describe('GoogleBusinessLocationSelector', () => {
       screen.getByRole('button', { name: 'Connect 2 locations' }),
     );
 
-    expect(
-      await screen.findByText(
-        'Connected 1 of 2 locations. Not connected: Harbour Bakery. Run connect again to add them.',
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Connected 1 of 2 locations. Not connected: Harbour Bakery. Run connect again to add them.',
+    );
     expect(onConnected).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
@@ -235,5 +242,85 @@ describe('GoogleBusinessLocationSelector', () => {
 
     expect(onBack).toHaveBeenCalledTimes(1);
     expect(mockServices.postSelectLocations).not.toHaveBeenCalled();
+  });
+
+  it('connects exactly 25 locations without showing the limit', async () => {
+    const locations = buildLocations(25);
+    mockServices.getGoogleBusinessLocations = vi
+      .fn()
+      .mockResolvedValue(locations);
+    mockServices.postSelectLocations.mockResolvedValue(
+      locations.map((location) => ({
+        externalId: location.id,
+        externalName: location.title,
+      })),
+    );
+    render(
+      <GoogleBusinessLocationSelector
+        credentialId={credentialId}
+        onConnected={vi.fn()}
+      />,
+    );
+
+    await screen.findByText('Branch 01');
+    for (const location of locations) {
+      fireEvent.click(
+        screen.getByRole('button', { name: new RegExp(`^${location.title}`) }),
+      );
+    }
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Connect 25 locations' }),
+    );
+
+    await waitFor(() =>
+      expect(mockServices.postSelectLocations).toHaveBeenCalledWith(
+        credentialId,
+        locations.map((location) => location.id),
+      ),
+    );
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('ignores a 26th location and says the limit is 25', async () => {
+    const locations = buildLocations(26);
+    mockServices.getGoogleBusinessLocations = vi
+      .fn()
+      .mockResolvedValue(locations);
+    render(
+      <GoogleBusinessLocationSelector
+        credentialId={credentialId}
+        onConnected={vi.fn()}
+      />,
+    );
+
+    await screen.findByText('Branch 01');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Connect up to 25 locations at a time.',
+    );
+
+    for (const location of locations) {
+      fireEvent.click(
+        screen.getByRole('button', { name: new RegExp(`^${location.title}`) }),
+      );
+    }
+
+    expect(
+      screen.getByRole('button', { name: 'Connect 25 locations' }),
+    ).toBeEnabled();
+    expect(screen.getByRole('button', { name: /^Branch 26/ })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '25 locations selected, the most one connect can add.',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^Branch 25/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Branch 26/ }));
+
+    expect(screen.getByRole('button', { name: /^Branch 26/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 });
