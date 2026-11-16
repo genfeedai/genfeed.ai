@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CronCredentialsService } from '@workers/crons/credentials/cron.credentials.service';
 import { CronCreditsService } from '@workers/crons/credits/cron.credits.service';
 import { CronLifecycleEmailsService } from '@workers/crons/lifecycle-emails/cron.lifecycle-emails.service';
+import { CronNotificationRetentionService } from '@workers/crons/notification-retention/cron.notification-retention.service';
 import { CronOAuthClientCleanupService } from '@workers/crons/oauth-client-cleanup/cron.oauth-client-cleanup.service';
 import { QueueMetricsService } from '@workers/monitoring/queue-metrics.service';
 import {
@@ -9,13 +10,14 @@ import {
   type PlatformTaskHandler,
 } from '@workers/scheduling/platform-schedules.constants';
 
-/** Billing, credential, email and queue-metrics tasks. */
+/** Billing, credential, email, notification-retention and queue-metrics tasks. */
 @Injectable()
 export class PlatformAccountTaskHandlers {
   constructor(
     private readonly credits: CronCreditsService,
     private readonly credentials: CronCredentialsService,
     private readonly lifecycleEmails: CronLifecycleEmailsService,
+    private readonly notificationRetention: CronNotificationRetentionService,
     private readonly oauthClientCleanup: CronOAuthClientCleanupService,
     private readonly queueMetrics: QueueMetricsService,
   ) {}
@@ -32,6 +34,8 @@ export class PlatformAccountTaskHandlers {
         this.credits.expireFreeTrials(),
       [PLATFORM_SCHEDULED_TASKS.LIFETIME_DEAL_CREDIT_GRANT]: () =>
         this.credits.grantLifetimeDealCredits(),
+      [PLATFORM_SCHEDULED_TASKS.NOTIFICATION_RETENTION]: () =>
+        this.notificationRetention.purgeExpiredNotifications(),
       [PLATFORM_SCHEDULED_TASKS.OAUTH_CLIENT_CLEANUP]: () =>
         this.oauthClientCleanup.deleteAbandonedClients(),
       [PLATFORM_SCHEDULED_TASKS.QUEUE_METRICS_PUBLISH]: () =>
