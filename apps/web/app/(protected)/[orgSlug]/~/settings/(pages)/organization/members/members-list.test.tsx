@@ -397,7 +397,9 @@ describe('MembersList seat limit', () => {
 
     await screen.findByText('15 members');
     expect(inviteButton()).toBeEnabled();
-    expect(screen.queryByText(/Upgrade to/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /^Get / }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows invitation lifecycle states and recovery actions to owners', async () => {
