@@ -5,7 +5,7 @@ import BrandDetailPublicPosts from './BrandDetailPublicPosts';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
-    '../../../../../tests/next-intl.stub'
+    '../../../../../../tests/next-intl.stub'
   );
   return {
     useFormatter: () => ({

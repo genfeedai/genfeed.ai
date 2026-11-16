@@ -22,6 +22,13 @@ export const SCHEDULED_POST_RATE_LIMIT_MAX_WAIT_SECONDS = 6 * 60 * 60;
 export const SCHEDULED_POST_RATE_LIMIT_GIVE_UP_SECONDS = 24 * 60 * 60;
 export const PUBLISH_RATE_LIMITED_CODE = 'rate_limited';
 
+/**
+ * Stored on a post whose token the worker refreshed after the provider
+ * rejected it. A second rejection with this code on the post means the refresh
+ * did not help, so the channel is disconnected instead of refreshed again.
+ */
+export const PUBLISH_TOKEN_REFRESHED_CODE = 'token_refreshed';
+
 export const PUBLISH_OUTCOME_UNCONFIRMED_CODE = 'publish_outcome_unconfirmed';
 export const PUBLISH_OUTCOME_UNVERIFIED_CODE = 'publish_outcome_unverified';
 

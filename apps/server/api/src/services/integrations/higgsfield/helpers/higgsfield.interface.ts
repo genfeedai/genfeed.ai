@@ -67,6 +67,33 @@ export interface HiggsFieldGenjutsuInput {
   video_url: string;
 }
 
+/** `POST /higgsfield/genjutsu/restyle/v1.0`. `image_urls` is optional (0 to 5). */
+export interface HiggsFieldGenjutsuRestyleInput {
+  image_urls: string[];
+  preset_id: string;
+  prompt: string;
+  resolution: HiggsFieldGenjutsuResolution;
+  video_url: string;
+}
+
+/** One selectable system style from `GET .../restyle/v1.0/presets`. */
+export interface HiggsFieldRestylePreset {
+  id: string;
+  name: string;
+  preview_url?: string;
+}
+
+/** `POST /higgsfield/ads-studio/v1.0`. Text fields are optional guidance. */
+export interface HiggsFieldAdsStudioInput {
+  prompt: string;
+  aspect_ratio: string;
+  batch_size: number;
+  image_urls?: string[];
+  language?: string;
+  niche?: string;
+  target_audience?: string;
+}
+
 /**
  * `POST /higgsfield/cinema-studio/4.0`. Text-to-video when every media array
  * is empty, reference-to-video otherwise. Creative controls are omitted for

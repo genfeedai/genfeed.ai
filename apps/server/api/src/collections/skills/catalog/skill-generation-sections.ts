@@ -257,6 +257,7 @@ export function skillSectionReceipt(input: {
   compiled: CompiledGenerationSections;
   contentHash?: string;
   modality?: string;
+  mode: SkillSectionReceipt['mode'];
   slug: string;
   versionId?: string;
 }): SkillSectionReceipt {
@@ -266,8 +267,36 @@ export function skillSectionReceipt(input: {
     contentHash: input.contentHash,
     loadedSections: input.compiled.loaded,
     modality: input.modality,
+    mode: input.mode,
     omittedSections: input.compiled.omitted,
     slug: input.slug,
     versionId: input.versionId,
   };
+}
+
+/** Receipt for a skill that went in whole: every heading loaded, none left out. */
+export function wholeSkillReceipt(input: {
+  contentHash?: string;
+  instructions: string;
+  modality?: string;
+  mode: SkillSectionReceipt['mode'];
+  slug: string;
+  versionId?: string;
+}): SkillSectionReceipt {
+  const { preamble, sections } = parseSkillSections(input.instructions);
+  return skillSectionReceipt({
+    compiled: {
+      loaded: [
+        ...(preamble ? ['preamble'] : []),
+        ...sections.map((section) => section.heading),
+      ],
+      omitted: [],
+      text: input.instructions,
+    },
+    contentHash: input.contentHash,
+    modality: input.modality,
+    mode: input.mode,
+    slug: input.slug,
+    versionId: input.versionId,
+  });
 }
