@@ -23,8 +23,7 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const API_VERSION_PREFIX = 'v1';
-const BLUESKY_CLIENT_METADATA_PATH =
-  'services/bluesky/client-metadata.json';
+const BLUESKY_CLIENT_METADATA_PATH = 'services/bluesky/client-metadata.json';
 /** Page of the web app Bluesky sends the person back to after consent. */
 const BLUESKY_REDIRECT_PATH = 'oauth/bluesky';
 /**
