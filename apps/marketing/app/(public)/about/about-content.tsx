@@ -157,11 +157,6 @@ const HOW_IT_WORKS = [
   },
   {
     description:
-      'Images take 10–30 seconds, voiceovers about 30 seconds, articles 1–2 minutes, and videos 2–5 minutes.',
-    title: 'Turnaround',
-  },
-  {
-    description:
       'The founder. Support email, GitHub issues, and DMs reach Vincent directly, not a ticket queue.',
     title: 'Who you work with',
   },

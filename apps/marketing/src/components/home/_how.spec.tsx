@@ -11,7 +11,7 @@ describe('HomeHow', () => {
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: /connect, ask, review\./i,
+        name: /connect, ask, review/i,
       }),
     ).toBeInTheDocument();
   });

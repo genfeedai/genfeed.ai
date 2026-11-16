@@ -17,7 +17,7 @@ describe('HomeCTA', () => {
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: /start with one brief\./i,
+        name: /start with one brief/i,
       }),
     ).toBeInTheDocument();
     expect(

@@ -307,7 +307,7 @@ export const products: Product[] = [
     ],
     useCases: [
       {
-        description: 'Generate content from ChatGPT in seconds',
+        description: 'Start a content brief from a ChatGPT conversation',
         example:
           '"Create 5 TikTok videos about AI trends and schedule for this week" → Waiting for your approval',
         title: 'Quick Content Creation',

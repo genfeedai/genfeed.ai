@@ -137,7 +137,7 @@ export default function HomeHow(): React.ReactElement {
             as="h2"
             className="text-4xl font-semibold leading-tight tracking-[-0.02em] sm:text-5xl"
           >
-            Connect, ask, review.
+            Connect, ask, review
           </Heading>
           <Text className="max-w-2xl text-base leading-7 gen-text-muted">
             Your agent does the work. Brand memory, drafts and results live in

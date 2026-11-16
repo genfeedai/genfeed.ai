@@ -2,1160 +2,840 @@ export interface Integration {
   slug: string;
   name: string;
   icon: string;
+  /** What Genfeed does on this platform, in a few words. No full stop. */
   tagline: string;
   description: string;
-  keywords: string[];
+  /** Content types the platform accepts from Genfeed. */
+  formats: string;
+  /** Present only where Genfeed reads results back from the platform. */
+  results?: string;
   features: string[];
   workflow: { step: number; title: string; description: string }[];
-  cta: string;
 }
 
+/**
+ * One plain button label for every integration page. It opens the same sign-up
+ * the other site buttons use.
+ */
+export const INTEGRATION_CTA = 'Connect Agent';
+
+/**
+ * Every claim on these pages is read from the product, not from the platform's
+ * marketing. Where each fact lives:
+ *
+ * - Formats: `supports*` flags on each class in
+ *   `apps/server/api/src/services/integrations/publishers`.
+ * - Results: platforms handled by `collectionWorkflowForPlatform` in
+ *   `collections/workflows/services/analytics-sync-workflow.service.ts`
+ *   (Facebook, Threads, X, YouTube, Instagram, LinkedIn, Mastodon, Pinterest,
+ *   TikTok).
+ * - Chat commands: the command maps in `services/bot-gateway/adapters`.
+ * - Twitch live chat messages: `BotLivestreamMessageType` in
+ *   `collections/bots/schemas/bot.schema.ts`.
+ *
+ * Add a claim only after finding it in one of those places. Do not promise
+ * reach, views, growth or algorithm results, and do not name models.
+ */
 export const integrations: Integration[] = [
   {
-    cta: 'Start Creating for YouTube',
     description:
-      'Generate scroll-stopping YouTube videos, Shorts, and thumbnails with AI. Optimize titles, descriptions, and tags for maximum reach and subscriber growth.',
+      'A brief becomes a YouTube video with its title, description and thumbnail ready. Genfeed uploads it to your channel.',
     features: [
-      'AI-generated YouTube Shorts and long-form video clips ready to upload',
-      'Thumbnail generation with click-optimized compositions and text overlays',
-      'SEO-optimized titles, descriptions, and tags generated from trending topics',
-      'Automatic caption and subtitle generation for accessibility and engagement',
-      'YouTube Analytics integration to track views, watch time, and subscriber growth',
+      'Uploads video to your channel with the title, description and tags from the draft',
+      'Sets a thumbnail taken from the video, in your brand cover style',
+      'Posts follow-up text under the video as comments',
+      'Likes, comments and views for each video appear in your Genfeed analytics',
     ],
+    formats: 'Video',
     icon: 'YoutubeIcon',
-    keywords: [
-      'ai video generator for youtube',
-      'youtube shorts maker ai',
-      'youtube thumbnail generator ai',
-      'ai youtube content creator',
-      'youtube automation tool',
-      'youtube seo optimization ai',
-    ],
     name: 'YouTube',
+    results: 'Likes, comments and views',
     slug: 'youtube',
-    tagline: 'AI-powered YouTube content creation and optimization',
+    tagline: 'Videos with titles and thumbnails, uploaded to your channel',
     workflow: [
       {
-        description:
-          'Discover trending topics and keywords in your niche using AI-powered trend analysis',
+        description: 'Tell your agent what the video is about.',
         step: 1,
-        title: 'Research Trends',
+        title: 'Brief',
       },
       {
         description:
-          'Generate Shorts, video clips, and thumbnails with AI models like Veo 3 and Sora 2',
+          'Genfeed makes the video and drafts the title and description. You review the draft in your dashboard.',
         step: 2,
-        title: 'Generate Videos & Thumbnails',
+        title: 'Draft',
       },
       {
         description:
-          'AI writes SEO-optimized titles, descriptions, tags, and captions for your uploads',
+          'Genfeed uploads the approved video to your channel and sets the thumbnail.',
         step: 3,
-        title: 'Optimize Metadata',
+        title: 'Upload',
       },
       {
         description:
-          'Schedule and publish directly to your YouTube channel from Genfeed',
+          'Likes, comments and views come back to your analytics.',
         step: 4,
-        title: 'Publish to YouTube',
-      },
-      {
-        description:
-          'Track views, watch time, CTR, and subscriber growth to double down on what works',
-        step: 5,
-        title: 'Analyze & Iterate',
+        title: 'Read results',
       },
     ],
   },
   {
-    cta: 'Grow on TikTok with AI',
     description:
-      'Create viral TikTok content at scale with AI video generation, trending sound integration, and algorithm-optimized posting. Go from idea to viral clip in minutes.',
+      'Briefs become TikTok videos and photo posts. Genfeed posts them to your account, or sends a video to your TikTok inbox to finish in the app.',
     features: [
-      'Vertical video generation optimized for TikTok aspect ratios and durations',
-      'Trending hashtag and sound recommendations based on real-time TikTok data',
-      'Auto-generated captions and text overlays in TikTok-native styles',
-      'Batch creation of 30+ TikToks in a single session for daily posting',
-      'Best-time-to-post scheduling powered by audience activity analysis',
-      'Performance tracking to identify which hooks and formats drive the most views',
+      'Posts videos and photo carousels to your account',
+      'Sends a video to your TikTok inbox when you want to finish it in the app',
+      'Trending TikTok topics, hashtags and sounds are available to brief from',
+      'Likes, comments and views for each post appear in your Genfeed analytics',
     ],
+    formats: 'Video, photo carousel',
     icon: 'TiktokIcon',
-    keywords: [
-      'tiktok content creator tool',
-      'ai tiktok video maker',
-      'tiktok automation tool ai',
-      'tiktok video generator',
-      'ai content creator for tiktok',
-      'tiktok growth tool',
-    ],
     name: 'TikTok',
+    results: 'Likes, comments and views',
     slug: 'tiktok',
-    tagline: 'Create viral TikTok content with AI at scale',
+    tagline: 'Short videos and photo posts, posted or sent to your inbox',
     workflow: [
       {
         description:
-          'AI identifies trending sounds, hashtags, and content formats on TikTok right now',
+          'Tell your agent the topic, or start from a trending hashtag or sound.',
         step: 1,
-        title: 'Spot TikTok Trends',
+        title: 'Brief',
       },
       {
         description:
-          'Generate vertical videos with AI, complete with hooks, transitions, and text overlays',
+          'Genfeed makes the video or photo set and drafts the caption.',
         step: 2,
-        title: 'Create Vertical Videos',
+        title: 'Draft',
       },
       {
         description:
-          'Produce 30 days of TikTok content in one batch session to stay consistent',
+          'Genfeed posts to your account, or sends the video to your TikTok inbox.',
         step: 3,
-        title: 'Batch Create Content',
+        title: 'Post',
       },
       {
-        description:
-          'Schedule posts at optimal times when your audience is most active',
+        description: 'Likes, comments and views come back to your analytics.',
         step: 4,
-        title: 'Schedule & Publish',
-      },
-      {
-        description:
-          'Track views, shares, and follower growth to refine your content strategy',
-        step: 5,
-        title: 'Track & Optimize',
+        title: 'Read results',
       },
     ],
   },
   {
-    cta: 'Create Instagram Content with AI',
     description:
-      'Generate stunning Reels, Stories, carousels, and feed posts with AI. Maintain a cohesive aesthetic while posting consistently across all Instagram formats.',
+      'Reels, single images and carousels made from one brief, with the caption written. Genfeed posts them to your Instagram account.',
     features: [
-      'AI Reels generation with trending audio suggestions and caption overlays',
-      'Feed post and carousel image generation with brand-consistent aesthetics',
-      'Story templates with interactive elements like polls and question stickers',
-      'Hashtag strategy recommendations based on niche analysis and reach potential',
-      'Visual content calendar to plan and preview your Instagram grid layout',
+      'Posts single images, carousels of 2 to 10 images, and Reels',
+      'Writes the caption with the visuals, in your brand voice',
+      'Follow-up text posts as comments under the post',
+      'Likes, comments and views for each post appear in your Genfeed analytics',
     ],
+    formats: 'Image, carousel, Reel',
     icon: 'InstagramIcon',
-    keywords: [
-      'ai instagram content creator',
-      'instagram reels maker ai',
-      'ai instagram post generator',
-      'instagram carousel generator ai',
-      'instagram growth tool ai',
-      'ai content for instagram',
-    ],
     name: 'Instagram',
+    results: 'Likes, comments and views',
     slug: 'instagram',
-    tagline: 'AI-generated Reels, Stories, and feed posts for Instagram',
+    tagline: 'Reels, images and carousels with the caption written',
     workflow: [
       {
         description:
-          'Plan your content mix across Reels, Stories, carousels, and feed posts',
+          'Tell your agent what the post is about and which format you want.',
         step: 1,
-        title: 'Plan Content Mix',
+        title: 'Brief',
       },
       {
         description:
-          'AI generates visuals and videos that match your brand aesthetic and color palette',
+          'Genfeed makes the Reel, image or carousel and writes the caption.',
         step: 2,
-        title: 'Generate Visual Content',
+        title: 'Draft',
       },
       {
-        description:
-          'Get AI-written captions with optimized hashtags and calls-to-action',
+        description: 'Genfeed posts the approved draft to your account.',
         step: 3,
-        title: 'Write Captions & Hashtags',
+        title: 'Post',
       },
       {
-        description:
-          'Preview how your grid will look and schedule posts for optimal engagement times',
+        description: 'Likes, comments and views come back to your analytics.',
         step: 4,
-        title: 'Schedule & Preview Grid',
-      },
-      {
-        description:
-          'Monitor reach, engagement rate, and follower growth across all post formats',
-        step: 5,
-        title: 'Measure Performance',
+        title: 'Read results',
       },
     ],
   },
   {
-    cta: 'Dominate LinkedIn with AI Content',
     description:
-      'Generate thought leadership posts, articles, carousels, and video content tailored for LinkedIn. Build authority in your industry and drive B2B leads with AI-powered content.',
+      'Text posts, images and video written for LinkedIn from one brief. Genfeed posts them to your profile.',
     features: [
-      'AI-generated thought leadership posts with hook-driven formats that drive engagement',
-      'Professional article and newsletter creation optimized for LinkedIn algorithm',
-      'Carousel document generation with data-driven insights and takeaways',
-      'Video content formatted for LinkedIn feed with professional captions',
-      'Engagement analytics tracking impressions, reactions, comments, and profile visits',
-      'Optimal posting schedule based on your professional network activity patterns',
+      'Posts text, image and video posts',
+      'Writes the post from a brief, an article or a product update',
+      'Adds follow-up text as the first comment',
+      'Results for each post appear in your Genfeed analytics',
     ],
+    formats: 'Text, image, video',
     icon: 'LinkedinIcon',
-    keywords: [
-      'linkedin post generator ai',
-      'ai linkedin content creator',
-      'linkedin thought leadership ai',
-      'linkedin carousel maker ai',
-      'linkedin article writer ai',
-      'b2b content generator linkedin',
-    ],
     name: 'LinkedIn',
+    results: 'Post results',
     slug: 'linkedin',
-    tagline: 'AI-powered thought leadership and B2B content for LinkedIn',
+    tagline: 'Posts written from your brief, with images and video',
     workflow: [
       {
         description:
-          'AI identifies trending professional topics and conversations in your industry',
+          'Give your agent a topic, an article or a product update.',
         step: 1,
-        title: 'Identify Industry Topics',
+        title: 'Brief',
       },
       {
         description:
-          'Generate posts, articles, carousels, and video content tailored for professional audiences',
+          'Genfeed writes the post in your brand voice and makes an image or video if you want one.',
         step: 2,
-        title: 'Create Professional Content',
+        title: 'Draft',
       },
       {
-        description:
-          'AI optimizes hooks, formatting, and CTAs for maximum LinkedIn algorithm reach',
+        description: 'Genfeed posts the approved draft to your profile.',
         step: 3,
-        title: 'Optimize for the Algorithm',
+        title: 'Post',
       },
       {
-        description:
-          'Schedule posts when your professional network is most active on the platform',
+        description: 'Results come back to your analytics.',
         step: 4,
-        title: 'Publish at Peak Times',
-      },
-      {
-        description:
-          'Track impressions, engagement, and inbound leads generated from your content',
-        step: 5,
-        title: 'Track Leads & Engagement',
+        title: 'Read results',
       },
     ],
   },
   {
-    cta: 'Scale Your Facebook Content with AI',
     description:
-      'Create engaging Facebook posts, Reels, group content, and ad creatives with AI. Reach your audience across Facebook feeds, groups, and Stories with consistent, platform-optimized content.',
+      'Posts with images or video, written once and published to your Facebook Page.',
     features: [
-      'AI-generated feed posts, Reels, and Stories optimized for Facebook engagement',
-      'Group content creation with discussion-starting formats and questions',
-      'Ad creative generation for Facebook Ads with multiple variations for A/B testing',
-      'Audience-targeted content suggestions based on page insights and demographics',
-      'Cross-posting to Facebook Pages, Groups, and personal profiles from one dashboard',
+      'Posts images and video to your Page',
+      'Writes the post text in your brand voice',
+      'Follow-up text posts as comments under the post',
+      'Results for each post appear in your Genfeed analytics',
     ],
+    formats: 'Image, video',
     icon: 'FacebookIcon',
-    keywords: [
-      'ai facebook content creator',
-      'facebook post generator ai',
-      'facebook reels maker ai',
-      'ai facebook ad creator',
-      'facebook group content generator',
-      'facebook marketing ai tool',
-    ],
     name: 'Facebook',
+    results: 'Post results',
     slug: 'facebook',
-    tagline: 'AI content creation for Facebook Pages, Groups, and Ads',
+    tagline: 'Image and video posts for your Facebook Page',
     workflow: [
       {
-        description:
-          'AI analyzes your audience demographics and interests to recommend content themes',
+        description: 'Tell your agent what the Page should say.',
         step: 1,
-        title: 'Understand Your Audience',
+        title: 'Brief',
       },
       {
-        description:
-          'Generate posts, Reels, and Stories tailored for Facebook feed algorithms',
+        description: 'Genfeed makes the image or video and writes the post.',
         step: 2,
-        title: 'Generate Multi-Format Content',
+        title: 'Draft',
       },
       {
-        description:
-          'Create multiple ad variations with different hooks, visuals, and CTAs for testing',
+        description: 'Genfeed posts the approved draft to your Page.',
         step: 3,
-        title: 'Create Ad Variations',
+        title: 'Post',
       },
       {
-        description:
-          'Publish to Pages, Groups, and profiles simultaneously with platform-specific formatting',
+        description: 'Results come back to your analytics.',
         step: 4,
-        title: 'Distribute Across Facebook',
-      },
-      {
-        description:
-          'Monitor reach, engagement, and ad performance to optimize your content strategy',
-        step: 5,
-        title: 'Optimize with Insights',
+        title: 'Read results',
       },
     ],
   },
   {
-    cta: 'Build Your X Presence with AI',
     description:
-      'Generate high-engagement tweets, threads, and video content for X (Twitter). Grow your audience with AI-crafted hooks, timely takes, and consistent posting across text and media formats.',
+      'Posts, images and video for X, with replies chained into a thread. Genfeed posts them to your account.',
     features: [
-      'AI-generated tweets with attention-grabbing hooks and engagement-optimized formatting',
-      'Thread creation from long-form content with automatic numbering and flow',
-      'Video clip generation sized and formatted for X timeline autoplay',
-      'Real-time trending topic integration to draft timely, relevant takes',
-      'Engagement tracking across impressions, retweets, replies, and profile clicks',
-      'Automated reply and quote-tweet drafts for community engagement',
+      'Posts text, images and video',
+      'Posts a thread: the first post, then each reply in order',
+      'Writes the posts in your brand voice',
+      'Likes, comments and views for each post appear in your Genfeed analytics',
     ],
+    formats: 'Text, image, video, thread',
     icon: 'XTwitterIcon',
-    keywords: [
-      'ai twitter content creator',
-      'x twitter post generator ai',
-      'ai tweet generator',
-      'twitter thread maker ai',
-      'x growth tool ai',
-      'twitter automation ai tool',
-    ],
-    name: 'X (Twitter)',
+    name: 'X',
+    results: 'Likes, comments and views',
     slug: 'x-twitter',
-    tagline: 'AI-powered tweets, threads, and video for X',
+    tagline: 'Posts and threads with images and video',
     workflow: [
       {
         description:
-          'AI monitors trending topics and conversations relevant to your niche in real time',
+          'Give your agent an idea, a link or a product update to turn into posts.',
         step: 1,
-        title: 'Monitor Trending Topics',
+        title: 'Brief',
       },
       {
         description:
-          'Generate tweets, threads, and video clips with hooks that stop the scroll',
+          'Genfeed writes the post or thread and makes any image or video.',
         step: 2,
-        title: 'Draft Content',
+        title: 'Draft',
       },
       {
-        description:
-          'AI optimizes tweet length, formatting, and timing for maximum impressions',
+        description: 'Genfeed posts the approved draft to your account.',
         step: 3,
-        title: 'Optimize for Reach',
+        title: 'Post',
       },
       {
-        description:
-          'Schedule tweets and threads at optimal posting times throughout the day',
+        description: 'Likes, comments and views come back to your analytics.',
         step: 4,
-        title: 'Schedule Posts',
-      },
-      {
-        description:
-          'Track impressions, engagement rate, and follower growth to refine your strategy',
-        step: 5,
-        title: 'Analyze & Grow',
+        title: 'Read results',
       },
     ],
   },
   {
-    cta: 'Drive Traffic from Pinterest with AI',
     description:
-      'Generate eye-catching Pins, Idea Pins, and board content with AI. Drive sustained organic traffic to your website with search-optimized visual content that ranks on Pinterest.',
+      'Images with a title and description, published as Pins on the board you choose.',
     features: [
-      'AI-generated Pin images with text overlays optimized for Pinterest click-through rates',
-      'Idea Pin creation with multi-slide storytelling and step-by-step formats',
-      'Pinterest SEO optimization with keyword-rich titles, descriptions, and alt text',
-      'Board strategy recommendations based on niche trends and search volume',
+      'Publishes image Pins to a board you pick',
+      'Writes the Pin title and description',
+      'Makes the images from the brief',
+      'Likes, comments and views for each Pin appear in your Genfeed analytics',
     ],
+    formats: 'Image',
     icon: 'PinterestIcon',
-    keywords: [
-      'ai pinterest pin generator',
-      'pinterest content creator ai',
-      'pinterest marketing tool ai',
-      'ai pin maker for pinterest',
-      'pinterest seo tool ai',
-      'pinterest automation ai',
-    ],
     name: 'Pinterest',
+    results: 'Likes, comments and views',
     slug: 'pinterest',
-    tagline: 'AI-generated Pins and Idea Pins that drive organic traffic',
+    tagline: 'Image Pins with the title and description written',
     workflow: [
       {
-        description:
-          'AI analyzes Pinterest search trends to find high-volume, low-competition keywords',
+        description: 'Tell your agent the topic and which board it belongs on.',
         step: 1,
-        title: 'Research Pinterest Keywords',
+        title: 'Brief',
       },
       {
-        description:
-          'Generate tall, eye-catching Pin images with compelling text overlays and branding',
+        description: 'Genfeed makes the images and writes each Pin.',
         step: 2,
-        title: 'Create Pin Designs',
+        title: 'Draft',
       },
       {
-        description:
-          'AI writes keyword-rich titles, descriptions, and board names for Pinterest search ranking',
+        description: 'Genfeed publishes the approved Pins to your board.',
         step: 3,
-        title: 'Optimize for Pinterest SEO',
+        title: 'Pin',
       },
       {
-        description:
-          'Schedule Pins across boards at intervals optimized for Pinterest distribution algorithm',
+        description: 'Likes, comments and views come back to your analytics.',
         step: 4,
-        title: 'Schedule & Distribute',
-      },
-      {
-        description:
-          'Review available impressions, saves, clicks and outbound traffic',
-        step: 5,
-        title: 'Track Traffic & Saves',
+        title: 'Read results',
       },
     ],
   },
   {
-    cta: 'Grow on Reddit with AI Content',
     description:
-      'Create authentic, community-first content for Reddit. Generate discussion posts, insightful comments, and visual content tailored to subreddit cultures and rules.',
+      'A post written for the subreddit you choose, with an image or video if the brief calls for one.',
     features: [
-      'Subreddit-aware content generation that matches community tone and posting rules',
-      'Discussion post creation with engaging titles and thoughtful, detailed body text',
-      'Visual content generation for image-heavy subreddits with proper formatting',
-      'Best posting time recommendations based on subreddit activity patterns',
-      'Karma and engagement tracking across multiple subreddit communities',
+      'Posts text, image and video to the subreddit you set',
+      'Posts follow-up text as comments under your post',
+      'Drafts the title and body from your brief',
     ],
+    formats: 'Text, image, video',
     icon: 'RedditIcon',
-    keywords: [
-      'ai reddit content creator',
-      'reddit post generator ai',
-      'reddit marketing tool ai',
-      'ai reddit growth tool',
-      'reddit content strategy ai',
-      'reddit automation tool',
-    ],
     name: 'Reddit',
     slug: 'reddit',
-    tagline: 'AI-crafted content that resonates with Reddit communities',
+    tagline: 'Posts for the subreddit you pick',
     workflow: [
       {
         description:
-          'AI identifies relevant subreddits and analyzes what content performs best in each community',
+          'Tell your agent the subreddit and what you want to share.',
         step: 1,
-        title: 'Find Target Subreddits',
+        title: 'Brief',
       },
       {
         description:
-          'Generate discussion posts, images, and comments that match each subreddit tone and rules',
+          'Genfeed drafts the title and body. You review the draft in your dashboard.',
         step: 2,
-        title: 'Create Community Content',
+        title: 'Draft',
       },
       {
-        description:
-          'AI ensures content follows subreddit rules and uses authentic, non-promotional language',
+        description: 'Genfeed posts the approved draft to that subreddit.',
         step: 3,
-        title: 'Review for Authenticity',
-      },
-      {
-        description:
-          'Post at peak activity times for each subreddit to maximize visibility and upvotes',
-        step: 4,
-        title: 'Post at Peak Times',
-      },
-      {
-        description:
-          'Track upvotes, comments, and referral traffic from Reddit to your site',
-        step: 5,
-        title: 'Monitor Engagement',
+        title: 'Post',
       },
     ],
   },
   {
-    cta: 'Power Your Discord Community with AI',
     description:
-      'Generate engaging content for Discord communities. Create announcements, event promotions, and visual content that keeps your server active and growing.',
+      'Generate images and videos from a slash command in your Discord server, using your Genfeed brand.',
     features: [
-      'Server announcement generation with formatted embeds and engaging copy',
-      'Event promotion content with countdown visuals and RSVP-driving calls to action',
-      'Community engagement content like polls, discussion prompts, and themed challenges',
-      'Visual content creation sized for Discord embeds and channel banners',
+      'Use /prompt-image and /prompt-video in any channel the bot is in',
+      'Use /set-brand to pick the brand the output follows',
+      'Use /status to see your credit balance, active brand and brands',
+      'Link your chat account to Genfeed in settings first, then every generation uses your credits',
     ],
+    formats: 'Image, video from slash commands',
     icon: 'DiscordIcon',
-    keywords: [
-      'ai discord content creator',
-      'discord server growth tool ai',
-      'discord announcement generator ai',
-      'ai content for discord',
-      'discord community management ai',
-      'discord marketing tool',
-    ],
     name: 'Discord',
     slug: 'discord',
-    tagline: 'AI-powered content for thriving Discord communities',
+    tagline: 'Image and video generation from a slash command',
     workflow: [
       {
-        description:
-          'AI helps plan content themes, events, and engagement activities for your server',
+        description: 'Connect the Genfeed bot to your Discord server.',
         step: 1,
-        title: 'Plan Community Content',
+        title: 'Connect',
       },
       {
         description:
-          'Generate announcements, discussion prompts, and event promotions with rich formatting',
+          'Type /set-brand to choose which brand the bot generates for.',
         step: 2,
-        title: 'Create Announcements & Prompts',
+        title: 'Choose brand',
       },
       {
         description:
-          'AI generates images, banners, and visual content sized perfectly for Discord embeds',
+          'Type /prompt-image or /prompt-video with a prompt. Genfeed sends the result back to the channel.',
         step: 3,
-        title: 'Design Server Visuals',
-      },
-      {
-        description:
-          'Schedule and publish content to your Discord channels at optimal engagement times',
-        step: 4,
-        title: 'Publish to Channels',
+        title: 'Generate',
       },
     ],
   },
   {
-    cta: 'Level Up Your Twitch Content with AI',
     description:
-      'Create professional Twitch content with AI. Generate stream overlays, clip highlights, social media promotions, and channel art that helps you stand out and grow your viewer base.',
+      'The Genfeed bot posts scheduled link drops, host prompts and context-aware questions in your Twitch chat during a stream.',
     features: [
-      'Stream highlight clip generation from VODs with AI-detected best moments',
-      'Channel art and overlay generation including panels, banners, and emote concepts',
-      'Pre-stream and post-stream social media content to drive viewers to your channel',
-      'Clip-to-short conversion for repurposing Twitch highlights to TikTok and YouTube Shorts',
-      'Viewer engagement analytics tracking concurrent viewers, followers, and subscriber growth',
+      'Scheduled link drops for the links you set',
+      'Scheduled prompts aimed at hosts or at the audience',
+      'Questions written from what is being said on stream',
+      'A cap on automatic posts per hour, and a manual override for the host',
     ],
+    formats: 'Chat messages during a stream',
     icon: 'TwitchIcon',
-    keywords: [
-      'ai twitch content creator',
-      'twitch clip maker ai',
-      'twitch overlay generator ai',
-      'ai streamer tools twitch',
-      'twitch growth tool ai',
-      'twitch highlight generator ai',
-    ],
     name: 'Twitch',
     slug: 'twitch',
-    tagline: 'AI content tools for streamers and Twitch creators',
+    tagline: 'Link drops and prompts in your Twitch chat',
     workflow: [
       {
         description:
-          'AI analyzes your VODs to automatically detect and extract the most engaging moments',
+          'Add the links you want mentioned and choose how often the bot may post.',
         step: 1,
-        title: 'Extract Stream Highlights',
+        title: 'Set up',
       },
       {
         description:
-          'Convert highlights into vertical clips ready for TikTok, YouTube Shorts, and Instagram Reels',
+          'Start your stream. The bot posts link drops and prompts on the schedule you set.',
         step: 2,
-        title: 'Create Short-Form Clips',
+        title: 'Go live',
       },
       {
         description:
-          'Generate channel panels, banners, offline screens, and emote concepts with AI',
+          'Send a message yourself at any time, or override the topic mid-stream.',
         step: 3,
-        title: 'Design Channel Assets',
-      },
-      {
-        description:
-          'Auto-generate social media posts promoting your upcoming and recent streams',
-        step: 4,
-        title: 'Promote Streams on Social',
-      },
-      {
-        description:
-          'Track viewer counts, follower growth, and clip performance across platforms',
-        step: 5,
-        title: 'Track Growth Metrics',
+        title: 'Steer',
       },
     ],
   },
   {
-    cta: 'Publish to WordPress with AI',
     description:
-      'Generate and publish blog posts, articles, and pages directly to your WordPress site. AI handles writing, formatting, and SEO optimization so you can focus on growing your audience.',
+      'Articles with a featured image, written from a brief and saved to your WordPress site as a draft or published.',
     features: [
-      'AI-generated blog posts with proper HTML formatting, headings, and structure',
-      'SEO-optimized meta titles, descriptions, and slugs for organic search ranking',
-      'Featured image generation with AI to complement your written content',
-      'Category and tag suggestions based on content analysis and site taxonomy',
-      'Direct publishing to WordPress.com via OAuth with scheduling support',
+      'Publishes articles to your WordPress site, as a draft or live',
+      'Uses an image from the draft as the featured image',
+      'Writes the article from a brief or an outline',
+      'Sends the version you approved',
     ],
+    formats: 'Article, featured image',
     icon: 'WordpressIcon',
-    keywords: [
-      'ai wordpress blog writer',
-      'wordpress content generator ai',
-      'ai blog post generator wordpress',
-      'wordpress seo optimization ai',
-      'wordpress publishing automation',
-      'ai content for wordpress',
-    ],
     name: 'WordPress',
     slug: 'wordpress',
-    tagline: 'AI-powered blog content creation and publishing for WordPress',
+    tagline: 'Articles with a featured image, saved to your site',
     workflow: [
       {
-        description:
-          'AI researches trending topics and keywords in your niche for blog content ideas',
+        description: 'Give your agent a topic, a transcript or an outline.',
         step: 1,
-        title: 'Research Blog Topics',
+        title: 'Brief',
       },
       {
-        description:
-          'Generate full blog posts with proper formatting, headings, and engaging copy',
+        description: 'Genfeed writes the article and makes the featured image.',
         step: 2,
-        title: 'Generate Blog Content',
+        title: 'Draft',
       },
       {
         description:
-          'AI optimizes meta titles, descriptions, slugs, and internal linking for SEO',
+          'Genfeed sends the article to your site as a draft or publishes it.',
         step: 3,
-        title: 'Optimize for SEO',
-      },
-      {
-        description:
-          'Publish directly to your WordPress site or schedule posts for optimal timing',
-        step: 4,
-        title: 'Publish to WordPress',
+        title: 'Publish',
       },
     ],
   },
   {
-    cta: 'Create Snapchat Content with AI',
     description:
-      'Generate Snapchat-ready vertical content, Snap Ads, and Story sequences with AI. Reach younger demographics with platform-native formats optimized for engagement.',
+      'Video and images with a caption, posted to your Snapchat account.',
     features: [
-      'Vertical image and video generation sized for Snapchat Stories and Spotlight',
-      'Snap Ad creative generation with swipe-up call-to-action overlays',
-      'Story sequence creation with multi-slide narratives and AR-style filters',
-      'Audience targeting recommendations based on Snapchat demographics',
+      'Posts images and video',
+      'Writes the caption in your brand voice',
+      'Makes the video and images from a brief',
+      'Posts the version you approved',
     ],
+    formats: 'Image, video',
     icon: 'SnapchatIcon',
-    keywords: [
-      'ai snapchat content creator',
-      'snapchat ad maker ai',
-      'snapchat story generator ai',
-      'ai content for snapchat',
-      'snapchat marketing tool ai',
-      'snapchat automation tool',
-    ],
     name: 'Snapchat',
     slug: 'snapchat',
-    tagline: 'AI-generated Stories and Snap Ads for younger audiences',
+    tagline: 'Video and images with the caption written',
     workflow: [
       {
-        description:
-          'Identify trending lenses, sounds, and content styles on Snapchat',
+        description: 'Tell your agent what the clip or image should show.',
         step: 1,
-        title: 'Spot Snapchat Trends',
+        title: 'Brief',
       },
       {
-        description:
-          'Generate vertical-first images and videos optimized for Snapchat formats',
+        description: 'Genfeed makes the media and writes the caption.',
         step: 2,
-        title: 'Create Snap Content',
+        title: 'Draft',
       },
       {
-        description:
-          'Build multi-slide Story sequences with engaging narratives and CTAs',
+        description: 'Genfeed posts the approved draft to your account.',
         step: 3,
-        title: 'Build Story Sequences',
-      },
-      {
-        description:
-          'Publish Stories and Spotlight content directly from Genfeed',
-        step: 4,
-        title: 'Publish to Snapchat',
+        title: 'Post',
       },
     ],
   },
   {
-    cta: 'Engage Customers on WhatsApp',
     description:
-      'Send AI-generated marketing messages, product updates, and promotional content through WhatsApp Business. Reach customers directly with personalized messaging at scale.',
+      'Send a text message or an image to a WhatsApp number you set, written from a brief.',
     features: [
-      'AI-generated marketing messages optimized for WhatsApp conversational format',
-      'Template message creation for promotions, updates, and transactional notifications',
-      'Media message support with AI-generated images and product visuals',
-      'Message status tracking for delivery, read receipts, and engagement rates',
-      'Twilio-powered reliable delivery with enterprise-grade infrastructure',
+      'Sends text messages and single images',
+      'Writes the message in your brand voice',
+      'Sends to the recipient number set on the connection',
+      'Sends the version you approved',
     ],
+    formats: 'Text, image',
     icon: 'WhatsappIcon',
-    keywords: [
-      'whatsapp business marketing ai',
-      'ai whatsapp message generator',
-      'whatsapp business automation',
-      'whatsapp marketing tool ai',
-      'ai content for whatsapp',
-      'whatsapp business api integration',
-    ],
     name: 'WhatsApp',
     slug: 'whatsapp',
-    tagline: 'AI-powered WhatsApp Business messaging and marketing',
+    tagline: 'Text and image messages to a number you set',
     workflow: [
       {
-        description:
-          'Define your audience segments and message templates for different campaigns',
+        description: 'Tell your agent what the message should say.',
         step: 1,
-        title: 'Set Up Campaigns',
+        title: 'Brief',
       },
       {
-        description:
-          'AI generates personalized message content with media attachments',
+        description: 'Genfeed writes the message and makes an image if needed.',
         step: 2,
-        title: 'Generate Messages',
+        title: 'Draft',
       },
       {
-        description:
-          'Send messages through WhatsApp Business API via Twilio integration',
+        description: 'Genfeed sends the approved message to your number.',
         step: 3,
-        title: 'Send via WhatsApp',
-      },
-      {
-        description:
-          'Track delivery rates, read receipts, and customer engagement metrics',
-        step: 4,
-        title: 'Track Engagement',
+        title: 'Send',
       },
     ],
   },
   {
-    cta: 'Join the Fediverse with AI Content',
     description:
-      'Generate and publish content to Mastodon and the Fediverse. Create engaging toots, threads, and media posts for decentralized social networks with AI assistance.',
+      'Posts with images and video, and threads when one post is not enough. Genfeed posts them to your Mastodon account.',
     features: [
-      'AI-generated toots optimized for Mastodon character limits and formatting',
-      'Thread creation with automatic chaining for long-form Mastodon content',
-      'Instance-aware posting with support for any Mastodon-compatible server',
-      'Media attachment generation with AI images and alt-text descriptions',
-      'Hashtag strategy for Fediverse discovery and cross-instance reach',
+      'Posts text, images, video and image sets',
+      'Posts a thread when the brief needs more than one post',
+      'Writes the posts in your brand voice',
+      'Results for each post appear in your Genfeed analytics',
     ],
+    formats: 'Text, image, video, thread',
     icon: 'MastodonIcon',
-    keywords: [
-      'mastodon content creator ai',
-      'fediverse social media tool',
-      'ai mastodon post generator',
-      'mastodon automation tool',
-      'decentralized social media ai',
-      'mastodon marketing tool',
-    ],
     name: 'Mastodon',
+    results: 'Post results',
     slug: 'mastodon',
-    tagline: 'AI content creation for Mastodon and the Fediverse',
+    tagline: 'Posts and threads with images and video',
     workflow: [
       {
-        description:
-          'Connect your Mastodon account from any instance with OAuth authentication',
+        description: 'Tell your agent what to post.',
         step: 1,
-        title: 'Connect Your Instance',
+        title: 'Brief',
       },
       {
-        description:
-          'AI generates toots, threads, and media content tailored for Fediverse culture',
+        description: 'Genfeed writes the post or thread and makes any media.',
         step: 2,
-        title: 'Create Fediverse Content',
+        title: 'Draft',
       },
       {
-        description:
-          'Optimize hashtags and formatting for cross-instance discovery',
+        description: 'Genfeed posts the approved draft to your account.',
         step: 3,
-        title: 'Optimize for Discovery',
+        title: 'Post',
       },
       {
-        description:
-          'Publish toots and threads directly to your Mastodon account',
+        description: 'Results come back to your analytics.',
         step: 4,
-        title: 'Publish to Mastodon',
+        title: 'Read results',
       },
     ],
   },
   {
-    cta: 'Publish to Ghost with AI',
     description:
-      'Generate and publish professional blog posts and newsletters to your Ghost publication. AI handles content creation, formatting, and SEO while you maintain full editorial control.',
+      'Articles with images, written from a brief and sent to your Ghost site as a draft or published.',
     features: [
-      'AI-generated blog posts with Ghost-compatible Mobiledoc formatting',
-      'Newsletter content creation with email-optimized layouts and CTAs',
-      'SEO optimization with meta titles, descriptions, and structured data',
-      'Featured image generation with AI for posts and newsletters',
-      'Tag and author management for organized content taxonomy',
+      'Publishes articles to your Ghost site, as a draft or live',
+      'Includes images in the article',
+      'Connects with your Ghost Admin API key',
+      'Writes the article from a brief, a transcript or an outline',
     ],
+    formats: 'Article, images',
     icon: 'GhostIcon',
-    keywords: [
-      'ghost cms ai writer',
-      'ai blog generator ghost',
-      'ghost newsletter ai',
-      'ghost publishing automation',
-      'ai content for ghost blog',
-      'ghost cms content creator',
-    ],
     name: 'Ghost',
     slug: 'ghost',
-    tagline: 'AI-powered blogging and newsletters for Ghost CMS',
+    tagline: 'Articles with images, sent to your Ghost site',
     workflow: [
       {
-        description: 'Connect your Ghost publication using your Admin API key',
+        description:
+          'Connect your Ghost site with an Admin API key from your Ghost settings.',
         step: 1,
-        title: 'Connect Ghost Site',
+        title: 'Connect',
       },
       {
-        description:
-          'AI generates full blog posts with proper formatting and featured images',
+        description: 'Give your agent a topic, a transcript or an outline.',
         step: 2,
-        title: 'Generate Blog Content',
+        title: 'Brief',
       },
       {
-        description:
-          'Optimize content for SEO with meta tags, descriptions, and structured data',
+        description: 'Genfeed writes the article and makes the images.',
         step: 3,
-        title: 'Optimize for SEO',
+        title: 'Draft',
       },
       {
         description:
-          'Publish posts and send newsletters directly from Genfeed to Ghost',
+          'Genfeed sends the article to Ghost as a draft or publishes it.',
         step: 4,
-        title: 'Publish to Ghost',
+        title: 'Publish',
       },
     ],
   },
   {
-    cta: 'Create Shopify Content with AI',
     description:
-      'Generate product descriptions, blog posts, and marketing content for your Shopify store. AI creates SEO-optimized content that drives traffic and converts visitors into customers.',
+      'Create a Shopify product listing from a brief: the title, the description and the product images.',
     features: [
-      'AI-generated product descriptions with SEO keywords and persuasive copy',
-      'Blog article creation for Shopify stores to drive organic traffic',
-      'Product image generation and enhancement with AI visual models',
-      'Collection page content with thematic descriptions and category copy',
-      'GraphQL API integration for publishing content to Shopify',
+      'Creates a product in your store with a title and HTML description',
+      'Adds images from the draft as product images',
+      'Writes the description from a brief or a product sheet',
+      'Gives you the store link for the new product',
     ],
+    formats: 'Product listing, images',
     icon: 'ShopifyIcon',
-    keywords: [
-      'shopify product description ai',
-      'ai content for shopify store',
-      'shopify blog writer ai',
-      'shopify seo tool ai',
-      'ai shopify marketing',
-      'shopify content automation',
-    ],
     name: 'Shopify',
     slug: 'shopify',
-    tagline: 'AI content creation for Shopify e-commerce stores',
+    tagline: 'Product listings with description and images',
     workflow: [
       {
-        description: 'Connect your Shopify store via OAuth to publish content',
+        description:
+          'Give your agent the product details, or a product sheet to work from.',
         step: 1,
-        title: 'Connect Shopify Store',
+        title: 'Brief',
       },
       {
-        description:
-          'AI generates product descriptions, blog posts, and collection content',
+        description: 'Genfeed writes the description and makes product images.',
         step: 2,
-        title: 'Generate Store Content',
+        title: 'Draft',
       },
       {
-        description:
-          'Optimize all content for search engines with keywords and meta data',
+        description: 'Genfeed creates the product in your store.',
         step: 3,
-        title: 'Optimize for SEO',
-      },
-      {
-        description:
-          'Publish content directly to your Shopify store via GraphQL API',
-        step: 4,
-        title: 'Publish to Shopify',
+        title: 'Create',
       },
     ],
   },
   {
-    cta: 'Launch Your Newsletter with AI',
     description:
-      'Create and publish AI-generated newsletters through Beehiiv. Generate engaging newsletter content, manage subscribers, and grow your audience with data-driven content strategies.',
+      'Newsletter issues written from a brief and sent to your Beehiiv publication as a draft, or scheduled to send.',
     features: [
-      'AI-generated newsletter content with engaging subject lines and body copy',
-      'Subscriber management with segmentation and growth tracking',
-      'A/B test subject line generation for optimizing open rates',
-      'Publication scheduling with audience timezone optimization',
-      'Analytics integration for tracking opens, clicks, and subscriber growth',
+      'Creates a newsletter post in your publication, as a draft or confirmed',
+      'Can schedule the issue for a time you approved',
+      'Includes images in the issue',
+      'Connects with your Beehiiv API key',
     ],
+    formats: 'Newsletter issue, images',
     icon: 'Newspaper',
-    keywords: [
-      'beehiiv newsletter ai',
-      'ai newsletter generator',
-      'beehiiv content creator ai',
-      'newsletter automation tool',
-      'ai email newsletter writer',
-      'beehiiv publishing tool',
-    ],
     name: 'Beehiiv',
     slug: 'beehiiv',
-    tagline: 'AI-powered newsletter creation and publishing for Beehiiv',
+    tagline: 'Newsletter issues sent to your publication',
     workflow: [
       {
         description:
-          'Connect your Beehiiv publication with your API key for direct publishing',
+          'Connect your publication with your Beehiiv API key.',
         step: 1,
-        title: 'Connect Beehiiv',
+        title: 'Connect',
       },
       {
         description:
-          'AI generates newsletter editions with compelling subject lines and content',
+          'Give your agent the topics, links or posts the issue should cover.',
         step: 2,
-        title: 'Generate Newsletter Content',
+        title: 'Brief',
       },
       {
-        description:
-          'Review, edit, and schedule your newsletter for optimal send times',
+        description: 'Genfeed writes the issue and its title.',
         step: 3,
-        title: 'Schedule & Send',
+        title: 'Draft',
       },
       {
         description:
-          'Track open rates, click rates, and subscriber growth across editions',
+          'Genfeed creates the issue in Beehiiv as a draft, or schedules it.',
         step: 4,
-        title: 'Analyze Performance',
+        title: 'Send',
       },
     ],
   },
   {
-    cta: 'Publish on Medium with AI',
     description:
-      'Generate and publish thought leadership articles, essays, and stories on Medium. AI creates well-structured, engaging long-form content optimized for Medium distribution and curation.',
+      'Articles written from a brief and saved to your Medium account as a draft or published as a public story.',
     features: [
-      'AI-generated articles with proper Medium formatting and structure',
-      'Publication submission with tag optimization for Medium curation',
-      'Story series creation for serialized content and recurring themes',
-      'Reading time optimization to match Medium audience preferences',
-      'Cross-posting from your blog with platform-specific reformatting',
+      'Publishes text articles to your Medium account',
+      'Saves as a draft or publishes as a public story',
+      'Writes the article from a brief, a transcript or an outline',
+      'Sends the version you approved',
     ],
+    formats: 'Article',
     icon: 'MediumIcon',
-    keywords: [
-      'medium article generator ai',
-      'ai writer for medium',
-      'medium blog automation',
-      'ai content for medium',
-      'medium publishing tool ai',
-      'medium seo optimization',
-    ],
     name: 'Medium',
     slug: 'medium',
-    tagline: 'AI-generated articles and stories for Medium publications',
+    tagline: 'Articles saved to Medium as drafts or stories',
     workflow: [
       {
-        description:
-          'AI identifies trending topics and high-engagement formats on Medium',
+        description: 'Give your agent a topic, a transcript or an outline.',
         step: 1,
-        title: 'Research Medium Topics',
+        title: 'Brief',
       },
       {
-        description:
-          'Generate well-structured articles with engaging intros and clear takeaways',
+        description: 'Genfeed writes the article.',
         step: 2,
-        title: 'Write Articles',
+        title: 'Draft',
       },
       {
         description:
-          'Optimize tags, titles, and subtitles for Medium distribution algorithm',
+          'Genfeed saves it to Medium as a draft or publishes it as a public story.',
         step: 3,
-        title: 'Optimize for Distribution',
-      },
-      {
-        description:
-          'Publish stories directly to your Medium profile or publications',
-        step: 4,
-        title: 'Publish to Medium',
+        title: 'Publish',
       },
     ],
   },
   {
-    cta: 'Create for Threads with AI',
     description:
-      'Generate engaging text posts and threads for Meta Threads. Build your presence on the text-first platform with AI-crafted content optimized for conversation and engagement.',
+      'Short posts, images and video for Threads, with replies chained into a thread. Genfeed posts them to your account.',
     features: [
-      'AI-generated text posts optimized for Threads character limits and style',
-      'Thread creation with multi-post narratives for longer stories',
-      'Image carousel generation for visual Threads content',
-      'Cross-platform content adaptation from Instagram and Twitter',
-      'Engagement-optimized posting with conversation-starting hooks',
+      'Posts text, images, video and image sets',
+      'Chains replies into a thread',
+      'Writes the posts in your brand voice',
+      'Results for each post appear in your Genfeed analytics',
     ],
+    formats: 'Text, image, video, thread',
     icon: 'ThreadsIcon',
-    keywords: [
-      'threads content creator ai',
-      'ai threads post generator',
-      'meta threads automation',
-      'threads marketing tool ai',
-      'ai content for threads',
-      'threads growth tool',
-    ],
     name: 'Threads',
+    results: 'Post results',
     slug: 'threads',
-    tagline: 'AI-powered text content for Meta Threads',
+    tagline: 'Posts and threads with images and video',
     workflow: [
       {
-        description: 'AI analyzes trending conversations and topics on Threads',
+        description: 'Tell your agent what to say.',
         step: 1,
-        title: 'Find Trending Topics',
+        title: 'Brief',
       },
       {
-        description:
-          'Generate engaging text posts and multi-part threads with strong hooks',
+        description: 'Genfeed writes the posts and makes any media.',
         step: 2,
-        title: 'Create Thread Content',
+        title: 'Draft',
       },
       {
-        description:
-          'Schedule posts for when your Threads audience is most active',
+        description: 'Genfeed posts the approved draft to your account.',
         step: 3,
-        title: 'Schedule Posts',
+        title: 'Post',
       },
       {
-        description: 'Track replies, reposts, and follower growth on Threads',
+        description: 'Likes, comments and views come back to your analytics.',
         step: 4,
-        title: 'Track Engagement',
+        title: 'Read results',
       },
     ],
   },
   {
-    cta: 'Post to Your Telegram Channel',
     description:
-      'Create and publish AI-generated content for Telegram channels and groups. Generate engaging posts, announcements, and media content that keeps your Telegram community active.',
+      'Generate images and videos from a command in your Telegram chat, using your Genfeed brand.',
     features: [
-      'AI-generated channel posts with rich formatting and media attachments',
-      'Announcement creation with engaging copy and call-to-action buttons',
-      'Group discussion prompts and community engagement content',
-      'Media content generation with images and videos sized for Telegram',
-      'Scheduled posting for consistent channel content delivery',
+      'Use /prompt_image and /prompt_video in a chat with the bot',
+      'Use /set_brand to pick the brand the output follows',
+      'Use /status to see your credit balance, active brand and brands',
+      'Link your chat account to Genfeed in settings first, then every generation uses your credits',
     ],
+    formats: 'Image, video from commands',
     icon: 'TelegramIcon',
-    keywords: [
-      'telegram channel content ai',
-      'ai telegram bot content',
-      'telegram marketing tool ai',
-      'telegram automation ai',
-      'ai content for telegram',
-      'telegram channel growth tool',
-    ],
     name: 'Telegram',
     slug: 'telegram',
-    tagline: 'AI content creation for Telegram channels and communities',
+    tagline: 'Image and video generation from a chat command',
     workflow: [
       {
-        description:
-          'Connect your Telegram bot for automated content delivery to channels',
+        description: 'Connect the Genfeed bot to your Telegram chat.',
         step: 1,
-        title: 'Connect Telegram Bot',
+        title: 'Connect',
       },
       {
-        description:
-          'AI generates channel posts, announcements, and media content',
+        description: 'Send /set_brand to choose the brand the bot works for.',
         step: 2,
-        title: 'Generate Channel Content',
+        title: 'Choose brand',
       },
       {
         description:
-          'Schedule posts for optimal engagement times in your channel timezone',
+          'Send /prompt_image or /prompt_video with a prompt. Genfeed sends the result back to the chat.',
         step: 3,
-        title: 'Schedule Delivery',
-      },
-      {
-        description:
-          'Track message views, forwards, and channel subscriber growth',
-        step: 4,
-        title: 'Monitor Channel Growth',
+        title: 'Generate',
       },
     ],
   },
   {
-    cta: 'Engage Your Slack Workspace',
     description:
-      'Create and distribute AI-generated content across Slack workspaces. Generate announcements, updates, and engagement content for internal communications and community Slack channels.',
+      'Generate images and videos from a slash command in your Slack workspace, using your Genfeed brand.',
     features: [
-      'AI-generated workspace announcements with rich Slack Block Kit formatting',
-      'Scheduled content delivery to multiple channels simultaneously',
-      'Community engagement content with polls, questions, and discussion starters',
-      'Media attachment support with AI-generated images and documents',
+      'Use /prompt-image and /prompt-video in any channel the app is in',
+      'Use /set-brand to pick the brand the output follows',
+      'Use /status to see your credit balance, active brand and brands',
+      'Link your chat account to Genfeed in settings first, then every generation uses your credits',
     ],
+    formats: 'Image, video from slash commands',
     icon: 'SlackIcon',
-    keywords: [
-      'slack content automation ai',
-      'ai slack announcements',
-      'slack workspace content tool',
-      'slack community management ai',
-      'ai content for slack',
-      'slack marketing automation',
-    ],
     name: 'Slack',
     slug: 'slack',
-    tagline: 'AI-powered content for Slack workspaces and communities',
+    tagline: 'Image and video generation from a slash command',
     workflow: [
       {
-        description:
-          'Connect your Slack workspace with OAuth for channel access',
+        description: 'Add the Genfeed app to your Slack workspace.',
         step: 1,
-        title: 'Connect Slack Workspace',
+        title: 'Connect',
       },
       {
         description:
-          'AI generates announcements, updates, and engagement content for your channels',
+          'Type /set-brand to choose which brand the app generates for.',
         step: 2,
-        title: 'Create Channel Content',
+        title: 'Choose brand',
       },
       {
         description:
-          'Distribute content across multiple Slack channels on schedule',
+          'Type /prompt-image or /prompt-video with a prompt. Genfeed sends the result back to the channel.',
         step: 3,
-        title: 'Distribute to Channels',
-      },
-      {
-        description:
-          'Track message reactions, thread replies, and engagement across channels',
-        step: 4,
-        title: 'Track Engagement',
+        title: 'Generate',
       },
     ],
   },
   {
-    cta: 'Create for Fanvue with AI',
     description:
-      'Generate premium content for your Fanvue creator profile. AI creates exclusive images, captions, and content strategies tailored for subscription-based monetization.',
+      'Images and video for your Fanvue subscriber feed, made from a brief and posted to your creator account.',
     features: [
-      'AI-generated premium images and visual content for subscriber feeds',
-      'Caption and description generation optimized for subscriber engagement',
-      'Content scheduling with drip-feed strategies for subscriber retention',
-      'Pricing strategy recommendations based on content type and audience',
+      'Posts text, images and video to your feed',
+      'Writes captions in your voice',
+      'Makes images and video from a brief',
+      'Posts the version you approved',
     ],
+    formats: 'Text, image, video',
     icon: 'Star',
-    keywords: [
-      'fanvue content creator ai',
-      'ai content for fanvue',
-      'fanvue automation tool',
-      'subscription content generator ai',
-      'fanvue marketing ai',
-      'creator content ai tool',
-    ],
     name: 'Fanvue',
     slug: 'fanvue',
-    tagline: 'AI-powered premium content creation for Fanvue creators',
+    tagline: 'Images and video for your subscriber feed',
     workflow: [
       {
-        description:
-          'Connect your Fanvue creator account for direct content publishing',
+        description: 'Connect your Fanvue creator account.',
         step: 1,
-        title: 'Connect Fanvue',
+        title: 'Connect',
       },
       {
-        description:
-          'AI generates exclusive images and content for your subscriber feed',
+        description: 'Tell your agent what the post should show.',
         step: 2,
-        title: 'Generate Premium Content',
+        title: 'Brief',
       },
       {
-        description:
-          'Schedule content releases with drip-feed timing for subscriber retention',
+        description: 'Genfeed makes the media and writes the caption.',
         step: 3,
-        title: 'Schedule Content Drip',
+        title: 'Draft',
       },
       {
-        description:
-          'Review available publishing and engagement data for your content',
+        description: 'Genfeed posts the approved draft to your feed.',
         step: 4,
-        title: 'Review Performance',
+        title: 'Post',
       },
     ],
   },

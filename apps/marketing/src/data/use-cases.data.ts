@@ -55,7 +55,7 @@ export const useCases: UseCase[] = [
       'Generate images and videos, then schedule approved posts',
       'Publish approved content to your connected channels',
     ],
-    subtitle: 'AI-Powered Virtual Influencers',
+    subtitle: 'Virtual influencers that stay on brand',
     title: 'Genfeed for AI Influencers',
     workflow: [
       {
@@ -112,7 +112,7 @@ export const useCases: UseCase[] = [
     ],
     slug: 'creators',
     solutions: [
-      'Generate AI videos in minutes, not hours',
+      'Generate videos from a short brief',
       'See what is trending in your niche',
       'Compare available performance data for published content',
       'Publish to supported channels from one dashboard',
@@ -230,7 +230,7 @@ export const useCases: UseCase[] = [
     audience: 'E-commerce brands, DTC companies, Shopify stores',
     description:
       'Generate product videos, lifestyle shots and social ad drafts. Compare available views and engagement after publishing.',
-    headline: 'Product Content at Scale',
+    headline: 'Product content for every SKU',
     painPoints: [
       'Product photoshoots are expensive and slow',
       'Need content for dozens/hundreds of SKUs',

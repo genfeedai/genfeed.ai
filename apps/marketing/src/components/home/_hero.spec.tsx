@@ -78,7 +78,7 @@ describe('HomeHero', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     const heading = screen.getByRole('heading', {
       level: 1,
-      name: /from brief to feed\./i,
+      name: /from brief to feed/i,
     });
     expect(heading).toBeInTheDocument();
     expect(
