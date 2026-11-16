@@ -5,7 +5,8 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { classifyHttpPublishError } from '@api/shared/utils/publish-error/classify-http-publish-error.util';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -81,10 +82,15 @@ export class FanvuePublisherService extends BasePublisherService {
       );
 
       if (!result.uuid) {
-        return this.createFailedResult(
-          this.platform,
-          'Failed to get external ID from Fanvue',
-        );
+        // Fanvue answered the create request without a post id, so the post
+        // may be live. Report the outcome as unknown, not as a plain failure.
+        return {
+          ...this.createFailedResult(
+            this.platform,
+            'Failed to get external ID from Fanvue',
+          ),
+          errorKind: PublishErrorKind.OUTCOME_UNKNOWN,
+        };
       }
 
       const postUrl = this.buildPostUrl(result.uuid, context.credential);
@@ -94,7 +100,7 @@ export class FanvuePublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throw classifyHttpPublishError(error, { isPublishRequest: true });
     }
   }
 

@@ -8,7 +8,7 @@ import { Socket } from 'node:net';
 import { Duplex, Readable } from 'node:stream';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { FanvueService } from '@api/services/integrations/fanvue/services/fanvue.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -439,6 +439,40 @@ describe('FanvueService', () => {
       await expect(service.refreshToken(orgId, brandId)).rejects.toThrow(
         'Fanvue credential not found',
       );
+    });
+
+    it('should tell the worker a missing credential means the channel is disconnected', async () => {
+      credentialsService.findOne.mockResolvedValue(null as never);
+
+      await expect(service.refreshToken(orgId, brandId)).rejects.toMatchObject({
+        kind: PublishErrorKind.CHANNEL_DISCONNECTED,
+      });
+    });
+
+    it.each([
+      [400, PublishErrorKind.CHANNEL_DISCONNECTED],
+      [401, PublishErrorKind.CHANNEL_DISCONNECTED],
+      [429, PublishErrorKind.RATE_LIMITED],
+      [503, PublishErrorKind.RETRY_LATER],
+    ])('should read a token endpoint answer of %i as %s', async (status, kind) => {
+      credentialsService.findOne.mockResolvedValue({
+        id: 'test-object-id',
+        accessToken: 'encrypted-token',
+        accessTokenExpiry: new Date(Date.now() + 2 * 60 * 1000),
+        platform: CredentialPlatform.FANVUE,
+        refreshToken: 'encrypted-refresh',
+      } as never);
+      httpService.post.mockReturnValue(
+        throwError(() =>
+          Object.assign(new Error('Request failed'), {
+            response: { status },
+          }),
+        ),
+      );
+
+      await expect(service.refreshToken(orgId, brandId)).rejects.toMatchObject({
+        kind,
+      });
     });
 
     it('should disconnect and throw when tokens are missing', async () => {
@@ -887,9 +921,10 @@ describe('FanvueService', () => {
         ),
       );
       const operation = service.uploadMedia(accessToken, mediaUrl, 'image');
-      await expect(operation).rejects.toEqual(
-        new Error('Fanvue media upload failed'),
-      );
+      await expect(operation).rejects.toMatchObject({
+        kind: PublishErrorKind.RETRY_LATER,
+        message: 'Fanvue media upload failed',
+      });
       expect(loggerService.error).toHaveBeenCalledExactlyOnceWith(
         'Fanvue media upload failed',
         { stage: 'source', httpCode: 403 },

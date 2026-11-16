@@ -8,7 +8,13 @@ import { finished } from 'node:stream/promises';
 import { TLSSocket } from 'node:tls';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { isUnconfiguredSecret } from '@genfeedai/config';
-import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
+import { classifyHttpPublishError } from '@api/shared/utils/publish-error/classify-http-publish-error.util';
+import {
+  CredentialPlatform,
+  OAuthGrantType,
+  PublishErrorKind,
+} from '@genfeedai/contracts';
+import { PublishError } from '@genfeedai/contracts/interfaces';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -21,6 +27,13 @@ import type { AxiosRequestConfig, AxiosRequestTransformer } from 'axios';
 import { firstValueFrom, fromEvent, type Observable, takeUntil } from 'rxjs';
 import { z } from 'zod';
 
+const HTTP_BAD_REQUEST = 400;
+const HTTP_UNAUTHORIZED = 401;
+const HTTP_TOO_MANY_REQUESTS = 429;
+/** Statuses that say the file itself is refused: bad request, too large, wrong type, unprocessable. */
+const UPLOAD_REJECTED_STATUSES: ReadonlySet<number> = new Set([
+  400, 413, 415, 422,
+]);
 const FANVUE_API_BASE = 'https://api.fanvue.com';
 const FANVUE_AUTH_URL = 'https://auth.fanvue.com/oauth2/auth';
 const FANVUE_TOKEN_URL = 'https://auth.fanvue.com/oauth2/token';
@@ -240,14 +253,18 @@ export class FanvueService {
     });
 
     if (!credential) {
-      throw new Error('Fanvue credential not found');
+      throw new PublishError(
+        PublishErrorKind.CHANNEL_DISCONNECTED,
+        'Fanvue credential not found',
+      );
     }
 
     if (!credential.accessToken || !credential.refreshToken) {
       await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
-      throw new Error(
+      throw new PublishError(
+        PublishErrorKind.CHANNEL_DISCONNECTED,
         'Fanvue tokens not found. Please reconnect your account.',
       );
     }
@@ -324,7 +341,15 @@ export class FanvueService {
       await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
-      throw error;
+      // The token endpoint refusing the refresh token means the grant is gone.
+      // Any other failure left nothing published, so it can be tried again.
+      throw classifyHttpPublishError(error, {
+        isPublishRequest: false,
+        kindForStatus: (status) =>
+          status === HTTP_BAD_REQUEST || status === HTTP_UNAUTHORIZED
+            ? PublishErrorKind.CHANNEL_DISCONNECTED
+            : undefined,
+      });
     }
   }
 
@@ -467,7 +492,21 @@ export class FanvueService {
         stage: context.stage,
         ...(status === undefined ? {} : { httpCode: status }),
       });
-      throw new Error('Fanvue media upload failed');
+      // An upload creates no post, so every failure here left nothing
+      // published. A file Fanvue rejects is not retried; any other refusal,
+      // including a 403 or 404 from the media source, is. The message stays
+      // generic so provider text never leaks.
+      throw classifyHttpPublishError(error, {
+        isPublishRequest: false,
+        kindForStatus: (httpStatus) =>
+          UPLOAD_REJECTED_STATUSES.has(httpStatus)
+            ? PublishErrorKind.CONTENT_REJECTED
+            : httpStatus === HTTP_UNAUTHORIZED ||
+                httpStatus === HTTP_TOO_MANY_REQUESTS
+              ? undefined
+              : PublishErrorKind.RETRY_LATER,
+        message: 'Fanvue media upload failed',
+      });
     } finally {
       await this.cleanupUpload(context, signal, cancel);
     }

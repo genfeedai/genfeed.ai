@@ -7,8 +7,9 @@ import type {
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { creatorPostPath } from '@genfeedai/contracts/constants';
+import { PublishError } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -41,7 +42,25 @@ export class GenfeedPublisherService extends BasePublisherService {
     super(configService, logger);
   }
 
+  /**
+   * Publishing writes to Genfeed's own database and nowhere else, so a
+   * database failure is the only way it fails, and it leaves nothing published.
+   */
   async publish(context: PublishContext): Promise<PublishResult> {
+    try {
+      return await this.publishToProfile(context);
+    } catch (error: unknown) {
+      throw new PublishError(
+        PublishErrorKind.RETRY_LATER,
+        error instanceof Error ? error.message : 'Genfeed database unavailable',
+        { cause: error },
+      );
+    }
+  }
+
+  private async publishToProfile(
+    context: PublishContext,
+  ): Promise<PublishResult> {
     const brand = await this.prisma.brand.findFirst({
       select: { isDeleted: true, scope: true, slug: true },
       where: scopedWhere(context.organizationId, { id: context.brandId }),
