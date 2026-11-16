@@ -139,6 +139,7 @@ export * from './social-warmup-enrollment.enum';
 export * from './sort.enum';
 export * from './sound-category.enum';
 export * from './source-collector.enum';
+export * from './state-machine.registry';
 export * from './state-machine.util';
 export * from './status.enum';
 export * from './stripe.enum';
