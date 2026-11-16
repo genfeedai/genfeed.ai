@@ -58,7 +58,7 @@ describe('AgentContent', () => {
     render(<AgentContent />);
 
     expect(
-      screen.getAllByRole('button', { name: /connect your agent/i })[0],
+      screen.getAllByRole('button', { name: /connect agent/i })[0],
     ).toHaveAttribute('aria-haspopup', 'dialog');
     const [heroKeyLink] = screen.getAllByRole('link', {
       name: /start for \$0/i,
@@ -120,9 +120,7 @@ describe('AgentContent', () => {
     });
     fireEvent.click(heroKeyLink);
     fireEvent.click(
-      screen
-        .getAllByRole('button', { name: /connect your agent/i })
-        .slice(-1)[0],
+      screen.getAllByRole('button', { name: /connect agent/i }).slice(-1)[0],
     );
 
     expect(listener).toHaveBeenNthCalledWith(

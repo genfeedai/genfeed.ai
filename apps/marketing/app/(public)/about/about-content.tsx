@@ -430,7 +430,7 @@ export default function AboutContent() {
 
         <CtaSection
           bg="subtle"
-          title="Start free on Genfeed."
+          title="Start free on Genfeed"
           description={`Sign up on ${PLAN_COPY.payg.name} and pay only for what you generate.`}
         >
           <Button size={ButtonSize.PUBLIC} asChild>

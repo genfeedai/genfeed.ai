@@ -91,7 +91,7 @@ describe('HomeHero', () => {
       [...document.querySelectorAll('button, a')].map((link) =>
         link.textContent?.trim(),
       ),
-    ).toEqual(['Connect your agent', 'Start for $0']);
+    ).toEqual(['Connect Agent', 'Start for $0']);
 
     const actions = screen.getByTestId('home-hero-actions');
     const carousel = screen.getByTestId('home-hero-output-carousel');
@@ -154,7 +154,7 @@ describe('HomeHero', () => {
   it('opens the connect dialog first and keeps sign-up as the second action', () => {
     render(<HomeHero />);
     expect(
-      screen.getByRole('button', { name: /connect your agent/i }),
+      screen.getByRole('button', { name: /connect agent/i }),
     ).toHaveAttribute('aria-haspopup', 'dialog');
     expect(
       screen.getByRole('link', { name: /start for \$0/i }),

@@ -48,7 +48,7 @@ export async function generateMetadata(
   const { slug } = await params;
   const audienceName = formatUseCaseSlug(slug);
   const title = `Genfeed for ${audienceName}`;
-  const description = `How ${audienceName.toLowerCase()} use Genfeed to make videos, images and posts from one brief, then review and publish them.`;
+  const description = `How ${audienceName.toLowerCase()} turn one brief into videos, images and posts with Genfeed.`;
   const url = `${EnvironmentService.apps.website}/use-cases/${slug}`;
 
   const previousImages = [
@@ -90,7 +90,7 @@ export default async function UseCasesPage({
 
   const audienceName = formatUseCaseSlug(slug);
   const url = `${EnvironmentService.apps.website}/use-cases/${slug}`;
-  const description = `How ${audienceName.toLowerCase()} use Genfeed to make videos, images and posts from one brief, then review and publish them.`;
+  const description = `How ${audienceName.toLowerCase()} turn one brief into videos, images and posts with Genfeed.`;
 
   const useCaseJsonLd = {
     '@context': 'https://schema.org',

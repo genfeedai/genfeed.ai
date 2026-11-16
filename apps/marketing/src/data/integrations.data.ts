@@ -71,8 +71,7 @@ export const integrations: Integration[] = [
         title: 'Upload',
       },
       {
-        description:
-          'Likes, comments and views come back to your analytics.',
+        description: 'Likes, comments and views come back to your analytics.',
         step: 4,
         title: 'Read results',
       },
@@ -176,8 +175,7 @@ export const integrations: Integration[] = [
     tagline: 'Posts written from your brief, with images and video',
     workflow: [
       {
-        description:
-          'Give your agent a topic, an article or a product update.',
+        description: 'Give your agent a topic, an article or a product update.',
         step: 1,
         title: 'Brief',
       },
@@ -640,8 +638,7 @@ export const integrations: Integration[] = [
     tagline: 'Newsletter issues sent to your publication',
     workflow: [
       {
-        description:
-          'Connect your publication with your Beehiiv API key.',
+        description: 'Connect your publication with your Beehiiv API key.',
         step: 1,
         title: 'Connect',
       },

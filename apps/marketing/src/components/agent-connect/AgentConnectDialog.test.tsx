@@ -13,13 +13,13 @@ describe('AgentConnectDialog', () => {
     render(
       <>
         <ConnectAgentButton
-          label="Connect your agent"
+          label="Connect Agent"
           trackingName="test_connect_click"
         />
         <AgentConnectDialog />
       </>,
     );
-    const launcher = screen.getByRole('button', { name: 'Connect your agent' });
+    const launcher = screen.getByRole('button', { name: 'Connect Agent' });
     launcher.focus();
     fireEvent.click(launcher);
     return screen.getByRole('dialog');
@@ -29,7 +29,7 @@ describe('AgentConnectDialog', () => {
     const url = window.location.href;
     const dialog = open();
 
-    expect(dialog).toHaveAccessibleName('Connect your agent');
+    expect(dialog).toHaveAccessibleName('Connect Agent');
     expect(window.location.href).toBe(url);
     expect(
       within(dialog).getAllByRole('button', {
@@ -245,7 +245,7 @@ describe('AgentConnectDialog', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
     await vi.waitFor(() =>
       expect(
-        screen.getByRole('button', { name: 'Connect your agent' }),
+        screen.getByRole('button', { name: 'Connect Agent' }),
       ).toHaveFocus(),
     );
   });

@@ -50,7 +50,7 @@ function LandingActions({
     return (
       <ConnectAgentButton
         className="w-full sm:w-auto"
-        label="Connect your agent"
+        label="Connect Agent"
         trackingName={`${slug}_landing_click`}
       />
     );
@@ -96,7 +96,7 @@ export default function ServiceLandingPage({
       ctaHref={isBookingPage ? BOOKING_HREF : SIGN_UP_HREF}
       ctaLabel={
         config.isAgentFirst
-          ? 'Connect your agent'
+          ? 'Connect Agent'
           : isBookingPage
             ? 'Book a call'
             : 'Start free'
@@ -121,7 +121,7 @@ export default function ServiceLandingPage({
       primaryAction={
         config.isAgentFirst ? (
           <ConnectAgentButton
-            label="Connect your agent"
+            label="Connect Agent"
             className="h-11 px-2 text-xs tracking-[0.04em] sm:px-5 sm:text-sm sm:tracking-[0.18em]"
             trackingName={`${slug}_landing_click`}
           />

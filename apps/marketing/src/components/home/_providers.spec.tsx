@@ -21,7 +21,9 @@ describe('HomeProviders', () => {
     render(<HomeProviders />);
 
     expect(
-      screen.getByText(/you do not need to pick one: genfeed chooses the model/i),
+      screen.getByText(
+        /you do not need to pick one: genfeed chooses the model/i,
+      ),
     ).toBeInTheDocument();
   });
 

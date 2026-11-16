@@ -350,7 +350,7 @@ export const products: Product[] = [
       },
     ],
     category: 'Developer Tools',
-    cta: 'Connect your agent',
+    cta: 'Connect Agent',
     description:
       'Connect any AI agent to Genfeed with the Model Context Protocol. Browser OAuth and tools to draft, schedule, publish and measure content. Claude connects to content operations, and the full Genfeed server added as a second connector generates images, video and audio; other agents can generate through MCP.',
     features: [

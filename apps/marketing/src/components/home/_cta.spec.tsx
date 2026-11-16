@@ -24,9 +24,9 @@ describe('HomeCTA', () => {
       [...document.querySelectorAll('button, a')].map((link) =>
         link.textContent?.trim(),
       ),
-    ).toEqual(['Connect your agent', 'Start for $0', 'See plans and pricing']);
+    ).toEqual(['Connect Agent', 'Start for $0', 'See plans and pricing']);
     expect(
-      screen.getByRole('button', { name: /connect your agent/i }),
+      screen.getByRole('button', { name: /connect agent/i }),
     ).toHaveAttribute('aria-haspopup', 'dialog');
     expect(
       screen.getByRole('link', { name: /start for \$0/i }),
