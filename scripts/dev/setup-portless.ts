@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { PORTLESS_PROXY_ENVIRONMENT } from './portless-env';
@@ -113,10 +113,46 @@ export function isServiceDisabled(
   ).test(printDisabledOutput);
 }
 
+/**
+ * `launchctl print` lists the loaded job's argv as `arguments = { ... }` and
+ * its executable as `program = ...`. Only the first entry matters here.
+ */
+export function parseLoadedNodePath(printOutput: string): string | null {
+  const argumentsBlock =
+    /^\s*arguments\s*=\s*\{\s*\n\s*(?<first>\S[^\n]*?)\s*\n/mu.exec(
+      printOutput,
+    );
+  if (argumentsBlock?.groups?.first) {
+    return argumentsBlock.groups.first;
+  }
+  return (
+    /^\s*program\s*=\s*(?<program>\S[^\n]*?)\s*$/mu.exec(printOutput)?.groups
+      ?.program ?? null
+  );
+}
+
+/** Returns why the running job and the persisted plist disagree, or null when they agree. */
+export function describeLoadedDaemonMismatch(
+  persistedNodePath: string | null,
+  loadedNodePath: string | null,
+): string | null {
+  if (persistedNodePath === null) {
+    return null;
+  }
+  if (loadedNodePath === null) {
+    return `${PORTLESS_LAUNCH_DAEMON_LABEL} is not loaded in launchd, but ${PORTLESS_LAUNCH_DAEMON_PATH} runs ${persistedNodePath}.`;
+  }
+  return loadedNodePath === persistedNodePath
+    ? null
+    : `launchd runs ${loadedNodePath}, but ${PORTLESS_LAUNCH_DAEMON_PATH} runs ${persistedNodePath}.`;
+}
+
 export type PortlessSetupPlan = {
   /** A disabled override survives while the job runs, so a healthy service can still miss the next boot. */
   enable: boolean;
   install: boolean;
+  /** The loaded job still runs an older plist, e.g. after a repin that failed between edit and reload. */
+  reload: boolean;
   repinTo: string | null;
 };
 
@@ -124,6 +160,7 @@ export function planPortlessSetup(
   statusOutput: string | null,
   pinnedNodePath: string | null,
   serviceDisabled: boolean,
+  loadedNodePath: string | null = pinnedNodePath,
 ): PortlessSetupPlan {
   const stableNodePath =
     pinnedNodePath === null ? null : resolveStableNodePath(pinnedNodePath);
@@ -131,6 +168,10 @@ export function planPortlessSetup(
   return {
     enable: serviceDisabled,
     install: shouldInstallPortlessService(statusOutput),
+    reload:
+      pinnedNodePath !== null &&
+      loadedNodePath !== null &&
+      loadedNodePath !== pinnedNodePath,
     repinTo:
       stableNodePath !== null && needsNodeRepin(pinnedNodePath, stableNodePath)
         ? stableNodePath
@@ -152,12 +193,16 @@ export function buildServiceEnableCommand(): ServiceCommand {
 
 /**
  * Mirrors the reload sequence Portless uses when it installs the daemon, and
- * only edits the plist once launchd no longer has the job loaded. A later
- * failure is retried by the next setup run: an unloaded or unhealthy job is
- * reinstalled, and a disabled one is re-enabled.
+ * only edits the plist once launchd no longer has the job loaded. Pass
+ * `stableNodePath` null to reload the persisted configuration unchanged.
+ *
+ * A failure at any step leaves a state the next setup run detects from launchd
+ * and the plist, not from a marker file: an unloaded or unhealthy job is
+ * reinstalled, a loaded job that disagrees with the plist is reloaded, and a
+ * disabled one is re-enabled.
  */
 export function buildNodeRepinCommands(
-  stableNodePath: string,
+  stableNodePath: string | null,
   plistPath = PORTLESS_LAUNCH_DAEMON_PATH,
 ): ServiceCommand[] {
   const serviceTarget = `system/${PORTLESS_LAUNCH_DAEMON_LABEL}`;
@@ -172,16 +217,20 @@ export function buildNodeRepinCommands(
       args: ['launchctl', 'print', serviceTarget],
       expect: 'unloaded',
     },
-    {
-      args: [
-        'sudo',
-        PLIST_BUDDY_PATH,
-        '-c',
-        `Set :ProgramArguments:0 ${stableNodePath}`,
-        plistPath,
-      ],
-      expect: 'success',
-    },
+    ...(stableNodePath === null
+      ? []
+      : [
+          {
+            args: [
+              'sudo',
+              PLIST_BUDDY_PATH,
+              '-c',
+              `Set :ProgramArguments:0 ${stableNodePath}`,
+              plistPath,
+            ],
+            expect: 'success' as const,
+          },
+        ]),
     {
       args: ['sudo', 'launchctl', 'bootstrap', 'system', plistPath],
       expect: 'success',
@@ -254,11 +303,35 @@ function installService(): void {
   }
 }
 
+type PlistStat = (path: string) => unknown;
+
+/**
+ * An absent plist means no startup service. Any other failure to look at it
+ * (permissions, I/O) is reported, never read as absent.
+ */
+export function isLaunchDaemonPlistPresent(
+  plistPath = PORTLESS_LAUNCH_DAEMON_PATH,
+  stat: PlistStat = statSync,
+): boolean {
+  try {
+    stat(plistPath);
+    return true;
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException | null)?.code;
+    if (code === 'ENOENT') {
+      return false;
+    }
+    throw new Error(
+      `Could not read ${plistPath} (${code ?? 'unknown error'}), so the Portless service state is unknown. Fix its permissions and run \`bun run dev:setup\` again.`,
+    );
+  }
+}
+
 /** Returns null only when no startup service is installed. */
 function readPinnedNodePath(): string | null {
   if (
     process.platform !== 'darwin' ||
-    !existsSync(PORTLESS_LAUNCH_DAEMON_PATH)
+    !isLaunchDaemonPlistPresent(PORTLESS_LAUNCH_DAEMON_PATH)
   ) {
     return null;
   }
@@ -272,13 +345,39 @@ function readPinnedNodePath(): string | null {
   if (result.error) {
     throw result.error;
   }
-  if (result.status !== 0) {
+  const pinnedNodePath = result.stdout.trim();
+  if (result.status !== 0 || pinnedNodePath === '') {
     throw new Error(
       `Could not read the Node path from ${PORTLESS_LAUNCH_DAEMON_PATH}.`,
     );
   }
 
-  return result.stdout.trim();
+  return pinnedNodePath;
+}
+
+/** Returns null when launchd has no such job loaded. */
+function readLoadedNodePath(): string | null {
+  if (process.platform !== 'darwin') {
+    return null;
+  }
+
+  const result = spawnSync(
+    'launchctl',
+    ['print', `system/${PORTLESS_LAUNCH_DAEMON_LABEL}`],
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+  );
+
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.status === LAUNCHCTL_SERVICE_NOT_FOUND) {
+    return null;
+  }
+  if (result.status !== 0) {
+    throw new Error('Could not read the loaded Portless service from launchd.');
+  }
+
+  return parseLoadedNodePath(result.stdout);
 }
 
 function readServiceDisabled(): boolean {
@@ -334,6 +433,7 @@ async function main(): Promise<void> {
     readServiceStatus(),
     pinnedNodePath,
     readServiceDisabled(),
+    readLoadedNodePath(),
   );
 
   if (process.argv.includes('--check')) {
@@ -346,6 +446,12 @@ async function main(): Promise<void> {
     if (plan.repinTo !== null) {
       console.error(
         `The Portless service runs ${pinnedNodePath}, which a Node upgrade can remove. Run \`bun run dev:setup\` to use ${plan.repinTo}.`,
+      );
+      process.exit(1);
+    }
+    if (plan.reload) {
+      console.error(
+        `${describeLoadedDaemonMismatch(pinnedNodePath, readLoadedNodePath())} Run \`bun run dev:setup\` to reload it.`,
       );
       process.exit(1);
     }
@@ -362,7 +468,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (!plan.install && plan.repinTo === null && !plan.enable) {
+  if (!plan.install && plan.repinTo === null && !plan.enable && !plan.reload) {
     console.log(
       'Portless is already ready: HTTPS on 443 with .localhost routes and no LAN exposure.',
     );
@@ -383,6 +489,7 @@ async function main(): Promise<void> {
     installService();
   }
 
+  // The stable path comes from the plist being repaired, never from the shell's Node.
   const installedNodePath = readPinnedNodePath();
   if (installedNodePath !== null) {
     const installedStableNodePath = resolveStableNodePath(installedNodePath);
@@ -391,12 +498,28 @@ async function main(): Promise<void> {
         `Pointing the Portless service at ${installedStableNodePath} so Node upgrades keep it running. Administrator approval may be required.`,
       );
       runServiceCommands(buildNodeRepinCommands(installedStableNodePath));
+    } else if (plan.reload) {
+      console.log(
+        'Reloading the Portless service so launchd runs the configuration on disk. Administrator approval may be required.',
+      );
+      runServiceCommands(buildNodeRepinCommands(null));
     }
   }
 
   if (!(await waitForPortlessServiceReady(readServiceStatus))) {
     console.error(
       'Portless service installation completed without the required HTTPS configuration.',
+    );
+    process.exit(1);
+  }
+
+  const mismatch = describeLoadedDaemonMismatch(
+    readPinnedNodePath(),
+    readLoadedNodePath(),
+  );
+  if (mismatch !== null) {
+    console.error(
+      `Portless setup did not finish: ${mismatch} Run \`bun run dev:setup\` again.`,
     );
     process.exit(1);
   }
