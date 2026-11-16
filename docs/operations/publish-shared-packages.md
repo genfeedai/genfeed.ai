@@ -35,7 +35,7 @@ does not need it.
    runs `npm publish --dry-run`. Nothing is written.
 2. Read the plan in the run summary. Publishing is irreversible, so run it again with `dry_run`
    off only with the owner's go.
-3. The publish job publishes dependency-first (`contracts`, `helpers`, `styles`, then `ui`) and
+3. The publish job publishes dependency-first (`ui` waits for `contracts` and `helpers`) and
    can be re-run: versions already on npm are skipped.
 
 To ship a change, bump the package's `version` in a normal pull request first. A version npm
