@@ -15,6 +15,7 @@ import {
 import { createAppNextConfig } from '@genfeedai/next-config';
 import { withSerwist } from '@serwist/turbopack';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { buildSecurityHeaders } from './src/lib/security/content-security-policy';
 
 const COMMIT_SHA_PATTERN = /^[a-f0-9]{7,40}$/i;
 
@@ -180,6 +181,15 @@ const config = createAppNextConfig({
           key: 'X-Robots-Tag',
           value: 'noindex, nofollow',
         },
+        ...buildSecurityHeaders({
+          connectOrigins: [
+            process.env.API_URL,
+            process.env.NEXT_PUBLIC_API_ENDPOINT,
+            process.env.NEXT_PUBLIC_MCP_ENDPOINT,
+            process.env.NEXT_PUBLIC_POSTHOG_HOST,
+          ],
+          isProduction: process.env.NODE_ENV === 'production',
+        }),
       ],
       source: '/(.*)',
     },

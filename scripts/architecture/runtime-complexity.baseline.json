@@ -108,12 +108,6 @@
     "symbol": "apps/server/api/src/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler.ts"
   },
   {
-    "actual": 161,
-    "file": "apps/server/api/src/helpers/guards/api-key/api-key.guard.ts",
-    "metric": "method-lines",
-    "symbol": "ApiKeyAuthGuard.canActivate"
-  },
-  {
     "actual": 580,
     "file": "apps/server/api/src/helpers/guards/credits/credits.guard.ts",
     "metric": "method-lines",
@@ -276,7 +270,7 @@
     "symbol": "apps/web/app/(protected)/home/operational-home-sections.tsx"
   },
   {
-    "actual": 1481,
+    "actual": 1480,
     "file": "apps/web/proxy.ts",
     "metric": "file-lines",
     "symbol": "apps/web/proxy.ts"

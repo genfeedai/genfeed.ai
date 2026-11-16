@@ -13,6 +13,7 @@ import {
 import {
   API_KEY_SCOPE_PRESETS,
   MCP_CLAUDE_SCOPE_CEILING,
+  PARTNER_API_KEY_KIND,
 } from '@genfeedai/contracts/constants';
 import { type ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -58,7 +59,10 @@ const handlerOverride = BrandsWriteController.prototype.brandsReadRoute;
 const credentialsPatch = CredentialsController.prototype.update;
 const credentialsDelete = CredentialsController.prototype.remove;
 
-function keyWithScopes(scopes: string[]): ApiKeyDocument {
+function keyWithScopes(
+  scopes: string[],
+  metadata: Record<string, unknown> | null = null,
+): ApiKeyDocument {
   return {
     allowedIps: [],
     category: ApiKeyCategory.GENFEEDAI,
@@ -67,7 +71,7 @@ function keyWithScopes(scopes: string[]): ApiKeyDocument {
     id: 'key-1',
     isRevoked: false,
     key: 'hashed',
-    metadata: null,
+    metadata,
     organizationId: 'org-1',
     rateLimit: 60,
     scopes,
@@ -253,5 +257,61 @@ describe('ApiKeyAuthGuard deny-by-default baseline', () => {
         routeContext('DELETE', CredentialsController, credentialsDelete),
       ),
     ).rejects.toThrow(new UnauthorizedException('Insufficient permissions'));
+  });
+
+  describe('partner keys', () => {
+    const PARTNER = [ApiKeyScope.IMAGES_CREATE, ApiKeyScope.BRANDS_WRITE];
+    const partnerKey = (): ApiKeyDocument =>
+      keyWithScopes(PARTNER, { kind: PARTNER_API_KEY_KIND });
+
+    it.each([
+      ['GET', undecorated],
+      ['POST', undecorated],
+      ['DELETE', undecorated],
+      ['POST', readAccess],
+    ])(
+      'refuses a partner key on %s of a route without a scope %#',
+      async (method, handler) => {
+        const guard = buildGuard(partnerKey());
+
+        await expect(
+          guard.canActivate(
+            routeContext(method, UndecoratedController, handler),
+          ),
+        ).rejects.toThrow(
+          new UnauthorizedException('Insufficient permissions'),
+        );
+      },
+    );
+
+    it('allows a partner key on a route that names a scope it holds', async () => {
+      const guard = buildGuard(partnerKey());
+
+      await expect(
+        guard.canActivate(
+          routeContext('PATCH', BrandsWriteController, classScoped),
+        ),
+      ).resolves.toBe(true);
+    });
+
+    it('refuses a partner key on a route that names a scope it lacks', async () => {
+      const guard = buildGuard(partnerKey());
+
+      await expect(
+        guard.canActivate(
+          routeContext('POST', UndecoratedController, videosCreate),
+        ),
+      ).rejects.toThrow(new UnauthorizedException('Insufficient permissions'));
+    });
+
+    it('still lets a self-service key with the same scopes read an undecorated route', async () => {
+      const guard = buildGuard(keyWithScopes(PARTNER));
+
+      await expect(
+        guard.canActivate(
+          routeContext('GET', UndecoratedController, undecorated),
+        ),
+      ).resolves.toBe(true);
+    });
   });
 });
