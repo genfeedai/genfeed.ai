@@ -83,6 +83,7 @@ test.describe('Connect account modal', () => {
     await expect(dialog.getByText('Social networks')).toBeVisible();
     await expect(dialog.getByText('Video')).toBeVisible();
     await expect(dialog.getByText('Instagram')).toBeVisible();
+    await expect(dialog.getByText('Bluesky')).toBeVisible();
     await expect(dialog.getByText('Twitter')).toHaveCount(0);
   });
 

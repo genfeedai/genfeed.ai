@@ -1,6 +1,7 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import {
+  BlueskyIcon,
   DevIcon,
   FacebookIcon,
   GhostIcon,
@@ -190,6 +191,13 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     label: 'Threads',
     platform: CredentialPlatform.THREADS,
     readinessKey: 'threads',
+  },
+  {
+    category: 'social',
+    Icon: BlueskyIcon,
+    iconClassName: 'text-platform-bluesky',
+    label: 'Bluesky',
+    platform: CredentialPlatform.BLUESKY,
   },
   {
     category: 'video',

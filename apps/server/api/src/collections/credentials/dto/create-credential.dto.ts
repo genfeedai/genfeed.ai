@@ -38,6 +38,15 @@ export class CreateCredentialVerifyDto {
 
   @IsString()
   @IsOptional()
+  @ApiProperty({
+    description:
+      'Issuer identifier of the authorization server that sent the callback (RFC 9207).',
+    required: false,
+  })
+  readonly iss?: string;
+
+  @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
   readonly oauthVerifier?: string;
 }

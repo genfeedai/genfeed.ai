@@ -53,6 +53,9 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
   const oauthVerifier = searchParams.get('oauth_verifier');
   const returnToParam = searchParams.get('return_to');
   const state = searchParams.get('state');
+  // Authorization servers that follow RFC 9207 (Bluesky) name themselves here,
+  // and the client checks the name before it exchanges the code.
+  const issuer = searchParams.get('iss');
   const { isLoaded, isSignedIn } = useAuthIdentity();
   const [result, setResult] = useState<VerifyResult>(INITIAL_STATE);
   const hasVerified = useRef(false);
@@ -148,6 +151,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
               }
             : {
                 code,
+                ...(issuer ? { iss: issuer } : {}),
                 state,
               };
 
@@ -194,6 +198,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
       code,
       completeSuccess,
       getServicesService,
+      issuer,
       oauthToken,
       oauthVerifier,
       platform,

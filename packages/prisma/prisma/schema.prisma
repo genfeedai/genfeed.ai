@@ -1818,6 +1818,21 @@ model Jwks {
   @@map("auth_jwks")
 }
 
+/// Signing key of an OAuth client this platform runs for a provider that only
+/// issues long sessions to a confidential client (Bluesky). Minted once on first
+/// use, so no environment variable carries it. The private JWK is stored
+/// encrypted; the public half is served in the client's published JWKS.
+model PlatformSigningKey {
+  id         String   @id @default(cuid())
+  provider   String   @unique
+  keyId      String
+  publicJwk  Json
+  privateJwk String
+  createdAt  DateTime @default(now())
+
+  @@map("platform_signing_keys")
+}
+
 /// First-touch acquisition source, recorded once right after signup. Only the
 /// referring domain and landing path are kept (never full URLs or query
 /// strings), and `utm_term` is excluded as free text.

@@ -3,7 +3,6 @@ import { ApiKeyConnectErrorCode } from '@genfeedai/contracts';
 /** The Bluesky-hosted server every default account signs in through. */
 export const BLUESKY_DEFAULT_SERVICE_URL = 'https://bsky.social';
 
-const LEADING_AT_PATTERN = /^@/;
 const HTTP_SCHEME_PATTERN = /^http:\/\//i;
 const HTTPS_SCHEME_PATTERN = /^https:\/\//i;
 
@@ -48,13 +47,4 @@ export function parseBlueskyServiceUrl(
     return { code: ApiKeyConnectErrorCode.INVALID_URL, ok: false };
   }
   return { ok: true, serviceUrl: parsed.origin };
-}
-
-/**
- * Normalise what a user typed as their Bluesky handle: no leading `@`, no
- * surrounding spaces, lower case. A DID (`did:plc:...`) is kept as is.
- */
-export function normalizeBlueskyIdentifier(input: string): string {
-  const trimmed = input.trim().replace(LEADING_AT_PATTERN, '');
-  return trimmed.startsWith('did:') ? trimmed : trimmed.toLowerCase();
 }
