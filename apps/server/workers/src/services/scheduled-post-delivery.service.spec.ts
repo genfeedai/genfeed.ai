@@ -1484,6 +1484,75 @@ describe('ScheduledPostDeliveryService', () => {
       );
     });
 
+    it('escalates once across the window boundary and keeps the hourly backoff and one alert afterwards', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      try {
+        mocks.activitiesService.record.mockClear();
+        const attemptStartedAt = new Date('2026-11-15T00:00:00.000Z');
+        mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+          receiptRow({ attemptStartedAt, status: 'uncertain' }),
+        );
+        const post = createKeptPost();
+        const sweepAt = async (hoursAfterStart: number) => {
+          vi.setSystemTime(
+            attemptStartedAt.getTime() + hoursAfterStart * 3_600_000,
+          );
+          mocks.prisma.post.updateMany.mockClear();
+          await service.deferKeptUnsettledApproval(post);
+          const [write] = mocks.prisma.post.updateMany.mock.calls[0] ?? [];
+          return write.data;
+        };
+
+        const insideWindow = await sweepAt(23);
+        const atBoundary = await sweepAt(24);
+        const nextHour = await sweepAt(25);
+        const laterOn = await sweepAt(40);
+
+        expect(insideWindow.targetError.code).toBe(
+          'publish_outcome_unconfirmed',
+        );
+        expect(
+          [atBoundary, nextHour, laterOn].map((data) => data.targetError.code),
+        ).toEqual(Array(3).fill('publish_outcome_unverified'));
+        expect(nextHour.lastAttemptAt.getTime()).toBeGreaterThan(
+          attemptStartedAt.getTime() + 25 * 3_600_000 + 30 * 60_000,
+        );
+        const keys = mocks.activitiesService.record.mock.calls.map(
+          (call) => call[0].alert?.deduplicationKey,
+        );
+        expect(keys).toHaveLength(3);
+        expect(new Set(keys)).toEqual(
+          new Set([
+            `${ActivityKey.POST_PUBLISH_UNVERIFIED}/post-1/${attemptStartedAt.getTime()}`,
+          ]),
+        );
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('gives an attempt still in flight the short backoff and no alert, however long the post has been due', async () => {
+      mocks.activitiesService.record.mockClear();
+      mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+        receiptRow({
+          attemptStartedAt: new Date(),
+          leaseRenewedAt: new Date(),
+          status: 'attempting',
+        }),
+      );
+
+      await service.deferKeptUnsettledApproval(
+        createKeptPost({
+          nextScheduledDate: new Date(Date.now() - 48 * 60 * 60_000),
+          scheduledDate: new Date(Date.now() - 48 * 60 * 60_000),
+        }),
+      );
+
+      const [write] = mocks.prisma.post.updateMany.mock.calls[0] ?? [];
+      expect(write.data.targetError.code).toBe('publish_outcome_unconfirmed');
+      expect(mocks.activitiesService.record).not.toHaveBeenCalled();
+    });
+
     it('uses the short verification backoff and tells nobody while inside the window', async () => {
       mocks.activitiesService.record.mockClear();
       mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
