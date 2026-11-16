@@ -935,7 +935,9 @@ export class WorkflowNotificationDeliveryService {
         html: buildSystemEmailHtml({
           action: href ? { label: 'Open workflow', url: href } : undefined,
           bodyHtml: buildWorkflowStatusEmailBody({
-            details: [title, summary, recovery],
+            details: [title, summary, recovery].filter(
+              (value): value is string => typeof value === 'string',
+            ),
             isFailed: true,
             kind: 'workflow',
             label: payload.workflowLabel,
