@@ -15,9 +15,11 @@ const EMPTY_MEMBERS: AgentThreadMember[] = [];
  * `enabled: false` holds the read until a thread is actually shared.
  */
 export function useAgentThreadMembers(enabled = true): {
+  isFailed: boolean;
   isLoading: boolean;
   members: readonly AgentThreadMember[];
   membersById: ReadonlyMap<string, AgentThreadMember>;
+  retry: () => void;
 } {
   const { organizationId } = useBrand();
   const query = useAuthedQuery<MembersService, AgentThreadMember[]>({
@@ -30,6 +32,7 @@ export function useAgentThreadMembers(enabled = true): {
           avatarUrl: member.user?.avatar ?? null,
           brandIds: (member.brands ?? []).map((brand) => brand.id),
           name: member.userFullName,
+          roleKey: member.roleKey ?? null,
           roleLabel: member.roleLabel ?? null,
           userId: member.userId,
         }));
@@ -42,5 +45,13 @@ export function useAgentThreadMembers(enabled = true): {
     () => new Map(members.map((member) => [member.userId, member])),
     [members],
   );
-  return { isLoading: query.isLoading, members, membersById };
+  return {
+    isFailed: query.isError,
+    isLoading: query.isLoading,
+    members,
+    membersById,
+    retry: () => {
+      void query.refetch();
+    },
+  };
 }
