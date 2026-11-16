@@ -13,6 +13,14 @@ const NOW = new Date('2026-11-15T10:00:00.000Z');
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
 
+function rateLimited(options: { resetAt?: Date } = {}): PublishError {
+  return new PublishError(
+    PublishErrorKind.RATE_LIMITED,
+    '429 rate limit',
+    options,
+  );
+}
+
 function post(overrides: Record<string, unknown> = {}): PostEntity {
   return { id: 'post-1', retryCount: 0, ...overrides } as unknown as PostEntity;
 }
@@ -87,8 +95,8 @@ describe('planRateLimitedRetry', () => {
     const plan = planRateLimitedRetry(
       post(),
       {
-        error: Object.assign(new Error('429 rate limit'), {
-          rateLimit: { reset: NOW.getTime() / 1000 + 1800 },
+        error: rateLimited({
+          resetAt: new Date(NOW.getTime() + 30 * MINUTE),
         }),
       },
       NOW,
@@ -102,7 +110,7 @@ describe('planRateLimitedRetry', () => {
   });
 
   it('waits 15 minutes when the provider named no reset', () => {
-    const plan = planRateLimitedRetry(post(), { error: '429 rate limit' }, NOW);
+    const plan = planRateLimitedRetry(post(), { error: rateLimited() }, NOW);
     expect(plan).toMatchObject({
       kind: 'wait',
       retryAt: new Date(NOW.getTime() + 15 * MINUTE),
@@ -112,7 +120,7 @@ describe('planRateLimitedRetry', () => {
   it('caps a single wait at 6 hours', () => {
     const plan = planRateLimitedRetry(
       post(),
-      { error: '429 rate limit', retryAfterMs: 48 * HOUR },
+      { error: rateLimited(), retryAfterMs: 48 * HOUR },
       NOW,
     );
     expect(plan).toMatchObject({
@@ -130,7 +138,7 @@ describe('planRateLimitedRetry', () => {
           failedAt: firstLimitedAt.toISOString(),
         },
       }),
-      { error: '429 rate limit' },
+      { error: rateLimited() },
       NOW,
     );
     expect(plan).toMatchObject({ firstLimitedAt, kind: 'wait' });
@@ -144,7 +152,7 @@ describe('planRateLimitedRetry', () => {
           failedAt: new Date(NOW.getTime() - 30 * HOUR).toISOString(),
         },
       }),
-      { error: '429 rate limit' },
+      { error: rateLimited() },
       NOW,
     );
     expect(plan).toMatchObject({ firstLimitedAt: NOW, kind: 'wait' });
@@ -158,7 +166,7 @@ describe('planRateLimitedRetry', () => {
           failedAt: new Date(NOW.getTime() - 24 * HOUR).toISOString(),
         },
       }),
-      { error: '429 rate limit' },
+      { error: rateLimited() },
       NOW,
     );
     expect(plan).toEqual({ kind: 'give_up' });
@@ -192,7 +200,7 @@ describe('decideRetry', () => {
   it('retries a rate limit even when the retry budget is spent', () => {
     const decision = decideRetry(
       post({ retryCount: 3 }),
-      { error: '429 rate limit', message: '429 rate limit' },
+      { error: rateLimited(), message: '429 rate limit' },
       3,
     );
     expect(decision.canRetry).toBe(true);
@@ -207,7 +215,7 @@ describe('decideRetry', () => {
           failedAt: new Date(Date.now() - 25 * HOUR).toISOString(),
         },
       }),
-      { error: '429 rate limit', message: '429 rate limit' },
+      { error: rateLimited(), message: '429 rate limit' },
       3,
     );
     expect(decision.canRetry).toBe(false);
@@ -215,7 +223,10 @@ describe('decideRetry', () => {
   });
 
   it('stops retrying another retryable failure at the budget', () => {
-    const failure = { error: '503 unavailable', message: '503 unavailable' };
+    const failure = {
+      error: new PublishError(PublishErrorKind.RETRY_LATER, '503 unavailable'),
+      message: '503 unavailable',
+    };
     expect(decideRetry(post({ retryCount: 2 }), failure, 3).canRetry).toBe(
       true,
     );
