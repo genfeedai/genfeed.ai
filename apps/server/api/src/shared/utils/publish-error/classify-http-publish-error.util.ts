@@ -77,7 +77,7 @@ function readHeader(headers: unknown, name: string): string | undefined {
  * How long the provider said to wait, from a `Retry-After` header: a number of
  * seconds or an HTTP date. Undefined when the header is absent or unreadable.
  */
-export function readRetryAfterMs(
+function readRetryAfterMs(
   headers: unknown,
   now: Date = new Date(),
 ): number | undefined {
