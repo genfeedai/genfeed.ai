@@ -142,7 +142,7 @@ export default function VideoDetailFirstColumn({
                     ariaLabel={child.metadataLabel || 'Captioned Version'}
                   >
                     <span className="text-xs">
-                      📝 {child.metadataLabel || 'Captioned Version'}
+                      {child.metadataLabel || 'Captioned Version'}
                     </span>
                   </Button>,
                 );

@@ -17,7 +17,6 @@ function ScreenErrorFallback({ onRetry }: ScreenErrorFallbackProps): ReactNode {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.emoji}>😕</Text>
         <Text style={styles.title}>Oops!</Text>
         <Text style={styles.subtitle}>
           Something went wrong loading this screen.
@@ -111,10 +110,6 @@ const createStyles = (colors: NativeThemeColors) =>
     content: {
       alignItems: 'center',
       maxWidth: 300,
-    },
-    emoji: {
-      fontSize: 64,
-      marginBottom: 16,
     },
     retryButton: {
       alignItems: 'center',

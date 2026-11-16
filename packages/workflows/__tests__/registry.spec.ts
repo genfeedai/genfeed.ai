@@ -37,7 +37,6 @@ describe('Workflow Registry', () => {
       expect(workflow).toHaveProperty('category');
       expect(workflow).toHaveProperty('tags');
       expect(workflow).toHaveProperty('tier');
-      expect(workflow).toHaveProperty('icon');
       expect(workflow).toHaveProperty('defaultModel');
       expect(workflow).toHaveProperty('inputTypes');
       expect(workflow).toHaveProperty('outputTypes');
@@ -110,7 +109,6 @@ describe('Workflow Registry', () => {
     expect(workflow.tags.length).toBeGreaterThan(0);
     expect(workflow.tags.every((tag) => typeof tag === 'string')).toBe(true);
     expect(workflow.tier).toBe('free');
-    expect(typeof workflow.icon).toBe('string');
     expect(workflow.defaultModel).toBe('nano-banana-pro');
     expect(Array.isArray(workflow.inputTypes)).toBe(true);
     expect(workflow.inputTypes.length).toBeGreaterThan(0);
@@ -131,7 +129,6 @@ describe('Workflow Registry', () => {
       expect(workflow.category).toBeDefined();
       expect(Array.isArray(workflow.tags)).toBe(true);
       expect(workflow.tier).toBe('free');
-      expect(workflow.icon).toBeDefined();
       expect(workflow.defaultModel).toBeDefined();
       expect(Array.isArray(workflow.inputTypes)).toBe(true);
       expect(Array.isArray(workflow.outputTypes)).toBe(true);

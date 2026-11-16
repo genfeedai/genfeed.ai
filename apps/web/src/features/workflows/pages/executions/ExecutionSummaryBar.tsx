@@ -3,10 +3,10 @@
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { formatCreditCost } from '@genfeedai/contracts/constants';
 import type { WorkflowAccounting } from '@genfeedai/contracts/interfaces';
+import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { ExecutionEtaDisplayState } from '@/features/workflows/utils/eta-display';
-import { getStatusIcon } from '@/features/workflows/utils/status-helpers';
 
 type Props = {
   accounting?: WorkflowAccounting | null;
@@ -33,7 +33,7 @@ export default function ExecutionSummaryBar({
             {translate('accounting.status')}
           </div>
           <div className="flex items-center gap-1 font-semibold">
-            {getStatusIcon(status)} {status}
+            <Badge status={status} />
           </div>
         </div>
         <div>

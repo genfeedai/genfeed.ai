@@ -7,6 +7,12 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import PromptBarCollapsedView from '@/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 // Mock dependencies
 vi.mock('react-hook-form', () => ({
   useWatch: () => 'test text',
