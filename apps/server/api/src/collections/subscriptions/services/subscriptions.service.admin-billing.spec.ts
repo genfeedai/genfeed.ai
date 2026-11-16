@@ -25,7 +25,7 @@ describe('SubscriptionsService.findAdminBilling', () => {
     resolveMonthlyCredits: MockFn;
     resolveTierFromPriceId: MockFn;
   };
-  let creditsUtilsService: { getLedgerCycleMetrics: MockFn };
+  let creditsUtilsService: { getCycleRemainingMetrics: MockFn };
   let service: SubscriptionsService;
 
   beforeEach(() => {
@@ -46,7 +46,7 @@ describe('SubscriptionsService.findAdminBilling', () => {
     };
 
     creditsUtilsService = {
-      getLedgerCycleMetrics: vi.fn().mockResolvedValue({
+      getCycleRemainingMetrics: vi.fn().mockResolvedValue({
         cycleTotal: 0,
         cycleUsed: 0,
         remainingPercent: 0,
@@ -219,7 +219,7 @@ describe('SubscriptionsService.findAdminBilling', () => {
     creditGrantService.resolveMonthlyCredits.mockResolvedValue(60_000);
     creditGrantService.resolveTierFromPriceId.mockReturnValue('scale');
     // A 20,000 top-up keeps the balance high: usage must come from the ledger.
-    creditsUtilsService.getLedgerCycleMetrics.mockResolvedValue({
+    creditsUtilsService.getCycleRemainingMetrics.mockResolvedValue({
       cycleTotal: 80_000,
       cycleUsed: 30_000,
       remainingPercent: 62.5,

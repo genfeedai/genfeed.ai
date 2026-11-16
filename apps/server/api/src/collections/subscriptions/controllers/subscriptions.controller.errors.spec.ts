@@ -63,7 +63,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
     previewSubscriptionChange: MockFn;
   };
   let creditsUtilsService: {
-    getLedgerCycleMetrics: MockFn;
+    getCycleRemainingMetrics: MockFn;
     getOrganizationCreditsBalance: MockFn;
     getOrganizationCreditsWithExpiration: MockFn;
   };
@@ -89,7 +89,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       previewSubscriptionChange: vi.fn(),
     };
     creditsUtilsService = {
-      getLedgerCycleMetrics: vi
+      getCycleRemainingMetrics: vi
         .fn()
         .mockResolvedValue({ cycleTotal: 0, remainingPercent: 0 }),
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(0),
@@ -363,7 +363,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       creditsUtilsService.getOrganizationCreditsWithExpiration.mockResolvedValue(
         { credits: [], total: 120_000 },
       );
-      creditsUtilsService.getLedgerCycleMetrics.mockResolvedValue({
+      creditsUtilsService.getCycleRemainingMetrics.mockResolvedValue({
         cycleTotal: 600_000,
         remainingPercent: 20,
       });
@@ -385,7 +385,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
         SubscriptionPlan.YEARLY,
         'price_pro_yearly',
       );
-      expect(creditsUtilsService.getLedgerCycleMetrics).toHaveBeenCalledWith(
+      expect(creditsUtilsService.getCycleRemainingMetrics).toHaveBeenCalledWith(
         ORGANIZATION_ID,
         {
           cycleEndAt: new Date('2027-03-31T00:00:00.000Z'),
@@ -415,7 +415,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       );
 
       expect(result.data.planLimit).toBe(0);
-      expect(creditsUtilsService.getLedgerCycleMetrics).toHaveBeenCalledWith(
+      expect(creditsUtilsService.getCycleRemainingMetrics).toHaveBeenCalledWith(
         ORGANIZATION_ID,
         null,
         0,
@@ -426,7 +426,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       creditsUtilsService.getOrganizationCreditsWithExpiration.mockResolvedValue(
         { credits: [], total: 250 },
       );
-      creditsUtilsService.getLedgerCycleMetrics.mockResolvedValue({
+      creditsUtilsService.getCycleRemainingMetrics.mockResolvedValue({
         cycleTotal: 250,
         cycleUsed: 0,
         remainingPercent: 100,
@@ -443,7 +443,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
         contextRequest(ORGANIZATION_ID),
       );
 
-      expect(creditsUtilsService.getLedgerCycleMetrics).toHaveBeenCalledWith(
+      expect(creditsUtilsService.getCycleRemainingMetrics).toHaveBeenCalledWith(
         ORGANIZATION_ID,
         null,
         250,

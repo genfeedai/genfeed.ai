@@ -26,7 +26,7 @@ export interface OrganizationBillingInput {
   /** Spendable credits: settled balance minus held. Zero when no wallet exists. */
   balance: number;
   /**
-   * Credits spent this cycle, from the ledger (`getLedgerCycleMetrics`), the
+   * Credits spent this cycle, from the ledger (`getCycleRemainingMetrics`), the
    * same figure the Credits page and the account menu show. Never inferred
    * from the balance: a top-up or grant would read as unspent.
    */

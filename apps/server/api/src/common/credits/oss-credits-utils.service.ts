@@ -86,19 +86,6 @@ export class OssCreditsUtilsService implements ICreditsUtilsService {
 
   async getCycleRemainingMetrics(
     _organizationId: string,
-    _cycleStartAt: Date,
-    _cycleEndAt: Date,
-    _currentBalance: number,
-  ): Promise<ICycleRemainingMetrics> {
-    return {
-      cycleTotal: 0,
-      cycleUsed: 0,
-      remainingPercent: 100,
-    };
-  }
-
-  async getLedgerCycleMetrics(
-    _organizationId: string,
     _cycleWindow: { cycleStartAt: Date; cycleEndAt: Date } | null,
     _currentBalance: number,
   ): Promise<ICycleRemainingMetrics> {

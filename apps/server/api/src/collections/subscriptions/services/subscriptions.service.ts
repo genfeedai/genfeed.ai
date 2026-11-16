@@ -297,19 +297,15 @@ export class SubscriptionsService
           : 0;
 
         const balance = wallet ? wallet.balance - wallet.heldAmount : 0;
-        // Only a plan meter reports usage, so only a plan reads the ledger.
-        const { cycleUsed } =
-          planLimit > 0
-            ? await this.creditsUtilsService.getLedgerCycleMetrics(
-                organization.id,
-                getSubscriptionCycleWindow(subscription ?? null),
-                balance,
-              )
-            : { cycleUsed: 0 };
 
         return buildOrganizationBillingRow({
           balance,
-          cycleUsed,
+          cycleUsed: await this.planCycleUsed(
+            organization.id,
+            subscription ?? null,
+            planLimit,
+            balance,
+          ),
           hasPaygPurchase: paygOrganizationIds.has(organization.id),
           organization: {
             id: organization.id,
@@ -345,6 +341,27 @@ export class SubscriptionsService
       totalDocs,
       totalPages: Math.max(1, Math.ceil(totalDocs / options.limit)),
     };
+  }
+
+  /** Only a plan meter reports usage, so only a plan reads the ledger. */
+  private async planCycleUsed(
+    organizationId: string,
+    subscription: Parameters<typeof getSubscriptionCycleWindow>[0],
+    planLimit: number,
+    balance: number,
+  ): Promise<number> {
+    if (planLimit <= 0) {
+      return 0;
+    }
+
+    const { cycleUsed } =
+      await this.creditsUtilsService.getCycleRemainingMetrics(
+        organizationId,
+        getSubscriptionCycleWindow(subscription),
+        balance,
+      );
+
+    return cycleUsed;
   }
 
   private async loadAdminBillingRelations(organizationIds: string[]) {

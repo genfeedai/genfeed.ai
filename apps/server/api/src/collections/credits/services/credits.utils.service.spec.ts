@@ -752,8 +752,7 @@ describe('CreditsUtilsService', () => {
 
       const metrics = await buildService().getCycleRemainingMetrics(
         'org_1',
-        cycleStart,
-        cycleEnd,
+        { cycleEndAt: cycleEnd, cycleStartAt: cycleStart },
         8700,
       );
 
@@ -775,8 +774,7 @@ describe('CreditsUtilsService', () => {
 
       const metrics = await buildService().getCycleRemainingMetrics(
         'org_1',
-        cycleStart,
-        cycleEnd,
+        { cycleEndAt: cycleEnd, cycleStartAt: cycleStart },
         5800,
       );
 
@@ -793,8 +791,7 @@ describe('CreditsUtilsService', () => {
 
       const metrics = await buildService().getCycleRemainingMetrics(
         'org_1',
-        cycleStart,
-        cycleEnd,
+        { cycleEndAt: cycleEnd, cycleStartAt: cycleStart },
         40,
       );
 
@@ -802,7 +799,7 @@ describe('CreditsUtilsService', () => {
     });
   });
 
-  describe('getLedgerCycleMetrics', () => {
+  describe('getCycleRemainingMetrics without a subscription period', () => {
     it('reads the ledger since the last reset when there is no subscription period', async () => {
       // The review org: no active plan, a 2,000 top-up, 1,434.8 spent.
       creditTransactionsService.getOrganizationTransactions.mockResolvedValue([
@@ -819,7 +816,7 @@ describe('CreditsUtilsService', () => {
         ],
       );
 
-      const metrics = await buildService().getLedgerCycleMetrics(
+      const metrics = await buildService().getCycleRemainingMetrics(
         'org_1',
         null,
         569.2,
@@ -844,7 +841,7 @@ describe('CreditsUtilsService', () => {
         ],
       );
 
-      const metrics = await buildService().getLedgerCycleMetrics(
+      const metrics = await buildService().getCycleRemainingMetrics(
         'org_1',
         null,
         750,
@@ -872,7 +869,7 @@ describe('CreditsUtilsService', () => {
         ],
       );
 
-      const metrics = await buildService().getLedgerCycleMetrics(
+      const metrics = await buildService().getCycleRemainingMetrics(
         'org_1',
         null,
         930,

@@ -830,50 +830,23 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     }
   }
 
-  /**
-   * The one source of plan usage for every credits and billing surface.
-   * Inside a subscription period it reads that period; with no period (free,
-   * pay-as-you-go, an unfinished checkout) it reads the ledger since the
-   * organization's last reset, or since the first row when it never had one.
-   * Usage is always `computeCycleCredits` over the ledger, never inferred from
-   * the balance, so a top-up or a grant cannot make it read as unspent.
-   */
-  async getLedgerCycleMetrics(
+  /** Plan usage from the ledger: the subscription period, else since the last reset. */
+  async getCycleRemainingMetrics(
     organizationId: string,
     cycleWindow: CreditCycleWindow | null,
     currentBalance: number,
   ): Promise<ICycleRemainingMetrics> {
-    if (cycleWindow) {
-      return this.getCycleRemainingMetrics(
-        organizationId,
-        cycleWindow.cycleStartAt,
-        cycleWindow.cycleEndAt,
-        currentBalance,
-      );
-    }
-
-    const [latestReset] =
-      await this.creditTransactionsService.getOrganizationTransactions(
-        organizationId,
-        1,
-        0,
-        { category: CreditTransactionCategory.RESET },
-      );
-
-    return this.getCycleRemainingMetrics(
-      organizationId,
-      latestReset?.createdAt ?? new Date(0),
-      new Date(),
-      currentBalance,
-    );
-  }
-
-  async getCycleRemainingMetrics(
-    organizationId: string,
-    cycleStartAt: Date,
-    cycleEndAt: Date,
-    currentBalance: number,
-  ): Promise<ICycleRemainingMetrics> {
+    const [latestReset] = cycleWindow
+      ? []
+      : await this.creditTransactionsService.getOrganizationTransactions(
+          organizationId,
+          1,
+          0,
+          { category: CreditTransactionCategory.RESET },
+        );
+    const cycleStartAt =
+      cycleWindow?.cycleStartAt ?? latestReset?.createdAt ?? new Date(0);
+    const cycleEndAt = cycleWindow?.cycleEndAt ?? new Date();
     const previousTransaction =
       await this.creditTransactionsService.getLatestTransactionBeforeDate(
         organizationId,

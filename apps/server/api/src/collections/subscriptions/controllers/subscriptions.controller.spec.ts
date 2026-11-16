@@ -72,7 +72,7 @@ describe('SubscriptionsController', () => {
   };
 
   const mockCreditsUtilsService = {
-    getLedgerCycleMetrics: vi.fn(),
+    getCycleRemainingMetrics: vi.fn(),
     getOrganizationCreditsBalance: vi.fn(),
     getOrganizationCreditsWithExpiration: vi.fn(),
   };
@@ -266,7 +266,7 @@ describe('SubscriptionsController', () => {
       mockCreditsUtilsService.getOrganizationCreditsWithExpiration.mockResolvedValue(
         creditsData,
       );
-      mockCreditsUtilsService.getLedgerCycleMetrics.mockResolvedValue(
+      mockCreditsUtilsService.getCycleRemainingMetrics.mockResolvedValue(
         cycleMetrics,
       );
       mockSubscriptionsService.findByOrganizationId.mockResolvedValue({
@@ -281,7 +281,9 @@ describe('SubscriptionsController', () => {
       expect(
         creditsUtilsService.getOrganizationCreditsWithExpiration,
       ).toHaveBeenCalledWith(mockUser.organizationId);
-      expect(mockCreditsUtilsService.getLedgerCycleMetrics).toHaveBeenCalled();
+      expect(
+        mockCreditsUtilsService.getCycleRemainingMetrics,
+      ).toHaveBeenCalled();
       expect(result.success).toBe(true);
       expect(result.data).toEqual(
         expect.objectContaining({
@@ -309,7 +311,7 @@ describe('SubscriptionsController', () => {
       mockCreditsUtilsService.getOrganizationCreditsWithExpiration.mockResolvedValue(
         creditsData,
       );
-      mockCreditsUtilsService.getLedgerCycleMetrics.mockResolvedValue(
+      mockCreditsUtilsService.getCycleRemainingMetrics.mockResolvedValue(
         ledgerMetrics,
       );
       mockSubscriptionsService.findByOrganizationId.mockResolvedValue(null);
@@ -319,7 +321,7 @@ describe('SubscriptionsController', () => {
       expect(result.data).toEqual(expect.objectContaining(ledgerMetrics));
       expect(result.data.cycleEndAt).toBeUndefined();
       expect(
-        mockCreditsUtilsService.getLedgerCycleMetrics,
+        mockCreditsUtilsService.getCycleRemainingMetrics,
       ).toHaveBeenCalledWith(mockUser.organizationId, null, 569.2);
     });
 
@@ -382,7 +384,7 @@ describe('SubscriptionsController', () => {
       mockCreditsUtilsService.getOrganizationCreditsWithExpiration.mockResolvedValue(
         { total: 120, credits: [] },
       );
-      mockCreditsUtilsService.getLedgerCycleMetrics.mockResolvedValue({
+      mockCreditsUtilsService.getCycleRemainingMetrics.mockResolvedValue({
         cycleTotal: 240,
         remainingPercent: 50,
       });
@@ -395,7 +397,7 @@ describe('SubscriptionsController', () => {
     });
     afterEach(() => {
       mockCreditsUtilsService.getOrganizationCreditsWithExpiration.mockReset();
-      mockCreditsUtilsService.getLedgerCycleMetrics.mockReset();
+      mockCreditsUtilsService.getCycleRemainingMetrics.mockReset();
       mockSubscriptionsService.findByOrganizationId
         .mockReset()
         .mockResolvedValue(null);
@@ -438,7 +440,7 @@ describe('SubscriptionsController', () => {
           mockCreditGrantService.resolvePlanCredits,
         ).not.toHaveBeenCalled();
         expect(
-          mockCreditsUtilsService.getLedgerCycleMetrics,
+          mockCreditsUtilsService.getCycleRemainingMetrics,
         ).not.toHaveBeenCalled();
         expect(request.user).toBe(user);
         expect(request.context?.organizationId).toBe(contextOrg);
@@ -507,7 +509,7 @@ describe('SubscriptionsController', () => {
         [contextOrg],
       ]);
       expect(
-        mockCreditsUtilsService.getLedgerCycleMetrics,
+        mockCreditsUtilsService.getCycleRemainingMetrics,
       ).toHaveBeenNthCalledWith(
         1,
         contextOrg,

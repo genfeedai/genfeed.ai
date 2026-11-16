@@ -188,22 +188,11 @@ export interface ICreditsUtilsService {
 
   /**
    * Billing-cycle metrics used by dashboards to show remaining credit vs.
-   * cycle total.
+   * cycle total: the ledger over the subscription period, or since the last
+   * reset when there is no period (`cycleWindow` null).
    * OSS no-op returns `{ cycleTotal: 0, remainingPercent: 100 }`.
    */
   getCycleRemainingMetrics(
-    organizationId: string,
-    cycleStartAt: Date,
-    cycleEndAt: Date,
-    currentBalance: number,
-  ): Promise<ICycleRemainingMetrics>;
-
-  /**
-   * The single plan-usage source for credits and billing surfaces: ledger
-   * metrics for the subscription period, or since the last reset when the
-   * organization has no period. OSS no-op matches `getCycleRemainingMetrics`.
-   */
-  getLedgerCycleMetrics(
     organizationId: string,
     cycleWindow: { cycleStartAt: Date; cycleEndAt: Date } | null,
     currentBalance: number,
