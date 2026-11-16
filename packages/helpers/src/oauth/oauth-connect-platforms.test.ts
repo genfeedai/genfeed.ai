@@ -204,3 +204,22 @@ describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
     }
   });
 });
+
+describe('OAUTH_CONNECT_PLATFORMS messaging tiles', () => {
+  it('lists Discord and Slack in the Messaging group, each on its own service path', () => {
+    const messaging = groupOAuthConnectPlatforms(OAUTH_CONNECT_PLATFORMS).find(
+      (group) => group.id === 'messaging',
+    );
+
+    expect(
+      messaging?.platforms.map((tile) => [
+        tile.label,
+        tile.platform,
+        tile.servicePath,
+      ]),
+    ).toEqual([
+      ['Discord', CredentialPlatform.DISCORD, 'discord'],
+      ['Slack', CredentialPlatform.SLACK, 'slack'],
+    ]);
+  });
+});
