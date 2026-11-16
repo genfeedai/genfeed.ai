@@ -58,7 +58,7 @@ export function ToolCallDetailPanel({
       {error && <p className="text-destructive text-xs">{error}</p>}
       {resolvedParameters && Object.keys(resolvedParameters).length > 0 && (
         <div>
-          <span className="mb-0.5 block text-2xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+          <span className="mb-0.5 block text-2xs font-semibold uppercase tracking-label text-muted-foreground/60">
             Parameters
           </span>
           <Pre variant="ghost" size="xs">
@@ -68,7 +68,7 @@ export function ToolCallDetailPanel({
       )}
       {readableResult && (
         <div>
-          <span className="mb-0.5 block text-2xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+          <span className="mb-0.5 block text-2xs font-semibold uppercase tracking-label text-muted-foreground/60">
             Result
           </span>
           <Pre variant="ghost" size="xs">
@@ -78,7 +78,7 @@ export function ToolCallDetailPanel({
       )}
       {rawOutput && (
         <div>
-          <span className="mb-0.5 block text-2xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+          <span className="mb-0.5 block text-2xs font-semibold uppercase tracking-label text-muted-foreground/60">
             Debug Output
           </span>
           <Pre variant="ghost" size="xs">

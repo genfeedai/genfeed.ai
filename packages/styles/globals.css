@@ -89,6 +89,11 @@
   --color-platform-wordpress: var(--platform-wordpress);
   --color-platform-youtube: var(--platform-youtube);
 
+  /* Letter-spacing — `tracking-label` is the only positive tracking value
+     (uppercase labels, table headers, website buttons). Value lives once in
+     packages/ui/web-tokens.css. */
+  --tracking-label: var(--tracking-label);
+
   /* Radius — references the canonical scale in packages/ui/web-tokens.css.
      Holds NO values; this block only registers the tokens so Tailwind emits
      the rounded-* utilities. Values live once in web-tokens.css. */

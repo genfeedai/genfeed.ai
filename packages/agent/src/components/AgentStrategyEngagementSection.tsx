@@ -59,7 +59,7 @@ export function AgentStrategyEngagementSection({
         onClick={() => setIsEngagementOpen(!isEngagementOpen)}
         className="flex w-full items-center justify-between p-4"
       >
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <h3 className="text-xs font-semibold uppercase tracking-label text-muted-foreground">
           Engagement
         </h3>
         <svg

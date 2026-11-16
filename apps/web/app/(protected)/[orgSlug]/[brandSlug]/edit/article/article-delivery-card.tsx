@@ -125,7 +125,7 @@ export default function ArticleDeliveryCard({
   return (
     <Card gap={CardGap.LG}>
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/60">
+        <h3 className="text-sm font-semibold uppercase tracking-label text-foreground/60">
           {translate('title')}
         </h3>
         <p className="text-sm text-foreground/70">

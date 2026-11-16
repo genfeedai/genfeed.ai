@@ -19,27 +19,27 @@ export function SettingsPanel(): ReactElement {
 
       <div className="space-y-4 p-4">
         <section>
-          <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <h3 className="mb-2 text-xs font-medium uppercase tracking-label text-muted-foreground">
             Account and workspace
           </h3>
           <OrganizationSelector />
         </section>
         <section>
-          <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <h3 className="mb-2 text-xs font-medium uppercase tracking-label text-muted-foreground">
             Active Brand
           </h3>
           <BrandSelector />
         </section>
 
         <section>
-          <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <h3 className="mb-2 text-xs font-medium uppercase tracking-label text-muted-foreground">
             Connected Accounts
           </h3>
           <ConnectedAccounts />
         </section>
 
         <section>
-          <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <h3 className="mb-2 text-xs font-medium uppercase tracking-label text-muted-foreground">
             Preferences
           </h3>
           {isPreferencesLoaded ? (

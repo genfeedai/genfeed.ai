@@ -67,7 +67,7 @@ function NeuralGridItem({
         <Icon className="size-8 mb-4 text-foreground/60 group-hover:text-foreground transition-colors" />
       )}
       {title && (
-        <h3 className="text-lg font-bold mb-2 text-foreground">{title}</h3>
+        <h3 className="text-lg font-semibold mb-2 text-foreground">{title}</h3>
       )}
       {description && (
         <p className="text-sm text-foreground/70">{description}</p>

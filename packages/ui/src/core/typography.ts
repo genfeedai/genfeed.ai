@@ -27,7 +27,7 @@ export type TypographyTokenName =
   | 'fontWeightSemibold'
   | 'trackingTight'
   | 'trackingNormal'
-  | 'trackingWide';
+  | 'trackingLabel';
 
 export const typographyTokens = {
   fontSans: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
@@ -46,6 +46,6 @@ export const typographyTokens = {
   // Optical correction: large type needs negative tracking to avoid looking loose.
   trackingNormal: '-0.011em',
   trackingTight: '-0.02em',
-  // Uppercase micro-labels only.
-  trackingWide: '0.02em',
+  // The one positive tracking value: uppercase labels and website buttons.
+  trackingLabel: '0.18em',
 } as const satisfies Record<TypographyTokenName, string>;

@@ -39,7 +39,7 @@ export default function PricingStrip({ className }: PricingStripProps) {
                 isFeatured && 'bg-[var(--gen-accent-bg)]',
               )}
             >
-              <div className="mb-2 flex items-center justify-center gap-2 text-2xs font-black uppercase tracking-widest text-foreground/50">
+              <div className="mb-2 flex items-center justify-center gap-2 text-2xs font-semibold uppercase tracking-label text-foreground/50">
                 {column.subtitle}
               </div>
 
@@ -56,7 +56,7 @@ export default function PricingStrip({ className }: PricingStripProps) {
       <div className="border-t border-foreground/5 py-3 text-center">
         <Link
           href="/pricing"
-          className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-foreground/60 transition-colors hover:text-foreground/80"
+          className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-label text-foreground/60 transition-colors hover:text-foreground/80"
         >
           View all plans
         </Link>

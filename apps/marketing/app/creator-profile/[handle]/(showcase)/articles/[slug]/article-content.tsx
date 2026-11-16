@@ -194,7 +194,7 @@ export default function ArticleContent({
       <div className="mb-8 border-y border-foreground/10 py-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
-            <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-foreground/50">
+            <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-label text-foreground/50">
               <ListTree className="size-3.5" aria-hidden="true" />
               Explore this article
             </div>

@@ -67,7 +67,7 @@ export function CommandPaletteView({
           ) : (
             <div>
               {!query && displayedCommands.length > 0 && (
-                <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-foreground/60">
+                <div className="px-3 py-2 text-xs font-semibold uppercase tracking-label text-foreground/60">
                   Commands
                 </div>
               )}

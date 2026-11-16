@@ -17,7 +17,7 @@ export default function IssueSubIssuesCard({
     <Card>
       <div className="border-b border-border px-4 py-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-800">
+          <h3 className="text-xs font-semibold uppercase tracking-label text-gray-800">
             Sub-issues ({subIssues.length})
           </h3>
           <div className="flex items-center gap-2">

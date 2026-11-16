@@ -24,7 +24,7 @@ export default function ApiKeyPermissionEditor({
       {API_KEY_PERMISSION_GROUPS.map((group) => (
         <section aria-labelledby={`api-key-group-${group.id}`} key={group.id}>
           <h3
-            className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"
+            className="mb-2 text-xs font-medium uppercase tracking-label text-muted-foreground"
             id={`api-key-group-${group.id}`}
           >
             {translate(`groups.${group.id}`)}

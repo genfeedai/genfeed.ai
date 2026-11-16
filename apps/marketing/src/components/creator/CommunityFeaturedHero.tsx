@@ -63,7 +63,7 @@ export default function CommunityFeaturedHero({
         )}
       </div>
       <div className="space-y-4">
-        <p className="text-sm font-medium uppercase tracking-widest text-foreground/50">
+        <p className="text-sm font-medium uppercase tracking-label text-foreground/50">
           Featured {kind}
         </p>
         <h2

@@ -109,7 +109,7 @@ function ScoreSection({
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide">
+        <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-label">
           {title}
         </h4>
         {overallScore !== undefined && (
@@ -213,7 +213,7 @@ export default function EvaluationCard({
         >
           <div
             className={cn(
-              'px-2 py-0.5 font-bold text-sm',
+              'px-2 py-0.5 font-semibold text-sm',
               getScoreColors(overallScore ?? 0).bg,
             )}
           >
@@ -233,7 +233,7 @@ export default function EvaluationCard({
       <div className="flex items-center gap-2">
         <div
           className={cn(
-            'px-2 py-0.5 font-bold text-sm',
+            'px-2 py-0.5 font-semibold text-sm',
             getScoreColors(overallScore ?? 0).bg,
           )}
         >
@@ -270,7 +270,7 @@ export default function EvaluationCard({
           {isCompleted && !isRunning ? (
             <span
               className={cn(
-                'px-2 py-0.5 text-xs font-bold tabular-nums',
+                'px-2 py-0.5 text-xs font-semibold tabular-nums',
                 getScoreColors(overallScore).bg,
               )}
             >
@@ -532,7 +532,7 @@ function EvaluationCardContent({
           variant={ButtonVariant.UNSTYLED}
           className="flex items-center justify-between w-full text-left"
         >
-          <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide">
+          <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-label">
             Category Scores
           </h4>
           <ChevronDown
@@ -576,7 +576,7 @@ function EvaluationCardContent({
           variant={ButtonVariant.UNSTYLED}
           className="flex items-center justify-between w-full text-left"
         >
-          <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide">
+          <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-label">
             Strengths & Weaknesses
           </h4>
           <ChevronDown
@@ -635,7 +635,7 @@ function EvaluationCardContent({
             variant={ButtonVariant.UNSTYLED}
             className="flex items-center justify-between w-full text-left"
           >
-            <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide">
+            <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-label">
               AI Suggestions
             </h4>
             <ChevronDown

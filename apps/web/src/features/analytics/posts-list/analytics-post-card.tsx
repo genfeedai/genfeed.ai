@@ -170,7 +170,7 @@ function AnalyticsPostCard({
 
         {audience ? (
           <div className="flex items-center gap-2 text-left">
-            <span className="text-2xs uppercase tracking-wide text-foreground/50">
+            <span className="text-2xs uppercase tracking-label text-foreground/50">
               {translateSource('audience')}
             </span>
             <Badge

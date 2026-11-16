@@ -103,7 +103,7 @@ export function OverviewTrendsPanel({
                 </span>
               </SimpleTooltip>
 
-              <span className="shrink-0 text-2xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <span className="shrink-0 text-2xs font-semibold uppercase tracking-label text-muted-foreground">
                 {formatViralityScore(trend.viralityScore)}
               </span>
             </Card>

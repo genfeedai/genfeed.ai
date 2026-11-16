@@ -150,7 +150,7 @@ function ConversationRow({
           ) : null}
         </span>
         <span className="mt-1 flex min-w-0 items-center gap-1.5 text-2xs font-medium text-muted-foreground">
-          <span className="shrink-0 uppercase tracking-wider">
+          <span className="shrink-0 uppercase tracking-label">
             {conversation.conversationType === SocialConversationType.DM
               ? 'DM'
               : 'Comment'}
@@ -310,7 +310,7 @@ export function MessagesConversationSidebar({
       className="flex h-full min-h-0 flex-col pt-1"
     >
       <div className="flex items-center justify-between px-3 py-1.5">
-        <span className="text-2xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
+        <span className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
           {translate('title')}
         </span>
         {pagination.total > 0 ? (

@@ -188,7 +188,7 @@ function DeskLightCard({
                 <span className="truncate font-medium">{handle}</span>
                 <span
                   className={
-                    'ml-auto text-2xs font-semibold tracking-wide text-white/70 uppercase' /* design-system-allow-content-color -- media overlay */
+                    'ml-auto text-2xs font-semibold tracking-label text-white/70 uppercase' /* design-system-allow-content-color -- media overlay */
                   }
                 >
                   {item.source}

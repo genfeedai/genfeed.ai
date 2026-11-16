@@ -96,7 +96,7 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
                 <div className="size-10 rounded-full bg-muted flex items-center justify-center">
                   <Building2 className="size-5 text-muted-foreground" />
                 </div>
-                <div className="font-bold text-sm uppercase">
+                <div className="font-semibold text-sm uppercase">
                   {org.organization.name}
                 </div>
               </div>

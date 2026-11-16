@@ -288,7 +288,9 @@ function SectionHeader({ block }: { block: SectionHeaderBlock }): ReactElement {
   const level = block.level ?? 2;
 
   if (level === 1) {
-    return <h1 className="text-xl font-bold text-foreground">{block.text}</h1>;
+    return (
+      <h1 className="text-xl font-semibold text-foreground">{block.text}</h1>
+    );
   }
 
   if (level === 3) {

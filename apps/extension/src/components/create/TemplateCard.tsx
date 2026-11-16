@@ -37,7 +37,7 @@ export function TemplateCard({
       onClick={onSelect}
       className={`flex flex-col items-start border p-3 text-left transition-colors border-border hover:border-border-strong hover:bg-muted/50`}
     >
-      <span className="mb-1.5 flex size-6 items-center justify-center rounded bg-muted text-2xs font-bold text-muted-foreground">
+      <span className="mb-1.5 flex size-6 items-center justify-center rounded bg-muted text-2xs font-semibold text-muted-foreground">
         {platformLabel}
       </span>
       <span className="text-xs font-medium text-foreground">
