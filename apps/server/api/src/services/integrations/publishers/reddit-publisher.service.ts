@@ -8,8 +8,9 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { throwAsPublishError } from '@api/services/integrations/publishers/publish-error.util';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -102,10 +103,13 @@ export class RedditPublisherService extends BasePublisherService {
       const flairId = readChannelSettingString(context.settings, 'flairId');
 
       if (!subreddit) {
-        return this.createFailedResult(
-          this.platform,
-          'Reddit subreddit not configured; set the subreddit setting or the credential external ID',
-        );
+        return {
+          ...this.createFailedResult(
+            this.platform,
+            'Reddit subreddit not configured; set the subreddit setting or the credential external ID',
+          ),
+          errorKind: PublishErrorKind.CONTENT_REJECTED,
+        };
       }
 
       let externalId: string | undefined;
@@ -157,10 +161,13 @@ export class RedditPublisherService extends BasePublisherService {
       }
 
       if (!externalId) {
-        return this.createFailedResult(
-          this.platform,
-          'Failed to get external ID',
-        );
+        return {
+          ...this.createFailedResult(
+            this.platform,
+            'Failed to get external ID',
+          ),
+          errorKind: PublishErrorKind.OUTCOME_UNKNOWN,
+        };
       }
 
       // Built from the resolved subreddit rather than `buildPostUrl`: the
@@ -173,7 +180,7 @@ export class RedditPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throwAsPublishError(error);
     }
   }
 
