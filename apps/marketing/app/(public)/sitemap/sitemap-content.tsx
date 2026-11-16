@@ -30,7 +30,7 @@ export const SITE_DIRECTORY: readonly DirectorySection[] = [
       { href: '/models', label: 'Models' },
       { href: '/calendar', label: 'Calendar' },
       { href: '/research', label: 'Research' },
-      { href: '/hire-agents', label: 'Hire Agents' },
+      { href: '/hire-agents', label: 'Hire agents' },
       { href: '/brand-os', label: 'Brand OS' },
       { href: '/features', label: 'All features' },
     ],

@@ -84,7 +84,7 @@ const HERO_PROOF = (
 const HERO_VISUAL = (
   <EditorialPoster
     detail="Each platform page lists the formats Genfeed can send there and what comes back."
-    eyebrow="Channel Map"
+    eyebrow="Channel map"
     footer={
       <span>{featuredIntegrations.map((item) => item.name).join(' / ')}</span>
     }

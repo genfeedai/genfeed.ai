@@ -16,7 +16,7 @@ const FEATURES = [
     description:
       'Hire specialized agents for research, creative, and publishing so every stage of content has an owner.',
     icon: Users,
-    title: 'Specialized Agents',
+    title: 'Specialized agents',
   },
   {
     description:
@@ -28,7 +28,7 @@ const FEATURES = [
     description:
       'Agents research, draft, and publish each campaign on a schedule. Every post waits for your review by default, until you switch an agent to auto-publish.',
     icon: Zap,
-    title: 'Campaign Autopilot',
+    title: 'Campaign autopilot',
   },
 ];
 
@@ -58,7 +58,7 @@ const STEPS = [
 const HERO_VISUAL = (
   <EditorialPoster
     detail="Research, creative, and publishing agents work from one brief and one schedule."
-    eyebrow="Agent Roster"
+    eyebrow="Agent roster"
     footer={<span>Agents run inside the guardrails you set</span>}
     items={[
       {
@@ -102,7 +102,7 @@ export default function HireAgentsContent() {
         }
         heroVisual={HERO_VISUAL}
         compact
-        title="Hire Agents"
+        title="Hire agents"
         description="Put agents to work on a content schedule, yours over MCP or Genfeed’s own. Review every post, or switch on auto-publish."
       >
         {/* Highlight Card */}
@@ -183,7 +183,7 @@ export default function HireAgentsContent() {
         {/* How It Works */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <Heading as="h3" className="text-2xl font-bold text-center mb-12">
-            How It Works
+            How it works
           </Heading>
           <div className="grid grid-cols-2 gap-1.5 md:grid-cols-4">
             {STEPS.map((step) => {
@@ -218,7 +218,7 @@ export default function HireAgentsContent() {
               as="h3"
               className="text-2xl font-bold mb-6 text-foreground"
             >
-              Hire Your Content Team Today
+              Hire your content team today
             </Heading>
             <PricingStrip className="mb-6" />
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">

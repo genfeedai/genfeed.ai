@@ -38,7 +38,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
     ],
     deliverablesDescription:
       'Managed custom models: custom LoRAs, AI influencers, and dedicated inference, designed, trained, and run for you on our GPU estate.',
-    deliverablesTitle: 'What Custom Models Deliver',
+    deliverablesTitle: 'What custom models deliver',
     faqDescription: 'For operators running owned models at scale.',
     faqs: [
       {
@@ -67,8 +67,8 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
         question: 'Do we need our own GPUs?',
       },
     ],
-    faqTitle: 'Common Questions',
-    fitLabel: 'Strong Fit',
+    faqTitle: 'Common questions',
+    fitLabel: 'Strong fit',
     fitSignals: [
       'You need consistent characters or brand identity across large volumes.',
       'You want owned models, not per-generation tool credits.',
@@ -98,13 +98,13 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
         description:
           'Train models on your subjects, styles, and brand so identity stays consistent across every asset.',
         icon: Cpu,
-        title: 'Owned Custom Models',
+        title: 'Owned custom models',
       },
       {
         description:
           'Create and run AI influencers with consistent faces, voices, and personas at production volume.',
         icon: Bot,
-        title: 'AI Influencers At Scale',
+        title: 'AI influencers at scale',
       },
       {
         description:
@@ -115,7 +115,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
     ],
     outcomesDescription:
       'For operators who need owned models and consistent identities, not per-generation tool credits.',
-    outcomesTitle: 'What This Solves',
+    outcomesTitle: 'What this solves',
     priceCtaHint: 'Book a call to design it',
     priceLabel: 'Custom',
     process: [
@@ -141,9 +141,9 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       },
     ],
     processDescription: 'Owned models, run for you end to end.',
-    processTitle: 'How It Works',
+    processTitle: 'How it works',
     slug: 'custom-models',
-    title: 'Custom Models',
+    title: 'Custom models',
   },
 ];
 

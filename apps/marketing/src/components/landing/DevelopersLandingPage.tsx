@@ -47,19 +47,19 @@ const FEATURES = [
     description:
       'Inspect the AGPL-licensed source, adapt it to your workflow, or run the stack with Docker and your own provider keys. Use managed cloud when you want hosting handled for you.',
     icon: GitBranch,
-    title: 'Run It Your Way',
+    title: 'Run it your way',
   },
   {
     description:
       'Create content for X, LinkedIn and other supported destinations from the same workspace. Connect the accounts you need and check the available publishing actions for each.',
     icon: Layers,
-    title: 'Reuse Your Connected Accounts',
+    title: 'Reuse your connected accounts',
   },
   {
     description:
       'Use the standard MCP connector or Genfeed Studio to build generation and publishing workflows with triggers and schedules. Review outputs and inspect execution status when a run needs attention.',
     icon: Server,
-    title: 'Build Repeatable Workflows',
+    title: 'Build repeatable workflows',
   },
 ];
 
@@ -175,7 +175,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
           <div className="gen-card-spotlight p-8">
             <div className="flex flex-col gap-3">
               <Heading as="h3" className="text-2xl font-bold">
-                Distribution As Tool Calls
+                Distribution as tool calls
               </Heading>
               <Text as="p" className="text-foreground/70">
                 Your agent calls Genfeed over MCP: read brand context, create
@@ -200,7 +200,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
         {/* Features grid */}
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
           <Heading as="h3" className="text-2xl font-bold text-center mb-8">
-            The Building Blocks For Your Integration
+            The building blocks for your integration
           </Heading>
           <div className="gsap-grid grid grid-cols-1 gap-1.5 md:grid-cols-2">
             {FEATURES.map((feature) => {
@@ -291,7 +291,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
         {/* FAQ */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <Heading as="h3" className="text-2xl font-bold text-center mb-8">
-            Straight Answers
+            Straight answers
           </Heading>
           <FaqGrid items={FAQS} />
         </section>
@@ -306,7 +306,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
               as="h3"
               className="text-2xl font-bold mb-2 text-foreground"
             >
-              Connect Your Agent To Genfeed
+              Connect your agent to Genfeed
             </Heading>
             <Text as="p" className="text-foreground/70 mb-6 max-w-lg mx-auto">
               Connect your agent for a first draft, or explore the source to run

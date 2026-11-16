@@ -43,7 +43,7 @@ export default function ProductsHubContent() {
             src="/products/playground.webp"
           />
         }
-        title="Genfeed Products"
+        title="Genfeed products"
       >
         {HUB_GROUP_ORDER.map((group) => (
           <section
