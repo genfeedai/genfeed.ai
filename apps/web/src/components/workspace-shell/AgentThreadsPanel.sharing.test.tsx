@@ -287,7 +287,9 @@ const apiService = {
   getMessages: vi.fn(async (threadId: string) =>
     threadId === 'handoff' ? handoffMessages : sharedMessages,
   ),
-  getThreadShares: vi.fn(async () => liveShares),
+  getThreadShares: vi.fn(
+    async (_threadId: string): Promise<AgentThreadShare[]> => liveShares,
+  ),
   respondToUiAction: vi.fn(),
 };
 
