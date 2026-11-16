@@ -129,7 +129,11 @@ describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
   it('retains the existing order and behavior for platforms without readiness gates', () => {
     const withoutThreads = (platforms: typeof OAUTH_CONNECT_PLATFORMS) =>
       platforms
-        .filter((item) => item.platform !== CredentialPlatform.THREADS)
+        .filter(
+          (item) =>
+            item.platform !== CredentialPlatform.THREADS &&
+            item.platform !== CredentialPlatform.GOOGLE_BUSINESS,
+        )
         .map((item) => item.connectId ?? item.platform);
 
     expect(
@@ -142,6 +146,61 @@ describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
         .filter((item) => item.platform !== CredentialPlatform.THREADS)
         .every((item) => item.isConnectAvailable),
     ).toBe(true);
+  });
+
+  it.each(['unknown', 'unavailable'] as const)(
+    'leaves Google Business out of the catalog while readiness is %s',
+    (readiness) => {
+      const tiles = resolveOAuthConnectPlatformCatalog({
+        google_business: readiness,
+      });
+
+      expect(
+        tiles.some(
+          (item) => item.platform === CredentialPlatform.GOOGLE_BUSINESS,
+        ),
+      ).toBe(false);
+      expect(
+        groupOAuthConnectPlatforms(tiles)
+          .find((group) => group.id === 'social')
+          ?.platforms.map((item) => item.label),
+      ).toEqual(['X', 'Instagram', 'Facebook', 'LinkedIn', 'Threads']);
+    },
+  );
+
+  it('offers Google Business under Social networks once readiness is available', () => {
+    const tiles = resolveOAuthConnectPlatformCatalog({
+      google_business: 'available',
+    });
+    const googleBusiness = tiles.filter(
+      (item) => item.platform === CredentialPlatform.GOOGLE_BUSINESS,
+    );
+
+    expect(googleBusiness).toHaveLength(1);
+    expect(googleBusiness[0]).toMatchObject({
+      category: 'social',
+      isConnectAvailable: true,
+      label: 'Google Business',
+      readiness: 'available',
+    });
+    expect(
+      resolveOAuthServicePath(
+        googleBusiness[0]?.platform ?? '',
+        googleBusiness[0]?.servicePath,
+      ),
+    ).toBe('google-business');
+    expect(
+      groupOAuthConnectPlatforms(tiles)
+        .find((group) => group.id === 'social')
+        ?.platforms.map((item) => item.label),
+    ).toEqual([
+      'X',
+      'Instagram',
+      'Facebook',
+      'LinkedIn',
+      'Threads',
+      'Google Business',
+    ]);
   });
 
   it('omits Reddit while Genfeed lacks approved Reddit Data API access', () => {

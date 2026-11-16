@@ -82,6 +82,17 @@ vi.mock(
   }),
 );
 
+vi.mock(
+  '@/features/auth/components/modals/brands/google-business/GoogleBusinessLocationSelector',
+  () => ({
+    default: (props: { credentialId: string }) => (
+      <div data-testid="google-business-location-selector">
+        {props.credentialId}
+      </div>
+    ),
+  }),
+);
+
 vi.mock('./oauth-return-navigation', () => ({
   navigateToReturnPath: mocks.navigate,
 }));
@@ -541,6 +552,37 @@ describe('OAuthPlatformForm', () => {
     );
     expect(screen.queryByText('Instagram Connected')).not.toBeInTheDocument();
     expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+
+  it('shows the Google Business location picker, not the Instagram one, when the account has several locations', async () => {
+    mocks.postVerify.mockResolvedValue({
+      id: 'credential-locations',
+      isConnected: false,
+      needsAccountSelection: true,
+    });
+
+    render(<OAuthPlatformForm platform="google-business" />);
+
+    expect(
+      await screen.findByTestId('google-business-location-selector'),
+    ).toHaveTextContent('credential-locations');
+    expect(
+      screen.queryByTestId('instagram-account-selector'),
+    ).not.toBeInTheDocument();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+
+  it('names the location once a single-location Google account connects at once', async () => {
+    mocks.postVerify.mockResolvedValue({
+      externalName: 'Corner Cafe',
+      id: 'credential-1',
+      isConnected: true,
+    });
+
+    render(<OAuthPlatformForm platform="google-business" />);
+
+    expect(await screen.findByText('Google Business Connected')).toBeVisible();
+    expect(screen.getByText('Corner Cafe')).toBeVisible();
   });
 
   it('aborts without saving and returns to the connect origin when the operator cancels account selection', async () => {

@@ -34,12 +34,16 @@ describe('GoogleBusinessController', () => {
   let patched: Array<Record<string, unknown>>;
   let connected: Array<{ id: string; profile: Record<string, unknown> }>;
   let pending: Record<string, unknown> | null;
+  let readiness: 'available' | 'unavailable';
+  let heldAccounts: Array<{ externalId: string; id: string }>;
   let controller: GoogleBusinessController;
   const user = { id: 'user-1', organizationId: 'org-1' } as never;
   const request = {} as never;
 
   beforeEach(() => {
     locations = [CAFE];
+    readiness = 'unavailable';
+    heldAccounts = [];
     listFailure = null;
     tokens = { accessToken: 'a', refreshToken: 'r', scope: GRANTED };
     patched = [];
@@ -55,6 +59,7 @@ describe('GoogleBusinessController', () => {
     controller = new GoogleBusinessController(
       {
         exchangeCodeForTokens: async () => tokens,
+        getConnectReadiness: () => ({ status: readiness }),
         listLocations: async () => {
           if (listFailure) throw listFailure;
           return locations;
@@ -74,6 +79,7 @@ describe('GoogleBusinessController', () => {
         createPendingForBrand: async () => ({
           id: `sibling-${connected.length}`,
         }),
+        findConnectedAccounts: async () => heldAccounts,
         findOne: async () => pending,
         findPendingOAuthCredential: async () => pending,
         patch: async (id: string, update: Record<string, unknown>) => {
@@ -140,6 +146,32 @@ describe('GoogleBusinessController', () => {
     );
 
     await expect(verify()).rejects.toMatchObject({ status: 503 });
+  });
+
+  it('reports whether Google Business may be offered for connection', () => {
+    expect(controller.getConnectReadiness()).toEqual({ status: 'unavailable' });
+
+    readiness = 'available';
+
+    expect(controller.getConnectReadiness()).toEqual({ status: 'available' });
+  });
+
+  it('lists the locations of a pending connection and flags the ones the brand already holds', async () => {
+    locations = [CAFE, BAKERY];
+    pending = { ...pending, accessToken: 'enc' };
+    heldAccounts = [
+      { externalId: BAKERY.id, id: 'other-credential' },
+      { externalId: CAFE.id, id: 'cred-1' },
+    ];
+
+    const result = await controller.listLocations(user, 'cred-1');
+
+    expect(result).toEqual({
+      locations: [
+        { ...CAFE, isAlreadyConnected: false },
+        { ...BAKERY, isAlreadyConnected: true },
+      ],
+    });
   });
 
   it('reads the location list only inside the callers own organization', () => {

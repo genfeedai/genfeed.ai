@@ -8,6 +8,7 @@ import {
   GenfeedIcon,
   GhostIcon,
   GoogleAdsIcon,
+  GoogleColorIcon,
   GoogleIcon,
   HackerNewsIcon,
   InstagramIcon,
@@ -114,6 +115,16 @@ const PLATFORM_BRANDS: Record<string, IPlatformBadgeConfig> = {
     icon: GoogleAdsIcon,
     iconColor: 'text-foreground',
     label: label(Platform.GOOGLE_ADS),
+    // The mark is multi-coloured, so it sits on a white chip in the solid variant.
+    solidBgColor: 'bg-white', // design-system-allow-content-color -- platform brand fill
+    textColor: 'text-foreground',
+  },
+  [Platform.GOOGLE_BUSINESS]: {
+    bgColor: 'bg-foreground/10',
+    // GoogleColorIcon carries the four brand fills; the class only sizes it.
+    icon: GoogleColorIcon,
+    iconColor: 'text-foreground',
+    label: label(Platform.GOOGLE_BUSINESS),
     // The mark is multi-coloured, so it sits on a white chip in the solid variant.
     solidBgColor: 'bg-white', // design-system-allow-content-color -- platform brand fill
     textColor: 'text-foreground',
@@ -318,18 +329,27 @@ export function getPlatformIcon(
   return <Icon className={`${className} ${brand.iconColor}`} />;
 }
 
-export function getPlatformIconComponent(
-  platform: string,
-): IconComponent | undefined {
-  const brand = getPlatformBrand(platform);
-  if (!brand) {
-    return undefined;
-  }
+/**
+ * One icon component per platform, built once at module load so callers get a
+ * stable component identity instead of a new component on every call.
+ */
+const PLATFORM_ICON_COMPONENTS = new Map<string, IconComponent>();
 
+for (const [key, brand] of Object.entries(PLATFORM_BRANDS)) {
   const { icon: Icon, iconColor, label: name } = brand;
-  const WrappedIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
+  const WrappedIcon: IconComponent = ({ className = 'w-4 h-4' }) => (
     <Icon className={`${className} ${iconColor}`} />
   );
   WrappedIcon.displayName = `${name}Icon`;
-  return WrappedIcon;
+  PLATFORM_ICON_COMPONENTS.set(key, WrappedIcon);
+}
+
+export function getPlatformIconComponent(
+  platform: string,
+): IconComponent | undefined {
+  if (typeof platform !== 'string') {
+    return undefined;
+  }
+  const key = platform.trim().toLowerCase().replaceAll('-', '_');
+  return PLATFORM_ICON_COMPONENTS.get(key);
 }

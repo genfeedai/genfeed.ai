@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { isReportableOAuthVerifyFailure } from './oauth-verify-error';
+import {
+  isReportableOAuthVerifyFailure,
+  resolveOAuthPlatformVerifyFailure,
+} from './oauth-verify-error';
 
 describe('isReportableOAuthVerifyFailure', () => {
   it.each([
@@ -33,5 +36,66 @@ describe('isReportableOAuthVerifyFailure', () => {
     expect(isReportableOAuthVerifyFailure(new Error('verify failed'))).toBe(
       true,
     );
+  });
+});
+
+describe('resolveOAuthPlatformVerifyFailure for Google Business', () => {
+  const failure = (status: string, detail: string) => ({
+    errors: [{ detail, status }],
+  });
+  const resolve = (error: unknown, platform = 'google-business') =>
+    resolveOAuthPlatformVerifyFailure({
+      callbackSubmitted: true,
+      error,
+      platform,
+      providerError: null,
+    });
+
+  it('shows the server wording when the account manages no locations and offers a new connect', () => {
+    expect(
+      resolve(
+        failure(
+          '400',
+          'This Google account manages no business locations. Connect the account that owns or manages your Business Profile.',
+        ),
+      ),
+    ).toEqual({
+      canRestart: true,
+      canRetry: false,
+      detail:
+        'This Google account manages no business locations. Connect the account that owns or manages your Business Profile.',
+      messageKey: 'error.description',
+      titleKey: 'error.title',
+    });
+  });
+
+  it('says Google Business is not ready and offers no new connect when Business Profile access is not approved', () => {
+    expect(
+      resolve(failure('503', 'Business Profile API access must be approved.')),
+    ).toEqual({
+      canRestart: false,
+      canRetry: false,
+      detail: 'Business Profile API access must be approved.',
+      messageKey: 'error.description',
+      titleKey: 'error.googleBusinessNotReadyTitle',
+    });
+  });
+
+  it('keeps the generic failure when the server gave no wording', () => {
+    expect(resolve(new Error('network'))).toEqual({
+      canRestart: true,
+      canRetry: false,
+      messageKey: 'error.description',
+      titleKey: 'error.title',
+    });
+  });
+
+  it('leaves other platforms on their own copy', () => {
+    expect(resolve(failure('400', 'Some wording'), 'instagram')).toEqual({
+      canRestart: false,
+      canRetry: false,
+      messageKey: 'error.description',
+      titleKey: 'error.title',
+    });
   });
 });

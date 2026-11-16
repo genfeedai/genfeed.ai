@@ -100,4 +100,34 @@ describe('useOAuthConnectPlatforms', () => {
       readiness: 'unknown',
     });
   });
+  it('leaves Google Business out until the server reports it available', async () => {
+    getConnectReadiness.mockResolvedValue({ status: 'unavailable' });
+
+    const { result } = renderHook(() => useOAuthConnectPlatforms(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => expect(getConnectReadiness).toHaveBeenCalled());
+    expect(
+      result.current.some(
+        (item) => item.platform === CredentialPlatform.GOOGLE_BUSINESS,
+      ),
+    ).toBe(false);
+  });
+
+  it('shows Google Business once the server reports it available', async () => {
+    getConnectReadiness.mockResolvedValue({ status: 'available' });
+
+    const { result } = renderHook(() => useOAuthConnectPlatforms(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(
+        result.current.find(
+          (item) => item.platform === CredentialPlatform.GOOGLE_BUSINESS,
+        ),
+      ).toMatchObject({ isConnectAvailable: true, readiness: 'available' });
+    });
+  });
 });

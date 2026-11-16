@@ -240,6 +240,25 @@ const UI_TEST_MESSAGES = {
           retry: 'Try again',
           title: 'Choose accounts',
         },
+        selectLocation: {
+          alreadyConnected: 'Already connected',
+          back: 'Go back',
+          cancel: 'Cancel',
+          confirm:
+            '{count, plural, =0 {Connect locations} one {Connect # location} other {Connect # locations}}',
+          confirmError: 'Failed to connect these locations. Please try again.',
+          confirming: 'Connecting…',
+          continue: 'Continue',
+          description:
+            'Google shared more than one business location with Genfeed. Tick every location this brand should post to. Each one connects as its own channel.',
+          empty: 'No locations were found.',
+          error: 'Failed to load locations. Please try again.',
+          loading: 'Loading locations…',
+          partial:
+            'Connected {connected} of {selected} locations. Not connected: {missing}. Run connect again to add them.',
+          retry: 'Try again',
+          title: 'Choose locations',
+        },
       },
     },
     libraryCanvas: {
