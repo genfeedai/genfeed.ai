@@ -759,6 +759,14 @@ use `GHOST` without background, border or hover overrides. Do not build a styled
 trigger by combining `UNSTYLED` with `buttonVariants`; icon-only mode must not
 inherit a text button's asymmetric icon padding.
 
+Button labels are a verb or a verb plus a noun, one or two words: `Publish`,
+`Connect Agent`, `Create`. No `to`, `and`, `a`, `the` or `your`. Product buttons render
+in Title Case through the primitive's `capitalize` class, so do not type small words
+in a label. When the target is a platform, show its icon (`getPlatformIcon`, `size-4`)
+next to the verb instead of writing its name, and keep the full phrase in `ariaLabel`
+(`Publish to LinkedIn`). If dropping a small word changes the meaning, reword the label
+(`Get Scale`, not `Upgrade to Scale`).
+
 ### Card
 
 `bg-card` plane with an edge — `shadow-border` (`default`) or a `border-border`

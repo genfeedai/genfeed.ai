@@ -230,7 +230,7 @@ describe('StoryboardRunPage', () => {
     };
     render(<StoryboardRunPage runId="run-1" />);
     const href = screen
-      .getByRole('link', { name: 'Open in Editor' })
+      .getByRole('link', { name: 'Open Editor' })
       .getAttribute('href');
     expect(href?.startsWith('/acme/northstar/editor?')).toBe(true);
     expect(
@@ -257,7 +257,7 @@ describe('StoryboardRunPage', () => {
       },
     };
     render(<StoryboardRunPage runId="run-1" />);
-    expect(screen.queryByRole('link', { name: 'Open in Editor' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Open Editor' })).toBeNull();
     expect(screen.getByRole('status')).toHaveTextContent('incomplete');
   });
 });

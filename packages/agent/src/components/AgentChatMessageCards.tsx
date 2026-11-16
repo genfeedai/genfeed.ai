@@ -148,7 +148,7 @@ export function OAuthConnectCard({
     ? action.title
     : isSinglePlatform
       ? `Connect ${formatPlatformLabel(platforms[0])}`
-      : 'Connect an account';
+      : 'Connect Account';
 
   return (
     <Card
@@ -470,7 +470,7 @@ export function ContentPreviewCard({
             const label =
               href.includes('/library/') &&
               cta.label.toLowerCase().includes('gallery')
-                ? 'View in Library'
+                ? 'View Library'
                 : cta.label;
 
             return (

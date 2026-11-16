@@ -78,7 +78,7 @@ describe('shared tooltip interactions', () => {
 
   it('stays closed when a dialog hands focus back after a mouse click', async () => {
     render(
-      <Button withWrapper={false} tooltip="Move to organization">
+      <Button withWrapper={false} tooltip="Move Brand">
         Move
       </Button>,
     );
@@ -103,9 +103,7 @@ describe('shared tooltip interactions', () => {
 
     // A real hover afterwards still shows the hint.
     moveOver(trigger);
-    expect(await screen.findByRole('tooltip')).toHaveTextContent(
-      'Move to organization',
-    );
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Move Brand');
   });
 
   it('leaves disabled tooltip content absent', () => {

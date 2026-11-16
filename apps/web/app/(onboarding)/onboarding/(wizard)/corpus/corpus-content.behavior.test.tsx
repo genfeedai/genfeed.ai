@@ -205,7 +205,7 @@ describe('CorpusContent behavior', () => {
     await screen.findByText('Keynote');
     expect(screen.getByRole('button', { name: /Continue/ })).toBeDisabled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
     await waitFor(() => expect(world.skippedSteps).toEqual(['corpus']));
     expect(world.completedSteps).toEqual([]);
     expect(world.analytics).toContainEqual({

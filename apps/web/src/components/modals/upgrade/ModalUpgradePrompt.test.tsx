@@ -25,7 +25,7 @@ vi.mock('next-intl', async () => {
           redirecting: 'Redirecting…',
           title: '{quality} quality is on {plan}',
           titleFallback: 'Upgrade your plan',
-          upgradeTo: 'Upgrade to {plan}',
+          upgradeTo: 'Get {plan}',
           yourPlan: 'Your plan',
         },
       },
@@ -150,7 +150,7 @@ describe('ModalUpgradePrompt', () => {
   it('sends the user to the subscription page from the upgrade action', () => {
     render(<ModalUpgradePrompt lockedQualityTier={QualityTier.ULTRA} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Upgrade to Scale/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Get Scale/ }));
     expect(window.location.href).toBe(
       'https://app.test/acme/~/settings/subscription',
     );

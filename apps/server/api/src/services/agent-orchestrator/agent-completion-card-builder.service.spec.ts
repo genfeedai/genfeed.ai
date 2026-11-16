@@ -516,14 +516,14 @@ describe('AgentCompletionCardBuilderService', () => {
         'facebook',
       ]);
       expect(connectCards[0]?.platform).toBeUndefined();
-      expect(connectCards[0]?.title).toBe('Connect an account');
+      expect(connectCards[0]?.title).toBe('Connect Account');
     });
 
     it('keeps only the first card when every card is the platform-less generic picker', () => {
       const genericCard = (id: string): AgentUiAction => ({
-        ctas: [{ href: '/api/oauth/connect', label: 'Connect an account' }],
+        ctas: [{ href: '/api/oauth/connect', label: 'Connect Account' }],
         id,
-        title: 'Connect an account',
+        title: 'Connect Account',
         type: 'oauth_connect_card',
       });
 
@@ -570,13 +570,13 @@ describe('AgentCompletionCardBuilderService', () => {
         uiActions: [
           {
             id: 'oauth-generic-1',
-            title: 'Connect an account',
+            title: 'Connect Account',
             type: 'oauth_connect_card',
           },
           otherCard,
           {
             id: 'oauth-generic-2',
-            title: 'Connect an account',
+            title: 'Connect Account',
             type: 'oauth_connect_card',
           },
         ],

@@ -659,7 +659,7 @@ describe('OAuthConsentPage', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
 
-    const link = await screen.findByRole('link', { name: /Return to/ });
+    const link = await screen.findByRole('link', { name: 'Return' });
     expect(link).toHaveAttribute(
       'href',
       'claude://claude.ai/mcp-auth-callback/sdk?code=one-time',

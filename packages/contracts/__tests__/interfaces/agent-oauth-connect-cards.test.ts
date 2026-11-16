@@ -64,7 +64,7 @@ describe('collapseOAuthConnectCards', () => {
     expect(card).toMatchObject({
       platform: undefined,
       platforms: ['twitter', 'instagram', 'youtube'],
-      title: 'Connect an account',
+      title: 'Connect Account',
       type: 'oauth_connect_card',
     });
     expect(rest[0]?.type).toBe('content_preview_card');

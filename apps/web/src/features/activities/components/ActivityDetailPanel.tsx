@@ -274,6 +274,9 @@ export default function ActivityDetailPanel({
             {fields.post ? (
               <Button
                 asChild
+                ariaLabel={translate('detailViewOnNetwork', {
+                  platform: getPostsPlatformLabel(fields.post.platform),
+                })}
                 size={ButtonSize.SM}
                 variant={ButtonVariant.SECONDARY}
               >
@@ -285,9 +288,7 @@ export default function ActivityDetailPanel({
                   {getPlatformIcon(fields.post.platform, 'size-4') ?? (
                     <ExternalLink className="size-4" />
                   )}
-                  {translate('detailViewOnNetwork', {
-                    platform: getPostsPlatformLabel(fields.post.platform),
-                  })}
+                  {translate('detailView')}
                 </a>
               </Button>
             ) : null}

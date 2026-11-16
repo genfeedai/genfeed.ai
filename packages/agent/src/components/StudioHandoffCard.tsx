@@ -34,7 +34,7 @@ export function StudioHandoffCard({
         <div className="mb-3 flex items-center gap-2">
           <Paintbrush className="size-5 text-muted-foreground" />
           <h3 className="text-sm font-semibold">
-            {action.title || 'Open in Studio'}
+            {action.title || 'Open Studio'}
           </h3>
         </div>
 
