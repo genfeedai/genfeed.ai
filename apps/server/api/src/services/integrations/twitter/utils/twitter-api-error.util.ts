@@ -370,7 +370,6 @@ export function isTwitterPostNotFound(lookup: unknown): boolean {
   );
 }
 
-export const X_CREDITS_DEPLETED_CODE = 'x_credits_depleted';
 export const X_CREDITS_DEPLETED_ERROR =
   'X API credits depleted. Add credits to the X developer account, then retry.';
 

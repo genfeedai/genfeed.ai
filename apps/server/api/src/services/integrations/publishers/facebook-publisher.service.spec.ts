@@ -505,6 +505,7 @@ describe('FacebookPublisherService', () => {
 
         expect(result.success).toBe(false);
         expect(result.error).toBe('Facebook page access token not found');
+        expect(result.errorKind).toBe('channel_disconnected');
       });
     });
 
@@ -520,6 +521,7 @@ describe('FacebookPublisherService', () => {
 
         expect(result.success).toBe(false);
         expect(result.error).toBe('Failed to get external ID');
+        expect(result.errorKind).toBe('outcome_unknown');
       });
 
       it('should throw error when Facebook API fails', async () => {
@@ -532,6 +534,40 @@ describe('FacebookPublisherService', () => {
           'Facebook API error',
         );
         expect(logger.error).toHaveBeenCalled();
+      });
+
+      it('reports an expired Page token as one that must be refreshed', async () => {
+        const context = createPublishContext(mockImagePost);
+        facebookService.uploadImage.mockRejectedValue(
+          Object.assign(new Error('Request failed with status code 400'), {
+            isAxiosError: true,
+            response: {
+              data: { error: { code: 190, message: 'Session has expired' } },
+              headers: {},
+              status: 400,
+            },
+          }),
+        );
+
+        await expect(service.publish(context)).rejects.toMatchObject({
+          httpStatus: 400,
+          kind: 'token_must_refresh',
+          name: 'PublishError',
+        });
+      });
+
+      it('reports a dropped connection as an unknown outcome', async () => {
+        const context = createPublishContext(mockImagePost);
+        facebookService.uploadImage.mockRejectedValue(
+          Object.assign(new Error('socket hang up'), {
+            code: 'ECONNRESET',
+            isAxiosError: true,
+          }),
+        );
+
+        await expect(service.publish(context)).rejects.toMatchObject({
+          kind: 'outcome_unknown',
+        });
       });
     });
   });

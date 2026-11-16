@@ -8,7 +8,12 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import {
+  throwAsPublishError,
+  withErrorKind,
+} from '@api/services/integrations/publishers/publish-error.util';
 import { verifyTextPublish } from '@api/services/integrations/publishers/publisher-verification.util';
+import { mapMetaFailure } from '@api/services/integrations/publishers/social-publish-error.mappers';
 import {
   type ThreadsCarouselMediaItem,
   ThreadsMediaType,
@@ -18,6 +23,7 @@ import {
   CredentialPlatform,
   IngredientCategory,
   PostCategory,
+  PublishErrorKind,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
@@ -100,9 +106,12 @@ export class ThreadsPublisherService extends BasePublisherService {
 
       // Validate character limit (500 for Threads)
       if (text.length > 500) {
-        return this.createFailedResult(
-          this.platform,
-          'Threads posts are limited to 500 characters',
+        return withErrorKind(
+          this.createFailedResult(
+            this.platform,
+            'Threads posts are limited to 500 characters',
+          ),
+          PublishErrorKind.CONTENT_REJECTED,
         );
       }
 
@@ -157,9 +166,9 @@ export class ThreadsPublisherService extends BasePublisherService {
       }
 
       if (!threadId) {
-        return this.createFailedResult(
-          this.platform,
-          'Failed to get thread ID',
+        return withErrorKind(
+          this.createFailedResult(this.platform, 'Failed to get thread ID'),
+          PublishErrorKind.OUTCOME_UNKNOWN,
         );
       }
 
@@ -170,7 +179,7 @@ export class ThreadsPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throwAsPublishError(error, mapMetaFailure);
     }
   }
 
