@@ -52,7 +52,7 @@ export const MODEL_BRANDS: Record<string, ModelBrandConfig> = {
   deepseek: { color: '#4F46E5', iconKey: 'deepseek', label: 'DeepSeek' },
   'deepseek-ai': { color: '#4F46E5', iconKey: 'deepseek', label: 'DeepSeek' },
   'fal-ai': { color: '#06B6D4', iconKey: 'fal', label: 'Fal' },
-  'genfeed-ai': { color: '#3B82F6', iconKey: 'genfeed', label: 'GenFeed' },
+  'genfeed-ai': { color: '#3B82F6', iconKey: 'genfeed', label: 'Genfeed' },
   google: { color: '#4285F4', iconKey: 'google', label: 'Google' },
   heygen: { color: '#00C2FF', iconKey: 'heygen', label: 'HeyGen' },
   higgsfield: {

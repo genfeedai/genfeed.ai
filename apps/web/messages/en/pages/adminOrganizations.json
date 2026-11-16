@@ -17,7 +17,7 @@
   "releaseAccessLinkLabel": "Open release access for {name}",
   "ownerColumn": "Owner",
   "searchLabel": "Search organizations",
-  "searchPlaceholder": "Search organizations...",
+  "searchPlaceholder": "Search organizations",
   "emptySearch": "No organizations match your search",
   "listLoadError": "Failed to load organizations. Please try again.",
   "listRetry": "Retry",

@@ -231,7 +231,7 @@ export class ChannelMessageDispatcherService {
         return this.discordService.sendStreakNotification({
           color: typeof card?.color === 'number' ? card.color : 0xf97316,
           description: String(card?.description ?? ''),
-          title: String(card?.title ?? 'GenFeed streak'),
+          title: String(card?.title ?? 'Genfeed streak'),
         });
       }
       default:

@@ -500,6 +500,8 @@ export const SDXL_IMAGE_COMPILER_ID = 'sdxl-image-compiler';
 export const LEONARDO_IMAGE_COMPILER_ID = 'leonardo-image-compiler';
 export const HIGGSFIELD_SOUL_IMAGE_COMPILER_ID =
   'higgsfield-soul-image-compiler';
+export const HIGGSFIELD_ADS_STUDIO_IMAGE_COMPILER_ID =
+  'higgsfield-ads-studio-image-compiler';
 export const FAL_FLUX_IMAGE_COMPILER_ID = 'fal-flux-image-compiler';
 export const FAL_FLUX_2_PRO_IMAGE_COMPILER_ID = 'fal-flux-2-pro-image-compiler';
 export const FAL_NANO_BANANA_2_IMAGE_COMPILER_ID =
