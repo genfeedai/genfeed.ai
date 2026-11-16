@@ -47,7 +47,7 @@ import {
   resolveUnverifiedDeferral,
 } from '@workers/services/scheduled-post.utils';
 import { loadScheduledActionPost } from '@workers/services/scheduled-post-action-load.util';
-import type { ScheduledPostChannelRecoveryService } from '@workers/services/scheduled-post-channel-recovery.service';
+import { ScheduledPostChannelRecoveryService } from '@workers/services/scheduled-post-channel-recovery.service';
 import type {
   DeliveryGateFailure,
   PostDeliveryIds,
