@@ -45,7 +45,7 @@ export const AGENT_NEXT_STEP_DESTINATIONS = {
   },
   connect_accounts: {
     ctaLabel: 'Open connections',
-    href: APP_ROUTES.CONNECTORS.CHANNELS,
+    href: APP_ROUTES.SETTINGS.PROFILE,
     label: 'Connected accounts',
   },
   credits: {

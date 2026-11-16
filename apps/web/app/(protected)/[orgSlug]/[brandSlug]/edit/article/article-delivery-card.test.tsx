@@ -175,7 +175,7 @@ describe('ArticleDeliveryCard', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Connect Account' }),
-    ).toHaveAttribute('href', '/acme/brand/connectors/channels');
+    ).toHaveAttribute('href', '/acme/brand/settings/profile');
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy HTML' }));
     expect(copyToClipboardMock).toHaveBeenCalledWith('<p>Body</p>');

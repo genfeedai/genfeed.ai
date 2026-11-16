@@ -2,7 +2,6 @@ import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
-  isBrandOnlyConnectorsPath,
   isBrandOnlySettingsPath,
 } from '@genfeedai/contracts/constants';
 import type { AgentConversationRoute } from '@genfeedai/contracts/interfaces';
@@ -272,9 +271,7 @@ export function resolveOrganizationScopePath(brandScopedPath: string): string {
     return APP_ROUTES.AGENT.NEW;
   }
 
-  return isBrandOnlySettingsPath(path) || isBrandOnlyConnectorsPath(path)
-    ? APP_ROUTES.SETTINGS.BRANDS
-    : path;
+  return isBrandOnlySettingsPath(path) ? APP_ROUTES.SETTINGS.BRANDS : path;
 }
 
 export function getBrandSwitchHref({

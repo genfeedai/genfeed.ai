@@ -296,17 +296,17 @@ describe('AgentRouteRewriteService', () => {
     });
   });
 
-  it('opens Channels on the brand even though it is a Connectors section', async () => {
+  it('opens the brand Profile on the brand', async () => {
     const scoped = await createService().scopeToolResultHrefs(
       {
         creditsUsed: 0,
         success: true,
-        data: { href: '/connectors/channels?platform=x' },
+        data: { href: '/settings/profile?platform=x' },
       },
       context,
     );
     expect(scoped.data).toEqual({
-      href: '/genfeed-ai/launch-brand/connectors/channels?platform=x',
+      href: '/genfeed-ai/launch-brand/settings/profile?platform=x',
     });
   });
 

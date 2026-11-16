@@ -4,15 +4,15 @@ const QUERY_OR_HASH_PATTERN = /[?#]/u;
 export const APP_ROUTES = {
   ROOT: '/',
   /**
-   * Everything an organization connects, on one page (#9905). The section is
-   * part of the path; the bare root opens Agents. Channels show one brand and
-   * exist only at `/:org/:brand/connectors/channels`. The other sections are
-   * per organization and open at both scopes.
+   * What an organization connects: agents, AI providers, API keys and
+   * webhooks. Each section is its own page in the Connectors sidebar; the bare
+   * root opens Agents. A brand's social accounts are connected from its Profile
+   * (`SETTINGS.PROFILE`), not here. The sections are per organization and open
+   * at both scopes.
    */
   CONNECTORS: {
     AGENTS: '/connectors/agents',
     API_KEYS: '/connectors/api-keys',
-    CHANNELS: '/connectors/channels',
     PROVIDERS: '/connectors/providers',
     ROOT: '/connectors',
     WEBHOOKS: '/connectors/webhooks',
@@ -715,20 +715,6 @@ export function isBrandOnlySettingsPath(pathname: string): boolean {
   );
 }
 
-/**
- * Connectors → Channels is one brand's connected accounts — there is no
- * org-level `/:org/~/connectors/channels` page. The other Connectors sections
- * exist at both scopes.
- */
-export function isBrandOnlyConnectorsPath(pathname: string): boolean {
-  const path = pathname.split(QUERY_OR_HASH_PATTERN)[0] ?? pathname;
-
-  return (
-    path === APP_ROUTES.CONNECTORS.CHANNELS ||
-    path.startsWith(`${APP_ROUTES.CONNECTORS.CHANNELS}/`)
-  );
-}
-
 function workspaceSurfacePath(pathname: string): string {
   const parts = pathname.split('/').filter(Boolean);
   if (parts.length < 3) {
@@ -743,15 +729,12 @@ function toOrganizationScopePath(brandScopedPath: string): string {
     ? brandScopedPath
     : `/${brandScopedPath}`;
 
-  return isBrandOnlySettingsPath(path) || isBrandOnlyConnectorsPath(path)
-    ? APP_ROUTES.SETTINGS.BRANDS
-    : path;
+  return isBrandOnlySettingsPath(path) ? APP_ROUTES.SETTINGS.BRANDS : path;
 }
 
 /**
  * Client-side org switch keeps the current app surface. Brand-only settings
- * and Connectors → Channels fall back to the org brands hub so the
- * destination is never a 404.
+ * fall back to the org brands hub so the destination is never a 404.
  */
 export function getOrgSwitchHref(
   nextOrgSlug: string,

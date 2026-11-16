@@ -192,7 +192,7 @@ export function PublicationInsightsPanel() {
           createBrandAppRoute(
             encodeURIComponent(organization.slug),
             encodeURIComponent(brand.slug),
-            APP_ROUTES.CONNECTORS.CHANNELS,
+            APP_ROUTES.SETTINGS.PROFILE,
           ),
           appDomain,
         ).href

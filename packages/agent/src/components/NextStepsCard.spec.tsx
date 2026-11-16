@@ -84,7 +84,7 @@ describe('NextStepsCard', () => {
             {
               ctas: [
                 {
-                  href: '/connectors/channels',
+                  href: '/settings/profile',
                   label: 'Open connections',
                 },
               ],

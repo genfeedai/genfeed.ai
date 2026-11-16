@@ -37,6 +37,7 @@ type Props = {
   sidebarWidth?: MenuSharedProps['sidebarWidth'];
   isAdminRoute: boolean;
   isAnalyticsRoute: boolean;
+  isConnectorsRoute?: boolean;
   isLibraryRoute: boolean;
   isMessagesRoute?: boolean;
   isOrgRoute: boolean;
@@ -49,6 +50,7 @@ type Props = {
   settingsScope?: SettingsScope;
   adminMenuItems: MenuItemConfig[];
   analyticsMenuItems: MenuItemConfig[];
+  connectorsMenuItems?: MenuItemConfig[];
   libraryMenuItems: MenuItemConfig[];
   menuItems: MenuItemConfig[];
   orgMenuItems: MenuItemConfig[];
@@ -75,6 +77,7 @@ export default function AppProtectedLayoutSidebar({
   sidebarWidth = SIDEBAR_DEFAULT_WIDTH,
   isAdminRoute,
   isAnalyticsRoute,
+  isConnectorsRoute = false,
   isLibraryRoute,
   isMessagesRoute = false,
   isOrgRoute,
@@ -86,6 +89,7 @@ export default function AppProtectedLayoutSidebar({
   settingsScope = SettingsSurface.PERSONAL,
   adminMenuItems,
   analyticsMenuItems,
+  connectorsMenuItems = [],
   libraryMenuItems,
   menuItems,
   orgMenuItems,
@@ -177,6 +181,12 @@ export default function AppProtectedLayoutSidebar({
         currentApp,
         items: analyticsMenuItems,
         sectionLabel: 'Analytics',
+      },
+      {
+        active: isConnectorsRoute,
+        currentApp,
+        items: connectorsMenuItems,
+        sectionLabel: 'Connectors',
       },
       {
         active: isDiscoveryRoute,

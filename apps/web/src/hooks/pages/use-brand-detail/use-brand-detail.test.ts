@@ -910,9 +910,9 @@ describe('useBrandDetail', () => {
       vi.mocked(usePathname).mockReturnValue('/settings/brands/brand-1');
     });
 
-    it('keeps Connectors → Channels on its own route', async () => {
+    it('keeps a non-settings route that reads the brand where it is', async () => {
       vi.mocked(usePathname).mockReturnValue(
-        '/acme/brand-1/connectors/channels',
+        '/acme/brand-1/publishing/overview',
       );
 
       const { result } = renderHook(() => useBrandDetail(), {

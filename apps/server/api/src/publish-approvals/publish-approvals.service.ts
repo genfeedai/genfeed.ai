@@ -18,6 +18,7 @@ import {
 } from '@api/publish-approvals/publish-approval-contract.codec';
 import type { IPublishApprovalHold } from '@api/publish-approvals/publish-approval-hold';
 import { digestPublishApprovalValue } from '@api/publish-approvals/publish-approval-integrity';
+import { invalidateObservedApproval } from '@api/publish-approvals/publish-approval-invalidation.util';
 import {
   PUBLISH_EXECUTION_LEASE_MS,
   resetExpiredPublishExecution,
@@ -289,22 +290,19 @@ export class PublishApprovalsService {
           );
         }
         for (const prior of active) {
-          await tx.publishApproval.update({
-            data: {
-              invalidatedAt: now,
-              invalidationReason: 'A different publish scope was approved.',
-              status: PublishApprovalStatus.INVALIDATED,
-              statusTransitions: this.contractCodec.toJson([
-                ...this.contractCodec.readTransitions(prior.statusTransitions),
-                this.contractCodec.transition(
-                  this.contractCodec.parseStatus(prior.status),
-                  PublishApprovalStatus.INVALIDATED,
-                  params.actorUserId,
-                  'A different publish scope was approved.',
-                ),
-              ]),
-            },
-            where: { id: prior.id },
+          await invalidateObservedApproval(tx, this.contractCodec, prior, {
+            invalidatedAt: now,
+            invalidationReason: 'A different publish scope was approved.',
+            status: PublishApprovalStatus.INVALIDATED,
+            statusTransitions: this.contractCodec.toJson([
+              ...this.contractCodec.readTransitions(prior.statusTransitions),
+              this.contractCodec.transition(
+                this.contractCodec.parseStatus(prior.status),
+                PublishApprovalStatus.INVALIDATED,
+                params.actorUserId,
+                'A different publish scope was approved.',
+              ),
+            ]),
           });
         }
 
@@ -608,22 +606,19 @@ export class PublishApprovalsService {
         );
       }
       for (const approval of approvals) {
-        await tx.publishApproval.update({
-          data: {
-            invalidatedAt: now,
-            invalidationReason: reason,
-            status: PublishApprovalStatus.INVALIDATED,
-            statusTransitions: this.contractCodec.toJson([
-              ...this.contractCodec.readTransitions(approval.statusTransitions),
-              this.contractCodec.transition(
-                this.contractCodec.parseStatus(approval.status),
-                PublishApprovalStatus.INVALIDATED,
-                actorId,
-                reason,
-              ),
-            ]),
-          },
-          where: { id: approval.id },
+        await invalidateObservedApproval(tx, this.contractCodec, approval, {
+          invalidatedAt: now,
+          invalidationReason: reason,
+          status: PublishApprovalStatus.INVALIDATED,
+          statusTransitions: this.contractCodec.toJson([
+            ...this.contractCodec.readTransitions(approval.statusTransitions),
+            this.contractCodec.transition(
+              this.contractCodec.parseStatus(approval.status),
+              PublishApprovalStatus.INVALIDATED,
+              actorId,
+              reason,
+            ),
+          ]),
         });
       }
       // Clear every approval marker, not just the pin id: leaving

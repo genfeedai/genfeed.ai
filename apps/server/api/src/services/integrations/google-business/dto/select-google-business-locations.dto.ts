@@ -1,4 +1,5 @@
 import { GOOGLE_BUSINESS_LOCATION_NAME_PATTERN } from '@api/services/integrations/google-business/google-business.constants';
+import { GOOGLE_BUSINESS_MAX_SELECTED_LOCATIONS } from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
@@ -8,9 +9,6 @@ import {
   IsString,
   Matches,
 } from 'class-validator';
-
-/** Most locations one connect can add, so a large chain cannot hold a request open. */
-const GOOGLE_BUSINESS_MAX_SELECTED_LOCATIONS = 25;
 
 export class SelectGoogleBusinessLocationsDto {
   @ApiProperty({

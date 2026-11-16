@@ -65,7 +65,7 @@ export default function CampaignAccounts({ brandId }: CampaignAccountsProps) {
           <p className="text-sm">{t('accounts.empty')}</p>
         )}
         <Button asChild variant={ButtonVariant.SECONDARY}>
-          <Link href={activeHref(APP_ROUTES.CONNECTORS.CHANNELS)}>
+          <Link href={activeHref(APP_ROUTES.SETTINGS.PROFILE)}>
             {t('accounts.manage')}
           </Link>
         </Button>

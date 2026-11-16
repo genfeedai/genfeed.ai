@@ -9,6 +9,7 @@ import {
   GenfeedIcon,
   GhostIcon,
   GoogleAdsIcon,
+  GoogleColorIcon,
   GoogleIcon,
   HackerNewsIcon,
   InstagramIcon,
@@ -115,6 +116,16 @@ const PLATFORM_BRANDS: Record<string, IPlatformBadgeConfig> = {
     icon: GoogleAdsIcon,
     iconColor: 'text-foreground',
     label: label(Platform.GOOGLE_ADS),
+    // The mark is multi-coloured, so it sits on a white chip in the solid variant.
+    solidBgColor: 'bg-white', // design-system-allow-content-color -- platform brand fill
+    textColor: 'text-foreground',
+  },
+  [Platform.GOOGLE_BUSINESS]: {
+    bgColor: 'bg-foreground/10',
+    // GoogleColorIcon carries the four brand fills; the class only sizes it.
+    icon: GoogleColorIcon,
+    iconColor: 'text-foreground',
+    label: label(Platform.GOOGLE_BUSINESS),
     // The mark is multi-coloured, so it sits on a white chip in the solid variant.
     solidBgColor: 'bg-white', // design-system-allow-content-color -- platform brand fill
     textColor: 'text-foreground',

@@ -8,10 +8,7 @@ import {
   type IngredientCategory,
   PageScope,
 } from '@genfeedai/contracts';
-import {
-  APP_ROUTES,
-  isBrandOnlyConnectorsPath,
-} from '@genfeedai/contracts/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IActivity, IIngredient } from '@genfeedai/contracts/interfaces';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
@@ -98,7 +95,7 @@ export default function ActivitiesList({
     toggleActivityRead,
   } = useActivities({ limit: 20, page, scope, search });
 
-  const { activeHref, href, orgHref } = useOrgUrl();
+  const { href, orgHref } = useOrgUrl();
   const { openIngredientSidebar } = useIngredientSidebar();
   const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
   const [isMarkingRead, setIsMarkingRead] = useState(false);
@@ -119,18 +116,11 @@ export default function ActivitiesList({
     [openIngredientSidebar],
   );
 
-  // Channels is one brand's accounts; the other Connectors sections are
-  // organization scope; every other destination is a brand page.
+  // Connectors is organization scope; every other destination is a brand page.
   const resolveDestinationHref = useCallback(
-    (path: string): string => {
-      if (isBrandOnlyConnectorsPath(path)) {
-        return activeHref(path);
-      }
-      return path.startsWith(APP_ROUTES.CONNECTORS.ROOT)
-        ? orgHref(path)
-        : href(path);
-    },
-    [activeHref, href, orgHref],
+    (path: string): string =>
+      path.startsWith(APP_ROUTES.CONNECTORS.ROOT) ? orgHref(path) : href(path),
+    [href, orgHref],
   );
 
   const isHrefAvailable = useIsHrefAvailable();

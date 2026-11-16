@@ -262,7 +262,7 @@ function NeedsYouSurface({
         )
       : brandSetupHref;
   const credentialsHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.CONNECTORS.CHANNELS)
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.PROFILE)
     : brandSetupHref;
   const needsYouItems = buildNeedsYouItems({
     credentials,
@@ -736,7 +736,7 @@ function CredentialHealthSurface({
     APP_ROUTES.SETTINGS.BRANDS,
   );
   const settingsHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.CONNECTORS.CHANNELS)
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.PROFILE)
     : brandSetupHref;
 
   return (

@@ -97,7 +97,7 @@ export function useSetupCard(): UseSetupCardReturn {
 
     const stepHrefs: Record<(typeof SETUP_CARD_STEPS)[number]['key'], string> =
       {
-        platforms: activeHref(APP_ROUTES.CONNECTORS.CHANNELS),
+        platforms: activeHref(APP_ROUTES.SETTINGS.PROFILE),
         preferences: orgHref(APP_ROUTES.SETTINGS.BRANDS),
       };
 
