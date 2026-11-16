@@ -460,7 +460,7 @@ describe('ActivitiesList', () => {
     ).toHaveAttribute('href', '/acme/news/library/images?asset=ing-9');
   });
 
-  it('opens a disconnected social account on the brand Channels page', () => {
+  it('opens a disconnected social account on the brand Profile', () => {
     mockActivities = [
       buildActivity({
         id: 'social-disconnected',
@@ -479,7 +479,7 @@ describe('ActivitiesList', () => {
 
     expect(screen.getAllByRole('link')[0]).toHaveAttribute(
       'href',
-      '/acme/news/connectors/channels',
+      '/acme/news/settings/profile',
     );
   });
 

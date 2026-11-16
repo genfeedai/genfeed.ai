@@ -7,12 +7,12 @@ import { brandPath } from '../../utils/app-chrome';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
- * E2E tests for the Connect account modal on brand Accounts.
+ * E2E tests for the Connect account modal on the brand Profile.
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur during tests.
  */
-const CONNECTED_ACCOUNTS_ROUTE = brandPath(APP_ROUTES.CONNECTORS.CHANNELS);
+const CONNECTED_ACCOUNTS_ROUTE = brandPath(APP_ROUTES.SETTINGS.PROFILE);
 
 /** Brand with one live X account, so its tile shows the connected state. */
 async function mockBrandWithXAccount(page: Page): Promise<void> {

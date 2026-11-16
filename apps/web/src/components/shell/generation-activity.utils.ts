@@ -3,7 +3,6 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   createOrganizationAppRoute,
-  isBrandOnlyConnectorsPath,
 } from '@genfeedai/contracts/constants';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
 import {
@@ -59,11 +58,8 @@ export function getGenerationActivityHref(
     );
   const path =
     getActivityDestinationPath(activity) ?? APP_ROUTES.WORKSPACE.ACTIVITY;
-  // Connectors is organization scope, except Channels, which is one brand's
-  // page; every other destination is a brand page.
-  return brand &&
-    (!path.startsWith(APP_ROUTES.CONNECTORS.ROOT) ||
-      isBrandOnlyConnectorsPath(path))
+  // Connectors is organization scope; every other destination is a brand page.
+  return brand && !path.startsWith(APP_ROUTES.CONNECTORS.ROOT)
     ? createBrandAppRoute(scope.orgSlug, brand.slug, path)
     : createOrganizationAppRoute(scope.orgSlug, path);
 }

@@ -289,7 +289,7 @@ export function useAnalyticsOverview({ scope }: UseAnalyticsOverviewParams) {
     scope === PageScope.SUPERADMIN
       ? orgHref(APP_ROUTES.CONNECTORS.PROVIDERS)
       : brandSlug
-        ? activeHref(APP_ROUTES.CONNECTORS.CHANNELS)
+        ? activeHref(APP_ROUTES.SETTINGS.PROFILE)
         : orgHref(APP_ROUTES.SETTINGS.BRANDS);
 
   const heroContent = useMemo<AnalyticsOverviewHeroContent | null>(() => {

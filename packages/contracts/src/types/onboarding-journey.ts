@@ -59,7 +59,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
         'Your first image proves the workflow works and gives the agent a concrete artifact to build on.',
     },
     {
-      ctaHref: APP_ROUTES.CONNECTORS.CHANNELS,
+      ctaHref: APP_ROUTES.SETTINGS.PROFILE,
       ctaLabel: 'Connect channels',
       description:
         'Connect your first social account so Genfeed can tailor content to real channels.',
@@ -68,7 +68,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
       rewardCredits: 45,
       // Channels follow the brand selected in the top bar, so the flat path
       // canonicalizes onto the organization's Connectors page.
-      selfHostedCtaHref: APP_ROUTES.CONNECTORS.CHANNELS,
+      selfHostedCtaHref: APP_ROUTES.SETTINGS.PROFILE,
       whyItMatters:
         'Connected channels unlock platform-aware workflows and publishing.',
     },

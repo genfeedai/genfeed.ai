@@ -431,7 +431,7 @@ export default function ContentCalendarPage({
         onResumeRelease={handleResumeRelease}
         onRetryTarget={handleRetryTarget}
         pendingAction={pendingAction}
-        reconnectHref={activeHref(APP_ROUTES.CONNECTORS.CHANNELS)}
+        reconnectHref={activeHref(APP_ROUTES.SETTINGS.PROFILE)}
         release={selectedRelease}
       />
       {selectedRelease ? (

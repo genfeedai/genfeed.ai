@@ -72,7 +72,7 @@ const getService = async () => ({
               firstTrackedAt: null,
               isConnected: true,
               label: 'Account',
-              manageHref: '/connectors/channels?credential=cred-1',
+              manageHref: '/settings/profile?credential=cred-1',
               platform: 'instagram',
             },
             metrics: requestState.hasMetrics
@@ -154,7 +154,7 @@ describe('AnalyticsAccountDetail', () => {
     );
   });
 
-  it('opens Manage account on the brand Channels page', async () => {
+  it('opens Manage account on the brand Profile', async () => {
     render(<AnalyticsAccountDetail />);
 
     fireEvent.click(
@@ -162,7 +162,7 @@ describe('AnalyticsAccountDetail', () => {
     );
 
     expect(mocks.push).toHaveBeenCalledWith(
-      '/acme/moonrise/connectors/channels?credential=cred-1',
+      '/acme/moonrise/settings/profile?credential=cred-1',
     );
   });
 

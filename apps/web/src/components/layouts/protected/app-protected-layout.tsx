@@ -140,6 +140,7 @@ function AppLayoutWithDynamicMenu({
   const {
     isAdminRoute,
     isAnalyticsRoute,
+    isConnectorsRoute,
     isConversationRoute,
     isEditorCanvasRoute,
     isLibraryRoute,
@@ -158,6 +159,7 @@ function AppLayoutWithDynamicMenu({
     activeThreadId,
     adminMenuItems,
     analyticsMenuItems,
+    connectorsMenuItems,
     libraryMenuItems,
     menuItems,
     orgMenuItems,
@@ -262,6 +264,7 @@ function AppLayoutWithDynamicMenu({
         currentApp={currentApp}
         isAdminRoute={isAdminRoute}
         isAnalyticsRoute={isAnalyticsRoute}
+        isConnectorsRoute={isConnectorsRoute}
         isLibraryRoute={isLibraryRoute}
         isMessagesRoute={isMessagesRoute}
         isOrgRoute={isOrgRoute}
@@ -273,6 +276,7 @@ function AppLayoutWithDynamicMenu({
         settingsScope={settingsScope}
         adminMenuItems={adminMenuItems}
         analyticsMenuItems={analyticsMenuItems}
+        connectorsMenuItems={connectorsMenuItems}
         libraryMenuItems={libraryMenuItems}
         menuItems={menuItems}
         orgMenuItems={orgMenuItems}
@@ -289,10 +293,12 @@ function AppLayoutWithDynamicMenu({
   }, [
     adminMenuItems,
     analyticsMenuItems,
+    connectorsMenuItems,
     currentApp,
     activeNavPanel,
     isAdminRoute,
     isAnalyticsRoute,
+    isConnectorsRoute,
     isConversationRoute,
     isEditorCanvasRoute,
     isLibraryRoute,
@@ -346,11 +352,13 @@ function AppLayoutWithDynamicMenu({
               ? messagesMenuItems
               : isAnalyticsRoute
                 ? analyticsMenuItems
-                : isDiscoveryRoute
-                  ? discoveryMenuItems
-                  : isOrgRoute
-                    ? orgMenuItems
-                    : menuItems;
+                : isConnectorsRoute
+                  ? connectorsMenuItems
+                  : isDiscoveryRoute
+                    ? discoveryMenuItems
+                    : isOrgRoute
+                      ? orgMenuItems
+                      : menuItems;
   const shellBanner = (
     <>
       {/* Unconditional: the "Viewing as {user}" state must survive every

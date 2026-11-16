@@ -373,7 +373,7 @@ describe('workspace shell trusted registry', () => {
       '/acme/moonrise/automation/runs/run-1',
       '/acme/moonrise/settings/publishing',
       '/acme/moonrise/settings/usage',
-      '/acme/moonrise/connectors/channels',
+      '/acme/moonrise/settings/profile',
       '/acme/~/connectors/api-keys',
       '/acme/~/settings/usage',
       '/acme/~/settings/subscription',
@@ -492,14 +492,14 @@ describe('workspace shell trusted registry', () => {
 
   it('registers every Connectors section explicitly', () => {
     expect(
-      resolveWorkspaceShellRoute('/acme/~/connectors/channels'),
+      resolveWorkspaceShellRoute('/acme/moonrise/connectors/channels'),
     ).toBeNull();
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/connectors/channels'),
+      resolveWorkspaceShellRoute('/acme/moonrise/connectors/webhooks'),
     ).toMatchObject({
       accessPolicy: 'brand-member',
-      breadcrumb: { leafLabel: 'Channels', rootLabel: 'Connectors' },
-      canonicalUrl: '/:orgSlug/:brandSlug/connectors/channels',
+      breadcrumb: { leafLabel: 'Webhooks', rootLabel: 'Connectors' },
+      canonicalUrl: '/:orgSlug/:brandSlug/connectors/webhooks',
       scope: 'brand',
       surfaceKey: 'connectors',
     });

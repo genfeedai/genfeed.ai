@@ -439,9 +439,9 @@ export function getActivityDestinationPath(
 
   const { subject } = parseActivityKey(activity.key);
   // Social account events use the integration subject (`integration-social-*`),
-  // including legacy rows that have no brand scope. Both land on Connectors → Channels.
+  // including legacy rows that have no brand scope. Both land on the brand's Profile.
   if (subject === 'social' || subject === 'integration') {
-    return APP_ROUTES.CONNECTORS.CHANNELS;
+    return APP_ROUTES.SETTINGS.PROFILE;
   }
 
   const entityModel = activity.entityModel?.toLowerCase();

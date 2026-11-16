@@ -15,7 +15,7 @@ import {
 describe('resolveMissionCtaHref', () => {
   it.each([
     ['complete_company_info', '/onboarding/brand'],
-    ['connect_social_account', '/connectors/channels'],
+    ['connect_social_account', '/settings/profile'],
     ['generate_first_image', '/connectors/api-keys'],
     ['generate_first_video', '/connectors/api-keys'],
     ['publish_first_post', '/connectors/agents'],

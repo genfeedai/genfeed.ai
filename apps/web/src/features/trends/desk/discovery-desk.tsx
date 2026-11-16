@@ -326,7 +326,7 @@ export default function DiscoveryDesk() {
 
   const followingHref = href(APP_ROUTES.DISCOVERY.FOLLOWING);
   const publishingHref = brandSlug
-    ? activeHref(APP_ROUTES.CONNECTORS.CHANNELS)
+    ? activeHref(APP_ROUTES.SETTINGS.PROFILE)
     : orgHref(APP_ROUTES.SETTINGS.BRANDS);
   const sourceHealthHref = href(APP_ROUTES.DISCOVERY.TRENDS);
 

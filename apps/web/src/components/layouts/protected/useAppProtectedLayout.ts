@@ -36,6 +36,7 @@ import {
 } from '@/config/admin-menu-items.config';
 import { getAnalyticsMenuItemsForScope } from '@/config/analytics-menu-items.config';
 import { AUTOMATION_MENU_ITEMS } from '@/config/automation-menu-items.config';
+import { CONNECTORS_MENU_ITEMS } from '@/config/connectors-menu-items.config';
 import { DISCOVERY_MENU_ITEMS } from '@/config/discovery-menu-items.config';
 import { LIBRARY_MENU_ITEMS } from '@/config/library-menu-items.config';
 import {
@@ -120,6 +121,9 @@ export function useAppProtectedLayout(
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
   const isAutomationRoute = pathname.startsWith(APP_ROUTE_PREFIXES.AUTOMATION);
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
+  const isConnectorsRoute =
+    pathname === APP_ROUTES.CONNECTORS.ROOT ||
+    pathname.startsWith(`${APP_ROUTES.CONNECTORS.ROOT}/`);
   // Org shell only for leftover org destinations (Connect, etc.). Module
   // routes under `/:org/~/workspace|publishing|turbo|…` keep their own app
   // sidebars — otherwise Workspace/Publishing steal the Organization menu.
@@ -131,6 +135,7 @@ export function useAppProtectedLayout(
       !pathname.startsWith(APP_ROUTE_PREFIXES.WORKSPACE) &&
       !pathname.startsWith(APP_ROUTE_PREFIXES.OVERVIEW) &&
       !isConversationRoute &&
+      !isConnectorsRoute &&
       !isPublishingRoute &&
       !isAnalyticsRoute &&
       !isStudioRoute &&
@@ -373,6 +378,17 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
+  const connectorsMenuItems = useMemo(
+    () =>
+      CONNECTORS_MENU_ITEMS.map(
+        (item): MenuItemConfig => ({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        }),
+      ),
+    [taskContextSearchParams],
+  );
+
   const orgMenuItems = useMemo(
     () =>
       ORG_MENU_ITEMS.map(
@@ -452,6 +468,7 @@ export function useAppProtectedLayout(
     // route flags
     isAdminRoute,
     isAnalyticsRoute,
+    isConnectorsRoute,
     isConversationRoute,
     isEditorCanvasRoute,
     isLibraryRoute,
@@ -479,6 +496,7 @@ export function useAppProtectedLayout(
     // menu items
     adminMenuItems,
     analyticsMenuItems,
+    connectorsMenuItems,
     libraryMenuItems,
     menuItems,
     orgMenuItems,

@@ -66,11 +66,11 @@ describe('normalizeAgentAppHref', () => {
     expect(normalizeAgentAppHref('/agent/new', scope)).toBe(
       '/acme/~/agent/new',
     );
+    expect(normalizeAgentAppHref('/settings/profile?platform=x', scope)).toBe(
+      '/acme/launch/settings/profile?platform=x',
+    );
     expect(
-      normalizeAgentAppHref('/connectors/channels?platform=x', scope),
-    ).toBe('/acme/launch/connectors/channels?platform=x');
-    expect(
-      normalizeAgentAppHref('/connectors/channels?platform=x', {
+      normalizeAgentAppHref('/settings/profile?platform=x', {
         brandSlug: '',
         orgSlug: 'acme',
       }),

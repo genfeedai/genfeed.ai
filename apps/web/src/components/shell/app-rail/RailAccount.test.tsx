@@ -125,7 +125,7 @@ describe('RailAccount', () => {
 
   it('opens Connectors on the selected brand and marks it current there', () => {
     orgScope.brandSlug = 'moonrise';
-    route.pathname = '/acme/moonrise/connectors/channels';
+    route.pathname = '/acme/moonrise/connectors/webhooks';
     render(<RailAccount />);
 
     const link = screen.getByRole('link', { name: 'Connectors' });
