@@ -145,6 +145,32 @@ describe('package and worktree review follow-ups', () => {
     expect(releaseWorkflow).toContain('trusted_release_call: true');
   });
 
+  it('publishes the dedicated lane from its own trusted caller, defaulting to a dry run', () => {
+    const caller = readText('.github/workflows/publish-shared-packages.yml');
+    const enrollment = JSON.parse(
+      readText('scripts/npm-release-enrollment.json'),
+    ) as { dedicated: Record<string, string> };
+
+    // npm matches the caller's filename, and every dedicated package names it.
+    expect(Object.values(enrollment.dedicated)).toEqual(
+      Object.keys(enrollment.dedicated).map(() => 'publish-shared-packages.yml'),
+    );
+    expect(caller).toContain(
+      'uses: ./.github/workflows/publish-packages.yml',
+    );
+    expect(caller).toContain('lane: dedicated');
+    expect(caller).toContain('trusted_release_call: true');
+    expect(caller).toContain('checkout_ref: ${{ github.sha }}');
+    expect(caller).toContain('id-token: write');
+    expect(caller).toMatch(
+      /dry_run:\n(?: {8}.*\n)*? {8}default: true\n {8}type: boolean/,
+    );
+    // The called workflow owns the `package-publish` group; repeating it here
+    // would cancel the called run.
+    expect(caller).not.toContain('concurrency:');
+    expect(caller).not.toContain('secrets:');
+  });
+
   it('allows historical recovery only when the current controller proves npm is a no-op', () => {
     const dollar = '$';
     const packageWorkflow = readText('.github/workflows/publish-packages.yml');

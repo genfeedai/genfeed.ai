@@ -8,7 +8,8 @@
 // Two responsibilities:
 //   --validate  enrollment coverage + dependency closure (a CI guard)
 //   --plan      repo-version-vs-registry drift -> packages_json for
-//               scripts/publish-packages-from-json.mjs
+//               scripts/publish-packages-from-json.mjs; `--lane dedicated`
+//               plans the packages that publish from their own workflow
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -57,7 +58,22 @@ export function readEnrollment(root) {
     );
   }
 
-  return { enrolled: parsed.enrolled, excluded: parsed.excluded };
+  const dedicated = parsed.dedicated ?? {};
+  if (
+    !dedicated ||
+    typeof dedicated !== 'object' ||
+    Array.isArray(dedicated)
+  ) {
+    fail(
+      `${ENROLLMENT_FILE} "dedicated" must be an object of path->workflow file`,
+    );
+  }
+
+  return {
+    dedicated,
+    enrolled: parsed.enrolled,
+    excluded: parsed.excluded,
+  };
 }
 
 function publicPackagePaths(inventory) {
@@ -90,6 +106,8 @@ export function validateEnrollment({ enrollment, inventory }) {
   const publicPaths = publicPackagePaths(inventory);
   const publicPathSet = new Set(publicPaths);
   const enrolledSet = new Set();
+  const dedicated = enrollment.dedicated ?? {};
+  const dedicatedSet = new Set(Object.keys(dedicated));
   const excludedSet = new Set(Object.keys(enrollment.excluded));
 
   for (const packagePath of enrollment.enrolled) {
@@ -113,6 +131,35 @@ export function validateEnrollment({ enrollment, inventory }) {
     }
   }
 
+  // A dedicated package publishes from the workflow file named here, and npm
+  // allows one trusted publisher per package, so it cannot also ride the
+  // release lane.
+  for (const [packagePath, workflowFile] of Object.entries(dedicated)) {
+    if (
+      typeof workflowFile !== 'string' ||
+      !/^[A-Za-z0-9._-]+\.ya?ml$/.test(workflowFile)
+    ) {
+      violations.push(
+        `${ENROLLMENT_FILE}: ${packagePath} must name the workflow file that publishes it, such as "publish-shared-packages.yml"`,
+      );
+    }
+    if (!publicPathSet.has(packagePath)) {
+      violations.push(
+        `${ENROLLMENT_FILE}: ${packagePath} is dedicated but is not a public package under packages/`,
+      );
+    }
+    if (enrolledSet.has(packagePath)) {
+      violations.push(
+        `${ENROLLMENT_FILE}: ${packagePath} is both enrolled and dedicated`,
+      );
+    }
+    if (excludedSet.has(packagePath)) {
+      violations.push(
+        `${ENROLLMENT_FILE}: ${packagePath} is both dedicated and excluded`,
+      );
+    }
+  }
+
   for (const [packagePath, reason] of Object.entries(enrollment.excluded)) {
     if (typeof reason !== 'string' || reason.trim().length === 0) {
       violations.push(
@@ -132,22 +179,29 @@ export function validateEnrollment({ enrollment, inventory }) {
   }
 
   for (const packagePath of publicPaths) {
-    if (!enrolledSet.has(packagePath) && !excludedSet.has(packagePath)) {
+    if (
+      !enrolledSet.has(packagePath) &&
+      !dedicatedSet.has(packagePath) &&
+      !excludedSet.has(packagePath)
+    ) {
       violations.push(
-        `${ENROLLMENT_FILE}: ${packagePath} is publishable but is neither enrolled nor excluded; decide explicitly`,
+        `${ENROLLMENT_FILE}: ${packagePath} is publishable but is neither enrolled, dedicated nor excluded; decide explicitly`,
       );
     }
   }
 
   for (const packagePath of publicPaths) {
-    if (!enrolledSet.has(packagePath)) continue;
+    if (!enrolledSet.has(packagePath) && !dedicatedSet.has(packagePath)) {
+      continue;
+    }
+    const lane = enrolledSet.has(packagePath) ? 'enrolled' : 'dedicated';
     const entry = inventory.byPath.get(packagePath);
     for (const { field, name } of workspaceRuntimeDependencyNames(entry.pkg)) {
       const dependency = inventory.byName.get(name);
       if (!dependency) continue;
       if (excludedSet.has(dependency.path)) {
         violations.push(
-          `${ENROLLMENT_FILE}: ${packagePath} is enrolled but ${field}.${name} is excluded (${dependency.path}); an enrolled package cannot depend on an unpublished one`,
+          `${ENROLLMENT_FILE}: ${packagePath} is ${lane} but ${field}.${name} is excluded (${dependency.path}); ${lane === 'enrolled' ? 'an enrolled' : 'a dedicated'} package cannot depend on an unpublished one`,
         );
       }
     }
@@ -156,9 +210,23 @@ export function validateEnrollment({ enrollment, inventory }) {
   return { checked: publicPaths.length, violations };
 }
 
+// The packages one publishing workflow owns. `release` is the stable release
+// lane (enrolled); `dedicated` is the on-demand workflow for the shared design
+// layer. A package is in exactly one lane (validateEnrollment).
+export function lanePackagePaths(enrollment, lane) {
+  if (lane === 'release') return [...enrollment.enrolled].sort();
+  if (lane === 'dedicated') return Object.keys(enrollment.dedicated ?? {}).sort();
+  return fail(`Unknown npm release lane "${lane}". Use "release" or "dedicated".`);
+}
+
 // publishedVersions: Map<packageName, Set<version> | null>, null = name has
 // never existed on npm.
-export function planNpmRelease({ enrollment, inventory, publishedVersions }) {
+export function planNpmRelease({
+  enrollment,
+  inventory,
+  lane = 'release',
+  publishedVersions,
+}) {
   const { violations } = validateEnrollment({ enrollment, inventory });
   if (violations.length > 0) {
     fail(`npm release enrollment is invalid:\n- ${violations.join('\n- ')}`);
@@ -168,7 +236,7 @@ export function planNpmRelease({ enrollment, inventory, publishedVersions }) {
   const publish = [];
   const upToDate = [];
 
-  for (const packagePath of [...enrollment.enrolled].sort()) {
+  for (const packagePath of lanePackagePaths(enrollment, lane)) {
     const entry = inventory.byPath.get(packagePath);
     const { name, version } = entry.pkg;
     const versions = publishedVersions.get(name);
@@ -285,6 +353,16 @@ function runCli() {
       enrollment,
       inventory,
     });
+    for (const [packagePath, workflowFile] of Object.entries(
+      enrollment.dedicated,
+    )) {
+      const workflowPath = path.join('.github/workflows', workflowFile);
+      if (!fs.existsSync(path.join(root, workflowPath))) {
+        violations.push(
+          `${ENROLLMENT_FILE}: ${packagePath} names ${workflowPath} as its publisher, but that workflow does not exist`,
+        );
+      }
+    }
     if (violations.length > 0) {
       console.error('npm release enrollment violations found:\n');
       for (const violation of violations) console.error(`- ${violation}`);
@@ -297,13 +375,21 @@ function runCli() {
     return;
   }
 
+  const laneFlag = args.indexOf('--lane');
+  const lane = laneFlag === -1 ? 'release' : (args[laneFlag + 1] ?? '');
+
   const publishedVersions = new Map();
-  for (const packagePath of enrollment.enrolled) {
+  for (const packagePath of lanePackagePaths(enrollment, lane)) {
     const { name } = inventory.byPath.get(packagePath).pkg;
     publishedVersions.set(name, npmPublishedVersions(name));
   }
 
-  const plan = planNpmRelease({ enrollment, inventory, publishedVersions });
+  const plan = planNpmRelease({
+    enrollment,
+    inventory,
+    lane,
+    publishedVersions,
+  });
   assertPublishable(plan);
 
   const packagesJson = JSON.stringify(
