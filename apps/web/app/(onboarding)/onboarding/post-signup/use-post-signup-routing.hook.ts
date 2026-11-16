@@ -79,9 +79,8 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const calledRef = useRef(false);
   const [routingAttempt, setRoutingAttempt] = useState(0);
   const [showFallback, setShowFallback] = useState(false);
-  const [skippedHandle, setSkippedHandle] = useState<SkippedHandleNotice | null>(
-    null,
-  );
+  const [skippedHandle, setSkippedHandle] =
+    useState<SkippedHandleNotice | null>(null);
   const resumeAfterSkippedHandleRef = useRef<(() => void) | null>(null);
   const hasAuthUser = Boolean(authUser);
   const authPrimaryEmail = authUser?.primaryEmailAddress?.emailAddress ?? '';
