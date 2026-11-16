@@ -12,7 +12,7 @@ const DEFAULT_STALE_BATCH_SIZE = 500;
  * node resumes from a queued job, so a week of silence means the worker or the
  * job is gone.
  */
-export const STALE_RUN_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+const STALE_RUN_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 const STALE_RUN_ERROR = 'Run abandoned: no progress for over 7 days';
 const BACKGROUND_FAILURE_PURGE_MS = 14 * 24 * 60 * 60 * 1000;
 
