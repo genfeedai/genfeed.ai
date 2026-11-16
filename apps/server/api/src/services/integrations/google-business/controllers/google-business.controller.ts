@@ -10,6 +10,7 @@ import { throwIfOAuthCallbackError } from '@api/collections/credentials/utils/oa
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import {
   serializeCollection,
   serializeSingle,
@@ -184,6 +185,7 @@ export class GoogleBusinessController {
   }
 
   /** The locations a pending connection can still choose from. */
+  @TenantReadPolicy('owner')
   @Get(':credentialId/locations')
   async listLocations(
     @CurrentUser() user: User,

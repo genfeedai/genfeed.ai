@@ -1,3 +1,4 @@
+import { TENANT_READ_POLICY } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { GoogleBusinessController } from '@api/services/integrations/google-business/controllers/google-business.controller';
 import { GoogleBusinessApiError } from '@api/services/integrations/google-business/google-business-error.util';
 import type { GoogleBusinessLocation } from '@api/services/integrations/google-business/interfaces/google-business.interface';
@@ -139,6 +140,15 @@ describe('GoogleBusinessController', () => {
     );
 
     await expect(verify()).rejects.toMatchObject({ status: 503 });
+  });
+
+  it('reads the location list only inside the callers own organization', () => {
+    expect(
+      Reflect.getMetadata(
+        TENANT_READ_POLICY,
+        GoogleBusinessController.prototype.listLocations,
+      ),
+    ).toBe('owner');
   });
 
   describe('selecting locations', () => {
