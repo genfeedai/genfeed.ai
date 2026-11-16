@@ -32,45 +32,44 @@ describe('post publish error policy', () => {
   });
 
   it.each([
-    ['429 rate limit', true],
-    [new Error('Provider timed out'), true],
-    [{ code: 'ECONNRESET' }, true],
-    [new Error('Provider rejected the payload'), false],
-  ])('classifies retryability for %p', (error, expected) => {
-    expect(isRetryablePublishError(error)).toBe(expected);
-  });
+    ['429 rate limit'],
+    [new Error('Provider timed out')],
+    [{ code: 'ECONNRESET' }],
+    [{ code: 'ETIMEDOUT', message: 'Provider returned HTTP 503' }],
+    [new Error('Provider rejected the payload')],
+  ])(
+    'does not retry an untyped failure on its message or code: %p',
+    (error) => {
+      expect(isRetryablePublishError(error)).toBe(false);
+    },
+  );
 
   it.each([
-    [{ code: 'ETIMEDOUT' }, true],
-    [new Error('Provider returned HTTP 503'), true],
-    [{ code: 'ECONNRESET' }, true],
-    [new Error('socket hang up'), true],
-    [{ code: 'EPIPE' }, true],
+    [{ code: 'ETIMEDOUT' }],
+    [new Error('Provider returned HTTP 503')],
+    [{ code: 'ECONNRESET' }],
+    [new Error('socket hang up')],
     [
       {
         code: 'transient_failure',
         message: 'Beehiiv is temporarily unavailable.',
       },
-      true,
     ],
-    [{ message: 'Provider unavailable', statusCode: 502 }, true],
-    [{ message: 'Gateway', response: { status: 504 } }, true],
-    [{ code: 'validation_failed', statusCode: 400 }, false],
-    ['429 rate limit', false],
-    [{ code: 'ECONNREFUSED' }, false],
-    [{ code: 'ENOTFOUND' }, false],
-    [new Error('Provider rejected the payload'), false],
-  ])('treats %p as an unknown provider outcome: %s', (error, expected) => {
-    expect(isAmbiguousPublishError(error)).toBe(expected);
+    [{ message: 'Provider unavailable', statusCode: 502 }],
+    [{ message: 'Gateway', response: { status: 504 } }],
+    [{ code: 'validation_failed', statusCode: 400 }],
+    ['429 rate limit'],
+  ])('does not call an untyped failure an unknown outcome: %p', (error) => {
+    expect(isAmbiguousPublishError(error)).toBe(false);
   });
 
   it.each([
-    ['429 rate limit', 'rate_limited'],
-    [{ code: 'ETIMEDOUT' }, 'timeout'],
-    [new Error('Provider returned HTTP 503'), 'provider_unavailable'],
+    ['429 rate limit', 'provider_error'],
+    [{ code: 'ETIMEDOUT' }, 'etimedout'],
+    [new Error('Provider returned HTTP 503'), 'provider_error'],
     [{ code: 'Authorization Failed' }, 'authorization_failed'],
     [new Error('Provider rejected the payload'), 'provider_error'],
-  ])('normalizes %p to error code %s', (error, expected) => {
+  ])('stores an untyped %p under its own code %s', (error, expected) => {
     expect(getPublishErrorCode(error)).toBe(expected);
   });
 
