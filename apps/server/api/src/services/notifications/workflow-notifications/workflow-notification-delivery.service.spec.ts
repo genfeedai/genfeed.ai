@@ -415,6 +415,31 @@ describe('agent failure delivery', () => {
       }),
     );
   });
+  it('names the retired model in a workflow email that has no raw error', async () => {
+    const { prisma, notifications, service } = setup(
+      true,
+      'workflow.status',
+      'workflow_execution',
+    );
+    const delivery = await prisma.notificationDelivery.findUnique();
+    delivery.event.payload.error = null;
+    delivery.event.payload.failure = formatAgentError(
+      'The model Old Flux was retired. Pick a new model, then run it again.',
+    );
+    prisma.notificationDelivery.findUnique.mockResolvedValue(delivery);
+    await service.deliver('delivery');
+    expect(notifications.deliverEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: 'Workflow failed: <Daily>',
+        text: expect.stringContaining(
+          'The model Old Flux was retired, so this run stopped before it started.',
+        ),
+      }),
+    );
+    expect(notifications.deliverEmail.mock.calls[0][0].text).toContain(
+      'Pick a new model for this agent, workflow or default',
+    );
+  });
   it('skips opted-out agent notifications', async () => {
     const { prisma, notifications, service } = setup(false);
     await service.deliver('delivery');
