@@ -80,7 +80,7 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
             src={primaryIngredient.thumbnailUrl}
             alt={primaryIngredient?.metadataLabel || 'Video thumbnail'}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            className="object-cover"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
         ) : (

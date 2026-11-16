@@ -169,7 +169,7 @@ function Button({
   const wrappedButton = withWrapper ? (
     <div className={cn('relative inline-flex', wrapperClassName)}>
       {isPingEnabled ? (
-        <span className="absolute -top-1 -right-1 size-3 animate-ping rounded-full bg-destructive" />
+        <span className="absolute -top-1 -right-1 size-3 animate-ping rounded-full bg-destructive motion-reduce:animate-none" />
       ) : null}
       {buttonElement}
     </div>

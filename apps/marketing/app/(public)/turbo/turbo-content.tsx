@@ -5,7 +5,6 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import FaqGrid from '@web-components/content/FaqGrid';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import EditorialPoster from '@web-components/marketing/EditorialPoster';
 import PageLayout from '@web-components/PageLayout';
@@ -76,9 +75,6 @@ export default function TurboContent() {
           <div className="flex flex-col items-start gap-3">
             <TurboSignupButton />
           </div>
-        }
-        heroMedia={
-          <MarketingArtwork page="/turbo" isCompact kind="integration" />
         }
         heroVisual={
           <EditorialPoster

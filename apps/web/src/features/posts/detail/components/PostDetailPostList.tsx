@@ -108,7 +108,7 @@ export default function PostDetailPostList({
           <div key={currentPost.id}>
             {isEditable && !isParent && (
               <div
-                className={`h-px my-2 transition-all duration-200 ${
+                className={`h-px my-2 transition-[height,background-color] duration-200 ${
                   dragOverDividerIndex === index - 2
                     ? 'h-1 bg-primary/20'
                     : 'bg-border hover:bg-muted/50'

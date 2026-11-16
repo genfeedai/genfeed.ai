@@ -25,7 +25,6 @@ import {
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import EditorialPoster from '@web-components/marketing/EditorialPoster';
 import HeroProofRail from '@web-components/marketing/HeroProofRail';
@@ -101,9 +100,6 @@ export default function IntegrationsContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={
-          <MarketingArtwork page="/integrations" isCompact kind="publishing" />
-        }
         heroActions={
           <AgentFirstActions trackingName="integrations_hero_click" />
         }

@@ -115,7 +115,7 @@ export default function CalendarContent() {
               </div>
               <div className="flex w-full min-w-0 flex-col gap-3">
                 <Heading as="h3" className="text-2xl font-bold">
-                  One Calendar, Every Channel
+                  One calendar, every channel
                 </Heading>
                 <Text as="p" className="text-foreground/70">
                   Plan drafts, schedule posts, and route approvals from a single

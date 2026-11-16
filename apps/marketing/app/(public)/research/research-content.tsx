@@ -3,7 +3,6 @@ import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import EditorialPoster from '@web-components/marketing/EditorialPoster';
 import PageLayout from '@web-components/PageLayout';
@@ -110,9 +109,6 @@ export default function ResearchContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={
-          <MarketingArtwork page="/research" isCompact kind="research" />
-        }
         heroActions={
           <AgentFirstActions
             signUpHref={signUpHref}
@@ -136,7 +132,7 @@ export default function ResearchContent() {
               </div>
               <div className="flex w-full min-w-0 flex-col gap-3">
                 <Heading as="h3" className="text-2xl font-bold">
-                  Every Signal, One Workspace
+                  Every signal, one workspace
                 </Heading>
                 <Text as="p" className="text-foreground/70">
                   Track trending content, competitor social accounts, and

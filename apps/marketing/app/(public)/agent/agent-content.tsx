@@ -2,7 +2,6 @@ import { AGENT_PROMPTS } from '@data/agent-prompts.data';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import EditorialPoster from '@web-components/marketing/EditorialPoster';
 import PageLayout from '@web-components/PageLayout';
@@ -95,9 +94,6 @@ export default function AgentContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={
-          <MarketingArtwork page="/agent" isCompact kind="integration" />
-        }
         compact
         description="Add Genfeed to the agent you already use. Brief it and draft with your brand context, generate images, video and audio on the full Genfeed connector, then review, publish and track in the dashboard."
         heroActions={<AgentFirstActions trackingName="agent_hero_click" />}

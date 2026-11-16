@@ -6,7 +6,6 @@ import PublicShell from '@ui/shell/PublicShell';
 import ConnectAgentButton from '@web-components/buttons/connect-agent/ConnectAgentButton';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import FaqGrid from '@web-components/content/FaqGrid';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -139,7 +138,6 @@ export default function ServiceLandingPage({
     >
       <MarketingEntrance cards={false}>
         <PageLayout
-          heroMedia={<MarketingArtwork page={`/${slug}`} />}
           isHeroVisualStacked={config.isAgentFirst}
           title={
             <>
