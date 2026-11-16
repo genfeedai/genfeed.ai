@@ -41,7 +41,7 @@
   "invalidScopeTitle": "Key scopes need attention",
   "keyDescription": "The MCP preset includes read, content, analytics, and draft publishing scopes. Existing key values remain copy-once.",
   "keyTitle": "2. Create or select a scoped key",
-  "loadingKeys": "Loading API keys...",
+  "loadingKeys": "Loading API keys…",
   "manualFallback": "Manual fallback:",
   "manualFallbackDescription": "Manual fallback: run your client's tool discovery and confirm that Genfeed tools are listed.",
   "manualKey": "Advanced: manual API key",

@@ -340,6 +340,7 @@ export class AgentOrchestratorStreamLoopService {
       await this.contextService.resolveThreadMessages(
         threadId,
         context.organizationId,
+        context.scope,
       );
     const history = this.contextService.buildMessageHistory(
       recentMessages,

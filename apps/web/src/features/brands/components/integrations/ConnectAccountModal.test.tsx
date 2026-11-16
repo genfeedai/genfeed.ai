@@ -180,7 +180,7 @@ describe('ConnectAccountModal', () => {
     renderModal();
 
     fireEvent.change(
-      screen.getByRole('textbox', { name: 'Search platforms…' }),
+      screen.getByRole('textbox', { name: 'Search platforms' }),
       {
         target: { value: 'YouTube' },
       },
@@ -195,7 +195,7 @@ describe('ConnectAccountModal', () => {
     renderModal();
 
     fireEvent.change(
-      screen.getByRole('textbox', { name: 'Search platforms…' }),
+      screen.getByRole('textbox', { name: 'Search platforms' }),
       {
         target: { value: 'nonexistent-platform' },
       },
@@ -206,7 +206,7 @@ describe('ConnectAccountModal', () => {
 
   it('connects the only matching platform when Enter is pressed in search', () => {
     const { onConnect } = renderModal();
-    const search = screen.getByRole('textbox', { name: 'Search platforms…' });
+    const search = screen.getByRole('textbox', { name: 'Search platforms' });
 
     fireEvent.change(search, { target: { value: 'YouTube' } });
     fireEvent.keyDown(search, { key: 'Enter' });
@@ -218,7 +218,7 @@ describe('ConnectAccountModal', () => {
     const { onConnect } = renderModal();
 
     fireEvent.keyDown(
-      screen.getByRole('textbox', { name: 'Search platforms…' }),
+      screen.getByRole('textbox', { name: 'Search platforms' }),
       { key: 'Enter' },
     );
 
@@ -227,7 +227,7 @@ describe('ConnectAccountModal', () => {
 
   it('does not connect an unavailable platform through Enter', () => {
     const { onConnect } = renderModal();
-    const search = screen.getByRole('textbox', { name: 'Search platforms…' });
+    const search = screen.getByRole('textbox', { name: 'Search platforms' });
 
     fireEvent.change(search, { target: { value: 'Threads' } });
     expect(screen.getByText('Threads')).toBeInTheDocument();

@@ -1,7 +1,7 @@
 /**
  * Telegram Bot Module
  *
- * NestJS module for the GenFeed workflow execution bot.
+ * NestJS module for the Genfeed workflow execution bot.
  * Separate from the existing TelegramModule (social auth integration).
  */
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';

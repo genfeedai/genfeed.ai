@@ -36,6 +36,7 @@ import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-d
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
+import { ScheduledPostSweepLockService } from '@workers/services/scheduled-post-sweep-lock.service';
 import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-delivery.service';
@@ -73,6 +74,7 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
     ScheduledPostDiscoveryService,
     ScheduledPostExecutionGuardService,
     ScheduledPostFailureService,
+    ScheduledPostSweepLockService,
     ScheduledPostWorkflowQueueService,
     ScheduledPostWorkflowService,
     ThreadCommentDeliveryService,

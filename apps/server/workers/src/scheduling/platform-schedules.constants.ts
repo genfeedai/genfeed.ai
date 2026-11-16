@@ -248,7 +248,8 @@ export const PLATFORM_SCHEDULE_CATALOG = {
     timezone: 'UTC',
   },
   // The sweep only finds due posts and enqueues one job each (the publish runs
-  // on the background queue), so a per-minute tick is one indexed query.
+  // on the dedicated `scheduled-publish` queue), so a per-minute tick is one
+  // indexed query per page of due posts.
   [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH]: {
     pattern: '* * * * *',
     timezone: 'UTC',

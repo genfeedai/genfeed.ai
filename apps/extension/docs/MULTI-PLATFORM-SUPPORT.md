@@ -68,7 +68,7 @@ The background script (`src/background.ts`) handles:
    - Organize content across platforms
    - Access saved posts from the extension popup
 
-3. **GenFeed Dropdown** (Logo button)
+3. **Genfeed Dropdown** (Logo button)
    - Rewrite Post: Improve or rewrite post content
    - Generate Image: Create images based on post content
 
@@ -133,7 +133,7 @@ The background script (`src/background.ts`) handles:
 
 3. **Use on Supported Platforms**
    - Navigate to any supported platform
-   - Look for the GenFeed buttons near reply/comment sections
+   - Look for the Genfeed buttons near reply/comment sections
    - Click to use AI features
 
 ## Development

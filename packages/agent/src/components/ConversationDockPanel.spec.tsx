@@ -43,7 +43,7 @@ describe('ConversationDockPanel', () => {
   it('falls back to a generic placeholder with no page context', () => {
     render(<ConversationDockPanel apiService={apiService} />);
 
-    expect(captured.current?.placeholder).toBe('Describe a task...');
+    expect(captured.current?.placeholder).toBe('Describe a task…');
     expect(captured.current?.suggestedActions).toEqual([]);
   });
 
@@ -74,7 +74,7 @@ describe('ConversationDockPanel', () => {
 
     render(<ConversationDockPanel apiService={apiService} />);
 
-    expect(captured.current?.placeholder).toBe('Describe a task...');
+    expect(captured.current?.placeholder).toBe('Describe a task…');
   });
   it('prefers useful dock page actions while leaving personalized full-page actions intact', () => {
     const personalized = [
