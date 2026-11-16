@@ -6,10 +6,13 @@ import {
 } from '@/lib/navigation/navigation-events';
 import { dropUnhandledJsonApiObjectRejection } from '@/lib/sentry/drop-json-api-object-rejection';
 import { recordHydrationEntryContext } from '@/lib/sentry/hydration-entry-context';
+import { tagHydrationErrorDetail } from '@/lib/sentry/tag-hydration-error-detail';
 
 Sentry.init({
   beforeSend(event, hint) {
-    return dropUnhandledJsonApiObjectRejection(event, hint);
+    const kept = dropUnhandledJsonApiObjectRejection(event, hint);
+
+    return kept ? tagHydrationErrorDetail(kept) : kept;
   },
   dataCollection: {
     cookies: false,
