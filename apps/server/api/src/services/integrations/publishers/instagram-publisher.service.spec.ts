@@ -512,6 +512,7 @@ describe('InstagramPublisherService', () => {
 
         expect(result.success).toBe(false);
         expect(result.error).toBe('Failed to get external ID');
+        expect(result.errorKind).toBe('outcome_unknown');
       });
 
       it('should throw error when Instagram API fails', async () => {
@@ -524,6 +525,39 @@ describe('InstagramPublisherService', () => {
           'Instagram API error',
         );
         expect(logger.error).toHaveBeenCalled();
+      });
+
+      it('reports the daily publishing limit as a rate limit', async () => {
+        const context = createPublishContext(mockImagePost);
+        instagramService.uploadImage.mockRejectedValue(
+          Object.assign(new Error('Request failed with status code 400'), {
+            isAxiosError: true,
+            response: {
+              data: { error: { code: 9, error_subcode: 2207042 } },
+              headers: {},
+              status: 400,
+            },
+          }),
+        );
+
+        await expect(service.publish(context)).rejects.toMatchObject({
+          kind: 'rate_limited',
+          name: 'PublishError',
+        });
+      });
+
+      it('reports a 500 from Instagram as an unknown outcome', async () => {
+        const context = createPublishContext(mockImagePost);
+        instagramService.uploadImage.mockRejectedValue(
+          Object.assign(new Error('Request failed with status code 500'), {
+            isAxiosError: true,
+            response: { data: {}, headers: {}, status: 500 },
+          }),
+        );
+
+        await expect(service.publish(context)).rejects.toMatchObject({
+          kind: 'outcome_unknown',
+        });
       });
     });
   });

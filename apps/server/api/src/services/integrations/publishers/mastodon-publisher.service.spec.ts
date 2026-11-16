@@ -315,6 +315,42 @@ describe('MastodonPublisherService', () => {
       );
       expect(loggerService.error).toHaveBeenCalled();
     });
+
+    it('reports a revoked token as a disconnected channel', async () => {
+      mastodonService.publishStatus.mockRejectedValue(
+        Object.assign(new Error('Request failed with status code 401'), {
+          isAxiosError: true,
+          response: {
+            data: { error: 'The access token is invalid' },
+            headers: {},
+            status: 401,
+          },
+        }),
+      );
+
+      await expect(service.publish(makeContext())).rejects.toMatchObject({
+        kind: 'channel_disconnected',
+        name: 'PublishError',
+      });
+    });
+
+    it('reports a rate limit with the time the instance gave', async () => {
+      mastodonService.publishStatus.mockRejectedValue(
+        Object.assign(new Error('Request failed with status code 429'), {
+          isAxiosError: true,
+          response: {
+            data: {},
+            headers: { 'x-ratelimit-reset': '2026-11-16T09:30:00.000Z' },
+            status: 429,
+          },
+        }),
+      );
+
+      await expect(service.publish(makeContext())).rejects.toMatchObject({
+        kind: 'rate_limited',
+        resetAt: new Date('2026-11-16T09:30:00.000Z'),
+      });
+    });
   });
 
   describe('buildPostUrl', () => {

@@ -650,6 +650,7 @@ describe('TwitterPublisherService', () => {
 
         expect(result.success).toBe(false);
         expect(result.executionState).toBe(TargetExecutionState.FAILED);
+        expect(result.errorKind).toBe('outcome_unknown');
       });
 
       it('should throw error when publishing fails', async () => {
@@ -688,13 +689,14 @@ describe('TwitterPublisherService', () => {
         mockTweet.mockRejectedValue(error);
 
         await expect(service.publish(context)).rejects.toMatchObject({
-          code: 403,
+          httpStatus: 403,
+          kind: 'content_rejected',
           message:
             'Request failed with code 403 - You are not allowed to create a Tweet with duplicate content.',
         });
       });
 
-      it('reports an out-of-credits X account as x_credits_depleted', async () => {
+      it('reports an out-of-credits X account as a refusal to retry later', async () => {
         const context = createPublishContext(mockTextPost);
         const error = Object.assign(new Error('Request failed with code 402'), {
           code: 402,
@@ -708,7 +710,7 @@ describe('TwitterPublisherService', () => {
         mockTweet.mockRejectedValue(error);
 
         await expect(service.publish(context)).rejects.toMatchObject({
-          code: 'x_credits_depleted',
+          kind: 'retry_later',
           message: expect.stringContaining('X API credits depleted'),
         });
       });
@@ -790,7 +792,7 @@ describe('TwitterPublisherService', () => {
 
           await expect(
             service.publish(createPublishContext(quotePost)),
-          ).rejects.toMatchObject({ code: 429 });
+          ).rejects.toMatchObject({ httpStatus: 429, kind: 'rate_limited' });
           expect(mockSingleTweet).not.toHaveBeenCalled();
         });
 
@@ -813,6 +815,7 @@ describe('TwitterPublisherService', () => {
 
         expect(result.success).toBe(false);
         expect(result.error).toBe('Failed to get external ID');
+        expect(result.errorKind).toBe('outcome_unknown');
       });
 
       it('should handle credential not found error', async () => {

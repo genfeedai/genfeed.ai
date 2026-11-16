@@ -1,3 +1,4 @@
+import type { PublishResult } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { PublishErrorKind } from '@genfeedai/contracts';
 import { isPublishError, PublishError } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
@@ -25,6 +26,8 @@ export type ProviderErrorMapper = (
 export interface ProviderErrorVerdict {
   /** Omitted when the provider's code is read but decides nothing. */
   kind?: PublishErrorKind;
+  /** Replaces the thrown error's message, e.g. to add the reason the provider gave. */
+  message?: string;
   /** The provider's own error code or reason, kept on the error. */
   providerCode?: string;
   retryAfterMs?: number;
@@ -44,6 +47,7 @@ const MAYBE_SENT_NETWORK_CODES: ReadonlySet<string> = new Set([
   'ECONNRESET',
   'EPIPE',
   'ERR_CANCELED',
+  'ERR_NETWORK',
   'ETIMEDOUT',
   'UND_ERR_BODY_TIMEOUT',
   'UND_ERR_HEADERS_TIMEOUT',
@@ -52,15 +56,38 @@ const MAYBE_SENT_NETWORK_CODES: ReadonlySet<string> = new Set([
 
 const MAYBE_SENT_ERROR_NAMES: ReadonlySet<string> = new Set([
   'AbortError',
+  // twitter-api-v2: the request failed before any response arrived.
+  'ApiRequestError',
   'TimeoutError',
 ]);
 
 function readStatus(error: Record<string, unknown>): number | undefined {
   const response = isRecord(error.response) ? error.response : undefined;
-  const status = response?.status ?? error.status ?? error.statusCode;
-  return typeof status === 'number' && Number.isFinite(status)
-    ? status
-    : undefined;
+  const metadata = isRecord(error.metadata) ? error.metadata : undefined;
+  const candidates = [
+    response?.status,
+    // IntegrationHttpError carries the status here.
+    metadata?.status,
+    error.status,
+    error.statusCode,
+    // twitter-api-v2 reports the HTTP status as `code`.
+    typeof error.code === 'number' ? error.code : undefined,
+  ];
+  for (const status of candidates) {
+    if (typeof status === 'number' && Number.isFinite(status)) return status;
+  }
+  return undefined;
+}
+
+function readNetworkCode(error: Record<string, unknown>): string | undefined {
+  const sources = [
+    error.code,
+    isRecord(error.cause) ? error.cause.code : undefined,
+    isRecord(error.requestError) ? error.requestError.code : undefined,
+  ];
+  return sources.find(
+    (candidate): candidate is string => typeof candidate === 'string',
+  );
 }
 
 function readHeaders(error: Record<string, unknown>): Record<string, unknown> {
@@ -79,7 +106,7 @@ export function readProviderFailure(error: unknown): ProviderFailure {
     cause: error,
     headers: readHeaders(record),
     httpStatus: readStatus(record),
-    networkCode: typeof record.code === 'string' ? record.code : undefined,
+    networkCode: readNetworkCode(record),
   };
 }
 
@@ -107,9 +134,7 @@ export function readProviderRetryAfterMs(
     const date = Date.parse(retryAfter);
     if (Number.isFinite(date)) return Math.max(0, date - now.getTime());
   }
-  const resetSeconds =
-    readNumber(failure.headers['x-ratelimit-reset']) ??
-    readNumber(failure.headers['x-rate-limit-reset']);
+  const resetSeconds = readNumber(failure.headers['x-ratelimit-reset']);
   return resetSeconds !== undefined && resetSeconds >= 0
     ? resetSeconds * 1000
     : undefined;
@@ -169,17 +194,18 @@ export function toPublishError(
       : kindFromStatus(failure.httpStatus));
   if (!kind) return null;
 
+  const message = verdict?.message ?? messageOf(error);
   const options = {
     cause: error,
     httpStatus: failure.httpStatus,
     providerCode: verdict?.providerCode,
   };
   if (kind !== PublishErrorKind.RATE_LIMITED) {
-    return new PublishError(kind, messageOf(error), options);
+    return new PublishError(kind, message, options);
   }
   const retryAfterMs =
     verdict?.retryAfterMs ?? readProviderRetryAfterMs(failure, now);
-  return new PublishError(kind, messageOf(error), {
+  return new PublishError(kind, message, {
     ...options,
     resetAt: verdict?.resetAt,
     retryAfterMs,
@@ -210,4 +236,12 @@ export function throwAsPublishError(
   mapProvider?: ProviderErrorMapper,
 ): never {
   throw toPublishError(error, mapProvider) ?? error;
+}
+
+/** A failed result that says what the provider's refusal means. */
+export function withErrorKind(
+  result: PublishResult,
+  errorKind: PublishErrorKind,
+): PublishResult {
+  return { ...result, errorKind };
 }
