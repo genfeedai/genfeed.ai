@@ -25,13 +25,13 @@ const RELEASE_TAG_PREFIX = 'desktop-v';
 export const DESKTOP_RELEASES_URL = `https://github.com/${RELEASE_REPO}/releases`;
 
 /**
- * electron-builder emits `GenFeed-${version}-${arch}.${ext}`. The release job
+ * electron-builder emits `Genfeed-${version}-${arch}.${ext}`. The release job
  * runs on `macos-latest`, which is Apple Silicon, so arm64 is the only artifact
  * that exists. An Intel build would need its own runner and appear here as a
  * second pattern rather than a looser one — matching `.dmg` alone would hand an
  * Intel visitor an arm64 image that cannot launch.
  */
-const MAC_ARM64_ASSET_PATTERN = /^GenFeed-.+-arm64\.dmg$/i;
+const MAC_ARM64_ASSET_PATTERN = /^Genfeed-.+-arm64\.dmg$/i;
 
 /**
  * Release lookups revalidate quickly so a freshly published build shows up

@@ -1,5 +1,4 @@
 import { BOOKING_HREF } from '@data/booking.data';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   NeuralGrid,
   NeuralGridItem,
@@ -39,7 +38,6 @@ const CONTACT_PATHS = [
 export default function ContactPage() {
   return (
     <PageLayout
-      heroMedia={<MarketingArtwork page="/contact" isCompact kind="creator" />}
       compact
       title="Contact Genfeed"
       description="Reach the right team for product support, security, privacy, partnerships, or managed content operations."

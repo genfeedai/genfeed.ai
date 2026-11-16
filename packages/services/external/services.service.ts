@@ -24,6 +24,12 @@ export interface OAuthConnectReadinessResponse {
   status: 'available' | 'unavailable';
 }
 
+export interface SlackChannelOption {
+  id: string;
+  isPrivate: boolean;
+  name: string;
+}
+
 export class ServicesService extends BaseService<CredentialOAuth | Credential> {
   constructor(platform: string, token: string) {
     // Pass platform-specific endpoint (e.g., '/services/twitter', '/services/instagram')
@@ -76,6 +82,20 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
         (res) =>
           new Credential(this.extractResource<Partial<ICredential>>(res)),
       );
+  }
+
+  /** Slack: the channels of a connected workspace, for the post channel picker. */
+  public async getSlackChannels(
+    brandId: string,
+    credentialId: string,
+    signal?: AbortSignal,
+  ): Promise<SlackChannelOption[]> {
+    return await this.instance
+      .get<{ data: SlackChannelOption[] }>('channels', {
+        params: { brandId, credentialId },
+        signal,
+      })
+      .then((res) => res.data.data);
   }
 
   public async refreshAuthorizedSignals(

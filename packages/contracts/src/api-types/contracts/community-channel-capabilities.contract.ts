@@ -74,12 +74,12 @@ export const communityChannelCapabilities = [
     // 1024 in the caption of a photo or video (checked by the publisher).
     caption: { maxLength: 4_096, required: true },
     description:
-      'Text, a photo or a video in a Telegram channel, group or chat where the connected bot is a member.',
+      'Text, a photo or a video in a Telegram group the Genfeed bot was added to.',
     helpers: [
       {
         key: 'telegram.credential',
         kind: 'credential',
-        label: 'Telegram bot',
+        label: 'Telegram group',
         required: true,
       },
     ],
@@ -92,17 +92,7 @@ export const communityChannelCapabilities = [
     },
     platform: CredentialPlatform.TELEGRAM,
     publishModes: ['draft', 'publish_now', 'scheduled'],
-    settings: [
-      {
-        description:
-          'The numeric chat ID, or @channelusername for a public channel. Add the bot to the chat first.',
-        helper: 'telegram.chats',
-        key: 'chatId',
-        label: 'Telegram chat',
-        required: true,
-        type: 'string',
-      },
-    ],
+    settings: [],
     status: 'supported',
   },
 ];

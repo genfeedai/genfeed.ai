@@ -21,7 +21,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 export const CASK_TOKEN = 'genfeed';
 
 /** The release runner is Apple Silicon, so arm64 is the only artifact built. */
-export const MAC_ARM64_ASSET_PATTERN = /^GenFeed-.+-arm64\.dmg$/i;
+export const MAC_ARM64_ASSET_PATTERN = /^Genfeed-.+-arm64\.dmg$/i;
 
 export interface DesktopReleaseArtifact {
   name: string;
@@ -44,7 +44,7 @@ export function findMacArm64Artifact(
 
   if (artifact === undefined) {
     throw new Error(
-      'Release manifest contains no GenFeed-*-arm64.dmg artifact to publish a cask for.',
+      'Release manifest contains no Genfeed-*-arm64.dmg artifact to publish a cask for.',
     );
   }
 
@@ -67,9 +67,9 @@ export function renderCask(manifest: DesktopReleaseManifest): string {
   version "${manifest.version}"
   sha256 "${artifact.sha256}"
 
-  url "https://github.com/genfeedai/genfeed.ai/releases/download/desktop-v#{version}/GenFeed-#{version}-arm64.dmg",
+  url "https://github.com/genfeedai/genfeed.ai/releases/download/desktop-v#{version}/Genfeed-#{version}-arm64.dmg",
       verified: "github.com/genfeedai/genfeed.ai/"
-  name "GenFeed"
+  name "Genfeed"
   desc "AI content studio: generate, review, schedule, and publish from one workspace"
   homepage "https://genfeed.ai/"
 
@@ -89,10 +89,10 @@ export function renderCask(manifest: DesktopReleaseManifest): string {
   depends_on arch: :arm64
   depends_on macos: ">= :ventura"
 
-  app "GenFeed.app"
+  app "Genfeed.app"
 
   zap trash: [
-    "~/Library/Application Support/GenFeed",
+    "~/Library/Application Support/Genfeed",
     "~/Library/Caches/ai.genfeed.desktop",
     "~/Library/HTTPStorages/ai.genfeed.desktop",
     "~/Library/Preferences/ai.genfeed.desktop.plist",

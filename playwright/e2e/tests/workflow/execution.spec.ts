@@ -139,7 +139,7 @@ test.describe('Workflow Execution', () => {
       `automation/runs/${runningExec.id}`,
     );
     await expect(
-      authenticatedPage.getByText(`⏳ ${runningExec.status}`, { exact: true }),
+      authenticatedPage.getByText('Running', { exact: true }).first(),
     ).toBeVisible();
   });
 

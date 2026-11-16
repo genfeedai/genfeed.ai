@@ -40,6 +40,7 @@ export interface components {
       scheduledDate?: string;
       status?: PostStatus;
       targetExecutionState?: TargetExecutionState;
+      targetSettings?: Record<string, unknown>;
       tags?: string[];
       timezone?: string;
       visibility?: PostVisibility;

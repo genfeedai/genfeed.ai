@@ -9,7 +9,6 @@ import {
   TERMINAL_COMMANDS,
 } from '@public/skills/_data';
 import { Button } from '@ui/primitives/button';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -42,7 +41,6 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork page="/skills" kind="workflow" />}
         compact
         title={<>{FREE_SKILL_COUNT} Skills. One Command.</>}
         description="Content creation, SEO, advertising, GTM, image prompting, platform development, and analysis as Claude Code skills. Works standalone. Works better with Genfeed."

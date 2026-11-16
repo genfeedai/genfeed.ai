@@ -1,4 +1,3 @@
-import { getPageMarketingAsset } from '@data/page-marketing-assets.data';
 import type { AgentClientVisualProps } from '@props/agent-client.props';
 import AgentClientLogo from '@web-components/content/AgentClientLogo';
 import { ArrowRight, Check, ImageIcon, Video } from 'lucide-react';
@@ -8,7 +7,6 @@ export default function AgentClientVisual({
   client,
   channelName,
 }: AgentClientVisualProps): React.ReactElement {
-  const asset = getPageMarketingAsset(`/${client.slug}`);
   return (
     <figure className="w-full max-w-2xl overflow-hidden rounded-2xl border border-foreground/10 bg-card">
       <div className="flex items-center justify-between gap-4 border-b border-foreground/10 px-5 py-4 text-sm text-foreground/80">
@@ -22,12 +20,12 @@ export default function AgentClientVisual({
       </div>
       <div className="relative aspect-[3/2]">
         <Image
-          alt={asset.alt}
-          className="object-cover"
+          alt="The Genfeed agent working next to its output."
+          className="object-cover object-left-top"
           fill
           preload
           sizes="(min-width: 1024px) 55vw, 100vw"
-          src={asset.src}
+          src="/products/agent.webp"
         />
       </div>
       <figcaption className="grid grid-cols-3 gap-3 border-t border-foreground/10 px-5 py-4 text-xs leading-5 text-foreground/80">

@@ -1,7 +1,6 @@
 import { INTEGRATION_CTA, type Integration } from '@data/integrations.data';
 import Card from '@ui/card/Card';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import HeroProofRail from '@web-components/marketing/HeroProofRail';
 import PageLayout from '@web-components/PageLayout';
 import { Check } from 'lucide-react';
@@ -29,13 +28,11 @@ export default function IntegrationContent({
     [integration],
   );
 
-  const heroVisual = (
-    <MarketingArtwork page={`/integrations/${integration.slug}`} />
-  );
-
   return (
     <PageLayout
       title={integration.name}
+      compact
+      variant="proof"
       description={integration.description}
       heroActions={
         <>
@@ -46,7 +43,6 @@ export default function IntegrationContent({
         </>
       }
       heroProof={heroProof}
-      heroVisual={heroVisual}
     >
       <section className="max-w-6xl mx-auto pb-20">
         <h2 className="text-3xl font-semibold text-center mb-12">Features</h2>

@@ -5,9 +5,11 @@ name: Publish npm Packages
 # registry can no longer silently fall months behind the repo.
 #
 # npm trusted publishing matches the CALLER workflow filename and allows one per
-# package, so `release.yml` is the registered publisher. A direct dispatch here
-# is therefore preflight-only: it proves a release would publish cleanly without
-# touching the registry.
+# package, so the registered publisher is the caller that owns a package's lane:
+# `release.yml` for the enrolled packages and `publish-shared-packages.yml` for
+# the dedicated ones (scripts/npm-release-enrollment.json). A direct dispatch
+# here is therefore preflight-only: it proves a release would publish cleanly
+# without touching the registry.
 on:
   workflow_call:
     inputs:
@@ -21,7 +23,7 @@ on:
         default: true
         type: boolean
       trusted_release_call:
-        description: 'True only when the registered release workflow invokes this reusable workflow'
+        description: 'True only when a registered publisher workflow (release.yml or publish-shared-packages.yml) invokes this reusable workflow'
         required: false
         default: false
         type: boolean
@@ -39,6 +41,11 @@ on:
         description: 'Optional explicit release set; empty means detect registry drift'
         required: false
         default: ''
+        type: string
+      lane:
+        description: 'Which enrollment lane to plan: release (cli, create) or dedicated (the shared design layer, published by publish-shared-packages.yml)'
+        required: false
+        default: 'release'
         type: string
   workflow_dispatch:
     inputs:
@@ -166,6 +173,7 @@ jobs:
       - name: Resolve packages to publish
         id: plan
         env:
+          LANE: ${{ inputs.lane || 'release' }}
           PACKAGES_JSON_OVERRIDE: ${{ inputs.packages_json }}
         run: |
           set -euo pipefail
@@ -176,7 +184,7 @@ jobs:
               echo "packages_json=${PACKAGES_JSON_OVERRIDE}"
             } >>"${GITHUB_OUTPUT}"
           else
-            node scripts/npm-release-plan.mjs
+            node scripts/npm-release-plan.mjs --lane "${LANE}"
           fi
 
       - name: Checkout current release controller

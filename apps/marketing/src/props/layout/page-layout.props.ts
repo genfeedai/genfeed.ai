@@ -7,7 +7,6 @@ export interface PageLayoutProps {
   heroActions?: ReactNode;
   heroDetails?: ReactNode;
   heroProof?: ReactNode;
-  heroMedia?: ReactNode;
   heroVisual?: ReactNode;
   isHeroVisualStacked?: boolean;
   showFooter?: boolean;

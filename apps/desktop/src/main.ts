@@ -922,7 +922,7 @@ const createWindow = async (): Promise<void> => {
     minHeight: 780,
     minWidth: 1280,
     show: false,
-    title: 'GenFeed',
+    title: 'Genfeed',
     // macOS: the renderer's topbar is the titlebar. The traffic lights sit
     // centred in its first 40px band; the shell leaves room for them.
     titleBarStyle: process.platform === 'darwin' ? 'hidden' : 'default',
@@ -1127,7 +1127,7 @@ const showDesktopStartupFailure = async (error: unknown): Promise<void> => {
         minHeight: 560,
         minWidth: 860,
         show: false,
-        title: 'GenFeed',
+        title: 'Genfeed',
         titleBarStyle:
           process.platform === 'darwin' ? 'hiddenInset' : 'default',
         webPreferences: {
@@ -1389,7 +1389,7 @@ const handleAuthCallback = async (
   }
   void new Notification({
     body: session.userEmail || 'Authenticated successfully.',
-    title: 'GenFeed',
+    title: 'Genfeed',
   }).show();
   return result;
 };

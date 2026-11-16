@@ -28,6 +28,7 @@ import LazyRichTextEditor from '@/components/editors/LazyRichTextEditor';
 import ModalPostDestinations from '@/components/modals/content/post/ModalPostDestinations';
 import ModalPostMedia from '@/components/modals/content/post/ModalPostMedia';
 import ModalPostSelectedChannels from '@/components/modals/content/post/ModalPostSelectedChannels';
+import ModalPostSlackTargets from '@/components/modals/content/post/ModalPostSlackTargets';
 import PostDraftGenerator from '@/components/modals/content/post/PostDraftGenerator';
 
 export default function ModalPostSimpleFields({
@@ -93,12 +94,21 @@ export default function ModalPostSimpleFields({
       {errors}
 
       {composer ? (
-        <ModalPostSelectedChannels
-          credentials={composer.credentials}
-          selectedCredentialIds={composer.selectedCredentialIds}
-          isDisabled={isSubmitting}
-          onEdit={composer.onEditChannels}
-        />
+        <>
+          <ModalPostSelectedChannels
+            credentials={composer.credentials}
+            selectedCredentialIds={composer.selectedCredentialIds}
+            isDisabled={isSubmitting}
+            onEdit={composer.onEditChannels}
+          />
+          <ModalPostSlackTargets
+            credentials={composer.credentials}
+            selectedCredentialIds={composer.selectedCredentialIds}
+            channelIds={composer.channelIds}
+            isDisabled={isSubmitting}
+            onChannelChange={composer.onChannelChange}
+          />
+        </>
       ) : null}
       {media ? <ModalPostMedia {...media} /> : null}
       {!isEditMode && !composer && (

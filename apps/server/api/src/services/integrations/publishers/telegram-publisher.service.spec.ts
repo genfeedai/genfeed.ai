@@ -1,7 +1,3 @@
-vi.mock('@libs/utils/encryption/encryption.util', () => ({
-  EncryptionUtil: { decrypt: (value: string) => value },
-}));
-
 import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { TelegramPublisherService } from '@api/services/integrations/publishers/telegram-publisher.service';
@@ -10,14 +6,21 @@ import {
   type TelegramBotApiService,
   type TelegramSendInput,
 } from '@api/services/integrations/telegram/services/telegram-bot-api.service';
-import { DistributionContentType, PostCategory } from '@genfeedai/contracts';
+import {
+  DistributionContentType,
+  PostCategory,
+  PublishErrorKind,
+} from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 type Sent = { botToken: string; input: TelegramSendInput };
 
-function buildPublisher(failure?: TelegramApiError) {
+function buildPublisher(
+  failure?: TelegramApiError,
+  config: { TELEGRAM_BOT_TOKEN?: string } = { TELEGRAM_BOT_TOKEN: 'bot-token' },
+) {
   const sent: Sent[] = [];
   const credentialPatches: Array<{ id: string; isConnected?: boolean }> = [];
   const telegramBotApi = {
@@ -35,6 +38,7 @@ function buildPublisher(failure?: TelegramApiError) {
   const silent = () => undefined;
   const publisher = new TelegramPublisherService(
     {
+      get: (key: keyof typeof config) => config[key],
       ingredientsEndpoint: 'https://cdn.example.test',
       isAuthorizedMediaDeliveryEnabled: false,
     } as unknown as ConfigService,
@@ -50,12 +54,18 @@ function buildContext(
     category?: PostCategory;
     description?: string;
     ingredients?: string[];
-    settings?: Record<string, unknown>;
+    externalId?: string | null;
   } = {},
 ): PublishContext {
   return {
     brandId: 'brand-1',
-    credential: { accessToken: 'bot-token', id: 'credential-1' },
+    credential: {
+      externalId:
+        overrides.externalId === undefined
+          ? '-1001234567890'
+          : overrides.externalId,
+      id: 'credential-1',
+    },
     organization: { id: 'org-1' },
     organizationId: 'org-1',
     post: {
@@ -66,12 +76,11 @@ function buildContext(
       label: 'Post',
     },
     postId: 'post-1',
-    settings: overrides.settings ?? { chatId: '@genfeed' },
   } as unknown as PublishContext;
 }
 
 describe('TelegramPublisherService', () => {
-  it('publishes text to the chat and returns the message id and public link', async () => {
+  it('publishes text to the connected group with the platform bot and returns the message link', async () => {
     const { publisher, sent } = buildPublisher();
 
     const result = await publisher.publish(buildContext());
@@ -80,28 +89,18 @@ describe('TelegramPublisherService', () => {
       executionState: 'published',
       externalId: '501',
       success: true,
-      url: 'https://t.me/genfeed/501',
+      url: 'https://t.me/c/1234567890/501',
     });
     expect(sent).toEqual([
       {
         botToken: 'bot-token',
         input: {
-          chatId: '@genfeed',
+          chatId: '-1001234567890',
           contentType: DistributionContentType.TEXT,
           text: 'Launch &amp; learn',
         },
       },
     ]);
-  });
-
-  it('links a numeric channel id with the t.me/c form', async () => {
-    const { publisher } = buildPublisher();
-
-    const result = await publisher.publish(
-      buildContext({ settings: { chatId: '-1001234567890' } }),
-    );
-
-    expect(result.url).toBe('https://t.me/c/1234567890/501');
   });
 
   it('sends a photo with the text as its caption', async () => {
@@ -121,13 +120,25 @@ describe('TelegramPublisherService', () => {
     });
   });
 
-  it('fails without a chat to post to', async () => {
+  it('fails without a connected group', async () => {
     const { publisher, sent } = buildPublisher();
 
-    const result = await publisher.publish(buildContext({ settings: {} }));
+    const result = await publisher.publish(buildContext({ externalId: null }));
 
     expect(result).toMatchObject({
-      errorCode: 'chat_required',
+      errorCode: 'credential_missing',
+      success: false,
+    });
+    expect(sent).toEqual([]);
+  });
+
+  it('fails where the deployment has no Telegram bot', async () => {
+    const { publisher, sent } = buildPublisher(undefined, {});
+
+    const result = await publisher.publish(buildContext());
+
+    expect(result).toMatchObject({
+      errorCode: 'platform_unavailable',
       success: false,
     });
     expect(sent).toEqual([]);
@@ -170,12 +181,22 @@ describe('TelegramPublisherService', () => {
     );
 
     await expect(publisher.publish(buildContext())).rejects.toMatchObject({
-      code: 'channel_disconnected',
-      isRetryable: false,
+      kind: PublishErrorKind.CHANNEL_DISCONNECTED,
     });
     expect(credentialPatches).toEqual([
       { id: 'credential-1', isConnected: false },
     ]);
+  });
+
+  it('retries later, and keeps the group connected, when the deployment bot token is bad', async () => {
+    const { credentialPatches, publisher } = buildPublisher(
+      new TelegramApiError('Telegram sendMessage failed', 'token_invalid', 401),
+    );
+
+    await expect(publisher.publish(buildContext())).rejects.toMatchObject({
+      kind: 'retry_later',
+    });
+    expect(credentialPatches).toEqual([]);
   });
 
   it('passes the stated wait through on a rate limit and keeps the credential', async () => {
@@ -189,7 +210,7 @@ describe('TelegramPublisherService', () => {
     );
 
     await expect(publisher.publish(buildContext())).rejects.toMatchObject({
-      code: 'rate_limited',
+      kind: PublishErrorKind.RATE_LIMITED,
       retryAfterMs: 7000,
     });
     expect(credentialPatches).toEqual([]);

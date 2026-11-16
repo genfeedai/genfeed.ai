@@ -270,7 +270,18 @@ export interface ModalPostSelectedChannelsProps {
   onEdit: () => void;
 }
 
-interface ModalPostComposerFieldsState extends ModalPostDestinationsProps {
+export interface ModalPostSlackTargetsProps {
+  credentials: ICredential[];
+  selectedCredentialIds: string[];
+  /** The channel chosen for each Slack workspace, by credential id. */
+  channelIds: Record<string, string>;
+  isDisabled: boolean;
+  onChannelChange: (credentialId: string, channelId: string) => void;
+}
+
+interface ModalPostComposerFieldsState
+  extends ModalPostDestinationsProps,
+    Pick<ModalPostSlackTargetsProps, 'channelIds' | 'onChannelChange'> {
   step: ModalPostComposerStep;
   /** Back to the channels step from the content step. */
   onEditChannels: () => void;

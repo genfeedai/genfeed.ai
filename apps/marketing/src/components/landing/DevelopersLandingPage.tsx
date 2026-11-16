@@ -9,7 +9,6 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import FaqGrid from '@web-components/content/FaqGrid';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import LandingFooter from '@web-components/landing/LandingFooter';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
@@ -119,7 +118,6 @@ export default function DevelopersLandingPage(): React.ReactElement {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork page="/developers" />}
         title="Distribution for developers"
         description="Connect your agent to Genfeed to turn product updates into content drafts, media and scheduled posts. Use the hosted MCP server or run the open-source stack yourself."
         heroActions={
@@ -233,7 +231,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
         {/* How it works */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <Heading as="h3" className="text-2xl font-semibold text-center mb-12">
-            Connect, Draft, Review, Publish
+            Connect, draft, review, publish
           </Heading>
           <div className="space-y-0">
             {STEPS.map((step, index) => {

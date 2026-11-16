@@ -62,9 +62,10 @@ export function AgentOAuthConnectMenu({
       catalog.filter(
         (item) =>
           item.isConnectAvailable &&
-          // Key-based tiles need a form this menu can't show; they connect
-          // from the brand's Connect account modal.
+          // Key-based and add-bot tiles need a screen this menu can't show;
+          // they connect from the brand's Connect account modal.
           !isApiKeyConnectPlatform(item) &&
+          item.connectMethod !== 'add_bot_link' &&
           !excludePlatforms?.has(item.platform),
       ),
     [catalog, excludePlatforms],

@@ -2,11 +2,14 @@ import { CredentialPlatform } from '@genfeedai/contracts';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import {
   DevIcon,
+  DiscordIcon,
   FacebookIcon,
   GhostIcon,
   GoogleColorIcon,
   InstagramIcon,
   LinkedinIcon,
+  SlackIcon,
+  TelegramIcon,
   ThreadsIcon,
   TiktokIcon,
   XTwitterIcon,
@@ -18,6 +21,7 @@ export type OAuthConnectPlatformCategoryId =
   | 'social'
   | 'video'
   | 'communities'
+  | 'messaging'
   | 'creator'
   | 'publishing'
   | 'ads';
@@ -26,7 +30,7 @@ export type OAuthConnectPlatformCategoryId =
  * How a tile connects: `oauth` redirects to the provider, `api_key` asks for a
  * site URL and key in a form and stores the credential directly.
  */
-export type OAuthConnectMethod = 'oauth' | 'api_key';
+export type OAuthConnectMethod = 'oauth' | 'api_key' | 'add_bot_link';
 
 export interface OAuthConnectPlatformCategory {
   id: OAuthConnectPlatformCategoryId;
@@ -113,6 +117,11 @@ export const OAUTH_CONNECT_PLATFORM_CATEGORIES: OAuthConnectPlatformCategory[] =
       id: 'communities',
       label: 'Communities',
       description: 'Reach members of forums and community spaces.',
+    },
+    {
+      id: 'messaging',
+      label: 'Messaging',
+      description: 'Post to the channels of your team and community chats.',
     },
     {
       id: 'creator',
@@ -212,6 +221,33 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     label: 'Restream',
     platform: CredentialPlatform.RESTREAM,
     servicePath: 'restream',
+  },
+  {
+    category: 'messaging',
+    Icon: DiscordIcon,
+    iconClassName: 'text-platform-discord',
+    label: 'Discord',
+    platform: CredentialPlatform.DISCORD,
+    servicePath: 'discord',
+  },
+  {
+    category: 'messaging',
+    Icon: SlackIcon,
+    iconClassName: 'text-platform-slack',
+    label: 'Slack',
+    platform: CredentialPlatform.SLACK,
+    servicePath: 'slack',
+  },
+  {
+    category: 'messaging',
+    // Telegram has no OAuth for bots: the user adds the Genfeed bot to a group
+    // from a one-time link, and the group connects when the bot is added.
+    connectMethod: 'add_bot_link',
+    Icon: TelegramIcon,
+    iconClassName: 'text-platform-telegram',
+    label: 'Telegram',
+    platform: CredentialPlatform.TELEGRAM,
+    servicePath: 'telegram',
   },
   {
     category: 'creator',

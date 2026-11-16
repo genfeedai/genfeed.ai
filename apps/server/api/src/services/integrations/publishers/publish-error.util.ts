@@ -212,6 +212,24 @@ export function toPublishError(
   });
 }
 
+/**
+ * Like `toPublishError`, for a request that may have created the post. A
+ * failure that says nothing about the provider (no status, no known network
+ * code) is an unknown outcome: the request may have been accepted, so it is
+ * verified before any retry.
+ */
+export function toPublishErrorOrUnknown(
+  error: unknown,
+  mapProvider?: ProviderErrorMapper,
+): PublishError {
+  return (
+    toPublishError(error, mapProvider) ??
+    new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, messageOf(error), {
+      cause: error,
+    })
+  );
+}
+
 /** Throws the typed error for a provider failure, or the failure unchanged. */
 export function throwAsPublishError(
   error: unknown,

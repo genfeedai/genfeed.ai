@@ -3,7 +3,6 @@ import { getPlanLabel } from '@genfeedai/pricing';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import HeroProofRail from '@web-components/marketing/HeroProofRail';
 import PageLayout from '@web-components/PageLayout';
 import { Check, X } from 'lucide-react';
@@ -17,6 +16,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
       title={useCase.title}
       description={useCase.description}
       variant="proof"
+      compact
       heroActions={
         <>
           <AgentFirstActions trackingName="use_case_hero_click" />
@@ -38,7 +38,6 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
           ]}
         />
       }
-      heroVisual={<MarketingArtwork page={`/use-cases/${useCase.slug}`} />}
     >
       <section className="max-w-6xl mx-auto pb-20">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-foreground/10">
