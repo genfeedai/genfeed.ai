@@ -53,6 +53,103 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
     });
   });
 
+  describe('Genjutsu object swap and restyle', () => {
+    it('matches both new endpoints', () => {
+      const adapter = buildAdapter({});
+      expect(adapter.supports(MODEL_KEYS.HIGGSFIELD_GENJUTSU_OBJECT_SWAP)).toBe(
+        true,
+      );
+      expect(adapter.supports(MODEL_KEYS.HIGGSFIELD_GENJUTSU_RESTYLE)).toBe(
+        true,
+      );
+    });
+
+    it('sends object swap with the clip and reference stills', async () => {
+      const generateObjectSwap = vi
+        .fn()
+        .mockResolvedValue({ requestId: 'req-swap' });
+      const waitForVideoCompletion = vi
+        .fn()
+        .mockResolvedValue({ videoUrl: 'https://cdn.test/swap.mp4' });
+      const adapter = buildAdapter({
+        generateObjectSwap,
+        waitForVideoCompletion,
+      });
+
+      const result = await adapter.generate(
+        buildParams({
+          imageUrl: 'https://cdn.test/mug.png',
+          model: MODEL_KEYS.HIGGSFIELD_GENJUTSU_OBJECT_SWAP,
+          organizationId: 'org-1',
+          prompt: 'swap the mug',
+          promptParams: {
+            prompt: 'swap the mug',
+            reference_video: 'https://cdn.test/desk.mp4',
+          },
+        }),
+      );
+
+      expect(generateObjectSwap).toHaveBeenCalledWith({
+        imageUrls: ['https://cdn.test/mug.png'],
+        onProviderSubmissionStarted: undefined,
+        organizationId: 'org-1',
+        prompt: 'swap the mug',
+        videoUrl: 'https://cdn.test/desk.mp4',
+      });
+      expect(result.externalId).toBe('https://cdn.test/swap.mp4');
+    });
+
+    it('sends restyle with the preset and optional stills', async () => {
+      const generateRestyle = vi
+        .fn()
+        .mockResolvedValue({ requestId: 'req-style' });
+      const waitForVideoCompletion = vi
+        .fn()
+        .mockResolvedValue({ videoUrl: 'https://cdn.test/style.mp4' });
+      const adapter = buildAdapter({ generateRestyle, waitForVideoCompletion });
+
+      const result = await adapter.generate(
+        buildParams({
+          model: MODEL_KEYS.HIGGSFIELD_GENJUTSU_RESTYLE,
+          organizationId: 'org-1',
+          prompt: 'keep the motion',
+          promptParams: {
+            preset_id: 'c2143317-f28d-4c3c-a0b8-39bd547e08a7',
+            prompt: 'keep the motion',
+            reference_video: 'https://cdn.test/walk.mp4',
+            resolution: '480p',
+          },
+        }),
+      );
+
+      expect(generateRestyle).toHaveBeenCalledWith({
+        imageUrls: [],
+        onProviderSubmissionStarted: undefined,
+        organizationId: 'org-1',
+        presetId: 'c2143317-f28d-4c3c-a0b8-39bd547e08a7',
+        prompt: 'keep the motion',
+        resolution: '480p',
+        videoUrl: 'https://cdn.test/walk.mp4',
+      });
+      expect(result.externalId).toBe('https://cdn.test/style.mp4');
+    });
+
+    it('rejects restyle without a preset before calling Higgsfield', async () => {
+      const generateRestyle = vi.fn();
+      const adapter = buildAdapter({ generateRestyle });
+
+      await expect(
+        adapter.generate(
+          buildParams({
+            model: MODEL_KEYS.HIGGSFIELD_GENJUTSU_RESTYLE,
+            promptParams: { reference_video: 'https://cdn.test/walk.mp4' },
+          }),
+        ),
+      ).rejects.toThrow('style preset id');
+      expect(generateRestyle).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Cinema Studio', () => {
     it('matches the Cinema Studio 4.0 endpoint', () => {
       expect(

@@ -96,7 +96,7 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
       contexts: ['selection', 'page', 'link'],
       id: CONTEXT_MENU_REMIX,
-      title: 'Remix with GenFeed',
+      title: 'Remix with Genfeed',
     });
 
     chrome.contextMenus.create({

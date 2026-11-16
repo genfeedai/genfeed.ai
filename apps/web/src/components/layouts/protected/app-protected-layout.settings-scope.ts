@@ -61,7 +61,7 @@ const PERSONAL_SETTINGS_SEGMENTS = new Set<string>([
  * helper strips the org/brand prefix entirely, which collapses the org
  * settings home (`/:org/~/settings`, no sub-page — redirects to General) and
  * the brand settings home (`/:org/:brand/settings` — the brand's own
- * "Profile" page, since `BRAND_SETTINGS.PROFILE` reuses `SETTINGS.ROOT`) down
+ * settings landing, which redirects to Profile) down
  * to the exact same normalized string as the flat personal home
  * (`/settings`). Matching on the RAW path's prefix keeps those distinguishable.
  */

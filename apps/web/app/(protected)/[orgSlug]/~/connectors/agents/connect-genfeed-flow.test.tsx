@@ -668,7 +668,7 @@ describe('ConnectGenfeedFlow', () => {
     render(<ConnectGenfeedFlow />, client);
     await openManualKeyStep();
 
-    expect(screen.getByRole('status')).toHaveTextContent('Loading API keys...');
+    expect(screen.getByRole('status')).toHaveTextContent('Loading API keys…');
     expect(screen.queryByText('MCP key')).not.toBeInTheDocument();
   });
 

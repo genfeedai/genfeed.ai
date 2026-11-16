@@ -30,6 +30,7 @@ import type {
 import type { PrismaClient } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { PrismaService as LibsPrismaService } from '@libs/prisma/prisma.service';
+import { ScheduledPostChannelRecoveryService } from '@workers/services/scheduled-post-channel-recovery.service';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
@@ -219,6 +220,18 @@ export function buildDeliveryHarness(
       logger,
     ) as unknown as Deps[12],
     anything as Deps[13],
+    new ScheduledPostChannelRecoveryService(
+      logger,
+      anything as ConstructorParameters<
+        typeof ScheduledPostChannelRecoveryService
+      >[1],
+      anything as ConstructorParameters<
+        typeof ScheduledPostChannelRecoveryService
+      >[2],
+      anything as ConstructorParameters<
+        typeof ScheduledPostChannelRecoveryService
+      >[3],
+    ),
   );
   service.onModuleInit();
   const approvals = new PublishApprovalsService(

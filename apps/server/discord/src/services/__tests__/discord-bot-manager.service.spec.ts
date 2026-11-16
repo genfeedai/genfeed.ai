@@ -668,7 +668,7 @@ describe('DiscordBotManager', () => {
       expect(mockInteraction.editReply).toHaveBeenCalledWith(
         expect.objectContaining({
           components: expect.any(Array),
-          content: expect.stringContaining('GenFeed AI Workflows'),
+          content: expect.stringContaining('Genfeed AI Workflows'),
         }),
       );
     });
