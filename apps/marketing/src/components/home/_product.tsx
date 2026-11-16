@@ -161,7 +161,7 @@ export default function HomeProduct(): React.ReactElement {
             className="text-5xl font-semibold leading-[0.98] tracking-[-0.02em] text-foreground sm:text-6xl"
             data-testid="home-product-heading"
           >
-            One agent for all your content.
+            One agent for all your content
           </Heading>
           <Text className="max-w-2xl text-base leading-7 text-foreground/80 md:text-lg">
             Ask once and the whole campaign comes back: video, images, ads,

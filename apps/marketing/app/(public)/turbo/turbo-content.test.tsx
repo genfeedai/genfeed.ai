@@ -32,15 +32,15 @@ describe('TurboContent', () => {
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: 'Your brand in. On-brand content out.',
+        name: 'Your brand in, on-brand content out',
       }),
     ).toBeInTheDocument();
     for (const title of [
       'How it works',
-      'Nothing posts without you.',
-      'Gets sharper every batch.',
+      'Nothing posts without you',
+      'Gets sharper every batch',
       'Frequently asked questions',
-      'Ready when you are.',
+      'Ready when you are',
     ]) {
       expect(
         screen.getByRole('heading', { level: 2, name: title }),

@@ -15,7 +15,7 @@ export default function HomeCTA(): React.ReactElement {
             as="h2"
             className="text-5xl font-semibold leading-none tracking-[-0.02em] sm:text-6xl"
           >
-            Start with one brief.
+            Start with one brief
           </Heading>
 
           <div className="flex flex-row items-center flex-wrap justify-center gap-3">

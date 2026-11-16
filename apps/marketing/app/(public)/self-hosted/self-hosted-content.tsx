@@ -309,7 +309,7 @@ export default function SelfHostedContent() {
 
         <CtaSection
           bg="subtle"
-          title="Ship it your way."
+          title="Ship it your way"
           description="Start free on managed cloud, or deploy the open-source core on your own infrastructure."
         >
           <Button size={ButtonSize.PUBLIC} asChild>

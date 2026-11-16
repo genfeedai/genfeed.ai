@@ -12,8 +12,18 @@ describe('HomeProviders', () => {
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: /your models, one workspace\./i,
+        name: 'Every model, no choosing',
       }),
+    ).toBeInTheDocument();
+  });
+
+  it('tells visitors they do not need to pick a model', () => {
+    render(<HomeProviders />);
+
+    expect(
+      screen.getByText(
+        /you do not need to pick one: genfeed chooses the model/i,
+      ),
     ).toBeInTheDocument();
   });
 

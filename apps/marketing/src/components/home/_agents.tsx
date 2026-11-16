@@ -27,7 +27,7 @@ export default function HomeAgents(): React.ReactElement {
             as="h2"
             className="text-4xl font-semibold leading-tight tracking-[-0.02em] sm:text-5xl"
           >
-            Start in your agent.
+            Start in your agent
           </Heading>
           <Text className="max-w-2xl text-base leading-7 gen-text-muted">
             Add Genfeed over MCP and work where you already work. The dashboard

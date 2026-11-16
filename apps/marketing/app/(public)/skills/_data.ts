@@ -582,8 +582,6 @@ export interface SkillRegistry {
 export const STATS = [
   { label: 'Free Skills', value: String(FREE_SKILL_COUNT) },
   { label: 'Categories', value: String(SKILL_CATEGORIES.length) },
-  { label: 'Open Source', value: '100%' },
-  { label: 'Install Time', value: '<10s' },
 ];
 
 /* Terminal demo commands */

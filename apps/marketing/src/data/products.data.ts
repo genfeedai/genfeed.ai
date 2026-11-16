@@ -307,7 +307,7 @@ export const products: Product[] = [
     ],
     useCases: [
       {
-        description: 'Generate content from ChatGPT in seconds',
+        description: 'Start a content brief from a ChatGPT conversation',
         example:
           '"Create 5 TikTok videos about AI trends and schedule for this week" → Waiting for your approval',
         title: 'Quick Content Creation',
@@ -350,7 +350,7 @@ export const products: Product[] = [
       },
     ],
     category: 'Developer Tools',
-    cta: 'Connect your agent',
+    cta: 'Connect Agent',
     description:
       'Connect any AI agent to Genfeed with the Model Context Protocol. Browser OAuth and tools to draft, schedule, publish and measure content. Claude connects to content operations, and the full Genfeed server added as a second connector generates images, video and audio; other agents can generate through MCP.',
     features: [

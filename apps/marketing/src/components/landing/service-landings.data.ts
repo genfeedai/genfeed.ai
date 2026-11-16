@@ -118,7 +118,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
     faqs: [
       {
         answer:
-          'This is built for high-end SMBs with real content demand: founder-led companies, service businesses, and operators who need consistent publishing without building an internal team.',
+          'This is for founder-led companies, service businesses and operators who need consistent publishing without building an internal team.',
         question: 'Who is this for?',
       },
       {
@@ -189,7 +189,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
     priceNote: serviceOffering.priceNote,
     priceCtaHint: serviceOffering.cta,
     processDescription:
-      'Clear operating rhythm. Minimal coordination overhead.',
+      'Share your goals, agree the scope, then we produce and publish. You approve what goes out.',
     processTitle: 'How It Works',
     slug: 'done-for-you',
     title: 'Done-For-You Content',

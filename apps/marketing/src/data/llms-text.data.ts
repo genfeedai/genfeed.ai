@@ -556,7 +556,7 @@ export function buildLlmsFull(
   s.push('## Integrations');
   s.push('');
   s.push(
-    'Genfeed connects to 19+ platforms for publishing, analytics, and audience growth.',
+    `Genfeed connects to ${integrations.length} platforms: social networks, blogs, newsletters and chat apps.`,
   );
   s.push('');
 

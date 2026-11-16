@@ -26,8 +26,8 @@ export async function generateMetadata(
   }
 
   const competitorName = competitor.name;
-  const title = `Genfeed vs ${competitorName} (2026): AI Content Platform Comparison`;
-  const description = `Compare Genfeed with ${competitorName}. See how AI-powered content generation, pricing, features, and capabilities stack up side by side.`;
+  const title = `Genfeed vs ${competitorName} (2026): features and pricing compared`;
+  const description = `Genfeed vs ${competitorName}: what each makes, where it publishes, what it costs.`;
   const url = `${EnvironmentService.apps.website}/vs/${slug}`;
 
   const previousImages = [getMarketingOgImage(`/vs/${slug}`, competitorName)];
@@ -68,7 +68,7 @@ export default async function Page({
 
   const competitorName = competitor.name;
   const url = `${EnvironmentService.apps.website}/vs/${slug}`;
-  const description = `Compare Genfeed with ${competitorName}. See how AI-powered content generation, pricing, features, and capabilities stack up side by side.`;
+  const description = `Genfeed vs ${competitorName}: what each makes, where it publishes, what it costs.`;
 
   const comparisonJsonLd = {
     '@context': 'https://schema.org',

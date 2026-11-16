@@ -26,7 +26,7 @@ export default function HomeAsks(): React.ReactElement {
               as="h2"
               className="max-w-3xl text-5xl font-semibold leading-tight tracking-[-0.02em] sm:text-6xl"
             >
-              Ask for the job, not the file.
+              Ask for the job, not the file
             </Heading>
             <Text className="max-w-2xl text-base leading-7 gen-text-muted">
               Start with a brief or a reference. Genfeed creates drafts using
