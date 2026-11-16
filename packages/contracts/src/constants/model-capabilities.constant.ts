@@ -1377,6 +1377,37 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       requiresFirstFrame: true,
     },
     /**
+     * Genjutsu object swap: replaces an object in the source clip with one to
+     * eight reference stills. Length and frame follow the source video.
+     */
+    [MODEL_KEYS.HIGGSFIELD_GENJUTSU_OBJECT_SWAP]: {
+      category: ModelCategory.VIDEO,
+      hasDurationEditing: false,
+      hasResolutionOptions: true,
+      hasSpeech: false,
+      hasVideoReferences: true,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 8,
+      maxVideoReferences: 1,
+      requiresFirstFrame: true,
+    },
+    /**
+     * Genjutsu restyle: re-renders the source clip in a catalog style preset,
+     * keeping motion and audio. Up to five optional character stills.
+     */
+    [MODEL_KEYS.HIGGSFIELD_GENJUTSU_RESTYLE]: {
+      category: ModelCategory.VIDEO,
+      hasDurationEditing: false,
+      hasResolutionOptions: true,
+      hasSpeech: false,
+      hasVideoReferences: true,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 5,
+      maxVideoReferences: 1,
+    },
+    /**
      * Cinema Studio 4.0 (documented 2026-11-15): text-to-video, or
      * reference-to-video when any image, video or audio list is nonempty.
      * 4 to 30 seconds, 480p or 720p, native audio. Up to 30 images, 10 videos
@@ -1402,6 +1433,32 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       aspectRatios: ASPECT_RATIOS.IMAGEN,
       category: ModelCategory.IMAGE,
       defaultAspectRatio: '4:3',
+      isBatchSupported: true,
+      maxOutputs: 4,
+      maxReferences: 0,
+    },
+    /** Soul Standard and Soul Cinema (documented 2026-11-15): same controls as Soul 2. */
+    [MODEL_KEYS.HIGGSFIELD_SOUL_STANDARD]: {
+      aspectRatios: ASPECT_RATIOS.IMAGEN,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '4:3',
+      isBatchSupported: true,
+      maxOutputs: 4,
+      maxReferences: 0,
+    },
+    /** Ads Studio: one brief renders 1 to 8 ad concepts; one image each. */
+    [MODEL_KEYS.HIGGSFIELD_ADS_STUDIO]: {
+      aspectRatios: ASPECT_RATIOS.HIGGSFIELD_ADS_STUDIO,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '1:1',
+      isBatchSupported: true,
+      maxOutputs: 8,
+      maxReferences: 0,
+    },
+    [MODEL_KEYS.HIGGSFIELD_SOUL_CINEMA]: {
+      aspectRatios: ASPECT_RATIOS.IMAGEN,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '1:1',
       isBatchSupported: true,
       maxOutputs: 4,
       maxReferences: 0,
