@@ -47,6 +47,26 @@ describe('getSubscriptionCycleWindow', () => {
     ).toEqual(new Date('2027-02-28T00:00:00.000Z'));
   });
 
+  it('uses the persisted period start over the derived one', () => {
+    expect(
+      getSubscriptionCycleWindow({
+        currentPeriodEnd: new Date('2026-02-28T00:00:00.000Z'),
+        currentPeriodStart: new Date('2026-01-31T00:00:00.000Z'),
+        plan: SubscriptionPlan.MONTHLY,
+      })?.cycleStartAt,
+    ).toEqual(new Date('2026-01-31T00:00:00.000Z'));
+  });
+
+  it('ignores a persisted start that is not before the period end', () => {
+    expect(
+      getSubscriptionCycleWindow({
+        currentPeriodEnd: new Date('2026-03-31T00:00:00.000Z'),
+        currentPeriodStart: new Date('2026-04-02T00:00:00.000Z'),
+        plan: SubscriptionPlan.MONTHLY,
+      })?.cycleStartAt,
+    ).toEqual(new Date('2026-02-28T00:00:00.000Z'));
+  });
+
   it.each([
     ['no subscription', null],
     [

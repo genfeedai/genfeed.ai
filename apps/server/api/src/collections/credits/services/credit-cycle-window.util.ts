@@ -22,13 +22,15 @@ function subtractMonths(date: Date, months: number): Date {
 }
 
 /**
- * The billing period a subscription is currently in, derived from its period
- * end and plan. Null when the organization has no subscription period (free,
- * pay-as-you-go, or a subscription that never completed checkout).
+ * The billing period a subscription is currently in. The persisted period
+ * start is used when Stripe has written one; otherwise it is derived from the
+ * period end and plan. Null when the organization has no subscription period
+ * (free, pay-as-you-go, or a subscription that never completed checkout).
  */
 export function getSubscriptionCycleWindow(
   subscription: {
     currentPeriodEnd?: Date | null;
+    currentPeriodStart?: Date | null;
     plan?: string | null;
   } | null,
 ): CreditCycleWindow | null {
@@ -38,6 +40,11 @@ export function getSubscriptionCycleWindow(
   }
 
   const cycleEndAt = new Date(subscription.currentPeriodEnd);
+  const persistedStart = subscription.currentPeriodStart;
+
+  if (persistedStart && persistedStart < cycleEndAt) {
+    return { cycleEndAt, cycleStartAt: new Date(persistedStart) };
+  }
 
   if (subscriptionPlan === SubscriptionPlan.MONTHLY) {
     return { cycleEndAt, cycleStartAt: subtractMonths(cycleEndAt, 1) };

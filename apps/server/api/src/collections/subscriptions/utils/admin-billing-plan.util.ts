@@ -4,6 +4,7 @@ import type { SubscriptionCreditGrantService } from '@api/common/subscriptions/s
 
 interface AdminBillingSubscription {
   currentPeriodEnd: Date | null;
+  currentPeriodStart: Date | null;
   plan: string | null;
   stripePriceId: string | null;
 }
