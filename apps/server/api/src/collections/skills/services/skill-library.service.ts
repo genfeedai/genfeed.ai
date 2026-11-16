@@ -648,6 +648,7 @@ export class SkillLibraryService {
     if (!resolution) return;
     for (const receipt of receipts) {
       if (!receipt.versionId) continue;
+      // sql-risk-audit: ignore bulk-write-tenant-review -- The resolution is looked up above by id, organizationId and isDeleted:false; the item has no tenant column and the write is limited to that resolution's items.
       await this.prisma.skillResolutionItem.updateMany({
         data: {
           sections: {
