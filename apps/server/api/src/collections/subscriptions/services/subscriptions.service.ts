@@ -17,6 +17,10 @@ import {
 } from '@api/collections/subscriptions/errors/subscription-preview-failure.util';
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import { buildAdminBillingOrderBy } from '@api/collections/subscriptions/utils/admin-billing-order.util';
+import {
+  resolveAdminCycleUsed,
+  resolveAdminPlanLimit,
+} from '@api/collections/subscriptions/utils/admin-billing-plan.util';
 import { buildOrganizationBillingRow } from '@api/collections/subscriptions/utils/organization-billing.util';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -289,14 +293,21 @@ export class SubscriptionsService
           (billingAccountId
             ? wallets.find((row) => row.billingAccountId === billingAccountId)
             : undefined);
-        const planLimit = subscription
-          ? ((await this.creditGrantService.resolveMonthlyCredits(
-              subscription.stripePriceId,
-            )) ?? 0)
-          : 0;
+        const planLimit = await resolveAdminPlanLimit(
+          this.creditGrantService,
+          subscription,
+        );
+        const balance = wallet ? wallet.balance - wallet.heldAmount : 0;
 
         return buildOrganizationBillingRow({
-          balance: wallet ? wallet.balance - wallet.heldAmount : 0,
+          balance,
+          cycleUsed: await resolveAdminCycleUsed(
+            this.creditsUtilsService,
+            organization.id,
+            subscription,
+            planLimit,
+            balance,
+          ),
           hasPaygPurchase: paygOrganizationIds.has(organization.id),
           organization: {
             id: organization.id,

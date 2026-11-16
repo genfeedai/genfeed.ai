@@ -540,6 +540,124 @@ describe('SettingsSubscriptionPage', () => {
     expect(screen.queryByText('Available')).not.toBeInTheDocument();
     expect(screen.queryByText('Funded organizations')).not.toBeInTheDocument();
   });
+  it("shows this organization's usage from the credits breakdown, the figure the Credits page reads", () => {
+    useBillingAccountMock.mockReturnValue({
+      account: {
+        budgetPolicy: null,
+        callerRole: null,
+        capabilities: {
+          canCheckout: false,
+          canDetachOrganization: false,
+          canLinkOrganization: false,
+          canManageBudgets: false,
+          canManageMembers: false,
+          canOpenPortal: false,
+        },
+        isLinked: true,
+        id: 'billing-account-123',
+        kind: 'organization',
+        monthlyBudgetCredits: null,
+        organizationId: 'org-123',
+        usage: 9000,
+      },
+      error: null,
+      isLoading: false,
+      refresh: vi.fn(),
+    });
+    useSubscriptionMock.mockReturnValue({
+      ...useSubscriptionMock(),
+      creditsBreakdown: {
+        credits: [],
+        cycleTotal: 2004,
+        cycleUsed: 1434.8,
+        planLimit: 0,
+        total: 569.2,
+      },
+    });
+
+    render(<SettingsSubscriptionPage />);
+
+    expect(screen.getByText('1,434.8')).toBeInTheDocument();
+    expect(screen.queryByText('9,000')).not.toBeInTheDocument();
+  });
+
+  it('shows no usage figure, not the all-time one, when the credits request fails', () => {
+    useBillingAccountMock.mockReturnValue({
+      account: {
+        budgetPolicy: null,
+        callerRole: null,
+        capabilities: {
+          canCheckout: false,
+          canDetachOrganization: false,
+          canLinkOrganization: false,
+          canManageBudgets: false,
+          canManageMembers: false,
+          canOpenPortal: false,
+        },
+        isLinked: true,
+        id: 'billing-account-123',
+        kind: 'organization',
+        monthlyBudgetCredits: null,
+        organizationId: 'org-123',
+        usage: 9000,
+      },
+      error: null,
+      isLoading: false,
+      refresh: vi.fn(),
+    });
+    useSubscriptionMock.mockReturnValue({
+      ...useSubscriptionMock(),
+      creditsBreakdown: null,
+      error: 'credits failed',
+    });
+
+    render(<SettingsSubscriptionPage />);
+
+    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.queryByText('9,000')).not.toBeInTheDocument();
+  });
+
+  it('uses the credits breakdown only for the current organization in the funded list', () => {
+    useBillingAccountMock.mockReturnValue({
+      account: {
+        callerRole: 'VIEWER',
+        capabilities: {
+          canCheckout: false,
+          canDetachOrganization: false,
+          canLinkOrganization: false,
+          canManageBudgets: false,
+          canManageMembers: false,
+          canOpenPortal: false,
+        },
+        isIdentityStale: false,
+        kind: 'account',
+        linkedOrganizations: [
+          { label: 'Acme', organizationId: 'org-123', usage: 9000 },
+          { label: 'Beta', organizationId: 'org-456', usage: 77 },
+        ],
+        status: 'active',
+        wallet: { available: 100, held: 10, settled: 110 },
+      },
+      error: null,
+      isLoading: false,
+      refresh: vi.fn(),
+    });
+    useSubscriptionMock.mockReturnValue({
+      ...useSubscriptionMock(),
+      creditsBreakdown: {
+        credits: [],
+        cycleUsed: 1434.8,
+        planLimit: 0,
+        total: 569.2,
+      },
+    });
+
+    render(<SettingsSubscriptionPage />);
+
+    expect(screen.getByText(/1,434\.8\s+used/)).toBeInTheDocument();
+    expect(screen.getByText(/77\s+used/)).toBeInTheDocument();
+  });
+
   describe('Subscription runtime boundary', () => {
     beforeEach(() => {
       vi.stubEnv('GENFEED_CLOUD', 'true');
