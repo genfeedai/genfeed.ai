@@ -27,7 +27,11 @@ import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
-import { SCHEDULED_POST_UNSETTLED_APPROVAL_MESSAGE } from '@workers/services/scheduled-post.constants';
+import {
+  SCHEDULED_POST_RETRY_BACKOFF_SECONDS,
+  SCHEDULED_POST_UNSETTLED_APPROVAL_MESSAGE,
+  SCHEDULED_POST_UNVERIFIED_BACKOFF_SECONDS,
+} from '@workers/services/scheduled-post.constants';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
@@ -150,8 +154,11 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
 
     if (claim.isAlreadyPublished) {
       await this.repeatScheduler.materializeRecurrence(post);
-      await this.settleUnconfirmedPublishedApproval(post);
-      return result;
+      const settled = await this.settleUnconfirmedPublishedApproval(
+        post,
+        this.requiredString(request.approvalId, 'approvalId'),
+      );
+      return settled ?? result;
     }
     if (!claim.executionStartedAt) {
       throw new Error('Scheduled publish finalization requires a claim lease.');
@@ -197,21 +204,50 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
    */
   private async settleUnconfirmedPublishedApproval(
     post: PostEntity,
-  ): Promise<void> {
+    approvalId: string,
+  ): Promise<PublishResult | undefined> {
     const state = post.targetExecutionState;
     const isDue =
       state === TargetExecutionState.SCHEDULED ||
       state === TargetExecutionState.PUBLISHING;
-    if (!isDue || readPostString(post, ['externalId'])) {
-      return;
+    // A post rescheduled since this run claimed carries another approval,
+    // which this run does not own.
+    if (
+      !isDue ||
+      readPostString(post, ['externalId']) ||
+      post.publishApproval?.id !== approvalId
+    ) {
+      return undefined;
     }
     this.logger.warn('Closing a due post whose approval is already published', {
       postId: post.id,
     });
-    await this.deliveryService.failTerminalValidation(
+    const settled = await this.deliveryService.failTerminalValidation(
       post,
       new Error(SCHEDULED_POST_UNSETTLED_APPROVAL_MESSAGE),
     );
+    if (settled.executionState === TargetExecutionState.PUBLISHING) {
+      // An earlier provider attempt for this post is still unconfirmed or in
+      // flight, so the post stays PUBLISHING. Date it ahead so the sweep
+      // re-checks it at the slow verification backoff, not every minute.
+      await this.prisma.post.updateMany({
+        data: {
+          lastAttemptAt: new Date(
+            Date.now() +
+              (SCHEDULED_POST_UNVERIFIED_BACKOFF_SECONDS -
+                SCHEDULED_POST_RETRY_BACKOFF_SECONDS) *
+                1000,
+          ),
+        },
+        where: {
+          id: post.id.toString(),
+          isDeleted: false,
+          organizationId: readPostString(post, ['organizationId']) ?? '',
+          targetExecutionState: TargetExecutionState.PUBLISHING,
+        },
+      });
+    }
+    return settled;
   }
 
   /**

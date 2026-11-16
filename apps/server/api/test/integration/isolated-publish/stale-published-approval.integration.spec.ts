@@ -128,6 +128,36 @@ describe('Isolated sweep of posts with an already published approval (#10385)', 
     expect(waiting.targetExecutionState).toBe(TargetExecutionState.PUBLISHING);
   });
 
+  it('still queues a publishing post with a provider id when its approval is not published', async () => {
+    const postId = await seedDuePost({
+      externalId: 'provider-publish-id',
+      isApprovalPublished: false,
+      lastAttemptAt: new Date(Date.now() - 5 * MINUTE_MS),
+      targetExecutionState: TargetExecutionState.PUBLISHING,
+    });
+
+    await harness.cronPostsService.publishScheduledPosts();
+
+    expect(harness.queue.jobs.map((job) => job.postId)).toEqual([postId]);
+  });
+
+  it('settles a publishing post that has no provider id like a scheduled one', async () => {
+    const postId = await seedDuePost({
+      isApprovalPublished: true,
+      lastAttemptAt: new Date(Date.now() - 5 * MINUTE_MS),
+      targetExecutionState: TargetExecutionState.PUBLISHING,
+    });
+
+    await harness.cronPostsService.publishScheduledPosts();
+    const [job] = harness.queue.jobs;
+    if (!job) throw new Error('The sweep did not queue the post');
+    await harness.executeWorkflow(job);
+
+    expect((await readPost(postId)).targetExecutionState).toBe(
+      TargetExecutionState.FAILED,
+    );
+  });
+
   it('still queues a due post whose approval is waiting to execute', async () => {
     const postId = await seedDuePost({
       isApprovalPublished: false,
