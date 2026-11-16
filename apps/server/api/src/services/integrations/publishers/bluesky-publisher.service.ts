@@ -12,6 +12,7 @@ import {
 import {
   BlueskyCredentialRejectedError,
   BlueskyMediaError,
+  readBlueskyRateLimit,
 } from '@api/services/integrations/bluesky/utils/bluesky-api-error.util';
 import { prepareBlueskyImage } from '@api/services/integrations/bluesky/utils/bluesky-image.util';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
@@ -26,6 +27,7 @@ import { verifyProviderPublish } from '@api/services/integrations/publishers/pub
 import {
   CredentialPlatform,
   PostCategory,
+  PublishErrorKind,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { measurePlatformText } from '@genfeedai/helpers/content/platform-text-length.helper';
@@ -180,22 +182,36 @@ export class BlueskyPublisherService extends BasePublisherService {
         this.logger.warn(`${url} credential rejected`, {
           postId: context.postId,
         });
-        return this.createFailedResult(
-          this.platform,
-          'Bluesky rejected the connected account. Reconnect Bluesky to publish.',
-          error.code,
-        );
+        return {
+          ...this.createFailedResult(
+            this.platform,
+            'Bluesky rejected the connected account. Reconnect Bluesky to publish.',
+            error.code,
+          ),
+          errorKind: PublishErrorKind.CHANNEL_DISCONNECTED,
+        };
       }
       if (error instanceof BlueskyMediaError) {
         this.logger.warn(`${url} media rejected`, {
           error: error.message,
           postId: context.postId,
         });
-        return this.createFailedResult(
-          this.platform,
-          error.message,
-          error.code,
-        );
+        return {
+          ...this.createFailedResult(this.platform, error.message, error.code),
+          errorKind: PublishErrorKind.CONTENT_REJECTED,
+        };
+      }
+      const rateLimit = readBlueskyRateLimit(error);
+      if (rateLimit) {
+        this.logger.warn(`${url} rate limited`, { postId: context.postId });
+        return {
+          ...this.createFailedResult(
+            this.platform,
+            'Bluesky is rate limiting this account. The post will be retried.',
+          ),
+          errorKind: PublishErrorKind.RATE_LIMITED,
+          retryAfterMs: rateLimit.retryAfterMs,
+        };
       }
       this.logger.error(`${url} failed to publish`, {
         error: (error as Error)?.message,

@@ -15,6 +15,8 @@ const SESSION_TOKEN_ERROR_NAMES: ReadonlySet<string> = new Set([
 
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_BAD_REQUEST = 400;
+const HTTP_TOO_MANY_REQUESTS = 429;
+const MILLISECONDS_PER_SECOND = 1_000;
 
 /**
  * Thrown when Bluesky refuses the stored app password or the account. The
@@ -81,4 +83,33 @@ export class BlueskyMediaError extends Error {
     super(message);
     this.name = 'BlueskyMediaError';
   }
+}
+
+/**
+ * How long Bluesky said to wait after a 429, or null when the error is not a
+ * rate limit. A PDS sends `retry-after` (seconds) and `ratelimit-reset`
+ * (unix seconds); the wait is 0 when it gave neither.
+ */
+export function readBlueskyRateLimit(
+  error: unknown,
+): { resetAt?: Date; retryAfterMs: number } | null {
+  if (
+    !isAxiosError(error) ||
+    error.response?.status !== HTTP_TOO_MANY_REQUESTS
+  ) {
+    return null;
+  }
+  const headers: Record<string, unknown> = error.response.headers ?? {};
+  const retryAfter = Number(headers['retry-after']);
+  const reset = Number(headers['ratelimit-reset']);
+  const resetAt = Number.isFinite(reset)
+    ? new Date(reset * MILLISECONDS_PER_SECOND)
+    : undefined;
+  if (Number.isFinite(retryAfter) && retryAfter >= 0) {
+    return { resetAt, retryAfterMs: retryAfter * MILLISECONDS_PER_SECOND };
+  }
+  return {
+    resetAt,
+    retryAfterMs: resetAt ? Math.max(0, resetAt.getTime() - Date.now()) : 0,
+  };
 }

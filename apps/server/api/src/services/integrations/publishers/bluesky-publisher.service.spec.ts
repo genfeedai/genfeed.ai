@@ -263,6 +263,7 @@ describe('BlueskyPublisherService', () => {
       expect(result).toMatchObject({
         error: 'Bluesky only accepts videos in MP4 format',
         errorCode: 'media_rejected',
+        errorKind: 'content_rejected',
         success: false,
       });
       expect(bluesky.records).toEqual([]);
@@ -275,6 +276,22 @@ describe('BlueskyPublisherService', () => {
 
       expect(result).toMatchObject({
         errorCode: 'credential_rejected',
+        errorKind: 'channel_disconnected',
+        success: false,
+      });
+    });
+
+    it('reports a 429 as rate limited with the wait Bluesky stated', async () => {
+      bluesky.failWith = Object.assign(new Error('Too Many Requests'), {
+        isAxiosError: true,
+        response: { headers: { 'retry-after': '90' }, status: 429 },
+      });
+
+      const result = await publisher.publish(makeContext());
+
+      expect(result).toMatchObject({
+        errorKind: 'rate_limited',
+        retryAfterMs: 90_000,
         success: false,
       });
     });
