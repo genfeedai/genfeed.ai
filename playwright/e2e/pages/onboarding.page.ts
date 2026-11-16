@@ -21,7 +21,7 @@ export class OnboardingPage {
 
     this.stepBadge = page.locator('.step-badge').first();
     this.continueButton = page.getByRole('button', { name: 'Continue' });
-    this.skipButton = page.getByRole('button', { name: /Skip for now/i });
+    this.skipButton = page.getByRole('button', { name: /Skip/i });
 
     this.providerContinueButton = page.getByRole('button', {
       name: /Continue with server defaults/i,

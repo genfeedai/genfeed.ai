@@ -262,6 +262,7 @@
   "release": {
     "actions": {
       "reconnect": "Reconnect {target}",
+      "view": "View",
       "viewOnPlatform": "View on {platform}"
     },
     "addChannel": "Add channel",

@@ -8,6 +8,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { parseXQuotedPostId } from '@genfeedai/contracts/api-types/contracts/x-quote-post.contract';
+import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import {
   Alert,
   AlertActions,
@@ -22,7 +23,7 @@ import {
   DefinitionRow,
   DefinitionTerm,
 } from '@ui/primitives/definition-list';
-import { ExternalLink, Repeat2 } from 'lucide-react';
+import { Repeat2 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { resolveTargetCaption } from '@/components/previews/preview.helpers';
@@ -262,16 +263,19 @@ export default function ReleaseDetailsView({
                     {hasPermalink ? (
                       <Button
                         asChild
+                        ariaLabel={translate('actions.viewOnPlatform', {
+                          platform,
+                        })}
                         size={ButtonSize.SM}
                         variant={ButtonVariant.SECONDARY}
-                        icon={<ExternalLink className="size-3.5" />}
                       >
                         <Link
                           href={target.url ?? ''}
                           rel="noopener noreferrer"
                           target="_blank"
                         >
-                          {translate('actions.viewOnPlatform', { platform })}
+                          {getPlatformIcon(target.platform, 'size-4')}
+                          {translate('actions.view')}
                         </Link>
                       </Button>
                     ) : null}

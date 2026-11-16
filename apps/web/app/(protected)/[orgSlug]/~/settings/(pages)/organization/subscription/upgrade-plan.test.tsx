@@ -93,7 +93,7 @@ describe('UpgradePlan', () => {
       screen.getByRole('button', { name: /Upgrade to Pro/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /Upgrade to Scale/i }),
+      screen.getByRole('button', { name: /Get Scale/i }),
     ).toBeInTheDocument();
   });
 
@@ -122,7 +122,7 @@ describe('UpgradePlan', () => {
     render(<UpgradePlan tiers={['scale']} />);
 
     const upgrade = screen.getByRole('button', {
-      name: /Upgrade to Scale/i,
+      name: /Get Scale/i,
     });
     expect(upgrade.className).toMatch(/\bbg-primary\b/);
     expect(upgrade.className).not.toMatch(/\bbg-tertiary\b/);
@@ -143,7 +143,7 @@ describe('UpgradePlan', () => {
     });
 
     render(<UpgradePlan tiers={['scale']} />);
-    fireEvent.click(screen.getByRole('button', { name: /Upgrade to Scale/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Get Scale/i }));
 
     await waitFor(() => {
       expect(createCheckoutSession).toHaveBeenCalledWith(
@@ -164,7 +164,7 @@ describe('UpgradePlan', () => {
     });
 
     render(<UpgradePlan tiers={['scale']} />);
-    fireEvent.click(screen.getByRole('button', { name: /Upgrade to Scale/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Get Scale/i }));
 
     await waitFor(() => {
       expect(previewPlanChange).toHaveBeenCalledWith('price_scale');
@@ -194,7 +194,7 @@ describe('UpgradePlan', () => {
     } as never);
 
     render(<UpgradePlan tiers={['scale']} />);
-    fireEvent.click(screen.getByRole('button', { name: /Upgrade to Scale/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Get Scale/i }));
 
     expect(
       await screen.findByText(
@@ -214,7 +214,7 @@ describe('UpgradePlan', () => {
     });
 
     render(<UpgradePlan tiers={['scale']} />);
-    fireEvent.click(screen.getByRole('button', { name: /Upgrade to Scale/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Get Scale/i }));
 
     expect(
       await screen.findByText(/Stripe estimates your next invoice at \$49\.00/),
@@ -345,9 +345,7 @@ describe('UpgradePlan', () => {
       });
 
       render(<UpgradePlan tiers={['scale']} />);
-      fireEvent.click(
-        screen.getByRole('button', { name: /Upgrade to Scale/i }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: /Get Scale/i }));
       await screen.findByRole('button', { name: /Confirm change/i });
     }
 

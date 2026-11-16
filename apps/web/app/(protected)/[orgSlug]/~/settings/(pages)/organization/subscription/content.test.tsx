@@ -164,7 +164,7 @@ describe('SettingsSubscriptionPage', () => {
     render(<SettingsSubscriptionPage />);
 
     const portal = screen.getByRole('button', { name: /Open Billing Portal/i });
-    const upgrade = screen.getByRole('button', { name: /Upgrade to Scale/i });
+    const upgrade = screen.getByRole('button', { name: /Get Scale/i });
     expect(
       portal.compareDocumentPosition(upgrade) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -202,7 +202,7 @@ describe('SettingsSubscriptionPage', () => {
       render(<SettingsSubscriptionPage />);
 
       expect(
-        screen.queryByRole('button', { name: /Upgrade to Scale/i }),
+        screen.queryByRole('button', { name: /Get Scale/i }),
       ).not.toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: /Open Billing Portal/i }),
@@ -589,7 +589,7 @@ describe('SettingsSubscriptionPage', () => {
         screen.queryByRole('button', { name: 'Open Billing Portal' }),
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByRole('button', { name: 'Upgrade to Scale' }),
+        screen.queryByRole('button', { name: 'Get Scale' }),
       ).not.toBeInTheDocument();
       expect(useSubscriptionMock).not.toHaveBeenCalled();
       expect(useBillingAccountMock).not.toHaveBeenCalled();
@@ -656,9 +656,7 @@ describe('SettingsSubscriptionPage', () => {
         expect(
           screen.getByRole('button', { name: 'Open Billing Portal' }),
         ).toBeVisible();
-        expect(
-          screen.getByRole('button', { name: 'Upgrade to Scale' }),
-        ).toBeVisible();
+        expect(screen.getByRole('button', { name: 'Get Scale' })).toBeVisible();
         expect(useSubscriptionMock).toHaveBeenCalledTimes(2);
         expect(useBillingAccountMock).toHaveBeenCalledTimes(1);
       },
@@ -714,7 +712,7 @@ describe('SettingsSubscriptionPage', () => {
         expect(screen.queryByRole('button')).not.toBeInTheDocument();
         expect(screen.queryByRole('link')).not.toBeInTheDocument();
         expect(
-          screen.queryByRole('button', { name: 'Upgrade to Scale' }),
+          screen.queryByRole('button', { name: 'Get Scale' }),
         ).not.toBeInTheDocument();
         expect(screen.queryByText('Billing account')).not.toBeInTheDocument();
         expect(useSubscriptionMock).not.toHaveBeenCalled();
@@ -741,9 +739,7 @@ describe('SettingsSubscriptionPage', () => {
       vi.stubEnv('GENFEED_CLOUD', 'false');
       vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'false');
       render(<SettingsSubscriptionPage />);
-      expect(
-        screen.getByRole('button', { name: 'Upgrade to Scale' }),
-      ).toBeVisible();
+      expect(screen.getByRole('button', { name: 'Get Scale' })).toBeVisible();
     });
     it.each(['cloud', 'self-hosted'] as const)(
       'mounts and removes the data child through same-instance %s transitions',
@@ -787,7 +783,7 @@ describe('SettingsSubscriptionPage', () => {
           runtime.mockReturnValue(snapshot);
           rerender(<SettingsSubscriptionPage />);
           expect(
-            Boolean(screen.queryByRole('button', { name: 'Upgrade to Scale' })),
+            Boolean(screen.queryByRole('button', { name: 'Get Scale' })),
           ).toBe(allowed);
           expect(Boolean(screen.queryByText('Billing account'))).toBe(allowed);
           expect(
@@ -836,7 +832,7 @@ describe('SettingsSubscriptionPage', () => {
         context: subscriptionCloudContext,
       });
       const { rerender } = render(<SettingsSubscriptionPage />);
-      fireEvent.click(screen.getByRole('button', { name: 'Upgrade to Scale' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Get Scale' }));
       await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
       const retry = notifications.error.mock.calls[0]?.[1]?.onAction;
       expect(retry).toBeTypeOf('function');
@@ -852,7 +848,7 @@ describe('SettingsSubscriptionPage', () => {
         });
         rerender(<SettingsSubscriptionPage />);
         expect(
-          screen.queryByRole('button', { name: 'Upgrade to Scale' }),
+          screen.queryByRole('button', { name: 'Get Scale' }),
         ).not.toBeInTheDocument();
         expect(useSubscriptionMock).not.toHaveBeenCalled();
         expect(useBillingAccountMock).not.toHaveBeenCalled();

@@ -267,9 +267,10 @@ describe('MembersList seat limit', () => {
     renderMembers({ pageCount: 1, tier: 'free' });
 
     expect(screen.getByText('Unlock team members with Scale')).toBeVisible();
-    expect(
-      screen.getByRole('link', { name: 'Upgrade to Scale' }),
-    ).toHaveAttribute('href', '/org-123/~/settings/subscription');
+    expect(screen.getByRole('link', { name: 'Get Scale' })).toHaveAttribute(
+      'href',
+      '/org-123/~/settings/subscription',
+    );
     expect(
       screen.queryByRole('button', { name: /Invite Member/i }),
     ).not.toBeInTheDocument();

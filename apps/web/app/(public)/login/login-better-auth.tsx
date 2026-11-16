@@ -546,7 +546,7 @@ export default function LoginBetterAuth({
                     {isStartingLocalMode
                       ? 'Starting local workspace…'
                       : isLocalWorkspaceEnabled
-                        ? 'Use a local workspace'
+                        ? 'Use Local Workspace'
                         : 'Use a local workspace — coming soon'}
                   </Button>
                 ) : null}

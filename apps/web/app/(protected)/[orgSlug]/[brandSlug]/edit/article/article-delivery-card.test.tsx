@@ -174,7 +174,7 @@ describe('ArticleDeliveryCard', () => {
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'Connect an account' }),
+      screen.getByRole('link', { name: 'Connect Account' }),
     ).toHaveAttribute('href', '/acme/brand/connectors/channels');
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy HTML' }));

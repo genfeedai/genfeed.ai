@@ -297,7 +297,7 @@ describe('OrganizationAutomationOverviewPage', () => {
 
     expect(screen.queryByTestId('organization-automation-brands')).toBeNull();
     expect(screen.queryByRole('region', { name: 'Brands' })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Go to brands' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Open Brands' })).toHaveAttribute(
       'href',
       '/acme/~/settings/brands',
     );
@@ -337,6 +337,6 @@ describe('OrganizationAutomationOverviewPage', () => {
     expect(
       screen.queryByTestId('organization-automation-brand-card'),
     ).toBeNull();
-    expect(screen.queryByRole('link', { name: 'Go to brands' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Open Brands' })).toBeNull();
   });
 });

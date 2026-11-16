@@ -355,7 +355,7 @@ describe('FirstDraftsOnboarding', () => {
     expect(
       await screen.findByRole('button', { name: 'Connect Instagram' }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Connect your agent' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Connect Agent' }));
     expect(
       await screen.findByRole('radio', { name: /Claude Code/ }),
     ).toBeInTheDocument();
@@ -392,7 +392,7 @@ describe('FirstDraftsOnboarding', () => {
     render(<FirstDraftsOnboarding />);
     await screen.findByRole('textbox');
     for (const name of [
-      'Connect your agent',
+      'Connect Agent',
       'Connect your channels',
       'Go to your agent',
     ])
@@ -567,12 +567,12 @@ describe('FirstDraftsOnboarding', () => {
     await screen.findByText('twitter draft text');
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await screen.findByRole('radio', { name: /Claude Code/ });
-    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
     await screen.findByRole('button', { name: 'Connect Instagram' });
-    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
     await screen.findByRole('heading', { name: 'Now go to your agent' });
     expect(
-      screen.queryByRole('button', { name: 'Skip for now' }),
+      screen.queryByRole('button', { name: 'Skip' }),
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() => expect(mocks.completeOnboarding).toHaveBeenCalled());
@@ -602,9 +602,9 @@ describe('FirstDraftsOnboarding', () => {
     await screen.findByText('twitter draft text');
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(await screen.findByRole('radio', { name: /Codex/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
     await screen.findByRole('button', { name: 'Connect Instagram' });
-    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
     expect(
       await screen.findByText(/generate an image for each/),
     ).toBeInTheDocument();
@@ -645,7 +645,7 @@ describe('FirstDraftsOnboarding', () => {
       await screen.findByRole('radio', { name: /Claude Code/ }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Connect your agent' }),
+      screen.getByRole('button', { name: 'Connect Agent' }),
     ).toHaveAttribute('aria-current', 'step');
   });
 
@@ -870,7 +870,7 @@ describe('FirstDraftsOnboarding', () => {
       ...drafts(),
       requestKey: 'key-redo',
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Redo my posts' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Redo Posts' }));
     expect(
       await screen.findByText('You sell Calendar software to Founders.'),
     ).toBeInTheDocument();
@@ -910,7 +910,7 @@ describe('FirstDraftsOnboarding', () => {
       ...savedRun(),
       result: drafts(),
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Redo my posts' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Redo Posts' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('We couldn');
     expect(
       screen.getByText('You sell A scheduling tool to Founders.'),
@@ -930,9 +930,7 @@ describe('FirstDraftsOnboarding', () => {
       ...missing,
       requestKey: 'key-redo',
     });
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Redo my posts' }),
-    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Redo Posts' }));
     expect(await screen.findByText('Round 2 of 2')).toBeInTheDocument();
     mocks.retryDraftMedia.mockResolvedValue(drafts());
     mocks.readDrafts.mockResolvedValue({
@@ -959,9 +957,7 @@ describe('FirstDraftsOnboarding', () => {
     fireEvent.click(
       screen.getByRole('button', { name: "This doesn't look right" }),
     );
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Back to my posts' }),
-    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Back' }));
     expect(await screen.findByText('twitter draft text')).toBeInTheDocument();
     expect(mocks.generateDrafts).toHaveBeenCalledTimes(1);
   });

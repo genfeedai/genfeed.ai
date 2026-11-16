@@ -64,7 +64,7 @@
     "delete": "Delete",
     "generateVoice": "Generate Voice",
     "retry": "Retry",
-    "rewriteWithAgent": "Rewrite with agent",
+    "rewriteWithAgent": "Rewrite",
     "save": "Save"
   },
   "activity": {
@@ -208,7 +208,7 @@
       "loading": "Loading authorization request…",
       "permissionsTitle": "This agent will receive access to",
       "signIn": {
-        "action": "Sign in to continue",
+        "action": "Sign In",
         "description": "Sign in with the same verified email the agent registered.",
         "title": "Sign in required"
       },
@@ -229,7 +229,7 @@
         "back": "Go back",
         "restart": "Restart authorization",
         "retry": "Try again",
-        "signIn": "Sign in to continue"
+        "signIn": "Sign In"
       },
       "auth": {
         "description": "Sign in to finish connecting your {platform} account.",
@@ -335,7 +335,7 @@
         "approvedTitle": "Authorization sent",
         "deniedTitle": "Access denied",
         "description": "Return to {clientName} to continue. You can close this tab.",
-        "returnAction": "Return to {clientName}"
+        "returnAction": "Return"
       },
       "signIn": {
         "description": "Sign in or create a free account. You will review access next.",
@@ -401,8 +401,8 @@
       },
       "signIn": {
         "action": {
-          "login": "Sign in to continue",
-          "signup": "Create account to continue"
+          "login": "Sign In",
+          "signup": "Create Account"
         },
         "description": {
           "login": "Sign in to authorize this device.",
@@ -715,7 +715,7 @@
       "moveSelected": "Move {count} selected",
       "onlyBrand": "An organization keeps at least one brand, so its last brand can't be moved.",
       "personasWillReset": "{count, plural, one {# shared character will be limited to this brand only.} other {# shared characters will be limited to this brand only.}}",
-      "rowAction": "Move to organization",
+      "rowAction": "Move Brand",
       "schedulesWillPause": "{count, plural, one {# schedule will pause until someone saves it again.} other {# schedules will pause until someone saves them again.}}",
       "setupFailed": "Couldn't start the move. Please try again.",
       "status": {
@@ -884,7 +884,7 @@
     },
     "integrations": {
       "byokUpgrade": {
-        "action": "Upgrade to Scale",
+        "action": "Get Scale",
         "description": "Upgrade to Scale to run generations on your own provider keys with no credit charge and no usage fee.",
         "title": "Bring your own keys is included with Scale"
       }
@@ -894,7 +894,7 @@
         "archive": "Archive",
         "edit": "Edit",
         "history": "History",
-        "promote": "Promote to skill",
+        "promote": "Promote Skill",
         "reject": "Reject promotion",
         "viewSubscription": "View subscription"
       },
@@ -1090,7 +1090,7 @@
         "refresh": "Refresh",
         "saveVariant": "Save variant",
         "saving": "Saving…",
-        "testWithAgent": "Test with Agent",
+        "testWithAgent": "Test",
         "fork": "Fork",
         "forking": "Forking…",
         "saveSkill": "Save skill",
@@ -1236,7 +1236,7 @@
           "trained": "Trained by our team on your reference material.",
           "managed": "Hosted and managed for you. Nothing to install or maintain."
         },
-        "action": "Book a call"
+        "action": "Book Call"
       }
     },
     "organizationModules": {
@@ -1366,7 +1366,7 @@
       "working": "Working"
     },
     "handoff": {
-      "action": "Hand off to a teammate…",
+      "action": "Hand Off",
       "cancel": "Cancel",
       "description": "Their agent gets this request in a new thread and runs it with their permissions. They can decline.",
       "failed": "Could not send the hand-off. Try again.",
@@ -1519,7 +1519,7 @@
         "model": "Local provider model"
       },
       "inactive": {
-        "action": "Use a local workspace",
+        "action": "Use Local Workspace",
         "description": "PGlite and local provider settings start only after you switch to a local workspace.",
         "title": "Local generation is off"
       },
@@ -1533,7 +1533,7 @@
     "server": {
       "actions": {
         "current": "Current server",
-        "switch": "Switch and restart",
+        "switch": "Restart",
         "test": "Test connection"
       },
       "current": "Connected to {server}.",
@@ -1830,7 +1830,7 @@
     },
     "organizationOverview": {
       "brandsTitle": "Brands",
-      "emptyAction": "Go to brands",
+      "emptyAction": "Open Brands",
       "emptyDescription": "Automation runs against a brand. Create your first brand, then open Automation to build workflows and agents for it.",
       "emptyTitle": "Automation needs a brand",
       "loadingBrand": "Loading brand",
@@ -1872,14 +1872,14 @@
       "generateSuccess": "Plan generation started",
       "seedAdvertiserAdCount": "{name} · {platform} · {count, plural, one {# ad} other {# ads}}",
       "seedAdvertisersEmpty": "No watched advertisers yet",
-      "seedAdvertisersEmptyCta": "Go watch some in Discovery",
+      "seedAdvertisersEmptyCta": "Browse Discovery",
       "seedAdvertisersTitle": "Competitor ads",
       "seedIncludeOwnHistory": "Include this brand's own history ({count, plural, one {# imported post} other {# imported posts}})",
       "seedIncludePatterns": "Include creative patterns ({count})",
       "seedSectionTitle": "Seed this plan from",
       "seedSourceHandlePlatform": "@{handle} · {platform} · {count, plural, one {# recent post} other {# recent posts}}",
       "seedSourcesEmpty": "No followed creators yet",
-      "seedSourcesEmptyCta": "Follow some in Discovery",
+      "seedSourcesEmptyCta": "Browse Discovery",
       "seedSourcesTitle": "Followed creators",
       "seedSummaryAdvertisers": "{count, plural, one {# advertiser} other {# advertisers}}",
       "seedSummaryCreators": "{count, plural, one {# creator} other {# creators}}",
@@ -2069,7 +2069,7 @@
         "actions": "Actions",
         "allExecutions": "All executions",
         "duration": "Duration",
-        "emptyAction": "Go to Automations",
+        "emptyAction": "Open Automations",
         "emptyDescription": "Run a workflow to see execution history here",
         "emptyTitle": "No executions yet",
         "next": "Next",
@@ -2214,7 +2214,7 @@
       "quote": "Quote",
       "reply": "Reply",
       "repost": "Repost",
-      "sendToAgent": "Send to agent"
+      "sendToAgent": "Ask Agent"
     },
     "errors": {
       "load": "Failed to load the following feed."
@@ -2495,7 +2495,7 @@
         "saveBrief": "Save brief",
         "savingBrief": "Saving brief…",
         "selectedAsContext": "Selected for context",
-        "sendToAgent": "Send to agent",
+        "sendToAgent": "Ask Agent",
         "useAsContext": "Use as context"
       },
       "notifications": {
@@ -2714,7 +2714,7 @@
       "retryAction": "Try again",
       "salesContact": "Need higher limits, custom terms, or an enterprise deployment? Email {email}.",
       "unavailable": "This plan is not available in this environment yet.",
-      "upgradeTo": "Upgrade to {plan}"
+      "upgradeTo": "Get {plan}"
     }
   },
   "videoCreativeActions": {
@@ -2724,7 +2724,7 @@
       "animate": "Animate",
       "upscale": "Upscale",
       "extend": "Extend video",
-      "editor": "Open in editor",
+      "editor": "Open Editor",
       "availability": {
         "sourceUnavailable": "This source is unavailable in the current workspace and brand.",
         "modelUnavailable": "A supported model is unavailable. Refresh models before continuing.",
@@ -3019,7 +3019,7 @@
       "description": "Platform management."
     },
     "adminBack": {
-      "label": "Back to app",
+      "label": "Back",
       "description": "Leave Admin and return to your workspace."
     },
     "adminOverview": {
@@ -3135,11 +3135,12 @@
     "newsletterIntro": "Send this issue through a Beehiiv publication you connected. Genfeed records the live link here.",
     "noArticleAccounts": "No Ghost, WordPress, Medium or Dev.to account is connected to this brand. Connect one, or copy the article and publish it yourself.",
     "noNewsletterAccounts": "No Beehiiv publication is connected to this brand. Connect one, or copy the issue and send it yourself.",
-    "connectAccounts": "Connect an account",
+    "connectAccounts": "Connect Account",
     "copyHtml": "Copy HTML",
     "copyMarkdown": "Copy Markdown",
     "saveFirst": "Save your changes before you publish.",
     "addContentFirst": "Add content before you publish.",
+    "publish": "Publish",
     "publishTo": "Publish to {account}",
     "publishConfirmTitle": "Publish to {account}",
     "publishConfirmMessage": "This publishes the saved article on {account} and marks it published in your workspace.",

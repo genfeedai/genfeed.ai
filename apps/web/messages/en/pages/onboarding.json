@@ -39,7 +39,7 @@
     },
     "actions": {
       "continue": "Continue",
-      "skip": "Skip for now"
+      "skip": "Skip"
     },
     "errors": {
       "continue": "We couldn't set up your workspace. Check your connection and try again.",
@@ -60,7 +60,7 @@
     "common": {
       "badge": "Expert Path · Step {current} of {total}",
       "continue": "Continue",
-      "skip": "Skip for now",
+      "skip": "Skip",
       "skipHint": "You can finish this later — it will be the first task in your workspace.",
       "errorTitle": "Something went wrong",
       "retry": "Try again"
@@ -254,8 +254,8 @@
       },
       "suggested": "Suggested from your site",
       "scanFailed": "We couldn't read that link, so tell us a bit about the brand instead.",
-      "submit": "Redo my posts",
-      "cancel": "Back to my posts"
+      "submit": "Redo Posts",
+      "cancel": "Back"
     },
     "errors": {
       "generate": "We couldn't draft your posts. Check your connection and try again.",
@@ -284,7 +284,7 @@
       "connect": "Connect {platform}",
       "when": "Goes out {date}",
       "submit": "Schedule {count, plural, one {# post} other {# posts}}",
-      "skip": "Skip for now",
+      "skip": "Skip",
       "finish": "Go to my workspace",
       "state": {
         "ready": "Account connected",
@@ -295,7 +295,7 @@
     },
     "steps": {
       "output": "See your output",
-      "agent": "Connect your agent",
+      "agent": "Connect Agent",
       "channels": "Connect your channels",
       "prompt": "Go to your agent"
     },
@@ -305,7 +305,7 @@
       "skip": "Skip onboarding",
       "continue": "Continue",
       "finish": "Finish",
-      "skipStep": "Skip for now"
+      "skipStep": "Skip"
     },
     "skip": {
       "title": "Skip onboarding?",
@@ -323,7 +323,7 @@
     "masterAlt": "Campaign image for {brand}",
     "appName": "Genfeed",
     "agent": {
-      "title": "Connect your agent",
+      "title": "Connect Agent",
       "description": "From here on your agent does the making. Pick the one you already use.",
       "clientLabel": "Agent client",
       "clients": {

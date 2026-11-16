@@ -476,9 +476,7 @@ describe('AgentThreadsPanel sharing', () => {
       screen.getByRole('link', { name: /Serum launch captions/ }),
     );
     await user.click(await screen.findByTestId('agent-thread-more'));
-    await user.click(
-      await screen.findByRole('menuitem', { name: 'Hand off to a teammate…' }),
-    );
+    await user.click(await screen.findByRole('menuitem', { name: 'Hand Off' }));
     const dialog = await screen.findByRole('dialog', {
       name: 'Hand off to a teammate',
     });

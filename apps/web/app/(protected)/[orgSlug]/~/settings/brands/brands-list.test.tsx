@@ -315,7 +315,7 @@ describe('BrandsList', () => {
     await screen.findAllByRole('button', { name: 'Open settings' });
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Move to organization' }),
+      screen.queryByRole('button', { name: 'Move Brand' }),
     ).not.toBeInTheDocument();
   });
 
@@ -325,9 +325,9 @@ describe('BrandsList', () => {
     render(<BrandsList />);
 
     expect((await screen.findAllByRole('checkbox')).length).toBeGreaterThan(0);
-    expect(
-      screen.getAllByRole('button', { name: 'Move to organization' }),
-    ).toHaveLength(mockBrands.length);
+    expect(screen.getAllByRole('button', { name: 'Move Brand' })).toHaveLength(
+      mockBrands.length,
+    );
   });
 
   it('lets a superadmin move brands without an elevated role', async () => {
