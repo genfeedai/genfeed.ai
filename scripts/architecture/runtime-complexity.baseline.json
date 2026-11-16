@@ -114,7 +114,7 @@
     "symbol": "CreditsGuard.admit"
   },
   {
-    "actual": 206,
+    "actual": 203,
     "file": "apps/server/api/src/publish-approvals/publish-approvals.service.ts",
     "metric": "method-lines",
     "symbol": "PublishApprovalsService.createForPost"

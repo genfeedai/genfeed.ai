@@ -36,6 +36,10 @@ vi.mock('@services/core/base.service', () => ({
       baseServiceConstructor(...args);
     }
 
+    extractCollection<T>(document: { data?: Array<{ attributes?: T }> }): T[] {
+      return (document.data ?? []).map((item) => item.attributes as T);
+    }
+
     extractResource<T>(document: { data?: { attributes?: T } } | T): T {
       if (
         typeof document === 'object' &&
@@ -109,5 +113,50 @@ describe('ServicesService OAuth request contract', () => {
       expect.any(Function),
     );
     expect(mockInstance.get).toHaveBeenCalledWith('connect-readiness');
+  });
+  it('lists the Google Business locations a pending connection can choose', async () => {
+    const locations = [
+      {
+        address: '1 High Street',
+        id: 'accounts/1/locations/10',
+        isAlreadyConnected: false,
+        title: 'Corner Cafe',
+      },
+    ];
+    mockInstance.get.mockResolvedValue({ data: { locations } });
+    const service = new ServicesService('google-business', 'token');
+    const signal = new AbortController().signal;
+
+    const result = await service.getGoogleBusinessLocations('cred-1', signal);
+
+    expect(result).toEqual(locations);
+    expect(mockInstance.get).toHaveBeenCalledWith('cred-1/locations', {
+      signal,
+    });
+  });
+
+  it('connects the chosen Google Business locations and returns their credentials', async () => {
+    mockInstance.post.mockResolvedValue({
+      data: {
+        data: [
+          {
+            attributes: { externalId: 'accounts/1/locations/10', id: 'c-1' },
+            type: 'credential',
+          },
+        ],
+      },
+    });
+    const service = new ServicesService('google-business', 'token');
+
+    const result = await service.postSelectLocations('cred-1', [
+      'accounts/1/locations/10',
+    ]);
+
+    expect(mockInstance.post).toHaveBeenCalledWith('cred-1/select-location', {
+      locationIds: ['accounts/1/locations/10'],
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(Credential);
+    expect(result[0]).toMatchObject({ externalId: 'accounts/1/locations/10' });
   });
 });

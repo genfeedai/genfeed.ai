@@ -679,7 +679,6 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
     fallback: '/connectors/agents',
     pages: [
       { path: '/connectors/agents', title: 'Agents' },
-      { path: '/connectors/channels', scopes: ['brand'], title: 'Channels' },
       { path: '/connectors/providers', title: 'AI providers' },
       { path: '/connectors/api-keys', title: 'API keys' },
       { path: '/connectors/webhooks', title: 'Webhooks' },

@@ -87,21 +87,10 @@ export interface BrandDetailSocialConnection {
 
 export interface BrandDetailSidebarProps {
   brand: IBrand;
-  brandId: string;
   links: ILink[];
-  socialConnections: BrandDetailSocialConnection[];
-  connectedPlatformsCount: number;
-  deletingRefId: string | null;
   isUpdatingPublicProfile?: boolean;
-  /** When set, the sidebar lists connected accounts as rows with a Manage link to Connectors → Channels. */
-  manageSocialHref?: string;
   onTogglePublicProfile: (isPublic: boolean) => void;
-  onRefreshBrand: () => Promise<void>;
   onOpenLinkModal: (link?: ILink) => void;
-  onUploadBanner: () => void;
-  onUploadLogo: () => void;
-  onUploadReference: () => void;
-  onDeleteReference: (assetId: string) => void;
 }
 
 export interface BrandDetailAccountSettingsCardProps {
@@ -134,15 +123,9 @@ export interface BrandDetailSocialMediaCardProps {
   onConnectAccountModalOpenChange?: (isOpen: boolean) => void;
   /**
    * `compact` — summary card + connect modal (sidebar / embed).
-   * `page` — full accounts table + Connect account modal (Connectors → Channels).
+   * `page` — full accounts table + Connect account modal (brand Profile).
    */
   variant?: 'compact' | 'page';
-}
-
-export interface BrandDetailConnectedAccountsSectionProps {
-  connections: BrandDetailSocialConnection[];
-  /** Link to Connectors → Channels, where accounts are managed. */
-  manageHref: string;
 }
 
 export interface BrandDetailExternalLinksCardProps {

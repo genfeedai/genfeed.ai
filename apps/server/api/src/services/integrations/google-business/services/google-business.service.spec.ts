@@ -12,6 +12,18 @@ type RefreshOutcome =
   | { kind: 'ok'; accessToken: string }
   | { kind: 'error'; error: unknown };
 
+const capability = vi.hoisted(() => ({
+  status: 'hidden' as 'hidden' | 'supported',
+}));
+
+vi.mock(
+  '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract',
+  async (importOriginal) => ({
+    ...(await importOriginal<Record<string, unknown>>()),
+    getChannelCapability: () => ({ status: capability.status }),
+  }),
+);
+
 const oauth = vi.hoisted(() => ({
   refresh: null as null | (() => Promise<unknown>),
 }));
@@ -72,6 +84,7 @@ describe('GoogleBusinessService', () => {
   });
 
   beforeEach(() => {
+    capability.status = 'hidden';
     calls = [];
     responses = [];
     patches = [];
@@ -316,6 +329,44 @@ describe('GoogleBusinessService', () => {
 
       expect(patches).toEqual([]);
       expect(activities).toEqual([]);
+    });
+  });
+  describe('connect readiness', () => {
+    const withConfig = (values: Record<string, string>) =>
+      new GoogleBusinessService(
+        { get: (key: string) => values[key] } as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+      );
+    const configured = {
+      GOOGLE_OAUTH_CLIENT_ID: 'client-id',
+      GOOGLE_OAUTH_CLIENT_SECRET: 'client-secret',
+    };
+
+    it('stays unavailable while the channel is hidden', () => {
+      expect(withConfig(configured).getConnectReadiness()).toEqual({
+        status: 'unavailable',
+      });
+    });
+
+    it('is available once the channel is released and the Google client is configured', () => {
+      capability.status = 'supported';
+
+      expect(withConfig(configured).getConnectReadiness()).toEqual({
+        status: 'available',
+      });
+    });
+
+    it('stays unavailable without the Google client secret', () => {
+      capability.status = 'supported';
+
+      expect(
+        withConfig({
+          GOOGLE_OAUTH_CLIENT_ID: 'client-id',
+        }).getConnectReadiness(),
+      ).toEqual({ status: 'unavailable' });
     });
   });
 });

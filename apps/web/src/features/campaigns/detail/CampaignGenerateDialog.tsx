@@ -141,7 +141,7 @@ export default function CampaignGenerateDialog({
           <p>{t('accounts.empty')}</p>
         )}
         <Button asChild variant={ButtonVariant.LINK}>
-          <Link href={activeHref(APP_ROUTES.CONNECTORS.CHANNELS)}>
+          <Link href={activeHref(APP_ROUTES.SETTINGS.PROFILE)}>
             {t('accounts.manage')}
           </Link>
         </Button>

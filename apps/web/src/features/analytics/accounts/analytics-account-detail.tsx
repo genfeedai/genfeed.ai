@@ -109,7 +109,7 @@ export default function AnalyticsAccountDetail() {
           onClick={() =>
             router.push(
               activeHref(
-                detail?.identity.manageHref ?? APP_ROUTES.CONNECTORS.CHANNELS,
+                detail?.identity.manageHref ?? APP_ROUTES.SETTINGS.PROFILE,
               ),
             )
           }

@@ -26,7 +26,7 @@ import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 /**
  * Manual brand links are non-OAuth destinations only.
  * Social profiles (X, IG, YouTube, …) come from connected accounts on
- * Connectors → Channels — not free-typed Link rows.
+ * the brand's Profile — not free-typed Link rows.
  */
 const LINK_CATEGORY_OPTIONS: Array<{ label: string; value: LinkCategory }> = [
   { label: 'Website', value: LinkCategory.WEBSITE },

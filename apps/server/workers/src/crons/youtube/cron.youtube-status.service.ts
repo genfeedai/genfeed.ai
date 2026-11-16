@@ -94,9 +94,11 @@ export class CronYoutubeStatusService implements OnModuleInit {
                       visibility: null,
                       status: { in: [PostStatus.PRIVATE, PostStatus.UNLISTED] },
                     },
-                    { targetExecutionState: TargetExecutionState.PUBLISHING },
                   ],
                 },
+                // A post with a provider id that is still PUBLISHING has no
+                // other owner, so it is reconciled at any age (#10393).
+                { targetExecutionState: TargetExecutionState.PUBLISHING },
                 { publishFinalizations: { some: { completedAt: null } } },
               ],
             },

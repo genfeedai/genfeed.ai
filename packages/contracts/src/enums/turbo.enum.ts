@@ -43,10 +43,13 @@ export enum TurboRunItemStatus {
  * - The processor claims PENDING → PROCESSING, or re-claims a stale
  *   PROCESSING lease, and settles PROCESSING as COMPLETED, PARTIAL or FAILED.
  * - Reconcile fails a PENDING or PROCESSING run that was interrupted.
- * - Cancelling a pending or processing run moves it to CANCELLED.
+ * - Cancelling moves a run to CANCELLED. A pending or processing run is
+ *   stopped; a settled one is a discarded review batch ("Discard batch" in
+ *   the review queue), which is why COMPLETED, PARTIAL and FAILED have a
+ *   CANCELLED edge. A cancelled run never moves again.
  *
- * `cancelTurboRun` and `updateTurboRun` do not compare the current status
- * yet, so they can also write over a settled run.
+ * `cancelTurboRun` and `updateTurboRun` do not compare the current status;
+ * the processor guards its own writes through the run lease.
  */
 export const TURBO_RUN_STATE_MACHINE = defineStateMachine<TurboRunStatus>({
   terminal: [
@@ -68,9 +71,9 @@ export const TURBO_RUN_STATE_MACHINE = defineStateMachine<TurboRunStatus>({
       TurboRunStatus.FAILED,
       TurboRunStatus.CANCELLED,
     ],
-    [TurboRunStatus.COMPLETED]: [],
-    [TurboRunStatus.PARTIAL]: [],
-    [TurboRunStatus.FAILED]: [],
+    [TurboRunStatus.COMPLETED]: [TurboRunStatus.CANCELLED],
+    [TurboRunStatus.PARTIAL]: [TurboRunStatus.CANCELLED],
+    [TurboRunStatus.FAILED]: [TurboRunStatus.CANCELLED],
     [TurboRunStatus.CANCELLED]: [],
   },
 });
