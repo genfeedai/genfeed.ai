@@ -4,8 +4,12 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import {
+  type ProviderErrorVerdict,
+  type ProviderFailure,
+  toPublishErrorOrUnknown,
+} from '@api/services/integrations/publishers/publish-error.util';
 import { WhatsappService } from '@api/services/integrations/whatsapp/services/whatsapp.service';
-import { classifyHttpPublishError } from '@api/shared/utils/publish-error/classify-http-publish-error.util';
 import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
@@ -31,10 +35,15 @@ function readTwilioErrorCode(error: unknown): string | undefined {
  * token of the user's is involved and nothing a refresh does can fix it, so it
  * is reported as a channel that cannot send.
  */
-function twilioKindForStatus(status: number): PublishErrorKind | undefined {
-  return status === HTTP_UNAUTHORIZED
-    ? PublishErrorKind.CHANNEL_DISCONNECTED
-    : undefined;
+function mapTwilioFailure({
+  cause,
+  httpStatus,
+}: ProviderFailure): ProviderErrorVerdict | null {
+  const providerCode = readTwilioErrorCode(cause);
+  if (httpStatus === HTTP_UNAUTHORIZED) {
+    return { kind: PublishErrorKind.CHANNEL_DISCONNECTED, providerCode };
+  }
+  return providerCode ? { providerCode } : null;
 }
 
 @Traced()
@@ -124,11 +133,7 @@ export class WhatsappPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw classifyHttpPublishError(error, {
-        isPublishRequest: true,
-        providerCode: readTwilioErrorCode(error),
-        kindForStatus: twilioKindForStatus,
-      });
+      throw toPublishErrorOrUnknown(error, mapTwilioFailure);
     }
   }
 
