@@ -32,6 +32,8 @@ import { readPostString } from '@workers/services/scheduled-post.utils';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
+import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
+import { deferKeptUnsettledApproval } from '@workers/services/scheduled-post-unsettled-approval';
 
 type ScheduledPostClaim = {
   executionStartedAt: string | null;
@@ -47,6 +49,7 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     private readonly discoveryService: ScheduledPostDiscoveryService,
     private readonly executionGuard: ScheduledPostExecutionGuardService,
     private readonly logger: LoggerService,
+    private readonly postFailureService: ScheduledPostFailureService,
     private readonly publishApprovalsService: PublishApprovalsService,
     private readonly prisma: PrismaService,
     private readonly repeatScheduler: PostRepeatSchedulerService,
@@ -225,7 +228,11 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     if (settled.executionState === TargetExecutionState.PUBLISHING) {
       // An earlier provider attempt for this post is still unconfirmed or in
       // flight, so the post stays PUBLISHING and this run cannot verify it.
-      await this.deliveryService.deferKeptUnsettledApproval(post);
+      await deferKeptUnsettledApproval(
+        this.prisma,
+        this.postFailureService,
+        post,
+      );
     }
     return settled;
   }

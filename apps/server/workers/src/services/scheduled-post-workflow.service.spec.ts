@@ -31,7 +31,6 @@ function createHarness() {
     findOne: vi.fn().mockResolvedValue(null),
   };
   const deliveryService = {
-    deferKeptUnsettledApproval: vi.fn().mockResolvedValue(undefined),
     failTerminalValidation: vi
       .fn()
       .mockResolvedValue({ platform: '', success: false }),
@@ -56,8 +55,14 @@ function createHarness() {
     }),
     completeExecution: vi.fn().mockResolvedValue(undefined),
   };
+  const postFailureService = {
+    notifyPublishUnverified: vi.fn().mockResolvedValue(undefined),
+  };
   const prisma = {
     post: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    postProviderPublishReceipt: {
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
     postPublishFinalization: {
       findUnique: vi.fn().mockResolvedValue(null),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
@@ -90,6 +95,7 @@ function createHarness() {
     discoveryService as never,
     executionGuard as never,
     logger as never,
+    postFailureService as never,
     publishApprovalsService as never,
     prisma as never,
     repeatScheduler as never,
@@ -684,35 +690,30 @@ describe('finalize of a claim that found the approval already published (#10385)
     expect(h.deliveryService.failTerminalValidation).not.toHaveBeenCalled();
   });
 
-  it('hands a post to the unverified-outcome policy when an earlier provider attempt keeps it publishing', async () => {
+  it('dates a post ahead when an earlier provider attempt keeps it publishing', async () => {
     const h = createHarness();
-    const post = {
-      id: 'post-1',
-      organizationId: 'org-1',
-      publishApproval: { id: 'approval-1' },
-      targetExecutionState: TargetExecutionState.PUBLISHING,
-    };
-    h.discoveryService.findPost.mockResolvedValue(post);
+    duePost(h, { targetExecutionState: TargetExecutionState.PUBLISHING });
     const kept = {
       executionState: TargetExecutionState.PUBLISHING,
       platform: '',
       success: false,
     };
     h.deliveryService.failTerminalValidation.mockResolvedValue(kept);
+    const before = Date.now();
 
     expect(await finalizeAlreadyPublished(h)).toEqual(kept);
 
-    expect(h.deliveryService.deferKeptUnsettledApproval).toHaveBeenCalledWith(
-      post,
-    );
+    const [update] = h.prisma.post.updateMany.mock.calls[0] ?? [];
+    expect(update.data.lastAttemptAt.getTime()).toBeGreaterThan(before);
+    expect(update.data.targetError.code).toBe('publish_outcome_unconfirmed');
   });
 
-  it('does not defer a post that the close failed', async () => {
+  it('leaves the post alone when the close failed it', async () => {
     const h = createHarness();
     duePost(h);
 
     await finalizeAlreadyPublished(h);
 
-    expect(h.deliveryService.deferKeptUnsettledApproval).not.toHaveBeenCalled();
+    expect(h.prisma.post.updateMany).not.toHaveBeenCalled();
   });
 });

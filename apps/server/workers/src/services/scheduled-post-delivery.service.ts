@@ -25,7 +25,6 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
-import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -66,7 +65,6 @@ import {
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import { ScheduledPostProviderAttempts } from '@workers/services/scheduled-post-provider-attempts';
 import {
-  inspectProviderPublishAttempt,
   type ProviderPublishAttempt,
   type ProviderPublishAttemptRef,
   ProviderPublishAttemptUnavailableError,
@@ -463,54 +461,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     this.followUps.emitPublishFailedWebhook(post, errorMessage);
 
     return createFailedPublishResult('', errorMessage);
-  }
-
-  /**
-   * A terminal close of a post whose approval is already published was kept
-   * because an earlier provider attempt is unconfirmed or in flight (#10385).
-   * Applies the unverified-outcome policy to the post without a new provider
-   * call: the short verification backoff inside the window, then the
-   * operator-visible error, the owner alert and the slow backoff. The window
-   * runs from the attempt's own start, which no sweep moves. That holds for an
-   * unconfirmed attempt and for one the provider accepted whose result never
-   * reached the post: both end with the owner alert, and neither is failed.
-   * An attempt still in flight has no settled start to date it from, so it
-   * gets the short backoff and no alert; once its lease lapses it becomes
-   * unconfirmed and the window runs from its real start. Dated ahead because discovery re-queues a
-   * PUBLISHING post once its last attempt is older than the retry backoff.
-   */
-  async deferKeptUnsettledApproval(post: PostEntity): Promise<void> {
-    const now = new Date();
-    const attempt = await inspectProviderPublishAttempt(this.prisma, post, now);
-    const windowStartedAt =
-      attempt.kind === 'unconfirmed' || attempt.kind === 'replay'
-        ? attempt.attemptStartedAt
-        : now;
-    const deferral = resolveUnverifiedDeferral(windowStartedAt, now);
-    const { count } = await this.prisma.post.updateMany({
-      data: {
-        lastAttemptAt: new Date(
-          now.getTime() +
-            (deferral.backoffSeconds - SCHEDULED_POST_RETRY_BACKOFF_SECONDS) *
-              1000,
-        ),
-        targetError: toPrismaJson(
-          createChannelTargetError(deferral.code, deferral.message, true),
-        ),
-      },
-      where: {
-        id: post.id.toString(),
-        isDeleted: false,
-        organizationId: readPostString(post, ['organizationId']) ?? '',
-        targetExecutionState: TargetExecutionState.PUBLISHING,
-      },
-    });
-    if (deferral.isWindowExpired && count > 0) {
-      await this.postFailureService.notifyPublishUnverified(
-        post,
-        windowStartedAt,
-      );
-    }
   }
 
   /**
