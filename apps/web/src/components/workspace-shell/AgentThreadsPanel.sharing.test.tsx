@@ -9,8 +9,10 @@ import {
   AgentTransferStatus,
 } from '@genfeedai/contracts';
 import type { IAgentTransfer } from '@genfeedai/contracts/interfaces';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactElement } from 'react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AgentThreadMember } from '@/components/workspace-shell/props/agent-threads-panel.props';
 import AgentThreadsPanel from './AgentThreadsPanel';
@@ -46,24 +48,50 @@ const members: AgentThreadMember[] = [
   },
 ];
 
-// What the roster lookup reports; each test sets it before rendering.
+// What the members transport serves; each test sets it before rendering. The
+// real roster hook runs on top of it, so loading, failure and retry come from
+// the query the dialog actually uses.
 const roster = vi.hoisted(() => ({
+  gate: null as null | Promise<void>,
   isFailed: false,
-  isLoading: false,
-  retry: vi.fn(),
   rows: null as null | AgentThreadMember[],
 }));
 
-vi.mock('@/components/workspace-shell/use-agent-thread-members', () => ({
-  useAgentThreadMembers: () => {
-    const rows = roster.rows ?? members;
-    return {
-      isFailed: roster.isFailed,
-      isLoading: roster.isLoading,
-      members: roster.isFailed || roster.isLoading ? [] : rows,
-      membersById: new Map(rows.map((member) => [member.userId, member])),
-      retry: roster.retry,
-    };
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
+    getToken: async () => 'token',
+    orgId: 'org-1',
+    sessionId: 'session-1',
+    userId: 'user-me',
+  }),
+}));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ organizationId: 'org-1' }),
+}));
+
+vi.mock('@services/organization/members.service', () => ({
+  MembersService: {
+    getInstance: () => ({
+      findAllPages: async () => {
+        if (roster.gate) {
+          await roster.gate;
+        }
+        if (roster.isFailed) {
+          throw new Error('members unavailable');
+        }
+        return (roster.rows ?? members).map((member) => ({
+          brands: member.brandIds.map((id) => ({ id })),
+          isActive: true,
+          isDeleted: false,
+          roleKey: member.roleKey,
+          roleLabel: member.roleLabel,
+          user: { avatar: member.avatarUrl },
+          userFullName: member.name,
+          userId: member.userId,
+        }));
+      },
+    }),
   },
 }));
 
@@ -293,8 +321,17 @@ const apiService = {
   respondToUiAction: vi.fn(),
 };
 
-function renderPanel() {
+function renderWithQuery(ui: ReactElement) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { gcTime: 0, retry: false } },
+  });
   return render(
+    <QueryClientProvider client={client}>{ui}</QueryClientProvider>,
+  );
+}
+
+function renderPanel() {
+  return renderWithQuery(
     <AgentThreadsPanel
       apiService={apiService}
       getThreadHref={(threadId) => `/acme/~/agent/${threadId}`}
@@ -333,10 +370,9 @@ describe('AgentThreadsPanel sharing', () => {
 
   beforeEach(() => {
     liveShares = [];
+    roster.gate = null;
     roster.isFailed = false;
-    roster.isLoading = false;
     roster.rows = null;
-    roster.retry.mockClear();
     apiService.getThreadShares.mockImplementation(async () => liveShares);
     apiService.deleteThreadShare.mockClear();
     apiService.getMessages.mockImplementation(async (threadId: string) =>
@@ -345,12 +381,14 @@ describe('AgentThreadsPanel sharing', () => {
     urlStore.set('');
   });
 
-  it('names the owner of a thread shared with the viewer in its row', () => {
+  it('names the owner of a thread shared with the viewer in its row', async () => {
     renderPanel();
 
-    expect(
-      screen.getByRole('link', { name: /Weekly performance recap/ }),
-    ).toHaveTextContent('Ana Costa');
+    await waitFor(() =>
+      expect(
+        screen.getByRole('link', { name: /Weekly performance recap/ }),
+      ).toHaveTextContent('Ana Costa'),
+    );
     expect(
       screen.getByRole('link', { name: /Serum launch captions/ }),
     ).not.toHaveTextContent('Ana Costa');
@@ -371,7 +409,7 @@ describe('AgentThreadsPanel sharing', () => {
         userId: ME,
         ...overrides,
       });
-    render(
+    renderWithQuery(
       <AgentThreadsPanel
         apiService={apiService}
         getThreadHref={(threadId) => `/acme/~/agent/${threadId}`}
@@ -720,7 +758,7 @@ describe('AgentThreadsPanel sharing', () => {
     ).toBeDisabled();
   });
 
-  it('tells a failed roster lookup from an empty one, and retries it', async () => {
+  it('tells a failed roster lookup from an empty one, and recovers on retry', async () => {
     const user = userEvent.setup();
     roster.isFailed = true;
     const scopeButton = await openOwnThread(user);
@@ -739,8 +777,35 @@ describe('AgentThreadsPanel sharing', () => {
     expect(
       within(dialog).queryByText('No other active members yet.'),
     ).toBeNull();
+
+    // The retry is held open so the loading state can be seen before it ends.
+    let finishRetry: () => void = () => undefined;
+    roster.gate = new Promise<void>((resolve) => {
+      finishRetry = resolve;
+    });
+    roster.isFailed = false;
     await user.click(within(dialog).getByRole('button', { name: 'Try again' }));
-    expect(roster.retry).toHaveBeenCalledTimes(1);
+
+    expect(await within(dialog).findByRole('status')).toHaveTextContent(
+      'Loading members…',
+    );
+    expect(within(dialog).queryByText('Couldn’t load members.')).toBeNull();
+
+    finishRetry();
+
+    expect(
+      await within(dialog).findByRole('combobox', {
+        name: 'Access for Marco Rossi',
+      }),
+    ).toBeEnabled();
+    expect(
+      within(dialog).getByRole('combobox', { name: 'Access for Ana Costa' }),
+    ).toBeEnabled();
+    expect(within(dialog).queryByText('Couldn’t load members.')).toBeNull();
+    expect(within(dialog).queryByText('Loading members…')).toBeNull();
+    expect(
+      within(dialog).queryByText('No other active members yet.'),
+    ).toBeNull();
   });
 
   it('says there is no one to share with only after a successful empty lookup', async () => {
