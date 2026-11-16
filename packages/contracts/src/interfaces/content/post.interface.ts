@@ -166,4 +166,6 @@ export interface IPostPlatformConfig {
   isShareToFeedSelected?: boolean;
   referenceState?: string;
   signatureIds?: string[];
+  /** Per-channel settings the channel catalog declares, such as a Slack `channelId`. */
+  targetSettings?: Record<string, string | number | boolean>;
 }

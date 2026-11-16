@@ -380,6 +380,7 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
             label: resolveChannelLabel(config, globalTitle),
             scheduledDate,
             targetExecutionState: config.targetExecutionState,
+            targetSettings: config.targetSettings,
             timezone: scheduleTimezone,
             visibility: config.visibility,
           } as CreatePostRequest;

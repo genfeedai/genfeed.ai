@@ -18,6 +18,7 @@ import {
   IsDateString,
   IsEnum,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Max,
@@ -122,6 +123,17 @@ export class CreatePostDto {
   @IsOptional()
   @IsEnum(TargetExecutionState)
   readonly targetExecutionState?: TargetExecutionState;
+
+  @ApiProperty({
+    description:
+      "Per-channel settings declared by the channel catalog, such as a Slack post's `channelId`. Keys the channel does not declare are dropped.",
+    required: false,
+    type: 'object',
+    additionalProperties: true,
+  })
+  @IsOptional()
+  @IsObject()
+  readonly targetSettings?: Record<string, unknown>;
 
   @ApiProperty({
     default: PostVisibility.PUBLIC,

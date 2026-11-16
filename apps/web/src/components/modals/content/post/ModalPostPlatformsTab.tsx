@@ -38,6 +38,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { countCaptionCharacters } from '@/components/posts/character-usage/post-character-usage.util';
 import ModalPostChannelList from './ModalPostChannelList';
 import ModalPostPlatformCard from './ModalPostPlatformCard';
+import ModalPostPlatformSlack from './ModalPostPlatformSlack';
 import {
   PLATFORM_TO_CONTENT_CATEGORY,
   PLATFORM_TO_SYSTEM_PROMPT_KEY,
@@ -369,6 +370,16 @@ export default function ModalPostPlatformsTab({
         onToggleExpanded={handleToggleExpanded}
         onAddChannels={onAddChannels}
         renderEditor={renderChannelEditor}
+        renderRequiredField={(config) =>
+          config.platform === CredentialPlatform.SLACK ? (
+            <ModalPostPlatformSlack
+              config={config}
+              isEnabled
+              isLoading={isLoading}
+              updatePlatformConfig={updatePlatformConfig}
+            />
+          ) : null
+        }
       />
       {platformConfigs.every((config) => !config.enabled) ? (
         <p className="text-sm text-foreground/70">{translate('empty')}</p>
