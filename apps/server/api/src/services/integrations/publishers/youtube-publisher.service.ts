@@ -8,13 +8,23 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { verifyMediaPublish } from '@api/services/integrations/publishers/publisher-media-verification.util';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+
+/** `uploadVideo` titles a video without a label this way. */
+const YOUTUBE_DEFAULT_VIDEO_TITLE = 'Genfeed.ai Video';
+/** An upload YouTube accepted: still processing, or done. */
+const VERIFIED_UPLOAD_STATUSES: ReadonlySet<string> = new Set([
+  'processed',
+  'uploaded',
+]);
 
 @Traced()
 @Injectable()
@@ -70,6 +80,55 @@ export class YouTubePublisherService extends BasePublisherService {
     // catalog entry). This override skips super.validatePost, so the
     // length backstop must run explicitly.
     return this.validateCaptionLength(context);
+  }
+
+  /**
+   * Whether an earlier, unconfirmed upload landed on the channel.
+   *
+   * Matches the exact title and description among the channel's uploads since
+   * the attempt began. A video still processing counts as landed (it exists and
+   * has its id). One YouTube reports as failed, rejected or deleted stays
+   * unknown. The thumbnail and playlist steps that follow an upload are not
+   * replayed, so a verified video can lack them.
+   */
+  async verifyPublished(
+    context: PublishContext,
+    attemptStartedAt: Date,
+  ): Promise<PublishResult | null> {
+    const mediaInfo = this.extractMediaInfo(context.post);
+    if (mediaInfo.isImagePost || mediaInfo.isCarousel) {
+      throw new Error('Provider verification lacks exact video proof');
+    }
+    if (!context.credential.externalId) {
+      throw new Error('YouTube verification channel unavailable or changed');
+    }
+    const found = await verifyMediaPublish(
+      attemptStartedAt,
+      (cursor) =>
+        this.youtubeService.listPublishVerificationPage(
+          context.organizationId,
+          context.brandId,
+          context.credential.id,
+          context.credential.externalId,
+          attemptStartedAt,
+          cursor,
+        ),
+      {
+        mediaCount: 1,
+        mediaKind: 'video',
+        text: htmlToText(context.post.description),
+        title: context.post.label || YOUTUBE_DEFAULT_VIDEO_TITLE,
+      },
+    );
+    if (!found) return null;
+    if (!VERIFIED_UPLOAD_STATUSES.has(found.status ?? '')) {
+      throw new Error('YouTube verification found an upload that did not land');
+    }
+    return this.createSuccessResult(
+      found.id,
+      this.platform,
+      this.buildPostUrl(found.id, context.credential),
+    );
   }
 
   /**
