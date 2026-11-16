@@ -35,7 +35,7 @@ function getChannelName(
 }
 
 /** What the attached media still lacks for this channel, or null when it fits. */
-export function getChannelMediaGap(
+function getChannelMediaGap(
   config: IPostPlatformConfig,
   media: ModalPostChannelListProps['media'],
 ): Exclude<PostMediaRequirement, 'none'> | null {
@@ -155,52 +155,55 @@ export default function ModalPostChannelList({
               className="flex min-w-0 flex-col items-center gap-1.5 text-center"
               key={config.platform}
             >
-              <Button
-                type="button"
-                aria-pressed={canToggle ? isOn : undefined}
-                ariaLabel={
-                  !isConnected
-                    ? hasCredential
-                      ? translate('reconnectNamed', { name })
-                      : translate('connectNamed', { name })
-                    : translate('publishTo', { name })
-                }
+              <div
                 className={cn(
                   'rounded-full p-0.5 transition',
                   isOn
                     ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
                     : 'ring-1 ring-transparent',
                   !isConnected && 'opacity-60',
-                  isBlocked && 'cursor-not-allowed opacity-40 grayscale',
+                  isBlocked && 'opacity-40 grayscale',
                   canToggle &&
                     !isOn &&
                     'opacity-70 grayscale hover:opacity-100 hover:grayscale-0',
                 )}
-                isDisabled={
-                  isBlocked || (isConnected ? isLoading : !onAddChannels)
-                }
-                onClick={() =>
-                  isConnected
-                    ? onToggle(config.credentialId)
-                    : onAddChannels?.()
-                }
-                tooltip={isBlocked ? status : name}
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
               >
-                <Avatar
-                  badge={
-                    <PlatformBadge
-                      platform={config.platform}
-                      showLabel={false}
-                      variant="solid"
-                    />
+                <Button
+                  type="button"
+                  aria-pressed={canToggle ? isOn : undefined}
+                  ariaLabel={
+                    !isConnected
+                      ? hasCredential
+                        ? translate('reconnectNamed', { name })
+                        : translate('connectNamed', { name })
+                      : translate('publishTo', { name })
                   }
-                  name={name}
-                  size="xl"
-                  src={credential?.externalAvatar}
-                />
-              </Button>
+                  isDisabled={
+                    isBlocked || (isConnected ? isLoading : !onAddChannels)
+                  }
+                  onClick={() =>
+                    isConnected
+                      ? onToggle(config.credentialId)
+                      : onAddChannels?.()
+                  }
+                  tooltip={isBlocked ? status : name}
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                >
+                  <Avatar
+                    badge={
+                      <PlatformBadge
+                        platform={config.platform}
+                        showLabel={false}
+                        variant="solid"
+                      />
+                    }
+                    name={name}
+                    size="xl"
+                    src={credential?.externalAvatar}
+                  />
+                </Button>
+              </div>
               <div className="flex min-w-0 max-w-full flex-col leading-tight">
                 <span className="truncate text-xs font-medium">
                   {formatPlatformLabel(config.platform)}
