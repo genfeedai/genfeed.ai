@@ -609,6 +609,89 @@ describe('AgentThreadsPanel sharing', () => {
     expect(scopeButton).toHaveTextContent('1 person');
   });
 
+  it('confirms what remains only after every revoke has settled', async () => {
+    const user = userEvent.setup();
+    liveShares = [
+      {
+        id: 'share-ana',
+        level: AgentThreadShareLevel.VIEW,
+        scope: AgentThreadShareScope.MEMBER,
+        targetUserId: ANA,
+        threadId: 'own',
+      },
+      {
+        id: 'share-marco',
+        level: AgentThreadShareLevel.VIEW,
+        scope: AgentThreadShareScope.MEMBER,
+        targetUserId: MARCO,
+        threadId: 'own',
+      },
+    ];
+    let finishMarco: () => void = () => undefined;
+    apiService.deleteThreadShare
+      .mockRejectedValueOnce(new Error('delete failed'))
+      .mockImplementationOnce(
+        (_threadId: string, shareId: string) =>
+          new Promise<void>((resolve) => {
+            finishMarco = () => {
+              liveShares = liveShares.filter((share) => share.id !== shareId);
+              resolve();
+            };
+          }),
+      );
+
+    const scopeButton = await openOwnThread(user);
+    await waitFor(() => expect(scopeButton).toHaveTextContent('2 people'));
+    await user.click(scopeButton);
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Share this thread',
+    });
+    await user.click(within(dialog).getByRole('radio', { name: /Only me/ }));
+    await waitFor(() =>
+      expect(
+        within(dialog).getByRole('radio', { name: /Only me/ }),
+      ).toBeDisabled(),
+    );
+    finishMarco();
+
+    expect(
+      await within(dialog).findByText(
+        'Sharing was only partly updated. 1 person can still open this thread.',
+      ),
+    ).toBeVisible();
+  });
+
+  it('keeps the recipient picker open after switching from the whole organization to specific people', async () => {
+    const user = userEvent.setup();
+    liveShares = [
+      {
+        id: 'share-org',
+        level: AgentThreadShareLevel.VIEW,
+        scope: AgentThreadShareScope.ORGANIZATION,
+        threadId: 'own',
+      },
+    ];
+    const scopeButton = await openOwnThread(user);
+    await user.click(scopeButton);
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Share this thread',
+    });
+    await user.click(
+      within(dialog).getByRole('radio', { name: /Specific people/ }),
+    );
+
+    await waitFor(() =>
+      expect(
+        within(dialog).getByRole('radio', { name: /Specific people/ }),
+      ).toBeChecked(),
+    );
+    expect(
+      await within(dialog).findByRole('combobox', {
+        name: 'Access for Marco Rossi',
+      }),
+    ).toBeVisible();
+  });
+
   it('reads access as unverified when the readback after a change fails', async () => {
     const user = userEvent.setup();
     const scopeButton = await openOwnThread(user);

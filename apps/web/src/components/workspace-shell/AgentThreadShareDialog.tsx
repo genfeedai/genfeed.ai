@@ -127,11 +127,15 @@ export default function AgentThreadShareDialog({
   // always shows what the server holds. A change that only partly landed, or
   // failed, is reconciled the same way, and a failed readback leaves access
   // unverified instead of showing the old list.
-  const run = async (change: () => Promise<unknown>) => {
+  const run = async (
+    change: () => Promise<unknown>,
+    keepChoice?: ShareChoice,
+  ) => {
     const threadId = thread.id;
     setIsBusy(true);
     setLeftoverScope(null);
     let hasChangeFailed = false;
+    let nextChoice: ShareChoice | null = null;
     try {
       await change();
     } catch {
@@ -140,19 +144,33 @@ export default function AgentThreadShareDialog({
     try {
       const confirmed = await apiService.getThreadShares(threadId);
       onAccessConfirmed(confirmed, threadId);
+      if (
+        keepChoice &&
+        confirmed.every((s) => s.scope === AgentThreadShareScope.MEMBER)
+      ) {
+        nextChoice = keepChoice;
+      }
       if (hasChangeFailed) {
         setLeftoverScope(confirmed.length > 0 ? describeScope(confirmed) : '');
       }
     } catch {
       onAccessUnverified(threadId);
     } finally {
-      setPickedChoice(null);
+      setPickedChoice(nextChoice);
       setIsBusy(false);
     }
   };
 
-  const revoke = (list: readonly AgentThreadShare[]) =>
-    Promise.all(list.map((s) => apiService.deleteThreadShare(thread.id, s.id)));
+  // Waits for every delete to settle before the readback, so a rejected delete
+  // cannot leave others running while the list is confirmed.
+  const revoke = async (list: readonly AgentThreadShare[]) => {
+    const results = await Promise.allSettled(
+      list.map((s) => apiService.deleteThreadShare(thread.id, s.id)),
+    );
+    if (results.some((result) => result.status === 'rejected')) {
+      throw new Error('Some shares could not be removed');
+    }
+  };
 
   const pickChoice = (next: ShareChoice) => {
     setPickedChoice(next);
@@ -163,7 +181,7 @@ export default function AgentThreadShareDialog({
         (s) => s.scope !== AgentThreadShareScope.MEMBER,
       );
       if (rest.length > 0) {
-        void run(() => revoke(rest));
+        void run(() => revoke(rest), 'people');
       }
     } else {
       const scope =
