@@ -1,19 +1,23 @@
 import { Platform } from '../../enums/platform.enum';
-import type { ChannelCapability } from './channel-capabilities.contract';
+
+/** Keeps each member a literal type while the array stays mutable. */
+const list = <T extends string>(...items: T[]): T[] => items;
 
 /**
  * Bluesky: text, image and video posts, and reply threads, on a connected
  * account. Kept beside the catalog so the catalog file stays under its
- * file-size ratchet.
+ * file-size ratchet. The catalog parses it through `channelCapabilitySchema`
+ * and checks it with `satisfies`, so it carries no type of its own (importing
+ * one would be an import cycle).
  */
-export const blueskyChannelCapability: ChannelCapability = {
+export const blueskyChannelCapability = {
   caption: { maxLength: 300, required: false },
   description:
     'Text, image and video posts, and reply threads, on a connected Bluesky account.',
   helpers: [
     {
       key: 'bluesky.accounts',
-      kind: 'account',
+      kind: 'account' as const,
       label: 'Bluesky account',
       required: true,
     },
@@ -28,12 +32,12 @@ export const blueskyChannelCapability: ChannelCapability = {
       supported: false,
     },
     images: { maxItems: 4, minItems: 1 },
-    kinds: ['image', 'video', 'short_video', 'carousel', 'link'],
+    kinds: list('image', 'video', 'short_video', 'carousel', 'link'),
     maxItems: 4,
     minItems: 0,
   },
   platform: Platform.BLUESKY,
-  publishModes: ['draft', 'publish_now', 'scheduled'],
+  publishModes: list('draft', 'publish_now', 'scheduled'),
   settings: [],
-  status: 'supported',
+  status: 'supported' as const,
 };
