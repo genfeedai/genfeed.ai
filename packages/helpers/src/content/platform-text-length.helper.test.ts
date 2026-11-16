@@ -31,6 +31,14 @@ describe('platform text length', () => {
     ).toBe(36);
   });
 
+  it('counts graphemes on Bluesky, so a family emoji or a flag counts one', () => {
+    expect(measurePlatformText('👨‍👩‍👧', 'bluesky')).toBe(1);
+    expect(measurePlatformText('🇧🇪', 'bluesky')).toBe(1);
+    expect(measurePlatformText('e\u0301', 'bluesky')).toBe(1);
+    expect(measurePlatformText('plain text', 'bluesky')).toBe(10);
+    expect(getPlatformTextLimit('bluesky')).toBe(300);
+  });
+
   it('reads the limit from the channel capability catalog', () => {
     expect(getPlatformTextLimit('twitter')).toBe(280);
     expect(getPlatformTextLimit('not-a-platform')).toBeUndefined();

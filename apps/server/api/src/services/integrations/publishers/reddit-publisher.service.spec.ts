@@ -18,9 +18,14 @@ import {
   CredentialPlatform,
   PostCategory,
   PostStatus,
+  PublishErrorKind,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { ChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import {
+  type PublishError,
+  readPublishErrorKind,
+} from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -791,6 +796,74 @@ describe('RedditPublisherService', () => {
           postId: context.postId,
         }),
       );
+    });
+  });
+
+  describe('typed publish errors', () => {
+    const providerFailure = (status: number, headers = {}): Error =>
+      Object.assign(new Error(`status ${status}`), {
+        response: { data: {}, headers, status },
+      });
+
+    async function failureOf(run: () => Promise<unknown>): Promise<unknown> {
+      return run().then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+    }
+
+    it('throws a rate_limited error that carries the provider wait', async () => {
+      redditService.submitPost.mockRejectedValue(
+        providerFailure(429, { 'retry-after': '30' }),
+      );
+
+      const error = await failureOf(() =>
+        service.publish(createPublishContext(mockTextPost)),
+      );
+
+      expect(readPublishErrorKind(error)).toBe(PublishErrorKind.RATE_LIMITED);
+      expect((error as PublishError).retryAfterMs).toBe(30_000);
+    });
+
+    it('throws outcome_unknown for a 5xx that may hide an accepted publish', async () => {
+      redditService.submitPost.mockRejectedValue(providerFailure(503));
+
+      const error = await failureOf(() =>
+        service.publish(createPublishContext(mockTextPost)),
+      );
+
+      expect(readPublishErrorKind(error)).toBe(
+        PublishErrorKind.OUTCOME_UNKNOWN,
+      );
+    });
+
+    it('throws token_must_refresh for a 401', async () => {
+      redditService.submitPost.mockRejectedValue(providerFailure(401));
+
+      const error = await failureOf(() =>
+        service.publish(createPublishContext(mockTextPost)),
+      );
+
+      expect(readPublishErrorKind(error)).toBe(
+        PublishErrorKind.TOKEN_MUST_REFRESH,
+      );
+    });
+
+    it('still rethrows a plain error from our own code unchanged', async () => {
+      const plain = new Error('boom');
+      redditService.submitPost.mockRejectedValue(plain);
+
+      await expect(
+        service.publish(createPublishContext(mockTextPost)),
+      ).rejects.toBe(plain);
+    });
+
+    it('returns outcome_unknown when Reddit answers without a post id', async () => {
+      redditService.submitPost.mockResolvedValue(undefined as never);
+
+      const result = await service.publish(createPublishContext(mockTextPost));
+
+      expect(result.errorKind).toBe(PublishErrorKind.OUTCOME_UNKNOWN);
     });
   });
 });

@@ -15,7 +15,7 @@
     "refreshFeeds": "Refresh feeds",
     "loadingFeeds": "Loading your connected feeds…",
     "feedError": "Unable to load your feeds. Try refreshing.",
-    "connectAccount": "Connect an account",
+    "connectAccount": "Connect Account",
     "automaticAccounts": "Your connected social accounts appear here automatically.",
     "selectBrand": "Select a brand in the header to load its connected timelines.",
     "updated": "Updated",
@@ -323,9 +323,9 @@
     "editImage": "Edit image",
     "editImageDescription": "Change this image with an instruction",
     "creationFailed": "Storyboard couldn’t be created. Try again.",
-    "remixThisVideo": "Remix this video",
-    "remixThisVideoTooltip": "Remix this video",
-    "openInEditor": "Open in Editor",
+    "remixThisVideo": "Remix Video",
+    "remixThisVideoTooltip": "Remix Video",
+    "openInEditor": "Open Editor",
     "openInEditorTooltip": "Open in the Studio editor",
     "rename": "Rename",
     "resizeFormats": {
@@ -333,7 +333,7 @@
       "portrait": "Portrait",
       "square": "Square"
     },
-    "resizeTo": "Resize to {format}",
+    "resizeTo": "Resize {format}",
     "more": "More",
     "groups": {
       "reframe": "Reframe",
@@ -621,7 +621,7 @@
     "perMonth": "/mo",
     "quality": "{quality} quality",
     "notNow": "Not now",
-    "upgradeTo": "Upgrade to {plan}",
+    "upgradeTo": "Get {plan}",
     "redirecting": "Redirecting…"
   },
   "exportModal": {
@@ -790,7 +790,7 @@
       "caption": "Optimize caption",
       "comment": "Add first comment",
       "grok": "End with @grok",
-      "thread": "Turn into a thread"
+      "thread": "Make Thread"
     },
     "tones": {
       "professional": "Professional",
@@ -802,7 +802,7 @@
     "discard": "Discard",
     "tryAgain": "Try again",
     "replaceText": "Replace text",
-    "addToThread": "Add to thread",
+    "addToThread": "Add Post",
     "proposedThread": "Proposed {count} posts for the thread",
     "proposedThreadAria": "Proposed thread",
     "rewriteAria": "AI rewrite",

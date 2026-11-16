@@ -87,7 +87,7 @@ const HERO_VISUAL = (
       },
     ]}
     subtitle="Say what you want in a sentence"
-    title="It makes the content. It gets it out."
+    title="It makes the content and gets it out"
   />
 );
 
@@ -275,7 +275,7 @@ export default function AgentContent() {
               as="h2"
               className="text-2xl font-bold mb-2 text-foreground"
             >
-              Connect your agent
+              Connect Agent
             </Heading>
             <Text as="p" className="text-foreground/70 mb-6 max-w-lg mx-auto">
               Start with a free account and connect the agent you already have.

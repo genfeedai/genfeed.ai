@@ -53,8 +53,8 @@ vi.mock('next-intl', () => ({
           noModelsEnabledTitle: 'No models enabled for this workspace',
           editResult: 'Edit result',
           reuseSettings: 'Reuse generation settings',
-          viewInLibrary: 'View in Library',
-          openInStudio: 'Open in Studio',
+          viewInLibrary: 'View Library',
+          openInStudio: 'Open Studio',
           openInStudioAria: 'Open this generation in Studio',
           pilotCeilingReached:
             'Stopped after {count} rejected paid candidates. No further video generation will run for this clip.',
@@ -1369,7 +1369,7 @@ describe('GenerationActionCard', () => {
     });
 
     expect(
-      (await screen.findAllByRole('link', { name: 'View in Library' })).length,
+      (await screen.findAllByRole('link', { name: 'View Library' })).length,
     ).toBeGreaterThan(0);
   });
 
@@ -1425,7 +1425,7 @@ describe('GenerationActionCard', () => {
     expect(storeState.setError).toHaveBeenCalledTimes(1);
     expect(storeState.setError).toHaveBeenCalledWith(null);
     expect(
-      (await screen.findAllByRole('link', { name: 'View in Library' })).length,
+      (await screen.findAllByRole('link', { name: 'View Library' })).length,
     ).toBeGreaterThan(0);
   });
 
@@ -1477,7 +1477,7 @@ describe('GenerationActionCard', () => {
       generateIngredient.mock.calls[0]?.slice(0, 2),
     );
     expect(
-      (await screen.findAllByRole('link', { name: 'View in Library' })).length,
+      (await screen.findAllByRole('link', { name: 'View Library' })).length,
     ).toBeGreaterThan(0);
   });
 
@@ -2697,7 +2697,7 @@ describe('GenerationActionCard', () => {
       expect(generateIngredient).toHaveBeenCalledTimes(1);
     });
     expect(
-      await screen.findAllByRole('link', { name: 'View in Library' }),
+      await screen.findAllByRole('link', { name: 'View Library' }),
     ).not.toHaveLength(0);
     expect(
       screen.queryByRole('button', { name: 'Reuse generation settings' }),

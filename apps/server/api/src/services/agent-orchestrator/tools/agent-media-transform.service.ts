@@ -210,7 +210,7 @@ export class AgentMediaTransformService {
             ctas: [
               {
                 href: createLibraryAssetRoute(IngredientCategory.VIDEO, id),
-                label: 'View in Library',
+                label: 'View Library',
               },
             ],
             description: `Merging ${params.ids.length} videos into one clip.`,

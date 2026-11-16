@@ -9,7 +9,7 @@ describe('HomeLoop', () => {
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: 'It does not stop at the file.',
+        name: 'It does not stop at the file',
       }),
     ).toBeInTheDocument();
   });

@@ -145,7 +145,7 @@ describe('DesktopServerSettings', () => {
       ),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Switch and restart' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Restart' }));
     await waitFor(() => {
       expect(mocks.bridge?.server.select).toHaveBeenCalledWith({
         kind: 'self-hosted',
@@ -170,7 +170,7 @@ describe('DesktopServerSettings', () => {
         target: { value: 'https://api.acme.dev' },
       },
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Switch and restart' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Restart' }));
 
     expect(
       await screen.findByText('Server switch was cancelled.'),

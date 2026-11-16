@@ -584,9 +584,7 @@ describe('membership-scoped saved guide wizard', () => {
         mocks.scope.brands = [mocks.scope.selectedBrand];
       }
       render(tree());
-      fireEvent.click(
-        await screen.findByRole('button', { name: 'Skip for now' }),
-      );
+      fireEvent.click(await screen.findByRole('button', { name: 'Skip' }));
       await waitFor(() =>
         expect(mocks.push).toHaveBeenCalledExactlyOnceWith('/'),
       );
@@ -604,7 +602,7 @@ describe('membership-scoped saved guide wizard', () => {
     const refresh = deferred<void>();
     await show();
     mocks.refetchUser.mockReturnValueOnce(refresh.promise);
-    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
     await waitFor(() => expect(mocks.refetchUser).toHaveBeenCalledTimes(1));
     expect(mocks.patchMe).toHaveBeenCalledExactlyOnceWith({
       isOnboardingCompleted: true,
@@ -621,9 +619,7 @@ describe('membership-scoped saved guide wizard', () => {
       if (missing === 'token') mocks.getToken.mockResolvedValue(null);
       if (missing === 'current user id') mocks.user.id = '';
       render(tree());
-      fireEvent.click(
-        await screen.findByRole('button', { name: 'Skip for now' }),
-      );
+      fireEvent.click(await screen.findByRole('button', { name: 'Skip' }));
       expect(await screen.findByRole('alert')).toHaveTextContent(
         "We couldn't skip onboarding",
       );
@@ -668,7 +664,7 @@ describe('membership-scoped saved guide wizard', () => {
       'brand-2',
       expect.any(AbortSignal),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
     await waitFor(() =>
       expect(mocks.push).toHaveBeenCalledExactlyOnceWith('/'),
     );
@@ -809,7 +805,7 @@ describe('membership-scoped saved guide wizard', () => {
       if (stage === 'organization')
         mocks.patchSettings.mockReturnValueOnce(gate.promise);
       if (stage === 'user') mocks.patchMe.mockReturnValueOnce(gate.promise);
-      fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
       await waitFor(() =>
         expect(
           stage === 'auth'
@@ -834,7 +830,7 @@ describe('membership-scoped saved guide wizard', () => {
   it('keeps errors localized and current scope visible on explicit exit failure', async () => {
     await show();
     mocks.patchSettings.mockRejectedValueOnce(new Error('PRIVATE_API_ERROR'));
-    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       "We couldn't skip onboarding",
     );
@@ -847,9 +843,7 @@ describe('membership-scoped saved guide wizard', () => {
     mocks.getToken.mockResolvedValue(null);
     mocks.scope.brands = [];
     render(tree());
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Skip for now' }),
-    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Skip' }));
     await waitFor(() => expect(mocks.push).toHaveBeenCalledTimes(1));
     expect(mocks.push).toHaveBeenCalledExactlyOnceWith(APP_ROUTES.LOGIN);
     expect(mocks.patchSettings).not.toHaveBeenCalled();

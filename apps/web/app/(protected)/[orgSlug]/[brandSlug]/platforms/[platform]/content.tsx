@@ -182,7 +182,7 @@ export default function PlatformHomePage({
     },
     {
       color: 'bg-categorical-violet/10 text-categorical-violet',
-      cta: translate('create.cta', { platform: platformLabel }),
+      cta: translate('create.cta'),
       href: href(destinations.create),
       icon: Sparkles,
       id: 'create',

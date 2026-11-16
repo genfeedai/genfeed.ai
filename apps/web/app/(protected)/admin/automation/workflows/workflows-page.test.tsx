@@ -386,7 +386,7 @@ describe('Admin workflows page Featured pins (#5511)', () => {
     ]);
     await renderLoadedPage();
 
-    await clickRowAction('Launch thread', 'Pin to Featured');
+    await clickRowAction('Launch thread', 'Pin');
 
     await waitFor(() => {
       expect(
@@ -405,7 +405,7 @@ describe('Admin workflows page Featured pins (#5511)', () => {
 
     expect(
       within(workflowRow('Founder thread')).queryByRole('button', {
-        name: 'Pin to Featured',
+        name: 'Pin',
       }),
     ).not.toBeInTheDocument();
     await clickRowAction('Founder thread', 'Unpin');
@@ -424,7 +424,7 @@ describe('Admin workflows page Featured pins (#5511)', () => {
     const row = workflowRow('Daily digest');
 
     expect(
-      within(row).queryByRole('button', { name: 'Pin to Featured' }),
+      within(row).queryByRole('button', { name: 'Pin' }),
     ).not.toBeInTheDocument();
     expect(
       within(row).getByRole('button', { name: 'Delete' }),

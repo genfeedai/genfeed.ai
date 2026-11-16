@@ -509,7 +509,7 @@
     "entry": {
       "title": "Create your digital twin",
       "body": "Record yourself once and use your own face and voice in avatar videos.",
-      "action": "Create my digital twin"
+      "action": "Create Twin"
     },
     "remove": {
       "action": "Delete twin",
@@ -543,7 +543,7 @@
       "body": "Your provider rejected the saved API key. Update it in Integrations to create your voices."
     },
     "connect": "Connect your account",
-    "twin": "Create my digital twin",
+    "twin": "Create Twin",
     "record": "Record my voice",
     "upload": "Upload a sample"
   },

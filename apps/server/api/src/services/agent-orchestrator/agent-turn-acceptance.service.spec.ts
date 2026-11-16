@@ -782,6 +782,31 @@ describe('AgentTurnAcceptanceService', () => {
       });
     });
 
+    it("keys an owner's recovery of an answer to the answering member's continuation (#10029)", async () => {
+      await service.accept(
+        {
+          clientRequestId: 'input-response:req-1',
+          content: 'Playful',
+          threadId: 'thread-shared',
+        },
+        {
+          idempotencyUserId: 'member-1',
+          organizationId: 'org-1',
+          userId: 'owner-1',
+        },
+      );
+
+      const queued = workflowRunner.enqueueWorkflow.mock.calls[0][0];
+      expect(queued.userId).toBe('owner-1');
+      expect(queued.idempotencyKey).toBe(
+        buildAgentTurnIdempotencyKey(
+          'org-1',
+          'member-1',
+          'input-response:req-1',
+        ),
+      );
+    });
+
     it('leaves a pending question to the owner', async () => {
       await service.accept(
         {

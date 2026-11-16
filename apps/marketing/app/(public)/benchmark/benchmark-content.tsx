@@ -86,7 +86,7 @@ function Ladder({ data }: { data: BenchmarkData }) {
           as="h2"
           className="text-4xl font-semibold tracking-[-0.02em] text-foreground"
         >
-          The ladder is empty on purpose.
+          The ladder is empty on purpose
         </Heading>
         <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/70">
           {season.title} is announced with {season.contestantIds.length}{' '}
@@ -245,7 +245,7 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
                     as="h2"
                     className="mt-4 text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl"
                   >
-                    Standings.
+                    Standings
                   </Heading>
                 </div>
                 <Text className="max-w-md text-sm leading-6 text-foreground/60">
@@ -263,7 +263,7 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
                     as="h2"
                     className="text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl"
                   >
-                    What we ask models to make.
+                    What we ask models to make
                   </Heading>
                 </div>
                 <Text className="max-w-md text-sm leading-6 text-foreground/60">
@@ -285,7 +285,7 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
                       as="h2"
                       className="text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl"
                     >
-                      Video, not yet running.
+                      Video, not yet running
                     </Heading>
                   </div>
                   <Text className="max-w-md text-sm leading-6 text-foreground/60">
@@ -305,7 +305,7 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
                 as="h2"
                 className="max-w-2xl text-3xl font-semibold tracking-[-0.02em] text-foreground"
               >
-                Genfeed is entered as a contestant, not as the scoreboard.
+                Genfeed is entered as a contestant, not as the scoreboard
               </Heading>
               <Text className="mt-5 max-w-xl text-base leading-7 text-foreground/70">
                 One route runs through Genfeed's brief compiler; the rest are

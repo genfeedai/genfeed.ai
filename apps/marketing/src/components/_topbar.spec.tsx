@@ -44,7 +44,7 @@ describe('WebsiteTopbar', () => {
       screen.getByRole('link', { name: /start creating/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
     expect(
-      screen.getByRole('button', { name: /connect your agent/i }),
+      screen.getByRole('button', { name: /connect agent/i }),
     ).toHaveAttribute('aria-haspopup', 'dialog');
     expect(screen.queryByText(/book a demo/i)).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Pricing' })).toHaveAttribute(

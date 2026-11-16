@@ -1,0 +1,53 @@
+{
+  "data": {
+    "attributes": {
+      "canBeSoldSeparately": true,
+      "changelog": null,
+      "createdAt": "2026-11-16T08:45:04.931Z",
+      "currency": "usd",
+      "description": "Launch Week Content Workflow description",
+      "downloads": 0,
+      "id": "1bda40b9-dfbd-4b3b-8bec-3fa5b9a7af47",
+      "installCount": 0,
+      "isDeleted": false,
+      "isOfficial": false,
+      "likeCount": 0,
+      "organization": "operator-org",
+      "packageSlug": null,
+      "packageSource": null,
+      "previewData": {},
+      "previewImages": [],
+      "previewVideo": null,
+      "price": 2900,
+      "pricingTier": "free",
+      "publishedAt": "2026-11-16T08:45:04.958Z",
+      "purchases": 0,
+      "rating": 0,
+      "reviewCount": 0,
+      "revenue": 0,
+      "seller": "8363605f-f382-4959-a8ee-27ae7ea8839d",
+      "shortDescription": "Launch Week Content Workflow short description",
+      "slug": "genfeed-f412da154f/launch-week-content-workflow",
+      "status": "published",
+      "tags": [],
+      "thumbnail": null,
+      "title": "Launch Week Content Workflow",
+      "type": "workflow",
+      "updatedAt": "2026-11-16T08:45:04.961Z",
+      "version": "1.0.0",
+      "views": 0,
+      "creditPrice": 2175,
+      "sellerInfo": {
+        "avatar": null,
+        "badgeTier": "new",
+        "displayName": "Genfeed f412da154f",
+        "slug": "genfeed-f412da154f"
+      }
+    },
+    "id": "1bda40b9-dfbd-4b3b-8bec-3fa5b9a7af47",
+    "type": "listing"
+  },
+  "topLevelLinks": {
+    "self": "/marketplace/listings/1bda40b9-dfbd-4b3b-8bec-3fa5b9a7af47"
+  }
+}

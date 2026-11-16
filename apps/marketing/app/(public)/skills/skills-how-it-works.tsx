@@ -12,7 +12,7 @@ export default function SkillsHowItWorks(): React.ReactElement {
         <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
           How It Works
         </div>
-        <h2 className="text-5xl font-semibold mb-6">Install. Learn. Create.</h2>
+        <h2 className="text-5xl font-semibold mb-6">Install, learn, create</h2>
         <p className="text-foreground/70 max-w-xl mx-auto">
           Skills are knowledge packages your agent absorbs, not plugins you
           configure.

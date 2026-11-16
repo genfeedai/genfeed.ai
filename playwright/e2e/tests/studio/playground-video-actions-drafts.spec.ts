@@ -351,7 +351,7 @@ test.describe('Studio Generate — video results and composer drafts', () => {
     await expect(transform).toHaveCount(0);
     const library = await openActionSubmenu(authenticatedPage, menu, 'Library');
     await expect(
-      library.getByRole('menuitem', { exact: true, name: 'Open in Editor' }),
+      library.getByRole('menuitem', { exact: true, name: 'Open Editor' }),
     ).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
   });

@@ -1,0 +1,50 @@
+{
+  "data": {
+    "attributes": {
+      "buyer": "buyer-opaque",
+      "createdAt": "2026-11-16T08:45:04.990Z",
+      "creditsPaid": 2175,
+      "currency": "usd",
+      "discount": 0,
+      "discountCode": null,
+      "downloadCount": 0,
+      "failureReason": null,
+      "id": "9b0a6e1e-e688-4bb0-a09e-ef60db2076d4",
+      "isDeleted": false,
+      "lastDownloadedAt": null,
+      "listing": "1bda40b9-dfbd-4b3b-8bec-3fa5b9a7af47",
+      "listingSnapshot": {
+        "type": "workflow",
+        "price": 2900,
+        "title": "Launch Week Content Workflow",
+        "version": "1.0.0"
+      },
+      "organization": "buyer-org",
+      "paymentMethod": "credits",
+      "platformFee": 0,
+      "seller": "8363605f-f382-4959-a8ee-27ae7ea8839d",
+      "sellerEarnings": 0,
+      "status": "refunded",
+      "stripePaymentIntentId": null,
+      "stripeSessionId": null,
+      "subtotal": 0,
+      "total": 0,
+      "updatedAt": "2026-11-16T08:45:05.032Z",
+      "listingInfo": {
+        "slug": "genfeed-f412da154f/launch-week-content-workflow",
+        "thumbnail": null,
+        "title": "Launch Week Content Workflow",
+        "type": "workflow"
+      },
+      "sellerInfo": {
+        "displayName": "Genfeed f412da154f",
+        "slug": "genfeed-f412da154f"
+      }
+    },
+    "id": "9b0a6e1e-e688-4bb0-a09e-ef60db2076d4",
+    "type": "purchase"
+  },
+  "topLevelLinks": {
+    "self": "/marketplace/service/purchases/refund"
+  }
+}

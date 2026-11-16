@@ -7,6 +7,12 @@ export const PLATFORM_COLORS = {
     name: 'Beehiiv',
     rgb: '252, 211, 77',
   },
+  bluesky: {
+    base: '#0085FF',
+    hover: '#339dff',
+    name: 'Bluesky',
+    rgb: '0, 133, 255',
+  },
   devto: {
     base: '#0A0A0A',
     hover: '#333333',
@@ -167,6 +173,7 @@ export type ColorVariant = 'base' | 'hover';
 export const DISCORD_EMBED_COLORS: Record<string, number> = {
   BEEHIIV: 0xfcd34d,
   DEFAULT: 0x5865f2,
+  BLUESKY: 0x0085ff,
   DEVTO: 0x0a0a0a,
   DISCORD: 0x5865f2,
   FACEBOOK: 0x1877f2,

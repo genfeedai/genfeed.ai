@@ -100,7 +100,7 @@ const HERO_VISUAL = (
       },
     ]}
     subtitle="Discovery, tracking, and briefing"
-    title="Find what's working now."
+    title="Find what's working now"
   />
 );
 

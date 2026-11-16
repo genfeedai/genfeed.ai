@@ -2,6 +2,7 @@
 
 import { ButtonVariant, CredentialPlatform } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { Button } from '@ui/primitives/button';
 import FormDateTimePicker from '@ui/primitives/date-time-picker';
 import {
@@ -65,17 +66,19 @@ export default function PostSidebarWhenDock({
         {post.url ? (
           <Button
             asChild
+            ariaLabel={translate('viewOn', {
+              platform: getPlatformLabel(
+                post.platform,
+                inspectorTranslate('unknownPlatform'),
+              ),
+            })}
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
             className="w-full"
           >
             <Link href={post.url} target="_blank" rel="noopener noreferrer">
-              {translate('viewOn', {
-                platform: getPlatformLabel(
-                  post.platform,
-                  inspectorTranslate('unknownPlatform'),
-                ),
-              })}
+              {post.platform ? getPlatformIcon(post.platform, 'size-4') : null}
+              {translate('view')}
             </Link>
           </Button>
         ) : null}

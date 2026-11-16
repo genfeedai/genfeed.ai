@@ -62,7 +62,7 @@
   },
   "actions": {
     "cancel": "Cancel",
-    "continue": "Continue to Studio",
+    "continue": "Open Studio",
     "generate": "Generate",
     "retry": "Retry",
     "saveIdea": "Save idea",

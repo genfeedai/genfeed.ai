@@ -43,7 +43,7 @@ const FAQ_ITEMS_GENERAL: FAQItem[] = [
   },
   {
     answer:
-      'Genfeed is built for content creators, agencies, marketers, and founders who need to create and distribute content at scale while tracking actual business results (not just vanity metrics).',
+      'Genfeed is built for creators, agencies, marketers and founders who make and publish content across several channels and want the results in one place.',
     question: 'Who is Genfeed for?',
   },
   {
@@ -69,7 +69,7 @@ export const FAQ_ITEMS_CORE: FAQItem[] = [
   },
   {
     answer:
-      'AI generation has reached the point where a small team can produce professional, on-brand content at a fraction of the old cost and effort. Genfeed puts that capability in one agent, so creators, marketers, and agencies can scale output without scaling headcount.',
+      'AI generation is now good enough for a small team to make on-brand video, images and posts without a studio. Genfeed puts that in one agent, so creators, marketers and agencies publish more without hiring more.',
     question: 'Why now? What changed?',
   },
 ];

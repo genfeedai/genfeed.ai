@@ -517,7 +517,7 @@ test('edits and approves a persisted draft through the actual route with loaded 
   await page.reload();
   await showStoryboardBoard(page);
   const editorLink = page.getByRole('link', {
-    name: 'Open in Editor',
+    name: 'Open Editor',
     exact: true,
   });
   await expect(editorLink).toBeVisible();

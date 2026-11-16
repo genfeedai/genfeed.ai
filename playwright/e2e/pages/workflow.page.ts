@@ -14,7 +14,7 @@ export function executionsHistoryLocator(page: Page): Locator {
     .or(page.getByRole('heading', { name: /no executions yet/i }))
     .or(page.getByText(/no workflow executions yet/i))
     .or(page.getByText('Recent Runs'))
-    .or(page.getByText('Go to Automations'));
+    .or(page.getByText('Open Automations'));
 }
 
 /**

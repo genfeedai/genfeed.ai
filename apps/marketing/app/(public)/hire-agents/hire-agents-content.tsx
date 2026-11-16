@@ -80,7 +80,7 @@ const HERO_VISUAL = (
       },
     ]}
     subtitle="Review by default, autopilot when you choose"
-    title="Your content team of agents."
+    title="Your content team of agents"
   />
 );
 

@@ -39,7 +39,7 @@
     "emptySearch": "No ads match your search.",
     "noteLabel": "Brand note",
     "notePlaceholder": "Why this ad is worth revisiting…",
-    "saveAction": "Save to swipe file",
+    "saveAction": "Save",
     "saveAria": "Save {title}",
     "saveNote": "Save note",
     "saved": "Saved",
@@ -47,7 +47,7 @@
     "sourceLabel": "Saved swipe file",
     "staleSnapshot": "This saved snapshot is no longer available. Refresh and try again.",
     "unavailable": "This ad is no longer available.",
-    "unsaveAction": "Unsave from swipe file",
+    "unsaveAction": "Unsave",
     "unsaveAria": "Unsave {title}",
     "updateFailed": "Swipe file update failed. Try again."
   },

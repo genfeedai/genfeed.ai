@@ -100,7 +100,7 @@ describe('AgentAuthClaimPage', () => {
 
     render(<AgentAuthClaimPage />);
 
-    const link = screen.getByRole('link', { name: 'Sign in to continue' });
+    const link = screen.getByRole('link', { name: 'Sign In' });
     expect(link.getAttribute('href')).toContain(
       encodeURIComponent(
         `/agent-auth/claim?claim_attempt_token=${'a'.repeat(43)}`,

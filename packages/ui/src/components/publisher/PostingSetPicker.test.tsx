@@ -54,7 +54,7 @@ describe('PostingSetPicker', () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText('Save current channels as a set'), {
+    fireEvent.change(screen.getByLabelText('Save Set'), {
       target: { value: 'Launch kit' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Save set' }));
