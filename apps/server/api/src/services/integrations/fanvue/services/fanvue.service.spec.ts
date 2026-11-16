@@ -8,7 +8,7 @@ import { Socket } from 'node:net';
 import { Duplex, Readable } from 'node:stream';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { FanvueService } from '@api/services/integrations/fanvue/services/fanvue.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -440,6 +440,45 @@ describe('FanvueService', () => {
         'Fanvue credential not found',
       );
     });
+
+    it('should tell the worker a missing credential means the channel is disconnected', async () => {
+      credentialsService.findOne.mockResolvedValue(null as never);
+
+      await expect(service.refreshToken(orgId, brandId)).rejects.toMatchObject({
+        kind: PublishErrorKind.CHANNEL_DISCONNECTED,
+      });
+    });
+
+    it.each([
+      [400, PublishErrorKind.CHANNEL_DISCONNECTED],
+      [401, PublishErrorKind.CHANNEL_DISCONNECTED],
+      [429, PublishErrorKind.RATE_LIMITED],
+      [503, PublishErrorKind.RETRY_LATER],
+    ])(
+      'should read a token endpoint answer of %i as %s',
+      async (status, kind) => {
+        credentialsService.findOne.mockResolvedValue({
+          id: 'test-object-id',
+          accessToken: 'encrypted-token',
+          accessTokenExpiry: new Date(Date.now() + 2 * 60 * 1000),
+          platform: CredentialPlatform.FANVUE,
+          refreshToken: 'encrypted-refresh',
+        } as never);
+        httpService.post.mockReturnValue(
+          throwError(() =>
+            Object.assign(new Error('Request failed'), {
+              response: { status },
+            }),
+          ),
+        );
+
+        await expect(
+          service.refreshToken(orgId, brandId),
+        ).rejects.toMatchObject({
+          kind,
+        });
+      },
+    );
 
     it('should disconnect and throw when tokens are missing', async () => {
       const mockCredential = {
@@ -887,9 +926,10 @@ describe('FanvueService', () => {
         ),
       );
       const operation = service.uploadMedia(accessToken, mediaUrl, 'image');
-      await expect(operation).rejects.toEqual(
-        new Error('Fanvue media upload failed'),
-      );
+      await expect(operation).rejects.toMatchObject({
+        kind: PublishErrorKind.RETRY_LATER,
+        message: 'Fanvue media upload failed',
+      });
       expect(loggerService.error).toHaveBeenCalledExactlyOnceWith(
         'Fanvue media upload failed',
         { stage: 'source', httpCode: 403 },
@@ -1002,9 +1042,10 @@ describe('FanvueService', () => {
           );
         if (stage === 'put') responseDelayMs = 120_000;
         const upload = service.uploadMedia(accessToken, mediaUrl, 'image');
-        const failure = expect(upload).rejects.toEqual(
-          new Error('Fanvue media upload failed'),
-        );
+        const failure = expect(upload).rejects.toMatchObject({
+          cause: undefined,
+          message: 'Fanvue media upload failed',
+        });
         await vi.waitFor(() => {
           if (stage === 'create')
             expect(httpService.post).toHaveBeenCalledTimes(1);
@@ -1028,7 +1069,10 @@ describe('FanvueService', () => {
       httpService.get.mockReturnValueOnce(of(response(source)));
       await expect(
         service.uploadMedia(accessToken, mediaUrl, 'image'),
-      ).rejects.toEqual(new Error('Fanvue media upload failed'));
+      ).rejects.toMatchObject({
+        cause: undefined,
+        message: 'Fanvue media upload failed',
+      });
       expect(httpService.post).not.toHaveBeenCalled();
     });
 
@@ -1038,7 +1082,10 @@ describe('FanvueService', () => {
       );
       await expect(
         service.uploadMedia(accessToken, mediaUrl, 'image'),
-      ).rejects.toEqual(new Error('Fanvue media upload failed'));
+      ).rejects.toMatchObject({
+        cause: undefined,
+        message: 'Fanvue media upload failed',
+      });
       expect(httpService.post).not.toHaveBeenCalled();
       expect(source.destroyed).toBe(true);
     });
@@ -1048,7 +1095,10 @@ describe('FanvueService', () => {
       caller.abort();
       await expect(
         service.uploadMedia(accessToken, mediaUrl, 'image', caller.signal),
-      ).rejects.toEqual(new Error('Fanvue media upload failed'));
+      ).rejects.toMatchObject({
+        cause: undefined,
+        message: 'Fanvue media upload failed',
+      });
       expect(httpService.get).not.toHaveBeenCalled();
     });
 
@@ -1069,9 +1119,10 @@ describe('FanvueService', () => {
           'image',
           caller.signal,
         );
-        const failure = expect(operation).rejects.toEqual(
-          new Error('Fanvue media upload failed'),
-        );
+        const failure = expect(operation).rejects.toMatchObject({
+          cause: undefined,
+          message: 'Fanvue media upload failed',
+        });
         await vi.waitFor(() => {
           const count =
             stage === 'create'
@@ -1102,9 +1153,10 @@ describe('FanvueService', () => {
           );
         if (stage === 'complete') httpService.patch.mockReturnValue(NEVER);
         const operation = service.uploadMedia(accessToken, mediaUrl, 'image');
-        const failure = expect(operation).rejects.toEqual(
-          new Error('Fanvue media upload failed'),
-        );
+        const failure = expect(operation).rejects.toMatchObject({
+          cause: undefined,
+          message: 'Fanvue media upload failed',
+        });
         await vi.advanceTimersByTimeAsync(30_001);
         await failure;
         expect(source.destroyed).toBe(true);
@@ -1117,7 +1169,10 @@ describe('FanvueService', () => {
       httpService.get.mockReturnValue(NEVER);
       const failure = expect(
         service.uploadMedia(accessToken, mediaUrl, 'image'),
-      ).rejects.toEqual(new Error('Fanvue media upload failed'));
+      ).rejects.toMatchObject({
+        cause: undefined,
+        message: 'Fanvue media upload failed',
+      });
       await vi.advanceTimersByTimeAsync(60_001);
       await failure;
       expect(httpService.post).not.toHaveBeenCalled();
@@ -1130,7 +1185,10 @@ describe('FanvueService', () => {
       httpService.get.mockReturnValueOnce(of(response(source)));
       const failure = expect(
         service.uploadMedia(accessToken, mediaUrl, 'image'),
-      ).rejects.toEqual(new Error('Fanvue media upload failed'));
+      ).rejects.toMatchObject({
+        cause: undefined,
+        message: 'Fanvue media upload failed',
+      });
       await vi.advanceTimersByTimeAsync(60_001);
       await failure;
       expect(source.destroyed).toBe(true);
@@ -1142,7 +1200,10 @@ describe('FanvueService', () => {
       responseHeaders = '';
       await expect(
         service.uploadMedia(accessToken, mediaUrl, 'image'),
-      ).rejects.toEqual(new Error('Fanvue media upload failed'));
+      ).rejects.toMatchObject({
+        cause: undefined,
+        message: 'Fanvue media upload failed',
+      });
       expect(httpService.patch).not.toHaveBeenCalled();
     });
 
@@ -1173,7 +1234,10 @@ describe('FanvueService', () => {
       byteDelayMs = 70_000;
       const failure = expect(
         service.uploadMedia(accessToken, mediaUrl, 'image'),
-      ).rejects.toEqual(new Error('Fanvue media upload failed'));
+      ).rejects.toMatchObject({
+        cause: undefined,
+        message: 'Fanvue media upload failed',
+      });
       await vi.advanceTimersByTimeAsync(60_001);
       await failure;
       expect(httpService.patch).not.toHaveBeenCalled();
@@ -1186,7 +1250,10 @@ describe('FanvueService', () => {
       connectionDelayMs = 70_000;
       const failure = expect(
         service.uploadMedia(accessToken, mediaUrl, 'image'),
-      ).rejects.toEqual(new Error('Fanvue media upload failed'));
+      ).rejects.toMatchObject({
+        cause: undefined,
+        message: 'Fanvue media upload failed',
+      });
       await vi.advanceTimersByTimeAsync(60_001);
       await failure;
       expect(httpService.patch).not.toHaveBeenCalled();
@@ -1340,10 +1407,11 @@ describe('FanvueService', () => {
         if (stage === 'put') httpService.put.mockReturnValue(fail);
         if (stage === 'complete') httpService.patch.mockReturnValue(fail);
         const operation = service.uploadMedia(accessToken, mediaUrl, 'image');
-        await expect(operation).rejects.toEqual(
-          new Error('Fanvue media upload failed'),
-        );
-        await expect(operation).rejects.not.toHaveProperty('cause');
+        await expect(operation).rejects.toMatchObject({
+          cause: undefined,
+          message: 'Fanvue media upload failed',
+        });
+        await expect(operation).rejects.toMatchObject({ cause: undefined });
         await expect(operation).rejects.not.toBe(providerError);
         expect(loggerService.error).toHaveBeenCalledExactlyOnceWith(
           'Fanvue media upload failed',
@@ -1364,9 +1432,10 @@ describe('FanvueService', () => {
         'image',
         caller.signal,
       );
-      const failure = expect(operation).rejects.toEqual(
-        new Error('Fanvue media upload failed'),
-      );
+      const failure = expect(operation).rejects.toMatchObject({
+        cause: undefined,
+        message: 'Fanvue media upload failed',
+      });
       await vi.waitFor(() => expect(httpService.get).toHaveBeenCalledTimes(1));
       caller.abort();
       await failure;

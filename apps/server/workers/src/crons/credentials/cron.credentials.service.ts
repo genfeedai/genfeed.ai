@@ -5,6 +5,7 @@ import {
 } from '@api/index';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
+import { GoogleBusinessService } from '@api/services/integrations/google-business/services/google-business.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
@@ -66,6 +67,7 @@ export class CronCredentialsService {
     private readonly credentialsService: ServerCredentialStore,
     private readonly facebookService: FacebookService,
     private readonly googleAdsService: GoogleAdsService,
+    private readonly googleBusinessService: GoogleBusinessService,
     private readonly instagramService: InstagramService,
     private readonly linkedInService: LinkedInService,
     private readonly pinterestService: PinterestService,
@@ -78,6 +80,7 @@ export class CronCredentialsService {
     this.platformRefreshers = new Map<CredentialPlatform, TokenRefreshService>([
       [CredentialPlatform.FACEBOOK, this.facebookService],
       [CredentialPlatform.GOOGLE_ADS, this.googleAdsService],
+      [CredentialPlatform.GOOGLE_BUSINESS, this.googleBusinessService],
       [CredentialPlatform.INSTAGRAM, this.instagramService],
       [CredentialPlatform.LINKEDIN, this.linkedInService],
       [CredentialPlatform.PINTEREST, this.pinterestService],

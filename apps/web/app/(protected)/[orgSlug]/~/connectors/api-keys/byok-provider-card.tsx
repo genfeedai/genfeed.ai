@@ -201,6 +201,7 @@ export default function ByokProviderCard({
               </span>
               <Input
                 type="password"
+                autoComplete="off"
                 value={apiKeyValue}
                 onChange={(e) => onApiKeyChange(e.target.value)}
                 placeholder="Enter API key..."
@@ -215,6 +216,7 @@ export default function ByokProviderCard({
                 </span>
                 <Input
                   type="password"
+                  autoComplete="off"
                   value={apiSecretValue}
                   onChange={(e) => onApiSecretChange(e.target.value)}
                   placeholder="Enter API secret..."

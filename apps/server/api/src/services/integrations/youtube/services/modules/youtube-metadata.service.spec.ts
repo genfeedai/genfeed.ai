@@ -5,10 +5,14 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 const mockVideosList = vi.fn();
+const mockChannelsList = vi.fn();
+const mockPlaylistItemsList = vi.fn();
 
 vi.mock('googleapis', () => ({
   google: {
     youtube: () => ({
+      channels: { list: mockChannelsList },
+      playlistItems: { list: mockPlaylistItemsList },
       videos: { list: mockVideosList },
     }),
   },
@@ -262,5 +266,115 @@ describe('YoutubeMetadataService', () => {
 
     const result = await service.getVideoMetadata('vid-zero');
     expect(result?.duration).toBe(0);
+  });
+  describe('listPublishVerificationPage', () => {
+    const startedAt = new Date('2026-10-03T10:00:00Z');
+
+    function readPage(cursor?: string) {
+      return service.listPublishVerificationPage(
+        'org-1',
+        'brand-1',
+        'credential-1',
+        'UC-channel',
+        startedAt,
+        cursor,
+      );
+    }
+
+    beforeEach(() => {
+      mockChannelsList.mockResolvedValue({
+        data: {
+          items: [
+            {
+              contentDetails: { relatedPlaylists: { uploads: 'UU-uploads' } },
+              id: 'UC-channel',
+            },
+          ],
+        },
+      });
+    });
+
+    it('lists the uploads since the attempt with their title, description and state', async () => {
+      mockPlaylistItemsList.mockResolvedValue({
+        data: {
+          items: [
+            {
+              contentDetails: { videoId: 'abc' },
+              snippet: { publishedAt: '2026-10-03T10:00:03Z' },
+            },
+            {
+              contentDetails: { videoId: 'old' },
+              snippet: { publishedAt: '2026-10-03T09:00:00Z' },
+            },
+          ],
+          nextPageToken: 'CAUQAA',
+        },
+      });
+      mockVideosList.mockResolvedValue({
+        data: {
+          items: [
+            {
+              id: 'abc',
+              snippet: { description: 'About it', title: 'My video' },
+              status: { privacyStatus: 'private', uploadStatus: 'processed' },
+            },
+          ],
+        },
+      });
+
+      const page = await readPage('CAQQAA');
+
+      expect(page).toEqual({
+        items: [
+          {
+            createdAt: new Date('2026-10-03T10:00:03Z'),
+            hasMedia: true,
+            id: 'abc',
+            isReply: false,
+            mediaCount: 1,
+            mediaKind: 'video',
+            status: 'processed',
+            text: 'About it',
+            title: 'My video',
+            visibility: 'private',
+          },
+        ],
+        nextCursor: 'CAUQAA',
+      });
+      expect(mockPlaylistItemsList).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pageToken: 'CAQQAA',
+          playlistId: 'UU-uploads',
+        }),
+        expect.objectContaining({ maxRedirects: 0 }),
+      );
+      expect(mockVideosList).toHaveBeenCalledWith(
+        expect.objectContaining({ id: ['abc'] }),
+        expect.anything(),
+      );
+    });
+
+    it('skips the video lookup when nothing was uploaded since the attempt', async () => {
+      mockPlaylistItemsList.mockResolvedValue({ data: { items: [] } });
+
+      expect(await readPage()).toEqual({ items: [], nextCursor: null });
+      expect(mockVideosList).not.toHaveBeenCalled();
+    });
+
+    it("stays unknown when the channel is no longer the credential's", async () => {
+      mockChannelsList.mockResolvedValue({
+        data: {
+          items: [
+            {
+              contentDetails: { relatedPlaylists: { uploads: 'UU-other' } },
+              id: 'UC-other',
+            },
+          ],
+        },
+      });
+
+      await expect(readPage()).rejects.toThrow('unavailable or changed');
+      expect(mockPlaylistItemsList).not.toHaveBeenCalled();
+    });
   });
 });

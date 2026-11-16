@@ -142,6 +142,7 @@ import { ElevenLabsService } from '@api/services/integrations/elevenlabs/service
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { FalService } from '@api/services/integrations/fal/services/fal.service';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
+import { GoogleBusinessService } from '@api/services/integrations/google-business/services/google-business.service';
 import { HEYGEN_IDENTITY_SERVICE } from '@api/services/integrations/heygen/heygen.tokens';
 import { HeyGenIdentityService } from '@api/services/integrations/heygen/services/heygen-identity.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
@@ -157,6 +158,7 @@ import { BeehiivPublisherService } from '@api/services/integrations/publishers/b
 import { FacebookPublisherService } from '@api/services/integrations/publishers/facebook-publisher.service';
 import { FanvuePublisherService } from '@api/services/integrations/publishers/fanvue-publisher.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
+import { GoogleBusinessPublisherService } from '@api/services/integrations/publishers/google-business-publisher.service';
 import { InstagramPublisherService } from '@api/services/integrations/publishers/instagram-publisher.service';
 import { LinkedInPublisherService } from '@api/services/integrations/publishers/linkedin-publisher.service';
 import { MastodonPublisherService } from '@api/services/integrations/publishers/mastodon-publisher.service';
@@ -332,6 +334,8 @@ const WORKER_DOMAIN_SERVICES = [
   IngredientsService,
   ImageGenerationHandler,
   InsightsService,
+  GoogleBusinessPublisherService,
+  GoogleBusinessService,
   InstagramPublisherService,
   InstagramService,
   KlingAIService,

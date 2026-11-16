@@ -1,3 +1,4 @@
+import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RateLimitError } from '@api/helpers/exceptions/api/api-error.exception';
@@ -10,6 +11,7 @@ import { collectRequestedBrandIds } from '@api/helpers/utils/auth/api-key-brand-
 import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/contracts';
 import {
   MCP_ORGANIZATION_HEADER,
+  PARTNER_API_KEY_KIND,
   readApiKeyAllowedBrandIds,
 } from '@genfeedai/contracts/constants';
 import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
@@ -23,6 +25,14 @@ import { Reflector } from '@nestjs/core';
 
 export const API_KEY_SCOPES_KEY = 'apiKeyScopes';
 export const API_KEY_ROUTE_ACCESS_KEY = 'apiKeyRouteAccess';
+
+function readApiKeyKind(metadata: unknown): string | undefined {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return undefined;
+  }
+  const kind = (metadata as Record<string, unknown>).kind;
+  return typeof kind === 'string' ? kind : undefined;
+}
 
 @Injectable()
 export class ApiKeyAuthGuard implements CanActivate {
@@ -100,34 +110,7 @@ export class ApiKeyAuthGuard implements CanActivate {
       throw new RateLimitError(rateLimit.retryAfterSeconds);
     }
 
-    const targets = [context.getHandler(), context.getClass()];
-    const requiredScopes = this.reflector.getAllAndOverride<
-      string[] | undefined
-    >(API_KEY_SCOPES_KEY, targets);
-
-    if (requiredScopes && requiredScopes.length > 0) {
-      const hasRequiredScope = requiredScopes.some((scope) =>
-        this.apiKeysService.hasScope(apiKey, scope),
-      );
-
-      if (!hasRequiredScope) {
-        throw new UnauthorizedException('Insufficient permissions');
-      }
-    } else {
-      // Deny by default: a route without `@RequiredScopes` still needs a
-      // read-capable scope to read and a write-capable scope to mutate, so a
-      // read-only key cannot change tenant data through an undecorated route.
-      const access = resolveApiKeyRouteAccess(
-        request.method,
-        this.reflector.getAllAndOverride<ApiKeyRouteAccess | undefined>(
-          API_KEY_ROUTE_ACCESS_KEY,
-          targets,
-        ),
-      );
-      if (!hasApiKeyBaselineAccess(apiKey.scopes, access)) {
-        throw new UnauthorizedException('Insufficient permissions');
-      }
-    }
+    this.assertRouteScopes(apiKey, request.method, context);
 
     const apiKeyId = apiKey.id;
 
@@ -191,5 +174,45 @@ export class ApiKeyAuthGuard implements CanActivate {
     await this.apiKeysService.updateLastUsed(apiKeyId, clientIp);
 
     return true;
+  }
+
+  private assertRouteScopes(
+    apiKey: ApiKeyDocument,
+    method: string | undefined,
+    context: ExecutionContext,
+  ): void {
+    const targets = [context.getHandler(), context.getClass()];
+    const requiredScopes = this.reflector.getAllAndOverride<
+      string[] | undefined
+    >(API_KEY_SCOPES_KEY, targets);
+
+    if (requiredScopes && requiredScopes.length > 0) {
+      const hasRequiredScope = requiredScopes.some((scope) =>
+        this.apiKeysService.hasScope(apiKey, scope),
+      );
+
+      if (!hasRequiredScope) {
+        throw new UnauthorizedException('Insufficient permissions');
+      }
+    } else if (readApiKeyKind(apiKey.metadata) === PARTNER_API_KEY_KIND) {
+      // A partner key (#9200) is limited to the routes that name their scope.
+      // It never falls back to the baseline below: one resource write scope
+      // such as `images:create` would otherwise open every undecorated route.
+      throw new UnauthorizedException('Insufficient permissions');
+    } else {
+      // Deny by default: a route without `@RequiredScopes` still needs a
+      // read-capable scope to read and a write-capable scope to mutate, so a
+      // read-only key cannot change tenant data through an undecorated route.
+      const access = resolveApiKeyRouteAccess(
+        method,
+        this.reflector.getAllAndOverride<ApiKeyRouteAccess | undefined>(
+          API_KEY_ROUTE_ACCESS_KEY,
+          targets,
+        ),
+      );
+      if (!hasApiKeyBaselineAccess(apiKey.scopes, access)) {
+        throw new UnauthorizedException('Insufficient permissions');
+      }
+    }
   }
 }
