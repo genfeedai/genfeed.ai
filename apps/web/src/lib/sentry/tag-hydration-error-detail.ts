@@ -1,4 +1,6 @@
-const HYDRATION_PATTERN = /hydrat/i;
+// React words a mismatch as "Hydration failed…" or, for text and attribute
+// differences, "Text content does not match server-rendered HTML".
+const HYDRATION_PATTERN = /hydrat|does not match server-rendered/i;
 const URL_PATTERN = /https?:\/\/\S+/g;
 const ELEMENT_PATTERN = /<([a-z][a-z0-9-]*)/gi;
 const MAX_MESSAGE_LENGTH = 160;
@@ -30,7 +32,7 @@ function readErrorText(event: HydrationSentryEvent): string {
  */
 export function tagHydrationErrorDetail<TEvent extends HydrationSentryEvent>(
   event: TEvent,
-): TEvent {
+): TEvent & Pick<HydrationSentryEvent, 'tags'> {
   const text = readErrorText(event);
 
   if (!HYDRATION_PATTERN.test(text)) {
