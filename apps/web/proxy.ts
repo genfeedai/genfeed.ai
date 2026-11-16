@@ -28,6 +28,7 @@ import {
   isSeededWorkspaceEntrypoint,
   ORG_SCOPED_PREFIXES,
 } from '@/lib/navigation/protected-path-scope';
+import { CSP_REPORT_PATH } from '@/lib/security/content-security-policy';
 
 const SEMVER_PATTERN =
   /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
@@ -1390,6 +1391,7 @@ export async function proxy(req: NextRequest) {
   // entering app-page auth or workspace slug routing.
   if (
     req.nextUrl.pathname === '/api/version' ||
+    req.nextUrl.pathname === CSP_REPORT_PATH ||
     req.nextUrl.pathname === '/v1' ||
     req.nextUrl.pathname.startsWith('/v1/')
   ) {
