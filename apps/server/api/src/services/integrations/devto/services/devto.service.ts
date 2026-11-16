@@ -1,3 +1,9 @@
+import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
+import {
+  DEVTO_VERIFICATION_PAGE_SIZE,
+  parseDevtoVerificationPage,
+} from '@api/services/integrations/publishers/publisher-devto-verification-pages.util';
+import { PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS } from '@api/services/integrations/publishers/publisher-verification.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -83,6 +89,39 @@ export class DevtoService {
       });
       throw error;
     }
+  }
+
+  /**
+   * One page of the account's own published articles, or its drafts, read with
+   * the API key the publish used. `cursor` is the page number.
+   */
+  async listPublishVerificationPage(
+    apiKey: string,
+    isDraft: boolean,
+    attemptStartedAt: Date,
+    cursor?: string,
+  ): Promise<ProviderVerificationPage> {
+    const page = cursor === undefined ? 1 : Number(cursor);
+    if (!Number.isSafeInteger(page) || page < 1) {
+      throw new Error('Invalid Dev.to verification cursor');
+    }
+    const response = await firstValueFrom(
+      this.httpService.get<unknown>(
+        `${this.apiBase}/articles/me/${isDraft ? 'unpublished' : 'published'}`,
+        {
+          headers: { 'api-key': apiKey },
+          maxRedirects: 0,
+          params: { page, per_page: DEVTO_VERIFICATION_PAGE_SIZE },
+          timeout: PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
+        },
+      ),
+    );
+    return parseDevtoVerificationPage(
+      response.data,
+      page,
+      attemptStartedAt,
+      isDraft,
+    );
   }
 
   /**

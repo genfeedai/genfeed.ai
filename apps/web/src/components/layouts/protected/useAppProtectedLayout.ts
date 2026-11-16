@@ -116,11 +116,7 @@ export function useAppProtectedLayout(
   const studioApp = getStudioAppForPath(pathname);
   const isStudioRoute = studioApp !== undefined;
   const isPublishingRoute = pathname.startsWith(APP_ROUTE_PREFIXES.PUBLISHING);
-  // The brand Profile page lives in the settings shell, beside Brand Kit.
-  const isSettingsRoute =
-    pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS) ||
-    pathname === APP_ROUTES.PROFILE.ROOT ||
-    pathname.startsWith(`${APP_ROUTES.PROFILE.ROOT}/`);
+  const isSettingsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS);
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
   const isAutomationRoute = pathname.startsWith(APP_ROUTE_PREFIXES.AUTOMATION);
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);

@@ -5,6 +5,7 @@ import { FacebookPublisherService } from '@api/services/integrations/publishers/
 import { FanvuePublisherService } from '@api/services/integrations/publishers/fanvue-publisher.service';
 import { GenfeedPublisherService } from '@api/services/integrations/publishers/genfeed-publisher.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
+import { GoogleBusinessPublisherService } from '@api/services/integrations/publishers/google-business-publisher.service';
 import { InstagramPublisherService } from '@api/services/integrations/publishers/instagram-publisher.service';
 import type {
   PublishContext,
@@ -35,6 +36,33 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit, type Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
+/** Every publisher this module registers, by the platform it publishes to. */
+export const PUBLISHER_PROVIDERS: ReadonlyArray<
+  readonly [CredentialPlatform, Type<IPublisher>]
+> = [
+  [CredentialPlatform.TWITTER, TwitterPublisherService],
+  [CredentialPlatform.INSTAGRAM, InstagramPublisherService],
+  [CredentialPlatform.TIKTOK, TikTokPublisherService],
+  [CredentialPlatform.YOUTUBE, YouTubePublisherService],
+  [CredentialPlatform.FACEBOOK, FacebookPublisherService],
+  [CredentialPlatform.LINKEDIN, LinkedInPublisherService],
+  [CredentialPlatform.PINTEREST, PinterestPublisherService],
+  [CredentialPlatform.REDDIT, RedditPublisherService],
+  [CredentialPlatform.THREADS, ThreadsPublisherService],
+  [CredentialPlatform.FANVUE, FanvuePublisherService],
+  [CredentialPlatform.WORDPRESS, WordpressPublisherService],
+  [CredentialPlatform.SNAPCHAT, SnapchatPublisherService],
+  [CredentialPlatform.WHATSAPP, WhatsappPublisherService],
+  [CredentialPlatform.MASTODON, MastodonPublisherService],
+  [CredentialPlatform.GHOST, GhostPublisherService],
+  [CredentialPlatform.GOOGLE_BUSINESS, GoogleBusinessPublisherService],
+  [CredentialPlatform.SHOPIFY, ShopifyPublisherService],
+  [CredentialPlatform.BEEHIIV, BeehiivPublisherService],
+  [CredentialPlatform.MEDIUM, MediumPublisherService],
+  [CredentialPlatform.DEV_TO, DevtoPublisherService],
+  [CredentialPlatform.GENFEED, GenfeedPublisherService],
+];
+
 /**
  * Factory service to get the appropriate publisher for a platform
  */
@@ -52,33 +80,9 @@ export class PublisherFactoryService
   ) {}
 
   onModuleInit(): void {
-    const providers: ReadonlyArray<
-      readonly [CredentialPlatform, Type<IPublisher>]
-    > = [
-      [CredentialPlatform.TWITTER, TwitterPublisherService],
-      [CredentialPlatform.INSTAGRAM, InstagramPublisherService],
-      [CredentialPlatform.TIKTOK, TikTokPublisherService],
-      [CredentialPlatform.YOUTUBE, YouTubePublisherService],
-      [CredentialPlatform.FACEBOOK, FacebookPublisherService],
-      [CredentialPlatform.LINKEDIN, LinkedInPublisherService],
-      [CredentialPlatform.PINTEREST, PinterestPublisherService],
-      [CredentialPlatform.REDDIT, RedditPublisherService],
-      [CredentialPlatform.THREADS, ThreadsPublisherService],
-      [CredentialPlatform.FANVUE, FanvuePublisherService],
-      [CredentialPlatform.WORDPRESS, WordpressPublisherService],
-      [CredentialPlatform.SNAPCHAT, SnapchatPublisherService],
-      [CredentialPlatform.WHATSAPP, WhatsappPublisherService],
-      [CredentialPlatform.MASTODON, MastodonPublisherService],
-      [CredentialPlatform.GHOST, GhostPublisherService],
-      [CredentialPlatform.SHOPIFY, ShopifyPublisherService],
-      [CredentialPlatform.BEEHIIV, BeehiivPublisherService],
-      [CredentialPlatform.MEDIUM, MediumPublisherService],
-      [CredentialPlatform.DEV_TO, DevtoPublisherService],
-      [CredentialPlatform.GENFEED, GenfeedPublisherService],
-    ];
     // All publishers are required providers of this module. Strict lookup
     // keeps a missing registration a boot error instead of a publish failure.
-    for (const [platform, provider] of providers) {
+    for (const [platform, provider] of PUBLISHER_PROVIDERS) {
       const publisher = this.moduleRef.get<IPublisher>(provider);
       this.publishers.set(
         platform,
