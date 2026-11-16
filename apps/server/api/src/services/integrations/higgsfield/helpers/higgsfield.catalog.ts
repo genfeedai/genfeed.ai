@@ -24,7 +24,7 @@ const SOUL_ENDPOINTS: ReadonlySet<string> = new Set([
 ]);
 
 /** Soul 2, Soul Standard and Soul Cinema share one request shape. */
-export function isHiggsFieldSoulModel(modelKey: string): boolean {
+function isHiggsFieldSoulModel(modelKey: string): boolean {
   return SOUL_ENDPOINTS.has(modelKey);
 }
 
