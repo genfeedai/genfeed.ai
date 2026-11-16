@@ -1,4 +1,5 @@
-import type { NodeOptions } from '@sentry/nestjs';
+import { redactSensitiveString } from '@genfeedai/helpers/security/redact-sensitive-value.helper';
+import type { Breadcrumb, NodeOptions } from '@sentry/nestjs';
 
 const HYPHENS_PATTERN = /-/g;
 
@@ -7,6 +8,70 @@ const HYPHENS_PATTERN = /-/g;
  * without paying span overhead or Sentry quota on every request.
  */
 export const PRODUCTION_TRACES_SAMPLE_RATE = 0.05;
+
+/**
+ * Outbound HTTP breadcrumbs record the full request URL. Some providers carry
+ * a secret in the URL path (Discord webhooks, Telegram bot tokens), so every
+ * URL a breadcrumb holds goes through the shared redactor before it is kept.
+ */
+export function redactBreadcrumbUrls(breadcrumb: Breadcrumb): Breadcrumb {
+  if (typeof breadcrumb.message === 'string') {
+    breadcrumb.message = redactSensitiveString(breadcrumb.message);
+  }
+  const data = breadcrumb.data;
+  if (data) {
+    for (const key of ['url', 'http.url', 'to', 'from']) {
+      const value = data[key];
+      if (typeof value === 'string') {
+        data[key] = redactSensitiveString(value);
+      }
+    }
+  }
+  return breadcrumb;
+}
+
+const SPAN_URL_KEYS = ['url.full', 'url.path', 'http.url', 'http.target'];
+
+/**
+ * The parts of Sentry's span payload that carry a request URL. SDK 11 streams
+ * spans by default (`name` and `attributes`); the static transaction format
+ * (`description` and `data`) is covered too.
+ */
+interface SpanWithUrls {
+  attributes?: Record<string, unknown>;
+  data?: Record<string, unknown>;
+  description?: string;
+  name?: string;
+}
+
+function redactUrlValues(values: Record<string, unknown> | undefined): void {
+  if (!values) {
+    return;
+  }
+  for (const key of SPAN_URL_KEYS) {
+    const value = values[key];
+    if (typeof value === 'string') {
+      values[key] = redactSensitiveString(value);
+    }
+  }
+}
+
+/**
+ * Sampled outbound HTTP spans carry the request URL in their name and URL
+ * attributes, so a path-borne provider secret needs the same redaction as a
+ * breadcrumb before the span is sent.
+ */
+export function redactSpanUrls<TSpan extends SpanWithUrls>(span: TSpan): TSpan {
+  if (typeof span.name === 'string') {
+    span.name = redactSensitiveString(span.name);
+  }
+  if (typeof span.description === 'string') {
+    span.description = redactSensitiveString(span.description);
+  }
+  redactUrlValues(span.attributes);
+  redactUrlValues(span.data);
+  return span;
+}
 
 interface SentryConfigOptions {
   serviceName: string;
@@ -38,6 +103,10 @@ export function getSentryConfig(
   }
 
   return {
+    beforeBreadcrumb: redactBreadcrumbUrls,
+    // The SDK streams spans by default, so this receives `name` and
+    // `attributes`; the structural type above also accepts the static shape.
+    beforeSendSpan: redactSpanUrls as NodeOptions['beforeSendSpan'],
     dsn,
     environment: process.env.SENTRY_ENVIRONMENT || 'development',
     // Send W3C `traceparent` beside `sentry-trace` and `baggage` so services
