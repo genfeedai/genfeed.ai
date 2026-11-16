@@ -7,7 +7,13 @@ import { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
 import { TLSSocket } from 'node:tls';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { classifyHttpPublishError } from '@api/shared/utils/publish-error/classify-http-publish-error.util';
+import { mapUnpublishedRequestFailure } from '@api/services/integrations/publishers/provider-publish-error.mappers';
+import {
+  type ProviderErrorVerdict,
+  type ProviderFailure,
+  throwAsPublishError,
+  toPublishError,
+} from '@api/services/integrations/publishers/publish-error.util';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import {
   CredentialPlatform,
@@ -34,6 +40,41 @@ const HTTP_TOO_MANY_REQUESTS = 429;
 const UPLOAD_REJECTED_STATUSES: ReadonlySet<number> = new Set([
   400, 413, 415, 422,
 ]);
+/**
+ * The token endpoint refusing the refresh token means the grant is gone. Any
+ * other failure left nothing published, so it can be tried again.
+ */
+function mapRefreshFailure(
+  failure: ProviderFailure,
+): ProviderErrorVerdict | null {
+  return failure.httpStatus === HTTP_BAD_REQUEST ||
+    failure.httpStatus === HTTP_UNAUTHORIZED
+    ? { kind: PublishErrorKind.CHANNEL_DISCONNECTED }
+    : mapUnpublishedRequestFailure(failure);
+}
+
+/**
+ * An upload creates no post, so every failure left nothing published. A file
+ * Fanvue refuses is not retried; any other refusal, including a 403 or 404
+ * from the media source, is.
+ */
+function mapUploadFailure({
+  httpStatus,
+}: ProviderFailure): ProviderErrorVerdict | null {
+  if (
+    httpStatus === HTTP_UNAUTHORIZED ||
+    httpStatus === HTTP_TOO_MANY_REQUESTS
+  ) {
+    return null;
+  }
+  return {
+    kind:
+      httpStatus !== undefined && UPLOAD_REJECTED_STATUSES.has(httpStatus)
+        ? PublishErrorKind.CONTENT_REJECTED
+        : PublishErrorKind.RETRY_LATER,
+  };
+}
+
 const FANVUE_API_BASE = 'https://api.fanvue.com';
 const FANVUE_AUTH_URL = 'https://auth.fanvue.com/oauth2/auth';
 const FANVUE_TOKEN_URL = 'https://auth.fanvue.com/oauth2/token';
@@ -343,13 +384,7 @@ export class FanvueService {
       });
       // The token endpoint refusing the refresh token means the grant is gone.
       // Any other failure left nothing published, so it can be tried again.
-      throw classifyHttpPublishError(error, {
-        isPublishRequest: false,
-        kindForStatus: (status) =>
-          status === HTTP_BAD_REQUEST || status === HTTP_UNAUTHORIZED
-            ? PublishErrorKind.CHANNEL_DISCONNECTED
-            : undefined,
-      });
+      throwAsPublishError(error, mapRefreshFailure);
     }
   }
 
@@ -496,17 +531,16 @@ export class FanvueService {
       // published. A file Fanvue rejects is not retried; any other refusal,
       // including a 403 or 404 from the media source, is. The message stays
       // generic so provider text never leaks.
-      throw classifyHttpPublishError(error, {
-        isPublishRequest: false,
-        kindForStatus: (httpStatus) =>
-          UPLOAD_REJECTED_STATUSES.has(httpStatus)
-            ? PublishErrorKind.CONTENT_REJECTED
-            : httpStatus === HTTP_UNAUTHORIZED ||
-                httpStatus === HTTP_TOO_MANY_REQUESTS
-              ? undefined
-              : PublishErrorKind.RETRY_LATER,
-        message: 'Fanvue media upload failed',
-      });
+      const failure = toPublishError(error, mapUploadFailure);
+      throw new PublishError(
+        failure?.kind ?? PublishErrorKind.RETRY_LATER,
+        'Fanvue media upload failed',
+        {
+          httpStatus: failure?.httpStatus,
+          resetAt: failure?.resetAt,
+          retryAfterMs: failure?.retryAfterMs,
+        },
+      );
     } finally {
       await this.cleanupUpload(context, signal, cancel);
     }

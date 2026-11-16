@@ -150,3 +150,22 @@ export function mapTikTokFailure(
   const kind = kindFromTikTokCode(providerCode);
   return kind ? { kind, providerCode } : { providerCode };
 }
+
+const HTTP_REQUEST_TIMEOUT = 408;
+const HTTP_SERVER_ERROR = 500;
+
+/**
+ * For a request that creates nothing on the provider, such as a token refresh
+ * or a media upload. A timeout, server fault or dropped connection there proves
+ * no post exists, so it is `retry_later` and not `outcome_unknown`.
+ */
+export function mapUnpublishedRequestFailure(
+  failure: ProviderFailure,
+): ProviderErrorVerdict | null {
+  const status = failure.httpStatus;
+  return status === undefined ||
+    status === HTTP_REQUEST_TIMEOUT ||
+    status >= HTTP_SERVER_ERROR
+    ? { kind: PublishErrorKind.RETRY_LATER }
+    : null;
+}

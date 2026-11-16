@@ -5,7 +5,7 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { classifyHttpPublishError } from '@api/shared/utils/publish-error/classify-http-publish-error.util';
+import { toPublishErrorOrUnknown } from '@api/services/integrations/publishers/publish-error.util';
 import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -100,7 +100,7 @@ export class FanvuePublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw classifyHttpPublishError(error, { isPublishRequest: true });
+      throw toPublishErrorOrUnknown(error);
     }
   }
 
