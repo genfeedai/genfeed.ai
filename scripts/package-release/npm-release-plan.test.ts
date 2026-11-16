@@ -32,7 +32,7 @@ describe('npm release plan', () => {
     });
 
     expect(validate().violations).toEqual([
-      'scripts/npm-release-enrollment.json: packages/actions is publishable but is neither enrolled nor excluded; decide explicitly',
+      'scripts/npm-release-enrollment.json: packages/actions is publishable but is neither enrolled, dedicated nor excluded; decide explicitly',
     ]);
 
     writeEnrollment({
@@ -155,6 +155,88 @@ describe('npm release plan', () => {
     expect(() => assertPublishable(plan)).toThrow(
       'npm trusted publishing cannot perform a first publish',
     );
+  });
+
+  it('plans each lane on its own and never mixes them', () => {
+    writePackage('cli', publicManifest('@genfeedai/cli', '0.6.0'));
+    writePackage('contracts', publicManifest('@genfeedai/contracts', '0.1.0'));
+    writePackage('ui', {
+      ...publicManifest('@genfeedai/ui', '2.0.1'),
+      dependencies: { '@genfeedai/contracts': 'workspace:*' },
+    });
+    writeEnrollment({
+      dedicated: {
+        'packages/contracts': 'publish-shared-packages.yml',
+        'packages/ui': 'publish-shared-packages.yml',
+      },
+      enrolled: ['packages/cli'],
+      excluded: {},
+    });
+    const publishedVersions = new Map([
+      ['@genfeedai/cli', new Set(['0.6.0'])],
+      ['@genfeedai/contracts', new Set(['0.0.1'])],
+      ['@genfeedai/ui', new Set(['0.0.1'])],
+    ]);
+    const plan = (lane: string) =>
+      planNpmRelease({
+        enrollment: readEnrollment(root),
+        inventory: readPackageInventory(root),
+        lane,
+        publishedVersions,
+      });
+
+    expect(validate().violations).toEqual([]);
+    expect(plan('release').publish).toEqual([]);
+    expect(plan('release').upToDate.map((entry) => entry.name)).toEqual([
+      '@genfeedai/cli',
+    ]);
+    expect(plan('dedicated').publish).toEqual([
+      {
+        name: '@genfeedai/contracts',
+        path: 'packages/contracts',
+        version: '0.1.0',
+      },
+      { name: '@genfeedai/ui', path: 'packages/ui', version: '2.0.1' },
+    ]);
+    expect(() => plan('nightly')).toThrow('Unknown npm release lane');
+  });
+
+  it('rejects a package in two lanes and a dedicated package with no publisher', () => {
+    writePackage('contracts', publicManifest('@genfeedai/contracts', '0.1.0'));
+    writePackage('ui', publicManifest('@genfeedai/ui', '2.0.1'));
+    writePackage('styles', publicManifest('@genfeedai/styles', '0.1.0'));
+    writeEnrollment({
+      dedicated: {
+        'packages/contracts': 'publish-shared-packages.yml',
+        'packages/styles': '',
+        'packages/ui': 'publish-shared-packages.yml',
+      },
+      enrolled: ['packages/contracts'],
+      excluded: { 'packages/ui': 'Held back.' },
+    });
+
+    expect(validate().violations).toEqual([
+      'scripts/npm-release-enrollment.json: packages/contracts is both enrolled and dedicated',
+      'scripts/npm-release-enrollment.json: packages/styles must name the workflow file that publishes it, such as "publish-shared-packages.yml"',
+      'scripts/npm-release-enrollment.json: packages/ui is both dedicated and excluded',
+    ]);
+  });
+
+  it('rejects a dedicated package that depends on an excluded one', () => {
+    writePackage('pricing', publicManifest('@genfeedai/pricing', '0.1.0'));
+    writePackage('ui', {
+      ...publicManifest('@genfeedai/ui', '2.0.1'),
+      dependencies: { '@genfeedai/pricing': 'workspace:*' },
+    });
+    writeEnrollment({
+      dedicated: { 'packages/ui': 'publish-shared-packages.yml' },
+      enrolled: [],
+      excluded: { 'packages/pricing': 'Never published.' },
+    });
+
+    expect(validate().violations).toEqual([
+      'scripts/npm-release-enrollment.json: packages/ui is dedicated but dependencies.@genfeedai/pricing is excluded (packages/pricing); a dedicated package cannot depend on an unpublished one',
+    ]);
   });
 
   it('refuses to plan against an invalid enrollment', () => {
