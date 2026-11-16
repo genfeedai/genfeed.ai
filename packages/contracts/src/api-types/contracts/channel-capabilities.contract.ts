@@ -6,7 +6,6 @@
  * workers, CLI, and MCP can present and enforce the same scheduler failures.
  * Foundation for epic #1123, issue #1125.
  */
-
 import { z } from 'zod';
 import {
   CredentialPlatform,
@@ -29,6 +28,7 @@ import {
   validateSettingType,
 } from './channel-setting-validation.contract';
 import { communityChannelCapabilities } from './community-channel-capabilities.contract';
+import { hiddenChannelCapabilities } from './hidden-channel-capabilities.contract';
 import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
 import {
   TIKTOK_PRIVACY_OPTIONS,
@@ -757,6 +757,7 @@ const channelCapabilities = [
     ],
     status: 'hidden',
   },
+  ...(hiddenChannelCapabilities as ChannelCapability[]),
   {
     caption: { maxLength: 500, required: true },
     description:

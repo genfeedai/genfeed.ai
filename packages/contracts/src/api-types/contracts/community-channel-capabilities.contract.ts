@@ -1,7 +1,6 @@
 /**
- * Scheduler capabilities of the community and messaging channels: Mastodon,
- * Discord, Slack and Telegram. Kept beside the main catalog, which merges them
- * into `CHANNEL_CAPABILITIES`, where `channelCapabilitySchema` validates every
+ * Scheduler capabilities of the messaging channels: Discord, Slack and
+ * Telegram. Kept beside the main catalog, which merges them into `CHANNEL_CAPABILITIES`, where `channelCapabilitySchema` validates every
  * entry at load. This file must not import from the main catalog, which would
  * make an import cycle.
  */
@@ -9,49 +8,6 @@
 import { CredentialPlatform } from '../..';
 
 export const communityChannelCapabilities = [
-  {
-    caption: { maxLength: 500, required: true },
-    description:
-      'Backend integration for Mastodon instances; hidden until scheduler publishing is productized.',
-    helpers: [
-      {
-        key: 'mastodon.credential',
-        kind: 'credential',
-        label: 'Mastodon credential',
-        required: true,
-      },
-    ],
-    label: 'Mastodon',
-    media: {
-      animated: { supported: true },
-      kinds: ['image', 'video', 'link'],
-      maxItems: 4,
-      minItems: 0,
-    },
-    platform: CredentialPlatform.MASTODON,
-    publishModes: ['draft', 'publish_now', 'scheduled'],
-    settings: [
-      {
-        description:
-          'Defaults to the instance stored on the credential when left blank.',
-        key: 'instanceUrl',
-        label: 'Instance URL',
-        type: 'url',
-      },
-      {
-        defaultValue: 'public',
-        key: 'visibility',
-        label: 'Visibility',
-        options: [
-          { label: 'Public', value: 'public' },
-          { label: 'Unlisted', value: 'unlisted' },
-          { label: 'Followers only', value: 'private' },
-        ],
-        type: 'select',
-      },
-    ],
-    status: 'hidden',
-  },
   {
     // Discord rejects a message whose `content` is longer than 2000 characters.
     caption: { maxLength: 2_000, required: true },

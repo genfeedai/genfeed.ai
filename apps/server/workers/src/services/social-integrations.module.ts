@@ -8,6 +8,7 @@ import {
 } from '@api/server.dependencies';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
+import { GoogleBusinessService } from '@api/services/integrations/google-business/services/google-business.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
@@ -46,6 +47,7 @@ class WorkerYoutubeUploader implements ServerYoutubeUploader {
 const SOCIAL_SERVICES = [
   FacebookService,
   GoogleAdsService,
+  GoogleBusinessService,
   InstagramService,
   LinkedInService,
   MastodonService,

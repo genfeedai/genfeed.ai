@@ -8,6 +8,7 @@ const VERIFIABLE_PLATFORMS = [
   CredentialPlatform.DEV_TO,
   CredentialPlatform.FACEBOOK,
   CredentialPlatform.GHOST,
+  CredentialPlatform.GOOGLE_BUSINESS,
   CredentialPlatform.INSTAGRAM,
   CredentialPlatform.LINKEDIN,
   CredentialPlatform.MASTODON,

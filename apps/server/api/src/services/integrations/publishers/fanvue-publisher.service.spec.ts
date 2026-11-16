@@ -5,7 +5,9 @@ import {
   CredentialPlatform,
   PostCategory,
   PostStatus,
+  PublishErrorKind,
 } from '@genfeedai/contracts';
+import { PublishError } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -205,6 +207,59 @@ describe('FanvuePublisherService', () => {
         'Token refresh failed',
       );
       expect(logger.error).toHaveBeenCalled();
+    });
+
+    it('should report an unusable failure as outcome unknown, since the post may be live', async () => {
+      fanvueService.createPost.mockResolvedValue({});
+
+      const result = await service.publish(makeContext());
+
+      expect(result.errorKind).toBe(PublishErrorKind.OUTCOME_UNKNOWN);
+    });
+
+    it.each([
+      [500, PublishErrorKind.OUTCOME_UNKNOWN],
+      [503, PublishErrorKind.OUTCOME_UNKNOWN],
+      [429, PublishErrorKind.RATE_LIMITED],
+      [401, PublishErrorKind.TOKEN_MUST_REFRESH],
+      [400, PublishErrorKind.CONTENT_REJECTED],
+    ])(
+      'should throw a typed error when creating the post answers %i',
+      async (status, kind) => {
+        fanvueService.createPost.mockRejectedValue(
+          Object.assign(new Error('Request failed'), {
+            response: { headers: { 'retry-after': '12' }, status },
+          }),
+        );
+
+        const failure = await service.publish(makeContext()).catch((e) => e);
+
+        expect(failure).toMatchObject({ httpStatus: status, kind });
+        expect(failure.retryAfterMs).toBe(
+          kind === PublishErrorKind.RATE_LIMITED ? 12_000 : undefined,
+        );
+      },
+    );
+
+    it('should report a dropped connection while creating the post as outcome unknown', async () => {
+      fanvueService.createPost.mockRejectedValue(
+        Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }),
+      );
+
+      await expect(service.publish(makeContext())).rejects.toMatchObject({
+        kind: PublishErrorKind.OUTCOME_UNKNOWN,
+      });
+    });
+
+    it('should keep the kind a service already gave its failure', async () => {
+      fanvueService.refreshToken.mockRejectedValue(
+        new PublishError(PublishErrorKind.CHANNEL_DISCONNECTED, 'Reconnect'),
+      );
+
+      await expect(service.publish(makeContext())).rejects.toMatchObject({
+        kind: PublishErrorKind.CHANNEL_DISCONNECTED,
+        message: 'Reconnect',
+      });
     });
   });
 
