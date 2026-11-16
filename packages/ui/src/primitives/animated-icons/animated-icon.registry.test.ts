@@ -77,14 +77,14 @@ describe('animated icon registry', () => {
   });
 });
 
+const BellStub: AnimatedIconComponent = () =>
+  createElement('svg', { 'aria-label': 'Animated bell', role: 'img' });
+
 describe('animated icon loading', () => {
   // The Bell twin is replaced by a controlled module. Reading its export is
   // what a loader invocation does, so `exportReads` counts loads and
   // `isChunkFailing` makes the next one reject.
   const loadState = { exportReads: 0, isChunkFailing: false };
-
-  const BellStub: AnimatedIconComponent = () =>
-    createElement('svg', { 'aria-label': 'Animated bell', role: 'img' });
 
   async function importFreshRegistry() {
     const registry = await import('./animated-icon.registry');
