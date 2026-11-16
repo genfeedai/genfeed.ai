@@ -21,6 +21,7 @@ import {
   GENERATION_MARGIN_TAPER_MULTIPLIER,
   getEnterprisePlan,
   getLaunchPrice,
+  getLaunchPriceTerm,
   getPlanByLabel,
   getPlanByTier,
   getPlanLabel,
@@ -28,11 +29,13 @@ import {
   getScalePlan,
   IMAGE_CREDIT_COSTS,
   INTERNAL_CREDIT_COSTS,
+  type LaunchPromotionProps,
   MAX_MARGIN_MULTIPLIER,
   PAYG_CREDIT_PACKS,
   PAYG_CREDITS_PER_USD,
   PLAN_COPY,
   PLAN_LABELS,
+  PRO_LAUNCH_PROMOTION,
   SUBSCRIPTION_PRICE_CONTRACTS,
   setRuntimeMarginMultiplier,
   TIER_INCLUDED_MONTHLY_CREDITS,
@@ -147,6 +150,40 @@ describe('plan price formatting', () => {
     'prices $tier at $expected with the launch code',
     ({ expected, tier }) => {
       expect(getLaunchPrice(tier)).toBe(expected);
+    },
+  );
+
+  it('discloses the term of the live launch promotion on Pro only', () => {
+    expect(getLaunchPriceTerm('pro')).toBe('12 months at $39, then $49');
+    expect(getLaunchPriceTerm('scale')).toBeNull();
+    expect(getLaunchPriceTerm('payg')).toBeNull();
+    expect(getLaunchPriceTerm('enterprise')).toBeNull();
+  });
+
+  it('keeps the live launch promotion in step with the Pro price it discounts', () => {
+    expect(PRO_LAUNCH_PROMOTION).toEqual({
+      code: 'EARLYGENFEED',
+      discountDollars: 10,
+      discountMonths: 12,
+    });
+  });
+
+  it.each([
+    {
+      expectedPrice: 29,
+      expectedTerm: '6 months at $29, then $49',
+      promotion: { code: 'FIXTURE', discountDollars: 20, discountMonths: 6 },
+    },
+    { expectedPrice: null, expectedTerm: null, promotion: null },
+  ] as Array<{
+    expectedPrice: number | null;
+    expectedTerm: string | null;
+    promotion: LaunchPromotionProps | null;
+  }>)(
+    'derives the Pro launch price and term from the promotion ($promotion)',
+    ({ expectedPrice, expectedTerm, promotion }) => {
+      expect(getLaunchPrice('pro', promotion)).toBe(expectedPrice);
+      expect(getLaunchPriceTerm('pro', promotion)).toBe(expectedTerm);
     },
   );
 
