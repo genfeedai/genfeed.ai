@@ -36,25 +36,27 @@ function axiosLikeError(status: number): Error {
   });
 }
 
+interface StoredAccount {
+  account: unknown;
+  credential: unknown;
+  credentialId: string;
+  organizationId: string;
+}
+
 describe('BlueskyController', () => {
   let controller: BlueskyController;
-  let createSession: ReturnType<typeof vi.fn>;
+  let sessionRequests: string[][];
+  let pendingRequests: unknown[][];
+  let stored: StoredAccount[];
+  let sessionFailure: Error | null;
   let findOne: ReturnType<typeof vi.fn>;
-  let createPendingForBrand: ReturnType<typeof vi.fn>;
-  let connectAccount: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
-    createSession = vi.fn().mockResolvedValue({
-      accessJwt: 'jwt',
-      did: 'did:plc:abc123',
-      handle: 'alice.bsky.social',
-      serviceUrl: 'https://bsky.social',
-    });
+    sessionRequests = [];
+    pendingRequests = [];
+    stored = [];
+    sessionFailure = null;
     findOne = vi.fn().mockResolvedValue(brand);
-    createPendingForBrand = vi.fn().mockResolvedValue({ id: 'pending-1' });
-    connectAccount = vi
-      .fn()
-      .mockResolvedValue({ id: 'pending-1', platform: 'BLUESKY' });
 
     const module = await Test.createTestingModule({
       controllers: [BlueskyController],
@@ -62,7 +64,21 @@ describe('BlueskyController', () => {
         {
           provide: BlueskyService,
           useValue: {
-            createSession,
+            createSession: (
+              serviceUrl: string,
+              identifier: string,
+              password: string,
+            ) => {
+              sessionRequests.push([serviceUrl, identifier, password]);
+              return sessionFailure
+                ? Promise.reject(sessionFailure)
+                : Promise.resolve({
+                    accessJwt: 'jwt',
+                    did: 'did:plc:abc123',
+                    handle: 'alice.bsky.social',
+                    serviceUrl,
+                  });
+            },
             getPublicProfile: vi.fn().mockResolvedValue({
               avatar: 'https://cdn.bsky.app/avatar.jpg',
               displayName: 'Alice',
@@ -72,7 +88,26 @@ describe('BlueskyController', () => {
         { provide: BrandsService, useValue: { findOne } },
         {
           provide: CredentialsService,
-          useValue: { connectAccount, createPendingForBrand },
+          useValue: {
+            connectAccount: (
+              credentialId: string,
+              organizationId: string,
+              account: unknown,
+              credential: unknown,
+            ) => {
+              stored.push({
+                account,
+                credential,
+                credentialId,
+                organizationId,
+              });
+              return Promise.resolve({ id: credentialId, platform: 'BLUESKY' });
+            },
+            createPendingForBrand: (...args: unknown[]) => {
+              pendingRequests.push(args);
+              return Promise.resolve({ id: 'pending-1' });
+            },
+          },
         },
         {
           provide: LoggerService,
@@ -90,33 +125,31 @@ describe('BlueskyController', () => {
       handle: '@Alice.Bsky.Social',
     });
 
-    expect(createSession).toHaveBeenCalledWith(
-      'https://bsky.social',
-      'alice.bsky.social',
-      APP_CREDENTIAL,
-    );
-    expect(createPendingForBrand).toHaveBeenCalledWith(
-      brand,
-      'user-1',
-      CredentialPlatform.BLUESKY,
-    );
-    expect(connectAccount).toHaveBeenCalledWith(
-      'pending-1',
-      'org-1',
+    expect(sessionRequests).toEqual([
+      ['https://bsky.social', 'alice.bsky.social', APP_CREDENTIAL],
+    ]);
+    expect(pendingRequests).toEqual([
+      [brand, 'user-1', CredentialPlatform.BLUESKY],
+    ]);
+    expect(stored).toEqual([
       {
-        avatarUrl: 'https://cdn.bsky.app/avatar.jpg',
-        bannerUrl: undefined,
-        handle: 'alice.bsky.social',
-        id: 'did:plc:abc123',
-        name: 'Alice',
+        account: {
+          avatarUrl: 'https://cdn.bsky.app/avatar.jpg',
+          bannerUrl: undefined,
+          handle: 'alice.bsky.social',
+          id: 'did:plc:abc123',
+          name: 'Alice',
+        },
+        credential: {
+          accessToken: APP_CREDENTIAL,
+          description: 'https://bsky.social',
+          isConnected: true,
+          isDeleted: false,
+        },
+        credentialId: 'pending-1',
+        organizationId: 'org-1',
       },
-      {
-        accessToken: APP_CREDENTIAL,
-        description: 'https://bsky.social',
-        isConnected: true,
-        isDeleted: false,
-      },
-    );
+    ]);
     expect(result).toEqual({
       data: { id: 'pending-1', platform: 'BLUESKY' },
     });
@@ -130,15 +163,13 @@ describe('BlueskyController', () => {
       serviceUrl: 'pds.example.com',
     });
 
-    expect(createSession).toHaveBeenCalledWith(
-      'https://pds.example.com',
-      'alice.example.com',
-      APP_CREDENTIAL,
-    );
+    expect(sessionRequests).toEqual([
+      ['https://pds.example.com', 'alice.example.com', APP_CREDENTIAL],
+    ]);
   });
 
   it('answers key_rejected when Bluesky refuses the handle or password', async () => {
-    createSession.mockRejectedValue(axiosLikeError(401));
+    sessionFailure = axiosLikeError(401);
 
     const failure = await controller
       .connect(request, user, {
@@ -151,7 +182,7 @@ describe('BlueskyController', () => {
     expect((failure as HttpException).getResponse()).toMatchObject({
       code: ApiKeyConnectErrorCode.KEY_REJECTED,
     });
-    expect(createPendingForBrand).not.toHaveBeenCalled();
+    expect(stored).toEqual([]);
   });
 
   it('answers https_required for an http server address before any request', async () => {
@@ -167,7 +198,7 @@ describe('BlueskyController', () => {
     expect((failure as HttpException).getResponse()).toMatchObject({
       code: ApiKeyConnectErrorCode.HTTPS_REQUIRED,
     });
-    expect(createSession).not.toHaveBeenCalled();
+    expect(sessionRequests).toEqual([]);
   });
 
   it('refuses a brand the caller cannot access', async () => {
@@ -187,6 +218,7 @@ describe('BlueskyController', () => {
         },
       ],
     });
-    expect(createSession).not.toHaveBeenCalled();
+    expect(sessionRequests).toEqual([]);
+    expect(stored).toEqual([]);
   });
 });

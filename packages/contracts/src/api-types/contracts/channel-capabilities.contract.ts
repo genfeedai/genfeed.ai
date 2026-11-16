@@ -13,6 +13,7 @@ import {
   PostVisibility,
   TargetValidationState,
 } from '../..';
+import { blueskyChannelCapability } from './channel-capabilities.bluesky';
 import {
   type ChannelSettingDefinition,
   type ChannelSettingFieldType,
@@ -824,37 +825,7 @@ const channelCapabilities = [
     settings: [],
     status: 'planned',
   },
-  {
-    caption: { maxLength: 300, required: false },
-    description:
-      'Text, image and video posts, and reply threads, on a connected Bluesky account.',
-    helpers: [
-      {
-        key: 'bluesky.accounts',
-        kind: 'account',
-        label: 'Bluesky account',
-        required: true,
-      },
-    ],
-    label: 'Bluesky',
-    media: {
-      // A post carries up to 4 images or one video, never both. Bluesky
-      // rejects an image over 1 MB, so the publisher downscales each one.
-      animated: {
-        consequence:
-          'Animated images publish as a static image; upload a video to keep motion.',
-        supported: false,
-      },
-      images: { maxItems: 4, minItems: 1 },
-      kinds: ['image', 'video', 'short_video', 'carousel', 'link'],
-      maxItems: 4,
-      minItems: 0,
-    },
-    platform: CredentialPlatform.BLUESKY,
-    publishModes: ['draft', 'publish_now', 'scheduled'],
-    settings: [],
-    status: 'supported',
-  },
+  blueskyChannelCapability,
   {
     caption: { maxLength: 100_000, required: true },
     description:
@@ -969,6 +940,10 @@ export function getChannelCapability(
   return capability ? cloneChannelCapability(capability) : undefined;
 }
 
+const replyChain = (
+  mediaKinds: ChannelMediaKind[],
+): ChannelThreadChildCapability => ({ kind: 'reply_chain', mediaKinds });
+
 const THREAD_CHILD_UNSUPPORTED: ChannelThreadChildCapability = {
   kind: 'unsupported',
   mediaKinds: [],
@@ -983,22 +958,10 @@ const THREAD_CHILD_UNSUPPORTED: ChannelThreadChildCapability = {
 const channelThreadChildCapabilities: Partial<
   Record<CredentialPlatform, ChannelThreadChildCapability>
 > = {
-  [CredentialPlatform.TWITTER]: {
-    kind: 'reply_chain',
-    mediaKinds: ['image', 'video'],
-  },
-  [CredentialPlatform.THREADS]: {
-    kind: 'reply_chain',
-    mediaKinds: ['image', 'video', 'carousel'],
-  },
-  [CredentialPlatform.MASTODON]: {
-    kind: 'reply_chain',
-    mediaKinds: ['image', 'video'],
-  },
-  [CredentialPlatform.BLUESKY]: {
-    kind: 'reply_chain',
-    mediaKinds: ['image', 'video'],
-  },
+  [CredentialPlatform.TWITTER]: replyChain(['image', 'video']),
+  [CredentialPlatform.THREADS]: replyChain(['image', 'video', 'carousel']),
+  [CredentialPlatform.MASTODON]: replyChain(['image', 'video']),
+  [CredentialPlatform.BLUESKY]: replyChain(['image', 'video']),
   // LinkedIn and Facebook comments take a single image; neither accepts a
   // video on a comment.
   [CredentialPlatform.LINKEDIN]: { kind: 'comment', mediaKinds: ['image'] },

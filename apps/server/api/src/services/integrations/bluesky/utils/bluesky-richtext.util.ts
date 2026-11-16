@@ -8,6 +8,8 @@
  * stays plain text, which is always valid.
  */
 
+import { traced } from '@libs/tracing/traced';
+
 const LINK_FEATURE = 'app.bsky.richtext.facet#link';
 const MENTION_FEATURE = 'app.bsky.richtext.facet#mention';
 const TAG_FEATURE = 'app.bsky.richtext.facet#tag';
@@ -23,7 +25,7 @@ const MAX_TAG_GRAPHEMES = 64;
 type FacetSpanKind = 'link' | 'mention' | 'tag';
 
 /** A detected range in UTF-16 string indices (end exclusive). */
-export interface BlueskyFacetSpan {
+interface BlueskyFacetSpan {
   end: number;
   kind: FacetSpanKind;
   start: number;
@@ -31,7 +33,7 @@ export interface BlueskyFacetSpan {
   value: string;
 }
 
-export type BlueskyFacetFeature =
+type BlueskyFacetFeature =
   | { $type: typeof LINK_FEATURE; uri: string }
   | { $type: typeof MENTION_FEATURE; did: string }
   | { $type: typeof TAG_FEATURE; tag: string };
@@ -114,32 +116,35 @@ export function detectBlueskyFacetSpans(text: string): BlueskyFacetSpan[] {
  * Facets for a post text. `resolveHandle` turns a mention's handle into a DID;
  * a handle that does not resolve is left as plain text.
  */
-export async function buildBlueskyFacets(
-  text: string,
-  resolveHandle: (handle: string) => Promise<string | null>,
-): Promise<BlueskyFacet[]> {
-  const facets: BlueskyFacet[] = [];
+export const buildBlueskyFacets = traced(
+  'buildBlueskyFacets',
+  async (
+    text: string,
+    resolveHandle: (handle: string) => Promise<string | null>,
+  ): Promise<BlueskyFacet[]> => {
+    const facets: BlueskyFacet[] = [];
 
-  for (const span of detectBlueskyFacetSpans(text)) {
-    let feature: BlueskyFacetFeature;
-    if (span.kind === 'link') {
-      feature = { $type: LINK_FEATURE, uri: span.value };
-    } else if (span.kind === 'tag') {
-      feature = { $type: TAG_FEATURE, tag: span.value };
-    } else {
-      const did = await resolveHandle(span.value);
-      if (!did) {
-        continue;
+    for (const span of detectBlueskyFacetSpans(text)) {
+      let feature: BlueskyFacetFeature;
+      if (span.kind === 'link') {
+        feature = { $type: LINK_FEATURE, uri: span.value };
+      } else if (span.kind === 'tag') {
+        feature = { $type: TAG_FEATURE, tag: span.value };
+      } else {
+        const did = await resolveHandle(span.value);
+        if (!did) {
+          continue;
+        }
+        feature = { $type: MENTION_FEATURE, did };
       }
-      feature = { $type: MENTION_FEATURE, did };
+
+      // Offsets are bytes of the UTF-8 encoding, not UTF-16 string indices.
+      const byteStart = Buffer.byteLength(text.slice(0, span.start), 'utf8');
+      const byteEnd =
+        byteStart + Buffer.byteLength(text.slice(span.start, span.end), 'utf8');
+      facets.push({ features: [feature], index: { byteEnd, byteStart } });
     }
 
-    // Offsets are bytes of the UTF-8 encoding, not UTF-16 string indices.
-    const byteStart = Buffer.byteLength(text.slice(0, span.start), 'utf8');
-    const byteEnd =
-      byteStart + Buffer.byteLength(text.slice(span.start, span.end), 'utf8');
-    facets.push({ features: [feature], index: { byteEnd, byteStart } });
-  }
-
-  return facets;
-}
+    return facets;
+  },
+);

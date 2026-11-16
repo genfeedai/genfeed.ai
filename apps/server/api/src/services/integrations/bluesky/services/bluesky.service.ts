@@ -330,7 +330,7 @@ export class BlueskyService {
       alert: { payload: alertPayload },
       brandId: credential.brandId ?? undefined,
       key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
-      organizationId: credential.organizationId ?? undefined,
+      organizationId: credential.organizationId ?? null,
       source: ActivitySource.SOCIAL_INTEGRATION,
       userId: credential.userId ?? undefined,
       value: 'Bluesky integration disconnected: app password refused',

@@ -31,7 +31,7 @@ export class BlueskyCredentialRejectedError extends Error {
 }
 
 /** The `error` name in an XRPC error body, e.g. `ExpiredToken`. */
-export function readBlueskyErrorName(error: unknown): string | undefined {
+function readBlueskyErrorName(error: unknown): string | undefined {
   if (!isAxiosError(error)) {
     return undefined;
   }
