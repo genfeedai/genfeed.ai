@@ -188,6 +188,17 @@ describe('TelegramPublisherService', () => {
     ]);
   });
 
+  it('retries later, and keeps the group connected, when the deployment bot token is bad', async () => {
+    const { credentialPatches, publisher } = buildPublisher(
+      new TelegramApiError('Telegram sendMessage failed', 'token_invalid', 401),
+    );
+
+    await expect(publisher.publish(buildContext())).rejects.toMatchObject({
+      kind: 'retry_later',
+    });
+    expect(credentialPatches).toEqual([]);
+  });
+
   it('passes the stated wait through on a rate limit and keeps the credential', async () => {
     const { credentialPatches, publisher } = buildPublisher(
       new TelegramApiError(

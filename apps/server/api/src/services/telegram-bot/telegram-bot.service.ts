@@ -188,11 +188,14 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     this.bot.command(COMMANDS.START, async (ctx, next) => {
       const isGroup =
         ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
-      if (!isGroup || !ctx.match || !this.groupLinkService) {
+      const code = String(ctx.match ?? '').trim();
+      // Anything that is not one of our codes is someone else's `/start` in a
+      // group the bot sits in: stay silent rather than answer it.
+      if (!isGroup || !this.groupLinkService?.isLinkCode(code)) {
         await next();
         return;
       }
-      await this.handleGroupLink(ctx, String(ctx.match).trim());
+      await this.handleGroupLink(ctx, code);
     });
 
     // Authorization middleware
@@ -263,8 +266,17 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     // The bot may already sit in groups that belong to others, so only someone
     // who runs this group can attach it to a brand. Checked before the code is
     // spent, so a member's attempt leaves the link usable.
-    const sender = await ctx.api.getChatMember(chat.id, senderId);
-    if (sender.status !== 'creator' && sender.status !== 'administrator') {
+    let senderStatus: string;
+    try {
+      senderStatus = (await ctx.api.getChatMember(chat.id, senderId)).status;
+    } catch {
+      // Telegram only answers this for other users when the bot is an admin.
+      await ctx.reply(
+        'Genfeed cannot check who you are in this group. Make Genfeed an admin of the group, then connect it again from Genfeed.',
+      );
+      return;
+    }
+    if (senderStatus !== 'creator' && senderStatus !== 'administrator') {
       await ctx.reply('Only a group admin can connect this group to Genfeed.');
       return;
     }

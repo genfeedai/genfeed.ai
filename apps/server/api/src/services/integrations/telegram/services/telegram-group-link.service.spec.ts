@@ -9,6 +9,7 @@ const scope = { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' };
 
 function build(config: Record<string, string> = {}) {
   const store = new Map<string, unknown>();
+  const ttls: Array<number | undefined> = [];
   const profiles: Array<{
     handle?: string | null;
     id?: string | null;
@@ -21,8 +22,9 @@ function build(config: Record<string, string> = {}) {
       store.delete(key);
       return value;
     },
-    set: async (key: string, value: unknown) => {
+    set: async (key: string, value: unknown, options?: { ttl?: number }) => {
       store.set(key, value);
+      ttls.push(options?.ttl);
       return true;
     },
   };
@@ -57,22 +59,25 @@ function build(config: Record<string, string> = {}) {
     credentialsService as unknown as CredentialsService,
     configService as unknown as ConfigService,
   );
-  return { profiles, service };
+  return { profiles, service, ttls };
 }
 
 describe('TelegramGroupLinkService', () => {
   it('builds an add-bot link whose code connects the group that sends it, once', async () => {
-    const { profiles, service } = build();
+    const { profiles, service, ttls } = build();
 
     const { code, url } = await service.createLink(scope);
 
-    expect(url).toBe(`https://t.me/genfeed_bot?startgroup=${code}`);
+    expect(url).toBe(
+      `https://t.me/genfeed_bot?startgroup=${code}&admin=manage_chat`,
+    );
+    expect(ttls).toEqual([900]);
     expect(
       await service.linkChat(code, { id: -100123, title: 'Acme Team' }),
     ).toEqual({ brandLabel: 'Acme' });
     expect(profiles).toEqual([
       {
-        handle: undefined,
+        handle: null,
         id: '-100123',
         name: 'Acme Team',
         organizationId: 'org-1',

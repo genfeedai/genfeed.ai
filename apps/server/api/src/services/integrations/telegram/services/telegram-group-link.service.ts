@@ -47,6 +47,11 @@ export class TelegramGroupLinkService {
     private readonly configService: ConfigService,
   ) {}
 
+  /** Whether a start argument has the shape of a code this service issues. */
+  isLinkCode(value: string): boolean {
+    return TELEGRAM_LINK_CODE_PATTERN.test(value);
+  }
+
   /** The add-bot link for one brand; refused where no bot is configured. */
   async createLink(
     scope: PendingGroupLink,
@@ -70,7 +75,7 @@ export class TelegramGroupLinkService {
 
     return {
       code,
-      url: `https://t.me/${String(username).replace(LEADING_AT_SIGN_PATTERN, '')}?startgroup=${code}`,
+      url: `https://t.me/${String(username).replace(LEADING_AT_SIGN_PATTERN, '')}?startgroup=${code}&admin=manage_chat`,
     };
   }
 
@@ -82,7 +87,7 @@ export class TelegramGroupLinkService {
     code: string,
     chat: TelegramChatToLink,
   ): Promise<{ brandLabel: string } | null> {
-    if (!TELEGRAM_LINK_CODE_PATTERN.test(code)) {
+    if (!this.isLinkCode(code)) {
       return null;
     }
 
@@ -114,7 +119,7 @@ export class TelegramGroupLinkService {
       created.id,
       brand.organizationId,
       {
-        handle: chat.username,
+        handle: chat.username ?? null,
         id: String(chat.id),
         name: chat.title ?? chat.username ?? String(chat.id),
       },

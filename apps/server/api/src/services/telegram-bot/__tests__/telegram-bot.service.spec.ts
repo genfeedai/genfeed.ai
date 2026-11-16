@@ -114,6 +114,7 @@ describe('TelegramBotService', () => {
       undefined,
       undefined,
       {
+        isLinkCode: (value: string) => /^[A-Za-z0-9_-]{8,}$/.test(value),
         linkChat: async (code: string, chat: unknown) => {
           linked.push({ chat, code });
           return linkedBrandLabel === null
@@ -233,14 +234,21 @@ describe('TelegramBotService', () => {
   async function startInGroup(
     payload: string,
     chatType = 'supergroup',
-    senderStatus = 'administrator',
+    senderStatus: string | Error = 'administrator',
   ) {
     const replies: string[] = [];
     let isNextReached = false;
     const start = telegram.bots[0]?.commandHandlers[0];
     await start?.handler(
       {
-        api: { getChatMember: async () => ({ status: senderStatus }) },
+        api: {
+          getChatMember: async () => {
+            if (senderStatus instanceof Error) {
+              throw senderStatus;
+            }
+            return { status: senderStatus };
+          },
+        },
         chat: { id: -1001, title: 'Acme Team', type: chatType },
         from: { id: 777 },
         match: payload,
@@ -258,7 +266,7 @@ describe('TelegramBotService', () => {
   it('connects a group that starts the bot with a link code, before the allowlist', async () => {
     await service.onModuleInit();
 
-    const { isNextReached, replies, start } = await startInGroup('code-123');
+    const { isNextReached, replies, start } = await startInGroup('code-12345');
 
     expect(start?.names).toBe('start');
     expect(telegram.bots[0]?.commandHandlers).toHaveLength(
@@ -271,7 +279,7 @@ describe('TelegramBotService', () => {
     expect(linked).toEqual([
       {
         chat: { id: -1001, title: 'Acme Team', username: undefined },
-        code: 'code-123',
+        code: 'code-12345',
       },
     ]);
   });
@@ -279,10 +287,39 @@ describe('TelegramBotService', () => {
   it('leaves the code unspent when a plain member tries to connect the group', async () => {
     await service.onModuleInit();
 
-    const { replies } = await startInGroup('code-123', 'supergroup', 'member');
+    const { replies } = await startInGroup(
+      'code-12345',
+      'supergroup',
+      'member',
+    );
 
     expect(replies).toEqual([
       'Only a group admin can connect this group to Genfeed.',
+    ]);
+    expect(linked).toEqual([]);
+  });
+
+  it('stays silent about a group /start that carries no link code', async () => {
+    await service.onModuleInit();
+
+    const { isNextReached, replies } = await startInGroup('hi!', 'supergroup');
+
+    expect(replies).toEqual([]);
+    expect(isNextReached).toBe(true);
+    expect(linked).toEqual([]);
+  });
+
+  it('asks for admin rights when Telegram will not say who the sender is', async () => {
+    await service.onModuleInit();
+
+    const { replies } = await startInGroup(
+      'code-12345',
+      'supergroup',
+      new Error('Forbidden'),
+    );
+
+    expect(replies).toEqual([
+      'Genfeed cannot check who you are in this group. Make Genfeed an admin of the group, then connect it again from Genfeed.',
     ]);
     expect(linked).toEqual([]);
   });
@@ -302,7 +339,7 @@ describe('TelegramBotService', () => {
     await service.onModuleInit();
 
     expect((await startInGroup('')).isNextReached).toBe(true);
-    expect((await startInGroup('code-123', 'private')).isNextReached).toBe(
+    expect((await startInGroup('code-12345', 'private')).isNextReached).toBe(
       true,
     );
     expect(linked).toEqual([]);

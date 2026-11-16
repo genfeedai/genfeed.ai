@@ -56,8 +56,9 @@ import {
 } from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
 
 const _LEADING_AT_SIGN_PATTERN = /^@/;
-const ADD_BOT_POLL_INTERVAL_MS = 5_000;
-const ADD_BOT_POLL_MAX_CHECKS = 24;
+// The add-bot link lives 15 minutes, so the page looks for the group that long.
+const ADD_BOT_POLL_INTERVAL_MS = 10_000;
+const ADD_BOT_POLL_MAX_CHECKS = 90;
 
 type SocialConnection = BrandDetailSocialMediaCardProps['connections'][number];
 
@@ -362,6 +363,8 @@ export default function BrandDetailSocialMediaCard({
     }
 
     if (item.connectMethod === 'add_bot_link') {
+      // Opened before the first await so a popup blocker still sees the click.
+      const tab = window.open('about:blank', '_blank');
       try {
         setConnectingPlatform(item.platform);
         const token = (await resolveAuthToken(getToken)) ?? '';
@@ -372,10 +375,16 @@ export default function BrandDetailSocialMediaCard({
         const { url } = await service.postConnect({ brandId });
         setIsConnectAccountModalOpen(false);
         setIsDialogOpen(false);
-        window.open(url, '_blank', 'noopener,noreferrer');
+        if (tab) {
+          tab.opener = null;
+          tab.location.href = url;
+        } else {
+          window.open(url, '_self');
+        }
         NotificationsService.getInstance().info(translate('telegramAddBot'));
         startAddBotPolling();
       } catch (error) {
+        tab?.close();
         logger.error(`Failed to start ${item.platform} connect:`, error);
         NotificationsService.getInstance().error(
           translate('connectPlatformError', { platform: item.label }),

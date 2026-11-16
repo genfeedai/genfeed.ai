@@ -15,7 +15,9 @@ import {
 import {
   CredentialPlatform,
   DistributionContentType,
+  PublishErrorKind,
 } from '@genfeedai/contracts';
+import { PublishError } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -167,6 +169,15 @@ export class TelegramPublisherService extends BasePublisherService {
           await this.credentialsService.patch(credential.id, {
             isConnected: false,
           });
+        }
+        if (error.kind === 'token_invalid') {
+          // The deployment's bot token is bad, which reconnecting the group
+          // cannot fix. Nothing was sent, so the post can go out once it is.
+          throw new PublishError(
+            PublishErrorKind.RETRY_LATER,
+            'Telegram is unavailable on this deployment right now',
+            { cause: error, httpStatus: error.statusCode },
+          );
         }
         throw toChatPublishError(error);
       }
