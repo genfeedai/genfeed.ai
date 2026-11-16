@@ -12,7 +12,10 @@ describe('BrandSettingsIndexPage', () => {
 
   it('sends the bare brand settings address to the brand Profile page', async () => {
     await BrandSettingsIndexPage({
-      params: Promise.resolve({ brandSlug: 'vincentshipsit', orgSlug: 'genfeedai' }),
+      params: Promise.resolve({
+        brandSlug: 'vincentshipsit',
+        orgSlug: 'genfeedai',
+      }),
     });
 
     expect(redirect).toHaveBeenCalledWith(

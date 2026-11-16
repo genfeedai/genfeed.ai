@@ -356,7 +356,9 @@ describe('useBrandDetail', () => {
       });
 
       expect(mockPatch).toHaveBeenCalledWith('brand-1', { slug: 'acme-labs' });
-      expect(mockReplace).toHaveBeenCalledWith('/acme/acme-labs/settings/profile');
+      expect(mockReplace).toHaveBeenCalledWith(
+        '/acme/acme-labs/settings/profile',
+      );
       expect(mockRefreshBrands).toHaveBeenCalledOnce();
     });
 

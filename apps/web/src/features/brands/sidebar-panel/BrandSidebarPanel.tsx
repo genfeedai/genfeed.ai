@@ -57,7 +57,11 @@ export default function BrandSidebarPanel(props: BrandSidebarPanelProps) {
 
   const profileHref =
     orgSlug && activeBrand.slug
-      ? createBrandAppRoute(orgSlug, activeBrand.slug, APP_ROUTES.SETTINGS.PROFILE)
+      ? createBrandAppRoute(
+          orgSlug,
+          activeBrand.slug,
+          APP_ROUTES.SETTINGS.PROFILE,
+        )
       : undefined;
 
   return (

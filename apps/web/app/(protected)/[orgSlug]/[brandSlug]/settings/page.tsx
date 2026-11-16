@@ -14,5 +14,7 @@ export default async function BrandSettingsIndexPage({
   params: Promise<{ brandSlug: string; orgSlug: string }>;
 }) {
   const { brandSlug, orgSlug } = await params;
-  redirect(createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.PROFILE));
+  redirect(
+    createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.PROFILE),
+  );
 }

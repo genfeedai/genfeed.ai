@@ -252,7 +252,13 @@ export function useModalBrandCreate(
       closeModal(ModalEnum.BRAND);
 
       if (createdBrandSlug) {
-        push(createBrandAppRoute(orgSlug, createdBrandSlug, APP_ROUTES.SETTINGS.PROFILE));
+        push(
+          createBrandAppRoute(
+            orgSlug,
+            createdBrandSlug,
+            APP_ROUTES.SETTINGS.PROFILE,
+          ),
+        );
       }
     } catch (submitError) {
       logger.error('Failed to create brand', submitError);

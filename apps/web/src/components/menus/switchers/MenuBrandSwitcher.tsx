@@ -118,7 +118,11 @@ export default function MenuBrandSwitcher({
           orgSlug && b.slug
             ? {
                 ariaLabel: `Open ${b.label ?? 'brand'} settings`,
-                href: createBrandAppRoute(orgSlug, b.slug, APP_ROUTES.SETTINGS.PROFILE),
+                href: createBrandAppRoute(
+                  orgSlug,
+                  b.slug,
+                  APP_ROUTES.SETTINGS.PROFILE,
+                ),
                 icon: Settings,
                 onAction: () => undefined,
               }

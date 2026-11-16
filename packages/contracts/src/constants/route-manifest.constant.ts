@@ -1237,6 +1237,7 @@ export const ROUTE_MANIFEST_GROUPS: readonly RouteManifestGroup[] = [
     telemetryClass: 'management',
     fallback: '/settings/profile',
     pages: [
+      { path: '/settings', title: 'Profile' },
       { path: '/settings/profile', title: 'Profile' },
       '/settings/brand-kit',
       '/settings/knowledge',
