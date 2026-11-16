@@ -185,6 +185,7 @@ describe('YouTubePublisherService', () => {
         {
           provide: YoutubeService,
           useValue: {
+            listPublishVerificationPage: vi.fn(),
             postComment: vi.fn(),
             uploadVideo: vi.fn(),
           },
@@ -692,6 +693,131 @@ describe('YouTubePublisherService', () => {
           postId: context.postId,
         }),
       );
+    });
+  });
+
+  describe('verifyPublished', () => {
+    const startedAt = new Date('2026-10-03T10:00:00Z');
+    const landed = {
+      createdAt: new Date('2026-10-03T10:00:03Z'),
+      hasMedia: true,
+      id: 'yt-video-1',
+      isReply: false,
+      mediaCount: 1,
+      mediaKind: 'video' as const,
+      status: 'processed',
+      text: 'Test video post',
+      title: 'Video Title',
+      visibility: 'private',
+    };
+
+    beforeEach(() =>
+      vi.useFakeTimers({ now: new Date('2026-10-03T12:00:00Z') }),
+    );
+    afterEach(() => vi.useRealTimers());
+
+    function listing(...items: (typeof landed)[]) {
+      youtubeService.listPublishVerificationPage.mockResolvedValue({
+        items,
+        nextCursor: null,
+      });
+    }
+
+    it('settles an uncertain upload as published with its watch URL', async () => {
+      listing(landed);
+
+      const result = await service.verifyPublished(
+        createPublishContext(mockVideoPost),
+        startedAt,
+      );
+
+      expect(result).toMatchObject({
+        executionState: TargetExecutionState.PUBLISHED,
+        externalId: 'yt-video-1',
+        url: 'https://www.youtube.com/watch?v=yt-video-1',
+      });
+      expect(youtubeService.listPublishVerificationPage).toHaveBeenCalledWith(
+        mockOrganizationId.toString(),
+        mockBrandId.toString(),
+        mockCredentialId,
+        'youtube-channel-123',
+        startedAt,
+        undefined,
+      );
+    });
+
+    it('counts a video still processing as landed', async () => {
+      listing({ ...landed, status: 'uploaded' });
+
+      expect(
+        await service.verifyPublished(
+          createPublishContext(mockVideoPost),
+          startedAt,
+        ),
+      ).toMatchObject({ externalId: 'yt-video-1' });
+    });
+
+    it('matches the default title of a video without a label', async () => {
+      listing({ ...landed, title: 'Genfeed.ai Video' });
+
+      expect(
+        await service.verifyPublished(
+          createPublishContext({
+            ...mockVideoPost,
+            label: undefined,
+          } as unknown as PostEntity),
+          startedAt,
+        ),
+      ).toMatchObject({ externalId: 'yt-video-1' });
+    });
+
+    it('stays unknown when another video was uploaded under a different title', async () => {
+      listing({ ...landed, title: 'A different video' });
+
+      await expect(
+        service.verifyPublished(createPublishContext(mockVideoPost), startedAt),
+      ).rejects.toThrow('another caption');
+    });
+
+    it('reports a missing upload so the next attempt can publish', async () => {
+      listing();
+
+      expect(
+        await service.verifyPublished(
+          createPublishContext(mockVideoPost),
+          startedAt,
+        ),
+      ).toBeNull();
+    });
+
+    it.each(['failed', 'rejected', 'deleted'])(
+      'stays unknown when YouTube reports the upload as %s',
+      async (status) => {
+        listing({ ...landed, status });
+        await expect(
+          service.verifyPublished(
+            createPublishContext(mockVideoPost),
+            startedAt,
+          ),
+        ).rejects.toThrow('did not land');
+      },
+    );
+
+    it('stays unknown for an image post', async () => {
+      await expect(
+        service.verifyPublished(createPublishContext(mockImagePost), startedAt),
+      ).rejects.toThrow('exact video proof');
+      expect(youtubeService.listPublishVerificationPage).not.toHaveBeenCalled();
+    });
+
+    it('stays unknown when the provider lookup fails', async () => {
+      youtubeService.listPublishVerificationPage.mockRejectedValue(
+        new Error('quota exceeded'),
+      );
+
+      await expect(
+        service.verifyPublished(createPublishContext(mockVideoPost), startedAt),
+      ).rejects.toThrow('quota exceeded');
     });
   });
 });

@@ -140,7 +140,7 @@ export class WordpressPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw toArticlePublishError(error, { provider: 'WordPress' });
+      throw toArticlePublishError(error);
     }
   }
 

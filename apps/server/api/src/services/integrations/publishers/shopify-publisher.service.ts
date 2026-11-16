@@ -142,7 +142,7 @@ export class ShopifyPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw toArticlePublishError(error, { provider: 'Shopify' });
+      throw toArticlePublishError(error);
     }
   }
 

@@ -3,7 +3,11 @@ import {
   type MetricDatum,
   PutMetricDataCommand,
 } from '@aws-sdk/client-cloudwatch';
-import { ALL_QUEUE_NAMES, hasQueueConsumer } from '@genfeedai/contracts/queue';
+import {
+  ALL_QUEUE_NAMES,
+  hasQueueConsumer,
+  SCHEDULED_PUBLISH_QUEUE,
+} from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, type OnModuleDestroy } from '@nestjs/common';
@@ -21,6 +25,9 @@ import type Redis from 'ioredis';
 
 const METRIC_NAMESPACE = 'Genfeed/Queues';
 const COLLECTION_WINDOW_MS = 5 * 60 * 1000;
+// Jobs read to count the publish queue per provider; a deeper backlog is
+// reported as at least this many.
+const PUBLISH_DEPTH_SAMPLE_LIMIT = 2000;
 const PUBLISH_MARKER_PREFIX = 'genfeed:monitoring:queue-metrics';
 
 // These queues are owned by the files runtime and are not yet part of the
@@ -260,6 +267,7 @@ export class QueueMetricsService implements OnModuleDestroy {
           ...this.buildMetricData(totals),
           ...this.buildPerQueueBacklogMetrics(snapshots),
           ...this.buildPerQueueStalledMetrics(snapshots),
+          ...(await this.collectPublishProviderDepthMetrics()),
         ],
         Namespace: METRIC_NAMESPACE,
       }),
@@ -346,6 +354,52 @@ export class QueueMetricsService implements OnModuleDestroy {
           },
         ];
       });
+  }
+
+  /**
+   * Publishes waiting on the scheduled-publish queue, per provider. A provider
+   * held at its ceiling shows here as a `delayed` backlog while the others
+   * drain, which the queue-wide count cannot tell apart. Never fails the other
+   * metrics: a sampling error just leaves these out.
+   */
+  private async collectPublishProviderDepthMetrics(): Promise<MetricDatum[]> {
+    const queue = this.queues.find(
+      (candidate) => candidate.name === SCHEDULED_PUBLISH_QUEUE,
+    );
+    if (!queue) return [];
+
+    try {
+      const jobs = await queue.getJobs(
+        ['waiting', 'delayed', 'prioritized'],
+        0,
+        PUBLISH_DEPTH_SAMPLE_LIMIT - 1,
+      );
+      const depthByProvider = new Map<string, number>();
+      for (const job of jobs) {
+        const provider =
+          typeof job?.data?.publishProvider === 'string'
+            ? job.data.publishProvider
+            : 'unknown';
+        depthByProvider.set(provider, (depthByProvider.get(provider) ?? 0) + 1);
+      }
+      return [...depthByProvider].map(([provider, depth]) => ({
+        Dimensions: [
+          { Name: 'Service', Value: 'workers' },
+          { Name: 'Queue', Value: SCHEDULED_PUBLISH_QUEUE },
+          { Name: 'Provider', Value: provider },
+        ],
+        MetricName: 'PublishQueueDepth',
+        StorageResolution: 60,
+        Unit: 'Count',
+        Value: depth,
+      }));
+    } catch (error: unknown) {
+      this.logger.warn('Publish queue depth per provider skipped', {
+        ...this.context,
+        error,
+      });
+      return [];
+    }
   }
 
   private buildPerQueueStalledMetrics(

@@ -103,7 +103,6 @@ export class MediumPublisherService extends BasePublisherService {
         postId: context.postId,
       });
       throw toArticlePublishError(error, {
-        provider: 'Medium',
         isTokenRefreshable: Boolean(credential?.refreshToken),
       });
     }

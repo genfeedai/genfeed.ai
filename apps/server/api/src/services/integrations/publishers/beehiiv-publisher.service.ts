@@ -153,7 +153,7 @@ export class BeehiivPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw toArticlePublishError(error, { provider: 'Beehiiv' });
+      throw toArticlePublishError(error);
     }
   }
 

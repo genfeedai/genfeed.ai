@@ -392,6 +392,45 @@ describe('QueueMetricsService', () => {
     ).toBe(true);
   });
 
+  it('publishes the scheduled-publish queue depth per provider', async () => {
+    const now = Date.now();
+    mockGetJobs.mockImplementation(async (queueName: string) =>
+      queueName === 'scheduled-publish'
+        ? [
+            { data: { publishProvider: 'twitter' }, timestamp: now },
+            { data: { publishProvider: 'twitter' }, timestamp: now },
+            { data: { publishProvider: 'youtube' }, timestamp: now },
+            { data: {}, timestamp: now },
+          ]
+        : [{ timestamp: now - 60_000 }],
+    );
+
+    await service.publishQueueMetrics();
+
+    const command = mockCloudWatchSend.mock.calls[0]?.[0] as {
+      input: {
+        MetricData: Array<{
+          Dimensions: Array<{ Name: string; Value: string }>;
+          MetricName: string;
+          Value: number;
+        }>;
+      };
+    };
+    const depths = command.input.MetricData.filter(
+      (metric) => metric.MetricName === 'PublishQueueDepth',
+    ).map((metric) => ({
+      provider: metric.Dimensions.find((d) => d.Name === 'Provider')?.Value,
+      queue: metric.Dimensions.find((d) => d.Name === 'Queue')?.Value,
+      value: metric.Value,
+    }));
+
+    expect(depths).toEqual([
+      { provider: 'twitter', queue: 'scheduled-publish', value: 2 },
+      { provider: 'youtube', queue: 'scheduled-publish', value: 1 },
+      { provider: 'unknown', queue: 'scheduled-publish', value: 1 },
+    ]);
+  });
+
   it('keeps an unconsumed queue out of the aggregate alarm metrics but names it per-queue', async () => {
     const now = Date.parse('2026-08-12T00:00:00.000Z');
     vi.spyOn(Date, 'now').mockReturnValue(now);

@@ -246,6 +246,28 @@ export class AgentScopeContextService {
     return thread.userId;
   }
 
+  /**
+   * The brands whose messages `actor` may read in a thread another member
+   * shares with them, so the turn's model context holds nothing they could not
+   * read themselves. `undefined` means every brand. A thread keeps the brand
+   * each message was written under when it later changes brand (#10256).
+   */
+  @Traced()
+  async resolveCollaboratorHistoryBrandIds(
+    actor: BrandAccessActor,
+    threadId: string,
+  ): Promise<string[] | undefined> {
+    if (!this.threadAccess) {
+      throw new ForbiddenException('Thread sharing is unavailable.');
+    }
+    const { historyBrandIds } = await this.threadAccess.assertAccess(
+      actor,
+      threadId,
+      'collaborate',
+    );
+    return historyBrandIds;
+  }
+
   @Traced()
   async resolveCreatedThreadScope(params: {
     brandId?: string;

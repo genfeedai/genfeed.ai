@@ -827,7 +827,7 @@ export class StreaksService {
               card: {
                 color: 0xf97316,
                 description,
-                title: 'GenFeed streak',
+                title: 'Genfeed streak',
               },
             },
             type: 'discord',

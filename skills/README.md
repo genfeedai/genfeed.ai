@@ -79,8 +79,12 @@ its sections in order while they fit). The prompt carries at most
 `GENERATION_SKILL_BUDGET` characters of skill text per modality, a section is in or
 out and never cut, and a linked `references/` file loads only when a kept section
 names it. Each generation returns a receipt with the sections loaded and left out.
-Agent turns that ask for a skill still get the full body. A catalog update that
-renames a planned heading fails `skill-generation-sections.spec.ts`.
+Agent turns use the same compiler for skills the agent did not ask for; a skill the
+agent picked by name still goes in whole, and a skill with no section that fits is
+left out and logged. Every receipt is stored as `sections` on the matching
+`skill_resolution_items` row: headings, counts and the compiler version, never the
+instruction text. A catalog update that renames a planned heading fails
+`skill-generation-sections.spec.ts`.
 
 To deliberately update from a clean public checkout at an exact full commit:
 

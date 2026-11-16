@@ -14,7 +14,7 @@ import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
  * the goal is to exercise interactive code paths for coverage.
  */
 
-const BRAND_PROFILE = '/test-org/brand-1/profile';
+const BRAND_PROFILE = '/test-org/brand-1/settings/profile';
 const BRAND_SETTINGS = '/test-org/brand-1/settings';
 
 /** Toggle the first visible Radix switch on the page (best-effort). */

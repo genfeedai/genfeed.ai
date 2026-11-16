@@ -26,7 +26,7 @@
     "signInCodePlaceholder": "Paste the code from the browser",
     "signInWithGenfeed": "Sign in with Genfeed",
     "signUp": "Sign up",
-    "waitingForBrowser": "Waiting for the browser..."
+    "waitingForBrowser": "Waiting for the browser…"
   },
   "signUpForm": {
     "createAccount": "Create account",
@@ -89,7 +89,7 @@
       "disconnected": "{capitalizedSubject} disconnected",
       "flagged": "{capitalizedSubject} flagged for review",
       "failed": "{operation, select, reframe {Failed to reframe {subject}} upscale {Failed to upscale {subject}} enhance {Failed to enhance {subject}} remix {Failed to remix {subject}} train {{capitalizedSubject} failed} publish {Failed to publish {subject}} connect {{capitalizedSubject} failed} run {{capitalizedSubject} failed} deliver {Couldn't deliver the {subject} update} import {Failed to import existing posts from {articleSubject}} other {Failed to generate {subject}}}",
-      "processing": "{operation, select, reframe {Reframing {articleSubject}...} upscale {Upscaling {articleSubject}...} enhance {Enhancing {articleSubject}...} remix {Remixing {articleSubject}...} train {Starting {subject}...} publish {Processing {articleSubject}...} other {Generating {articleSubject}...}}",
+      "processing": "{operation, select, reframe {Reframing {articleSubject}…} upscale {Upscaling {articleSubject}…} enhance {Enhancing {articleSubject}…} remix {Remixing {articleSubject}…} train {Starting {subject}…} publish {Processing {articleSubject}…} other {Generating {articleSubject}…}}",
       "published": "Published {articleSubject}",
       "scheduled": "{operation, select, import {Scheduled import of existing posts from {articleSubject}} other {Scheduled {articleSubject}}}",
       "skipped": "{operation, select, import {Skipped importing existing posts from {articleSubject}} other {Skipped {articleSubject}}}"
@@ -378,7 +378,7 @@
         "noExternal": "No data is sent to external servers."
       },
       "initializing": {
-        "description": "Setting up authentication...",
+        "description": "Setting up authentication…",
         "title": "Initializing"
       },
       "redirecting": {
@@ -393,8 +393,8 @@
       },
       "requesting": {
         "description": {
-          "cli": "Creating a secure API key for the CLI...",
-          "desktop": "Creating a secure API key for the desktop app..."
+          "cli": "Creating a secure API key for the CLI…",
+          "desktop": "Creating a secure API key for the desktop app…"
         },
         "signedInAs": "Signed in as {email}",
         "title": "Generating API key"
@@ -465,7 +465,7 @@
       "pause": "Pause",
       "resume": "Resume",
       "start": "Start",
-      "loading": "Loading...",
+      "loading": "Loading…",
       "loadingProgram": "Loading Program",
       "loadingAgents": "Loading Program agents",
       "notFound": "Program Not Found"
@@ -610,7 +610,7 @@
       "actions": {
         "copy": "Copy",
         "create": "Create Key",
-        "creating": "Creating...",
+        "creating": "Creating…",
         "refreshAria": "Refresh Genfeed API keys",
         "revoke": "Revoke",
         "rotate": "Rotate"
@@ -646,7 +646,7 @@
       "list": {
         "lastUsed": "Last used: {value}",
         "limitedTo": "Limited to: {brands}",
-        "loading": "Loading keys...",
+        "loading": "Loading keys…",
         "never": "Never",
         "noScopes": "No scopes",
         "untitled": "Untitled key"
@@ -834,7 +834,7 @@
         "viewInLibrary": "View in Library",
         "viewInLibraryFor": "View assets made with {name} in Library"
       },
-      "subtitle": "Named characters for Studio and Agent @-mentions.",
+      "subtitle": "Named characters for Studio and Agent @-mentions",
       "success": "Character created.",
       "title": "Characters",
       "references": {
@@ -1169,7 +1169,7 @@
         },
         "search": {
           "label": "Search skills",
-          "placeholder": "Search skills…"
+          "placeholder": "Search skills"
         }
       },
       "heading": "Skills",
@@ -1484,7 +1484,7 @@
         "description": "Uses the provider configured on this device.",
         "generate": "Generate",
         "promptLabel": "Local generation prompt",
-        "promptPlaceholder": "Draft a launch post for...",
+        "promptPlaceholder": "Draft a launch post for…",
         "title": "Generate locally",
         "working": "Working…"
       },
@@ -1500,9 +1500,9 @@
     "provider": {
       "actions": {
         "save": "Save",
-        "saving": "Saving...",
+        "saving": "Saving…",
         "test": "Test",
-        "testing": "Testing..."
+        "testing": "Testing…"
       },
       "description": "Genfeed server credits are the default when connected. Configure a local OpenAI-compatible provider only for offline or bring-your-own-key generation.",
       "errors": {
@@ -1611,7 +1611,7 @@
     "credentials": {
       "addBrand": "Add a brand",
       "empty": "No accounts are connected yet.",
-      "loading": "Loading credential health...",
+      "loading": "Loading credential health…",
       "manage": "Manage accounts",
       "reconnect": "Reconnect",
       "title": "Accounts",
@@ -1813,8 +1813,8 @@
       "opportunityPanel": {
         "expectedTraffic": "Expected traffic",
         "loading": "Loading",
-        "loadingOpportunities": "Loading opportunities...",
-        "loadingOpportunity": "Loading opportunity...",
+        "loadingOpportunities": "Loading opportunities…",
+        "loadingOpportunity": "Loading opportunity…",
         "noOpenOpportunities": "No open opportunities on this page.",
         "notRecorded": "Not recorded",
         "openOpportunities": "Open opportunities",
@@ -2143,7 +2143,7 @@
         "emptyDescription": "Create your first workflow for a fixed, repeatable automation pipeline.",
         "emptyTitle": "No workflows yet",
         "noMatching": "No workflows matching “{search}”",
-        "searchPlaceholder": "Search workflows...",
+        "searchPlaceholder": "Search workflows",
         "synced": "synced",
         "system": "System",
         "templates": "Templates",
@@ -2604,7 +2604,7 @@
       },
       "following": {
         "title": "Following",
-        "subtitle": "One column per platform — every post from the creators you follow, newest first.",
+        "subtitle": "One column per platform — every post from the creators you follow, newest first",
         "columnSources": "{count, plural, one {# creator} other {# creators}}",
         "columnPosts": "{count, plural, one {# post} other {# posts}}",
         "columnEmpty": "No posts collected yet. Sync this platform to pull the latest.",

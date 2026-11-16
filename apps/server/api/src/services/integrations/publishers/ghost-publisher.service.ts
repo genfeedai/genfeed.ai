@@ -174,7 +174,7 @@ export class GhostPublisherService extends BasePublisherService {
         { cause: error },
       );
     }
-    return toArticlePublishError(error, { provider: 'Ghost' });
+    return toArticlePublishError(error);
   }
 
   /**

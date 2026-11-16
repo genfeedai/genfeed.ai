@@ -107,7 +107,8 @@ const prisma = {
     findMany: vi.fn(async () => state.grants),
     updateMany: vi.fn(async () => ({ count: 1 })),
   },
-  skillResolution: { create: vi.fn() },
+  skillResolution: { create: vi.fn(), findFirst: vi.fn() },
+  skillResolutionItem: { updateMany: vi.fn() },
   skillVersion: {
     findFirst: vi.fn(
       async (query: { where: { id: string } }) =>
@@ -796,6 +797,72 @@ describe('SkillLibraryService authorized versions', () => {
     await service.recordResolution(actor, decision.versions, decision.excluded);
     expect(prisma.skillResolution.create).not.toHaveBeenCalled();
     expect(prisma.skill.findMany).not.toHaveBeenCalled();
+  });
+
+  it('stores section headings on the included item of the same organization, never the text', async () => {
+    prisma.skillResolution.findFirst.mockResolvedValue({ id: 'resolution-1' });
+    await service.recordSectionReceipts(actor, 'resolution-1', [
+      {
+        characters: 1_200,
+        compilerVersion: 'generation-sections-v1',
+        loadedSections: ['Camera movement'],
+        modality: 'video',
+        mode: 'generation',
+        omittedSections: ['Lighting'],
+        slug: 'cinematic-prompting',
+        versionId: 'sv-1',
+      },
+      {
+        characters: 10,
+        compilerVersion: 'generation-sections-v1',
+        loadedSections: ['preamble'],
+        mode: 'agent',
+        omittedSections: [],
+        slug: 'unversioned',
+      },
+    ]);
+
+    expect(prisma.skillResolutionItem.updateMany).toHaveBeenCalledTimes(1);
+    expect(prisma.skillResolutionItem.updateMany).toHaveBeenCalledWith({
+      data: {
+        sections: {
+          characters: 1_200,
+          compilerVersion: 'generation-sections-v1',
+          loadedSections: ['Camera movement'],
+          modality: 'video',
+          mode: 'generation',
+          omittedSections: ['Lighting'],
+        },
+      },
+      where: {
+        inclusion: 'included',
+        resolutionId: 'resolution-1',
+        skillVersionId: 'sv-1',
+      },
+    });
+    expect(prisma.skillResolution.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: { id: 'resolution-1', isDeleted: false, organizationId: 'org-1' },
+    });
+  });
+
+  it('writes nothing for a resolution another organization owns', async () => {
+    prisma.skillResolution.findFirst.mockResolvedValue(null);
+    prisma.skillResolutionItem.updateMany.mockClear();
+
+    await service.recordSectionReceipts(actor, 'resolution-9', [
+      {
+        characters: 5,
+        compilerVersion: 'generation-sections-v1',
+        loadedSections: ['preamble'],
+        mode: 'agent',
+        omittedSections: [],
+        slug: 'voice',
+        versionId: 'sv-1',
+      },
+    ]);
+
+    expect(prisma.skillResolutionItem.updateMany).not.toHaveBeenCalled();
   });
 
   it('revokes one live grant on the authorized skill and rejects other callers', async () => {
