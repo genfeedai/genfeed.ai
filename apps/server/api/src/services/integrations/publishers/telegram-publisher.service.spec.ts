@@ -6,7 +6,11 @@ import {
   type TelegramBotApiService,
   type TelegramSendInput,
 } from '@api/services/integrations/telegram/services/telegram-bot-api.service';
-import { DistributionContentType, PostCategory } from '@genfeedai/contracts';
+import {
+  DistributionContentType,
+  PostCategory,
+  PublishErrorKind,
+} from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it } from 'vitest';
@@ -177,8 +181,7 @@ describe('TelegramPublisherService', () => {
     );
 
     await expect(publisher.publish(buildContext())).rejects.toMatchObject({
-      code: 'channel_disconnected',
-      isRetryable: false,
+      kind: PublishErrorKind.CHANNEL_DISCONNECTED,
     });
     expect(credentialPatches).toEqual([
       { id: 'credential-1', isConnected: false },
@@ -196,7 +199,7 @@ describe('TelegramPublisherService', () => {
     );
 
     await expect(publisher.publish(buildContext())).rejects.toMatchObject({
-      code: 'rate_limited',
+      kind: PublishErrorKind.RATE_LIMITED,
       retryAfterMs: 7000,
     });
     expect(credentialPatches).toEqual([]);

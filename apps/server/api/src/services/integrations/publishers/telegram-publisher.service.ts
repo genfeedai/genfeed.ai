@@ -1,6 +1,7 @@
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
+import { toChatPublishError } from '@api/services/integrations/publishers/chat-publish-error.util';
 import type {
   MediaInfo,
   PostValidationResult,
@@ -159,10 +160,15 @@ export class TelegramPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      if (error instanceof TelegramApiError && error.kind === 'bot_removed') {
-        await this.credentialsService.patch(credential.id, {
-          isConnected: false,
-        });
+      if (error instanceof TelegramApiError) {
+        // A bad platform token is not this group's fault; only a removed bot
+        // disconnects it.
+        if (error.kind === 'bot_removed') {
+          await this.credentialsService.patch(credential.id, {
+            isConnected: false,
+          });
+        }
+        throw toChatPublishError(error);
       }
       throw error;
     }
