@@ -77,7 +77,7 @@ export default function PostSidebarWhenDock({
             className="w-full"
           >
             <Link href={post.url} target="_blank" rel="noopener noreferrer">
-              {getPlatformIcon(post.platform, 'size-4')}
+              {post.platform ? getPlatformIcon(post.platform, 'size-4') : null}
               {translate('view')}
             </Link>
           </Button>
