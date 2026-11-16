@@ -31,11 +31,9 @@ describe('LandingTopbar', () => {
   });
 
   it('keeps internal agent connection in the current tab', () => {
-    render(
-      <LandingTopbar ctaHref="/agent#connect" ctaLabel="Connect your agent" />,
-    );
+    render(<LandingTopbar ctaHref="/agent#connect" ctaLabel="Connect Agent" />);
     expect(
-      screen.getByRole('link', { name: 'Connect your agent' }),
+      screen.getByRole('link', { name: 'Connect Agent' }),
     ).not.toHaveAttribute('target', '_blank');
   });
 

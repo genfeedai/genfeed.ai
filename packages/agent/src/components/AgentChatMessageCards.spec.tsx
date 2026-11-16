@@ -304,7 +304,7 @@ describe('ContentPreviewCard', () => {
         action={{
           assetId: 'image-failed',
           assetKind: 'image',
-          ctas: [{ href: '/library/assets', label: 'View in Library' }],
+          ctas: [{ href: '/library/assets', label: 'View Library' }],
           id: 'image-failed-card',
           status: 'completed',
           type: 'content_preview_card',
@@ -317,9 +317,7 @@ describe('ContentPreviewCard', () => {
     expect(
       await screen.findByLabelText('Image generation failed'),
     ).toHaveTextContent('No preview is available for this asset.');
-    expect(
-      screen.getByRole('link', { name: 'View in Library' }),
-    ).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'View Library' })).toHaveAttribute(
       'href',
       '/test-org/test-brand/library/assets?asset=image-failed',
     );
@@ -439,7 +437,7 @@ describe('ContentPreviewCard', () => {
           ctas: [
             {
               href: '/default/default/library/images',
-              label: 'View in Library',
+              label: 'View Library',
             },
           ],
           id: 'scoped-image-output',
@@ -449,9 +447,7 @@ describe('ContentPreviewCard', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('link', { name: 'View in Library' }),
-    ).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'View Library' })).toHaveAttribute(
       'href',
       `/default/default/library/images?asset=${IMAGE_ID}`,
     );

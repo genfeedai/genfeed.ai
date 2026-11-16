@@ -432,7 +432,7 @@ describe('AppRail', () => {
         showAdmin
       />,
     );
-    const back = screen.getByRole('link', { name: 'Back to app' });
+    const back = screen.getByRole('link', { name: 'Back' });
     expect(back).toBe(screen.getByTestId('app-rail-item-admin-back'));
     expect(back).toHaveAttribute('href', '/acme/moonrise/workspace/overview');
     expect(back).not.toHaveAttribute('aria-current');

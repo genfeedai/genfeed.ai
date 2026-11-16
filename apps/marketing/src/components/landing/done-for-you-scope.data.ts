@@ -26,9 +26,9 @@ export const DONE_FOR_YOU_SCOPE_OPTIONS: readonly DoneForYouScopeOption[] = [
     features: [
       'Content strategy audit',
       'Brand positioning workshop',
-      'Channel mix optimization',
+      'Channel selection',
       'Content calendar design',
-      'Performance framework setup',
+      'Measurement plan',
     ],
     label: 'Content strategy',
   },

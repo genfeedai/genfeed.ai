@@ -148,6 +148,7 @@ export default function ResetPasswordContent() {
             <Input
               type="password"
               name="new-password"
+              autoComplete="new-password"
               placeholder="Enter a new password"
               value={newPassword}
               onChange={(event: ChangeEvent<HTMLInputElement>) =>
@@ -163,6 +164,7 @@ export default function ResetPasswordContent() {
             <Input
               type="password"
               name="confirm-password"
+              autoComplete="new-password"
               placeholder="Confirm your new password"
               value={confirmPassword}
               onChange={(event: ChangeEvent<HTMLInputElement>) =>

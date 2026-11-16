@@ -38,7 +38,6 @@ export class Model extends BaseEntity implements IModel {
   declare public isDiscovered?: boolean;
   declare public isLegacy?: boolean;
   declare public isFree?: boolean;
-  declare public succeededBy?: string;
   declare public rejectionReason?: string;
   declare public reviewStatus?: IModel['reviewStatus'];
   declare public reviewedAt?: Date;

@@ -10,6 +10,7 @@ import {
   CredentialPlatform,
   PostCategory,
   PostStatus,
+  PublishErrorKind,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
@@ -122,6 +123,7 @@ describe('MediumPublisherService', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/credential or user ID/);
+    expect(result.errorKind).toBe(PublishErrorKind.CHANNEL_DISCONNECTED);
     expect(mediumService.createPost).not.toHaveBeenCalled();
   });
 
@@ -139,5 +141,64 @@ describe('MediumPublisherService', () => {
     const result = await service.publish(makeContext());
 
     expect(result.success).toBe(false);
+    expect(result.errorKind).toBe(PublishErrorKind.OUTCOME_UNKNOWN);
+  });
+
+  it('asks for a token refresh on 401 when the credential has a refresh token', async () => {
+    mediumService.createPost.mockRejectedValue(
+      Object.assign(new Error('unauthorized'), {
+        response: { headers: {}, status: 401 },
+      }),
+    );
+
+    await expect(
+      service.publish(
+        makeContext({
+          credential: { ...mockCredential, refreshToken: 'refresh' } as never,
+        }),
+      ),
+    ).rejects.toMatchObject({ kind: PublishErrorKind.TOKEN_MUST_REFRESH });
+  });
+
+  it.each([
+    [401, PublishErrorKind.CHANNEL_DISCONNECTED],
+    [404, PublishErrorKind.CHANNEL_DISCONNECTED],
+    [422, PublishErrorKind.CONTENT_REJECTED],
+    [503, PublishErrorKind.OUTCOME_UNKNOWN],
+  ])('throws a typed publish error for HTTP %i', async (status, kind) => {
+    mediumService.createPost.mockRejectedValue(
+      Object.assign(new Error('provider failed'), {
+        response: { headers: {}, status },
+      }),
+    );
+
+    await expect(service.publish(makeContext())).rejects.toMatchObject({
+      httpStatus: status,
+      kind,
+      name: 'PublishError',
+    });
+  });
+
+  it('throws rate_limited with the wait the provider gave', async () => {
+    mediumService.createPost.mockRejectedValue(
+      Object.assign(new Error('provider failed'), {
+        response: { headers: { 'retry-after': '20' }, status: 429 },
+      }),
+    );
+
+    await expect(service.publish(makeContext())).rejects.toMatchObject({
+      kind: PublishErrorKind.RATE_LIMITED,
+      retryAfterMs: 20_000,
+    });
+  });
+
+  it('throws outcome_unknown when the connection drops mid-request', async () => {
+    mediumService.createPost.mockRejectedValue(
+      Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }),
+    );
+
+    await expect(service.publish(makeContext())).rejects.toMatchObject({
+      kind: PublishErrorKind.OUTCOME_UNKNOWN,
+    });
   });
 });

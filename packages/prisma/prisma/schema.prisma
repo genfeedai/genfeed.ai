@@ -247,6 +247,7 @@ enum CredentialPlatform {
   DEVTO
   RESTREAM
   GENFEED
+  BLUESKY
 }
 
 enum TagCategory {
@@ -4914,7 +4915,6 @@ model Model {
   reviewStatus    String?
   rejectionReason String?
   predecessorOf   String?
-  succeededBy     String?
   trigger         String?
   triggerWord     String?
 

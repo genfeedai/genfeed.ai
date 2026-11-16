@@ -343,7 +343,7 @@ describe('TrendContentCard', () => {
       'Save brief',
       'Copy prompt',
       'Open source',
-      'Send to agent',
+      'Ask Agent',
     ]);
 
     fireEvent.click(screen.getByRole('menuitem', { name: 'Use as context' }));
@@ -371,7 +371,7 @@ describe('TrendContentCard', () => {
     expect(source).toHaveAttribute('target', '_blank');
     expect(source).toHaveAttribute('rel', 'noopener noreferrer');
 
-    const agent = screen.getByRole('menuitem', { name: 'Send to agent' });
+    const agent = screen.getByRole('menuitem', { name: 'Ask Agent' });
     expect(agent.tagName).toBe('A');
     expect(agent.getAttribute('href')).toContain('prompt=');
     expect(agent).not.toHaveAttribute('target');
@@ -396,7 +396,7 @@ describe('TrendContentCard', () => {
       screen.queryByRole('menuitem', { name: 'Open source' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('menuitem', { name: 'Send to agent' }),
+      screen.getByRole('menuitem', { name: 'Ask Agent' }),
     ).toBeInTheDocument();
   });
 

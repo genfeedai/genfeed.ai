@@ -62,6 +62,7 @@
   /* Guarded platform identity tokens. Register each CSS variable with
      Tailwind v4 so bg-platform-* and text-platform-* utilities are emitted. */
   --color-platform-beehiiv: var(--platform-beehiiv);
+  --color-platform-bluesky: var(--platform-bluesky);
   --color-platform-devto: var(--platform-devto);
   --color-platform-discord: var(--platform-discord);
   --color-platform-facebook: var(--platform-facebook);

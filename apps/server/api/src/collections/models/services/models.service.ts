@@ -88,7 +88,6 @@ type RegistryReviewPatch = Omit<Partial<UpdateModelDto>, 'providerCostUsd'> & {
   providerSyncStatus?: string;
   pricingType?: string;
   providerCostUsd?: number | null;
-  succeededBy?: string;
   aspectRatios?: string[];
   defaultAspectRatio?: string;
   maxOutputs?: number;
@@ -101,11 +100,6 @@ const MODEL_REGISTRY_INCLUDE = {
   providerContracts: PRICING_ATTENTION_SELECT.providerContracts,
   providerOffers: { select: { executionModel: { select: { key: true } } } },
 } satisfies Prisma.ModelInclude;
-
-const SUCCESSOR_REQUIRED_LIFECYCLES = new Set<ModelLifecycle>([
-  ModelLifecycle.LEGACY,
-  ModelLifecycle.RETIRED,
-]);
 
 @Traced()
 @Injectable()
@@ -418,15 +412,6 @@ export class ModelsService extends BaseService<
   ): Promise<ModelDocument> {
     void populate;
     const lifecycle = createDto.lifecycle ?? ModelLifecycle.AVAILABLE;
-    const successorKey = createDto.succeededBy?.trim();
-    if (SUCCESSOR_REQUIRED_LIFECYCLES.has(lifecycle)) {
-      if (!successorKey) {
-        throw new BadRequestException(
-          'A successor model is required for Legacy and Retired',
-        );
-      }
-      await this.assertValidSuccessor(createDto, successorKey);
-    }
     const data = this.splitModelData(
       createDto as unknown as Record<string, unknown>,
     );
@@ -439,7 +424,6 @@ export class ModelsService extends BaseService<
         ? (createDto.isDefault ?? false)
         : false;
     data.isLegacy = isLegacy;
-    data.succeededBy = isLegacy || isRetired ? successorKey : null;
     if (!this.readString(data.endpoint)) {
       data.endpoint = createDto.key;
     }
@@ -591,34 +575,21 @@ export class ModelsService extends BaseService<
   async transitionLifecycle(
     modelId: string,
     lifecycle: ModelLifecycle,
-    succeededBy?: string,
   ): Promise<ModelDocument | null> {
     // Superadmin registry operation (the controller asserts it): the target may
     // be any registry row, so it runs outside the request tenant arm.
     return crossOrgUnsafe(
-      async () =>
-        await this.applyLifecycleTransition(modelId, lifecycle, succeededBy),
+      async () => await this.applyLifecycleTransition(modelId, lifecycle),
     );
   }
 
   private async applyLifecycleTransition(
     modelId: string,
     lifecycle: ModelLifecycle,
-    succeededBy?: string,
   ): Promise<ModelDocument | null> {
     const existing = await this.findOne({ id: modelId });
     if (!existing) {
       return null;
-    }
-
-    const successorKey = succeededBy?.trim();
-    if (SUCCESSOR_REQUIRED_LIFECYCLES.has(lifecycle)) {
-      if (!successorKey) {
-        throw new BadRequestException(
-          'A successor model is required for Legacy and Retired',
-        );
-      }
-      await this.assertValidSuccessor(existing, successorKey);
     }
 
     const isLegacy = lifecycle === ModelLifecycle.LEGACY;
@@ -632,55 +603,7 @@ export class ModelsService extends BaseService<
         lifecycle === ModelLifecycle.RECOMMENDED ? existing.isDefault : false,
       isLegacy,
       lifecycle,
-      succeededBy: isLegacy || isRetired ? successorKey : null,
     });
-  }
-
-  private async assertValidSuccessor(
-    model: {
-      category: string;
-      key: string;
-      organizationId?: string | null;
-    },
-    successorKey: string,
-  ): Promise<void> {
-    if (successorKey === model.key) {
-      throw new BadRequestException('A model cannot succeed itself');
-    }
-
-    const visibility = { organizationId: model.organizationId ?? null };
-    const successor = await this.findOne({ key: successorKey, ...visibility });
-    if (
-      !successor ||
-      successor.category !== model.category ||
-      successor.lifecycle === ModelLifecycle.RETIRED ||
-      !successor.isActive
-    ) {
-      throw new BadRequestException(
-        'Successor must be an active, non-retired model in the same category',
-      );
-    }
-
-    const seen = new Set([String(model.key)]);
-    let current: ModelDocument | null = successor;
-    while (current) {
-      if (seen.has(String(current.key))) {
-        throw new BadRequestException('Successor chain cannot contain a cycle');
-      }
-      seen.add(String(current.key));
-      if (!current.succeededBy) {
-        return;
-      }
-      current = await this.findOne({
-        key: current.succeededBy,
-        ...visibility,
-      });
-      if (!current) {
-        throw new BadRequestException(
-          'Successor chain must resolve to a model',
-        );
-      }
-    }
   }
 
   async touchDiscoveredModels(

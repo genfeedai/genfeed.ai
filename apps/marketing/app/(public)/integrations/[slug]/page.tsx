@@ -17,6 +17,10 @@ export function generateStaticParams() {
   return getAllIntegrationSlugs().map((slug) => ({ slug }));
 }
 
+export function buildIntegrationDescription(integration: Integration): string {
+  return `${integration.name}: ${integration.description}`;
+}
+
 export function buildIntegrationPageJsonLd(
   integration: Integration,
   url: string,
@@ -29,7 +33,7 @@ export function buildIntegrationPageJsonLd(
       description: integration.description,
       name: `${integration.name} content integration`,
     },
-    description: `Create professional ${integration.name} content with AI. Generate videos, images, and posts optimized for ${integration.name}. Try Genfeed free.`,
+    description: buildIntegrationDescription(integration),
     isPartOf: {
       '@type': 'WebSite',
       name: 'Genfeed',
@@ -53,8 +57,8 @@ export async function generateMetadata(
     };
   }
 
-  const title = `Genfeed for ${integration.name}: AI ${integration.name} Content Generator`;
-  const description = `Create professional ${integration.name} content with AI. Generate videos, images, and posts optimized for ${integration.name}. Try Genfeed free.`;
+  const title = `Genfeed for ${integration.name}`;
+  const description = buildIntegrationDescription(integration);
   const url = `${EnvironmentService.apps.website}/integrations/${slug}`;
 
   const previousImages = [

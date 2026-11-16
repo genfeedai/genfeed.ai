@@ -3,6 +3,10 @@ import type { ProviderVerificationPage } from '@api/services/integrations/publis
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { parseShopifyVerificationPage } from '@api/services/integrations/publishers/publisher-article-verification-pages.util';
 import { PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS } from '@api/services/integrations/publishers/publisher-verification.util';
+import {
+  toShopifyGraphQLPublishError,
+  toShopifyUserErrorsPublishError,
+} from '@api/services/integrations/shopify/utils/shopify-graphql-error.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   IShopifyProduct,
@@ -251,13 +255,20 @@ export class ShopifyService {
         ),
       );
 
-      const result = response.data.data.productCreate;
+      if (response.data.errors?.length) {
+        throw toShopifyGraphQLPublishError(response.data, response.data.errors);
+      }
+
+      const result = response.data.data?.productCreate;
+      if (!result) {
+        return null;
+      }
 
       if (result.userErrors.length > 0) {
         this.loggerService.error(`${url} GraphQL user errors`, {
           userErrors: result.userErrors,
         });
-        return null;
+        throw toShopifyUserErrorsPublishError(result.userErrors);
       }
 
       this.loggerService.log(`${url} success`, {

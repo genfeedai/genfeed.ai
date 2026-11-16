@@ -448,7 +448,7 @@ function MembersListContent() {
           actions={
             <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
               <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
-                Upgrade to {upgradeTierLabel}
+                Get {upgradeTierLabel}
               </Link>
             </Button>
           }

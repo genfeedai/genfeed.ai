@@ -1,0 +1,44 @@
+import { classifyHttpPublishError } from '@api/shared/utils/publish-error/classify-http-publish-error.util';
+import { PublishErrorKind } from '@genfeedai/contracts';
+import type { PublishError } from '@genfeedai/contracts/interfaces';
+
+export interface ArticlePublishErrorOptions {
+  /**
+   * Whether a 401 can be fixed by refreshing the access token. API-key
+   * providers and non-expiring tokens cannot, so a 401 there means the owner
+   * must reconnect.
+   */
+  isTokenRefreshable?: boolean;
+}
+
+/**
+ * 402 and 423 mean the account is frozen or locked, and 404 that the site,
+ * publication or user the credential points at is gone. As with 403, the owner
+ * has to fix the account.
+ */
+const ACCOUNT_STATUSES: ReadonlySet<number> = new Set([402, 404, 423]);
+
+/**
+ * The typed failure for a request that failed while creating an article, post
+ * or product. The shared classifier reads the HTTP status and the network
+ * code; this only says what the blog and store providers mean by 401, 402, 404
+ * and 423.
+ */
+export function toArticlePublishError(
+  error: unknown,
+  options: ArticlePublishErrorOptions = {},
+): PublishError {
+  return classifyHttpPublishError(error, {
+    isPublishRequest: true,
+    kindForStatus: (status) => {
+      if (status === 401) {
+        return options.isTokenRefreshable
+          ? PublishErrorKind.TOKEN_MUST_REFRESH
+          : PublishErrorKind.CHANNEL_DISCONNECTED;
+      }
+      return ACCOUNT_STATUSES.has(status)
+        ? PublishErrorKind.CHANNEL_DISCONNECTED
+        : undefined;
+    },
+  });
+}

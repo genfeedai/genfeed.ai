@@ -96,6 +96,19 @@ describe('ResetPasswordContent', () => {
     );
   });
 
+  it('lets the password manager save the new password', () => {
+    render(<ResetPasswordContent />);
+
+    expect(screen.getByLabelText(/^New password/)).toHaveAttribute(
+      'autocomplete',
+      'new-password',
+    );
+    expect(screen.getByLabelText(/^Confirm password/)).toHaveAttribute(
+      'autocomplete',
+      'new-password',
+    );
+  });
+
   it('blocks mismatched passwords before calling Better Auth', async () => {
     render(<ResetPasswordContent />);
 

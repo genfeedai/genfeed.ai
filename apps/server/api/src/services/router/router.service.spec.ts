@@ -1818,7 +1818,6 @@ describe('RouterService', () => {
           isActive: false,
           key: MODEL_KEYS.REPLICATE_META_MUSICGEN,
           lifecycle: ModelLifecycle.LEGACY,
-          succeededBy: MODEL_KEYS.FAL_LYRIA3_PRO,
         }),
       );
 
@@ -1834,36 +1833,39 @@ describe('RouterService', () => {
       });
     });
 
-    it('resolves a Retired alias through its same-owner successor', async () => {
-      const retired = createMockModel({
-        isActive: false,
-        key: 'retired-model',
-        lifecycle: ModelLifecycle.RETIRED,
-        succeededBy: 'available-successor',
-      });
-      const successor = createMockModel({
-        key: 'available-successor',
-        lifecycle: ModelLifecycle.AVAILABLE,
-      });
+    it('stops with a clear error when an explicit candidate is Retired', async () => {
       modelsService.findAllActive.mockResolvedValue([
         createMockModel({ isDefault: true, key: 'registry-default' }),
       ]);
-      modelsService.findOne
-        .mockResolvedValueOnce(retired)
-        .mockResolvedValueOnce(successor);
+      modelsService.findOne.mockResolvedValueOnce(
+        createMockModel({
+          isActive: false,
+          key: 'retired-model',
+          label: 'Retired Model',
+          lifecycle: ModelLifecycle.RETIRED,
+        }),
+      );
 
-      const result = await service.resolveModelKey({
-        candidates: ['retired-model'],
-        category: ModelCategory.IMAGE,
-      });
+      await expect(
+        service.resolveModelKey({
+          candidates: ['retired-model'],
+          category: ModelCategory.IMAGE,
+        }),
+      ).rejects.toThrow(
+        'The model Retired Model was retired. Pick a new model, then run it again.',
+      );
+    });
 
-      expect(result).toEqual({
-        key: 'available-successor',
-        source: 'candidate',
-      });
-      expect(modelsService.findOne).toHaveBeenNthCalledWith(2, {
-        key: 'available-successor',
-        organizationId: null,
+    it('still auto-routes when no explicit model is given', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({ isDefault: true, key: 'registry-default' }),
+      ]);
+
+      await expect(
+        service.resolveModelKey({ category: ModelCategory.IMAGE }),
+      ).resolves.toEqual({
+        key: 'registry-default',
+        source: 'registry-default',
       });
     });
 

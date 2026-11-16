@@ -300,9 +300,7 @@ describe('OAuthPlatformForm', () => {
     render(<OAuthPlatformForm platform="twitter" />);
 
     expect(mocks.getServicesService).not.toHaveBeenCalled();
-    expect(
-      screen.getByRole('link', { name: 'Sign in to continue' }),
-    ).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Sign In' })).toHaveAttribute(
       'href',
       `/login?callbackUrl=${encodeURIComponent(
         '/oauth/twitter?code=code-1&return_to=%2Fsettings%2Fpublishing&state=state-1',

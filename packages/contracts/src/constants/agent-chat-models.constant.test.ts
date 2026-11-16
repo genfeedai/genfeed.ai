@@ -16,8 +16,7 @@ import {
   isRetiredAgentChatModel,
   LLM_DEFAULTS,
   LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY,
-  RETIRED_AGENT_CHAT_MODELS,
-  resolveAgentChatModelKey,
+  RETIRED_AGENT_CHAT_MODEL_KEYS,
   SELECTABLE_AGENT_CHAT_MODELS,
 } from './agent-chat-models.constant';
 import { LOWEST_COST_AGENT_CHAT_MODEL_KEY } from './lowest-cost-models.constant';
@@ -89,10 +88,10 @@ describe('AGENT_CHAT_MODELS', () => {
     }
   });
 
-  it('retires the privacy-incompatible Nemotron free route onto DeepSeek', () => {
+  it('retires the privacy-incompatible Nemotron free route', () => {
     expect(
-      resolveAgentChatModelKey(AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE),
-    ).toBe(AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH);
+      isRetiredAgentChatModel(AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE),
+    ).toBe(true);
     expect(
       SELECTABLE_AGENT_CHAT_MODELS.some(
         (model) => model.key === AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
@@ -151,52 +150,38 @@ describe('AGENT_CHAT_MODELS', () => {
   });
 });
 
-describe('resolveAgentChatModelKey', () => {
-  it('maps every retired key onto a catalogued successor', () => {
-    for (const retiredKey of Object.keys(RETIRED_AGENT_CHAT_MODELS)) {
-      expect(
-        getAgentChatModel(resolveAgentChatModelKey(retiredKey)),
-      ).toBeDefined();
+describe('getAgentChatModel', () => {
+  it('never maps a retired key onto another model', () => {
+    for (const retiredKey of RETIRED_AGENT_CHAT_MODEL_KEYS) {
+      expect(getAgentChatModel(retiredKey), retiredKey).toBeUndefined();
     }
   });
 
-  it('keeps openrouter auto live', () => {
-    expect(resolveAgentChatModelKey('openrouter/auto')).toBe(
+  it('keeps openrouter auto and the curated free router live', () => {
+    expect(getAgentChatModel('openrouter/auto')?.key).toBe(
       AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO,
     );
-  });
-
-  it('keeps the curated free router live and retires pinned Nemotron', () => {
-    expect(resolveAgentChatModelKey('openrouter/free')).toBe(
+    expect(getAgentChatModel('openrouter/free')?.key).toBe(
       AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
     );
-    expect(
-      resolveAgentChatModelKey(AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE),
-    ).toBe(AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH);
   });
 
-  it('falls back to the default for a blank stored key', () => {
-    expect(resolveAgentChatModelKey('   ')).toBe(DEFAULT_AGENT_CHAT_MODEL_KEY);
-    expect(resolveAgentChatModelKey(null)).toBe(DEFAULT_AGENT_CHAT_MODEL_KEY);
-  });
-
-  it('leaves an uncatalogued key alone so a new provider model still runs', () => {
-    expect(resolveAgentChatModelKey('vendor/brand-new')).toBe(
-      'vendor/brand-new',
-    );
+  it('has no model for a blank key', () => {
+    expect(getAgentChatModel('   ')).toBeUndefined();
+    expect(getAgentChatModel(null)).toBeUndefined();
   });
 
   it('trims stored whitespace', () => {
-    expect(resolveAgentChatModelKey(' openrouter/auto ')).toBe(
+    expect(getAgentChatModel(' openrouter/auto ')?.key).toBe(
       AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO,
     );
   });
 });
 
 describe('getAgentChatModelRoundCredits', () => {
-  it('prices a retired key at its successor rate', () => {
+  it('bills a retired key at the fallback rate, never free', () => {
     expect(getAgentChatModelRoundCredits('anthropic/claude-opus-4-6')).toBe(
-      getAgentChatModelRoundCredits('anthropic/claude-opus-5'),
+      AGENT_FALLBACK_ROUND_CREDITS,
     );
   });
 
@@ -207,23 +192,9 @@ describe('getAgentChatModelRoundCredits', () => {
     expect(AGENT_FALLBACK_ROUND_CREDITS).toBeGreaterThan(0);
   });
 
-  // A successor is chosen by price tier, not by brand. `x-ai/grok-4-fast`
-  // ($0.20/$0.50) once pointed at Grok 4.5 ($2/$6) purely because it was the
-  // only xAI row in the catalogue, which moved every stale binding onto a 10x
-  // model. Pin the direction so a brand-match cannot creep back in.
-  it('retires a budget model onto a budget successor, not its premium sibling', () => {
-    expect(getAgentChatModelRoundCredits('x-ai/grok-4-fast')).toBeLessThan(
-      getAgentChatModelRoundCredits(AGENT_CHAT_MODEL_KEYS.GROK_4_6),
-    );
-  });
-
-  it('promotes retired Grok 4 / 4.5 bindings onto Grok 4.6', () => {
-    expect(resolveAgentChatModelKey('x-ai/grok-4')).toBe(
-      AGENT_CHAT_MODEL_KEYS.GROK_4_6,
-    );
-    expect(resolveAgentChatModelKey('x-ai/grok-4.5')).toBe(
-      AGENT_CHAT_MODEL_KEYS.GROK_4_6,
-    );
+  it('retires Grok 4 / 4.5 and keeps Grok 4.6 selectable', () => {
+    expect(isRetiredAgentChatModel('x-ai/grok-4')).toBe(true);
+    expect(isRetiredAgentChatModel('x-ai/grok-4.5')).toBe(true);
     expect(
       SELECTABLE_AGENT_CHAT_MODELS.some(
         (model) => model.key === AGENT_CHAT_MODEL_KEYS.GROK_4_6,

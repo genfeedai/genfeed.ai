@@ -56,7 +56,7 @@
   "maximum": "Maximum credits",
   "billingHint": "The ceiling reserves the maximum. Actual authoring, inspection and rendering work is charged even if you cancel or an output fails. Unused credits are released. Retry is a new invocation; check prior uncertainty diagnostics first.",
   "acknowledge": "I approve up to {maximum} credits for this request.",
-  "confirm": "Confirm and start",
+  "confirm": "Start",
   "submitting": "Submitting…",
   "invalidFrames": "Enter integer frame numbers separated by commas.",
   "outputLimit": "Choose between 1 and 8 outputs.",

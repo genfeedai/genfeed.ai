@@ -229,7 +229,7 @@ describe('PositioningContent behavior', () => {
     render(<PositioningContent />);
     await screen.findByText(ORIGIN_QUESTION.questionText);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
 
     await waitFor(() =>
       expect(handleSkipMock).toHaveBeenCalledWith('positioning'),

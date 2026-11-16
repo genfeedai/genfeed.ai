@@ -18,10 +18,7 @@ export default function AgentFirstActions({
 }: AgentFirstActionsProps): React.ReactElement {
   return (
     <>
-      <ConnectAgentButton
-        label="Connect your agent"
-        trackingName={trackingName}
-      />
+      <ConnectAgentButton label="Connect Agent" trackingName={trackingName} />
       <ButtonTracked
         asChild
         size={ButtonSize.PUBLIC}

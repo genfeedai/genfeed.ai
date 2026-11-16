@@ -460,7 +460,7 @@ export class AgentMediaAssetGenerationService {
               ctas: [
                 {
                   href: createLibraryAssetRoute(IngredientCategory.IMAGE, id),
-                  label: 'View in Library',
+                  label: 'View Library',
                 },
               ],
               description: `Reframed to ${aspectRatio}`,
@@ -630,7 +630,7 @@ export class AgentMediaAssetGenerationService {
             ctas: [
               {
                 href: createLibraryAssetRoute(IngredientCategory.VIDEO, id),
-                label: 'View in Library',
+                label: 'View Library',
               },
             ],
             assetId: id,
@@ -725,7 +725,7 @@ export class AgentMediaAssetGenerationService {
               ctas: [
                 {
                   href: createLibraryAssetRoute(IngredientCategory.VOICE, id),
-                  label: 'View in Library',
+                  label: 'View Library',
                 },
               ],
               description: `Speech ${cdnUrl ? 'generated' : 'is generating'}: "${(params.text as string).substring(0, 80)}"`,
@@ -780,7 +780,7 @@ export class AgentMediaAssetGenerationService {
               ctas: [
                 {
                   href: createLibraryAssetRoute(IngredientCategory.VIDEO, id),
-                  label: 'View in Library',
+                  label: 'View Library',
                 },
               ],
               description: `Avatar video generating: "${text.substring(0, 80)}"`,
@@ -892,7 +892,7 @@ export class AgentMediaAssetGenerationService {
                     mediaAssetLibraryCategory(params.endpoint),
                     id,
                   ),
-                  label: 'View in Library',
+                  label: 'View Library',
                 },
               ],
               description: params.description,
@@ -938,7 +938,7 @@ export class AgentMediaAssetGenerationService {
           primaryCta: params.assetId
             ? {
                 href: createLibraryAssetRoute(category, params.assetId),
-                label: 'View in Library',
+                label: 'View Library',
               }
             : { href: '/library/assets', label: 'Open Library' },
           status: 'failed',
