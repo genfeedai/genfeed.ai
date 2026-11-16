@@ -1,3 +1,4 @@
+import { ContentRunsModule } from '@api/collections/content-runs/content-runs.module';
 import { TurboProjectsModule } from '@api/collections/turbo-projects/turbo-projects.module';
 import { TurboRunModule } from '@api/services/turbo-run/turbo-run.module';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -8,6 +9,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
 @Module({
   exports: [CronTurboRunReconcileService],
   imports: [
+    forwardRef(() => ContentRunsModule),
     TurboProjectsModule,
     forwardRef(() => TurboRunModule),
     forwardRef(() => WorkersQueuesModule),
