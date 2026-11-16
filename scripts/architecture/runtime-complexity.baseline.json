@@ -378,7 +378,7 @@
     "symbol": "packages/contracts/src/api-types/contracts/branded-generation.contract.ts"
   },
   {
-    "actual": 1499,
+    "actual": 1458,
     "file": "packages/contracts/src/api-types/contracts/channel-capabilities.contract.ts",
     "metric": "file-lines",
     "symbol": "packages/contracts/src/api-types/contracts/channel-capabilities.contract.ts"
