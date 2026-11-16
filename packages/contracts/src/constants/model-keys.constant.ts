@@ -127,6 +127,7 @@ export const MODEL_KEYS = {
   HIGGSFIELD_DOP_TURBO: 'higgsfield-ai/dop/turbo',
   HIGGSFIELD_DOP_STANDARD: 'higgsfield-ai/dop/standard',
   HIGGSFIELD_GENJUTSU: 'higgsfield/genjutsu/motion-transfer/v1.0',
+  HIGGSFIELD_CINEMA_STUDIO: 'higgsfield/cinema-studio/4.0',
   FAL_FLUX_DEV: 'fal-ai/flux/dev',
   FAL_FLUX_SCHNELL: 'fal-ai/flux/schnell',
   FAL_FLUX_PRO: 'fal-ai/flux-pro',

@@ -1,6 +1,6 @@
 import { getAppSignUpUrl } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { IMAGE_CREDIT_COSTS, PLAN_COPY } from '@genfeedai/pricing';
+import { formatPrice, IMAGE_CREDIT_COSTS, PLAN_COPY } from '@genfeedai/pricing';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
@@ -17,6 +17,7 @@ import {
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import { serviceOffering } from '@web-components/landing/service-offering.data';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import SectionHeader from '@web-components/marketing/SectionHeader';
 import PageLayout from '@web-components/PageLayout';
@@ -194,7 +195,7 @@ const KEY_FACTS = [
   },
   {
     label: 'Pricing',
-    value: `${PLAN_COPY.payg.nameWithPrice}, ${PLAN_COPY.scale.nameWithPrice}, ${PLAN_COPY.enterprise.nameWithPrice}. Credits cost $0.01 each on ${PLAN_COPY.payg.name} and less on subscriptions.`,
+    value: `${PLAN_COPY.payg.nameWithPrice}, ${PLAN_COPY.pro.nameWithPrice}, ${PLAN_COPY.scale.nameWithPrice}, ${PLAN_COPY.enterprise.name} (from ${formatPrice(serviceOffering.startingMonthlyPrice)}/month). Credits cost $0.01 each on ${PLAN_COPY.payg.name} and less on subscriptions.`,
   },
   {
     label: 'Contract terms',
@@ -259,6 +260,8 @@ const KEY_FACTS = [
   },
 ] as const;
 
+const ENTERPRISE_PRICE = `${PLAN_COPY.enterprise.name} is from ${formatPrice(serviceOffering.startingMonthlyPrice)}/month`;
+
 const FAQ_ITEMS = [
   {
     answer: `Genfeed is founded and run by ${FOUNDER.name} as a solo founder. The company started in ${FOUNDED_YEAR} and works fully remote.`,
@@ -270,7 +273,7 @@ const FAQ_ITEMS = [
     question: 'Is Genfeed really open source?',
   },
   {
-    answer: `${PLAN_COPY.payg.name} is free to join and you pay per output, at one cent per credit. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice}, and ${PLAN_COPY.enterprise.name} is custom.`,
+    answer: `${PLAN_COPY.payg.name} is free to join and you pay per output, at one cent per credit. ${PLAN_COPY.pro.name} is ${PLAN_COPY.pro.monthlyPrice}, ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice}, and ${ENTERPRISE_PRICE}.`,
     question: 'How much does Genfeed cost?',
   },
   {
