@@ -27,6 +27,7 @@ import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
+import { SCHEDULED_POST_UNSETTLED_APPROVAL_MESSAGE } from '@workers/services/scheduled-post.constants';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
@@ -149,6 +150,7 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
 
     if (claim.isAlreadyPublished) {
       await this.repeatScheduler.materializeRecurrence(post);
+      await this.settleUnconfirmedPublishedApproval(post);
       return result;
     }
     if (!claim.executionStartedAt) {
@@ -184,6 +186,32 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
       );
     }
     return result;
+  }
+
+  /**
+   * The approval is PUBLISHED, yet the post is still due. With a provider id it
+   * waits for its status check, which the sweep leaves alone. Without one,
+   * nothing proves it reached the network and no other run will ever move it,
+   * so it is closed as failed with a message the owner can act on rather than
+   * claimed again every minute (#10385).
+   */
+  private async settleUnconfirmedPublishedApproval(
+    post: PostEntity,
+  ): Promise<void> {
+    const state = post.targetExecutionState;
+    const isDue =
+      state === TargetExecutionState.SCHEDULED ||
+      state === TargetExecutionState.PUBLISHING;
+    if (!isDue || readPostString(post, ['externalId'])) {
+      return;
+    }
+    this.logger.warn('Closing a due post whose approval is already published', {
+      postId: post.id,
+    });
+    await this.deliveryService.failTerminalValidation(
+      post,
+      new Error(SCHEDULED_POST_UNSETTLED_APPROVAL_MESSAGE),
+    );
   }
 
   /**

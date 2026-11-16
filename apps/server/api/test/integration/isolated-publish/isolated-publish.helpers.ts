@@ -117,6 +117,14 @@ export class IsolatedFakePublisher {
       SCHEDULED_POST_ACTION_IDS.DELIVER,
       async (action) => {
         const request = action.input.request as ScheduledPostWorkflowInput;
+        // As the real delivery: a claim that found the approval already
+        // PUBLISHED hands its result through and never reaches the provider.
+        const claim = action.input.claim as
+          | { isAlreadyPublished?: boolean; publishedResult?: PublishResult }
+          | undefined;
+        if (claim?.isAlreadyPublished === true && claim.publishedResult) {
+          return claim.publishedResult;
+        }
         const row = await this.prisma.post.findFirst({
           where: {
             id: request.postId,

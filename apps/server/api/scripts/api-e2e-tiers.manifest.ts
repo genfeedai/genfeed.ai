@@ -19,6 +19,7 @@ export const API_E2E_TIER_MANIFEST: ApiE2eTierManifest = {
   isolatedPublishFiles: [
     'test/integration/isolated-publish/isolated-db-lane.integration.spec.ts',
     'test/integration/isolated-publish/approval-mint-enqueue.integration.spec.ts',
+    'test/integration/isolated-publish/stale-published-approval.integration.spec.ts',
     'test/integration/isolated-publish/sweep-burst.integration.spec.ts',
     'test/integration/isolated-publish/worker-publish-refusal.integration.spec.ts',
   ],
