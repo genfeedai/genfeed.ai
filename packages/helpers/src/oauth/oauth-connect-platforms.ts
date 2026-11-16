@@ -66,11 +66,17 @@ export interface OAuthConnectPlatform {
   servicePath?: string;
   /** Server capability whose unknown/unavailable state must fail closed. */
   readinessKey?: OAuthConnectReadinessKey;
+  /**
+   * Leave the tile out of the catalog until {@link readinessKey} reports
+   * `available`, instead of showing it disabled. For channels that are not
+   * released yet and should not be visible at all.
+   */
+  isHiddenUntilAvailable?: boolean;
 }
 
 export type OAuthConnectReadiness = 'available' | 'unavailable' | 'unknown';
 
-export type OAuthConnectReadinessKey = 'threads';
+export type OAuthConnectReadinessKey = 'threads' | 'google_business';
 
 export type OAuthConnectReadinessState = Partial<
   Record<OAuthConnectReadinessKey, OAuthConnectReadiness>
@@ -209,6 +215,17 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     platform: CredentialPlatform.BLUESKY,
   },
   {
+    category: 'social',
+    Icon: GoogleColorIcon,
+    // GoogleColorIcon carries its own brand fills; the class only sizes it.
+    iconClassName: 'text-foreground',
+    isHiddenUntilAvailable: true,
+    label: 'Google Business',
+    platform: CredentialPlatform.GOOGLE_BUSINESS,
+    readinessKey: 'google_business',
+    servicePath: 'google-business',
+  },
+  {
     category: 'video',
     Icon: YoutubeIcon,
     iconClassName: 'text-platform-youtube',
@@ -330,16 +347,22 @@ export function isApiKeyConnectPlatform(
 export function resolveOAuthConnectPlatformCatalog(
   readinessState: OAuthConnectReadinessState = {},
 ): ResolvedOAuthConnectPlatform[] {
-  return OAUTH_CONNECT_PLATFORMS.map((platform) => {
+  return OAUTH_CONNECT_PLATFORMS.flatMap((platform) => {
     const readiness = platform.readinessKey
       ? (readinessState[platform.readinessKey] ?? 'unknown')
       : 'available';
 
-    return {
-      ...platform,
-      isConnectAvailable: readiness === 'available',
-      readiness,
-    };
+    if (platform.isHiddenUntilAvailable && readiness !== 'available') {
+      return [];
+    }
+
+    return [
+      {
+        ...platform,
+        isConnectAvailable: readiness === 'available',
+        readiness,
+      },
+    ];
   });
 }
 

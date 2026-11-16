@@ -32,6 +32,7 @@ import {
   ActivitySource,
   CredentialPlatform,
 } from '@genfeedai/contracts';
+import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import { isRecord, readString } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
@@ -72,6 +73,25 @@ export class GoogleBusinessService {
     @Inject(SERVER_TOKENS.credentials)
     private readonly credentialsService: ServerCredentialStore,
   ) {}
+
+  /**
+   * Connect stays closed until the channel is released in the capability
+   * catalog and the Google client is configured, so a tile never sends a
+   * customer into a flow that Google has not approved.
+   */
+  getConnectReadiness(): { status: 'available' | 'unavailable' } {
+    const capability = getChannelCapability(CredentialPlatform.GOOGLE_BUSINESS);
+    const isReleased =
+      capability !== undefined && capability.status !== 'hidden';
+    const isConfigured = [
+      'GOOGLE_OAUTH_CLIENT_ID',
+      'GOOGLE_OAUTH_CLIENT_SECRET',
+    ].every((key) => {
+      const value = this.configService.get<string>(key);
+      return typeof value === 'string' && value.length > 0;
+    });
+    return { status: isReleased && isConfigured ? 'available' : 'unavailable' };
+  }
 
   /** `<app URL>/oauth/google-business`; must be an authorized redirect URI of the Google client. */
   getRedirectUri(): string {
