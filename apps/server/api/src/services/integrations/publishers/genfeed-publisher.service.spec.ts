@@ -2,7 +2,7 @@ import type { CredentialDocument } from '@api/collections/credentials/schemas/cr
 import { GenfeedPublisherService } from '@api/services/integrations/publishers/genfeed-publisher.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { TargetExecutionState } from '@genfeedai/contracts';
+import { PublishErrorKind, TargetExecutionState } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
@@ -15,9 +15,12 @@ interface BrandRow {
 
 const channel = { externalHandle: 'acme' };
 
-function createPublisher(brand: BrandRow | null): GenfeedPublisherService {
+function createPublisher(
+  brand: BrandRow | null,
+  findBrand: () => Promise<BrandRow | null> = async () => brand,
+): GenfeedPublisherService {
   const prisma = {
-    brand: { findFirst: vi.fn().mockResolvedValue(brand) },
+    brand: { findFirst: vi.fn(findBrand) },
     credential: {
       updateMany: async ({ data }: { data: { externalHandle: string } }) => {
         channel.externalHandle = data.externalHandle;
@@ -79,6 +82,17 @@ describe('GenfeedPublisherService', () => {
       errorCode: 'genfeed_profile_private',
       executionState: TargetExecutionState.FAILED,
       success: false,
+    });
+  });
+
+  it('asks for a retry when the database cannot be read, since nothing was published', async () => {
+    const publisher = createPublisher(null, async () => {
+      throw new Error('Connection terminated');
+    });
+
+    await expect(publisher.publish(context)).rejects.toMatchObject({
+      kind: PublishErrorKind.RETRY_LATER,
+      message: 'Connection terminated',
     });
   });
 
