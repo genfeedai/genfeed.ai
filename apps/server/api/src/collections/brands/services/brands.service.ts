@@ -447,6 +447,19 @@ export class BrandsService extends BaseService<
       throw new NotFoundException('Brand', id);
     }
 
+    // Public brand and post responses are cached and a hit skips the
+    // visibility query: a brand that leaves PUBLIC (or is deactivated, deleted
+    // or moved) must drop them, and a fill still in flight must not store.
+    if (
+      ['isActive', 'isDeleted', 'organizationId', 'scope'].some(
+        (key) => updateBrandDto[key as keyof UpdateBrandDto] !== undefined,
+      )
+    ) {
+      await this.cacheService?.invalidateGuardedTags([
+        CACHE_TAGS.PUBLIC_BRAND_CONTENT,
+      ]);
+    }
+
     // Invalidate single-brand cache key; list is busted by BaseService.patch()
     await this.cacheInvalidationService.invalidate(
       CACHE_PATTERNS.BRANDS_SINGLE(id),
