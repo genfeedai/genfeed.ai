@@ -45,6 +45,8 @@ export interface SkillSectionReceipt {
   /** Headings kept whole; `preamble` is the intro above the first heading. */
   loadedSections: string[];
   modality?: string;
+  /** `generation` for a media prompt, `agent` for an agent turn. */
+  mode: 'agent' | 'generation';
   /** Headings left out because they were off-plan or over the budget. */
   omittedSections: string[];
   slug: string;
@@ -64,6 +66,8 @@ export interface ResolveActiveSkillsContext {
    * brand guidance without changing the brand's saved configuration.
    */
   requestedSkillSlugs?: string[];
+  /** Filled with the id of the resolution record this call wrote, for the section receipts. */
+  resolutionRecord?: { id?: string };
   /** Collects what each skill loaded into a generation prompt. */
   sectionReceipts?: SkillSectionReceipt[];
   workflowStage?: string;

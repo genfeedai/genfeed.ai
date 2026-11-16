@@ -223,6 +223,7 @@ enum CredentialPlatform {
   FACEBOOK
   GOOGLE_ADS
   GOOGLE_SEARCH_CONSOLE
+  GOOGLE_BUSINESS
   TWITTER
   X_ADS
   LINKEDIN
@@ -8063,6 +8064,8 @@ model SkillResolutionItem {
   origin           String
   inclusion        String
   exclusionReason  String?
+  /// Sections of the skill the prompt carried: headings loaded and left out, never their text.
+  sections         Json?
   createdAt        DateTime        @default(now())
 
   @@index([resolutionId])

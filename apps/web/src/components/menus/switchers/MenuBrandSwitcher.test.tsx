@@ -223,7 +223,7 @@ describe('MenuBrandSwitcher', () => {
     );
 
     expect(capturedItems[0]?.trailingAction?.href).toBe(
-      '/test-org/test-brand/settings',
+      '/test-org/test-brand/settings/profile',
     );
     expect(capturedItems[0]?.trailingAction?.target).toBeUndefined();
     expect(capturedItems[0]?.extraTrailingActions?.[0]).toMatchObject({

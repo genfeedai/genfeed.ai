@@ -36,6 +36,7 @@ provider values directly.
 | `SNAPCHAT`              | Snapchat                                               | Snapchat OAuth             | Account access and publishing adapters                  |
 | `WHATSAPP`              | WhatsApp via Twilio                                    | Deployment credentials     | Text, media, template messages, and delivery status     |
 | `MASTODON`              | Mastodon                                               | Dynamic OAuth per instance | Federated account access and publishing                 |
+| `GOOGLE_BUSINESS`       | Google Business Profile                                | Google OAuth               | Location updates; hidden until a live post is verified  |
 | `GHOST`                 | Ghost                                                  | Admin API credential       | Article publishing                                      |
 | `SHOPIFY`               | Shopify                                                | Shopify OAuth              | Store access and product publishing workflows           |
 | `BEEHIIV`               | Beehiiv                                                | API key                    | Publication selection, newsletters, and subscribers     |
@@ -53,7 +54,7 @@ an implemented OAuth path.
 Self-hosted deployments must register their own provider applications and set
 the callback URI to the corresponding Genfeed verification route.
 
-Google sign-in, YouTube, Google Ads, and Search Console share
+Google sign-in, YouTube, Google Ads, Google Business Profile, and Search Console share
 `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`. Their redirect URIs
 and API-specific credentials remain separate.
 

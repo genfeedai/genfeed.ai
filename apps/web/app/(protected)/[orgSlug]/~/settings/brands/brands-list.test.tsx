@@ -274,7 +274,7 @@ describe('BrandsList', () => {
 
     // A real anchor on the name: cmd-click opens it in a new tab.
     const link = screen.getByRole('link', { name: 'Open Test Brand settings' });
-    expect(link).toHaveAttribute('href', '/default/testbrand/profile');
+    expect(link).toHaveAttribute('href', '/default/testbrand/settings/profile');
     expect(link).toHaveTextContent('Test Brand');
   });
 

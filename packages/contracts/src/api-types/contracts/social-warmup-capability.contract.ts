@@ -537,6 +537,10 @@ export const SOCIAL_WARMUP_CAPABILITY_MATRIX = {
     CredentialPlatform.GOOGLE_SEARCH_CONSOLE,
     'Search analytics property, not a social account.',
   ),
+  [CredentialPlatform.GOOGLE_BUSINESS]: outOfSocialWarmupCatalog(
+    CredentialPlatform.GOOGLE_BUSINESS,
+    'Google Business Profile location, a local business listing and not a social account.',
+  ),
   [CredentialPlatform.DISCORD]: outOfSocialWarmupCatalog(
     CredentialPlatform.DISCORD,
     'Discord server messaging destination.',

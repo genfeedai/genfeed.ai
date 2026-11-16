@@ -12,6 +12,7 @@ import { BlueskyModule } from '@api/services/integrations/bluesky/bluesky.module
 import { DevtoModule } from '@api/services/integrations/devto/devto.module';
 import { DiscordModule } from '@api/services/integrations/discord/discord.module';
 import { GhostModule } from '@api/services/integrations/ghost/ghost.module';
+import { GoogleBusinessModule } from '@api/services/integrations/google-business/google-business.module';
 import { GoogleSearchConsoleModule } from '@api/services/integrations/google-search-console/google-search-console.module';
 import { HedraModule } from '@api/services/integrations/hedra/hedra.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
@@ -54,6 +55,7 @@ import { Module } from '@nestjs/common';
     DevtoModule,
     DiscordModule,
     GhostModule,
+    GoogleBusinessModule,
     GoogleSearchConsoleModule,
     HedraModule,
     ArgilModule,

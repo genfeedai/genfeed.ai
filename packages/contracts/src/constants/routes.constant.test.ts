@@ -170,7 +170,7 @@ describe('routes.constant', () => {
       '/:orgSlug/~/settings',
     );
     expect(APP_ROUTE_TEMPLATES.BRAND_PROFILE).toBe(
-      '/:orgSlug/:brandSlug/profile',
+      '/:orgSlug/:brandSlug/settings/profile',
     );
     expect(APP_ROUTE_TEMPLATES.BRAND_SETTINGS).toBe(
       '/:orgSlug/:brandSlug/settings',

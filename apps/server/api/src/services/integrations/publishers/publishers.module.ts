@@ -7,6 +7,7 @@ import { DevtoModule } from '@api/services/integrations/devto/devto.module';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
 import { FanvueModule } from '@api/services/integrations/fanvue/fanvue.module';
 import { GhostModule } from '@api/services/integrations/ghost/ghost.module';
+import { GoogleBusinessModule } from '@api/services/integrations/google-business/google-business.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
 import { MastodonModule } from '@api/services/integrations/mastodon/mastodon.module';
@@ -19,6 +20,7 @@ import { FacebookPublisherService } from '@api/services/integrations/publishers/
 import { FanvuePublisherService } from '@api/services/integrations/publishers/fanvue-publisher.service';
 import { GenfeedPublisherService } from '@api/services/integrations/publishers/genfeed-publisher.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
+import { GoogleBusinessPublisherService } from '@api/services/integrations/publishers/google-business-publisher.service';
 import { InstagramPublisherService } from '@api/services/integrations/publishers/instagram-publisher.service';
 import { LinkedInPublisherService } from '@api/services/integrations/publishers/linkedin-publisher.service';
 import { MastodonPublisherService } from '@api/services/integrations/publishers/mastodon-publisher.service';
@@ -63,6 +65,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
     FanvuePublisherService,
     GenfeedPublisherService,
     GhostPublisherService,
+    GoogleBusinessPublisherService,
     InstagramPublisherService,
     LinkedInPublisherService,
     MastodonPublisherService,
@@ -95,6 +98,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
     FacebookModule,
     FanvueModule,
     GhostModule,
+    GoogleBusinessModule,
     InstagramModule,
     LinkedInModule,
     MastodonModule,
@@ -122,6 +126,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
     FanvuePublisherService,
     GenfeedPublisherService,
     GhostPublisherService,
+    GoogleBusinessPublisherService,
     InstagramPublisherService,
     LinkedInPublisherService,
     MastodonPublisherService,

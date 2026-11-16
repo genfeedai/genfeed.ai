@@ -1389,8 +1389,7 @@ export async function proxy(req: NextRequest) {
   // These same-origin API routes must reach their route/rewrite without
   // entering app-page auth or workspace slug routing.
   if (
-    req.nextUrl.pathname === '/api/version' ||
-    req.nextUrl.pathname === '/v1' ||
+    ['/api/version', '/api/csp-report', '/v1'].includes(req.nextUrl.pathname) ||
     req.nextUrl.pathname.startsWith('/v1/')
   ) {
     return NextResponse.next();
