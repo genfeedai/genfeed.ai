@@ -1,6 +1,7 @@
 import type { WorkflowEdge } from '@api/collections/workflows/schemas/workflow.schema';
 import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 
 export const SCHEDULED_POST_ACTION_IDS = {
   CLAIM: 'scheduled-post.claim',
@@ -92,6 +93,7 @@ export function buildScheduledPostWorkflowDefinition(): SystemWorkflowGraphDefin
       'Claims an immutable publish approval, delivers the post, and finalizes its durable outcome.',
     label: 'Scheduled Post Publishing',
     resultNodeId: 'finalize-publish',
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 
@@ -115,5 +117,6 @@ export function buildScheduledPostFailureWorkflowDefinition(): SystemWorkflowGra
     description: 'Projects terminal failure for one scheduled publish.',
     label: 'Fail Scheduled Post Publishing',
     resultNodeId: 'fail-publish',
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }

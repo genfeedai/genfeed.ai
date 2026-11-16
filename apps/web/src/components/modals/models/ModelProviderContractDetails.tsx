@@ -66,7 +66,7 @@ function SchemaFields({
 
   return (
     <div>
-      <h5 className="mb-2 text-xs font-medium uppercase tracking-wide text-foreground/60">
+      <h5 className="mb-2 text-xs font-medium uppercase tracking-label text-foreground/60">
         {label}
       </h5>
       {properties.length === 0 ? (

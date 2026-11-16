@@ -95,7 +95,7 @@ export default function SidebarNested({
                 {isFirstDynamic && (
                   <li className="my-2">
                     <div className="border-t border-foreground/5" />
-                    <span className="px-3 pt-2 text-2xs uppercase tracking-wider text-muted-foreground block">
+                    <span className="px-3 pt-2 text-2xs uppercase tracking-label text-muted-foreground block">
                       Accounts
                     </span>
                   </li>

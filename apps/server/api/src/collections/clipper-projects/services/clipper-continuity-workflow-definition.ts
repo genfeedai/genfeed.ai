@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const CLIPPER_CONTINUITY_WORKFLOW_ID = 'clipper.continuity';
@@ -106,6 +107,7 @@ export function buildClipperContinuityWorkflowDefinition(): SystemWorkflowGraphD
       'Assesses completed clips through one registered child workflow and persists an aggregate continuity report.',
     label: 'Clip Continuity QA',
     resultNodeId: 'persist-continuity-report',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -158,6 +160,7 @@ export function buildClipperContinuityQaWorkflowDefinition(): SystemWorkflowGrap
     description: 'Runs canonical continuity QA for one completed clip.',
     label: 'Assess One Clip for Continuity',
     resultNodeId: 'assess-clip',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -187,6 +190,7 @@ export function buildClipperContinuityFailureWorkflowDefinition(): SystemWorkflo
     description: 'Projects terminal failure for one clip continuity run.',
     label: 'Fail Clip Continuity QA',
     resultNodeId: 'fail-continuity',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

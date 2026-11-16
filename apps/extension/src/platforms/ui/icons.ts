@@ -25,7 +25,7 @@ export const icons = {
   gif: `
     <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
       <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
-      <text x="12" y="15" font-size="8" font-weight="bold" fill="currentColor" text-anchor="middle">GIF</text>
+      <text x="12" y="15" font-size="8" font-weight="600" fill="currentColor" text-anchor="middle">GIF</text>
     </svg>
   `,
   image: `

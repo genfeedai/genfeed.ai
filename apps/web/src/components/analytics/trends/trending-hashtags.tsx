@@ -84,7 +84,7 @@ export function TrendingHashtags({
                   ) : null}
                   <div className="flex items-start justify-between mb-2">
                     <span
-                      className="text-lg font-bold truncate"
+                      className="text-lg font-semibold truncate"
                       style={{ color: config?.color }}
                     >
                       #{hashtag.hashtag}

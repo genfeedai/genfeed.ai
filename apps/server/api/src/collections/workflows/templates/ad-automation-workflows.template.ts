@@ -1,6 +1,7 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { createTemplateActionNode } from '@api/collections/workflows/templates/template-action-node';
 import type { WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 
 export type AdAutomationWorkflowTemplate = WorkflowTemplate & {
   schedule: string;
@@ -260,6 +261,7 @@ function providerChildWorkflow(params: {
     description: `${params.label} for one connected credential.`,
     label: params.label,
     resultNodeId: 'persist-performance',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }

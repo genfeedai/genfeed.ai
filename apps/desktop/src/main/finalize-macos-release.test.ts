@@ -18,7 +18,7 @@ describe('finalize macOS release metadata', () => {
     const releaseRoot = fs.mkdtempSync(
       path.join(os.tmpdir(), 'genfeed-macos-release-'),
     );
-    const dmgName = 'GenFeed-0.1.1-arm64.dmg';
+    const dmgName = 'Genfeed-0.1.1-arm64.dmg';
     const dmgPath = path.join(releaseRoot, dmgName);
     const blockmapPath = `${dmgPath}.blockmap`;
     const metadataPath = path.join(releaseRoot, 'latest-mac.yml');
@@ -31,13 +31,13 @@ describe('finalize macOS release metadata', () => {
         metadataPath,
         `version: 0.1.1
 files:
-  - url: GenFeed-0.1.1-arm64.zip
+  - url: Genfeed-0.1.1-arm64.zip
     sha512: zip-checksum
     size: 123
   - url: ${dmgName}
     sha512: stale-dmg-checksum
     size: 456
-path: GenFeed-0.1.1-arm64.zip
+path: Genfeed-0.1.1-arm64.zip
 sha512: zip-checksum
 `,
       );

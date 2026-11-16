@@ -7,6 +7,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { actionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
@@ -186,6 +187,7 @@ export function buildAdBulkUploadWorkflowDefinition(): SystemWorkflowGraphDefini
       'Uploads creative media, creates every ad permutation, and finalizes the durable bulk job through action-backed child workflows.',
     label: 'Meta Ads Bulk Upload',
     resultNodeId: 'finalize-job',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -207,6 +209,7 @@ function childWorkflow(
     description: `${label} for one bounded bulk-upload item.`,
     label,
     resultNodeId: 'execute-item',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

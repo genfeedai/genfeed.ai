@@ -62,7 +62,7 @@ export default function HookAnalysisSection({ analysisData }: Props) {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold">
+                    <p className="text-lg font-semibold">
                       {formatCompactNumber(hook.avgViews)}
                     </p>
                     <p className="text-xs text-foreground/60">avg views</p>

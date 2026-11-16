@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const TURBO_PROJECT_IDEA_DISPATCH_WORKFLOW_ID =
@@ -42,6 +43,7 @@ function singleActionWorkflow(input: {
     description: input.description,
     label: input.label,
     resultNodeId: input.nodeId,
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

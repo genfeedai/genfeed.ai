@@ -54,6 +54,7 @@ import { PostRepeatSchedulerService } from '@workers/services/post-repeat-schedu
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
+import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import { ScheduledPostSweepLockService } from '@workers/services/scheduled-post-sweep-lock.service';
 import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
 import { assertIsolatedDatabaseUrl } from '../../../scripts/assert-isolated-db-url';
@@ -117,6 +118,14 @@ export class IsolatedFakePublisher {
       SCHEDULED_POST_ACTION_IDS.DELIVER,
       async (action) => {
         const request = action.input.request as ScheduledPostWorkflowInput;
+        // As the real delivery: a claim that found the approval already
+        // PUBLISHED hands its result through and never reaches the provider.
+        const claim = action.input.claim as
+          | { isAlreadyPublished?: boolean; publishedResult?: PublishResult }
+          | undefined;
+        if (claim?.isAlreadyPublished === true && claim.publishedResult) {
+          return claim.publishedResult;
+        }
         const row = await this.prisma.post.findFirst({
           where: {
             id: request.postId,
@@ -393,6 +402,10 @@ export async function createIsolatedPublishHarness(): Promise<IsolatedPublishHar
       {
         provide: ActivityRecorderService,
         useValue: { record: vi.fn().mockResolvedValue(undefined) },
+      },
+      {
+        provide: ScheduledPostFailureService,
+        useValue: { notifyPublishUnverified: vi.fn() },
       },
       {
         provide: AgentScopeContextService,

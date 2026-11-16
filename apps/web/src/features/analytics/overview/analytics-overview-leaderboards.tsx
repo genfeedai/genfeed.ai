@@ -75,7 +75,7 @@ export default function AnalyticsOverviewLeaderboards({
         header: '#',
         key: 'rank',
         render: (item) => (
-          <span className="font-mono font-bold">{item.rank}</span>
+          <span className="font-mono font-semibold">{item.rank}</span>
         ),
       },
       {
@@ -135,7 +135,7 @@ export default function AnalyticsOverviewLeaderboards({
         header: '#',
         key: 'rank',
         render: (item) => (
-          <span className="font-mono font-bold">
+          <span className="font-mono font-semibold">
             {brandsLeaderboard.findIndex((brand) => brand.id === item.id) + 1}
           </span>
         ),
@@ -262,7 +262,7 @@ export default function AnalyticsOverviewLeaderboards({
                       size: ButtonSize.XS,
                       variant: ButtonVariant.SECONDARY,
                     }),
-                    'uppercase tracking-wide',
+                    'uppercase tracking-label',
                   )}
                 >
                   View all

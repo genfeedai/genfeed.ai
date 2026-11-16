@@ -66,6 +66,8 @@ export class PlatformMediaTaskHandlers {
         this.transcriptPurge.purgeExpiredTranscripts(),
       [PLATFORM_SCHEDULED_TASKS.WORKFLOW_ARTIFACT_CLEANUP]: () =>
         this.workflowArtifacts.queueExpiredArtifactCleanup(),
+      [PLATFORM_SCHEDULED_TASKS.WORKFLOW_EXECUTION_PURGE]: () =>
+        this.workflowArtifacts.purgeExpiredExecutions(),
       [PLATFORM_SCHEDULED_TASKS.AVATAR_TWIN_TRACKING]: () =>
         this.mediaSchedules.trackAvatarTwins(),
       [PLATFORM_SCHEDULED_TASKS.EXTERNAL_VOICE_CATALOG_SYNC]: () =>

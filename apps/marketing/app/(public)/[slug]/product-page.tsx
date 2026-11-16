@@ -5,7 +5,6 @@ import { Badge } from '@ui/primitives/badge';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import HeroProofRail from '@web-components/marketing/HeroProofRail';
 import PageLayout from '@web-components/PageLayout';
 import { Check } from 'lucide-react';
@@ -22,7 +21,6 @@ export default function ProductPage({ product }: { product: Product }) {
 
   return (
     <PageLayout
-      heroMedia={<MarketingArtwork isCompact page={`/${product.slug}`} />}
       title={product.name}
       description={product.description}
       heroActions={
@@ -40,7 +38,7 @@ export default function ProductPage({ product }: { product: Product }) {
           ) : product.githubUrl ? (
             <GitHubLink
               href={product.githubUrl}
-              className="h-12 px-6 text-lg uppercase font-bold"
+              className="h-12 px-6 text-lg uppercase font-semibold"
             >
               View on GitHub
             </GitHubLink>

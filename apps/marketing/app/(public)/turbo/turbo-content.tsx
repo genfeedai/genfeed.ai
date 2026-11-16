@@ -5,7 +5,6 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import FaqGrid from '@web-components/content/FaqGrid';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import EditorialPoster from '@web-components/marketing/EditorialPoster';
 import PageLayout from '@web-components/PageLayout';
@@ -77,9 +76,6 @@ export default function TurboContent() {
             <TurboSignupButton />
           </div>
         }
-        heroMedia={
-          <MarketingArtwork page="/turbo" isCompact kind="integration" />
-        }
         heroVisual={
           <EditorialPoster
             eyebrow="Turbo"
@@ -94,7 +90,10 @@ export default function TurboContent() {
         title="Your brand in, on-brand content out"
       >
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-8 text-foreground">
+          <Heading
+            as="h2"
+            className="text-2xl font-semibold mb-8 text-foreground"
+          >
             How it works
           </Heading>
           <div className="gsap-grid grid grid-cols-1 gap-1.5 md:grid-cols-2">
@@ -114,7 +113,10 @@ export default function TurboContent() {
           </div>
         </section>
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
+          <Heading
+            as="h2"
+            className="text-2xl font-semibold mb-2 text-foreground"
+          >
             Nothing posts without you
           </Heading>
           <Text className="text-foreground/70">
@@ -123,7 +125,10 @@ export default function TurboContent() {
           </Text>
         </section>
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
+          <Heading
+            as="h2"
+            className="text-2xl font-semibold mb-2 text-foreground"
+          >
             Gets sharper every batch
           </Heading>
           <Text className="text-foreground/70">
@@ -140,7 +145,10 @@ export default function TurboContent() {
           </div>
         </section>
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-8 text-foreground">
+          <Heading
+            as="h2"
+            className="text-2xl font-semibold mb-8 text-foreground"
+          >
             Frequently asked questions
           </Heading>
           <FaqGrid items={FAQS} />
@@ -149,7 +157,7 @@ export default function TurboContent() {
           <div className="gen-card-spotlight p-6 sm:p-12 text-center">
             <Heading
               as="h2"
-              className="text-2xl font-bold mb-6 text-foreground"
+              className="text-2xl font-semibold mb-6 text-foreground"
             >
               Ready when you are
             </Heading>

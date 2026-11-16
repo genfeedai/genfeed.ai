@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const SIGNUP_PREFILL_ACTION_IDS = {
@@ -119,6 +120,7 @@ export function buildSignupPrefillWorkflowDefinition(): SystemWorkflowGraphDefin
     description: 'Enriches the placeholder brand created during signup.',
     label: 'Signup Brand Prefill',
     resultNodeId: 'finalize-prefill',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

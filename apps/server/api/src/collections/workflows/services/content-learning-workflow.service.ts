@@ -24,6 +24,7 @@ import {
   CONTENT_LEARNING_WORKFLOW_TEMPLATES,
   type ContentLearningActionId,
 } from '@api/collections/workflows/templates/content-learning-workflows.template';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import type { WorkflowDefinitionInput } from '@api/collections/workflows/workflow-version-definition';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -87,6 +88,7 @@ export class ContentLearningWorkflowService implements OnModuleInit {
         version: template.version,
         changeSummary: template.changeSummary,
         resultNodeId: 'learning-action',
+        retention: SystemWorkflowRetention.BACKGROUND,
         definition: {
           nodes: template.nodes ?? [],
           edges: template.edges ?? [],

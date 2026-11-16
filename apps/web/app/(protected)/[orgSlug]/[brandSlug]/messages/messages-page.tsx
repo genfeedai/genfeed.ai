@@ -134,7 +134,7 @@ function MessageBubble({
             : 'border-border bg-tertiary text-foreground',
         )}
       >
-        <div className="mb-1 flex items-center gap-2 text-2xs uppercase tracking-wider text-muted-foreground">
+        <div className="mb-1 flex items-center gap-2 text-2xs uppercase tracking-label text-muted-foreground">
           <span>{isOutbound ? 'Manager' : message.senderName || 'Sender'}</span>
           <span>{formatMessageTime(message.createdAt)}</span>
           <span>{message.status}</span>

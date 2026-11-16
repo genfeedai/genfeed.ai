@@ -27,10 +27,13 @@ import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
+import { SCHEDULED_POST_UNSETTLED_APPROVAL_MESSAGE } from '@workers/services/scheduled-post.constants';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
+import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
+import { deferKeptUnsettledApproval } from '@workers/services/scheduled-post-unsettled-approval';
 
 type ScheduledPostClaim = {
   executionStartedAt: string | null;
@@ -46,6 +49,7 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     private readonly discoveryService: ScheduledPostDiscoveryService,
     private readonly executionGuard: ScheduledPostExecutionGuardService,
     private readonly logger: LoggerService,
+    private readonly postFailureService: ScheduledPostFailureService,
     private readonly publishApprovalsService: PublishApprovalsService,
     private readonly prisma: PrismaService,
     private readonly repeatScheduler: PostRepeatSchedulerService,
@@ -149,7 +153,11 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
 
     if (claim.isAlreadyPublished) {
       await this.repeatScheduler.materializeRecurrence(post);
-      return result;
+      const settled = await this.settleUnconfirmedPublishedApproval(
+        post,
+        this.requiredString(request.approvalId, 'approvalId'),
+      );
+      return settled ?? result;
     }
     if (!claim.executionStartedAt) {
       throw new Error('Scheduled publish finalization requires a claim lease.');
@@ -184,6 +192,49 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
       );
     }
     return result;
+  }
+
+  /**
+   * The approval is PUBLISHED, yet the post is still due. With a provider id it
+   * waits for its status check, which the sweep leaves alone. Without one,
+   * nothing proves it reached the network and no other run will ever move it,
+   * so it is closed as failed with a message the owner can act on rather than
+   * claimed again every minute (#10385).
+   */
+  private async settleUnconfirmedPublishedApproval(
+    post: PostEntity,
+    approvalId: string,
+  ): Promise<PublishResult | undefined> {
+    const state = post.targetExecutionState;
+    const isDue =
+      state === TargetExecutionState.SCHEDULED ||
+      state === TargetExecutionState.PUBLISHING;
+    // A post rescheduled since this run claimed carries another approval,
+    // which this run does not own.
+    if (
+      !isDue ||
+      readPostString(post, ['externalId']) ||
+      post.publishApproval?.id !== approvalId
+    ) {
+      return undefined;
+    }
+    this.logger.warn('Closing a due post whose approval is already published', {
+      postId: post.id,
+    });
+    const settled = await this.deliveryService.failTerminalValidation(
+      post,
+      new Error(SCHEDULED_POST_UNSETTLED_APPROVAL_MESSAGE),
+    );
+    if (settled.executionState === TargetExecutionState.PUBLISHING) {
+      // An earlier provider attempt for this post is still unconfirmed or in
+      // flight, so the post stays PUBLISHING and this run cannot verify it.
+      await deferKeptUnsettledApproval(
+        this.prisma,
+        this.postFailureService,
+        post,
+      );
+    }
+    return settled;
   }
 
   /**

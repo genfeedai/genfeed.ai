@@ -1,6 +1,5 @@
 import { getAppSignUpUrl } from '@data/app-links';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -67,7 +66,7 @@ export default function CloudContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork page="/cloud" kind="workflow" />}
+        compact
         title="One workspace for your team’s agents"
         description="Every teammate connects their own agent to the same brand library, roles, approvals and credit pool. The dashboard is where the team reviews, publishes and measures."
       >

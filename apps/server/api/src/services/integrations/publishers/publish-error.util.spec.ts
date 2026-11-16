@@ -3,10 +3,11 @@ import { PublishError } from '@genfeedai/contracts/interfaces';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import {
   mapTikTokFailure,
+  mapUnpublishedRequestFailure,
   mapYoutubeFailure,
   nextPacificMidnight,
 } from './provider-publish-error.mappers';
-import { toPublishError } from './publish-error.util';
+import { toPublishError, toPublishErrorOrUnknown } from './publish-error.util';
 
 function httpFailure(
   status: number,
@@ -275,5 +276,48 @@ describe('TikTok failures', () => {
     );
 
     expect(error?.retryAfterMs).toBe(45_000);
+  });
+});
+
+describe('toPublishErrorOrUnknown', () => {
+  it('reports a failure that says nothing about the provider as an unknown outcome', () => {
+    const error = toPublishErrorOrUnknown(new TypeError('boom'));
+
+    expect(error.kind).toBe(PublishErrorKind.OUTCOME_UNKNOWN);
+    expect(error.message).toBe('boom');
+  });
+
+  it.each([
+    [429, PublishErrorKind.RATE_LIMITED],
+    [422, PublishErrorKind.CONTENT_REJECTED],
+    [503, PublishErrorKind.OUTCOME_UNKNOWN],
+  ])('keeps the kind the status gives for HTTP %i', (status, kind) => {
+    expect(toPublishErrorOrUnknown(httpFailure(status)).kind).toBe(kind);
+  });
+});
+
+describe('mapUnpublishedRequestFailure', () => {
+  it.each([
+    ['a 503', httpFailure(503)],
+    ['a 408', httpFailure(408)],
+    ['a dropped connection', networkFailure('ECONNRESET')],
+    ['an error with no status', new Error('boom')],
+  ])(
+    'reads %s on a request that creates nothing as retry_later',
+    (_name, failure) => {
+      expect(toPublishError(failure, mapUnpublishedRequestFailure)?.kind).toBe(
+        PublishErrorKind.RETRY_LATER,
+      );
+    },
+  );
+
+  it.each([
+    [429, PublishErrorKind.RATE_LIMITED],
+    [401, PublishErrorKind.TOKEN_MUST_REFRESH],
+    [422, PublishErrorKind.CONTENT_REJECTED],
+  ])('leaves HTTP %i to the status', (status, kind) => {
+    expect(
+      toPublishError(httpFailure(status), mapUnpublishedRequestFailure)?.kind,
+    ).toBe(kind);
   });
 });

@@ -1,3 +1,4 @@
+import type { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import type { WorkflowGraphDefinitionInput } from '@api/collections/workflows/workflow-version-definition';
 import type { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import type { OrganizationModuleId } from '@genfeedai/contracts/constants';
@@ -37,6 +38,11 @@ type SystemWorkflowGraphMetadata = {
   failureWorkflowCanonicalId?: string;
   /** Terminal state projection after an admitted side effect; never new work. */
   moduleCompletionNodeIds?: readonly string[];
+  /**
+   * Required so a new system workflow cannot ship without deciding how long
+   * its run history is kept (#10382).
+   */
+  retention: SystemWorkflowRetention;
   schedule?: string;
   version?: number;
 };

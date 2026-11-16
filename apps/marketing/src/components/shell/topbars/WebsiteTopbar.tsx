@@ -387,7 +387,7 @@ export default function WebsiteTopbar() {
             >
               <a
                 href={getAppLoginUrl()}
-                className="hidden whitespace-nowrap text-xs font-bold uppercase tracking-[0.1em] text-foreground/60 transition-colors hover:text-foreground lg:block"
+                className="hidden whitespace-nowrap text-xs font-semibold uppercase tracking-label text-foreground/60 transition-colors hover:text-foreground lg:block"
               >
                 Log in
               </a>
@@ -411,7 +411,7 @@ export default function WebsiteTopbar() {
           ) : (
             <a
               href={EnvironmentService.apps.app}
-              className="text-xs font-bold uppercase tracking-[0.1em] text-foreground/60 transition-colors hover:text-foreground"
+              className="text-xs font-semibold uppercase tracking-label text-foreground/60 transition-colors hover:text-foreground"
             >
               App
             </a>

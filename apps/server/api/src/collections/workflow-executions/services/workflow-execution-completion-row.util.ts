@@ -11,6 +11,7 @@ export async function findWorkflowExecutionCompletionRow(
     select: {
       estimatedDurationMs: true,
       organizationId: true,
+      retentionPolicy: true,
       startedAt: true,
       trigger: true,
       userId: true,

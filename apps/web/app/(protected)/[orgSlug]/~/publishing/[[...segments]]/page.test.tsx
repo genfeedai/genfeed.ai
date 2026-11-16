@@ -11,7 +11,7 @@ vi.mock(
     default: () => <p>Loading organization app</p>,
   }),
 );
-vi.mock('../../[orgRootApp]/[[...segments]]/org-root-app-surface', () => ({
+vi.mock('./org-publishing-surface', () => ({
   default: () => new Promise(() => undefined),
 }));
 
@@ -20,13 +20,5 @@ describe('OrgPublishingPage', () => {
     render(<OrgPublishingPage params={Promise.resolve({ orgSlug: 'acme' })} />);
 
     expect(screen.getByText('Loading organization app')).toBeInTheDocument();
-  });
-
-  it('opens the publishing app', () => {
-    const page = OrgPublishingPage({
-      params: Promise.resolve({ orgSlug: 'acme' }),
-    });
-
-    expect(page.props.orgRootApp).toBe('publishing');
   });
 });

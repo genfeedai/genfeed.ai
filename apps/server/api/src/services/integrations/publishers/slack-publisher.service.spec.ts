@@ -9,7 +9,7 @@ import {
   SlackApiError,
   type SlackService,
 } from '@api/services/integrations/slack/services/slack.service';
-import { PostCategory } from '@genfeedai/contracts';
+import { PostCategory, PublishErrorKind } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
@@ -128,8 +128,7 @@ describe('SlackPublisherService', () => {
     );
 
     await expect(publisher.publish(buildContext())).rejects.toMatchObject({
-      code: 'channel_disconnected',
-      isRetryable: false,
+      kind: PublishErrorKind.CHANNEL_DISCONNECTED,
     });
     expect(credentialPatches).toEqual([
       { id: 'credential-1', isConnected: false },
@@ -146,7 +145,7 @@ describe('SlackPublisherService', () => {
     );
 
     await expect(publisher.publish(buildContext())).rejects.toMatchObject({
-      code: 'channel_disconnected',
+      kind: PublishErrorKind.CHANNEL_DISCONNECTED,
     });
     expect(credentialPatches).toEqual([]);
   });
@@ -162,7 +161,7 @@ describe('SlackPublisherService', () => {
     );
 
     await expect(publisher.publish(buildContext())).rejects.toMatchObject({
-      code: 'rate_limited',
+      kind: PublishErrorKind.RATE_LIMITED,
       retryAfterMs: 30000,
     });
   });

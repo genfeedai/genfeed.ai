@@ -21,6 +21,7 @@
   "connectAccountsDescription": "Connect accounts to display them here.",
   "connectPlatform": "Connect {platform}",
   "connectPlatformError": "Failed to connect {platform}",
+  "telegramAddBot": "Add the Genfeed bot to your Telegram group. This page updates when the group is connected.",
   "connectSocialAccountsDescription": "Connect your social media accounts to display them here.",
   "connected": "Connected",
   "connectedAccounts": "Accounts",

@@ -6,7 +6,6 @@ import PublicShell from '@ui/shell/PublicShell';
 import ConnectAgentButton from '@web-components/buttons/connect-agent/ConnectAgentButton';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import FaqGrid from '@web-components/content/FaqGrid';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -122,7 +121,7 @@ export default function ServiceLandingPage({
         config.isAgentFirst ? (
           <ConnectAgentButton
             label="Connect Agent"
-            className="h-11 px-2 text-xs tracking-[0.04em] sm:px-5 sm:text-sm sm:tracking-[0.18em]"
+            className="h-11 px-2 text-xs tracking-label sm:px-5 sm:text-sm"
             trackingName={`${slug}_landing_click`}
           />
         ) : undefined
@@ -139,7 +138,6 @@ export default function ServiceLandingPage({
     >
       <MarketingEntrance cards={false}>
         <PageLayout
-          heroMedia={<MarketingArtwork page={`/${slug}`} />}
           isHeroVisualStacked={config.isAgentFirst}
           title={
             <>
@@ -204,7 +202,7 @@ export default function ServiceLandingPage({
               </div>
 
               <div className="bg-background/60 p-6">
-                <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-foreground/70">
+                <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-label text-foreground/70">
                   <CalendarRange className="size-4" />
                   {config.fitLabel}
                 </div>

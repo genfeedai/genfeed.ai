@@ -39,7 +39,7 @@ function PromptSection({
       open={isOpen}
     >
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <h3 className="text-xs font-semibold uppercase tracking-label text-muted-foreground">
           {label}
         </h3>
         {isLong ? (
@@ -139,7 +139,7 @@ export default function GenerationDetailPanel({
 
         {generation.directives.length > 0 ? (
           <section className="flex flex-col gap-1.5">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <h3 className="text-xs font-semibold uppercase tracking-label text-muted-foreground">
               {t('directives')}
             </h3>
             <ul className="flex flex-col gap-1 text-sm">

@@ -273,6 +273,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform schedule handler for #9726; claims due newsletter sends and delivers bounded, idempotent batches.',
   },
   {
+    file: 'apps/server/workers/src/crons/notification-retention/cron.notification-retention.service.ts',
+    id: 'notification-retention',
+    methodName: 'purgeExpiredNotifications',
+    reason:
+      'Platform schedule handler for the #10384 daily delete of notification inbox items, deliveries and events past their retention window.',
+  },
+  {
     file: 'apps/server/workers/src/crons/oauth-client-cleanup/cron.oauth-client-cleanup.service.ts',
     id: 'oauth-client-cleanup',
     methodName: 'deleteAbandonedClients',

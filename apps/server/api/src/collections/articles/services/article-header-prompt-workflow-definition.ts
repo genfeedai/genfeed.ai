@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const ARTICLE_HEADER_PROMPT_WORKFLOW_ID = 'article.header-prompt';
@@ -56,6 +57,7 @@ export function buildArticleHeaderPromptWorkflowDefinition(): SystemWorkflowGrap
       'Loads one tenant article, generates its header-media prompt, and persists the prompt.',
     label: 'Generate Article Header Prompt',
     resultNodeId: 'persist-prompt',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

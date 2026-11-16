@@ -1,5 +1,4 @@
 import YoutubeClipperContent from '@public/tools/youtube-clipper/youtube-clipper-content';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 import PageLayout from '@web-components/PageLayout';
 
@@ -13,13 +12,6 @@ export default function YoutubeClipperPage(): React.ReactElement {
   // The hero, footer and copy render on the server; only the tool hydrates.
   return (
     <PageLayout
-      heroMedia={
-        <MarketingArtwork
-          page="/tools/youtube-clipper"
-          isCompact
-          kind="creator"
-        />
-      }
       compact
       description="Paste a public YouTube URL. Get a timestamped transcript, three AI-selected short-form moments, and one rendered preview before signup."
       title="YouTube transcript to clips"

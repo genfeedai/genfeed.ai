@@ -2,6 +2,7 @@ import { formatPlatformLabel, Platform } from '@genfeedai/contracts';
 import type { IPlatformBadgeConfig } from '@genfeedai/contracts/interfaces/ui/platform-badge-config.interface';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import {
+  BlueskyIcon,
   DevIcon,
   DiscordIcon,
   FacebookIcon,
@@ -159,6 +160,14 @@ const PLATFORM_BRANDS: Record<string, IPlatformBadgeConfig> = {
     iconColor: 'text-platform-linkedin',
     label: label(Platform.LINKEDIN),
     solidBgColor: 'bg-platform-linkedin',
+    textColor: 'text-foreground',
+  },
+  [Platform.BLUESKY]: {
+    bgColor: 'bg-platform-bluesky/10',
+    icon: BlueskyIcon,
+    iconColor: 'text-platform-bluesky',
+    label: label(Platform.BLUESKY),
+    solidBgColor: 'bg-platform-bluesky',
     textColor: 'text-foreground',
   },
   [Platform.MASTODON]: {
@@ -329,27 +338,31 @@ export function getPlatformIcon(
   return <Icon className={`${className} ${brand.iconColor}`} />;
 }
 
-/**
- * One icon component per platform, built once at module load so callers get a
- * stable component identity instead of a new component on every call.
- */
 const PLATFORM_ICON_COMPONENTS = new Map<string, IconComponent>();
 
-for (const [key, brand] of Object.entries(PLATFORM_BRANDS)) {
-  const { icon: Icon, iconColor, label: name } = brand;
-  const WrappedIcon: IconComponent = ({ className = 'w-4 h-4' }) => (
-    <Icon className={`${className} ${iconColor}`} />
-  );
-  WrappedIcon.displayName = `${name}Icon`;
-  PLATFORM_ICON_COMPONENTS.set(key, WrappedIcon);
-}
+const createBrandIconComponent: (brand: IPlatformBadgeConfig) => IconComponent =
+  ({ icon: Icon, iconColor, label: name }) => {
+    const brandIcon: IconComponent = ({ className = 'w-4 h-4' }) => (
+      <Icon className={`${className} ${iconColor}`} />
+    );
+    brandIcon.displayName = `${name}Icon`;
+    return brandIcon;
+  };
 
 export function getPlatformIconComponent(
   platform: string,
 ): IconComponent | undefined {
-  if (typeof platform !== 'string') {
+  const brand = getPlatformBrand(platform);
+  if (!brand) {
     return undefined;
   }
-  const key = platform.trim().toLowerCase().replaceAll('-', '_');
-  return PLATFORM_ICON_COMPONENTS.get(key);
+
+  const cached = PLATFORM_ICON_COMPONENTS.get(platform);
+  if (cached) {
+    return cached;
+  }
+
+  const component = createBrandIconComponent(brand);
+  PLATFORM_ICON_COMPONENTS.set(platform, component);
+  return component;
 }

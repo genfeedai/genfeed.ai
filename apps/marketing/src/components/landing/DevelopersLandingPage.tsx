@@ -9,7 +9,6 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import FaqGrid from '@web-components/content/FaqGrid';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import LandingFooter from '@web-components/landing/LandingFooter';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
@@ -119,7 +118,6 @@ export default function DevelopersLandingPage(): React.ReactElement {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork page="/developers" />}
         title="Distribution for developers"
         description="Connect your agent to Genfeed to turn product updates into content drafts, media and scheduled posts. Use the hosted MCP server or run the open-source stack yourself."
         heroActions={
@@ -151,7 +149,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
         }
         heroVisual={
           <div className="overflow-hidden rounded-lg bg-card shadow-border-strong">
-            <p className="border-b border-foreground/5 bg-background/90 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-foreground/60">
+            <p className="border-b border-foreground/5 bg-background/90 px-4 py-2 text-xs font-semibold uppercase tracking-label text-foreground/60">
               Connect Agent
             </p>
             <Pre className="overflow-x-auto bg-background/80 p-6 text-sm leading-6">
@@ -174,7 +172,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <div className="gen-card-spotlight p-8">
             <div className="flex flex-col gap-3">
-              <Heading as="h3" className="text-2xl font-bold">
+              <Heading as="h3" className="text-2xl font-semibold">
                 Distribution as tool calls
               </Heading>
               <Text as="p" className="text-foreground/70">
@@ -199,7 +197,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
 
         {/* Features grid */}
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
-          <Heading as="h3" className="text-2xl font-bold text-center mb-8">
+          <Heading as="h3" className="text-2xl font-semibold text-center mb-8">
             The building blocks for your integration
           </Heading>
           <div className="gsap-grid grid grid-cols-1 gap-1.5 md:grid-cols-2">
@@ -232,8 +230,8 @@ export default function DevelopersLandingPage(): React.ReactElement {
 
         {/* How it works */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <Heading as="h3" className="text-2xl font-bold text-center mb-12">
-            Connect, Draft, Review, Publish
+          <Heading as="h3" className="text-2xl font-semibold text-center mb-12">
+            Connect, draft, review, publish
           </Heading>
           <div className="space-y-0">
             {STEPS.map((step, index) => {
@@ -245,7 +243,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
                       <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <Text className="text-lg font-bold text-foreground">
+                      <Text className="text-lg font-semibold text-foreground">
                         {step.label}
                       </Text>
                       <Text className="text-sm text-foreground/70">
@@ -263,7 +261,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
         </section>
 
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
-          <Heading as="h3" className="text-2xl font-bold text-center mb-8">
+          <Heading as="h3" className="text-2xl font-semibold text-center mb-8">
             Connect the client you already use
           </Heading>
           <div className="gsap-grid grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
@@ -290,7 +288,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
 
         {/* FAQ */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <Heading as="h3" className="text-2xl font-bold text-center mb-8">
+          <Heading as="h3" className="text-2xl font-semibold text-center mb-8">
             Straight answers
           </Heading>
           <FaqGrid items={FAQS} />
@@ -304,7 +302,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
             </div>
             <Heading
               as="h3"
-              className="text-2xl font-bold mb-2 text-foreground"
+              className="text-2xl font-semibold mb-2 text-foreground"
             >
               Connect your agent to Genfeed
             </Heading>

@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const TELEGRAM_DISTRIBUTION_ACTION_IDS = {
@@ -92,6 +93,7 @@ export function buildTelegramDistributionWorkflowDefinition(): SystemWorkflowGra
     description: 'Delivers one scheduled Telegram distribution.',
     label: 'Telegram Distribution Delivery',
     resultNodeId: 'finalize-delivery',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

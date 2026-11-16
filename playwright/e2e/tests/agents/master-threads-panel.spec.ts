@@ -886,6 +886,12 @@ test.describe('Agent master thread and Threads panel', () => {
       ]);
     await dialog.getByRole('button', { name: 'Done' }).click();
     await expect(shareButton).toHaveText('1 person');
+    // Reopening shows the access the server confirmed, not a leftover pick.
+    await shareButton.click();
+    await expect(
+      dialog.getByRole('radio', { name: /Specific people/ }),
+    ).toBeChecked();
+    await dialog.getByRole('button', { name: 'Done' }).click();
     expect(pageErrors).toEqual([]);
   });
 });

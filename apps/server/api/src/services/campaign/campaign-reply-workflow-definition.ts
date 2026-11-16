@@ -1,6 +1,7 @@
 import type { WorkflowEdge } from '@api/collections/workflows/schemas/workflow.schema';
 import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const CAMPAIGN_REPLY_ACTION_IDS = {
@@ -59,6 +60,7 @@ export function buildCampaignReplyWorkflowDefinition(): SystemWorkflowGraphDefin
       'Claims, contextualizes, generates, reserves, sends, and finalizes one campaign reply target.',
     label: 'Campaign Reply Target',
     resultNodeId: 'finalize-target',
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 
@@ -113,6 +115,7 @@ export function buildCampaignReplyBatchWorkflowDefinition(): SystemWorkflowGraph
       'Discovers pending campaign reply targets and durably schedules one child workflow per target.',
     label: 'Campaign Reply Batch',
     resultNodeId: fanOut.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 
@@ -153,5 +156,6 @@ export function buildCampaignReplyPreviewWorkflowDefinition(): SystemWorkflowGra
       'Validates a campaign target and generates preview copy without reserving or publishing.',
     label: 'Preview Campaign Reply',
     resultNodeId: generate.id,
+    retention: SystemWorkflowRetention.KEPT,
   };
 }

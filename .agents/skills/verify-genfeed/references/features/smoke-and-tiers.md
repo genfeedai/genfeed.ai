@@ -14,7 +14,8 @@ CI workflows: `playwright-master-core.yml` (core once per merge burst on master)
 
 ## How to drive it
 Specs under `playwright/e2e/tests/smoke/`: `safe`, `all-app-pages`,
-`all-app-pages.authed`, `protected-hydration`, `studio-motion.authed`. Core also includes
+`all-app-pages.authed`, `protected-hydration`, `studio-motion.authed`,
+`unknown-route-hydration.authed`. Core also includes
 `core/content-loop.spec.ts`. Config: `workers: 1`, test timeout 120 s, expect 60 s,
 viewport 1280×720, locale `en-US`, TZ `America/New_York`.
 

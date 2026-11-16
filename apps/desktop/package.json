@@ -3,7 +3,7 @@
   "build": {
     "afterSign": "scripts/notarize.cjs",
     "appId": "ai.genfeed.desktop",
-    "artifactName": "GenFeed-${version}-${arch}.${ext}",
+    "artifactName": "Genfeed-${version}-${arch}.${ext}",
     "asar": true,
     "asarUnpack": [
       "dist/app-shell/**/*",
@@ -55,7 +55,7 @@
     "@electric-sql/pglite": "0.5.10",
     "node-pty": "1.1.0"
   },
-  "description": "GenFeed \u2014 Electron native app for content creation",
+  "description": "Genfeed \u2014 Electron native app for content creation",
   "devDependencies": {
     "@biomejs/biome": "2.6.8",
     "@electron/notarize": "3.1.2",
@@ -78,7 +78,7 @@
     "typescript": "6.0.3"
   },
   "private": true,
-  "productName": "GenFeed",
+  "productName": "Genfeed",
   "scripts": {
     "build": "bun run build:native && bun run build:app-shell && bun run copy:app-shell",
     "build:app-shell": "node ./scripts/build-app-shell.cjs",

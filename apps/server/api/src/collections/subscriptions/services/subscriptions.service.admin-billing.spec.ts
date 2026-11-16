@@ -23,8 +23,10 @@ describe('SubscriptionsService.findAdminBilling', () => {
   let prisma: PrismaFixture;
   let creditGrantService: {
     resolveMonthlyCredits: MockFn;
+    resolvePlanCredits: MockFn;
     resolveTierFromPriceId: MockFn;
   };
+  let creditsUtilsService: { getCycleRemainingMetrics: MockFn };
   let service: SubscriptionsService;
 
   beforeEach(() => {
@@ -41,7 +43,16 @@ describe('SubscriptionsService.findAdminBilling', () => {
     };
     creditGrantService = {
       resolveMonthlyCredits: vi.fn().mockResolvedValue(null),
+      resolvePlanCredits: vi.fn().mockResolvedValue(null),
       resolveTierFromPriceId: vi.fn().mockReturnValue(null),
+    };
+
+    creditsUtilsService = {
+      getCycleRemainingMetrics: vi.fn().mockResolvedValue({
+        cycleTotal: 0,
+        cycleUsed: 0,
+        remainingPercent: 0,
+      }),
     };
 
     service = new SubscriptionsService(
@@ -55,7 +66,7 @@ describe('SubscriptionsService.findAdminBilling', () => {
       creditGrantService as unknown as SubscriptionCreditGrantService,
       {} as StripeService,
       {} as CustomersService,
-      {} as CreditsUtilsService,
+      creditsUtilsService as unknown as CreditsUtilsService,
     );
   });
 
@@ -207,11 +218,17 @@ describe('SubscriptionsService.findAdminBilling', () => {
         stripeSubscriptionId: 'sub_old',
       },
     ]);
-    creditGrantService.resolveMonthlyCredits.mockResolvedValue(60_000);
+    creditGrantService.resolvePlanCredits.mockResolvedValue(60_000);
     creditGrantService.resolveTierFromPriceId.mockReturnValue('scale');
+    // A 20,000 top-up keeps the balance high: usage must come from the ledger.
+    creditsUtilsService.getCycleRemainingMetrics.mockResolvedValue({
+      cycleTotal: 80_000,
+      cycleUsed: 30_000,
+      remainingPercent: 62.5,
+    });
     prisma.creditBalance.findMany.mockResolvedValue([
       {
-        balance: 30_000,
+        balance: 50_000,
         billingAccountId: null,
         heldAmount: 0,
         organizationId: 'org_paid',
@@ -220,7 +237,8 @@ describe('SubscriptionsService.findAdminBilling', () => {
 
     const result = await service.findAdminBilling({ limit: 15, page: 1 });
 
-    expect(creditGrantService.resolveMonthlyCredits).toHaveBeenCalledWith(
+    expect(creditGrantService.resolvePlanCredits).toHaveBeenCalledWith(
+      'monthly',
       'price_scale',
     );
     expect(result.docs[0]).toEqual(
@@ -237,6 +255,58 @@ describe('SubscriptionsService.findAdminBilling', () => {
       }),
     );
     expect(result.docs[0]?.usedPercent).toBeCloseTo(50, 5);
+  });
+
+  it('divides a yearly plan by twelve months of credits, matching its year of ledger usage', async () => {
+    prisma.organization.findMany.mockResolvedValue([organization('org_year')]);
+    prisma.subscription.findMany.mockResolvedValue([
+      {
+        currentPeriodEnd: new Date('2027-03-01T00:00:00.000Z'),
+        customer: { stripeCustomerId: 'cus_year' },
+        organizationId: 'org_year',
+        plan: 'yearly',
+        status: 'ACTIVE',
+        stripePriceId: 'price_year',
+        stripeSubscriptionId: 'sub_year',
+      },
+    ]);
+    creditGrantService.resolvePlanCredits.mockResolvedValue(12_000);
+    creditsUtilsService.getCycleRemainingMetrics.mockResolvedValue({
+      cycleTotal: 12_000,
+      cycleUsed: 1_000,
+      remainingPercent: 91.67,
+    });
+
+    const result = await service.findAdminBilling({ limit: 15, page: 1 });
+
+    expect(result.docs[0]).toEqual(
+      expect.objectContaining({
+        isMaxedOut: false,
+        planLimit: 12_000,
+        usedCredits: 1_000,
+      }),
+    );
+    expect(result.docs[0]?.usedPercent).toBeCloseTo(8.33, 2);
+  });
+
+  it('falls back to the price monthly credits when the plan has no period length', async () => {
+    prisma.organization.findMany.mockResolvedValue([organization('org_odd')]);
+    prisma.subscription.findMany.mockResolvedValue([
+      {
+        currentPeriodEnd: null,
+        customer: null,
+        organizationId: 'org_odd',
+        plan: null,
+        status: 'INCOMPLETE',
+        stripePriceId: 'price_pro',
+        stripeSubscriptionId: null,
+      },
+    ]);
+    creditGrantService.resolveMonthlyCredits.mockResolvedValue(4_900);
+
+    const result = await service.findAdminBilling({ limit: 15, page: 1 });
+
+    expect(result.docs[0]?.planLimit).toBe(4_900);
   });
 
   it('falls back to the stored tier when the price maps to none', async () => {

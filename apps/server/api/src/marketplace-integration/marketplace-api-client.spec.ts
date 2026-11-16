@@ -485,6 +485,40 @@ describe('MarketplaceApiClient', () => {
       },
     );
 
+    it.each([
+      ['a completed purchase', { status: 'completed' }, 'completed'],
+      ['a refunded purchase', { status: 'refunded' }, 'refunded'],
+      ['no status', {}, 'unavailable'],
+      ['an unknown status', { status: 'pending' }, 'unavailable'],
+    ])(
+      'settles a call and reads %s from the answer',
+      async (_name, attributes, status) => {
+        fetchMock.mockResolvedValueOnce(
+          okResponse({ data: { id: 'p1', attributes } }),
+        );
+
+        const result = await client.refundCreditPurchase(call, 't', {
+          keepCompleted: true,
+        });
+
+        expect(result.status).toBe(status);
+        expect(JSON.parse(String(lastFetchInit().body))).toEqual({
+          ...call,
+          keepCompleted: true,
+        });
+      },
+    );
+
+    it('names the purchase a settling call found completed', async () => {
+      fetchMock.mockResolvedValueOnce(
+        okResponse({ data: { attributes: { status: 'completed' }, id: 'p7' } }),
+      );
+
+      expect(
+        await client.refundCreditPurchase(call, 't', { keepCompleted: true }),
+      ).toEqual({ purchaseId: 'p7', status: 'completed' });
+    });
+
     it('refunds by call key and tells a refund from an absent purchase or an outage', async () => {
       fetchMock.mockResolvedValueOnce(
         okResponse(recorded('credit-purchase-refunded')),

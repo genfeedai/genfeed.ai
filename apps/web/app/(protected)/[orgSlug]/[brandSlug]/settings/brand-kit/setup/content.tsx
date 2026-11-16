@@ -338,7 +338,7 @@ function InterviewStepsSidebar({
       <nav aria-label="Interview steps" className="space-y-4">
         {groups.map(({ group, items }) => (
           <div key={group} className="space-y-1.5">
-            <p className="px-1 text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="px-1 text-2xs font-medium uppercase tracking-label text-muted-foreground">
               {GROUP_LABELS[group]}
             </p>
             <ul className="space-y-1">
@@ -384,12 +384,12 @@ function InterviewStepsSidebar({
                           </span>
                         ) : null}
                         {step.status === 'current' ? (
-                          <span className="mt-0.5 block text-2xs font-medium uppercase tracking-wide text-primary">
+                          <span className="mt-0.5 block text-2xs font-medium uppercase tracking-label text-primary">
                             Current
                           </span>
                         ) : null}
                         {step.status === 'skipped' ? (
-                          <span className="mt-0.5 block text-2xs uppercase tracking-wide text-muted-foreground">
+                          <span className="mt-0.5 block text-2xs uppercase tracking-label text-muted-foreground">
                             Skipped
                           </span>
                         ) : null}
@@ -639,7 +639,7 @@ export default function BrandGuidedSetupPage() {
         <Card>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="space-y-2">
-              <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              <p className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
                 Brand context
               </p>
               <h1 className="text-xl font-semibold tracking-tight text-balance">
@@ -688,7 +688,7 @@ export default function BrandGuidedSetupPage() {
         <Card>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="space-y-2">
-              <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              <p className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
                 Brand context
               </p>
               <h1 className="text-xl font-semibold tracking-tight text-balance">
@@ -726,7 +726,7 @@ export default function BrandGuidedSetupPage() {
           <div className="mb-6 space-y-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
-                <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                <p className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
                   Brand context
                 </p>
                 <h1 className="text-xl font-semibold tracking-tight text-balance">
@@ -751,7 +751,7 @@ export default function BrandGuidedSetupPage() {
           {activeQuestion ? (
             <Form spacing="section" onSubmit={handleFormSubmit}>
               <div className="space-y-2">
-                <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                <p className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
                   {GROUP_LABELS[activeQuestion.group] ?? activeQuestion.group}
                   {activeQuestion.isRequired ? ' · required' : ''}
                 </p>

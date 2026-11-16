@@ -29,7 +29,7 @@ export default function ProductAgentLibrary({ librarySections }: Props) {
                     key={agent.name}
                     className="border border-border bg-background p-4"
                   >
-                    <Text weight="bold" className="mb-2">
+                    <Text weight="semibold" className="mb-2">
                       {agent.name}
                     </Text>
                     <Text as="p" size="sm" color="muted">

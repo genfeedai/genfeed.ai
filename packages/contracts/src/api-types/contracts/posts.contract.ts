@@ -88,6 +88,7 @@ export const createPostSchema = z.object({
   scheduledDate: dateStringSchema.optional(),
   source: optionalStringSchema,
   targetExecutionState: z.nativeEnum(TargetExecutionState).optional(),
+  targetSettings: z.record(z.string(), z.unknown()).optional(),
   tags: entityIdArraySchema().optional(),
   timezone: timezoneSchema.optional(),
   visibility: z.nativeEnum(PostVisibility).optional(),

@@ -72,7 +72,7 @@
     "symbol": "apps/server/api/src/collections/skills/services/skills.service.ts"
   },
   {
-    "actual": 1273,
+    "actual": 1221,
     "file": "apps/server/api/src/collections/workflows/services/automation-workflow-definitions.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/workflows/services/automation-workflow-definitions.ts"
@@ -84,7 +84,7 @@
     "symbol": "apps/server/api/src/collections/workflows/templates/generation-templates.ts"
   },
   {
-    "actual": 198,
+    "actual": 173,
     "file": "apps/server/api/src/endpoints/public/services/public-youtube-clipper.service.ts",
     "metric": "method-lines",
     "symbol": "PublicYoutubeClipperService.onModuleInit"
@@ -286,12 +286,6 @@
     "file": "apps/web/src/components/workspace-shell/UniversalWorkspaceShell.tsx",
     "metric": "file-lines",
     "symbol": "apps/web/src/components/workspace-shell/UniversalWorkspaceShell.tsx"
-  },
-  {
-    "actual": 1007,
-    "file": "apps/web/src/features/brands/components/sidebar/BrandDetailSocialMediaCard.tsx",
-    "metric": "file-lines",
-    "symbol": "apps/web/src/features/brands/components/sidebar/BrandDetailSocialMediaCard.tsx"
   },
   {
     "actual": 1094,

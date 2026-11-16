@@ -16,6 +16,7 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { toPublishErrorOrUnknown } from '@api/services/integrations/publishers/publish-error.util';
 import { CredentialPlatform, PostCategory } from '@genfeedai/contracts';
 import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
@@ -189,8 +190,11 @@ export class GoogleBusinessPublisherService extends BasePublisherService {
           );
         }
       }
-      // Rate limits, 5xx and network errors: the pipeline decides on a retry.
-      throw error;
+      // Rate limits, 5xx and network errors: typed here so the pipeline acts on
+      // the kind. The wrapped Google error keeps its status but drops the
+      // network code, so a failure with no status is an unknown outcome and is
+      // verified before a retry.
+      throw toPublishErrorOrUnknown(error);
     }
   }
 

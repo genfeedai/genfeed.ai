@@ -62,9 +62,10 @@ export function AgentOAuthConnectMenu({
       catalog.filter(
         (item) =>
           item.isConnectAvailable &&
-          // Key-based tiles need a form this menu can't show; they connect
-          // from the brand's Connect account modal.
+          // Key-based and add-bot tiles need a screen this menu can't show;
+          // they connect from the brand's Connect account modal.
           !isApiKeyConnectPlatform(item) &&
+          item.connectMethod !== 'add_bot_link' &&
           !excludePlatforms?.has(item.platform),
       ),
     [catalog, excludePlatforms],
@@ -153,7 +154,7 @@ export function AgentOAuthConnectMenu({
         className="w-[20rem] rounded-md p-2"
       >
         <div className="px-2.5 py-2">
-          <p className="text-2xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          <p className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
             Connect a channel
           </p>
           <p className="mt-1 text-xs text-foreground/60">
@@ -168,7 +169,7 @@ export function AgentOAuthConnectMenu({
         <div className="max-h-72 space-y-3 overflow-y-auto px-1 pb-1">
           {groups.map((group) => (
             <div key={group.id} className="space-y-1">
-              <p className="px-2 text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              <p className="px-2 text-2xs font-semibold uppercase tracking-label text-muted-foreground">
                 {group.label}
               </p>
               <div className="grid grid-cols-2 gap-1">

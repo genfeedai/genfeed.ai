@@ -28,6 +28,7 @@ import {
   SYSTEM_WORKFLOW_METADATA_KEY,
   SYSTEM_WORKFLOW_PRINCIPAL_ID,
 } from '@api/collections/workflows/system-workflow.contract';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
 import { WORKFLOW_EXECUTOR } from '@api/collections/workflows/workflows.tokens';
 import {
@@ -91,6 +92,7 @@ const definition: SystemWorkflowGraphDefinition = {
   description: 'Review one generated hook clip.',
   label: 'Clip Hook Review',
   resultNodeId: 'review-hook',
+  retention: SystemWorkflowRetention.BACKGROUND,
 };
 
 describe('SystemWorkflowRunnerService definitions', () => {
@@ -143,6 +145,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
         ...definition,
         canonicalId: 'missing-result',
         resultNodeId: 'missing',
+        retention: SystemWorkflowRetention.BACKGROUND,
       }),
     ).toThrow('result node missing does not exist');
   });
@@ -202,6 +205,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
       description: 'Parent',
       label: 'Parent',
       resultNodeId: 'fan-out',
+      retention: SystemWorkflowRetention.BACKGROUND,
     });
 
     expect(() => runner.onApplicationBootstrap()).toThrow(
@@ -227,6 +231,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
       description: 'Parent',
       label: 'Parent',
       resultNodeId: 'run-child',
+      retention: SystemWorkflowRetention.BACKGROUND,
     });
 
     expect(() => runner.onApplicationBootstrap()).toThrow(

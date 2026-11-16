@@ -1,6 +1,8 @@
 {
   "dependencies": {
     "@anthropic-ai/sdk": "1.8.0",
+    "@atproto-labs/fetch-node": "0.4.5",
+    "@atproto/oauth-client-node": "0.5.16",
     "@better-auth/infra": "0.4.30",
     "@bull-board/api": "9.13.1",
     "@bull-board/express": "9.13.1",

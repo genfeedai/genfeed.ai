@@ -28,7 +28,7 @@ export default function StudioInspectorHistoryPanel({
         <div className="flex flex-col gap-3">
           {siblingJobs.length > 0 ? (
             <div className="flex flex-col gap-1.5">
-              <p className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+              <p className="text-2xs uppercase tracking-label text-muted-foreground">
                 {translate('inspector.runSiblings')}
               </p>
               <ul className="flex flex-col gap-1">
@@ -52,7 +52,7 @@ export default function StudioInspectorHistoryPanel({
             </p>
           ) : childAssets.length > 0 ? (
             <div className="flex flex-col gap-1.5">
-              <p className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+              <p className="text-2xs uppercase tracking-label text-muted-foreground">
                 {translate('inspector.childAssets')}
               </p>
               <ul className="flex flex-col gap-1">

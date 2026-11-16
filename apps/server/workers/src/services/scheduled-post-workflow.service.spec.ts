@@ -55,14 +55,21 @@ function createHarness() {
     }),
     completeExecution: vi.fn().mockResolvedValue(undefined),
   };
+  const postFailureService = {
+    notifyPublishUnverified: vi.fn().mockResolvedValue(undefined),
+  };
   const prisma = {
     post: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    postProviderPublishReceipt: {
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
     postPublishFinalization: {
       findUnique: vi.fn().mockResolvedValue(null),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
   };
   const repeatScheduler = {
+    materializeRecurrence: vi.fn().mockResolvedValue(undefined),
     scheduleNextRepeat: vi.fn().mockResolvedValue(undefined),
   };
   const terminalFailures = new Map<
@@ -88,6 +95,7 @@ function createHarness() {
     discoveryService as never,
     executionGuard as never,
     logger as never,
+    postFailureService as never,
     publishApprovalsService as never,
     prisma as never,
     repeatScheduler as never,
@@ -593,6 +601,118 @@ describe('claim', () => {
     });
 
     await claim(h.registeredActions);
+
+    expect(h.prisma.post.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('finalize of a claim that found the approval already published (#10385)', () => {
+  const publishedResult = {
+    executionState: TargetExecutionState.PUBLISHED,
+    externalId: null,
+    platform: 'twitter',
+    success: true,
+    url: '',
+  };
+
+  function finalizeAlreadyPublished(h: ReturnType<typeof createHarness>) {
+    const action = h.registeredActions.get(SCHEDULED_POST_ACTION_IDS.FINALIZE);
+    if (!action) throw new Error('finalize was not registered');
+    return action({
+      input: {
+        claim: {
+          executionStartedAt: null,
+          isAlreadyPublished: true,
+          publishedResult,
+        },
+        delivery: publishedResult,
+        request: {
+          approvalId: 'approval-1',
+          operationId: 'operation-1',
+          organizationId: 'org-1',
+          postId: 'post-1',
+          source: 'scheduled_sweep',
+          userId: 'user-1',
+          versionPinId: 'pin-1',
+        },
+      },
+    });
+  }
+
+  function duePost(
+    h: ReturnType<typeof createHarness>,
+    overrides: Record<string, unknown> = {},
+  ) {
+    h.discoveryService.findPost.mockResolvedValue({
+      id: 'post-1',
+      organizationId: 'org-1',
+      publishApproval: { id: 'approval-1' },
+      targetExecutionState: TargetExecutionState.SCHEDULED,
+      ...overrides,
+    });
+  }
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns the failed result when it closes a post with no provider id', async () => {
+    const h = createHarness();
+    duePost(h);
+    const failed = {
+      error: 'not confirmed',
+      executionState: TargetExecutionState.FAILED,
+      platform: '',
+      success: false,
+      url: '',
+    };
+    h.deliveryService.failTerminalValidation.mockResolvedValue(failed);
+
+    expect(await finalizeAlreadyPublished(h)).toEqual(failed);
+  });
+
+  it('keeps the published result for a post the provider accepted', async () => {
+    const h = createHarness();
+    duePost(h, {
+      externalId: 'provider-id',
+      targetExecutionState: TargetExecutionState.PUBLISHING,
+    });
+
+    expect(await finalizeAlreadyPublished(h)).toEqual(publishedResult);
+    expect(h.deliveryService.failTerminalValidation).not.toHaveBeenCalled();
+  });
+
+  it('leaves a post alone that was rescheduled under another approval', async () => {
+    const h = createHarness();
+    duePost(h, { publishApproval: { id: 'approval-2' } });
+
+    expect(await finalizeAlreadyPublished(h)).toEqual(publishedResult);
+    expect(h.deliveryService.failTerminalValidation).not.toHaveBeenCalled();
+  });
+
+  it('dates a post ahead when an earlier provider attempt keeps it publishing', async () => {
+    const h = createHarness();
+    duePost(h, { targetExecutionState: TargetExecutionState.PUBLISHING });
+    const kept = {
+      executionState: TargetExecutionState.PUBLISHING,
+      platform: '',
+      success: false,
+    };
+    h.deliveryService.failTerminalValidation.mockResolvedValue(kept);
+    const before = Date.now();
+
+    expect(await finalizeAlreadyPublished(h)).toEqual(kept);
+
+    const [update] = h.prisma.post.updateMany.mock.calls[0] ?? [];
+    expect(update.data.lastAttemptAt.getTime()).toBeGreaterThan(before);
+    expect(update.data.targetError.code).toBe('publish_outcome_unconfirmed');
+  });
+
+  it('leaves the post alone when the close failed it', async () => {
+    const h = createHarness();
+    duePost(h);
+
+    await finalizeAlreadyPublished(h);
 
     expect(h.prisma.post.updateMany).not.toHaveBeenCalled();
   });

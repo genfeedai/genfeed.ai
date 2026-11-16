@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import {
   EXECUTABLE_SKILL_SLUGS,
   type ExecutableSkillSlug,
@@ -93,6 +94,7 @@ export function buildTurboContentWorkflowDefinition(
     description: `Plans, generates, and ranks a bounded set of ${skillSlug} drafts through action-backed child workflows.`,
     label: `Generate ${skillSlug} run`,
     resultNodeId: 'rank-drafts',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -148,6 +150,7 @@ export function buildTurboContentItemWorkflowDefinition(
     description: `Generates one ${skillSlug} draft through its canonical skill workflow.`,
     label: `Generate ${skillSlug} run item`,
     resultNodeId: 'run-skill',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

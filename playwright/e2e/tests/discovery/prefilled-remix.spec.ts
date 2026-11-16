@@ -700,6 +700,7 @@ test.describe('Discovery prefilled remix handoff', () => {
       .click();
     await expect(
       authenticatedPage.getByRole('button', {
+        exact: true,
         name: 'Unsave',
       }),
     ).toBeVisible();

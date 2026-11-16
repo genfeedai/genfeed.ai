@@ -202,8 +202,8 @@ export interface ModalPostPlatformsTabProps {
 export interface ModalPostChannelListProps {
   platformConfigs: IPostPlatformConfig[];
   credentials: ICredential[];
-  /** Shared caption shown for a channel that has no caption of its own. */
-  globalDescription: string;
+  /** Media attached to the post; a channel that cannot take it is disabled. */
+  media: IIngredient[];
   /** Platform whose editor is open, if any. */
   expandedPlatform: string | null;
   isLoading: boolean;
@@ -270,7 +270,18 @@ export interface ModalPostSelectedChannelsProps {
   onEdit: () => void;
 }
 
-interface ModalPostComposerFieldsState extends ModalPostDestinationsProps {
+export interface ModalPostSlackTargetsProps {
+  credentials: ICredential[];
+  selectedCredentialIds: string[];
+  /** The channel chosen for each Slack workspace, by credential id. */
+  channelIds: Record<string, string>;
+  isDisabled: boolean;
+  onChannelChange: (credentialId: string, channelId: string) => void;
+}
+
+interface ModalPostComposerFieldsState
+  extends ModalPostDestinationsProps,
+    Pick<ModalPostSlackTargetsProps, 'channelIds' | 'onChannelChange'> {
   step: ModalPostComposerStep;
   /** Back to the channels step from the content step. */
   onEditChannels: () => void;

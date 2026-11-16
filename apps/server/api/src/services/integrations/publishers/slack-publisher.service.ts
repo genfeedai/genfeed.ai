@@ -1,6 +1,7 @@
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
+import { toChatPublishError } from '@api/services/integrations/publishers/chat-publish-error.util';
 import type {
   PublishContext,
   PublishResult,
@@ -145,10 +146,13 @@ export class SlackPublisherService extends BasePublisherService {
       });
       // A revoked token disconnects the workspace. A channel the app cannot
       // post to fails this post only; other channels still work.
-      if (error instanceof SlackApiError && error.kind === 'token_revoked') {
-        await this.credentialsService.patch(credential.id, {
-          isConnected: false,
-        });
+      if (error instanceof SlackApiError) {
+        if (error.kind === 'token_revoked') {
+          await this.credentialsService.patch(credential.id, {
+            isConnected: false,
+          });
+        }
+        throw toChatPublishError(error);
       }
       throw error;
     }

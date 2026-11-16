@@ -65,7 +65,7 @@ export default function StudioPlaygroundFailureDetailsDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-1.5">
-          <h3 className="text-2xs font-medium uppercase tracking-wide text-muted-foreground">
+          <h3 className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
             {translate('failure.dialog.reason')}
           </h3>
           <p className="text-sm text-foreground">
@@ -74,7 +74,7 @@ export default function StudioPlaygroundFailureDetailsDialog({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <h3 className="text-2xs font-medium uppercase tracking-wide text-muted-foreground">
+          <h3 className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
             {translate('failure.dialog.prompt')}
           </h3>
           <p className="break-words text-sm leading-relaxed text-foreground">
@@ -84,7 +84,7 @@ export default function StudioPlaygroundFailureDetailsDialog({
 
         {detail ? (
           <div className="flex flex-col gap-1.5">
-            <h3 className="text-2xs font-medium uppercase tracking-wide text-muted-foreground">
+            <h3 className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
               {translate('failure.detailsLabel')}
             </h3>
             <Pre

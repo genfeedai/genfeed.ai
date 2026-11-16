@@ -22,26 +22,7 @@ import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 
-const SERVER_ERROR_STATUS_PATTERN = /\b(500|502|503|504)\b/;
 const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
-
-const RETRYABLE_ERROR_PATTERNS = [
-  'rate limit',
-  'rate_limited',
-  'transient_failure',
-  'timeout',
-  'timed out',
-  'ETIMEDOUT',
-  'ECONNRESET',
-  'ECONNREFUSED',
-  'ENOTFOUND',
-  'socket hang up',
-  '429',
-  '500',
-  '502',
-  '503',
-  '504',
-] as const;
 
 export type QuotaCheckResult = {
   allowed: boolean;
@@ -58,8 +39,7 @@ export function getPublishErrorMessage(error: unknown): string {
 
 /**
  * What a returned (not thrown) failure is classified from: its kind when the
- * publisher set one, otherwise its message, which still takes the text
- * patterns until every publisher reports a kind.
+ * publisher set one. A failure with no kind is unclassified, so it is final.
  */
 export function toPublishFailureCause(result: PublishResult): unknown {
   return result.errorKind
@@ -100,33 +80,20 @@ function codeForKind(kind: PublishErrorKind): string {
 export function getPublishErrorCode(error: unknown): string {
   const kind = readPublishErrorKind(error);
   if (kind) return codeForKind(kind);
-  const message = getPublishErrorMessage(error).toLowerCase();
   const rawCode =
     isRecord(error) && 'code' in error
       ? String(error.code ?? '').toLowerCase()
       : '';
-  const classificationText = `${rawCode} ${message}`;
-  if (
-    classificationText.includes('rate limit') ||
-    classificationText.includes('429')
-  ) {
-    return 'rate_limited';
-  }
-  if (
-    classificationText.includes('timeout') ||
-    classificationText.includes('timed out') ||
-    classificationText.includes('etimedout')
-  ) {
-    return 'timeout';
-  }
-  if (SERVER_ERROR_STATUS_PATTERN.test(classificationText)) {
-    return 'provider_unavailable';
-  }
   return (
     rawCode.replace(NON_ALPHANUMERIC_RUNS_PATTERN, '_') || 'provider_error'
   );
 }
 
+/**
+ * Whether a failed publish may be tried again. A typed failure says so by its
+ * kind. Anything else is retried only when it says `isRetryable: true` itself,
+ * never because its message or code looks like a timeout or a server error.
+ */
 export function isRetryablePublishError(error: unknown): boolean {
   const kind = readPublishErrorKind(error);
   if (kind) {
@@ -136,65 +103,22 @@ export function isRetryablePublishError(error: unknown): boolean {
       kind === PublishErrorKind.OUTCOME_UNKNOWN
     );
   }
-  if (
+  return (
     isRecord(error) &&
     'isRetryable' in error &&
-    typeof error.isRetryable === 'boolean'
-  ) {
-    return error.isRetryable;
-  }
-
-  const errorMessage = getPublishErrorMessage(error).toLowerCase();
-  const errorCode =
-    isRecord(error) && 'code' in error ? String(error.code ?? '') : '';
-  const normalizedErrorCode = errorCode.toLowerCase();
-
-  return RETRYABLE_ERROR_PATTERNS.some(
-    (pattern) =>
-      errorMessage.includes(pattern.toLowerCase()) ||
-      normalizedErrorCode.includes(pattern.toLowerCase()),
+    typeof error.isRetryable === 'boolean' &&
+    error.isRetryable
   );
-}
-
-const AMBIGUOUS_OUTCOME_PATTERNS = [
-  'econnreset',
-  'socket hang up',
-  'epipe',
-] as const;
-
-function readHttpStatus(error: unknown): number | null {
-  if (!isRecord(error)) return null;
-  const response = isRecord(error.response) ? error.response : null;
-  const status = error.statusCode ?? error.status ?? response?.status;
-  return typeof status === 'number' ? status : null;
 }
 
 /**
  * Whether a thrown publish error leaves the provider outcome unknown: the
- * request may have reached the platform and been accepted (timeouts, dropped
- * connections, 5xx, provider-normalized transient failures). Rate limits,
- * refused connections and DNS failures prove nothing was published.
+ * request may have reached the platform and been accepted. Only a publisher
+ * can know that, so it is true for the `outcome_unknown` kind and nothing else.
+ * Rate limits, refused connections and DNS failures prove nothing was published.
  */
 export function isAmbiguousPublishError(error: unknown): boolean {
-  const kind = readPublishErrorKind(error);
-  if (kind) return kind === PublishErrorKind.OUTCOME_UNKNOWN;
-  const status = readHttpStatus(error);
-  if (status !== null && status >= 500) return true;
-  const code = getPublishErrorCode(error);
-  if (
-    code === 'timeout' ||
-    code === 'provider_unavailable' ||
-    code === 'transient_failure'
-  )
-    return true;
-  const message = getPublishErrorMessage(error).toLowerCase();
-  const rawCode =
-    isRecord(error) && 'code' in error
-      ? String(error.code ?? '').toLowerCase()
-      : '';
-  return AMBIGUOUS_OUTCOME_PATTERNS.some(
-    (pattern) => message.includes(pattern) || rawCode.includes(pattern),
-  );
+  return readPublishErrorKind(error) === PublishErrorKind.OUTCOME_UNKNOWN;
 }
 
 export function createChannelTargetError(

@@ -151,7 +151,7 @@ export default function ApiStatusProvider({
             </div>
 
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold">Cannot Connect to API</h1>
+              <h1 className="text-2xl font-semibold">Cannot Connect to API</h1>
               <p className="text-foreground/70">
                 The application cannot reach the backend server. This usually
                 means the API is not running.

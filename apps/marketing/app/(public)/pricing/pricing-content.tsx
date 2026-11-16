@@ -196,7 +196,7 @@ export default function PricingContent() {
                 >
                   {isFeatured ? (
                     <div className="absolute right-6 top-6">
-                      <span className="border border-foreground/40 px-2.5 py-1 text-2xs font-bold uppercase tracking-widest text-foreground/70">
+                      <span className="border border-foreground/40 px-2.5 py-1 text-2xs font-semibold uppercase tracking-label text-foreground/70">
                         Popular
                       </span>
                     </div>
@@ -252,7 +252,7 @@ export default function PricingContent() {
               aria-label={getPlanLabel('enterprise')}
             >
               <div className="absolute right-6 top-6">
-                <span className="border border-foreground/20 px-2.5 py-1 text-2xs font-bold uppercase tracking-widest text-foreground/70">
+                <span className="border border-foreground/20 px-2.5 py-1 text-2xs font-semibold uppercase tracking-label text-foreground/70">
                   We run it
                 </span>
               </div>

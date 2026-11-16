@@ -112,7 +112,7 @@ export function AgentRunsList({
           sections.map((section) =>
             section.items.length === 0 ? null : (
               <section key={section.label} className="mt-3">
-                <h3 className="px-1 pb-1 text-2xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                <h3 className="px-1 pb-1 text-2xs font-medium uppercase tracking-label text-muted-foreground">
                   {section.label}
                 </h3>
                 <div className="space-y-0.5">

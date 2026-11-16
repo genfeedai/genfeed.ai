@@ -9,7 +9,6 @@ import {
   TERMINAL_COMMANDS,
 } from '@public/skills/_data';
 import { Button } from '@ui/primitives/button';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -42,7 +41,6 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork page="/skills" kind="workflow" />}
         compact
         title={<>{FREE_SKILL_COUNT} Skills. One Command.</>}
         description="Content creation, SEO, advertising, GTM, image prompting, platform development, and analysis as Claude Code skills. Works standalone. Works better with Genfeed."
@@ -87,7 +85,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
             className="gsap-section"
           >
             <div className="text-center mb-16">
-              <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
+              <div className="text-foreground/50 text-xs font-semibold uppercase tracking-label mb-6">
                 {category.label}
               </div>
               <h2 className="text-5xl font-semibold mb-6">{category.title}</h2>
@@ -129,7 +127,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
         {registry && registry.skills.length > 0 && (
           <WebSection bg="bordered" className="gsap-section">
             <div className="text-center mb-16">
-              <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
+              <div className="text-foreground/50 text-xs font-semibold uppercase tracking-label mb-6">
                 Premium
               </div>
               <h2 className="text-5xl font-semibold mb-6">Pro Skills</h2>
@@ -175,7 +173,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
           <WebSection maxWidth="lg" className="gsap-section">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
               <div className="flex flex-col justify-center">
-                <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
+                <div className="text-foreground/50 text-xs font-semibold uppercase tracking-label mb-6">
                   Quick start
                 </div>
                 <h2 className="text-4xl font-semibold mb-4">One command</h2>

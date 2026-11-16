@@ -82,6 +82,7 @@ import { WorkflowEngineAdapterService } from '@api/collections/workflows/service
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowEngineExecutorRegistryService } from '@api/collections/workflows/services/workflow-engine-executor-registry.service';
 import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
+import { WorkflowExecutionPurgeService } from '@api/collections/workflows/services/workflow-execution-purge.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowFormatConverterService } from '@api/collections/workflows/services/workflow-format-converter.service';
 import { WorkflowGenerationService } from '@api/collections/workflows/services/workflow-generation.service';
@@ -175,6 +176,7 @@ import { Module } from '@nestjs/common';
     WorkflowExecutionAuthorizationService,
     WorkflowExecutorService,
     WorkflowArtifactLifecycleService,
+    WorkflowExecutionPurgeService,
     WorkflowNodeContinuationCoordinatorService,
     WorkflowNodeContinuationService,
     WorkflowFormatConverterService,
@@ -283,6 +285,7 @@ import { Module } from '@nestjs/common';
     WorkflowExecutorService,
     HeygenPollQueueService,
     WorkflowArtifactLifecycleService,
+    WorkflowExecutionPurgeService,
     WorkflowNodeClaimService,
     WorkflowNodeContinuationCoordinatorService,
     WorkflowNodeContinuationService,

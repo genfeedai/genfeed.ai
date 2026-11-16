@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import { getPageMarketingAsset } from '@data/page-marketing-assets.data';
 import TurboContent, { TURBO_SIGNUP_HREF } from '@public/turbo/turbo-content';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -86,10 +85,7 @@ describe('TurboContent', () => {
     window.removeEventListener('genfeed:marketing:button-click', listener);
   });
 
-  it('has its own artwork and contains no public service or agent connection imports', () => {
-    expect(getPageMarketingAsset('/turbo').src).toContain(
-      '/assets/site/pages/',
-    );
+  it('contains no public service or agent connection imports', () => {
     const source = readFileSync('app/(public)/turbo/turbo-content.tsx', 'utf8');
     expect(source).not.toMatch(
       /@services\/external\/public\.service|PublicService|AgentFirstActions|ConnectAgent/,

@@ -54,6 +54,7 @@ describe('workflow outcome classification', () => {
       workflowId: 'workflow',
       startedAt: null,
       estimatedDurationMs: null,
+      retentionPolicy: null,
       trigger: 'scheduled',
       workflow: { label: 'Internal', metadata: hidden, userId: 'system' },
     };

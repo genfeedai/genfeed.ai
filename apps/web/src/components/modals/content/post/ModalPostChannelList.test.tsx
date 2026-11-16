@@ -2,14 +2,16 @@ import '@testing-library/jest-dom/vitest';
 
 import {
   CredentialPlatform,
+  IngredientCategory,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type {
   ICredential,
+  IIngredient,
   IPostPlatformConfig,
 } from '@genfeedai/contracts/interfaces';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ModalPostChannelList from '@/components/modals/content/post/ModalPostChannelList';
 
@@ -37,6 +39,11 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+const image = {
+  category: IngredientCategory.IMAGE,
+  id: 'img-1',
+} as IIngredient;
+
 const credentials = [
   {
     externalHandle: 'genfeed-x',
@@ -60,7 +67,7 @@ function renderList(
     <ModalPostChannelList
       credentials={credentials}
       expandedPlatform={null}
-      globalDescription="Launch day"
+      media={[]}
       isLoading={false}
       platformConfigs={[
         channel(),
@@ -94,31 +101,32 @@ describe('ModalPostChannelList', () => {
     expect(screen.getByText('1 of 1 active')).toBeInTheDocument();
   });
 
-  it('shows the connected account name and the caption it will carry', () => {
+  it('shows each channel with its platform and whether it is on', () => {
     renderList();
 
-    expect(screen.getByText('Genfeed on X')).toBeInTheDocument();
-    expect(screen.getByText('Launch day')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('list', { name: 'Channels' })).getByText('On'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Publish to Genfeed on X' }),
+    ).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('offers Reconnect for an expired account and Connect for a missing one', () => {
     const { onAddChannels } = renderList();
 
-    expect(
-      screen.getByText('Reconnect this account to publish'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Not connected')).toBeInTheDocument();
+    expect(screen.getByText('Reconnect')).toBeInTheDocument();
+    expect(screen.getByText('Connect')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /^Reconnect/ }));
 
     expect(onAddChannels).toHaveBeenCalledOnce();
-    expect(screen.getAllByRole('switch')).toHaveLength(1);
   });
 
-  it('toggles one channel with its switch', () => {
+  it('toggles one channel by its avatar', () => {
     const { onToggle } = renderList();
 
     fireEvent.click(
-      screen.getByRole('switch', { name: 'Publish to Genfeed on X' }),
+      screen.getByRole('button', { name: 'Publish to Genfeed on X' }),
     );
 
     expect(onToggle).toHaveBeenCalledWith('cred-x');
@@ -142,5 +150,58 @@ describe('ModalPostChannelList', () => {
     expect(screen.getByText('Editor for twitter')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Edit Genfeed on X' }));
     expect(onToggleExpanded).toHaveBeenCalledWith('twitter');
+  });
+
+  describe('a connected channel that cannot take the attached media', () => {
+    const connected = (
+      platform: CredentialPlatform,
+      credentialId: string,
+    ): IPostPlatformConfig =>
+      channel({ credentialId, enabled: false, handle: credentialId, platform });
+    const platformConfigs = [
+      channel(),
+      connected(CredentialPlatform.INSTAGRAM, 'cred-ig'),
+      connected(CredentialPlatform.TIKTOK, 'cred-tt'),
+    ];
+
+    it('is disabled with what it needs when the post is text only', () => {
+      const { onToggle } = renderList({ platformConfigs });
+
+      expect(screen.getByText('Needs media')).toBeInTheDocument();
+      expect(screen.getByText('Needs video')).toBeInTheDocument();
+      expect(screen.getByText('1 of 1 active')).toBeInTheDocument();
+      const instagram = screen.getByRole('button', {
+        name: 'Publish to @cred-ig',
+      });
+      expect(instagram).toBeDisabled();
+      fireEvent.click(instagram);
+      expect(onToggle).not.toHaveBeenCalled();
+    });
+
+    it('is not offered an Edit button even when it was left on', () => {
+      renderList({
+        platformConfigs: [
+          channel({
+            credentialId: 'cred-ig',
+            enabled: true,
+            platform: CredentialPlatform.INSTAGRAM,
+          }),
+        ],
+      });
+
+      expect(screen.queryByRole('button', { name: /^Edit/ })).toBeNull();
+      expect(screen.getByText('0 of 0 active')).toBeInTheDocument();
+    });
+
+    it('becomes selectable once an image is attached, TikTok still needs video', () => {
+      renderList({ media: [image], platformConfigs });
+
+      expect(
+        screen.getByRole('button', { name: 'Publish to @cred-ig' }),
+      ).toBeEnabled();
+      expect(screen.queryByText('Needs media')).toBeNull();
+      expect(screen.getByText('Needs video')).toBeInTheDocument();
+      expect(screen.getByText('1 of 2 active')).toBeInTheDocument();
+    });
   });
 });

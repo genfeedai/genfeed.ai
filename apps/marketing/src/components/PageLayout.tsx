@@ -10,22 +10,12 @@ export default function PageLayout({
   heroActions,
   heroDetails,
   heroProof,
-  heroMedia,
   heroVisual,
   isHeroVisualStacked,
   showFooter = true,
   title,
   variant = 'poster',
 }: PageLayoutProps): React.ReactElement {
-  const visual = heroMedia ? (
-    <div className="w-full space-y-5">
-      {heroMedia}
-      {heroVisual}
-    </div>
-  ) : (
-    heroVisual
-  );
-
   const pageBody = (
     <>
       {children}
@@ -40,7 +30,7 @@ export default function PageLayout({
         description={description}
         heroActions={heroActions}
         heroProof={heroProof}
-        heroVisual={visual}
+        heroVisual={heroVisual}
         title={title}
       >
         {pageBody}
@@ -54,7 +44,7 @@ export default function PageLayout({
       description={description}
       heroActions={heroActions}
       heroDetails={heroDetails}
-      heroVisual={visual}
+      heroVisual={heroVisual}
       isHeroVisualStacked={isHeroVisualStacked}
       title={title}
     >

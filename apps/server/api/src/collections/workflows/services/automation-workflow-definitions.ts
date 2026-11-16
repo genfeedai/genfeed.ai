@@ -3,7 +3,9 @@ import type {
   WorkflowInputVariable,
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
+import { AUTOMATION_ACTION_IDS } from '@api/collections/workflows/services/automation-action-ids';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { REPLY_BOT_WORKFLOW_IDS } from '@api/services/reply-bot/reply-bot-workflow-definition';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
@@ -34,73 +36,6 @@ export const AUTOMATION_WORKFLOW_IDS = {
   SOCIAL_TRIGGERS: 'reply.polling.social-triggers',
   SOCIAL_TRIGGER_WORKFLOW: 'reply.polling.social-triggers.workflow',
   TREND_NOTIFICATIONS: 'trends.notifications.summary',
-} as const;
-
-export const AUTOMATION_ACTION_IDS = {
-  AGENT_BEGIN: 'agent.autopilot.begin',
-  AGENT_DISCOVER: 'agent.autopilot.discover',
-  AGENT_DISCOVER_RESETS: 'agent.autopilot.discover-credit-resets',
-  AGENT_DISPATCH: 'agent.autopilot.dispatch-strategy',
-  AGENT_FAIL: 'agent.autopilot.fail',
-  AGENT_FINALIZE: 'agent.autopilot.finalize',
-  AGENT_RESET: 'agent.autopilot.reset-credit-window',
-  CONTENT_ENGINE_BEGIN: 'content.production.engine.begin',
-  CONTENT_ENGINE_DISCOVER: 'content.production.engine.discover-brands',
-  CONTENT_ENGINE_EXECUTE_ITEM: 'content.production.engine.execute-plan-item',
-  CONTENT_ENGINE_FAIL: 'content.production.engine.fail',
-  CONTENT_ENGINE_FINALIZE: 'content.production.engine.finalize',
-  CONTENT_ENGINE_PLAN: 'content.production.engine.plan-brand',
-  CONTENT_ENGINE_PLAN_FINALIZE: 'content.production.engine.finalize-plan',
-  CONTENT_ENGINE_PLAN_PREPARE: 'content.production.engine.prepare-plan',
-  CONTENT_PIPELINE_BEGIN: 'content.production.autopilot.begin',
-  CONTENT_PIPELINE_DISCOVER: 'content.production.autopilot.discover-personas',
-  CONTENT_PIPELINE_FAIL: 'content.production.autopilot.fail',
-  CONTENT_PIPELINE_FINALIZE: 'content.production.autopilot.finalize',
-  CONTENT_PIPELINE_PREPARE: 'content.production.autopilot.prepare-persona',
-  CONTENT_PIPELINE_SCHEDULE: 'content.production.autopilot.schedule-persona',
-  HARNESS_BEGIN: 'harness.winners.begin',
-  HARNESS_DISCOVER: 'harness.winners.discover-brands',
-  HARNESS_FAIL: 'harness.winners.fail',
-  HARNESS_FINALIZE_BRAND: 'harness.winners.finalize-brand',
-  HARNESS_FINALIZE: 'harness.winners.finalize',
-  HARNESS_PREPARE_BRAND: 'harness.winners.prepare-brand',
-  HARNESS_PROMOTE_ITEM: 'harness.winners.promote-item',
-  LIVESTREAM_BEGIN: 'livestream.sessions.begin',
-  LIVESTREAM_DISCOVER: 'livestream.sessions.discover',
-  LIVESTREAM_FAIL: 'livestream.sessions.fail',
-  LIVESTREAM_FINALIZE: 'livestream.sessions.finalize',
-  LIVESTREAM_SESSION_DISCOVER_TARGETS: 'livestream.sessions.discover-targets',
-  LIVESTREAM_SESSION_FINALIZE: 'livestream.sessions.finalize-one',
-  LIVESTREAM_SESSION_LOAD: 'livestream.sessions.load-one',
-  LIVESTREAM_SESSION_SYNC_RESTREAM: 'livestream.sessions.sync-restream',
-  LIVESTREAM_TARGET_DELIVER: 'livestream.sessions.deliver-target',
-  RESTREAM_FINALIZE: 'livestream.restream.finalize',
-  RESTREAM_LOAD: 'livestream.restream.load-bot',
-  RESTREAM_SYNC: 'livestream.restream.sync-chat',
-  PAID_CREATIVE_DISCOVER: 'paid-creative.research.discover-advertisers',
-  PAID_CREATIVE_FINALIZE: 'paid-creative.research.finalize',
-  PAID_CREATIVE_INGEST: 'paid-creative.research.ingest-advertiser',
-  PAID_CREATIVE_PREPARE: 'paid-creative.research.prepare',
-  REPLY_BEGIN: 'reply.polling.bots.begin',
-  REPLY_DISCOVER: 'reply.polling.bots.discover-targets',
-  REPLY_FAIL: 'reply.polling.bots.fail',
-  REPLY_FINALIZE: 'reply.polling.bots.finalize',
-  REPLY_FINALIZE_TARGET: 'reply.polling.bots.finalize-target',
-  REPLY_PREPARE: 'reply.polling.bots.prepare-target',
-  SOCIAL_BEGIN: 'reply.polling.social.begin',
-  SOCIAL_DISCOVER: 'reply.polling.social.discover-workflows',
-  SOCIAL_FAIL: 'reply.polling.social.fail',
-  SOCIAL_FINALIZE: 'reply.polling.social.finalize',
-  SOCIAL_PROCESS: 'reply.polling.social.process-trigger',
-  TRENDS_DELIVER_EMAIL: 'trends.notifications.deliver-email',
-  TRENDS_DELIVER_IN_APP: 'trends.notifications.deliver-in-app',
-  TRENDS_DELIVER_TELEGRAM: 'trends.notifications.deliver-telegram',
-  TRENDS_FINALIZE: 'trends.notifications.finalize',
-  TRENDS_PREPARE: 'trends.notifications.prepare',
-  TRENDS_READ_HASHTAGS: 'trends.notifications.read-hashtags',
-  TRENDS_READ_SOUNDS: 'trends.notifications.read-sounds',
-  TRENDS_READ_VIDEOS: 'trends.notifications.read-videos',
-  TRENDS_RENDER: 'trends.notifications.render',
 } as const;
 
 type ActionId =
@@ -243,6 +178,7 @@ function sweepDefinition(options: {
     description: options.description,
     label: options.label,
     resultNodeId: finalize.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 
@@ -267,6 +203,7 @@ function singleActionChild(options: {
     description: options.description,
     label: options.label,
     resultNodeId: execute.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 
@@ -403,6 +340,7 @@ export function buildAgentProactiveWorkflowDefinition(): SystemWorkflowGraphDefi
       'Resets due credit windows and dispatches due proactive strategies through registered child workflows.',
     label: 'Proactive Agent Strategies',
     resultNodeId: finalize.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 
@@ -561,6 +499,7 @@ export function buildPaidCreativeResearchWorkflowDefinition(): SystemWorkflowGra
       'Checks provider readiness, discovers watched advertisers, and ingests each advertiser independently.',
     label: 'Competitor Paid-Creative Research',
     resultNodeId: finalize.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 
@@ -705,6 +644,7 @@ export function buildTrendNotificationWorkflowDefinition(
       'Prepares a trend digest, renders it once, and delivers through each configured channel.',
     label: 'Trend Summary Notifications',
     resultNodeId: finalize.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 
@@ -757,6 +697,7 @@ export function buildRestreamChatWorkflowDefinition(): SystemWorkflowGraphDefini
       'Loads the tenant-owned livestream bot and synchronizes its Restream chat context.',
     label: 'Restream Chat Context Ingest',
     resultNodeId: finalize.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 
@@ -790,6 +731,7 @@ function buildContentEngineBrandWorkflowDefinition(): SystemWorkflowGraphDefinit
       'Plans one brand content cycle and executes its items through a registered child workflow.',
     label: 'Produce Brand Content',
     resultNodeId: execute.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 
@@ -849,6 +791,7 @@ function buildContentEnginePlanWorkflowDefinition(): SystemWorkflowGraphDefiniti
       'Claims one content plan, executes each pending plan item in a child workflow, and finalizes the plan.',
     label: 'Execute Content Plan',
     resultNodeId: finalize.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 
@@ -924,6 +867,7 @@ function buildPersonaWorkflowDefinition(): SystemWorkflowGraphDefinition {
       'Resolves one due persona, runs its typed generation and publish workflow, and schedules its next run.',
     label: 'Process Persona Autopilot',
     resultNodeId: schedule.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 
@@ -982,6 +926,7 @@ function buildTypedPipelineWorkflowDefinition(
     description: `${label} and publishes one persona content item.`,
     label,
     resultNodeId: publish.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 
@@ -1027,6 +972,7 @@ function buildReplyBotTargetWorkflowDefinition(): SystemWorkflowGraphDefinition 
       'Adapts one credential target and runs the registered reply-bot workflow graph.',
     label: 'Poll Reply Bot Target',
     resultNodeId: finalize.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 
@@ -1110,6 +1056,7 @@ function buildLivestreamSessionChildWorkflowDefinition(): SystemWorkflowGraphDef
       'Loads one active livestream session, synchronizes Restream, discovers eligible targets, and delivers through child workflows.',
     label: 'Process Livestream Session',
     resultNodeId: finalize.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 
@@ -1169,6 +1116,7 @@ function buildHarnessWinnerBrandWorkflowDefinition(): SystemWorkflowGraphDefinit
       'Discovers ranked winners for one brand and promotes each through a child workflow.',
     label: 'Promote Brand Winners',
     resultNodeId: finalize.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 

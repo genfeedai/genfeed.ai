@@ -629,7 +629,7 @@ export default function PostDetail({
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-sm text-foreground/60">{translate('title')}</p>
-              <h2 className="text-2xl font-bold">
+              <h2 className="text-2xl font-semibold">
                 {translate('loadingSubtitle')}
               </h2>
             </div>

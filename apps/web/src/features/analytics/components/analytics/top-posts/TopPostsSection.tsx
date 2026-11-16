@@ -103,12 +103,12 @@ export default function TopPostsSection({
                 alt={featuredPost.label || 'Top post'}
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover outline-media group-hover:scale-105 transition-transform duration-300"
+                className="object-cover outline-media"
               />
             )}
 
             {/* Rank badge */}
-            <div className="absolute top-3 left-3 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-bold shadow-border">
+            <div className="absolute top-3 left-3 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-semibold shadow-border">
               #1
             </div>
 
@@ -176,7 +176,7 @@ export default function TopPostsSection({
                     alt={post.label || `Post ${index + 2}`}
                     fill
                     sizes="(max-width: 768px) 33vw, 160px"
-                    className="object-cover outline-media group-hover:scale-105 transition-transform duration-300"
+                    className="object-cover outline-media"
                   />
                   {/* Rank badge */}
                   <Badge

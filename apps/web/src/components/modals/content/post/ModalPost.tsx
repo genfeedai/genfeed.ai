@@ -60,18 +60,14 @@ import {
   isPostMediaRequirementMet,
   mergePostMedia,
 } from './post-media.helper';
+import {
+  isXPlatform,
+  type PostSubmitIntent,
+  X_STANDARD_POST_LIMIT,
+} from './post-submit.helper';
+import { useSlackChannelTargets } from './useSlackChannelTargets';
 
 const EMPTY_ARRAY: never[] = [];
-
-/** How a new post leaves the modal; the lifecycle follows from it, never from a field. */
-type PostSubmitIntent = 'draft' | 'publish' | 'schedule';
-
-/** X accepts up to 280 characters per post; longer text publishes as long-form. */
-const X_STANDARD_POST_LIMIT = 280;
-
-function isXPlatform(platform: string | undefined | null): boolean {
-  return platform === Platform.TWITTER;
-}
 
 export default function ModalPost({
   post,
@@ -98,8 +94,7 @@ export default function ModalPost({
   const { brandId, selectedBrand } = useBrand();
   const notificationsService = NotificationsService.getInstance();
   const composerTranslate = useTranslations('ui.postComposer');
-
-  // Get browser timezone for consistent date display
+  // Browser timezone keeps date display consistent.
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
 
   const [openVersion, setOpenVersion] = useState(0);
@@ -165,6 +160,7 @@ export default function ModalPost({
   }, [brandScope, credentials, isDestinationComposer, openVersion]);
   const isThreadRef = useRef(isThread);
   isThreadRef.current = isThread;
+  const slackTargets = useSlackChannelTargets(openVersion);
 
   // Refs for callbacks to prevent re-renders
   const onConfirmRef = useRef(onConfirm);
@@ -376,6 +372,7 @@ export default function ModalPost({
 
             return postsService.post({
               ...shared,
+              ...slackTargets.getTargetSettings(target),
               ...(category ? { category } : {}),
               description: caption,
               format:
@@ -514,6 +511,7 @@ export default function ModalPost({
       brandId,
       publishNowOrKeepDraft,
       composerTranslate,
+      slackTargets.getTargetSettings,
     ],
   );
 
@@ -936,10 +934,12 @@ export default function ModalPost({
                   credentials,
                   destination,
                   hasXTarget,
+                  channelIds: slackTargets.channelIds,
                   isDisabled: isSubmitting,
                   isLongPost,
                   isThread,
                   onSelectDestination: handleSelectDestination,
+                  onChannelChange: slackTargets.setChannel,
                   onEditChannels: () => setComposerStep('channels'),
                   onThreadChange: setIsThread,
                   onToggleCredential: handleToggleCredential,
