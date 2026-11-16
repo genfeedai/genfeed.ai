@@ -36,7 +36,10 @@ import { UsersService } from '@services/organization/users.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { PostSignupRoutingState } from '@/features/onboarding/props/post-signup-routing.props';
+import type {
+  PostSignupRoutingState,
+  SkippedHandleNotice,
+} from '@/features/onboarding/props/post-signup-routing.props';
 import {
   ANALYTICS_EVENTS,
   captureAnalyticsEvent,
@@ -76,6 +79,10 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const calledRef = useRef(false);
   const [routingAttempt, setRoutingAttempt] = useState(0);
   const [showFallback, setShowFallback] = useState(false);
+  const [skippedHandle, setSkippedHandle] = useState<SkippedHandleNotice | null>(
+    null,
+  );
+  const resumeAfterSkippedHandleRef = useRef<(() => void) | null>(null);
   const hasAuthUser = Boolean(authUser);
   const authPrimaryEmail = authUser?.primaryEmailAddress?.emailAddress ?? '';
   const checkoutEmail = currentUser?.email || authPrimaryEmail || '';
@@ -83,6 +90,9 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     parseBrandOsPreviewToken(requestedBrandOsTokenParam) ||
       parsePublicYoutubeClipperToken(requestedClipToolTokenParam),
   );
+  const continueAfterSkippedHandle = useCallback(() => {
+    resumeAfterSkippedHandleRef.current?.();
+  }, []);
   const retryBrandOsHandoff = useCallback(() => {
     calledRef.current = false;
     setShowFallback(false);
@@ -341,6 +351,20 @@ export function usePostSignupRouting(): PostSignupRoutingState {
           });
           localStorage.removeItem(ONBOARDING_STORAGE_KEYS.claimHandle);
           captureAnalyticsEvent(ANALYTICS_EVENTS.HANDLE_CLAIMED, { outcome });
+
+          // No brand is picked for an organization with several: tell the
+          // owner the handle was not applied and hold the redirect until they
+          // have read it, since the page is replaced as soon as routing ends.
+          if (outcome === 'several-brands') {
+            window.clearTimeout(fallbackTimeout);
+            setSkippedHandle({ handle: claimHandle });
+            await new Promise<void>((resolve) => {
+              resumeAfterSkippedHandleRef.current = resolve;
+              signal.addEventListener('abort', () => resolve(), { once: true });
+            });
+            resumeAfterSkippedHandleRef.current = null;
+            setSkippedHandle(null);
+          }
         }
       }
 
@@ -704,8 +728,10 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   ]);
 
   return {
+    continueAfterSkippedHandle,
     resolveOnboardingHref,
     retryBrandOsHandoff: hasBrandOsHandoff ? retryBrandOsHandoff : undefined,
     showFallback,
+    skippedHandle,
   };
 }

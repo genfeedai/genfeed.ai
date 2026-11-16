@@ -29,6 +29,7 @@ const {
   isSaaSMock,
   isSelfHostedMock,
   managedCreateCheckoutSessionMock,
+  patchBrandMock,
   recordSignupAttributionMock,
   resolveAuthTokenMock,
   searchParamsState,
@@ -58,6 +59,7 @@ const {
   isSaaSMock: vi.fn(),
   isSelfHostedMock: vi.fn(),
   managedCreateCheckoutSessionMock: vi.fn(),
+  patchBrandMock: vi.fn(),
   recordSignupAttributionMock: vi.fn(),
   resolveAuthTokenMock: vi.fn(),
   searchParamsState: {
@@ -177,6 +179,7 @@ vi.mock('@services/social/brands.service', () => ({
   BrandsService: {
     getInstance: vi.fn(() => ({
       claimBrandOsPreview: claimBrandOsPreviewMock,
+      patch: patchBrandMock,
     })),
   },
 }));
@@ -237,6 +240,8 @@ describe('PostSignupPage behavior', () => {
     recordSignupAttributionMock.mockReset();
     recordSignupAttributionMock.mockResolvedValue(undefined);
     managedCreateCheckoutSessionMock.mockReset();
+    patchBrandMock.mockReset();
+    patchBrandMock.mockResolvedValue({});
     getTokenMock.mockReset();
     getMyOrganizationsMock.mockReset();
     updateAccountTypeMock.mockReset();
@@ -732,6 +737,58 @@ describe('PostSignupPage behavior', () => {
       expect(locationState.href).toBe('/onboarding/brand');
     });
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
+  });
+
+  it('tells the owner a claimed handle was not applied when the organization has several brands', async () => {
+    searchParamsState.value = new URLSearchParams('handle=acme-studio');
+    currentUserState.currentUser = {
+      ...currentUserState.currentUser,
+      isOnboardingCompleted: false,
+    } as typeof currentUserState.currentUser;
+    findOrganizationBrandsMock.mockResolvedValue([
+      { id: 'brand-1', slug: 'first-brand' },
+      { id: 'brand-2', slug: 'second-brand' },
+    ]);
+
+    render(<PostSignupPage />);
+
+    expect(
+      await screen.findByText('@acme-studio was not applied'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/choose which brand takes @acme-studio in Settings/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Handle claimed/i)).not.toBeInTheDocument();
+    expect(patchBrandMock).not.toHaveBeenCalled();
+    expect(locationState.href).toBe('http://localhost/onboarding/post-signup');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    await waitFor(() => {
+      expect(locationState.href).toBe('/onboarding/brand');
+    });
+    expect(patchBrandMock).not.toHaveBeenCalled();
+    expect(
+      localStorage.getItem(ONBOARDING_STORAGE_KEYS.claimHandle),
+    ).toBeNull();
+  });
+
+  it('applies a claimed handle to a single brand and routes on without a notice', async () => {
+    searchParamsState.value = new URLSearchParams('handle=acme-studio');
+    currentUserState.currentUser = {
+      ...currentUserState.currentUser,
+      isOnboardingCompleted: false,
+    } as typeof currentUserState.currentUser;
+
+    render(<PostSignupPage />);
+
+    await waitFor(() => {
+      expect(locationState.href).toBe('/onboarding/brand');
+    });
+    expect(patchBrandMock).toHaveBeenCalledWith('brand-1', {
+      slug: 'acme-studio',
+    });
+    expect(screen.queryByText(/was not applied/)).not.toBeInTheDocument();
   });
 
   it('retries account type once and clears the browser hint after success', async () => {
