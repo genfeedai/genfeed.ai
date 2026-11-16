@@ -99,7 +99,8 @@ export class YouTubePublisherService extends BasePublisherService {
     if (mediaInfo.isImagePost || mediaInfo.isCarousel) {
       throw new Error('Provider verification lacks exact video proof');
     }
-    if (!context.credential.externalId) {
+    const channelId = context.credential.externalId;
+    if (!channelId) {
       throw new Error('YouTube verification channel unavailable or changed');
     }
     const found = await verifyMediaPublish(
@@ -109,7 +110,7 @@ export class YouTubePublisherService extends BasePublisherService {
           context.organizationId,
           context.brandId,
           context.credential.id,
-          context.credential.externalId,
+          channelId,
           attemptStartedAt,
           cursor,
         ),
