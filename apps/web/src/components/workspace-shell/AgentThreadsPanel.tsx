@@ -119,9 +119,13 @@ export default function AgentThreadsPanel({
     return translate('share.sharedScope', { scope });
   };
   const hasSharedThreads = allThreads.some(isSharedWithViewer);
-  const { members, membersById } = useAgentThreadMembers(
-    hasSharedThreads || Boolean(openThreadId),
-  );
+  const {
+    isFailed: isMembersFailed,
+    isLoading: isMembersLoading,
+    members,
+    membersById,
+    retry: retryMembers,
+  } = useAgentThreadMembers(hasSharedThreads || Boolean(openThreadId));
   const listedThreads = useMemo(
     () =>
       ownerFilter === AgentThreadOwnerFilter.ALL
@@ -153,8 +157,11 @@ export default function AgentThreadsPanel({
     return (
       <AgentThreadLightView
         apiService={apiService}
+        isMembersFailed={isMembersFailed}
+        isMembersLoading={isMembersLoading}
         isPending={pendingThreadIds?.has(openThread.id)}
         isResolved={isOpenThreadResolved}
+        key={openThread.id}
         members={members}
         membersById={membersById}
         onBack={() => setOpenThreadId(null)}
@@ -162,6 +169,7 @@ export default function AgentThreadsPanel({
         onReopen={
           onReopenThread ? () => void onReopenThread(openThread.id) : undefined
         }
+        onRetryMembers={retryMembers}
         onResolve={
           onResolveThread
             ? () => void onResolveThread(openThread.id)

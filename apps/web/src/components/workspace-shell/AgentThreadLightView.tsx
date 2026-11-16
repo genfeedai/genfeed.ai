@@ -15,10 +15,7 @@ import {
   AGENT_CONVERSATION_SCROLL_CLASS,
   AGENT_CONVERSATION_TRACK_CLASS,
 } from '@genfeedai/agent/constants/conversation-layout.constant';
-import type {
-  AgentChatMessage as AgentChatMessageModel,
-  AgentThreadShare,
-} from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentChatMessage as AgentChatMessageModel } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { deriveLatestProposedPlan } from '@genfeedai/agent/utils/resolve-latest-proposed-plan.util';
 import {
@@ -45,7 +42,9 @@ import {
   Ellipsis,
   Expand,
   Forward,
+  Loader2,
   Lock,
+  TriangleAlert,
   Users,
   Video,
 } from 'lucide-react';
@@ -58,6 +57,7 @@ import type {
   AgentThreadLightViewProps,
   AgentThreadMember,
 } from '@/components/workspace-shell/props/agent-threads-panel.props';
+import { useAgentThreadShares } from '@/components/workspace-shell/use-agent-thread-shares';
 import { collectThreadAssets } from './agent-thread-assets.util';
 
 const MESSAGE_LIMIT = 20;
@@ -66,7 +66,6 @@ const MESSAGE_LIMIT = 20;
 const RUNNING_REFRESH_MS = 4000;
 const NO_MEMBERS: AgentThreadMember[] = [];
 const NO_MEMBERS_BY_ID: ReadonlyMap<string, AgentThreadMember> = new Map();
-const NO_SHARES: AgentThreadShare[] = [];
 
 function resolveAuthor(
   member: AgentThreadMember | undefined,
@@ -83,6 +82,8 @@ function resolveAuthor(
  */
 export default function AgentThreadLightView({
   apiService,
+  isMembersFailed = false,
+  isMembersLoading = false,
   isPending = false,
   isResolved = false,
   members = NO_MEMBERS,
@@ -91,6 +92,7 @@ export default function AgentThreadLightView({
   onOpenFullThread,
   onReopen,
   onResolve,
+  onRetryMembers,
   thread,
 }: AgentThreadLightViewProps) {
   const translate = useTranslations('common.agentThreads');
@@ -109,11 +111,12 @@ export default function AgentThreadLightView({
   } | null>(null);
   const decidedPlanId = decidedPlan?.id ?? null;
   const updateThread = useAgentChatStore((state) => state.updateThread);
-  const [shares, setShares] = useState<AgentThreadShare[]>(NO_SHARES);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isHandoffOpen, setIsHandoffOpen] = useState(false);
   const [handoffTo, setHandoffTo] = useState<string | null>(null);
   const canManageShares = thread.canManageShares === true;
+  const access = useAgentThreadShares(apiService, thread.id, canManageShares);
+  const shares = access.shares;
   // The viewer's own level: anything but a share reads as owner, which is how
   // an older API answered before sharing existed.
   const accessLevel = thread.accessLevel ?? AgentThreadAccessLevel.OWNER;
@@ -181,28 +184,6 @@ export default function AgentThreadLightView({
     }),
     [apiService, loadMessages, membersById],
   );
-
-  // Who the thread is shared with. Only the owner (or an admin) may read it.
-  useEffect(() => {
-    if (!canManageShares) {
-      setShares(NO_SHARES);
-      return;
-    }
-    const controller = new AbortController();
-    apiService
-      .getThreadShares(thread.id, controller.signal)
-      .then((loaded) => {
-        if (!controller.signal.aborted) {
-          setShares(loaded);
-        }
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) {
-          setShares(NO_SHARES);
-        }
-      });
-    return () => controller.abort();
-  }, [apiService, canManageShares, thread.id]);
 
   // A running thread (for example right after its plan was approved) shows
   // its new messages as they land, and once more when the run settles.
@@ -303,7 +284,7 @@ export default function AgentThreadLightView({
   );
 
   const planDecision: AgentPlanDecision | undefined =
-    latestPlan && !isResolved && latestPlan.id !== decidedPlanId
+    canPrompt && latestPlan && !isResolved && latestPlan.id !== decidedPlanId
       ? {
           isBusy: isDeciding,
           onApprove: async () => {
@@ -336,7 +317,8 @@ export default function AgentThreadLightView({
       ),
     [messages],
   );
-  const isShared = shares.length > 0;
+  const isConfirmed = access.status === 'ready';
+  const isShared = isConfirmed && shares.length > 0;
   const isMultiAuthor = authorIds.size > 1 || !isOwnThread || isShared;
   const participants = useMemo(() => {
     const ids = new Set<string>(
@@ -363,6 +345,25 @@ export default function AgentThreadLightView({
       ? translate('share.scopePeople', { count: shares.length })
       : translate('share.scopePrivate');
   })();
+
+  // Private is only claimed once the server has confirmed it.
+  const shareButtonLabel = isConfirmed
+    ? shareScopeLabel
+    : translate(
+        access.status === 'loading'
+          ? 'share.checkingAccess'
+          : 'share.accessUnverified',
+      );
+  const shareButtonIcon =
+    access.status === 'loading' ? (
+      <Loader2 className="size-4 animate-spin" />
+    ) : !isConfirmed ? (
+      <TriangleAlert className="size-4" />
+    ) : isShared ? (
+      <Users className="size-4" />
+    ) : (
+      <Lock className="size-4" />
+    );
 
   const title = thread.title?.trim() || translate('untitled');
   const toggleLabel = translate(isResolved ? 'reopen' : 'resolve');
@@ -426,12 +427,8 @@ export default function AgentThreadLightView({
               textTransform="none"
               variant={ButtonVariant.SECONDARY}
             >
-              {isShared ? (
-                <Users className="size-4" />
-              ) : (
-                <Lock className="size-4" />
-              )}
-              {shareScopeLabel}
+              {shareButtonIcon}
+              {shareButtonLabel}
             </Button>
           </>
         ) : !isOwnThread ? (
@@ -654,12 +651,17 @@ export default function AgentThreadLightView({
       ) : null}
       {canManageShares ? (
         <AgentThreadShareDialog
+          access={access}
           apiService={apiService}
+          isMembersFailed={isMembersFailed}
+          isMembersLoading={isMembersLoading}
           isOpen={isShareOpen}
           members={members}
+          onAccessConfirmed={access.confirm}
+          onAccessUnverified={access.markUnverified}
           onOpenChange={setIsShareOpen}
-          onSharesChange={setShares}
-          shares={shares}
+          onRetryAccess={access.retry}
+          onRetryMembers={onRetryMembers}
           thread={thread}
         />
       ) : null}
