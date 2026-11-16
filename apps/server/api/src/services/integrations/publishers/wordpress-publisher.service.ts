@@ -1,4 +1,5 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { toArticlePublishError } from '@api/services/integrations/publishers/article-publish-error.util';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
   PublishContext,
@@ -6,7 +7,7 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { verifyHtmlPublish } from '@api/services/integrations/publishers/publisher-verification.util';
 import { WordpressService } from '@api/services/integrations/wordpress/services/wordpress.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -93,6 +94,8 @@ export class WordpressPublisherService extends BasePublisherService {
         return this.createFailedResult(
           this.platform,
           'WordPress credential or site ID not found',
+          undefined,
+          PublishErrorKind.CHANNEL_DISCONNECTED,
         );
       }
 
@@ -125,6 +128,8 @@ export class WordpressPublisherService extends BasePublisherService {
         return this.createFailedResult(
           this.platform,
           'Failed to get external ID',
+          undefined,
+          PublishErrorKind.OUTCOME_UNKNOWN,
         );
       }
 
@@ -135,7 +140,7 @@ export class WordpressPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throw toArticlePublishError(error, { provider: 'WordPress' });
     }
   }
 

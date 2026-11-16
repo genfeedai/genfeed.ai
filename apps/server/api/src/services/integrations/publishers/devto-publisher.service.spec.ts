@@ -10,6 +10,7 @@ import {
   CredentialPlatform,
   PostCategory,
   PostStatus,
+  PublishErrorKind,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
@@ -141,6 +142,7 @@ describe('DevtoPublisherService', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/credential not found/);
+    expect(result.errorKind).toBe(PublishErrorKind.CHANNEL_DISCONNECTED);
     expect(devtoService.createArticle).not.toHaveBeenCalled();
   });
 
@@ -158,5 +160,48 @@ describe('DevtoPublisherService', () => {
     const result = await service.publish(makeContext());
 
     expect(result.success).toBe(false);
+    expect(result.errorKind).toBe(PublishErrorKind.OUTCOME_UNKNOWN);
+  });
+
+  it.each([
+    [401, PublishErrorKind.CHANNEL_DISCONNECTED],
+    [404, PublishErrorKind.CHANNEL_DISCONNECTED],
+    [422, PublishErrorKind.CONTENT_REJECTED],
+    [503, PublishErrorKind.OUTCOME_UNKNOWN],
+  ])('throws a typed publish error for HTTP %i', async (status, kind) => {
+    devtoService.createArticle.mockRejectedValue(
+      Object.assign(new Error('provider failed'), {
+        response: { headers: {}, status },
+      }),
+    );
+
+    await expect(service.publish(makeContext())).rejects.toMatchObject({
+      httpStatus: status,
+      kind,
+      name: 'PublishError',
+    });
+  });
+
+  it('throws rate_limited with the wait the provider gave', async () => {
+    devtoService.createArticle.mockRejectedValue(
+      Object.assign(new Error('provider failed'), {
+        response: { headers: { 'retry-after': '20' }, status: 429 },
+      }),
+    );
+
+    await expect(service.publish(makeContext())).rejects.toMatchObject({
+      kind: PublishErrorKind.RATE_LIMITED,
+      retryAfterMs: 20_000,
+    });
+  });
+
+  it('throws outcome_unknown when the connection drops mid-request', async () => {
+    devtoService.createArticle.mockRejectedValue(
+      Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }),
+    );
+
+    await expect(service.publish(makeContext())).rejects.toMatchObject({
+      kind: PublishErrorKind.OUTCOME_UNKNOWN,
+    });
   });
 });

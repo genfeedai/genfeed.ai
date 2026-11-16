@@ -1,11 +1,12 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { MediumService } from '@api/services/integrations/medium/services/medium.service';
+import { toArticlePublishError } from '@api/services/integrations/publishers/article-publish-error.util';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -64,6 +65,8 @@ export class MediumPublisherService extends BasePublisherService {
         return this.createFailedResult(
           this.platform,
           'Medium credential or user ID not found',
+          undefined,
+          PublishErrorKind.CHANNEL_DISCONNECTED,
         );
       }
 
@@ -81,6 +84,8 @@ export class MediumPublisherService extends BasePublisherService {
         return this.createFailedResult(
           this.platform,
           'Failed to get external ID from Medium',
+          undefined,
+          PublishErrorKind.OUTCOME_UNKNOWN,
         );
       }
 
@@ -97,7 +102,10 @@ export class MediumPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throw toArticlePublishError(error, {
+        provider: 'Medium',
+        isTokenRefreshable: Boolean(credential?.refreshToken),
+      });
     }
   }
 

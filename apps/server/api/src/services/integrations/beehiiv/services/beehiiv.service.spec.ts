@@ -8,7 +8,7 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 }));
 
 import { SERVER_TOKENS } from '@api/server.dependencies';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -368,10 +368,7 @@ describe('BeehiivService', () => {
           status: 'draft',
           title: 'Invalid draft',
         }),
-      ).rejects.toMatchObject({
-        code: 'validation_failed',
-        isRetryable: false,
-      });
+      ).rejects.toMatchObject({ kind: PublishErrorKind.CONTENT_REJECTED });
       expect(httpPostMock).not.toHaveBeenCalled();
     });
   });

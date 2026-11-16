@@ -1,5 +1,6 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
+import { toArticlePublishError } from '@api/services/integrations/publishers/article-publish-error.util';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
   PublishContext,
@@ -7,7 +8,7 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { WORKFLOW_APPROVED_SCHEDULE_SETTING } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { verifyProviderPublish } from '@api/services/integrations/publishers/publisher-verification.util';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -130,6 +131,8 @@ export class BeehiivPublisherService extends BasePublisherService {
         return this.createFailedResult(
           this.platform,
           'Failed to get external ID from Beehiiv',
+          undefined,
+          PublishErrorKind.OUTCOME_UNKNOWN,
         );
       }
 
@@ -150,7 +153,7 @@ export class BeehiivPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throw toArticlePublishError(error, { provider: 'Beehiiv' });
     }
   }
 
