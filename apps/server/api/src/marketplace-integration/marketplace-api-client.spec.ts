@@ -347,4 +347,139 @@ describe('MarketplaceApiClient', () => {
       expect(await client.getSellerByUserId('user-1')).toBeNull();
     });
   });
+
+  describe('GEN credit price and credit purchases', () => {
+    const call = {
+      buyerId: 'buyer-opaque',
+      creditsPaid: 2175,
+      idempotencyKey: 'call-1',
+      listingId: 'listing-1',
+      organizationId: 'buyer-org',
+    };
+
+    function rejectedResponse(status: number, body: unknown): Response {
+      return {
+        json: async () => body,
+        ok: false,
+        status,
+      } as unknown as Response;
+    }
+
+    it('reads the GEN price the marketplace states for a listing', async () => {
+      fetchMock.mockResolvedValue(okResponse(recorded('listing-priced')));
+
+      const quote = await client.getCreditQuote('listing-1');
+
+      expect(quote).toEqual({ creditPrice: 2175, status: 'ok' });
+      expect(lastFetchUrl()).toBe(
+        'http://localhost:3200/marketplace/listings/listing-1',
+      );
+    });
+
+    it('reports a listing without a GEN price as not payable, a 404 as not found and a failure as unavailable', async () => {
+      fetchMock.mockResolvedValueOnce(
+        okResponse({
+          data: {
+            attributes: { creditPrice: null, title: 'Free one' },
+            id: 'listing-2',
+            type: 'listing',
+          },
+        }),
+      );
+      expect(await client.getCreditQuote('listing-2')).toEqual({
+        status: 'not-payable',
+      });
+
+      fetchMock.mockResolvedValueOnce(errorResponse(404));
+      expect(await client.getCreditQuote('missing')).toEqual({
+        status: 'not-found',
+      });
+
+      fetchMock.mockResolvedValueOnce(errorResponse(502));
+      expect(await client.getCreditQuote('listing-1')).toEqual({
+        status: 'unavailable',
+      });
+
+      fetchMock.mockRejectedValueOnce(new Error('network'));
+      expect(await client.getCreditQuote('listing-1')).toEqual({
+        status: 'unavailable',
+      });
+    });
+
+    it('records a credit purchase with the signed service token and returns the purchase id', async () => {
+      const body = recorded('credit-purchase-recorded') as {
+        data: { id: string };
+      };
+      fetchMock.mockResolvedValue(okResponse(body));
+
+      const result = await client.recordCreditPurchase(call, 'service-token');
+
+      expect(result).toEqual({ purchaseId: body.data.id, status: 'recorded' });
+      expect(lastFetchUrl()).toBe(
+        'http://localhost:3200/marketplace/service/purchases',
+      );
+      expect(lastFetchInit().method).toBe('POST');
+      expect(
+        (lastFetchInit().headers as Record<string, string>).Authorization,
+      ).toBe('Bearer service-token');
+      expect(JSON.parse(String(lastFetchInit().body))).toEqual(call);
+    });
+
+    it('reports a purchase that was refunded earlier under the same key as rejected', async () => {
+      fetchMock.mockResolvedValue(
+        okResponse(recorded('credit-purchase-refunded')),
+      );
+
+      expect(await client.recordCreditPurchase(call, 't')).toMatchObject({
+        reason: 'The purchase was refunded',
+        status: 'rejected',
+      });
+    });
+
+    it('reports a refused purchase with the marketplace reason and a server error as unavailable', async () => {
+      fetchMock.mockResolvedValueOnce(
+        rejectedResponse(409, recorded('credit-purchase-rejected')),
+      );
+      expect(await client.recordCreditPurchase(call, 't')).toEqual({
+        httpStatus: 409,
+        reason: 'The GEN price of this listing is 2175',
+        status: 'rejected',
+      });
+
+      fetchMock.mockResolvedValueOnce(errorResponse(503));
+      expect(await client.recordCreditPurchase(call, 't')).toEqual({
+        status: 'unavailable',
+      });
+
+      fetchMock.mockRejectedValueOnce(new Error('timeout'));
+      expect(await client.recordCreditPurchase(call, 't')).toEqual({
+        status: 'unavailable',
+      });
+    });
+
+    it('refunds by call key and tells a refund from an absent purchase or an outage', async () => {
+      fetchMock.mockResolvedValueOnce(
+        okResponse(recorded('credit-purchase-refunded')),
+      );
+      expect(await client.refundCreditPurchase('call-1', 't')).toEqual({
+        status: 'refunded',
+      });
+      expect(lastFetchUrl()).toBe(
+        'http://localhost:3200/marketplace/service/purchases/refund',
+      );
+      expect(JSON.parse(String(lastFetchInit().body))).toEqual({
+        idempotencyKey: 'call-1',
+      });
+
+      fetchMock.mockResolvedValueOnce(errorResponse(404));
+      expect(await client.refundCreditPurchase('call-9', 't')).toEqual({
+        status: 'absent',
+      });
+
+      fetchMock.mockResolvedValueOnce(errorResponse(500));
+      expect(await client.refundCreditPurchase('call-1', 't')).toEqual({
+        status: 'unavailable',
+      });
+    });
+  });
 });

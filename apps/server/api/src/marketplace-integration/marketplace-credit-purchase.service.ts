@@ -1,0 +1,256 @@
+import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import {
+  MarketplaceApiClient,
+  type MarketplaceCreditPurchaseInput,
+} from '@api/marketplace-integration/marketplace-api-client';
+import {
+  MARKETPLACE_SERVICE_AUDIENCE,
+  MARKETPLACE_SERVICE_SCOPES,
+  MARKETPLACE_SERVICE_SUBJECT,
+  MARKETPLACE_SERVICE_TOKEN_SECONDS,
+  type MarketplaceServiceScope,
+} from '@api/marketplace-integration/marketplace-service-auth';
+import { usesMeteredCredits } from '@genfeedai/config';
+import { ActivitySource } from '@genfeedai/contracts';
+import type { IMarketplaceCreditPurchaseResult } from '@genfeedai/contracts/interfaces/billing';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
+import {
+  BadRequestException,
+  ConflictException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+
+const PURCHASE_REFERENCE_TYPE = 'marketplace_purchase';
+const REFUND_EXPIRY_DAYS = 365;
+
+/**
+ * Pays for a marketplace listing with the buyer organization's credits.
+ *
+ * The credits are taken first, then the marketplace is asked to record a
+ * completed purchase through its signed service call. If the marketplace does
+ * not confirm, the credits go back. Every step carries a key derived from the
+ * buyer's attempt key, so a retried request takes the credits once and the
+ * marketplace holds one purchase.
+ *
+ * Credits are spent here, not transferred: the store has one seller, Genfeed,
+ * so there is no receiving wallet and no seller earns credits.
+ */
+@Traced()
+@Injectable()
+export class MarketplaceCreditPurchaseService {
+  constructor(
+    private readonly logger: LoggerService,
+    private readonly marketplaceApiClient: MarketplaceApiClient,
+    private readonly creditsUtilsService: CreditsUtilsService,
+    private readonly betterAuthService: BetterAuthService,
+  ) {}
+
+  @HandleErrors('pay for marketplace listing with credits', 'marketplace')
+  async payWithCredits(input: {
+    idempotencyKey: string;
+    listingId: string;
+    organizationId: string;
+    userId: string;
+  }): Promise<IMarketplaceCreditPurchaseResult> {
+    if (!usesMeteredCredits()) {
+      throw new BusinessLogicException(
+        'Paying with credits needs metered credits on this deployment',
+        undefined,
+        'MARKETPLACE_CREDITS_UNAVAILABLE',
+      );
+    }
+
+    const { listingId, organizationId, userId } = input;
+    const quote = await this.marketplaceApiClient.getCreditQuote(listingId);
+    if (quote.status === 'not-found') {
+      throw new NotFoundException('Listing', listingId);
+    }
+    if (quote.status === 'not-payable') {
+      throw new BadRequestException('This listing cannot be paid with credits');
+    }
+    if (quote.status === 'unavailable') {
+      throw new ServiceUnavailableException(
+        'The marketplace is unavailable. Nothing was charged.',
+      );
+    }
+    const credits = quote.creditPrice;
+
+    // One key per buying attempt, scoped to the buyer, so the ledger's global
+    // key space cannot be shared with another organization.
+    const callKey = `marketplace-purchase:${organizationId}:${userId}:${listingId}:${input.idempotencyKey.trim()}`;
+
+    await this.takeCredits({
+      callKey,
+      credits,
+      listingId,
+      organizationId,
+      userId,
+    });
+
+    const purchase: MarketplaceCreditPurchaseInput = {
+      buyerId: userId,
+      creditsPaid: credits,
+      idempotencyKey: callKey,
+      listingId,
+      organizationId,
+    };
+    const recorded = await this.marketplaceApiClient.recordCreditPurchase(
+      purchase,
+      await this.serviceToken(MARKETPLACE_SERVICE_SCOPES.recordPurchase),
+    );
+
+    if (recorded.status === 'recorded') {
+      return {
+        creditsPaid: credits,
+        listingId,
+        purchaseId: recorded.purchaseId,
+      };
+    }
+
+    if (recorded.status === 'rejected') {
+      await this.returnCredits({
+        callKey,
+        credits,
+        listingId,
+        organizationId,
+        userId,
+      });
+      this.logger.warn(
+        'marketplace refused a credit purchase; credits returned',
+        {
+          httpStatus: recorded.httpStatus,
+          listingId,
+          organizationId,
+          reason: recorded.reason,
+        },
+      );
+      throw recorded.httpStatus === 409
+        ? new ConflictException(
+            `${recorded.reason}. Your credits were returned.`,
+          )
+        : new BadRequestException(
+            `${recorded.reason}. Your credits were returned.`,
+          );
+    }
+
+    // The marketplace did not answer, so the purchase may or may not exist.
+    // Ask it to refund by the call key: only when it confirms the purchase is
+    // gone (refunded, or never recorded) do the credits go back.
+    const refund = await this.marketplaceApiClient.refundCreditPurchase(
+      callKey,
+      await this.serviceToken(MARKETPLACE_SERVICE_SCOPES.refundPurchase),
+    );
+    if (refund.status === 'unavailable') {
+      this.logger.error(
+        'marketplace did not confirm a credit purchase',
+        undefined,
+        {
+          listingId,
+          organizationId,
+        },
+      );
+      throw new ServiceUnavailableException(
+        'We could not confirm your purchase yet. Try again in a moment: you will not be charged twice.',
+      );
+    }
+    await this.returnCredits({
+      callKey,
+      credits,
+      listingId,
+      organizationId,
+      userId,
+    });
+    throw new ServiceUnavailableException(
+      'The marketplace could not record your purchase. Your credits were returned.',
+    );
+  }
+
+  private serviceToken(scope: MarketplaceServiceScope): Promise<string> {
+    return this.betterAuthService.signServiceToken({
+      audience: MARKETPLACE_SERVICE_AUDIENCE,
+      lifetimeSeconds: MARKETPLACE_SERVICE_TOKEN_SECONDS,
+      scope,
+      subject: MARKETPLACE_SERVICE_SUBJECT,
+    });
+  }
+
+  /** Take the credits once for this attempt; a low balance takes nothing. */
+  private async takeCredits(input: {
+    callKey: string;
+    credits: number;
+    listingId: string;
+    organizationId: string;
+    userId: string;
+  }): Promise<void> {
+    try {
+      await this.creditsUtilsService.deductCreditsFromOrganization(
+        input.organizationId,
+        input.userId,
+        input.credits,
+        'Marketplace purchase',
+        ActivitySource.WEB,
+        {
+          idempotencyKey: `${input.callKey}:charge`,
+          metadata: { listingId: input.listingId },
+          referenceId: input.callKey,
+          referenceType: PURCHASE_REFERENCE_TYPE,
+        },
+      );
+    } catch (error: unknown) {
+      if (
+        error instanceof BusinessLogicException &&
+        error.errorCode === 'INSUFFICIENT_CREDITS'
+      ) {
+        const available = Math.max(
+          0,
+          await this.creditsUtilsService.getOrganizationCreditsBalance(
+            input.organizationId,
+          ),
+        );
+        const missing = Math.max(0, input.credits - available);
+        throw new HttpException(
+          {
+            detail: `You need ${missing} more GEN to buy this. It costs ${input.credits} and you have ${available}. Nothing was taken.`,
+            meta: { available, missing, required: input.credits },
+            title: 'Insufficient credits',
+          },
+          HttpStatus.PAYMENT_REQUIRED,
+        );
+      }
+      throw error;
+    }
+  }
+
+  private async returnCredits(input: {
+    callKey: string;
+    credits: number;
+    listingId: string;
+    organizationId: string;
+    userId: string;
+  }): Promise<void> {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + REFUND_EXPIRY_DAYS);
+    await this.creditsUtilsService.refundOrganizationCredits(
+      input.organizationId,
+      input.credits,
+      'marketplace-purchase-refund',
+      'Marketplace purchase not completed - credit refund',
+      expiresAt,
+      {
+        actorUserId: input.userId,
+        idempotencyKey: `${input.callKey}:refund`,
+        metadata: { listingId: input.listingId },
+        referenceId: input.callKey,
+        referenceType: PURCHASE_REFERENCE_TYPE,
+      },
+    );
+  }
+}

@@ -19,6 +19,8 @@ interface MarketplaceListing {
   type?: string;
   isOfficial?: boolean;
   publishedAt?: string;
+  /** The GEN credit price the marketplace derives from the card price; null when not payable in credits. */
+  creditPrice?: number | null;
 }
 
 interface MarketplaceListingPage {
@@ -55,6 +57,31 @@ export type MarketplaceInstallPayloadResult =
   | { status: 'unauthorized' }
   | { status: 'unavailable' };
 
+/** The price a buyer pays in credits, as the marketplace states it. */
+export type MarketplaceCreditQuoteResult =
+  | { status: 'ok'; creditPrice: number }
+  | { status: 'not-payable' }
+  | { status: 'not-found' }
+  | { status: 'unavailable' };
+
+export type MarketplaceCreditPurchaseResult =
+  | { status: 'recorded'; purchaseId: string }
+  | { status: 'rejected'; httpStatus: number; reason: string }
+  | { status: 'unavailable' };
+
+export type MarketplaceCreditRefundResult =
+  | { status: 'refunded' }
+  | { status: 'absent' }
+  | { status: 'unavailable' };
+
+export interface MarketplaceCreditPurchaseInput {
+  buyerId: string;
+  creditsPaid: number;
+  idempotencyKey: string;
+  listingId: string;
+  organizationId: string;
+}
+
 interface MarketplaceListingQuery {
   search?: string;
   type?: string;
@@ -87,6 +114,12 @@ function toListing(resource: JsonApiResource): MarketplaceListing | null {
     return null;
   }
   return {
+    creditPrice:
+      typeof attributes.creditPrice === 'number'
+        ? attributes.creditPrice
+        : attributes.creditPrice === null
+          ? null
+          : undefined,
     description: readString(attributes.description),
     id: resource.id,
     isOfficial:
@@ -101,6 +134,17 @@ function toListing(resource: JsonApiResource): MarketplaceListing | null {
     title: attributes.title,
     type: readString(attributes.type),
   };
+}
+
+async function readErrorMessage(response: Response): Promise<string> {
+  try {
+    const body: unknown = await response.json();
+    return isRecord(body) && typeof body.message === 'string'
+      ? body.message
+      : `HTTP ${response.status}`;
+  } catch {
+    return `HTTP ${response.status}`;
+  }
 }
 
 function numberOr(value: unknown, fallback: number): number {
@@ -307,6 +351,143 @@ export class MarketplaceApiClient {
     } catch (error: unknown) {
       this.logger.warn(
         `MarketplaceApiClient getInstallPayload error: ${(error as Error).message}`,
+        'MarketplaceApiClient',
+      );
+      return { status: 'unavailable' };
+    }
+  }
+
+  /**
+   * Read the GEN price of a listing from the marketplace (public route). The
+   * price is never taken from the browser.
+   */
+  async getCreditQuote(
+    listingId: string,
+  ): Promise<MarketplaceCreditQuoteResult> {
+    try {
+      const response = await safeFetch(
+        `${this.baseUrl}/marketplace/listings/${encodeURIComponent(listingId)}`,
+        {
+          headers: { Accept: 'application/json' },
+          method: 'GET',
+          signal: AbortSignal.timeout(5_000),
+        },
+        this.destinationGuard,
+      );
+
+      if (!response.ok) {
+        await response.body?.cancel();
+        return response.status === 404
+          ? { status: 'not-found' }
+          : { status: 'unavailable' };
+      }
+
+      const body: unknown = await response.json();
+      const resource = isRecord(body) ? toResource(body.data) : null;
+      const creditPrice = resource?.attributes.creditPrice;
+      if (!resource || creditPrice === undefined) {
+        return { status: 'unavailable' };
+      }
+      if (typeof creditPrice !== 'number' || creditPrice <= 0) {
+        return { status: 'not-payable' };
+      }
+      return { creditPrice, status: 'ok' };
+    } catch (error: unknown) {
+      this.logger.warn(
+        `MarketplaceApiClient getCreditQuote error: ${(error as Error).message}`,
+        'MarketplaceApiClient',
+      );
+      return { status: 'unavailable' };
+    }
+  }
+
+  /**
+   * Record a purchase the API already took credits for. The marketplace
+   * checks the signed service token, the price and the call key, and answers
+   * the same purchase to a retried call.
+   */
+  async recordCreditPurchase(
+    input: MarketplaceCreditPurchaseInput,
+    serviceToken: string,
+  ): Promise<MarketplaceCreditPurchaseResult> {
+    try {
+      const response = await safeFetch(
+        `${this.baseUrl}/marketplace/service/purchases`,
+        {
+          body: JSON.stringify(input),
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${serviceToken}`,
+            'Content-Type': 'application/json',
+          },
+          method: 'POST',
+          signal: AbortSignal.timeout(10_000),
+        },
+        this.destinationGuard,
+      );
+
+      if (response.status >= 500) {
+        await response.body?.cancel();
+        return { status: 'unavailable' };
+      }
+      if (!response.ok) {
+        const reason = await readErrorMessage(response);
+        return { httpStatus: response.status, reason, status: 'rejected' };
+      }
+
+      const body: unknown = await response.json();
+      const resource = isRecord(body) ? toResource(body.data) : null;
+      if (!resource) {
+        return { status: 'unavailable' };
+      }
+      if (resource.attributes.status !== 'completed') {
+        return {
+          httpStatus: response.status,
+          reason: 'The purchase was refunded',
+          status: 'rejected',
+        };
+      }
+      return { purchaseId: resource.id, status: 'recorded' };
+    } catch (error: unknown) {
+      this.logger.warn(
+        `MarketplaceApiClient recordCreditPurchase error: ${(error as Error).message}`,
+        'MarketplaceApiClient',
+      );
+      return { status: 'unavailable' };
+    }
+  }
+
+  /**
+   * Refund a credit purchase by its call key. `absent` means the marketplace
+   * holds no purchase under the key, so no credits may stay taken for it.
+   */
+  async refundCreditPurchase(
+    idempotencyKey: string,
+    serviceToken: string,
+  ): Promise<MarketplaceCreditRefundResult> {
+    try {
+      const response = await safeFetch(
+        `${this.baseUrl}/marketplace/service/purchases/refund`,
+        {
+          body: JSON.stringify({ idempotencyKey }),
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${serviceToken}`,
+            'Content-Type': 'application/json',
+          },
+          method: 'POST',
+          signal: AbortSignal.timeout(10_000),
+        },
+        this.destinationGuard,
+      );
+
+      await response.body?.cancel();
+      if (response.ok) return { status: 'refunded' };
+      if (response.status === 404) return { status: 'absent' };
+      return { status: 'unavailable' };
+    } catch (error: unknown) {
+      this.logger.warn(
+        `MarketplaceApiClient refundCreditPurchase error: ${(error as Error).message}`,
         'MarketplaceApiClient',
       );
       return { status: 'unavailable' };
