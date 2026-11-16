@@ -1,4 +1,6 @@
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
+import { PublishErrorKind } from '@genfeedai/contracts';
+import { PublishError } from '@genfeedai/contracts/interfaces';
 import {
   describeRateLimitPlan,
   planRateLimitedRetry,
@@ -45,6 +47,13 @@ describe('readRetryAfterMs', () => {
       'the SDK rateLimit.reset in epoch seconds',
       { rateLimit: { reset: NOW.getTime() / 1000 + 90 } },
       90000,
+    ],
+    [
+      'a resetAt on a typed rate limit',
+      new PublishError(PublishErrorKind.RATE_LIMITED, 'Slow down', {
+        resetAt: new Date(NOW.getTime() + 7 * MINUTE),
+      }),
+      7 * MINUTE,
     ],
     [
       'a reset already in the past',
@@ -187,7 +196,7 @@ describe('decideRetry', () => {
       3,
     );
     expect(decision.canRetry).toBe(true);
-    expect(decision.rateLimit?.kind).toBe('wait');
+    expect(decision.plan?.kind).toBe('wait');
   });
 
   it('does not retry a rate limit that outlasted the give-up window', () => {
@@ -212,6 +221,32 @@ describe('decideRetry', () => {
     );
     expect(decideRetry(post({ retryCount: 3 }), failure, 3).canRetry).toBe(
       false,
+    );
+  });
+
+  it('fails a rejected post at once, whatever its message says', () => {
+    const error = new PublishError(
+      PublishErrorKind.CONTENT_REJECTED,
+      'Caption is longer than 500 characters',
+    );
+    const decision = decideRetry(post(), { error, message: error.message }, 3);
+    expect(decision.canRetry).toBe(false);
+    expect(decision.isRetryable).toBe(false);
+  });
+
+  it('waits for the reset a typed rate limit states', () => {
+    const resetAt = new Date(Date.now() + 10 * MINUTE);
+    const error = new PublishError(PublishErrorKind.RATE_LIMITED, 'Slow', {
+      resetAt,
+    });
+    const decision = decideRetry(
+      post({ retryCount: 3 }),
+      { error, message: error.message },
+      3,
+    );
+    expect(decision.canRetry).toBe(true);
+    expect(decision.plan?.kind === 'wait' && decision.plan.retryAt).toEqual(
+      expect.any(Date),
     );
   });
 });

@@ -2,7 +2,7 @@
  * Telegram Bot Service
  *
  * Workflow execution bot using grammy. Allows users to browse and execute
- * GenFeed workflows via Telegram with conversational input collection.
+ * Genfeed workflows via Telegram with conversational input collection.
  * Uses the shared immutable workflow engine and Genfeed action executors.
  *
  * Separate from the existing TelegramService (social auth integration).
@@ -243,7 +243,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
       : null;
 
     await ctx.reply(
-      `🤖 GenFeed Bot\n` +
+      `🤖 Genfeed Bot\n` +
         `📦 Workflows loaded: ${this.conversation.workflowsLoaded()}\n` +
         `💬 Active conversations: ${this.conversation.getActiveCount()}\n` +
         `🔐 Chat context: ${

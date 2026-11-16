@@ -429,7 +429,7 @@ describe('LoginPage', () => {
       expect(desktopRuntimeMocks.login).toHaveBeenCalledOnce();
     });
     expect(desktopRuntimeMocks.eventOrder).toEqual(['subscribe', 'login']);
-    expect(screen.getByText('Waiting for the browser...')).toBeVisible();
+    expect(screen.getByText('Waiting for the browser…')).toBeVisible();
     expect(
       screen.getByText(/Source checkouts cannot open automatically/i),
     ).toBeVisible();
@@ -1019,7 +1019,7 @@ describe('LoginPage', () => {
       );
 
       expect(await screen.findByText('Code expired.')).toBeVisible();
-      expect(screen.getByText('Waiting for the browser...')).toBeVisible();
+      expect(screen.getByText('Waiting for the browser…')).toBeVisible();
 
       fireEvent.change(screen.getByLabelText('Sign-in code'), {
         target: { value: 'fresh-code' },

@@ -27,15 +27,18 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
+import { CronCredentialsModule } from '@workers/crons/credentials/cron.credentials.module';
 import { CronManualPostRemindersService } from '@workers/crons/posts/cron.manual-post-reminders.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { ReleaseRecurrenceMaterializerService } from '@workers/services/release-recurrence-materializer.service';
+import { ScheduledPostChannelRecoveryService } from '@workers/services/scheduled-post-channel-recovery.service';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
+import { ScheduledPostSweepLockService } from '@workers/services/scheduled-post-sweep-lock.service';
 import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-delivery.service';
@@ -46,6 +49,7 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
     BrandPublishPolicyModule,
     forwardRef(() => ActivitiesModule),
     forwardRef(() => CredentialsModule),
+    CronCredentialsModule,
     forwardRef(() => OrganizationsModule),
     forwardRef(() => PostsModule),
     forwardRef(() => WebhookClientModule),
@@ -69,10 +73,12 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
     CronManualPostRemindersService,
     CronPostsService,
     PostRepeatSchedulerService,
+    ScheduledPostChannelRecoveryService,
     ScheduledPostDeliveryService,
     ScheduledPostDiscoveryService,
     ScheduledPostExecutionGuardService,
     ScheduledPostFailureService,
+    ScheduledPostSweepLockService,
     ScheduledPostWorkflowQueueService,
     ScheduledPostWorkflowService,
     ThreadCommentDeliveryService,

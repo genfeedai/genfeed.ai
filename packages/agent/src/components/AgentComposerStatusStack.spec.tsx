@@ -582,7 +582,7 @@ describe('AgentComposerStatusStack', () => {
       );
 
       expect(
-        screen.getByText('This is taking longer than expected.'),
+        screen.getByText('This is taking longer than expected'),
       ).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole('button', { name: 'Keep waiting' }));

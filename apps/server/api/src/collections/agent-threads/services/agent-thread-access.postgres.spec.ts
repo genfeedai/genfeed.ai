@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { AgentScopeContextService } from '@api/agent-context/agent-scope-context.service';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { buildAgentMessageBrandWhere } from '@api/collections/agent-messages/utils/agent-message-brand.util';
@@ -8,6 +9,8 @@ import { AgentThreadSharesService } from '@api/collections/agent-threads/service
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { prepareAgentThreadsForRelocation } from '@api/collections/agent-threads/utils/agent-thread-relocation.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
+import { AgentThreadRuntimeController } from '@api/services/agent-threading/controllers/agent-thread-runtime.controller';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentThreadAccessLevel,
@@ -21,6 +24,7 @@ import {
   AGENT_CHAT_CHANNEL,
   AGENT_THREAD_ACCESS_REVOKED_EVENT_TYPE,
 } from '@genfeedai/contracts/constants';
+import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
 import { PrismaClient } from '@genfeedai/prisma';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -1097,6 +1101,260 @@ describe.skipIf(!connectionString)(
 
         expect(earlier).toBeNull();
         expect(current?.content).toBe('b-one');
+      });
+    });
+
+    describe('agent context for a collaborator (#10256)', () => {
+      const compressed = vi.fn();
+      const messages = () =>
+        new AgentMessagesService(
+          database() as unknown as PrismaService,
+          logger as never,
+          {} as never,
+        );
+      const contextService = () =>
+        new AgentOrchestratorContextService(
+          {} as never,
+          logger as never,
+          {} as never,
+          new AgentScopeContextService(
+            database() as never,
+            logger as never,
+            brandAccess(),
+            access(),
+          ),
+          {} as never,
+          messages(),
+          {} as never,
+          {} as never,
+          {} as never,
+          {} as never,
+          undefined,
+          undefined,
+          {
+            getStateOrCompact: compressed,
+            getWindowMessages: vi.fn().mockResolvedValue([]),
+            renderStateAsUserMessage: vi.fn().mockReturnValue('summary'),
+          } as never,
+        );
+
+      const scopeFor = (userId: string, threadId: string) =>
+        ({
+          organizationId,
+          threadId,
+          threadOwnerUserId: owner,
+          userId,
+        }) as unknown as ValidatedAgentScope;
+
+      async function createMovedThread() {
+        const thread = await createThread(owner, { brandId: brandA });
+        const start = Date.now() - 60_000;
+        const rows: Array<[string, string | null, number]> = [
+          ['a-one', brandA, 0],
+          ['no-brand', null, 1_000],
+        ];
+        for (const [label, brandId, offset] of rows) {
+          await database().agentMessage.create({
+            data: {
+              brandId,
+              content: label,
+              createdAt: new Date(start + offset),
+              id: id(label),
+              organizationId,
+              role: 'assistant',
+              threadId: thread.id,
+              userId: owner,
+            },
+          });
+        }
+        await database().agentThread.update({
+          data: { brandId: brandB },
+          where: { id: thread.id },
+        });
+        await database().agentMessage.create({
+          data: {
+            brandId: brandB,
+            content: 'b-one',
+            createdAt: new Date(start + 2_000),
+            id: id('b-one'),
+            organizationId,
+            role: 'assistant',
+            threadId: thread.id,
+            userId: owner,
+          },
+        });
+        await share(
+          thread.id,
+          AgentThreadShareScope.ORGANIZATION,
+          AgentThreadShareLevel.COLLABORATE,
+        );
+        return thread;
+      }
+
+      it('builds a brand-B-only collaborator context without the earlier brand and without a summary', async () => {
+        const thread = await createMovedThread();
+
+        const result = await contextService().resolveThreadMessages(
+          thread.id,
+          organizationId,
+          scopeFor(brandBOnly, thread.id),
+        );
+
+        expect(result.messages.map((message) => message.content)).toEqual([
+          'no-brand',
+          'b-one',
+        ]);
+        expect(result.compressedContext).toBeUndefined();
+        expect(compressed).not.toHaveBeenCalled();
+      });
+
+      it('keeps the whole context for a collaborator who reaches every brand', async () => {
+        const thread = await createMovedThread();
+        compressed.mockResolvedValue(null);
+
+        const result = await contextService().resolveThreadMessages(
+          thread.id,
+          organizationId,
+          scopeFor(admin, thread.id),
+        );
+
+        expect(result.messages.map((message) => message.content)).toEqual([
+          'a-one',
+          'no-brand',
+          'b-one',
+        ]);
+      });
+
+      it('refuses a collaborator whose share no longer reaches them', async () => {
+        const thread = await createMovedThread();
+
+        await expect(
+          contextService().resolveThreadMessages(
+            thread.id,
+            organizationId,
+            scopeFor(teammate, thread.id),
+          ),
+        ).rejects.toBeInstanceOf(NotFoundException);
+      });
+
+      it("leaves the owner's own turn context unchanged", async () => {
+        const thread = await createMovedThread();
+        compressed.mockResolvedValue(null);
+
+        const result = await contextService().resolveThreadMessages(
+          thread.id,
+          organizationId,
+          { organizationId, threadId: thread.id, userId: owner } as never,
+        );
+
+        expect(result.messages.map((message) => message.content)).toEqual([
+          'a-one',
+          'no-brand',
+          'b-one',
+        ]);
+      });
+    });
+
+    describe('branching a thread', () => {
+      /** The memories the controller asked the engine to save, by user. */
+      let saved: Array<{ content: string; userId: string }>;
+
+      const controllerFor = () => {
+        saved = [];
+        const messages = new AgentMessagesService(
+          database() as unknown as PrismaService,
+          logger as never,
+          {
+            resolveReferencesFromMetadata: async () => [],
+          } as never,
+        );
+        return new AgentThreadRuntimeController(
+          {
+            recordMemoryFlush: async (
+              _threadId: string,
+              _organizationId: string,
+              userId: string,
+              content: string,
+            ) => {
+              saved.push({ content, userId });
+              return 'memory';
+            },
+          } as never,
+          {} as never,
+          new AgentThreadsService(
+            database() as unknown as PrismaService,
+            logger as never,
+            messages,
+          ),
+          access(),
+          messages,
+          {} as never,
+          {} as never,
+          logger as never,
+          {} as never,
+        );
+      };
+
+      const userFor = (userId: string) => ({ organizationId, userId }) as never;
+
+      async function createThreadWithMessage() {
+        const thread = await createThread(owner, { brandId: brandA });
+        await database().agentMessage.create({
+          data: {
+            brandId: brandA,
+            content: 'launch plan for the brand',
+            id: id('branch-message'),
+            organizationId,
+            role: 'assistant',
+            threadId: thread.id,
+            userId: owner,
+          },
+        });
+        return thread;
+      }
+
+      const branchesOf = (threadId: string) =>
+        database().agentThread.count({ where: { parentThreadId: threadId } });
+
+      it('saves nothing and branches nothing for a member who does not own the thread', async () => {
+        const thread = await createThreadWithMessage();
+        const controller = controllerFor();
+
+        await expect(
+          controller.branchThread({} as never, thread.id, userFor(teammate)),
+        ).rejects.toThrow();
+
+        expect(saved).toEqual([]);
+        expect(await branchesOf(thread.id)).toBe(0);
+      });
+
+      it('saves nothing for a collaborator on a shared thread either', async () => {
+        const thread = await createThreadWithMessage();
+        await share(
+          thread.id,
+          AgentThreadShareScope.ORGANIZATION,
+          AgentThreadShareLevel.COLLABORATE,
+        );
+        const controller = controllerFor();
+
+        await expect(
+          controller.branchThread({} as never, thread.id, userFor(teammate)),
+        ).rejects.toThrow();
+
+        expect(saved).toEqual([]);
+        expect(await branchesOf(thread.id)).toBe(0);
+      });
+
+      it('still branches the thread and saves its recent messages for the owner', async () => {
+        const thread = await createThreadWithMessage();
+        const controller = controllerFor();
+
+        await controller.branchThread({} as never, thread.id, userFor(owner));
+
+        expect(saved).toEqual([
+          { content: 'assistant: launch plan for the brand', userId: owner },
+        ]);
+        expect(await branchesOf(thread.id)).toBe(1);
       });
     });
 

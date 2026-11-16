@@ -379,12 +379,13 @@ export class AgentThreadRuntimeController {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const userId = await this.resolveDatabaseUserId(user);
-      await this.flushThreadMemory(threadId, organizationId, userId, 'branch');
+      // Branching proves ownership first, so only the owner's thread is read.
       const branched = await this.agentThreadsService.branchThread(
         threadId,
         organizationId,
         userId,
       );
+      await this.flushThreadMemory(threadId, organizationId, userId, 'branch');
       return serializeSingle(request, AgentThreadSerializer, branched);
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'branchThread');

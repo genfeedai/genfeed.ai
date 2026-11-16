@@ -602,7 +602,7 @@ describe('SettingsApiKeysPage', () => {
       expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
       expect(
         screen.getByRole('button', {
-          name: action === 'Create Key' ? 'Creating...' : action,
+          name: action === 'Create Key' ? 'Creating…' : action,
         }),
       ).toBeDisabled();
       view.unmount();
@@ -872,7 +872,7 @@ describe('SettingsApiKeysPage', () => {
 
     renderPage();
 
-    expect(await screen.findByText('Loading keys...')).toBeInTheDocument();
+    expect(await screen.findByText('Loading keys…')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
 
     await waitFor(() => {
@@ -970,7 +970,7 @@ describe('SettingsApiKeysPage', () => {
     mocks.findAllApiKeys.mockImplementation(() => new Promise(() => undefined));
     renderPage();
 
-    expect(await screen.findByText('Loading keys...')).toBeInTheDocument();
+    expect(await screen.findByText('Loading keys…')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create Key' })).toBeEnabled();
   });
 
@@ -1064,7 +1064,7 @@ describe('SettingsApiKeysPage', () => {
     renderPage(client);
 
     expect(screen.getByText('MCP Key')).toBeInTheDocument();
-    expect(screen.queryByText('Loading keys...')).not.toBeInTheDocument();
+    expect(screen.queryByText('Loading keys…')).not.toBeInTheDocument();
   });
 
   it('never shows one organization’s keys under another', async () => {
@@ -1078,7 +1078,7 @@ describe('SettingsApiKeysPage', () => {
     mocks.findAllApiKeys.mockReturnValue(new Promise(() => undefined));
     renderPage(client);
 
-    expect(await screen.findByText('Loading keys...')).toBeInTheDocument();
+    expect(await screen.findByText('Loading keys…')).toBeInTheDocument();
     expect(screen.queryByText('MCP Key')).not.toBeInTheDocument();
   });
 

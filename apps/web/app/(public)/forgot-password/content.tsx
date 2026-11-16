@@ -87,6 +87,7 @@ export default function ForgotPasswordContent() {
             <Input
               type="email"
               name="email"
+              autoComplete="email"
               placeholder="you@example.com"
               value={email}
               onChange={(event: ChangeEvent<HTMLInputElement>) =>
