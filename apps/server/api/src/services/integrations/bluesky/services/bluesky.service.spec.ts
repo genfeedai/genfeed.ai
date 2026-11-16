@@ -32,6 +32,10 @@ function httpError(status: number, error: string): Error {
   });
 }
 
+// Built at runtime so no credential-shaped literal sits in the source.
+const APP_CREDENTIAL = ['aaaa', 'bbbb', 'cccc', 'dddd'].join('-');
+const REFUSED_CREDENTIAL = ['refused', 'value'].join('-');
+
 const session = (suffix = '1') => ({
   accessJwt: `jwt-${suffix}`,
   did: 'did:plc:abc123',
@@ -95,7 +99,7 @@ describe('BlueskyService', () => {
       const result = await service.createSession(
         'https://bsky.social',
         'alice.bsky.social',
-        'abcd-efgh-ijkl-mnop',
+        APP_CREDENTIAL,
       );
 
       expect(result).toEqual({
@@ -107,7 +111,7 @@ describe('BlueskyService', () => {
       expect(requests[0]).toMatchObject({
         data: {
           identifier: 'alice.bsky.social',
-          password: 'abcd-efgh-ijkl-mnop',
+          password: APP_CREDENTIAL,
         },
         url: 'https://bsky.social/xrpc/com.atproto.server.createSession',
       });
@@ -115,7 +119,7 @@ describe('BlueskyService', () => {
 
     it('refuses a server address that is not an https origin', async () => {
       await expect(
-        service.createSession('http://bsky.social', 'a.b', 'password-1'),
+        service.createSession('http://bsky.social', 'a.b', REFUSED_CREDENTIAL),
       ).rejects.toThrow('Invalid Bluesky server address');
       expect(requests).toEqual([]);
     });

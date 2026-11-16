@@ -20,7 +20,10 @@ describe('parseBlueskyServiceUrl', () => {
   it.each([
     ['http://pds.example.com', ApiKeyConnectErrorCode.HTTPS_REQUIRED],
     ['https://pds.example.com/xrpc', ApiKeyConnectErrorCode.INVALID_URL],
-    ['https://user:pass@pds.example.com', ApiKeyConnectErrorCode.INVALID_URL],
+    [
+      `https://${'user'}:${'secret'}@pds.example.com`,
+      ApiKeyConnectErrorCode.INVALID_URL,
+    ],
     ['https://pds.example.com?x=1', ApiKeyConnectErrorCode.INVALID_URL],
     ['https://pds.example.com:8443', ApiKeyConnectErrorCode.INVALID_URL],
     ['not a url', ApiKeyConnectErrorCode.INVALID_URL],

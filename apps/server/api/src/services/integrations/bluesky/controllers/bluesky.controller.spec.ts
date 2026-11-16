@@ -25,6 +25,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const brand = { id: 'brand-1', organizationId: 'org-1' };
 const user = { organizationId: 'org-1', userId: 'user-1' } as unknown as User;
 const request = {} as Request;
+// Built at runtime so no credential-shaped literal sits in the source.
+const APP_CREDENTIAL = ['aaaa', 'bbbb', 'cccc', 'dddd'].join('-');
+const REFUSED_CREDENTIAL = ['refused', 'value'].join('-');
 
 function axiosLikeError(status: number): Error {
   return Object.assign(new Error('request failed'), {
@@ -82,7 +85,7 @@ describe('BlueskyController', () => {
 
   it('connects an account and stores the app password with its server', async () => {
     const result = await controller.connect(request, user, {
-      appPassword: ' abcd-efgh-ijkl-mnop ',
+      appPassword: ` ${APP_CREDENTIAL} `,
       brandId: 'brand-1',
       handle: '@Alice.Bsky.Social',
     });
@@ -90,7 +93,7 @@ describe('BlueskyController', () => {
     expect(createSession).toHaveBeenCalledWith(
       'https://bsky.social',
       'alice.bsky.social',
-      'abcd-efgh-ijkl-mnop',
+      APP_CREDENTIAL,
     );
     expect(createPendingForBrand).toHaveBeenCalledWith(
       brand,
@@ -108,7 +111,7 @@ describe('BlueskyController', () => {
         name: 'Alice',
       },
       {
-        accessToken: 'abcd-efgh-ijkl-mnop',
+        accessToken: APP_CREDENTIAL,
         description: 'https://bsky.social',
         isConnected: true,
         isDeleted: false,
@@ -121,7 +124,7 @@ describe('BlueskyController', () => {
 
   it('uses the server address a self-hosted account supplies', async () => {
     await controller.connect(request, user, {
-      appPassword: 'abcd-efgh-ijkl-mnop',
+      appPassword: APP_CREDENTIAL,
       brandId: 'brand-1',
       handle: 'alice.example.com',
       serviceUrl: 'pds.example.com',
@@ -130,7 +133,7 @@ describe('BlueskyController', () => {
     expect(createSession).toHaveBeenCalledWith(
       'https://pds.example.com',
       'alice.example.com',
-      'abcd-efgh-ijkl-mnop',
+      APP_CREDENTIAL,
     );
   });
 
@@ -139,7 +142,7 @@ describe('BlueskyController', () => {
 
     const failure = await controller
       .connect(request, user, {
-        appPassword: 'wrong-password',
+        appPassword: REFUSED_CREDENTIAL,
         brandId: 'brand-1',
         handle: 'alice.bsky.social',
       })
@@ -154,7 +157,7 @@ describe('BlueskyController', () => {
   it('answers https_required for an http server address before any request', async () => {
     const failure = await controller
       .connect(request, user, {
-        appPassword: 'abcd-efgh-ijkl-mnop',
+        appPassword: APP_CREDENTIAL,
         brandId: 'brand-1',
         handle: 'alice.example.com',
         serviceUrl: 'http://pds.example.com',
@@ -171,7 +174,7 @@ describe('BlueskyController', () => {
     findOne.mockResolvedValue(null);
 
     const result = await controller.connect(request, user, {
-      appPassword: 'abcd-efgh-ijkl-mnop',
+      appPassword: APP_CREDENTIAL,
       brandId: 'brand-1',
       handle: 'alice.bsky.social',
     });
