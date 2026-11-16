@@ -6,14 +6,17 @@ import type { OrganizationDocument } from '@api/collections/organizations/schema
 import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { WebhookUrlUnresolvableException } from '@api/shared/utils/webhook-validator/webhook-validator.util';
 import {
   CredentialPlatform,
   PostCategory,
   PostStatus,
+  PublishErrorKind,
 } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
+import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('GhostPublisherService', () => {
@@ -203,11 +206,75 @@ describe('GhostPublisherService', () => {
       );
     });
 
-    it('should rethrow errors from GhostService', async () => {
-      ghostService.createPost.mockRejectedValue(new Error('Ghost API error'));
-      await expect(service.publish(makeContext())).rejects.toThrow(
-        'Ghost API error',
+    it.each([
+      [401, PublishErrorKind.CHANNEL_DISCONNECTED],
+      [404, PublishErrorKind.CHANNEL_DISCONNECTED],
+      [422, PublishErrorKind.CONTENT_REJECTED],
+      [503, PublishErrorKind.OUTCOME_UNKNOWN],
+    ])('throws a typed publish error for HTTP %i', async (status, kind) => {
+      ghostService.createPost.mockRejectedValue(
+        Object.assign(new Error('provider failed'), {
+          response: { headers: {}, status },
+        }),
       );
+
+      await expect(service.publish(makeContext())).rejects.toMatchObject({
+        httpStatus: status,
+        kind,
+        name: 'PublishError',
+      });
+    });
+
+    it('throws rate_limited with the wait the provider gave', async () => {
+      ghostService.createPost.mockRejectedValue(
+        Object.assign(new Error('provider failed'), {
+          response: { headers: { 'retry-after': '20' }, status: 429 },
+        }),
+      );
+
+      await expect(service.publish(makeContext())).rejects.toMatchObject({
+        kind: PublishErrorKind.RATE_LIMITED,
+        retryAfterMs: 20_000,
+      });
+    });
+
+    it('throws outcome_unknown when the connection drops mid-request', async () => {
+      ghostService.createPost.mockRejectedValue(
+        Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }),
+      );
+
+      await expect(service.publish(makeContext())).rejects.toMatchObject({
+        kind: PublishErrorKind.OUTCOME_UNKNOWN,
+      });
+    });
+
+    it('throws retry_later when the stored site address does not resolve', async () => {
+      ghostService.createPost.mockRejectedValue(
+        new WebhookUrlUnresolvableException(),
+      );
+
+      await expect(service.publish(makeContext())).rejects.toMatchObject({
+        kind: PublishErrorKind.RETRY_LATER,
+      });
+    });
+
+    it('throws channel_disconnected when the stored site address is refused', async () => {
+      ghostService.createPost.mockRejectedValue(
+        new BadRequestException('private address'),
+      );
+
+      await expect(service.publish(makeContext())).rejects.toMatchObject({
+        kind: PublishErrorKind.CHANNEL_DISCONNECTED,
+      });
+    });
+
+    it('returns outcome_unknown when Ghost accepts the post without an id', async () => {
+      ghostService.createPost.mockResolvedValue({});
+
+      const result = await service.publish(makeContext());
+
+      expect(result.success).toBe(false);
+      expect(result.errorKind).toBe(PublishErrorKind.OUTCOME_UNKNOWN);
     });
   });
 

@@ -365,6 +365,80 @@ describe('Threading AgentThreadRuntimeController', () => {
       });
     });
 
+    it("reuses the answering member's continuation when the owner recovers the answer (#10029)", async () => {
+      resolveInputRequest.mockResolvedValue({
+        requestId: 'req-1',
+        resolvedByUserId: 'user_member',
+        status: 'resolved',
+      });
+      prepareForTurn.mockResolvedValue({
+        existingScope: { ...sharedScope, threadOwnerUserId: undefined },
+      });
+      agentOrchestratorService.acceptChatStream.mockResolvedValue({
+        executionId: 'run-member',
+        queuedAt: '2026-11-11T14:00:00.000Z',
+        status: 'queued',
+        threadId,
+      });
+
+      const response = await controller.respondToInputRequest(
+        threadId,
+        'req-1',
+        { answer: 'Use hybrid' },
+        mockUser,
+      );
+
+      expect(agentOrchestratorService.acceptChatStream).toHaveBeenCalledWith(
+        expect.objectContaining({ clientRequestId: 'input-response:req-1' }),
+        expect.objectContaining({
+          idempotencyUserId: 'user_member',
+          userId,
+        }),
+      );
+      expect(response).toMatchObject({ executionId: 'run-member' });
+    });
+
+    it('keys the continuation to the caller when the caller answered', async () => {
+      resolveInputRequest.mockResolvedValue({
+        requestId: 'req-1',
+        resolvedByUserId: userId,
+        status: 'resolved',
+      });
+      agentOrchestratorService.acceptChatStream.mockResolvedValue({
+        executionId: 'run-self',
+        queuedAt: '2026-11-11T14:00:00.000Z',
+        status: 'queued',
+        threadId,
+      });
+
+      await controller.respondToInputRequest(
+        threadId,
+        'req-1',
+        { answer: 'Use hybrid' },
+        mockUser,
+      );
+
+      expect(
+        agentOrchestratorService.acceptChatStream.mock.calls[0][1],
+      ).not.toHaveProperty('idempotencyUserId');
+    });
+
+    it('passes on the refusal for a caller who may not answer', async () => {
+      resolveInputRequest.mockRejectedValue(
+        new BadRequestException('This request was already answered.'),
+      );
+
+      await expect(
+        controller.respondToInputRequest(
+          threadId,
+          'req-1',
+          { answer: 'Use hybrid' },
+          mockUser,
+        ),
+      ).rejects.toThrow('This request was already answered.');
+      expect(agentOrchestratorService.acceptChatStream).not.toHaveBeenCalled();
+    });
+
     it('leaves a recurring-task question to the thread owner', async () => {
       prepareForTurn.mockResolvedValue({ existingScope: sharedScope });
 

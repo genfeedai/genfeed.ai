@@ -69,6 +69,7 @@ colors:
 
   # ── Platform brand identifiers ────────────────────────────────────────────
   beehiiv: "#FCD34D"
+  bluesky: "#0085FF"
   devto: "#0A0A0A"
   discord: "#5865F2"
   facebook: "#1877F2"
@@ -380,6 +381,8 @@ components:
     textColor: "{colors.gray-1000}"
   platform-beehiiv:
     backgroundColor: "{colors.beehiiv}"
+  platform-bluesky:
+    backgroundColor: "{colors.bluesky}"
   platform-devto:
     backgroundColor: "{colors.devto}"
   platform-discord:
