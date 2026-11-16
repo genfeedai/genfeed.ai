@@ -97,7 +97,7 @@ const USE_CASE_LINKS = [
  */
 /**
  * Where the work starts: the agent the visitor already has open. First in the
- * bar, because the homepage leads with "Connect your agent" and the menu under
+ * bar, because the homepage leads with "Connect Agent" and the menu under
  * it should not sell the app instead.
  */
 const AGENT_LINKS = [
@@ -313,7 +313,7 @@ export default function WebsiteTopbar() {
     // Stacked, not side by side: the agent label is too wide for half a phone row.
     <div className="flex flex-col gap-3">
       <ConnectAgentButton
-        label="Connect your agent"
+        label="Connect Agent"
         variant={ButtonVariant.SECONDARY}
         className="h-12 w-full whitespace-nowrap text-sm uppercase"
         trackingAction="connect_agent_mobile_menu"
@@ -392,7 +392,7 @@ export default function WebsiteTopbar() {
                 Log in
               </a>
               <ConnectAgentButton
-                label="Connect your agent"
+                label="Connect Agent"
                 variant={ButtonVariant.SECONDARY}
                 className="hidden h-9 px-5 text-sm uppercase 2xl:inline-flex"
                 trackingAction="connect_agent_topbar"

@@ -7,7 +7,8 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { throwAsPublishError } from '@api/services/integrations/publishers/publish-error.util';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -98,10 +99,13 @@ export class PinterestPublisherService extends BasePublisherService {
         this.logger.error(`${url} Pinterest credential or board ID not found`, {
           postId: context.postId,
         });
-        return this.createFailedResult(
-          this.platform,
-          'Pinterest credential or board ID not found',
-        );
+        return {
+          ...this.createFailedResult(
+            this.platform,
+            'Pinterest credential or board ID not found',
+          ),
+          errorKind: PublishErrorKind.CHANNEL_DISCONNECTED,
+        };
       }
 
       const decryptedAccessToken = EncryptionUtil.decrypt(
@@ -121,10 +125,13 @@ export class PinterestPublisherService extends BasePublisherService {
       );
 
       if (!externalId) {
-        return this.createFailedResult(
-          this.platform,
-          'Failed to get external ID',
-        );
+        return {
+          ...this.createFailedResult(
+            this.platform,
+            'Failed to get external ID',
+          ),
+          errorKind: PublishErrorKind.OUTCOME_UNKNOWN,
+        };
       }
 
       const postUrl = this.buildPostUrl(externalId, credential);
@@ -134,7 +141,7 @@ export class PinterestPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throwAsPublishError(error);
     }
   }
 

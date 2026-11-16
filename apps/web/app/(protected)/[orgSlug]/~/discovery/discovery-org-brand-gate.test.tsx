@@ -142,7 +142,7 @@ describe('DiscoveryOrgBrandGate', () => {
     expect(
       screen.getByRole('heading', { name: 'Discovery needs a brand' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Go to brands' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Open Brands' })).toHaveAttribute(
       'href',
       '/acme/~/settings/brands',
     );

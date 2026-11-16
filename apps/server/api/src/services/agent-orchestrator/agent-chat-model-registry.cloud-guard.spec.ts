@@ -29,7 +29,6 @@ function modelRow(key: string, organizationId: string | null): GuardedRow {
     provider: 'openrouter',
     recommendedFor: [],
     reviewStatus: 'approved',
-    succeededBy: null,
     supportsFeatures: [],
   };
 }

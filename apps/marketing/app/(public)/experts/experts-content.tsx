@@ -160,7 +160,7 @@ export default function ExpertsContent() {
           </>
         }
         heroVisual={HERO_VISUAL}
-        title="You supply the truth. Genfeed supplies the system."
+        title="You supply the truth, Genfeed supplies the system"
       >
         {/* Six-step path */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">

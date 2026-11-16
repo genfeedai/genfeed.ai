@@ -63,6 +63,56 @@ bun run eval:content:smoke -- --max-credits=300 --dispatcher=live
   two rows for each smoke text kind, all fictional KELDER data. Real-brand rows
   stay in the private `genfeedai/harness` repo (`CONTENT_EVAL_PRIVATE_FIXTURES`).
 
+## QA task cards
+
+QA runners (the Grok bot, Codex) generate through the product's own surfaces,
+where the smoke run cannot reach (Agent chat, Studio, ad copy, scripts). A card
+is the task prompt only, in
+`apps/server/api/test/fixtures/content-evals/qa/cards.synthetic.jsonl`. It
+points at a smoke text row (`smoke:<rowId>`) or a pinned benchmark image task
+(`bench:<taskId>@<version>`) and must equal that prompt verbatim. Brand facts
+never go in the prompt: the brand comes from the product, and the proof is the
+generation receipt.
+
+For each card the runner records a capture (card id, receipt, asset id, model,
+credits, and the text for text kinds), then:
+
+```bash
+bun run eval:content:qa                                  # cards still match their fixtures
+bun run eval:content:qa -- --captures=<file> --out=<md>  # score a run, no model call
+```
+
+Every text capture first runs an `is-a-post` check (a minimum length, no refusal
+or commentary), because the onboarding output audit found most first drafts
+saved and shown at about nine tokens. Onboarding has its own cards
+(`onboarding-cards.synthetic.jsonl`, one per onboarding output) that the runner
+executes as each signup scenario: work email with a real site, personal email
+with a pasted link, no link, a brand with no saved offers, and scan failed with
+the context form. Their
+checks read what the runner captured off the screens: saved facts found on the
+scanned page, a voice that is not the generic fallback, a draft that names the
+brand context, a platform draft that is not the X draft reworded, and a
+shortened draft that keeps the idea. Word-overlap thresholds are first guesses,
+not calibrated.
+
+A capture is `pass`, `fail`, `context-missing` (no receipt, or no approved
+Brand OS revision on it) or `blocked`. Text also runs the fixture row's
+deterministic checks; images have none yet. The summary carries counts, context
+proof rate and credits only. It holds no judge or human score here: quality
+scores come from the product's own scorer (`ContentQualityScorerService`,
+reached through the `/evaluations` endpoints), recorded next to the capture
+rather than rebuilt in this runner. Keep the full captures off repo and post
+only the summary.
+
+A card with no `fixtureRef` is standalone: its prompt is its own source of truth
+and only the `is-a-post` check and context proof apply. A private card set, such
+as the Genfeed-branded cards kept in the private `genfeedai/evals` repo, loads
+with `--cards=<file>`:
+
+```bash
+bun run eval:content:qa -- --cards=<cards.jsonl> --captures=<file> --out=<md>
+```
+
 ## Skill A/B
 
 `--suite=skill-ab` answers "which skill makes the model write the better

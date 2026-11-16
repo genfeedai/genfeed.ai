@@ -35,7 +35,7 @@ export const WEBSITE_SECTIONS: FooterSection[] = [
     links: [
       { href: 'https://docs.genfeed.ai', label: 'Docs' },
       { href: '/mcp', label: 'MCP Server' },
-      { href: '/agent', label: 'Connect your agent' },
+      { href: '/agent', label: 'Connect Agent' },
       { href: '/self-hosted', label: 'Self-host' },
       { href: '/claude', label: 'Claude' },
       { href: '/claude-code', label: 'Claude Code' },

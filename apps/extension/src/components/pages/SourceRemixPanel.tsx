@@ -331,7 +331,7 @@ export function SourceRemixPanel({
             }}
             type="button"
           >
-            Open in Studio
+            Open Studio
           </Button>
         </div>
       ) : null}

@@ -220,7 +220,7 @@ describe('Remix now panel', () => {
       return { success: false };
     };
     render(<SourceRemixPanel onClose={vi.fn()} source={source} />);
-    const open = await screen.findByRole('button', { name: 'Open in Studio' });
+    const open = await screen.findByRole('button', { name: 'Open Studio' });
     expect(screen.queryByRole('button', { name: 'Get a price' })).toBeNull();
     fireEvent.click(open);
     await waitFor(() =>

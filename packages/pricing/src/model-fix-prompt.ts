@@ -30,13 +30,13 @@ const PROBLEM_FIX: Record<ModelFixProblem, string> = {
   'below-cost':
     'Urgent. Compute the sell price from the verified provider cost and the margin multiplier. If it is below cost, prepare the corrected approved rate.',
   'data-error':
-    'The row points at an endpoint that is not a model on that provider. Find the right provider and endpoint, or prepare a retirement with a successor.',
+    'The row points at an endpoint that is not a model on that provider. Find the right provider and endpoint, or prepare a retirement.',
   'new-draft':
     'Check the draft price, billing unit and category against the provider page. Prepare approval only when all three match. Otherwise prepare a rejection with the reason.',
   'price-changed':
     'Prepare approval of the new rate once the page confirms it. Show old and new per billing unit and the margin at the new rate.',
   'removed-by-provider':
-    'Prepare retirement. Name the successor model; a retired model is never deleted.',
+    'Prepare retirement. A retired model has no successor and is never deleted; any workflow, brand default or schedule that uses it stops with a clear message until the user picks a new model.',
   unpriced:
     'Find the real provider price and prepare a reviewed rate with its source URL. If the provider publishes none, leave it inactive and say so.',
   unreadable:
@@ -46,7 +46,7 @@ const PROBLEM_FIX: Record<ModelFixProblem, string> = {
 const RULES = [
   'Never approve or store a price you did not read from the provider source yourself. Cite the URL.',
   'Never replace an approved rate with a scan result without comparing it to the source.',
-  'A retired model keeps a successor and is never deleted.',
+  'A retired model has no successor and is never deleted. Never name or wire a replacement for it.',
   'Read first, prepare second. Production writes (approve, retire, reject, seed) wait for the operator to type "go" in this conversation.',
   'Do not invent credits, copy a neighbour model, or use a category average.',
 ];
@@ -57,7 +57,7 @@ const AUDIT_STEPS = [
   'Compare each approved rate with the source. Mark it matches, changed (old and new per unit), unpriced, or removed by the provider.',
   'Recompute the margin for each priced model: sell price from the configured multiplier against the provider cost. List every model sold below cost.',
   'List models that are unpriced, removed by the provider, or whose provider and endpoint do not match.',
-  'Prepare the fixes in one batch: rates to approve, models to retire with a successor, rows to correct. Make no change yet.',
+  'Prepare the fixes in one batch: rates to approve, models to retire, rows to correct. Make no change yet.',
 ];
 
 const VERIFY_STEPS = [
@@ -115,7 +115,7 @@ function auditPrompt(input: ModelFixPromptInput): string {
     '',
     '## Report back',
     '- A table: model, provider, approved rate, source rate, margin, verdict.',
-    '- The batch of prepared fixes, grouped as approve, retire with successor, correct.',
+    '- The batch of prepared fixes, grouped as approve, retire, correct.',
     '- What you could not verify, and why.',
   ];
   if (input.adminUrl) lines.push('', `Admin models page: ${input.adminUrl}`);

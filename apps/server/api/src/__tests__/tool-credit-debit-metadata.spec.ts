@@ -30,6 +30,8 @@ const ALLOWED_FILES = new Set([
   'generation-quote-group.service.ts',
   'knowledge-transcript-ingest.service.ts',
   'live-session-credits.service.ts',
+  // Charges a marketplace purchase in credits and returns them if the marketplace cannot record it; a quoted route, not an agent tool, and its real-database spec verifies the charge, the return and the idempotent retry.
+  'marketplace-credit-purchase.service.ts',
   'managed-inference.service.ts',
   'master-prompt-generator.service.ts',
   'onboarding-preview.service.ts',

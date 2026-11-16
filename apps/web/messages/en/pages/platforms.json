@@ -22,7 +22,7 @@
       "unnamedAccount": "This account"
     },
     "create": {
-      "cta": "Create for {platform}",
+      "cta": "Create",
       "label": "Create"
     },
     "empty": {

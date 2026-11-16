@@ -546,7 +546,7 @@ export default function LoginBetterAuth({
                     {isStartingLocalMode
                       ? 'Starting local workspace…'
                       : isLocalWorkspaceEnabled
-                        ? 'Use a local workspace'
+                        ? 'Use Local Workspace'
                         : 'Use a local workspace — coming soon'}
                   </Button>
                 ) : null}
@@ -625,6 +625,7 @@ export default function LoginBetterAuth({
               <Input
                 type="email"
                 name="email"
+                autoComplete="email"
                 placeholder={translate('loginForm.emailPlaceholder')}
                 value={email}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
@@ -672,6 +673,7 @@ export default function LoginBetterAuth({
               <Input
                 type="email"
                 name="email"
+                autoComplete="username"
                 placeholder={translate('loginForm.emailPlaceholder')}
                 value={email}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
@@ -687,6 +689,7 @@ export default function LoginBetterAuth({
               <Input
                 type="password"
                 name="password"
+                autoComplete="current-password"
                 placeholder={translate('loginForm.passwordPlaceholder')}
                 value={password}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>

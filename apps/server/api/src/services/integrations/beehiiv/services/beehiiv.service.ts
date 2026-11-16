@@ -25,7 +25,8 @@ import {
   PROVIDER_VERIFICATION_PAGE_SIZE,
   PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
 } from '@api/services/integrations/publishers/publisher-verification.util';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
+import { PublishError } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -244,10 +245,9 @@ export class BeehiivService {
   ): Promise<BeehiivPost> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     if (input.status === 'draft' && input.scheduledAt) {
-      throw new BeehiivProviderError(
-        'validation_failed',
+      throw new PublishError(
+        PublishErrorKind.CONTENT_REJECTED,
         'Beehiiv draft posts cannot include a scheduled time.',
-        { isRetryable: false },
       );
     }
 
@@ -280,7 +280,14 @@ export class BeehiivService {
       });
       return response.data.data;
     } catch (error: unknown) {
-      this.rethrowProviderError(error, url, { publicationId });
+      // The publisher turns the provider response into a typed publish error;
+      // the response status, headers and network code must reach it intact.
+      this.loggerService.error(`${url} failed`, {
+        publicationId,
+        statusCode: (error as { response?: { status?: number } })?.response
+          ?.status,
+      });
+      throw error;
     }
   }
 

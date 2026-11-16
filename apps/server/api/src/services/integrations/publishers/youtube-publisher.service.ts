@@ -8,10 +8,12 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { mapYoutubeFailure } from '@api/services/integrations/publishers/provider-publish-error.mappers';
+import { throwAsPublishError } from '@api/services/integrations/publishers/publish-error.util';
 import { verifyMediaPublish } from '@api/services/integrations/publishers/publisher-media-verification.util';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -164,10 +166,13 @@ export class YouTubePublisherService extends BasePublisherService {
       );
 
       if (!externalId) {
-        return this.createFailedResult(
-          this.platform,
-          'Failed to get external ID',
-        );
+        return {
+          ...this.createFailedResult(
+            this.platform,
+            'Failed to get external ID',
+          ),
+          errorKind: PublishErrorKind.OUTCOME_UNKNOWN,
+        };
       }
 
       this.logger.log(`${url} YouTube video uploaded with ID: ${externalId}`);
@@ -179,7 +184,7 @@ export class YouTubePublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throwAsPublishError(error, mapYoutubeFailure);
     }
   }
 

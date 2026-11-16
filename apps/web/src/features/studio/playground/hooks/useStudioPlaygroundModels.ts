@@ -29,7 +29,7 @@ function filterCategoryRows(
   category: ModelCategory,
   allRows: readonly IModel[],
 ): readonly IModel[] {
-  // A retired row dispatches to its successor, so the quote never matches the
+  // A retired row stops a run that picks it, so the quote never matches the
   // row the operator picked. It is not a choice Studio can honour.
   const rows = allRows.filter(
     (row) => row.lifecycle !== ModelLifecycle.RETIRED,

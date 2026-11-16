@@ -1412,7 +1412,7 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
           assetId: 'ingredient-1',
           primaryCta: {
             href: '/library/images?asset=ingredient-1',
-            label: 'View in Library',
+            label: 'View Library',
           },
         }),
       ],

@@ -149,7 +149,7 @@ describe('CliAuthPage', () => {
     render(<CliAuthPage />);
 
     const signInLink = await screen.findByRole('link', {
-      name: 'Sign in to continue',
+      name: 'Sign In',
     });
     expect(signInLink).toHaveAttribute(
       'href',
@@ -170,7 +170,7 @@ describe('CliAuthPage', () => {
     render(<CliAuthPage />);
 
     const signUpLink = await screen.findByRole('link', {
-      name: 'Create account to continue',
+      name: 'Create Account',
     });
     expect(signUpLink).toHaveAttribute(
       'href',
@@ -567,9 +567,7 @@ describe('CliAuthPage', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2_000);
     });
-    expect(
-      screen.getByRole('link', { name: 'Sign in to continue' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Sign In' })).toBeInTheDocument();
     expect(screen.queryByText('Desktop connected')).not.toBeInTheDocument();
   });
 

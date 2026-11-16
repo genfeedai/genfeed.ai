@@ -273,7 +273,7 @@ describe('DesktopLocalProviderSettings', () => {
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Test' })).toBeNull();
     expect(
-      screen.getByRole('button', { name: 'Use a local workspace' }),
+      screen.getByRole('button', { name: 'Use Local Workspace' }),
     ).toBeDisabled();
     expect(mocks.getProviderConfig).not.toHaveBeenCalled();
     expect(mocks.saveProviderConfig).not.toHaveBeenCalled();
@@ -295,7 +295,7 @@ describe('DesktopLocalProviderSettings', () => {
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Test' })).toBeNull();
     expect(
-      screen.getByRole('button', { name: 'Use a local workspace' }),
+      screen.getByRole('button', { name: 'Use Local Workspace' }),
     ).toBeDisabled();
     expect(mocks.getProviderConfig).not.toHaveBeenCalled();
 
@@ -340,7 +340,7 @@ describe('DesktopLocalProviderSettings', () => {
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Test' })).toBeNull();
     expect(
-      screen.getByRole('button', { name: 'Use a local workspace' }),
+      screen.getByRole('button', { name: 'Use Local Workspace' }),
     ).toBeEnabled();
     expect(mocks.getProviderConfig).not.toHaveBeenCalled();
     expect(mocks.saveProviderConfig).not.toHaveBeenCalled();
@@ -356,7 +356,7 @@ describe('DesktopLocalProviderSettings', () => {
 
     expect(container).toBeEmptyDOMElement();
     expect(
-      screen.queryByRole('button', { name: 'Use a local workspace' }),
+      screen.queryByRole('button', { name: 'Use Local Workspace' }),
     ).toBeNull();
     expect(mocks.getBootstrap).not.toHaveBeenCalled();
     expect(mocks.enableOfflineMode).not.toHaveBeenCalled();

@@ -88,7 +88,6 @@ export function createModelDocumentFixture(
     reviewedBy: null,
     reviewedProviderContractVersion: null,
     speedTier: null,
-    succeededBy: null,
     supportsFeatures: [],
     trainingId: null,
     trigger: null,

@@ -150,7 +150,7 @@ describe('ServiceLandingPage', () => {
       render(<ServiceLandingPage slug={slug} />);
       const header = within(screen.getByRole('banner'));
       const connect = header.getByRole('button', {
-        name: 'Connect your agent',
+        name: 'Connect Agent',
       });
       expect(connect).toHaveAttribute('aria-haspopup', 'dialog');
       expect(connect).not.toHaveAttribute('target', '_blank');
@@ -161,14 +161,14 @@ describe('ServiceLandingPage', () => {
       const actions = [
         ...screen.getByRole('main').querySelectorAll('button, a'),
       ].filter((link) =>
-        ['Connect your agent', 'Start for $0'].includes(link.textContent ?? ''),
+        ['Connect Agent', 'Start for $0'].includes(link.textContent ?? ''),
       );
       expect(actions.map((link) => link.textContent)).toEqual([
-        'Connect your agent',
-        'Connect your agent',
+        'Connect Agent',
+        'Connect Agent',
       ]);
       for (const link of body.getAllByRole('button', {
-        name: 'Connect your agent',
+        name: 'Connect Agent',
       })) {
         expect(link).toHaveAttribute('aria-haspopup', 'dialog');
       }
@@ -190,9 +190,7 @@ describe('ServiceLandingPage', () => {
     window.addEventListener('genfeed:marketing:button-click', listener);
     render(<ServiceLandingPage slug="x" />);
     const body = within(screen.getByRole('main'));
-    fireEvent.click(
-      body.getAllByRole('button', { name: 'Connect your agent' })[0],
-    );
+    fireEvent.click(body.getAllByRole('button', { name: 'Connect Agent' })[0]);
     expect(listener).toHaveBeenCalledWith(
       expect.objectContaining({
         detail: {

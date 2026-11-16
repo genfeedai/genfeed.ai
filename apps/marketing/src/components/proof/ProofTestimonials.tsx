@@ -14,11 +14,11 @@ interface ProofTestimonialsProps {
 const TESTIMONIAL_COPY = {
   landing: {
     description: 'Every quote is tied to the number behind it.',
-    title: 'What customers say.',
+    title: 'What customers say',
   },
   pricing: {
     description: 'Every quote is tied to the number behind it.',
-    title: 'What teams get out of it.',
+    title: 'What teams get out of it',
   },
 } as const;
 

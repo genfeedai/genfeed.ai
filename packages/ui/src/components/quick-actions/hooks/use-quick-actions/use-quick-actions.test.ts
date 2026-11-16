@@ -66,7 +66,7 @@ vi.mock('@ui/quick-actions/config/quick-actions.config', () => ({
     handler ? createAction('more-options', 'More', false) : null,
   ),
   createOpenInEditorAction: vi.fn((_ingredient, handler) =>
-    handler ? createAction('open-in-editor', 'Open in Editor') : null,
+    handler ? createAction('open-in-editor', 'Open Editor') : null,
   ),
   createPortraitAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('portrait', 'Portrait') : null,
@@ -78,7 +78,7 @@ vi.mock('@ui/quick-actions/config/quick-actions.config', () => ({
     handler ? createAction('publish', 'Publish') : null,
   ),
   createRemixVideoAction: vi.fn((_ingredient, handler) =>
-    handler ? createAction('remix-video', 'Remix this video') : null,
+    handler ? createAction('remix-video', 'Remix Video') : null,
   ),
   createResizeAction: vi.fn((_ingredient, format, _label, handler) =>
     handler ? createAction(`resize-${format}`, `Resize to ${format}`) : null,
@@ -200,7 +200,7 @@ const mockLoadingStates = {
 };
 
 const quickActionCopy = {
-  openInEditor: { label: 'Open in Editor', tooltip: 'Open in the editor' },
+  openInEditor: { label: 'Open Editor', tooltip: 'Open in the editor' },
   rename: 'Rename',
   resize: {
     [IngredientFormat.LANDSCAPE]: 'Resize to Landscape',

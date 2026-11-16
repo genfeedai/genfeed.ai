@@ -4,6 +4,7 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
+import { throwIfRedditSubmitRejected } from '@api/services/integrations/reddit/utils/reddit-submit-error.util';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import {
   type ChannelTargetSettings,
@@ -475,6 +476,8 @@ export class RedditService {
         },
       }),
     );
+
+    throwIfRedditSubmitRejected(response);
 
     return response.data?.json?.data?.id;
   }

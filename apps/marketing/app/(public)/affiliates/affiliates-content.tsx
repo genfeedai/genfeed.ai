@@ -106,7 +106,7 @@ export default function AffiliatesContent() {
 
         <CtaSection
           bg="subtle"
-          title="Get your link."
+          title="Get your link"
           description="Sign in to copy your affiliate link, or create a free account first."
         >
           <Button size={ButtonSize.PUBLIC} asChild>

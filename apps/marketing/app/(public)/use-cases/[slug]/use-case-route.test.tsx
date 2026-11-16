@@ -85,9 +85,7 @@ describe('generateMetadata', () => {
     );
 
     const audience = formatUseCaseSlug(KNOWN_SLUG);
-    expect(meta.title).toBe(
-      `Genfeed for ${audience}: AI Content Creation at Scale`,
-    );
+    expect(meta.title).toBe(`Genfeed for ${audience}`);
     expect(meta.description).toContain(audience.toLowerCase());
     expect(meta.alternates?.canonical).toContain(`/use-cases/${KNOWN_SLUG}`);
     expect(meta.openGraph?.images).toEqual([

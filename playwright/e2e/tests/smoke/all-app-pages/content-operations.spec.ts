@@ -40,9 +40,7 @@ test.describe('All App Pages', () => {
     await expect(
       authenticatedPage.getByRole('button', { name: 'Refresh feeds' }),
     ).toBeDisabled();
-    await expect(
-      authenticatedPage.getByText('Connect an account'),
-    ).toBeVisible();
+    await expect(authenticatedPage.getByText('Connect Account')).toBeVisible();
   });
 
   test('protected content operations pages render', async ({

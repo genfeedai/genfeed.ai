@@ -11,6 +11,7 @@
   "detailStatus": "Status",
   "detailValue": "Stored value",
   "detailPreviewAlt": "Activity preview",
+  "detailView": "View",
   "detailViewOnNetwork": "View on {platform}",
   "detailUser": "User",
   "detailUserId": "User ID",

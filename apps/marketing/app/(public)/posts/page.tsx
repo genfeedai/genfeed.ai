@@ -6,7 +6,7 @@ import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Posts by Ingredient',
-  'Browse AI-generated content organized by ingredient. Discover how different AI models and templates produce professional marketing content.',
+  'Browse content made with Genfeed, organized by ingredient.',
   '/posts',
 );
 

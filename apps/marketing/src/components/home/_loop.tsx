@@ -42,7 +42,7 @@ export default function HomeLoop(): React.ReactElement {
             as="h2"
             className="text-4xl font-semibold leading-tight tracking-[-0.02em] sm:text-5xl"
           >
-            It does not stop at the file.
+            It does not stop at the file
           </Heading>
           <Text className="max-w-2xl text-base leading-7 gen-text-muted">
             A generator hands you a file. Genfeed runs the whole loop for all

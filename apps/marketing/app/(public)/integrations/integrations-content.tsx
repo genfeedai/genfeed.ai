@@ -65,7 +65,7 @@ const HERO_PROOF = (
     items={[
       {
         label: 'Coverage',
-        value: `${integrations.length}+ platform endpoints and content surfaces.`,
+        value: `${integrations.length} channels: social networks, blogs, newsletters and chat apps.`,
       },
       {
         label: 'Workflow',
@@ -83,7 +83,7 @@ const HERO_PROOF = (
 
 const HERO_VISUAL = (
   <EditorialPoster
-    detail="Each integration is tuned for channel-native output so the content system stays coherent while the platform behavior changes."
+    detail="Each platform page lists the formats Genfeed can send there and what comes back."
     eyebrow="Channel Map"
     footer={
       <span>{featuredIntegrations.map((item) => item.name).join(' / ')}</span>
@@ -92,8 +92,8 @@ const HERO_VISUAL = (
       label: integration.name,
       value: integration.tagline,
     }))}
-    subtitle="Distribution surfaces with AI-native packaging"
-    title="Every channel, one layer."
+    subtitle="Formats by platform"
+    title="Every channel, one brief"
   />
 );
 

@@ -161,7 +161,7 @@ export default function CloudContent() {
 
         {/* Pricing CTA */}
         <CtaSection
-          title="Connect your team’s agents."
+          title="Connect your team’s agents"
           description="Every teammate connects their own agent to the same workspace, brand library, and approvals."
         >
           <AgentFirstActions

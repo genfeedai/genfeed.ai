@@ -21,7 +21,7 @@ export default function HomeFaq(): React.ReactElement {
             as="h2"
             className="text-4xl font-semibold leading-tight tracking-[-0.02em] sm:text-5xl"
           >
-            Questions.
+            Questions
           </Heading>
           <Link
             className="text-sm font-semibold text-foreground/80 underline underline-offset-4 transition-colors hover:text-foreground"

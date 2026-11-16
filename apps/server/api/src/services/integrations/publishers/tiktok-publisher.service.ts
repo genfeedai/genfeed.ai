@@ -7,9 +7,12 @@ import type {
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { TIKTOK_APP_HANDOFF_SETTING } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { mapTikTokFailure } from '@api/services/integrations/publishers/provider-publish-error.mappers';
+import { throwAsPublishError } from '@api/services/integrations/publishers/publish-error.util';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import {
   CredentialPlatform,
+  PublishErrorKind,
   TargetExecutionState,
   TikTokPublishStatus,
 } from '@genfeedai/contracts';
@@ -208,10 +211,13 @@ export class TikTokPublisherService extends BasePublisherService {
 
       // No post_id and no publish_id - actual failure
       if (!postId) {
-        return this.createFailedResult(
-          this.platform,
-          'Failed to get external ID or publish ID',
-        );
+        return {
+          ...this.createFailedResult(
+            this.platform,
+            'Failed to get external ID or publish ID',
+          ),
+          errorKind: PublishErrorKind.OUTCOME_UNKNOWN,
+        };
       }
 
       // Immediate success - post_id available
@@ -222,7 +228,7 @@ export class TikTokPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throwAsPublishError(error, mapTikTokFailure);
     }
   }
 

@@ -203,7 +203,7 @@ export default function ModelsContent({ models }: ModelsContentProps) {
                   as="h2"
                   className="text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl"
                 >
-                  Choose by output.
+                  Choose by output
                 </Heading>
               </div>
               <Text className="max-w-md text-sm leading-6 text-foreground/60">

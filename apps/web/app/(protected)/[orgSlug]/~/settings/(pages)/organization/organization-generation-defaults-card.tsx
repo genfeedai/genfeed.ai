@@ -7,6 +7,8 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';
+import RetiredModelAlert from '@/components/models/RetiredModelAlert';
+import { useRetiredModels } from '@/features/models/hooks/useRetiredModels';
 import type {
   ExtendedOrganizationSettings,
   GenerationDefaultsState,
@@ -24,6 +26,7 @@ export default function OrganizationGenerationDefaultsCard() {
     | undefined;
   const { imageModels, musicModels, videoModels } = useElements();
   const enabledModelIds = settingsWithContentDefaults?.enabledModelIds ?? [];
+  const { getRetiredModel } = useRetiredModels();
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );
@@ -95,9 +98,32 @@ export default function OrganizationGenerationDefaultsCard() {
     refresh,
   ]);
 
+  // Saved defaults that point at a retired model. The pickers below are where
+  // the new model is chosen; the flag goes once the new choice is saved.
+  const retiredDefaults = [
+    ...new Set(
+      [
+        settingsWithContentDefaults?.defaultModel,
+        settingsWithContentDefaults?.defaultModelReview,
+        settingsWithContentDefaults?.defaultModelUpdate,
+        settingsWithContentDefaults?.defaultImageModel,
+        settingsWithContentDefaults?.defaultImageToVideoModel,
+        settingsWithContentDefaults?.defaultMusicModel,
+        settingsWithContentDefaults?.defaultVideoModel,
+      ].flatMap((key) => {
+        const retired = getRetiredModel(key);
+        return retired ? [retired] : [];
+      }),
+    ),
+  ];
+
   return (
     <Card label="Generation Defaults">
       <div className="space-y-4">
+        {retiredDefaults.map((model) => (
+          <RetiredModelAlert key={model.key} modelLabel={model.label} />
+        ))}
+
         <OrganizationGenerationDefaultsTextSection
           enabledModelIds={enabledModelIds}
           defaultModel={defaults.defaultModel}

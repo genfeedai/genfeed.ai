@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   organizationId: 'org-1',
   patchSettings: vi.fn(),
   refresh: vi.fn(),
+  retiredKeys: {} as Record<string, string>,
   settings: {
     defaultImageModel: 'flux',
     defaultImageToVideoModel: 'kling',
@@ -22,6 +23,21 @@ const mocks = vi.hoisted(() => ({
     defaultVideoModel: 'runway',
     enabledModelIds: ['gpt-4o', 'gpt-4o-mini', 'claude-3-5'],
   } as Record<string, unknown>,
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock('@/features/models/hooks/useRetiredModels', () => ({
+  useRetiredModels: () => ({
+    getRetiredModel: (key: string | null | undefined) =>
+      key && mocks.retiredKeys[key]
+        ? { key, label: mocks.retiredKeys[key] }
+        : null,
+    isLoading: false,
+  }),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -147,6 +163,7 @@ vi.mock('@ui/primitives/select', () => ({
 describe('OrganizationGenerationDefaultsCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.retiredKeys = {};
     mocks.organizationId = 'org-1';
     mocks.settings = {
       defaultImageModel: 'flux',
@@ -252,5 +269,19 @@ describe('OrganizationGenerationDefaultsCard', () => {
     for (const select of screen.getAllByRole('combobox')) {
       expect(select).toHaveValue('none');
     }
+  });
+
+  it('flags a saved default that was retired', () => {
+    mocks.retiredKeys = { flux: 'Old Flux' };
+
+    render(<OrganizationGenerationDefaultsCard />);
+
+    expect(screen.getByText('Old Flux was retired')).toBeInTheDocument();
+  });
+
+  it('shows no retired flag when every default is active', () => {
+    render(<OrganizationGenerationDefaultsCard />);
+
+    expect(screen.queryByText(/was retired/)).not.toBeInTheDocument();
   });
 });

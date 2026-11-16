@@ -113,6 +113,7 @@ const HARD_FAILURE_CODES = new Set<string>([
 const CHANNEL_TEXT_POLICIES: Partial<
   Record<CredentialPlatform, ChannelTextPolicy>
 > = {
+  [CredentialPlatform.BLUESKY]: { hasClickableLinks: true, maxHashtags: 3 },
   [CredentialPlatform.FACEBOOK]: { hasClickableLinks: true, maxHashtags: 3 },
   [CredentialPlatform.INSTAGRAM]: { hasClickableLinks: false, maxHashtags: 30 },
   [CredentialPlatform.LINKEDIN]: { hasClickableLinks: true, maxHashtags: 5 },

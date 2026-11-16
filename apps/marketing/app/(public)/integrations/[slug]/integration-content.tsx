@@ -1,4 +1,4 @@
-import type { Integration } from '@data/integrations.data';
+import { INTEGRATION_CTA, type Integration } from '@data/integrations.data';
 import Card from '@ui/card/Card';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
@@ -16,17 +16,13 @@ export default function IntegrationContent({
   const heroProof = useMemo(
     () => (
       <HeroProofRail
-        title="Channel fit"
+        title="What it does"
         items={[
-          {
-            label: 'Workflow steps',
-            value: String(integration.workflow.length),
-          },
-          {
-            label: 'Core features',
-            value: String(integration.features.length),
-          },
-          { label: 'Positioning', value: integration.tagline },
+          { label: 'Formats', value: integration.formats },
+          ...(integration.results
+            ? [{ label: 'Results', value: integration.results }]
+            : []),
+          { label: 'In short', value: integration.tagline },
         ]}
       />
     ),
@@ -43,9 +39,9 @@ export default function IntegrationContent({
       description={integration.description}
       heroActions={
         <>
-          <ButtonRequestAccess label={integration.cta} />
+          <ButtonRequestAccess label={INTEGRATION_CTA} />
           <Link href="/pricing" className="link block self-center">
-            View All Pricing
+            View pricing
           </Link>
         </>
       }
@@ -91,14 +87,14 @@ export default function IntegrationContent({
       <section className="max-w-4xl mx-auto pb-20">
         <Card isCentered>
           <h2 className="text-3xl font-semibold text-primary mb-2">
-            {integration.cta}
+            {INTEGRATION_CTA}
           </h2>
           <p className="text-muted-foreground mb-6">
             {integration.description}
           </p>
-          <ButtonRequestAccess />
+          <ButtonRequestAccess label={INTEGRATION_CTA} />
           <Link href="/pricing" className="link mt-4 block">
-            View All Pricing
+            View pricing
           </Link>
         </Card>
       </section>

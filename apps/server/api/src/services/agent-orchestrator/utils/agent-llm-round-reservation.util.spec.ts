@@ -37,7 +37,6 @@ const createRegistry = async () => {
             outputCostPerMillionTokens: model.pricing.completionPerMillion,
             provider: ModelProvider.OPENROUTER,
             reviewStatus: null,
-            succeededBy: null,
             supportsFeatures: [],
           })),
       },

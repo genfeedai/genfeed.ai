@@ -17,7 +17,7 @@ describe('HomeAgents', () => {
     render(<HomeAgents />);
 
     expect(
-      screen.getByRole('heading', { level: 2, name: 'Start in your agent.' }),
+      screen.getByRole('heading', { level: 2, name: 'Start in your agent' }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(

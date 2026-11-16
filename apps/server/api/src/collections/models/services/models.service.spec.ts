@@ -181,26 +181,14 @@ describe('ModelsService', () => {
         label: 'Imagen 4',
         margin: 0.2,
         provider: ModelProvider.REPLICATE,
-        succeededBy: null,
       },
     });
     expect(result.providerConfig).toEqual({ owner: 'google' });
   });
 
-  it('requires and validates a successor when creating Legacy', async () => {
-    modelDelegate.findFirst.mockResolvedValue(
-      makeModel({
-        id: 'model-2',
-        key: 'google/imagen-5',
-        lifecycle: ModelLifecycle.RECOMMENDED,
-      }),
-    );
+  it('creates a Legacy row with no successor', async () => {
     modelDelegate.create.mockResolvedValue(
-      makeModel({
-        isLegacy: true,
-        lifecycle: ModelLifecycle.LEGACY,
-        succeededBy: 'google/imagen-5',
-      }),
+      makeModel({ isLegacy: true, lifecycle: ModelLifecycle.LEGACY }),
     );
 
     await service.create({
@@ -210,7 +198,6 @@ describe('ModelsService', () => {
       label: 'Imagen 4',
       lifecycle: ModelLifecycle.LEGACY,
       provider: ModelProvider.REPLICATE,
-      succeededBy: 'google/imagen-5',
     });
 
     expect(modelDelegate.create).toHaveBeenCalledWith({
@@ -219,7 +206,6 @@ describe('ModelsService', () => {
         isDefault: false,
         isLegacy: true,
         lifecycle: ModelLifecycle.LEGACY,
-        succeededBy: 'google/imagen-5',
       }),
     });
   });
@@ -240,39 +226,15 @@ describe('ModelsService', () => {
     });
   });
 
-  it('requires a successor before moving a model to Legacy', async () => {
-    modelDelegate.findFirst.mockResolvedValue(makeModel());
-
-    await expect(
-      service.transitionLifecycle('model-1', ModelLifecycle.LEGACY),
-    ).rejects.toThrow('successor model is required');
-    expect(modelDelegate.update).not.toHaveBeenCalled();
-  });
-
   it('keeps Legacy callable and synchronizes compatibility fields', async () => {
     const current = makeModel();
-    const successor = makeModel({
-      id: 'model-2',
-      key: 'google/imagen-5',
-      lifecycle: ModelLifecycle.RECOMMENDED,
-    });
-    modelDelegate.findFirst
-      .mockResolvedValueOnce(current)
-      .mockResolvedValueOnce(successor);
+    modelDelegate.findFirst.mockResolvedValueOnce(current);
     modelDelegate.findUnique.mockResolvedValue(current);
     modelDelegate.update.mockResolvedValue(
-      makeModel({
-        isLegacy: true,
-        lifecycle: ModelLifecycle.LEGACY,
-        succeededBy: successor.key,
-      }),
+      makeModel({ isLegacy: true, lifecycle: ModelLifecycle.LEGACY }),
     );
 
-    await service.transitionLifecycle(
-      'model-1',
-      ModelLifecycle.LEGACY,
-      successor.key,
-    );
+    await service.transitionLifecycle('model-1', ModelLifecycle.LEGACY);
 
     expect(modelDelegate.update).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -280,7 +242,27 @@ describe('ModelsService', () => {
         isDefault: false,
         isLegacy: true,
         lifecycle: ModelLifecycle.LEGACY,
-        succeededBy: successor.key,
+      }),
+      where: { id: 'model-1' },
+    });
+  });
+
+  it('retires a model without naming a successor and deactivates it', async () => {
+    const current = makeModel();
+    modelDelegate.findFirst.mockResolvedValueOnce(current);
+    modelDelegate.findUnique.mockResolvedValue(current);
+    modelDelegate.update.mockResolvedValue(
+      makeModel({ isActive: false, lifecycle: ModelLifecycle.RETIRED }),
+    );
+
+    await service.transitionLifecycle('model-1', ModelLifecycle.RETIRED);
+
+    expect(modelDelegate.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        isActive: false,
+        isDefault: false,
+        isLegacy: false,
+        lifecycle: ModelLifecycle.RETIRED,
       }),
       where: { id: 'model-1' },
     });

@@ -8,7 +8,7 @@
   "ends": "Ends on {date}. You keep access until then.",
   "pastDueTitle": "Renewal failed",
   "pastDueDescription": "Your workspace did not have enough credits for this month. Add credits and we will retry automatically.",
-  "cancel": "Cancel at the end of the month",
+  "cancel": "Cancel Renewal",
   "keep": "Keep my subscription",
   "updating": "Saving…",
   "needCreditsTitle": "Not enough credits",
