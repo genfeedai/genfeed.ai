@@ -514,12 +514,12 @@ export function useModelsList({
   );
 
   const handleLifecycleChange = useCallback(
-    async (model: IModel, lifecycle: ModelLifecycle, succeededBy?: string) => {
+    async (model: IModel, lifecycle: ModelLifecycle) => {
       if (!model.id || togglingModelId === model.id) return;
       setTogglingModelId(model.id);
       try {
         const service = await getModelsService();
-        await service.patch(model.id, { lifecycle, succeededBy });
+        await service.patch(model.id, { lifecycle });
         await refresh();
         notificationsService.success('Model lifecycle updated');
       } catch (error: unknown) {
@@ -676,7 +676,6 @@ export function useModelsList({
         handleToggleModel,
         onOpenDetails: handleViewDetails,
         togglingModelId,
-        models,
         translate,
       }),
     [
@@ -688,7 +687,6 @@ export function useModelsList({
       handleToggleModel,
       handleViewDetails,
       togglingModelId,
-      models,
       translate,
     ],
   );

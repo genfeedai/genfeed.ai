@@ -149,23 +149,16 @@ describe('ModelRegistrationService.validateModelForOrg', () => {
     ).resolves.toEqual(model);
   });
 
-  it('resolves an allowlisted global Retired alias to its global successor', async () => {
+  it('stops with a clear error when the model is Retired, never resolving another model', async () => {
     const { modelsService, orgSettingsService, service } = makeService();
-    const successorKey = 'black-forest-labs/flux-2-pro';
     const retired = makeModel({
       isActive: false,
+      label: 'Old Flux',
       lifecycle: ModelLifecycle.RETIRED,
-      succeededBy: successorKey,
-    });
-    const successor = makeModel({
-      id: testId('model', 2),
-      key: successorKey,
-      lifecycle: ModelLifecycle.RECOMMENDED,
     });
     modelsService.findOne
       .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(retired)
-      .mockResolvedValueOnce(successor);
+      .mockResolvedValueOnce(retired);
     orgSettingsService.findOne.mockResolvedValue({
       enabledModelIds: [modelId],
       id: testId('setting'),
@@ -177,11 +170,10 @@ describe('ModelRegistrationService.validateModelForOrg', () => {
 
     await expect(
       service.validateModelForOrg(modelKey, organizationId),
-    ).resolves.toEqual(successor);
-    expect(modelsService.findOne).toHaveBeenNthCalledWith(3, {
-      key: successorKey,
-      organizationId: null,
-    });
+    ).rejects.toThrow(
+      'The model Old Flux was retired. Pick a new model, then run it again.',
+    );
+    expect(modelsService.findOne).toHaveBeenCalledTimes(2);
   });
 });
 

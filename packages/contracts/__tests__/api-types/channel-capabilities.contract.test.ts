@@ -652,6 +652,47 @@ describe('resolveChannelTargetSettings', () => {
   });
 });
 
+describe('Google Business Profile channel', () => {
+  test('stays hidden from scheduling until a live post is verified', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'Fresh bread at 7am',
+      platform: CredentialPlatform.GOOGLE_BUSINESS,
+    });
+
+    expect(result.errors).toEqual([
+      expect.objectContaining({ code: 'channel_target.hidden_channel' }),
+    ]);
+  });
+
+  test('rejects a video before scheduling', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'Fresh bread at 7am',
+      media: [{ kind: 'video' }],
+      platform: CredentialPlatform.GOOGLE_BUSINESS,
+    });
+
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.unsupported_media_kind',
+          severity: 'error',
+        }),
+      ]),
+    );
+  });
+
+  test('rejects a caption over 1500 characters', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'x'.repeat(1_501),
+      platform: CredentialPlatform.GOOGLE_BUSINESS,
+    });
+
+    expect(result.errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: 'caption' })]),
+    );
+  });
+});
+
 describe('channel follow-up capability', () => {
   test('describes reply chains and comment surfaces per channel', () => {
     expect(getChannelThreadChildCapability(CredentialPlatform.TWITTER)).toEqual(

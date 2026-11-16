@@ -5411,7 +5411,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'reviewedBy',
       'reviewedProviderContractVersion',
       'speedTier',
-      'succeededBy',
       'training',
       'trainingId',
       'trigger',

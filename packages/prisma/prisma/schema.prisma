@@ -223,6 +223,7 @@ enum CredentialPlatform {
   FACEBOOK
   GOOGLE_ADS
   GOOGLE_SEARCH_CONSOLE
+  GOOGLE_BUSINESS
   TWITTER
   X_ADS
   LINKEDIN
@@ -4913,7 +4914,6 @@ model Model {
   reviewStatus    String?
   rejectionReason String?
   predecessorOf   String?
-  succeededBy     String?
   trigger         String?
   triggerWord     String?
 

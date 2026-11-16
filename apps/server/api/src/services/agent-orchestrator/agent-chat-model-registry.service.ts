@@ -6,6 +6,7 @@
  * defaults, round costs, and key resolution must not re-read that list.
  */
 
+import { RetiredModelException } from '@api/helpers/exceptions/retired-model/retired-model.exception';
 import { normalizeResponseModel } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -45,7 +46,6 @@ export interface AgentChatRegistryRow {
   /** Registry $/1M token list price; null when the row carries none. */
   pricing: AgentChatModelPricing | null;
   provider: string;
-  succeededBy: string | null;
   lifecycle: ModelLifecycle;
   isDiscovered: boolean;
   reviewStatus: string | null;
@@ -134,7 +134,6 @@ export class AgentChatModelRegistryService
             label: true,
             outputCostPerMillionTokens: true,
             provider: true,
-            succeededBy: true,
             lifecycle: true,
             reviewStatus: true,
             supportsFeatures: true,
@@ -167,7 +166,6 @@ export class AgentChatModelRegistryService
           row.outputCostPerMillionTokens,
         ),
         provider: row.provider,
-        succeededBy: row.succeededBy,
         lifecycle: toDomainLifecycle(row.lifecycle),
         reviewStatus: row.reviewStatus,
       });
@@ -227,9 +225,7 @@ export class AgentChatModelRegistryService
    * enhancement, article generation). Prefers `isDefault` on an active,
    * non-Retired row (matching {@link listSelectable}'s eligibility; several
    * simultaneous `isDefault` rows break the tie deterministically — cheapest,
-   * then key), then the active `isDefault` row's full `succeededBy` chain
-   * (several Retired hops, cycle-guarded — also tie-broken deterministically
-   * when more than one Retired row is marked default), then cheapest active
+   * then key), then cheapest active
    * selectable row, then `fallbackKey` (a caller's own seed constant, e.g.
    * `DEFAULT_MINI_TEXT_MODEL`) only if nothing in the registry is usable.
    */
@@ -245,21 +241,6 @@ export class AgentChatModelRegistryService
     );
     if (marked) {
       return marked.key;
-    }
-
-    const retiredDefault = this.pickDeterministicDefault(
-      [...this.byKey.values()].filter(
-        (row) =>
-          row.isActive &&
-          row.isDefault &&
-          row.lifecycle === ModelLifecycle.RETIRED,
-      ),
-    );
-    const successor = retiredDefault
-      ? this.resolveActiveSuccessor(retiredDefault.key, selectable)
-      : undefined;
-    if (successor) {
-      return successor.key;
     }
 
     const recommended = selectable.filter(
@@ -301,50 +282,6 @@ export class AgentChatModelRegistryService
     })[0];
   }
 
-  /**
-   * Follows `succeededBy` from `startKey` for as many Retired hops as the
-   * registry has (cycle-guarded), landing on the first row that is active
-   * and not Retired. Returns `undefined` when the chain dead-ends (unknown
-   * key, an inactive/Retired terminus, or a cycle) so the caller can fall
-   * through to its own next choice instead of returning an unusable key.
-   */
-  private resolveActiveSuccessor(
-    startKey: string,
-    selectable: AgentChatRegistryRow[],
-  ): AgentChatRegistryRow | undefined {
-    const resolvedKey = this.followSucceededByChain(startKey);
-    if (!resolvedKey) {
-      return undefined;
-    }
-    return selectable.find((row) => row.key === resolvedKey);
-  }
-
-  /**
-   * Shared `succeededBy` chain walk for both {@link resolveModelKey} and
-   * {@link resolveActiveSuccessor}: follows the chain while each hop is
-   * Retired, stopping at the first row that either is not Retired or does
-   * not exist in the registry (an unmapped key is returned as-is — it may be
-   * a caller-supplied key the catalog doesn't know about). A cycle guard
-   * returns `null` rather than looping forever on bad seed data.
-   */
-  private followSucceededByChain(startKey: string): string | null {
-    const seen = new Set<string>();
-    let current = startKey;
-    while (!seen.has(current)) {
-      seen.add(current);
-      const row = this.byKey.get(current);
-      if (!row) {
-        return current;
-      }
-      if (row.lifecycle === ModelLifecycle.RETIRED && row.succeededBy?.trim()) {
-        current = row.succeededBy.trim();
-        continue;
-      }
-      return current;
-    }
-    return null;
-  }
-
   /** Self-hosted fleet default when subscription prefers local inference. */
   async getLocalDefaultModelKey(): Promise<string> {
     await this.ensureFresh();
@@ -366,11 +303,15 @@ export class AgentChatModelRegistryService
   }
 
   /**
-   * Map persisted/request keys forward via registry `succeededBy` (legacy rows).
-   * Empty → platform default. `fallbackKey` is forwarded to
-   * {@link getDefaultModelKey} for callers outside agent chat (drafts, prompt
-   * enhancement, long product text) that want their own seed constant instead
-   * of the agent-chat seed when the registry itself is empty.
+   * The key to run for a stored or requested key. Empty → platform default.
+   * `fallbackKey` is forwarded to {@link getDefaultModelKey} for callers
+   * outside agent chat (drafts, prompt enhancement, long product text) that
+   * want their own seed constant instead of the agent-chat seed when the
+   * registry itself is empty.
+   *
+   * A retired model has no successor and is never mapped to another one: an
+   * explicit choice of one throws {@link RetiredModelException} until the user
+   * picks a new model.
    */
   async resolveModelKey(
     key?: string | null,
@@ -382,8 +323,15 @@ export class AgentChatModelRegistryService
       return this.getDefaultModelKey(fallbackKey);
     }
 
-    const resolved = this.followSucceededByChain(trimmed);
-    return resolved ?? this.getDefaultModelKey(fallbackKey);
+    this.assertNotRetired(trimmed);
+    return trimmed;
+  }
+
+  private assertNotRetired(key: string): void {
+    const row = this.byKey.get(key);
+    if (row?.lifecycle === ModelLifecycle.RETIRED) {
+      throw new RetiredModelException(key, row.label);
+    }
   }
 
   /**
@@ -392,12 +340,13 @@ export class AgentChatModelRegistryService
    * request/response keys that may legitimately be a provider slug outside
    * the curated catalog), an override is meant to pin a specific catalog
    * model — the settings API validates it at save time (#5207), but a
-   * pre-existing stored value can still go stale (a model retired or removed
-   * from the org's allowlist after it was saved). An override that does not
-   * resolve to a known row — including one whose `succeededBy` chain dead-
-   * ends on an unknown key — falls back to the platform default rather than
-   * dispatching a chat turn on an unknown key, with a warning so it is
-   * visible in ops instead of failing silently at the provider.
+   * pre-existing stored value can still go stale (a model removed from the
+   * org's allowlist after it was saved). An override that does not resolve to
+   * a known row falls back to the platform default rather than dispatching a
+   * chat turn on an unknown key, with a warning so it is visible in ops
+   * instead of failing silently at the provider. An override naming a retired
+   * model is an explicit choice that can no longer run, so it throws
+   * {@link RetiredModelException} instead of falling back.
    */
   async resolveOverrideModelKey(overrideKey?: string | null): Promise<string> {
     await this.ensureFresh();
@@ -406,12 +355,10 @@ export class AgentChatModelRegistryService
       return this.getDefaultModelKey();
     }
 
-    const resolved = this.followSucceededByChain(trimmed);
-    if (resolved) {
-      const resolvedRow = this.byKey.get(resolved);
-      if (resolvedRow && this.isSelectableRow(resolvedRow)) {
-        return resolved;
-      }
+    this.assertNotRetired(trimmed);
+    const row = this.byKey.get(trimmed);
+    if (row && this.isSelectableRow(row)) {
+      return trimmed;
     }
 
     this.logger.warn(
@@ -497,12 +444,12 @@ export class AgentChatModelRegistryService
     if (!key?.trim()) {
       return null;
     }
-    const resolved = await this.resolveModelKey(key);
-    const row = this.byKey.get(resolved);
+    const trimmed = key.trim();
+    const row = this.byKey.get(trimmed);
     if (row) {
       return this.pricingForRow(row);
     }
-    return getAgentChatModel(resolved)?.pricing ?? null;
+    return getAgentChatModel(trimmed)?.pricing ?? null;
   }
 
   /** Highest curated prompt and completion rates, taken independently. */
@@ -598,10 +545,7 @@ export class AgentChatModelRegistryService
   async isTrustedSelectableKey(key: string): Promise<boolean> {
     await this.ensureFresh();
     const row = this.byKey.get(key.trim());
-    if (!row) return false;
-    const resolved = await this.resolveModelKey(row.key);
-    const resolvedRow = this.byKey.get(resolved);
-    return Boolean(resolvedRow && this.isSelectableRow(resolvedRow));
+    return Boolean(row && this.isSelectableRow(row));
   }
 
   async getCheapestSelectableKey(): Promise<string> {

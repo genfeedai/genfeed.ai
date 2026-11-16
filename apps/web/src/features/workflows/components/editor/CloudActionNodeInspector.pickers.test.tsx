@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CloudActionNodeInspector } from './CloudActionNodeInspector';
 
 const mocks = vi.hoisted(() => ({
+  retiredKeys: {} as Record<string, string>,
   actionId: 'imageGen',
   parameters: {} as Record<string, unknown>,
   updateNodeData: vi.fn(),
@@ -48,6 +49,16 @@ vi.mock('@/features/workflows/hooks/useWorkflowModelCatalog', () => ({
   }),
 }));
 
+vi.mock('@/features/models/hooks/useRetiredModels', () => ({
+  useRetiredModels: () => ({
+    getRetiredModel: (key: string | null | undefined) =>
+      key && mocks.retiredKeys[key]
+        ? { key, label: mocks.retiredKeys[key] }
+        : null,
+    isLoading: false,
+  }),
+}));
+
 vi.mock('@/features/workflows/hooks/useWorkflowRecentPrompts', () => ({
   useWorkflowRecentPrompts: (isEnabled: boolean) => ({
     hasError: false,
@@ -78,6 +89,7 @@ describe('CloudActionNodeInspector pickers', () => {
   beforeEach(() => {
     mocks.actionId = 'imageGen';
     mocks.parameters = {};
+    mocks.retiredKeys = {};
     mocks.updateNodeData.mockClear();
   });
 
@@ -106,6 +118,31 @@ describe('CloudActionNodeInspector pickers', () => {
       model: 'black-forest-labs/flux-2-pro',
       parameters: { model: 'black-forest-labs/flux-2-pro' },
     });
+  });
+
+  it('flags a saved retired model and lets the user pick a new one', () => {
+    mocks.retiredKeys = { 'genfeed-ai/old-flux': 'Old Flux' };
+    mocks.parameters = { model: 'genfeed-ai/old-flux' };
+    render(<CloudActionNodeInspector />);
+
+    expect(screen.getByText('Old Flux was retired')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pick a new model' }));
+    fireEvent.click(screen.getByRole('button', { name: /Flux 2 Pro/ }));
+
+    expect(mocks.updateNodeData).toHaveBeenCalledWith('node-1', {
+      model: 'black-forest-labs/flux-2-pro',
+      parameters: { model: 'black-forest-labs/flux-2-pro' },
+    });
+  });
+
+  it('shows no retired flag for an active saved model', () => {
+    mocks.parameters = { model: 'black-forest-labs/flux-2-pro' };
+    render(<CloudActionNodeInspector />);
+
+    expect(
+      screen.queryByRole('button', { name: 'Pick a new model' }),
+    ).toBeNull();
   });
 
   it('writes a recent prompt into the prompt field', () => {

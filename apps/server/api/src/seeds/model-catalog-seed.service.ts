@@ -69,7 +69,6 @@ type ExistingModelRow = {
   recommendedFor: unknown;
   reviewStatus: unknown;
   speedTier: unknown;
-  succeededBy: unknown;
   supportsFeatures: unknown;
   usesOrientation: unknown;
 };
@@ -123,7 +122,6 @@ const EXISTING_MODEL_SELECT = {
   recommendedFor: true,
   reviewStatus: true,
   speedTier: true,
-  succeededBy: true,
   supportsFeatures: true,
   usesOrientation: true,
 } as const;
@@ -315,7 +313,6 @@ export class ModelCatalogSeedService {
       ...(entry.recommendedFor
         ? { recommendedFor: [...entry.recommendedFor] }
         : {}),
-      ...(entry.succeededBy ? { succeededBy: entry.succeededBy } : {}),
       ...(entry.supportsFeatures
         ? { supportsFeatures: [...entry.supportsFeatures] }
         : {}),

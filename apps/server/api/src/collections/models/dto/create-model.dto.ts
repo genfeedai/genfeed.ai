@@ -8,12 +8,10 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
-  IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
   IsString,
-  ValidateIf,
 } from 'class-validator';
 
 export class CreateModelDto {
@@ -82,19 +80,6 @@ export class CreateModelDto {
     required: false,
   })
   readonly lifecycle?: ModelLifecycle;
-
-  @IsString()
-  @ValidateIf(
-    (dto: CreateModelDto) =>
-      dto.lifecycle === ModelLifecycle.LEGACY ||
-      dto.lifecycle === ModelLifecycle.RETIRED,
-  )
-  @IsNotEmpty()
-  @ApiProperty({
-    description: 'Replacement model key required for Legacy and Retired',
-    required: false,
-  })
-  readonly succeededBy?: string;
 
   @IsOptional()
   @IsBoolean()
