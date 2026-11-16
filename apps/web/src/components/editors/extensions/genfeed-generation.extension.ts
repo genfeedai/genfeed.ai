@@ -4,7 +4,7 @@ import GenfeedGenerationNodeView from '../GenfeedGenerationNodeView';
 
 export type GenfeedGenerationKind = 'image' | 'video';
 
-export interface GenfeedGenerationAttributes {
+interface GenfeedGenerationAttributes {
   ingredientId: string;
   isPromptShown: boolean;
   kind: GenfeedGenerationKind;

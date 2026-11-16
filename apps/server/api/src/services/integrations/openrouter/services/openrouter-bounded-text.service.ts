@@ -16,11 +16,7 @@ import {
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
-export {
-  type ObservedOpenRouterTextResult,
-  type OpenRouterTextResponseEvidence,
-  openrouterTextResponseEvidenceSchema,
-} from '@api/services/integrations/openrouter/services/openrouter-bounded-text.util';
+export type { ObservedOpenRouterTextResult } from '@api/services/integrations/openrouter/services/openrouter-bounded-text.util';
 
 /** Transport adapter only. The caller must persist its funded submission intent before invoking it. */
 @Traced()

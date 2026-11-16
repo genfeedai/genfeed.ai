@@ -9,7 +9,7 @@ import type {
   IPageTotals,
 } from '@genfeedai/contracts/interfaces';
 
-export interface CharacterBrandOption {
+interface CharacterBrandOption {
   id: string;
   label: string;
 }
@@ -34,7 +34,7 @@ export interface CharacterOwnershipFieldsProps {
   onMove: (brandId: string) => Promise<void>;
 }
 
-export interface CharacterAvailabilityControls {
+interface CharacterAvailabilityControls {
   character: BrandCharacterListItem | null;
   close: () => void;
   draft: CharacterAvailabilityDraft;

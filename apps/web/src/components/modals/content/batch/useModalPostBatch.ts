@@ -61,49 +61,6 @@ import {
   resolveChannelLabel,
 } from './batch-post.utils';
 
-export interface UseModalPostBatchReturn {
-  // form
-  form: ReturnType<typeof useForm<MultiPostSchema>>;
-  formRef: React.RefObject<HTMLFormElement>;
-  onSubmit: (e: { preventDefault: () => void }) => void;
-  isSubmitting: boolean;
-  /** The form, or the per-channel results once Schedule was pressed. */
-  view: ModalPostBatchView;
-  platformConfigs: IPostPlatformConfig[];
-  applyEnabledCredentialIds: (credentialIds: string[]) => void;
-  togglePlatform: (credentialId: string) => void;
-  updatePlatformConfig: (
-    credentialId: string,
-    updates: Partial<IPostPlatformConfig>,
-  ) => void;
-  // schedule
-  globalScheduledDate: Date | null;
-  setGlobalScheduledDate: (date: Date | null) => void;
-  getMinDateTime: () => Date;
-  scheduleTimezone: string;
-  // org settings
-  settings: IOrganizationSetting | undefined;
-  // derived / flags
-  activeIngredients: IIngredient[];
-  isCarousel: boolean;
-  hasAvailableCredentials: boolean;
-  hasInvalidCredentials: boolean;
-  invalidCredentialConfigs: IPostPlatformConfig[];
-  isFormValid: boolean;
-  // watched fields
-  globalDescription: string;
-  globalLabel: string;
-  // error
-  error: string | null;
-  setError: (error: string | null) => void;
-  // actions
-  closeModalPost: () => void;
-  openCredentials: () => void;
-  // status
-  platformStatuses: PlatformSubmissionStatus[];
-  isRefreshingTokens: boolean;
-}
-
 export function useModalPostBatch(props: ModalPostBatchProps) {
   const {
     ingredient,

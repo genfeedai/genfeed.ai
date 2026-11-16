@@ -8,6 +8,7 @@ import type {
 import { ButtonVariant, PostVisibility } from '@genfeedai/contracts';
 import { usePostingSets } from '@hooks/data/content/use-posting-sets/use-posting-sets';
 import { usePostingSignatures } from '@hooks/data/content/use-posting-signatures/use-posting-signatures';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -39,7 +40,7 @@ import {
   readPublishTargetProposals,
   resolveEffectiveCaption,
   resolveLiveTargetBlockers,
-  targetToggleName,
+  targetAccountSuffix,
   VISIBILITY_VALUES,
 } from './publish-post-card.helpers';
 import {
@@ -562,22 +563,36 @@ export function PublishPostCard({
                 ? (targetBlockers[target.id] ?? [])
                 : [];
               const warnings = target.warnings ?? [];
+              const accountSuffix = targetAccountSuffix(
+                target,
+                targetProposals,
+              );
               const settingFields = target.settingFields ?? [];
 
               return (
                 <div key={target.id} className="border border-border p-3">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <Toggle
+                      aria-label={
+                        accountSuffix
+                          ? `${target.label} ${accountSuffix}`
+                          : undefined
+                      }
                       onPressedChange={() => toggleTarget(target.id)}
                       pressed={isSelected}
                       size="sm"
                       variant="chip"
                     >
-                      {targetToggleName(target, targetProposals)}
+                      <PlatformBadge
+                        className="bg-transparent p-0"
+                        platform={target.platform}
+                      />
                     </Toggle>
-                    <span className="text-xs text-muted-foreground">
-                      {target.label}
-                    </span>
+                    {accountSuffix ? (
+                      <span className="text-xs text-muted-foreground">
+                        {accountSuffix}
+                      </span>
+                    ) : null}
                   </div>
 
                   {isSelected ? (

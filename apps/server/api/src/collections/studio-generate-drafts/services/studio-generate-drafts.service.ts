@@ -65,7 +65,7 @@ const MAX_SETTINGS_PER_TYPE = 40;
 const MAX_SETTING_TEXT_LENGTH = 5_000;
 const MAX_SETTING_LIST_LENGTH = 100;
 /** Upper bound on the stored settings JSON, well above a real composer. */
-export const STUDIO_GENERATE_DRAFT_MAX_SETTINGS_BYTES = 32_768;
+const STUDIO_GENERATE_DRAFT_MAX_SETTINGS_BYTES = 32_768;
 
 function isSettingValue(value: unknown): boolean {
   if (value === null || typeof value === 'boolean') {

@@ -97,6 +97,35 @@ describe('pinned catalog import', () => {
     syncProductSkills(f.app, { sourceDir: f.source, checkSource: true });
     expect(inventory(join(f.app, 'skills'))).toEqual(before);
   });
+  it('leaves the local tooling of motion-video out of the pinned package', () => {
+    const f = fixture();
+    const source = join(f.source, sourcePath('motion-video'));
+    mkdirSync(join(source, 'scripts'), { recursive: true });
+    mkdirSync(join(source, 'templates', 'src'), { recursive: true });
+    writeFileSync(join(source, 'scripts', 'motion.ts'), 'export {};');
+    writeFileSync(join(source, 'templates', 'src', 'Root.tsx'), 'export {};');
+    const sha = f.commit();
+    syncProductSkills(f.app, { sourceDir: f.source, commit: sha, write: true });
+    const dir = join(f.app, 'skills', sourcePath('motion-video'));
+    expect(inventory(dir).map((file) => file.path)).toEqual([
+      'SKILL.md',
+      'references/small.md',
+    ]);
+    syncProductSkills(f.app, { sourceDir: f.source, checkSource: true });
+  });
+  it('still rejects code outside the local tooling folders', () => {
+    const f = fixture();
+    const source = join(f.source, sourcePath('motion-video'));
+    writeFileSync(join(source, 'extra.ts'), 'export {};');
+    const sha = f.commit();
+    expect(() =>
+      syncProductSkills(f.app, {
+        sourceDir: f.source,
+        commit: sha,
+        write: true,
+      }),
+    ).toThrow('Unsupported upstream file');
+  });
   it.each(['changed', 'deleted', 'added', 'compiler', 'index', 'readme'])(
     'rejects %s drift without writing',
     (mode) => {

@@ -1,5 +1,5 @@
 /** One connected account shown in a platform avatar stack. */
-export interface PlatformAvatarStackItem {
+interface PlatformAvatarStackItem {
   id: string;
   platform: string;
   label?: string | null;

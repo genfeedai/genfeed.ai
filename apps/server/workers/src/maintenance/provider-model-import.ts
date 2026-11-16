@@ -190,7 +190,7 @@ export function providerModelImportTargets(): ProviderModelImportTarget[] {
   ];
 }
 
-export type ImportedProviderContract =
+type ImportedProviderContract =
   | ReplicateCandidateContract
   | FalCandidateContract;
 

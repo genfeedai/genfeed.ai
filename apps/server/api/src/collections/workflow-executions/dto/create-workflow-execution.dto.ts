@@ -130,7 +130,7 @@ export class WorkflowExecutionQueryDto extends BaseQueryDto {
   readonly strategyId?: string;
 }
 
-export const AGENT_FAILURE_RESOLUTIONS: readonly AgentFailureResolution[] = [
+const AGENT_FAILURE_RESOLUTIONS: readonly AgentFailureResolution[] = [
   'open',
   'resolved',
   'all',

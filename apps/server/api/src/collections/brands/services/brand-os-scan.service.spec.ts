@@ -2,10 +2,12 @@ import { randomUUID } from 'node:crypto';
 import type { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import { BrandOsScanService } from '@api/collections/brands/services/brand-os-scan.service';
+import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type { WebsiteBrandScrapeEvidence } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { buildBrandVideoFinishing } from '@genfeedai/contracts/api-types/contracts/brand-video-finishing.contract';
 import type { IBrandKitDraft } from '@genfeedai/contracts/interfaces';
 import {
   type BrandKitSourceBrand,
@@ -91,6 +93,7 @@ function approved(): BrandOsRevision {
     description: '',
   });
   content.status = 'accepted';
+  content.finishing = buildBrandVideoFinishing({});
   if (!content.fields.description)
     throw new Error('Fixture description field missing');
   content.fields.description.currentValue = '';
@@ -266,6 +269,7 @@ function harness(initial: BrandOsRevision[] = []) {
   const revisions = new BrandOsRevisionsService(
     prisma as unknown as PrismaService,
     {} as BrandKitAssetsService,
+    new BrandWatermarkLogoService(prisma as unknown as PrismaService),
   );
   const logger = { warn: vi.fn() };
   const service = new BrandOsScanService(

@@ -219,7 +219,7 @@ describe('WorkflowTrendPublishExecutorRegistrarService publish hold', () => {
       },
       ingredient: { findMany: vi.fn().mockResolvedValue([]) },
       post: { count: vi.fn().mockResolvedValue(0) },
-      profile: { findMany: vi.fn().mockResolvedValue([]) },
+      harnessProfile: { findMany: vi.fn().mockResolvedValue([]) },
     };
     const postsService = {
       create: vi.fn().mockResolvedValue({ id: 'post-1' }),
@@ -408,7 +408,7 @@ describe('WorkflowTrendPublishExecutorRegistrarService post caps (#7458)', () =>
           return scheduled.length;
         }),
       },
-      profile: { findMany: vi.fn().mockResolvedValue([]) },
+      harnessProfile: { findMany: vi.fn().mockResolvedValue([]) },
     };
     const postsService = {
       create: vi.fn(async (data: { targetExecutionState: string }) => {

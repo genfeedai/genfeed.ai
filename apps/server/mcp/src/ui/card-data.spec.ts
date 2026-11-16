@@ -687,6 +687,40 @@ describe('MCP Apps card contract', () => {
     expect(new Set(view.cards.slice(0, 3).map((card) => card.id)).size).toBe(3);
   });
 
+  it('keeps the whole text of a post waiting for approval', () => {
+    const text = `${'A long post. '.repeat(500)}The end.`;
+    const result = withApprovalCard({
+      content: [],
+      isError: true,
+      structuredContent: {
+        approvalId: 'apr-long',
+        batch: {
+          invalid: [],
+          isApprovableHere: true,
+          posts: [
+            {
+              accountHandle: 'brand',
+              accountLabel: 'Brand account',
+              index: 0,
+              media: [],
+              platform: 'linkedin',
+              scheduledAt: '2026-11-15T08:00:00.000Z',
+              text,
+              title: 'Long post',
+            },
+          ],
+          total: 1,
+        },
+        code: 'approval_pending',
+        toolName: 'create_scheduled_release',
+      },
+    });
+
+    const view = result.structuredContent?.genfeedCards as McpCardView;
+    expect(text.length).toBeGreaterThan(4000);
+    expect(view.cards[0].description).toBe(text);
+  });
+
   it('leaves out the buttons when this connection cannot resolve approvals, and ignores other errors', () => {
     const pending = withApprovalCard({
       content: [],

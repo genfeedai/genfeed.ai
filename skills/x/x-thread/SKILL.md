@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Write an X (Twitter) thread of 2 to 15 posts with a hook, a value chain and a closing CTA."
+  tags: x, twitter, threads, social-media, content-creation
+  outputs: text
+  triggers: "write a thread; create an X thread; turn this into a thread; write a twitter thread; thread on"
 ---
 
 # X Thread
@@ -113,7 +117,8 @@ If the user wants options, provide two different hooks for post 1, not two full 
 If Genfeed tools are available:
 
 - `generate_content` with `{type: "thread", platform: "twitter", topic, brandId}` produces a starting draft. Edit it against the rules above.
-- `create_post` saves the final thread as a draft with `platforms: ["twitter"]`. It does not publish.
+- `create_post` saves the final thread as a draft with `platforms: ["twitter"]`. It does not publish, and no tool turns that draft into a scheduled release later.
+- When the thread is meant to be scheduled, create it with `create_scheduled_release` and `status: "draft"` (no date) instead. The release schema has `attachments` with `kind: "thread"` and an `order` for follow-up posts: check with `find_tools` how they publish before relying on them, and say what you could not confirm. A release with a date is held for the person's approval.
 - Publishing goes through `social-poster`, only on explicit confirmation.
 
 The skill works fully without Genfeed.

@@ -51,7 +51,7 @@ export type HiddenWorkflowRule = {
   rootSources?: readonly string[];
 };
 
-export type HiddenWorkflowParent =
+type HiddenWorkflowParent =
   | {
       kind: 'hidden-single-child';
       nodeId: (nodeId: string) => boolean;

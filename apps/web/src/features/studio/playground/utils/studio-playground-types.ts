@@ -25,7 +25,7 @@ export const STUDIO_PLAYGROUND_TYPES = [
   'voice',
 ] as const satisfies readonly StudioPlaygroundType[];
 
-export const DEFAULT_STUDIO_PLAYGROUND_TYPE: StudioPlaygroundType = 'image';
+const DEFAULT_STUDIO_PLAYGROUND_TYPE: StudioPlaygroundType = 'image';
 
 const STUDIO_PLAYGROUND_TYPE_CONFIGS: Record<
   StudioPlaygroundType,

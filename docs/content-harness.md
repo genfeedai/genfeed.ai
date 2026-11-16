@@ -113,7 +113,8 @@ penalised. It is craft guidance. It is not a reimplementation of X's ranker.
 
 ## Org-scoped harness profiles
 
-A harness profile is a per-brand record, stored under the owning organization, that
+A harness profile is a per-brand record, stored in its own `harness_profiles` table
+with a `brandId` foreign key under the owning organization, that
 holds the brand's thesis (beliefs, enemies, offers, proof points and the Expert
 Path fields), voice, structure rules, guardrails, and `examples.good` and
 `examples.avoid` lists. The contract is `IHarnessProfile` in
@@ -126,7 +127,14 @@ Path fields), voice, structure rules, guardrails, and `examples.good` and
 - `HarnessProfilesService.resolveContributionForBrand` converts the chosen profile
   into a `ContentHarnessContribution`. Good examples become `brand_example`
   sources, avoid examples become `anti_example` sources, and banned phrases become
-  guardrails. The profile id is stamped into the brief's receipts.
+  guardrails. The profile id and the revision applied are stamped into the brief's
+  receipts.
+- Every change appends a row to `harness_profile_revisions` (append-only, enforced
+  by a database trigger) with its source (`USER_EDIT`, `RULE_PROPOSAL`,
+  `WINNER_PROMOTION`, `REVIEW_FEEDBACK`, `EXPERT_PATH`, `SEED`, `MIGRATION` or
+  `ROLLBACK`) and its actor. `GET /harness-profiles/:id/revisions` lists the history.
+  `POST /harness-profiles/:id/rollback` with `{ "version": n }` restores revision `n`
+  as a new `ROLLBACK` revision, and the next generation reads it.
 - `HarnessGenerationService.resolveBrief` is the entry point for generation
   paths. After the brand access check it loads the brand, the approved Brand OS
   revision, the profile and, when there is a topic, retrieved brand memory, then

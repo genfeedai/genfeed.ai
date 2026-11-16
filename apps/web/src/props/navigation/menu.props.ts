@@ -1,4 +1,4 @@
-import type { AppContext, IIngredient } from '@genfeedai/contracts/interfaces';
+import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type {
   MenuConfig,
   MenuItemConfig,
@@ -48,7 +48,7 @@ export interface SidebarNavPanel {
   sectionLabel?: string;
 }
 
-export interface SidebarSizingProps {
+interface SidebarSizingProps {
   collapsedSidebarWidth?: number;
   mobileSidebarWidth?: number;
   sidebarWidth?: number;
@@ -105,9 +105,4 @@ export interface MenuItemProps {
   chevronIcon?: ReactNode;
   variant?: 'default' | 'icon';
   isCollapsed?: boolean;
-}
-
-export interface LatestIngredientItemProps {
-  ingredient: IIngredient;
-  isProcessing?: boolean;
 }

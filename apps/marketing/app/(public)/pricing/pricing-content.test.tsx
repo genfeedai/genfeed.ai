@@ -102,11 +102,13 @@ describe('PricingContent', () => {
     const managed = within(screen.getByLabelText('Enterprise'));
     expect(managed.getByText('From')).toBeInTheDocument();
     expect(managed.getByText('$2,500')).toBeInTheDocument();
+    expect(managed.queryByText(/performance fee per contract/)).toBeNull();
+    expect(managed.getByText('Usage billed at cost')).toBeInTheDocument();
     expect(
-      managed.getByText('+ usage at cost + performance fee per contract'),
+      managed.getByText('Fee only on winning creatives'),
     ).toBeInTheDocument();
     expect(
-      managed.getByText('Custom LoRA models quoted separately'),
+      managed.getByText('Custom LoRA quoted separately'),
     ).toBeInTheDocument();
     expect(managed.getByRole('link', { name: 'Book a call' })).toHaveAttribute(
       'href',
@@ -130,8 +132,48 @@ describe('PricingContent', () => {
   it('lists the subscription features on the Scale card', () => {
     render(<PricingContent />);
     const scale = within(screen.getByLabelText('Scale'));
-    expect(scale.getByText('Brand model training')).toBeInTheDocument();
-    expect(scale.getByText('Higher API limits')).toBeInTheDocument();
+    expect(
+      scale.getByText('Ultra quality, model training'),
+    ).toBeInTheDocument();
+    expect(scale.getByText('600 API requests/min')).toBeInTheDocument();
+  });
+
+  it.each([
+    [
+      'Pro',
+      [
+        '4,900 credits included',
+        'Automation, Messages, Discovery',
+        'Bring your own key',
+        'Unlimited brands and channels',
+        '300 API requests/min',
+      ],
+    ],
+    [
+      'Scale',
+      [
+        '70,000 credits included',
+        'Everything in Pro',
+        'Unlimited seats and workspaces',
+        'Ultra quality, model training',
+        '600 API requests/min',
+      ],
+    ],
+    [
+      'Enterprise',
+      [
+        'Everything in Scale',
+        'We run production, publishing',
+        'Usage billed at cost',
+        'Fee only on winning creatives',
+        'Custom LoRA quoted separately',
+      ],
+    ],
+  ])('shows the same five one-line bullets on the %s card', (name, bullets) => {
+    render(<PricingContent />);
+    const items = within(screen.getByLabelText(name)).getAllByRole('listitem');
+
+    expect(items.map((item) => item.textContent)).toEqual(bullets);
   });
 
   it('uses the tokenized dark card surface for the featured plan', () => {
@@ -177,7 +219,7 @@ describe('PricingContent', () => {
 
       expect(screen.getByText('$1,000')).toBeInTheDocument();
       expect(screen.getByText('100,000 credits')).toBeInTheDocument();
-      expect(screen.getByText('60,000 credits included')).toBeInTheDocument();
+      expect(screen.getByText('70,000 credits included')).toBeInTheDocument();
       expect(screen.getByText('4,900 credits included')).toBeInTheDocument();
     });
   });
@@ -203,7 +245,7 @@ describe('PricingContent', () => {
   it('says nothing but the credit grant under the price', () => {
     // Seats, organizations, and API access are bullets. Repeating any of them
     // here is what made the Scale card read "Unlimited seats" twice.
-    expect(getPriceQualifier(getScalePlan())).toBe('60,000 credits included');
+    expect(getPriceQualifier(getScalePlan())).toBe('70,000 credits included');
     expect(getPriceQualifier(getPlanByTier('payg'))).toBe('No monthly fee');
   });
 

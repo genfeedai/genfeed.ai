@@ -257,7 +257,7 @@ export default function PricingContent() {
                 </span>
               </div>
 
-              <div className="mb-2 flex items-baseline gap-1.5 whitespace-nowrap">
+              <div className="mb-6 flex items-baseline gap-1.5 whitespace-nowrap">
                 <span className="text-sm font-medium text-foreground/60">
                   From
                 </span>
@@ -267,10 +267,6 @@ export default function PricingContent() {
                 <span className="text-sm font-medium text-foreground/60">
                   /mo
                 </span>
-              </div>
-
-              <div className="mb-6 text-sm text-foreground/60">
-                {serviceOffering.priceNote}
               </div>
 
               <ul className="mb-auto space-y-3">

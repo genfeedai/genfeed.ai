@@ -41,7 +41,7 @@ import {
   TWITTER_PIPELINE_ACTION_IDS,
 } from './twitter-pipeline-workflow-definition';
 
-export const TWITTER_DRAFT_BRAND_CONTEXT_UNAVAILABLE =
+const TWITTER_DRAFT_BRAND_CONTEXT_UNAVAILABLE =
   'Brand context is unavailable for these drafts. Please retry.';
 
 /** An X post, reply or quote is held to the standard 280 weighted characters. */

@@ -9,7 +9,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
-export const BREAKOUT_REVIEW_WORKFLOW_NAME = 'Breakout response';
+const BREAKOUT_REVIEW_WORKFLOW_NAME = 'Breakout response';
 
 /** The review-queue item format of a response output's own format. */
 export function breakoutReviewItemFormat(

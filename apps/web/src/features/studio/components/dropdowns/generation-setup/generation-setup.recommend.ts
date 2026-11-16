@@ -21,7 +21,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 
 /** Default aspect ratio per type when the prompt gives no framing hint. */
-export const GENERATION_SETUP_DEFAULT_ASPECT_RATIO_BY_TYPE: Partial<
+const GENERATION_SETUP_DEFAULT_ASPECT_RATIO_BY_TYPE: Partial<
   Record<GenerationSetupType, string>
 > = {
   image: '1:1',

@@ -34,7 +34,7 @@ const FILE_QUEUE_NAMES = [
   'youtube-processing',
 ] as const;
 
-export const QUEUE_HEALTH_QUEUE_NAMES = ALL_QUEUE_NAMES;
+const QUEUE_HEALTH_QUEUE_NAMES = ALL_QUEUE_NAMES;
 
 const MONITORED_QUEUE_NAMES = [
   ...QUEUE_HEALTH_QUEUE_NAMES,

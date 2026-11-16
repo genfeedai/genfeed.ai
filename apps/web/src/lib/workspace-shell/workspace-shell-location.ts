@@ -15,7 +15,6 @@ export type {
   RestoreWorkspaceShellLocationParams,
   WorkspaceShellLocation,
   WorkspaceShellOverlayRequest,
-  WorkspaceShellRestorationFailure,
   WorkspaceShellState,
 } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 

@@ -25,13 +25,13 @@ const MAX_BRAND_VOICE_OR_NICHE_LENGTH = 500;
 const BRAND_IDENTITY_SOURCE_ACTION_ID =
   /^brand-identity-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export function readBrandRecord(value: unknown): Record<string, unknown> {
+function readBrandRecord(value: unknown): Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
 }
 
-export function readBrandString(value: unknown): string {
+function readBrandString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
@@ -42,7 +42,7 @@ export function readBrandString(value: unknown): string {
  * backtracks quadratically on a tool parameter ending in a long run of dots
  * or spaces, and these values come straight from agent-supplied params.
  */
-export function trimSentenceEnd(value: string): string {
+function trimSentenceEnd(value: string): string {
   let end = value.length;
   while (end > 0) {
     const character = value[end - 1];
@@ -112,7 +112,7 @@ export function normalizeBrandSlug(value: unknown, label: string): string {
 }
 
 /** Optional short brand trait (voice, niche) supplied by the agent. */
-export function readOptionalBrandTrait(
+function readOptionalBrandTrait(
   value: unknown,
   field: 'niche' | 'voice',
 ): string | undefined {
@@ -128,7 +128,7 @@ export function readOptionalBrandTrait(
   return trait;
 }
 
-export function buildProposedBrandDescription(
+function buildProposedBrandDescription(
   value: unknown,
   label: string,
   niche: string | undefined,

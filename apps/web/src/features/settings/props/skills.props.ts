@@ -20,7 +20,7 @@ export type SkillDraft = {
   systemPromptTemplate: string;
 };
 
-export type SkillDraftError = { field: keyof SkillDraft; maximum: number };
+type SkillDraftError = { field: keyof SkillDraft; maximum: number };
 export type SkillDraftPatchResult = {
   patch: Partial<SkillDraft>;
   errors: SkillDraftError[];
@@ -49,7 +49,7 @@ export type SkillDetailPanelProps = SkillDetailCardProps & {
   onOpenSamplePrompt: () => void;
 };
 
-export type SkillImportFields = {
+type SkillImportFields = {
   files: File[];
   slug: string;
   sourceUrl: string;

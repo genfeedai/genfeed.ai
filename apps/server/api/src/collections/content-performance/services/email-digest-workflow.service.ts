@@ -25,7 +25,7 @@ export const EMAIL_DIGEST_ACTION_IDS = {
   PREPARE: 'email-digest.prepare',
   RENDER: 'email-digest.render',
 } as const;
-export const EMAIL_DIGEST_WORKFLOW_ID = 'email-digest.delivery';
+const EMAIL_DIGEST_WORKFLOW_ID = 'email-digest.delivery';
 export const EMAIL_DIGEST_CHILD_WORKFLOW_ID = 'email-digest.deliver-one';
 
 export function buildEmailDigestChildWorkflowDefinition(): SystemWorkflowGraphDefinition {

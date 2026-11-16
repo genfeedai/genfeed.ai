@@ -747,9 +747,9 @@ function buildReleaseView(resource: Record<string, unknown>): McpCardView {
 }
 
 /**
- * A queued batch of scheduled posts (#10134): the first three in full, then the
- * rest as a count with the one link to the web review. Past three posts the
- * card offers no approval, only that link.
+ * A queued batch of scheduled posts (#10134): the first three in full (their
+ * whole text, never capped), then the rest as a count with the one link to the
+ * web review. Past three posts the card offers no approval, only that link.
  */
 function buildBatchApprovalView(
   data: Record<string, unknown>,
@@ -761,29 +761,29 @@ function buildBatchApprovalView(
   const omitted = Math.max(0, total - posts.length);
   const invalid = rows(batch.invalid).length;
   const postCards = posts.map((post) => {
-    const media = rows(post.media).map((item) => ({
-      ...item,
-      assetId: `${text(item, 'order')}`,
-    }));
-    return card(
-      {
-        author: {
-          handle: text(post, 'accountHandle'),
-          name: text(post, 'accountLabel'),
+    return {
+      ...card(
+        {
+          author: {
+            handle: text(post, 'accountHandle'),
+            name: text(post, 'accountLabel'),
+          },
+          id: `${approvalId}:${typeof post.index === 'number' ? post.index : ''}`,
+          kind: 'post',
+          media: rows(post.media).map((item) => ({
+            ...item,
+            assetId: text(item, 'order'),
+          })),
+          platform: text(post, 'platform'),
+          scheduledAt: text(post, 'scheduledAt'),
+          status: 'pending_approval',
+          title: text(post, 'title'),
         },
-        description: text(post, 'text'),
-        id: `${approvalId}:${typeof post.index === 'number' ? post.index : ''}`,
-        kind: 'post',
-        media,
-        platform: text(post, 'platform'),
-        scheduledAt: text(post, 'scheduledAt'),
-        status: 'pending_approval',
-        title: text(post, 'title'),
-      },
-      'post',
-    );
+        'post',
+      ),
+      description: text(post, 'text'),
+    };
   });
-  const reviewUrl = safeCardUrl(text(data, 'nextStepUrl'));
   const closing = summaryCard(
     omitted > 0
       ? `+${omitted} more ${omitted === 1 ? 'post' : 'posts'}`
@@ -798,7 +798,7 @@ function buildBatchApprovalView(
       linkLabel:
         omitted > 0 ? `Review all ${total} in Genfeed` : 'Review in Genfeed',
       status: 'pending_approval',
-      url: reviewUrl,
+      url: safeCardUrl(text(data, 'nextStepUrl')),
     },
   );
   return {

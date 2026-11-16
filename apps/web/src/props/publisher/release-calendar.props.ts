@@ -8,15 +8,6 @@ import type {
   IReleaseAnalyticsComparison,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
-import type { CalendarItem } from '@/props/components/calendar.props';
-
-/**
- * A release placed on the scheduling calendar. The calendar reads the scheduler
- * read model only, so the payload is an `IReleaseGroup` — never a raw post row.
- */
-export interface ReleaseCalendarItem extends CalendarItem {
-  release: IReleaseGroup;
-}
 
 /**
  * Active calendar filters. `status` narrows the release itself; every other

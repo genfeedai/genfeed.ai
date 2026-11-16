@@ -34,7 +34,7 @@ const CONNECTION_KEY = ['heygen-connection-status'] as const;
 const POLL_INTERVAL_MS = 10_000;
 
 /** Statuses that change on the provider's side without anything we do. */
-export const AVATAR_TWIN_WAITING_STATUSES: readonly AvatarTwinStatus[] = [
+const AVATAR_TWIN_WAITING_STATUSES: readonly AvatarTwinStatus[] = [
   AvatarTwinStatus.UPLOADING,
   AvatarTwinStatus.TRAINING,
   AvatarTwinStatus.AWAITING_CONSENT,

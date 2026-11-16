@@ -10,7 +10,9 @@ import type {
   IRevenueNotificationPayload,
   IStoryboardNotificationContext,
   IUserCreatedPayload,
+  ModelScanReport,
 } from '@genfeedai/contracts/interfaces';
+import { buildModelFixPrompt } from '@genfeedai/pricing';
 import type { SystemEvent } from '@libs/interfaces/system-event.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -28,6 +30,11 @@ import {
   buildIngredientManagerUrl,
   getIngredientEmbedColor,
 } from '@notifications/services/discord/ingredient-card.util';
+import {
+  adminModelsUrl,
+  buildModelScanCard,
+  modelScanFixPromptInput,
+} from '@notifications/services/discord/model-scan-card.util';
 import {
   adminOrganizationUrl,
   adminUserUrl,
@@ -407,149 +414,31 @@ export class DiscordService {
     }
   }
 
-  async sendModelDiscoveryNotification(payload: {
-    modelKey: string;
-    category: string;
-    estimatedCost: number;
-    providerCostUsd: number;
-    provider: string;
-    qualityTier?: string;
-    speedTier?: string;
-  }): Promise<boolean> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    return this.withWebhook(
-      await this.discordBotService.getModelsWebhook(),
-      url,
-      async (webhookClient) => {
-        const providerColors: Record<string, number> = {
-          fal: 0x7c3aed,
-          replicate: 0x2563eb,
-        };
-
-        const providerName =
-          payload.provider === 'fal' ? 'fal.ai' : 'Replicate';
-        const embedColor = providerColors[payload.provider] || 0x5865f2;
-        const margin =
-          payload.providerCostUsd > 0
-            ? Math.round(
-                (1 - payload.providerCostUsd / (payload.estimatedCost * 0.01)) *
-                  100,
-              )
-            : 0;
-
-        await this.sendOperatorCard(webhookClient, {
-          color: embedColor,
-          fields: [
-            { name: 'Category', value: payload.category },
-            { name: 'Provider', value: providerName },
-            {
-              name: 'Credits',
-              value: `${payload.estimatedCost} ($${(payload.estimatedCost * 0.01).toFixed(2)})`,
-            },
-            {
-              name: 'Provider Cost',
-              value: `$${payload.providerCostUsd.toFixed(4)}`,
-            },
-            { name: 'Margin', value: `${margin}%` },
-            { name: 'Quality', value: payload.qualityTier ?? '' },
-            { name: 'Speed', value: payload.speedTier ?? '' },
-          ],
-          footer: 'Draft created — activate in admin panel',
-          title: `New Model Discovered: ${payload.modelKey}`,
-        });
-
-        this.loggerService.log(`${url} succeeded`, {
-          modelKey: payload.modelKey,
-          provider: payload.provider,
-        });
-      },
-    );
-  }
-
   /**
-   * A provider changed a price (#6196). The approved rate keeps charging; the
-   * operator approves the new one from the admin model pricing page.
+   * One card per provider scan: what changed, what the provider removed, what
+   * is new, what could not be read, and the Fix it prompt for the run. Sends
+   * nothing when the run found nothing.
    */
-  async sendModelPriceChangeNotification(payload: {
-    modelKey: string;
-    provider: string;
-    changes: Array<{
-      variant: string;
-      unit: string;
-      oldPriceUsd: number | null;
-      newPriceUsd: number | null;
-    }>;
-    sourceUrl: string | null;
-  }): Promise<boolean> {
+  async sendModelScanNotification(report: ModelScanReport): Promise<boolean> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    return this.withWebhook(
-      await this.discordBotService.getModelsWebhook(),
-      url,
-      async (webhookClient) => {
-        const ruleOnlyChange = payload.changes.length === 0;
-        const formatPrice = (value: number | null): string =>
-          value === null
-            ? 'none'
-            : `$${value.toLocaleString('en-US', { maximumFractionDigits: 10 })}`;
-        // Discord caps an embed field value at 1024 characters.
-        const lines = payload.changes
-          .slice(0, 12)
-          .map(
-            (change) =>
-              `${change.variant}: ${formatPrice(change.oldPriceUsd)} → ${formatPrice(change.newPriceUsd)} per ${change.unit}`,
-          );
-        if (payload.changes.length > lines.length)
-          lines.push(`and ${payload.changes.length - lines.length} more`);
-        await this.sendOperatorCard(webhookClient, {
-          color: 0xffa500,
-          fields: [
-            { name: 'Provider', value: payload.provider },
-            {
-              inline: false,
-              name: ruleOnlyChange ? 'Billing rules' : 'Old → new price',
-              value: ruleOnlyChange
-                ? 'Provider billing selectors or defaults changed. Review the pending contract in admin.'
-                : lines.join('\n'),
-            },
-            { inline: false, name: 'Source', value: payload.sourceUrl ?? '' },
-          ],
-          summary: ruleOnlyChange
-            ? 'The approved pricing keeps charging until a superadmin approves the pending contract.'
-            : 'The approved rate keeps charging until a superadmin approves the new price.',
-          title: ruleOnlyChange
-            ? `Provider billing rules changed: ${payload.modelKey}`
-            : `Provider price changed: ${payload.modelKey}`,
-        });
-
-        this.loggerService.log(`${url} succeeded`, {
-          modelKey: payload.modelKey,
-          provider: payload.provider,
-        });
-      },
+    const adminUrl = adminModelsUrl(
+      this.configService.get('GENFEEDAI_APP_URL'),
     );
-  }
-
-  /** An active model became unpriceable, or its provider price refresh failed (#6196). */
-  async sendModelPricingUnavailableNotification(payload: {
-    modelKey: string;
-    provider: string;
-    reason: string;
-  }): Promise<boolean> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const card = buildModelScanCard(report, {
+      adminUrl,
+      promptFor: (maxItems) =>
+        buildModelFixPrompt(modelScanFixPromptInput(report, adminUrl), {
+          maxItems,
+        }),
+    });
+    if (!card) return true;
     return this.withWebhook(
       await this.discordBotService.getModelsWebhook(),
       url,
       async (webhookClient) => {
-        await this.sendOperatorCard(webhookClient, {
-          color: 0xef4444,
-          fields: [{ name: 'Provider', value: payload.provider }],
-          summary: payload.reason,
-          title: `Model pricing needs attention: ${payload.modelKey}`,
-        });
-
+        await this.sendOperatorCard(webhookClient, card);
         this.loggerService.log(`${url} succeeded`, {
-          modelKey: payload.modelKey,
-          provider: payload.provider,
+          provider: report.provider,
         });
       },
     );

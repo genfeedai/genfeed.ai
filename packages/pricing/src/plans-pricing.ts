@@ -3,7 +3,11 @@ import {
   multiplyDecimalPricing,
   sumDecimalPricing,
 } from './decimal-pricing';
-import { FREE_API_RATE_LIMIT, PRO_API_RATE_LIMIT } from './tier-entitlements';
+import {
+  FREE_API_RATE_LIMIT,
+  PRO_API_RATE_LIMIT,
+  SCALE_API_RATE_LIMIT,
+} from './tier-entitlements';
 /**
  * Genfeed.ai Pricing Configuration
  *
@@ -15,7 +19,7 @@ import { FREE_API_RATE_LIMIT, PRO_API_RATE_LIMIT } from './tier-entitlements';
  * - Pay As You Go is free to join: buy credit packs, spend on any output
  * - Pro matches the pay-as-you-go rate (Pro $49 → 4,900 credits) and sells
  *   access to every app. Scale sells a better credit rate: its included
- *   monthly credits carry a ~20% bonus (Scale $499 → 60,000 credits ≈ $600
+ *   monthly credits carry a ~40% bonus (Scale $499 → 70,000 credits ≈ $700
  *   of PAYG output).
  * - Seats are never a usage meter: FREE is solo (1 seat); every paid tier
  *   (Scale, Enterprise) has unlimited seats. Multi-organization workflows
@@ -26,7 +30,7 @@ import { FREE_API_RATE_LIMIT, PRO_API_RATE_LIMIT } from './tier-entitlements';
  * - Models are never user-selected: the Genfeed router picks the best model
  *   for each format, brief, and budget
  *
- * @updated 2026-07-06
+ * @updated 2026-11-15
  */
 
 import { MODEL_KEYS } from '@genfeedai/contracts/constants/model-keys.constant';
@@ -162,7 +166,7 @@ export function getLaunchPrice(tier: PlanTier): number | null {
  */
 export const TIER_INCLUDED_MONTHLY_CREDITS: Record<string, number> = {
   pro: 4_900,
-  scale: 60_000,
+  scale: 70_000,
 };
 
 export type SubscriptionPriceTier = 'pro' | 'scale';
@@ -318,6 +322,24 @@ function taperedSellPriceUsd(
       Math.min(marginMultiplier, GENERATION_MARGIN_TAPER_MULTIPLIER),
     ),
   ]);
+}
+
+/**
+ * What a generation sells for, in USD and before credit rounding, for a given
+ * provider cost: the same tapered multiplier `applyMargin` converts to credits,
+ * without the whole-credit rounding and the two credit floor. Use it to compare
+ * a provider rate with what the rate sheet charges; a per-token or per-second
+ * rate is far below one credit, so rounding would hide a loss.
+ */
+export function sellPriceUsdForProviderCost(
+  providerCostUsd: number,
+  marginMultiplier: number = runtimeGenerationMarginMultiplier,
+): number {
+  const safeMultiplier = normalizeMarginMultiplier(
+    marginMultiplier,
+    DEFAULT_GENERATION_MARGIN_MULTIPLIER,
+  );
+  return taperedSellPriceUsd(providerCostUsd, safeMultiplier);
 }
 
 /**
@@ -479,7 +501,7 @@ export const websitePlans: WebsitePlanProps[] = [
     features: [
       '1 seat, 1 workspace',
       'Unlimited brands and channels',
-      `API access (${FREE_API_RATE_LIMIT} requests/min)`,
+      `${FREE_API_RATE_LIMIT} API requests/min`,
     ],
     interval: 'payg',
     label: PLAN_LABELS.payg,
@@ -499,10 +521,9 @@ export const websitePlans: WebsitePlanProps[] = [
     description: 'Every app for one creator or brand',
     features: [
       'Automation, Messages, Discovery',
-      'Clean exports, any agent model',
       'Bring your own key',
       'Unlimited brands and channels',
-      `API access (${PRO_API_RATE_LIMIT} requests/min)`,
+      `${PRO_API_RATE_LIMIT} API requests/min`,
     ],
     includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.pro,
     interval: 'month',
@@ -523,11 +544,10 @@ export const websitePlans: WebsitePlanProps[] = [
     ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=scale`,
     description: 'One studio for teams, organizations, and brands',
     features: [
-      'Unlimited seats and client workspaces',
       'Everything in Pro',
-      'Ultra quality',
-      'Brand model training',
-      'Higher API limits',
+      'Unlimited seats and workspaces',
+      'Ultra quality, model training',
+      `${SCALE_API_RATE_LIMIT} API requests/min`,
     ],
     includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.scale,
     interval: 'month',
@@ -614,7 +634,7 @@ export function formatTierLabel(
     return fallback;
   }
 
-  if (Object.prototype.hasOwnProperty.call(PLAN_LABELS, tier)) {
+  if (Object.getOwnPropertyDescriptor(PLAN_LABELS, tier)) {
     return PLAN_LABELS[tier as PlanTier];
   }
 

@@ -42,9 +42,9 @@ export const STUDIO_PLAYGROUND_REFERENCE_ROLES = [
   'audioReference',
 ] as const satisfies readonly StudioPlaygroundReferenceRole[];
 
-export const STUDIO_GENERATE_DRAFT_MAX_PROMPT_LENGTH = 20_000;
-export const STUDIO_GENERATE_DRAFT_MAX_REFERENCES = 16;
-export const STUDIO_GENERATE_DRAFT_MAX_ATTACHMENTS = 8;
+const STUDIO_GENERATE_DRAFT_MAX_PROMPT_LENGTH = 20_000;
+const STUDIO_GENERATE_DRAFT_MAX_REFERENCES = 16;
+const STUDIO_GENERATE_DRAFT_MAX_ATTACHMENTS = 8;
 
 export class StudioGenerateDraftReferenceDto
   implements StudioGenerateDraftReference

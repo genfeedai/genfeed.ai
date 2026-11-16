@@ -14,7 +14,6 @@ import { BrandsController } from '@api/collections/brands/controllers/brands.con
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
-import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
@@ -230,12 +229,6 @@ describe('BrandsController', () => {
             addReferenceImages: vi.fn(),
             setupBrand: vi.fn(),
             updateBrandNameById: vi.fn(),
-          },
-        },
-        {
-          provide: BrandWatermarkLogoService,
-          useValue: {
-            validateKitSettings: vi.fn(),
           },
         },
       ],

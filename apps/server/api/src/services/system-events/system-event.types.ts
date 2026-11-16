@@ -1,7 +1,4 @@
-export type {
-  SystemEvent,
-  SystemEventType,
-} from '@libs/interfaces/system-event.interface';
+export type { SystemEvent } from '@libs/interfaces/system-event.interface';
 
 /**
  * Where system-event recording stands (#5468): `unresolved` until this

@@ -25,11 +25,10 @@ export const AD_BULK_UPLOAD_ACTION_IDS = {
   UPLOAD_MEDIA: 'ads.bulk-upload.upload-media',
 } as const;
 
-export const AD_BULK_UPLOAD_WORKFLOW_ID = 'ads.bulk-upload';
-export const AD_BULK_UPLOAD_MEDIA_CHILD_WORKFLOW_ID =
+const AD_BULK_UPLOAD_WORKFLOW_ID = 'ads.bulk-upload';
+const AD_BULK_UPLOAD_MEDIA_CHILD_WORKFLOW_ID =
   'ads.bulk-upload.upload-media-item';
-export const AD_BULK_UPLOAD_AD_CHILD_WORKFLOW_ID =
-  'ads.bulk-upload.create-ad-item';
+const AD_BULK_UPLOAD_AD_CHILD_WORKFLOW_ID = 'ads.bulk-upload.create-ad-item';
 
 export type AdBulkUploadWorkflowRequest = {
   adAccountId: string;

@@ -115,8 +115,6 @@ interface RelocationTransactionResult extends RelocationReconcileResult {
   touchedWorkflowIds: string[];
 }
 
-export type { BrandRelocationMovingResource };
-
 /** Who is moving the brand, as the controller read them from the request. */
 export interface BrandRelocationActingUser {
   userId: string;

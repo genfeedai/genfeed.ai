@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@aws-sdk/client-cloudwatch": "3.1168.0",
+    "@aws-sdk/client-cloudwatch": "3.1169.0",
     "@genfeedai/actions": "workspace:*",
     "@genfeedai/api": "workspace:*",
     "@genfeedai/config": "workspace:*",
@@ -21,7 +21,8 @@
     "joi": "18.3.2",
     "rxjs": "7.8.2",
     "tsconfig-paths": "4.2.0",
-    "@genfeedai/contracts": "workspace:*"
+    "@genfeedai/contracts": "workspace:*",
+    "zod": "4.6.7"
   },
   "description": "Genfeed background jobs and recurring platform schedules",
   "devDependencies": {
@@ -61,7 +62,7 @@
     "test:cron:watch": "vitest --config vitest.cron.config.ts",
     "test:e2e": "echo 'No e2e tests yet'",
     "test:watch": "vitest --config vitest.config.ts",
-    "type-check": "bun run ../../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit -p tsconfig.typecheck.json"
+    "type-check": "bun run ../../../scripts/architecture/check-typecheck-prerequisites.ts && bun check --no-script -p tsconfig.typecheck.json"
   },
   "version": "1.0.0",
   "type": "module"

@@ -53,7 +53,7 @@ const DEFAULT_BRAND_FORM_VALUES: BrandFormValues = {
   websiteUrl: '',
 };
 
-export function slugifyBrandLabel(value: string): string {
+function slugifyBrandLabel(value: string): string {
   return value
     .trim()
     .toLowerCase()
@@ -62,7 +62,7 @@ export function slugifyBrandLabel(value: string): string {
     .replace(EDGE_HYPHENS_PATTERN, '');
 }
 
-export function normalizeWebsiteUrl(value: string): string {
+function normalizeWebsiteUrl(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) {
     return '';

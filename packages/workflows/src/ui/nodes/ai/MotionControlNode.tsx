@@ -7,7 +7,6 @@ import type {
   MotionControlMode,
   MotionControlNodeData,
 } from '@genfeedai/contracts/types';
-import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
 import { Label } from '@genfeedai/ui/primitives/label';
@@ -19,6 +18,7 @@ import {
   SelectValue,
 } from '@genfeedai/ui/primitives/select';
 import { Slider } from '@genfeedai/ui/primitives/slider';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import type { NodeProps } from '@xyflow/react';
 import {
   CircleAlert,

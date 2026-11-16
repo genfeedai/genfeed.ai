@@ -12,7 +12,7 @@ const LINKEDIN_RESERVED_CHARS_PATTERN = /[\\|{}[\]()<>*_~]/g;
  * multi-image posts. Versions are supported for about a year, so bump this
  * when LinkedIn sunsets it.
  */
-export const LINKEDIN_REST_VERSION = '202610';
+const LINKEDIN_REST_VERSION = '202610';
 const LINKEDIN_REST_BASE_URL = 'https://api.linkedin.com/rest';
 /** A multi-image post takes 2 to 20 images (Posts API, multiImage). */
 export const LINKEDIN_MULTI_IMAGE_LIMITS = { max: 20, min: 2 } as const;
@@ -130,7 +130,7 @@ async function uploadLinkedInRestImage(
  * reserved and cut the text short unless they carry a backslash. `#` and `@`
  * stay literal so hashtags in a caption keep working.
  */
-export function escapeLinkedInCommentary(caption: string): string {
+function escapeLinkedInCommentary(caption: string): string {
   return caption.replace(
     LINKEDIN_RESERVED_CHARS_PATTERN,
     (character) => `\\${character}`,

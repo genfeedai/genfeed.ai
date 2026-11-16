@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.1.0
+  short-description: "Create SEO-optimized blog posts in multiple formats with heading hierarchy, meta descriptions, and internal link strategy"
+  tags: blog, seo, content-creation, long-form, articles, copywriting
+  outputs: text
+  triggers: "write a blog post; create a blog article; draft a blog; write an article; blog about; create blog content; write a how-to guide; draft a listicle; write a comparison post; create a pillar page"
 ---
 
 # Blog Content Creator

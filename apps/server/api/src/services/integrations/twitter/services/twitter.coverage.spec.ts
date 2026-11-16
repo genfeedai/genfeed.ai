@@ -451,6 +451,35 @@ describe('TwitterService (coverage)', () => {
         expect(activitiesService.record).not.toHaveBeenCalled();
       });
 
+      it('tells the owner by email which account was disconnected and why', async () => {
+        const loaded = makeCredential({
+          externalHandle: '@vincentshipsit',
+          refreshToken: 'enc-rt-0',
+        });
+        credentialsService.findOne.mockResolvedValue(loaded);
+        mockRefreshOAuth2Token.mockRejectedValue(rejectedGrant());
+
+        await expect(
+          service.refreshToken('org', 'brand', 'cred-id'),
+        ).rejects.toThrow();
+
+        expect(activitiesService.record).toHaveBeenCalledWith(
+          expect.objectContaining({
+            alert: {
+              payload: {
+                event: 'channel_disconnected',
+                kind: 'alert_email',
+                label: '@vincentshipsit',
+                summary:
+                  'X refused to renew the connection (Request failed with code 400). Posts scheduled on this account will fail until you reconnect it.',
+                version: 1,
+              },
+            },
+            userId: 'user-id',
+          }),
+        );
+      });
+
       it('disconnects when the stored credential has not changed', async () => {
         const loaded = makeCredential({ refreshToken: 'enc-rt-0' });
         credentialsService.findOne.mockResolvedValue(loaded);

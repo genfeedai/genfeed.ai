@@ -44,6 +44,64 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
   },
   {
+    // Higgsfield publishes no price page. These rates are the account's own
+    // `POST /estimate/<endpoint>` answers (2026-11-15): per second of source
+    // video, rounded up to a whole second, by output resolution.
+    provider: 'higgsfield',
+    endpoint: 'higgsfield/genjutsu/motion-transfer/v1.0',
+    sourceUrl:
+      'https://docs.higgsfield.ai/docs/models/genjutsu/motion-transfer.md',
+    verifiedAt: '2026-11-15',
+    rates: [
+      {
+        component: 'video',
+        unit: 'input-second',
+        unitPriceUsd: 0.154,
+        when: { resolution: '480p' },
+        roundUnitsTo: 1,
+      },
+      {
+        component: 'video',
+        unit: 'input-second',
+        unitPriceUsd: 0.3446,
+        when: { resolution: '720p' },
+        roundUnitsTo: 1,
+      },
+      {
+        component: 'video',
+        unit: 'input-second',
+        unitPriceUsd: 0.8346,
+        when: { resolution: '1080p' },
+        roundUnitsTo: 1,
+      },
+    ],
+  },
+  {
+    // Account `POST /estimate/<endpoint>` answers (2026-11-15), single image
+    // per request: 720p $0.004, 1080p $0.006, and the same at 16:9. A batch of
+    // four was estimated at $0.013 (720p) and $0.023 (1080p), below four
+    // times the single price because Higgsfield rounds each estimate up to
+    // the next 0.001, so the per-output rate here never undercharges.
+    provider: 'higgsfield',
+    endpoint: 'higgsfield-ai/soul/v2/standard',
+    sourceUrl: 'https://docs.higgsfield.ai/docs/models/soul-2/generate.md',
+    verifiedAt: '2026-11-15',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.004,
+        when: { resolution: '720p' },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.006,
+        when: { resolution: '1080p' },
+      },
+    ],
+  },
+  {
     endpoint: 'black-forest-labs/flux-1.1-pro',
     provider: 'replicate',
     rates: [

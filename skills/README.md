@@ -34,6 +34,7 @@ Generated from `skills/<module>/<skill>/SKILL.md` frontmatter. Run `bun run scri
 | `linkedin-post` | Write a LinkedIn text post; story, insight, contrarian, listicle, celebration or objection-to-thought-leadership. Covers hooks, the 1,000-1,300 character shape, tone, hashtags, first-comment links, comment strategy and a pre-publish checklist. Use for "write a LinkedIn post", "thought leadership post". For long-form use linkedin-article; for a document/PDF post use linkedin-carousel. |
 | `linkedin-warmup` | Guide LinkedIn account warmup with engagement plans, SSI-building strategy, comment-first content, and post-warmup assessment. Triggers on "linkedin warmup", "warm up linkedin", "new linkedin account", "linkedin account warmup plan", "linkedin engagement plan", "warmup content linkedin", "linkedin trust score", "first post on linkedin", "SSI score". |
 | `model-selector` | Recommend the best AI model for image, video, and audio generation tasks. Triggers on "which model should I use", "recommend a model", "best model for", "what model for", "compare models", "fastest model for", "cheapest model for". |
+| `motion-video` | Write a Remotion composition with your own Claude or Codex subscription, render it to MP4 or PNG locally, check the frames yourself and package it as Genfeed Motion-style output. No model API, no credits. Triggers on "make a motion video", "motion graphic", "animate this", "remotion video", "kinetic typography", "animated explainer", "code-driven video". |
 | `newsletter-creator` | Create high-performing email newsletters with subject lines, editorial structures, and subscriber growth tactics. Triggers on "write a newsletter", "create a newsletter", "draft newsletter", "email newsletter", "newsletter edition". |
 | `node-creator` | Create custom Genfeed nodes using the SDK. Triggers on "create a new node", "add a custom node type", "build a node for X". |
 | `onboarding` | Quick onboarding for Genfeed focused on first content creation. Triggers on "how do I use genfeed", "getting started", "what is this app", "help me create my first content". |
@@ -41,6 +42,7 @@ Generated from `skills/<module>/<skill>/SKILL.md` frontmatter. Run `bun run scri
 | `prompt-generator` | Generate optimized prompts for AI image and video generation. Triggers on "generate a prompt for", "write me a prompt", "create an image prompt", "create a video prompt", "optimize this prompt". |
 | `scope-validator` | Validate feature requests against Genfeed OSS core vs Cloud scope. Helps users and contributors understand whether a feature belongs in the open-source core (submit PR) or Cloud SaaS (subscribe). |
 | `tiktok-warmup` | Guide a transparent TikTok 5–7 day warm-up with native-app engagement, profile and feed tuning, gradual first uploads, and evidence-aware assessment. Triggers on "tiktok warmup", "warm up tiktok account", "new tiktok account", "tiktok account warmup plan", "tiktok engagement plan", "warmup content tiktok". |
+| `video-brand-profile` | Define and apply a reusable video brand profile (logo or signature placement, caption font and position, thumbnail rules, export sizes) so every clip, Short, recap and thumbnail looks like one channel. Use before editing or packaging video, or when asked where the logo goes, which caption font to use, or to write a video brand kit. |
 | `visual-brand-kit` | Create visual identity systems for AI-generated content: colors, typography feel, photography style, composition rules, and prompt presets. Triggers on brand kits, visual guidelines, image style, and brand photography. |
 | `workflow-creator` | Create Genfeed workflows from natural language descriptions. Triggers on "create a workflow", "build a content pipeline", "make a video generation workflow". |
 | `x-article` | Write a long-form X Article, a titled and structured piece published natively on X, plus the promo post that sends the timeline to it. Covers title, header image, section structure, formatting and the launch post. Use for "write an X article", "long-form post on X", "turn this blog post into an X article". For a thread use x-thread; for a short post use x-post. |
@@ -61,6 +63,24 @@ formatter exception; parsing, lint, and catalog integrity checks remain active.
 Edit those packages in their source repository. Other packages remain
 application-owned with an explicit application-procedure or deferred-reconciliation
 reason; this does not classify all remaining content as application-specific.
+
+A pinned package leaves out the folders listed in `UPSTREAM_LOCAL_TOOLING_PATHS`
+(`skill-catalog-artifact.ts`): code that runs in the user's own client, such as the
+`motion-video` render script and Remotion template. The app loads only `SKILL.md`
+and its references, so the lock records those files, and any other code file in an
+upstream package is still rejected.
+
+## Generation sections
+
+A media prompt does not paste a whole `SKILL.md`. `skill-generation-sections.ts`
+cuts a skill into its `##` sections and keeps the ones that steer a prompt for the
+modality (`GENERATION_SECTION_PLANS` for first-party skills; any other skill keeps
+its sections in order while they fit). The prompt carries at most
+`GENERATION_SKILL_BUDGET` characters of skill text per modality, a section is in or
+out and never cut, and a linked `references/` file loads only when a kept section
+names it. Each generation returns a receipt with the sections loaded and left out.
+Agent turns that ask for a skill still get the full body. A catalog update that
+renames a planned heading fails `skill-generation-sections.spec.ts`.
 
 To deliberately update from a clean public checkout at an exact full commit:
 

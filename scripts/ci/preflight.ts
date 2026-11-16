@@ -5,7 +5,7 @@
  *   - Static Checks (ratchet growth, e2e spec impact, skills, env drift, Biome,
  *     secretlint, gitleaks when installed, migration safety)
  *   - Typecheck for the affected workspaces
- *   - Spec Typecheck Ratchet for the affected workspaces
+ *   - Spec Typecheck for the affected workspaces
  *   - the executable contracts (`bun run test:executable-contracts`)
  * Planning lives in preflight-plan.ts; this file does the git, turbo and
  * process work.
@@ -40,10 +40,6 @@ import {
 } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import {
-  DEFAULT_WORKSPACE_ROOTS,
-  discoverSpecWorkspacesAcrossRoots,
-} from '../architecture/check-spec-typecheck';
 import { ensurePinnedNode } from './preflight-node';
 import {
   classifySpecTypecheckScope,
@@ -58,6 +54,10 @@ import {
   queryTurboAffectedScope,
   resolveSpecTypecheckScope,
 } from './spec-typecheck-scope';
+import {
+  DEFAULT_WORKSPACE_ROOTS,
+  discoverSpecWorkspacesAcrossRoots,
+} from './spec-typecheck-workspaces';
 import { queryTypecheckScope } from './typecheck-affected-scope';
 
 const GIT_MAX_BUFFER = 256 * 1024 * 1024;

@@ -14,7 +14,7 @@ import type { BaseNodeData } from '@genfeedai/contracts/types/nodes';
 /**
  * Supported social platforms with their specs
  */
-export type ExportPlatform =
+type ExportPlatform =
   | 'tiktok'
   | 'youtube_shorts'
   | 'instagram_reels'
@@ -29,7 +29,7 @@ export type ExportPlatform =
 /**
  * Platform export specifications
  */
-export interface PlatformSpec {
+interface PlatformSpec {
   platform: ExportPlatform;
   label: string;
   aspectRatio: string;
@@ -45,9 +45,9 @@ export interface PlatformSpec {
 /**
  * Color grade mode — preset uses FFmpeg filters, ai-style uses Replicate
  */
-export type ColorGradeMode = 'preset' | 'custom' | 'ai-style';
+type ColorGradeMode = 'preset' | 'custom' | 'ai-style';
 
-export type ColorGradePreset =
+type ColorGradePreset =
   | 'instagram-warm'
   | 'instagram-cool'
   | 'instagram-moody'
@@ -57,7 +57,7 @@ export type ColorGradePreset =
 /**
  * Color Grade Node — applies Instagram-style color grading to images
  */
-export interface ColorGradeNodeData extends BaseNodeData {
+interface ColorGradeNodeData extends BaseNodeData {
   // Input from connection
   inputImage: string | null;
 
@@ -82,7 +82,7 @@ export interface ColorGradeNodeData extends BaseNodeData {
 /**
  * Platform Export Node - exports media with platform-specific encoding
  */
-export interface PlatformExportNodeData extends BaseNodeData {
+interface PlatformExportNodeData extends BaseNodeData {
   // Input from connection
   inputMedia: string | null;
   inputType: 'image' | 'video' | null;
@@ -103,7 +103,7 @@ export interface PlatformExportNodeData extends BaseNodeData {
 /**
  * Caption Generator Node - generates platform-optimized captions
  */
-export interface CaptionGenNodeData extends BaseNodeData {
+interface CaptionGenNodeData extends BaseNodeData {
   // Input from connections
   inputContext: string | null; // Brand voice, topic, etc.
   inputMedia: string | null; // Optional - to describe media
@@ -225,7 +225,7 @@ interface ScheduleTriggerNodeData extends BaseNodeData {
 /**
  * Webhook Trigger Node - triggers workflow via webhook URL
  */
-export interface WebhookTriggerNodeData extends BaseNodeData {
+interface WebhookTriggerNodeData extends BaseNodeData {
   // Config (auto-generated)
   webhookId: string | null;
   webhookUrl: string | null;
@@ -248,7 +248,7 @@ export interface WebhookTriggerNodeData extends BaseNodeData {
 /**
  * Clip Selector Node - AI-powered selection of best clips from long video
  */
-export interface ClipSelectorNodeData extends BaseNodeData {
+interface ClipSelectorNodeData extends BaseNodeData {
   // Inputs from connections
   inputVideo: string | null;
   inputTranscript: string | null;
@@ -280,7 +280,7 @@ export interface ClipSelectorNodeData extends BaseNodeData {
 /**
  * Platform Multiplier Node - creates multiple platform-specific versions
  */
-export interface PlatformMultiplierNodeData extends BaseNodeData {
+interface PlatformMultiplierNodeData extends BaseNodeData {
   // Input from connections
   inputMedia: string | null;
   inputType: 'image' | 'video' | null;

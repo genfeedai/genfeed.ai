@@ -4,7 +4,6 @@ import { WorkflowSchedulerService } from '@api/collections/workflows/services/wo
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { computeNextRunAtOrThrow } from '@api/collections/workflows/utils/cron-schedule.util';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
-import { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import {
@@ -56,8 +55,6 @@ export class AgentWorkflowToolInstallService {
     private readonly workflowSchedulerService: WorkflowSchedulerService,
     @Optional()
     private readonly marketplaceApiClient?: MarketplaceApiClient,
-    @Optional()
-    private readonly marketplaceInstallService?: MarketplaceInstallService,
     @Optional()
     @Inject(CacheService)
     private readonly cacheService?: CacheService,
@@ -246,13 +243,7 @@ export class AgentWorkflowToolInstallService {
       );
     }
 
-    return this.installConfirmedMarketplaceListing(
-      source,
-      params,
-      ctx,
-      schedule,
-      timezone,
-    );
+    return this.installConfirmedMarketplaceListing(source);
   }
 
   /**
@@ -597,17 +588,19 @@ export class AgentWorkflowToolInstallService {
     });
   }
 
+  /**
+   * A marketplace item reaches a workspace only through the buyer's own
+   * signed token and a completed purchase, which an agent turn does not carry.
+   * The agent therefore sends the user to the marketplace listing, where the
+   * library's "Add to Genfeed" action installs it with that check.
+   */
   private async installConfirmedMarketplaceListing(
     source: OfficialWorkflowSource,
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-    schedule: string | undefined,
-    timezone: string,
   ): Promise<AgentToolResult> {
-    if (!this.marketplaceApiClient || !this.marketplaceInstallService) {
+    if (!this.marketplaceApiClient) {
       return {
         creditsUsed: 0,
-        error: 'Marketplace install services are unavailable.',
+        error: 'Marketplace services are unavailable.',
         success: false,
       };
     }
@@ -622,55 +615,10 @@ export class AgentWorkflowToolInstallService {
       };
     }
 
-    const ownership = await this.marketplaceApiClient.checkListingOwnership(
-      source.id,
-      ctx.userId,
-      ctx.organizationId,
-    );
-
-    if (
-      !ownership.owned &&
-      ((listing.price ?? 0) > 0 || listing.pricingTier === 'premium')
-    ) {
-      return this.buildPurchaseRequiredResult(source, listing.slug);
-    }
-
-    const purchase =
-      ownership.purchase ??
-      (await this.marketplaceApiClient.claimFreeItem(
-        source.id,
-        ctx.userId,
-        ctx.organizationId,
-      ));
-
-    const installResult =
-      await this.marketplaceInstallService.installToWorkspace(
-        source.id,
-        ctx.userId,
-        ctx.organizationId,
-      );
-
-    await this.applyInstalledWorkflowContext(
-      installResult.resourceId,
-      ctx,
-      params,
-      source,
-    );
-
-    return this.buildInstalledWorkflowResult({
-      description: 'Official workflow installed into your workspace.',
-      extraData: {
-        purchaseId: purchase ? String(purchase._id) : undefined,
-      },
-      nextRunAt: schedule ? computeNextRunAtOrThrow(schedule, timezone) : null,
-      schedule,
-      source,
-      timezone,
-      workflowId: installResult.resourceId,
-    });
+    return this.buildMarketplaceListingResult(source, listing.slug);
   }
 
-  private buildPurchaseRequiredResult(
+  private buildMarketplaceListingResult(
     source: OfficialWorkflowSource,
     slug?: string,
   ): AgentToolResult {
@@ -681,7 +629,7 @@ export class AgentWorkflowToolInstallService {
       data: {
         listingId: source.id,
         marketplaceUrl,
-        requiresPurchase: true,
+        requiresMarketplaceLibrary: true,
       },
       nextActions: [
         {
@@ -689,9 +637,9 @@ export class AgentWorkflowToolInstallService {
             ? [{ href: marketplaceUrl, label: 'Open marketplace listing' }]
             : [],
           description:
-            'This official workflow is paid. Purchase it first, then I can install it into your workspace.',
-          id: `workflow-purchase-required-${source.id}`,
-          title: 'Purchase required',
+            'This official workflow comes from the marketplace. Get it there, then press Add to Genfeed in your marketplace library.',
+          id: `workflow-marketplace-library-${source.id}`,
+          title: 'Get it from the marketplace',
           type: 'workflow_created_card' as const,
           workflowDescription: source.description,
           workflowName: source.name,

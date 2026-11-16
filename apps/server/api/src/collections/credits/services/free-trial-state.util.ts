@@ -27,8 +27,10 @@ const CREDIT_GRANT_CATEGORIES: readonly string[] = [
   CreditTransactionCategory.RESET,
 ];
 
-export const FREE_TRIAL_NOT_APPLICABLE: Readonly<IFreeTrialState> =
-  Object.freeze({ isTrialExpired: false, trialEndsAt: null });
+const FREE_TRIAL_NOT_APPLICABLE: Readonly<IFreeTrialState> = Object.freeze({
+  isTrialExpired: false,
+  trialEndsAt: null,
+});
 
 /**
  * The hosted free trial only exists where Genfeed meters credits for its own
@@ -68,7 +70,7 @@ const OPERATOR_CREDIT_GRANT_SOURCES: readonly string[] = [
 ];
 const WARMUP_GRANT_REFERENCE_TYPE = 'warmup-account';
 
-export function operatorCreditGrantWhere(): Prisma.CreditTransactionWhereInput {
+function operatorCreditGrantWhere(): Prisma.CreditTransactionWhereInput {
   return {
     amount: { gt: 0 },
     category: { in: [...CREDIT_GRANT_CATEGORIES] },

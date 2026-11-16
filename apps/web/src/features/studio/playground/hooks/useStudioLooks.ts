@@ -38,7 +38,7 @@ export interface UseStudioLooksReturn {
   saveLook: (label: string, values: GenerationSetupValues) => Promise<boolean>;
 }
 
-export function isStudioLookAssetType(
+function isStudioLookAssetType(
   type: StudioPlaygroundType,
 ): type is StudioLookAssetType {
   return type === 'image' || type === 'video';

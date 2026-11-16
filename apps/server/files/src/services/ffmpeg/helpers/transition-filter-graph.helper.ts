@@ -5,7 +5,7 @@ import type {
 import { VideoTransition } from '@genfeedai/contracts';
 
 /** Every clip is resampled to one constant rate before `xfade`. */
-export const TRANSITION_FRAME_RATE = 30;
+const TRANSITION_FRAME_RATE = 30;
 const AUDIO_SAMPLE_RATE = 48_000;
 
 const XFADE_TRANSITIONS: ReadonlySet<string> = new Set(

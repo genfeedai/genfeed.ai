@@ -14,7 +14,7 @@ const HTTP_URLS_PATTERN = /https?:\/\/\S+/gi;
 
 export const DEFAULT_REPLY_MAX_AGE_HOURS = 24;
 /** Hard ceiling: never treat multi-day threads as fresh conversation. */
-export const MAX_REPLY_MAX_AGE_HOURS = 48;
+const MAX_REPLY_MAX_AGE_HOURS = 48;
 
 const THANKS_RE =
   /\b(thank(?:s| you)|thx|ty|appreciate|grateful|love this|great (?:post|point|take)|well said|so true)\b|^this[!.]?$/i;

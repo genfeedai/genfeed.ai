@@ -53,7 +53,7 @@ describe.skipIf(!connectionString)(
         `CREATE TABLE "${schema}"."brands" ("id" text PRIMARY KEY, "organizationId" text, "agentConfig" jsonb NOT NULL DEFAULT '{}', "isDeleted" boolean NOT NULL DEFAULT false)`,
       );
       await pool.query(
-        `CREATE TABLE "${schema}"."profiles" ("id" text PRIMARY KEY, "organizationId" text, "data" jsonb NOT NULL DEFAULT '{}', "isDeleted" boolean NOT NULL DEFAULT false, "updatedAt" timestamp(3))`,
+        `CREATE TABLE "${schema}"."harness_profiles" ("id" text PRIMARY KEY, "organizationId" text, "brandId" text, "label" text, "scope" text NOT NULL DEFAULT 'brand', "status" text NOT NULL DEFAULT 'active', "isDefault" boolean NOT NULL DEFAULT false, "content" jsonb NOT NULL DEFAULT '{}', "currentVersion" integer NOT NULL DEFAULT 1, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamp(3) DEFAULT now(), "updatedAt" timestamp(3))`,
       );
       await pool.query(
         `CREATE TABLE "${schema}"."posts" ("id" text PRIMARY KEY, "brandId" text, "organizationId" text, "isDeleted" boolean NOT NULL DEFAULT false, "parentId" text, "publishedAt" timestamp(3), "scheduledDate" timestamp(3), "targetExecutionState" text)`,

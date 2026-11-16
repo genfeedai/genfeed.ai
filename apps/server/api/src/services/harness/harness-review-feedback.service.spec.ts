@@ -256,6 +256,11 @@ describe('HarnessReviewFeedbackService', () => {
       }),
       'org-1',
       'user-1',
+      {},
+      expect.objectContaining({
+        actorUserId: 'user-1',
+        source: 'REVIEW_FEEDBACK',
+      }),
     );
     const [profileId, dto] = harnessProfilesService.update.mock.calls[0];
     expect(profileId).toBe('profile-new');

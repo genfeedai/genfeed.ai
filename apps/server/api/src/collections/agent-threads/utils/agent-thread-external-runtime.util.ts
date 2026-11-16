@@ -12,7 +12,7 @@ import { readRecordOrNull } from '@genfeedai/utils/data/extract.util';
 /** Key inside `AgentThread.config` that stores the external CLI session. */
 export const AGENT_THREAD_EXTERNAL_RUNTIME_CONFIG_KEY = 'externalRuntime';
 
-export function readAgentThreadExternalRuntime(
+function readAgentThreadExternalRuntime(
   config: unknown,
 ): IAgentThreadExternalRuntime | null {
   const stored = readRecordOrNull(

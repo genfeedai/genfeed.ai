@@ -18,7 +18,7 @@ import type {
 
 import type { AvatarVideoProviderName } from '@genfeedai/contracts/interfaces';
 
-export interface AvatarVideoJobCreated {
+interface AvatarVideoJobCreated {
   jobId: string;
   providerName: AvatarVideoProviderName;
 }

@@ -14,7 +14,7 @@ import type { UsePostingSignaturesResult } from '@props/content/posting-sets.pro
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
-export const POSTING_SIGNATURES_QUERY_KEY = 'posting-signatures';
+const POSTING_SIGNATURES_QUERY_KEY = 'posting-signatures';
 
 export function usePostingSignatures(): UsePostingSignaturesResult {
   const { isSignedIn } = useAuthIdentity();

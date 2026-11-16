@@ -38,7 +38,7 @@ function resolveIngredientMediaKind(
  * still attached (the editor shows it). The renderer draws a placeholder for
  * an item without a URL.
  */
-function buildPostMedia(post: IPost): IReleaseMediaReference[] {
+export function buildPostMedia(post: IPost): IReleaseMediaReference[] {
   return (post.ingredients ?? []).map((ingredient, index) => ({
     assetId: ingredient.id,
     kind: resolveIngredientMediaKind(ingredient.category),

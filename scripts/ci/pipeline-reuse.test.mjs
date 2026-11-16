@@ -90,10 +90,7 @@ test('runtime and scanner share a published digest while retaining independent v
   }
   const verify = read('.github/workflows/build-verify.yml');
   assert.match(verify, /needs: \[api-boot-check, server-image\]/);
-  assert.match(
-    verify,
-    /for svc in api workers files mcp notifications telegram discord slack/,
-  );
+  assert.match(verify, /for svc in api workers files mcp notifications;/);
   assert.match(verify, /BOOT_CHECK/);
   assert.match(verify, /docker run/);
 });

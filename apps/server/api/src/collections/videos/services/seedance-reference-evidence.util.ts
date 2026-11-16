@@ -201,7 +201,7 @@ export function assertPreparedSeedanceReferenceUrls(
     });
 }
 
-export const MAX_SEEDANCE_REFERENCE_VIDEO_SECONDS = 30;
+const MAX_SEEDANCE_REFERENCE_VIDEO_SECONDS = 30;
 
 export function assertSeedanceReferenceVideoDuration(
   durations: readonly number[],

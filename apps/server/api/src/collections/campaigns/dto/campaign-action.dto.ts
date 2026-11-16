@@ -8,7 +8,7 @@ import {
   IsOptional,
 } from 'class-validator';
 
-export const MAX_CAMPAIGN_POST_ASSIGNMENT = 200;
+const MAX_CAMPAIGN_POST_ASSIGNMENT = 200;
 
 /**
  * Public mutations take arrays — there is no singular twin and no

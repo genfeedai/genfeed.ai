@@ -12,7 +12,7 @@ import {
   RELEASE_RESCHEDULE_ACTION,
   targetRescheduleAction,
   targetRetryAction,
-} from '@/features/posts/release/release-detail-drawer';
+} from '@/features/posts/release/release-actions';
 import {
   createReleaseMutationRunner,
   mutationErrorMessage,

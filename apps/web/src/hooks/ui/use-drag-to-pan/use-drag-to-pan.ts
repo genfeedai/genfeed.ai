@@ -4,7 +4,7 @@ import { type RefObject, useEffect } from 'react';
 import type { DragPanStart } from '@/props/ui/scroll-strip.props';
 
 /** Set on the strip while a drag is panning it, for the grabbing cursor. */
-export const DRAG_PANNING_ATTRIBUTE = 'data-panning';
+const DRAG_PANNING_ATTRIBUTE = 'data-panning';
 
 /**
  * Lets a mouse drag on a horizontal strip's background pan it sideways.

@@ -32,29 +32,6 @@ export const returnUnauthorized = (message: string = 'Unauthorized'): never => {
   );
 };
 
-export const returnForbidden = (
-  resource: string,
-  action: string = 'access',
-): never => {
-  throw new HttpException(
-    {
-      detail: `You don't have permission to ${action} ${resource}`,
-      title: 'Forbidden',
-    },
-    HttpStatus.FORBIDDEN,
-  );
-};
-
-export const returnConflict = (resource: string, identifier: string): never => {
-  throw new HttpException(
-    {
-      detail: `${resource} with identifier ${identifier} already exists`,
-      title: 'Conflict',
-    },
-    HttpStatus.CONFLICT,
-  );
-};
-
 /**
  * Pass the caught error as `cause` so monitoring sees the real failure. The
  * HTTP body stays generic, and the wrapper alone reports as "Http Exception".

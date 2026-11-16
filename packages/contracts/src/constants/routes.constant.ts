@@ -321,6 +321,7 @@ export const APP_ROUTES = {
     AGENT_RECEIPTS: '/settings/agent/receipts',
     BRAND_KIT: '/settings/brand-kit',
     BRAND_KIT_STRATEGY: '/settings/brand-kit/strategy',
+    BRAND_KIT_VIDEO: '/settings/brand-kit/video',
     BRAND_KIT_VISUAL: '/settings/brand-kit/visual',
     BRAND_KIT_VOICE: '/settings/brand-kit/voice',
     BRANDS: '/settings/brands',

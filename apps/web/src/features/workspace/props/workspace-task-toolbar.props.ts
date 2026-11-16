@@ -12,7 +12,7 @@ export interface TaskPreset {
     | 'ingredient';
 }
 
-export interface TaskModeOption {
+interface TaskModeOption {
   description: string;
   id: WorkspaceTaskMode;
   label: string;

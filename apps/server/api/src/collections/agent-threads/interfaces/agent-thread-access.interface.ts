@@ -24,6 +24,14 @@ export interface AgentThreadAccess {
   accessLevel: AgentThreadAccessLevel;
   /** The owner or an organization admin: may change sharing. */
   canManageShares: boolean;
+  /**
+   * The brands whose messages the actor may read in this thread; messages that
+   * carry no brand are always readable. `undefined` means every brand: the
+   * owner, or a viewer who reaches every brand of the organization. A message
+   * keeps the brand it was written under when the thread later changes brand,
+   * so history is checked per message, not against the thread's current brand.
+   */
+  historyBrandIds?: string[];
   thread: AgentThreadAccessRow;
 }
 

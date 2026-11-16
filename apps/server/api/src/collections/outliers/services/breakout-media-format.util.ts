@@ -34,7 +34,7 @@ export type BreakoutMediaFormatPlan = Readonly<{
  *   (hidden or planned, or unknown).
  * - `format_unsupported_for_platform`: the platform publishes, but not this visual format.
  */
-export type BreakoutMediaFormatHeldReason =
+type BreakoutMediaFormatHeldReason =
   | 'platform_publishing_unavailable'
   | 'format_unsupported_for_platform';
 

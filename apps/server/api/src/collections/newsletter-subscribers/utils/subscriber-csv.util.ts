@@ -72,11 +72,11 @@ export function parseCsv(text: string): string[][] {
   return rows.filter((cells) => cells.some((cell) => cell.trim() !== ''));
 }
 
-export function normalizeEmail(value: string): string {
+function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
 }
 
-export function isValidSubscriberEmail(email: string): boolean {
+function isValidSubscriberEmail(email: string): boolean {
   return email.length <= 254 && isEmail(email);
 }
 

@@ -160,6 +160,7 @@ export const PLATFORM_SCHEDULE_QUEUE = 'system-sweeps';
 /** Platform tasks that re-import provider model prices into the pricing snapshot. */
 export const PROVIDER_PRICE_SYNC_TASKS = {
   fal: 'fal-model-discovery',
+  higgsfield: 'higgsfield-model-discovery',
   replicate: 'replicate-model-discovery',
 } as const;
 

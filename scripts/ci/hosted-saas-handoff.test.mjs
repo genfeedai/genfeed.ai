@@ -386,19 +386,23 @@ test('injects each internal caller key only into the service that owns it', () =
     'utf8',
   );
 
-  for (const caller of [
-    'DISCORD',
-    'FILES',
-    'NOTIFICATIONS',
-    'SLACK',
-    'TELEGRAM',
-  ]) {
+  for (const caller of ['FILES', 'NOTIFICATIONS']) {
     assert.match(localsTf, new RegExp(`"GENFEEDAI_API_KEY_${caller}"`));
   }
   assert.match(
     localsTf,
     /excluded_ssm_secret_names\s*=\s*setunion\([^)]*internal_caller_key_secret_names/,
     'caller keys must not ride the recursive SSM injection',
+  );
+  assert.match(
+    localsTf,
+    /excluded_ssm_secret_names\s*=\s*setunion\([\s\S]*?toset\(local\.undeployed_caller_key_secret_names\)/,
+    'undeployed bot caller keys must not ride the recursive SSM injection',
+  );
+  assert.doesNotMatch(
+    localsTf,
+    /@genfeedai\/(discord|slack|telegram)/,
+    'the chat bots are not hosted services',
   );
   assert.match(localsTf, /if service == "api" \|\| caller == service/);
   assert.match(

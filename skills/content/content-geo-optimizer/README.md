@@ -1,13 +1,17 @@
 # Content GEO Optimizer
 
-Optimize long-form content for generative answer engines: ChatGPT, Perplexity,
-Claude, Google AI Overviews, and retrieval-based assistants.
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
+Optimize content for generative answer engines with GEO scoring, citation-ready rewrites, source attribution, and schema recommendations
 
 ## Installation
 
 ```bash
 bunx skills add genfeedai/skills --skill content-geo-optimizer
 ```
+<!-- generated:end -->
+
+Optimize long-form content for generative answer engines: ChatGPT, Perplexity,
+Claude, Google AI Overviews, and retrieval-based assistants.
 
 ## Usage
 

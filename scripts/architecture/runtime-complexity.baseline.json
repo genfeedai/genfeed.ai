@@ -252,7 +252,7 @@
     "symbol": "CronIngredientsService.refreshMissingMetadataDimensions"
   },
   {
-    "actual": 1047,
+    "actual": 1033,
     "file": "apps/server/workers/src/services/scheduled-post-delivery.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/workers/src/services/scheduled-post-delivery.service.ts"
@@ -366,13 +366,13 @@
     "symbol": "packages/agent/src/stores/agent-chat.store.ts"
   },
   {
-    "actual": 1457,
+    "actual": 1304,
     "file": "packages/cli/src/commands/admin/index.ts",
     "metric": "file-lines",
     "symbol": "packages/cli/src/commands/admin/index.ts"
   },
   {
-    "actual": 1234,
+    "actual": 1221,
     "file": "packages/contracts/src/api-types/contracts/branded-generation.contract.ts",
     "metric": "file-lines",
     "symbol": "packages/contracts/src/api-types/contracts/branded-generation.contract.ts"

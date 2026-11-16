@@ -33,6 +33,7 @@ describe('ReviewInboxDecisionService', () => {
   const mcpApprovals = { findOwned: vi.fn(), resolve: vi.fn() };
   const scheduledBatches = {
     assertCanApprove: vi.fn(),
+    recordReview: vi.fn(),
     schedule: vi.fn(),
   };
   const moduleAccess = { assertAccess: vi.fn() };
@@ -259,6 +260,7 @@ describe('ReviewInboxDecisionService', () => {
 
     beforeEach(() => {
       scheduledBatches.assertCanApprove.mockReset();
+      scheduledBatches.recordReview.mockReset();
       mcpApprovals.findOwned.mockResolvedValue(batchApproval);
       mcpApprovals.resolve.mockResolvedValue({
         ...batchApproval,
@@ -326,6 +328,24 @@ describe('ReviewInboxDecisionService', () => {
         [1],
         user,
       );
+    });
+
+    it('keeps the removed posts on the approval before it is approved', async () => {
+      scheduledBatches.schedule.mockResolvedValue({ created: [], errors: [] });
+
+      await service.decide(user, fullAccess, {
+        decision: 'approve',
+        excludedIndexes: [1],
+        itemId: 'mcp_approval:apr-1',
+      });
+
+      expect(scheduledBatches.recordReview).toHaveBeenCalledWith(
+        batchApproval,
+        [1],
+      );
+      expect(
+        scheduledBatches.recordReview.mock.invocationCallOrder[0],
+      ).toBeLessThan(mcpApprovals.resolve.mock.invocationCallOrder[0] ?? 0);
     });
 
     it('declines without scheduling anything', async () => {

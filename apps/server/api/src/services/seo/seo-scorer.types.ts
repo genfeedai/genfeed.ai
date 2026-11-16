@@ -9,16 +9,12 @@
 
 export type {
   SeoCheck,
-  SeoCheckKind,
   SeoDimension,
   SeoRating,
   SeoScorecard,
   SeoScorecardMeta,
 } from '@genfeedai/contracts/interfaces';
-export {
-  SEO_DIMENSION_MAX,
-  SEO_DIMENSIONS,
-} from '@genfeedai/contracts/interfaces';
+export { SEO_DIMENSION_MAX } from '@genfeedai/contracts/interfaces';
 
 /**
  * Normalised, source-agnostic content the scorer operates on. Decoupled from

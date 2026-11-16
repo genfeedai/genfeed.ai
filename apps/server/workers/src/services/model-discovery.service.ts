@@ -3,7 +3,11 @@ import { getProviderModelKey } from '@api/collections/models/utils/model-key.uti
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { ServerModelRecord } from '@api/index';
 import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
-import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import {
+  ModelCategory,
+  ModelProvider,
+  PricingType,
+} from '@genfeedai/contracts';
 import type {
   TypedDecisionAnswer,
   TypedDecisionMode,
@@ -29,9 +33,12 @@ import {
   MODEL_DISCOVERY_DECISION_TIMEOUT_MS,
   resolveModelDiscoveryDecisionSettings,
 } from '@workers/services/model-discovery-decision.settings';
-import { ModelPricingService } from '@workers/services/model-pricing.service';
 
 const LABEL_SEPARATOR_PATTERN = /[-/]/;
+const UPSCALE_ENDPOINT_PATTERN = /upscal/;
+const EDIT_ENDPOINT_PATTERN =
+  /(^|[-/])(edit|inpaint|outpaint|modify|transform)([-/.]|$)/;
+const VOICE_HINT_PATTERN = /\b(speech|voice|tts|narrat\w*|speaker)\b/;
 const LEADING_DIGIT_PATTERN = /^\d/;
 
 /** Public Replicate model pages are the structured rate source (#6196). */
@@ -131,12 +138,25 @@ const MAX_STATE_TEXT_LENGTH = 600;
 
 const MAX_STATE_SCHEMA_FIELDS = 24;
 
+/** The result of asking a provider for one exact model. */
+export type ReplicateModelFetch =
+  | { model: IReplicateModel; status: 'ok' }
+  /** The provider's API says the model does not exist. */
+  | { status: 'not_found' }
+  | { status: 'failed' };
+
+/** The row's pricing type for the unit its page bills. */
+function pricingTypeForUnit(unit: string | null | undefined): PricingType {
+  if (unit === 'second') return PricingType.PER_SECOND;
+  if (unit === 'megapixel') return PricingType.PER_MEGAPIXEL;
+  return PricingType.FLAT;
+}
+
 @Injectable()
 export class ModelDiscoveryService {
   constructor(
     private readonly logger: LoggerService,
     private readonly modelsService: ModelsService,
-    private readonly modelPricingService: ModelPricingService,
     private readonly configService: ConfigService,
     private readonly typedDecisionService: TypedDecisionService,
     private readonly platformSettingsService: PlatformSettingsService,
@@ -145,7 +165,9 @@ export class ModelDiscoveryService {
   /**
    * Create a draft model entry in the database.
    * Draft models are created with isActive: false and require manual review
-   * before being activated for users.
+   * before being activated for users. A draft stores the provider's own price
+   * when its page stated one, and no credits either way: credits exist only once
+   * an operator approves rates read from a source.
    */
   async createDraftModel(
     modelInfo: IModelDiscoveryInput,
@@ -170,23 +192,6 @@ export class ModelDiscoveryService {
         return null;
       }
 
-      // Fetch existing models for pricing estimation
-      const existingModels = await this.modelsService.findAllActive();
-
-      // Estimate pricing based on category and creator patterns
-      const pricing =
-        typeof modelInfo.providerCostUsd === 'number' &&
-        modelInfo.providerCostUsd > 0
-          ? this.modelPricingService.estimateFromProviderCost(
-              modelInfo.providerCostUsd,
-              modelInfo.category,
-            )
-          : this.modelPricingService.estimateCost(
-              modelInfo.category,
-              modelInfo.owner,
-              existingModels,
-            );
-
       // Providers that publish a display name win; the rest get a title-cased
       // model name.
       const label =
@@ -196,7 +201,7 @@ export class ModelDiscoveryService {
       // Create draft model document with base DTO fields
       const createData = {
         category: modelInfo.category,
-        cost: pricing.cost,
+        cost: 0,
         description:
           modelInfo.description ||
           `Auto-discovered model from ${modelInfo.owner}. Pending manual review.`,
@@ -216,6 +221,15 @@ export class ModelDiscoveryService {
           endpoint: modelInfo.endpoint,
           providerUrl: modelInfo.providerUrl,
           versionId: modelInfo.versionId,
+          ...(modelInfo.billingUnit
+            ? { billingUnit: modelInfo.billingUnit }
+            : {}),
+          ...(modelInfo.pricingSourceUrl
+            ? { pricingSourceUrl: modelInfo.pricingSourceUrl }
+            : {}),
+          ...(modelInfo.unpricedReason
+            ? { unpricedReason: modelInfo.unpricedReason }
+            : {}),
         },
         providerCostUsd: modelInfo.providerCostUsd,
         reviewStatus: 'pending',
@@ -231,19 +245,17 @@ export class ModelDiscoveryService {
         ...(typeof modelInfo.categoryConfidence === 'number'
           ? { categoryConfidence: modelInfo.categoryConfidence }
           : {}),
-        costPerUnit: pricing.costPerUnit,
         discoveredAt: now,
         isDiscovered: true,
         lastSyncedAt: now,
-        minCost: pricing.minCost,
-        pricingType: pricing.pricingType,
+        pricingType: pricingTypeForUnit(modelInfo.billingUnit),
       });
 
       this.logger.log(`${context} created draft model: ${modelKey}`, {
         category: modelInfo.category,
         categoryConfidence: modelInfo.categoryConfidence,
-        cost: pricing.cost,
-        pricingType: pricing.pricingType,
+        providerCostUsd: modelInfo.providerCostUsd ?? null,
+        unpricedReason: modelInfo.unpricedReason ?? null,
       });
 
       return draftModel;
@@ -341,13 +353,13 @@ export class ModelDiscoveryService {
   async fetchReplicateModel(
     owner: string,
     name: string,
-  ): Promise<IReplicateModel | null> {
+  ): Promise<ReplicateModelFetch> {
     const context = 'ModelDiscoveryService fetchReplicateModel';
     const token = this.configService.get('REPLICATE_KEY');
 
     if (!token) {
       this.logger.warn(`${context} REPLICATE_KEY not configured`);
-      return null;
+      return { status: 'failed' };
     }
 
     try {
@@ -366,15 +378,20 @@ export class ModelDiscoveryService {
         this.logger.warn(
           `${context} Replicate API returned ${response.status} for ${owner}/${name}`,
         );
-        return null;
+        return response.status === 404
+          ? { status: 'not_found' }
+          : { status: 'failed' };
       }
 
-      return (await response.json()) as IReplicateModel;
+      return {
+        model: (await response.json()) as IReplicateModel,
+        status: 'ok',
+      };
     } catch (error: unknown) {
       this.logger.error(`${context} failed for ${owner}/${name}`, {
         reason: error instanceof Error ? error.name : 'unknown',
       });
-      return null;
+      return { status: 'failed' };
     }
   }
 
@@ -443,6 +460,12 @@ export class ModelDiscoveryService {
     input: IModelCategoryDetectionInput,
   ): Promise<IModelCategoryDecision> {
     const schema = input.schema ?? {};
+    // What the provider bills for outranks every reading of the model's own
+    // wording: recraft-v3 bills per image whatever words its style list holds.
+    const billed = input.billingFamily
+      ? this.categoryFromBillingFamily(input, schema)
+      : null;
+    if (billed) return { category: billed, source: 'billing' };
     // fal publishes its task category as a tag, and the keyword table has
     // always matched on it, so tags stay part of the deterministic text.
     const text = [input.description ?? '', ...(input.tags ?? [])]
@@ -506,6 +529,62 @@ export class ModelDiscoveryService {
       confidence: answer.confidence,
       source: 'typed-decision',
     };
+  }
+
+  /**
+   * Narrow a billed media family to one category. Only the endpoint name and
+   * the input field names are read here, never the schema's enums or prose,
+   * because a single stray word in those ("motion_blur") is what misread
+   * models before. `edit`, `modify` and `upscale` in the endpoint are the
+   * provider's own naming of what the model does.
+   */
+  private categoryFromBillingFamily(
+    input: IModelCategoryDetectionInput,
+    schema: Record<string, unknown>,
+  ): ModelCategory | null {
+    const endpoint = input.endpoint.toLowerCase();
+    switch (input.billingFamily) {
+      case 'image':
+        if (UPSCALE_ENDPOINT_PATTERN.test(endpoint))
+          return ModelCategory.IMAGE_UPSCALE;
+        return EDIT_ENDPOINT_PATTERN.test(endpoint)
+          ? ModelCategory.IMAGE_EDIT
+          : ModelCategory.IMAGE;
+      case 'video':
+        if (UPSCALE_ENDPOINT_PATTERN.test(endpoint))
+          return ModelCategory.VIDEO_UPSCALE;
+        return EDIT_ENDPOINT_PATTERN.test(endpoint)
+          ? ModelCategory.VIDEO_EDIT
+          : ModelCategory.VIDEO;
+      case 'text':
+        return ModelCategory.TEXT;
+      case 'voice':
+        return ModelCategory.VOICE;
+      case 'audio': {
+        // Billed per second of output audio: speech or music. Speech models
+        // say so in their name, description or input fields.
+        const fields = this.inputFieldNames(schema).join(' ');
+        const hint = `${endpoint} ${(input.description ?? '').toLowerCase()} ${fields}`;
+        return VOICE_HINT_PATTERN.test(hint)
+          ? ModelCategory.VOICE
+          : ModelCategory.MUSIC;
+      }
+      default:
+        return null;
+    }
+  }
+
+  private inputFieldNames(schema: Record<string, unknown>): string[] {
+    const components = schema?.components as
+      | Record<string, unknown>
+      | undefined;
+    const schemas = components?.schemas as
+      | Record<string, Record<string, unknown>>
+      | undefined;
+    const properties = (schemas?.Input ?? schemas?.input)?.properties;
+    return properties && typeof properties === 'object'
+      ? Object.keys(properties).map((name) => name.toLowerCase())
+      : [];
   }
 
   /**

@@ -1,18 +1,14 @@
 {
   "dependencies": {
-    "@expo/vector-icons": "15.1.1",
     "@genfeedai/ui": "workspace:*",
     "@react-native-async-storage/async-storage": "3.1.1",
     "@react-native-community/netinfo": "12.0.1",
     "@sentry/react-native": "8.35.0",
-    "@shopify/flash-list": "2.3.3",
     "expo": "58.0.25",
     "expo-auth-session": "^58.0.18",
-    "expo-blur": "58.0.6",
     "expo-constants": "58.0.16",
     "expo-device": "58.0.5",
     "expo-font": "58.0.12",
-    "expo-haptics": "58.0.8",
     "expo-image": "58.0.18",
     "expo-linking": "58.0.17",
     "expo-notifications": "58.1.9",
@@ -22,7 +18,6 @@
     "expo-status-bar": "58.0.5",
     "expo-symbols": "58.0.5",
     "expo-system-ui": "58.0.7",
-    "expo-web-browser": "58.0.8",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-native": "0.88.1",
@@ -36,12 +31,11 @@
   },
   "devDependencies": {
     "@babel/core": "8.1.2",
-    "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
     "@testing-library/react-native": "14.1.0",
     "@types/react": "19.3.0",
     "@vitest/coverage-v8": "5.1.0",
-    "eslint": "10.14.0",
+    "eslint": "10.15.0",
     "eslint-config-expo": "58.0.4",
     "jsdom": "29.1.1",
     "@typescript/native": "npm:typescript@7.0.2",
@@ -64,7 +58,7 @@
     "test": "vitest run",
     "test:cov": "vitest run --coverage",
     "test:watch": "vitest",
-    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit"
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && bun check --no-script"
   },
   "version": "1.0.0"
 }

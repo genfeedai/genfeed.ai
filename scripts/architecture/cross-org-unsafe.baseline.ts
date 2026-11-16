@@ -132,12 +132,12 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // parent workflow.
     {
       file: 'apps/server/api/src/collections/workflows/system-workflow-runner.service.ts',
-      line: 916,
+      line: 915,
     },
     // #6120: one shared system-principal mirror lookup for normal and failure binding proofs; both callers retain exact principal/soft-delete fences.
     {
       file: 'apps/server/api/src/collections/visual-projects/services/visual-project-workflow.service.ts',
-      line: 106,
+      line: 112,
     },
     // #6120: superadmin-only cross-organization workflow failure feed.
     {
@@ -261,17 +261,17 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #7016: unchanged relocation preview, after extracting the async status controller; assertCanRelocate authorizes both tenants.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 320,
+      line: 312,
     },
     // #7016: unchanged superadmin brand list filtered across organizations; retained after extracting async status reads.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 395,
+      line: 387,
     },
     // #7016: unchanged relation hydration for already authorized brands, pinned to each row organization.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 421,
+      line: 413,
     },
     // #7016: relocation admission retains the original source-tenant receipt; discovery is bound to initiator/request id and assertCanRelocate authorizes both organizations before creation or response.
     {

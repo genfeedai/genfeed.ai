@@ -1,4 +1,4 @@
-export interface ProviderRow {
+interface ProviderRow {
   description: string;
   enabled: boolean;
   key: string;

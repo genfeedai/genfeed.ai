@@ -32,7 +32,7 @@ import path from 'node:path';
 import {
   DEFAULT_WORKSPACE_ROOTS,
   discoverSpecWorkspacesAcrossRoots,
-} from '../architecture/check-spec-typecheck';
+} from './spec-typecheck-workspaces';
 
 const GENFEED_SCOPE_PREFIX_PATTERN = /^@genfeedai\//;
 const WHITESPACE_RUN_PATTERN = /\s+/u;

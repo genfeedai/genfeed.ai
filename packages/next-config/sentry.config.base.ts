@@ -42,7 +42,7 @@ function scrubSpanData(data: Record<string, unknown> | undefined): void {
  * `/oauth/[platform]` put one-time authorization codes in the query string,
  * which the SDK denylist does not recognise, so no query string leaves the app.
  */
-export function stripQueryStringsFromSpan(span: StreamedSpan): StreamedSpan {
+function stripQueryStringsFromSpan(span: StreamedSpan): StreamedSpan {
   span.name = withoutQueryString(span.name);
   scrubSpanData(span.attributes);
   return span;

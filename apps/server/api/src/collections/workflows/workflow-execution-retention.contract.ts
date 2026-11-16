@@ -1,12 +1,5 @@
 export const WORKFLOW_EXECUTION_RETENTION_METADATA_KEY = 'executionRetention';
 
-export type WorkflowExecutionRetentionContract = {
-  /** Scrub every node input/output after the terminal result is returned. */
-  scrubNodePayloads?: 'all' | string[];
-  /** Hard-delete the scrubbed execution after 1–24 hours. */
-  purgeAfterHours?: number;
-};
-
 export type ParsedWorkflowExecutionRetention = {
   purgeAfterHours: number | null;
   scrubAllNodePayloads: boolean;

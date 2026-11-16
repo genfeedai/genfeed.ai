@@ -28,6 +28,7 @@ describe('PlatformSchedulesProcessor', () => {
   const credentials = { refreshExpiringTokens: handler() };
   const engagement = { processArmedRules: handler() };
   const falModels = { refreshRegistryModels: handler() };
+  const higgsfieldModels = { discoverModels: handler() };
   const ingredients = {
     checkStuckProcessingIngredients: handler(),
     refreshMissingMetadataDimensions: handler(),
@@ -144,6 +145,10 @@ describe('PlatformSchedulesProcessor', () => {
       [
         PLATFORM_SCHEDULED_TASKS.FAL_MODEL_DISCOVERY,
         falModels.refreshRegistryModels,
+      ],
+      [
+        PLATFORM_SCHEDULED_TASKS.HIGGSFIELD_MODEL_DISCOVERY,
+        higgsfieldModels.discoverModels,
       ],
       [PLATFORM_SCHEDULED_TASKS.FREE_TRIAL_EXPIRY, credits.expireFreeTrials],
       [
@@ -300,6 +305,7 @@ describe('PlatformSchedulesProcessor', () => {
       new PlatformMediaTaskHandlers(
         turboRun as never,
         falModels as never,
+        higgsfieldModels as never,
         ingredients as never,
         mediaPerception as never,
         modelDeprecation as never,

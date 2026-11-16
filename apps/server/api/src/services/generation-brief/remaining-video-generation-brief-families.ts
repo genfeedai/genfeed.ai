@@ -25,7 +25,7 @@ import {
 import { ASPECT_RATIOS, MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 
-export interface RemainingVideoFamilyDispatchSpec {
+interface RemainingVideoFamilyDispatchSpec {
   aspectRatioField?: 'aspect_ratio' | 'ratio';
   durationField?: 'duration' | 'seconds';
   extraDefaults?: Record<string, boolean | number | string>;

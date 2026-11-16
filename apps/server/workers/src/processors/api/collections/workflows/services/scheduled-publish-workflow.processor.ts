@@ -14,12 +14,12 @@ import { WorkflowExecutionProcessor } from '@workers/processors/api/collections/
  * Concurrency 8 matches the other workflow workers. The limiter is 120 jobs
  * per minute, twice `WORKFLOW_BACKGROUND_QUEUE`'s 60: this queue carries only
  * due-post publishes, so the limiter is not protecting a shared budget, only
- * capping the burst we send to platform APIs. The sweep runs every 15 minutes,
- * so 120/min drains up to 1,800 due posts within one sweep interval, while
- * 60/min would drain 900. Both numbers are per worker process.
+ * capping the burst we send to platform APIs. The sweep runs every minute, so
+ * 120/min drains up to 120 due posts per sweep, while 60/min would drain 60.
+ * BullMQ's limiter is global per queue, shared by every worker process.
  */
-export const SCHEDULED_PUBLISH_CONCURRENCY = 8;
-export const SCHEDULED_PUBLISH_LIMITER = { duration: 60000, max: 120 };
+const SCHEDULED_PUBLISH_CONCURRENCY = 8;
+const SCHEDULED_PUBLISH_LIMITER = { duration: 60000, max: 120 };
 
 /**
  * Dedicated worker for `dispatchClass: SCHEDULED_PUBLISH` — the 15-minute

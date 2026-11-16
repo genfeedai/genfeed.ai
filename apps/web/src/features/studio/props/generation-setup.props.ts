@@ -43,7 +43,7 @@ export type GenerationSetupLookOptions = Partial<
 >;
 
 /** One entry in the Type switcher — Studio offers several, the agent offers two. */
-export interface GenerationSetupTypeOption {
+interface GenerationSetupTypeOption {
   label: string;
   value: GenerationSetupType;
 }
@@ -61,7 +61,7 @@ export interface GenerationSetupImageEditingMode {
 }
 
 /** Video Draft switch in the Type menu; `isEnabled` means Generate submits the cheap preview. */
-export interface GenerationSetupVideoDraftMode {
+interface GenerationSetupVideoDraftMode {
   /** The preview's price, shown beside the switch once it is known. */
   credits?: number | null;
   isEnabled: boolean;
@@ -69,13 +69,13 @@ export interface GenerationSetupVideoDraftMode {
 }
 
 /** A platform-owned preset offered to every organization; it can be applied, never deleted. */
-export interface GenerationSetupSystemPreset {
+interface GenerationSetupSystemPreset {
   description?: string;
   id: string;
   label: string;
 }
 
-export interface GenerationSetupAdvancedMode {
+interface GenerationSetupAdvancedMode {
   isEnabled: boolean;
   onChange: (next: boolean) => void;
 }
@@ -153,7 +153,7 @@ export interface GenerationSetupPresetsSectionProps {
   setup: GenerationSetup;
 }
 
-export interface GenerationSetupMenuOption {
+interface GenerationSetupMenuOption {
   description?: string;
   /** Drawn before the label, e.g. the shape of an aspect ratio. */
   icon?: ReactNode;
@@ -165,7 +165,7 @@ export interface GenerationSetupMenuOption {
 
 /** The body of one nested submenu: an optional search box and a preview pane. */
 /** One stop on a step slider. */
-export interface GenerationSetupStepOption {
+interface GenerationSetupStepOption {
   label: string;
   value: number;
 }
@@ -180,7 +180,7 @@ export interface GenerationSetupStepSliderProps {
   value: number;
 }
 
-export interface GenerationSetupRatioGridOption {
+interface GenerationSetupRatioGridOption {
   label: string;
   /** `auto`, or a `W:H` ratio the tile draws to scale. */
   ratio: string;
@@ -224,7 +224,7 @@ export type GenerationSetupLookPreviewKind =
   | 'scene'
   | 'style';
 
-export type GenerationSetupCustomizeSectionId = 'brand' | 'model' | 'presets';
+type GenerationSetupCustomizeSectionId = 'brand' | 'model' | 'presets';
 
 export interface GenerationSetupCustomizePanelProps {
   /** Lets the Presets panel release a pinned preset. */

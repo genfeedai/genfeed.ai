@@ -2,10 +2,16 @@
 
 import type { AdminModelPricingRow } from '@genfeedai/contracts/interfaces';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { IModel } from '@genfeedai/contracts/interfaces';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ModelsListProps } from '@/features/models/props/models.props';
 import AdminModelsPageContent from './admin-models-page-content';
 import ModelPricingAttentionPanel from './model-pricing-attention-panel';
@@ -13,6 +19,7 @@ import ModelPricingDetails from './model-pricing-details';
 
 const listProps = vi.hoisted(() => ({
   current: undefined as ModelsListProps | undefined,
+  isChromeRendered: false,
 }));
 const fixture = vi.hoisted(() => ({
   approveRates: vi.fn(),
@@ -51,7 +58,13 @@ vi.mock('@services/core/notifications.service', () => ({
 vi.mock('@/features/models/list/models-list', () => ({
   default: (props: ModelsListProps) => {
     listProps.current = props;
-    return null;
+    if (!listProps.isChromeRendered) return null;
+    return (
+      <>
+        {props.renderOverflow?.([])}
+        {props.beforeList}
+      </>
+    );
   },
 }));
 vi.mock('@services/admin/model-pricing.service', () => ({
@@ -159,7 +172,7 @@ function show(modelId = 'orange') {
   });
   render(
     <QueryClientProvider client={client}>
-      <ModelPricingAttentionPanel />
+      <ModelPricingAttentionPanel onCopyFixPrompt={vi.fn()} />
       <ModelPricingDetails modelId="red" />
       <ModelPricingDetails modelId={modelId} />
     </QueryClientProvider>,
@@ -393,5 +406,121 @@ describe('pricing alert disclosure', () => {
     expect(panel.querySelectorAll('li')).toHaveLength(8);
     fireEvent.click(screen.getByRole('button', { name: 'Show less' }));
     expect(panel.querySelectorAll('li')).toHaveLength(5);
+  });
+});
+
+describe('copy fix prompt', () => {
+  afterEach(() => {
+    listProps.isChromeRendered = false;
+  });
+
+  const writeText = vi.fn();
+  const model = (id: string) => ({ id, label: 'Model' }) as IModel;
+
+  function showPage() {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <AdminModelsPageContent type="all" />
+      </QueryClientProvider>,
+    );
+  }
+
+  beforeEach(() => {
+    listProps.isChromeRendered = true;
+    writeText.mockReset();
+    writeText.mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+  });
+
+  it('copies one prompt that lists every flagged model from the panel', async () => {
+    showPage();
+    await screen.findByTestId('model-pricing-attention');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy fix prompt' }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    const prompt: string = writeText.mock.calls[0][0];
+    expect(prompt).toContain('2 models need action.');
+    expect(prompt).toContain('genfeed-ai/z-image-turbo');
+    expect(prompt).toContain('minimax/hailuo-2.3-fast');
+    expect(prompt).toContain('https://replicate.com/minimax/hailuo-2.3-fast');
+    expect(prompt).not.toContain('clean/model');
+    await waitFor(() =>
+      expect(fixture.notifySuccess).toHaveBeenCalledWith(
+        'Fix prompt copied for 2 models',
+        expect.objectContaining({
+          description:
+            'Paste it into your agent. Nothing runs until you say go.',
+        }),
+      ),
+    );
+  });
+
+  it('copies a prompt for just the model of a row', async () => {
+    showPage();
+    await waitFor(() =>
+      expect(listProps.current?.isModelPinned?.(model('red'))).toBe(true),
+    );
+
+    const action = listProps.current?.rowActions?.[1];
+    expect(action?.isVisible?.(model('red'))).toBe(true);
+    expect(action?.isVisible?.(model('clean'))).toBe(false);
+    action?.onClick?.(model('red'));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    const prompt: string = writeText.mock.calls[0][0];
+    expect(prompt).toContain('1 model needs action.');
+    expect(prompt).toContain('genfeed-ai/z-image-turbo');
+    expect(prompt).not.toContain('minimax/hailuo-2.3-fast');
+  });
+
+  it('copies the audit prompt from the sub bar menu without needing a flagged model', async () => {
+    fixture.getReport.mockResolvedValue(report([row({})]));
+    showPage();
+    await waitFor(() => expect(fixture.getReport).toHaveBeenCalled());
+
+    fireEvent.pointerDown(
+      await screen.findByRole('button', { name: 'More actions' }),
+      { button: 0, ctrlKey: false },
+    );
+    expect(
+      await screen.findByRole('menuitem', { name: 'Copy fix prompt' }),
+    ).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(
+      screen.getByRole('menuitem', { name: 'Copy audit prompt (every price)' }),
+    );
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    expect(writeText.mock.calls[0][0]).toContain('# Audit every model price');
+    expect(writeText.mock.calls[0][0]).toContain(
+      'genfeed admin pricing report --json',
+    );
+  });
+
+  it('shows the prompt to copy by hand when the browser blocks the clipboard', async () => {
+    writeText.mockRejectedValue(new Error('blocked'));
+    showPage();
+    await screen.findByTestId('model-pricing-attention');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy fix prompt' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Fix prompt' });
+    expect(dialog).toHaveTextContent(
+      'Your browser blocked copying. Select the text and copy it yourself.',
+    );
+    const prompt = within(dialog).getByRole<HTMLTextAreaElement>('textbox', {
+      name: 'Fix prompt',
+    });
+    expect(prompt).toHaveAttribute('readonly');
+    expect(prompt.value).toContain('genfeed-ai/z-image-turbo');
+    expect(fixture.notifyError).toHaveBeenCalledWith(
+      'Could not copy the prompt',
+    );
   });
 });

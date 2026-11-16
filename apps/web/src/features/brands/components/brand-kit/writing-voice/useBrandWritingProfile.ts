@@ -29,7 +29,7 @@ import { getBrandVoiceFailureView } from './brand-voice-failure.util';
 
 const EXEMPLAR_SEPARATOR_PATTERN = /\n\s*---\s*\n/;
 
-export const AUTO_MODEL_SELECT_VALUE = '__auto__';
+const AUTO_MODEL_SELECT_VALUE = '__auto__';
 export const PLATFORM_OPTIONS = [
   { label: 'Twitter / X', value: 'twitter' },
   { label: 'Instagram', value: 'instagram' },

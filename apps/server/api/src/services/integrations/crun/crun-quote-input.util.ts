@@ -42,7 +42,7 @@ export interface CrunQuoteIntentBase {
   text: string;
 }
 
-export interface CrunPreparedInput<TIntent> {
+interface CrunPreparedInput<TIntent> {
   intent: TIntent;
   intentHash: string;
   brandId: string;

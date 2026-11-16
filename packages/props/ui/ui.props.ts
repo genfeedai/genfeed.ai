@@ -1,17 +1,13 @@
 import type {
-  ButtonSize,
-  ButtonVariant,
   CardGap,
   CardPadding,
   CardTone,
+  CardVariant,
 } from '@genfeedai/contracts';
-import { CardVariant } from '@genfeedai/contracts';
 import type { TabItem, TabsProps } from '@genfeedai/contracts/interfaces';
 import type { NavigationTab } from '@genfeedai/contracts/interfaces/ui/navigation.interface';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
-import type { HTMLAttributes, MouseEvent, ReactNode, Ref } from 'react';
-
-export { CardVariant };
+import type { HTMLAttributes, ReactNode, Ref } from 'react';
 
 export interface CardProps
   extends Omit<
@@ -148,27 +144,6 @@ export type ContainerProps = ContainerBaseProps &
         headerTabs?: undefined;
       }
   );
-
-export interface LinkProps {
-  url: string;
-  label?: ReactNode;
-  icon?: ReactNode;
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-  className?: string;
-  isLoading?: boolean;
-  onClick?: (e: MouseEvent<HTMLAnchorElement>) => void;
-  tooltip?: string;
-  tooltipPosition?: 'top' | 'bottom' | 'left' | 'right';
-  target?: '_blank' | '_self' | '_parent' | '_top';
-  rel?: string;
-}
-
-export interface DashboardGridProps {
-  cols?: 2 | 4;
-  className?: string;
-  children: ReactNode;
-}
 
 export interface MarqueeRailProps {
   children: ReactNode;

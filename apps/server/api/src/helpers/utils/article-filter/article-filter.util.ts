@@ -27,7 +27,7 @@ const PRISMA_ARTICLE_STATUS_VALUES = new Set<string>(
  * Columns the articles list can be ordered by. Author and word count are
  * derived from the owner and the body, so the database cannot order by them.
  */
-export const ARTICLE_SORT_FIELDS: readonly string[] = [
+const ARTICLE_SORT_FIELDS: readonly string[] = [
   'createdAt',
   'label',
   'publishedAt',

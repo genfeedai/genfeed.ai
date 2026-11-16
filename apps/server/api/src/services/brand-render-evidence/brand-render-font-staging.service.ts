@@ -7,6 +7,10 @@ import {
   isBrandFontMimeType,
   isBrandFontSize,
 } from '@api/services/brand-render-evidence/brand-render-font-file.util';
+import {
+  type BrandRenderSnapshotScope,
+  resolveApprovedRenderSnapshot,
+} from '@api/services/brand-render-evidence/brand-render-snapshot.util';
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AssetCategory, AssetParent } from '@genfeedai/contracts';
@@ -18,31 +22,11 @@ import type {
 import { assertSafeObjectKey, createStorageProvider } from '@genfeedai/storage';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
-import {
-  ConflictException,
-  HttpException,
-  Injectable,
-  UnprocessableEntityException,
-} from '@nestjs/common';
-
-/** Unauthorised, forbidden and not found: the caller may not see this brand. */
-const ACCESS_FAILURE_STATUSES = new Set([401, 403, 404]);
-
-/** The brand has no approved identity to take fonts from; not an error to render. */
-const IDENTITY_UNAVAILABLE_CODES = new Set([
-  'brand_identity_unavailable',
-  'brand_identity_integrity_failed',
-  'brand_identity_asset_unavailable',
-]);
+import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 
 const FONT_READ_TIMEOUT_MS = 15_000;
 
-export interface BrandFontScope {
-  organizationId: string;
-  brandId: string;
-  /** The actor whose access to the brand is checked. */
-  userId: string;
-}
+export type BrandFontScope = BrandRenderSnapshotScope;
 
 /** One font file the approved Brand OS revision names, with the faces to declare. */
 export interface ApprovedBrandFont {
@@ -211,31 +195,12 @@ export class BrandRenderFontStagingService {
     }
   }
 
-  private async resolveSnapshot(scope: BrandFontScope) {
-    try {
-      return await this.snapshots.preview({
-        actorId: scope.userId,
-        organizationId: scope.organizationId,
-        brandId: scope.brandId,
-      });
-    } catch (error) {
-      // An access failure must keep failing; a brand without an approved
-      // identity simply renders without brand fonts.
-      if (
-        error instanceof HttpException &&
-        ACCESS_FAILURE_STATUSES.has(error.getStatus())
-      )
-        throw error;
-      const isKnown =
-        error instanceof ConflictException &&
-        IDENTITY_UNAVAILABLE_CODES.has(error.message);
-      if (!isKnown)
-        this.logger.warn('Brand snapshot lookup failed for font staging', {
-          brandId: scope.brandId,
-          organizationId: scope.organizationId,
-          reason: error instanceof Error ? error.name : 'unknown',
-        });
-      return null;
-    }
+  private resolveSnapshot(scope: BrandFontScope) {
+    return resolveApprovedRenderSnapshot(
+      this.snapshots,
+      this.logger,
+      scope,
+      'font staging',
+    );
   }
 }

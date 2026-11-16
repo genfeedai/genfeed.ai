@@ -12,7 +12,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { ContextEmbeddingJobStatus } from '@genfeedai/prisma';
 
-export const CONTEXT_COVERAGE_MAX_RECOVERIES = 5;
+const CONTEXT_COVERAGE_MAX_RECOVERIES = 5;
 
 type MemberState = 'excluded' | 'failed' | 'pending' | 'stale' | 'usable';
 

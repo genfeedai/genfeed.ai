@@ -23,7 +23,7 @@ function normalizeRoute(route: string): string {
   return segments.length === 0 ? '/' : `/${segments.join('/')}`;
 }
 
-export function getDocsUrl(route = '/'): string {
+function getDocsUrl(route = '/'): string {
   return new URL(normalizeRoute(route), DOCS_ORIGIN).toString();
 }
 

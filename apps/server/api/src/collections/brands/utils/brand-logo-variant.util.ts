@@ -8,7 +8,7 @@ import { traced } from '@libs/tracing/traced';
  * The live asset id of one logo variant, or null when the brand has none.
  * Scoped to the brand's organization like every brand kit read.
  */
-export const findBrandLogoVariantId = traced(
+const findBrandLogoVariantId = traced(
   'findBrandLogoVariantId',
   async (
     prisma: Pick<PrismaService, 'asset'>,

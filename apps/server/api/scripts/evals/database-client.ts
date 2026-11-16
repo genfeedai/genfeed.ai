@@ -127,12 +127,25 @@ export function createGoldenSetDatabaseClient() {
           },
         }),
     },
+    // Harness profiles live in their own table. The golden set still reads them
+    // as one `data` record, so the columns and the content are put back together.
     profile: {
-      findMany: (args) =>
-        prisma.profile.findMany({
-          ...common(args),
-          where: { ...common(args).where, data: args.where.data },
-        }),
+      findMany: async (args) =>
+        (await prisma.harnessProfile.findMany(common(args))).map((row) => ({
+          ...row,
+          data: {
+            ...(typeof row.content === 'object' && row.content !== null
+              ? row.content
+              : {}),
+            brandId: row.brandId,
+            description: row.description,
+            isDefault: row.isDefault,
+            label: row.label,
+            profileType: 'harness',
+            scope: row.scope,
+            status: row.status,
+          },
+        })),
     },
     contextBase: {
       findMany: (args) =>

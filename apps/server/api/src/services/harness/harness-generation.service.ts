@@ -81,10 +81,9 @@ import {
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
-export const HARNESS_MEMORY_LIMIT = 5;
-export const HARNESS_SELECTED_KNOWLEDGE_LIMIT =
-  SELECTED_KNOWLEDGE_PASSAGE_BUDGET;
-export const HARNESS_MEMORY_MIN_RELEVANCE = 0.65;
+const HARNESS_MEMORY_LIMIT = 5;
+const HARNESS_SELECTED_KNOWLEDGE_LIMIT = SELECTED_KNOWLEDGE_PASSAGE_BUDGET;
+const HARNESS_MEMORY_MIN_RELEVANCE = 0.65;
 
 export type ResolveHarnessBriefParams = {
   userId?: string;
@@ -413,6 +412,7 @@ export class HarnessGenerationService {
     const layer = brandGenerationLayerReceiptV1Schema.parse({
       kind: 'harness_profile',
       id: learningContractIdSchema.parse(profile.profileId),
+      version: profile.profileRevision,
       status: 'not_applicable',
       evidenceIds: [],
       omittedIds: [],
@@ -820,6 +820,7 @@ export class HarnessGenerationService {
         brand,
         brandOsRevision,
         harnessProfileId: profile?.profileId,
+        harnessProfileRevision: profile?.profileRevision,
         intent: {
           contentType: params.contentType,
           objective: params.objective ?? 'engagement',

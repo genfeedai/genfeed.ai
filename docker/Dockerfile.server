@@ -1,8 +1,8 @@
 # ==================================================
 # Unified Server Dockerfile
 # Builds the public NestJS services in a single image
-# Services: api, files, workers, mcp, notifications,
-#           telegram, discord, slack
+# Services: api, files, workers, mcp, notifications
+# (the Discord, Slack and Telegram bots build from docker/Dockerfile)
 # ==================================================
 
 # Node.js version comes from the repo-root `.node-version`, the single pin.
@@ -64,12 +64,9 @@ WORKDIR /ctx
 RUN --mount=type=bind,source=.,target=/ctx,ro \
     /root/.bun/bin/turbo prune \
       @genfeedai/api \
-      @genfeedai/discord \
       @genfeedai/files \
       @genfeedai/mcp \
       @genfeedai/notifications \
-      @genfeedai/slack \
-      @genfeedai/telegram \
       @genfeedai/workers \
       --docker \
       --out-dir /pruned
@@ -80,12 +77,9 @@ RUN --mount=type=bind,source=.,target=/ctx,ro \
 RUN --mount=type=bind,source=.,target=/ctx,ro \
     /root/.bun/bin/turbo prune \
       @genfeedai/api \
-      @genfeedai/discord \
       @genfeedai/files \
       @genfeedai/mcp \
       @genfeedai/notifications \
-      @genfeedai/slack \
-      @genfeedai/telegram \
       @genfeedai/workers \
       --production \
       --docker \
@@ -241,14 +235,6 @@ RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
     (SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null || echo "") bun --filter @genfeedai/notifications build:prod) & pids="$pids $!"; \
     ec=0; for p in $pids; do wait "$p" || ec=1; done; [ "$ec" = 0 ]
 
-# Batch 2: Non-Sentry services (3 builds)
-RUN set -e; \
-    pids=""; \
-    bun --filter @genfeedai/telegram build:prod & pids="$pids $!"; \
-    bun --filter @genfeedai/discord build & pids="$pids $!"; \
-    bun --filter @genfeedai/slack build:prod & pids="$pids $!"; \
-    ec=0; for p in $pids; do wait "$p" || ec=1; done; [ "$ec" = 0 ]
-
 # ==================================================
 # Stage 2.5: Validate build outputs exist
 # ==================================================
@@ -260,7 +246,7 @@ RUN set -e; \
 # size gate in build-verify.yml. `test -f` alone passes a 0-byte file.
 RUN echo "Checking build outputs..." && \
     ls -la apps/server/dist/apps/ 2>/dev/null || echo "dist/apps/ directory missing!" && \
-    for svc in api workers files mcp notifications telegram discord slack api-articles-seed api-harness-profile-seed api-reference-data-sync; do \
+    for svc in api workers files mcp notifications api-articles-seed api-harness-profile-seed api-reference-data-sync; do \
       if ! test -f "apps/server/dist/apps/$svc/main.js"; then \
         echo "❌ $svc bundle MISSING" && exit 1; \
       fi; \

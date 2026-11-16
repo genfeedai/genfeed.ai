@@ -42,19 +42,10 @@ export const ORIGINAL_BUILT_IN_SKILL_CATALOG = [
   },
 ] as const satisfies readonly BuiltInSkillIdentity[];
 
-export type OriginalBuiltInSkillSlug =
-  (typeof ORIGINAL_BUILT_IN_SKILL_CATALOG)[number]['slug'];
-
 export function compactBuiltInSkillId(slug: string): string {
   return `${BUILT_IN_SKILL_ID_PREFIX}${slug
     .toLowerCase()
     .replace(NON_ALPHANUMERIC_CHARS_PATTERN, '')}`;
-}
-
-export function isOriginalBuiltInSkillSlug(
-  slug: unknown,
-): slug is OriginalBuiltInSkillSlug {
-  return ORIGINAL_BUILT_IN_SKILL_CATALOG.some((entry) => entry.slug === slug);
 }
 
 export function builtInSkillIdentityForSlug(

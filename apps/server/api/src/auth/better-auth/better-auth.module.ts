@@ -45,6 +45,7 @@ import {
   resolveIsEmailVerificationEnforced,
 } from './better-auth-email-verification.util';
 import { buildRedisRateLimitStore } from './better-auth-rate-limit.util';
+import { buildBetterAuthSignupGate } from './better-auth-signup-gate.util';
 import { UserProvisioningListener } from './listeners/user-provisioning.listener';
 import { BetterAuthStrategy } from './passport/better-auth.strategy';
 import { BetterAuthIdentityResolverService } from './services/better-auth-identity-resolver.service';
@@ -213,6 +214,11 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
             usesMeteredCredits() && !isSelfHostedDeployment(),
           prisma,
           rateLimitStore,
+          signupGate: buildBetterAuthSignupGate({
+            prisma,
+            resolveIsInviteOnly: async () =>
+              (await platformSettings.getFeatureSettings()).isSignupInviteOnly,
+          }),
           turnstileSecretKey: config.get('TURNSTILE_SECRET_KEY')?.trim(),
           resolveIsEmailVerificationRequired: () =>
             resolveIsEmailVerificationEnforced({

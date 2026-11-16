@@ -58,15 +58,3 @@ export interface TrendIdea {
   hashtags?: string[];
   caption?: string;
 }
-
-export interface TrendWithIdeas {
-  trend: {
-    platform: string;
-    topic: string;
-    viralityScore: number;
-    mentions: number;
-    growthRate: number;
-    requiresAuth: boolean;
-  };
-  ideas: TrendIdea[];
-}

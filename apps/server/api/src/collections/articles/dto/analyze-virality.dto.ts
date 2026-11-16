@@ -2,7 +2,7 @@ export class AnalyzeViralityDto {
   // No body params - uses article ID from URL
 }
 
-export interface ViralityFactor {
+interface ViralityFactor {
   emotionalAppeal: number; // 0-100
   shareability: number; // 0-100
   readability: number; // 0-100
@@ -10,7 +10,7 @@ export interface ViralityFactor {
   trendAlignment: number; // 0-100
 }
 
-export interface ViralityPredictions {
+interface ViralityPredictions {
   estimatedReach: number;
   estimatedShares: number;
   estimatedEngagement: number;

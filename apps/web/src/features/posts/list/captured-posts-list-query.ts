@@ -25,7 +25,7 @@ export type CapturedPostsSort = Extract<
 
 const DEFAULT_CAPTURED_POSTS_SORT: CapturedPostsSort = 'createdAt: -1';
 
-export function isCapturedPostsSort(
+function isCapturedPostsSort(
   value: ReleasePostsSort,
 ): value is CapturedPostsSort {
   return value === 'createdAt: -1' || value === 'createdAt: 1';

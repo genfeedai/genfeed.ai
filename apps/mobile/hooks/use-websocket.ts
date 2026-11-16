@@ -116,20 +116,3 @@ export function useWebSocket(): UseWebSocketReturn {
     send,
   };
 }
-
-export function useWebSocketEvent<T = unknown>(
-  eventType: string,
-  callback: (data: T) => void,
-): void {
-  useEffect(() => {
-    const handler = (data: T) => {
-      callback(data);
-    };
-
-    websocketService.on(eventType, handler);
-
-    return () => {
-      websocketService.off(eventType, handler);
-    };
-  }, [eventType, callback]);
-}

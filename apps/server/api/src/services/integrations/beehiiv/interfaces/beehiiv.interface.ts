@@ -1,4 +1,4 @@
-export type BeehiivPostStatus = 'confirmed' | 'draft';
+type BeehiivPostStatus = 'confirmed' | 'draft';
 
 export interface BeehiivPublication {
   created: number;

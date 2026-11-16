@@ -233,7 +233,7 @@ export interface TrendPromptReferencePackFreshness {
   expiredSourceIds: string[];
 }
 
-export interface TrendPromptReferencePackRegeneration {
+interface TrendPromptReferencePackRegeneration {
   cacheKey: string;
   sourceFingerprint: string;
   trigger: 'cache_key_changed' | 'source_expired' | 'source_stale';

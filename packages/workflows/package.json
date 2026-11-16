@@ -8,7 +8,7 @@
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
     "clsx": "2.1.1",
-    "lucide-react": "1.72.0",
+    "lucide-react": "1.73.0",
     "nanoid": "6.0.2",
     "next-intl": "4.15.1",
     "recheck": "4.6.2",
@@ -142,7 +142,7 @@
     "dev": "tsup --watch",
     "prepublishOnly": "bun run build",
     "test": "vitest run",
-    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit"
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && bun check --no-script"
   },
   "sideEffects": [
     "**/*.css"

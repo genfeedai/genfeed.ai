@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Create YouTube content including titles, descriptions, tags, thumbnail briefs, Shorts scripts, and retention strategies"
+  tags: youtube, video, seo, content-creation, thumbnails, shorts, descriptions
+  outputs: text
+  triggers: "write a youtube title; create youtube description; youtube tags; thumbnail brief; write a shorts script; youtube content; video title ideas; youtube seo; create video description; youtube chapter timestamps"
 ---
 
 # YouTube Content Creator

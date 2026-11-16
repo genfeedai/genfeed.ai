@@ -32,7 +32,7 @@ const BASE_AGENT_TOOLS: AgentToolOutput[] = toAgentTools(
 
 assertUniqueAgentToolNames(BASE_AGENT_TOOLS);
 
-export const AGENT_TOOLS: AgentToolOutput[] = BASE_AGENT_TOOLS;
+const AGENT_TOOLS: AgentToolOutput[] = BASE_AGENT_TOOLS;
 
 export function getToolDefinitions(): AgentToolOutput[] {
   return AGENT_TOOLS;

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export type AuthFormLayoutLogoSize = 'default' | 'compact';
+type AuthFormLayoutLogoSize = 'default' | 'compact';
 
 interface AuthFormLayoutBaseProps {
   /** Decorative showcase beside the form; shown from `lg` up, replaces the card. */

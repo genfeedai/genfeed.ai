@@ -96,7 +96,7 @@ export function classifyModelRowPricingAttention(
 }
 
 /** Red models cannot be priced, so customer-facing catalogs leave them out. */
-export function isModelRowPricingRed(
+function isModelRowPricingRed(
   model: PricingAttentionModel,
   contracts: PricingAttentionContract[],
   margin: number | null,

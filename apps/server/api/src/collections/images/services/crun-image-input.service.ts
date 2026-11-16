@@ -11,7 +11,6 @@ import { PersonasService } from '@api/collections/personas/services/personas.ser
 import type { CharacterAdmission } from '@api/collections/personas/utils/character-admission.util';
 import {
   authorizeCrunSelection,
-  type CrunPreparedInput,
   type CrunPreparedResult,
   normalizeCrunQuoteIntent,
   prepareCrunPricing,
@@ -33,7 +32,6 @@ import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
-export type CrunPreparedImageInput = CrunPreparedInput<CrunImageQuoteIntent>;
 export type CrunPreparedImageResult = CrunPreparedResult<CrunImageQuoteIntent>;
 
 @Traced()

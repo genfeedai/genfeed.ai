@@ -5,7 +5,7 @@ import {
   type QueuedAction,
 } from '@/services/offline-queue.service';
 
-export type { QueueActionType, QueuedAction };
+export type { QueuedAction };
 
 interface AddToQueueParams {
   type: QueueActionType;

@@ -32,7 +32,7 @@ const BASE64_PATTERN = /^[A-Za-z0-9+/]*={0,2}$/;
 
 const PROTOTYPE_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 
-export interface SkillPackageMetadata {
+interface SkillPackageMetadata {
   name: string;
   description: string;
   version?: string;

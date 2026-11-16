@@ -1,5 +1,5 @@
 import { hasRemoteMatch } from 'next/dist/shared/lib/match-remote-pattern';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createAppNextConfig } from './next.config.base';
 
 vi.mock('@sentry/nextjs/config', () => ({
@@ -33,5 +33,29 @@ describe('Instagram candidate avatars', () => {
 
   it('preserves the unoptimized image policy', () => {
     expect(config.images?.unoptimized).toBe(true);
+  });
+});
+
+describe('Sentry source maps', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('turns off Turbopack native debug IDs when Sentry uploads source maps', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('SENTRY_AUTH_TOKEN', 'token');
+
+    const config = createAppNextConfig({ sentryProject: 'app' });
+
+    expect(config.turbopack?.debugIds).toBe(false);
+  });
+
+  it('leaves Turbopack settings alone when Sentry is not enabled', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('SENTRY_AUTH_TOKEN', '');
+
+    const config = createAppNextConfig({ sentryProject: 'app' });
+
+    expect(config.turbopack?.debugIds).toBeUndefined();
   });
 });

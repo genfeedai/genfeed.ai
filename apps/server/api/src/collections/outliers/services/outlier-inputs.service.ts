@@ -34,7 +34,7 @@ export function readOutlierFlag(
     if (typeof record[key] === 'boolean') return record[key];
   return null;
 }
-export function readOutlierViews(value: unknown): number | null {
+function readOutlierViews(value: unknown): number | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const views = (value as Record<string, unknown>).views;
   return typeof views === 'number' ? views : null;

@@ -22,11 +22,11 @@ import type { Prisma } from '@genfeedai/prisma';
 import { ForbiddenException } from '@nestjs/common';
 
 /** Key of the persisted authenticated actor on a hidden analytics root's input and its discovered items. */
-export const ANALYTICS_ACTOR_KEY = 'initiatingActor';
+const ANALYTICS_ACTOR_KEY = 'initiatingActor';
 
-export const ANALYTICS_ORGANIZATION_REFRESH_WORKFLOW_ID =
+const ANALYTICS_ORGANIZATION_REFRESH_WORKFLOW_ID =
   'analytics.organization-refresh';
-export const ANALYTICS_POST_REFRESH_WORKFLOW_PREFIX = 'analytics.post-refresh.';
+const ANALYTICS_POST_REFRESH_WORKFLOW_PREFIX = 'analytics.post-refresh.';
 export const ANALYTICS_ORGANIZATION_REFRESH_SOURCE = 'analytics-api-refresh';
 export const ANALYTICS_POST_REFRESH_SOURCE = 'post-analytics-api-refresh';
 

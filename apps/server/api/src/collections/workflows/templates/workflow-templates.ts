@@ -14,7 +14,7 @@ import { withExampleOutputs } from '@api/collections/workflows/templates/workflo
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { WorkflowTemplateExampleOutput } from '@genfeedai/contracts/interfaces';
 
-export type RoutineReviewDefaults = {
+type RoutineReviewDefaults = {
   autoApproveIfNoResponse: boolean;
   notifyChannels: string[];
   requireApproval: boolean;
@@ -22,7 +22,7 @@ export type RoutineReviewDefaults = {
   timeoutHours: number;
 };
 
-export type RoutineTrackingTask = {
+type RoutineTrackingTask = {
   description: string;
   key: string;
   outputType: 'newsletter' | 'post';
@@ -32,7 +32,7 @@ export type RoutineTrackingTask = {
   title: string;
 };
 
-export type RoutineOutputDestination = {
+type RoutineOutputDestination = {
   key: string;
   label: string;
   required: boolean;

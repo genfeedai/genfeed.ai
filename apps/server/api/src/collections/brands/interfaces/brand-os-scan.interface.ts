@@ -10,7 +10,7 @@ export interface BrandOsScanInput {
   url: string;
   requestId: string;
 }
-export interface BrandOsScanBaseline {
+interface BrandOsScanBaseline {
   revisionId: string;
   updatedAt: string;
 }

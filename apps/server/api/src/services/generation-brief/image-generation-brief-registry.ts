@@ -145,19 +145,19 @@ import { MODEL_KEYS } from '@genfeedai/contracts/constants';
  * storage without discarding any of the compiler's own runtime validation. */
 export type ImageGenerationBriefDispatch = Record<string, unknown>;
 
-export interface ImageGenerationBriefCompileResult {
+interface ImageGenerationBriefCompileResult {
   brief: ImageGenerationBrief;
   dispatch: ImageGenerationBriefDispatch;
   evidence: GenerationBriefCompileEvidence;
 }
 
-export interface ImageGenerationBriefCompileInput {
+interface ImageGenerationBriefCompileInput {
   brief: ImageGenerationBrief;
   modelKey: string;
   seed?: number;
 }
 
-export type ImageGenerationBriefCompileFn = (
+type ImageGenerationBriefCompileFn = (
   input: ImageGenerationBriefCompileInput,
 ) => ImageGenerationBriefCompileResult;
 
@@ -446,7 +446,7 @@ const IMAGE_GENERATION_BRIEF_REGISTRY_ENTRIES: ImageGenerationBriefRegistryEntry
     ),
   ];
 
-export const IMAGE_GENERATION_BRIEF_REGISTRY: ReadonlyMap<
+const IMAGE_GENERATION_BRIEF_REGISTRY: ReadonlyMap<
   string,
   ImageGenerationBriefRegistryEntry
 > = new Map(
@@ -503,7 +503,7 @@ const IMAGE_GENERATION_BRIEF_EXEMPTION_ENTRIES: ReadonlyArray<
   [MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA, 'legacy_prompt_builder'],
 ];
 
-export const IMAGE_GENERATION_BRIEF_EXEMPTIONS: ReadonlyMap<
+const IMAGE_GENERATION_BRIEF_EXEMPTIONS: ReadonlyMap<
   string,
   GenerationBriefExemptionReason
 > = new Map(IMAGE_GENERATION_BRIEF_EXEMPTION_ENTRIES);

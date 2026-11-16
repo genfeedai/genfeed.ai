@@ -49,9 +49,9 @@ export const JEV_DEFAULT_SCORE_CRITERIA: readonly [
 ] = ['not at all', 'slightly', 'moderately', 'very', 'extremely'];
 
 /** Text, a JSON object or array, or `null` (the SDK's `EntryType`). */
-export type JevEntry = string | Record<string, unknown> | unknown[] | null;
+type JevEntry = string | Record<string, unknown> | unknown[] | null;
 
-export interface JevNoulQuestion {
+interface JevNoulQuestion {
   criteria?: { false?: JevEntry; true?: JevEntry } | null;
   instructions: JevEntry;
   type: 'noul';
@@ -83,20 +83,20 @@ export interface JevSystemOneRequest {
   state: Record<string, unknown>;
 }
 
-export interface JevNoulAnswer {
+interface JevNoulAnswer {
   /** Probability that the statement is true. */
   noul: number;
   type: 'noul';
 }
 
-export interface JevChoiceAnswer {
+interface JevChoiceAnswer {
   choice: string;
   confidence: number;
   probabilities?: Record<string, number>;
   type: 'choice';
 }
 
-export interface JevScoreAnswer {
+interface JevScoreAnswer {
   confidence: number;
   /** Expected score on the rubric; may fall between integer levels. */
   score: number;
@@ -104,15 +104,3 @@ export interface JevScoreAnswer {
 }
 
 export type JevAnswer = JevChoiceAnswer | JevNoulAnswer | JevScoreAnswer;
-
-/** Token counts only; the API reports no charge. */
-export interface JevUsage {
-  input_tokens?: number;
-  output_tokens?: number;
-}
-
-export interface JevSystemOneResponse {
-  answers: Record<string, JevAnswer>;
-  model?: string;
-  usage?: JevUsage;
-}

@@ -7,13 +7,13 @@ import type { IOrganizationBilling } from '@genfeedai/contracts/interfaces';
 /** Free is not a Stripe price, so an organization with no subscription row reports it. */
 const FREE_TIER = 'free';
 
-export interface OrganizationBillingSource {
+interface OrganizationBillingSource {
   id: string;
   label: string;
   ownerEmail: string | null;
 }
 
-export interface SubscriptionBillingSource {
+interface SubscriptionBillingSource {
   currentPeriodEnd: Date | null;
   plan: string | null;
   status: string;

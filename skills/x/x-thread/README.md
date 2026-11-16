@@ -1,5 +1,6 @@
 # X Thread
 
+<!-- generated:start (bun run skills:generate; edit SKILL.md, not this block) -->
 Write an X (Twitter) thread of 2 to 15 posts with a hook, a value chain and a closing CTA.
 
 ## Installation
@@ -7,6 +8,7 @@ Write an X (Twitter) thread of 2 to 15 posts with a hook, a value chain and a cl
 ```bash
 bunx skills add genfeedai/skills --skill x-thread
 ```
+<!-- generated:end -->
 
 ## Usage
 

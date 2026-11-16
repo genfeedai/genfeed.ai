@@ -2,14 +2,14 @@ import type { GlobalModalsContextValue } from '@props/modals/global-modals.props
 import type { ClipboardService } from '@services/core/clipboard.service';
 import type { ArticlePublishDestination } from '@/props/edit/article-public-page.props';
 
-export type ArticleDetailHeaderState = {
+type ArticleDetailHeaderState = {
   isNew: boolean;
   hasXArticleSections: boolean;
   isDirty: boolean;
   isSaving: boolean;
 };
 
-export type ArticleDetailHeaderPermissions = {
+type ArticleDetailHeaderPermissions = {
   canPublish: boolean;
   canArchive: boolean;
 };

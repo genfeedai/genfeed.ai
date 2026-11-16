@@ -13,7 +13,7 @@ export type {
 
 const TRAILING_SLASH_PATTERN = /\/$/;
 
-export class ManagedCreditsApiError extends Error {
+class ManagedCreditsApiError extends Error {
   constructor(
     message: string,
     readonly status: number,

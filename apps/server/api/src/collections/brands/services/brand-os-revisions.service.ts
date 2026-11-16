@@ -1,5 +1,7 @@
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
+import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { rulesOwnerVideoJoins } from '@api/services/branded-generation-receipts/brand-identity-snapshot-projection.util';
 import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -7,6 +9,16 @@ import {
   brandPaletteSchema,
 } from '@genfeedai/contracts/api-types/contracts/brand-kit-style.contract';
 import { parseBrandPublishPolicy } from '@genfeedai/contracts/api-types/contracts/brand-publish-policy.contract';
+import {
+  brandFinishingColumns,
+  buildBrandVideoFinishing,
+  parseBrandVideoFinishing,
+} from '@genfeedai/contracts/api-types/contracts/brand-video-finishing.contract';
+import {
+  isOwnerVideoRulesValid,
+  reconcileOwnerVideoRules,
+} from '@genfeedai/contracts/api-types/contracts/brand-video-identity.contract';
+import { brandVideoRulesV1Schema } from '@genfeedai/contracts/api-types/contracts/brand-video-rules.contract';
 import type {
   IBrandKitDraft,
   IBrandOsRevision,
@@ -42,6 +54,7 @@ export class BrandOsRevisionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly assets: BrandKitAssetsService,
+    private readonly watermarkLogos: BrandWatermarkLogoService,
   ) {}
 
   async list(
@@ -232,7 +245,17 @@ export class BrandOsRevisionsService {
         tx,
         organizationId,
         brandId,
-        await this.withApprovedPolicy(tx, organizationId, brandId, normalized),
+        await this.withApprovedVideoSections(
+          tx,
+          organizationId,
+          brandId,
+          await this.withApprovedPolicy(
+            tx,
+            organizationId,
+            brandId,
+            normalized,
+          ),
+        ),
       );
     };
     return transaction ? write(transaction) : this.prisma.$transaction(write);
@@ -378,6 +401,7 @@ export class BrandOsRevisionsService {
       content.assetCandidates = [];
       content.status = 'accepted';
       await this.syncApprovedStyle(tx, organizationId, brandId, content);
+      await this.syncApprovedFinishing(tx, organizationId, brandId, content);
       await tx.brandOsRevision.updateMany({
         data: { status: BrandOsRevisionStatus.SUPERSEDED },
         where: {
@@ -433,6 +457,78 @@ export class BrandOsRevisionsService {
   }
 
   /**
+   * End card, colour grade and watermark live on the brand row too, because the
+   * stitch and export code read it. Approving a revision is the only way those
+   * columns change (#10187). The assets and the LUT file are checked first, so a
+   * revision never approves settings the stitch would refuse. A revision
+   * written before finishing existed leaves the brand as it is.
+   */
+  private async syncApprovedFinishing(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    brandId: string,
+    content: IBrandKitDraft,
+  ): Promise<void> {
+    if (content.finishing === undefined) return;
+    const finishing = parseBrandVideoFinishing(content.finishing);
+    if (!finishing) throw new BadRequestException('Invalid Brand OS finishing');
+    const columns = brandFinishingColumns(finishing);
+    await this.watermarkLogos.validateKitSettings(
+      brandId,
+      organizationId,
+      columns,
+    );
+    // sql-risk-audit: ignore bulk-write-tenant-review -- organizationId, isDeleted:false and the unique brand id bound the write to the one brand under the approval lock.
+    await tx.brand.updateMany({
+      data: columns,
+      where: { id: brandId, isDeleted: false, organizationId },
+    });
+  }
+
+  /**
+   * A new draft that brings no finishing or video identity keeps the approved
+   * one, so approving a fresh scan never drops them. A brand with no approved
+   * finishing starts from its own row, so the Video tab always edits what the
+   * stitch uses.
+   */
+  private async withApprovedVideoSections(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    brandId: string,
+    content: IBrandKitDraft,
+  ): Promise<IBrandKitDraft> {
+    if (content.finishing !== undefined && content.video !== undefined)
+      return content;
+    const approved = await tx.brandOsRevision.findFirst({
+      where: {
+        brandId,
+        isDeleted: false,
+        organizationId,
+        status: BrandOsRevisionStatus.APPROVED,
+      },
+      select: { content: true },
+    });
+    const approvedContent = approved?.content as unknown as
+      | IBrandKitDraft
+      | undefined;
+    const next = { ...content };
+    const video = brandVideoRulesV1Schema.safeParse(approvedContent?.video);
+    const inherited = video.success
+      ? reconcileOwnerVideoRules(rulesOwnerVideoJoins(next), video.data)
+      : undefined;
+    if (next.video === undefined && inherited) next.video = inherited;
+    if (next.finishing !== undefined) return next;
+    const carried = parseBrandVideoFinishing(approvedContent?.finishing);
+    if (carried) return { ...next, finishing: carried };
+    const brand = await tx.brand.findFirst({
+      where: { id: brandId, isDeleted: false, organizationId },
+    });
+    return brand
+      ? { ...next, finishing: buildBrandVideoFinishing(brand) }
+      : next;
+  }
+
+  /**
    * The one place a revision is seeded from the brand itself. A brand with no
    * history and no voice of its own starts from the marked Genfeed default kit,
    * whichever path seeds it, so approve can refuse it until the owner edits it.
@@ -458,7 +554,7 @@ export class BrandOsRevisionsService {
     organizationId: string,
     brandId: string,
   ): Promise<IBrandKitDraft> {
-    return buildBrandKitDraftFromBrand({
+    const draft = buildBrandKitDraftFromBrand({
       ...brand,
       ...(await this.assets.resolveBrandKitAssets(brandId, organizationId)),
       agentConfig: this.legacyAgentConfig(brand.agentConfig),
@@ -468,6 +564,7 @@ export class BrandOsRevisionsService {
           )
         : [],
     });
+    return { ...draft, finishing: buildBrandVideoFinishing(brand) };
   }
 
   /**
@@ -765,6 +862,21 @@ export class BrandOsRevisionsService {
       const policy = parseBrandPublishPolicy(content.policy);
       if (!policy) throw new BadRequestException('Invalid Brand OS Policy');
       normalized.policy = policy;
+    }
+    if (content.finishing !== undefined) {
+      const finishing = parseBrandVideoFinishing(content.finishing);
+      if (!finishing)
+        throw new BadRequestException('Invalid Brand OS finishing');
+      normalized.finishing = finishing;
+    }
+    if (content.video !== undefined) {
+      const video = brandVideoRulesV1Schema.safeParse(content.video);
+      if (
+        !video.success ||
+        !isOwnerVideoRulesValid(rulesOwnerVideoJoins(content), video.data)
+      )
+        throw new BadRequestException('Invalid Brand OS video identity');
+      normalized.video = video.data;
     }
     for (const owner of BRAND_KIT_FIELD_OWNERSHIP) {
       const field = normalized.fields[owner.key];

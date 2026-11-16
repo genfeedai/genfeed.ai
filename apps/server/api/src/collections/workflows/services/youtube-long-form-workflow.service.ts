@@ -42,7 +42,6 @@ import { firstValueFrom } from 'rxjs';
 
 export {
   YOUTUBE_LONG_FORM_ACTION_IDS,
-  YOUTUBE_LONG_FORM_OUTPUT_TYPES,
   YOUTUBE_LONG_FORM_WORKFLOW_ID,
   YOUTUBE_SOURCE_LIBRARY_WORKFLOW_ID,
   type YoutubeLongFormOutputType,

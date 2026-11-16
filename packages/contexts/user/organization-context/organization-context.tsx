@@ -36,7 +36,7 @@ import {
 
 const ERROR_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_]{0,39}$/;
 
-export type RoutedOrganizationStatus =
+type RoutedOrganizationStatus =
   | 'failed'
   | 'loading'
   | 'matched'

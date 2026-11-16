@@ -3,8 +3,6 @@ import {
   type IngredientOrigin,
   LibraryPlace,
   type LibraryShelf,
-  parseIngredientCategory,
-  parseLibraryShelf,
   type TagMatchMode,
 } from '..';
 
@@ -26,10 +24,8 @@ export const LIBRARY_QUERY_KEYS = {
    * A filter beside type, shelf and folder, never a navigation destination.
    */
   ORIGINS: 'origins',
-  PLACE: 'place',
   /** Teammate-review state (`?review=in_review`). A filter, never a tab. */
   REVIEW: 'review',
-  SHELF: 'shelf',
   SEARCH: 'search',
   SORT: 'sort',
   /** `any` (default) or `all` — how the repeated `tags` key combines. */
@@ -236,52 +232,4 @@ export function createLibraryBrowserRoute(
 
   const queryString = params.toString();
   return queryString ? `${pathname}?${queryString}` : pathname;
-}
-
-type LegacyLibrarySearchParams = Record<string, string | string[] | undefined>;
-
-/**
- * Old Library links carried the view in the query (`/library/assets?place=trash`,
- * `?shelf=approved`, `?categories=IMAGE&categories=IMAGE_EDIT`). Returns the
- * route that now owns that view, with every other param kept, or null when
- * the URL is already canonical.
- */
-export function resolveLegacyLibraryRoute(
-  searchParams: LegacyLibrarySearchParams,
-): string | null {
-  const values = (key: string): string[] => [searchParams[key] ?? []].flat();
-  const [placeValue] = values(LIBRARY_QUERY_KEYS.PLACE);
-  const [shelfValue] = values(LIBRARY_QUERY_KEYS.SHELF);
-  const place = Object.values(LibraryPlace).find(
-    (candidate) => candidate === placeValue,
-  );
-  const shelf = parseLibraryShelf(shelfValue);
-  const categories = values(LIBRARY_QUERY_KEYS.CATEGORIES)
-    .map((value) => parseIngredientCategory(value))
-    .filter((value): value is IngredientCategory => Boolean(value));
-
-  const axisRoute = resolveLibraryAxisRoute({ categories, place, shelf });
-  const hasLegacyAxis =
-    searchParams[LIBRARY_QUERY_KEYS.PLACE] !== undefined ||
-    searchParams[LIBRARY_QUERY_KEYS.SHELF] !== undefined;
-  if (!hasLegacyAxis && axisRoute.route === APP_ROUTES.LIBRARY.ASSETS) {
-    return null;
-  }
-
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(searchParams)) {
-    if (
-      value === undefined ||
-      key === LIBRARY_QUERY_KEYS.PLACE ||
-      key === LIBRARY_QUERY_KEYS.SHELF ||
-      (key === LIBRARY_QUERY_KEYS.CATEGORIES && axisRoute.hasCategoriesInPath)
-    ) {
-      continue;
-    }
-    for (const entry of [value].flat()) {
-      params.append(key, entry);
-    }
-  }
-  const query = params.toString();
-  return query ? `${axisRoute.route}?${query}` : axisRoute.route;
 }

@@ -49,7 +49,7 @@ export interface LibraryBrowserProps {
  * still the one browser — the copy just names the preset instead of claiming
  * the operator is looking at everything.
  */
-export interface LibraryBrowserPreset {
+interface LibraryBrowserPreset {
   label: string;
 }
 

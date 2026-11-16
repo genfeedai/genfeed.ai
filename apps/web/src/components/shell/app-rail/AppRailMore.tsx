@@ -90,5 +90,3 @@ export function AppRailMore({ items, onOpen, onTogglePin }: AppRailMoreProps) {
     </Popover>
   );
 }
-
-export default AppRailMore;

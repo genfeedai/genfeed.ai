@@ -13,6 +13,7 @@ import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-
 import { BrandOsScanService } from '@api/collections/brands/services/brand-os-scan.service';
 import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandVoiceCorpusService } from '@api/collections/brands/services/brand-voice-corpus.service';
+import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { SystemBrandService } from '@api/collections/brands/services/system-brand.service';
@@ -75,6 +76,7 @@ import { Module } from '@nestjs/common';
     BrandCoverStyleService,
     BrandDataMapper,
     BrandVoiceCorpusService,
+    BrandWatermarkLogoService,
     SystemBrandService,
   ],
 })

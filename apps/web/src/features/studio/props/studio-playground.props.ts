@@ -221,7 +221,7 @@ export interface StudioPlaygroundStarterProductReference {
 }
 
 /** Product still written onto the composer when a product idea is chosen. */
-export interface StudioPlaygroundStarterAttachedProduct {
+interface StudioPlaygroundStarterAttachedProduct {
   id: string;
   label: string;
   previewUrl: string;

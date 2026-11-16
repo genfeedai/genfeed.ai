@@ -65,6 +65,12 @@ export interface PublishResult {
    */
   errorCode?: string;
   /**
+   * How long the provider said to wait before trying again, when it refused with
+   * a rate limit and gave a reset time. The publish worker schedules the next
+   * attempt no earlier than this.
+   */
+  retryAfterMs?: number;
+  /**
    * Set when the provider accepted the content but parked it as a draft on
    * its side (e.g. a Beehiiv draft execution mode) instead of making it live.
    *

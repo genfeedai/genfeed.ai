@@ -2,7 +2,7 @@ import { parseSkillPackageArchive } from '@api/collections/skills/utils/skill-pa
 
 const FRONTMATTER_BLOCK_PATTERN = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/;
 
-export interface SkillsProPackMetadata {
+interface SkillsProPackMetadata {
   category?: string;
   description: string;
   name: string;

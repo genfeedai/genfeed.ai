@@ -365,10 +365,10 @@ describe('batch approval prompt', () => {
         'Genfeed needs your approval. Schedule 2 posts?',
         'Post 1: instagram on Brand account, 2026-11-15T08:00:00.000Z',
         '- text: Slide deck 1',
-        '- media: 2 files in this order: 1. image, 2. image',
+        '- media: 2 files in this order: 1. image https://cdn.example.com/a.jpg, 2. image https://cdn.example.com/b.jpg',
         'Post 2: instagram on Brand account, 2026-11-16T08:00:00.000Z',
         '- text: Slide deck 2',
-        '- media: 2 files in this order: 1. image, 2. image',
+        '- media: 2 files in this order: 1. image https://cdn.example.com/a.jpg, 2. image https://cdn.example.com/b.jpg',
         'Accept to schedule them now, or decline to cancel.',
       ].join('\n'),
     );

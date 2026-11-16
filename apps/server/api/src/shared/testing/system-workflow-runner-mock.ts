@@ -145,7 +145,3 @@ export function createSystemWorkflowRunnerMock(
     ),
   };
 }
-
-export type SystemWorkflowRunnerMock = ReturnType<
-  typeof createSystemWorkflowRunnerMock
->;

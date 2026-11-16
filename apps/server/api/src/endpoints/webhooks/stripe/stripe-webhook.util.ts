@@ -10,7 +10,7 @@ export type StripeMetadata = Record<string, string>;
 
 export type StripeRecurringInterval = 'day' | 'week' | 'month' | 'year';
 
-export type AttributionUtm = {
+type AttributionUtm = {
   source?: string;
   medium?: string;
   campaign?: string;

@@ -102,7 +102,7 @@ function badRequestFromZod(
   });
 }
 
-export function parseContractInput<T>(
+function parseContractInput<T>(
   schema: ZodType<T>,
   value: unknown,
   title: string,

@@ -25,7 +25,7 @@ export interface ContentCalendarDateRange {
   start: Date;
   end: Date;
 }
-export type ContentCalendarTranslate = (
+type ContentCalendarTranslate = (
   key: string,
   values?: Record<string, string | number>,
 ) => string;

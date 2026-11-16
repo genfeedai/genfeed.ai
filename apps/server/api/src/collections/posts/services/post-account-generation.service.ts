@@ -924,6 +924,7 @@ export class PostAccountGenerationService {
   ): Promise<void> {
     try {
       await this.activityRecorder.update(activity, {
+        alert: { channels: ['in_app'] },
         isRead: false,
         key:
           completedCount === totalCount
@@ -954,6 +955,7 @@ export class PostAccountGenerationService {
     if (!activity) return;
     try {
       await this.activityRecorder.update(activity, {
+        alert: { channels: ['in_app'] },
         key: ActivityKey.POST_FAILED,
         value: JSON.stringify({
           error: (error as Error)?.message || 'Generation failed',

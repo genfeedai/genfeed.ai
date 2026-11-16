@@ -45,6 +45,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   ENGAGEMENT_TRIGGERS: 'engagement-triggers',
   FAL_MODEL_DISCOVERY: PROVIDER_PRICE_SYNC_TASKS.fal,
   FREE_TRIAL_EXPIRY: 'free-trial-expiry',
+  HIGGSFIELD_MODEL_DISCOVERY: PROVIDER_PRICE_SYNC_TASKS.higgsfield,
   LIFETIME_DEAL_CREDIT_GRANT: 'lifetime-deal-credit-grant',
   GLOBAL_TRENDS_REFRESH: 'global-trends-refresh',
   INGREDIENT_METADATA_REFRESH: 'ingredient-metadata-refresh',
@@ -168,6 +169,12 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   // staleness window (`MODEL_PRICING_REFRESH_STALE_DAYS`).
   [PLATFORM_SCHEDULED_TASKS.FAL_MODEL_DISCOVERY]: {
     pattern: '0 7 * * 0',
+    timezone: 'UTC',
+  },
+  // Weekly, an hour after fal (see FAL_MODEL_DISCOVERY). Reads only the public
+  // docs catalog, so it needs no key.
+  [PLATFORM_SCHEDULED_TASKS.HIGGSFIELD_MODEL_DISCOVERY]: {
+    pattern: '0 8 * * 0',
     timezone: 'UTC',
   },
   // Monthly periods; a 15-minute cadence charges close to the period end.

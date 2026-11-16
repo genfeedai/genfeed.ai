@@ -6,7 +6,7 @@ export interface DesktopAuthorizeResponse {
 
 export type DesktopAuthCodeStatus = 'exchanged' | 'expired' | 'pending';
 
-export type FlowStep =
+type FlowStep =
   | 'validating'
   | 'signing-in'
   | 'requesting-token'

@@ -26,7 +26,7 @@ export const NEWSLETTER_QUERY_KEY = 'newsletter-module';
 export function newsletterIssueQueryKey(newsletterId: string) {
   return ['newsletter', newsletterId] as const;
 }
-export const NEWSLETTER_SUBSCRIBERS_PAGE_SIZE = 50;
+const NEWSLETTER_SUBSCRIBERS_PAGE_SIZE = 50;
 
 const EMPTY_SUBSCRIBERS: IPaginatedResponse<BrandSubscriberRecord> = {
   hasNext: false,

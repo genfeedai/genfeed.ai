@@ -9,7 +9,7 @@ import type {
  * templates ship them (`brandId: ''`), so a copy resolves its own brand and
  * credentials at run time instead of pointing at the source organization's.
  */
-export const SOURCE_ORG_NODE_CONFIG_KEYS = [
+const SOURCE_ORG_NODE_CONFIG_KEYS = [
   'brandId',
   'credentialId',
   'organizationId',

@@ -14,10 +14,10 @@ export const serviceOffering = {
     'Our team plans, produces, and publishes your content and tests it against your best ads. You approve what goes out.',
   includes: [
     'Everything in Scale',
-    'Our team runs production and publishing',
+    'We run production, publishing',
     'Usage billed at cost',
     'Fee only on winning creatives',
-    'Custom LoRA models quoted separately',
+    'Custom LoRA quoted separately',
   ],
   process: [
     {

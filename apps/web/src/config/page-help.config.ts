@@ -6,7 +6,7 @@ import type { PageHelpRoute } from '@/props/layout/page-help-route.props';
  * page of the route manifest. Longest prefix wins, so nested pages (e.g.
  * workflows/new) inherit their section help unless listed.
  */
-export const PAGE_HELP_ROUTES: PageHelpRoute[] = derivePageHelpRoutes();
+const PAGE_HELP_ROUTES: PageHelpRoute[] = derivePageHelpRoutes();
 
 /** Drop the `/orgSlug/brandSlug` (or `/orgSlug/~`) prefix from an app path. */
 export function stripScopePrefix(pathname: string): string {

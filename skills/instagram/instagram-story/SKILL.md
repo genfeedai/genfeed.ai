@@ -5,6 +5,10 @@ license: MIT
 metadata:
   author: genfeedai
   version: 1.0.0
+  short-description: "Write an Instagram Story sequence with stickers, a CTA and a weekly theme calendar."
+  tags: instagram, stories, social-media, content-creation, engagement
+  outputs: text
+  triggers: "instagram stories; story sequence; plan instagram stories; write story frames"
 ---
 
 # Instagram Story

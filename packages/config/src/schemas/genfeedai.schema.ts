@@ -129,12 +129,6 @@ export const internalAuthSchema = {
     .description(
       'Telegram service key for /v1/internal/* (falls back to GENFEEDAI_API_KEY)',
     ),
-  GITHUB_TOKEN: Joi.string()
-    .optional()
-    .allow('')
-    .description(
-      'GitHub token the CI triage webhook uses to comment on pull requests',
-    ),
   GITHUB_WEBHOOK_SECRET: Joi.string()
     .optional()
     .description(

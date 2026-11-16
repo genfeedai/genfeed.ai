@@ -4,7 +4,7 @@ import type { PatternType } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 
-export const CREATIVE_PATTERN_TYPES = [
+const CREATIVE_PATTERN_TYPES = [
   'hook_formula',
   'cta_formula',
   'content_structure',
@@ -12,7 +12,7 @@ export const CREATIVE_PATTERN_TYPES = [
   'visual_style',
 ] as const satisfies readonly PatternType[];
 
-export const CREATIVE_PATTERN_SCOPES = ['public', 'private'] as const;
+const CREATIVE_PATTERN_SCOPES = ['public', 'private'] as const;
 
 export type CreativePatternScope = (typeof CREATIVE_PATTERN_SCOPES)[number];
 

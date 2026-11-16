@@ -135,7 +135,7 @@ const resolvePlatformOverride = (
   return null;
 };
 
-export const buildHarnessVoiceProfile = (
+const buildHarnessVoiceProfile = (
   brand: BrandSource,
   platform?: string,
 ): HarnessVoiceProfile | undefined => {
@@ -162,7 +162,7 @@ export const buildHarnessVoiceProfile = (
   };
 };
 
-export const buildHarnessPersonaProfile = (
+const buildHarnessPersonaProfile = (
   persona?: PersonaSource | null,
 ): HarnessPersonaProfile | undefined => {
   if (!persona) {
@@ -277,6 +277,7 @@ export const buildHarnessInput = (params: {
   brand?: BrandSource | null;
   brandOsRevision?: IBrandOsRevision | null;
   harnessProfileId?: string;
+  harnessProfileRevision?: number;
   intent: ContentHarnessIntent;
   organizationId: string;
   persona?: PersonaSource | null;
@@ -296,6 +297,7 @@ export const buildHarnessInput = (params: {
       : toOptionalString(params.brand?.label),
     brandOsRevisionId: params.brandOsRevision?.id,
     harnessProfileId: params.harnessProfileId,
+    harnessProfileRevision: params.harnessProfileRevision,
     identityContribution: params.brandOsRevision
       ? buildApprovedBrandOsIdentity(
           params.brandOsRevision,

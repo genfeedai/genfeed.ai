@@ -98,7 +98,7 @@ export function readNonNegativeInteger(value: unknown): number | undefined {
     : undefined;
 }
 
-export function readIsoToUnixSeconds(value: unknown): number | undefined {
+function readIsoToUnixSeconds(value: unknown): number | undefined {
   const candidate = readRawString(value);
   if (!candidate) {
     return undefined;

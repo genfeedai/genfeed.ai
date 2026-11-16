@@ -74,7 +74,7 @@ export interface ImageGenerationPersistenceDependencies {
   sharedService: SharedService;
   imagesService: ImagesService;
 }
-export async function resolveGenerationPrompt(
+async function resolveGenerationPrompt(
   promptsService: PromptsService,
   user: User,
   createImageDto: CreateImageDto,

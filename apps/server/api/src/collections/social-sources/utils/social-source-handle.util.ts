@@ -120,7 +120,7 @@ export function normalizeHandle(platform: string, input: string): string {
   return handle;
 }
 
-export function getPlatformHosts(platform: string): string[] {
+function getPlatformHosts(platform: string): string[] {
   switch (platform) {
     case SocialSourcePlatform.INSTAGRAM:
       return ['instagram.com'];

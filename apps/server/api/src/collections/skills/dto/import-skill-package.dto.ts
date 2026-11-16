@@ -168,7 +168,7 @@ export class ImportSkillPackageFileDto {
   content!: string;
 }
 
-export class ImportSkillPackagePayloadDto {
+class ImportSkillPackagePayloadDto {
   static readonly [FORBID_NON_WHITELISTED] = true;
 
   @IsString()

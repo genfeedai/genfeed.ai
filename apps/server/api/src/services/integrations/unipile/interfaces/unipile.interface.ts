@@ -20,7 +20,7 @@ export interface UnipileIntegrationStatus {
   status?: string;
 }
 
-export interface UnipileContact {
+interface UnipileContact {
   displayName?: string;
   identifier: string;
 }

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import { BrandOsScanService } from '@api/collections/brands/services/brand-os-scan.service';
+import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type { WebsiteBrandScrapeEvidence } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
@@ -238,6 +239,7 @@ describe.skipIf(!connectionString)(
       return new BrandOsRevisionsService(
         database() as unknown as PrismaService,
         {} as BrandKitAssetsService,
+        new BrandWatermarkLogoService(database() as unknown as PrismaService),
       );
     }
     function makeService(revisionService = revisions()): BrandOsScanService {
@@ -562,6 +564,7 @@ describe.skipIf(!connectionString)(
           const extendedRevisions = new BrandOsRevisionsService(
             extended as unknown as PrismaService,
             {} as BrandKitAssetsService,
+            new BrandWatermarkLogoService(extended as unknown as PrismaService),
           );
           const service = new BrandOsScanService(
             extended as unknown as PrismaService,
@@ -611,6 +614,7 @@ describe.skipIf(!connectionString)(
       const writer = new BrandOsRevisionsService(
         extended as unknown as PrismaService,
         {} as BrandKitAssetsService,
+        new BrandWatermarkLogoService(extended as unknown as PrismaService),
       );
       const service = new BrandOsScanService(
         extended as unknown as PrismaService,
@@ -671,6 +675,7 @@ describe.skipIf(!connectionString)(
         const writer = new BrandOsRevisionsService(
           extended as unknown as PrismaService,
           {} as BrandKitAssetsService,
+          new BrandWatermarkLogoService(extended as unknown as PrismaService),
         );
         const service = new BrandOsScanService(
           extended as unknown as PrismaService,

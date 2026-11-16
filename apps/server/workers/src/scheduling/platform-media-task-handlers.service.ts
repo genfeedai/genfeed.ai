@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CronExternalVoiceCatalogService } from '@workers/crons/external-voice-catalog/cron.external-voice-catalog.service';
 import { CronFalModelWatcherService } from '@workers/crons/fal-model-watcher/cron.fal-model-watcher.service';
+import { CronHiggsfieldModelWatcherService } from '@workers/crons/higgsfield-model-watcher/cron.higgsfield-model-watcher.service';
 import { CronIngredientsService } from '@workers/crons/ingredients/cron.ingredients.service';
 import { CronMediaPerceptionService } from '@workers/crons/media-perception/cron.media-perception.service';
 import { CronModelDeprecationService } from '@workers/crons/model-deprecation/cron.model-deprecation.service';
@@ -20,6 +21,7 @@ export class PlatformMediaTaskHandlers {
   constructor(
     private readonly turboRun: CronTurboRunReconcileService,
     private readonly falModelWatcher: CronFalModelWatcherService,
+    private readonly higgsfieldModelWatcher: CronHiggsfieldModelWatcherService,
     private readonly ingredients: CronIngredientsService,
     private readonly mediaPerception: CronMediaPerceptionService,
     private readonly modelDeprecation: CronModelDeprecationService,
@@ -46,6 +48,8 @@ export class PlatformMediaTaskHandlers {
         this.mediaSchedules.reconcileEditorRenders(),
       [PLATFORM_SCHEDULED_TASKS.FAL_MODEL_DISCOVERY]: () =>
         this.falModelWatcher.refreshRegistryModels(),
+      [PLATFORM_SCHEDULED_TASKS.HIGGSFIELD_MODEL_DISCOVERY]: () =>
+        this.higgsfieldModelWatcher.discoverModels(),
       [PLATFORM_SCHEDULED_TASKS.INGREDIENT_METADATA_REFRESH]: () =>
         this.ingredients.refreshMissingMetadataDimensions(),
       [PLATFORM_SCHEDULED_TASKS.INGREDIENT_PROCESSING_RECONCILE]: () =>

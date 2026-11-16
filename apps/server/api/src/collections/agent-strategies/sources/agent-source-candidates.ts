@@ -16,7 +16,7 @@ export interface AgentSourceScope {
   readonly organizationId: string;
   readonly brandId: string;
 }
-export type AgentSourceSelector =
+type AgentSourceSelector =
   | Readonly<
       Extract<
         BrandRemixSourceSelector,
@@ -109,7 +109,7 @@ export function agentSourceKey(
 ): string {
   return JSON.stringify([candidate.sourceKind, candidate.sourceId]);
 }
-export function sameAgentSourceScope(
+function sameAgentSourceScope(
   left: AgentSourceScope,
   right: AgentSourceScope,
 ): boolean {
@@ -118,7 +118,7 @@ export function sameAgentSourceScope(
     left.brandId === right.brandId
   );
 }
-export function agentSourceCompatible(
+function agentSourceCompatible(
   candidate: AgentSourceCandidate,
   policy: AgentSourcePolicy,
 ): boolean {

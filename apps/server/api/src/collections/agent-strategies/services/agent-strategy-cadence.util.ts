@@ -36,7 +36,7 @@ export type StrategyCadencePolicy = {
 export class CadenceGenerationUnavailableError extends Error {}
 
 /** Default X cadence: two posts a day once autopilot runs the strategy. */
-export const DEFAULT_X_POSTS_PER_WEEK = 14;
+const DEFAULT_X_POSTS_PER_WEEK = 14;
 
 /**
  * Weekly target for a strategy without a separate cadence policy. An explicit

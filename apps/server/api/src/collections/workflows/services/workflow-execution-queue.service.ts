@@ -73,7 +73,7 @@ export interface WorkflowExecutionJobData {
   };
 }
 
-export interface SystemWorkflowFailureReference {
+interface SystemWorkflowFailureReference {
   canonicalId: string;
   inputValues?: Record<string, unknown>;
 }
@@ -178,7 +178,7 @@ export function workflowSchedulerId(workflowId: string): string {
  * later, for a `WorkflowExecution` that has been sitting `PENDING` — see
  * `PendingWorkflowExecutionReconcileService`.
  */
-export const CLAIMABLE_JOB_STATES = new Set<string>([
+const CLAIMABLE_JOB_STATES = new Set<string>([
   'waiting',
   'delayed',
   'active',

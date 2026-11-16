@@ -52,7 +52,7 @@ export type PipelineStep =
 
 export type PublishMode = 'all' | 'final' | 'none';
 
-export type PipelineRunStatus =
+type PipelineRunStatus =
   | 'pending'
   | 'running'
   | 'partial'
@@ -105,7 +105,7 @@ export interface PipelineResultV2 {
 
 // Structured errors
 
-export interface PipelineError {
+interface PipelineError {
   code: string;
   message: string;
   retryable: boolean;

@@ -26,7 +26,7 @@ import {
 } from 'react';
 import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 
-export type DiscoveryRemixStatus =
+type DiscoveryRemixStatus =
   | 'idle'
   | 'preparing'
   | 'ready'

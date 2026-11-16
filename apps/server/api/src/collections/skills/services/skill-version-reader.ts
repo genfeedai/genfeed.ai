@@ -44,7 +44,7 @@ function versionReadObject(value: unknown): Record<string, unknown> | null {
 }
 
 /** Immutable source evidence only; current governance and live scope are separate. */
-export function isVerifiedOrdinaryUploadVersionReadV1(
+function isVerifiedOrdinaryUploadVersionReadV1(
   parent: SkillVersionReadParentV1,
   genesis: SkillVersionSourceEvidenceV1,
   candidate: SkillVersionSourceEvidenceV1,

@@ -50,12 +50,7 @@ function isStoryboardRunInFlight(run: BrandRemixRunView): boolean {
   );
 }
 
-export type StoryboardRunStatus =
-  | 'idle'
-  | 'loading'
-  | 'ready'
-  | 'working'
-  | 'error';
+type StoryboardRunStatus = 'idle' | 'loading' | 'ready' | 'working' | 'error';
 
 export interface UseStoryboardRunResult {
   readonly saveScenes: (edits: BrandRemixDraftEdits) => Promise<void>;

@@ -13,10 +13,6 @@ export interface AnnouncementComposeFormState {
   discordChannelId: string;
 }
 
-export interface AnnouncementHistoryItemProps {
-  announcement: IAnnouncement;
-}
-
 export interface AnnouncementsPageProps {
   defaultTab?: 'compose' | 'history';
 }

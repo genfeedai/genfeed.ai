@@ -2,7 +2,7 @@ import type { SortObject } from '@genfeedai/contracts/interfaces';
 import { BadRequestException } from '@nestjs/common';
 
 /** Timestamp columns a list can be keyset-paged on, with `id` as tiebreaker. */
-export type KeysetSortField = 'createdAt' | 'updatedAt';
+type KeysetSortField = 'createdAt' | 'updatedAt';
 
 export interface KeysetSort {
   direction: 1 | -1;

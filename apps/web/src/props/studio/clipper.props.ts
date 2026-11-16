@@ -19,7 +19,7 @@ export type AvatarProvider = 'argil' | 'genfeedai' | 'heygen';
 
 export type ClipStatus = ClipperResultStatus;
 
-export type ClipperReadiness = ClipperReadinessContract;
+type ClipperReadiness = ClipperReadinessContract;
 
 export type { ClipperLibraryLinkStatus, ClipperReadyAction, ClipperResultMode };
 
@@ -210,7 +210,7 @@ export interface HighlightReviewCardProps {
 
 export type StudioClipperIdentityField = 'avatar' | 'voice';
 
-export type StudioClipperIdentitySource =
+type StudioClipperIdentitySource =
   | 'brand'
   | 'explicit'
   | 'missing'

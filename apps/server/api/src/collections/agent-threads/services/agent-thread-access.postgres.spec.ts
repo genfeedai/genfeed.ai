@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { buildAgentMessageBrandWhere } from '@api/collections/agent-messages/utils/agent-message-brand.util';
 import { AgentThreadAccessService } from '@api/collections/agent-threads/services/agent-thread-access.service';
 import { AgentThreadAudienceService } from '@api/collections/agent-threads/services/agent-thread-audience.service';
 import { AgentThreadSharesService } from '@api/collections/agent-threads/services/agent-thread-shares.service';
@@ -926,6 +928,175 @@ describe.skipIf(!connectionString)(
         await expect(
           access().assertAccess(actor(owner), mine.id, 'view'),
         ).resolves.toBeDefined();
+      });
+    });
+
+    describe('shared history across a brand change (#10148)', () => {
+      const messages = () =>
+        new AgentMessagesService(
+          database() as unknown as PrismaService,
+          logger as never,
+          {} as never,
+        );
+
+      async function addMessage(
+        threadId: string,
+        label: string,
+        brandId: string | null,
+        createdAt: Date,
+      ) {
+        await database().agentMessage.create({
+          data: {
+            brandId,
+            content: label,
+            createdAt,
+            id: id(label),
+            organizationId,
+            role: 'assistant',
+            threadId,
+            userId: owner,
+          },
+        });
+      }
+
+      /** Every page of the history `viewer` reads, oldest page last, by content. */
+      async function readHistory(viewer: string, threadId: string, limit = 50) {
+        const { historyBrandIds } = await access().assertAccess(
+          actor(viewer),
+          threadId,
+          'view',
+        );
+        const contents: Array<string | null> = [];
+        let cursor: string | undefined;
+        do {
+          const page = await messages().getMessagesPage(
+            threadId,
+            organizationId,
+            { brandIds: historyBrandIds, cursor, limit },
+          );
+          contents.push(...page.docs.map((doc) => doc.content ?? null));
+          cursor = page.nextCursor ?? undefined;
+        } while (cursor);
+        return contents;
+      }
+
+      /** A thread that held brand A messages, then moved to brand B. */
+      async function createMovedThread() {
+        const thread = await createThread(owner, { brandId: brandA });
+        const start = Date.now() - 60_000;
+        await addMessage(thread.id, 'a-one', brandA, new Date(start));
+        await addMessage(thread.id, 'a-two', brandA, new Date(start + 1_000));
+        await addMessage(thread.id, 'no-brand', null, new Date(start + 2_000));
+        await database().agentThread.update({
+          data: { brandId: brandB },
+          where: { id: thread.id },
+        });
+        await addMessage(thread.id, 'b-one', brandB, new Date(start + 3_000));
+        return thread;
+      }
+
+      it('hides messages from the earlier brand from a viewer on an existing share', async () => {
+        const thread = await createThread(owner, { brandId: brandA });
+        const start = Date.now() - 60_000;
+        await addMessage(thread.id, 'a-one', brandA, new Date(start));
+        await share(
+          thread.id,
+          AgentThreadShareScope.ORGANIZATION,
+          AgentThreadShareLevel.VIEW,
+        );
+        await database().agentThread.update({
+          data: { brandId: brandB },
+          where: { id: thread.id },
+        });
+        await addMessage(thread.id, 'b-one', brandB, new Date(start + 1_000));
+
+        expect(await readHistory(brandBOnly, thread.id)).toEqual(['b-one']);
+      });
+
+      it('hides messages from the earlier brand from a viewer on a share granted afterwards', async () => {
+        const thread = await createMovedThread();
+        await share(
+          thread.id,
+          AgentThreadShareScope.MEMBER,
+          AgentThreadShareLevel.VIEW,
+          { targetUserId: brandBOnly },
+        );
+
+        expect(await readHistory(brandBOnly, thread.id)).toEqual([
+          'b-one',
+          'no-brand',
+        ]);
+      });
+
+      it('applies the same decision to every page', async () => {
+        const thread = await createMovedThread();
+        await share(
+          thread.id,
+          AgentThreadShareScope.ORGANIZATION,
+          AgentThreadShareLevel.VIEW,
+        );
+
+        expect(await readHistory(brandBOnly, thread.id, 1)).toEqual([
+          'b-one',
+          'no-brand',
+        ]);
+      });
+
+      it('keeps the whole history for the owner', async () => {
+        const thread = await createMovedThread();
+
+        expect(await readHistory(owner, thread.id, 1)).toEqual([
+          'b-one',
+          'no-brand',
+          'a-two',
+          'a-one',
+        ]);
+      });
+
+      it('keeps the whole history for a viewer who reaches every brand', async () => {
+        const thread = await createMovedThread();
+        await share(
+          thread.id,
+          AgentThreadShareScope.ORGANIZATION,
+          AgentThreadShareLevel.VIEW,
+        );
+
+        expect(await readHistory(admin, thread.id)).toEqual([
+          'b-one',
+          'no-brand',
+          'a-two',
+          'a-one',
+        ]);
+      });
+
+      it('does not return a single message from the earlier brand', async () => {
+        const thread = await createMovedThread();
+        await share(
+          thread.id,
+          AgentThreadShareScope.ORGANIZATION,
+          AgentThreadShareLevel.VIEW,
+        );
+        const { historyBrandIds } = await access().assertAccess(
+          actor(brandBOnly),
+          thread.id,
+          'view',
+        );
+
+        const earlier = await messages().findOne({
+          ...buildAgentMessageBrandWhere(historyBrandIds),
+          id: id('a-one'),
+          organizationId,
+          threadId: thread.id,
+        });
+        const current = await messages().findOne({
+          ...buildAgentMessageBrandWhere(historyBrandIds),
+          id: id('b-one'),
+          organizationId,
+          threadId: thread.id,
+        });
+
+        expect(earlier).toBeNull();
+        expect(current?.content).toBe('b-one');
       });
     });
 

@@ -29,7 +29,7 @@ import type { WorkflowTemplateExampleOutput } from '@genfeedai/contracts/interfa
  * signup. Tenants discover entries here and install the ones they want.
  */
 
-export type SystemWorkflowCatalogFamily =
+type SystemWorkflowCatalogFamily =
   | 'ad-automation'
   | 'agent-autopilot'
   | 'analytics-sync'
