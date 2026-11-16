@@ -838,9 +838,11 @@ describe('ScheduledPostDeliveryService', () => {
 
   it('keeps a timed-out attempt for verification and soft-retries it', async () => {
     mocks.publisherFactory.getPublisher.mockReturnValue({
-      publish: vi.fn().mockRejectedValue(
-        new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
-      ),
+      publish: vi
+        .fn()
+        .mockRejectedValue(
+          new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
+        ),
       supportsThreads: false,
     });
 
@@ -892,9 +894,11 @@ describe('ScheduledPostDeliveryService', () => {
   it('tells the owner nothing while a retryable provider failure still has retries left', async () => {
     mocks.activitiesService.record.mockClear();
     mocks.publisherFactory.getPublisher.mockReturnValue({
-      publish: vi.fn().mockRejectedValue(
-        new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
-      ),
+      publish: vi
+        .fn()
+        .mockRejectedValue(
+          new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
+        ),
       supportsThreads: false,
     });
 
@@ -906,9 +910,11 @@ describe('ScheduledPostDeliveryService', () => {
   it('does not report a retryable provider failure to Sentry', async () => {
     vi.mocked(Sentry.captureException).mockClear();
     mocks.publisherFactory.getPublisher.mockReturnValue({
-      publish: vi.fn().mockRejectedValue(
-        new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
-      ),
+      publish: vi
+        .fn()
+        .mockRejectedValue(
+          new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
+        ),
       supportsThreads: false,
     });
 
@@ -1226,7 +1232,9 @@ describe('ScheduledPostDeliveryService', () => {
   });
 
   it('never calls an unverifiable publisher again once its retry budget is spent, however often it is delivered', async () => {
-    const publish = vi.fn().mockRejectedValue(
+    const publish = vi
+      .fn()
+      .mockRejectedValue(
         new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
       );
     mocks.publisherFactory.getPublisher.mockReturnValue({
@@ -1256,7 +1264,9 @@ describe('ScheduledPostDeliveryService', () => {
   });
 
   it('never calls a verifying publisher again while its verification is unavailable, at any retry count', async () => {
-    const publish = vi.fn().mockRejectedValue(
+    const publish = vi
+      .fn()
+      .mockRejectedValue(
         new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
       );
     mocks.publisherFactory.getPublisher.mockReturnValue({
@@ -1440,9 +1450,11 @@ describe('ScheduledPostDeliveryService', () => {
 
   it('keeps a budget-exhausted ambiguous provider call publishing instead of failing it', async () => {
     mocks.publisherFactory.getPublisher.mockReturnValue({
-      publish: vi.fn().mockRejectedValue(
-        new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
-      ),
+      publish: vi
+        .fn()
+        .mockRejectedValue(
+          new PublishError(PublishErrorKind.OUTCOME_UNKNOWN, 'ETIMEDOUT'),
+        ),
       supportsThreads: false,
     });
 
