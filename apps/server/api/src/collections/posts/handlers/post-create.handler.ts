@@ -21,7 +21,10 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
-import { getSupportedPostVisibilities } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import {
+  getSupportedPostVisibilities,
+  resolveChannelTargetSettings,
+} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { resolveDefaultTargetExecutionState } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -272,6 +275,13 @@ export async function createPost({
     reviewFeedback: warmupHoldReason,
     scheduledDate: createPostDto.scheduledDate,
     targetExecutionState: effectiveExecutionState,
+    // Only the settings this channel declares are kept (a Slack `channelId`).
+    targetSettings: createPostDto.targetSettings
+      ? resolveChannelTargetSettings(
+          domainPlatform,
+          createPostDto.targetSettings,
+        )
+      : undefined,
     tags: createPostDto.tags || [],
     userId: identity.userId,
     visibility: requestedVisibility,

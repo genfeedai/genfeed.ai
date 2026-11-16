@@ -9,6 +9,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { MAX_THREAD_DELAY_MINUTES } from '@genfeedai/contracts/api-types/contracts';
+import type { Prisma } from '@genfeedai/prisma';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
@@ -18,6 +19,7 @@ import {
   IsDateString,
   IsEnum,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Max,
@@ -122,6 +124,17 @@ export class CreatePostDto {
   @IsOptional()
   @IsEnum(TargetExecutionState)
   readonly targetExecutionState?: TargetExecutionState;
+
+  @ApiProperty({
+    description:
+      "Per-channel settings declared by the channel catalog, such as a Slack post's `channelId`. Keys the channel does not declare are dropped.",
+    required: false,
+    type: Object,
+    additionalProperties: true,
+  })
+  @IsOptional()
+  @IsObject()
+  readonly targetSettings?: Prisma.InputJsonValue;
 
   @ApiProperty({
     default: PostVisibility.PUBLIC,
