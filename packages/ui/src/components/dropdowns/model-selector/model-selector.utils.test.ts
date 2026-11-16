@@ -134,7 +134,7 @@ describe('parseModelFamilyAndVariant', () => {
     });
   });
 
-  it('nests GenFeed Flux2 compound variants under one family', () => {
+  it('nests Genfeed Flux2 compound variants under one family', () => {
     expect(
       parseModelFamilyAndVariant(
         createModel({
