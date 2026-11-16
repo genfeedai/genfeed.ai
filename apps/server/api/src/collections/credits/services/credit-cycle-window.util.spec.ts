@@ -31,7 +31,10 @@ describe('getSubscriptionCycleWindow', () => {
 
   it.each([
     ['no subscription', null],
-    ['no period end', { currentPeriodEnd: null, plan: SubscriptionPlan.MONTHLY }],
+    [
+      'no period end',
+      { currentPeriodEnd: null, plan: SubscriptionPlan.MONTHLY },
+    ],
     ['no plan', { currentPeriodEnd: periodEnd, plan: null }],
     ['an unknown plan', { currentPeriodEnd: periodEnd, plan: 'lifetime' }],
   ])('has no window for %s', (_label, subscription) => {

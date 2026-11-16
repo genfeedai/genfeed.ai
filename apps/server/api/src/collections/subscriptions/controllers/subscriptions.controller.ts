@@ -243,12 +243,11 @@ export class SubscriptionsController {
         )) ?? 0;
 
       const cycleWindow = getSubscriptionCycleWindow(subscription ?? null);
-      const cycleMetrics =
-        await this.creditsUtilsService.getLedgerCycleMetrics(
-          organizationId,
-          cycleWindow,
-          creditsData.total,
-        );
+      const cycleMetrics = await this.creditsUtilsService.getLedgerCycleMetrics(
+        organizationId,
+        cycleWindow,
+        creditsData.total,
+      );
 
       return {
         data: {

@@ -46,9 +46,11 @@ describe('SubscriptionsService.findAdminBilling', () => {
     };
 
     creditsUtilsService = {
-      getLedgerCycleMetrics: vi
-        .fn()
-        .mockResolvedValue({ cycleTotal: 0, cycleUsed: 0, remainingPercent: 0 }),
+      getLedgerCycleMetrics: vi.fn().mockResolvedValue({
+        cycleTotal: 0,
+        cycleUsed: 0,
+        remainingPercent: 0,
+      }),
     };
 
     service = new SubscriptionsService(

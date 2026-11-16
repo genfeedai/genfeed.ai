@@ -387,8 +387,10 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       );
       expect(creditsUtilsService.getLedgerCycleMetrics).toHaveBeenCalledWith(
         ORGANIZATION_ID,
-        new Date('2026-03-31T00:00:00.000Z'),
-        new Date('2027-03-31T00:00:00.000Z'),
+        {
+          cycleEndAt: new Date('2027-03-31T00:00:00.000Z'),
+          cycleStartAt: new Date('2026-03-31T00:00:00.000Z'),
+        },
         120_000,
       );
       expect(result.data.planLimit).toBe(600_000);
@@ -413,15 +415,22 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       );
 
       expect(result.data.planLimit).toBe(0);
-      expect(
-        creditsUtilsService.getLedgerCycleMetrics,
-      ).not.toHaveBeenCalled();
+      expect(creditsUtilsService.getLedgerCycleMetrics).toHaveBeenCalledWith(
+        ORGANIZATION_ID,
+        null,
+        0,
+      );
     });
 
     it('reports no plan limit and no cycle window for a non-recurring plan', async () => {
       creditsUtilsService.getOrganizationCreditsWithExpiration.mockResolvedValue(
         { credits: [], total: 250 },
       );
+      creditsUtilsService.getLedgerCycleMetrics.mockResolvedValue({
+        cycleTotal: 250,
+        cycleUsed: 0,
+        remainingPercent: 100,
+      });
       subscriptionsService.findByOrganizationId.mockResolvedValue({
         currentPeriodEnd: new Date('2026-04-01T00:00:00.000Z'),
         id: 'sub_1',
@@ -434,6 +443,11 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
         contextRequest(ORGANIZATION_ID),
       );
 
+      expect(creditsUtilsService.getLedgerCycleMetrics).toHaveBeenCalledWith(
+        ORGANIZATION_ID,
+        null,
+        250,
+      );
       expect(result.data.planLimit).toBe(0);
       expect(result.data.cycleStartAt).toBeUndefined();
       expect(result.data.cycleEndAt).toBeUndefined();

@@ -281,9 +281,7 @@ describe('SubscriptionsController', () => {
       expect(
         creditsUtilsService.getOrganizationCreditsWithExpiration,
       ).toHaveBeenCalledWith(mockUser.organizationId);
-      expect(
-        mockCreditsUtilsService.getLedgerCycleMetrics,
-      ).toHaveBeenCalled();
+      expect(mockCreditsUtilsService.getLedgerCycleMetrics).toHaveBeenCalled();
       expect(result.success).toBe(true);
       expect(result.data).toEqual(
         expect.objectContaining({
@@ -513,8 +511,10 @@ describe('SubscriptionsController', () => {
       ).toHaveBeenNthCalledWith(
         1,
         contextOrg,
-        new Date('2026-04-01'),
-        new Date('2026-05-01'),
+        {
+          cycleEndAt: new Date('2026-05-01'),
+          cycleStartAt: new Date('2026-04-01'),
+        },
         120,
       );
       expect(user.organizationId).toBe(mockUser.organizationId);
