@@ -18,7 +18,10 @@ import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('DevtoPublisherService', () => {
   let service: DevtoPublisherService;
-  let devtoService: { createArticle: ReturnType<typeof vi.fn> };
+  let devtoService: {
+    createArticle: ReturnType<typeof vi.fn>;
+    listPublishVerificationPage: ReturnType<typeof vi.fn>;
+  };
 
   const mockCredential = {
     accessToken: 'encrypted-token',
@@ -54,6 +57,7 @@ describe('DevtoPublisherService', () => {
         id: 999,
         url: 'https://dev.to/devfounder/launch-notes-999',
       }),
+      listPublishVerificationPage: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -158,5 +162,104 @@ describe('DevtoPublisherService', () => {
     const result = await service.publish(makeContext());
 
     expect(result.success).toBe(false);
+  });
+
+  describe('verifyPublished', () => {
+    const startedAt = new Date('2026-10-03T10:00:00Z');
+    const afterGrace = new Date('2026-10-03T12:00:00Z');
+    const landed = {
+      createdAt: new Date('2026-10-03T10:00:03Z'),
+      hasMedia: false,
+      id: '999',
+      isReply: false,
+      text: '',
+      title: 'Launch notes',
+      url: 'https://dev.to/devfounder/launch-notes-999',
+    };
+
+    beforeEach(() => vi.useFakeTimers({ now: afterGrace }));
+    afterEach(() => vi.useRealTimers());
+
+    it('settles an uncertain publish as published with its article URL', async () => {
+      devtoService.listPublishVerificationPage.mockResolvedValue({
+        items: [landed],
+        nextCursor: null,
+      });
+
+      const result = await service.verifyPublished(makeContext(), startedAt);
+
+      expect(result).toMatchObject({
+        executionState: TargetExecutionState.PUBLISHED,
+        externalId: '999',
+        url: 'https://dev.to/devfounder/launch-notes-999',
+      });
+      expect(devtoService.listPublishVerificationPage).toHaveBeenCalledWith(
+        'dec:encrypted-token',
+        false,
+        startedAt,
+        undefined,
+      );
+    });
+
+    it('settles an uncertain scheduler draft from the drafts list', async () => {
+      devtoService.listPublishVerificationPage.mockResolvedValue({
+        items: [landed],
+        nextCursor: null,
+      });
+
+      const result = await service.verifyPublished(
+        makeContext({ isDraft: true }),
+        startedAt,
+      );
+
+      expect(result).toMatchObject({
+        externalId: '999',
+        isProviderDraft: true,
+      });
+      expect(devtoService.listPublishVerificationPage).toHaveBeenCalledWith(
+        'dec:encrypted-token',
+        true,
+        startedAt,
+        undefined,
+      );
+    });
+
+    it('reports a missing article so the next attempt can publish', async () => {
+      devtoService.listPublishVerificationPage.mockResolvedValue({
+        items: [],
+        nextCursor: null,
+      });
+
+      expect(
+        await service.verifyPublished(makeContext(), startedAt),
+      ).toBeNull();
+    });
+
+    it('stays unknown for a post with no title to match', async () => {
+      await expect(
+        service.verifyPublished(
+          makeContext({
+            post: {
+              category: PostCategory.TEXT,
+              description: '<p>Body</p>',
+              id: 'post-1',
+              ingredients: [],
+            } as never,
+          }),
+          startedAt,
+        ),
+      ).rejects.toThrow('exact title');
+      expect(devtoService.listPublishVerificationPage).not.toHaveBeenCalled();
+    });
+
+    it('stays unknown when the provider lookup fails', async () => {
+      devtoService.listPublishVerificationPage.mockRejectedValue(
+        new Error('provider 503'),
+      );
+
+      await expect(
+        service.verifyPublished(makeContext(), startedAt),
+      ).rejects.toThrow('provider 503');
+    });
   });
 });

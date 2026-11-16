@@ -26,12 +26,17 @@ import {
   PostCategory,
   PostStatus,
   PostVisibility,
+  PublishErrorKind,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import type { IPublishingProviderReadiness } from '@genfeedai/contracts/interfaces';
+import {
+  type IPublishingProviderReadiness,
+  PublishError,
+} from '@genfeedai/contracts/interfaces';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { ForbiddenException } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
+import { ScheduledPostChannelRecoveryService } from '@workers/services/scheduled-post-channel-recovery.service';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import { PROVIDER_PUBLISH_LEASE_RENEWAL_MS } from '@workers/services/scheduled-post-provider-receipt.util';
@@ -113,8 +118,12 @@ function createDeliveryMocks() {
   const registeredActions = new Map<string, RegisteredAction>();
   return {
     activitiesService: { record: vi.fn().mockResolvedValue(undefined) },
+    credentialRefresher: {
+      refreshCredential: vi.fn().mockResolvedValue({ success: true }),
+    },
     credentialsService: {
       findOne: vi.fn(),
+      patch: vi.fn().mockResolvedValue(undefined),
       findOneSelect: vi.fn(function (
         this: { findOne: (params: unknown) => unknown },
         params: unknown,
@@ -212,6 +221,12 @@ function createDeliveryService(mocks: DeliveryMocks) {
     mocks.prisma as never,
     mocks.mediaReadinessService as never,
     mocks.workflowQueue as never,
+    new ScheduledPostChannelRecoveryService(
+      mocks.logger as never,
+      mocks.credentialsService as never,
+      mocks.credentialRefresher as never,
+      mocks.activitiesService as never,
+    ),
   );
   service.onModuleInit();
   return service;
@@ -1973,6 +1988,156 @@ describe('ScheduledPostDeliveryService', () => {
     expect(
       mocks.publishEventWebhookService.emitPostFailed,
     ).not.toHaveBeenCalled();
+  });
+
+  describe('provider token and grant failures', () => {
+    function mockPublisherThrowing(kind: PublishErrorKind) {
+      const publish = vi
+        .fn()
+        .mockRejectedValue(new PublishError(kind, 'Provider said no'));
+      mocks.publisherFactory.getPublisher.mockReturnValue({
+        publish,
+        supportsThreads: false,
+      });
+      return publish;
+    }
+
+    function lastWrite() {
+      const writes =
+        mocks.schedulerPublishStateService.transitionPost.mock.calls
+          .map((call) => call[1])
+          .filter(
+            (update) =>
+              update.executionState === TargetExecutionState.SCHEDULED ||
+              update.executionState === TargetExecutionState.FAILED,
+          );
+      return writes[writes.length - 1];
+    }
+
+    it('refreshes an expired token once and publishes again without using up an attempt', async () => {
+      mockPublisherThrowing(PublishErrorKind.TOKEN_MUST_REFRESH);
+
+      await executeDelivery(
+        mocks,
+        createScheduledPost({ retryCount: 2 }),
+        'scheduled_sweep',
+      );
+
+      const write = lastWrite();
+      expect(mocks.credentialRefresher.refreshCredential).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(write).toMatchObject({
+        error: { code: 'token_refreshed', isRetryable: true },
+        executionState: TargetExecutionState.SCHEDULED,
+        retryCount: 2,
+      });
+      // Due on the next sweep, not after the usual backoff.
+      expect(Date.now() - write.lastAttemptAt.getTime()).toBeGreaterThanOrEqual(
+        60 * 1000,
+      );
+      expect(
+        mocks.publishEventWebhookService.emitPostFailed,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('disconnects the channel and tells the owner when the token is refused again after a refresh', async () => {
+      mockPublisherThrowing(PublishErrorKind.TOKEN_MUST_REFRESH);
+      mocks.credentialsService.findOne.mockResolvedValue({
+        externalHandle: '@brand',
+        id: 'cred-1',
+        isConnected: true,
+        organizationId: 'org-1',
+        platform: CredentialPlatform.TWITTER,
+        userId: 'user-1',
+      });
+
+      await executeDelivery(
+        mocks,
+        createScheduledPost({
+          targetError: { code: 'token_refreshed', isRetryable: true },
+        }),
+        'scheduled_sweep',
+      );
+
+      expect(
+        mocks.credentialRefresher.refreshCredential,
+      ).not.toHaveBeenCalled();
+      expect(mocks.credentialsService.patch).toHaveBeenCalledWith('cred-1', {
+        isConnected: false,
+      });
+      expect(mocks.activitiesService.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          alert: {
+            payload: expect.objectContaining({
+              event: 'channel_disconnected',
+              label: '@brand',
+            }),
+          },
+          key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
+        }),
+      );
+      expect(lastWrite()).toMatchObject({
+        error: { code: 'channel_disconnected', isRetryable: false },
+        executionState: TargetExecutionState.FAILED,
+      });
+    });
+
+    it('disconnects the channel when the provider says the grant is revoked, without refreshing', async () => {
+      mockPublisherThrowing(PublishErrorKind.CHANNEL_DISCONNECTED);
+      mocks.credentialsService.findOne.mockResolvedValue({
+        id: 'cred-1',
+        isConnected: true,
+        organizationId: 'org-1',
+        platform: CredentialPlatform.TWITTER,
+      });
+
+      await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+      expect(
+        mocks.credentialRefresher.refreshCredential,
+      ).not.toHaveBeenCalled();
+      expect(mocks.credentialsService.patch).toHaveBeenCalledWith('cred-1', {
+        isConnected: false,
+      });
+      expect(lastWrite().executionState).toBe(TargetExecutionState.FAILED);
+    });
+
+    it('disconnects the channel when the refresh itself fails', async () => {
+      mockPublisherThrowing(PublishErrorKind.TOKEN_MUST_REFRESH);
+      mocks.credentialRefresher.refreshCredential.mockResolvedValue({
+        success: false,
+      });
+      mocks.credentialsService.findOne.mockResolvedValue({
+        id: 'cred-1',
+        isConnected: true,
+        organizationId: 'org-1',
+        platform: CredentialPlatform.TWITTER,
+      });
+
+      await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+      expect(lastWrite().executionState).toBe(TargetExecutionState.FAILED);
+    });
+
+    it('fails a rejected post at once with the provider reason and no retry', async () => {
+      mockPublisherThrowing(PublishErrorKind.CONTENT_REJECTED);
+
+      await executeDelivery(
+        mocks,
+        createScheduledPost({ retryCount: 0 }),
+        'scheduled_sweep',
+      );
+
+      expect(lastWrite()).toMatchObject({
+        error: {
+          code: 'content_rejected',
+          isRetryable: false,
+          message: 'Provider said no',
+        },
+        executionState: TargetExecutionState.FAILED,
+      });
+    });
   });
 
   describe('provider rate limits', () => {

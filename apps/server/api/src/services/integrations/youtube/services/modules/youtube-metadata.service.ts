@@ -1,3 +1,10 @@
+import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
+import { PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS } from '@api/services/integrations/publishers/publisher-verification.util';
+import {
+  parseYoutubeUploadsPlaylistPage,
+  parseYoutubeVideoVerificationItems,
+  YOUTUBE_VERIFICATION_PAGE_SIZE,
+} from '@api/services/integrations/publishers/publisher-youtube-verification-pages.util';
 import { asYoutubeRequestAuth } from '@api/services/integrations/youtube/services/modules/youtube-api-auth.util';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { ConfigService } from '@libs/config/config.service';
@@ -141,6 +148,78 @@ export class YoutubeMetadataService {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  /**
+   * One page of the channel's uploads since the attempt began, with the title,
+   * description and processing state of each, read as the channel the publish
+   * ran as. Quota is 2-3 units a page. `channels.list` is read every time so a
+   * channel that is no longer the credential's stays unknown.
+   */
+  async listPublishVerificationPage(
+    organizationId: string,
+    brandId: string,
+    credentialId: string,
+    expectedChannelId: string,
+    attemptStartedAt: Date,
+    cursor?: string,
+  ): Promise<ProviderVerificationPage> {
+    const auth = asYoutubeRequestAuth(
+      await this.youtubeAuthService.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      ),
+    );
+    const options = {
+      maxRedirects: 0,
+      timeout: PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
+    };
+
+    const channels = await this.youtubeAPI.channels.list(
+      { auth, mine: true, part: ['contentDetails'] },
+      options,
+    );
+    const channel = channels.data.items?.find(
+      (item) => item.id === expectedChannelId,
+    );
+    const uploadsPlaylistId =
+      channel?.contentDetails?.relatedPlaylists?.uploads;
+    if (!uploadsPlaylistId) {
+      throw new Error('YouTube verification channel unavailable or changed');
+    }
+
+    const playlist = await this.youtubeAPI.playlistItems.list(
+      {
+        auth,
+        maxResults: YOUTUBE_VERIFICATION_PAGE_SIZE,
+        pageToken: cursor,
+        part: ['snippet', 'contentDetails'],
+        playlistId: uploadsPlaylistId,
+      },
+      options,
+    );
+    const page = parseYoutubeUploadsPlaylistPage(
+      playlist.data,
+      attemptStartedAt,
+    );
+    if (page.entries.length === 0) {
+      return { items: [], nextCursor: page.nextCursor };
+    }
+
+    const videos = await this.youtubeAPI.videos.list(
+      {
+        auth,
+        id: page.entries.map((entry) => entry.videoId),
+        maxResults: YOUTUBE_VERIFICATION_PAGE_SIZE,
+        part: ['snippet', 'status'],
+      },
+      options,
+    );
+    return {
+      items: parseYoutubeVideoVerificationItems(page.entries, videos.data),
+      nextCursor: page.nextCursor,
+    };
   }
 
   private parseDuration(duration: string): number {

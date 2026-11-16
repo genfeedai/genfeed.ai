@@ -225,6 +225,17 @@ export function createFailedPublishResult(
   };
 }
 
+/** The result of a publish that went back to SCHEDULED for another attempt. */
+export function createRetryScheduledResult(platform: string): PublishResult {
+  return {
+    executionState: TargetExecutionState.SCHEDULED,
+    externalId: null,
+    platform,
+    success: false,
+    url: '',
+  };
+}
+
 const ALERT_POST_LABEL_LENGTH = 80;
 const ALERT_REASON_LENGTH = 300;
 

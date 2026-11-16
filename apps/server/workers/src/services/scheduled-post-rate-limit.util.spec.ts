@@ -196,7 +196,7 @@ describe('decideRetry', () => {
       3,
     );
     expect(decision.canRetry).toBe(true);
-    expect(decision.rateLimit?.kind).toBe('wait');
+    expect(decision.plan?.kind).toBe('wait');
   });
 
   it('does not retry a rate limit that outlasted the give-up window', () => {
@@ -245,8 +245,8 @@ describe('decideRetry', () => {
       3,
     );
     expect(decision.canRetry).toBe(true);
-    expect(
-      decision.rateLimit?.kind === 'wait' && decision.rateLimit.retryAt,
-    ).toEqual(expect.any(Date));
+    expect(decision.plan?.kind === 'wait' && decision.plan.retryAt).toEqual(
+      expect.any(Date),
+    );
   });
 });
