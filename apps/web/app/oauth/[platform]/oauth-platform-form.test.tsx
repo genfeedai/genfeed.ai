@@ -176,6 +176,24 @@ describe('OAuthPlatformForm', () => {
     expect(mocks.navigate).toHaveBeenCalledWith('/settings/publishing');
   });
 
+  it('forwards the issuer a Bluesky callback names so the API can check it', async () => {
+    mocks.searchParams = new URLSearchParams({
+      code: 'code-1',
+      iss: 'https://bsky.social',
+      state: 'state-1',
+    });
+
+    render(<OAuthPlatformForm platform="bluesky" />);
+
+    await waitFor(() => {
+      expect(mocks.postVerify).toHaveBeenCalledWith({
+        code: 'code-1',
+        iss: 'https://bsky.social',
+        state: 'state-1',
+      });
+    });
+  });
+
   it('returns to the stored page when the provider drops query params', async () => {
     // Brand integrations store the origin page in sessionStorage because the
     // provider redirect drops query params (no return_to survives Twitter).

@@ -5,9 +5,14 @@ import {
 } from '@api/server.dependencies';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import {
+  BlueskyOAuthService,
+  type BlueskySessionBinding,
+} from '@api/services/integrations/bluesky/services/bluesky-oauth.service';
+import {
   BlueskyCredentialRejectedError,
+  BlueskyHttpError,
   isBlueskyCredentialRejection,
-  isBlueskySessionTokenError,
+  isBlueskySessionLost,
 } from '@api/services/integrations/bluesky/utils/bluesky-api-error.util';
 import {
   type BlueskyFacet,
@@ -20,6 +25,10 @@ import { PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS } from '@api/services/integrat
 import { parseBlueskyVerificationPage } from '@api/services/integrations/publishers/publisher-verification-pages.util';
 import type { AlertEmailNotificationPayload } from '@api/services/notifications/workflow-notifications/workflow-notification.constants';
 import { createSafeWebhookHttpsAgent } from '@api/shared/utils/webhook-validator/webhook-validator.util';
+import type {
+  NodeSavedSession,
+  OAuthSession,
+} from '@atproto/oauth-client-node';
 import {
   ActivityKey,
   ActivitySource,
@@ -37,11 +46,6 @@ import { firstValueFrom } from 'rxjs';
 
 const REQUEST_TIMEOUT_MS = 30_000;
 const UPLOAD_TIMEOUT_MS = 120_000;
-/**
- * `createSession` is limited to 30 per 5 minutes and 300 per day per account
- * (docs.bsky.app/docs/rate-limits), so a session is reused between publishes.
- */
-const SESSION_CACHE_TTL_MS = 25 * 60_000;
 /** The PDS refuses a blob over 50 MiB whatever the lexicon allows. */
 export const BLUESKY_MAX_VIDEO_BYTES = 52_428_800;
 const MAX_IMAGE_DOWNLOAD_BYTES = 30 * 1024 * 1024;
@@ -51,13 +55,6 @@ const VERIFICATION_STALE_MARGIN_MS = 10 * 60_000;
 const PUBLIC_APPVIEW_URL = 'https://public.api.bsky.app';
 const POST_COLLECTION = 'app.bsky.feed.post';
 const POST_URI_PATTERN = /^at:\/\/([^/]+)\/app\.bsky\.feed\.post\/([^/]+)$/;
-
-export interface BlueskySession {
-  accessJwt: string;
-  did: string;
-  handle: string;
-  serviceUrl: string;
-}
 
 export interface BlueskyStrongRef {
   cid: string;
@@ -75,6 +72,7 @@ export interface BlueskyProfile {
   avatar?: string;
   banner?: string;
   displayName?: string;
+  handle?: string;
 }
 
 export type BlueskyEmbed =
@@ -102,14 +100,7 @@ export interface BlueskyMediaDownload {
   contentType: string;
 }
 
-interface CachedSession {
-  expiresAt: number;
-  session: BlueskySession;
-  storedSecret: string;
-}
-
 interface XrpcRequest {
-  accessJwt?: string;
   body?: Buffer | Record<string, unknown>;
   contentType?: string;
   method: 'GET' | 'POST';
@@ -129,10 +120,10 @@ function requireString(value: unknown, what: string): string {
 @Injectable()
 export class BlueskyService {
   private readonly constructorName = String(this.constructor.name);
-  private readonly sessions = new Map<string, CachedSession>();
 
   constructor(
     private readonly configService: ConfigService,
+    private readonly oauthService: BlueskyOAuthService,
     @Inject(SERVER_TOKENS.credentials)
     private readonly credentialsService: ServerCredentialStore,
     private readonly activityRecorder: ActivityRecorderService,
@@ -156,14 +147,9 @@ export class BlueskyService {
       const response = await firstValueFrom(
         this.httpService.request<T>({
           data: request.body,
-          headers: {
-            ...(request.accessJwt
-              ? { Authorization: `Bearer ${request.accessJwt}` }
-              : {}),
-            ...(request.contentType
-              ? { 'Content-Type': request.contentType }
-              : {}),
-          },
+          headers: request.contentType
+            ? { 'Content-Type': request.contentType }
+            : {},
           httpsAgent,
           maxBodyLength: Number.POSITIVE_INFINITY,
           maxRedirects: 0,
@@ -179,28 +165,6 @@ export class BlueskyService {
     }
   }
 
-  /**
-   * Sign in with a handle and app password. Used to verify a new connection
-   * and, with the stored password, to open a session for a publish.
-   */
-  async createSession(
-    serviceUrl: string,
-    identifier: string,
-    appPassword: string,
-  ): Promise<BlueskySession> {
-    const data = await this.xrpc<Record<string, unknown>>(serviceUrl, {
-      body: { identifier, password: appPassword },
-      method: 'POST',
-      nsid: 'com.atproto.server.createSession',
-    });
-    return {
-      accessJwt: requireString(data.accessJwt, 'accessJwt'),
-      did: requireString(data.did, 'did'),
-      handle: requireString(data.handle, 'handle'),
-      serviceUrl: this.assertServiceUrl(serviceUrl),
-    };
-  }
-
   /** Display name and images of a public profile; never fails a connect. */
   async getPublicProfile(did: string): Promise<BlueskyProfile> {
     try {
@@ -214,11 +178,12 @@ export class BlueskyService {
           },
         ),
       );
-      const { avatar, banner, displayName } = response.data;
+      const { avatar, banner, displayName, handle } = response.data;
       return {
         avatar: typeof avatar === 'string' ? avatar : undefined,
         banner: typeof banner === 'string' ? banner : undefined,
         displayName: typeof displayName === 'string' ? displayName : undefined,
+        handle: typeof handle === 'string' ? handle : undefined,
       };
     } catch (error: unknown) {
       this.loggerService.warn(`${this.constructorName} profile unavailable`, {
@@ -228,63 +193,84 @@ export class BlueskyService {
     }
   }
 
-  private readStoredLogin(credential: CredentialDocument): {
-    appPassword: string;
-    identifier: string;
-    serviceUrl: string;
-  } {
-    if (
-      !credential.accessToken ||
-      !credential.description ||
-      !(credential.externalId || credential.externalHandle)
-    ) {
+  /** The origin of the server the account lives on, saved when it connected. */
+  private readServiceUrl(credential: CredentialDocument): string {
+    if (!credential.description || !credential.externalId) {
       throw new Error('Bluesky credential is incomplete. Reconnect Bluesky.');
     }
+    return credential.description;
+  }
+
+  /**
+   * Where a credential keeps its OAuth session. It reads the stored row each
+   * time: refresh tokens rotate on use, so a copy held in memory by a publish
+   * that started earlier would present a token another process already spent.
+   */
+  private bindingFor(credential: CredentialDocument): BlueskySessionBinding {
+    const scope = {
+      id: credential.id,
+      isDeleted: false,
+      organizationId: credential.organizationId ?? undefined,
+    };
     return {
-      appPassword: EncryptionUtil.decrypt(credential.accessToken),
-      // The DID never changes when a handle does, so it is the safer login.
-      identifier: (credential.externalId || credential.externalHandle) ?? '',
-      serviceUrl: credential.description,
+      read: async () => {
+        const stored = await this.credentialsService.findOne(scope);
+        return stored?.accessToken
+          ? (JSON.parse(
+              EncryptionUtil.decrypt(stored.accessToken),
+            ) as NodeSavedSession)
+          : undefined;
+      },
+      remove: async () => {
+        await this.credentialsService.patch(credential.id, {
+          accessToken: null,
+        });
+      },
+      write: async (session) => {
+        await this.credentialsService.patch(credential.id, {
+          accessToken: JSON.stringify(session),
+        });
+      },
     };
   }
 
   /**
-   * An open session for this credential. A refused password or a taken-down
-   * account marks the channel disconnected, alerts the owner and throws
-   * {@link BlueskyCredentialRejectedError}; any other failure is rethrown.
+   * An open session for this credential. When Bluesky no longer accepts it (the
+   * person revoked access, or the session ended) the channel is marked
+   * disconnected, the owner is alerted and {@link BlueskyCredentialRejectedError}
+   * is thrown; any other failure is rethrown.
    */
-  async openSession(
+  private async openSession(
     credential: CredentialDocument,
-    isFresh = false,
-  ): Promise<BlueskySession> {
-    const login = this.readStoredLogin(credential);
-    const cached = this.sessions.get(credential.id);
-    if (
-      !isFresh &&
-      cached &&
-      cached.expiresAt > Date.now() &&
-      cached.storedSecret === credential.accessToken
-    ) {
-      return cached.session;
+  ): Promise<OAuthSession> {
+    this.readServiceUrl(credential);
+    if (!credential.accessToken) {
+      await this.markDisconnected(credential);
+      throw new BlueskyCredentialRejectedError();
     }
-
     try {
-      const session = await this.createSession(
-        login.serviceUrl,
-        login.identifier,
-        login.appPassword,
+      return await this.oauthService.restoreSession(
+        credential.externalId ?? '',
+        this.bindingFor(credential),
       );
-      if (credential.externalId && session.did !== credential.externalId) {
-        throw new Error('Bluesky account changed. Reconnect Bluesky.');
-      }
-      this.sessions.set(credential.id, {
-        expiresAt: Date.now() + SESSION_CACHE_TTL_MS,
-        session,
-        storedSecret: credential.accessToken ?? '',
-      });
-      return session;
     } catch (error: unknown) {
-      this.sessions.delete(credential.id);
+      if (isBlueskySessionLost(error)) {
+        await this.markDisconnected(credential);
+        throw new BlueskyCredentialRejectedError();
+      }
+      throw error;
+    }
+  }
+
+  /** Run a call as the account. A refusal marks the channel disconnected. */
+  private async withSession<T>(
+    credential: CredentialDocument,
+    run: (session: OAuthSession) => Promise<T>,
+  ): Promise<T> {
+    const session = await this.openSession(credential);
+    try {
+      return await run(session);
+    } catch (error: unknown) {
       if (isBlueskyCredentialRejection(error)) {
         await this.markDisconnected(credential);
         throw new BlueskyCredentialRejectedError();
@@ -293,20 +279,50 @@ export class BlueskyService {
     }
   }
 
-  /** Run an authenticated call, replacing a lapsed session token once. */
-  private async withSession<T>(
-    credential: CredentialDocument,
-    run: (session: BlueskySession) => Promise<T>,
+  /** One signed XRPC call. The session adds the DPoP proof and refreshes tokens. */
+  private async signedXrpc<T>(
+    session: OAuthSession,
+    request: XrpcRequest,
   ): Promise<T> {
-    const session = await this.openSession(credential);
+    const query = request.params
+      ? `?${new URLSearchParams(
+          Object.entries(request.params).map(([key, value]) => [
+            key,
+            String(value),
+          ]),
+        ).toString()}`
+      : '';
+    const isBinary = Buffer.isBuffer(request.body);
+    const response = await session.fetchHandler(
+      `/xrpc/${request.nsid}${query}`,
+      {
+        body: isBinary
+          ? new Uint8Array(request.body as Buffer)
+          : request.body
+            ? JSON.stringify(request.body)
+            : undefined,
+        headers: {
+          ...(request.contentType
+            ? { 'Content-Type': request.contentType }
+            : request.body
+              ? { 'Content-Type': 'application/json' }
+              : {}),
+        },
+        method: request.method,
+        signal: AbortSignal.timeout(request.timeoutMs ?? REQUEST_TIMEOUT_MS),
+      },
+    );
+    const text = await response.text();
+    let data: unknown = null;
     try {
-      return await run(session);
-    } catch (error: unknown) {
-      if (!isBlueskySessionTokenError(error)) {
-        throw error;
-      }
-      return run(await this.openSession(credential, true));
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = null;
     }
+    if (!response.ok) {
+      throw BlueskyHttpError.fromResponse(response, data);
+    }
+    return data as T;
   }
 
   private async markDisconnected(credential: CredentialDocument) {
@@ -323,7 +339,7 @@ export class BlueskyService {
       kind: 'alert_email',
       label: handle,
       summary:
-        'Bluesky refused the connected app password. Posts scheduled on this account will fail until you reconnect it.',
+        'Bluesky no longer accepts the connected session. Posts scheduled on this account will fail until you reconnect it.',
       version: 1,
     };
     await this.activityRecorder.record({
@@ -333,30 +349,8 @@ export class BlueskyService {
       organizationId: credential.organizationId ?? null,
       source: ActivitySource.SOCIAL_INTEGRATION,
       userId: credential.userId ?? undefined,
-      value: 'Bluesky integration disconnected: app password refused',
+      value: 'Bluesky integration disconnected: session no longer accepted',
     });
-  }
-
-  /**
-   * Re-check the stored login. Bluesky app passwords do not expire, so there
-   * is nothing to renew; this confirms the credential still works.
-   */
-  async refreshToken(
-    organizationId: string,
-    brandId: string,
-    credentialId?: string,
-  ): Promise<BlueskySession> {
-    const credential = await this.credentialsService.resolveBrandAccount({
-      brandId,
-      credentialId,
-      isDisconnectedIncluded: true,
-      organizationId,
-      platform: CredentialPlatform.BLUESKY,
-    });
-    if (!credential) {
-      throw new Error('Bluesky credential not found');
-    }
-    return this.openSession(credential, true);
   }
 
   /** Facets for a post, with each mention resolved to a DID. */
@@ -364,7 +358,7 @@ export class BlueskyService {
     credential: CredentialDocument,
     text: string,
   ): Promise<BlueskyFacet[]> {
-    const { serviceUrl } = this.readStoredLogin(credential);
+    const serviceUrl = this.readServiceUrl(credential);
     return buildBlueskyFacets(text, async (handle) => {
       try {
         const data = await this.xrpc<{ did?: unknown }>(serviceUrl, {
@@ -386,8 +380,7 @@ export class BlueskyService {
   ): Promise<BlueskyBlobRef> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const data = await this.withSession(credential, (session) =>
-      this.xrpc<{ blob?: BlueskyBlobRef }>(session.serviceUrl, {
-        accessJwt: session.accessJwt,
+      this.signedXrpc<{ blob?: BlueskyBlobRef }>(session, {
         body: buffer,
         contentType: mimeType,
         method: 'POST',
@@ -409,8 +402,7 @@ export class BlueskyService {
   ): Promise<BlueskyStrongRef> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const data = await this.withSession(credential, (session) =>
-      this.xrpc<{ cid?: unknown; uri?: unknown }>(session.serviceUrl, {
-        accessJwt: session.accessJwt,
+      this.signedXrpc<{ cid?: unknown; uri?: unknown }>(session, {
         body: {
           collection: POST_COLLECTION,
           record,
@@ -433,7 +425,7 @@ export class BlueskyService {
     credential: CredentialDocument,
     uri: string,
   ): Promise<BlueskyStrongRef> {
-    const { serviceUrl } = this.readStoredLogin(credential);
+    const serviceUrl = this.readServiceUrl(credential);
     const match = POST_URI_PATTERN.exec(uri);
     if (!match) {
       throw new Error('Bluesky post reference is not a post record');
