@@ -6,6 +6,7 @@ import {
   AgentThreadShareScope,
   ButtonSize,
   ButtonVariant,
+  ComponentSize,
 } from '@genfeedai/contracts';
 import { Alert, AlertActions } from '@ui/primitives/alert';
 import { Avatar } from '@ui/primitives/avatar';
@@ -28,7 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { Building2, Loader2, Lock, Users } from 'lucide-react';
+import Spinner from '@ui/primitives/spinner';
+import { Building2, Lock, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { canReachThreadBrand } from '@/components/workspace-shell/agent-thread-member-access.util';
@@ -286,7 +288,12 @@ export default function AgentThreadShareDialog({
         <DialogBody className="flex flex-col gap-5">
           {access.status === 'loading' ? (
             <Alert
-              icon={<Loader2 className="size-4 animate-spin" />}
+              icon={
+                <Spinner
+                  ariaLabel={translate('lookupLoading')}
+                  size={ComponentSize.XS}
+                />
+              }
               variant="note"
             >
               {translate('lookupLoading')}

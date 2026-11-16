@@ -23,6 +23,7 @@ import {
   AgentThreadShareScope,
   ButtonSize,
   ButtonVariant,
+  ComponentSize,
 } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
@@ -35,6 +36,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import Spinner from '@ui/primitives/spinner';
 import {
   ArchiveRestore,
   CheckCheck,
@@ -42,7 +44,6 @@ import {
   Ellipsis,
   Expand,
   Forward,
-  Loader2,
   Lock,
   TriangleAlert,
   Users,
@@ -356,7 +357,7 @@ export default function AgentThreadLightView({
       );
   const shareButtonIcon =
     access.status === 'loading' ? (
-      <Loader2 className="size-4 animate-spin" />
+      <Spinner ariaLabel={shareButtonLabel} size={ComponentSize.XS} />
     ) : !isConfirmed ? (
       <TriangleAlert className="size-4" />
     ) : isShared ? (
