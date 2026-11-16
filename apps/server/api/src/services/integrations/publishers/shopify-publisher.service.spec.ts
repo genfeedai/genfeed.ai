@@ -29,7 +29,6 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 describe('ShopifyPublisherService', () => {
   let service: ShopifyPublisherService;
   let shopifyService: vi.Mocked<ShopifyService>;
-  let loggerService: vi.Mocked<LoggerService>;
 
   const orgId = testId('org');
   const brandId = testId('brand');
@@ -107,7 +106,6 @@ describe('ShopifyPublisherService', () => {
 
     service = module.get<ShopifyPublisherService>(ShopifyPublisherService);
     shopifyService = module.get(ShopifyService);
-    loggerService = module.get(LoggerService);
   });
 
   afterEach(() => {
