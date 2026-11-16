@@ -44,6 +44,23 @@ describe('redactSensitiveValue', () => {
     ).toBe(`Provider failed: api_key=${REDACTED_VALUE} and ${REDACTED_VALUE}`);
   });
 
+  it('redacts Discord webhook and Telegram bot tokens carried in the URL path', () => {
+    expect(
+      redactSensitiveString(
+        'HTTP POST https://discord.com/api/webhooks/123456789/abc-DEF_ghi?wait=true → network error',
+      ),
+    ).toBe(
+      `HTTP POST https://discord.com/api/webhooks/123456789/${REDACTED_VALUE}?wait=true → network error`,
+    );
+    expect(
+      redactSensitiveString(
+        'HTTP POST https://api.telegram.org/bot123456:AAH-xyz_123/sendMessage → 500',
+      ),
+    ).toBe(
+      `HTTP POST https://api.telegram.org/bot123456:${REDACTED_VALUE}/sendMessage → 500`,
+    );
+  });
+
   it('preserves non-sensitive scalar values and array structure', () => {
     expect(
       redactSensitiveValue({ attempts: 2, models: ['gpt-5', 'claude'] }),
