@@ -18,6 +18,7 @@ import { AgentThreadEngineService } from '@api/services/agent-threading/services
 import {
   assertInputRequestAnswerable,
   isRecurringWorkflowRequest,
+  resolveContinuationIdempotency,
   resolveInputContinuationContent,
   toInputRequestResponse,
 } from '@api/services/agent-threading/utils/agent-input-request-response.util';
@@ -271,8 +272,7 @@ export class AgentThreadRuntimeController {
           userId,
         });
 
-      // The answer continues on a new execution. Returning it lets the client
-      // pin its stream to that run instead of the one that asked.
+      // The answer continues on a new run; returning it pins the client stream.
       let continuation: AgentTurnAcknowledgement | null = null;
       const initiatingPrincipal = buildAgentInitiatingPrincipal({
         auth: user,
@@ -310,6 +310,7 @@ export class AgentThreadRuntimeController {
             userId,
             initiatingPrincipal,
             generationEntry: getActionOriginContext().generationEntry,
+            ...resolveContinuationIdempotency(inputRequest, userId),
           },
         );
       }

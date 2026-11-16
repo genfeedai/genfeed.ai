@@ -39,6 +39,22 @@ export function resolveInputContinuationContent(
     : body.answer;
 }
 
+/**
+ * An answered question's continuation belongs to whoever answered first. A
+ * different authorized caller (the owner repairing a delivery gap) reuses it
+ * rather than starting a second one (#10029). Empty keeps the caller's own
+ * identity, including for answers recorded before the responder was stored.
+ */
+export function resolveContinuationIdempotency(
+  inputRequest: Record<string, unknown>,
+  callerUserId: string,
+): { idempotencyUserId?: string } {
+  const answeredBy = inputRequest.resolvedByUserId;
+  return typeof answeredBy === 'string' && answeredBy !== callerUserId
+    ? { idempotencyUserId: answeredBy }
+    : {};
+}
+
 export function toInputRequestResponse(
   inputRequest: Record<string, unknown>,
   continuation: AgentTurnAcknowledgement | null,

@@ -250,6 +250,8 @@ describe.skipIf(!connectionString)(
       const repaired = await answerAs(owner, thread.id);
 
       expect(repaired.status).toBe('resolved');
+      // The controller keys the one continuation to the original answerer.
+      expect(repaired.resolvedByUserId).toBe(member);
       const events = await database().agentThreadEvent.findMany({
         where: { organizationId, threadId: thread.id, type: 'input.resolved' },
       });
