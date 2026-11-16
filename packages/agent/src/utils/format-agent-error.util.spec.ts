@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   formatAgentError,
   formatAgentFailureMessage,
+  isRetiredModelError,
 } from './format-agent-error.util';
 
 describe('formatAgentError', () => {
@@ -356,11 +357,40 @@ describe('shared failure classification', () => {
       AgentFailureReason.ACTION_NOT_ALLOWED,
     ],
     ['HTTP 404', AgentFailureReason.MODEL_UNAVAILABLE],
+    [
+      'The model Old Flux was retired. Pick a new model, then run it again.',
+      AgentFailureReason.MODEL_UNAVAILABLE,
+    ],
     ['forbidden', AgentFailureReason.PROVIDER_ACCESS_DENIED],
     ['HTTP 503', AgentFailureReason.PROVIDER_UNAVAILABLE],
     ['an unexpected error', AgentFailureReason.UNKNOWN],
   ])('classifies %s with a stable queryable reason', (raw, reason) => {
     expect(formatAgentError(raw).reason).toBe(reason);
+  });
+
+  it('names a retired model and says what to do next', () => {
+    expect(
+      formatAgentError(
+        'The model Old Flux was retired. Pick a new model, then run it again.',
+      ),
+    ).toMatchObject({
+      summary:
+        'The model Old Flux was retired, so this run stopped before it started. Nothing was billed.',
+      reason: AgentFailureReason.MODEL_UNAVAILABLE,
+      recovery:
+        'Pick a new model for this agent, workflow or default, then run it again.',
+      title: 'Model retired',
+    });
+  });
+
+  it('recognises the retired model stop and nothing else', () => {
+    expect(
+      isRetiredModelError(
+        'The model Old Flux was retired. Pick a new model, then run it again.',
+      ),
+    ).toBe(true);
+    expect(isRetiredModelError('HTTP 404')).toBe(false);
+    expect(isRetiredModelError(null)).toBe(false);
   });
 
   it('distinguishes structured provider rate limits and timeouts', () => {

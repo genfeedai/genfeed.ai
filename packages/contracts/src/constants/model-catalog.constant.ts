@@ -28,9 +28,8 @@ import {
   AGENT_FALLBACK_ROUND_CREDITS,
   calculateAgentRoundCredits,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
-  getAgentChatModel,
   HIGHLIGHTED_AGENT_CHAT_MODEL_KEY,
-  RETIRED_AGENT_CHAT_MODELS,
+  RETIRED_AGENT_CHAT_MODEL_KEYS,
 } from './agent-chat-models.constant';
 import { BRAND_VISION_MODELS } from './brand-vision-models.constant';
 import {
@@ -115,7 +114,6 @@ export interface ModelCatalogSeedEntry {
    */
   providerCostUsd?: number;
   recommendedFor?: readonly string[];
-  succeededBy?: string;
   supportsFeatures?: readonly string[];
   usesOrientation?: boolean;
 }
@@ -182,82 +180,57 @@ const LEGACY_FLUX_MEDIA_KEYS: ReadonlySet<string> = new Set([
 /**
  * Older versions of a family whose newer same-category model is in the
  * catalog. They stay selectable and keep their price; the picker labels them
- * Legacy and points at the successor.
+ * Legacy (outdated). A legacy row has no successor and still runs.
  */
-const LEGACY_MEDIA_SUCCESSORS: Readonly<Record<string, string>> = {
-  [MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4]:
-    MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_PRO,
-  [MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5]:
-    MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_PRO,
-  [MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3]: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
-  [MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3_FAST]:
-    MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST,
-  [MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA]:
-    MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2,
-  [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3]: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
-  [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST]:
-    MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
-  [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1]:
-    MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
-  [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1_MASTER]:
-    MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
-  [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_5_TURBO_PRO]:
-    MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
-  [MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST]:
-    MODEL_KEYS.REPLICATE_MINIMAX_H3,
-};
+const LEGACY_MEDIA_KEYS: ReadonlySet<string> = new Set([
+  MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4,
+  MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5,
+  MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
+  MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3_FAST,
+  MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+  MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
+  MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST,
+  MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
+  MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1_MASTER,
+  MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_5_TURBO_PRO,
+  MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+]);
 
 /**
  * Models the provider no longer serves: Replicate returns 404, or, for text
  * keys that complete through OpenRouter, OpenRouter lists no endpoint (checked
- * 2026-10-15). A stored key resolves to the successor at dispatch, and a
- * retired row is never offered or priced itself.
+ * 2026-10-15). A retired row is never offered or priced, and an explicit
+ * choice of one stops with a clear message until the user picks a new model.
  */
-const RETIRED_MEDIA_SUCCESSORS: Readonly<Record<string, string>> = {
-  [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V1_6_PRO]:
-    MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
-  [MODEL_KEYS.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT]:
-    AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
-  [MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1]:
-    AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
-  [MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO]:
-    MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH,
-  [MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST]: MODEL_KEYS.OPENROUTER_XAI_GROK_4_3,
+const RETIRED_MEDIA_KEYS: ReadonlySet<string> = new Set([
+  MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V1_6_PRO,
+  MODEL_KEYS.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT,
+  MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1,
+  MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
+  MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST,
   // Billed on input and output megapixels, which dispatch cannot meter; FLUX.2
   // Pro covers the same requests at an approved rate.
-  [MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV]:
-    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
-  [MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX]:
-    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
+  MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+  MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX,
   // fal lists Stable Video Diffusion as `fal-ai/stable-video` with status
   // `deprecated` (checked 2026-11-01); the stored `-diffusion` id is not served.
-  [MODEL_KEYS.FAL_STABLE_VIDEO]: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+  MODEL_KEYS.FAL_STABLE_VIDEO,
   // fal's sitemap and model pages no longer list `fal-ai/luma-dream-machine`
   // or its ray-2 variants (checked 2026-11-08); the fal price refresh failed
   // with model_fetch_failed for it.
-  [MODEL_KEYS.FAL_LUMA_DREAM_MACHINE]:
-    MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+  MODEL_KEYS.FAL_LUMA_DREAM_MACHINE,
   // The Genfeed GPU fleet that ran these is archived (2026-10-30), so they are
   // retired on every deployment.
-  [MODEL_KEYS.GENFEED_AI_FLUX_DEV]:
-    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
-  [MODEL_KEYS.GENFEED_AI_FLUX_DEV_PULID]:
-    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
-  [MODEL_KEYS.GENFEED_AI_FLUX2_DEV]:
-    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
-  [MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID]:
-    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
-  [MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA]:
-    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
-  [MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_UPSCALE]:
-    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
-  [MODEL_KEYS.GENFEED_AI_FLUX2_KLEIN]:
-    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
-  [MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO]:
-    MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE,
-  [MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA]:
-    MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE,
-};
+  MODEL_KEYS.GENFEED_AI_FLUX_DEV,
+  MODEL_KEYS.GENFEED_AI_FLUX_DEV_PULID,
+  MODEL_KEYS.GENFEED_AI_FLUX2_DEV,
+  MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID,
+  MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA,
+  MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_UPSCALE,
+  MODEL_KEYS.GENFEED_AI_FLUX2_KLEIN,
+  MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
+  MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA,
+]);
 
 /**
  * fal moved these models to new endpoint ids, so the stored key answers 404
@@ -281,8 +254,8 @@ function mediaLifecycle(
   key: string,
   curated: (typeof SELF_HOSTED_MODELS)[number] | undefined,
 ): ModelLifecycle {
-  if (RETIRED_MEDIA_SUCCESSORS[key]) return ModelLifecycle.RETIRED;
-  if (LEGACY_FLUX_MEDIA_KEYS.has(key) || LEGACY_MEDIA_SUCCESSORS[key])
+  if (RETIRED_MEDIA_KEYS.has(key)) return ModelLifecycle.RETIRED;
+  if (LEGACY_FLUX_MEDIA_KEYS.has(key) || LEGACY_MEDIA_KEYS.has(key))
     return ModelLifecycle.LEGACY;
   if (curated && 'lifecycle' in curated && curated.lifecycle)
     return curated.lifecycle;
@@ -356,13 +329,6 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
     }
     if (curated?.providerConfig) {
       entry.config = curated.providerConfig;
-    }
-    const succeededBy =
-      (curated && 'succeededBy' in curated ? curated.succeededBy : undefined) ??
-      RETIRED_MEDIA_SUCCESSORS[key] ??
-      LEGACY_MEDIA_SUCCESSORS[key];
-    if (succeededBy) {
-      entry.succeededBy = succeededBy;
     }
     if ('aspectRatios' in capability && capability.aspectRatios) {
       entry.aspectRatios = capability.aspectRatios;
@@ -596,37 +562,30 @@ function buildBrandVisionCatalogEntries(): ModelCatalogSeedEntry[] {
 }
 
 /**
- * Retired chat keys as legacy rows carrying `succeededBy`.
- *
- * Persisted rows (org settings, brand agent config, thread bindings, scheduled
- * runs) still hold these keys. A row priced at its successor keeps a stale
- * binding billable at what the run actually costs — an uncurated 0 would make
- * it free, which is the exact failure `openrouter/auto` shipped. When the
- * successor itself is a declared-free model, 0 IS the real cost, so the row
- * carries `isFree` to mark that price as curated rather than missing.
+ * Retired chat keys as retired rows. Persisted rows (org settings, brand agent
+ * config, thread bindings, scheduled runs) may still hold these keys, so the
+ * row stays: an explicit choice of one stops with a clear message naming it.
+ * A retired row is never deleted and never offered. It is inactive and carries
+ * the priciest catalogued round cost so nothing can bill it as free.
  */
 function buildRetiredAgentCatalogEntries(): ModelCatalogSeedEntry[] {
-  return Object.entries(RETIRED_AGENT_CHAT_MODELS).map(([key, succeededBy]) => {
-    const successor = getAgentChatModel(succeededBy);
-
-    return {
-      capabilities: [AGENT_CHAT_CAPABILITY],
-      category: ModelCategory.TEXT,
-      cost: successor?.creditCostPerRound ?? AGENT_FALLBACK_ROUND_CREDITS,
-      description: `Retired — superseded by ${successor?.label ?? succeededBy}`,
-      isActive: false,
-      isDefault: false,
-      isHighlighted: false,
-      lifecycle: ModelLifecycle.RETIRED,
-      isPublic: false,
-      key,
-      label: labelFromKey(key),
-      provider: ModelProvider.OPENROUTER,
-      succeededBy,
-      ...(successor ? { costTier: successor.costTier } : {}),
-      ...(successor?.isFree ? { isFree: true } : {}),
-    } satisfies ModelCatalogSeedEntry;
-  });
+  return [...RETIRED_AGENT_CHAT_MODEL_KEYS].map(
+    (key) =>
+      ({
+        capabilities: [AGENT_CHAT_CAPABILITY],
+        category: ModelCategory.TEXT,
+        cost: AGENT_FALLBACK_ROUND_CREDITS,
+        description: 'Retired',
+        isActive: false,
+        isDefault: false,
+        isHighlighted: false,
+        lifecycle: ModelLifecycle.RETIRED,
+        isPublic: false,
+        key,
+        label: labelFromKey(key),
+        provider: ModelProvider.OPENROUTER,
+      }) satisfies ModelCatalogSeedEntry,
+  );
 }
 
 /**
@@ -637,7 +596,7 @@ function buildRetiredAgentCatalogEntries(): ModelCatalogSeedEntry[] {
  * "Still live" means a live *agent* row — not merely a key the media
  * capability map also lists. `x-ai/grok-4-fast` is both a retired chat key and
  * a TEXT entry in `MODEL_OUTPUT_CAPABILITIES`, and an uncurated media row seeds
- * at cost 0 with no `succeededBy`. Letting that win would leave a stale chat
+ * at cost 0. Letting that win would leave a stale chat
  * binding billing at zero — the exact failure the retired rows exist to stop.
  */
 export const UNIFIED_MODEL_CATALOG: readonly ModelCatalogSeedEntry[] = (() => {

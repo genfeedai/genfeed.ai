@@ -28,6 +28,7 @@ import {
   validateSettingOptions,
   validateSettingType,
 } from './channel-setting-validation.contract';
+import { hiddenChannelCapabilities } from './hidden-channel-capabilities.contract';
 import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
 import {
   TIKTOK_PRIVACY_OPTIONS,
@@ -756,49 +757,7 @@ const channelCapabilities = [
     ],
     status: 'hidden',
   },
-  {
-    caption: { maxLength: 500, required: true },
-    description:
-      'Backend integration for Mastodon instances; hidden until scheduler publishing is productized.',
-    helpers: [
-      {
-        key: 'mastodon.credential',
-        kind: 'credential',
-        label: 'Mastodon credential',
-        required: true,
-      },
-    ],
-    label: 'Mastodon',
-    media: {
-      animated: { supported: true },
-      kinds: ['image', 'video', 'link'],
-      maxItems: 4,
-      minItems: 0,
-    },
-    platform: CredentialPlatform.MASTODON,
-    publishModes: ['draft', 'publish_now', 'scheduled'],
-    settings: [
-      {
-        description:
-          'Defaults to the instance stored on the credential when left blank.',
-        key: 'instanceUrl',
-        label: 'Instance URL',
-        type: 'url',
-      },
-      {
-        defaultValue: 'public',
-        key: 'visibility',
-        label: 'Visibility',
-        options: [
-          { label: 'Public', value: 'public' },
-          { label: 'Unlisted', value: 'unlisted' },
-          { label: 'Followers only', value: 'private' },
-        ],
-        type: 'select',
-      },
-    ],
-    status: 'hidden',
-  },
+  ...(hiddenChannelCapabilities as ChannelCapability[]),
   {
     caption: { maxLength: 500, required: true },
     description:

@@ -923,6 +923,34 @@ export class WorkflowNotificationDeliveryService {
       };
     }
 
+    if (isFailure && !payload.error && payload.failure) {
+      // A classified stop with no raw error, such as a retired model, names
+      // the cause and the next step instead of a bare "Failed."
+      const { title, summary, recovery } = payload.failure;
+      const href = this.agentReportHref(
+        this.configService?.get('GENFEEDAI_APP_URL'),
+        payload.sourcePath,
+      );
+      return {
+        html: buildSystemEmailHtml({
+          action: href ? { label: 'Open workflow', url: href } : undefined,
+          bodyHtml: buildWorkflowStatusEmailBody({
+            details: [title, summary, recovery].filter(
+              (value): value is string => typeof value === 'string',
+            ),
+            isFailed: true,
+            kind: 'workflow',
+            label: payload.workflowLabel,
+          }),
+          title: subject,
+        }),
+        subject,
+        text: [subject, title, summary, recovery, href]
+          .filter(Boolean)
+          .join('\n'),
+      };
+    }
+
     return {
       html: buildSystemEmailHtml({
         bodyHtml: buildWorkflowStatusEmailBody({

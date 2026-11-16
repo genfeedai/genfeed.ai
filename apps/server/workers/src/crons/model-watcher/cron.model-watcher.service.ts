@@ -38,13 +38,22 @@ import {
 } from '@workers/services/replicate-model-contract-sync.service';
 
 /**
- * How many pages of Replicate's public model list one run reads (25 models per
- * page, newest version first). The list holds every community model too, so it
- * is not followed to the end: registry rows outside these pages are fetched one
- * by one, and a model that is genuinely new reaches the first pages the day it
- * ships.
+ * Hard bound on the pages one run reads from Replicate's public model list
+ * (25 models per page). The list is followed to its end; the bound only guards
+ * against a cursor that never ends, and hitting it is a run error, not a
+ * truncation. Replicate documents no filter for official models, so the whole
+ * list is read and `is_official` is applied afterwards.
  */
-const MAX_PAGES = 3;
+const MAX_PAGES = 5000;
+
+/**
+ * Pause between list pages. Replicate documents 3000 requests per minute for
+ * its non-prediction endpoints; this keeps a full listing near 600 per minute.
+ */
+const PAGE_DELAY_MS = 100;
+
+/** Report code for a listing that could not be read to its end. */
+const LISTING_INCOMPLETE_CODE = 'replicate_listing_incomplete';
 
 /** Timeout for individual Replicate API requests (30 seconds) */
 const API_TIMEOUT_MS = 30_000;
@@ -56,6 +65,12 @@ const DATA_ERROR_CODE = 'data_error:wrong_provider_endpoint';
 
 /** The page Replicate serves a model's price on, which is gone for a delisted model. */
 const PAGE_NOT_FOUND = 'page_status_404';
+
+/** The models read from the list, and why the read stopped early, if it did. */
+interface ReplicateListing {
+  failure: string | null;
+  models: IReplicateModel[];
+}
 
 /** `owner/name` of an endpoint that may pin a version (`meta/musicgen:671ac…`). */
 function replicateModelPath(endpoint: string): string {
@@ -80,6 +95,8 @@ function isQuietRow(
 @Injectable()
 export class CronModelWatcherService {
   private readonly constructorName: string = String(this.constructor.name);
+  private readonly listPageLimit: number = MAX_PAGES;
+  private readonly listPageDelayMs: number = PAGE_DELAY_MS;
 
   constructor(
     private readonly logger: LoggerService,
@@ -121,37 +138,18 @@ export class CronModelWatcherService {
       await this.platformMarginService.hydrate();
 
       // Step 1: Load the provider registry without pulling unrelated JSONB.
-      const registryRows = await this.modelsService.prisma.model.findMany({
-        select: {
-          category: true,
-          endpoint: true,
-          id: true,
-          isActive: true,
-          isFree: true,
-          key: true,
-          lifecycle: true,
-          pricingType: true,
-          provider: true,
-          providerCostUsd: true,
-          providerSyncFailureCode: true,
-          providerSyncStatus: true,
-          reviewedProviderContractVersion: true,
-        },
-        where: { isDeleted: false, organizationId: null },
-      });
-      const existingModels = new Map<string, ReplicateSyncModelRecord>(
-        registryRows
-          .filter((row) => row.provider === ModelProvider.REPLICATE)
-          .map((row) => [row.endpoint || row.key, row] as const),
-      );
+      const existingModels = await this.loadReplicateRegistry();
 
       this.logger.log(
         `${url} loaded ${existingModels.size} existing Replicate endpoints`,
       );
 
       // Step 2: Poll Replicate API for models
-      const replicateModels = await this.pollReplicateModels();
+      const { failure: listingFailure, models: replicateModels } =
+        await this.pollReplicateModels();
       summary.totalPolled = replicateModels.length;
+
+      this.reportListingFailure(summary, listingFailure);
 
       this.logger.log(
         `${url} polled ${replicateModels.length} models from Replicate`,
@@ -184,8 +182,8 @@ export class CronModelWatcherService {
         },
       );
 
-      // Step 5: The public listing is intentionally bounded. Add exact fetches
-      // for existing rows outside those pages so the full registry is synced.
+      // Step 5: Add exact fetches for registry rows the listing does not
+      // carry (no longer official, or removed), so the full registry is synced.
       const candidates = new Map<string, IReplicateModel>(
         officialModels.map(
           (model) => [`${model.owner}/${model.name}`, model] as const,
@@ -260,12 +258,61 @@ export class CronModelWatcherService {
     }
   }
 
+  /** The non-organization Replicate registry rows, keyed by endpoint. */
+  private async loadReplicateRegistry(): Promise<
+    Map<string, ReplicateSyncModelRecord>
+  > {
+    const registryRows = await this.modelsService.prisma.model.findMany({
+      select: {
+        category: true,
+        endpoint: true,
+        id: true,
+        isActive: true,
+        isFree: true,
+        key: true,
+        lifecycle: true,
+        pricingType: true,
+        provider: true,
+        providerCostUsd: true,
+        providerSyncFailureCode: true,
+        providerSyncStatus: true,
+        reviewedProviderContractVersion: true,
+      },
+      where: { isDeleted: false, organizationId: null },
+    });
+    return new Map<string, ReplicateSyncModelRecord>(
+      registryRows
+        .filter((row) => row.provider === ModelProvider.REPLICATE)
+        .map((row) => [row.endpoint || row.key, row] as const),
+    );
+  }
+
+  /**
+   * A listing that stopped early makes "new model" unreliable this run, so it
+   * is an error on the report and the card, not a log line. The models read so
+   * far are still processed and the registry still refreshes.
+   */
+  private reportListingFailure(
+    summary: IModelDiscoveryRunSummary,
+    failure: string | null,
+  ): void {
+    if (!failure) return;
+    summary.errors++;
+    this.reportUnreadable(
+      summary,
+      'provider:replicate',
+      LISTING_INCOMPLETE_CODE,
+      failure,
+    );
+  }
+
   /**
    * Poll the Replicate API for all publicly available models.
-   * Iterates through paginated results using the `next` cursor.
-   * Limits to MAX_PAGES to prevent infinite loops from API issues.
+   * Follows the `next` cursor to the end, pausing between pages. Stops early
+   * with a `failure` when a page fails, the cursor repeats, or the page bound
+   * is hit, so the caller can report the listing as incomplete.
    */
-  private async pollReplicateModels(): Promise<IReplicateModel[]> {
+  private async pollReplicateModels(): Promise<ReplicateListing> {
     const context = `${this.constructorName} pollReplicateModels`;
     const token = this.configService.get('REPLICATE_KEY');
 
@@ -273,18 +320,38 @@ export class CronModelWatcherService {
       this.logger.warn(
         `${context} REPLICATE_KEY not configured, skipping poll`,
       );
-      return [];
+      return { failure: null, models: [] };
     }
 
     const allModels: IReplicateModel[] = [];
+    const seenUrls = new Set<string>();
     let nextUrl: string | null = 'https://api.replicate.com/v1/models';
     let pageCount = 0;
 
-    while (nextUrl && pageCount < MAX_PAGES) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+    while (nextUrl) {
+      if (pageCount >= this.listPageLimit) {
+        const failure = `The Replicate model list was still paging after ${this.listPageLimit} pages (${allModels.length} models read), so discovery is incomplete.`;
+        this.logger.error(`${context} ${failure}`);
+        return { failure, models: allModels };
+      }
 
+      if (seenUrls.has(nextUrl)) {
+        const failure = `The Replicate model list repeated a page cursor after ${pageCount} pages (${allModels.length} models read), so discovery is incomplete.`;
+        this.logger.error(`${context} ${failure}`);
+        return { failure, models: allModels };
+      }
+      seenUrls.add(nextUrl);
+
+      if (pageCount > 0 && this.listPageDelayMs > 0) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, this.listPageDelayMs),
+        );
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
+      try {
         const response = await fetch(nextUrl, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -294,13 +361,10 @@ export class CronModelWatcherService {
           signal: controller.signal,
         });
 
-        clearTimeout(timeoutId);
-
         if (!response.ok) {
-          this.logger.error(
-            `${context} Replicate API returned ${response.status} on page ${pageCount + 1}`,
-          );
-          break;
+          const failure = `Replicate returned ${response.status} on model list page ${pageCount + 1} (${allModels.length} models read), so discovery is incomplete.`;
+          this.logger.error(`${context} ${failure}`);
+          return { failure, models: allModels };
         }
 
         const data = (await response.json()) as IReplicateModelsResponse;
@@ -316,26 +380,19 @@ export class CronModelWatcherService {
           `${context} fetched page ${pageCount}, ${data.results?.length || 0} models (total: ${allModels.length})`,
         );
       } catch (error: unknown) {
-        if ((error as Error)?.name === 'AbortError') {
-          this.logger.error(
-            `${context} request timed out on page ${pageCount + 1}`,
-          );
-        } else {
-          this.logger.error(`${context} error fetching page ${pageCount + 1}`, {
-            error,
-          });
-        }
-        break;
+        const reason =
+          (error as Error)?.name === 'AbortError'
+            ? 'timed out'
+            : 'could not be read';
+        const failure = `Replicate model list page ${pageCount + 1} ${reason} (${allModels.length} models read), so discovery is incomplete.`;
+        this.logger.error(`${context} ${failure}`, { error });
+        return { failure, models: allModels };
+      } finally {
+        clearTimeout(timeoutId);
       }
     }
 
-    if (pageCount >= MAX_PAGES) {
-      this.logger.warn(
-        `${context} reached max page limit (${MAX_PAGES}), some models may not have been fetched`,
-      );
-    }
-
-    return allModels;
+    return { failure: null, models: allModels };
   }
 
   /**
@@ -468,7 +525,7 @@ export class CronModelWatcherService {
   }
 
   /**
-   * Fetch every registry endpoint the bounded listing missed.
+   * Fetch every registry endpoint the official listing did not carry.
    *
    * Three outcomes are not failures and never alert: a row that names an
    * endpoint Replicate never hosted (a data error), a model the API no longer

@@ -1,7 +1,10 @@
 import { Model } from '@genfeedai/client/models';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type { IModelProviderContracts } from '@genfeedai/contracts/interfaces';
-import { BaseService } from '@services/core/base.service';
+import {
+  BaseService,
+  type JsonApiResponseDocument,
+} from '@services/core/base.service';
 
 export class ModelsService extends BaseService<Model> {
   constructor(token: string) {
@@ -21,6 +24,21 @@ export class ModelsService extends BaseService<Model> {
       { signal },
     );
     return response.data;
+  }
+
+  /**
+   * The retired catalog rows. The catalog list hides them from members, so
+   * a saved model that points at one is flagged from this list instead.
+   */
+  public async findRetired(
+    query: Record<string, unknown> = {},
+    signal?: AbortSignal,
+  ): Promise<Model[]> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      '/retired',
+      { params: query, signal },
+    );
+    return (await this.mapPage(response.data)).items;
   }
 
   public approveRegistryModel(

@@ -57,6 +57,7 @@ export default function InviteForm({
         <Input
           name="email"
           type="email"
+          autoComplete="off"
           placeholder="member@example.com"
           control={control}
         />
@@ -64,11 +65,21 @@ export default function InviteForm({
 
       <FormRow>
         <FormControl label="First Name">
-          <Input name="firstName" placeholder="John" control={control} />
+          <Input
+            autoComplete="off"
+            name="firstName"
+            placeholder="John"
+            control={control}
+          />
         </FormControl>
 
         <FormControl label="Last Name">
-          <Input name="lastName" placeholder="Doe" control={control} />
+          <Input
+            autoComplete="off"
+            name="lastName"
+            placeholder="Doe"
+            control={control}
+          />
         </FormControl>
       </FormRow>
 

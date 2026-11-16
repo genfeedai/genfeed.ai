@@ -42,7 +42,7 @@ export function useWorkflowModelCatalog(
           },
           signal,
         );
-        // A retired row dispatches to its successor, so it is not a choice the
+        // A retired row stops a run that picks it, so it is not a choice the
         // step can honour.
         return rows.filter((row) => row.lifecycle !== ModelLifecycle.RETIRED);
       } catch (error) {
