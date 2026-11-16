@@ -4,6 +4,7 @@ import type {
   VideoGenerationProviderResult,
 } from '@api/collections/videos/services/video-generation.types';
 import {
+  isCinemaStudioModel,
   isGenjutsuModel,
   resolveDopEndpoint,
 } from '@api/services/integrations/higgsfield/helpers/higgsfield.catalog';
@@ -11,6 +12,8 @@ import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfi
 import { BadRequestException } from '@nestjs/common';
 
 const GENJUTSU_POLL_TIMEOUT_MS = 600_000;
+// Up to 30s of 720p video with reference media renders slower than DoP.
+const CINEMA_STUDIO_POLL_TIMEOUT_MS = 900_000;
 
 function httpsUrls(value: unknown): string[] {
   const entries = Array.isArray(value) ? value : [value];
@@ -20,9 +23,26 @@ function httpsUrls(value: unknown): string[] {
   );
 }
 
+// Cinema Studio takes caller-supplied reference media, so a bad entry fails the
+// request instead of being silently dropped and generating without it.
+function strictHttpsUrls(field: string, value: unknown): string[] {
+  if (value === undefined || value === null) {
+    return [];
+  }
+  const entries = Array.isArray(value) ? value : [value];
+  for (const entry of entries) {
+    if (typeof entry !== 'string' || !entry.startsWith('https://')) {
+      throw new BadRequestException(
+        `Higgsfield Cinema Studio ${field} must be https URLs`,
+      );
+    }
+  }
+  return entries as string[];
+}
+
 /**
- * Higgsfield video is DoP image-to-video or Genjutsu motion transfer.
- * Both paths poll to a video URL and return `remote-output`, matching Fal:
+ * Higgsfield video is DoP image-to-video, Genjutsu motion transfer or
+ * Cinema Studio 4.0 text/reference-to-video. All paths poll to a video URL and return `remote-output`, matching Fal:
  * execution only consumes `externalId`.
  */
 export class HiggsFieldVideoGenerationProviderAdapter
@@ -33,7 +53,11 @@ export class HiggsFieldVideoGenerationProviderAdapter
   constructor(private readonly higgsFieldService: HiggsFieldService) {}
 
   supports(model: string): boolean {
-    return resolveDopEndpoint(model) !== undefined || isGenjutsuModel(model);
+    return (
+      resolveDopEndpoint(model) !== undefined ||
+      isGenjutsuModel(model) ||
+      isCinemaStudioModel(model)
+    );
   }
 
   async generate(
@@ -41,6 +65,9 @@ export class HiggsFieldVideoGenerationProviderAdapter
   ): Promise<VideoGenerationProviderResult> {
     if (isGenjutsuModel(params.model)) {
       return this.generateMotionTransfer(params);
+    }
+    if (isCinemaStudioModel(params.model)) {
+      return this.generateCinemaStudio(params);
     }
 
     if (!params.imageUrl) {
@@ -102,6 +129,57 @@ export class HiggsFieldVideoGenerationProviderAdapter
       {
         organizationId: params.organizationId,
         timeoutMs: GENJUTSU_POLL_TIMEOUT_MS,
+      },
+    );
+
+    return {
+      completion: 'remote-output',
+      externalId: completed.videoUrl,
+      provider: this.provider,
+    };
+  }
+
+  private async generateCinemaStudio(
+    params: DispatchVideoGenerationParams,
+  ): Promise<VideoGenerationProviderResult> {
+    const { promptParams } = params;
+    const imageUrls = [
+      ...new Set([
+        ...strictHttpsUrls('image_urls', promptParams.image_urls),
+        ...strictHttpsUrls('imageUrl', params.imageUrl),
+      ]),
+    ];
+    const videoUrls = strictHttpsUrls(
+      'reference_video_urls',
+      promptParams.reference_video_urls,
+    );
+    const audioUrls = strictHttpsUrls('audio_urls', promptParams.audio_urls);
+    const duration =
+      typeof promptParams.duration === 'number'
+        ? promptParams.duration
+        : params.duration;
+    const { aspect_ratio: aspectRatio, resolution } = promptParams;
+
+    const { requestId } =
+      await this.higgsFieldService.generateCinemaStudioVideo({
+        ...(typeof aspectRatio === 'string' ? { aspectRatio } : {}),
+        ...(audioUrls.length > 0 ? { audioUrls } : {}),
+        ...(duration !== undefined ? { duration } : {}),
+        ...(typeof promptParams.generate_audio === 'boolean'
+          ? { generateAudio: promptParams.generate_audio }
+          : {}),
+        ...(imageUrls.length > 0 ? { imageUrls } : {}),
+        onProviderSubmissionStarted: params.onProviderSubmissionStarted,
+        organizationId: params.organizationId,
+        prompt: params.prompt,
+        ...(typeof resolution === 'string' ? { resolution } : {}),
+        ...(videoUrls.length > 0 ? { videoUrls } : {}),
+      });
+    const completed = await this.higgsFieldService.waitForVideoCompletion(
+      requestId,
+      {
+        organizationId: params.organizationId,
+        timeoutMs: CINEMA_STUDIO_POLL_TIMEOUT_MS,
       },
     );
 
