@@ -266,10 +266,6 @@ export const APP_ROUTES = {
     SUCCESS: '/onboarding/success',
     SUMMARY: '/onboarding/summary',
   },
-  /** A brand's own profile: the public page, its accounts and its posts. */
-  PROFILE: {
-    ROOT: '/profile',
-  },
   PUBLISHING: {
     /**
      * Approvals queue: `/publishing/approvals`, a Turbo run at
@@ -353,6 +349,8 @@ export const APP_ROUTES = {
     MODEL_TRAININGS: '/settings/models/trainings',
     MODEL_VIDEO: '/settings/models/video',
     PERSONAL: '/settings/personal',
+    /** A brand's own profile: the public page, its accounts and its posts. */
+    PROFILE: '/settings/profile',
     /**
      * Org agent/automation defaults. Menu label is Agents — keep the slug
      * identical.
@@ -423,7 +421,6 @@ export const APP_ROUTE_PREFIXES = {
   MESSAGES: APP_ROUTES.MESSAGES.ROOT,
   OVERVIEW: '/overview',
   PLATFORMS: APP_ROUTES.PLATFORMS.ROOT,
-  PROFILE: APP_ROUTES.PROFILE.ROOT,
   PUBLISHING: APP_ROUTES.PUBLISHING.ROOT,
   SETTINGS: APP_ROUTES.SETTINGS.ROOT,
   WORKSPACE: APP_ROUTES.WORKSPACE.ROOT,
@@ -447,7 +444,7 @@ export const STUDIO_APP_ROUTE_PREFIXES = [
 
 export const APP_ROUTE_TEMPLATES = {
   BRAND: '/:orgSlug/:brandSlug',
-  BRAND_PROFILE: '/:orgSlug/:brandSlug/profile',
+  BRAND_PROFILE: '/:orgSlug/:brandSlug/settings/profile',
   BRAND_SETTINGS: '/:orgSlug/:brandSlug/settings',
   ORGANIZATION: '/:orgSlug/~',
   ORGANIZATION_SETTINGS: '/:orgSlug/~/settings',
@@ -699,7 +696,7 @@ export function createOrganizationAppRoute(
  * org-level `/:org/~/settings/...` page for them.
  */
 const BRAND_ONLY_SETTINGS_PREFIXES = [
-  APP_ROUTES.PROFILE.ROOT,
+  APP_ROUTES.SETTINGS.PROFILE,
   APP_ROUTES.SETTINGS.AGENT,
   APP_ROUTES.SETTINGS.PUBLISHING,
   APP_ROUTES.SETTINGS.SKILLS,
