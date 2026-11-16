@@ -5979,7 +5979,7 @@ describe('AgentToolExecutorService', () => {
       ctas: [
         {
           href: '/library/images?asset=img-root-123',
-          label: 'View in Library',
+          label: 'View Library',
         },
       ],
       id: 'image-gen-img-root-123',
@@ -6020,7 +6020,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.nextActions?.[0]).toMatchObject({
       audio: ['https://cdn.example.test/voice-123.mp3'],
       ctas: [
-        { href: '/library/voices?asset=voice-123', label: 'View in Library' },
+        { href: '/library/voices?asset=voice-123', label: 'View Library' },
       ],
     });
   });

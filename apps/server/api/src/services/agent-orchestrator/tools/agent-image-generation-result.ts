@@ -19,7 +19,7 @@ export function buildImageGenerationResult(
         ctas: [
           {
             href: createLibraryAssetRoute(IngredientCategory.IMAGE, id),
-            label: 'View in Library',
+            label: 'View Library',
           },
         ],
         assetId: id,

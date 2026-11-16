@@ -2121,7 +2121,7 @@ const switchDesktopServer = async (
         ? selection.selfHosted?.apiEndpoint || 'your self-hosted server'
         : 'Genfeed Cloud';
     const options = {
-      buttons: ['Switch and restart', 'Cancel'],
+      buttons: ['Restart', 'Cancel'],
       cancelId: 1,
       defaultId: 0,
       detail:
