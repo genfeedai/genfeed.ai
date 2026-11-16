@@ -90,7 +90,7 @@ describe('UpgradePlan', () => {
     expect(screen.getByText('$49/mo')).toBeInTheDocument();
     expect(screen.getByText('4,900 credits / month')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /Upgrade to Pro/i }),
+      screen.getByRole('button', { name: /Get Pro/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /Get Scale/i }),
@@ -103,7 +103,7 @@ describe('UpgradePlan', () => {
     });
 
     render(<UpgradePlan tiers={['pro', 'scale']} />);
-    fireEvent.click(screen.getByRole('button', { name: /Upgrade to Pro/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Get Pro/i }));
 
     await waitFor(() => {
       expect(createCheckoutSession).toHaveBeenCalledWith(

@@ -255,7 +255,7 @@
       "suggested": "Suggested from your site",
       "scanFailed": "We couldn't read that link, so tell us a bit about the brand instead.",
       "submit": "Redo Posts",
-      "cancel": "Back"
+      "cancel": "Keep Posts"
     },
     "errors": {
       "generate": "We couldn't draft your posts. Check your connection and try again.",

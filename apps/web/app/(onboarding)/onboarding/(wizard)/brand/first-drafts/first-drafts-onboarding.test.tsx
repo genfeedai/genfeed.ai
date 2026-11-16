@@ -957,7 +957,7 @@ describe('FirstDraftsOnboarding', () => {
     fireEvent.click(
       screen.getByRole('button', { name: "This doesn't look right" }),
     );
-    fireEvent.click(await screen.findByRole('button', { name: 'Back' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Keep Posts' }));
     expect(await screen.findByText('twitter draft text')).toBeInTheDocument();
     expect(mocks.generateDrafts).toHaveBeenCalledTimes(1);
   });
