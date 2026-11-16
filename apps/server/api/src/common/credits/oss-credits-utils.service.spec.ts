@@ -62,8 +62,10 @@ describe('OssCreditsUtilsService', () => {
     await expect(
       service.getCycleRemainingMetrics(
         'org-1',
-        new Date('2026-01-01T00:00:00.000Z'),
-        new Date('2026-02-01T00:00:00.000Z'),
+        {
+          cycleEndAt: new Date('2026-02-01T00:00:00.000Z'),
+          cycleStartAt: new Date('2026-01-01T00:00:00.000Z'),
+        },
         Number.POSITIVE_INFINITY,
       ),
     ).resolves.toEqual({

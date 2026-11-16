@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { getSubscriptionCycleWindow } from '@api/collections/credits/services/credit-cycle-window.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { AdminBillingQueryDto } from '@api/collections/subscriptions/dto/admin-billing-query.dto';
 import { ChangePlanDto } from '@api/collections/subscriptions/dto/change-plan.dto';
@@ -19,7 +20,6 @@ import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenan
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
-import { SubscriptionPlan } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   OrganizationBillingResponse,
@@ -242,19 +242,13 @@ export class SubscriptionsController {
           subscription?.stripePriceId,
         )) ?? 0;
 
-      const cycleWindow = this.getCycleWindow(subscription ?? null);
-      const cycleMetrics = cycleWindow
-        ? await this.creditsUtilsService.getCycleRemainingMetrics(
-            organizationId,
-            cycleWindow.cycleStartAt,
-            cycleWindow.cycleEndAt,
-            creditsData.total,
-          )
-        : {
-            cycleTotal: creditsData.total,
-            cycleUsed: 0,
-            remainingPercent: creditsData.total > 0 ? 100 : 0,
-          };
+      const cycleWindow = getSubscriptionCycleWindow(subscription ?? null);
+      const cycleMetrics =
+        await this.creditsUtilsService.getCycleRemainingMetrics(
+          organizationId,
+          cycleWindow,
+          creditsData.total,
+        );
 
       return {
         data: {
@@ -310,32 +304,5 @@ export class SubscriptionsController {
    */
   private readAsPlatformAdmin<T>(work: () => Promise<T>): Promise<T> {
     return crossOrgUnsafe(async () => await work());
-  }
-
-  private getCycleWindow(
-    subscription: {
-      currentPeriodEnd?: Date | null;
-      plan?: string | null;
-    } | null,
-  ): { cycleStartAt: Date; cycleEndAt: Date } | null {
-    const subscriptionPlan = subscription?.plan;
-    if (!subscription?.currentPeriodEnd || !subscriptionPlan) {
-      return null;
-    }
-
-    const cycleEndAt = new Date(subscription.currentPeriodEnd);
-    const cycleStartAt = new Date(cycleEndAt);
-
-    if (subscriptionPlan === SubscriptionPlan.MONTHLY) {
-      cycleStartAt.setMonth(cycleStartAt.getMonth() - 1);
-      return { cycleEndAt, cycleStartAt };
-    }
-
-    if (subscriptionPlan === SubscriptionPlan.YEARLY) {
-      cycleStartAt.setFullYear(cycleStartAt.getFullYear() - 1);
-      return { cycleEndAt, cycleStartAt };
-    }
-
-    return null;
   }
 }

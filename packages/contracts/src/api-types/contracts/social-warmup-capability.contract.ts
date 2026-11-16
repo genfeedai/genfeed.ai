@@ -367,8 +367,8 @@ export const SOCIAL_WARMUP_CAPABILITY_MATRIX = {
   }),
   [CredentialPlatform.BLUESKY]: capability({
     accountType:
-      'Bluesky account on its own or a Bluesky-hosted server (handle + app password).',
-    connectionScopes: ['app password'],
+      'Bluesky account on a Bluesky-hosted server, connected with Bluesky sign-in (OAuth).',
+    connectionScopes: ['atproto transition:generic'],
     evidenceFreshness: `Reviewed ${SOCIAL_WARMUP_CAPABILITY_REVIEWED_ON} against the Bluesky connect flow and the Bluesky scheduler channel.`,
     nativeOnlyActions: [
       'Follow, like, and repost from the native client',

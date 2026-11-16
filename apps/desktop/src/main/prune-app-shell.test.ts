@@ -8,6 +8,7 @@ interface PruneAppShell {
   listTracedSourceFiles(serverDirectory: string): string[];
   pruneBuildTraceFiles(directory: string): number;
   pruneTracedSourceFiles(serverDirectory: string): number;
+  pruneUnusedBuildFiles(serverRoot: string): number;
   pruneUnusedNextRuntimeFiles(nodeModulesRoot: string): number;
 }
 
@@ -93,5 +94,56 @@ describe('desktop app shell pruning', () => {
     expect(fs.readdirSync(path.join(root, 'next/dist/server'))).toEqual([
       'next-server.js',
     ]);
+  });
+
+  it('removes the edge runtime, the unused app page runtime and non-Node React server builds', () => {
+    write('next/dist/compiled/edge-runtime/index.js', 'edge');
+    write('next/dist/compiled/edge-runtime/package.json', '{}');
+    write(
+      'next/dist/compiled/next-server/app-page-turbo.runtime.prod.js',
+      'plain',
+    );
+    write(
+      'next/dist/compiled/next-server/app-page-turbo-experimental.runtime.prod.js',
+      'experimental',
+    );
+    write('next/dist/compiled/@edge-runtime/primitives/load.js', 'primitives');
+    write('react-dom/cjs/react-dom-server.browser.production.js', 'browser');
+    write('react-dom/cjs/react-dom-server.edge.production.js', 'edge');
+    write(
+      'react-dom/cjs/react-dom-server-legacy.browser.production.js',
+      'legacy-browser',
+    );
+    write('react-dom/cjs/react-dom-server.node.production.js', 'node');
+
+    expect(prune.pruneUnusedNextRuntimeFiles(root)).toBe(
+      'edge'.length +
+        '{}'.length +
+        'plain'.length +
+        'browser'.length +
+        'edge'.length +
+        'legacy-browser'.length,
+    );
+    expect(
+      fs
+        .readdirSync(root, { recursive: true, withFileTypes: true })
+        .filter((entry) => entry.isFile())
+        .map((entry) => entry.name)
+        .sort(),
+    ).toEqual([
+      'app-page-turbo-experimental.runtime.prod.js',
+      'load.js',
+      'react-dom-server.node.production.js',
+    ]);
+  });
+
+  it('removes the service worker source map body and keeps the worker', () => {
+    write('.next/server/app/serwist/sw.js.map.body', 'map');
+    write('.next/server/app/serwist/sw.js.body', 'worker');
+
+    expect(prune.pruneUnusedBuildFiles(root)).toBe('map'.length);
+    expect(fs.readdirSync(path.join(root, '.next/server/app/serwist'))).toEqual(
+      ['sw.js.body'],
+    );
   });
 });
