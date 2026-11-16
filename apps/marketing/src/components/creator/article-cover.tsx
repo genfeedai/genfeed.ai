@@ -89,14 +89,14 @@ export default function ArticleCover({
         <div className="absolute inset-0 flex items-end justify-between p-4 md:p-6">
           {category && (
             <span
-              className="gen-label-sm uppercase tracking-[0.2em]"
+              className="gen-label-sm uppercase tracking-label"
               style={{ color: palette.accent }}
             >
               {category}
             </span>
           )}
 
-          <span className="gen-label-sm uppercase tracking-[0.2em] text-foreground/50">
+          <span className="gen-label-sm uppercase tracking-label text-foreground/50">
             genfeed.ai
           </span>
         </div>

@@ -266,7 +266,7 @@ export default function TopbarPublic({
                         aria-haspopup="menu"
                         variant={ButtonVariant.UNSTYLED}
                         className={cn(
-                          'text-xs font-bold tracking-[0.1em] uppercase whitespace-nowrap transition-colors inline-flex items-center gap-2 py-2',
+                          'text-xs font-semibold tracking-label uppercase whitespace-nowrap transition-colors inline-flex items-center gap-2 py-2',
                           isAnyActive
                             ? 'text-foreground'
                             : 'text-foreground/60 hover:text-foreground',
@@ -294,7 +294,7 @@ export default function TopbarPublic({
                       <Link
                         href={link.href}
                         className={cn(
-                          'text-xs font-bold tracking-[0.1em] uppercase whitespace-nowrap transition-colors py-2',
+                          'text-xs font-semibold tracking-label uppercase whitespace-nowrap transition-colors py-2',
                           isActive
                             ? 'text-foreground'
                             : 'text-foreground/60 hover:text-foreground',

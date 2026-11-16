@@ -87,7 +87,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
             className="gsap-section"
           >
             <div className="text-center mb-16">
-              <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
+              <div className="text-foreground/50 text-xs font-semibold uppercase tracking-label mb-6">
                 {category.label}
               </div>
               <h2 className="text-5xl font-semibold mb-6">{category.title}</h2>
@@ -129,7 +129,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
         {registry && registry.skills.length > 0 && (
           <WebSection bg="bordered" className="gsap-section">
             <div className="text-center mb-16">
-              <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
+              <div className="text-foreground/50 text-xs font-semibold uppercase tracking-label mb-6">
                 Premium
               </div>
               <h2 className="text-5xl font-semibold mb-6">Pro Skills</h2>
@@ -175,10 +175,10 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
           <WebSection maxWidth="lg" className="gsap-section">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
               <div className="flex flex-col justify-center">
-                <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
-                  Quick Start
+                <div className="text-foreground/50 text-xs font-semibold uppercase tracking-label mb-6">
+                  Quick start
                 </div>
-                <h2 className="text-4xl font-semibold mb-4">One Command</h2>
+                <h2 className="text-4xl font-semibold mb-4">One command</h2>
                 <p className="text-foreground/70 text-sm leading-relaxed mb-6">
                   Install all {FREE_SKILL_COUNT} free skills with a single
                   command. Your agent loads each skill and activates it at
@@ -212,7 +212,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
           {/* Final CTA */}
           <CtaSection
             bg="subtle"
-            title="Start Creating"
+            title="Start creating"
             description={`${FREE_SKILL_COUNT} free skills. Every platform. One install. Upgrade to Pro for warmup and deep operating systems.`}
           >
             {registry && registry.skills.length > 0 && (

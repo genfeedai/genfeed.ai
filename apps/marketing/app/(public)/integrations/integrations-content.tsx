@@ -84,7 +84,7 @@ const HERO_PROOF = (
 const HERO_VISUAL = (
   <EditorialPoster
     detail="Each platform page lists the formats Genfeed can send there and what comes back."
-    eyebrow="Channel Map"
+    eyebrow="Channel map"
     footer={
       <span>{featuredIntegrations.map((item) => item.name).join(' / ')}</span>
     }
@@ -156,7 +156,7 @@ export default function IntegrationsContent() {
             </div>
             <Heading
               as="h3"
-              className="text-2xl font-bold mb-2 text-foreground"
+              className="text-2xl font-semibold mb-2 text-foreground"
             >
               Your agent, every channel
             </Heading>

@@ -603,7 +603,7 @@ export default function AppTable<T>({
                       }
                       className={cn(
                         hideHeader && 'sr-only',
-                        'h-10 select-none text-left align-middle text-xs font-medium uppercase tracking-wide text-muted-foreground',
+                        'h-10 select-none text-left align-middle text-xs font-medium uppercase tracking-label text-muted-foreground',
                         // A sortable header hands its padding to the button so
                         // the click target and focus ring span the whole cell.
                         isColumnSortableNow
@@ -618,7 +618,7 @@ export default function AppTable<T>({
                         <Button
                           ariaLabel={column.sortLabel}
                           className={cn(
-                            'group flex h-10 w-full items-center gap-1 text-left text-xs font-medium tracking-wide text-muted-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                            'group flex h-10 w-full items-center gap-1 text-left text-xs font-medium tracking-label text-muted-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                             isCompact ? 'px-2' : 'px-4',
                           )}
                           onClick={() => handleSort(columnKey)}

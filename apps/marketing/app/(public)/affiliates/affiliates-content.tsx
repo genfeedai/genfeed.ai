@@ -96,7 +96,7 @@ export default function AffiliatesContent() {
 
         <WebSection bg="bordered" maxWidth="md" className="gsap-section">
           <SectionHeader
-            title="Common Questions"
+            title="Common questions"
             description="The terms above are what billing pays out."
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />

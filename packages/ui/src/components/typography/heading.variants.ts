@@ -6,8 +6,8 @@ export const headingVariants = cva('font-semibold text-foreground', {
   },
   variants: {
     size: {
-      '2xl': 'text-2xl font-bold',
-      '3xl': 'text-3xl font-bold',
+      '2xl': 'text-2xl font-semibold',
+      '3xl': 'text-3xl font-semibold',
       lg: 'text-lg',
       md: 'text-base',
       sm: 'text-sm',

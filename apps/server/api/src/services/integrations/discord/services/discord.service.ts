@@ -10,6 +10,22 @@ import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+/** The webhook Discord creates for the channel the user picked. */
+interface DiscordIncomingWebhook {
+  channel_id: string;
+  guild_id: string;
+  id: string;
+  name?: string | null;
+  token: string;
+}
+
+export interface DiscordTokenResponse {
+  access_token?: string;
+  expires_in?: number;
+  refresh_token?: string;
+  webhook?: DiscordIncomingWebhook;
+}
+
 @Traced()
 @Injectable()
 export class DiscordService {
@@ -23,7 +39,7 @@ export class DiscordService {
 
   private readonly authUrl = 'https://discord.com/api/oauth2/authorize';
   private readonly tokenUrl = 'https://discord.com/api/oauth2/token';
-  private readonly userUrl = 'https://discord.com/api/users/@me';
+  private readonly userGuildsUrl = 'https://discord.com/api/users/@me/guilds';
 
   constructor(
     private readonly configService: ConfigService,
@@ -79,7 +95,9 @@ export class DiscordService {
       client_id: this.clientId,
       redirect_uri: this.redirectUri,
       response_type: 'code',
-      scope: 'identify email',
+      // `webhook.incoming` makes Discord ask the user to pick a channel and
+      // returns a webhook for it, so posting needs no bot in the server.
+      scope: 'identify guilds webhook.incoming',
       state,
     });
 
@@ -92,7 +110,7 @@ export class DiscordService {
    * @param code - Authorization code from Discord
    * @returns Token response
    */
-  async exchangeCodeForToken(code: string) {
+  async exchangeCodeForToken(code: string): Promise<DiscordTokenResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     if (!this.clientId || !this.clientSecret || !this.redirectUri) {
@@ -144,38 +162,27 @@ export class DiscordService {
   }
 
   /**
-   * Get Discord user information
-   *
-   * @param accessToken - Discord access token
-   * @returns User information
+   * The name of one server the user belongs to, for the channel label. Null
+   * when the lookup fails; the label then falls back to the server id.
    */
-  async getUserInfo(accessToken: string) {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
+  async getGuildName(
+    accessToken: string,
+    guildId: string,
+  ): Promise<string | null> {
     try {
       const response = await firstValueFrom(
-        this.httpService.get(this.userUrl, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }),
+        this.httpService.get<Array<{ id: string; name: string }>>(
+          this.userGuildsUrl,
+          { headers: { Authorization: `Bearer ${accessToken}` } },
+        ),
       );
-
-      this.loggerService.log(`${url} succeeded`, {
-        userId: response.data.id,
-        username: response.data.username,
-      });
-
-      return response.data;
+      return response.data.find((guild) => guild.id === guildId)?.name ?? null;
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw new HttpException(
-        {
-          detail: this.getErrorDetail(error, 'Failed to get Discord user info'),
-          title: 'Get User Failed',
-        },
-        HttpStatus.UNAUTHORIZED,
+      this.loggerService.warn(
+        `${this.constructorName} server name lookup failed`,
+        { error: error instanceof Error ? error.name : 'unknown' },
       );
+      return null;
     }
   }
 

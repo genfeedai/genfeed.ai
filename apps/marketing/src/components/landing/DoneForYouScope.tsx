@@ -74,7 +74,7 @@ export default function DoneForYouScope(): React.ReactElement {
               href={item.href}
               className="flex items-center justify-between bg-background p-4 transition-colors hover:bg-foreground/5"
             >
-              <span className="text-xs font-black uppercase tracking-widest text-foreground/60">
+              <span className="text-xs font-semibold uppercase tracking-label text-foreground/60">
                 {item.label}
               </span>
               <span className="text-sm font-semibold text-foreground">→</span>

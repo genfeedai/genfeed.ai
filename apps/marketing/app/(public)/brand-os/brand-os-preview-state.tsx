@@ -362,7 +362,7 @@ function EvidencePreview({ draft }: { draft: IBrandKitDraft }) {
                     />
                   )}
                   <div className="flex flex-col gap-0.5">
-                    <Text className="text-2xs font-black uppercase tracking-[0.12em] text-foreground/60">
+                    <Text className="text-2xs font-semibold uppercase tracking-label text-foreground/60">
                       {diagnostic.severity}
                     </Text>
                     <Text className="text-xs leading-5 text-foreground/70">

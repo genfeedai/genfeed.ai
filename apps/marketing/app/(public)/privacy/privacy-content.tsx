@@ -12,7 +12,7 @@ const privacyPolicySections = [
       'We also automatically collect certain information about your device and how you interact with our platform, including IP address, browser type, and usage statistics.',
     ],
     shortLabel: 'Collection',
-    title: 'Information We Collect',
+    title: 'Information we collect',
   },
   {
     listItems: [
@@ -23,7 +23,7 @@ const privacyPolicySections = [
       'To monitor and analyze trends and usage of our platform',
     ],
     shortLabel: 'Usage',
-    title: 'How We Use Your Information',
+    title: 'How we use your information',
   },
   {
     content: [
@@ -89,7 +89,7 @@ const privacyPolicySections = [
       },
     ],
     shortLabel: 'TikTok',
-    title: 'TikTok Data',
+    title: 'TikTok data',
   },
   {
     content: [
@@ -115,7 +115,7 @@ const privacyPolicySections = [
       },
     ],
     shortLabel: 'Extension',
-    title: 'Browser Extension',
+    title: 'Browser extension',
   },
 ];
 
@@ -125,21 +125,21 @@ const privacyRights = [
       'You have the right to access personal data we hold about you and to request that we correct, update, or delete your information at any time.',
     icon: Eye,
     shortLabel: 'Access',
-    title: 'Data Access',
+    title: 'Data access',
   },
   {
     description:
       'Genfeed.ai is committed to protecting your data using industry-standard security measures. However, no method of transmission over the Internet is 100% secure.',
     icon: Lock,
     shortLabel: 'Security',
-    title: 'Data Security',
+    title: 'Data security',
   },
   {
     description:
       'We use cookies and similar technologies to enhance your experience, analyze usage, and assist in our marketing efforts. You can control cookies through your browser settings.',
     icon: Cookie,
     shortLabel: 'Cookies',
-    title: 'Cookie Policy',
+    title: 'Cookie policy',
   },
 ];
 
@@ -148,7 +148,7 @@ export default function PrivacyContent() {
     <MarketingEntrance cards={false}>
       <PageLayout
         compact
-        title={<>Privacy Policy</>}
+        title={<>Privacy policy</>}
         description="How we protect your data. We don't sell your information."
       >
         <section className="py-16 md:py-32 gsap-hero">
@@ -217,7 +217,7 @@ export default function PrivacyContent() {
           <div className="container mx-auto px-6">
             <div className="text-center mb-16">
               <h2 className="text-5xl font-semibold mb-6">
-                Your Privacy Rights
+                Your privacy rights
               </h2>
               <p className="text-foreground/70 max-w-xl mx-auto">
                 We believe in transparency and your right to control your data.

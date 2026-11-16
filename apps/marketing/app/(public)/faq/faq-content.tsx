@@ -55,7 +55,7 @@ export default function FAQContent() {
             <div className="space-y-12">
               <div className="gsap-hero">
                 <h2 className="text-4xl font-semibold mb-4">
-                  Frequently Asked Questions
+                  Frequently asked questions
                 </h2>
                 <p className="text-lg text-muted-foreground">
                   Everything you need to know about Genfeed
@@ -103,7 +103,7 @@ export default function FAQContent() {
             <div className="hidden lg:block">
               <div className="sticky top-24 space-y-6">
                 <div className="gen-card-spotlight p-6">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-label mb-4">
                     Jump to
                   </h3>
                   <nav className="space-y-1">
@@ -141,7 +141,7 @@ export default function FAQContent() {
 
                 {/* Quick contact */}
                 <div className="gen-card-spotlight p-6">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-label mb-4">
                     Contact us
                   </h3>
                   <a

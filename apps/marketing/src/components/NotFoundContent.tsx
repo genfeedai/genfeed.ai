@@ -15,7 +15,7 @@ export default function NotFoundContent({
   backLinkLabel = 'Back to Home',
 }: NotFoundContentProps) {
   return (
-    <PageLayout title="Not Found" description={title}>
+    <PageLayout title="Not found" description={title}>
       <NotFoundState
         title={title}
         message={message}

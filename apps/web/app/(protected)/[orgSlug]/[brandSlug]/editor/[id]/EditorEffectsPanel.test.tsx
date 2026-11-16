@@ -4,6 +4,12 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import EditorEffectsPanel from './EditorEffectsPanel';
 import '@testing-library/jest-dom/vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 class ResizeObserverMock {
   observe() {}
   unobserve() {}
@@ -65,7 +71,9 @@ describe('EditorEffectsPanel', () => {
     );
 
     expect(screen.getByRole('button', { name: /Brightness/ })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '✕' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Remove effect' }),
+    ).toBeDisabled();
     expect(screen.getByRole('slider')).toHaveAttribute('data-disabled');
   });
 });

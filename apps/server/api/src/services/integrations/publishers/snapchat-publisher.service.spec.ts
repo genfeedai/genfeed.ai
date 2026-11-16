@@ -13,7 +13,12 @@ import {
   CredentialPlatform,
   PostCategory,
   PostStatus,
+  PublishErrorKind,
 } from '@genfeedai/contracts';
+import {
+  type PublishError,
+  readPublishErrorKind,
+} from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -234,6 +239,75 @@ describe('SnapchatPublisherService', () => {
     it('should build spotlight URL from externalId', () => {
       const url = service.buildPostUrl('story-789', mockCredential as never);
       expect(url).toBe('https://www.snapchat.com/spotlight/story-789');
+    });
+  });
+
+  describe('typed publish errors', () => {
+    const providerFailure = (status: number, headers = {}): Error =>
+      Object.assign(new Error(`status ${status}`), {
+        response: { data: {}, headers, status },
+      });
+
+    async function failureOf(run: () => Promise<unknown>): Promise<unknown> {
+      return run().then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+    }
+
+    it('throws a rate_limited error that carries the provider wait', async () => {
+      snapchatService.createMedia.mockRejectedValue(
+        providerFailure(429, { 'retry-after': '30' }),
+      );
+
+      const error = await failureOf(() => service.publish(makeContext()));
+
+      expect(readPublishErrorKind(error)).toBe(PublishErrorKind.RATE_LIMITED);
+      expect((error as PublishError).retryAfterMs).toBe(30_000);
+    });
+
+    it('throws outcome_unknown for a 5xx that may hide an accepted publish', async () => {
+      snapchatService.createMedia.mockRejectedValue(providerFailure(503));
+
+      const error = await failureOf(() => service.publish(makeContext()));
+
+      expect(readPublishErrorKind(error)).toBe(
+        PublishErrorKind.OUTCOME_UNKNOWN,
+      );
+    });
+
+    it('throws token_must_refresh for a 401', async () => {
+      snapchatService.createMedia.mockRejectedValue(providerFailure(401));
+
+      const error = await failureOf(() => service.publish(makeContext()));
+
+      expect(readPublishErrorKind(error)).toBe(
+        PublishErrorKind.TOKEN_MUST_REFRESH,
+      );
+    });
+
+    it('still rethrows a plain error from our own code unchanged', async () => {
+      const plain = new Error('boom');
+      snapchatService.createMedia.mockRejectedValue(plain);
+
+      await expect(service.publish(makeContext())).rejects.toBe(plain);
+    });
+
+    it('returns retry_later when only the media upload failed to return an id', async () => {
+      snapchatService.createMedia.mockResolvedValue(null as never);
+
+      const result = await service.publish(makeContext());
+
+      expect(result.errorKind).toBe(PublishErrorKind.RETRY_LATER);
+    });
+
+    it('returns outcome_unknown when the story call returns no id', async () => {
+      snapchatService.createMedia.mockResolvedValue('media-1');
+      snapchatService.publishStory.mockResolvedValue(null as never);
+
+      const result = await service.publish(makeContext());
+
+      expect(result.errorKind).toBe(PublishErrorKind.OUTCOME_UNKNOWN);
     });
   });
 });

@@ -293,7 +293,7 @@ export function AgentChatTimeline({
                 <CollapsibleContent>
                   {reasoning ? (
                     <div className="py-1">
-                      <p className="text-2xs font-medium uppercase tracking-wide text-muted-foreground">
+                      <p className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
                         {translate('thinking')}
                       </p>
                       <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-muted-foreground">

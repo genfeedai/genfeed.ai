@@ -23,15 +23,14 @@ const DENSITY = {
     body: 'flex h-full flex-col justify-between gap-6 p-5',
     card: 'min-h-[136px]',
     label:
-      'text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground',
+      'text-2xs font-semibold uppercase tracking-label text-muted-foreground',
     value: 'text-3xl font-semibold tracking-[-0.02em] text-foreground',
   },
   compact: {
     accent: 'text-2xs text-muted-foreground',
     body: 'p-4',
     card: '',
-    label:
-      'text-2xs font-medium uppercase tracking-[0.14em] text-foreground/60',
+    label: 'text-2xs font-medium uppercase tracking-label text-foreground/60',
     value: 'text-2xl font-semibold tracking-[-0.02em] text-foreground',
   },
 } as const;

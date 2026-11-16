@@ -189,7 +189,7 @@ export function AgentOutputsPanel({
           <div className="gen-shell-surface mx-auto flex size-14 items-center justify-center rounded-lg">
             <Image className="size-5 text-muted-foreground" />
           </div>
-          <p className="mt-4 text-2xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+          <p className="mt-4 text-2xs font-semibold uppercase tracking-label text-muted-foreground">
             Outputs
           </p>
           <h2 className="mt-3 text-lg font-semibold tracking-[-0.02em] text-foreground">
@@ -360,7 +360,7 @@ export function AgentOutputsPanel({
                     </p>
                     {group.status ? (
                       <span
-                        className="gen-shell-chip px-2 py-0.5 text-2xs uppercase tracking-wide"
+                        className="gen-shell-chip px-2 py-0.5 text-2xs uppercase tracking-label"
                         data-tone="neutral"
                       >
                         {group.status}

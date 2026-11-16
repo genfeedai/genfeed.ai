@@ -28,9 +28,9 @@ function getStatusBadgeLabel(fileStatus: FileUploadStatus): string {
     case UploadStatus.UPLOADING:
       return `${fileStatus.progress}%`;
     case UploadStatus.COMPLETED:
-      return '✓';
+      return 'Done';
     case UploadStatus.FAILED:
-      return '✗';
+      return 'Failed';
     default:
       return 'pending';
   }

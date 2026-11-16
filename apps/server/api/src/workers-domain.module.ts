@@ -138,6 +138,7 @@ import { StepExecutorService } from '@api/services/content-orchestration/step-ex
 import { TelegramDistributionService } from '@api/services/distribution/telegram/telegram-distribution.service';
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { DiscordWebhookService } from '@api/services/integrations/discord/services/discord-webhook.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { FalService } from '@api/services/integrations/fal/services/fal.service';
@@ -155,6 +156,7 @@ import { MastodonService } from '@api/services/integrations/mastodon/services/ma
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import { BeehiivPublisherService } from '@api/services/integrations/publishers/beehiiv-publisher.service';
+import { DiscordPublisherService } from '@api/services/integrations/publishers/discord-publisher.service';
 import { FacebookPublisherService } from '@api/services/integrations/publishers/facebook-publisher.service';
 import { FanvuePublisherService } from '@api/services/integrations/publishers/fanvue-publisher.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
@@ -166,7 +168,9 @@ import { PinterestPublisherService } from '@api/services/integrations/publishers
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { RedditPublisherService } from '@api/services/integrations/publishers/reddit-publisher.service';
 import { ShopifyPublisherService } from '@api/services/integrations/publishers/shopify-publisher.service';
+import { SlackPublisherService } from '@api/services/integrations/publishers/slack-publisher.service';
 import { SnapchatPublisherService } from '@api/services/integrations/publishers/snapchat-publisher.service';
+import { TelegramPublisherService } from '@api/services/integrations/publishers/telegram-publisher.service';
 import { ThreadsPublisherService } from '@api/services/integrations/publishers/threads-publisher.service';
 import { TikTokPublisherService } from '@api/services/integrations/publishers/tiktok-publisher.service';
 import { TwitterPublisherService } from '@api/services/integrations/publishers/twitter-publisher.service';
@@ -175,6 +179,8 @@ import { WordpressPublisherService } from '@api/services/integrations/publishers
 import { YouTubePublisherService } from '@api/services/integrations/publishers/youtube-publisher.service';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { SlackService } from '@api/services/integrations/slack/services/slack.service';
+import { TelegramBotApiService } from '@api/services/integrations/telegram/services/telegram-bot-api.service';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TikTokAdsService } from '@api/services/integrations/tiktok-ads/services/tiktok-ads.service';
@@ -405,7 +411,13 @@ const WORKER_DOMAIN_SERVICES = [
   TaskOrchestratorService,
   TaskQueueClientService,
   TasksService,
+  DiscordPublisherService,
+  DiscordWebhookService,
+  SlackPublisherService,
+  SlackService,
+  TelegramBotApiService,
   TelegramDistributionService,
+  TelegramPublisherService,
   TextGenerationCreditsService,
   ThreadsPublisherService,
   ThreadsService,

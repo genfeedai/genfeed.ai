@@ -676,7 +676,7 @@ export function AgentCliTerminalBody({
             <Button
               aria-label="Close search"
               className="h-6 rounded border border-border/60 px-2 text-2xs text-foreground/60 transition-colors hover:border-success/50 hover:text-success"
-              label="✕"
+              icon={<X className="size-3.5" />}
               onClick={(event) => {
                 event.stopPropagation();
                 onCloseSearch?.();

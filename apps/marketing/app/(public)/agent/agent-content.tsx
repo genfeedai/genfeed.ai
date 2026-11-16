@@ -106,7 +106,10 @@ export default function AgentContent() {
       >
         {/* Lead with what Genfeed’s own agent does with a brief. */}
         <section className="gsap-section max-w-6xl mx-auto pb-20 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
+          <Heading
+            as="h2"
+            className="text-2xl font-semibold mb-2 text-foreground"
+          >
             What people ask it for
           </Heading>
           <Text as="p" className="text-foreground/70 mb-8">
@@ -134,7 +137,7 @@ export default function AgentContent() {
         </section>
 
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold text-center mb-8">
+          <Heading as="h2" className="text-2xl font-semibold text-center mb-8">
             What your agent can do with Genfeed
           </Heading>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
@@ -158,7 +161,10 @@ export default function AgentContent() {
 
         {/* Ways to connect an agent to Genfeed. */}
         <section className="gsap-section max-w-6xl mx-auto border-t border-foreground/10 pb-10 px-6 pt-16">
-          <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
+          <Heading
+            as="h2"
+            className="text-2xl font-semibold mb-2 text-foreground"
+          >
             Three ways to connect
           </Heading>
           <Text as="p" className="text-foreground/70">
@@ -211,7 +217,10 @@ export default function AgentContent() {
         </section>
 
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
+          <Heading
+            as="h2"
+            className="text-2xl font-semibold mb-2 text-foreground"
+          >
             Install the CLI
           </Heading>
           <Text as="p" className="text-foreground/70 mb-8">
@@ -221,7 +230,7 @@ export default function AgentContent() {
             {CLI_STEPS.map((step, index) => (
               <div key={step.label}>
                 <div className="flex flex-col gap-3 py-6">
-                  <Text className="text-lg font-bold text-foreground">
+                  <Text className="text-lg font-semibold text-foreground">
                     {step.label}
                   </Text>
                   <pre className="overflow-x-auto rounded-sm border gen-border bg-card p-4 text-sm text-foreground">
@@ -248,7 +257,10 @@ export default function AgentContent() {
                 </div>
               </div>
               <div className="flex w-full min-w-0 flex-col gap-3">
-                <Heading as="h2" className="text-2xl font-bold text-foreground">
+                <Heading
+                  as="h2"
+                  className="text-2xl font-semibold text-foreground"
+                >
                   Teach your agent the craft
                 </Heading>
                 <Text as="p" className="text-foreground/70">
@@ -273,7 +285,7 @@ export default function AgentContent() {
             </div>
             <Heading
               as="h2"
-              className="text-2xl font-bold mb-2 text-foreground"
+              className="text-2xl font-semibold mb-2 text-foreground"
             >
               Connect Agent
             </Heading>

@@ -51,7 +51,7 @@ function renderOutputPreview(
   if (variant.kind === 'text' && variant.textContent) {
     return (
       <div className="flex aspect-square flex-col justify-between border border-border/60 bg-background/80 p-3">
-        <div className="flex items-center gap-2 text-2xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        <div className="flex items-center gap-2 text-2xs font-medium uppercase tracking-label text-muted-foreground">
           <Sparkles className="size-3.5" />
           {variant.title ?? 'Text'}
         </div>

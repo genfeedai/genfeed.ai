@@ -61,10 +61,12 @@ const DESIGN_SYSTEM_BASELINE_PATH = path.join(
 );
 
 export type DesignSystemFindingKind =
+  | 'heavy-weight'
   | 'off-contract-focus-ring'
   | 'off-ladder-opacity'
   | 'off-scale-icon-size'
   | 'off-scale-text-size'
+  | 'off-token-tracking'
   | 'palette-color'
   | 'raw-chrome-color'
   | 'sub-11-text'
@@ -375,10 +377,12 @@ const NATIVE_CONTROL_NAMES = new Set([
 ]);
 const PACKAGE_UI_EXTENSIONS = new Set(['.js', '.jsx', '.ts', '.tsx']);
 const DESIGN_SYSTEM_FINDING_KINDS: readonly DesignSystemFindingKind[] = [
+  'heavy-weight',
   'off-contract-focus-ring',
   'off-ladder-opacity',
   'off-scale-icon-size',
   'off-scale-text-size',
+  'off-token-tracking',
   'palette-color',
   'raw-chrome-color',
   'sub-11-text',
@@ -542,6 +546,17 @@ export function isOffContractFocusRingToken(token: string): boolean {
 }
 
 const MIN_NEGATIVE_TRACKING_EM = -0.02;
+const HEAVY_WEIGHT_PATTERN = /^font-(?:bold|extrabold|black)$/u;
+const POSITIVE_TRACKING_PATTERN =
+  /^tracking-(?:wide|wider|widest|\[\+?\d*\.?\d+(?:em|px|rem)\])$/u;
+
+function isHeavyWeightToken(token: string): boolean {
+  return HEAVY_WEIGHT_PATTERN.test(baseClassToken(token));
+}
+
+function isOffTokenTrackingToken(token: string): boolean {
+  return POSITIVE_TRACKING_PATTERN.test(baseClassToken(token));
+}
 
 function isTightTrackingToken(token: string): boolean {
   const base = baseClassToken(token);
@@ -680,6 +695,12 @@ export function findPackageUiGuardFindings(
         }
         if (isTightTrackingToken(token)) {
           addFinding(literal, 'tight-tracking', token);
+        }
+        if (isHeavyWeightToken(token)) {
+          addFinding(literal, 'heavy-weight', token);
+        }
+        if (isOffTokenTrackingToken(token)) {
+          addFinding(literal, 'off-token-tracking', token);
         }
         if (isOffScaleTextSizeToken(token)) {
           addFinding(literal, 'off-scale-text-size', token);
@@ -947,17 +968,21 @@ export function formatDesignSystemRegressions(
             ? `use a semantic foreground/background token, or mark genuine content color with ${APP_CHROME_COLOR_ALLOW_MARKER}`
             : finding.kind === 'undersized-control-height'
               ? 'use h-control-sm (the 32px minimum control-scale token)'
-              : finding.kind === 'tight-tracking'
-                ? 'use tracking-tight (-0.02em, the tightest tracking DESIGN.md allows)'
-                : finding.kind === 'off-scale-icon-size'
-                  ? 'use an icon step: size-3.5 (14px), size-4 (16px) or size-5 (20px)'
-                  : finding.kind === 'off-ladder-opacity'
-                    ? 'use an opacity stop from the ladder: /5 /10 /20 /40 /50 /60 /70 /80 /90 (or /0, /100)'
-                    : finding.kind === 'off-contract-focus-ring'
-                      ? 'use focusRingClassName or focusRingInsetClassName from @ui/primitives/focus-ring (focus-visible:outline-hidden ring-2 ring-ring ring-offset-2 ring-offset-background)'
-                      : finding.kind === 'off-scale-text-size'
-                        ? 'use the named step: text-2xs (11px), text-xs (12px), text-sm (14px), text-md (15px) or text-base (16px)'
-                        : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
+              : finding.kind === 'heavy-weight'
+                ? 'use font-semibold (600), the heaviest weight DESIGN.md allows'
+                : finding.kind === 'off-token-tracking'
+                  ? 'use tracking-label (0.18em), the only positive tracking DESIGN.md allows'
+                  : finding.kind === 'tight-tracking'
+                    ? 'use tracking-tight (-0.02em, the tightest tracking DESIGN.md allows)'
+                    : finding.kind === 'off-scale-icon-size'
+                      ? 'use an icon step: size-3.5 (14px), size-4 (16px) or size-5 (20px)'
+                      : finding.kind === 'off-ladder-opacity'
+                        ? 'use an opacity stop from the ladder: /5 /10 /20 /40 /50 /60 /70 /80 /90 (or /0, /100)'
+                        : finding.kind === 'off-contract-focus-ring'
+                          ? 'use focusRingClassName or focusRingInsetClassName from @ui/primitives/focus-ring (focus-visible:outline-hidden ring-2 ring-ring ring-offset-2 ring-offset-background)'
+                          : finding.kind === 'off-scale-text-size'
+                            ? 'use the named step: text-2xs (11px), text-xs (12px), text-sm (14px), text-md (15px) or text-base (16px)'
+                            : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
       return `${finding.file}:${finding.line}: ${finding.token} — ${remedy}\n  ${finding.source}`;
     })
     .join('\n');

@@ -28,25 +28,13 @@ interface PendingCredential {
 
 interface ConnectedAccount {
   account: {
-    avatarUrl?: string;
     handle: string;
     id: string;
     name: string;
   };
   credentialId: string;
   organizationId: string;
-  tokens: {
-    accessToken: string;
-    accessTokenExpiry?: Date;
-    refreshToken?: string;
-  };
-}
-
-interface DiscordProfile {
-  avatar?: string;
-  global_name?: string;
-  id: string;
-  username: string;
+  tokens: { accessToken: string };
 }
 
 describe('DiscordController', () => {
@@ -61,10 +49,14 @@ describe('DiscordController', () => {
   let exchangedCodes: string[];
   let tokenResponse: {
     access_token?: string;
-    expires_in?: number;
-    refresh_token?: string;
+    webhook?: {
+      channel_id: string;
+      guild_id: string;
+      id: string;
+      token: string;
+    };
   };
-  let profile: DiscordProfile;
+  let guildName: string | null;
   let controller: DiscordController;
 
   beforeEach(() => {
@@ -74,15 +66,14 @@ describe('DiscordController', () => {
     exchangedCodes = [];
     tokenResponse = {
       access_token: 'access-token',
-      expires_in: 604800,
-      refresh_token: 'refresh-token',
+      webhook: {
+        channel_id: '222',
+        guild_id: '777',
+        id: '111',
+        token: 'webhook-token',
+      },
     };
-    profile = {
-      avatar: 'avatar-hash',
-      global_name: 'Test User',
-      id: '123456',
-      username: 'testuser',
-    };
+    guildName = 'Genfeed';
 
     const discordService = {
       exchangeCodeForToken: async (code: string) => {
@@ -91,12 +82,7 @@ describe('DiscordController', () => {
       },
       generateAuthUrl: (state: string) =>
         `https://discord.com/oauth2/authorize?state=${state}`,
-      getUserInfo: async (accessToken: string) => {
-        if (accessToken !== tokenResponse.access_token) {
-          throw new Error('unexpected token');
-        }
-        return profile;
-      },
+      getGuildName: async () => guildName,
     };
 
     const credentialsService = {
@@ -188,7 +174,7 @@ describe('DiscordController', () => {
       await controller.connect(request, user, brandId);
     });
 
-    it('connects the Discord account behind the pending credential', async () => {
+    it('connects the picked channel as the account, keeping only the webhook', async () => {
       const result = await controller.verify(
         request,
         user,
@@ -201,34 +187,33 @@ describe('DiscordController', () => {
       expect(connected).toEqual([
         {
           account: {
-            avatarUrl:
-              'https://cdn.discordapp.com/avatars/123456/avatar-hash.png',
-            handle: 'testuser',
-            id: '123456',
-            name: 'Test User',
+            handle: '222',
+            id: '777:222',
+            name: 'Genfeed · channel 222',
           },
           credentialId: 'cred-1',
           organizationId: orgId,
-          tokens: {
-            accessToken: 'access-token',
-            accessTokenExpiry: expect.any(Date),
-            refreshToken: 'refresh-token',
-          },
+          tokens: { accessToken: '111/webhook-token' },
         },
       ]);
     });
 
-    it('falls back to the username and no avatar when Discord has neither', async () => {
-      profile = { id: '999', username: 'user' };
+    it('labels the channel with the server id when the name is unavailable', async () => {
+      guildName = null;
 
       await controller.verify(request, user, 'code', 'state-1');
 
-      expect(connected[0]?.account).toEqual({
-        avatarUrl: undefined,
-        handle: 'user',
-        id: '999',
-        name: 'user',
-      });
+      expect(connected[0]?.account.name).toBe('Server 777 · channel 222');
+    });
+
+    it('refuses a grant that came back without a channel webhook', async () => {
+      tokenResponse = { access_token: 'access-token' };
+
+      await expect(
+        controller.verify(request, user, 'code', 'state-1'),
+      ).rejects.toMatchObject({ status: 400 });
+
+      expect(connected).toEqual([]);
     });
 
     it.each([

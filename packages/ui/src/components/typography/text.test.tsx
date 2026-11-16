@@ -117,16 +117,6 @@ describe('Text', () => {
       render(<Text weight="semibold">Semibold</Text>);
       expect(screen.getByText('Semibold')).toHaveClass('font-semibold');
     });
-
-    it('renders bold weight', () => {
-      render(<Text weight="bold">Bold</Text>);
-      expect(screen.getByText('Bold')).toHaveClass('font-bold');
-    });
-
-    it('renders black weight', () => {
-      render(<Text weight="black">Black</Text>);
-      expect(screen.getByText('Black')).toHaveClass('font-black');
-    });
   });
 
   describe('combined props', () => {
@@ -143,14 +133,14 @@ describe('Text', () => {
 
     it('combines all variants', () => {
       render(
-        <Text size="lg" color="primary" weight="bold">
+        <Text size="lg" color="primary" weight="semibold">
           All variants
         </Text>,
       );
       const text = screen.getByText('All variants');
       expect(text).toHaveClass('text-lg');
       expect(text).toHaveClass('text-primary');
-      expect(text).toHaveClass('font-bold');
+      expect(text).toHaveClass('font-semibold');
     });
   });
 

@@ -4,6 +4,7 @@ import { SERVER_TOKENS } from '@api/index';
 import { BeehiivModule } from '@api/services/integrations/beehiiv/beehiiv.module';
 import { BlueskyModule } from '@api/services/integrations/bluesky/bluesky.module';
 import { DevtoModule } from '@api/services/integrations/devto/devto.module';
+import { DiscordModule } from '@api/services/integrations/discord/discord.module';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
 import { FanvueModule } from '@api/services/integrations/fanvue/fanvue.module';
 import { GhostModule } from '@api/services/integrations/ghost/ghost.module';
@@ -16,6 +17,7 @@ import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.
 import { BeehiivPublisherService } from '@api/services/integrations/publishers/beehiiv-publisher.service';
 import { BlueskyPublisherService } from '@api/services/integrations/publishers/bluesky-publisher.service';
 import { DevtoPublisherService } from '@api/services/integrations/publishers/devto-publisher.service';
+import { DiscordPublisherService } from '@api/services/integrations/publishers/discord-publisher.service';
 import { FacebookPublisherService } from '@api/services/integrations/publishers/facebook-publisher.service';
 import { FanvuePublisherService } from '@api/services/integrations/publishers/fanvue-publisher.service';
 import { GenfeedPublisherService } from '@api/services/integrations/publishers/genfeed-publisher.service';
@@ -29,7 +31,9 @@ import { PinterestPublisherService } from '@api/services/integrations/publishers
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { RedditPublisherService } from '@api/services/integrations/publishers/reddit-publisher.service';
 import { ShopifyPublisherService } from '@api/services/integrations/publishers/shopify-publisher.service';
+import { SlackPublisherService } from '@api/services/integrations/publishers/slack-publisher.service';
 import { SnapchatPublisherService } from '@api/services/integrations/publishers/snapchat-publisher.service';
+import { TelegramPublisherService } from '@api/services/integrations/publishers/telegram-publisher.service';
 import { ThreadsPublisherService } from '@api/services/integrations/publishers/threads-publisher.service';
 import { TikTokPublisherService } from '@api/services/integrations/publishers/tiktok-publisher.service';
 import { TwitterPublisherService } from '@api/services/integrations/publishers/twitter-publisher.service';
@@ -38,7 +42,9 @@ import { WordpressPublisherService } from '@api/services/integrations/publishers
 import { YouTubePublisherService } from '@api/services/integrations/publishers/youtube-publisher.service';
 import { RedditModule } from '@api/services/integrations/reddit/reddit.module';
 import { ShopifyModule } from '@api/services/integrations/shopify/shopify.module';
+import { SlackModule } from '@api/services/integrations/slack/slack.module';
 import { SnapchatModule } from '@api/services/integrations/snapchat/snapchat.module';
+import { TelegramBotApiModule } from '@api/services/integrations/telegram/telegram-bot-api.module';
 import { ThreadsModule } from '@api/services/integrations/threads/threads.module';
 import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
@@ -61,6 +67,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
     BeehiivPublisherService,
     BlueskyPublisherService,
     DevtoPublisherService,
+    DiscordPublisherService,
     FacebookPublisherService,
     FanvuePublisherService,
     GenfeedPublisherService,
@@ -76,7 +83,9 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
     SERVER_PUBLISHER_FACTORY_PROVIDER,
     RedditPublisherService,
     ShopifyPublisherService,
+    SlackPublisherService,
     SnapchatPublisherService,
+    TelegramPublisherService,
     ThreadsPublisherService,
     TikTokPublisherService,
     // Export individual publishers if needed directly
@@ -95,6 +104,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
     BeehiivModule,
     BlueskyModule,
     DevtoModule,
+    DiscordModule,
     FacebookModule,
     FanvueModule,
     GhostModule,
@@ -106,7 +116,9 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
     PinterestModule,
     RedditModule,
     ShopifyModule,
+    SlackModule,
     SnapchatModule,
+    TelegramBotApiModule,
     ThreadsModule,
     TiktokModule,
     TwitterModule,
@@ -122,6 +134,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
     BeehiivPublisherService,
     BlueskyPublisherService,
     DevtoPublisherService,
+    DiscordPublisherService,
     FacebookPublisherService,
     FanvuePublisherService,
     GenfeedPublisherService,
@@ -137,7 +150,9 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
     SERVER_PUBLISHER_FACTORY_PROVIDER,
     RedditPublisherService,
     ShopifyPublisherService,
+    SlackPublisherService,
     SnapchatPublisherService,
+    TelegramPublisherService,
     ThreadsPublisherService,
     TikTokPublisherService,
     // Publisher services

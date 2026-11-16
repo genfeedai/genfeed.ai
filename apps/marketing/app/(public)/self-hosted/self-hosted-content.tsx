@@ -48,19 +48,19 @@ const WHY_SELF_HOST = [
     description:
       'Run Genfeed on your own servers with Docker Compose: one container plus PostgreSQL. Your storage, your network, and an MCP endpoint your agent connects to.',
     icon: Server,
-    title: 'Own Your Infrastructure',
+    title: 'Own your infrastructure',
   },
   {
     description:
       'Your content, brands, and database live on your infrastructure. Generation requests go to the model providers whose keys you add.',
     icon: ShieldCheck,
-    title: 'Own Your Data',
+    title: 'Own your data',
   },
   {
     description:
       'Self-hosting has no Genfeed credits. Add your own provider keys and pay those providers directly, with no Genfeed credit meter.',
     icon: Cpu,
-    title: 'Bring Your Own Keys',
+    title: 'Bring your own keys',
   },
 ] as const;
 
@@ -299,7 +299,7 @@ export default function SelfHostedContent() {
 
         <WebSection bg="bordered" maxWidth="md" className="gsap-section">
           <SectionHeader
-            title="Common Questions"
+            title="Common questions"
             description="Open source for control, managed cloud for convenience."
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />

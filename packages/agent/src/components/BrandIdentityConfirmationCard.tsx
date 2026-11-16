@@ -178,7 +178,7 @@ export function BrandIdentityConfirmationCard({
                 ? translate('confirmCreateTitle')
                 : translate('confirmRenameTitle'))}
           </h3>
-          <p className="mt-0.5 text-2xs font-medium uppercase tracking-wider text-warning">
+          <p className="mt-0.5 text-2xs font-medium uppercase tracking-label text-warning">
             {translate('awaitingConfirmation')}
           </p>
         </div>
@@ -205,7 +205,7 @@ export function BrandIdentityConfirmationCard({
       <div className="grid gap-3">
         <div className="flex flex-col gap-1.5">
           <Label
-            className="text-2xs uppercase tracking-wider text-muted-foreground"
+            className="text-2xs uppercase tracking-label text-muted-foreground"
             htmlFor={labelInputId}
           >
             {translate('labelField')}
@@ -221,7 +221,7 @@ export function BrandIdentityConfirmationCard({
 
         <div className="flex flex-col gap-1.5">
           <Label
-            className="text-2xs uppercase tracking-wider text-muted-foreground"
+            className="text-2xs uppercase tracking-label text-muted-foreground"
             htmlFor={slugInputId}
           >
             {translate('slugField')}
@@ -238,7 +238,7 @@ export function BrandIdentityConfirmationCard({
         {operation === 'create' ? (
           <div className="flex flex-col gap-1.5">
             <Label
-              className="text-2xs uppercase tracking-wider text-muted-foreground"
+              className="text-2xs uppercase tracking-label text-muted-foreground"
               htmlFor={descriptionInputId}
             >
               {translate('descriptionField')}
