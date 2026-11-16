@@ -45,9 +45,13 @@ describe('channel capability catalog', () => {
       CredentialPlatform.BEEHIIV,
       CredentialPlatform.GHOST,
       CredentialPlatform.WORDPRESS,
+      CredentialPlatform.BLUESKY,
       CredentialPlatform.MEDIUM,
       CredentialPlatform.DEV_TO,
       CredentialPlatform.GENFEED,
+      CredentialPlatform.DISCORD,
+      CredentialPlatform.SLACK,
+      CredentialPlatform.TELEGRAM,
     ]);
   });
 
@@ -176,6 +180,79 @@ describe('validateChannelTargetSettings', () => {
     expect(result.valid).toBe(true);
     expect(result.validationState).toBe(TargetValidationState.VALID);
     expect(result.errors).toEqual([]);
+  });
+
+  test('accepts a Discord message and rejects one over the 2000 character limit', () => {
+    const accepted = validateChannelTargetSettings({
+      caption: 'x'.repeat(2000),
+      platform: CredentialPlatform.DISCORD,
+      publishMode: 'scheduled',
+    });
+    const rejected = validateChannelTargetSettings({
+      caption: 'x'.repeat(2001),
+      platform: CredentialPlatform.DISCORD,
+      publishMode: 'scheduled',
+    });
+
+    expect(accepted.valid).toBe(true);
+    expect(rejected.valid).toBe(false);
+    expect(rejected.errors[0]?.message).toContain('2000');
+  });
+
+  test('requires the Slack channel and refuses a video', () => {
+    const missingChannel = validateChannelTargetSettings({
+      caption: 'Release notes',
+      platform: CredentialPlatform.SLACK,
+      publishMode: 'scheduled',
+    });
+    const video = validateChannelTargetSettings({
+      caption: 'Release notes',
+      media: [{ id: 'asset_1', kind: 'video' }],
+      platform: CredentialPlatform.SLACK,
+      publishMode: 'scheduled',
+      settings: { channelId: 'C0123456789' },
+    });
+    const valid = validateChannelTargetSettings({
+      caption: 'Release notes',
+      media: [{ id: 'asset_1', kind: 'image' }],
+      platform: CredentialPlatform.SLACK,
+      publishMode: 'scheduled',
+      settings: { channelId: 'C0123456789' },
+    });
+
+    expect(missingChannel.errors.map((issue) => issue.code)).toEqual([
+      'channel_target.required_setting',
+    ]);
+    expect(video.errors.map((issue) => issue.code)).toEqual([
+      'channel_target.unsupported_media_kind',
+    ]);
+    expect(valid.valid).toBe(true);
+  });
+
+  test('takes one photo or video for the connected Telegram group', () => {
+    const twoPhotos = validateChannelTargetSettings({
+      caption: 'Update',
+      media: [
+        { id: 'asset_1', kind: 'image' },
+        { id: 'asset_2', kind: 'image' },
+      ],
+      platform: CredentialPlatform.TELEGRAM,
+      publishMode: 'scheduled',
+    });
+    const valid = validateChannelTargetSettings({
+      caption: 'Update',
+      media: [{ id: 'asset_1', kind: 'video' }],
+      platform: CredentialPlatform.TELEGRAM,
+      publishMode: 'scheduled',
+    });
+
+    expect(twoPhotos.errors.map((issue) => issue.code)).toEqual([
+      'channel_target.too_many_media_items',
+    ]);
+    expect(valid.valid).toBe(true);
+    expect(getChannelCapability(CredentialPlatform.TELEGRAM)?.settings).toEqual(
+      [],
+    );
   });
 
   test('exposes Beehiiv draft, immediate, and scheduled execution', () => {
@@ -490,8 +567,8 @@ describe('validateChannelTargetSettings', () => {
 
   test('flags a valid enum platform with no registered capability', () => {
     const result = validateChannelTargetSettings({
-      caption: 'Discord announcement',
-      platform: CredentialPlatform.DISCORD,
+      caption: 'Twitch announcement',
+      platform: CredentialPlatform.TWITCH,
     });
 
     expect(result.valid).toBe(false);

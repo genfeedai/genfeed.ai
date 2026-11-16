@@ -73,7 +73,7 @@ export function ThreadList({ onOpenThread }: ThreadListProps): ReactElement {
         {grouped.map(({ label, items }) => (
           <div key={label}>
             <div className="sticky top-0 bg-background px-4 py-1.5">
-              <span className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+              <span className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
                 {label}
               </span>
             </div>

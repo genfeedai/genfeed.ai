@@ -93,6 +93,23 @@ describe('OAUTH_CONNECT_PLATFORMS publishing tiles', () => {
   });
 });
 
+describe('OAUTH_CONNECT_PLATFORMS Bluesky tile', () => {
+  it('connects Bluesky through OAuth like the other social networks, never a key form', () => {
+    const social = groupOAuthConnectPlatforms().find(
+      (group) => group.id === 'social',
+    );
+    const bluesky = social?.platforms.find(
+      (item) => item.platform === CredentialPlatform.BLUESKY,
+    );
+
+    expect(bluesky?.label).toBe('Bluesky');
+    expect(bluesky && isApiKeyConnectPlatform(bluesky)).toBe(false);
+    expect(bluesky && resolveOAuthServicePath(bluesky.platform)).toBe(
+      'bluesky',
+    );
+  });
+});
+
 describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
   it.each(['unknown', 'unavailable'] as const)(
     'fails Threads closed when readiness is %s',
@@ -202,5 +219,25 @@ describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
       expect(platform.Icon).toBeTruthy();
       expect(platform.iconClassName).toBeTruthy();
     }
+  });
+});
+
+describe('OAUTH_CONNECT_PLATFORMS messaging tiles', () => {
+  it('lists Discord, Slack and Telegram in the Messaging group, each on its own service path', () => {
+    const messaging = groupOAuthConnectPlatforms(OAUTH_CONNECT_PLATFORMS).find(
+      (group) => group.id === 'messaging',
+    );
+
+    expect(
+      messaging?.platforms.map((tile) => [
+        tile.label,
+        tile.platform,
+        tile.servicePath,
+      ]),
+    ).toEqual([
+      ['Discord', CredentialPlatform.DISCORD, 'discord'],
+      ['Slack', CredentialPlatform.SLACK, 'slack'],
+      ['Telegram', CredentialPlatform.TELEGRAM, 'telegram'],
+    ]);
   });
 });

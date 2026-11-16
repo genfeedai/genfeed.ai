@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { actionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 
 export const TRENDS_MAINTENANCE_ACTION_IDS = {
   DISCOVER_SCOPED: 'trends.maintenance.discover-scoped',
@@ -168,6 +169,7 @@ function maintenanceDefinition(
       'Refreshes global trend datasets through explicit atomic maintenance actions.',
     label,
     resultNodeId: 'precompute-preview',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }
@@ -192,6 +194,7 @@ export function buildTrendDatasetTaskWorkflowDefinition(): SystemWorkflowGraphDe
     description: 'Fetches one platform-specific trend dataset.',
     label: 'Trend Dataset Task',
     resultNodeId: 'fetch-dataset',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }
@@ -231,6 +234,7 @@ export function buildScopedTrendTaskWorkflowDefinition(): SystemWorkflowGraphDef
       "Refreshes one connected account scope through native providers, or one brand's niche TikTok search.",
     label: 'Scoped Native Trend Task',
     resultNodeId: 'fetch-scoped',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }
@@ -278,6 +282,7 @@ export function buildScopedTrendsRefreshWorkflowDefinition(): SystemWorkflowGrap
       'Discovers connected social accounts and schedules tenant-isolated native trend refreshes.',
     label: 'Scoped Native Trends Refresh',
     resultNodeId: 'refresh-scoped',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }

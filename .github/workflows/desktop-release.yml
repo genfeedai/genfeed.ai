@@ -148,10 +148,10 @@ jobs:
           trap cleanup EXIT
 
           hdiutil attach -readonly -nobrowse -mountpoint "$MOUNT_PATH" "$DMG_PATH"
-          APP_PATH="$(find "$MOUNT_PATH" -maxdepth 2 -name 'GenFeed.app' -type d | head -1)"
+          APP_PATH="$(find "$MOUNT_PATH" -maxdepth 2 -name 'Genfeed.app' -type d | head -1)"
 
           if [ -z "$APP_PATH" ]; then
-            echo "::error::GenFeed.app was not found in the disk image"
+            echo "::error::Genfeed.app was not found in the disk image"
             exit 1
           fi
 
@@ -162,11 +162,11 @@ jobs:
           {
             echo "## Desktop package size"
             echo
-            echo "GenFeed.app: ${APP_SIZE_MIB} MiB (budget: ${MAX_APP_SIZE_MIB} MiB)"
+            echo "Genfeed.app: ${APP_SIZE_MIB} MiB (budget: ${MAX_APP_SIZE_MIB} MiB)"
           } >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$APP_SIZE_MIB" -gt "$MAX_APP_SIZE_MIB" ]; then
-            echo "::error::GenFeed.app is ${APP_SIZE_MIB} MiB and exceeds the 500 MiB release budget"
+            echo "::error::Genfeed.app is ${APP_SIZE_MIB} MiB and exceeds the 500 MiB release budget"
             exit 1
           fi
 
@@ -251,7 +251,7 @@ jobs:
 
           if ! gh release view desktop-latest >/dev/null 2>&1; then
             gh release create desktop-latest \
-              --title "GenFeed Desktop update feed" \
+              --title "Genfeed Desktop update feed" \
               --notes "Rolling electron-updater feed. Install from the newest desktop-v* release; this release only serves auto-updates." \
               --latest=false
           fi

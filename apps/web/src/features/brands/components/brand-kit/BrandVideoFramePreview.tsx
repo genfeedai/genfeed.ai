@@ -81,7 +81,7 @@ export default function BrandVideoFramePreview({
                     captions.style === 'boxed'
                       ? 'rounded bg-background/80 px-2 py-1'
                       : ''
-                  } ${captions.style === 'bold_word' ? 'uppercase tracking-wide' : ''}`}
+                  } ${captions.style === 'bold_word' ? 'uppercase tracking-label' : ''}`}
                 >
                   {t('preview.caption')}
                 </div>

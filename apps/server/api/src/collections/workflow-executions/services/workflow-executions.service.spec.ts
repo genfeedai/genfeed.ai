@@ -562,6 +562,7 @@ describe('WorkflowExecutionsService', () => {
       select: {
         estimatedDurationMs: true,
         organizationId: true,
+        retentionPolicy: true,
         startedAt: true,
         trigger: true,
         userId: true,
@@ -594,6 +595,108 @@ describe('WorkflowExecutionsService', () => {
     expect(
       prisma.workflowExecution.updateMany.mock.calls[0]?.[0]?.data,
     ).not.toHaveProperty('result');
+  });
+
+  it('stores the background run retention policy as scalar state', async () => {
+    const { prisma, service } = makeService();
+
+    await service.createExecution('user-1', 'org-1', {
+      metadata: { runRetention: 'background' },
+      workflowId: 'workflow-1',
+      workflowVersionId: 'version-1',
+    });
+
+    expect(prisma.workflowExecution.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ retentionPolicy: 'background' }),
+      }),
+    );
+  });
+
+  it('stores the kept retention policy so the run is never purged', async () => {
+    const { prisma, service } = makeService();
+
+    await service.createExecution('user-1', 'org-1', {
+      metadata: { runRetention: 'kept' },
+      workflowId: 'workflow-1',
+      workflowVersionId: 'version-1',
+    });
+
+    expect(prisma.workflowExecution.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ retentionPolicy: 'kept' }),
+      }),
+    );
+  });
+
+  it('sets purgeAt one day after a background run succeeds', async () => {
+    {
+      const retentionPolicy = 'background';
+      const { prisma, service } = makeService();
+      prisma.workflowExecution.findFirst.mockResolvedValue({
+        estimatedDurationMs: 1000,
+        organizationId: 'org-1',
+        result: {},
+        retentionPolicy,
+        startedAt: new Date('2026-06-29T00:00:00.000Z'),
+        trigger: 'manual',
+        userId: 'actor-user-1',
+        workflow: { label: 'Daily Posts', metadata: null, userId: 'owner-1' },
+        workflowId: 'workflow-1',
+      });
+
+      await service.completeExecution('execution-1', 'org-1');
+
+      const data = prisma.workflowExecution.updateMany.mock.calls[0]?.[0]
+        ?.data as { completedAt: Date; purgeAt: Date };
+      expect(data.purgeAt.getTime() - data.completedAt.getTime()).toBe(
+        24 * 60 * 60 * 1000,
+      );
+    }
+  });
+
+  it('sets no purgeAt when a run without a background policy succeeds', async () => {
+    const { prisma, service } = makeService();
+    prisma.workflowExecution.findFirst.mockResolvedValue({
+      estimatedDurationMs: 1000,
+      organizationId: 'org-1',
+      result: {},
+      retentionPolicy: null,
+      startedAt: new Date('2026-06-29T00:00:00.000Z'),
+      trigger: 'manual',
+      userId: 'actor-user-1',
+      workflow: { label: 'Daily Posts', metadata: null, userId: 'owner-1' },
+      workflowId: 'workflow-1',
+    });
+
+    await service.completeExecution('execution-1', 'org-1');
+
+    expect(
+      prisma.workflowExecution.updateMany.mock.calls[0]?.[0]?.data,
+    ).not.toHaveProperty('purgeAt');
+  });
+
+  it('sets purgeAt fourteen days after a background run fails', async () => {
+    const { prisma, service } = makeService();
+    prisma.workflowExecution.findFirst.mockResolvedValue({
+      estimatedDurationMs: 1000,
+      organizationId: 'org-1',
+      result: {},
+      retentionPolicy: 'background',
+      startedAt: new Date('2026-06-29T00:00:00.000Z'),
+      trigger: 'manual',
+      userId: 'actor-user-1',
+      workflow: { label: 'Daily Posts', metadata: null, userId: 'owner-1' },
+      workflowId: 'workflow-1',
+    });
+
+    await service.completeExecution('execution-1', 'org-1', 'node blew up');
+
+    const data = prisma.workflowExecution.updateMany.mock.calls[0]?.[0]
+      ?.data as { completedAt: Date; purgeAt: Date };
+    expect(data.purgeAt.getTime() - data.completedAt.getTime()).toBe(
+      14 * 24 * 60 * 60 * 1000,
+    );
   });
 
   it('creates one terminal outcome when concurrent completion attempts race', async () => {

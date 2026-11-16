@@ -37,7 +37,7 @@ export function WorkflowExecuteCardStatusPanel({
         withWrapper={false}
         onClick={onExecute}
         isDisabled={!workflowId || isLoadingInterface}
-        className="flex w-full items-center justify-center gap-2 px-4 py-2 text-sm font-black"
+        className="flex w-full items-center justify-center gap-2 px-4 py-2 text-sm font-semibold"
       >
         <Zap className="size-4" />
         Execute
@@ -81,7 +81,7 @@ export function WorkflowExecuteCardStatusPanel({
           variant={ButtonVariant.SECONDARY}
           withWrapper={false}
           onClick={onRetry}
-          className="flex w-full items-center justify-center px-4 py-2 text-sm font-black"
+          className="flex w-full items-center justify-center px-4 py-2 text-sm font-semibold"
         >
           Try Again
         </Button>

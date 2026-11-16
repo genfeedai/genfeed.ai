@@ -26,7 +26,7 @@ export function WorkspaceTaskFacecamPanel({
   return (
     <Card variant={CardVariant.DEFAULT} padding={CardPadding.SM}>
       <div className="flex items-center justify-between">
-        <p className="text-2xs font-bold uppercase tracking-[0.16em] text-foreground/60">
+        <p className="text-2xs font-semibold uppercase tracking-label text-foreground/60">
           Facecam settings
         </p>
         {isLoading ? (

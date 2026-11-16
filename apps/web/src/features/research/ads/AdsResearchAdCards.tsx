@@ -104,7 +104,7 @@ function AdGridCard({
 
           <Card variant={CardVariant.INSET} padding={CardPadding.SM}>
             <div className="text-right">
-              <div className="text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+              <div className="text-2xs uppercase tracking-label text-muted-foreground">
                 {getMetricLabel(metric)}
               </div>
               <div className="text-lg font-semibold text-foreground">

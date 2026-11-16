@@ -6,7 +6,6 @@ import { Badge } from '@ui/primitives/badge';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { ArrowRight, RefreshCw } from 'lucide-react';
@@ -133,9 +132,6 @@ export default function ModelsContent({ models }: ModelsContentProps) {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={
-          <MarketingArtwork page="/models" isCompact kind="research" />
-        }
         compact
         description="The models available in Genfeed, read directly from the product registry."
         heroActions={
@@ -203,7 +199,7 @@ export default function ModelsContent({ models }: ModelsContentProps) {
                   as="h2"
                   className="text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl"
                 >
-                  Choose by output.
+                  Choose by output
                 </Heading>
               </div>
               <Text className="max-w-md text-sm leading-6 text-foreground/60">

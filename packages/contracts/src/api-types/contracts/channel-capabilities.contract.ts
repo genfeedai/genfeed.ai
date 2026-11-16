@@ -6,13 +6,13 @@
  * workers, CLI, and MCP can present and enforce the same scheduler failures.
  * Foundation for epic #1123, issue #1125.
  */
-
 import { z } from 'zod';
 import {
   CredentialPlatform,
   PostVisibility,
   TargetValidationState,
 } from '../..';
+import { blueskyChannelCapability } from './channel-capabilities.bluesky';
 import {
   type ChannelSettingDefinition,
   type ChannelSettingFieldType,
@@ -28,6 +28,7 @@ import {
   validateSettingOptions,
   validateSettingType,
 } from './channel-setting-validation.contract';
+import { communityChannelCapabilities } from './community-channel-capabilities.contract';
 import { hiddenChannelCapabilities } from './hidden-channel-capabilities.contract';
 import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
 import {
@@ -783,6 +784,7 @@ const channelCapabilities = [
     settings: [],
     status: 'planned',
   },
+  blueskyChannelCapability,
   {
     caption: { maxLength: 100_000, required: true },
     description:
@@ -860,10 +862,10 @@ const channelCapabilities = [
   },
 ] satisfies ChannelCapability[];
 
-export const CHANNEL_CAPABILITIES: readonly ChannelCapability[] =
-  channelCapabilities.map((capability) =>
-    channelCapabilitySchema.parse(capability),
-  );
+export const CHANNEL_CAPABILITIES: readonly ChannelCapability[] = [
+  ...channelCapabilities,
+  ...communityChannelCapabilities,
+].map((capability) => channelCapabilitySchema.parse(capability));
 
 const channelCapabilitiesByPlatform = new Map<
   CredentialPlatform,
@@ -897,6 +899,10 @@ export function getChannelCapability(
   return capability ? cloneChannelCapability(capability) : undefined;
 }
 
+const replyChain = (
+  mediaKinds: ChannelMediaKind[],
+): ChannelThreadChildCapability => ({ kind: 'reply_chain', mediaKinds });
+
 const THREAD_CHILD_UNSUPPORTED: ChannelThreadChildCapability = {
   kind: 'unsupported',
   mediaKinds: [],
@@ -911,18 +917,10 @@ const THREAD_CHILD_UNSUPPORTED: ChannelThreadChildCapability = {
 const channelThreadChildCapabilities: Partial<
   Record<CredentialPlatform, ChannelThreadChildCapability>
 > = {
-  [CredentialPlatform.TWITTER]: {
-    kind: 'reply_chain',
-    mediaKinds: ['image', 'video'],
-  },
-  [CredentialPlatform.THREADS]: {
-    kind: 'reply_chain',
-    mediaKinds: ['image', 'video', 'carousel'],
-  },
-  [CredentialPlatform.MASTODON]: {
-    kind: 'reply_chain',
-    mediaKinds: ['image', 'video'],
-  },
+  [CredentialPlatform.TWITTER]: replyChain(['image', 'video']),
+  [CredentialPlatform.THREADS]: replyChain(['image', 'video', 'carousel']),
+  [CredentialPlatform.MASTODON]: replyChain(['image', 'video']),
+  [CredentialPlatform.BLUESKY]: replyChain(['image', 'video']),
   // LinkedIn and Facebook comments take a single image; neither accepts a
   // video on a comment.
   [CredentialPlatform.LINKEDIN]: { kind: 'comment', mediaKinds: ['image'] },

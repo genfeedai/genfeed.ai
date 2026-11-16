@@ -96,7 +96,7 @@ function InspectorField({
 
   return (
     <div className="flex items-baseline justify-between gap-3 py-1.5">
-      <dt className="shrink-0 text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+      <dt className="shrink-0 text-2xs uppercase tracking-label text-muted-foreground">
         {label}
       </dt>
       <dd className="min-w-0 truncate text-right text-xs text-foreground/80">
@@ -126,7 +126,7 @@ function InspectorNote({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+      <div className="text-2xs uppercase tracking-label text-muted-foreground">
         {label}
       </div>
       <p
@@ -349,7 +349,7 @@ export default function IngredientInspectorRail({
 
       <dl className="flex flex-col divide-y divide-foreground/5">
         <div className="flex items-baseline justify-between gap-3 py-1.5">
-          <dt className="shrink-0 text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+          <dt className="shrink-0 text-2xs uppercase tracking-label text-muted-foreground">
             {translate('type')}
           </dt>
           <dd className="min-w-0">
@@ -359,7 +359,7 @@ export default function IngredientInspectorRail({
         {ingredient.origin &&
         ingredient.origin !== IngredientOrigin.GENERATED ? (
           <div className="flex items-baseline justify-between gap-3 py-1.5">
-            <dt className="shrink-0 text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+            <dt className="shrink-0 text-2xs uppercase tracking-label text-muted-foreground">
               {translate('origin')}
             </dt>
             <dd className="min-w-0">

@@ -196,7 +196,7 @@ export default function PricingContent() {
                 >
                   {isFeatured ? (
                     <div className="absolute right-6 top-6">
-                      <span className="border border-foreground/40 px-2.5 py-1 text-2xs font-bold uppercase tracking-widest text-foreground/70">
+                      <span className="border border-foreground/40 px-2.5 py-1 text-2xs font-semibold uppercase tracking-label text-foreground/70">
                         Popular
                       </span>
                     </div>
@@ -252,7 +252,7 @@ export default function PricingContent() {
               aria-label={getPlanLabel('enterprise')}
             >
               <div className="absolute right-6 top-6">
-                <span className="border border-foreground/20 px-2.5 py-1 text-2xs font-bold uppercase tracking-widest text-foreground/70">
+                <span className="border border-foreground/20 px-2.5 py-1 text-2xs font-semibold uppercase tracking-label text-foreground/70">
                   We run it
                 </span>
               </div>
@@ -330,7 +330,7 @@ export default function PricingContent() {
 
         <WebSection maxWidth="lg" py="md">
           <SectionHeader
-            title="Compare plans."
+            title="Compare plans"
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl mb-4"
           />
           <div className="overflow-hidden rounded-card border border-border bg-card">
@@ -380,7 +380,7 @@ export default function PricingContent() {
 
         <WebSection maxWidth="lg" py="md">
           <SectionHeader
-            title="What output costs."
+            title="What output costs"
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl mb-4"
           />
 
@@ -436,7 +436,7 @@ export default function PricingContent() {
           <FaqGrid items={FAQ_ITEMS} />
         </WebSection>
 
-        <CtaSection bg="subtle" title="Start free.">
+        <CtaSection bg="subtle" title="Start free">
           <AgentFirstActions
             signUpHref={paygSignUpHref}
             trackingName="pricing_cta_click"

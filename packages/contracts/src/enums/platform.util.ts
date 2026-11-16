@@ -44,6 +44,7 @@ export const PLATFORM_DISPLAY_LABELS: Readonly<
 /** Compact labels for space-constrained platform indicators such as calendars. */
 const PLATFORM_COMPACT_LABELS: Readonly<Record<Platform, string>> = {
   [Platform.BEEHIIV]: 'BH',
+  [Platform.BLUESKY]: 'BS',
   [Platform.DEV_TO]: 'DEV',
   [Platform.DISCORD]: 'DC',
   [Platform.FACEBOOK]: 'FB',

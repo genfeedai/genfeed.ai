@@ -27,7 +27,7 @@ const useCasesJsonLd = {
     name: metadata.name,
     url: metadata.url,
   },
-  name: 'Genfeed Use Cases',
+  name: 'Genfeed use cases',
   url: useCasesUrl,
 };
 

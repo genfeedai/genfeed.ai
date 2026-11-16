@@ -24,7 +24,7 @@ describe('HomeProduct', () => {
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: 'One agent for all your content.',
+        name: 'One agent for all your content',
       }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('home-product-workspace')).toBeInTheDocument();

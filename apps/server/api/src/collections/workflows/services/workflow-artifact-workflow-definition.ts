@@ -1,5 +1,6 @@
 import { actionNode as node } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 
 export const WORKFLOW_ARTIFACT_MAINTENANCE_WORKFLOW_IDS = {
   CLEANUP_EXECUTION: 'workflow.artifact.cleanup.execution',
@@ -28,6 +29,7 @@ export function buildWorkflowArtifactCleanupExecutionDefinition(
     description: 'Cleans artifacts for one terminal workflow execution.',
     label: 'Cleanup Workflow Artifacts',
     resultNodeId: 'cleanup',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }
@@ -53,6 +55,7 @@ export function buildWorkflowArtifactExpiredScopeDefinition(
     description: 'Applies retention and cleans one expired workflow execution.',
     label: 'Cleanup Expired Workflow Scope',
     resultNodeId: 'cleanup',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }
@@ -95,6 +98,7 @@ export function buildWorkflowArtifactCleanupSweepDefinition(
       'Discovers expired workflow executions and cleans each in a child workflow.',
     label: 'Workflow Artifact Cleanup Sweep',
     resultNodeId: 'cleanup',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }

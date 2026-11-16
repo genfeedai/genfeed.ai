@@ -274,6 +274,9 @@ export default function ActivityDetailPanel({
             {fields.post ? (
               <Button
                 asChild
+                ariaLabel={translate('detailViewOnNetwork', {
+                  platform: getPostsPlatformLabel(fields.post.platform),
+                })}
                 size={ButtonSize.SM}
                 variant={ButtonVariant.SECONDARY}
               >
@@ -285,9 +288,7 @@ export default function ActivityDetailPanel({
                   {getPlatformIcon(fields.post.platform, 'size-4') ?? (
                     <ExternalLink className="size-4" />
                   )}
-                  {translate('detailViewOnNetwork', {
-                    platform: getPostsPlatformLabel(fields.post.platform),
-                  })}
+                  {translate('detailView')}
                 </a>
               </Button>
             ) : null}
@@ -296,7 +297,7 @@ export default function ActivityDetailPanel({
 
         <Collapsible>
           <CollapsibleTrigger
-            className="py-0 text-2xs uppercase tracking-wider text-muted-foreground hover:no-underline"
+            className="py-0 text-2xs uppercase tracking-label text-muted-foreground hover:no-underline"
             data-testid="activity-technical-toggle"
           >
             {translate('detailTechnical')}
@@ -306,7 +307,7 @@ export default function ActivityDetailPanel({
             {fields.raw ? (
               <section className="flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-2xs uppercase tracking-wider text-muted-foreground">
+                  <h3 className="text-2xs uppercase tracking-label text-muted-foreground">
                     {translate('detailValue')}
                   </h3>
                   <Button

@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import type { HeyGenAvatarCandidate } from '@api/services/integrations/heygen/heygen-identity.types';
 import type { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
 import { createGenfeedActionNode } from '@genfeedai/actions';
@@ -56,6 +57,7 @@ function definition(
 ): SystemWorkflowGraphDefinition {
   return {
     canonicalId,
+    retention: SystemWorkflowRetention.KEPT,
     definition: {
       edges,
       inputVariables: [

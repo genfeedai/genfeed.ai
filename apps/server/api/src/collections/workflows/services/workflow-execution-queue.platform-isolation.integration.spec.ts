@@ -2,6 +2,7 @@ import net from 'node:net';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Queue, Worker } from 'bullmq';
@@ -84,6 +85,7 @@ const definition: SystemWorkflowGraphDefinition = {
   description: 'Review one generated hook clip.',
   label: 'Clip Hook Review',
   resultNodeId: 'review-hook',
+  retention: SystemWorkflowRetention.BACKGROUND,
 };
 
 type RunnerInternals = {

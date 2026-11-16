@@ -10,7 +10,6 @@ import {
   DefinitionTerm,
 } from '@ui/primitives/definition-list';
 import FaqGrid from '@web-components/content/FaqGrid';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -157,11 +156,6 @@ const HOW_IT_WORKS = [
   },
   {
     description:
-      'Images take 10–30 seconds, voiceovers about 30 seconds, articles 1–2 minutes, and videos 2–5 minutes.',
-    title: 'Turnaround',
-  },
-  {
-    description:
       'The founder. Support email, GitHub issues, and DMs reach Vincent directly, not a ticket queue.',
     title: 'Who you work with',
   },
@@ -293,7 +287,7 @@ export default function AboutContent() {
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
-        heroMedia={<MarketingArtwork page="/about" kind="creator" />}
+        compact
         title="About Genfeed"
         description={metadata.description}
       >
@@ -435,7 +429,7 @@ export default function AboutContent() {
 
         <CtaSection
           bg="subtle"
-          title="Start free on Genfeed."
+          title="Start free on Genfeed"
           description={`Sign up on ${PLAN_COPY.payg.name} and pay only for what you generate.`}
         >
           <Button size={ButtonSize.PUBLIC} asChild>

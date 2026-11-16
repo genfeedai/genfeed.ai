@@ -66,7 +66,7 @@ export default function ArticleOutline({
 
   return (
     <nav aria-label="On this page" className="space-y-3 text-sm">
-      <p className="text-xs font-medium uppercase tracking-[0.14em] text-foreground/50">
+      <p className="text-xs font-medium uppercase tracking-label text-foreground/50">
         On this page
       </p>
       <ol className="space-y-2 border-l border-foreground/10">

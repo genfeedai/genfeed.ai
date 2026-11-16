@@ -12,6 +12,7 @@ import {
   CredentialPlatform,
   PostCategory,
   PostStatus,
+  PublishErrorKind,
 } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -28,7 +29,6 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 describe('ShopifyPublisherService', () => {
   let service: ShopifyPublisherService;
   let shopifyService: vi.Mocked<ShopifyService>;
-  let loggerService: vi.Mocked<LoggerService>;
 
   const orgId = testId('org');
   const brandId = testId('brand');
@@ -106,7 +106,6 @@ describe('ShopifyPublisherService', () => {
 
     service = module.get<ShopifyPublisherService>(ShopifyPublisherService);
     shopifyService = module.get(ShopifyService);
-    loggerService = module.get(LoggerService);
   });
 
   afterEach(() => {
@@ -219,17 +218,49 @@ describe('ShopifyPublisherService', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toMatch(/Failed to create Shopify product/i);
+      expect(result.errorKind).toBe(PublishErrorKind.OUTCOME_UNKNOWN);
     });
 
-    it('should throw when shopifyService.createProduct throws', async () => {
+    it.each([
+      [401, PublishErrorKind.CHANNEL_DISCONNECTED],
+      [404, PublishErrorKind.CHANNEL_DISCONNECTED],
+      [422, PublishErrorKind.CONTENT_REJECTED],
+      [503, PublishErrorKind.OUTCOME_UNKNOWN],
+    ])('throws a typed publish error for HTTP %i', async (status, kind) => {
       shopifyService.createProduct.mockRejectedValue(
-        new Error('Shopify API down'),
+        Object.assign(new Error('provider failed'), {
+          response: { headers: {}, status },
+        }),
       );
 
-      await expect(service.publish(makeContext())).rejects.toThrow(
-        'Shopify API down',
+      await expect(service.publish(makeContext())).rejects.toMatchObject({
+        httpStatus: status,
+        kind,
+        name: 'PublishError',
+      });
+    });
+
+    it('throws rate_limited with the wait the provider gave', async () => {
+      shopifyService.createProduct.mockRejectedValue(
+        Object.assign(new Error('provider failed'), {
+          response: { headers: { 'retry-after': '20' }, status: 429 },
+        }),
       );
-      expect(loggerService.error).toHaveBeenCalled();
+
+      await expect(service.publish(makeContext())).rejects.toMatchObject({
+        kind: PublishErrorKind.RATE_LIMITED,
+        retryAfterMs: 20_000,
+      });
+    });
+
+    it('throws outcome_unknown when the connection drops mid-request', async () => {
+      shopifyService.createProduct.mockRejectedValue(
+        Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }),
+      );
+
+      await expect(service.publish(makeContext())).rejects.toMatchObject({
+        kind: PublishErrorKind.OUTCOME_UNKNOWN,
+      });
     });
 
     it('should use "Untitled" when post has no label', async () => {

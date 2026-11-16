@@ -29,7 +29,7 @@ export default function HomeHero(): React.ReactElement {
       <div className="container relative mx-auto px-6 text-center">
         <Text
           as="p"
-          className="animate-gen-stagger-in mb-6 text-xs font-bold uppercase tracking-[0.16em] text-foreground/80"
+          className="animate-gen-stagger-in mb-6 text-xs font-semibold uppercase tracking-label text-foreground/80"
           data-testid="home-hero-eyebrow"
         >
           The content studio for everything you publish
@@ -38,7 +38,7 @@ export default function HomeHero(): React.ReactElement {
           as="h1"
           className="animate-gen-stagger-rise mx-auto max-w-5xl text-[clamp(2.25rem,10.5vw,3rem)] font-semibold leading-[0.95] tracking-[-0.02em] text-foreground [--gen-stagger-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
         >
-          From brief to feed.
+          From brief to feed
         </Heading>
         <Text
           as="p"

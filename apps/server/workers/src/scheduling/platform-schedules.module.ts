@@ -38,6 +38,7 @@ import { CronMediaPerceptionModule } from '@workers/crons/media-perception/cron.
 import { CronModelDeprecationModule } from '@workers/crons/model-deprecation/cron.model-deprecation.module';
 import { CronModelWatcherModule } from '@workers/crons/model-watcher/cron.model-watcher.module';
 import { CronNewsletterSendsModule } from '@workers/crons/newsletter-sends/cron.newsletter-sends.module';
+import { CronNotificationRetentionModule } from '@workers/crons/notification-retention/cron.notification-retention.module';
 import { CronOAuthClientCleanupModule } from '@workers/crons/oauth-client-cleanup/cron.oauth-client-cleanup.module';
 import { CronPatternExtractionModule } from '@workers/crons/pattern-extraction/cron.pattern-extraction.module';
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
@@ -114,6 +115,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     CronModelWatcherModule,
     CronBrandedDispatchRecoveryModule,
     CronNewsletterSendsModule,
+    CronNotificationRetentionModule,
     CronOAuthClientCleanupModule,
     CronPatternExtractionModule,
     CronPostsModule,

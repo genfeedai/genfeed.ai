@@ -1,3 +1,4 @@
+import { RetiredModelException } from '@api/helpers/exceptions/retired-model/retired-model.exception';
 import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import {
   CALLABLE_GENERATION_MODEL_TYPES,
@@ -54,6 +55,12 @@ export class ModelRegistrationService {
       throw new ForbiddenException('Model not available for this organization');
     }
 
+    // A retired model has no successor and is never swapped for another one:
+    // the caller stops until the user picks a new model.
+    if (model.lifecycle === ModelLifecycle.RETIRED) {
+      throw new RetiredModelException(modelKey, model.label);
+    }
+
     // Organization enabled-model allowlist check. Seed an empty allowlist
     // first (same contract as settings GET) so Demo/legacy orgs are not
     // enable-none until someone opens Org Settings. A non-empty list is an
@@ -66,10 +73,6 @@ export class ModelRegistrationService {
 
     if (!isModelOnAllowlist(model, enabledModelIds)) {
       throw new ForbiddenException('Model not enabled for this organization');
-    }
-
-    if (model.lifecycle === ModelLifecycle.RETIRED) {
-      return this.resolveRetiredSuccessor(model);
     }
 
     if (!model.isActive) {
@@ -180,29 +183,6 @@ export class ModelRegistrationService {
     return Array.isArray(enabledModelIds)
       ? enabledModelIds.filter((id): id is string => typeof id === 'string')
       : [];
-  }
-
-  private async resolveRetiredSuccessor(
-    model: ModelDocument,
-  ): Promise<ModelDocument> {
-    const seen = new Set<string>();
-    let current: ModelDocument | null = model;
-
-    while (current?.lifecycle === ModelLifecycle.RETIRED) {
-      if (!current.key || seen.has(current.key) || !current.succeededBy) {
-        throw new ForbiddenException('Retired model has no safe successor');
-      }
-      seen.add(current.key);
-      current = await this.modelsService.findOne({
-        key: current.succeededBy,
-        organizationId: current.organizationId ?? null,
-      });
-    }
-
-    if (!current?.isActive || current.isDeleted) {
-      throw new ForbiddenException('Retired model has no callable successor');
-    }
-    return current;
   }
 
   private async findVisibleModel(

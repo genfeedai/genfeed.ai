@@ -5,6 +5,7 @@ const path = require('node:path');
 const {
   pruneBuildTraceFiles,
   pruneTracedSourceFiles,
+  pruneUnusedBuildFiles,
   pruneUnusedNextRuntimeFiles,
 } = require('./prune-app-shell.cjs');
 
@@ -212,3 +213,10 @@ if (fs.existsSync(publicRoot)) {
     path.join(outputRoot, relativeServerDirectory, 'public'),
   );
 }
+
+const prunedBuildBytes = pruneUnusedBuildFiles(
+  path.join(outputRoot, relativeServerDirectory),
+);
+process.stdout.write(
+  `[desktop] pruned ${(prunedBuildBytes / (1024 * 1024)).toFixed(1)} MiB of unused build files\n`,
+);

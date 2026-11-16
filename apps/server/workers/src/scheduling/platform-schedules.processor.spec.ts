@@ -41,6 +41,7 @@ describe('PlatformSchedulesProcessor', () => {
   const brandRelocations = { recover: handler() };
   const mediaDeliveryRecovery = { recoverMedia: handler() };
   const brandedDispatchRecovery = { recoverExpiredDispatches: handler() };
+  const notificationRetention = { purgeExpiredNotifications: handler() };
   const oauthClientCleanup = { deleteAbandonedClients: handler() };
   const patterns = { computeDailyPatterns: handler() };
   const posts = { publishScheduledPosts: handler() };
@@ -65,7 +66,10 @@ describe('PlatformSchedulesProcessor', () => {
     reconcileEditorRenders: handler(),
     reconcileRawCutClips: handler(),
   };
-  const workflowArtifacts = { queueExpiredArtifactCleanup: handler() };
+  const workflowArtifacts = {
+    purgeExpiredExecutions: handler(),
+    queueExpiredArtifactCleanup: handler(),
+  };
   const xReplyWatch = { watchRecentPostReplies: handler() };
   const externalVoiceCatalog = { syncFromProviders: handler() };
   const avatarTwins = { trackWaitingTwins: handler() };
@@ -192,6 +196,10 @@ describe('PlatformSchedulesProcessor', () => {
         brandedDispatchRecovery.recoverExpiredDispatches,
       ],
       [
+        PLATFORM_SCHEDULED_TASKS.NOTIFICATION_RETENTION,
+        notificationRetention.purgeExpiredNotifications,
+      ],
+      [
         PLATFORM_SCHEDULED_TASKS.OAUTH_CLIENT_CLEANUP,
         oauthClientCleanup.deleteAbandonedClients,
       ],
@@ -250,6 +258,10 @@ describe('PlatformSchedulesProcessor', () => {
       [
         PLATFORM_SCHEDULED_TASKS.WORKFLOW_ARTIFACT_CLEANUP,
         workflowArtifacts.queueExpiredArtifactCleanup,
+      ],
+      [
+        PLATFORM_SCHEDULED_TASKS.WORKFLOW_EXECUTION_PURGE,
+        workflowArtifacts.purgeExpiredExecutions,
       ],
       [
         PLATFORM_SCHEDULED_TASKS.WORKFLOW_CONTINUATION_RECONCILE,
@@ -340,6 +352,7 @@ describe('PlatformSchedulesProcessor', () => {
         credits as never,
         credentials as never,
         lifecycleEmails as never,
+        notificationRetention as never,
         oauthClientCleanup as never,
         queueMetrics as never,
       ),

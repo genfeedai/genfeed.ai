@@ -1,5 +1,5 @@
+import { AUTOMATION_ACTION_IDS } from '@api/collections/workflows/services/automation-action-ids';
 import {
-  AUTOMATION_ACTION_IDS,
   AUTOMATION_CHILD_WORKFLOWS,
   AUTOMATION_PARENT_WORKFLOWS,
   AUTOMATION_WORKFLOW_IDS,

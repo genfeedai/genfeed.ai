@@ -69,8 +69,8 @@ describe('mission destinations', () => {
     ).map((mission) => [mission.ctaHref, mission.ctaLabel]);
 
     expect(labels).toEqual([
-      ['/connectors/agents', 'Connect your agent'],
-      ['/connectors/agents', 'Connect your agent'],
+      ['/connectors/agents', 'Connect Agent'],
+      ['/connectors/agents', 'Connect Agent'],
     ]);
   });
 });

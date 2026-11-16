@@ -51,7 +51,7 @@ export const TOOL_LABELS: Record<string, string> = {
   get_review_queue: 'Review Queue',
   get_workflows: 'List Workflows',
   fetch_x_account_activity: 'X Account Activity',
-  open_studio_handoff: 'Open in Studio',
+  open_studio_handoff: 'Open Studio',
   pause_outreach_sequence: 'Pause outreach sequence',
   edit_clip: 'Edit Clip',
   prepare_clipper_workflow_run: 'Prepare Clip Run',

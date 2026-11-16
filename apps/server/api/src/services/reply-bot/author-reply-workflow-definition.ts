@@ -1,6 +1,7 @@
 import type { WorkflowEdge } from '@api/collections/workflows/schemas/workflow.schema';
 import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 
 export const AUTHOR_REPLY_ACTION_IDS = {
   FINALIZE_DRAFT: 'author-reply.finalize-draft',
@@ -55,6 +56,7 @@ function buildDefinition(
     description,
     label,
     resultNodeId: resultNode.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 

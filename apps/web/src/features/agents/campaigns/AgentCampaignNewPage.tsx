@@ -400,7 +400,7 @@ export default function AgentCampaignNewPage() {
                         <span className="text-sm font-medium">
                           {strategy.label}
                         </span>
-                        <span className="ml-2 text-xs uppercase tracking-wide text-muted-foreground">
+                        <span className="ml-2 text-xs uppercase tracking-label text-muted-foreground">
                           {strategy.agentType}
                         </span>
                       </Label>

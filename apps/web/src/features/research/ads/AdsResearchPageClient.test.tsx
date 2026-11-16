@@ -837,9 +837,7 @@ describe('AdsResearchPageClient', () => {
       }),
     );
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Unsave from swipe file' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Unsave' }));
 
     expect(unsaveSavedAdsMock).toHaveBeenCalledWith([
       expect.objectContaining({ id: 'saved-1' }),
@@ -858,7 +856,7 @@ describe('AdsResearchPageClient', () => {
       }),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save to swipe file' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(await screen.findByText('save failed')).toBeInTheDocument();
   });

@@ -838,10 +838,9 @@ describe('ModelCatalogSeedService', () => {
     expect(call?.update).not.toHaveProperty('endpoint');
   });
 
-  it('creates Retired aliases and carries lifecycle and successors forward without touching operator flags', async () => {
+  it('creates Retired rows and carries lifecycle forward without touching operator flags', async () => {
     const retiredEntry = UNIFIED_MODEL_CATALOG.find(
-      (entry) =>
-        entry.lifecycle === ModelLifecycle.RETIRED && entry.succeededBy,
+      (entry) => entry.lifecycle === ModelLifecycle.RETIRED,
     );
     expect(retiredEntry).toBeDefined();
 
@@ -851,11 +850,10 @@ describe('ModelCatalogSeedService', () => {
     expect(call?.create).toMatchObject({
       isLegacy: false,
       lifecycle: ModelLifecycle.RETIRED,
-      succeededBy: retiredEntry?.succeededBy,
     });
+    expect(call?.create).not.toHaveProperty('succeededBy');
     expect(call?.update).toMatchObject({
       lifecycle: ModelLifecycle.RETIRED,
-      succeededBy: retiredEntry?.succeededBy,
     });
     expect(call?.update).not.toHaveProperty('isActive');
     expect(call?.update).not.toHaveProperty('isLegacy');

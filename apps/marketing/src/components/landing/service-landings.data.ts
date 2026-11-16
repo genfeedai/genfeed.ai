@@ -113,12 +113,12 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       },
     ],
     deliverablesDescription: serviceOffering.description,
-    deliverablesTitle: 'What You Get',
+    deliverablesTitle: 'What you get',
     faqDescription: 'Direct answers before the call.',
     faqs: [
       {
         answer:
-          'This is built for high-end SMBs with real content demand: founder-led companies, service businesses, and operators who need consistent publishing without building an internal team.',
+          'This is for founder-led companies, service businesses and operators who need consistent publishing without building an internal team.',
         question: 'Who is this for?',
       },
       {
@@ -146,8 +146,8 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
         question: 'What happens on the call?',
       },
     ],
-    faqTitle: 'Common Questions',
-    fitLabel: 'Engagement Fit',
+    faqTitle: 'Common questions',
+    fitLabel: 'Engagement fit',
     fitSignals: [
       'You need recurring content volume every month, not a one-off project.',
       'You want an operator who can take rough ideas and turn them into shipped content.',
@@ -166,33 +166,33 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
         description:
           'Turn founder insights, sales calls, customer questions, and product updates into a weekly publishing system.',
         icon: FileText,
-        title: 'Strategy Into Output',
+        title: 'Strategy into output',
       },
       {
         description:
           'Ship short-form video, images, scripts, hooks, captions, and publishing-ready assets without building an in-house team.',
         icon: Clapperboard,
-        title: 'Multi-Format Production',
+        title: 'Multi-format production',
       },
       {
         description:
           'Keep a consistent voice across channels while moving fast enough to support launches, campaigns, and ongoing demand.',
         icon: Mic,
-        title: 'Consistent Brand Presence',
+        title: 'Consistent brand presence',
       },
     ],
     outcomesDescription:
       'Built for businesses that already know content matters but do not want to manage another internal function.',
-    outcomesTitle: 'What This Solves',
+    outcomesTitle: 'What this solves',
     process: COMMON_SERVICE_PROCESS,
     priceLabel: serviceOffering.priceLabel,
     priceNote: serviceOffering.priceNote,
     priceCtaHint: serviceOffering.cta,
     processDescription:
-      'Clear operating rhythm. Minimal coordination overhead.',
-    processTitle: 'How It Works',
+      'Share your goals, agree the scope, then we produce and publish. You approve what goes out.',
+    processTitle: 'How it works',
     slug: 'done-for-you',
-    title: 'Done-For-You Content',
+    title: 'Done-for-you content',
   },
   {
     isAgentFirst: true,
@@ -207,7 +207,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
           'Weekly publishing themes',
           'Approval workflow built around your schedule',
         ],
-        title: 'Message System',
+        title: 'Message system',
       },
       {
         items: [
@@ -216,7 +216,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
           'Repurposed clips from calls or podcasts',
           'Supporting visuals and captions',
         ],
-        title: 'Content Output',
+        title: 'Content output',
       },
       {
         items: [
@@ -230,7 +230,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
     ],
     deliverablesDescription:
       'Give your connected agent the notes, customer insights, and product updates you already have. Genfeed supplies the brand context, content tools, scheduling, and analytics.',
-    deliverablesTitle: 'What Your Agent Can Create',
+    deliverablesTitle: 'What your agent can create',
     faqDescription: 'What solo founders ask before connecting.',
     faqs: [
       {
@@ -264,8 +264,8 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
         question: 'How does pricing work?',
       },
     ],
-    faqTitle: 'Common Questions',
-    fitLabel: 'Good Fit Signals',
+    faqTitle: 'Common questions',
+    fitLabel: 'Good fit signals',
     fitSignals: [
       'Your audience buys because of founder expertise, perspective, or trust.',
       'You already have useful raw material trapped in calls, notes, or voice messages.',
@@ -295,37 +295,37 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
         description:
           'Extract strong content angles from calls, product updates, and rough founder notes.',
         icon: Sparkles,
-        title: 'Capture The Signal',
+        title: 'Capture the signal',
       },
       {
         description:
           'Turn those inputs into posts, videos, hooks, and content systems that feel founder-led instead of generic.',
         icon: Users,
-        title: 'Keep The Founder Voice',
+        title: 'Keep the founder voice',
       },
       {
         description:
           'Publish consistently enough to build demand without the founder manually pushing every piece across the line.',
         icon: CalendarRange,
-        title: 'Remove The Bottleneck',
+        title: 'Remove the bottleneck',
       },
     ],
     outcomesDescription:
       'For solo founders who want to build their product and their audience from the same agent workflow.',
-    outcomesTitle: 'What This Solves',
+    outcomesTitle: 'What this solves',
     process: agentLandingProcess(
       'Ask your agent to turn what you shipped into posts, visuals, or a launch thread in your voice.',
     ),
     processDescription:
       'Connect once, ask for a useful draft, review it, and publish on your terms.',
-    processTitle: 'How It Works',
+    processTitle: 'How it works',
     slug: 'founder-content',
-    title: 'Founder Content With Your Agent',
+    title: 'Founder content with your agent',
   },
   {
     closingDescription:
       'If you already have conversations worth repurposing, this is usually one of the fastest ways to create quality content volume.',
-    closingTitle: 'Turn Recorded Conversations Into Published Content',
+    closingTitle: 'Turn recorded conversations into published content',
     deliverableBuckets: [
       {
         items: [
@@ -334,7 +334,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
           'Format planning by channel',
           'Publishing priority mapping',
         ],
-        title: 'Extraction Plan',
+        title: 'Extraction plan',
       },
       {
         items: [
@@ -343,7 +343,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
           'Article and newsletter drafts',
           'Captions, hooks, and snippets',
         ],
-        title: 'Repurposed Assets',
+        title: 'Repurposed assets',
       },
       {
         items: [
@@ -352,12 +352,12 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
           'Publishing coordination',
           'Topic-bank expansion from new recordings',
         ],
-        title: 'Content Engine',
+        title: 'Content engine',
       },
     ],
     deliverablesDescription:
       'A repurposing system that turns podcasts, webinars, interviews, and sales calls into a steady stream of usable marketing content.',
-    deliverablesTitle: 'What You Get',
+    deliverablesTitle: 'What you get',
     faqDescription: 'High-intent because the source material already exists.',
     faqs: [
       {
@@ -391,8 +391,8 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
         question: 'What happens on the call?',
       },
     ],
-    faqTitle: 'Common Questions',
-    fitLabel: 'Strong Fit Signals',
+    faqTitle: 'Common questions',
+    fitLabel: 'Strong fit signals',
     fitSignals: [
       'You already record good conversations but do not fully exploit them.',
       'Your team lacks the editorial bandwidth to repurpose long-form content.',
@@ -422,30 +422,30 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
         description:
           'Extract multiple high-signal content angles from one long-form recording.',
         icon: Radio,
-        title: 'More Signal Per Recording',
+        title: 'More signal per recording',
       },
       {
         description:
           'Publish across channels without rebuilding the message from scratch every time.',
         icon: Clapperboard,
-        title: 'Multi-Channel Repurposing',
+        title: 'Multi-channel repurposing',
       },
       {
         description:
           'Build a content engine around material you are already producing anyway.',
         icon: CalendarRange,
-        title: 'Compounding Output',
+        title: 'Compounding output',
       },
     ],
     outcomesDescription:
       'If you are already creating conversations worth listening to, this service turns them into a much larger content surface area.',
-    outcomesTitle: 'What This Solves',
+    outcomesTitle: 'What this solves',
     process: COMMON_SERVICE_PROCESS,
     processDescription:
       'The service model stays the same, but the source material starts with recordings instead of blank-page ideation.',
-    processTitle: 'How It Works',
+    processTitle: 'How it works',
     slug: 'podcast-to-content',
-    title: 'Podcast To Content Service',
+    title: 'Podcast to content service',
   },
   {
     closingDescription:
@@ -459,7 +459,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
           'Content calendar for the launch window',
           'Approval and publishing plan',
         ],
-        title: 'Launch Planning',
+        title: 'Launch planning',
       },
       {
         items: [
@@ -468,7 +468,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
           'Social posts and email copy',
           'Follow-up content sequences',
         ],
-        title: 'Launch Production',
+        title: 'Launch production',
       },
       {
         items: [
@@ -477,12 +477,12 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
           'Post-launch follow-up content',
           'Retrospective and next-wave recommendations',
         ],
-        title: 'Launch Operations',
+        title: 'Launch operations',
       },
     ],
     deliverablesDescription:
       'A focused launch-content sprint for businesses that need coordinated output around a release, campaign, or go-to-market push.',
-    deliverablesTitle: 'What The Sprint Covers',
+    deliverablesTitle: 'What the sprint covers',
     faqDescription: 'Structured for time-sensitive launch windows.',
     faqs: [
       {
@@ -516,8 +516,8 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
         question: 'What happens on the call?',
       },
     ],
-    faqTitle: 'Common Questions',
-    fitLabel: 'Best Fit',
+    faqTitle: 'Common questions',
+    fitLabel: 'Best fit',
     fitSignals: [
       'You have a real launch date or campaign window, not an abstract “sometime soon.”',
       'The internal team cannot absorb all launch-content execution without becoming the bottleneck.',
@@ -547,30 +547,30 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
         description:
           'Move from vague launch ambition to a clear message-and-content system before the window opens.',
         icon: Rocket,
-        title: 'Clear Launch Narrative',
+        title: 'Clear launch narrative',
       },
       {
         description:
           'Produce the assets required to support the release across channels without scrambling at the last minute.',
         icon: Megaphone,
-        title: 'Coordinated Execution',
+        title: 'Coordinated execution',
       },
       {
         description:
           'Keep internal stakeholders focused on launch-critical work instead of becoming the content production team.',
         icon: BadgeCheck,
-        title: 'Less Internal Drag',
+        title: 'Less internal drag',
       },
     ],
     outcomesDescription:
       'This is a sprint-shaped landing page for a sprint-shaped offer: concentrated execution around a defined launch moment.',
-    outcomesTitle: 'What This Solves',
+    outcomesTitle: 'What this solves',
     process: COMMON_SERVICE_PROCESS,
     processDescription:
       'The same service framework, adapted for a high-tempo launch window instead of an open-ended retainer.',
-    processTitle: 'How It Works',
+    processTitle: 'How it works',
     slug: 'launch-content',
-    title: 'Launch Content Service',
+    title: 'Launch content service',
   },
   ...socialGrowthLandingConfigs,
 ];

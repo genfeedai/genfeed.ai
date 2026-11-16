@@ -64,7 +64,7 @@ export default function ReviewPublishOutcomePanel({
       </DefinitionList>
 
       <div className="space-y-3 pt-1">
-        <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        <p className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
           {translate('outcome.performance')}
         </p>
         <DefinitionList className="text-sm">

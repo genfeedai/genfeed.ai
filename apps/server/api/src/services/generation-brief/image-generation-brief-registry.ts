@@ -490,8 +490,8 @@ const IMAGE_GENERATION_BRIEF_EXEMPTION_ENTRIES: ReadonlyArray<
   // Model training operations: these train a model rather than generate
   // an image.
   [MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER, 'model_training_operation'],
-  // Retired Genfeed fleet models: stored keys resolve to their successor
-  // before dispatch, so they are never brief-compiled themselves.
+  // Retired Genfeed fleet models: dispatch stops on a retired key before any
+  // brief is compiled, so they are never brief-compiled themselves.
   [MODEL_KEYS.GENFEED_AI_FLUX_DEV, 'legacy_prompt_builder'],
   [MODEL_KEYS.GENFEED_AI_FLUX_DEV_PULID, 'legacy_prompt_builder'],
   [MODEL_KEYS.GENFEED_AI_FLUX2_DEV, 'legacy_prompt_builder'],

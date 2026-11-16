@@ -179,17 +179,17 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // authorization and cross-tenant behavior are unchanged.
     {
       file: 'apps/server/api/src/collections/models/services/models.service.ts',
-      line: 598,
+      line: 581,
     },
     // #6120: superadmin registry approve.
     {
       file: 'apps/server/api/src/collections/models/services/models.service.ts',
-      line: 784,
+      line: 707,
     },
     // #6120: superadmin registry reject.
     {
       file: 'apps/server/api/src/collections/models/services/models.service.ts',
-      line: 882,
+      line: 805,
     },
     // #6120: skill rows addressed by an already-authorized id or owner;
     // personal and system skills have no organization and grants cross
@@ -402,7 +402,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // is cross-organization.
     {
       file: 'apps/server/api/src/collections/credits/services/credits.utils.service.ts',
-      line: 697,
+      line: 698,
     },
     // The free-trial expiry sweep discovers never-paid organizations past the
     // window across tenants; each one is then expired in its own
@@ -501,7 +501,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // and wallets.
     {
       file: 'apps/server/api/src/collections/subscriptions/controllers/subscriptions.controller.ts',
-      line: 312,
+      line: 306,
     },
     // #6120: a granted reference lives in the owning organization; used only
     // when grantedOwners.has(id).

@@ -78,7 +78,7 @@ test.describe('Public Routes (Unauthenticated)', () => {
     const claimPath = `/agent-auth/claim?claim_attempt_token=${claimAttemptToken}`;
     await assertRouteRenders(unauthenticatedPage, claimPath);
     const signIn = unauthenticatedPage.getByRole('link', {
-      name: 'Sign in to continue',
+      name: 'Sign In',
     });
     await expect(signIn).toBeVisible();
     await signIn.click();

@@ -700,7 +700,8 @@ test.describe('Discovery prefilled remix handoff', () => {
       .click();
     await expect(
       authenticatedPage.getByRole('button', {
-        name: 'Unsave from swipe file',
+        exact: true,
+        name: 'Unsave',
       }),
     ).toBeVisible();
     await expect(authenticatedPage.getByText('Brand note')).toBeVisible();

@@ -84,7 +84,7 @@ describe('PrivacyContent Meta and TikTok disclosures', () => {
     render(<PrivacyContent />);
 
     expect(
-      screen.getByRole('heading', { level: 2, name: 'TikTok Data' }),
+      screen.getByRole('heading', { level: 2, name: 'TikTok data' }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/We do not read or send TikTok direct messages/),

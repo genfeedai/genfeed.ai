@@ -1,0 +1,43 @@
+name: Publish Shared Packages
+
+# Publishes the shared design layer (styles, ui, helpers, contracts) to npm on
+# demand, without cutting a release. console.genfeed.ai and
+# marketplace.genfeed.ai install these through deps:update instead of
+# vendoring them.
+#
+# npm trusted publishing matches this caller's filename and allows one trusted
+# publisher per package, so these packages are registered to
+# `publish-shared-packages.yml` and are not part of `release.yml`'s lane
+# (`dedicated` in scripts/npm-release-enrollment.json). The plan, tarball
+# preflight and dependency-first publish are the same ones the release lane
+# runs (publish-packages.yml).
+#
+# A dispatch defaults to a dry run: it plans from registry drift, builds and
+# packs every tarball, and writes nothing. Publishing is irreversible, so set
+# dry_run to false only with the owner's go.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Preflight only, no registry writes. Set to false to publish.'
+        required: false
+        default: true
+        type: boolean
+
+# The called workflow serializes publishes with its own concurrency group.
+# Declaring the same group here would cancel the called run.
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish shared packages
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/publish-packages.yml
+    with:
+      checkout_ref: ${{ github.sha }}
+      dry_run: ${{ inputs.dry_run }}
+      lane: dedicated
+      trusted_release_call: true

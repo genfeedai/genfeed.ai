@@ -223,7 +223,7 @@ export default function IngredientTabsInfo({
 
       {isImageLike && onUpdate ? (
         <div className="border-t border-border pt-5">
-          <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          <p className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
             Avatar Actions
           </p>
           {actionDescription ? (

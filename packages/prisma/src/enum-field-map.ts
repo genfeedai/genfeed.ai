@@ -5411,7 +5411,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'reviewedBy',
       'reviewedProviderContractVersion',
       'speedTier',
-      'succeededBy',
       'training',
       'trainingId',
       'trigger',
@@ -6565,6 +6564,19 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       marginInputMode: { enumType: 'MarginInputMode', isRequired: true },
     },
+    relationIdFields: {},
+  },
+  PlatformSigningKey: {
+    allFields: [
+      'createdAt',
+      'id',
+      'keyId',
+      'privateJwk',
+      'provider',
+      'publicJwk',
+    ],
+    listFields: [],
+    enumFields: {},
     relationIdFields: {},
   },
   Post: {
@@ -9535,6 +9547,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'readScope',
       'remainingDurationMs',
       'result',
+      'retentionPolicy',
       'scrubAllNodePayloads',
       'source',
       'startedAt',
@@ -9558,6 +9571,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'captions',
       'ingredients',
       'newsletters',
+      'nodeClaims',
       'nodeContinuations',
       'nodeResults',
       'posts',
@@ -9649,6 +9663,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     allFields: [
       'createdAt',
       'error',
+      'execution',
       'executionId',
       'id',
       'leaseExpiresAt',
@@ -9661,7 +9676,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
-    relationIdFields: {},
+    relationIdFields: {
+      execution: 'executionId',
+    },
   },
   WorkflowNodeContinuation: {
     allFields: [

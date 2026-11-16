@@ -129,7 +129,7 @@ export default function HomeHow(): React.ReactElement {
     >
       <div className="container mx-auto px-6">
         <div className="flex flex-col mb-10 max-w-3xl gap-4" data-reveal="up">
-          <Text className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/80">
+          <Text className="text-xs font-semibold uppercase tracking-label text-foreground/80">
             How it works
           </Text>
           <Heading
@@ -137,7 +137,7 @@ export default function HomeHow(): React.ReactElement {
             as="h2"
             className="text-4xl font-semibold leading-tight tracking-[-0.02em] sm:text-5xl"
           >
-            Connect, ask, review.
+            Connect, ask, review
           </Heading>
           <Text className="max-w-2xl text-base leading-7 gen-text-muted">
             Your agent does the work. Brand memory, drafts and results live in

@@ -6,7 +6,6 @@ import {
   AccordionTrigger,
 } from '@ui/primitives/accordion';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import {
@@ -44,9 +43,7 @@ export default function FAQContent() {
   return (
     <MarketingEntrance sections={false}>
       <PageLayout
-        heroMedia={
-          <MarketingArtwork page="/faq" isCompact kind="integration" />
-        }
+        compact
         title="FAQ"
         description="Pricing, features, and how to get access to Genfeed"
       >
@@ -55,7 +52,7 @@ export default function FAQContent() {
             <div className="space-y-12">
               <div className="gsap-hero">
                 <h2 className="text-4xl font-semibold mb-4">
-                  Frequently Asked Questions
+                  Frequently asked questions
                 </h2>
                 <p className="text-lg text-muted-foreground">
                   Everything you need to know about Genfeed
@@ -103,7 +100,7 @@ export default function FAQContent() {
             <div className="hidden lg:block">
               <div className="sticky top-24 space-y-6">
                 <div className="gen-card-spotlight p-6">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-label mb-4">
                     Jump to
                   </h3>
                   <nav className="space-y-1">
@@ -126,7 +123,7 @@ export default function FAQContent() {
                 </div>
 
                 {/* Contact card */}
-                <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 p-6">
+                <div className="bg-primary/10 border border-primary/20 p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-2 bg-primary/20 text-primary">
                       <MessageSquare className="size-5" />
@@ -141,7 +138,7 @@ export default function FAQContent() {
 
                 {/* Quick contact */}
                 <div className="gen-card-spotlight p-6">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-label mb-4">
                     Contact us
                   </h3>
                   <a
@@ -159,7 +156,7 @@ export default function FAQContent() {
 
         {/* Mobile CTA - only visible on mobile */}
         <section className="lg:hidden w-full pb-20 px-8">
-          <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 p-6 text-center">
+          <div className="bg-primary/10 border border-primary/20 p-6 text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
               <div className="p-2 bg-primary/20 text-primary">
                 <MessageSquare className="size-5" />

@@ -230,9 +230,10 @@ describe('SettingsIntegrationsPage', () => {
     expect(
       screen.getByText('Bring your own keys is included with Scale'),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Upgrade to Scale' }),
-    ).toHaveAttribute('href', '/acme/~/settings/subscription');
+    expect(screen.getByRole('link', { name: 'Get Scale' })).toHaveAttribute(
+      'href',
+      '/acme/~/settings/subscription',
+    );
     expect(
       screen.queryByRole('button', { name: 'Add Key' }),
     ).not.toBeInTheDocument();

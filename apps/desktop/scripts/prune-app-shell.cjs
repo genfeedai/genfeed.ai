@@ -52,23 +52,70 @@ function pruneTracedSourceFiles(serverDirectory) {
   return removedBytes;
 }
 
-// Next's build-time font fallback helper and its 4 MiB metrics table. Nothing
-// in the production server requires them (`next/font` resolves at build time).
-const UNUSED_NEXT_RUNTIME_FILES = [
-  path.join('dist', 'server', 'capsize-font-metrics.json'),
-  path.join('dist', 'server', 'font-utils.js'),
+// Files inside `node_modules` that the packaged production server never loads.
+// Paths are relative to `node_modules`.
+const UNUSED_RUNTIME_FILES = [
+  // Next's build-time font fallback helper and its 4 MiB metrics table.
+  // Nothing in the production server requires them (`next/font` resolves at
+  // build time).
+  path.join('next', 'dist', 'server', 'capsize-font-metrics.json'),
+  path.join('next', 'dist', 'server', 'font-utils.js'),
+  // Next's edge sandbox. Only the edge function runner loads it, and the build
+  // has no edge functions (empty middleware manifest `functions`).
+  path.join('next', 'dist', 'compiled', 'edge-runtime'),
+  // `cacheComponents` runs on the experimental React build, so Next's
+  // non-experimental app page runtime is never required.
+  path.join(
+    'next',
+    'dist',
+    'compiled',
+    'next-server',
+    'app-page-turbo.runtime.prod.js',
+  ),
+  // The server renders with Node. React's browser and edge server builds are
+  // only picked by the `browser`, `worker` and `workerd` export conditions.
+  path.join('react-dom', 'cjs', 'react-dom-server.browser.production.js'),
+  path.join('react-dom', 'cjs', 'react-dom-server.edge.production.js'),
+  path.join(
+    'react-dom',
+    'cjs',
+    'react-dom-server-legacy.browser.production.js',
+  ),
 ];
+
+// Source map bodies of the service worker; browsers fetch only the worker.
+const UNUSED_BUILD_FILES = [
+  path.join('.next', 'server', 'app', 'serwist', 'sw.js.map.body'),
+];
+
+function removePath(absolutePath) {
+  if (!fs.existsSync(absolutePath)) {
+    return 0;
+  }
+
+  const removedBytes = fs.statSync(absolutePath).isDirectory()
+    ? removeFilesWhere(absolutePath, () => true)
+    : fs.statSync(absolutePath).size;
+  fs.rmSync(absolutePath, { force: true, recursive: true });
+
+  return removedBytes;
+}
 
 function pruneUnusedNextRuntimeFiles(nodeModulesRoot) {
   let removedBytes = 0;
 
-  for (const relativePath of UNUSED_NEXT_RUNTIME_FILES) {
-    const absolutePath = path.join(nodeModulesRoot, 'next', relativePath);
+  for (const relativePath of UNUSED_RUNTIME_FILES) {
+    removedBytes += removePath(path.join(nodeModulesRoot, relativePath));
+  }
 
-    if (fs.existsSync(absolutePath)) {
-      removedBytes += fs.statSync(absolutePath).size;
-      fs.rmSync(absolutePath, { force: true });
-    }
+  return removedBytes;
+}
+
+function pruneUnusedBuildFiles(serverRoot) {
+  let removedBytes = 0;
+
+  for (const relativePath of UNUSED_BUILD_FILES) {
+    removedBytes += removePath(path.join(serverRoot, relativePath));
   }
 
   return removedBytes;
@@ -103,5 +150,6 @@ module.exports = {
   listTracedSourceFiles,
   pruneBuildTraceFiles,
   pruneTracedSourceFiles,
+  pruneUnusedBuildFiles,
   pruneUnusedNextRuntimeFiles,
 };

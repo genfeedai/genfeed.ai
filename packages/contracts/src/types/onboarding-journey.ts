@@ -48,7 +48,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
     },
     {
       ctaHref: APP_ROUTES.CONNECTORS.AGENTS,
-      ctaLabel: 'Connect your agent',
+      ctaLabel: 'Connect Agent',
       description:
         'Ask your agent for your first image, made from the brand context you just shared.',
       id: 'generate_first_image',
@@ -74,7 +74,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
     },
     {
       ctaHref: APP_ROUTES.CONNECTORS.AGENTS,
-      ctaLabel: 'Connect your agent',
+      ctaLabel: 'Connect Agent',
       description:
         'Ask your agent for your first video to unlock richer content creation.',
       id: 'generate_first_video',
@@ -86,7 +86,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
     },
     {
       ctaHref: APP_ROUTES.CONNECTORS.AGENTS,
-      ctaLabel: 'Connect your agent',
+      ctaLabel: 'Connect Agent',
       description:
         'Publish your first post to complete the journey and claim the final reward.',
       id: 'publish_first_post',

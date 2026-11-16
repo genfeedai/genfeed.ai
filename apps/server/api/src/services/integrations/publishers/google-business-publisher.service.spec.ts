@@ -7,7 +7,11 @@ import type {
 import { GoogleBusinessService } from '@api/services/integrations/google-business/services/google-business.service';
 import { GoogleBusinessPublisherService } from '@api/services/integrations/publishers/google-business-publisher.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { CredentialPlatform, PostCategory } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PublishErrorKind,
+} from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
@@ -289,17 +293,27 @@ describe('GoogleBusinessPublisherService', () => {
     expect(disconnected).toEqual(['cred-1']);
   });
 
-  it('lets a rate limit reach the pipeline to retry', async () => {
-    fake.createLocalPost = async () => {
-      throw new GoogleBusinessApiError(
-        'rate limited (429)',
-        429,
-        'RESOURCE_EXHAUSTED',
-      );
-    };
+  it.each([
+    [429, 'RESOURCE_EXHAUSTED', PublishErrorKind.RATE_LIMITED],
+    [503, 'UNAVAILABLE', PublishErrorKind.OUTCOME_UNKNOWN],
+    [null, null, PublishErrorKind.OUTCOME_UNKNOWN],
+  ])(
+    'types a failure with status %s for the pipeline',
+    async (status, googleStatus, kind) => {
+      fake.createLocalPost = async () => {
+        throw new GoogleBusinessApiError(
+          `failed (${status})`,
+          status,
+          googleStatus,
+        );
+      };
 
-    await expect(publisher.publish(makeContext())).rejects.toThrow('(429)');
-  });
+      await expect(publisher.publish(makeContext())).rejects.toMatchObject({
+        httpStatus: status ?? undefined,
+        kind,
+      });
+    },
+  );
 
   describe('verifyPublished', () => {
     const post = (

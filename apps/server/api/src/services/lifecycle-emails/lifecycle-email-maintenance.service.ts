@@ -706,7 +706,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         preheader:
           'You have generated content waiting for a publishing destination.',
         destinationUrl,
-        actionLabel: 'Connect an account',
+        actionLabel: 'Connect Account',
         goal: 'connect_account',
         brandId: item.brandId,
       });

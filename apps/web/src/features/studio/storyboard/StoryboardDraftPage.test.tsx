@@ -237,7 +237,7 @@ describe('draft detail page', () => {
           }),
       );
       renderPage({ run: readyRun });
-      const link = screen.getByRole('link', { name: 'Open in Editor' });
+      const link = screen.getByRole('link', { name: 'Open Editor' });
       expect(link).toHaveAttribute(
         'href',
         expect.stringContaining('/org/brand/editor?'),
@@ -255,7 +255,7 @@ describe('draft detail page', () => {
     it('keeps the editor visible and warns when save fails', async () => {
       mocks.flush.mockRejectedValue(new Error('Offline'));
       renderPage({ run: readyRun });
-      fireEvent.click(screen.getByRole('link', { name: 'Open in Editor' }));
+      fireEvent.click(screen.getByRole('link', { name: 'Open Editor' }));
       await waitFor(() =>
         expect(screen.getByRole('alert')).toHaveTextContent(
           'Retry saving before leaving',

@@ -83,10 +83,17 @@ function SegmentedControl<TValue extends string = string>(
   } = props;
 
   const items = options.map((option) => {
+    const isSelected =
+      props.type === 'multiple'
+        ? props.value.includes(option.value)
+        : props.value === option.value;
     const item = (
       <ToggleGroupPrimitive.Item
         aria-label={option.ariaLabel}
         className={segmentedItemVariants({ appearance, isFullWidth, size })}
+        // The tooltip trigger writes its own open/closed `data-state` onto this
+        // element; the selected styles key on `on`/`off`, so state it here.
+        data-state={isSelected ? 'on' : 'off'}
         data-testid={option.testId}
         disabled={option.isDisabled}
         key={option.value}

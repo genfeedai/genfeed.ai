@@ -37,7 +37,7 @@ describe('AgentConnectLauncher', () => {
 
     expect(
       await screen.findByRole('dialog', {}, { timeout: 30_000 }),
-    ).toHaveAccessibleName('Connect your agent');
+    ).toHaveAccessibleName('Connect Agent');
     expect(dialogModuleLoaded).toHaveBeenCalledTimes(1);
   }, 45_000);
 
@@ -75,7 +75,7 @@ describe('AgentConnectLauncher', () => {
 
     expect(
       await screen.findByRole('dialog', {}, { timeout: 10_000 }),
-    ).toHaveAccessibleName('Connect your agent');
+    ).toHaveAccessibleName('Connect Agent');
   });
 
   it('opens on a later hashchange to the deep link', async () => {

@@ -894,7 +894,6 @@ describe('ModelsController', () => {
       expect(modelsService.transitionLifecycle).toHaveBeenCalledWith(
         id,
         ModelLifecycle.AVAILABLE,
-        undefined,
       );
       expect(result).toEqual({ data: availableModel });
     });

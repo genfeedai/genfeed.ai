@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 export const SOCIAL_TIMELINE_ACTION_ID =
   'social.timeline.native-action.execute';
@@ -11,6 +12,7 @@ export function buildSocialTimelineActionWorkflow(): SystemWorkflowGraphDefiniti
     description:
       'Reserves one scoped idempotent native action, publishes once, and preserves its confirmation receipt.',
     resultNodeId: 'execute-action',
+    retention: SystemWorkflowRetention.KEPT,
     definition: {
       nodes: [
         createGenfeedActionNode({

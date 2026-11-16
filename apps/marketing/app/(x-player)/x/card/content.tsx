@@ -25,7 +25,7 @@ export default function XPlayerCardContent() {
       <div className="absolute inset-0 bg-background/70" />
       <div className="relative flex h-[70dvh] flex-col justify-between px-6 py-6 sm:h-full sm:px-8 sm:py-8">
         <div className="flex min-h-0 flex-col gap-4">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-foreground/60">
+          <p className="text-xs font-medium uppercase tracking-label text-foreground/60">
             {site.name}
           </p>
           <Heading
@@ -33,7 +33,7 @@ export default function XPlayerCardContent() {
             className="max-w-[12ch] text-balance text-[1.75rem] leading-[0.98] tracking-[-0.02em] text-foreground sm:text-[2.125rem]"
             size="3xl"
           >
-            From brief to feed.
+            From brief to feed
           </Heading>
           <Text
             as="p"

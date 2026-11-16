@@ -183,7 +183,7 @@ describe('NewsletterEditorContent', () => {
     );
     expect(mocks.copyToClipboard).toHaveBeenCalledWith('Draft body');
     expect(
-      screen.getByRole('link', { name: 'Connect an account' }),
+      screen.getByRole('link', { name: 'Connect Account' }),
     ).toHaveAttribute('href', '/acme/brand/settings/profile');
   });
 

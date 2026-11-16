@@ -42,6 +42,7 @@ provider values directly.
 | `BEEHIIV`               | Beehiiv                                                | API key                    | Publication selection, newsletters, and subscribers     |
 | `UNIPILE`               | Unipile                                                | API key and DSN            | Accounts, messages, email, and calendar data            |
 | `DEVTO`                 | dev.to                                                 | API key                    | Article publishing                                      |
+| `BLUESKY`               | Bluesky                                                | OAuth sign-in              | Text, image, video, and reply-thread publishing         |
 | `GENFEED`               | Genfeed profile (`genfeed.ai/@handle`)                 | Built in, one per brand    | Publishing to the brand's public creator profile        |
 
 The registry can contain a value before a user-facing connector is available.
@@ -86,6 +87,9 @@ for the deployment; do not register localhost callbacks for production.
 
 - Beehiiv and dev.to validate the submitted brand credential before saving it.
 - Ghost requires values that can produce a valid Ghost Admin API request.
+- Bluesky connects through its own sign-in page (OAuth). Genfeed never asks for
+  a handle and password. The granted session is stored encrypted, and Genfeed
+  marks the channel disconnected when Bluesky revokes it.
 - Telegram validates the configured bot token.
 - WhatsApp uses the deployment's Twilio account, token, and sending number.
 - Unipile accepts organization configuration and can fall back to deployment

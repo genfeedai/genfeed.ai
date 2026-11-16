@@ -2,7 +2,6 @@ import { ButtonSize, ButtonVariant, DesktopOs } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -57,7 +56,7 @@ const INSTALL_STEPS = [
     step: 'Download',
   },
   {
-    description: 'Open the .dmg and drag GenFeed into Applications.',
+    description: 'Open the .dmg and drag Genfeed into Applications.',
     step: 'Install',
   },
   {
@@ -104,7 +103,6 @@ export default function DesktopContent({
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
-        heroMedia={<MarketingArtwork page="/desktop" kind="integration" />}
         title={<>Genfeed, running on your Mac.</>}
         description="The full content OS as a native desktop app. A local workspace that works offline, generation through your own provider keys, and the same account you already use on the web."
         heroActions={
@@ -313,7 +311,7 @@ export default function DesktopContent({
           </NeuralGrid>
         </WebSection>
 
-        <CtaSection bg="subtle" title="Start where you are.">
+        <CtaSection bg="subtle" title="Start where you are">
           <Button size={ButtonSize.PUBLIC} asChild>
             <a href={appHref} target="_blank" rel="noopener noreferrer">
               Open the web app

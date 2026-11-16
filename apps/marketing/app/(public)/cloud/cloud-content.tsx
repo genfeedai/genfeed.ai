@@ -1,6 +1,5 @@
 import { getAppSignUpUrl } from '@data/app-links';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -47,17 +46,17 @@ const TEAMS = [
   {
     description:
       'Brief from your agents, then review and publish across shared workspaces.',
-    title: 'Marketing Teams',
+    title: 'Marketing teams',
   },
   {
     description:
       'Manage clients, organizations, brands, and approvals in one managed environment.',
-    title: 'Content Agencies',
+    title: 'Content agencies',
   },
   {
     description:
       'Keep multiple brand systems separate while centralizing billing and operations.',
-    title: 'Multi-Brand Operators',
+    title: 'Multi-brand operators',
   },
 ];
 
@@ -67,7 +66,7 @@ export default function CloudContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork page="/cloud" kind="workflow" />}
+        compact
         title="One workspace for your team’s agents"
         description="Every teammate connects their own agent to the same brand library, roles, approvals and credit pool. The dashboard is where the team reviews, publishes and measures."
       >
@@ -161,7 +160,7 @@ export default function CloudContent() {
 
         {/* Pricing CTA */}
         <CtaSection
-          title="Connect your team’s agents."
+          title="Connect your team’s agents"
           description="Every teammate connects their own agent to the same workspace, brand library, and approvals."
         >
           <AgentFirstActions

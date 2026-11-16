@@ -48,7 +48,7 @@ export class ExpertOnboardingPage {
       })
       .filter({ visible: true });
     this.continueButton = page.getByRole('button', { name: 'Continue' });
-    this.skipButton = page.getByRole('button', { name: 'Skip for now' });
+    this.skipButton = page.getByRole('button', { exact: true, name: 'Skip' });
 
     this.answerInput = page.getByLabel('Your answer');
     this.saveAnswerButton = page.getByRole('button', { name: 'Save answer' });

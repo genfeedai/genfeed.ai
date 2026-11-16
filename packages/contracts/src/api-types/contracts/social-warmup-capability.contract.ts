@@ -365,6 +365,30 @@ export const SOCIAL_WARMUP_CAPABILITY_MATRIX = {
       headline: 'Mastodon is connection-only',
     },
   }),
+  [CredentialPlatform.BLUESKY]: capability({
+    accountType:
+      'Bluesky account on a Bluesky-hosted server, connected with Bluesky sign-in (OAuth).',
+    connectionScopes: ['atproto transition:generic'],
+    evidenceFreshness: `Reviewed ${SOCIAL_WARMUP_CAPABILITY_REVIEWED_ON} against the Bluesky connect flow and the Bluesky scheduler channel.`,
+    nativeOnlyActions: [
+      'Follow, like, and repost from the native client',
+      'Join feeds and starter packs in the native client',
+      'Respect the community guidelines on bulk interaction',
+    ],
+    platform: CredentialPlatform.BLUESKY,
+    policyConstraints: `${NO_AUTOMATED_ENGAGEMENT} Bluesky treats bulk follows and likes as spam; Genfeed must not automate them.`,
+    profilePostSignals:
+      'Account profile (DID, handle, display name, avatar). No feed or follower adapter.',
+    publishingCapabilities:
+      'Text up to 300 characters, up to four images or one video, and reply threads.',
+    rationale:
+      'Connected plus a working publisher exist, but there is no reviewed Bluesky warm-up skill or catalog blueprint. Network moderation cannot share TikTok thresholds.',
+    support: 'readiness_only',
+    ui: {
+      body: 'Genfeed can confirm the Bluesky account is connected and can publish. A guided warm-up plan is not available yet.',
+      headline: 'Bluesky is connection-only',
+    },
+  }),
   [CredentialPlatform.FANVUE]: capability({
     accountType: 'Fanvue creator via PKCE OAuth.',
     connectionScopes: [

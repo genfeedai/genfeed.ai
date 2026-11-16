@@ -77,9 +77,8 @@ describe('ClipperRunCard', () => {
     render(<ClipperRunCard state={state} />);
 
     expect(screen.getByText('Running')).toBeDefined();
-    // The running step should display the 🔄 icon
     const stepRow = screen.getByText('Generate Clip').closest('div');
-    expect(stepRow?.textContent).toContain('🔄');
+    expect(stepRow?.textContent).toContain('running');
   });
 
   it('shows confirmation prompt when confirmationPending=true', async () => {
@@ -196,10 +195,10 @@ describe('ClipperRunCard', () => {
     expect(screen.getByText('9:16')).toBeDefined();
     const mergeText = screen.getByText('Merge Enabled');
     const mergeRow = mergeText.parentElement;
-    expect(mergeRow?.textContent).toContain('✓');
+    expect(mergeRow?.textContent).toContain('On');
     // Reframe disabled
     const reframeText = screen.getByText('Reframe Enabled');
     const reframeRow = reframeText.parentElement;
-    expect(reframeRow?.textContent).toContain('✗');
+    expect(reframeRow?.textContent).toContain('Off');
   });
 });

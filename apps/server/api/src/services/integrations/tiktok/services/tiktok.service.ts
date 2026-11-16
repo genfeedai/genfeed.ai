@@ -8,6 +8,9 @@ import {
   getTikTokErrorCode,
   isTikTokAuthorizationError,
   parseTikTokGrantedScopes,
+  tiktokPublishFailure,
+  tiktokSettingsRejection,
+  toPublishOutcomeUnknown,
 } from '@api/services/integrations/tiktok/utils/tiktok-error.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
@@ -247,7 +250,7 @@ export class TiktokService {
       settings,
       availablePrivacyLevels,
     );
-    if (consentIssues.length > 0) throw new Error(consentIssues.join(' '));
+    if (consentIssues.length > 0) throw tiktokSettingsRejection(consentIssues);
     const privacyLevel = resolveTikTokPrivacyLevel(
       availablePrivacyLevels,
       requestedPrivacy,
@@ -321,12 +324,15 @@ export class TiktokService {
 
     await new Promise((resolve) => setTimeout(resolve, 2_000));
 
+    // TikTok accepted the init call, so a failed status poll proves nothing.
     const statusData = await this.getPublishStatus(
       decryptedAccessToken,
       publishId,
       this.RETRY_MAX_ATTEMPTS,
       this.RETRY_DELAY_MS,
-    );
+    ).catch((error: unknown) => {
+      throw toPublishOutcomeUnknown(error);
+    });
 
     if (statusData?.status === TikTokPublishStatus.PUBLISH_COMPLETE) {
       this.loggerService.log(`${context} publish completed`);
@@ -937,9 +943,7 @@ export class TiktokService {
 
         // If failed, throw error
         if (data.status === TikTokPublishStatus.FAILED) {
-          throw new Error(
-            `TikTok publish failed: ${data.fail_reason || 'Unknown reason'}`,
-          );
+          throw tiktokPublishFailure(data.fail_reason);
         }
 
         // Wait before next attempt if still processing

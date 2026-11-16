@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { EMAIL_SIGNAL_ACTIONS } from '@api/services/email-product-signals/email-product-signals.workflow';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
@@ -41,6 +42,7 @@ export function lifecycleMaintenanceWorkflows(): SystemWorkflowGraphDefinition[]
       description:
         'Finds the organizations with due lifecycle deliveries, recaps, credit or trial notices, or new product signals, and queues one run for each.',
       resultNodeId: 'discover',
+      retention: SystemWorkflowRetention.BACKGROUND,
       version: 2,
     },
     {
@@ -100,6 +102,7 @@ export function lifecycleMaintenanceWorkflows(): SystemWorkflowGraphDefinition[]
       description:
         'Recovers due onboarding workflows, prepares eligible recaps and connection reminders, evaluates spendable credits, queues long-generation updates and purchase receipts, and attributes confirmed product actions.',
       resultNodeId: 'credits',
+      retention: SystemWorkflowRetention.BACKGROUND,
       version: 2,
     },
   ];

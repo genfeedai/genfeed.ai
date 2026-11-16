@@ -146,7 +146,7 @@ export function TurboRunCard({
       <div className="mb-3 min-w-0 space-y-1.5">
         <Label
           htmlFor="run-count"
-          className="text-2xs uppercase tracking-wider text-muted-foreground"
+          className="text-2xs uppercase tracking-label text-muted-foreground"
         >
           Number of items
         </Label>
@@ -162,7 +162,7 @@ export function TurboRunCard({
       </div>
 
       <div className="mb-3 min-w-0">
-        <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+        <span className="mb-1 block text-2xs font-medium uppercase tracking-label text-muted-foreground">
           Platforms
         </span>
         <div className="flex min-w-0 flex-wrap gap-2">

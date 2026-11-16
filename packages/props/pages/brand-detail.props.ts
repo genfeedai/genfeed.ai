@@ -135,6 +135,7 @@ export interface BrandDetailExternalLinksCardProps {
 
 export interface BrandDetailDefaultModelsCardProps {
   brand: IBrand;
+  onRefreshBrand?: () => Promise<unknown> | unknown;
 }
 
 export interface BrandWritingVoiceEditorProps {

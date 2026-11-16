@@ -544,9 +544,9 @@ describe('persisted storyboard plan editor', () => {
       ).toEqual(['Undo', 'Reset plan']);
     });
     it('renders page actions before the primary action', () => {
-      renderEditor({ actions: <a href="/editor">Open in Editor</a> });
+      renderEditor({ actions: <a href="/editor">Open Editor</a> });
       const actions = within(screen.getByTestId('topbar-actions'));
-      const link = actions.getByRole('link', { name: 'Open in Editor' });
+      const link = actions.getByRole('link', { name: 'Open Editor' });
       const approve = actions.getByRole('button', {
         name: 'Approve storyboard',
       });

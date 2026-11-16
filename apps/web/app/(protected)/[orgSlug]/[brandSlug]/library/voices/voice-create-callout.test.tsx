@@ -130,7 +130,7 @@ describe('VoiceCreateCallout', () => {
     renderCallout();
 
     expect(
-      await screen.findByRole('link', { name: 'Create my digital twin' }),
+      await screen.findByRole('link', { name: 'Create Twin' }),
     ).toHaveAttribute('href', '/acme/main/library/avatars/twin');
   });
 });

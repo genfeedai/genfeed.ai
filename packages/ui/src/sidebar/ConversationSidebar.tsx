@@ -57,7 +57,7 @@ export function ConversationSidebarSection({
 }: ConversationSidebarSectionProps) {
   return (
     <section aria-label={label}>
-      <div className="flex items-center gap-2 px-3 pb-1.5 pt-3 text-2xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
+      <div className="flex items-center gap-2 px-3 pb-1.5 pt-3 text-2xs font-semibold uppercase tracking-label text-muted-foreground">
         {/* ui-guard-allow:native-title -- this file is exported from the @genfeedai/ui barrel, which public marketing pages import; a Radix tooltip here adds ~37 kB first-load JS to /skills */}
         <span className="min-w-0 truncate" title={label}>
           {label}

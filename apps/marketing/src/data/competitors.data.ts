@@ -23,15 +23,15 @@ export const competitors: Competitor[] = [
       { competitor: true, feature: 'AI Video Generation', genfeed: true },
       { competitor: false, feature: 'AI Image Generation', genfeed: true },
       { competitor: false, feature: 'AI Voice & Avatars', genfeed: true },
-      { competitor: false, feature: 'Article Writing', genfeed: true },
+      { competitor: false, feature: 'Article writing', genfeed: true },
       {
         competitor: false,
         feature: 'Multi-Platform Publishing',
         genfeed: true,
       },
       { competitor: false, feature: 'ROI Tracking', genfeed: true },
-      { competitor: false, feature: 'Team Collaboration', genfeed: true },
-      { competitor: false, feature: 'Automation Workflows', genfeed: true },
+      { competitor: false, feature: 'Team collaboration', genfeed: true },
+      { competitor: false, feature: 'Automation workflows', genfeed: true },
       {
         competitor: '$144-912',
         feature: 'Entry price',
@@ -72,15 +72,15 @@ export const competitors: Competitor[] = [
       { competitor: 'Limited', feature: 'AI Video Generation', genfeed: true },
       { competitor: 'Basic', feature: 'AI Image Generation', genfeed: true },
       { competitor: false, feature: 'AI Voice & Avatars', genfeed: true },
-      { competitor: 'Basic', feature: 'Article Writing', genfeed: true },
+      { competitor: 'Basic', feature: 'Article writing', genfeed: true },
       {
         competitor: 'Limited',
         feature: 'Multi-Platform Publishing',
         genfeed: true,
       },
       { competitor: false, feature: 'ROI Tracking', genfeed: true },
-      { competitor: true, feature: 'Team Collaboration', genfeed: true },
-      { competitor: false, feature: 'Automation Workflows', genfeed: true },
+      { competitor: true, feature: 'Team collaboration', genfeed: true },
+      { competitor: false, feature: 'Automation workflows', genfeed: true },
       {
         competitor: '$120',
         feature: 'Entry price',
@@ -117,7 +117,7 @@ export const competitors: Competitor[] = [
   },
   {
     comparisonTable: [
-      { competitor: true, feature: 'Clip Extraction', genfeed: true },
+      { competitor: true, feature: 'Clip extraction', genfeed: true },
       { competitor: false, feature: 'AI Video Generation', genfeed: true },
       { competitor: false, feature: 'AI Image Generation', genfeed: true },
       { competitor: false, feature: 'AI Voice & Avatars', genfeed: true },
@@ -127,8 +127,8 @@ export const competitors: Competitor[] = [
         genfeed: true,
       },
       { competitor: false, feature: 'ROI Tracking', genfeed: true },
-      { competitor: false, feature: 'Team Collaboration', genfeed: true },
-      { competitor: false, feature: 'Automation Workflows', genfeed: true },
+      { competitor: false, feature: 'Team collaboration', genfeed: true },
+      { competitor: false, feature: 'Automation workflows', genfeed: true },
       {
         competitor: '$348-1548',
         feature: 'Entry price',
@@ -176,8 +176,8 @@ export const competitors: Competitor[] = [
         genfeed: true,
       },
       { competitor: false, feature: 'ROI Tracking', genfeed: true },
-      { competitor: true, feature: 'Team Collaboration', genfeed: true },
-      { competitor: false, feature: 'Automation Workflows', genfeed: true },
+      { competitor: true, feature: 'Team collaboration', genfeed: true },
+      { competitor: false, feature: 'Automation workflows', genfeed: true },
       {
         competitor: '$588-1500',
         feature: 'Entry price',
@@ -215,13 +215,13 @@ export const competitors: Competitor[] = [
   },
   {
     comparisonTable: [
-      { competitor: true, feature: 'Social Media Scheduling', genfeed: true },
+      { competitor: true, feature: 'Social media scheduling', genfeed: true },
       { competitor: false, feature: 'AI Content Generation', genfeed: true },
       { competitor: false, feature: 'AI Video Generation', genfeed: true },
       { competitor: false, feature: 'AI Image Generation', genfeed: true },
       { competitor: 'Basic', feature: 'ROI Tracking', genfeed: true },
-      { competitor: true, feature: 'Team Collaboration', genfeed: true },
-      { competitor: false, feature: 'Automation Workflows', genfeed: true },
+      { competitor: true, feature: 'Team collaboration', genfeed: true },
+      { competitor: false, feature: 'Automation workflows', genfeed: true },
       {
         competitor: '$72-1440',
         feature: 'Entry price',
@@ -259,7 +259,7 @@ export const competitors: Competitor[] = [
   },
   {
     comparisonTable: [
-      { competitor: true, feature: 'Video Editing', genfeed: 'Basic' },
+      { competitor: true, feature: 'Video editing', genfeed: 'Basic' },
       { competitor: false, feature: 'AI Video Generation', genfeed: true },
       { competitor: false, feature: 'AI Image Generation', genfeed: true },
       {
@@ -273,8 +273,8 @@ export const competitors: Competitor[] = [
         genfeed: true,
       },
       { competitor: false, feature: 'ROI Tracking', genfeed: true },
-      { competitor: true, feature: 'Team Collaboration', genfeed: true },
-      { competitor: false, feature: 'Automation Workflows', genfeed: true },
+      { competitor: true, feature: 'Team collaboration', genfeed: true },
+      { competitor: false, feature: 'Automation workflows', genfeed: true },
       {
         competitor: '$144-288',
         feature: 'Entry price',
@@ -314,15 +314,15 @@ export const competitors: Competitor[] = [
       { competitor: true, feature: 'AI Avatar Videos', genfeed: true },
       { competitor: false, feature: 'AI Video Generation', genfeed: true },
       { competitor: false, feature: 'AI Image Generation', genfeed: true },
-      { competitor: false, feature: 'Article Writing', genfeed: true },
+      { competitor: false, feature: 'Article writing', genfeed: true },
       {
         competitor: false,
         feature: 'Multi-Platform Publishing',
         genfeed: true,
       },
       { competitor: false, feature: 'ROI Tracking', genfeed: true },
-      { competitor: true, feature: 'Team Collaboration', genfeed: true },
-      { competitor: false, feature: 'Automation Workflows', genfeed: true },
+      { competitor: true, feature: 'Team collaboration', genfeed: true },
+      { competitor: false, feature: 'Automation workflows', genfeed: true },
       {
         competitor: '$264-708',
         feature: 'Entry price',
@@ -364,15 +364,15 @@ export const competitors: Competitor[] = [
       { competitor: true, feature: 'AI Avatar Videos', genfeed: true },
       { competitor: 'Basic', feature: 'AI Video Generation', genfeed: true },
       { competitor: false, feature: 'AI Image Generation', genfeed: true },
-      { competitor: false, feature: 'Article Writing', genfeed: true },
+      { competitor: false, feature: 'Article writing', genfeed: true },
       {
         competitor: false,
         feature: 'Multi-Platform Publishing',
         genfeed: true,
       },
       { competitor: false, feature: 'ROI Tracking', genfeed: true },
-      { competitor: true, feature: 'Team Collaboration', genfeed: true },
-      { competitor: false, feature: 'Automation Workflows', genfeed: true },
+      { competitor: true, feature: 'Team collaboration', genfeed: true },
+      { competitor: false, feature: 'Automation workflows', genfeed: true },
       {
         competitor: '$288-576',
         feature: 'Entry price',
@@ -425,8 +425,8 @@ export const competitors: Competitor[] = [
         genfeed: true,
       },
       { competitor: false, feature: 'ROI Tracking', genfeed: true },
-      { competitor: false, feature: 'Team Collaboration', genfeed: true },
-      { competitor: false, feature: 'Automation Workflows', genfeed: true },
+      { competitor: false, feature: 'Team collaboration', genfeed: true },
+      { competitor: false, feature: 'Automation workflows', genfeed: true },
       {
         competitor: '$228-468',
         feature: 'Entry price',
@@ -464,7 +464,7 @@ export const competitors: Competitor[] = [
   },
   {
     comparisonTable: [
-      { competitor: true, feature: 'Video Editing', genfeed: 'Basic' },
+      { competitor: true, feature: 'Video editing', genfeed: 'Basic' },
       { competitor: 'Basic', feature: 'AI Video Generation', genfeed: true },
       { competitor: false, feature: 'AI Image Generation', genfeed: true },
       { competitor: false, feature: 'AI Voice & Avatars', genfeed: true },
@@ -474,8 +474,8 @@ export const competitors: Competitor[] = [
         genfeed: true,
       },
       { competitor: false, feature: 'ROI Tracking', genfeed: true },
-      { competitor: true, feature: 'Team Collaboration', genfeed: true },
-      { competitor: false, feature: 'Automation Workflows', genfeed: true },
+      { competitor: true, feature: 'Team collaboration', genfeed: true },
+      { competitor: false, feature: 'Automation workflows', genfeed: true },
       {
         competitor: '$180-360',
         feature: 'Entry price',
@@ -528,8 +528,8 @@ export const competitors: Competitor[] = [
         genfeed: true,
       },
       { competitor: 'Basic', feature: 'ROI Tracking', genfeed: true },
-      { competitor: true, feature: 'Team Collaboration', genfeed: true },
-      { competitor: false, feature: 'Automation Workflows', genfeed: true },
+      { competitor: true, feature: 'Team collaboration', genfeed: true },
+      { competitor: false, feature: 'Automation workflows', genfeed: true },
       {
         competitor: '$348-1788',
         feature: 'Entry price',
@@ -568,7 +568,7 @@ export const competitors: Competitor[] = [
   },
   {
     comparisonTable: [
-      { competitor: true, feature: 'Video Editing', genfeed: 'Basic' },
+      { competitor: true, feature: 'Video editing', genfeed: 'Basic' },
       { competitor: false, feature: 'AI Video Generation', genfeed: true },
       { competitor: false, feature: 'AI Image Generation', genfeed: true },
       { competitor: false, feature: 'AI Voice & Avatars', genfeed: true },
@@ -578,8 +578,8 @@ export const competitors: Competitor[] = [
         genfeed: true,
       },
       { competitor: false, feature: 'ROI Tracking', genfeed: true },
-      { competitor: false, feature: 'Team Collaboration', genfeed: true },
-      { competitor: false, feature: 'Automation Workflows', genfeed: true },
+      { competitor: false, feature: 'Team collaboration', genfeed: true },
+      { competitor: false, feature: 'Automation workflows', genfeed: true },
       {
         competitor: 'Free-$96',
         feature: 'Entry price',
@@ -618,7 +618,7 @@ export const competitors: Competitor[] = [
   },
   {
     comparisonTable: [
-      { competitor: true, feature: 'Social Media Scheduling', genfeed: true },
+      { competitor: true, feature: 'Social media scheduling', genfeed: true },
       {
         competitor: 'Monthly allowance',
         feature: 'AI Content Generation',
@@ -635,7 +635,7 @@ export const competitors: Competitor[] = [
         genfeed: true,
       },
       { competitor: false, feature: 'AI Voice & Avatars', genfeed: true },
-      { competitor: false, feature: 'Article Writing', genfeed: true },
+      { competitor: false, feature: 'Article writing', genfeed: true },
       {
         competitor: true,
         feature: 'Multi-Platform Publishing',
@@ -648,10 +648,10 @@ export const competitors: Competitor[] = [
       },
       {
         competitor: 'Team plan and above',
-        feature: 'Team Collaboration',
+        feature: 'Team collaboration',
         genfeed: true,
       },
-      { competitor: true, feature: 'Automation Workflows', genfeed: true },
+      { competitor: true, feature: 'Automation workflows', genfeed: true },
       { competitor: true, feature: 'Open source and self-host', genfeed: true },
       {
         competitor: '$348-1188 or self-host',
@@ -697,7 +697,7 @@ export const competitors: Competitor[] = [
         feature: 'AI Voice & Avatars',
         genfeed: true,
       },
-      { competitor: false, feature: 'Article Writing', genfeed: true },
+      { competitor: false, feature: 'Article writing', genfeed: true },
       {
         competitor: false,
         feature: 'Multi-Platform Publishing',
@@ -706,10 +706,10 @@ export const competitors: Competitor[] = [
       { competitor: false, feature: 'ROI Tracking', genfeed: true },
       {
         competitor: 'Paid plans',
-        feature: 'Team Collaboration',
+        feature: 'Team collaboration',
         genfeed: true,
       },
-      { competitor: 'API', feature: 'Automation Workflows', genfeed: true },
+      { competitor: 'API', feature: 'Automation workflows', genfeed: true },
       {
         competitor: 'Free tier + credit plans',
         feature: 'Entry price',
@@ -752,7 +752,7 @@ export const competitors: Competitor[] = [
         feature: 'AI Image Generation',
         genfeed: true,
       },
-      { competitor: false, feature: 'Article Writing', genfeed: true },
+      { competitor: false, feature: 'Article writing', genfeed: true },
       {
         competitor: false,
         feature: 'Multi-Platform Publishing',
@@ -761,10 +761,10 @@ export const competitors: Competitor[] = [
       { competitor: false, feature: 'ROI Tracking', genfeed: true },
       {
         competitor: 'Scale plan',
-        feature: 'Team Collaboration',
+        feature: 'Team collaboration',
         genfeed: true,
       },
-      { competitor: 'API', feature: 'Automation Workflows', genfeed: true },
+      { competitor: 'API', feature: 'Automation workflows', genfeed: true },
       {
         competitor: '$468-5988',
         feature: 'Entry price',
@@ -802,7 +802,7 @@ export const competitors: Competitor[] = [
     comparisonTable: [
       { competitor: true, feature: 'AI UGC Ad Videos', genfeed: true },
       { competitor: true, feature: 'AI Video Generation', genfeed: true },
-      { competitor: false, feature: 'Article Writing', genfeed: true },
+      { competitor: false, feature: 'Article writing', genfeed: true },
       { competitor: false, feature: 'AI Image Generation', genfeed: true },
       {
         competitor: false,
@@ -812,12 +812,12 @@ export const competitors: Competitor[] = [
       { competitor: false, feature: 'ROI Tracking', genfeed: true },
       {
         competitor: 'Higher plans',
-        feature: 'Team Collaboration',
+        feature: 'Team collaboration',
         genfeed: true,
       },
       {
         competitor: 'Higher plans',
-        feature: 'Automation Workflows',
+        feature: 'Automation workflows',
         genfeed: true,
       },
       {

@@ -3,7 +3,6 @@ import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import EditorialPoster from '@web-components/marketing/EditorialPoster';
 import PageLayout from '@web-components/PageLayout';
@@ -37,19 +36,19 @@ const FEATURES = [
     description:
       'See what is trending right now, with the hooks and formats driving engagement.',
     icon: TrendingUp,
-    title: 'Trend Discovery Feed',
+    title: 'Trend discovery feed',
   },
   {
     description:
       'Watch competitor social accounts and get notified when their content takes off.',
     icon: Eye,
-    title: 'Competitor Social Tracking',
+    title: 'Competitor social tracking',
   },
   {
     description:
       'Browse a searchable library of winning ad creative across platforms and niches.',
     icon: Megaphone,
-    title: 'Ad Creative Library',
+    title: 'Ad creative library',
   },
 ];
 
@@ -79,7 +78,7 @@ const STEPS = [
 const HERO_VISUAL = (
   <EditorialPoster
     detail="Trend discovery, competitor tracking, and ad creative research all live inside one research workspace."
-    eyebrow="Research Canvas"
+    eyebrow="Research canvas"
     footer={<span>Signal turns into a brief in one click</span>}
     items={[
       {
@@ -100,7 +99,7 @@ const HERO_VISUAL = (
       },
     ]}
     subtitle="Discovery, tracking, and briefing"
-    title="Find what's working now."
+    title="Find what's working now"
   />
 );
 
@@ -110,9 +109,6 @@ export default function ResearchContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={
-          <MarketingArtwork page="/research" isCompact kind="research" />
-        }
         heroActions={
           <AgentFirstActions
             signUpHref={signUpHref}
@@ -135,8 +131,8 @@ export default function ResearchContent() {
                 </div>
               </div>
               <div className="flex w-full min-w-0 flex-col gap-3">
-                <Heading as="h3" className="text-2xl font-bold">
-                  Every Signal, One Workspace
+                <Heading as="h3" className="text-2xl font-semibold">
+                  Every signal, one workspace
                 </Heading>
                 <Text as="p" className="text-foreground/70">
                   Track trending content, competitor social accounts, and
@@ -172,7 +168,7 @@ export default function ResearchContent() {
 
         {/* Features Grid */}
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
-          <Heading as="h3" className="text-2xl font-bold text-center mb-8">
+          <Heading as="h3" className="text-2xl font-semibold text-center mb-8">
             Everything You Need to Discover
           </Heading>
           <div className="gsap-grid grid grid-cols-1 md:grid-cols-3 gap-1.5">
@@ -205,8 +201,8 @@ export default function ResearchContent() {
 
         {/* How It Works */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <Heading as="h3" className="text-2xl font-bold text-center mb-12">
-            How It Works
+          <Heading as="h3" className="text-2xl font-semibold text-center mb-12">
+            How it works
           </Heading>
           <div className="grid grid-cols-2 gap-1.5 md:grid-cols-4">
             {STEPS.map((step) => {
@@ -219,7 +215,10 @@ export default function ResearchContent() {
                   <div className="flex size-14 items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
                     <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                   </div>
-                  <Text as="p" className="text-lg font-bold text-foreground">
+                  <Text
+                    as="p"
+                    className="text-lg font-semibold text-foreground"
+                  >
                     {step.label}
                   </Text>
                 </div>
@@ -236,9 +235,9 @@ export default function ResearchContent() {
             </div>
             <Heading
               as="h3"
-              className="text-2xl font-bold mb-6 text-foreground"
+              className="text-2xl font-semibold mb-6 text-foreground"
             >
-              Start Discovering Today
+              Start discovering today
             </Heading>
             <PricingStrip className="mb-6" />
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">

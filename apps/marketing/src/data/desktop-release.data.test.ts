@@ -133,14 +133,14 @@ describe('getLatestDesktopBuild', () => {
     // product release legitimately sits first in the list.
     mockReleases([
       release('v2.4.0', ['genfeed-2.4.0.tar.gz']),
-      release('desktop-v0.2.0', ['GenFeed-0.2.0-arm64.dmg']),
-      release('desktop-v0.1.0', ['GenFeed-0.1.0-arm64.dmg']),
+      release('desktop-v0.2.0', ['Genfeed-0.2.0-arm64.dmg']),
+      release('desktop-v0.1.0', ['Genfeed-0.1.0-arm64.dmg']),
     ]);
 
     const build = await getLatestDesktopBuild();
 
     expect(build).toEqual({
-      downloadUrl: `${DOWNLOAD_BASE}/desktop-v0.2.0/GenFeed-0.2.0-arm64.dmg`,
+      downloadUrl: `${DOWNLOAD_BASE}/desktop-v0.2.0/Genfeed-0.2.0-arm64.dmg`,
       fileSizeBytes: 148_000_000,
       publishedAt: '2026-08-09T10:00:00Z',
       version: '0.2.0',
@@ -149,8 +149,8 @@ describe('getLatestDesktopBuild', () => {
 
   it('skips drafts', async () => {
     mockReleases([
-      release('desktop-v0.3.0', ['GenFeed-0.3.0-arm64.dmg'], { draft: true }),
-      release('desktop-v0.2.0', ['GenFeed-0.2.0-arm64.dmg']),
+      release('desktop-v0.3.0', ['Genfeed-0.3.0-arm64.dmg'], { draft: true }),
+      release('desktop-v0.2.0', ['Genfeed-0.2.0-arm64.dmg']),
     ]);
 
     expect((await getLatestDesktopBuild())?.version).toBe('0.2.0');
@@ -159,11 +159,11 @@ describe('getLatestDesktopBuild', () => {
   it('ignores artifacts that are not the macOS arm64 disk image', async () => {
     mockReleases([
       release('desktop-v0.2.0', [
-        'GenFeed-0.2.0-arm64.zip',
-        'GenFeed-0.2.0-arm64-mac.zip.blockmap',
+        'Genfeed-0.2.0-arm64.zip',
+        'Genfeed-0.2.0-arm64-mac.zip.blockmap',
         'latest-mac.yml',
       ]),
-      release('desktop-v0.1.0', ['GenFeed-0.1.0-arm64.dmg']),
+      release('desktop-v0.1.0', ['Genfeed-0.1.0-arm64.dmg']),
     ]);
 
     expect((await getLatestDesktopBuild())?.version).toBe('0.1.0');
@@ -175,8 +175,8 @@ describe('getLatestDesktopBuild', () => {
         assets: [
           {
             browser_download_url:
-              'https://github.com/attacker/genfeed.ai/releases/download/desktop-v9.9.9/GenFeed-9.9.9-arm64.dmg',
-            name: 'GenFeed-9.9.9-arm64.dmg',
+              'https://github.com/attacker/genfeed.ai/releases/download/desktop-v9.9.9/Genfeed-9.9.9-arm64.dmg',
+            name: 'Genfeed-9.9.9-arm64.dmg',
             size: 1,
           },
         ],
@@ -220,7 +220,7 @@ describe('getLatestDesktopBuild', () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify([
-            release('desktop-v0.2.0', ['GenFeed-0.2.0-arm64.dmg']),
+            release('desktop-v0.2.0', ['Genfeed-0.2.0-arm64.dmg']),
           ]),
           { status: 200 },
         ),
@@ -320,7 +320,7 @@ describe('getLatestDesktopBuild', () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify([
-            release('desktop-v0.2.0', ['GenFeed-0.2.0-arm64.dmg']),
+            release('desktop-v0.2.0', ['Genfeed-0.2.0-arm64.dmg']),
           ]),
           { status: 200 },
         ),
@@ -405,13 +405,13 @@ describe('getLatestDesktopBuild', () => {
 
 describe('redirectToLatestDesktopBuild', () => {
   it('sends the visitor straight to the current disk image', async () => {
-    mockReleases([release('desktop-v0.2.0', ['GenFeed-0.2.0-arm64.dmg'])]);
+    mockReleases([release('desktop-v0.2.0', ['Genfeed-0.2.0-arm64.dmg'])]);
 
     const response = await redirectToLatestDesktopBuild();
 
     expect(response.status).toBe(307);
     expect(response.headers.get('Location')).toBe(
-      `${DOWNLOAD_BASE}/desktop-v0.2.0/GenFeed-0.2.0-arm64.dmg`,
+      `${DOWNLOAD_BASE}/desktop-v0.2.0/Genfeed-0.2.0-arm64.dmg`,
     );
     expect(response.headers.get('Vary')).toContain('Sec-CH-UA-Platform');
     expect(response.headers.get('Cache-Control')).toBe('private, no-store');

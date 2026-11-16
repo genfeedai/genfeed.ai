@@ -171,9 +171,10 @@ export class AgentOrchestratorRecurringTaskService {
       context,
       draft,
       // Runtime bindings outlive the catalogue — a binding pinned to a retired
-      // key has to map forward here, since this path calls the model directly
-      // instead of going through the orchestrator's resolution chokepoint.
-      // It also bypasses the free-tier lock chokepoint, so enforce it here.
+      // key throws RetiredModelException here (no successor), since this path
+      // calls the model directly instead of going through the orchestrator's
+      // resolution chokepoint. It also bypasses the free-tier lock chokepoint,
+      // so enforce it here.
       model: await this.agentModelAccess.enforceModel(
         params.organizationId,
         await this.agentChatModelRegistry.resolveModelKey(binding?.model),

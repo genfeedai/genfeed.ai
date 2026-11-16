@@ -181,7 +181,7 @@ describe('benchmark page', () => {
     );
 
     expect(
-      screen.getByText('The ladder is empty on purpose.'),
+      screen.getByText('The ladder is empty on purpose'),
     ).toBeInTheDocument();
     expect(screen.getByText(/no match recorded/)).toBeInTheDocument();
   });
@@ -225,7 +225,7 @@ describe('benchmark page', () => {
     // the bench exists to be able to publish.
     expect(screen.getByText('1488')).toBeInTheDocument();
     expect(
-      screen.queryByText('The ladder is empty on purpose.'),
+      screen.queryByText('The ladder is empty on purpose'),
     ).not.toBeInTheDocument();
   });
 

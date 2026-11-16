@@ -562,7 +562,7 @@ function UpcomingScheduleBlock({
       data-testid="operational-home-upcoming"
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-2xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+        <p className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
           {translate('home.schedule.title')}
         </p>
         <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>

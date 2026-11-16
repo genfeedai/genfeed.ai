@@ -97,4 +97,52 @@ describe('SegmentedControl', () => {
     );
     expect(screen.getByRole('radio', { name: 'JSON' })).toBeChecked();
   });
+
+  it('keeps the selected state on a single option that has a tooltip', () => {
+    render(
+      <SegmentedControl
+        ariaLabel="Timeframe"
+        onValueChange={vi.fn()}
+        options={[
+          { label: '24h', tooltip: 'Last day', value: 'h24' },
+          { label: '72h', tooltip: 'Last three days', value: 'h72' },
+        ]}
+        value="h24"
+      />,
+    );
+
+    expect(screen.getByRole('radio', { name: '24h' })).toHaveAttribute(
+      'data-state',
+      'on',
+    );
+    expect(screen.getByRole('radio', { name: '72h' })).toHaveAttribute(
+      'data-state',
+      'off',
+    );
+  });
+
+  it('keeps the selected state on tooltipped options in multiple mode', () => {
+    render(
+      <SegmentedControl
+        appearance="chip"
+        ariaLabel="Platforms"
+        onValueChange={vi.fn()}
+        options={[
+          { label: 'X', tooltip: 'Post to X', value: 'x' },
+          { label: 'Bluesky', tooltip: 'Post to Bluesky', value: 'bluesky' },
+        ]}
+        type="multiple"
+        value={['bluesky']}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Bluesky' })).toHaveAttribute(
+      'data-state',
+      'on',
+    );
+    expect(screen.getByRole('button', { name: 'X' })).toHaveAttribute(
+      'data-state',
+      'off',
+    );
+  });
 });

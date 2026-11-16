@@ -64,9 +64,7 @@ export function collapseOAuthConnectCards(
             uniquePlatforms.length === 1 ? uniquePlatforms[0] : undefined,
           platforms: uniquePlatforms,
           title:
-            uniquePlatforms.length === 1
-              ? firstCard.title
-              : 'Connect an account',
+            uniquePlatforms.length === 1 ? firstCard.title : 'Connect Account',
         };
 
   let hasEmittedCollapsed = false;

@@ -44,7 +44,7 @@ describe('WebsiteTopbar', () => {
       screen.getByRole('link', { name: /start creating/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
     expect(
-      screen.getByRole('button', { name: /connect your agent/i }),
+      screen.getByRole('button', { name: /connect agent/i }),
     ).toHaveAttribute('aria-haspopup', 'dialog');
     expect(screen.queryByText(/book a demo/i)).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Pricing' })).toHaveAttribute(
@@ -70,7 +70,7 @@ describe('WebsiteTopbar', () => {
       .getAllByRole('button', { expanded: false })
       .map((trigger) => trigger.textContent?.trim());
 
-    expect(menus).toEqual(['Agents', 'Use Cases', 'Product', 'Solutions']);
+    expect(menus).toEqual(['Agents', 'Use cases', 'Product', 'Solutions']);
   });
 
   it('puts the agents first, with a page for each client and the MCP server', () => {
@@ -88,7 +88,7 @@ describe('WebsiteTopbar', () => {
       ['Codex', '/codex'],
       ['Cursor', '/cursor'],
       ['All agents', '/agent'],
-      ['MCP Server', '/mcp'],
+      ['MCP server', '/mcp'],
       ['See every way to connect', '/agent'],
     ]) {
       expect(
@@ -108,8 +108,8 @@ describe('WebsiteTopbar', () => {
 
     for (const [label, href] of [
       ['Teams', '/cloud'],
-      ['Hire Agents', '/hire-agents'],
-      ['Done For You', '/done-for-you'],
+      ['Hire agents', '/hire-agents'],
+      ['Done for you', '/done-for-you'],
     ]) {
       expect(
         screen.getByRole('link', { name: new RegExp(label, 'i') }),

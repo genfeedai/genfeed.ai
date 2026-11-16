@@ -47,7 +47,7 @@ export function AgentStrategyScheduleSection({
 }: Props): ReactElement {
   return (
     <section className="space-y-4 border border-border p-4">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <h3 className="text-xs font-semibold uppercase tracking-label text-muted-foreground">
         Schedule
       </h3>
 

@@ -16,7 +16,7 @@ import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import Spinner from '@ui/primitives/spinner';
-import { ArrowUp, ChevronDown } from 'lucide-react';
+import { ArrowUp, ChevronDown, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { EvaluationCardProps } from '@/props/components/evaluation-card.props';
@@ -109,7 +109,7 @@ function ScoreSection({
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide">
+        <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-label">
           {title}
         </h4>
         {overallScore !== undefined && (
@@ -213,7 +213,7 @@ export default function EvaluationCard({
         >
           <div
             className={cn(
-              'px-2 py-0.5 font-bold text-sm',
+              'px-2 py-0.5 font-semibold text-sm',
               getScoreColors(overallScore ?? 0).bg,
             )}
           >
@@ -233,7 +233,7 @@ export default function EvaluationCard({
       <div className="flex items-center gap-2">
         <div
           className={cn(
-            'px-2 py-0.5 font-bold text-sm',
+            'px-2 py-0.5 font-semibold text-sm',
             getScoreColors(overallScore ?? 0).bg,
           )}
         >
@@ -270,7 +270,7 @@ export default function EvaluationCard({
           {isCompleted && !isRunning ? (
             <span
               className={cn(
-                'px-2 py-0.5 text-xs font-bold tabular-nums',
+                'px-2 py-0.5 text-xs font-semibold tabular-nums',
                 getScoreColors(overallScore).bg,
               )}
             >
@@ -487,8 +487,10 @@ function EvaluationCardContent({
           </div>
         )}
         {flags?.isFlagged && (
-          <div className="text-xs text-warning">
-            {flags.severity === EvaluationSeverity.CRITICAL ? '⚠️' : '⚠'}{' '}
+          <div
+            className={`flex items-center gap-1 text-xs ${flags.severity === EvaluationSeverity.CRITICAL ? 'text-destructive' : 'text-warning'}`}
+          >
+            <TriangleAlert className="size-3.5 shrink-0" />
             {flags.reasons[0]}
           </div>
         )}
@@ -530,7 +532,7 @@ function EvaluationCardContent({
           variant={ButtonVariant.UNSTYLED}
           className="flex items-center justify-between w-full text-left"
         >
-          <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide">
+          <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-label">
             Category Scores
           </h4>
           <ChevronDown
@@ -574,7 +576,7 @@ function EvaluationCardContent({
           variant={ButtonVariant.UNSTYLED}
           className="flex items-center justify-between w-full text-left"
         >
-          <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide">
+          <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-label">
             Strengths & Weaknesses
           </h4>
           <ChevronDown
@@ -633,7 +635,7 @@ function EvaluationCardContent({
             variant={ButtonVariant.UNSTYLED}
             className="flex items-center justify-between w-full text-left"
           >
-            <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide">
+            <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-label">
               AI Suggestions
             </h4>
             <ChevronDown

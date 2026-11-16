@@ -3,6 +3,7 @@ import type { Config } from 'tailwindcss';
 /** Platform brand colors (kept in sync with packages/contracts/src/constants/platform-colors.ts) */
 export const PLATFORM_COLORS = {
   beehiiv: '#FCD34D',
+  bluesky: '#0085FF',
   devto: '#0A0A0A',
   discord: '#5865F2',
   facebook: '#1877F2',

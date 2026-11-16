@@ -178,6 +178,7 @@ function findInputRequestInSnapshot(
     optionIds: req.optionIds as string[] | undefined,
     runId: req.runId as string | undefined,
     resolvedAt: req.resolvedAt as string | undefined,
+    resolvedByUserId: req.resolvedByUserId as string | undefined,
     isDeleted: false,
   } as unknown as AgentInputRequestDocument;
 }

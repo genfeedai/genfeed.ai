@@ -85,25 +85,25 @@ export const products: Product[] = [
         description:
           'A single interface for operating Genfeed products, content systems, and automation without jumping between tools.',
         icon: '',
-        title: 'Unified Agent Interface',
+        title: 'Unified agent interface',
       },
       {
         description:
           'Agents can autonomously trigger deterministic workflows, scheduled runs, generation loops, and rating passes.',
         icon: '',
-        title: 'Autonomous Execution',
+        title: 'Autonomous execution',
       },
       {
         description:
           'Choose from specialized agents for Twitch and YouTube chat, Instagram and X DMs, replies, workflow orchestration, and content production.',
         icon: '',
-        title: 'Agent Library',
+        title: 'Agent library',
       },
       {
         description:
           'Every agent can hand off to deterministic workflows when you need explicit triggers, step logic, and controlled execution.',
         icon: '',
-        title: 'Workflow Triggering',
+        title: 'Workflow triggering',
       },
     ],
     headline: 'A Unified Agent System for Deterministic AI Work',
@@ -143,7 +143,7 @@ export const products: Product[] = [
         ],
         description:
           'Agents that handle real-time conversations, moderation, and outbound engagement.',
-        title: 'Social / Engagement Agents',
+        title: 'Social / engagement agents',
       },
       {
         agents: [
@@ -165,7 +165,7 @@ export const products: Product[] = [
         ],
         description:
           'Agents that orchestrate and supervise deterministic workflow execution.',
-        title: 'Workflow Agents',
+        title: 'Workflow agents',
       },
       {
         agents: [
@@ -192,7 +192,7 @@ export const products: Product[] = [
         ],
         description:
           'Agents specialized for generating channel-specific content with autonomous follow-through.',
-        title: 'Content Agents',
+        title: 'Content agents',
       },
     ],
     name: 'Hire Agents',
@@ -216,21 +216,21 @@ export const products: Product[] = [
           'Run a unified command layer across Genfeed without touching separate tools for every task',
         example:
           'Tell the agent to generate ingredients, route them into workflows, rate outputs, and publish the approved result',
-        title: 'Unified Operations',
+        title: 'Unified operations',
       },
       {
         description:
           'Handle live and asynchronous engagement with specialized agents',
         example:
           'Twitch chat agent moderates live chat while X and Instagram agents handle replies and DMs from the same operating layer',
-        title: 'Engagement Coverage',
+        title: 'Engagement coverage',
       },
       {
         description:
           'Schedule autonomous execution that still runs through deterministic steps',
         example:
           'A scheduled content agent generates X posts and newsletter drafts nightly, then triggers workflow-based review and publishing steps',
-        title: 'Autonomous Agentic Loops',
+        title: 'Autonomous agentic loops',
       },
     ],
   },
@@ -265,25 +265,25 @@ export const products: Product[] = [
         description:
           'View your Genfeed credits, usage stats, and analytics from ChatGPT.',
         icon: '',
-        title: 'Dashboard Access',
+        title: 'Dashboard access',
       },
       {
         description:
           "See what's trending across social platforms without leaving ChatGPT.",
         icon: '',
-        title: 'Trending Topics',
+        title: 'Trending topics',
       },
       {
         description:
           'Preview your Genfeed videos, images, and articles in ChatGPT.',
         icon: '',
-        title: 'Content Preview',
+        title: 'Content preview',
       },
       {
         description:
           'Check your publishing schedule, recent activity, and performance metrics.',
         icon: '',
-        title: 'Quick Stats',
+        title: 'Quick stats',
       },
     ],
     headline: 'View Genfeed Dashboards in ChatGPT',
@@ -307,22 +307,22 @@ export const products: Product[] = [
     ],
     useCases: [
       {
-        description: 'Generate content from ChatGPT in seconds',
+        description: 'Start a content brief from a ChatGPT conversation',
         example:
           '"Create 5 TikTok videos about AI trends and schedule for this week" → Waiting for your approval',
-        title: 'Quick Content Creation',
+        title: 'Quick content creation',
       },
       {
         description: 'Execute complex multi-step workflows with one prompt',
         example:
           '"Generate article about AI, create Twitter thread from it, schedule both" → Automated',
-        title: 'Workflow Chaining',
+        title: 'Workflow chaining',
       },
       {
         description: 'Manage Genfeed while working in ChatGPT',
         example:
           'Brainstorming in ChatGPT → "Post this as tweet" → Draft waiting for your approval',
-        title: 'Hands-Free Management',
+        title: 'Hands-free management',
       },
     ],
   },
@@ -350,7 +350,7 @@ export const products: Product[] = [
       },
     ],
     category: 'Developer Tools',
-    cta: 'Connect your agent',
+    cta: 'Connect Agent',
     description:
       'Connect any AI agent to Genfeed with the Model Context Protocol. Browser OAuth and tools to draft, schedule, publish and measure content. Claude connects to content operations, and the full Genfeed server added as a second connector generates images, video and audio; other agents can generate through MCP.',
     features: [
@@ -358,7 +358,7 @@ export const products: Product[] = [
         description:
           'Hosted Streamable HTTP server at https://mcp.genfeed.ai/mcp. No local install.',
         icon: '',
-        title: 'One Hosted Endpoint',
+        title: 'One hosted endpoint',
       },
       {
         description:
@@ -382,13 +382,13 @@ export const products: Product[] = [
         description:
           'Load only the toolsets an agent needs with ?toolsets=, or every tool with ?profile=full.',
         icon: '',
-        title: 'Scoped Toolsets',
+        title: 'Scoped toolsets',
       },
       {
         description:
           'Posts wait for your approval before they publish, unless a workflow allows direct publishing.',
         icon: '',
-        title: 'Review Gates',
+        title: 'Review gates',
       },
     ],
     headline: 'Connect Any AI Agent to Genfeed',
@@ -425,19 +425,19 @@ export const products: Product[] = [
           'Schedule posts from the terminal with Claude Code or Codex',
         example:
           '"Turn this changelog into five X posts and schedule them tomorrow" → Drafts in review → Approved → Scheduled',
-        title: 'Coding Agents',
+        title: 'Coding agents',
       },
       {
         description: 'Create content from chat in Claude, ChatGPT, or Gemini',
         example:
           '"Make a vertical product video for TikTok" → Generated with brand context → Held for review',
-        title: 'Chat Assistants',
+        title: 'Chat assistants',
       },
       {
         description: 'Let Meta Muse or Grok Bot run recurring content routines',
         example:
           'Weekly routine drafts LinkedIn posts from your blog → You approve → Genfeed publishes',
-        title: 'Personal Agents',
+        title: 'Personal agents',
       },
     ],
   },
@@ -474,19 +474,19 @@ export const products: Product[] = [
         description:
           'Approve or reject content directly from your mobile device with one tap.',
         icon: '',
-        title: 'Content Approvals',
+        title: 'Content approvals',
       },
       {
         description:
           'Receive real-time notifications for approvals, publishing, and workspace activity.',
         icon: '',
-        title: 'Push Notifications',
+        title: 'Push notifications',
       },
       {
         description:
           'Preview videos, images, and articles before approving them for publication.',
         icon: '',
-        title: 'Content Preview',
+        title: 'Content preview',
       },
       {
         description:
@@ -495,7 +495,7 @@ export const products: Product[] = [
         title: 'Cross-Platform',
       },
     ],
-    headline: 'Genfeed Mobile Companion',
+    headline: 'Genfeed mobile companion',
     icon: '',
     integrations: ['Genfeed API', 'Expo', 'React Native'],
     name: 'Mobile App',
@@ -520,20 +520,20 @@ export const products: Product[] = [
         description: 'Approve content approvals while away from your desk',
         example:
           'Receiving approval notification → Review content on phone → Approve instantly',
-        title: 'Mobile Approvals',
+        title: 'Mobile approvals',
       },
       {
         description:
           'Stay updated on your content performance and publishing schedule',
         example:
           'Get push notifications → See what published → Check performance → All on mobile',
-        title: 'Stay Connected',
+        title: 'Stay connected',
       },
       {
         description: 'Quick content previews and sharing from mobile',
         example:
           'Content ready → Preview on phone → Share directly to social media',
-        title: 'Quick Actions',
+        title: 'Quick actions',
       },
     ],
   },
@@ -569,29 +569,29 @@ export const products: Product[] = [
         description:
           'Comprehensive guides covering all Genfeed products, features, and integrations.',
         icon: '',
-        title: 'Complete Documentation',
+        title: 'Complete documentation',
       },
       {
         description:
           'API references with code examples, request/response formats, and authentication.',
         icon: '',
-        title: 'API Documentation',
+        title: 'API documentation',
       },
       {
         description:
           'Step-by-step tutorials for common workflows and integrations.',
         icon: '',
-        title: 'Tutorials & Guides',
+        title: 'Tutorials & guides',
       },
       {
         description:
           'Built with Nextra. Open source and open to community contributions.',
         icon: '',
-        title: 'Open Source',
+        title: 'Open source',
       },
     ],
     githubUrl: 'https://github.com/genfeedai/genfeed.ai/tree/master/apps/docs',
-    headline: 'Genfeed.ai Documentation',
+    headline: 'Genfeed.ai documentation',
     icon: '',
     integrations: ['Nextra', 'Next.js'],
     name: 'Documentation',
@@ -615,19 +615,19 @@ export const products: Product[] = [
         description: 'Find API endpoints, authentication, and code examples',
         example:
           'Need to integrate Genfeed API → Check docs → Copy example code → Implement',
-        title: 'API Integration',
+        title: 'API integration',
       },
       {
         description: 'Learn how to use Genfeed features effectively',
         example:
           'New to platform → Read tutorials → Follow guides → Master features',
-        title: 'Learning Resources',
+        title: 'Learning resources',
       },
       {
         description: 'Contribute improvements and fixes to documentation',
         example:
           'Found documentation error → Submit PR → Help improve docs for everyone',
-        title: 'Community Contribution',
+        title: 'Community contribution',
       },
     ],
   },
@@ -664,28 +664,28 @@ export const products: Product[] = [
         description:
           'Access Genfeed Studio to generate videos, images, and music from any webpage.',
         icon: '',
-        title: 'In-Browser Generation',
+        title: 'In-browser generation',
       },
       {
         description:
           'Publish content directly to social media platforms without leaving your browser.',
         icon: '',
-        title: 'Quick Publishing',
+        title: 'Quick publishing',
       },
       {
         description:
           'Save interesting posts, images, and videos to your Genfeed workspace with one click.',
         icon: '',
-        title: 'Inspiration Saving',
+        title: 'Inspiration saving',
       },
       {
         description:
           'Built with Plasmo framework. Open source and available on Chrome Web Store.',
         icon: '',
-        title: 'Chrome Extension',
+        title: 'Chrome extension',
       },
     ],
-    headline: 'Genfeed Chrome Extension',
+    headline: 'Genfeed Chrome extension',
     icon: '',
     integrations: ['Chrome Browser', 'Genfeed API', 'Plasmo Framework'],
     name: 'Chrome Extension',
@@ -715,13 +715,13 @@ export const products: Product[] = [
         description: 'Save posts and content to your workspace for later',
         example:
           'Find great example → Save to Genfeed → Reference later when creating',
-        title: 'Content Saving',
+        title: 'Content saving',
       },
       {
         description: 'Publish content without leaving your current webpage',
         example:
           'Generate content → Publish to multiple platforms → All from extension',
-        title: 'Quick Publishing',
+        title: 'Quick publishing',
       },
     ],
   },

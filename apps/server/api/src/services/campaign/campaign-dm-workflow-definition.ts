@@ -1,6 +1,7 @@
 import type { WorkflowEdge } from '@api/collections/workflows/schemas/workflow.schema';
 import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const CAMPAIGN_DM_ACTION_IDS = {
@@ -56,6 +57,7 @@ export function buildCampaignDmWorkflowDefinition(): SystemWorkflowGraphDefiniti
       'Claims, resolves, generates, reserves, sends, and finalizes one campaign DM target.',
     label: 'Campaign DM Target',
     resultNodeId: 'finalize-target',
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }
 
@@ -110,5 +112,6 @@ export function buildCampaignDmBatchWorkflowDefinition(): SystemWorkflowGraphDef
       'Discovers pending campaign DM targets and durably schedules one child workflow per recipient.',
     label: 'Campaign DM Batch',
     resultNodeId: fanOut.id,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }

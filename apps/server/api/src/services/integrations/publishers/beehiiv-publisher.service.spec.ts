@@ -4,7 +4,7 @@ import {
   type PublishContext,
   WORKFLOW_APPROVED_SCHEDULE_SETTING,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -212,16 +212,49 @@ describe('BeehiivPublisherService', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
+      expect(result.errorKind).toBe(PublishErrorKind.OUTCOME_UNKNOWN);
     });
 
-    it('should propagate errors from beehiivService and log them', async () => {
-      const error = new Error('API rate limit exceeded');
-      mockBeehiivService.createPost.mockRejectedValue(error);
-
-      await expect(service.publish(baseContext)).rejects.toThrow(
-        'API rate limit exceeded',
+    it.each([
+      [401, PublishErrorKind.CHANNEL_DISCONNECTED],
+      [404, PublishErrorKind.CHANNEL_DISCONNECTED],
+      [422, PublishErrorKind.CONTENT_REJECTED],
+      [503, PublishErrorKind.OUTCOME_UNKNOWN],
+    ])('throws a typed publish error for HTTP %i', async (status, kind) => {
+      mockBeehiivService.createPost.mockRejectedValue(
+        Object.assign(new Error('provider failed'), {
+          response: { headers: {}, status },
+        }),
       );
-      expect(mockLogger.error).toHaveBeenCalled();
+
+      await expect(service.publish(baseContext)).rejects.toMatchObject({
+        httpStatus: status,
+        kind,
+        name: 'PublishError',
+      });
+    });
+
+    it('throws rate_limited with the wait the provider gave', async () => {
+      mockBeehiivService.createPost.mockRejectedValue(
+        Object.assign(new Error('provider failed'), {
+          response: { headers: { 'retry-after': '20' }, status: 429 },
+        }),
+      );
+
+      await expect(service.publish(baseContext)).rejects.toMatchObject({
+        kind: PublishErrorKind.RATE_LIMITED,
+        retryAfterMs: 20_000,
+      });
+    });
+
+    it('throws outcome_unknown when the connection drops mid-request', async () => {
+      mockBeehiivService.createPost.mockRejectedValue(
+        Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }),
+      );
+
+      await expect(service.publish(baseContext)).rejects.toMatchObject({
+        kind: PublishErrorKind.OUTCOME_UNKNOWN,
+      });
     });
 
     it('should use web_url from response when available', async () => {

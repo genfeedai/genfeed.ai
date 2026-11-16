@@ -168,7 +168,7 @@ export function ChartTooltipContent({
       {...props}
     >
       {!hideLabel && resolvedLabel ? (
-        <div className="mb-2 font-medium text-2xs text-muted-foreground uppercase tracking-[0.12em]">
+        <div className="mb-2 font-medium text-2xs text-muted-foreground uppercase tracking-label">
           {resolvedLabel}
         </div>
       ) : null}

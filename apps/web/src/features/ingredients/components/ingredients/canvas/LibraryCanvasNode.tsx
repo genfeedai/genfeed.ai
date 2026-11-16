@@ -68,7 +68,7 @@ function LibraryCanvasNodeComponent({
           fill
           unoptimized={!canOptimizeImageSource(src)}
           sizes={`${MOOD_BOARD_TILE_WIDTH}px`}
-          className="object-cover outline-media transition-transform duration-300 group-hover:scale-[1.03]"
+          className="object-cover outline-media"
           draggable={false}
           onError={() => setFailedSrc(src)}
         />

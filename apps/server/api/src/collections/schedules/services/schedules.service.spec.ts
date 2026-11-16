@@ -78,9 +78,13 @@ describe('SchedulesService', () => {
         CredentialPlatform.BEEHIIV,
         CredentialPlatform.GHOST,
         CredentialPlatform.WORDPRESS,
+        CredentialPlatform.BLUESKY,
         CredentialPlatform.MEDIUM,
         CredentialPlatform.DEV_TO,
         CredentialPlatform.GENFEED,
+        CredentialPlatform.DISCORD,
+        CredentialPlatform.SLACK,
+        CredentialPlatform.TELEGRAM,
       ]);
     });
 

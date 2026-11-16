@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const EXECUTABLE_SKILL_SLUGS = [
@@ -67,6 +68,7 @@ export function buildSkillWorkflowDefinition(
     description: `Executes the built-in ${skillSlug} skill through its exact action contract.`,
     label: `Execute ${skillSlug}`,
     resultNodeId: 'execute-skill',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

@@ -247,6 +247,7 @@ enum CredentialPlatform {
   DEVTO
   RESTREAM
   GENFEED
+  BLUESKY
 }
 
 enum TagCategory {
@@ -1817,6 +1818,21 @@ model Jwks {
   @@map("auth_jwks")
 }
 
+/// Signing key of an OAuth client this platform runs for a provider that only
+/// issues long sessions to a confidential client (Bluesky). Minted once on first
+/// use, so no environment variable carries it. The private JWK is stored
+/// encrypted; the public half is served in the client's published JWKS.
+model PlatformSigningKey {
+  id         String   @id @default(cuid())
+  provider   String   @unique
+  keyId      String
+  publicJwk  Json
+  privateJwk String
+  createdAt  DateTime @default(now())
+
+  @@map("platform_signing_keys")
+}
+
 /// First-touch acquisition source, recorded once right after signup. Only the
 /// referring domain and landing path are kept (never full URLs or query
 /// strings), and `utm_term` is excluded as free text.
@@ -3228,6 +3244,7 @@ learningCheckpoints ContentLearningCheckpoint[]
   @@index([externalId])
   @@index([originalPostId])
   @@index([groupId])
+  @@index([workflowExecutionId])
   @@index([organizationId, entityArticleId], map: "posts_org_entity_article_idx")
   @@index([organizationId, entityNewsletterId], map: "posts_org_entity_newsletter_idx")
   @@index([contentRunId])
@@ -4603,6 +4620,7 @@ model Newsletter {
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([approvedVersionPinId], map: "newsletters_approvedVersionPinId_idx")
+  @@index([workflowExecutionId])
   @@map("newsletters")
 }
 
@@ -4914,7 +4932,6 @@ model Model {
   reviewStatus    String?
   rejectionReason String?
   predecessorOf   String?
-  succeededBy     String?
   trigger         String?
   triggerWord     String?
 
@@ -6036,6 +6053,10 @@ model WorkflowExecution {
   payloadScrubbedAt    DateTime?
   purgeAfterHours      Int?
   purgeAt              DateTime?
+  /// The run's system workflow retention (#10382): `background` runs get a
+  /// `purgeAt` at their terminal transition and the platform purge task deletes
+  /// them in bulk; `kept` and null runs keep their history.
+  retentionPolicy      String?
 
   /// Durable intent to silently cancel this `PENDING` execution, written by the
   /// deploy drain before it removes the execution's queued job (#5450). The
@@ -6046,6 +6067,7 @@ model WorkflowExecution {
 
   posts                    Post[]
   nodeResults              WorkflowExecutionNodeResult[]
+  nodeClaims               WorkflowNodeClaim[]
   artifacts                WorkflowArtifact[]
   nodeContinuations        WorkflowNodeContinuation[]
   workspaceTasks           Task[]                        @relation("task_linked_executions")
@@ -6161,6 +6183,7 @@ model WorkflowNodeClaim {
   id             String   @id @default(cuid())
   organizationId String
   executionId    String
+  execution      WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
   nodeId         String
   /// running | completed | failed
   status         String
@@ -7709,6 +7732,7 @@ model Caption {
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, userId, isDeleted, createdAt(sort: Desc)])
+  @@index([workflowExecutionId])
   @@map("captions")
 }
 

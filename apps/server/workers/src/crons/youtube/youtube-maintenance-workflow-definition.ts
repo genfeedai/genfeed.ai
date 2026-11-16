@@ -1,6 +1,7 @@
 import { SOCIAL_INBOX_SYNC_WORKFLOW_IDS } from '@api/collections/social-inbox/services/social-inbox-sync-workflow-definition';
 import { actionNode as node } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 
 export const YOUTUBE_MAINTENANCE_ACTION_IDS = {
   DISCOVER_CREDENTIALS: 'youtube.comments.discover-credentials',
@@ -56,6 +57,7 @@ function sweep(
     description: label,
     label,
     resultNodeId: 'process',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }
@@ -77,6 +79,7 @@ function child(
     description: label,
     label,
     resultNodeId: 'execute',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }

@@ -26,9 +26,9 @@ export default function ProductPricingCTA({
     <section className="max-w-4xl mx-auto pb-20">
       <Card isCentered isSelected>
         <Heading size="2xl" className="mb-2">
-          Recommended Plan
+          Recommended plan
         </Heading>
-        <div className="text-4xl font-bold mb-4">
+        <div className="text-4xl font-semibold mb-4">
           {getPlanLabel(pricing.recommended)}
         </div>
         <Text as="p" size="lg" className="mb-6 text-foreground/70">

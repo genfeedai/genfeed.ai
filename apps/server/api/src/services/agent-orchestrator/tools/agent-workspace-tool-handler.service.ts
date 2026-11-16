@@ -746,7 +746,7 @@ export class AgentWorkspaceToolHandler {
       data: { href, ingredientId, type },
       nextActions: [
         {
-          ctas: [{ href, label: 'View in Library' }],
+          ctas: [{ href, label: 'View Library' }],
           data: { href, ingredientId, type },
           editorType: type,
           id: `studio-handoff-${ingredientId}`,

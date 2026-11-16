@@ -27,6 +27,7 @@ const credentialPlatforms = [
   'ghost',
   'shopify',
   'beehiiv',
+  'bluesky',
   'unipile',
   'devto',
   'product_hunt',

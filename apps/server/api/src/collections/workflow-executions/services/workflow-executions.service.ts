@@ -43,7 +43,11 @@ import {
 } from '@api/collections/workflow-executions/services/workflow-execution-summary.util';
 import { emitWorkflowExecutionTerminal } from '@api/collections/workflow-executions/services/workflow-execution-terminal-event.util';
 import type { WorkflowGenerationAdmissionCaptureInput } from '@api/collections/workflows/utils/workflow-generation-admission-capture.util';
-import { parseWorkflowExecutionRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
+import {
+  parseWorkflowExecutionRetention,
+  readRunRetention,
+  resolveBackgroundRunPurgeAt,
+} from '@api/collections/workflows/workflow-execution-retention.contract';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { scopedWhere, withActionOriginMetadata } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
@@ -391,6 +395,9 @@ export class WorkflowExecutionsService extends BaseService<
       organizationId,
       progress: 0,
       purgeAfterHours: retention.purgeAfterHours,
+      // An explicit scrub-then-purge contract keeps its own cleanup path.
+      retentionPolicy:
+        retention.purgeAfterHours === null ? readRunRetention(metadata) : null,
       remainingDurationMs: dto.remainingDurationMs ?? null,
       result: executionResult,
       status: PrismaWorkflowExecutionStatus.PENDING,
@@ -500,11 +507,16 @@ export class WorkflowExecutionsService extends BaseService<
       execution.estimatedDurationMs,
     );
 
+    const purgeAt = resolveBackgroundRunPurgeAt(execution.retentionPolicy, {
+      completedAt,
+      isSuccess: !error,
+    });
     const terminalTransition = await this.prisma.$transaction(
       async (transaction) => {
         const transition = await transaction.workflowExecution.updateMany({
           data: {
             completedAt,
+            ...(purgeAt ? { purgeAt } : {}),
             ...(completion?.creditsUsed !== undefined
               ? { creditsUsed: completion.creditsUsed }
               : {}),
@@ -629,9 +641,14 @@ export class WorkflowExecutionsService extends BaseService<
     });
     if (!existing) return null;
     const completedAt = new Date();
+    const purgeAt = resolveBackgroundRunPurgeAt(existing.retentionPolicy, {
+      completedAt,
+      isSuccess: false,
+    });
     const transition = await this.prisma.workflowExecution.updateMany({
       data: {
         completedAt,
+        ...(purgeAt ? { purgeAt } : {}),
         status: PrismaWorkflowExecutionStatus.CANCELLED,
       },
       where: {

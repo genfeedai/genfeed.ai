@@ -26,7 +26,7 @@ test.describe('Output-first onboarding', () => {
     expect(draftRequests).toHaveLength(1);
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await expect(
-      page.getByRole('heading', { name: 'Connect your agent' }),
+      page.getByRole('heading', { name: 'Connect Agent' }),
     ).toBeVisible();
     await expect(
       page.getByText('claude mcp add --transport http genfeed', {
@@ -37,7 +37,7 @@ test.describe('Output-first onboarding', () => {
       page.getByText('Waiting for Claude Code to connect'),
     ).toBeVisible();
     await expect(
-      page.getByRole('button', { name: 'Connect your agent' }),
+      page.getByRole('button', { name: 'Connect Agent' }),
     ).toHaveAttribute('aria-current', 'step');
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     for (const platform of ['instagram', 'tiktok', 'twitter', 'linkedin'])
@@ -47,7 +47,7 @@ test.describe('Output-first onboarding', () => {
     ).toHaveAttribute('aria-current', 'step');
     await page.getByRole('button', { name: 'Back', exact: true }).click();
     await expect(
-      page.getByRole('heading', { name: 'Connect your agent' }),
+      page.getByRole('heading', { name: 'Connect Agent' }),
     ).toBeVisible();
     await page.getByRole('button', { name: 'Back', exact: true }).click();
     await expect(page.getByText('Round 1 twitter draft')).toBeVisible();
@@ -118,9 +118,9 @@ test.describe('Output-first onboarding', () => {
     await page.getByRole('button', { name: 'Submit brand link' }).click();
     await expect(page.getByText('Round 1 twitter draft')).toBeVisible();
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
-    await page.getByRole('button', { name: 'Skip for now' }).click();
+    await page.getByRole('button', { exact: true, name: 'Skip' }).click();
     await expect(page.getByTestId('connect-card-twitter')).toBeVisible();
-    await page.getByRole('button', { name: 'Skip for now' }).click();
+    await page.getByRole('button', { exact: true, name: 'Skip' }).click();
     await expect(
       page.getByRole('heading', { name: 'Now go to your agent' }),
     ).toBeVisible();
@@ -139,11 +139,11 @@ test.describe('Output-first onboarding', () => {
     await expect(page.getByText('Round 1 twitter draft')).toBeVisible();
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await expect(
-      page.getByRole('heading', { name: 'Connect your agent' }),
+      page.getByRole('heading', { name: 'Connect Agent' }),
     ).toBeVisible();
     await page.reload();
     await expect(
-      page.getByRole('heading', { name: 'Connect your agent' }),
+      page.getByRole('heading', { name: 'Connect Agent' }),
     ).toBeVisible();
     expect(draftRequests).toHaveLength(1);
   });
@@ -160,7 +160,7 @@ test.describe('Output-first onboarding', () => {
     await page
       .getByPlaceholder('Founders who ship fast')
       .fill('Indie founders');
-    await page.getByRole('button', { name: 'Redo my posts' }).click();
+    await page.getByRole('button', { name: 'Redo Posts' }).click();
     await expect(page.getByText('Round 1 twitter draft')).toBeVisible();
   });
 

@@ -151,7 +151,7 @@ export default function HomeProduct(): React.ReactElement {
       <div className="container mx-auto px-6">
         <div className="flex max-w-3xl flex-col gap-5" data-reveal="up">
           <Text
-            className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/80"
+            className="text-xs font-semibold uppercase tracking-label text-foreground/80"
             data-testid="home-product-eyebrow"
           >
             Not just video
@@ -161,7 +161,7 @@ export default function HomeProduct(): React.ReactElement {
             className="text-5xl font-semibold leading-[0.98] tracking-[-0.02em] text-foreground sm:text-6xl"
             data-testid="home-product-heading"
           >
-            One agent for all your content.
+            One agent for all your content
           </Heading>
           <Text className="max-w-2xl text-base leading-7 text-foreground/80 md:text-lg">
             Ask once and the whole campaign comes back: video, images, ads,
@@ -179,7 +179,7 @@ export default function HomeProduct(): React.ReactElement {
           <Card variant={CardVariant.INSET}>
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-foreground/5 pb-4">
               <div>
-                <Text className="text-2xs font-bold uppercase tracking-[0.14em] text-foreground/60">
+                <Text className="text-2xs font-semibold uppercase tracking-label text-foreground/60">
                   You asked
                 </Text>
                 <Text className="mt-1 block text-sm text-foreground">
@@ -237,7 +237,7 @@ export default function HomeProduct(): React.ReactElement {
               </TextPiece>
 
               <TextPiece destination="Your list" label="Newsletters">
-                <Text className="text-2xs font-bold uppercase tracking-[0.14em] text-foreground/60">
+                <Text className="text-2xs font-semibold uppercase tracking-label text-foreground/60">
                   Subject
                 </Text>
                 <Text className="text-sm font-semibold text-foreground">

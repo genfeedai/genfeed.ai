@@ -32,7 +32,7 @@ export default function PostingSignaturePicker({
 
   return (
     <div className="mb-2">
-      <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+      <span className="mb-1 block text-2xs font-medium uppercase tracking-label text-muted-foreground">
         {translate('signatures')}
       </span>
       <SegmentedControl

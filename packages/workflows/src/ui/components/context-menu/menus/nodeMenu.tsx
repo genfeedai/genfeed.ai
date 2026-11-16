@@ -1,4 +1,5 @@
 import {
+  Check,
   Copy,
   Image,
   Lock,
@@ -117,12 +118,14 @@ export function getNodeMenuItems({
       return {
         icon: (
           <div
-            className="size-4 border border-border"
+            className="flex size-4 items-center justify-center border border-border"
             style={{ backgroundColor: colorValue || 'transparent' }}
-          />
+          >
+            {isSelected ? <Check className="size-3.5" /> : null}
+          </div>
         ),
         id: `color-${color}`,
-        label: `${isSelected ? '✓ ' : ''}${NODE_COLOR_LABELS[color]}`,
+        label: NODE_COLOR_LABELS[color],
         onClick: () => onSetColor(nodeId, colorValue),
       };
     });

@@ -13,8 +13,16 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import {
+  throwAsPublishError,
+  withErrorKind,
+} from '@api/services/integrations/publishers/publish-error.util';
 import { verifyProviderPublish } from '@api/services/integrations/publishers/publisher-verification.util';
-import { CredentialPlatform, PostCategory } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PublishErrorKind,
+} from '@genfeedai/contracts';
 import {
   getIntegrationProviderDefinition,
   type IntegrationProviderCapability,
@@ -199,9 +207,9 @@ export class LinkedInPublisherService extends BasePublisherService {
       }
 
       if (!externalId) {
-        return this.createFailedResult(
-          this.platform,
-          'Failed to get external ID',
+        return withErrorKind(
+          this.createFailedResult(this.platform, 'Failed to get external ID'),
+          PublishErrorKind.OUTCOME_UNKNOWN,
         );
       }
 
@@ -212,7 +220,7 @@ export class LinkedInPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throwAsPublishError(error);
     }
   }
 

@@ -43,7 +43,7 @@ export default function EditMemberForm({
 }: EditMemberFormProps) {
   return (
     <>
-      <h3 className="font-bold text-lg">Edit Member Brands</h3>
+      <h3 className="font-semibold text-lg">Edit Member Brands</h3>
 
       <div className="py-4">
         <p className="text-sm text-muted-foreground mb-4">

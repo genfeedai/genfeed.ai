@@ -298,7 +298,7 @@ export class ModelsController extends BaseCRUDController<
       }
     }
 
-    // Superadmin-only rows: retired ones dispatch to their successor, and
+    // Superadmin-only rows: retired ones stop a run that picks them, and
     // unpriceable ones (red in the admin pricing panel) cannot be quoted.
     if (!isSuperAdmin) {
       const unpriceableIds = await readUnpriceableModelIds(
@@ -372,7 +372,6 @@ export class ModelsController extends BaseCRUDController<
       const data = await this.modelsService.transitionLifecycle(
         modelId,
         updateDto.lifecycle,
-        updateDto.succeededBy,
       );
       if (!data) {
         ErrorResponse.notFound(this.entityName, modelId);
@@ -453,12 +452,7 @@ export class ModelsController extends BaseCRUDController<
   ): Promise<JsonApiSingleResponse> {
     this.assertCanManageRegistry(user, request as unknown as Request);
 
-    const {
-      reviewStatus,
-      reason,
-      succeededBy: _succeededBy,
-      ...updates
-    } = updateDto;
+    const { reviewStatus, reason, ...updates } = updateDto;
     const reviewedBy = this.getReviewerId(user);
 
     let data: ModelDocument | null;

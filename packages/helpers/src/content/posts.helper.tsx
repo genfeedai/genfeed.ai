@@ -6,6 +6,7 @@ import {
 import type { IPlatformTab } from '@genfeedai/contracts/interfaces/ui/navigation.interface';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import {
+  BlueskyIcon,
   DiscordIcon,
   FacebookIcon,
   GhostIcon,
@@ -50,6 +51,7 @@ export const POST_PLATFORM_VALUES = [
   Platform.SNAPCHAT,
   Platform.WHATSAPP,
   Platform.MASTODON,
+  Platform.BLUESKY,
   Platform.GHOST,
   Platform.SHOPIFY,
   Platform.BEEHIIV,
@@ -86,6 +88,7 @@ export const PLATFORM_LABEL_MAP: Record<PostsPlatform, string> = {
   [Platform.SNAPCHAT]: 'Snapchat',
   [Platform.WHATSAPP]: 'WhatsApp',
   [Platform.MASTODON]: 'Mastodon',
+  [Platform.BLUESKY]: 'Bluesky',
   [Platform.GHOST]: 'Ghost',
   [Platform.SHOPIFY]: 'Shopify',
   [Platform.BEEHIIV]: 'Beehiiv',
@@ -262,6 +265,7 @@ const PLATFORM_ICON_MAP: Record<PostsPlatform, IconComponent> = {
   [Platform.SNAPCHAT]: SnapchatIcon,
   [Platform.WHATSAPP]: WhatsappIcon,
   [Platform.MASTODON]: MastodonIcon,
+  [Platform.BLUESKY]: BlueskyIcon,
   [Platform.GHOST]: GhostIcon,
   [Platform.SHOPIFY]: ShopifyIcon,
   [Platform.BEEHIIV]: Newspaper,

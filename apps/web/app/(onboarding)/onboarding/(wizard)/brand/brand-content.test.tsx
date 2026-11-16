@@ -204,7 +204,7 @@ describe('saved guide panel composition', () => {
   });
   it('marks only native exit buttons with the exact card brand identity', () => {
     render(<BrandGuidePanel {...panelProps()} />);
-    for (const name of ['Continue', 'Skip for now'])
+    for (const name of ['Continue', 'Skip'])
       expect(screen.getByRole('button', { name })).toHaveAttribute(
         'data-brand-os-navigation',
         'brand-1',

@@ -11,7 +11,7 @@ export default function AgentClientExamples({
   return (
     <section className="container mx-auto px-6 py-12 sm:py-20">
       <div className="mb-10 max-w-2xl">
-        <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-foreground/70">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-label text-foreground/70">
           02 / From a brief to something real
         </p>
         <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">

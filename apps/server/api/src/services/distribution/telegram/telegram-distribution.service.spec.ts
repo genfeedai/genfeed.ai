@@ -7,6 +7,7 @@ import type { DistributionsService } from '@api/collections/distributions/servic
 import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { TelegramDistributionService } from '@api/services/distribution/telegram/telegram-distribution.service';
+import { TelegramBotApiService } from '@api/services/integrations/telegram/services/telegram-bot-api.service';
 import { createSystemWorkflowRunnerMock } from '@api/shared/testing/system-workflow-runner-mock';
 import { DistributionContentType } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
@@ -85,7 +86,7 @@ function buildService(credentials: Credential[]) {
     distributionsService as unknown as DistributionsService,
     {} as unknown as WorkflowExecutionQueueService,
     createSystemWorkflowRunnerMock() as unknown as SystemWorkflowRunnerService,
-    http as unknown as HttpService,
+    new TelegramBotApiService(http as unknown as HttpService),
     { error: silent, log: silent, warn: silent } as unknown as LoggerService,
   );
   return { distributions, service, telegramRequests };

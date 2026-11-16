@@ -2,7 +2,71 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   getSentryConfig,
   PRODUCTION_TRACES_SAMPLE_RATE,
+  redactBreadcrumbUrls,
+  redactSpanUrls,
 } from './sentry.config';
+
+describe('redactSpanUrls', () => {
+  it('removes webhook and bot tokens from a streamed HTTP span', () => {
+    const span = redactSpanUrls({
+      attributes: {
+        'http.method': 'POST',
+        'http.url': 'https://discord.com/api/webhooks/123456789/abc-DEF_ghi',
+        'url.full':
+          'https://api.telegram.org/bot123456:AAH-xyz_123/sendMessage',
+      },
+      name: 'POST https://discord.com/api/webhooks/123456789/abc-DEF_ghi',
+    });
+
+    expect(span).toEqual({
+      attributes: {
+        'http.method': 'POST',
+        'http.url': 'https://discord.com/api/webhooks/123456789/[REDACTED]',
+        'url.full': 'https://api.telegram.org/bot[REDACTED]/sendMessage',
+      },
+      name: 'POST https://discord.com/api/webhooks/123456789/[REDACTED]',
+    });
+  });
+
+  it('removes webhook and bot tokens from a sampled HTTP span', () => {
+    const span = redactSpanUrls({
+      data: {
+        'http.url': 'https://discord.com/api/webhooks/123456789/abc-DEF_ghi',
+        'url.full':
+          'https://api.telegram.org/bot123456:AAH-xyz_123/sendMessage',
+      },
+      description:
+        'POST https://discord.com/api/webhooks/123456789/abc-DEF_ghi',
+    });
+
+    expect(span).toEqual({
+      data: {
+        'http.url': 'https://discord.com/api/webhooks/123456789/[REDACTED]',
+        'url.full': 'https://api.telegram.org/bot[REDACTED]/sendMessage',
+      },
+      description: 'POST https://discord.com/api/webhooks/123456789/[REDACTED]',
+    });
+  });
+});
+
+describe('redactBreadcrumbUrls', () => {
+  it('removes webhook and bot tokens from an HTTP breadcrumb URL', () => {
+    expect(
+      redactBreadcrumbUrls({
+        category: 'http',
+        data: { url: 'https://discord.com/api/webhooks/123456789/abc-DEF_ghi' },
+      }).data?.url,
+    ).toBe('https://discord.com/api/webhooks/123456789/[REDACTED]');
+    expect(
+      redactBreadcrumbUrls({
+        category: 'http',
+        data: {
+          url: 'https://api.telegram.org/bot123456:AAH-xyz_123/sendMessage',
+        },
+      }).data?.url,
+    ).toBe('https://api.telegram.org/bot[REDACTED]/sendMessage');
+  });
+});
 
 describe('getSentryConfig', () => {
   afterEach(() => {
@@ -42,6 +106,8 @@ describe('getSentryConfig', () => {
     vi.stubEnv('npm_package_version', '3.2.1');
 
     expect(getSentryConfig({ serviceName: 'my-service' })).toEqual({
+      beforeBreadcrumb: redactBreadcrumbUrls,
+      beforeSendSpan: redactSpanUrls,
       dsn: 'https://service@sentry.io/2',
       environment: 'production',
       release: '3.2.1',
@@ -75,6 +141,8 @@ describe('getSentryConfig', () => {
     vi.stubEnv('npm_package_version', '');
 
     expect(getSentryConfig({ serviceName: 'api' })).toEqual({
+      beforeBreadcrumb: redactBreadcrumbUrls,
+      beforeSendSpan: redactSpanUrls,
       dsn: 'https://shared@sentry.io/1',
       environment: 'development',
       release: '1.0.0',

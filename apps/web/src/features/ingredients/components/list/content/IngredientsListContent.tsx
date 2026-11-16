@@ -832,7 +832,7 @@ export default function IngredientsListContent({
 
           {viewMode === 'grid' && nonVisualIngredients.length > 0 ? (
             <section className="flex flex-col gap-2">
-              <h3 className="text-2xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
+              <h3 className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
                 {translate('otherAssets')}
               </h3>
               <AppTable

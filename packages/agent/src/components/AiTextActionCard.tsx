@@ -84,7 +84,7 @@ export function AiTextActionCard({
       )}
 
       <div className="mb-3">
-        <p className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+        <p className="mb-1 block text-2xs font-medium uppercase tracking-label text-muted-foreground">
           Choose action
         </p>
         <SegmentedControl
@@ -106,7 +106,7 @@ export function AiTextActionCard({
         withWrapper={false}
         onClick={handleApply}
         isDisabled={!selectedAction}
-        className="flex w-full items-center justify-center gap-2 px-4 py-2 text-sm font-black"
+        className="flex w-full items-center justify-center gap-2 px-4 py-2 text-sm font-semibold"
       >
         Apply
       </Button>

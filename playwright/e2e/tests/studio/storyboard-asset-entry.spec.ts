@@ -159,7 +159,7 @@ for (const kind of ['image', 'video'] as const) {
         .focus();
       await page.keyboard.press('ArrowRight');
     }
-    const label = kind === 'video' ? 'Remix this video' : 'Add to Storyboard';
+    const label = kind === 'video' ? 'Remix Video' : 'Add to Storyboard';
     const action = page.getByRole('menuitem', { name: label, exact: true });
     await expect(action).toBeVisible();
     if (kind === 'video') {
@@ -169,7 +169,7 @@ for (const kind of ['image', 'video'] as const) {
         .focus();
       await page.keyboard.press('ArrowRight');
       await expect(
-        page.getByRole('menuitem', { name: 'Open in Editor', exact: true }),
+        page.getByRole('menuitem', { name: 'Open Editor', exact: true }),
       ).toBeVisible();
       await page.keyboard.press('ArrowLeft');
       await page

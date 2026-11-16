@@ -10,7 +10,8 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { ChevronUp, LayoutGrid, Mic, Square } from 'lucide-react';
+import { ChevronUp, LayoutGrid, Mic, Square, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo } from 'react';
 import { useWatch } from 'react-hook-form';
 import PromptBarDivider from '@/components/prompt-bars/components/divider/PromptBarDivider';
@@ -52,6 +53,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
   extraExtensions,
   onDocumentChange,
 }: PromptBarCollapsedViewProps) {
+  const iconTranslate = useTranslations('ui.iconLabels');
   const watchedText = useWatch({
     control: form.control,
     name: 'text',
@@ -107,7 +109,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
                   {references.length > 1 && (
                     <div
                       className={
-                        'absolute inset-0 flex items-center justify-center text-xs font-bold text-black tabular-nums' /* design-system-allow-content-color -- media overlay */
+                        'absolute inset-0 flex items-center justify-center text-xs font-semibold text-black tabular-nums' /* design-system-allow-content-color -- media overlay */
                       }
                     >
                       {references.length}
@@ -119,12 +121,13 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
 
             {onClearReferences && (
               <Button
-                tooltip="Clear reference"
+                tooltip={iconTranslate('clearReference')}
                 tooltipPosition="top"
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.SM}
                 className="size-10 p-0 flex items-center justify-center"
-                icon={<span className="text-sm">✕</span>}
+                ariaLabel={iconTranslate('clearReference')}
+                icon={<X className="size-4" />}
                 onClick={onClearReferences}
                 data-testid="clear-reference-button"
               />

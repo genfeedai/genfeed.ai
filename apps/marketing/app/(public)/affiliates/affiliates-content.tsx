@@ -96,7 +96,7 @@ export default function AffiliatesContent() {
 
         <WebSection bg="bordered" maxWidth="md" className="gsap-section">
           <SectionHeader
-            title="Common Questions"
+            title="Common questions"
             description="The terms above are what billing pays out."
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
@@ -106,7 +106,7 @@ export default function AffiliatesContent() {
 
         <CtaSection
           bg="subtle"
-          title="Get your link."
+          title="Get your link"
           description="Sign in to copy your affiliate link, or create a free account first."
         >
           <Button size={ButtonSize.PUBLIC} asChild>

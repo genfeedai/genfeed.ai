@@ -62,6 +62,7 @@
   /* Guarded platform identity tokens. Register each CSS variable with
      Tailwind v4 so bg-platform-* and text-platform-* utilities are emitted. */
   --color-platform-beehiiv: var(--platform-beehiiv);
+  --color-platform-bluesky: var(--platform-bluesky);
   --color-platform-devto: var(--platform-devto);
   --color-platform-discord: var(--platform-discord);
   --color-platform-facebook: var(--platform-facebook);
@@ -87,6 +88,11 @@
   --color-platform-whatsapp: var(--platform-whatsapp);
   --color-platform-wordpress: var(--platform-wordpress);
   --color-platform-youtube: var(--platform-youtube);
+
+  /* Letter-spacing — `tracking-label` is the only positive tracking value
+     (uppercase labels, table headers, website buttons). Value lives once in
+     packages/ui/web-tokens.css. */
+  --tracking-label: var(--tracking-label);
 
   /* Radius — references the canonical scale in packages/ui/web-tokens.css.
      Holds NO values; this block only registers the tokens so Tailwind emits

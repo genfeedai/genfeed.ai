@@ -148,7 +148,7 @@ function FoldersSidebar({
     return (
       <div className="mt-3">
         <div className="mb-1 flex items-center justify-between gap-1 px-1">
-          <span className="text-2xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
+          <span className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
             Folders
           </span>
           {onCreateFolder ? (
@@ -189,7 +189,7 @@ function FoldersSidebar({
     <div className="w-full space-y-3">
       <div className="px-1">
         <div>
-          <div className="text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
             Folders
           </div>
           <div className="mt-1 text-sm font-medium text-foreground">

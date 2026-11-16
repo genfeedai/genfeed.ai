@@ -15,7 +15,7 @@
     "refreshFeeds": "Refresh feeds",
     "loadingFeeds": "Loading your connected feeds…",
     "feedError": "Unable to load your feeds. Try refreshing.",
-    "connectAccount": "Connect an account",
+    "connectAccount": "Connect Account",
     "automaticAccounts": "Your connected social accounts appear here automatically.",
     "selectBrand": "Select a brand in the header to load its connected timelines.",
     "updated": "Updated",
@@ -125,6 +125,12 @@
     "tweetPlaceholder": "Write the tweet"
   },
   "postComposer": {
+    "slackChannel": "Slack channel",
+    "slackChannelHelp": "Invite the Genfeed app to a private channel before posting to it.",
+    "slackChannelLoadFailed": "Channels could not be loaded. Reconnect Slack and try again.",
+    "slackChannelLoading": "Loading channels…",
+    "slackChannelPlaceholder": "Choose a channel",
+    "slackChannelPrivateSuffix": " (private)",
     "destinations": "Post to",
     "destinationsDescription": "Pick one or more accounts, or choose Article or Newsletter to write it in its own editor.",
     "noAccounts": "No connected accounts yet. Save a draft now and connect an account later.",
@@ -323,9 +329,9 @@
     "editImage": "Edit image",
     "editImageDescription": "Change this image with an instruction",
     "creationFailed": "Storyboard couldn’t be created. Try again.",
-    "remixThisVideo": "Remix this video",
-    "remixThisVideoTooltip": "Remix this video",
-    "openInEditor": "Open in Editor",
+    "remixThisVideo": "Remix Video",
+    "remixThisVideoTooltip": "Remix Video",
+    "openInEditor": "Open Editor",
     "openInEditorTooltip": "Open in the Studio editor",
     "rename": "Rename",
     "resizeFormats": {
@@ -333,7 +339,7 @@
       "portrait": "Portrait",
       "square": "Square"
     },
-    "resizeTo": "Resize to {format}",
+    "resizeTo": "Resize {format}",
     "more": "More",
     "groups": {
       "reframe": "Reframe",
@@ -376,12 +382,13 @@
       "edit": "Edit",
       "editNamed": "Edit {name}",
       "listLabel": "Channels",
-      "noCaption": "No caption yet",
-      "notConnected": "Not connected",
+      "needsMedia": "Needs media",
+      "needsVideo": "Needs video",
+      "off": "Off",
+      "on": "On",
       "publishTo": "Publish to {name}",
       "reconnect": "Reconnect",
       "reconnectNamed": "Reconnect {name}",
-      "reconnectToPublish": "Reconnect this account to publish",
       "toggleAll": "Toggle all",
       "turnAllOff": "Turn all channels off",
       "turnAllOffShort": "Off",
@@ -621,7 +628,7 @@
     "perMonth": "/mo",
     "quality": "{quality} quality",
     "notNow": "Not now",
-    "upgradeTo": "Upgrade to {plan}",
+    "upgradeTo": "Get {plan}",
     "redirecting": "Redirecting…"
   },
   "exportModal": {
@@ -790,7 +797,7 @@
       "caption": "Optimize caption",
       "comment": "Add first comment",
       "grok": "End with @grok",
-      "thread": "Turn into a thread"
+      "thread": "Make Thread"
     },
     "tones": {
       "professional": "Professional",
@@ -802,7 +809,7 @@
     "discard": "Discard",
     "tryAgain": "Try again",
     "replaceText": "Replace text",
-    "addToThread": "Add to thread",
+    "addToThread": "Add Post",
     "proposedThread": "Proposed {count} posts for the thread",
     "proposedThreadAria": "Proposed thread",
     "rewriteAria": "AI rewrite",
@@ -1150,5 +1157,11 @@
     "label": "Genfeed {kind, select, video {video} other {image}} · {id}",
     "privateAssetWarning": "Readers only see public assets. Make the asset public in your Library to show it.",
     "showPrompt": "Show prompt"
+  },
+  "iconLabels": {
+    "clearReference": "Clear reference",
+    "close": "Close",
+    "removeEffect": "Remove effect",
+    "selected": "Selected"
   }
 }
