@@ -5,6 +5,7 @@ import { FacebookPublisherService } from '@api/services/integrations/publishers/
 import { FanvuePublisherService } from '@api/services/integrations/publishers/fanvue-publisher.service';
 import { GenfeedPublisherService } from '@api/services/integrations/publishers/genfeed-publisher.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
+import { GoogleBusinessPublisherService } from '@api/services/integrations/publishers/google-business-publisher.service';
 import { InstagramPublisherService } from '@api/services/integrations/publishers/instagram-publisher.service';
 import type {
   PublishContext,
@@ -54,6 +55,7 @@ export const PUBLISHER_PROVIDERS: ReadonlyArray<
   [CredentialPlatform.WHATSAPP, WhatsappPublisherService],
   [CredentialPlatform.MASTODON, MastodonPublisherService],
   [CredentialPlatform.GHOST, GhostPublisherService],
+  [CredentialPlatform.GOOGLE_BUSINESS, GoogleBusinessPublisherService],
   [CredentialPlatform.SHOPIFY, ShopifyPublisherService],
   [CredentialPlatform.BEEHIIV, BeehiivPublisherService],
   [CredentialPlatform.MEDIUM, MediumPublisherService],
