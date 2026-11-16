@@ -3,7 +3,6 @@ import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import EditorialPoster from '@web-components/marketing/EditorialPoster';
 import PageLayout from '@web-components/PageLayout';
@@ -90,9 +89,6 @@ export default function HireAgentsContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={
-          <MarketingArtwork page="/hire-agents" isCompact kind="workflow" />
-        }
         heroActions={
           <AgentFirstActions
             signUpHref={signUpHref}

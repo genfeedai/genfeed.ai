@@ -3,7 +3,6 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import HomeFooter from '@web-components/home/_footer';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import Link from 'next/link';
@@ -204,13 +203,13 @@ export default function BrandOSContent(): React.ReactElement {
         {/* Hero */}
         <section className="border-b border-foreground/5 bg-background py-16 sm:py-20 lg:py-24">
           <div className="container mx-auto px-6">
-            <div className="grid items-center gap-10 lg:grid-cols-2">
+            <div className="grid items-center gap-10">
               <div className="flex flex-col max-w-4xl gap-6">
                 <Heading
                   as="h1"
                   className="max-w-3xl font-semibold tracking-[-0.02em] text-5xl leading-none text-foreground sm:text-6xl lg:text-7xl"
                 >
-                  Turn your website into an AI-readable Brand OS.
+                  Turn your website into an AI-readable Brand OS
                 </Heading>
 
                 <Text className="max-w-2xl text-base leading-7 text-foreground/60 sm:text-lg">
@@ -222,7 +221,6 @@ export default function BrandOSContent(): React.ReactElement {
 
                 <BrandOSPreviewAction />
               </div>
-              <MarketingArtwork page="/brand-os" kind="campaign" />
             </div>
           </div>
         </section>

@@ -172,7 +172,7 @@ function EffectPreview({
         style={{ filter: preview.sceneFilter }}
       >
         <div
-          className="absolute inset-0 transition-all duration-700 ease-out motion-reduce:transition-none"
+          className="absolute inset-0 transition-[filter,transform] duration-700 ease-out motion-reduce:transition-none"
           style={{
             filter: `blur(${preview.backgroundBlur}px)`,
             transform: `translateX(${preview.backgroundTranslate}%) scale(${preview.backgroundScale})`,
@@ -191,7 +191,7 @@ function EffectPreview({
         </div>
 
         <div
-          className="absolute bottom-[15%] left-1/2 h-[48%] w-[18%] -translate-x-1/2 transition-all duration-700 ease-out motion-reduce:transition-none"
+          className="absolute bottom-[15%] left-1/2 h-[48%] w-[18%] -translate-x-1/2 transition-[filter,transform] duration-700 ease-out motion-reduce:transition-none"
           style={{
             filter: `blur(${preview.foregroundBlur}px)`,
             transform: `translateX(calc(-50% + ${preview.foregroundTranslate}%)) scale(${preview.foregroundScale})`,

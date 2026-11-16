@@ -3,7 +3,6 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import FaqGrid from '@web-components/content/FaqGrid';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -99,7 +98,6 @@ export default function SelfHostedContent() {
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
-        heroMedia={<MarketingArtwork page="/self-hosted" kind="integration" />}
         title={<>Open source. Self-host on your own infra.</>}
         description="Genfeed is open source under AGPL-3.0. Install it with one command or a checksummed release bundle, run it with Docker Compose, then point your agent at your own MCP endpoint. Add your own model provider keys. Or skip the ops and start free on managed cloud."
       >

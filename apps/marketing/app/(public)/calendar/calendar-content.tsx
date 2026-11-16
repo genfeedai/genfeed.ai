@@ -3,7 +3,6 @@ import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
-import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import AppProductScreenshot from '@web-components/products/AppProductScreenshot';
@@ -81,6 +80,7 @@ const HERO_VISUAL = (
   <AppProductScreenshot
     alt="The Genfeed publishing calendar with drafts, approvals and scheduled posts."
     isPriority
+    isWide
     src="/products/publishing.webp"
   />
 );
@@ -91,9 +91,6 @@ export default function CalendarContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={
-          <MarketingArtwork page="/calendar" isCompact kind="publishing" />
-        }
         heroActions={
           <AgentFirstActions
             signUpHref={signUpHref}
@@ -102,6 +99,7 @@ export default function CalendarContent() {
           />
         }
         heroVisual={HERO_VISUAL}
+        isHeroVisualStacked
         compact
         title="Calendar"
         description="Plan and schedule your content, across every channel."
@@ -117,7 +115,7 @@ export default function CalendarContent() {
               </div>
               <div className="flex w-full min-w-0 flex-col gap-3">
                 <Heading as="h3" className="text-2xl font-semibold">
-                  One Calendar, Every Channel
+                  One calendar, every channel
                 </Heading>
                 <Text as="p" className="text-foreground/70">
                   Plan drafts, schedule posts, and route approvals from a single
