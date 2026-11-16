@@ -50,6 +50,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
+import { ScheduledPostSweepLockService } from '@workers/crons/posts/scheduled-post-sweep-lock.service';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
@@ -61,9 +62,14 @@ export const ISOLATED_PUBLISH_FAKE_EXTERNAL_PREFIX = 'fake-publish-';
 
 export class CapturingScheduledPostWorkflowQueue {
   readonly jobs: ScheduledPostWorkflowInput[] = [];
+  readonly providers: Array<string | undefined> = [];
 
-  async enqueue(data: ScheduledPostWorkflowInput): Promise<string> {
+  async enqueue(
+    data: ScheduledPostWorkflowInput,
+    options: { publishProvider?: string } = {},
+  ): Promise<string> {
     this.jobs.push(data);
+    this.providers.push(options.publishProvider);
     return data.operationId ?? data.postId;
   }
 }
@@ -312,6 +318,16 @@ export async function createIsolatedPublishHarness(): Promise<IsolatedPublishHar
       PostLifecycleService,
       AgentArtifactReferenceService,
       CronPostsService,
+      {
+        // One process owns the lane, so the lock is always free.
+        provide: ScheduledPostSweepLockService,
+        useValue: {
+          acquire: async () => ({
+            extend: async () => true,
+            release: async () => undefined,
+          }),
+        },
+      },
       ScheduledPostDiscoveryService,
       ScheduledPostExecutionGuardService,
       ScheduledPostWorkflowService,
@@ -395,8 +411,16 @@ export async function createIsolatedPublishHarness(): Promise<IsolatedPublishHar
       {
         provide: PostsService,
         useFactory: (prisma: PrismaService) => ({
-          findAll: async (query: { where?: Prisma.PostWhereInput }) => {
-            const row = await prisma.post.findFirst({
+          // The sweep pages with `where`, `orderBy` and `limit`, so this reads
+          // through Prisma exactly as the real service does, minus the count.
+          findAll: async (
+            query: {
+              orderBy?: Prisma.PostOrderByWithRelationInput[];
+              where?: Prisma.PostWhereInput;
+            },
+            options: { limit?: number } = {},
+          ) => {
+            const rows = await prisma.post.findMany({
               include: {
                 publishApproval: {
                   select: {
@@ -407,11 +431,13 @@ export async function createIsolatedPublishHarness(): Promise<IsolatedPublishHar
                   },
                 },
               },
+              ...(query.orderBy ? { orderBy: query.orderBy } : {}),
+              take: options.limit ?? 1,
               where: query.where,
             });
             return {
-              docs: row ? [new PostEntity(row)] : [],
-              total: row ? 1 : 0,
+              docs: rows.map((row) => new PostEntity(row)),
+              total: rows.length,
             };
           },
         }),

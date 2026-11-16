@@ -29,6 +29,7 @@ import { PrismaService } from '@libs/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
 import { CronManualPostRemindersService } from '@workers/crons/posts/cron.manual-post-reminders.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
+import { ScheduledPostSweepLockService } from '@workers/crons/posts/scheduled-post-sweep-lock.service';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { ReleaseRecurrenceMaterializerService } from '@workers/services/release-recurrence-materializer.service';
@@ -73,6 +74,7 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
     ScheduledPostDiscoveryService,
     ScheduledPostExecutionGuardService,
     ScheduledPostFailureService,
+    ScheduledPostSweepLockService,
     ScheduledPostWorkflowQueueService,
     ScheduledPostWorkflowService,
     ThreadCommentDeliveryService,

@@ -14,7 +14,15 @@ import { Injectable } from '@nestjs/common';
 export class ScheduledPostWorkflowQueueService {
   constructor(private readonly workflowQueue: WorkflowExecutionQueueService) {}
 
-  async enqueue(input: ScheduledPostWorkflowInput): Promise<string> {
+  /**
+   * `publishProvider` names the platform the post publishes to, so the
+   * scheduled-publish worker can hold it while that provider is at its own
+   * ceiling. The request itself stays provider-free: it is a closed contract.
+   */
+  async enqueue(
+    input: ScheduledPostWorkflowInput,
+    options: { publishProvider?: string } = {},
+  ): Promise<string> {
     // Threaded from the caller via the existing `source` discriminator
     // (already used just below to pick `trigger`) rather than a new
     // parameter every one of this producer's several callers would need to
@@ -45,6 +53,9 @@ export class ScheduledPostWorkflowQueueService {
       {
         attempts: 1,
         dispatchClass,
+        ...(options.publishProvider
+          ? { publishProvider: options.publishProvider }
+          : {}),
         failureWorkflow: {
           canonicalId: SCHEDULED_POST_FAILURE_WORKFLOW_ID,
           inputValues: { request: input },
