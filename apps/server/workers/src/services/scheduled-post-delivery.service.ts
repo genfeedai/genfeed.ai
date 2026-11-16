@@ -471,17 +471,21 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
    * Applies the unverified-outcome policy to the post without a new provider
    * call: the short verification backoff inside the window, then the
    * operator-visible error, the owner alert and the slow backoff. The window
-   * runs from the attempt's own start, which no sweep moves. An attempt still
-   * in flight has no settled start to date it from, so it gets the short
-   * backoff and no alert; once its lease lapses it becomes unconfirmed and the
-   * window runs from its real start. Dated ahead because discovery re-queues a
+   * runs from the attempt's own start, which no sweep moves. That holds for an
+   * unconfirmed attempt and for one the provider accepted whose result never
+   * reached the post: both end with the owner alert, and neither is failed.
+   * An attempt still in flight has no settled start to date it from, so it
+   * gets the short backoff and no alert; once its lease lapses it becomes
+   * unconfirmed and the window runs from its real start. Dated ahead because discovery re-queues a
    * PUBLISHING post once its last attempt is older than the retry backoff.
    */
   async deferKeptUnsettledApproval(post: PostEntity): Promise<void> {
     const now = new Date();
     const attempt = await inspectProviderPublishAttempt(this.prisma, post, now);
     const windowStartedAt =
-      attempt.kind === 'unconfirmed' ? attempt.attemptStartedAt : now;
+      attempt.kind === 'unconfirmed' || attempt.kind === 'replay'
+        ? attempt.attemptStartedAt
+        : now;
     const deferral = resolveUnverifiedDeferral(windowStartedAt, now);
     const { count } = await this.prisma.post.updateMany({
       data: {

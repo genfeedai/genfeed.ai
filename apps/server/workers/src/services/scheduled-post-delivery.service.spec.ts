@@ -1531,6 +1531,37 @@ describe('ScheduledPostDeliveryService', () => {
       }
     });
 
+    it('escalates an accepted provider receipt that never reached the post, without failing it', async () => {
+      mocks.activitiesService.record.mockClear();
+      const attemptStartedAt = new Date(Date.now() - 25 * 60 * 60_000);
+      mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+        receiptRow({
+          attemptStartedAt,
+          result: acceptedTweet,
+          status: 'accepted',
+        }),
+      );
+      const post = createKeptPost({ lastAttemptAt: new Date() });
+
+      await service.deferKeptUnsettledApproval(post);
+      await service.deferKeptUnsettledApproval(post);
+
+      const [write] = mocks.prisma.post.updateMany.mock.calls[0] ?? [];
+      expect(write.data.targetError.code).toBe('publish_outcome_unverified');
+      expect(write.data).not.toHaveProperty('targetExecutionState');
+      expect(
+        new Set(
+          mocks.activitiesService.record.mock.calls.map(
+            (call) => call[0].alert?.deduplicationKey,
+          ),
+        ),
+      ).toEqual(
+        new Set([
+          `${ActivityKey.POST_PUBLISH_UNVERIFIED}/post-1/${attemptStartedAt.getTime()}`,
+        ]),
+      );
+    });
+
     it('gives an attempt still in flight the short backoff and no alert, however long the post has been due', async () => {
       mocks.activitiesService.record.mockClear();
       mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
