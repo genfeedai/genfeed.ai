@@ -32,27 +32,44 @@ export function redactBreadcrumbUrls(breadcrumb: Breadcrumb): Breadcrumb {
 
 const SPAN_URL_KEYS = ['url.full', 'url.path', 'http.url', 'http.target'];
 
-/** The part of Sentry's span payload that carries a request URL. */
+/**
+ * The parts of Sentry's span payload that carry a request URL. SDK 11 streams
+ * spans by default (`name` and `attributes`); the static transaction format
+ * (`description` and `data`) is covered too.
+ */
 interface SpanWithUrls {
-  data: Record<string, unknown>;
+  attributes?: Record<string, unknown>;
+  data?: Record<string, unknown>;
   description?: string;
+  name?: string;
+}
+
+function redactUrlValues(values: Record<string, unknown> | undefined): void {
+  if (!values) {
+    return;
+  }
+  for (const key of SPAN_URL_KEYS) {
+    const value = values[key];
+    if (typeof value === 'string') {
+      values[key] = redactSensitiveString(value);
+    }
+  }
 }
 
 /**
- * Sampled outbound HTTP spans carry the request URL in their description and
- * URL attributes, so a path-borne provider secret needs the same redaction as
- * a breadcrumb before the span is sent.
+ * Sampled outbound HTTP spans carry the request URL in their name and URL
+ * attributes, so a path-borne provider secret needs the same redaction as a
+ * breadcrumb before the span is sent.
  */
 export function redactSpanUrls<TSpan extends SpanWithUrls>(span: TSpan): TSpan {
+  if (typeof span.name === 'string') {
+    span.name = redactSensitiveString(span.name);
+  }
   if (typeof span.description === 'string') {
     span.description = redactSensitiveString(span.description);
   }
-  for (const key of SPAN_URL_KEYS) {
-    const value = span.data[key];
-    if (typeof value === 'string') {
-      span.data[key] = redactSensitiveString(value);
-    }
-  }
+  redactUrlValues(span.attributes);
+  redactUrlValues(span.data);
   return span;
 }
 
@@ -87,8 +104,8 @@ export function getSentryConfig(
 
   return {
     beforeBreadcrumb: redactBreadcrumbUrls,
-    // `beforeSendSpan` is typed as a union with the streamed-span callback,
-    // which has no `data`; transaction spans use the payload shape above.
+    // The SDK streams spans by default, so this receives `name` and
+    // `attributes`; the structural type above also accepts the static shape.
     beforeSendSpan: redactSpanUrls as NodeOptions['beforeSendSpan'],
     dsn,
     environment: process.env.SENTRY_ENVIRONMENT || 'development',

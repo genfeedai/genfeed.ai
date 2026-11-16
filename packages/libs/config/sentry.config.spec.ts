@@ -7,6 +7,27 @@ import {
 } from './sentry.config';
 
 describe('redactSpanUrls', () => {
+  it('removes webhook and bot tokens from a streamed HTTP span', () => {
+    const span = redactSpanUrls({
+      attributes: {
+        'http.method': 'POST',
+        'http.url': 'https://discord.com/api/webhooks/123456789/abc-DEF_ghi',
+        'url.full':
+          'https://api.telegram.org/bot123456:AAH-xyz_123/sendMessage',
+      },
+      name: 'POST https://discord.com/api/webhooks/123456789/abc-DEF_ghi',
+    });
+
+    expect(span).toEqual({
+      attributes: {
+        'http.method': 'POST',
+        'http.url': 'https://discord.com/api/webhooks/123456789/[REDACTED]',
+        'url.full': 'https://api.telegram.org/bot[REDACTED]/sendMessage',
+      },
+      name: 'POST https://discord.com/api/webhooks/123456789/[REDACTED]',
+    });
+  });
+
   it('removes webhook and bot tokens from a sampled HTTP span', () => {
     const span = redactSpanUrls({
       data: {
