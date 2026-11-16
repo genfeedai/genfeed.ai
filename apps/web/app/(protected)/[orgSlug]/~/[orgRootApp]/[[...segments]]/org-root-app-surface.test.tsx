@@ -1,37 +1,26 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import {
-  type LibraryPlace,
-  LibraryShelf,
-  PageScope,
-} from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OrgRootAppPageProps } from '@/props/layout/org-root-app-page.props';
 
-const {
-  loadProtectedBootstrapMock,
-  notFoundMock,
-  redirectMock,
-  renderPostsListPageMock,
-  routeContext,
-} = vi.hoisted(() => ({
-  loadProtectedBootstrapMock: vi.fn(),
-  notFoundMock: vi.fn(() => {
-    throw new Error('NEXT_NOT_FOUND');
-  }),
-  redirectMock: vi.fn((destination: string) => {
-    throw new Error(`NEXT_REDIRECT:${destination}`);
-  }),
-  renderPostsListPageMock: vi.fn(),
-  routeContext: {
-    orgSlug: 'org-A',
-    brandSlug: undefined as string | undefined,
-    brandId: '',
-  },
-}));
+const { loadProtectedBootstrapMock, notFoundMock, redirectMock, routeContext } =
+  vi.hoisted(() => ({
+    loadProtectedBootstrapMock: vi.fn(),
+    notFoundMock: vi.fn(() => {
+      throw new Error('NEXT_NOT_FOUND');
+    }),
+    redirectMock: vi.fn((destination: string) => {
+      throw new Error(`NEXT_REDIRECT:${destination}`);
+    }),
+    routeContext: {
+      orgSlug: 'org-A',
+      brandSlug: undefined as string | undefined,
+      brandId: '',
+    },
+  }));
 
 vi.mock('@/server/protected-bootstrap.server', () => ({
   loadProtectedBootstrap: loadProtectedBootstrapMock,
@@ -63,93 +52,8 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@/features/ingredients/layout/ingredients-layout', () => ({
-  default: ({
-    children,
-    defaultType,
-    scope,
-  }: {
-    children: ReactNode;
-    defaultType: string;
-    scope: PageScope;
-  }) => (
-    <section
-      data-default-type={defaultType}
-      data-scope={scope}
-      data-testid="ingredients-layout"
-    >
-      {children}
-    </section>
-  ),
-}));
-
-vi.mock('@/features/ingredients/list/ingredients-list', () => ({
-  default: ({
-    folderNavigation,
-    scope,
-    type,
-  }: {
-    folderNavigation?: string;
-    scope: PageScope;
-    type: string;
-  }) => (
-    <div
-      data-folder-navigation={folderNavigation}
-      data-scope={scope}
-      data-testid="ingredients-list"
-      data-type={type}
-    />
-  ),
-}));
-
-vi.mock('@/features/library/overview/library-overview', () => ({
-  default: ({ scope }: { scope?: string }) => (
-    <div data-scope={scope} data-testid="library-overview" />
-  ),
-}));
-
-vi.mock('@/features/library/browser/library-browser', () => ({
-  default: ({
-    children,
-    place,
-    preset,
-    scope,
-    shelf,
-  }: {
-    children: ReactNode;
-    place?: LibraryPlace;
-    preset?: { label: string };
-    scope: PageScope;
-    shelf?: LibraryShelf;
-  }) => (
-    <section
-      data-place={place}
-      data-preset={preset?.label}
-      data-scope={scope}
-      data-shelf={shelf}
-      data-testid="library-browser"
-    >
-      {children}
-    </section>
-  ),
-}));
-
 vi.mock('@ui/display/error-boundary/ErrorBoundary', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
-}));
-
-vi.mock('../../../[brandSlug]/library/assets/asset-deep-link', () => ({
-  default: () => null,
-}));
-
-vi.mock('../../../[brandSlug]/library/captions/page', () => ({
-  default: () => <div data-testid="library-captions-page" />,
-}));
-
-vi.mock('../../../[brandSlug]/library/voices/library-voices-page', () => ({
-  default: ({ scope }: { scope: PageScope }) => (
-    <div data-scope={scope} data-testid="library-voices-page" />
-  ),
 }));
 
 vi.mock('../../../[brandSlug]/messages/outreach/page', () => ({
@@ -200,33 +104,6 @@ vi.mock('@/features/studio/editor/EditorWorkspace', () => ({
   default: () => <div data-testid="editor-projects-page" />,
 }));
 
-vi.mock('../../../[brandSlug]/publishing/publishing-list-page', () => ({
-  renderPostsListPage: (args: unknown) => {
-    renderPostsListPageMock(args);
-    return <div data-testid="posts-list-page" />;
-  },
-}));
-
-vi.mock('../../../[brandSlug]/publishing/publishing-layout-content', () => ({
-  default: ({ children }: { children: ReactNode }) => (
-    <section data-testid="posts-layout-content">{children}</section>
-  ),
-}));
-
-vi.mock('../../../[brandSlug]/publishing/overview/page', () => ({
-  default: () => <div data-testid="publishing-overview-page" />,
-}));
-
-vi.mock('../../../[brandSlug]/publishing/review/review-queue-content', () => ({
-  default: () => <div data-testid="publishing-review-queue" />,
-}));
-
-vi.mock('../../../[brandSlug]/publishing/posts/[id]/page', () => ({
-  default: () => {
-    throw new Error('route entry must not be invoked by another route');
-  },
-}));
-
 vi.mock(
   '../../../[brandSlug]/publishing/posts/[id]/PublishingContentEditorPage',
   async () => {
@@ -252,52 +129,6 @@ vi.mock(
   },
 );
 
-vi.mock('../../../[brandSlug]/publishing/campaigns/compare/page', () => ({
-  default: () => <div data-testid="publishing-campaign-compare" />,
-}));
-
-vi.mock(
-  '../../../[brandSlug]/publishing/calendar/content-calendar-page',
-  () => ({
-    default: ({ campaignId }: { campaignId?: string }) => (
-      <div data-campaign-id={campaignId} data-testid="campaign-calendar-page" />
-    ),
-  }),
-);
-
-vi.mock('@/features/campaigns', () => ({
-  CampaignDetailAds: ({ campaignId }: { campaignId: string }) => (
-    <div data-campaign-id={campaignId} data-testid="campaign-ads" />
-  ),
-  CampaignDetailOverview: ({ campaignId }: { campaignId: string }) => (
-    <div data-campaign-id={campaignId} data-testid="campaign-overview" />
-  ),
-  CampaignDetailPerformance: ({ campaignId }: { campaignId: string }) => (
-    <div data-campaign-id={campaignId} data-testid="campaign-performance" />
-  ),
-  CampaignDetailShell: ({
-    campaignId,
-    children,
-    section,
-  }: {
-    campaignId: string;
-    children?: ReactNode;
-    section: string;
-  }) => (
-    <section
-      data-campaign-id={campaignId}
-      data-section={section}
-      data-testid="campaign-detail-shell"
-    >
-      {children}
-    </section>
-  ),
-  CampaignFormPage: ({ campaignId }: { campaignId?: string }) => (
-    <div data-campaign-id={campaignId} data-testid="campaign-form-page" />
-  ),
-  CampaignsListPage: () => <div data-testid="campaigns-list-page" />,
-}));
-
 const { default: OrgRootAppPage } = await import('./org-root-app-surface');
 
 describe('OrgRootAppSurface', () => {
@@ -311,123 +142,17 @@ describe('OrgRootAppSurface', () => {
     loadProtectedBootstrapMock.mockResolvedValue(null);
   });
 
-  it('renders org shelves through the same Library browser as brand shelves', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'library',
-        orgSlug: 'acme',
-        segments: ['shelf', 'unsorted'],
-      }),
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('library-browser')).toHaveAttribute(
-      'data-scope',
-      PageScope.ORGANIZATION,
-    );
-    expect(screen.getByTestId('library-browser')).toHaveAttribute(
-      'data-shelf',
-      LibraryShelf.UNSORTED,
-    );
-    expect(screen.getByTestId('ingredients-list')).toHaveAttribute(
-      'data-type',
-      'ingredients',
-    );
-    expect(screen.getByTestId('ingredients-list')).toHaveAttribute(
-      'data-folder-navigation',
-      'shell',
-    );
-  });
-
-  it.each([
-    { place: 'trash' },
-    { folder: 'f1', shelf: 'approved' },
-    { categories: ['IMAGE', 'IMAGE_EDIT'], search: 'hero' },
-  ])(
-    'renders All assets and ignores the old library query %j',
-    async (search) => {
-      const element = await OrgRootAppPage({
-        params: Promise.resolve({
-          orgRootApp: 'library',
-          orgSlug: 'acme',
-          segments: ['assets'],
+  it.each(['library', 'publishing'])(
+    'leaves %s to its own static route',
+    async (orgRootApp) => {
+      await expect(
+        OrgRootAppPage({
+          params: Promise.resolve({ orgRootApp, orgSlug: 'acme' }),
         }),
-        searchParams: Promise.resolve(search),
-      });
-
-      render(element);
-
-      expect(screen.getByTestId('library-browser')).toBeInTheDocument();
+      ).rejects.toThrow('NEXT_NOT_FOUND');
+      expect(notFoundMock).toHaveBeenCalled();
     },
   );
-
-  it('keeps All assets for filters that have no route of their own', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'library',
-        orgSlug: 'acme',
-        segments: ['assets'],
-      }),
-      searchParams: Promise.resolve({ categories: ['IMAGE'], folder: 'f1' }),
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('library-browser')).toBeInTheDocument();
-  });
-
-  it('renders org type routes as presets over the unified browser', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'library',
-        orgSlug: 'acme',
-        segments: ['images'],
-      }),
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('library-browser')).toHaveAttribute(
-      'data-preset',
-      'Images',
-    );
-    expect(screen.getByTestId('ingredients-list')).toHaveAttribute(
-      'data-type',
-      'ingredients',
-    );
-  });
-
-  it('reuses the brand voice library component with organization scope', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'library',
-        orgSlug: 'acme',
-        segments: ['voices'],
-      }),
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('library-voices-page')).toHaveAttribute(
-      'data-scope',
-      PageScope.ORGANIZATION,
-    );
-  });
-
-  it('reuses the same captions library component in organization scope', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'library',
-        orgSlug: 'acme',
-        segments: ['captions'],
-      }),
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('library-captions-page')).toBeInTheDocument();
-  });
 
   it('does not render workspace through the org catch-all', async () => {
     await expect(
@@ -441,36 +166,6 @@ describe('OrgRootAppSurface', () => {
     ).rejects.toThrow('NEXT_NOT_FOUND');
 
     expect(notFoundMock).toHaveBeenCalled();
-  });
-
-  it('redirects the org Library root to the Library Overview (#5502)', async () => {
-    await expect(
-      OrgRootAppPage({
-        params: Promise.resolve({
-          orgRootApp: 'library',
-          orgSlug: 'acme',
-        }),
-      }),
-    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/library/overview');
-
-    expect(redirectMock).toHaveBeenCalledWith('/acme/~/library/overview');
-  });
-
-  it('renders the organization Library Overview without brand-only References', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'library',
-        orgSlug: 'acme',
-        segments: ['overview'],
-      }),
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('library-overview')).toHaveAttribute(
-      'data-scope',
-      PageScope.ORGANIZATION,
-    );
   });
 
   it.each([
@@ -622,260 +317,6 @@ describe('OrgRootAppSurface', () => {
     expect(redirectMock).toHaveBeenCalledWith('/acme/~/agent/new');
   });
 
-  it('redirects bare org Publishing to its canonical overview', async () => {
-    await expect(
-      OrgRootAppPage({
-        params: Promise.resolve({
-          orgRootApp: 'publishing',
-          orgSlug: 'acme',
-        }),
-      }),
-    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/publishing/overview');
-    expect(redirectMock).toHaveBeenCalledWith('/acme/~/publishing/overview');
-  });
-
-  it('renders the canonical organization publishing overview', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'publishing',
-        orgSlug: 'acme',
-        segments: ['overview'],
-      }),
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
-    expect(screen.getByTestId('publishing-overview-page')).toBeInTheDocument();
-  });
-
-  it('renders the canonical org posts list', async () => {
-    const searchParams = Promise.resolve({ page: '2' });
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'publishing',
-        orgSlug: 'acme',
-        segments: ['posts'],
-      }),
-      searchParams,
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
-    expect(screen.getByTestId('posts-list-page')).toBeInTheDocument();
-    expect(renderPostsListPageMock).toHaveBeenCalledWith({
-      scope: PageScope.ORGANIZATION,
-      searchParams,
-    });
-  });
-
-  it('renders the org calendar at its own route', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'publishing',
-        orgSlug: 'acme',
-        segments: ['calendar'],
-      }),
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
-    expect(screen.getByTestId('campaign-calendar-page')).toBeInTheDocument();
-  });
-
-  it.each([
-    [['approvals']],
-    [['approvals', 'run-1']],
-    [['approvals', 'run-1', 'item-1']],
-  ])('renders the org approvals queue for %j', async (segments) => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'publishing',
-        orgSlug: 'acme',
-        segments,
-      }),
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('publishing-review-queue')).toBeInTheDocument();
-  });
-
-  it('returns not found for approvals paths deeper than run and item', async () => {
-    await expect(
-      OrgRootAppPage({
-        params: Promise.resolve({
-          orgRootApp: 'publishing',
-          orgSlug: 'acme',
-          segments: ['approvals', 'run-1', 'item-1', 'extra'],
-        }),
-      }),
-    ).rejects.toThrow('NEXT_NOT_FOUND');
-  });
-
-  it('returns not found for the retired org publishing review route', async () => {
-    await expect(
-      OrgRootAppPage({
-        params: Promise.resolve({
-          orgRootApp: 'publishing',
-          orgSlug: 'acme',
-          segments: ['review'],
-        }),
-      }),
-    ).rejects.toThrow('NEXT_NOT_FOUND');
-    expect(redirectMock).not.toHaveBeenCalled();
-  });
-
-  it.each(['approvals', 'calendar'])(
-    'serves the posts list for a retired ?view=%s tab without redirecting',
-    async (view) => {
-      await OrgRootAppPage({
-        params: Promise.resolve({
-          orgRootApp: 'publishing',
-          orgSlug: 'acme',
-          segments: ['posts'],
-        }),
-        searchParams: Promise.resolve({ view }),
-      });
-
-      expect(redirectMock).not.toHaveBeenCalled();
-    },
-  );
-
-  it('renders organization content detail through the canonical publishing editor', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'publishing',
-        orgSlug: 'acme',
-        segments: ['posts', 'content-1'],
-      }),
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('publishing-content-detail')).toHaveAttribute(
-      'data-content-id',
-      'content-1',
-    );
-  });
-
-  it('renders org-scoped Publish Campaigns', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'publishing',
-        orgSlug: 'acme',
-        segments: ['campaigns'],
-      }),
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
-    expect(screen.getByTestId('campaigns-list-page')).toBeInTheDocument();
-  });
-
-  it('renders the organization campaign comparison page', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'publishing',
-        orgSlug: 'acme',
-        segments: ['campaigns', 'compare'],
-      }),
-    });
-
-    render(element);
-
-    expect(
-      screen.getByTestId('publishing-campaign-compare'),
-    ).toBeInTheDocument();
-  });
-
-  it('renders an org-scoped campaign detail without leaking Automate Programs', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'publishing',
-        orgSlug: 'acme',
-        segments: ['campaigns', 'cmp-1'],
-      }),
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('campaign-detail-shell')).toHaveAttribute(
-      'data-campaign-id',
-      'cmp-1',
-    );
-    expect(screen.getByTestId('campaign-overview')).toBeInTheDocument();
-  });
-
-  it('filters org campaign content through the posts desk', async () => {
-    const searchParams = Promise.resolve({ page: '1' });
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'publishing',
-        orgSlug: 'acme',
-        segments: ['campaigns', 'cmp-1', 'content'],
-      }),
-      searchParams,
-    });
-
-    render(element);
-
-    expect(renderPostsListPageMock).toHaveBeenCalledWith({
-      campaignId: 'cmp-1',
-      scope: PageScope.ORGANIZATION,
-      searchParams,
-    });
-    expect(renderPostsListPageMock.mock.calls[0][0].searchParams).toBe(
-      searchParams,
-    );
-    expect(screen.getByTestId('campaign-detail-shell')).toHaveAttribute(
-      'data-section',
-      'content',
-    );
-    expect(screen.getByTestId('posts-list-page')).toBeInTheDocument();
-  });
-
-  it.each(['pending', 'processing', 'published', 'scheduled', 'failed'])(
-    'returns not found for the retired org /publishing/%s route',
-    async (segment) => {
-      await expect(
-        OrgRootAppPage({
-          params: Promise.resolve({
-            orgRootApp: 'publishing',
-            orgSlug: 'acme',
-            segments: [segment],
-          }),
-        }),
-      ).rejects.toThrow('NEXT_NOT_FOUND');
-      expect(renderPostsListPageMock).not.toHaveBeenCalled();
-    },
-  );
-
-  it.each([
-    ['overview', 'extra'],
-    ['posts', 'content-1', 'extra'],
-    ['content', 'extra'],
-    ['campaigns', 'compare', 'extra'],
-    ['campaigns', 'new', 'extra'],
-    ['campaigns', 'cmp-1', 'content', 'extra'],
-  ])(
-    'returns not found for surplus org publishing segments %j',
-    async (...segments) => {
-      await expect(
-        OrgRootAppPage({
-          params: Promise.resolve({
-            orgRootApp: 'publishing',
-            orgSlug: 'acme',
-            segments,
-          }),
-        }),
-      ).rejects.toThrow('NEXT_NOT_FOUND');
-    },
-  );
-
   it.each(['write', 'compose'])(
     'returns not found for retired org %s route',
     async (orgRootApp) => {
@@ -1004,42 +445,6 @@ describe('OrgRootAppSurface', () => {
 
     expect(notFoundMock).toHaveBeenCalled();
   });
-  it.each([
-    ['editor', undefined, 'project-org-2', 'editor-detail-page', 'data-id'],
-    [
-      'publishing',
-      'posts',
-      'content-org-2',
-      'publishing-content-detail',
-      'data-content-id',
-    ],
-  ])(
-    'awaits real %s params and forwards the literal detail ID without brand params',
-    async (orgRootApp, section, id, testId, attribute) => {
-      const params =
-        Promise.withResolvers<Awaited<OrgRootAppPageProps['params']>>();
-      const settled = vi.fn();
-      const pending = OrgRootAppPage({ params: params.promise }).then(
-        (element) => {
-          settled();
-          return element;
-        },
-      );
-      await Promise.resolve();
-      expect(settled).not.toHaveBeenCalled();
-      params.resolve({
-        orgRootApp,
-        orgSlug: 'org-A',
-        segments: section ? [section, id] : [id],
-      });
-      render(await pending);
-      const detail = await screen.findByTestId(testId);
-      expect(detail).toHaveAttribute(attribute, id);
-      expect(detail).toHaveAttribute('data-org', 'org-A');
-      expect(detail).toHaveAttribute('data-brand-id', '');
-      expect(detail).not.toHaveAttribute('data-brand');
-    },
-  );
 
   it('propagates rejected real route params without catching server control', async () => {
     const failure = new Error('params failed');
@@ -1064,5 +469,30 @@ describe('OrgRootAppSurface', () => {
       'data-id',
       'project-trailing',
     );
+  });
+
+  it('awaits real editor params and forwards the literal detail ID without brand params', async () => {
+    const params =
+      Promise.withResolvers<Awaited<OrgRootAppPageProps['params']>>();
+    const settled = vi.fn();
+    const pending = OrgRootAppPage({ params: params.promise }).then(
+      (element) => {
+        settled();
+        return element;
+      },
+    );
+    await Promise.resolve();
+    expect(settled).not.toHaveBeenCalled();
+    params.resolve({
+      orgRootApp: 'editor',
+      orgSlug: 'org-A',
+      segments: ['project-org-2'],
+    });
+    render(await pending);
+    const detail = await screen.findByTestId('editor-detail-page');
+    expect(detail).toHaveAttribute('data-id', 'project-org-2');
+    expect(detail).toHaveAttribute('data-org', 'org-A');
+    expect(detail).toHaveAttribute('data-brand-id', '');
+    expect(detail).not.toHaveAttribute('data-brand');
   });
 });

@@ -11,7 +11,7 @@ vi.mock(
     default: () => <p>Loading organization app</p>,
   }),
 );
-vi.mock('../../[orgRootApp]/[[...segments]]/org-root-app-surface', () => ({
+vi.mock('./org-library-surface', () => ({
   default: () => new Promise(() => undefined),
 }));
 
@@ -20,13 +20,5 @@ describe('OrgLibraryPage', () => {
     render(<OrgLibraryPage params={Promise.resolve({ orgSlug: 'acme' })} />);
 
     expect(screen.getByText('Loading organization app')).toBeInTheDocument();
-  });
-
-  it('opens the library app', () => {
-    const page = OrgLibraryPage({
-      params: Promise.resolve({ orgSlug: 'acme' }),
-    });
-
-    expect(page.props.orgRootApp).toBe('library');
   });
 });
