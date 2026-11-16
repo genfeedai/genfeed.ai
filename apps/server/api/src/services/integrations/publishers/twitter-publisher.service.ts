@@ -9,11 +9,16 @@ import type {
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import {
+  throwAsPublishError,
+  withErrorKind,
+} from '@api/services/integrations/publishers/publish-error.util';
+import {
   PROVIDER_VERIFICATION_PAGE_SIZE,
   PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
   verifyTextPublish,
 } from '@api/services/integrations/publishers/publisher-verification.util';
 import { parseTwitterVerificationPage } from '@api/services/integrations/publishers/publisher-verification-pages.util';
+import { mapXFailure } from '@api/services/integrations/publishers/social-publish-error.mappers';
 import {
   resolveTwitterReplySettings,
   TwitterService,
@@ -25,7 +30,6 @@ import {
   isTwitterPostNotFound,
   isTwitterRateLimitResponse,
   isTwitterScopeOrTierError,
-  X_CREDITS_DEPLETED_CODE,
 } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
@@ -35,6 +39,7 @@ import {
 import {
   CredentialPlatform,
   PostCategory,
+  PublishErrorKind,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import {
@@ -204,9 +209,9 @@ export class TwitterPublisherService extends BasePublisherService {
       }
 
       if (!externalId) {
-        return this.createFailedResult(
-          this.platform,
-          'Failed to get external ID',
+        return withErrorKind(
+          this.createFailedResult(this.platform, 'Failed to get external ID'),
+          PublishErrorKind.OUTCOME_UNKNOWN,
         );
       }
 
@@ -230,18 +235,7 @@ export class TwitterPublisherService extends BasePublisherService {
         error: message,
         postId: context.postId,
       });
-      if (!(error instanceof Error) || message === error.message) {
-        throw error;
-      }
-      // Keep the provider's own code and fields so retry classification is
-      // unchanged; only the message gains the reason X returned.
-      throw Object.assign(new Error(message, { cause: error }), {
-        code: isTwitterCreditsDepletedError(error)
-          ? X_CREDITS_DEPLETED_CODE
-          : (error as { code?: unknown }).code,
-        isRetryable: (error as { isRetryable?: unknown }).isRetryable,
-        rateLimit: (error as { rateLimit?: unknown }).rateLimit,
-      });
+      throwAsPublishError(error, mapXFailure);
     }
   }
 
