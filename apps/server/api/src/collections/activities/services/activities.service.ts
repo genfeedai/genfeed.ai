@@ -119,6 +119,7 @@ export class ActivitiesService extends BaseService<
         filter,
       );
       this.auditUnknownFilterFields(scoped);
+      // tenant-scope-ignore: `scoped` is the controller's list scope (brand, organization or owner) run through the BaseService tenant and soft-delete filter, the same where the list reads
       return this.prisma.activity.count({
         where: scoped as Prisma.ActivityWhereInput,
       });
