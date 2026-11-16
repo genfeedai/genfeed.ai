@@ -1,14 +1,8 @@
 import EditorDetailSurface from '@app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/editor-detail-surface';
-import PublishingContentEditorPage from '@app/(protected)/[orgSlug]/[brandSlug]/publishing/posts/[id]/PublishingContentEditorPage';
 import {
   getBrandEntityId,
   getBrandOrganizationSlug,
 } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
-import {
-  LibraryPlace,
-  PageScope,
-  parseLibraryShelf,
-} from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -16,55 +10,14 @@ import {
 } from '@genfeedai/contracts/constants';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { notFound, redirect } from 'next/navigation';
-import { type ComponentType, Suspense } from 'react';
-import {
-  CampaignDetailAds,
-  CampaignDetailOverview,
-  CampaignDetailPerformance,
-  CampaignDetailShell,
-  CampaignFormPage,
-  CampaignsListPage,
-} from '@/features/campaigns';
-import IngredientsList from '@/features/ingredients/list/ingredients-list';
-import LibraryBrowser from '@/features/library/browser/library-browser';
-import { LIBRARY_TYPE_PRESETS } from '@/features/library/browser/library-browser.config';
-import LibraryOverview from '@/features/library/overview/library-overview';
-import NewsletterSettingsPage from '@/features/newsletter/settings/NewsletterSettingsPage';
-import NewsletterSubscribersPage from '@/features/newsletter/subscribers/NewsletterSubscribersPage';
 import EditorWorkspace from '@/features/studio/editor/EditorWorkspace';
-import VoiceStudio from '@/features/voice-studio/voice-studio';
 import type { OrgRootAppPageProps } from '@/props/layout/org-root-app-page.props';
-import type { PostsListSearchParams } from '@/props/publishing/publishing-list-page.props';
 import { loadProtectedBootstrap } from '@/server/protected-bootstrap.server';
-import AssetDeepLink from '../../../[brandSlug]/library/assets/asset-deep-link';
-import LibraryCaptionsPage from '../../../[brandSlug]/library/captions/page';
-import ImportedLibrary from '../../../[brandSlug]/library/imported/imported-library';
-import LibraryCharactersPage from '../../../[brandSlug]/library/references/content';
-import LibraryVoicesPage from '../../../[brandSlug]/library/voices/library-voices-page';
 import OutreachSequenceNewRoute from '../../../[brandSlug]/messages/outreach/new/page';
 import OutreachSequencesRoute from '../../../[brandSlug]/messages/outreach/page';
 import RepliesRoute from '../../../[brandSlug]/messages/replies/page';
 import ReplyDripRoute from '../../../[brandSlug]/messages/reply-drip/page';
-import ContentCalendarPage from '../../../[brandSlug]/publishing/calendar/content-calendar-page';
-import PublishingCampaignComparePage from '../../../[brandSlug]/publishing/campaigns/compare/page';
-import PublishingOverviewRoute from '../../../[brandSlug]/publishing/overview/page';
-import PublishingLayoutContent from '../../../[brandSlug]/publishing/publishing-layout-content';
-import { renderPostsListPage } from '../../../[brandSlug]/publishing/publishing-list-page';
-import ReviewQueueContent from '../../../[brandSlug]/publishing/review/review-queue-content';
 import OrganizationAutomationBrandEmptyState from '../../automation/OrganizationAutomationBrandEmptyState';
-
-const NEWSLETTER_PAGES: Readonly<Record<string, ComponentType>> = {
-  '': NewsletterSubscribersPage,
-  settings: NewsletterSettingsPage,
-};
-
-const ORG_LIBRARY_PRESET_ROUTE_BY_SEGMENT: Readonly<Record<string, string>> = {
-  avatars: APP_ROUTES.LIBRARY.AVATARS,
-  gifs: APP_ROUTES.LIBRARY.GIFS,
-  images: APP_ROUTES.LIBRARY.IMAGES,
-  music: APP_ROUTES.LIBRARY.MUSIC,
-  videos: APP_ROUTES.LIBRARY.VIDEOS,
-};
 
 /** Org entries of the brand-scoped former Studio apps, by route segment. */
 const ORG_STUDIO_APP_ROUTES: Readonly<Record<string, string>> = {
@@ -74,46 +27,6 @@ const ORG_STUDIO_APP_ROUTES: Readonly<Record<string, string>> = {
   storyboard: APP_ROUTES.STUDIO.STORYBOARD,
   turbo: APP_ROUTES.STUDIO.TURBO,
 };
-
-function OrgLibraryBrowserPage({ segments }: { segments: string[] }) {
-  const [destination, shelfSegment] = segments;
-  const place = Object.values(LibraryPlace).find(
-    (candidate) => candidate === destination,
-  );
-  const shelf =
-    destination === APP_ROUTES.LIBRARY.SHELF.split('/').at(-1)
-      ? parseLibraryShelf(shelfSegment)
-      : undefined;
-  const presetRoute = ORG_LIBRARY_PRESET_ROUTE_BY_SEGMENT[destination];
-  const preset = presetRoute ? LIBRARY_TYPE_PRESETS[presetRoute] : undefined;
-
-  if (destination === 'shelf' && !shelf) {
-    notFound();
-  }
-
-  if (!place && !shelf && !preset) {
-    notFound();
-  }
-
-  return (
-    <LibraryBrowser
-      place={place}
-      preset={preset}
-      scope={PageScope.ORGANIZATION}
-      seededCategories={preset?.categories}
-      shelf={shelf}
-    >
-      <Suspense fallback={null}>
-        {place === LibraryPlace.ASSETS ? <AssetDeepLink /> : null}
-        <IngredientsList
-          folderNavigation="shell"
-          type="ingredients"
-          scope={PageScope.ORGANIZATION}
-        />
-      </Suspense>
-    </LibraryBrowser>
-  );
-}
 
 // A bare `/:org/~/<app>` hit for a former Studio app (the app rail's brandless
 // destination, #4671) still has a persisted last-used brand server-side even
@@ -155,115 +68,15 @@ async function renderStudioEditorSurface(section?: string) {
   return <EditorWorkspace />;
 }
 
-async function renderOrgCampaignSurface({
-  campaignId,
-  campaignSection,
-  searchParams,
-}: {
-  campaignId?: string;
-  campaignSection?: string;
-  searchParams: PostsListSearchParams;
-}) {
-  if (!campaignId) {
-    return (
-      <Suspense fallback={null}>
-        <CampaignsListPage />
-      </Suspense>
-    );
-  }
-
-  if (campaignId === 'new') {
-    return (
-      <Suspense fallback={null}>
-        <CampaignsListPage isCreateOpen />
-      </Suspense>
-    );
-  }
-
-  if (campaignId === 'compare') {
-    if (campaignSection) {
-      notFound();
-    }
-
-    return <PublishingCampaignComparePage />;
-  }
-
-  if (!campaignSection) {
-    return (
-      <Suspense fallback={null}>
-        <CampaignDetailShell campaignId={campaignId} section="overview">
-          <CampaignDetailOverview campaignId={campaignId} />
-        </CampaignDetailShell>
-      </Suspense>
-    );
-  }
-
-  if (campaignSection === 'edit') {
-    return (
-      <Suspense fallback={null}>
-        <CampaignFormPage campaignId={campaignId} />
-      </Suspense>
-    );
-  }
-
-  if (campaignSection === 'content') {
-    const postsListPage = await renderPostsListPage({
-      campaignId,
-      searchParams,
-      scope: PageScope.ORGANIZATION,
-    });
-
-    return (
-      <Suspense fallback={null}>
-        <CampaignDetailShell campaignId={campaignId} section="content">
-          {postsListPage}
-        </CampaignDetailShell>
-      </Suspense>
-    );
-  }
-
-  if (campaignSection === 'calendar') {
-    return (
-      <Suspense fallback={null}>
-        <CampaignDetailShell campaignId={campaignId} section="calendar">
-          <ContentCalendarPage campaignId={campaignId} />
-        </CampaignDetailShell>
-      </Suspense>
-    );
-  }
-
-  if (campaignSection === 'performance') {
-    return (
-      <Suspense fallback={null}>
-        <CampaignDetailShell campaignId={campaignId} section="performance">
-          <CampaignDetailPerformance campaignId={campaignId} />
-        </CampaignDetailShell>
-      </Suspense>
-    );
-  }
-
-  if (campaignSection === 'ads') {
-    return (
-      <Suspense fallback={null}>
-        <CampaignDetailShell campaignId={campaignId} section="ads">
-          <CampaignDetailAds campaignId={campaignId} />
-        </CampaignDetailShell>
-      </Suspense>
-    );
-  }
-
-  notFound();
-}
-
 /**
- * Every organization-level app behind `/:org/~/:app/*`. It reads the URL
- * (`params`, `searchParams`) and redirects or 404s from it, so the page renders
- * it inside a Suspense boundary: the frame around it stays in the prerendered
- * route shell.
+ * The organization-level apps behind the dynamic `/:org/~/:app/*` segment.
+ * Library and Publishing have their own static routes and surfaces, so their
+ * features stay out of this route's client manifest. It reads the URL
+ * (`params`) and redirects or 404s from it, so the page renders it inside a
+ * Suspense boundary: the frame around it stays in the prerendered route shell.
  */
 export default async function OrgRootAppSurface({
   params,
-  searchParams,
 }: OrgRootAppPageProps) {
   const { orgRootApp, orgSlug, segments } = await params;
 
@@ -278,44 +91,6 @@ export default async function OrgRootAppSurface({
     // valid navigation state. Keep the requested path mounted so the sidebar
     // remains usable and selecting a brand can reopen this exact surface.
     return <OrganizationAutomationBrandEmptyState orgSlug={orgSlug} />;
-  }
-
-  if (orgRootApp === 'library') {
-    if (!segments?.[0]) {
-      redirect(
-        createOrganizationAppRoute(orgSlug, APP_ROUTES.LIBRARY.OVERVIEW),
-      );
-    }
-
-    if (segments[0] === 'overview' && segments.length === 1) {
-      return <LibraryOverview scope={PageScope.ORGANIZATION} />;
-    }
-
-    if (segments[0] === 'imported' && segments.length === 1) {
-      return <ImportedLibrary scope={PageScope.ORGANIZATION} />;
-    }
-
-    if (segments[0] === 'references' && segments.length === 1) {
-      return (
-        <Suspense fallback={null}>
-          <LibraryCharactersPage scope={PageScope.ORGANIZATION} />
-        </Suspense>
-      );
-    }
-
-    if (segments[0] === 'voices' && segments[1] === 'record') {
-      return <VoiceStudio />;
-    }
-
-    if (segments[0] === 'voices') {
-      return <LibraryVoicesPage scope={PageScope.ORGANIZATION} />;
-    }
-
-    if (segments[0] === 'captions') {
-      return <LibraryCaptionsPage />;
-    }
-
-    return <OrgLibraryBrowserPage segments={segments} />;
   }
 
   // The Editor app's timeline surface. It mirrors the brand-scoped static
@@ -364,101 +139,6 @@ export default async function OrgRootAppSurface({
 
     if (section === 'reply-drip' && !detail) {
       return <ReplyDripRoute />;
-    }
-
-    notFound();
-  }
-
-  if (orgRootApp === 'publishing') {
-    const publishingSegments = segments ?? [];
-    const [section, campaignId, campaignSection] = publishingSegments;
-
-    if (!section) {
-      redirect(
-        createOrganizationAppRoute(orgSlug, APP_ROUTES.PUBLISHING.OVERVIEW),
-      );
-    }
-
-    if (publishingSegments.length === 1 && section === 'overview') {
-      return (
-        <PublishingLayoutContent>
-          <PublishingOverviewRoute />
-        </PublishingLayoutContent>
-      );
-    }
-
-    if (publishingSegments.length === 1 && section === 'posts') {
-      const postsListPage = await renderPostsListPage({
-        searchParams: searchParams ?? Promise.resolve({}),
-        scope: PageScope.ORGANIZATION,
-      });
-
-      return <PublishingLayoutContent>{postsListPage}</PublishingLayoutContent>;
-    }
-
-    if (publishingSegments.length === 1 && section === 'calendar') {
-      return (
-        <PublishingLayoutContent>
-          <ContentCalendarPage embedded />
-        </PublishingLayoutContent>
-      );
-    }
-
-    if (section === 'approvals' && publishingSegments.length <= 3) {
-      return (
-        <PublishingLayoutContent>
-          <ReviewQueueContent />
-        </PublishingLayoutContent>
-      );
-    }
-
-    if (publishingSegments.length === 2 && section === 'posts' && campaignId) {
-      const detailPage = (
-        <Suspense fallback={null}>
-          <PublishingContentEditorPage contentId={campaignId} />
-        </Suspense>
-      );
-
-      return <PublishingLayoutContent>{detailPage}</PublishingLayoutContent>;
-    }
-
-    // Newsletter pages belong to one brand; the all-brands view asks for one.
-    if (section === 'newsletter' && publishingSegments.length <= 2) {
-      const NewsletterPage = Object.hasOwn(NEWSLETTER_PAGES, campaignId ?? '')
-        ? NEWSLETTER_PAGES[campaignId ?? '']
-        : undefined;
-      if (!NewsletterPage) {
-        notFound();
-      }
-      return (
-        <PublishingLayoutContent>
-          <Suspense fallback={null}>
-            <NewsletterPage />
-          </Suspense>
-        </PublishingLayoutContent>
-      );
-    }
-
-    if (section === 'campaigns') {
-      const hasSurplusSegments =
-        publishingSegments.length > 3 ||
-        (campaignId === 'new' && publishingSegments.length > 2);
-
-      if (hasSurplusSegments) {
-        notFound();
-      }
-
-      return (
-        <PublishingLayoutContent>
-          {
-            await renderOrgCampaignSurface({
-              campaignId,
-              campaignSection,
-              searchParams: searchParams ?? Promise.resolve({}),
-            })
-          }
-        </PublishingLayoutContent>
-      );
     }
 
     notFound();
