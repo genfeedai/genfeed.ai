@@ -165,9 +165,7 @@ export default function IngredientDetailImage({
           )}
         >
           <Image
-            className={cn(
-              'outline-media size-auto max-h-[70vh]',
-            )}
+            className="outline-media size-auto max-h-[70vh]"
             alt={metadataLabel || 'Image'}
             width={metadata?.width || 1920}
             height={metadata?.height || 1920}
