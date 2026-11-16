@@ -113,21 +113,19 @@ export function isServiceDisabled(
   ).test(printDisabledOutput);
 }
 
+const LOADED_ARGUMENTS_PATTERN =
+  /^\s*arguments\s*=\s*\{\s*\n\s*(?<first>\S[^\n]*?)\s*\n/mu;
+const LOADED_PROGRAM_PATTERN = /^\s*program\s*=\s*(?<program>\S[^\n]*?)\s*$/mu;
+
 /**
  * `launchctl print` lists the loaded job's argv as `arguments = { ... }` and
  * its executable as `program = ...`. Only the first entry matters here.
  */
 export function parseLoadedNodePath(printOutput: string): string | null {
-  const argumentsBlock =
-    /^\s*arguments\s*=\s*\{\s*\n\s*(?<first>\S[^\n]*?)\s*\n/mu.exec(
-      printOutput,
-    );
-  if (argumentsBlock?.groups?.first) {
-    return argumentsBlock.groups.first;
-  }
   return (
-    /^\s*program\s*=\s*(?<program>\S[^\n]*?)\s*$/mu.exec(printOutput)?.groups
-      ?.program ?? null
+    LOADED_ARGUMENTS_PATTERN.exec(printOutput)?.groups?.first ??
+    LOADED_PROGRAM_PATTERN.exec(printOutput)?.groups?.program ??
+    null
   );
 }
 
