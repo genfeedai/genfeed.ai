@@ -58,3 +58,11 @@ export const SCHEDULED_POST_SWEEP_MAX_POSTS = 2000;
 
 /** A sweep lock not renewed within this window is taken to belong to a dead run. */
 export const SCHEDULED_POST_SWEEP_LOCK_TTL_MS = 2 * 60 * 1000;
+
+/**
+ * What the owner reads when a publish approval says PUBLISHED but the post has
+ * no provider id and never left scheduled or publishing. Nothing proves it
+ * reached the network, so it is closed as failed instead of claiming a URL.
+ */
+export const SCHEDULED_POST_UNSETTLED_APPROVAL_MESSAGE =
+  'This post was approved as published, but the provider never returned a post id, so it could not be confirmed. Check the channel, then schedule it again if it is not there.';

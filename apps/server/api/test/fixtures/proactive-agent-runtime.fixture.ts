@@ -423,6 +423,7 @@ export class ProactiveAgentRuntimeFixture {
       new ScheduledPostDiscoveryService(posts),
       new ScheduledPostExecutionGuardService(artifacts, {} as never),
       this.logger as never,
+      {} as never,
       approvals,
       this.prisma as never,
       {

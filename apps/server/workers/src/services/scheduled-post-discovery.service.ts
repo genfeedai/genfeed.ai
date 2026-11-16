@@ -2,7 +2,10 @@ import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { orderedPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination.util';
-import { TargetExecutionState } from '@genfeedai/contracts';
+import {
+  PublishApprovalStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
@@ -80,6 +83,20 @@ function afterDuePostCursor(cursor: DuePostCursor): Prisma.PostWhereInput {
       };
 }
 
+/**
+ * A post the provider accepted (it has a provider id), whose approval is
+ * already PUBLISHED, and that waits in PUBLISHING for a status check. The status
+ * crons own it from here: a publish run has nothing left to do and only claims
+ * "already published", so the sweep must not queue it every minute (#10385).
+ */
+const AWAITING_PROVIDER_STATUS_FILTER: Prisma.PostWhereInput = {
+  AND: [
+    postExecutionStateReadFilter(TargetExecutionState.PUBLISHING),
+    { externalId: { not: null } },
+    { publishApproval: { is: { status: PublishApprovalStatus.PUBLISHED } } },
+  ],
+};
+
 @Injectable()
 export class ScheduledPostDiscoveryService {
   constructor(private readonly postsService: PostsService) {}
@@ -126,6 +143,7 @@ export class ScheduledPostDiscoveryService {
             TargetExecutionState.PUBLISHING,
           ]),
           campaignDispatchAllowedFilter(),
+          { NOT: AWAITING_PROVIDER_STATUS_FILTER },
           ...(filter.cursor ? [afterDuePostCursor(filter.cursor)] : []),
         ],
         OR: [
