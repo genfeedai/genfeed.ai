@@ -2,6 +2,7 @@ import { BillingAccountsService } from '@api/collections/billing-accounts/servic
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { publishAvailableBalance } from '@api/collections/credits/services/credit-balance-event.util';
 import { computeCycleCredits } from '@api/collections/credits/services/credit-cycle-metrics.util';
+import type { CreditCycleWindow } from '@api/collections/credits/services/credit-cycle-window.util';
 import {
   assertRefundOrganization,
   findCreditRefundReplay,
@@ -829,12 +830,23 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     }
   }
 
+  /** Plan usage from the ledger: the subscription period, else since the last reset. */
   async getCycleRemainingMetrics(
     organizationId: string,
-    cycleStartAt: Date,
-    cycleEndAt: Date,
+    cycleWindow: CreditCycleWindow | null,
     currentBalance: number,
   ): Promise<ICycleRemainingMetrics> {
+    const [latestReset] = cycleWindow
+      ? []
+      : await this.creditTransactionsService.getOrganizationTransactions(
+          organizationId,
+          1,
+          0,
+          { category: CreditTransactionCategory.RESET },
+        );
+    const cycleStartAt =
+      cycleWindow?.cycleStartAt ?? latestReset?.createdAt ?? new Date(0);
+    const cycleEndAt = cycleWindow?.cycleEndAt ?? new Date();
     const previousTransaction =
       await this.creditTransactionsService.getLatestTransactionBeforeDate(
         organizationId,

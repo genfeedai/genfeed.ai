@@ -12,6 +12,7 @@ function makeRecorder(
   options: {
     members?: string[];
     disabledInApp?: boolean;
+    hasEmailOptIn?: boolean;
     existingEvent?: { activityId: string | null; id: string } | null;
     existingActivity?: Row | null;
   } = {},
@@ -53,9 +54,12 @@ function makeRecorder(
       }),
     },
     notificationPreference: {
-      findFirst: vi.fn(async () =>
-        options.disabledInApp ? { isEnabled: false } : null,
-      ),
+      findFirst: vi.fn(async ({ where }: { where: { channel: string } }) => {
+        if (where.channel === 'email') {
+          return options.hasEmailOptIn ? { isEnabled: true } : null;
+        }
+        return options.disabledInApp ? { isEnabled: false } : null;
+      }),
     },
     organization: {
       findFirst: vi.fn(async () => ({ userId: 'owner-1' })),
@@ -182,7 +186,9 @@ describe('ActivityRecorderService', () => {
   });
 
   it('writes email as a pending delivery and enqueues it after commit', async () => {
-    const { deliveries, queue, recorder } = makeRecorder();
+    const { deliveries, queue, recorder } = makeRecorder({
+      hasEmailOptIn: true,
+    });
 
     await recorder.record({
       ...base,
@@ -199,6 +205,20 @@ describe('ActivityRecorderService', () => {
       expect.objectContaining({ provider: 'resend', status: 'pending' }),
     );
     expect(queue.enqueue).toHaveBeenCalledWith('delivery-2');
+  });
+
+  it('writes no workflow status email delivery for a user who has not opted in', async () => {
+    const { deliveries, queue, recorder } = makeRecorder();
+
+    await recorder.record({
+      ...base,
+      alert: { deduplicationKey: 'workflow/run-1' },
+      key: ActivityKey.WORKFLOW_EXECUTION_COMPLETED,
+      source: ActivitySource.WORKFLOW_EXECUTION,
+    });
+
+    expect(deliveries.map((delivery) => delivery.channel)).toEqual(['in_app']);
+    expect(queue.enqueue).not.toHaveBeenCalled();
   });
 
   it('narrows the policy channels but never widens them', async () => {

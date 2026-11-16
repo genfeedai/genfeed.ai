@@ -41,6 +41,7 @@ describe('PlatformSchedulesProcessor', () => {
   const brandRelocations = { recover: handler() };
   const mediaDeliveryRecovery = { recoverMedia: handler() };
   const brandedDispatchRecovery = { recoverExpiredDispatches: handler() };
+  const notificationRetention = { purgeExpiredNotifications: handler() };
   const oauthClientCleanup = { deleteAbandonedClients: handler() };
   const patterns = { computeDailyPatterns: handler() };
   const posts = { publishScheduledPosts: handler() };
@@ -195,6 +196,10 @@ describe('PlatformSchedulesProcessor', () => {
         brandedDispatchRecovery.recoverExpiredDispatches,
       ],
       [
+        PLATFORM_SCHEDULED_TASKS.NOTIFICATION_RETENTION,
+        notificationRetention.purgeExpiredNotifications,
+      ],
+      [
         PLATFORM_SCHEDULED_TASKS.OAUTH_CLIENT_CLEANUP,
         oauthClientCleanup.deleteAbandonedClients,
       ],
@@ -347,6 +352,7 @@ describe('PlatformSchedulesProcessor', () => {
         credits as never,
         credentials as never,
         lifecycleEmails as never,
+        notificationRetention as never,
         oauthClientCleanup as never,
         queueMetrics as never,
       ),
