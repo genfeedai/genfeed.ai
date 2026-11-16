@@ -51,6 +51,33 @@ Keep the focused production tests alongside the task report. In particular:
   original run and cannot stop a later run. An in-flight tool interruption must
   persist `interrupted`. A state fixture alone cannot establish these effects.
 
+## Run the trial task set
+
+```bash
+bun run test:agent-eval
+bun run eval:agent:trials > /path/to/private/agent-trial-report.json
+```
+
+`scripts/agent-eval/trial-*.ts` is the shape of a model-in-the-loop agent eval
+(#10397), without a model. A task is an instruction, a scope (organization,
+brand, surface), constraints that each score one binary result on what the agent
+did, a reference trace that satisfies every constraint, and violation traces that
+each break one constraint. The constraints reuse the production catalog and
+mutation policy: tool availability on the surface, read-only names, and the
+queue decision for approval-required writes.
+
+`validateTaskSet` fails the suite when a task has no solving reference trace,
+when a constraint has no violation trace that fails it, or when the set lacks a
+common case, an edge case or a must-not-act case. `runTrials` runs each variant
+on each task for N attempts and `summarizeTask` reports success rate, pass@k,
+pass^k, mean steps on successful trials and credits per success. pass@k and
+pass^k are `null` while a task has fewer than k trials.
+
+`eval:agent:trials` scores only the reference traces. No model runs, so the
+report says `modelQualityAssessed: false`. A live runner that drives the real
+agent loop on an eval organization is not built: it spends credits, needs
+`--max-credits`, and waits on the paid-call gate and judge calibration (#4924).
+
 ## Why this harness
 
 Two approaches were compared: a second miniature mocked agent that generates
