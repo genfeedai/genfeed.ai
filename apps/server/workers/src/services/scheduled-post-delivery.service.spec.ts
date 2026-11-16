@@ -1,4 +1,5 @@
 import { assertBreakoutPublicationDispatch } from '@api/collections/outliers/services/breakout-publication-fence.util';
+import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import {
   SCHEDULED_POST_ACTION_IDS,
   type ScheduledPostWorkflowSource,
@@ -1446,6 +1447,73 @@ describe('ScheduledPostDeliveryService', () => {
     await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
 
     expect(mocks.activitiesService.record).not.toHaveBeenCalled();
+  });
+
+  describe('a kept close of a post whose approval is already published (#10385)', () => {
+    const createKeptPost = (overrides: Record<string, unknown> = {}) =>
+      createScheduledPost(overrides) as unknown as PostEntity;
+
+    it('counts the window from the attempt start, so sweeps that date the post ahead still reach the operator alert', async () => {
+      mocks.activitiesService.record.mockClear();
+      const attemptStartedAt = new Date(Date.now() - 25 * 60 * 60_000);
+      mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+        receiptRow({ attemptStartedAt, status: 'uncertain' }),
+      );
+      // A recent lastAttemptAt, as a previous sweep leaves it, must not
+      // restart the window.
+      const post = createKeptPost({ lastAttemptAt: new Date() });
+
+      await service.deferKeptUnsettledApproval(post);
+      await service.deferKeptUnsettledApproval(post);
+
+      const [write] = mocks.prisma.post.updateMany.mock.calls[0] ?? [];
+      expect(write.data.targetError.code).toBe('publish_outcome_unverified');
+      expect(write.data.lastAttemptAt.getTime()).toBeGreaterThan(
+        Date.now() + 30 * 60_000,
+      );
+      expect(
+        new Set(
+          mocks.activitiesService.record.mock.calls.map(
+            (call) => call[0].alert?.deduplicationKey,
+          ),
+        ),
+      ).toEqual(
+        new Set([
+          `${ActivityKey.POST_PUBLISH_UNVERIFIED}/post-1/${attemptStartedAt.getTime()}`,
+        ]),
+      );
+    });
+
+    it('uses the short verification backoff and tells nobody while inside the window', async () => {
+      mocks.activitiesService.record.mockClear();
+      mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+        receiptRow({
+          attemptStartedAt: new Date(Date.now() - 60 * 60_000),
+          status: 'uncertain',
+        }),
+      );
+
+      await service.deferKeptUnsettledApproval(createKeptPost());
+
+      const [write] = mocks.prisma.post.updateMany.mock.calls[0] ?? [];
+      expect(write.data.targetError.code).toBe('publish_outcome_unconfirmed');
+      expect(mocks.activitiesService.record).not.toHaveBeenCalled();
+    });
+
+    it('tells nobody when the post left publishing before the write', async () => {
+      mocks.activitiesService.record.mockClear();
+      mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+        receiptRow({
+          attemptStartedAt: new Date(Date.now() - 25 * 60 * 60_000),
+          status: 'uncertain',
+        }),
+      );
+      mocks.prisma.post.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      await service.deferKeptUnsettledApproval(createKeptPost());
+
+      expect(mocks.activitiesService.record).not.toHaveBeenCalled();
+    });
   });
 
   it('keeps a budget-exhausted ambiguous provider call publishing instead of failing it', async () => {
