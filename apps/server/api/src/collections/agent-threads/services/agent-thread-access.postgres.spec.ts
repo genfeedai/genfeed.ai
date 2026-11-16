@@ -10,6 +10,7 @@ import { AgentThreadsService } from '@api/collections/agent-threads/services/age
 import { prepareAgentThreadsForRelocation } from '@api/collections/agent-threads/utils/agent-thread-relocation.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
+import { AgentThreadRuntimeController } from '@api/services/agent-threading/controllers/agent-thread-runtime.controller';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentThreadAccessLevel,
@@ -1251,6 +1252,109 @@ describe.skipIf(!connectionString)(
           'no-brand',
           'b-one',
         ]);
+      });
+    });
+
+    describe('branching a thread', () => {
+      /** The memories the controller asked the engine to save, by user. */
+      let saved: Array<{ content: string; userId: string }>;
+
+      const controllerFor = () => {
+        saved = [];
+        const messages = new AgentMessagesService(
+          database() as unknown as PrismaService,
+          logger as never,
+          {
+            resolveReferencesFromMetadata: async () => [],
+          } as never,
+        );
+        return new AgentThreadRuntimeController(
+          {
+            recordMemoryFlush: async (
+              _threadId: string,
+              _organizationId: string,
+              userId: string,
+              content: string,
+            ) => {
+              saved.push({ content, userId });
+              return 'memory';
+            },
+          } as never,
+          {} as never,
+          new AgentThreadsService(
+            database() as unknown as PrismaService,
+            logger as never,
+            messages,
+          ),
+          access(),
+          messages,
+          {} as never,
+          {} as never,
+          logger as never,
+          {} as never,
+        );
+      };
+
+      const userFor = (userId: string) => ({ organizationId, userId }) as never;
+
+      async function createThreadWithMessage() {
+        const thread = await createThread(owner, { brandId: brandA });
+        await database().agentMessage.create({
+          data: {
+            brandId: brandA,
+            content: 'launch plan for the brand',
+            id: id('branch-message'),
+            organizationId,
+            role: 'assistant',
+            threadId: thread.id,
+            userId: owner,
+          },
+        });
+        return thread;
+      }
+
+      const branchesOf = (threadId: string) =>
+        database().agentThread.count({ where: { parentThreadId: threadId } });
+
+      it('saves nothing and branches nothing for a member who does not own the thread', async () => {
+        const thread = await createThreadWithMessage();
+        const controller = controllerFor();
+
+        await expect(
+          controller.branchThread({} as never, thread.id, userFor(teammate)),
+        ).rejects.toThrow();
+
+        expect(saved).toEqual([]);
+        expect(await branchesOf(thread.id)).toBe(0);
+      });
+
+      it('saves nothing for a collaborator on a shared thread either', async () => {
+        const thread = await createThreadWithMessage();
+        await share(
+          thread.id,
+          AgentThreadShareScope.ORGANIZATION,
+          AgentThreadShareLevel.COLLABORATE,
+        );
+        const controller = controllerFor();
+
+        await expect(
+          controller.branchThread({} as never, thread.id, userFor(teammate)),
+        ).rejects.toThrow();
+
+        expect(saved).toEqual([]);
+        expect(await branchesOf(thread.id)).toBe(0);
+      });
+
+      it('still branches the thread and saves its recent messages for the owner', async () => {
+        const thread = await createThreadWithMessage();
+        const controller = controllerFor();
+
+        await controller.branchThread({} as never, thread.id, userFor(owner));
+
+        expect(saved).toEqual([
+          { content: 'assistant: launch plan for the brand', userId: owner },
+        ]);
+        expect(await branchesOf(thread.id)).toBe(1);
       });
     });
 
