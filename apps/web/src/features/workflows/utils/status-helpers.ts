@@ -17,24 +17,6 @@ import {
 import type { WorkflowLifecycle as WorkflowLifecycleContract } from '@genfeedai/workflows/contracts';
 
 /**
- * Returns the appropriate icon for execution status
- */
-export function getStatusIcon(status: WorkflowExecutionStatus): string {
-  switch (status) {
-    case WorkflowExecutionStatus.COMPLETED:
-      return '✅'; // checkmark
-    case WorkflowExecutionStatus.FAILED:
-      return '❌'; // X
-    case WorkflowExecutionStatus.RUNNING:
-      return '⏳'; // hourglass
-    case WorkflowExecutionStatus.CANCELLED:
-      return '🚫'; // no entry
-    default:
-      return '⏸️'; // pause
-  }
-}
-
-/**
  * Returns Tailwind CSS classes for execution status badge
  */
 export function getStatusColor(status: WorkflowExecutionStatus): string {

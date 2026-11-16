@@ -24,7 +24,7 @@ export default function IssueCommentsCard({
   return (
     <Card>
       <div className="flex items-center justify-between border-b border-border px-4 py-2">
-        <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-800">
+        <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-label text-gray-800">
           <MessageCircle className="size-3.5" />
           Comments ({comments.length})
         </h3>

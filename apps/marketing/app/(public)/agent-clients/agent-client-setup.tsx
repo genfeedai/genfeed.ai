@@ -29,7 +29,7 @@ export default function AgentClientSetup({
     >
       <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
         <div>
-          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-foreground/70">
+          <p className="mb-4 text-xs font-semibold uppercase tracking-label text-foreground/70">
             01 / {installation.method}
           </p>
           <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">

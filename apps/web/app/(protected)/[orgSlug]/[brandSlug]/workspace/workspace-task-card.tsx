@@ -45,7 +45,7 @@ export function WorkspaceTaskCard({
           {task.progress?.message ? <span>{task.progress.message}</span> : null}
           <span>{timestamp}</span>
           {task.executionPathUsed ? (
-            <span className="uppercase tracking-[0.14em]">
+            <span className="uppercase tracking-label">
               {task.executionPathUsed.replaceAll('_', ' ')}
             </span>
           ) : null}

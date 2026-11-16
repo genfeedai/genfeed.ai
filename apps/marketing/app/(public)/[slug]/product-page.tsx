@@ -40,7 +40,7 @@ export default function ProductPage({ product }: { product: Product }) {
           ) : product.githubUrl ? (
             <GitHubLink
               href={product.githubUrl}
-              className="h-12 px-6 text-lg uppercase font-bold"
+              className="h-12 px-6 text-lg uppercase font-semibold"
             >
               View on GitHub
             </GitHubLink>

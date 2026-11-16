@@ -193,7 +193,7 @@ const PostsGrid = memo(
                   <h3 className="line-clamp-2 text-base font-semibold text-foreground">
                     {title}
                   </h3>
-                  <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                  <p className="mt-1 text-xs uppercase tracking-label text-muted-foreground">
                     {platformLabel}
                   </p>
                 </div>

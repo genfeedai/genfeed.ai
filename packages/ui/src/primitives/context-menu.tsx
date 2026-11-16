@@ -116,7 +116,7 @@ function ContextMenuLabel({
     <ContextMenuPrimitive.Label
       ref={ref}
       className={cn(
-        'px-3 py-1.5 text-2xs font-semibold uppercase tracking-wide text-muted-foreground',
+        'px-3 py-1.5 text-2xs font-semibold uppercase tracking-label text-muted-foreground',
         className,
       )}
       {...props}
@@ -147,7 +147,7 @@ function ContextMenuShortcut({
   return (
     <span
       className={cn(
-        'ml-auto text-2xs uppercase tracking-[0.16em] text-muted-foreground',
+        'ml-auto text-2xs uppercase tracking-label text-muted-foreground',
         className,
       )}
       {...props}

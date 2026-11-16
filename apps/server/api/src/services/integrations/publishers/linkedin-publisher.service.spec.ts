@@ -21,6 +21,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { ChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { IntegrationHttpError } from '@genfeedai/integrations';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -499,6 +500,7 @@ describe('LinkedInPublisherService', () => {
 
         expect(result.success).toBe(false);
         expect(result.error).toBe('Failed to get external ID');
+        expect(result.errorKind).toBe('outcome_unknown');
       });
 
       it('should throw error when LinkedIn API fails', async () => {
@@ -511,6 +513,38 @@ describe('LinkedInPublisherService', () => {
           'LinkedIn API error',
         );
         expect(logger.error).toHaveBeenCalled();
+      });
+
+      it('reports a 429 from LinkedIn as a rate limit', async () => {
+        const context = createPublishContext(mockImagePost);
+        linkedInService.uploadImage.mockRejectedValue(
+          new IntegrationHttpError('Integration request failed', {
+            method: 'POST',
+            status: 429,
+            url: 'https://api.linkedin.com/rest/posts',
+          }),
+        );
+
+        await expect(service.publish(context)).rejects.toMatchObject({
+          httpStatus: 429,
+          kind: 'rate_limited',
+          name: 'PublishError',
+        });
+      });
+
+      it('reports a 504 from LinkedIn as an unknown outcome', async () => {
+        const context = createPublishContext(mockImagePost);
+        linkedInService.uploadImage.mockRejectedValue(
+          new IntegrationHttpError('Integration request failed', {
+            method: 'POST',
+            status: 504,
+            url: 'https://api.linkedin.com/rest/posts',
+          }),
+        );
+
+        await expect(service.publish(context)).rejects.toMatchObject({
+          kind: 'outcome_unknown',
+        });
       });
     });
   });

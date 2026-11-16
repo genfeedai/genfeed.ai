@@ -115,7 +115,7 @@ export default function HireAgentsContent() {
                 </div>
               </div>
               <div className="flex w-full min-w-0 flex-col gap-3">
-                <Heading as="h3" className="text-2xl font-bold">
+                <Heading as="h3" className="text-2xl font-semibold">
                   A Content Team on Your Terms
                 </Heading>
                 <Text as="p" className="text-foreground/70">
@@ -147,7 +147,7 @@ export default function HireAgentsContent() {
 
         {/* Features Grid */}
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
-          <Heading as="h3" className="text-2xl font-bold text-center mb-8">
+          <Heading as="h3" className="text-2xl font-semibold text-center mb-8">
             Built for Autopilot
           </Heading>
           <div className="gsap-grid grid grid-cols-1 gap-1.5 md:grid-cols-2">
@@ -182,7 +182,7 @@ export default function HireAgentsContent() {
 
         {/* How It Works */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <Heading as="h3" className="text-2xl font-bold text-center mb-12">
+          <Heading as="h3" className="text-2xl font-semibold text-center mb-12">
             How it works
           </Heading>
           <div className="grid grid-cols-2 gap-1.5 md:grid-cols-4">
@@ -196,7 +196,10 @@ export default function HireAgentsContent() {
                   <div className="flex size-14 items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
                     <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                   </div>
-                  <Text as="p" className="text-lg font-bold text-foreground">
+                  <Text
+                    as="p"
+                    className="text-lg font-semibold text-foreground"
+                  >
                     {step.label}
                   </Text>
                   <Text as="p" color="muted" className="text-sm">
@@ -216,7 +219,7 @@ export default function HireAgentsContent() {
             </div>
             <Heading
               as="h3"
-              className="text-2xl font-bold mb-6 text-foreground"
+              className="text-2xl font-semibold mb-6 text-foreground"
             >
               Hire your content team today
             </Heading>

@@ -69,7 +69,7 @@ export function BrandCreateCard({
 
       <div className="flex flex-col gap-1.5 mb-3">
         <Label
-          className="text-2xs uppercase tracking-wider text-muted-foreground"
+          className="text-2xs uppercase tracking-label text-muted-foreground"
           htmlFor="brand-create-name"
         >
           Brand Name
@@ -85,7 +85,7 @@ export function BrandCreateCard({
 
       <div className="flex flex-col gap-1.5 mb-3">
         <Label
-          className="text-2xs uppercase tracking-wider text-muted-foreground"
+          className="text-2xs uppercase tracking-label text-muted-foreground"
           htmlFor="brand-create-description"
         >
           Description

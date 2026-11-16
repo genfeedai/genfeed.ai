@@ -18,7 +18,7 @@ export default function IssueHeader({
         <Badge status={status}>{statusLabels[status]}</Badge>
         <span
           className={cn(
-            'text-2xs font-medium uppercase tracking-wider',
+            'text-2xs font-medium uppercase tracking-label',
             priorityColors[priority],
           )}
         >

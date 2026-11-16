@@ -72,7 +72,7 @@ export default function ProofTestimonials({
               <div className="mt-1 text-sm text-foreground/60">
                 {testimonial.role}
               </div>
-              <div className="mt-4 text-xs font-bold uppercase tracking-widest text-success">
+              <div className="mt-4 text-xs font-semibold uppercase tracking-label text-success">
                 {testimonial.metricValue}
               </div>
             </div>

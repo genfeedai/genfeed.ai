@@ -8,11 +8,17 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import {
+  throwAsPublishError,
+  withErrorKind,
+} from '@api/services/integrations/publishers/publish-error.util';
 import { verifyProviderPublish } from '@api/services/integrations/publishers/publisher-verification.util';
+import { mapMastodonFailure } from '@api/services/integrations/publishers/social-publish-error.mappers';
 import {
   CredentialPlatform,
   PostCategory,
   PostVisibility,
+  PublishErrorKind,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
@@ -141,9 +147,12 @@ export class MastodonPublisherService extends BasePublisherService {
           `${url} Mastodon credential or instance URL not found`,
           { postId: context.postId },
         );
-        return this.createFailedResult(
-          this.platform,
-          'Mastodon credential or instance URL not found',
+        return withErrorKind(
+          this.createFailedResult(
+            this.platform,
+            'Mastodon credential or instance URL not found',
+          ),
+          PublishErrorKind.CHANNEL_DISCONNECTED,
         );
       }
 
@@ -181,9 +190,9 @@ export class MastodonPublisherService extends BasePublisherService {
       );
 
       if (!status?.id) {
-        return this.createFailedResult(
-          this.platform,
-          'Failed to get external ID',
+        return withErrorKind(
+          this.createFailedResult(this.platform, 'Failed to get external ID'),
+          PublishErrorKind.OUTCOME_UNKNOWN,
         );
       }
 
@@ -194,7 +203,7 @@ export class MastodonPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throwAsPublishError(error, mapMastodonFailure);
     }
   }
 

@@ -46,7 +46,10 @@ export default function ProductFinalCTA({
               </GitHubLink>
             </>
           ) : githubUrl ? (
-            <Button asChild className="h-12 px-6 text-lg uppercase font-bold">
+            <Button
+              asChild
+              className="h-12 px-6 text-lg uppercase font-semibold"
+            >
               <Link href={githubUrl} target="_blank" rel="noopener noreferrer">
                 <GithubIcon className="size-5" />
                 View on GitHub →

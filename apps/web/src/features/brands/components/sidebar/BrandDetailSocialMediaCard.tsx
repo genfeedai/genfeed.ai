@@ -647,7 +647,7 @@ export default function BrandDetailSocialMediaCard({
     healthRows.length > 0 || selectedHasWarmup ? (
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <h3 className="text-xs font-semibold uppercase tracking-label text-muted-foreground">
             {translate('accountHealth')}
           </h3>
           {isHealthLoading ? (
@@ -1018,7 +1018,7 @@ export default function BrandDetailSocialMediaCard({
                 </p>
                 {allPlatformGroups.map((group) => (
                   <div key={group.id} className="space-y-2">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
                       {group.label}
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -1035,7 +1035,7 @@ export default function BrandDetailSocialMediaCard({
               </p>
               {allPlatformGroups.map((group) => (
                 <div key={group.id} className="space-y-2">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
                     {group.label}
                   </p>
                   <div className="flex flex-wrap gap-2">

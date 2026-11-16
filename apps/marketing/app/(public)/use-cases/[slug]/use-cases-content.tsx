@@ -43,7 +43,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
       <section className="max-w-6xl mx-auto pb-20">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-foreground/10">
           <div className="bg-background p-8">
-            <Heading as="h3" className="text-sm font-bold mb-6">
+            <Heading as="h3" className="text-sm font-semibold mb-6">
               Problems
             </Heading>
             <ul className="space-y-4">
@@ -56,7 +56,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
             </ul>
           </div>
           <div className="bg-background p-8">
-            <Heading as="h3" className="text-sm font-bold mb-6">
+            <Heading as="h3" className="text-sm font-semibold mb-6">
               Solutions
             </Heading>
             <ul className="space-y-4">
@@ -72,7 +72,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
       </section>
 
       <section className="max-w-4xl mx-auto pb-20">
-        <Heading as="h2" className="text-3xl font-bold text-center mb-10">
+        <Heading as="h2" className="text-3xl font-semibold text-center mb-10">
           How it works
         </Heading>
         <div className="gen-card-spotlight">
@@ -81,7 +81,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
               key={step.step}
               className={`flex items-start gap-5 p-6 ${index > 0 ? 'border-t border-foreground/5' : ''}`}
             >
-              <div className="shrink-0 size-8 flex items-center justify-center bg-foreground/10 text-sm font-bold text-foreground/50">
+              <div className="shrink-0 size-8 flex items-center justify-center bg-foreground/10 text-sm font-semibold text-foreground/50">
                 {step.step}
               </div>
               <div>
@@ -102,7 +102,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
 
       {useCase.results.length > 0 && (
         <section className="max-w-4xl mx-auto pb-20">
-          <Heading as="h2" className="text-3xl font-bold text-center mb-10">
+          <Heading as="h2" className="text-3xl font-semibold text-center mb-10">
             Results
           </Heading>
           <div className="grid grid-cols-1 gap-px bg-foreground/10 md:grid-cols-2">
@@ -121,7 +121,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
 
       <section className="max-w-4xl mx-auto pb-20">
         <div className="gen-card-spotlight p-6 sm:p-10 text-center">
-          <Heading as="h3" className="text-3xl font-bold mb-2">
+          <Heading as="h3" className="text-3xl font-semibold mb-2">
             {recommendedPlan}
           </Heading>
           <Text className="text-foreground/70 mb-6">{useCase.pricing.why}</Text>

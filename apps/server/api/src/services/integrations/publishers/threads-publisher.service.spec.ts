@@ -226,6 +226,53 @@ describe('ThreadsPublisherService', () => {
   });
 
   describe('publish', () => {
+    const textContext = {
+      brandId: 'brand-1',
+      credential: { externalHandle: 'testuser' },
+      organizationId: 'org-1',
+      post: {
+        category: PostCategory.TEXT,
+        description: 'Hello Threads',
+        ingredients: [],
+      },
+      postId: 'post-1',
+    } as never;
+
+    it('reports a Threads 500 as an unknown outcome', async () => {
+      (
+        service['threadsService'].publishText as ReturnType<typeof vi.fn>
+      ).mockRejectedValue(
+        Object.assign(new Error('Request failed with status code 500'), {
+          isAxiosError: true,
+          response: { data: {}, headers: {}, status: 500 },
+        }),
+      );
+
+      await expect(service.publish(textContext)).rejects.toMatchObject({
+        kind: 'outcome_unknown',
+        name: 'PublishError',
+      });
+    });
+
+    it('reports a revoked Threads grant as a disconnected channel', async () => {
+      (
+        service['threadsService'].publishText as ReturnType<typeof vi.fn>
+      ).mockRejectedValue(
+        Object.assign(new Error('Request failed with status code 400'), {
+          isAxiosError: true,
+          response: {
+            data: { error: { code: 190, error_subcode: 458 } },
+            headers: {},
+            status: 400,
+          },
+        }),
+      );
+
+      await expect(service.publish(textContext)).rejects.toMatchObject({
+        kind: 'channel_disconnected',
+      });
+    });
+
     it('should publish single video posts', async () => {
       const mockThreadsService = service['threadsService'];
       (

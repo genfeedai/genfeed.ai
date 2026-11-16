@@ -20,7 +20,7 @@ export default function OrganizationGenerationDefaultsTextSection({
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        <h3 className="text-sm font-semibold uppercase tracking-label text-muted-foreground">
           Text Content
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">

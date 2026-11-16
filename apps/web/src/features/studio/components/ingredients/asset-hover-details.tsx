@@ -37,7 +37,7 @@ export default function AssetHoverDetails({
       {eyebrow || badge ? (
         <div className="flex min-w-0 items-center gap-2">
           {eyebrow ? (
-            <p className="truncate text-2xs font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="truncate text-2xs font-medium uppercase tracking-label text-muted-foreground">
               {eyebrow}
             </p>
           ) : null}

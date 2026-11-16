@@ -44,13 +44,13 @@ export default function TrendDetailHeader({
         )}
         <div>
           <div className="flex items-center gap-2 text-sm text-foreground/60">
-            <span className="uppercase tracking-wide font-semibold">
+            <span className="uppercase tracking-label font-semibold">
               {platformConfig?.label || trend.platform}
             </span>
             <span>•</span>
             <span>{translate('trendingTopic')}</span>
           </div>
-          <h2 className="text-2xl font-bold">{trend.topic}</h2>
+          <h2 className="text-2xl font-semibold">{trend.topic}</h2>
         </div>
       </div>
     </div>

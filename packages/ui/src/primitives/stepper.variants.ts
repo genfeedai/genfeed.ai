@@ -28,7 +28,7 @@ export const stepVariants = cva('flex items-center gap-2 text-left', {
 });
 
 export const stepIndicatorVariants = cva(
-  'flex size-6 shrink-0 items-center justify-center rounded-full text-2xs font-bold transition-colors duration-300',
+  'flex size-6 shrink-0 items-center justify-center rounded-full text-2xs font-semibold transition-colors duration-300',
   {
     defaultVariants: { status: 'upcoming' },
     variants: {

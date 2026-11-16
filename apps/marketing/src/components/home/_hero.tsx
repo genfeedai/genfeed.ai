@@ -29,7 +29,7 @@ export default function HomeHero(): React.ReactElement {
       <div className="container relative mx-auto px-6 text-center">
         <Text
           as="p"
-          className="animate-gen-stagger-in mb-6 text-xs font-bold uppercase tracking-[0.16em] text-foreground/80"
+          className="animate-gen-stagger-in mb-6 text-xs font-semibold uppercase tracking-label text-foreground/80"
           data-testid="home-hero-eyebrow"
         >
           The content studio for everything you publish

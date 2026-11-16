@@ -73,7 +73,7 @@ export default function BrandDetailOverview({
             <EditableText
               ariaLabel={t('editBrandName')}
               className="mb-1"
-              displayClassName="text-2xl font-bold"
+              displayClassName="text-2xl font-semibold"
               isRequired
               onSave={(value) => onUpdateBrand('label', value)}
               value={brand.label}

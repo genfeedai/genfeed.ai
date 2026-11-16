@@ -76,7 +76,7 @@ export default function ReviewDetailPanel({
 
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="space-y-3 border-b border-border px-4 py-4">
-          <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          <p className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
             {translate('detail.preview')}
           </p>
           {targetPreview ? <TargetPreview {...targetPreview} /> : null}
@@ -93,7 +93,7 @@ export default function ReviewDetailPanel({
 
           {item.prompt?.trim() && item.prompt.trim() !== caption ? (
             <div className="pt-2">
-              <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              <p className="text-2xs font-semibold uppercase tracking-label text-muted-foreground">
                 {translate('detail.prompt')}
               </p>
               <p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">

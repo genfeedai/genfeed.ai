@@ -10,8 +10,13 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import {
+  throwAsPublishError,
+  withErrorKind,
+} from '@api/services/integrations/publishers/publish-error.util';
 import { verifyMediaPublish } from '@api/services/integrations/publishers/publisher-media-verification.util';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { mapMetaFailure } from '@api/services/integrations/publishers/social-publish-error.mappers';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -194,9 +199,9 @@ export class InstagramPublisherService extends BasePublisherService {
       }
 
       if (!externalId) {
-        return this.createFailedResult(
-          this.platform,
-          'Failed to get external ID',
+        return withErrorKind(
+          this.createFailedResult(this.platform, 'Failed to get external ID'),
+          PublishErrorKind.OUTCOME_UNKNOWN,
         );
       }
 
@@ -216,7 +221,7 @@ export class InstagramPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throwAsPublishError(error, mapMetaFailure);
     }
   }
 

@@ -87,7 +87,7 @@ export default function FeaturesPage(): React.ReactElement {
                     key={feature.number}
                     className="gsap-card bg-background p-6 sm:p-12 flex flex-col group hover:bg-foreground/5 transition-colors"
                   >
-                    <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-12">
+                    <div className="text-foreground/50 text-xs font-semibold uppercase tracking-label mb-12">
                       {feature.number} / {feature.label}
                     </div>
                     <Icon className="size-10 mb-8 text-foreground/60 group-hover:text-foreground transition-all" />
@@ -98,7 +98,7 @@ export default function FeaturesPage(): React.ReactElement {
                       {feature.description}
                     </p>
                     <Link
-                      className="mt-auto flex items-center gap-2 text-2xs font-black uppercase tracking-widest transition-all hover:gap-4"
+                      className="mt-auto flex items-center gap-2 text-2xs font-semibold uppercase tracking-label transition-all hover:gap-4"
                       href={feature.href}
                     >
                       Learn more <ArrowRight className="size-3.5" />
@@ -113,7 +113,7 @@ export default function FeaturesPage(): React.ReactElement {
         <section className="gsap-section bg-foreground/5 py-16 md:py-32">
           <div className="container mx-auto px-6">
             <div className="mb-14 max-w-3xl">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-foreground/50">
+              <p className="text-xs font-semibold uppercase tracking-label text-foreground/50">
                 Made in Genfeed
               </p>
               <h2 className="mt-5 text-4xl font-semibold tracking-[-0.02em] sm:text-5xl">
@@ -142,7 +142,7 @@ export default function FeaturesPage(): React.ReactElement {
                   <figcaption className="absolute inset-x-0 bottom-0 p-6">
                     <p
                       className={
-                        'text-2xs font-bold uppercase tracking-[0.14em] text-white/60' /* design-system-allow-content-color -- caption over a poster */
+                        'text-2xs font-semibold uppercase tracking-label text-white/60' /* design-system-allow-content-color -- caption over a poster */
                       }
                     >
                       {output.format}

@@ -308,7 +308,7 @@ function CategorySection({
         ) : (
           <ChevronRight className="size-4 text-muted-foreground" />
         )}
-        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <span className="text-xs font-medium uppercase tracking-label text-muted-foreground">
           {CATEGORY_LABELS[category]}
         </span>
         <span className="ml-auto text-xs tabular-nums text-muted-foreground">

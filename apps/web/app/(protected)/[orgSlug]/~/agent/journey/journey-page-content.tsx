@@ -160,7 +160,7 @@ export default function JourneyPageContent() {
                       {mission.whyItMatters}
                     </p>
                     {isRecommended ? (
-                      <p className="mt-3 text-xs font-medium uppercase tracking-[0.18em] text-primary/80">
+                      <p className="mt-3 text-xs font-medium uppercase tracking-label text-primary/80">
                         {translate('remainingCredits', {
                           count: remainingJourneyCredits,
                         })}
