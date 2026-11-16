@@ -63,7 +63,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
     previewSubscriptionChange: MockFn;
   };
   let creditsUtilsService: {
-    getCycleRemainingMetrics: MockFn;
+    getLedgerCycleMetrics: MockFn;
     getOrganizationCreditsBalance: MockFn;
     getOrganizationCreditsWithExpiration: MockFn;
   };
@@ -89,7 +89,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       previewSubscriptionChange: vi.fn(),
     };
     creditsUtilsService = {
-      getCycleRemainingMetrics: vi
+      getLedgerCycleMetrics: vi
         .fn()
         .mockResolvedValue({ cycleTotal: 0, remainingPercent: 0 }),
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(0),
@@ -363,7 +363,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       creditsUtilsService.getOrganizationCreditsWithExpiration.mockResolvedValue(
         { credits: [], total: 120_000 },
       );
-      creditsUtilsService.getCycleRemainingMetrics.mockResolvedValue({
+      creditsUtilsService.getLedgerCycleMetrics.mockResolvedValue({
         cycleTotal: 600_000,
         remainingPercent: 20,
       });
@@ -385,7 +385,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
         SubscriptionPlan.YEARLY,
         'price_pro_yearly',
       );
-      expect(creditsUtilsService.getCycleRemainingMetrics).toHaveBeenCalledWith(
+      expect(creditsUtilsService.getLedgerCycleMetrics).toHaveBeenCalledWith(
         ORGANIZATION_ID,
         new Date('2026-03-31T00:00:00.000Z'),
         new Date('2027-03-31T00:00:00.000Z'),
@@ -414,7 +414,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
 
       expect(result.data.planLimit).toBe(0);
       expect(
-        creditsUtilsService.getCycleRemainingMetrics,
+        creditsUtilsService.getLedgerCycleMetrics,
       ).not.toHaveBeenCalled();
     });
 

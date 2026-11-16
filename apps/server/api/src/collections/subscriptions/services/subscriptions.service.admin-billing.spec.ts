@@ -25,6 +25,7 @@ describe('SubscriptionsService.findAdminBilling', () => {
     resolveMonthlyCredits: MockFn;
     resolveTierFromPriceId: MockFn;
   };
+  let creditsUtilsService: { getLedgerCycleMetrics: MockFn };
   let service: SubscriptionsService;
 
   beforeEach(() => {
@@ -44,6 +45,12 @@ describe('SubscriptionsService.findAdminBilling', () => {
       resolveTierFromPriceId: vi.fn().mockReturnValue(null),
     };
 
+    creditsUtilsService = {
+      getLedgerCycleMetrics: vi
+        .fn()
+        .mockResolvedValue({ cycleTotal: 0, cycleUsed: 0, remainingPercent: 0 }),
+    };
+
     service = new SubscriptionsService(
       prisma as unknown as PrismaService,
       {
@@ -55,7 +62,7 @@ describe('SubscriptionsService.findAdminBilling', () => {
       creditGrantService as unknown as SubscriptionCreditGrantService,
       {} as StripeService,
       {} as CustomersService,
-      {} as CreditsUtilsService,
+      creditsUtilsService as unknown as CreditsUtilsService,
     );
   });
 
@@ -209,9 +216,15 @@ describe('SubscriptionsService.findAdminBilling', () => {
     ]);
     creditGrantService.resolveMonthlyCredits.mockResolvedValue(60_000);
     creditGrantService.resolveTierFromPriceId.mockReturnValue('scale');
+    // A 20,000 top-up keeps the balance high: usage must come from the ledger.
+    creditsUtilsService.getLedgerCycleMetrics.mockResolvedValue({
+      cycleTotal: 80_000,
+      cycleUsed: 30_000,
+      remainingPercent: 62.5,
+    });
     prisma.creditBalance.findMany.mockResolvedValue([
       {
-        balance: 30_000,
+        balance: 50_000,
         billingAccountId: null,
         heldAmount: 0,
         organizationId: 'org_paid',

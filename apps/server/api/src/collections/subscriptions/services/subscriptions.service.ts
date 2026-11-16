@@ -1,3 +1,4 @@
+import { getSubscriptionCycleWindow } from '@api/collections/credits/services/credit-cycle-window.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
@@ -295,8 +296,20 @@ export class SubscriptionsService
             )) ?? 0)
           : 0;
 
+        const balance = wallet ? wallet.balance - wallet.heldAmount : 0;
+        // Only a plan meter reports usage, so only a plan reads the ledger.
+        const { cycleUsed } =
+          planLimit > 0
+            ? await this.creditsUtilsService.getLedgerCycleMetrics(
+                organization.id,
+                getSubscriptionCycleWindow(subscription ?? null),
+                balance,
+              )
+            : { cycleUsed: 0 };
+
         return buildOrganizationBillingRow({
-          balance: wallet ? wallet.balance - wallet.heldAmount : 0,
+          balance,
+          cycleUsed,
           hasPaygPurchase: paygOrganizationIds.has(organization.id),
           organization: {
             id: organization.id,

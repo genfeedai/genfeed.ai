@@ -198,6 +198,17 @@ export interface ICreditsUtilsService {
     currentBalance: number,
   ): Promise<ICycleRemainingMetrics>;
 
+  /**
+   * The single plan-usage source for credits and billing surfaces: ledger
+   * metrics for the subscription period, or since the last reset when the
+   * organization has no period. OSS no-op matches `getCycleRemainingMetrics`.
+   */
+  getLedgerCycleMetrics(
+    organizationId: string,
+    cycleWindow: { cycleStartAt: Date; cycleEndAt: Date } | null,
+    currentBalance: number,
+  ): Promise<ICycleRemainingMetrics>;
+
   getWalletSnapshot(organizationId: string): Promise<ICreditWalletSnapshot>;
 
   reserveCredits(input: IReserveCreditsInput): Promise<ICreditReservation>;
