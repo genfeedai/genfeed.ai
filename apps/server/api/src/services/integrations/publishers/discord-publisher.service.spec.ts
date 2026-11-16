@@ -10,7 +10,7 @@ import {
 } from '@api/services/integrations/discord/services/discord-webhook.service';
 import { DiscordPublisherService } from '@api/services/integrations/publishers/discord-publisher.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { PostCategory } from '@genfeedai/contracts';
+import { PostCategory, PublishErrorKind } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
@@ -152,8 +152,7 @@ describe('DiscordPublisherService', () => {
     );
 
     await expect(publisher.publish(buildContext())).rejects.toMatchObject({
-      code: 'channel_disconnected',
-      isRetryable: false,
+      kind: PublishErrorKind.CHANNEL_DISCONNECTED,
     });
     expect(credentialPatches).toEqual([
       { id: 'credential-1', isConnected: false },
@@ -171,9 +170,23 @@ describe('DiscordPublisherService', () => {
     );
 
     await expect(publisher.publish(buildContext())).rejects.toMatchObject({
-      code: 'rate_limited',
+      kind: PublishErrorKind.RATE_LIMITED,
       retryAfterMs: 1500,
     });
     expect(credentialPatches).toEqual([]);
+  });
+
+  it.each([
+    ['unavailable', 503, PublishErrorKind.OUTCOME_UNKNOWN],
+    ['rejected', 400, PublishErrorKind.CONTENT_REJECTED],
+  ] as const)('reads a %s answer as %s', async (kind, status, expected) => {
+    const { publisher } = buildPublisher(
+      new DiscordApiError('Discord answered', kind, status),
+    );
+
+    await expect(publisher.publish(buildContext())).rejects.toMatchObject({
+      httpStatus: status,
+      kind: expected,
+    });
   });
 });
