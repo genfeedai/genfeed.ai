@@ -7,6 +7,7 @@ import { LIFETIME_DEAL_CREDIT_GRANT_SCHEDULE } from '@workers/crons/credits/life
 import { MEDIA_DELIVERY_RECOVERY_SCHEDULE } from '@workers/crons/media-delivery-recovery/media-delivery-recovery.constants';
 import { MEDIA_PERCEPTION_SWEEP_SCHEDULE } from '@workers/crons/media-perception/media-perception.constants';
 import { NEWSLETTER_SENDS_SCHEDULE } from '@workers/crons/newsletter-sends/cron.newsletter-sends.service';
+import { NOTIFICATION_RETENTION_SCHEDULE } from '@workers/crons/notification-retention/notification-retention.constants';
 import { OAUTH_CLIENT_CLEANUP_SCHEDULE } from '@workers/crons/oauth-client-cleanup/oauth-client-cleanup.constants';
 import { TRANSCRIPT_PURGE_SCHEDULE } from '@workers/crons/transcript-purge/transcript-purge.constants';
 import { X_REPLY_WATCH_SCHEDULE } from '@workers/crons/x-replies/x-reply-watch.constants';
@@ -56,6 +57,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   MODEL_DEPRECATION: 'model-deprecation',
   NEWSLETTER_SENDS: 'newsletter-sends',
   NOTIFICATION_DELIVERY_RECOVERY: 'notification-delivery-recovery',
+  NOTIFICATION_RETENTION: 'notification-retention',
   OAUTH_CLIENT_CLEANUP: 'oauth-client-cleanup',
   PATTERN_EXTRACTION: 'pattern-extraction',
   PENDING_WORKFLOW_EXECUTION_RECONCILE: 'pending-workflow-execution-reconcile',
@@ -226,6 +228,12 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.NOTIFICATION_DELIVERY_RECOVERY]: {
     pattern: '* * * * *',
+    timezone: 'UTC',
+  },
+  // Deletes notification inbox items, deliveries and events past their
+  // retention window; nothing else ever removes them (#10384).
+  [PLATFORM_SCHEDULED_TASKS.NOTIFICATION_RETENTION]: {
+    pattern: NOTIFICATION_RETENTION_SCHEDULE,
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.BRANDED_DISPATCH_RECOVERY]: {
