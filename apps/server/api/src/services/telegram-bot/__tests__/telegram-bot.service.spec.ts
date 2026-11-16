@@ -230,13 +230,19 @@ describe('TelegramBotService', () => {
     });
   });
 
-  async function startInGroup(payload: string, chatType = 'supergroup') {
+  async function startInGroup(
+    payload: string,
+    chatType = 'supergroup',
+    senderStatus = 'administrator',
+  ) {
     const replies: string[] = [];
     let isNextReached = false;
     const start = telegram.bots[0]?.commandHandlers[0];
     await start?.handler(
       {
+        api: { getChatMember: async () => ({ status: senderStatus }) },
         chat: { id: -1001, title: 'Acme Team', type: chatType },
+        from: { id: 777 },
         match: payload,
         reply: async (text: string) => {
           replies.push(text);
@@ -268,6 +274,17 @@ describe('TelegramBotService', () => {
         code: 'code-123',
       },
     ]);
+  });
+
+  it('leaves the code unspent when a plain member tries to connect the group', async () => {
+    await service.onModuleInit();
+
+    const { replies } = await startInGroup('code-123', 'supergroup', 'member');
+
+    expect(replies).toEqual([
+      'Only a group admin can connect this group to Genfeed.',
+    ]);
+    expect(linked).toEqual([]);
   });
 
   it('tells the group when the code is spent or expired', async () => {

@@ -255,7 +255,17 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
   /** Connect the group that sent a one-time add-bot code to its brand. */
   private async handleGroupLink(ctx: Context, code: string): Promise<void> {
     const chat = ctx.chat;
-    if (!chat || !this.groupLinkService) {
+    const senderId = ctx.from?.id;
+    if (!chat || !senderId || !this.groupLinkService) {
+      return;
+    }
+
+    // The bot may already sit in groups that belong to others, so only someone
+    // who runs this group can attach it to a brand. Checked before the code is
+    // spent, so a member's attempt leaves the link usable.
+    const sender = await ctx.api.getChatMember(chat.id, senderId);
+    if (sender.status !== 'creator' && sender.status !== 'administrator') {
+      await ctx.reply('Only a group admin can connect this group to Genfeed.');
       return;
     }
 
