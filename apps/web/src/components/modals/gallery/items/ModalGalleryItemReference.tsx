@@ -4,7 +4,9 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type { ModalGalleryItemReferenceProps } from '@genfeedai/props/modals/modal-gallery.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
+import { Check } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 export default function ModalGalleryItemReference({
   reference,
@@ -14,6 +16,7 @@ export default function ModalGalleryItemReference({
   selectionLimit,
   selectedItems,
 }: ModalGalleryItemReferenceProps) {
+  const iconTranslate = useTranslations('ui.iconLabels');
   const activateModalGalleryItemReference = () => {
     if (selectedItems.includes(reference.id)) {
       // Remove from selection
@@ -50,8 +53,12 @@ export default function ModalGalleryItemReference({
         />
 
         {isSelected && (
-          <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full size-6 flex items-center justify-center text-xs font-bold z-10">
-            ✓
+          <div
+            role="img"
+            aria-label={iconTranslate('selected')}
+            className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full size-6 flex items-center justify-center z-10"
+          >
+            <Check className="size-4" />
           </div>
         )}
       </div>

@@ -9,6 +9,8 @@ import {
 import type { IEditorEffect } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Slider } from '@ui/primitives/slider';
+import { X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type JSX, useCallback, useState } from 'react';
 import type {
   EditorEffectsPanelProps,
@@ -61,6 +63,7 @@ function EditorEffectsPanel({
   selectedClipId,
   onTrackUpdate,
 }: EditorEffectsPanelProps) {
+  const iconTranslate = useTranslations('ui.iconLabels');
   const [isExpanded, setIsExpanded] = useState(true);
 
   // Find the selected clip (from video or audio tracks : effects apply to video)
@@ -211,8 +214,9 @@ function EditorEffectsPanel({
                               onClick={() => handleRemoveEffect(effect.type)}
                               isDisabled={isReadOnly}
                               className="text-destructive hover:text-destructive"
+                              ariaLabel={iconTranslate('removeEffect')}
                             >
-                              ✕
+                              <X className="size-3.5" />
                             </Button>
                           </div>
                           <div className="flex items-center gap-2">

@@ -49,7 +49,6 @@ export default function IngredientTabsChildren({
         captionedChildren.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-lg font-semibold flex items-center gap-2">
-              <span>📝</span>{' '}
               {translate('captionedTitle', {
                 count: captionedChildren.length,
               })}

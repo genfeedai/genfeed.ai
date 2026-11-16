@@ -16,7 +16,7 @@ import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import Spinner from '@ui/primitives/spinner';
-import { ArrowUp, ChevronDown } from 'lucide-react';
+import { ArrowUp, ChevronDown, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { EvaluationCardProps } from '@/props/components/evaluation-card.props';
@@ -487,8 +487,10 @@ function EvaluationCardContent({
           </div>
         )}
         {flags?.isFlagged && (
-          <div className="text-xs text-warning">
-            {flags.severity === EvaluationSeverity.CRITICAL ? '⚠️' : '⚠'}{' '}
+          <div
+            className={`flex items-center gap-1 text-xs ${flags.severity === EvaluationSeverity.CRITICAL ? 'text-destructive' : 'text-warning'}`}
+          >
+            <TriangleAlert className="size-3.5 shrink-0" />
             {flags.reasons[0]}
           </div>
         )}

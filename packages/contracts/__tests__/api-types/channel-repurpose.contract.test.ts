@@ -291,15 +291,15 @@ describe('repurposePostContent media compatibility', () => {
 describe('repurposePostContent platform gating', () => {
   test('rejects platforms without a channel capability entry', () => {
     const outcome = repurposePostContent({
-      caption: 'Server news',
-      targetPlatform: CredentialPlatform.DISCORD,
+      caption: 'Stream news',
+      targetPlatform: CredentialPlatform.TWITCH,
     });
 
     expect(outcome.ok).toBe(false);
     if (outcome.ok) {
       return;
     }
-    expect(outcome.errors[0]?.message).toContain('discord');
+    expect(outcome.errors[0]?.message).toContain('twitch');
   });
 
   test('rejects hidden channels with the catalog status message', () => {
