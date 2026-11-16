@@ -294,28 +294,35 @@ describe('SubscriptionsController', () => {
       );
     });
 
-    it('should fallback to total-based percentage when cycle window is unavailable', async () => {
+    it('reads usage from the ledger when there is no subscription period', async () => {
       const request = {
         context: { organizationId: mockUser.organizationId },
       } as unknown as RequestWithContext;
       const creditsData = {
         credits: [],
-        total: 420,
+        total: 569.2,
+      };
+      const ledgerMetrics = {
+        cycleTotal: 2004,
+        cycleUsed: 1434.8,
+        remainingPercent: 28.4,
       };
 
       mockCreditsUtilsService.getOrganizationCreditsWithExpiration.mockResolvedValue(
         creditsData,
       );
+      mockCreditsUtilsService.getCycleRemainingMetrics.mockResolvedValue(
+        ledgerMetrics,
+      );
       mockSubscriptionsService.findByOrganizationId.mockResolvedValue(null);
 
       const result = await controller.getCreditsBreakdown(mockUser, request);
 
+      expect(result.data).toEqual(expect.objectContaining(ledgerMetrics));
+      expect(result.data.cycleEndAt).toBeUndefined();
       expect(
         mockCreditsUtilsService.getCycleRemainingMetrics,
-      ).not.toHaveBeenCalled();
-      expect(result.data.cycleTotal).toBe(420);
-      expect(result.data.cycleUsed).toBe(0);
-      expect(result.data.remainingPercent).toBe(100);
+      ).toHaveBeenCalledWith(mockUser.organizationId, null, 569.2);
     });
 
     it('should use request context organizationId when user metadata is missing', async () => {
@@ -506,8 +513,10 @@ describe('SubscriptionsController', () => {
       ).toHaveBeenNthCalledWith(
         1,
         contextOrg,
-        new Date('2026-04-01'),
-        new Date('2026-05-01'),
+        {
+          cycleEndAt: new Date('2026-05-01'),
+          cycleStartAt: new Date('2026-04-01'),
+        },
         120,
       );
       expect(user.organizationId).toBe(mockUser.organizationId);

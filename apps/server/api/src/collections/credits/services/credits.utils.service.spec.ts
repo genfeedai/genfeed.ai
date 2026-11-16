@@ -48,6 +48,7 @@ describe('CreditsUtilsService', () => {
     findOne: vi.fn(),
     findOneSelect: delegateFindOneSelect(),
     getLatestTransactionBeforeDate: vi.fn(),
+    getOrganizationTransactions: vi.fn(),
     getOrganizationTransactionsInRange: vi.fn(),
   };
   const organizationSettingsService = {
@@ -751,8 +752,7 @@ describe('CreditsUtilsService', () => {
 
       const metrics = await buildService().getCycleRemainingMetrics(
         'org_1',
-        cycleStart,
-        cycleEnd,
+        { cycleEndAt: cycleEnd, cycleStartAt: cycleStart },
         8700,
       );
 
@@ -774,8 +774,7 @@ describe('CreditsUtilsService', () => {
 
       const metrics = await buildService().getCycleRemainingMetrics(
         'org_1',
-        cycleStart,
-        cycleEnd,
+        { cycleEndAt: cycleEnd, cycleStartAt: cycleStart },
         5800,
       );
 
@@ -792,12 +791,128 @@ describe('CreditsUtilsService', () => {
 
       const metrics = await buildService().getCycleRemainingMetrics(
         'org_1',
-        cycleStart,
-        cycleEnd,
+        { cycleEndAt: cycleEnd, cycleStartAt: cycleStart },
         40,
       );
 
       expect(metrics.cycleUsed).toBe(0);
+    });
+  });
+
+  describe('getCycleRemainingMetrics without a subscription period', () => {
+    it('reads the ledger since the last reset when there is no subscription period', async () => {
+      // The review org: no active plan, a 2,000 top-up, 1,434.8 spent.
+      creditTransactionsService.getOrganizationTransactions.mockResolvedValue([
+        { createdAt: new Date('2026-10-01T00:00:00.000Z') },
+      ]);
+      creditTransactionsService.getLatestTransactionBeforeDate.mockResolvedValue(
+        null,
+      );
+      creditTransactionsService.getOrganizationTransactionsInRange.mockResolvedValue(
+        [
+          { amount: 4, balanceAfter: 4, category: 'reset' },
+          { amount: 2000, balanceAfter: 2004, category: 'add' },
+          { amount: 1434.8, balanceAfter: 569.2, category: 'deduct' },
+        ],
+      );
+
+      const metrics = await buildService().getCycleRemainingMetrics(
+        'org_1',
+        null,
+        569.2,
+      );
+
+      expect(metrics.cycleUsed).toBeCloseTo(1434.8, 5);
+      expect(metrics.cycleTotal).toBe(2004);
+      expect(metrics.remainingPercent).toBeCloseTo(28.4, 1);
+    });
+
+    it('starts the ledger window at the latest reset, and reads a supplied window as given', async () => {
+      const resetAt = new Date('2026-10-01T00:00:00.000Z');
+      creditTransactionsService.getOrganizationTransactions.mockResolvedValue([
+        { createdAt: resetAt },
+      ]);
+      creditTransactionsService.getLatestTransactionBeforeDate.mockResolvedValue(
+        null,
+      );
+      creditTransactionsService.getOrganizationTransactionsInRange.mockResolvedValue(
+        [],
+      );
+      const service = buildService();
+
+      await service.getCycleRemainingMetrics('org_1', null, 0);
+      await service.getCycleRemainingMetrics(
+        'org_1',
+        {
+          cycleEndAt: new Date('2026-12-01T00:00:00.000Z'),
+          cycleStartAt: new Date('2026-11-01T00:00:00.000Z'),
+        },
+        0,
+      );
+
+      const rangeStarts =
+        creditTransactionsService.getOrganizationTransactionsInRange.mock.calls.map(
+          ([, start]) => start,
+        );
+      expect(rangeStarts).toEqual([
+        resetAt,
+        new Date('2026-11-01T00:00:00.000Z'),
+      ]);
+      expect(
+        creditTransactionsService.getOrganizationTransactions,
+      ).toHaveBeenCalledTimes(1);
+    });
+
+    it('counts the whole ledger when the organization never had a reset', async () => {
+      creditTransactionsService.getOrganizationTransactions.mockResolvedValue(
+        [],
+      );
+      creditTransactionsService.getLatestTransactionBeforeDate.mockResolvedValue(
+        null,
+      );
+      creditTransactionsService.getOrganizationTransactionsInRange.mockResolvedValue(
+        [
+          { amount: 1000, balanceAfter: 1000, category: 'add' },
+          { amount: 250, balanceAfter: 750, category: 'deduct' },
+        ],
+      );
+
+      const metrics = await buildService().getCycleRemainingMetrics(
+        'org_1',
+        null,
+        750,
+      );
+
+      expect(metrics).toEqual({
+        cycleTotal: 1000,
+        cycleUsed: 250,
+        remainingPercent: 75,
+      });
+    });
+
+    it('keeps a retry credit back as extra balance: it raises the total, not the usage', async () => {
+      creditTransactionsService.getOrganizationTransactions.mockResolvedValue(
+        [],
+      );
+      creditTransactionsService.getLatestTransactionBeforeDate.mockResolvedValue(
+        null,
+      );
+      creditTransactionsService.getOrganizationTransactionsInRange.mockResolvedValue(
+        [
+          { amount: 1000, balanceAfter: 1000, category: 'add' },
+          { amount: 100, balanceAfter: 900, category: 'deduct' },
+          { amount: 30, balanceAfter: 930, category: 'add' },
+        ],
+      );
+
+      const metrics = await buildService().getCycleRemainingMetrics(
+        'org_1',
+        null,
+        930,
+      );
+
+      expect(metrics.cycleUsed).toBe(100);
+      expect(metrics.cycleTotal).toBe(1030);
     });
   });
 
