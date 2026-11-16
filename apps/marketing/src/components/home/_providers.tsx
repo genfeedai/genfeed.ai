@@ -40,11 +40,13 @@ export default function HomeProviders(): React.ReactElement {
               as="h2"
               className="text-4xl font-semibold leading-tight tracking-[-0.02em] sm:text-5xl"
             >
-              Your models, one workspace.
+              Every model, no choosing
             </Heading>
             <Text className="max-w-2xl text-base leading-7 gen-text-muted">
-              {modelCount} models from {brands.length} providers behind a single
-              brief. Bring your own keys or run on ours.
+              {modelCount} models from {brands.length} providers are listed
+              here. You do not need to pick one: Genfeed chooses the model that
+              fits each brief. Subscription plans can bring their own provider
+              keys.
             </Text>
           </div>
 

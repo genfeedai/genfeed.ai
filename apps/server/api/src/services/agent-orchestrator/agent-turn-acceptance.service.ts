@@ -165,7 +165,7 @@ export class AgentTurnAcceptanceService {
         canonicalId: AGENT_TURN_WORKFLOW_ID,
         idempotencyKey: buildAgentTurnIdempotencyKey(
           context.organizationId,
-          context.userId,
+          context.idempotencyUserId ?? context.userId,
           request.clientRequestId,
         ),
         inputValues: {

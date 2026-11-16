@@ -247,6 +247,7 @@ enum CredentialPlatform {
   DEVTO
   RESTREAM
   GENFEED
+  BLUESKY
 }
 
 enum TagCategory {

@@ -110,7 +110,7 @@ export default function AgentConnectDialog({
         size={client ? 'xl' : 'lg'}
       >
         <DialogHeader className="pr-6 text-left">
-          <DialogTitle>Connect your agent</DialogTitle>
+          <DialogTitle>Connect Agent</DialogTitle>
           <DialogDescription>
             {client
               ? `Set up Genfeed in ${client.name}.`

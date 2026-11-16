@@ -1,5 +1,6 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { DevtoService } from '@api/services/integrations/devto/services/devto.service';
+import { toArticlePublishError } from '@api/services/integrations/publishers/article-publish-error.util';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import {
   htmlToDevtoMarkdown,
@@ -10,7 +11,7 @@ import type {
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { verifyTitlePublish } from '@api/services/integrations/publishers/publisher-title-verification.util';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -110,6 +111,8 @@ export class DevtoPublisherService extends BasePublisherService {
         return this.createFailedResult(
           this.platform,
           'Dev.to credential not found',
+          undefined,
+          PublishErrorKind.CHANNEL_DISCONNECTED,
         );
       }
 
@@ -118,6 +121,8 @@ export class DevtoPublisherService extends BasePublisherService {
         return this.createFailedResult(
           this.platform,
           'Article must have content before it can be delivered to Dev.to',
+          undefined,
+          PublishErrorKind.CONTENT_REJECTED,
         );
       }
 
@@ -138,6 +143,8 @@ export class DevtoPublisherService extends BasePublisherService {
         return this.createFailedResult(
           this.platform,
           'Failed to get external ID from Dev.to',
+          undefined,
+          PublishErrorKind.OUTCOME_UNKNOWN,
         );
       }
 
@@ -153,7 +160,7 @@ export class DevtoPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      throw error;
+      throw toArticlePublishError(error);
     }
   }
 

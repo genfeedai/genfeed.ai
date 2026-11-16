@@ -313,7 +313,7 @@ export default function DesktopContent({
           </NeuralGrid>
         </WebSection>
 
-        <CtaSection bg="subtle" title="Start where you are.">
+        <CtaSection bg="subtle" title="Start where you are">
           <Button size={ButtonSize.PUBLIC} asChild>
             <a href={appHref} target="_blank" rel="noopener noreferrer">
               Open the web app

@@ -1,6 +1,12 @@
+import { randomUUID } from 'node:crypto';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { Traced } from '@libs/tracing/traced';
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import {
   type CookieAttributes,
   parseSetCookieHeader,
@@ -166,6 +172,38 @@ export class BetterAuthService {
     }
 
     await this.instance.api.revokeDesktopSession({ body: { token } });
+  }
+
+  /**
+   * Sign a short-lived token the API presents to another service as itself.
+   * It uses the same signing key as user tokens, so the receiving service
+   * verifies it against this API's JWKS, but it names its own audience and
+   * scope and is never a user's identity.
+   */
+  async signServiceToken(claims: {
+    audience: string;
+    lifetimeSeconds: number;
+    scope: string;
+    subject: string;
+  }): Promise<string> {
+    if (!this.instance) {
+      throw new ServiceUnavailableException('Service tokens are unavailable');
+    }
+
+    const issuedAt = Math.floor(Date.now() / 1_000);
+    const { token } = await this.instance.api.signJWT({
+      body: {
+        payload: {
+          aud: claims.audience,
+          exp: issuedAt + claims.lifetimeSeconds,
+          iat: issuedAt,
+          jti: randomUUID(),
+          scope: claims.scope,
+          sub: claims.subject,
+        },
+      },
+    });
+    return token;
   }
 
   /**

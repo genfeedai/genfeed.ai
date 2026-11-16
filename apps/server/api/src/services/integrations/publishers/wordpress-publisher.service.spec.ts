@@ -4,7 +4,7 @@ import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { WordpressPublisherService } from '@api/services/integrations/publishers/wordpress-publisher.service';
 import { WordpressService } from '@api/services/integrations/wordpress/services/wordpress.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -143,6 +143,7 @@ describe('WordpressPublisherService', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('credential');
+      expect(result.errorKind).toBe(PublishErrorKind.CHANNEL_DISCONNECTED);
     });
 
     it('should return failure when credential missing accessToken', async () => {
@@ -157,14 +158,61 @@ describe('WordpressPublisherService', () => {
       expect(logger.error).toHaveBeenCalled();
     });
 
-    it('should throw when WordPress API errors occur', async () => {
+    it.each([
+      [401, PublishErrorKind.CHANNEL_DISCONNECTED],
+      [404, PublishErrorKind.CHANNEL_DISCONNECTED],
+      [422, PublishErrorKind.CONTENT_REJECTED],
+      [503, PublishErrorKind.OUTCOME_UNKNOWN],
+    ])('throws a typed publish error for HTTP %i', async (status, kind) => {
       vi.mocked(wordpressService.createPost).mockRejectedValue(
-        new Error('WordPress API error'),
+        Object.assign(new Error('provider failed'), {
+          response: { headers: {}, status },
+        }),
       );
 
       await expect(
         service.publish(makeContext(connectedAccount)),
-      ).rejects.toThrow('WordPress API error');
+      ).rejects.toMatchObject({
+        httpStatus: status,
+        kind,
+        name: 'PublishError',
+      });
+    });
+
+    it('throws rate_limited with the wait the provider gave', async () => {
+      vi.mocked(wordpressService.createPost).mockRejectedValue(
+        Object.assign(new Error('provider failed'), {
+          response: { headers: { 'retry-after': '20' }, status: 429 },
+        }),
+      );
+
+      await expect(
+        service.publish(makeContext(connectedAccount)),
+      ).rejects.toMatchObject({
+        kind: PublishErrorKind.RATE_LIMITED,
+        retryAfterMs: 20_000,
+      });
+    });
+
+    it('throws outcome_unknown when the connection drops mid-request', async () => {
+      vi.mocked(wordpressService.createPost).mockRejectedValue(
+        Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }),
+      );
+
+      await expect(
+        service.publish(makeContext(connectedAccount)),
+      ).rejects.toMatchObject({
+        kind: PublishErrorKind.OUTCOME_UNKNOWN,
+      });
+    });
+
+    it('returns outcome_unknown when WordPress accepts the post without an id', async () => {
+      vi.mocked(wordpressService.createPost).mockResolvedValue('');
+
+      const result = await service.publish(makeContext(connectedAccount));
+
+      expect(result.success).toBe(false);
+      expect(result.errorKind).toBe(PublishErrorKind.OUTCOME_UNKNOWN);
     });
   });
 });

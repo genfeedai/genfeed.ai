@@ -117,7 +117,7 @@ export default function FeaturesPage(): React.ReactElement {
                 Made in Genfeed
               </p>
               <h2 className="mt-5 text-4xl font-semibold tracking-[-0.02em] sm:text-5xl">
-                The output is the proof.
+                The output is the proof
               </h2>
               <p className="mt-5 max-w-2xl text-base leading-7 text-foreground/60">
                 Short-form video, images and campaign creative, made with
@@ -174,7 +174,7 @@ export default function FeaturesPage(): React.ReactElement {
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto">
               <h2 className="text-6xl font-semibold mb-10">
-                Start in your agent.
+                Start in your agent
               </h2>
               <p className="text-foreground/70 text-xl mb-12 font-medium">
                 Connecting takes one sign-in.

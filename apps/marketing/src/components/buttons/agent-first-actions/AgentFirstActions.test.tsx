@@ -14,7 +14,7 @@ describe('AgentFirstActions', () => {
 
     const links = [...document.querySelectorAll('button, a')];
     expect(links.map((link) => link.textContent)).toEqual([
-      'Connect your agent',
+      'Connect Agent',
       'Start for $0',
     ]);
     expect(links[0]).toHaveAttribute('aria-haspopup', 'dialog');
@@ -47,7 +47,7 @@ describe('AgentFirstActions', () => {
     window.addEventListener('genfeed:marketing:button-click', listener);
 
     render(<AgentFirstActions trackingName="research_hero_click" />);
-    fireEvent.click(screen.getByRole('button', { name: 'Connect your agent' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Connect Agent' }));
 
     expect(listener).toHaveBeenCalledWith(
       expect.objectContaining({

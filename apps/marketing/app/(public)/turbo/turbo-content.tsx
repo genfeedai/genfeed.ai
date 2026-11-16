@@ -83,7 +83,7 @@ export default function TurboContent() {
         heroVisual={
           <EditorialPoster
             eyebrow="Turbo"
-            title="Your brand in. On-brand content out."
+            title="Your brand in, on-brand content out"
             items={STEPS.map((step) => ({
               label: step.title,
               value: step.description,
@@ -91,7 +91,7 @@ export default function TurboContent() {
           />
         }
         showFooter={false}
-        title="Your brand in. On-brand content out."
+        title="Your brand in, on-brand content out"
       >
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
           <Heading as="h2" className="text-2xl font-bold mb-8 text-foreground">
@@ -115,7 +115,7 @@ export default function TurboContent() {
         </section>
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
-            Nothing posts without you.
+            Nothing posts without you
           </Heading>
           <Text className="text-foreground/70">
             Every draft waits for your approval. Reject one and tell us why; the
@@ -124,7 +124,7 @@ export default function TurboContent() {
         </section>
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <Heading as="h2" className="text-2xl font-bold mb-2 text-foreground">
-            Gets sharper every batch.
+            Gets sharper every batch
           </Heading>
           <Text className="text-foreground/70">
             Turbo learns from what you approve and what performs, so each batch
@@ -151,7 +151,7 @@ export default function TurboContent() {
               as="h2"
               className="text-2xl font-bold mb-6 text-foreground"
             >
-              Ready when you are.
+              Ready when you are
             </Heading>
             <div className="flex justify-center">
               <TurboSignupButton />

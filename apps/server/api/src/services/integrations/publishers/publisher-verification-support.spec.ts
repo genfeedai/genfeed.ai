@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const VERIFIABLE_PLATFORMS = [
   CredentialPlatform.BEEHIIV,
+  CredentialPlatform.BLUESKY,
   CredentialPlatform.DEV_TO,
   CredentialPlatform.FACEBOOK,
   CredentialPlatform.GHOST,
