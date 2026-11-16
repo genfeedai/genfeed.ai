@@ -138,8 +138,15 @@ class FakeMarketplace {
       },
       refundCreditPurchase: async (
         input: MarketplaceCreditPurchaseInput,
+        _serviceToken: string,
+        options: { keepCompleted?: boolean } = {},
       ): Promise<MarketplaceCreditRefundResult> => {
         if (this.refundMode === 'down') return { status: 'unavailable' };
+        // Like the real service: a settling call leaves a completed purchase.
+        const completed = this.purchases.get(input.idempotencyKey);
+        if (completed && options.keepCompleted) {
+          return { purchaseId: completed.id, status: 'completed' };
+        }
         if (!this.purchases.delete(input.idempotencyKey)) {
           // Like the real service: with the call's fields, write the key as
           // refunded; without them there is nothing to write.
@@ -428,15 +435,34 @@ describe.skipIf(!connectionString)(
       expect(marketplace.purchases.size).toBe(0);
     });
 
-    it('refunds the late purchase and returns the credits when the marketplace answered too late', async () => {
+    it('completes the purchase when the marketplace answered too late but did record it', async () => {
       await seedWallet(5000);
       marketplace.recordMode = 'down';
       marketplace.storeWhenDown = true;
 
-      await expect(pay()).rejects.toThrow('credits were returned');
+      const result = await pay();
 
-      expect(await balance()).toBe(5000);
-      expect(marketplace.purchases.size).toBe(0);
+      expect(result).toEqual({
+        creditsPaid: GEN_PRICE,
+        listingId: LISTING_ID,
+        purchaseId: 'purchase-1',
+      });
+      expect(await balance()).toBe(5000 - GEN_PRICE);
+      expect(marketplace.purchases.size).toBe(1);
+      expect(await ledger()).toEqual([`deduct:${GEN_PRICE}`]);
+    });
+
+    it('ends a request that lost its answer with the purchase a concurrent request of the attempt completed', async () => {
+      await seedWallet(5000);
+      const first = await pay();
+      marketplace.recordMode = 'down';
+
+      const second = await pay();
+
+      expect(second).toEqual(first);
+      expect(await balance()).toBe(5000 - GEN_PRICE);
+      expect(marketplace.purchases.size).toBe(1);
+      expect(await ledger()).toEqual([`deduct:${GEN_PRICE}`]);
     });
 
     it('keeps the credits taken while it cannot learn whether the purchase exists', async () => {

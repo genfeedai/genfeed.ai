@@ -128,27 +128,15 @@ export class MarketplaceCreditPurchaseService {
     );
 
     if (recorded.status === 'recorded') {
-      // A concurrent request for the same attempt may have returned the
-      // credits while this one was recording. Undo the purchase it made.
-      if (await this.wasReturned(organizationId, callKey)) {
-        const undone = await this.marketplaceApiClient.refundCreditPurchase(
-          purchase,
-          refundToken,
-        );
-        if (undone.status === 'unavailable') {
-          this.logger.error(
-            'marketplace purchase could not be undone after the credits were returned',
-            undefined,
-            { listingId, organizationId },
-          );
-        }
-        throw new ConflictException(ATTEMPT_ENDED_MESSAGE);
-      }
-      return {
-        creditsPaid: credits,
+      return this.completeRecorded({
+        callKey,
+        credits,
         listingId,
+        organizationId,
+        purchase,
         purchaseId: recorded.purchaseId,
-      };
+        refundToken,
+      });
     }
 
     if (recorded.status === 'rejected') {
@@ -178,13 +166,28 @@ export class MarketplaceCreditPurchaseService {
     }
 
     // The marketplace did not answer, so the purchase may or may not exist.
-    // Ask it to refund by the call key: only when it confirms the purchase is
-    // gone (refunded, or never recorded) do the credits go back.
-    const refund = await this.marketplaceApiClient.refundCreditPurchase(
+    // Ask it to settle the call key, without undoing a purchase that another
+    // request of this attempt completed in the meantime. Only when it confirms
+    // the purchase is gone (refunded, or never recorded) do the credits go
+    // back; when it reports the purchase completed, this request ends with the
+    // same result as the one that recorded it.
+    const settled = await this.marketplaceApiClient.refundCreditPurchase(
       purchase,
       refundToken,
+      { keepCompleted: true },
     );
-    if (refund.status === 'unavailable') {
+    if (settled.status === 'completed') {
+      return this.completeRecorded({
+        callKey,
+        credits,
+        listingId,
+        organizationId,
+        purchase,
+        purchaseId: settled.purchaseId,
+        refundToken,
+      });
+    }
+    if (settled.status === 'unavailable') {
       this.logger.error(
         'marketplace did not confirm a credit purchase',
         undefined,
@@ -207,6 +210,36 @@ export class MarketplaceCreditPurchaseService {
     throw new ServiceUnavailableException(
       'The marketplace could not record your purchase. Your credits were returned.',
     );
+  }
+
+  /** The purchase exists in the marketplace and this attempt paid for it. */
+  private async completeRecorded(input: {
+    callKey: string;
+    credits: number;
+    listingId: string;
+    organizationId: string;
+    purchase: MarketplaceCreditPurchaseInput;
+    purchaseId: string;
+    refundToken: string;
+  }): Promise<IMarketplaceCreditPurchaseResult> {
+    const { callKey, credits, listingId, organizationId } = input;
+    // A concurrent request for the same attempt may have returned the
+    // credits while this one was recording. Undo the purchase it made.
+    if (await this.wasReturned(organizationId, callKey)) {
+      const undone = await this.marketplaceApiClient.refundCreditPurchase(
+        input.purchase,
+        input.refundToken,
+      );
+      if (undone.status === 'unavailable') {
+        this.logger.error(
+          'marketplace purchase could not be undone after the credits were returned',
+          undefined,
+          { listingId, organizationId },
+        );
+      }
+      throw new ConflictException(ATTEMPT_ENDED_MESSAGE);
+    }
+    return { creditsPaid: credits, listingId, purchaseId: input.purchaseId };
   }
 
   private serviceToken(scope: MarketplaceServiceScope): Promise<string> {

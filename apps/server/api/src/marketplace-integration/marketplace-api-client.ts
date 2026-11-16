@@ -71,6 +71,7 @@ export type MarketplaceCreditPurchaseResult =
 
 export type MarketplaceCreditRefundResult =
   | { status: 'refunded' }
+  | { status: 'completed'; purchaseId: string }
   | { status: 'absent' }
   | { status: 'unavailable' };
 
@@ -470,16 +471,26 @@ export class MarketplaceApiClient {
    * complete it afterwards. `absent` means the marketplace holds no purchase
    * under the key and could not write that marker (the listing can no longer
    * be sold, so a late record is refused anyway).
+   *
+   * With `keepCompleted` the call only settles an uncertain outcome: a
+   * purchase that is already completed is left in place and reported as
+   * `completed`, so a request that lost its answer never undoes a purchase
+   * that a concurrent request of the same attempt finished.
    */
   async refundCreditPurchase(
     purchase: MarketplaceCreditPurchaseInput,
     serviceToken: string,
+    options: { keepCompleted?: boolean } = {},
   ): Promise<MarketplaceCreditRefundResult> {
     try {
       const response = await safeFetch(
         `${this.baseUrl}/marketplace/service/purchases/refund`,
         {
-          body: JSON.stringify(purchase),
+          body: JSON.stringify(
+            options.keepCompleted
+              ? { ...purchase, keepCompleted: true }
+              : purchase,
+          ),
           headers: {
             Accept: 'application/json',
             Authorization: `Bearer ${serviceToken}`,
@@ -491,9 +502,28 @@ export class MarketplaceApiClient {
         this.destinationGuard,
       );
 
-      await response.body?.cancel();
-      if (response.ok) return { status: 'refunded' };
-      if (response.status === 404) return { status: 'absent' };
+      if (response.status === 404) {
+        await response.body?.cancel();
+        return { status: 'absent' };
+      }
+      if (!response.ok) {
+        await response.body?.cancel();
+        return { status: 'unavailable' };
+      }
+      if (!options.keepCompleted) {
+        await response.body?.cancel();
+        return { status: 'refunded' };
+      }
+      // Only an explicit status settles it: a body that cannot be read leaves
+      // the outcome unconfirmed.
+      const body: unknown = await response.json();
+      const resource = isRecord(body) ? toResource(body.data) : null;
+      if (resource?.attributes.status === 'completed') {
+        return { purchaseId: resource.id, status: 'completed' };
+      }
+      if (resource?.attributes.status === 'refunded') {
+        return { status: 'refunded' };
+      }
       return { status: 'unavailable' };
     } catch (error: unknown) {
       this.logger.warn(
