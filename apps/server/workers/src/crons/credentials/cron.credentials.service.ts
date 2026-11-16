@@ -46,7 +46,7 @@ interface TokenRefreshService {
   ): Promise<unknown>;
 }
 
-interface RefreshResult {
+export interface RefreshResult {
   credentialId: unknown;
   success: boolean;
   error?: unknown;
@@ -189,7 +189,7 @@ export class CronCredentialsService {
     );
   }
 
-  private async refreshCredential(
+  async refreshCredential(
     credential: CredentialDocument,
     url: string,
   ): Promise<RefreshResult> {
