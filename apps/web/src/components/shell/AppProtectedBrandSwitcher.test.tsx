@@ -67,7 +67,6 @@ vi.mock('@genfeedai/contracts/constants', () => ({
     CONNECTORS: {
       AGENTS: '/connectors/agents',
       API_KEYS: '/connectors/api-keys',
-      CHANNELS: '/connectors/channels',
       PROVIDERS: '/connectors/providers',
       ROOT: '/connectors',
       WEBHOOKS: '/connectors/webhooks',
@@ -89,9 +88,6 @@ vi.mock('@genfeedai/contracts/constants', () => ({
     `/${orgSlug}/${brandSlug}${routePath.startsWith('/') ? routePath : `/${routePath}`}`,
   createOrganizationAppRoute: (orgSlug: string, routePath = '/') =>
     `/${orgSlug}/~${routePath.startsWith('/') ? routePath : `/${routePath}`}`,
-  isBrandOnlyConnectorsPath: (pathname: string) =>
-    pathname === '/connectors/channels' ||
-    pathname.startsWith('/connectors/channels/'),
   isBrandOnlySettingsPath: (pathname: string) =>
     pathname === '/settings/publishing' ||
     pathname.startsWith('/settings/publishing/'),
@@ -298,8 +294,8 @@ describe('AppProtectedBrandSwitcher', () => {
     expect(screen.getByTestId('brand-switcher')).toBeInTheDocument();
   });
 
-  it('keeps the brand switcher on Connectors, where Channels follow the selected brand', () => {
-    mockPathname.value = '/acme/~/connectors/channels';
+  it('keeps the brand switcher on Connectors', () => {
+    mockPathname.value = '/acme/~/connectors/agents';
 
     render(<AppProtectedBrandSwitcher orgSlug="acme" />);
 

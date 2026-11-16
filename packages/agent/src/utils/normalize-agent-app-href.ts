@@ -3,7 +3,6 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   createOrganizationAppRoute,
-  isBrandOnlyConnectorsPath,
   isPersonalSettingsPath,
   LIBRARY_ASSET_QUERY_KEY,
   parseScopedAppPath,
@@ -75,8 +74,7 @@ export function normalizeAgentAppHref(
     ) {
       const isOrganizationSurface =
         firstSegment === 'agent' ||
-        (`/${firstSegment}` === APP_ROUTES.CONNECTORS.ROOT &&
-          !isBrandOnlyConnectorsPath(path));
+        `/${firstSegment}` === APP_ROUTES.CONNECTORS.ROOT;
       return `${
         !isOrganizationSurface && routeScope.brandSlug
           ? createBrandAppRoute(routeScope.orgSlug, routeScope.brandSlug, path)

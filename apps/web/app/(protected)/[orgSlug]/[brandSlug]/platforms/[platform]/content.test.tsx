@@ -212,7 +212,7 @@ describe('PlatformHomePage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open Social settings' }),
-    ).toHaveAttribute('href', '/acme/brand/connectors/channels');
+    ).toHaveAttribute('href', '/acme/brand/settings/profile');
   });
 
   it('composes existing destination links when the platform is connected', () => {
@@ -236,7 +236,7 @@ describe('PlatformHomePage', () => {
     );
     expect(
       screen.getByRole('link', { name: 'Open Connection' }),
-    ).toHaveAttribute('href', '/acme/brand/connectors/channels');
+    ).toHaveAttribute('href', '/acme/brand/settings/profile');
     expect(
       screen.getByRole('link', { name: 'Open Top posts' }),
     ).toHaveAttribute(

@@ -116,7 +116,7 @@ export function buildPlatformHomeDestinations(
       platform,
     ),
     replies: getPlatformRepliesHref(platform),
-    settingsSocial: APP_ROUTES.CONNECTORS.CHANNELS,
+    settingsSocial: APP_ROUTES.SETTINGS.PROFILE,
   };
 }
 

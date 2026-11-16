@@ -253,7 +253,7 @@ export default function ConnectedTimelines() {
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SM}
               >
-                <Link href={activeHref(APP_ROUTES.CONNECTORS.CHANNELS)}>
+                <Link href={activeHref(APP_ROUTES.SETTINGS.PROFILE)}>
                   {translate('connectedAccounts')}
                 </Link>
               </Button>

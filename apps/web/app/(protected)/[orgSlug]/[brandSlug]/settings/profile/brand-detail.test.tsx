@@ -112,9 +112,45 @@ vi.mock('@ui/primitives/alert', () => ({
   ),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@ui/layout/container/Container', () => ({
-  default: ({ children }: { children: ReactNode }) => <main>{children}</main>,
+  default: ({
+    children,
+    right,
+  }: {
+    children: ReactNode;
+    right?: ReactNode;
+  }) => (
+    <main>
+      {right}
+      {children}
+    </main>
+  ),
 }));
+
+vi.mock(
+  '@/features/brands/components/sidebar/BrandDetailSocialMediaCard',
+  () => ({
+    default: ({
+      connections,
+      isConnectAccountModalOpen,
+      variant,
+    }: {
+      connections: Array<{ credentialId: string }>;
+      isConnectAccountModalOpen?: boolean;
+      variant?: string;
+    }) => (
+      <section>
+        Accounts {connections.length} {variant}
+        {isConnectAccountModalOpen ? <span>Connect account modal</span> : null}
+      </section>
+    ),
+  }),
+);
 
 vi.mock('@/features/brands/components/banner/BrandDetailBanner', () => ({
   default: ({
@@ -226,24 +262,14 @@ vi.mock(
   '@/features/brands/components/detail-sidebar/BrandDetailSidebar',
   () => ({
     default: ({
-      manageSocialHref,
-      onRefreshBrand,
       onTogglePublicProfile,
     }: {
-      manageSocialHref?: string;
-      onRefreshBrand: () => void;
       onTogglePublicProfile: (value: boolean) => void;
     }) => (
       <section>
         Sidebar
-        {manageSocialHref ? (
-          <span>Manage social: {manageSocialHref}</span>
-        ) : null}
         <button type="button" onClick={() => onTogglePublicProfile(false)}>
           Disable Public
-        </button>
-        <button type="button" onClick={onRefreshBrand}>
-          Refresh Brand
         </button>
       </section>
     ),
@@ -351,10 +377,16 @@ describe('BrandDetail', () => {
       'scope',
       AssetScope.BRAND,
     );
-    expect(
-      screen.getByText(
-        'Manage social: /org-one/brand-handle/connectors/channels',
-      ),
-    ).toBeInTheDocument();
+  });
+
+  it('shows the connected accounts and opens the Connect account modal from the header', () => {
+    render(<BrandDetail />);
+
+    expect(screen.getByText('Accounts 1 page')).toBeInTheDocument();
+    expect(screen.queryByText('Connect account modal')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Connect account' }));
+
+    expect(screen.getByText('Connect account modal')).toBeInTheDocument();
   });
 });

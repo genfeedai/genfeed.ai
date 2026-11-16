@@ -197,7 +197,7 @@ describe('ReleaseEngagementRules', () => {
     render(
       <ReleaseEngagementRules
         postGroupId="release-1"
-        reconnectHref="/acme/~/connectors/channels"
+        reconnectHref="/acme/~/settings/profile"
         target={target()}
       />,
     );
@@ -216,7 +216,7 @@ describe('ReleaseEngagementRules', () => {
     render(
       <ReleaseEngagementRules
         postGroupId="release-1"
-        reconnectHref="/acme/~/connectors/channels"
+        reconnectHref="/acme/~/settings/profile"
         target={target()}
       />,
     );

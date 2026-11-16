@@ -103,7 +103,7 @@ export default function AnalyticsOverviewPerformanceDataset() {
           <Link
             href={
               brandSlug
-                ? activeHref(APP_ROUTES.CONNECTORS.CHANNELS)
+                ? activeHref(APP_ROUTES.SETTINGS.PROFILE)
                 : orgHref(APP_ROUTES.SETTINGS.BRANDS)
             }
             className="text-sm font-medium text-foreground underline underline-offset-2"

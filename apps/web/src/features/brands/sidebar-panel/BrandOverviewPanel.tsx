@@ -11,6 +11,7 @@ import { Alert } from '@ui/primitives/alert';
 import BrandDetailBanner from '@/features/brands/components/banner/BrandDetailBanner';
 import BrandDetailSidebar from '@/features/brands/components/detail-sidebar/BrandDetailSidebar';
 import BrandDetailOverview from '@/features/brands/components/overview/BrandDetailOverview';
+import BrandDetailSocialMediaCard from '@/features/brands/components/sidebar/BrandDetailSocialMediaCard';
 import BrandDetailSystemPrompt from '@/features/brands/components/system-prompt/BrandDetailSystemPrompt';
 
 export type BrandOverviewPanelProps = {
@@ -19,7 +20,6 @@ export type BrandOverviewPanelProps = {
   error: string | null;
   socialConnections: BrandDetailSocialConnection[];
   onCopy: (text?: string) => Promise<void>;
-  onDeleteReference: (assetId: string) => void;
   onGenerateBanner: () => void;
   onGenerateLogo: () => void;
   onOpenLinkModal: (link?: ILink) => void;
@@ -31,7 +31,6 @@ export type BrandOverviewPanelProps = {
   ) => Promise<void>;
   onUploadBanner: () => void;
   onUploadLogo: () => void;
-  onUploadReference: () => void;
 };
 
 export default function BrandOverviewPanel({
@@ -40,7 +39,6 @@ export default function BrandOverviewPanel({
   error,
   socialConnections,
   onCopy,
-  onDeleteReference,
   onGenerateBanner,
   onGenerateLogo,
   onOpenLinkModal,
@@ -49,7 +47,6 @@ export default function BrandOverviewPanel({
   onUpdateBrand,
   onUploadBanner,
   onUploadLogo,
-  onUploadReference,
 }: BrandOverviewPanelProps) {
   return (
     <div className="space-y-4">
@@ -90,20 +87,18 @@ export default function BrandOverviewPanel({
         </Card>
       ) : null}
 
+      <BrandDetailSocialMediaCard
+        brandId={activeBrand.id}
+        connectedPlatformsCount={connectedPlatformsCount}
+        connections={socialConnections}
+        onRefresh={onRefreshBrand}
+      />
+
       <BrandDetailSidebar
         brand={activeBrand}
-        brandId={activeBrand.id}
         links={(activeBrand.links || []) as unknown as ILink[]}
-        socialConnections={socialConnections}
-        connectedPlatformsCount={connectedPlatformsCount}
-        deletingRefId={null}
         onTogglePublicProfile={(isPublic) => onTogglePublicProfile(isPublic)}
-        onRefreshBrand={onRefreshBrand}
         onOpenLinkModal={onOpenLinkModal}
-        onUploadBanner={onUploadBanner}
-        onUploadLogo={onUploadLogo}
-        onUploadReference={onUploadReference}
-        onDeleteReference={onDeleteReference}
       />
     </div>
   );
