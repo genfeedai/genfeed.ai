@@ -66,7 +66,7 @@
       "retry": "Try again"
     },
     "positioning": {
-      "title": "Your positioning, in your words.",
+      "title": "Your positioning, in your words",
       "description": "Answer a few questions about what you believe and what you have proven. Every piece of content Genfeed drafts will be held to these answers.",
       "free": "This interview is free during onboarding.",
       "questionCounter": "Question {current} of {total}",
@@ -91,7 +91,7 @@
       }
     },
     "corpus": {
-      "title": "Bring your corpus.",
+      "title": "Bring your corpus",
       "description": "Add the material that sounds most like you — talks, newsletters, posts, call notes. Genfeed cites it as your authoritative knowledge.",
       "modes": {
         "url": "Link",
@@ -123,7 +123,7 @@
       }
     },
     "firstSystem": {
-      "title": "Your first content system.",
+      "title": "Your first content system",
       "description": "Genfeed drafts a week of content from your positioning and your corpus. Nothing publishes without your approval — approved items go to your review queue.",
       "cost": "Generating uses {credits} credits.",
       "generate": "Generate my first system",

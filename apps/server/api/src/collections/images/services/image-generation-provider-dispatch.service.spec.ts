@@ -774,6 +774,7 @@ describe('ImageGenerationProviderDispatchService', () => {
     expect(higgsFieldService.generateTextToImage).toHaveBeenCalledWith({
       aspectRatio: '16:9',
       batchSize: 1,
+      modelKey: MODEL_KEYS.HIGGSFIELD_SOUL,
       onProviderSubmissionStarted: expect.any(Function),
       organizationId: 'organization-1',
       prompt: 'A cinematic sunrise',

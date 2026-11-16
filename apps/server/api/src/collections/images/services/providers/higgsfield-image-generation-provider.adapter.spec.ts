@@ -18,6 +18,16 @@ describe('HiggsFieldImageGenerationProviderAdapter', () => {
       );
     });
 
+    it.each([
+      MODEL_KEYS.HIGGSFIELD_SOUL_STANDARD,
+      MODEL_KEYS.HIGGSFIELD_SOUL_CINEMA,
+      MODEL_KEYS.HIGGSFIELD_ADS_STUDIO,
+    ])('is resolved for %s', (modelKey) => {
+      expect(resolveImageGenerationProvider(modelKey)).toBe(
+        buildAdapter({}).provider,
+      );
+    });
+
     it('is not resolved for other model keys', () => {
       expect(
         resolveImageGenerationProvider('klingai/v2/pro/text-to-image'),
@@ -37,6 +47,74 @@ describe('HiggsFieldImageGenerationProviderAdapter', () => {
         expect(generateTextToImage).not.toHaveBeenCalled();
       },
     );
+
+    it('submits Soul Cinema on its own endpoint', async () => {
+      const generateTextToImage = vi
+        .fn()
+        .mockResolvedValue({ requestId: 'req-cinema' });
+      const waitForImageCompletion = vi
+        .fn()
+        .mockResolvedValue({ imageUrls: ['https://cdn.test/c.png'] });
+      const adapter = buildAdapter({
+        generateTextToImage,
+        waitForImageCompletion,
+      });
+
+      const provider = await adapter.prepare({
+        height: 1080,
+        model: MODEL_KEYS.HIGGSFIELD_SOUL_CINEMA,
+        organizationId: 'org-1',
+        outputs: 1,
+        prompt: 'night street',
+        promptId: 'prompt-2',
+        width: 1080,
+      } as unknown as ImageGenerationProviderRequest);
+      const result = await provider.generate();
+
+      expect(generateTextToImage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modelKey: MODEL_KEYS.HIGGSFIELD_SOUL_CINEMA,
+        }),
+      );
+      expect(result.outputUrls).toEqual(['https://cdn.test/c.png']);
+    });
+
+    it('submits one Ads Studio concept with a supported ratio and returns its image', async () => {
+      const generateAdsStudioImages = vi
+        .fn()
+        .mockResolvedValue({ requestId: 'req-ads' });
+      const waitForImageCompletion = vi
+        .fn()
+        .mockResolvedValue({ imageUrls: ['https://cdn.test/ad.png'] });
+      const adapter = buildAdapter({
+        generateAdsStudioImages,
+        waitForImageCompletion,
+      });
+
+      const provider = await adapter.prepare({
+        height: 1920,
+        model: MODEL_KEYS.HIGGSFIELD_ADS_STUDIO,
+        organizationId: 'org-1',
+        outputs: 1,
+        prompt: 'tea tin ad',
+        promptId: 'prompt-3',
+        width: 1080,
+      } as unknown as ImageGenerationProviderRequest);
+      const result = await provider.generate();
+
+      expect(generateAdsStudioImages).toHaveBeenCalledWith({
+        aspectRatio: '9:16',
+        batchSize: 1,
+        organizationId: 'org-1',
+        prompt: 'tea tin ad',
+      });
+      expect(result).toEqual({
+        externalId: 'req-ads',
+        kind: 'external-id',
+        outputUrls: ['https://cdn.test/ad.png'],
+        promptId: 'prompt-3',
+      });
+    });
 
     it('queues the text-to-image job, polls to completion, and resolves outputUrls for finalization', async () => {
       const generateTextToImage = vi
@@ -68,6 +146,7 @@ describe('HiggsFieldImageGenerationProviderAdapter', () => {
       expect(generateTextToImage).toHaveBeenCalledWith({
         aspectRatio: '9:16',
         batchSize: 1,
+        modelKey: MODEL_KEYS.HIGGSFIELD_SOUL,
         organizationId: 'org-1',
         prompt: 'studio product shot',
       });
@@ -110,6 +189,7 @@ describe('HiggsFieldImageGenerationProviderAdapter', () => {
       expect(generateTextToImage).toHaveBeenCalledWith({
         aspectRatio: '1:1',
         batchSize: 1,
+        modelKey: MODEL_KEYS.HIGGSFIELD_SOUL,
         organizationId: 'org-1',
         prompt: 'a plain render',
       });

@@ -246,7 +246,7 @@ function buildBrandMenuItems(): MenuItemConfig[] {
   return [
     {
       group: 'Brand',
-      href: APP_ROUTES.PROFILE.ROOT,
+      href: APP_ROUTES.SETTINGS.PROFILE,
       hrefScope: 'brand',
       label: 'Profile',
       outline: IdCard,

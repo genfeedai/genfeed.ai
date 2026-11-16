@@ -19,7 +19,7 @@ export default function ModelAvatar({
   isProviderVisible = true,
 }: ModelAvatarProps) {
   const brand = getBrandConfig(extractBrandFromKey(model.key ?? 'model'));
-  const isInfrastructureBrand = ['Fal', 'Replicate', 'GenFeed', 'Kie'].includes(
+  const isInfrastructureBrand = ['Fal', 'Replicate', 'Genfeed', 'Kie'].includes(
     brand.label,
   );
   const ProviderIcon = getModelBrandIcon(

@@ -8,6 +8,7 @@ import {
   CredentialPlatform,
   PostCategory,
   PostStatus,
+  PublishErrorKind,
 } from '@genfeedai/contracts';
 import type { IWhatsappMessageResponse } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -250,6 +251,65 @@ describe('WhatsappPublisherService', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Failed to get message SID from Twilio');
+    });
+
+    it('should report a missing recipient as a channel that cannot send', async () => {
+      const context = makeContext(makePost());
+      context.credential = { ...context.credential, externalId: '' } as never;
+
+      const result = await service.publish(context);
+
+      expect(result.errorKind).toBe(PublishErrorKind.CHANNEL_DISCONNECTED);
+    });
+
+    it('should report a send answered without a SID as outcome unknown, since the message may be on its way', async () => {
+      whatsappService.sendTextMessage.mockResolvedValue(
+        makeMessageResponse(null as unknown as string),
+      );
+
+      const result = await service.publish(makeContext(makePost()));
+
+      expect(result.errorKind).toBe(PublishErrorKind.OUTCOME_UNKNOWN);
+    });
+
+    it.each([
+      [500, PublishErrorKind.OUTCOME_UNKNOWN],
+      [503, PublishErrorKind.OUTCOME_UNKNOWN],
+      [429, PublishErrorKind.RATE_LIMITED],
+      [401, PublishErrorKind.CHANNEL_DISCONNECTED],
+      [400, PublishErrorKind.CONTENT_REJECTED],
+    ])(
+      'should throw a typed error when Twilio answers %i',
+      async (status, kind) => {
+        whatsappService.sendTextMessage.mockRejectedValue(
+          Object.assign(new Error('Request failed'), {
+            response: { data: { code: 21211 }, headers: {}, status },
+          }),
+        );
+
+        await expect(
+          service.publish(makeContext(makePost())),
+        ).rejects.toMatchObject({
+          httpStatus: status,
+          kind,
+          providerCode: '21211',
+        });
+      },
+    );
+
+    it.each([
+      ['ETIMEDOUT', PublishErrorKind.OUTCOME_UNKNOWN],
+      ['ECONNRESET', PublishErrorKind.OUTCOME_UNKNOWN],
+      ['ECONNREFUSED', PublishErrorKind.RETRY_LATER],
+      ['ENOTFOUND', PublishErrorKind.RETRY_LATER],
+    ])('should read connection error %s as %s', async (code, kind) => {
+      whatsappService.sendTextMessage.mockRejectedValue(
+        Object.assign(new Error('network'), { code }),
+      );
+
+      await expect(
+        service.publish(makeContext(makePost())),
+      ).rejects.toMatchObject({ kind });
     });
 
     it('should throw when the WhatsApp service throws', async () => {

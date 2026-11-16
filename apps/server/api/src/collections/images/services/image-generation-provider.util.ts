@@ -4,6 +4,7 @@ import {
   isGenfeedAiDestination,
   isReplicateDestination,
 } from '@api/collections/models/utils/model-key.util';
+import { isHiggsFieldImageModel } from '@api/services/integrations/higgsfield/helpers/higgsfield.catalog';
 import type { ModelProvider } from '@genfeedai/contracts';
 import {
   MODEL_KEYS,
@@ -39,7 +40,7 @@ const IMAGE_PROVIDER_MATCHERS: readonly ImageProviderMatcher[] = [
   },
   { matches: (model) => model === MODEL_KEYS.KLINGAI_V2, provider: 'klingai' },
   {
-    matches: (model) => model === MODEL_KEYS.HIGGSFIELD_SOUL,
+    matches: (model) => isHiggsFieldImageModel(model),
     provider: 'higgsfield',
   },
   {

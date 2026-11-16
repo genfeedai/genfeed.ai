@@ -53,7 +53,10 @@ import {
   AgentType,
 } from '@genfeedai/contracts';
 import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
-import type { ResolvedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
+import type {
+  ResolvedRuntimeSkill,
+  SkillSectionReceipt,
+} from '@genfeedai/contracts/interfaces/ai';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
@@ -785,6 +788,8 @@ export class AgentOrchestratorContextService {
     resolvedSkills: ResolvedRuntimeSkill[];
     skillPromptSuffix: string;
   }> {
+    const modality = this.inferSkillModality(request);
+    const resolutionRecord: { id?: string } = {};
     const resolvedSkills =
       this.skillRuntimeService && policy.brandId
         ? await this.skillRuntimeService.resolveActiveSkills(
@@ -795,18 +800,29 @@ export class AgentOrchestratorContextService {
               actorUserId: context.userId,
               agentType: request.agentType,
               channel: policy.platform,
-              modality: this.inferSkillModality(request),
+              modality,
               requestedSkillSlugs: request.requestedSkillSlugs,
+              resolutionRecord,
             },
           )
         : [];
 
-    return {
-      resolvedSkills,
-      skillPromptSuffix: this.skillRuntimeService
-        ? this.skillRuntimeService.buildSkillPromptSections(resolvedSkills)
-        : '',
-    };
+    const receipts: SkillSectionReceipt[] = [];
+    const skillPromptSuffix = this.skillRuntimeService
+      ? this.skillRuntimeService.buildSkillPromptSections(resolvedSkills, [], {
+          modality,
+          receipts,
+        })
+      : '';
+    await this.skillRuntimeService?.recordSectionReceipts({
+      actorUserId: context.userId,
+      brandId: policy.brandId,
+      organizationId: context.organizationId,
+      receipts,
+      resolutionId: resolutionRecord.id,
+    });
+
+    return { resolvedSkills, skillPromptSuffix };
   }
 
   private inferSkillModality(request: AgentChatRequest): string | undefined {

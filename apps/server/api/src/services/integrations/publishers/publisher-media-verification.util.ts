@@ -44,7 +44,9 @@ export const verifyMediaPublish = traced(
     now = new Date(),
   ): Promise<ProviderVerificationItem | null> => {
     const text = normalizeCaption(match.text);
-    if (!text || match.mediaCount < 1) {
+    const title =
+      match.title === undefined ? undefined : normalizeCaption(match.title);
+    if ((!text && !title) || match.mediaCount < 1) {
       throw new Error(
         'Provider verification lacks exact caption/media proof for this post',
       );
@@ -68,7 +70,9 @@ export const verifyMediaPublish = traced(
         if (!item.mediaKind) {
           throw new Error('Provider verification lacks media evidence');
         }
-        const isSameCaption = normalizeCaption(item.text) === text;
+        const isSameCaption =
+          normalizeCaption(item.text) === text &&
+          (title === undefined || normalizeCaption(item.title ?? '') === title);
         const isSameShape =
           item.mediaKind === match.mediaKind &&
           (match.mediaKind !== 'carousel' ||

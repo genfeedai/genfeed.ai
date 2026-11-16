@@ -30,6 +30,8 @@ export type VerificationMediaKind = 'image' | 'video' | 'carousel' | 'other';
 /** The exact caption and media shape one publish attempt sent to the provider. */
 export interface ProviderMediaVerificationMatch {
   text: string;
+  /** Set when the provider has a title beside the caption (a video's title). */
+  title?: string;
   mediaKind: Exclude<VerificationMediaKind, 'other'>;
   mediaCount: number;
 }

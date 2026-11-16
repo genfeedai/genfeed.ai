@@ -34,7 +34,6 @@ const KNOWN_PROTECTED_PREFIXES = [
   'clipper',
   'editor',
   'settings',
-  'profile',
   'connectors',
   'agents',
   'publishing',
