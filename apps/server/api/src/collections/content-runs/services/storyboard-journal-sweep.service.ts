@@ -13,14 +13,14 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Upper bound on runs reconciled per sweep, so one tick stays bounded. */
-export const STORYBOARD_JOURNAL_SWEEP_LIMIT = 25;
+const STORYBOARD_JOURNAL_SWEEP_LIMIT = 25;
 
 /**
  * Only runs touched in this window are swept. A paid hold lives two hours, so
  * a journal operation still live after three days belongs to a run nobody
  * will reopen and the next page open reconciles it.
  */
-export const STORYBOARD_JOURNAL_SWEEP_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+const STORYBOARD_JOURNAL_SWEEP_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
 type JournalKey =
   | 'stillOperations'
