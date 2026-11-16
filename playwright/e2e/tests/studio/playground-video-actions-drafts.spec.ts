@@ -324,8 +324,8 @@ test.describe('Studio Generate — video results and composer drafts', () => {
     );
     for (const action of [
       'Reframe to Square',
-      'Resize to Square',
-      'Resize to Landscape',
+      'Resize Square',
+      'Resize Landscape',
     ]) {
       await expect(
         reframe.getByRole('menuitem', { exact: true, name: action }),
@@ -333,7 +333,7 @@ test.describe('Studio Generate — video results and composer drafts', () => {
     }
     // The clip is already portrait, so resizing to portrait is not offered.
     await expect(
-      reframe.getByRole('menuitem', { name: /Resize to Portrait/ }),
+      reframe.getByRole('menuitem', { name: /Resize Portrait/ }),
     ).toHaveCount(0);
     await reframe.press('ArrowLeft');
     await expect(reframe).toHaveCount(0);
@@ -444,7 +444,7 @@ test.describe('Studio Generate — video results and composer drafts', () => {
       'Reframe',
     );
     await reframe
-      .getByRole('menuitem', { exact: true, name: 'Resize to Square' })
+      .getByRole('menuitem', { exact: true, name: 'Resize Square' })
       .click();
 
     await expect

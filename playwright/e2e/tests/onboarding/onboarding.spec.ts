@@ -118,9 +118,9 @@ test.describe('Output-first onboarding', () => {
     await page.getByRole('button', { name: 'Submit brand link' }).click();
     await expect(page.getByText('Round 1 twitter draft')).toBeVisible();
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
-    await page.getByRole('button', { name: 'Skip' }).click();
+    await page.getByRole('button', { exact: true, name: 'Skip' }).click();
     await expect(page.getByTestId('connect-card-twitter')).toBeVisible();
-    await page.getByRole('button', { name: 'Skip' }).click();
+    await page.getByRole('button', { exact: true, name: 'Skip' }).click();
     await expect(
       page.getByRole('heading', { name: 'Now go to your agent' }),
     ).toBeVisible();
