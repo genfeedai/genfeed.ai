@@ -151,35 +151,6 @@
 
 /* Genfeed Animations */
 
-@keyframes gen-fade-up {
-  0% {
-    opacity: 0;
-    transform: translateY(40px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes gen-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-.animate-gen-fade-up {
-  animation: gen-fade-up 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.animate-gen-float {
-  animation: gen-float 4s ease-in-out infinite;
-}
-
 /* Staggered animation delays */
 .gen-stagger-1 {
   animation-delay: 0.1s;
@@ -202,48 +173,6 @@
 
 /* Neural Noir Amber Animations */
 
-@keyframes gen-spotlight {
-  0%,
-  100% {
-    background-position: 20% 50%;
-  }
-  50% {
-    background-position: 80% 50%;
-  }
-}
-
-@keyframes gen-flicker {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.94;
-  }
-}
-
-@keyframes gen-scan {
-  0% {
-    transform: translateY(-100%);
-  }
-  100% {
-    transform: translateY(100vh);
-  }
-}
-
-@keyframes gen-reveal {
-  from {
-    opacity: 0;
-    filter: blur(6px);
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    filter: blur(0);
-    transform: translateY(0);
-  }
-}
-
 @keyframes gen-stagger-in {
   from {
     opacity: 0;
@@ -264,9 +193,6 @@
   }
 }
 
-.animate-gen-reveal {
-  animation: gen-reveal 0.8s ease-out both;
-}
 .animate-gen-stagger-in {
   animation: gen-stagger-in 0.5s ease-out both;
   animation-delay: var(--gen-stagger-delay, 0s);
@@ -294,10 +220,6 @@
   animation: gen-stagger-rise 0.5s ease-out both;
   animation-delay: var(--gen-stagger-delay, 0s);
 }
-.animate-gen-flicker {
-  animation: gen-flicker 4s ease-in-out infinite;
-}
-
 /*
  * One direction, forever. The track holds two copies of its children, so
  * translating by exactly half its width lands the second copy on the pixels the

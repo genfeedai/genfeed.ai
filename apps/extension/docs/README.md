@@ -1,6 +1,6 @@
-# GenFeed Browser Extension (`extension.genfeed.ai`)
+# Genfeed Browser Extension (`extension.genfeed.ai`)
 
-Plasmo-based extension that brings GenFeed's AI workflows to multiple social media platforms. Draft replies, schedule content, and capture context straight from the browser - across Twitter/X, YouTube, Instagram, Reddit, Facebook, TikTok, LinkedIn, and Threads.
+Plasmo-based extension that brings Genfeed's AI workflows to multiple social media platforms. Draft replies, schedule content, and capture context straight from the browser - across Twitter/X, YouTube, Instagram, Reddit, Facebook, TikTok, LinkedIn, and Threads.
 
 ## 🌐 Supported Platforms
 
@@ -15,8 +15,8 @@ Plasmo-based extension that brings GenFeed's AI workflows to multiple social med
 
 ## ✨ Capabilities
 
-- **AI-Powered Replies**: Generate contextual, platform-appropriate responses using GenFeed's AI
-- **Content Saving**: Save interesting posts/comments from any platform to your GenFeed library
+- **AI-Powered Replies**: Generate contextual, platform-appropriate responses using Genfeed's AI
+- **Content Saving**: Save interesting posts/comments from any platform to your Genfeed library
 - **Content Enhancement**: Rewrite and improve existing content
 - **Image Generation**: Create images based on post content
 - **Cross-Platform**: Consistent experience across all supported social networks

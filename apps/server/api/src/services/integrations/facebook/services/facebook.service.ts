@@ -6,11 +6,13 @@ import {
   readMetaPages,
   resolveMetaPageAccess,
 } from '@api/services/integrations/_shared/meta-page-access.util';
+import { readFacebookVerificationPage } from '@api/services/integrations/facebook/services/facebook-verification-reader.util';
 import {
   type FacebookAnalyticsResult,
   failedFacebookAnalytics,
   parseFacebookAnalytics,
 } from '@api/services/integrations/facebook/utils/facebook-analytics.util';
+import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import {
@@ -331,6 +333,40 @@ export class FacebookService {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  /**
+   * One page of a Page's feed since a publish attempt began, for confirming an
+   * uncertain publish. The Page token comes from the same account listing the
+   * publish used, so a page the account no longer manages is refused.
+   */
+  public async listPublishVerificationPage(
+    organizationId: string,
+    brandId: string,
+    credentialId: string,
+    pageId: string,
+    attemptStartedAt: Date,
+    cursor?: string,
+  ): Promise<ProviderVerificationPage> {
+    const pages = await this.getUserPages(
+      organizationId,
+      brandId,
+      credentialId,
+    );
+    const pageAccessToken = pages.find(
+      (page) => page.id === pageId,
+    )?.accessToken;
+    if (!pageAccessToken) {
+      throw new Error('Facebook verification page unavailable or changed');
+    }
+    return readFacebookVerificationPage(
+      this.httpService,
+      `${this.graphUrl}/${this.apiVersion}`,
+      pageId,
+      pageAccessToken,
+      attemptStartedAt,
+      cursor,
+    );
   }
 
   public async createTextPost(

@@ -591,8 +591,8 @@
     "context": {
       "rewrite": "Rewrite",
       "emptyCaption": "(empty)",
-      "selectedPlaceholder": "Ask the agent to clean up or decide on this post...",
-      "placeholder": "Ask about content review...",
+      "selectedPlaceholder": "Ask the agent to clean up or decide on this post…",
+      "placeholder": "Ask about content review…",
       "approvePrompt": "Approve and schedule this review item ({id}): \"{title}\".",
       "changesPrompt": "Request changes on review item {id} (\"{title}\"). Suggest a sharper caption and what to fix.",
       "rejectPrompt": "Reject review item {id} (\"{title}\") and explain why it should not ship.",

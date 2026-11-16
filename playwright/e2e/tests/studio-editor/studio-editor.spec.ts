@@ -406,11 +406,11 @@ test.describe('Studio Editor', () => {
       // incidental duplicate, not an ambiguity in this app's own markup.
       const errorAlert = authenticatedPage
         .getByRole('alert')
-        .filter({ hasText: 'Projects could not be loaded.' });
+        .filter({ hasText: 'Projects could not be loaded' });
       await expect(errorAlert).toBeVisible();
       await expect(
         errorAlert.getByRole('heading', {
-          name: 'Projects could not be loaded.',
+          name: 'Projects could not be loaded',
         }),
       ).toBeVisible();
 

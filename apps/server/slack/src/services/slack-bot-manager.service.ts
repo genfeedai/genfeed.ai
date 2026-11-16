@@ -373,7 +373,7 @@ export class SlackBotManager
       const blocks = [
         {
           text: {
-            text: '*GenFeed AI Workflows*\nSelect a workflow to run:',
+            text: '*Genfeed AI Workflows*\nSelect a workflow to run:',
             type: 'mrkdwn',
           },
           type: 'section',
@@ -403,7 +403,7 @@ export class SlackBotManager
         state: 'selecting',
       });
 
-      await respond({ blocks, text: 'GenFeed AI Workflows' });
+      await respond({ blocks, text: 'Genfeed AI Workflows' });
     } catch (error) {
       this.logger.error(
         'Failed to fetch workflows',
@@ -450,7 +450,7 @@ export class SlackBotManager
       }
     }
 
-    await respond({ text: `*GenFeed Bot Status*\n\nYour status: ${line}` });
+    await respond({ text: `*Genfeed Bot Status*\n\nYour status: ${line}` });
   }
 
   private async handleCancelCommand(userId: string, respond: SlackRespond) {

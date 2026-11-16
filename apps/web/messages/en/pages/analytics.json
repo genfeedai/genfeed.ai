@@ -257,7 +257,7 @@
       "trendingTopics": "Trending Topics",
       "trendingHashtags": "Trending Hashtags",
       "trendingSounds": "Trending Sounds",
-      "subtitle": "Public topics, videos, hashtags and sounds trending across platforms."
+      "subtitle": "Public topics, videos, hashtags and sounds trending across platforms"
     },
     "header": {
       "latestObserved": "Latest observed source {date}",
