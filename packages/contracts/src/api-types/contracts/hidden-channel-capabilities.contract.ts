@@ -3,7 +3,6 @@
  * is refused until a live post has been verified on a real account.
  */
 import { CredentialPlatform } from '../..';
-import type { ChannelCapability } from './channel-capabilities.contract';
 
 export const hiddenChannelCapabilities = [
   {
@@ -99,4 +98,4 @@ export const hiddenChannelCapabilities = [
     ],
     status: 'hidden',
   },
-] satisfies ChannelCapability[];
+];

@@ -757,7 +757,7 @@ const channelCapabilities = [
     ],
     status: 'hidden',
   },
-  ...hiddenChannelCapabilities,
+  ...(hiddenChannelCapabilities as ChannelCapability[]),
   {
     caption: { maxLength: 500, required: true },
     description:
