@@ -18,7 +18,7 @@ export function GenerationActionCardQualityBadge({
   if (score >= 8) {
     return (
       <Badge casing="normal" shape="pill" size="lg" variant="success">
-        ✨ Quality: {score}/10
+        Quality: {score}/10
       </Badge>
     );
   }
@@ -27,7 +27,7 @@ export function GenerationActionCardQualityBadge({
     return (
       <div className="space-y-1">
         <Badge casing="normal" shape="pill" size="lg" variant="warning">
-          ⚠️ Quality: {score}/10
+          Quality: {score}/10
         </Badge>
         {feedback && feedback.length > 0 && (
           <p className="text-xs text-muted-foreground">{feedback[0]}</p>
