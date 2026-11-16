@@ -322,7 +322,7 @@ describe('DiscordBotManager command handlers', () => {
       expect(interaction.editReply).toHaveBeenCalledWith(
         expect.objectContaining({
           components: expect.any(Array),
-          content: expect.stringContaining('GenFeed AI Workflows'),
+          content: expect.stringContaining('Genfeed AI Workflows'),
         }),
       );
       const session = internals.sessions.get(SESSION_KEY);

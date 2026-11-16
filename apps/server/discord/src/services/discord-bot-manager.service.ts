@@ -376,7 +376,7 @@ export class DiscordBotManager
 
       await interaction.editReply({
         components: rows,
-        content: '**GenFeed AI Workflows**\nSelect a workflow to run:',
+        content: '**Genfeed AI Workflows**\nSelect a workflow to run:',
       });
     } catch (error) {
       this.logger.error(
@@ -431,7 +431,7 @@ export class DiscordBotManager
       }
     }
 
-    await interaction.reply(`**GenFeed Bot Status**\n\nYour status: ${line}`);
+    await interaction.reply(`**Genfeed Bot Status**\n\nYour status: ${line}`);
   }
 
   private async handleCancelCommand(interaction: {

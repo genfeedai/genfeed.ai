@@ -201,7 +201,7 @@ export class TelegramBotManager
 
     bot.command('start', async (ctx) => {
       await ctx.reply(
-        '*GenFeed AI Bot*\n\n' +
+        '*Genfeed AI Bot*\n\n' +
           'Generate images & videos using AI workflows.\n\n' +
           '*Commands:*\n' +
           '/workflows - Browse & run workflows\n' +
@@ -284,7 +284,7 @@ export class TelegramBotManager
         state: 'selecting',
       });
 
-      await ctx.reply('*GenFeed AI Workflows*\n\nSelect a workflow to run:', {
+      await ctx.reply('*Genfeed AI Workflows*\n\nSelect a workflow to run:', {
         parse_mode: ParseMode.MARKDOWN,
         reply_markup: keyboard,
       });
@@ -340,7 +340,7 @@ export class TelegramBotManager
       }
     }
 
-    await ctx.reply(`*GenFeed Bot Status*\n\nYour status: ${line}`, {
+    await ctx.reply(`*Genfeed Bot Status*\n\nYour status: ${line}`, {
       parse_mode: ParseMode.MARKDOWN,
     });
   }

@@ -1576,7 +1576,7 @@ describe('AgentFullPage', () => {
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByText('Ask for help with content, review, or planning...'),
+      screen.getByText('Ask for help with content, review, or planning…'),
     ).toBeInTheDocument();
     expect(screen.getByText('surface-fixed')).toBeInTheDocument();
   });

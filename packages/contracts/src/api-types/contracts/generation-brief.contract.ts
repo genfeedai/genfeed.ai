@@ -205,6 +205,8 @@ export const imageGenerationBriefOutputSchema = z
 export const videoGenerationBriefOutputSchema = imageGenerationBriefOutputSchema
   .safeExtend({
     durationSeconds: z.number().positive().max(300).optional(),
+    // Style preset id for models that restyle a source clip (Higgsfield).
+    presetId: z.string().uuid().optional(),
     resolution: z.string().trim().min(1).max(32).optional(),
   })
   .strict();
