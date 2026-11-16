@@ -4,7 +4,6 @@ import {
   ButtonSize,
   ButtonVariant,
   ComponentSize,
-  formatEnumLabel,
   isTerminalWorkflowExecutionStatus,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
@@ -16,9 +15,12 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import Spinner from '@ui/primitives/spinner';
+import { X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   createWorkflowApiService,
@@ -27,10 +29,6 @@ import {
 } from '@/features/workflows/services/workflow-api';
 import { getExecutionEtaDisplayState } from '@/features/workflows/utils/eta-display';
 import { buildExecutionNodePatches } from '@/features/workflows/utils/execution-node-sync';
-import {
-  getStatusColor,
-  getStatusIcon,
-} from '@/features/workflows/utils/status-helpers';
 
 interface ExecutionPanelProps {
   workflowId: string;
@@ -57,6 +55,7 @@ export function ExecutionPanel({
   onClose,
   onTerminalExecution,
 }: ExecutionPanelProps) {
+  const iconTranslate = useTranslations('ui.iconLabels');
   const currentRunId = runId ?? null;
   const [execution, setExecution] = useState<ExecutionResult | null>(null);
   const [loadState, setLoadState] = useState<ExecutionLoadState>({
@@ -169,9 +168,10 @@ export function ExecutionPanel({
           variant={ButtonVariant.GHOST}
           size={ButtonSize.ICON}
           onClick={onClose}
-          tooltip="Close"
+          tooltip={iconTranslate('close')}
+          ariaLabel={iconTranslate('close')}
         >
-          ✕
+          <X className="size-4" />
         </Button>
       </div>
 
@@ -203,12 +203,7 @@ export function ExecutionPanel({
             <div className="border border-border p-3">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Status</span>
-                <span
-                  className={`font-medium ${getStatusColor(execution.status)}`}
-                >
-                  {getStatusIcon(execution.status)}{' '}
-                  {formatEnumLabel(execution.status)}
-                </span>
+                <Badge status={execution.status} />
               </div>
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Progress</span>
@@ -279,9 +274,7 @@ export function ExecutionPanel({
                     >
                       <div className="mb-1 flex items-center justify-between">
                         <span className="font-medium">{result.nodeId}</span>
-                        <span className={getStatusColor(result.status)}>
-                          {getStatusIcon(result.status)}
-                        </span>
+                        <Badge status={result.status} />
                       </div>
                       {result.error && (
                         <p className="text-sm text-destructive">

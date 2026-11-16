@@ -2,6 +2,7 @@ import { MembersModule } from '@api/collections/members/members.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { TaskQueueClientService } from '@api/services/task-queue-client/task-queue-client.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { redactSensitiveString } from '@genfeedai/helpers/security/redact-sensitive-value.helper';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpModule, HttpService } from '@nestjs/axios';
@@ -20,7 +21,13 @@ class AxiosErrorInterceptorSetup implements OnModuleInit {
       undefined,
       (error: AxiosError) => {
         const method = error.config?.method?.toUpperCase() ?? '?';
-        const url = error.config?.url ?? '?';
+        // A request URL can carry a provider secret in its path (Discord
+        // webhooks, Telegram bot tokens). Redact it on the error itself, which
+        // goes on to the logger and Sentry.
+        const url = redactSensitiveString(error.config?.url ?? '?');
+        if (error.config) {
+          error.config.url = url;
+        }
         const status = error.response?.status ?? 'network error';
 
         this.logger.error(`HTTP ${method} ${url} → ${status}`, error, {

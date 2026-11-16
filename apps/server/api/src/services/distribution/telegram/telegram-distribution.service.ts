@@ -6,11 +6,11 @@ import {
   buildTelegramDistributionWorkflowDefinition,
   TELEGRAM_DISTRIBUTION_ACTION_IDS,
 } from '@api/services/distribution/telegram/telegram-distribution-workflow-definition';
+import { TelegramBotApiService } from '@api/services/integrations/telegram/services/telegram-bot-api.service';
 import {
   CredentialPlatform,
   DistributionContentType,
   DistributionPlatform,
-  ParseMode,
   PublishStatus,
 } from '@genfeedai/contracts';
 import type { TelegramDistributionWorkflowInput } from '@genfeedai/contracts/interfaces';
@@ -20,17 +20,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { HttpService } from '@nestjs/axios';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
-
-interface TelegramSendResult {
-  ok: boolean;
-  result?: {
-    message_id: number;
-  };
-  description?: string;
-}
 
 interface SendOptions {
   organizationId: string;
@@ -76,7 +66,7 @@ export class TelegramDistributionService implements OnModuleInit {
     private readonly distributionsService: DistributionsService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
-    private readonly httpService: HttpService,
+    private readonly telegramBotApi: TelegramBotApiService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -138,16 +128,16 @@ export class TelegramDistributionService implements OnModuleInit {
         options.credentialId,
       );
 
-      const result = await this.sendToTelegram(
+      const { messageId: telegramMessageId } = await this.telegramBotApi.send(
         botToken,
-        options.chatId,
-        options.contentType,
-        options.text,
-        options.mediaUrl,
-        options.caption,
+        {
+          caption: options.caption,
+          chatId: options.chatId,
+          contentType: options.contentType,
+          mediaUrl: options.mediaUrl,
+          text: options.text,
+        },
       );
-
-      const telegramMessageId = result.result?.message_id?.toString();
 
       await this.distributionsService.markAsPublished(
         distribution.id.toString(),
@@ -327,16 +317,14 @@ export class TelegramDistributionService implements OnModuleInit {
       delivery.brandId,
       delivery.credentialId,
     );
-    const result = await this.sendToTelegram(
-      botToken,
-      delivery.chatId,
-      delivery.contentType,
-      delivery.text,
-      delivery.mediaUrl,
-      delivery.caption,
-    );
-    const telegramMessageId = result.result?.message_id?.toString();
-    return telegramMessageId === undefined ? {} : { telegramMessageId };
+    const { messageId } = await this.telegramBotApi.send(botToken, {
+      caption: delivery.caption,
+      chatId: delivery.chatId,
+      contentType: delivery.contentType,
+      mediaUrl: delivery.mediaUrl,
+      text: delivery.text,
+    });
+    return { telegramMessageId: messageId };
   }
 
   private async finalizeScheduled(
@@ -412,94 +400,5 @@ export class TelegramDistributionService implements OnModuleInit {
     throw new Error(
       'No Telegram bot token found. Connect a Telegram bot in settings.',
     );
-  }
-
-  private sendToTelegram(
-    botToken: string,
-    chatId: string,
-    contentType: DistributionContentType,
-    text?: string,
-    mediaUrl?: string,
-    caption?: string,
-  ): Promise<TelegramSendResult> {
-    const baseUrl = `https://api.telegram.org/bot${botToken}`;
-
-    switch (contentType) {
-      case DistributionContentType.TEXT:
-        return this.sendText(baseUrl, chatId, text || '');
-
-      case DistributionContentType.PHOTO:
-        return this.sendPhoto(baseUrl, chatId, mediaUrl || '', caption);
-
-      case DistributionContentType.VIDEO:
-        return this.sendVideo(baseUrl, chatId, mediaUrl || '', caption);
-
-      default:
-        throw new Error(`Unsupported content type: ${contentType}`);
-    }
-  }
-
-  private async sendText(
-    baseUrl: string,
-    chatId: string,
-    text: string,
-  ): Promise<TelegramSendResult> {
-    const response = await firstValueFrom(
-      this.httpService.post<TelegramSendResult>(
-        `${baseUrl}/sendMessage`,
-        {
-          chat_id: chatId,
-          parse_mode: ParseMode.HTML,
-          text,
-        },
-        { headers: { 'Content-Type': 'application/json' } },
-      ),
-    );
-
-    return response.data;
-  }
-
-  private async sendPhoto(
-    baseUrl: string,
-    chatId: string,
-    photoUrl: string,
-    caption?: string,
-  ): Promise<TelegramSendResult> {
-    const response = await firstValueFrom(
-      this.httpService.post<TelegramSendResult>(
-        `${baseUrl}/sendPhoto`,
-        {
-          caption,
-          chat_id: chatId,
-          parse_mode: ParseMode.HTML,
-          photo: photoUrl,
-        },
-        { headers: { 'Content-Type': 'application/json' } },
-      ),
-    );
-
-    return response.data;
-  }
-
-  private async sendVideo(
-    baseUrl: string,
-    chatId: string,
-    videoUrl: string,
-    caption?: string,
-  ): Promise<TelegramSendResult> {
-    const response = await firstValueFrom(
-      this.httpService.post<TelegramSendResult>(
-        `${baseUrl}/sendVideo`,
-        {
-          caption,
-          chat_id: chatId,
-          parse_mode: ParseMode.HTML,
-          video: videoUrl,
-        },
-        { headers: { 'Content-Type': 'application/json' } },
-      ),
-    );
-
-    return response.data;
   }
 }

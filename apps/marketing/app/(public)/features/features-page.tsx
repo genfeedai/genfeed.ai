@@ -24,7 +24,7 @@ const FEATURES = [
     label: 'Your agent',
     href: '/agent',
     number: '01',
-    title: 'Work Where You Already Work',
+    title: 'Work where you already work',
   },
   {
     description:
@@ -33,7 +33,7 @@ const FEATURES = [
     label: 'Trends',
     href: '/products/discovery',
     number: '02',
-    title: 'Start From What Is Working',
+    title: 'Start from what is working',
   },
   {
     description:
@@ -42,7 +42,7 @@ const FEATURES = [
     label: 'Dashboard',
     href: '/products/publishing',
     number: '03',
-    title: 'Review And Publish In One Place',
+    title: 'Review and publish in one place',
   },
   {
     description:
@@ -51,7 +51,7 @@ const FEATURES = [
     label: 'Analytics',
     href: '/products/analytics',
     number: '04',
-    title: 'See What Worked',
+    title: 'See what worked',
   },
 ];
 
@@ -74,7 +74,7 @@ export default function FeaturesPage(): React.ReactElement {
         }
         compact
         heroVisual={HERO_VISUAL}
-        title={<>What Genfeed Does</>}
+        title={<>What Genfeed does</>}
         description="Brief Genfeed from the agent you already use. Start from trends, create videos, images and posts, then publish and see what worked in the dashboard."
       >
         <section className="gsap-hero py-16 md:py-32">

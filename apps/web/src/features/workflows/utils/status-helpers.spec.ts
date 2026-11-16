@@ -8,22 +8,8 @@ import {
   getLifecycleBadgeVariant,
   getStatusBorderColor,
   getStatusColor,
-  getStatusIcon,
   isNonDefaultWorkflowLifecycle,
 } from '@/features/workflows/utils/status-helpers';
-
-describe('getStatusIcon', () => {
-  it('completed', () =>
-    expect(getStatusIcon(WorkflowExecutionStatus.COMPLETED)).toBe('✅'));
-  it('failed', () =>
-    expect(getStatusIcon(WorkflowExecutionStatus.FAILED)).toBe('❌'));
-  it('running', () =>
-    expect(getStatusIcon(WorkflowExecutionStatus.RUNNING)).toBe('⏳'));
-  it('cancelled', () =>
-    expect(getStatusIcon(WorkflowExecutionStatus.CANCELLED)).toBe('🚫'));
-  it('default', () =>
-    expect(getStatusIcon(WorkflowExecutionStatus.PENDING)).toBe('⏸️'));
-});
 
 describe('getStatusColor', () => {
   it('completed', () =>

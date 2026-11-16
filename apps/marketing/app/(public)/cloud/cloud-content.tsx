@@ -47,17 +47,17 @@ const TEAMS = [
   {
     description:
       'Brief from your agents, then review and publish across shared workspaces.',
-    title: 'Marketing Teams',
+    title: 'Marketing teams',
   },
   {
     description:
       'Manage clients, organizations, brands, and approvals in one managed environment.',
-    title: 'Content Agencies',
+    title: 'Content agencies',
   },
   {
     description:
       'Keep multiple brand systems separate while centralizing billing and operations.',
-    title: 'Multi-Brand Operators',
+    title: 'Multi-brand operators',
   },
 ];
 

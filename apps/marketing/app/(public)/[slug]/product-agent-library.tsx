@@ -11,7 +11,7 @@ export default function ProductAgentLibrary({ librarySections }: Props) {
   return (
     <section className="max-w-6xl mx-auto pb-20">
       <Heading size="2xl" className="text-center mb-12">
-        Agent Library
+        Agent library
       </Heading>
       <div className="space-y-8">
         {librarySections.map((section) => (

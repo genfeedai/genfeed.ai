@@ -16,7 +16,7 @@ test.describe('Website product pages', () => {
     await page.goto('/products', { waitUntil: 'domcontentloaded' });
 
     await expect(
-      page.getByRole('heading', { level: 1, name: 'Genfeed Products' }),
+      page.getByRole('heading', { level: 1, name: 'Genfeed products' }),
     ).toBeVisible();
 
     for (const product of appProducts) {

@@ -100,7 +100,7 @@ export function agentLandingProcess(
   ];
 }
 
-const SOCIAL_GROWTH_FIT_LABEL = 'Good Fit Signals';
+const SOCIAL_GROWTH_FIT_LABEL = 'Good fit signals';
 const SOCIAL_GROWTH_FAQ_DESCRIPTION =
   'What to know before connecting your agent.';
 const SOCIAL_GROWTH_PROCESS_DESCRIPTION =
@@ -138,12 +138,12 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
           'Available views and engagement for your published posts',
           'Reviewing results before creating the next batch',
         ],
-        title: 'Publish And Review',
+        title: 'Publish and review',
       },
     ],
     deliverablesDescription:
       'Bring your content drafts, brand context and publishing into one workspace. Your connected agent helps prepare the content; you choose what goes live.',
-    deliverablesTitle: 'What You Can Do',
+    deliverablesTitle: 'What you can do',
     faqDescription: SOCIAL_GROWTH_FAQ_DESCRIPTION,
     faqs: socialGrowthFaqs({
       audience:
@@ -154,7 +154,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
       selfServe:
         'posts, threads, visuals, reply drafts, scheduling, and available post analytics',
     }),
-    faqTitle: 'Common Questions',
+    faqTitle: 'Common questions',
     fitLabel: SOCIAL_GROWTH_FIT_LABEL,
     fitSignals: [
       'You are building something useful, but few people hear about it.',
@@ -185,32 +185,32 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
         description:
           'Turn product updates, demos and lessons into posts that explain why your work matters to the people you want to reach.',
         icon: TrendingUp,
-        title: 'Give People A Reason To Follow',
+        title: 'Give people a reason to follow',
       },
       {
         description:
           'Prepare a batch of posts and threads, review the drafts and schedule them at times you choose.',
         icon: CalendarRange,
-        title: 'Keep Showing Up',
+        title: 'Keep showing up',
       },
       {
         description:
           'Choose a relevant conversation and draft a reply or quote-post that contributes an answer, an example or your perspective. Review it before sending.',
         icon: MessageCircle,
-        title: 'Join Useful Conversations',
+        title: 'Join useful conversations',
       },
     ],
     outcomesDescription:
       'Make your work easier to discover through useful posts and real conversations, with a publishing routine you can sustain.',
-    outcomesTitle: 'What This Helps You Do',
+    outcomesTitle: 'What this helps you do',
     process: agentLandingProcess(
       'Ask your agent to turn a product update into posts and threads, or draft a reply to a conversation you select.',
     ),
     processDescription:
       'Your agent prepares drafts. You edit and approve them, schedule posts and review available performance. You choose and send each reply.',
-    processTitle: 'How It Works',
+    processTitle: 'How it works',
     slug: 'x',
-    title: 'X Growth With Genfeed',
+    title: 'X growth with Genfeed',
   },
   {
     isAgentFirst: true,
@@ -243,12 +243,12 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
           'Doubling down on the topics that start sales conversations',
           'Monthly review of what is working and what changes next',
         ],
-        title: 'Growth Ops',
+        title: 'Growth ops',
       },
     ],
     deliverablesDescription:
       'The full LinkedIn growth loop inside your Genfeed workspace. Ask your connected agent to create and schedule approved content. You keep the profile, the assets, and the data.',
-    deliverablesTitle: 'What You Get',
+    deliverablesTitle: 'What you get',
     faqDescription: SOCIAL_GROWTH_FAQ_DESCRIPTION,
     faqs: socialGrowthFaqs({
       audience:
@@ -258,7 +258,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
         'buy followers, run engagement pods, or send automated connection and DM sequences',
       selfServe: 'topic research, drafting, scheduling, and analytics',
     }),
-    faqTitle: 'Common Questions',
+    faqTitle: 'Common questions',
     fitLabel: SOCIAL_GROWTH_FIT_LABEL,
     fitSignals: [
       'Your buyers look you up on LinkedIn before a call, and your profile does not reflect what you actually know.',
@@ -289,31 +289,31 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
         description:
           'Turn what you already say on calls into posts that make buyers trust you before the first meeting.',
         icon: Briefcase,
-        title: 'Authority That Sells',
+        title: 'Authority that sells',
       },
       {
         description:
           'A steady queue of posts, clips, and carousels, scheduled for when your network is at work.',
         icon: CalendarRange,
-        title: 'A Weekly Cadence',
+        title: 'A weekly cadence',
       },
       {
         description:
           'Comment drafts on the posts your buyers already read, the fastest way in front of the right new followers.',
         icon: MessageCircle,
-        title: 'Comments That Build Reach',
+        title: 'Comments that build reach',
       },
     ],
     outcomesDescription:
       'Growth on LinkedIn comes from a sharp point of view, consistency, and showing up in the comments. Those are the first three things to break when you are busy.',
-    outcomesTitle: 'What This Solves',
+    outcomesTitle: 'What this solves',
     process: agentLandingProcess(
       'Ask your agent to turn a product update or customer insight into LinkedIn posts, clips, and comment drafts.',
     ),
     processDescription: SOCIAL_GROWTH_PROCESS_DESCRIPTION,
-    processTitle: 'How It Works',
+    processTitle: 'How it works',
     slug: 'linkedin',
-    title: 'LinkedIn Growth With Your Agent',
+    title: 'LinkedIn growth with your agent',
   },
   {
     isAgentFirst: true,
@@ -346,12 +346,12 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
           'Doubling down on the formats that bring new followers',
           'Monthly review of what is working and what changes next',
         ],
-        title: 'Growth Ops',
+        title: 'Growth ops',
       },
     ],
     deliverablesDescription:
       'The full Instagram growth loop inside your Genfeed workspace. Ask your connected agent to create and schedule approved content. You keep the account, the assets, and the data.',
-    deliverablesTitle: 'What You Get',
+    deliverablesTitle: 'What you get',
     faqDescription: SOCIAL_GROWTH_FAQ_DESCRIPTION,
     faqs: socialGrowthFaqs({
       audience:
@@ -362,7 +362,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
       selfServe:
         'trend research, image and video generation, captions, scheduling, and analytics',
     }),
-    faqTitle: 'Common Questions',
+    faqTitle: 'Common questions',
     fitLabel: SOCIAL_GROWTH_FIT_LABEL,
     fitSignals: [
       'Your customers find you on Instagram, and the account is not posting enough to be found.',
@@ -393,7 +393,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
         description:
           'Reels, carousels, and images produced every week, without a shoot or an editor on payroll.',
         icon: Clapperboard,
-        title: 'Reels Without A Studio',
+        title: 'Reels without a studio',
       },
       {
         description:
@@ -405,19 +405,19 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
         description:
           'Carousels and Reels built to be saved and shared, the signals that push posts to new accounts.',
         icon: Users,
-        title: 'Reach Beyond Followers',
+        title: 'Reach beyond followers',
       },
     ],
     outcomesDescription:
       'Growth on Instagram comes from video volume, timing, and shareable posts. Those are the first three things to break when you are busy.',
-    outcomesTitle: 'What This Solves',
+    outcomesTitle: 'What this solves',
     process: agentLandingProcess(
       'Ask your agent for Instagram Reels, carousels, and captions from your product and brand context.',
     ),
     processDescription: SOCIAL_GROWTH_PROCESS_DESCRIPTION,
-    processTitle: 'How It Works',
+    processTitle: 'How it works',
     slug: 'instagram',
-    title: 'Instagram Growth With Your Agent',
+    title: 'Instagram growth with your agent',
   },
   {
     isAgentFirst: true,
@@ -450,12 +450,12 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
           'Doubling down on the hooks and formats that go wide',
           'Monthly review of what is working and what changes next',
         ],
-        title: 'Growth Ops',
+        title: 'Growth ops',
       },
     ],
     deliverablesDescription:
       'The full TikTok growth loop inside your Genfeed workspace. Ask your connected agent to create and schedule approved content. You keep the account, the assets, and the data.',
-    deliverablesTitle: 'What You Get',
+    deliverablesTitle: 'What you get',
     faqDescription: SOCIAL_GROWTH_FAQ_DESCRIPTION,
     faqs: socialGrowthFaqs({
       audience:
@@ -465,7 +465,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
       selfServe:
         'trend and sound research, video generation and clipping, captions, scheduling, and analytics',
     }),
-    faqTitle: 'Common Questions',
+    faqTitle: 'Common questions',
     fitLabel: SOCIAL_GROWTH_FIT_LABEL,
     fitSignals: [
       'Your audience is on TikTok and you are posting a few times a month when the algorithm wants daily.',
@@ -496,7 +496,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
         description:
           'A daily queue of short videos and clips, without filming or editing every day.',
         icon: Film,
-        title: 'Daily Volume',
+        title: 'Daily volume',
       },
       {
         description:
@@ -508,19 +508,19 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
         description:
           'More hooks tested every week means you find the ones that break out of your follower base faster.',
         icon: Target,
-        title: 'Hooks That Get Tested',
+        title: 'Hooks that get tested',
       },
     ],
     outcomesDescription:
       'Growth on TikTok comes from volume, timing, and testing hooks. Those are the first three things to break when you are busy.',
-    outcomesTitle: 'What This Solves',
+    outcomesTitle: 'What this solves',
     process: agentLandingProcess(
       'Ask your agent for TikTok short videos, slideshows, hooks, and captions from your source material.',
     ),
     processDescription: SOCIAL_GROWTH_PROCESS_DESCRIPTION,
-    processTitle: 'How It Works',
+    processTitle: 'How it works',
     slug: 'tiktok',
-    title: 'TikTok Growth With Your Agent',
+    title: 'TikTok growth with your agent',
   },
   {
     isAgentFirst: true,
@@ -553,12 +553,12 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
           'Doubling down on the topics that bring subscribers',
           'Monthly review of what is working and what changes next',
         ],
-        title: 'Growth Ops',
+        title: 'Growth ops',
       },
     ],
     deliverablesDescription:
       'The full YouTube growth loop inside your Genfeed workspace. Ask your connected agent to create and schedule approved content. You keep the channel, the assets, and the data.',
-    deliverablesTitle: 'What You Get',
+    deliverablesTitle: 'What you get',
     faqDescription: SOCIAL_GROWTH_FAQ_DESCRIPTION,
     faqs: socialGrowthFaqs({
       audience:
@@ -568,7 +568,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
       selfServe:
         'topic research, Shorts clipping, titles and descriptions, scheduling, and analytics',
     }),
-    faqTitle: 'Common Questions',
+    faqTitle: 'Common questions',
     fitLabel: SOCIAL_GROWTH_FIT_LABEL,
     fitSignals: [
       'Your buyers search YouTube for the problems you solve, and your channel is not showing up.',
@@ -599,31 +599,31 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
         description:
           'Every long-form video, podcast, or call becomes a week of Shorts that send viewers back to the channel.',
         icon: Play,
-        title: 'Shorts From Everything',
+        title: 'Shorts from everything',
       },
       {
         description:
           'Topics picked from what people already search, so videos keep bringing views long after upload.',
         icon: Search,
-        title: 'Found In Search',
+        title: 'Found in search',
       },
       {
         description:
           'Titles and thumbnails worked as hard as the video, because the click decides whether anyone watches.',
         icon: ImageIcon,
-        title: 'Packaging That Gets Clicked',
+        title: 'Packaging that gets clicked',
       },
     ],
     outcomesDescription:
       'Growth on YouTube comes from searchable topics, packaging, and a steady upload rhythm. Those are the first three things to break when you are busy.',
-    outcomesTitle: 'What This Solves',
+    outcomesTitle: 'What this solves',
     process: agentLandingProcess(
       'Ask your agent to turn your source footage into Shorts and draft titles, descriptions, and scripts.',
     ),
     processDescription: SOCIAL_GROWTH_PROCESS_DESCRIPTION,
-    processTitle: 'How It Works',
+    processTitle: 'How it works',
     slug: 'youtube',
-    title: 'YouTube Growth With Your Agent',
+    title: 'YouTube growth with your agent',
   },
   {
     isAgentFirst: true,
@@ -656,12 +656,12 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
           'Doubling down on the topics that grow followers',
           'Monthly review of what is working and what changes next',
         ],
-        title: 'Growth Ops',
+        title: 'Growth ops',
       },
     ],
     deliverablesDescription:
       'The full Threads growth loop inside your Genfeed workspace. Ask your connected agent to create and schedule approved content. You keep the account, the assets, and the data.',
-    deliverablesTitle: 'What You Get',
+    deliverablesTitle: 'What you get',
     faqDescription: SOCIAL_GROWTH_FAQ_DESCRIPTION,
     faqs: socialGrowthFaqs({
       audience:
@@ -671,7 +671,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
         'buy followers, run engagement pods, or mass follow and unfollow',
       selfServe: 'trend research, drafting, scheduling, and analytics',
     }),
-    faqTitle: 'Common Questions',
+    faqTitle: 'Common questions',
     fitLabel: SOCIAL_GROWTH_FIT_LABEL,
     fitSignals: [
       'You have an Instagram audience or a point of view, and nothing on Threads to show for it.',
@@ -702,7 +702,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
         description:
           'A steady queue of posts and carousels, scheduled for when your audience is online.',
         icon: CalendarRange,
-        title: 'A Daily Cadence',
+        title: 'A daily cadence',
       },
       {
         description:
@@ -714,19 +714,19 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
         description:
           'Reply drafts on the accounts that matter in your space, the fastest way in front of new followers.',
         icon: MessageCircle,
-        title: 'Replies That Build Reach',
+        title: 'Replies that build reach',
       },
     ],
     outcomesDescription:
       'Growth on Threads comes from consistency, timing, and conversation. Those are the first three things to break when you are busy.',
-    outcomesTitle: 'What This Solves',
+    outcomesTitle: 'What this solves',
     process: agentLandingProcess(
       'Ask your agent for Threads posts, carousels, and reply drafts from your notes and product updates.',
     ),
     processDescription: SOCIAL_GROWTH_PROCESS_DESCRIPTION,
-    processTitle: 'How It Works',
+    processTitle: 'How it works',
     slug: 'threads',
-    title: 'Threads Growth With Your Agent',
+    title: 'Threads growth with your agent',
   },
   {
     isAgentFirst: true,
@@ -759,12 +759,12 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
           'Doubling down on the posts that bring new followers',
           'Monthly review of what is working and what changes next',
         ],
-        title: 'Growth Ops',
+        title: 'Growth ops',
       },
     ],
     deliverablesDescription:
       'The full Facebook growth loop inside your Genfeed workspace. Ask your connected agent to create and schedule approved content. You keep the Page, the assets, and the data.',
-    deliverablesTitle: 'What You Get',
+    deliverablesTitle: 'What you get',
     faqDescription: SOCIAL_GROWTH_FAQ_DESCRIPTION,
     faqs: socialGrowthFaqs({
       audience:
@@ -775,7 +775,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
       selfServe:
         'image and video generation, captions, scheduling to your Page, and analytics',
     }),
-    faqTitle: 'Common Questions',
+    faqTitle: 'Common questions',
     fitLabel: SOCIAL_GROWTH_FIT_LABEL,
     fitSignals: [
       'Your customers still find and check you on Facebook, and the Page has not posted in weeks.',
@@ -806,31 +806,31 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
         description:
           'A Page that posts several times a week, so everyone who checks you sees an active business.',
         icon: CalendarRange,
-        title: 'A Page That Looks Alive',
+        title: 'A page that looks alive',
       },
       {
         description:
           'Reels produced every week, the format Facebook pushes furthest beyond your followers.',
         icon: Clapperboard,
-        title: 'Reels Without A Studio',
+        title: 'Reels without a studio',
       },
       {
         description:
           'Posts built to be shared into the groups and feeds where your next customers are.',
         icon: Users,
-        title: 'Reach Through Shares',
+        title: 'Reach through shares',
       },
     ],
     outcomesDescription:
       'Growth on Facebook comes from consistency, video, and shareable posts. Those are the first three things to break when you are busy.',
-    outcomesTitle: 'What This Solves',
+    outcomesTitle: 'What this solves',
     process: agentLandingProcess(
       'Ask your agent for Facebook Reels, image posts, and captions from your product updates and offers.',
     ),
     processDescription: SOCIAL_GROWTH_PROCESS_DESCRIPTION,
-    processTitle: 'How It Works',
+    processTitle: 'How it works',
     slug: 'facebook',
-    title: 'Facebook Growth With Your Agent',
+    title: 'Facebook growth with your agent',
   },
   {
     isAgentFirst: true,
@@ -863,12 +863,12 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
           'Doubling down on the pins that drive traffic',
           'Monthly review of what is working and what changes next',
         ],
-        title: 'Growth Ops',
+        title: 'Growth ops',
       },
     ],
     deliverablesDescription:
       'The full Pinterest growth loop inside your Genfeed workspace. Ask your connected agent to create and schedule approved content. You keep the account, the assets, and the data.',
-    deliverablesTitle: 'What You Get',
+    deliverablesTitle: 'What you get',
     faqDescription: SOCIAL_GROWTH_FAQ_DESCRIPTION,
     faqs: socialGrowthFaqs({
       audience:
@@ -879,7 +879,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
       selfServe:
         'keyword research, pin image generation, descriptions, scheduling to your boards, and analytics',
     }),
-    faqTitle: 'Common Questions',
+    faqTitle: 'Common questions',
     fitLabel: SOCIAL_GROWTH_FIT_LABEL,
     fitSignals: [
       'You sell or write about something visual, and Pinterest is sending you almost no traffic.',
@@ -910,7 +910,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
         description:
           'Pins built around what your buyers type into Pinterest search, so they keep surfacing long after they go live.',
         icon: Search,
-        title: 'Found In Search',
+        title: 'Found in search',
       },
       {
         description:
@@ -927,13 +927,13 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
     ],
     outcomesDescription:
       'Growth on Pinterest comes from keywords, fresh pins, and consistency. Those are the first three things to break when you are busy.',
-    outcomesTitle: 'What This Solves',
+    outcomesTitle: 'What this solves',
     process: agentLandingProcess(
       'Ask your agent for Pinterest pin images, titles, and descriptions linked to your products or articles.',
     ),
     processDescription: SOCIAL_GROWTH_PROCESS_DESCRIPTION,
-    processTitle: 'How It Works',
+    processTitle: 'How it works',
     slug: 'pinterest',
-    title: 'Pinterest Growth With Your Agent',
+    title: 'Pinterest growth with your agent',
   },
 ];

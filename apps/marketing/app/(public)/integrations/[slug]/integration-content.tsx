@@ -62,7 +62,7 @@ export default function IntegrationContent({
 
       <section className="max-w-4xl mx-auto pb-20">
         <h2 className="text-3xl font-semibold text-center mb-12">
-          How It Works
+          How it works
         </h2>
         <div className="space-y-8">
           {integration.workflow.map(

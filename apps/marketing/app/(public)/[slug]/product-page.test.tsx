@@ -48,9 +48,9 @@ describe('ProductPage', () => {
       screen.getByText(/Operate Genfeed through a unified agent interface\./i),
     ).toBeInTheDocument();
 
-    expect(screen.getByText('Social / Engagement Agents')).toBeInTheDocument();
-    expect(screen.getByText('Workflow Agents')).toBeInTheDocument();
-    expect(screen.getByText('Content Agents')).toBeInTheDocument();
+    expect(screen.getByText('Social / engagement agents')).toBeInTheDocument();
+    expect(screen.getByText('Workflow agents')).toBeInTheDocument();
+    expect(screen.getByText('Content agents')).toBeInTheDocument();
 
     expect(screen.getByText('Twitch Chat Agent')).toBeInTheDocument();
     expect(screen.getByText('Workflow Trigger Agent')).toBeInTheDocument();
