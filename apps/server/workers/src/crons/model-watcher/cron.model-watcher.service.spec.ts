@@ -606,7 +606,7 @@ describe('CronModelWatcherService', () => {
       );
     });
 
-    it('should handle API errors gracefully', async () => {
+    it('reports an error when a list page fails', async () => {
       globalThis.fetch = vi.fn().mockResolvedValueOnce({
         ok: false,
         status: 500,
@@ -616,10 +616,13 @@ describe('CronModelWatcherService', () => {
 
       expect(result.totalPolled).toBe(0);
       expect(result.newModelsFound).toBe(0);
-      expect(result.errors).toBe(0);
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('Replicate API returned 500'),
-      );
+      expect(result.errors).toBe(1);
+      expect(result.report.unreadable).toEqual([
+        expect.objectContaining({
+          code: 'replicate_listing_incomplete',
+          reason: expect.stringContaining('500 on model list page 1'),
+        }),
+      ]);
     });
 
     it('skips models Replicate does not mark official', async () => {
@@ -705,6 +708,100 @@ describe('CronModelWatcherService', () => {
       expect(globalThis.fetch).toHaveBeenCalledTimes(2);
       expect(result.totalPolled).toBe(2);
       expect(result.newModelsFound).toBe(2);
+    });
+
+    it('discovers a model on page 5 of the list', async () => {
+      Reflect.set(service, 'listPageDelayMs', 0);
+      const page = (n: number) => ({
+        json: () =>
+          Promise.resolve({
+            next:
+              n < 5
+                ? `https://api.replicate.com/v1/models?cursor=page${n + 1}`
+                : null,
+            results: [
+              {
+                description: `Page ${n} model`,
+                is_official: true,
+                latest_version: { id: `v${n}`, openapi_schema: {} },
+                name: `model-page-${n}`,
+                owner: 'acme',
+                url: `https://replicate.com/acme/model-page-${n}`,
+              },
+            ],
+          }),
+        ok: true,
+      });
+      globalThis.fetch = vi
+        .fn()
+        .mockResolvedValueOnce(page(1))
+        .mockResolvedValueOnce(page(2))
+        .mockResolvedValueOnce(page(3))
+        .mockResolvedValueOnce(page(4))
+        .mockResolvedValueOnce(page(5)) as unknown as typeof fetch;
+      modelDiscoveryService.createDraftModel.mockResolvedValue({
+        _id: 'draft',
+      } as unknown as ServerModelRecord);
+
+      const result = await service.discoverNewModels();
+
+      expect(result.totalPolled).toBe(5);
+      expect(result.newModelsFound).toBe(5);
+      expect(result.errors).toBe(0);
+      expect(result.report.unreadable).toEqual([]);
+    });
+
+    it('reports an error when the cursor never ends', async () => {
+      Reflect.set(service, 'listPageDelayMs', 0);
+      Reflect.set(service, 'listPageLimit', 4);
+      let calls = 0;
+      globalThis.fetch = vi.fn().mockImplementation(() => {
+        calls++;
+        return Promise.resolve({
+          json: () =>
+            Promise.resolve({
+              next: `https://api.replicate.com/v1/models?cursor=page${calls + 1}`,
+              results: [],
+            }),
+          ok: true,
+        } as Response);
+      });
+
+      const result = await service.discoverNewModels();
+
+      expect(globalThis.fetch).toHaveBeenCalledTimes(4);
+      expect(result.errors).toBe(1);
+      expect(result.report.unreadable).toEqual([
+        expect.objectContaining({
+          code: 'replicate_listing_incomplete',
+          modelKey: 'provider:replicate',
+          reason: expect.stringContaining('still paging after 4 pages'),
+        }),
+      ]);
+    });
+
+    it('reports an error when the list repeats a cursor', async () => {
+      Reflect.set(service, 'listPageDelayMs', 0);
+      globalThis.fetch = vi.fn().mockImplementation(() =>
+        Promise.resolve({
+          json: () =>
+            Promise.resolve({
+              next: 'https://api.replicate.com/v1/models?cursor=same',
+              results: [],
+            }),
+          ok: true,
+        } as Response),
+      );
+
+      const result = await service.discoverNewModels();
+
+      expect(result.errors).toBe(1);
+      expect(result.report.unreadable).toEqual([
+        expect.objectContaining({
+          code: 'replicate_listing_incomplete',
+          reason: expect.stringContaining('repeated a page cursor'),
+        }),
+      ]);
     });
 
     it('should handle individual model processing errors without failing entire run', async () => {
