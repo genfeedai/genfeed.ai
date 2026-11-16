@@ -226,6 +226,24 @@ export const videoModelResolutions: VideoModelResolution[] = [
       { label: '1080p', value: '1080p' },
     ],
   },
+  {
+    default: '720p',
+    model: MODEL_KEYS.HIGGSFIELD_GENJUTSU_OBJECT_SWAP,
+    resolutions: [
+      { label: '480p', value: '480p' },
+      { label: '720p', value: '720p' },
+      { label: '1080p', value: '1080p' },
+    ],
+  },
+  {
+    default: '720p',
+    model: MODEL_KEYS.HIGGSFIELD_GENJUTSU_RESTYLE,
+    resolutions: [
+      { label: '480p', value: '480p' },
+      { label: '720p', value: '720p' },
+      { label: '1080p', value: '1080p' },
+    ],
+  },
 ];
 
 function findModelConfig(model: string): VideoModelResolution | undefined {

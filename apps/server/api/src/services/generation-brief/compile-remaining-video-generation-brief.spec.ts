@@ -1047,6 +1047,75 @@ describe('compileRemainingVideoGenerationBrief', () => {
     ).toThrow('source video');
   });
 
+  it('compiles Genjutsu object swap with the clip and reference stills', () => {
+    const result = compileRemainingVideoGenerationBrief({
+      brief: videoGenerationBriefSchema.parse({
+        constraints: [],
+        fidelityMode: 'guided',
+        intent: { objective: 'swap the mug for the teapot' },
+        mediaKind: 'video',
+        output: { resolution: '1080p' },
+        references: [
+          { assetId: 'teapot-1', role: 'first_frame' },
+          { assetId: 'clip-1', role: 'reference_video' },
+        ],
+        version: 1,
+      }),
+      family: familyFor(MODEL_KEYS.HIGGSFIELD_GENJUTSU_OBJECT_SWAP),
+      modelKey: MODEL_KEYS.HIGGSFIELD_GENJUTSU_OBJECT_SWAP,
+    });
+
+    expect(result.dispatch).toEqual({
+      image_url: 'teapot-1',
+      prompt: 'swap the mug for the teapot',
+      reference_video: 'clip-1',
+      resolution: '1080p',
+    });
+  });
+
+  it('compiles Genjutsu restyle with its preset and no character stills', () => {
+    const presetId = 'c2143317-f28d-4c3c-a0b8-39bd547e08a7';
+    const result = compileRemainingVideoGenerationBrief({
+      brief: videoGenerationBriefSchema.parse({
+        constraints: [],
+        fidelityMode: 'guided',
+        intent: { objective: 'keep the original movement' },
+        mediaKind: 'video',
+        output: { presetId },
+        references: [{ assetId: 'clip-1', role: 'reference_video' }],
+        version: 1,
+      }),
+      family: familyFor(MODEL_KEYS.HIGGSFIELD_GENJUTSU_RESTYLE),
+      modelKey: MODEL_KEYS.HIGGSFIELD_GENJUTSU_RESTYLE,
+    });
+
+    expect(result.dispatch).toEqual({
+      preset_id: presetId,
+      prompt: 'keep the original movement',
+      reference_video: 'clip-1',
+      resolution: '720p',
+    });
+    expect(result.evidence.appliedFields).toContain('output.presetId');
+  });
+
+  it('rejects Genjutsu restyle without a preset instead of choosing a style', () => {
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief: videoGenerationBriefSchema.parse({
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: { objective: 'keep the original movement' },
+          mediaKind: 'video',
+          output: {},
+          references: [{ assetId: 'clip-1', role: 'reference_video' }],
+          version: 1,
+        }),
+        family: familyFor(MODEL_KEYS.HIGGSFIELD_GENJUTSU_RESTYLE),
+        modelKey: MODEL_KEYS.HIGGSFIELD_GENJUTSU_RESTYLE,
+      }),
+    ).toThrow('requires a style preset');
+  });
+
   it('compiles Cinema Studio text-to-video with provider defaults', () => {
     const family = familyFor(MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO);
     const brief = videoGenerationBriefSchema.parse({

@@ -1,7 +1,7 @@
 /**
  * Telegram Bot Types
  *
- * Shared types for the GenFeed workflow execution bot, extracted so the
+ * Shared types for the Genfeed workflow execution bot, extracted so the
  * conversation, message-handler, and workflow-runner collaborators can share a
  * single canonical definition.
  */

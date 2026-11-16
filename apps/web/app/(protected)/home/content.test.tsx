@@ -478,7 +478,7 @@ describe('OperationalHomeContent', () => {
 
     render(<OperationalHomeContent />);
 
-    expect(screen.getByText('Generating an image...')).toBeInTheDocument();
+    expect(screen.getByText('Generating an image…')).toBeInTheDocument();
     expect(mocks.translate).toHaveBeenCalledWith(
       'activity.lifecycle.processing',
       expect.objectContaining({
@@ -818,7 +818,7 @@ describe('OperationalHomeContent', () => {
 
     const credentials = screen.getByTestId('operational-home-credentials');
     expect(within(credentials).getByRole('status')).toHaveAccessibleName(
-      'Loading credential health...',
+      'Loading credential health…',
     );
     expect(
       within(credentials).getByTestId('skeleton-card'),

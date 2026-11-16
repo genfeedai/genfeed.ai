@@ -7741,6 +7741,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'origin',
       'resolution',
       'resolutionId',
+      'sections',
       'skill',
       'skillId',
       'skillVersion',
