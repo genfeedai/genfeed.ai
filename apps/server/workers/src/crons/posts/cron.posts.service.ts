@@ -4,10 +4,6 @@ import { resolvePublishProvider } from '@api/services/integrations/publishers/pu
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import {
-  type ScheduledPostSweepLease,
-  ScheduledPostSweepLockService,
-} from '@workers/crons/posts/scheduled-post-sweep-lock.service';
-import {
   SCHEDULED_POST_APPROVAL_MISSING_MESSAGE,
   SCHEDULED_POST_SWEEP_MAX_POSTS,
   SCHEDULED_POST_SWEEP_PAGE_SIZE,
@@ -18,6 +14,10 @@ import {
   type DuePostCursor,
   ScheduledPostDiscoveryService,
 } from '@workers/services/scheduled-post-discovery.service';
+import {
+  type ScheduledPostSweepLease,
+  ScheduledPostSweepLockService,
+} from '@workers/services/scheduled-post-sweep-lock.service';
 
 interface ApprovalIdentity {
   approvalId: string;

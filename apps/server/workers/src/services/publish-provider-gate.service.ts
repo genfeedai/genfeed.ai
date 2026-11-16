@@ -10,10 +10,10 @@ import { Injectable } from '@nestjs/common';
  * Longest a publish may hold its slot if the worker dies without releasing it.
  * Normal completion releases the slot at once; this only bounds a crash.
  */
-export const PUBLISH_GATE_LEASE_MS = 10 * 60 * 1000;
+const PUBLISH_GATE_LEASE_MS = 10 * 60 * 1000;
 const RATE_WINDOW_MS = 60 * 1000;
 /** Wait before a publish held at the concurrency ceiling asks again. */
-export const PUBLISH_GATE_CONCURRENCY_RETRY_MS = 2_000;
+const PUBLISH_GATE_CONCURRENCY_RETRY_MS = 2_000;
 const RETRY_JITTER_MS = 3_000;
 
 export type PublishGateDecision =

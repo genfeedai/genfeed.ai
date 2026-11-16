@@ -50,11 +50,11 @@ import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
-import { ScheduledPostSweepLockService } from '@workers/crons/posts/scheduled-post-sweep-lock.service';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
+import { ScheduledPostSweepLockService } from '@workers/services/scheduled-post-sweep-lock.service';
 import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
 import { assertIsolatedDatabaseUrl } from '../../../scripts/assert-isolated-db-url';
 
