@@ -350,7 +350,7 @@ describe('WorkflowLibraryPage card semantics', () => {
 
     expect(screen.getAllByTestId('section-topbar')).toHaveLength(1);
     const toolbar = screen.getByTestId('section-topbar');
-    const search = screen.getByPlaceholderText('Search workflows...');
+    const search = screen.getByPlaceholderText('Search workflows');
     const newWorkflow = screen.getAllByRole('link', {
       name: 'New Workflow',
     })[0];
@@ -556,7 +556,7 @@ describe('WorkflowLibraryPage card semantics', () => {
     render(<WorkflowLibraryPage />);
 
     const topbar = screen.getByTestId('section-topbar');
-    const search = screen.getByPlaceholderText('Search workflows...');
+    const search = screen.getByPlaceholderText('Search workflows');
     const createLinks = screen.getAllByRole('link', { name: 'New Workflow' });
 
     expect(topbar).toContainElement(search);
@@ -574,9 +574,7 @@ describe('WorkflowLibraryPage card semantics', () => {
     mocks.workflows = [];
     render(<WorkflowLibraryPage />);
 
-    expect(
-      screen.getByPlaceholderText('Search workflows...'),
-    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search workflows')).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'New Workflow' }),
     ).not.toBeInTheDocument();

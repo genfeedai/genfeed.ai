@@ -54,7 +54,7 @@ test.describe('Workflows builder & canvas interactions', () => {
     await expect(
       authenticatedPage.getByRole('link', { name: 'Workflows' }).first(),
     ).toBeVisible();
-    const search = authenticatedPage.getByPlaceholder('Search workflows...');
+    const search = authenticatedPage.getByPlaceholder('Search workflows');
     if (await search.isVisible().catch(() => false)) {
       await search.fill('Social');
       await expect(search).toHaveValue('Social');
@@ -136,13 +136,13 @@ test.describe('Workflows builder & canvas interactions', () => {
     });
     // The fixed palette column is gone; steps are added from the toolbar.
     await expect(
-      authenticatedPage.getByPlaceholder('Search nodes...'),
+      authenticatedPage.getByPlaceholder('Search nodes'),
     ).toHaveCount(0);
     const nodes = authenticatedPage.locator('.react-flow__node');
     const nodeCountBefore = await nodes.count();
 
     await authenticatedPage.getByRole('button', { name: 'Add node' }).click();
-    const search = authenticatedPage.getByPlaceholder('Search nodes...');
+    const search = authenticatedPage.getByPlaceholder('Search nodes');
     await search.fill('Stitch');
     await authenticatedPage
       .getByRole('button', { name: /Stitch Videos/ })

@@ -167,7 +167,7 @@ const cases: Array<[string, CardCase]> = [
     'PublishPostCard',
     {
       action: publishAction,
-      busyLabel: 'Publishing...',
+      busyLabel: 'Publishing…',
       doneText: 'Publish confirmed from chat.',
       idleLabel: 'Confirm publish',
       render: (onUiAction) => (

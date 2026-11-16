@@ -6,6 +6,7 @@ import {
   HAILUO_VIDEO_COMPILER_ID,
   HEYGEN_VIDEO_COMPILER_ID,
   HIGGSFIELD_CINEMA_STUDIO_VIDEO_COMPILER_ID,
+  HIGGSFIELD_GENJUTSU_RESTYLE_VIDEO_COMPILER_ID,
   HIGGSFIELD_GENJUTSU_VIDEO_COMPILER_ID,
   KLING_VIDEO_COMPILER_ID,
   LUMA_VIDEO_COMPILER_ID,
@@ -44,6 +45,8 @@ interface RemainingVideoFamilyDispatchSpec {
     | 'last_image';
   modelLabel: string;
   negativePromptField?: 'negative_prompt';
+  /** Dispatch field that carries `brief.output.presetId`; the brief must set it. */
+  presetField?: 'preset_id';
   extraReferenceField?:
     | 'image_urls'
     | 'reference_image_urls'
@@ -824,12 +827,50 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
             seedSupported: false,
           },
         ),
+        profile(
+          'higgsfield-genjutsu-object-swap-capability',
+          MODEL_KEYS.HIGGSFIELD_GENJUTSU_OBJECT_SWAP,
+          {
+            aspectRatioSupported: false,
+            durationSupported: false,
+            maxReferences: 8,
+            maxVideoReferences: 1,
+            nativeFields: ['image_url', 'image_urls', 'reference_video'],
+            requireImageToVideo: true,
+            seedSupported: false,
+          },
+        ),
       ],
       requireFirstFrame: true,
       spec: {
         extraReferenceField: 'image_urls',
         firstFrameField: 'image_url',
         modelLabel: 'Higgsfield Genjutsu',
+        resolutionField: 'resolution',
+        videoReferenceField: 'reference_video',
+      },
+    },
+    {
+      compilerId: HIGGSFIELD_GENJUTSU_RESTYLE_VIDEO_COMPILER_ID,
+      compilerVersion: REMAINING_VIDEO_COMPILER_VERSION,
+      profiles: [
+        profile(
+          'higgsfield-genjutsu-restyle-capability',
+          MODEL_KEYS.HIGGSFIELD_GENJUTSU_RESTYLE,
+          {
+            aspectRatioSupported: false,
+            durationSupported: false,
+            maxReferences: 5,
+            maxVideoReferences: 1,
+            nativeFields: ['image_urls', 'reference_video'],
+            seedSupported: false,
+          },
+        ),
+      ],
+      spec: {
+        extraReferenceField: 'image_urls',
+        modelLabel: 'Higgsfield Genjutsu Restyle',
+        presetField: 'preset_id',
         resolutionField: 'resolution',
         videoReferenceField: 'reference_video',
       },

@@ -22,6 +22,8 @@ const LOCAL_MODEL =
   'Self-hosted local model: there is no provider list price to import.';
 const HIGGSFIELD_DOP_NOT_LISTED =
   'Higgsfield no longer lists this DoP endpoint in its docs catalog (checked 2026-11-15), so no estimate can price it; retire it unless Higgsfield confirms it still answers.';
+const HIGGSFIELD_ESTIMATE_PENDING =
+  'Higgsfield publishes no price page; its own estimate for this endpoint has not been sampled yet, so it has no reviewed rate (2026-11-16).';
 /**
  * Models that deliberately have no rate-sheet entry, with the reason. A paid,
  * non-retired catalog model needs a sheet entry or a line here (checked in CI).
@@ -56,6 +58,12 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'higgsfield-ai/dop/turbo': HIGGSFIELD_DOP_NOT_LISTED,
   'higgsfield/cinema-studio/4.0':
     'Metered in provider tokens from request parameters; the reconciled rate lands with the Higgsfield pricing work.',
+  'higgsfield/ads-studio/v1.0':
+    'Metered per image in provider tokens (text, image input and image output rates differ); the reconciled rate lands with the Higgsfield pricing work.',
+  'higgsfield/genjutsu/object-swap/v1.0': HIGGSFIELD_ESTIMATE_PENDING,
+  'higgsfield/genjutsu/restyle/v1.0': HIGGSFIELD_ESTIMATE_PENDING,
+  'higgsfield-ai/soul/cinema': HIGGSFIELD_ESTIMATE_PENDING,
+  'higgsfield-ai/soul/standard': HIGGSFIELD_ESTIMATE_PENDING,
   'klingai-v2': LEGACY_KEY,
   'kwaivgi/kling-v1.6-pro': IDENTITY_404,
   leonardoai: LEGACY_KEY,
