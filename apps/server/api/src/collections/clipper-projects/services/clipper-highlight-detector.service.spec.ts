@@ -104,7 +104,7 @@ describe('ClipperHighlightDetector structured boundary', () => {
           Authorization: 'Bearer key',
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://genfeed.ai',
-          'X-Title': 'GenFeed AI Clip Factory',
+          'X-Title': 'Genfeed AI Clip Factory',
         },
       });
     }

@@ -52,6 +52,7 @@ import {
   AgentThreadKind,
   AgentType,
 } from '@genfeedai/contracts';
+import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
 import type {
   ResolvedRuntimeSkill,
   SkillSectionReceipt,
@@ -497,14 +498,39 @@ export class AgentOrchestratorContextService {
    * Resolve messages and optional compressed context for a thread.
    * If compaction is available, returns windowed messages + compressed context.
    * Otherwise falls back to the standard getRecentMessages(20).
+   *
+   * A member collaborating in a thread another member owns gets only the
+   * messages their own brand access reads, and no compressed summary: a summary
+   * folds every brand's messages together, so it cannot be limited per brand
+   * (#10256). The owner's own turns are unchanged.
    */
   async resolveThreadMessages(
     threadId: string,
     organizationId: string,
+    scope?: ValidatedAgentScope,
   ): Promise<{
     messages: AgentMessageDocument[];
     compressedContext?: string;
   }> {
+    const brandIds =
+      scope?.threadOwnerUserId !== undefined &&
+      scope.threadOwnerUserId !== scope.userId
+        ? await this.agentScopeContextService.resolveCollaboratorHistoryBrandIds(
+            scope,
+            threadId,
+          )
+        : undefined;
+    if (brandIds !== undefined) {
+      return {
+        messages: await this.agentMessagesService.getRecentMessages(
+          threadId,
+          20,
+          organizationId,
+          brandIds,
+        ),
+      };
+    }
+
     if (!this.threadContextCompressorService) {
       return {
         messages: await this.agentMessagesService.getRecentMessages(

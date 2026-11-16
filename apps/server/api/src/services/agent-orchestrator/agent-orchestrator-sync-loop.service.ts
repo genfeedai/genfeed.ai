@@ -335,6 +335,7 @@ export class AgentOrchestratorSyncLoopService {
       await this.contextService.resolveThreadMessages(
         threadId,
         context.organizationId,
+        context.scope,
       );
     const history = this.contextService.buildMessageHistory(
       recentMessages,

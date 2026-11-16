@@ -29,6 +29,13 @@ type CheckoutLineItem = NonNullable<
 
 const STRIPE_SECRET_KEY_PATTERN = /^[sr]k_(live|test)_/;
 
+/**
+ * The Genfeed marketplace sells the Skills Pro bundle and sends the buyer back
+ * to its own pages after Stripe. Its public origin is fixed, so it is listed
+ * here and not read from config.
+ */
+const MARKETPLACE_RETURN_ORIGIN = 'https://marketplace.genfeed.ai';
+
 @Traced()
 @Injectable()
 export class SkillCheckoutService {
@@ -70,7 +77,10 @@ export class SkillCheckoutService {
     const appUrl = this.configService.get('GENFEEDAI_APP_URL');
     const defaultSuccessUrl = `${appUrl}/skills-pro/success?session_id={CHECKOUT_SESSION_ID}`;
     const defaultCancelUrl = `${appUrl}/skills-pro`;
-    const redirectBaseUrls = getCheckoutRedirectBaseUrls(this.configService);
+    const redirectBaseUrls = [
+      ...getCheckoutRedirectBaseUrls(this.configService),
+      MARKETPLACE_RETURN_ORIGIN,
+    ];
 
     const sessionConfig: CheckoutSessionCreateParams = {
       cancel_url: resolveAllowedRedirectUrl(

@@ -48,7 +48,7 @@
     "statusForTask": "Status for {title}",
     "priorityForTask": "Priority for {title}",
     "createTaskTitle": "Create Task",
-    "creating": "Creating...",
+    "creating": "Creating…",
     "titleLabel": "Title",
     "descriptionLabel": "Description",
     "taskTitlePlaceholder": "Task title",

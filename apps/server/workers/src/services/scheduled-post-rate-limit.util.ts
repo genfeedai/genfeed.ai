@@ -55,6 +55,10 @@ export function readRetryAfterMs(error: unknown, now: Date): number | null {
   const explicit = readNumber(error.retryAfterMs);
   if (explicit !== undefined && explicit >= 0) return explicit;
 
+  if (error.resetAt instanceof Date) {
+    return Math.max(0, error.resetAt.getTime() - now.getTime());
+  }
+
   const headers = readHeaders(error);
   const retryAfter = headers['retry-after'];
   const seconds = readNumber(retryAfter);

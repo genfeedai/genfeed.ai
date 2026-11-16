@@ -2,8 +2,10 @@ import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import {
   ActivityEntityModel,
   ActivityKey,
+  PublishErrorKind,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { PublishError } from '@genfeedai/contracts/interfaces';
 import {
   createChannelTargetError,
   createFailedPublishResult,
@@ -13,6 +15,7 @@ import {
   getPublishErrorMessage,
   isAmbiguousPublishError,
   isRetryablePublishError,
+  toPublishFailureCause,
 } from '@workers/crons/posts/post-publish-error.util';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -69,6 +72,57 @@ describe('post publish error policy', () => {
     [new Error('Provider rejected the payload'), 'provider_error'],
   ])('normalizes %p to error code %s', (error, expected) => {
     expect(getPublishErrorCode(error)).toBe(expected);
+  });
+
+  describe('a failure that carries a kind', () => {
+    it.each([
+      [PublishErrorKind.RATE_LIMITED, true, false, 'rate_limited'],
+      [PublishErrorKind.RETRY_LATER, true, false, 'provider_unavailable'],
+      [PublishErrorKind.OUTCOME_UNKNOWN, true, true, 'outcome_unknown'],
+      [PublishErrorKind.TOKEN_MUST_REFRESH, false, false, 'token_must_refresh'],
+      [PublishErrorKind.CONTENT_REJECTED, false, false, 'content_rejected'],
+      [
+        PublishErrorKind.CHANNEL_DISCONNECTED,
+        false,
+        false,
+        'channel_disconnected',
+      ],
+    ])(
+      '%s: retryable %s, outcome unknown %s, code %s',
+      (kind, isRetryable, isAmbiguous, code) => {
+        const error = new PublishError(kind, 'Provider said no');
+
+        expect(isRetryablePublishError(error)).toBe(isRetryable);
+        expect(isAmbiguousPublishError(error)).toBe(isAmbiguous);
+        expect(getPublishErrorCode(error)).toBe(code);
+      },
+    );
+
+    it('is not misread from fragments in the provider message', () => {
+      const rejected = new PublishError(
+        PublishErrorKind.CONTENT_REJECTED,
+        'Caption is longer than 500 characters; the request timed out the validator',
+        { httpStatus: 400 },
+      );
+
+      expect(isRetryablePublishError(rejected)).toBe(false);
+      expect(isAmbiguousPublishError(rejected)).toBe(false);
+      expect(getPublishErrorCode(rejected)).toBe('content_rejected');
+    });
+
+    it('classifies a returned failure from its kind, not its message', () => {
+      const cause = toPublishFailureCause({
+        error: 'Caption is longer than 500 characters',
+        errorKind: PublishErrorKind.CONTENT_REJECTED,
+        executionState: TargetExecutionState.FAILED,
+        externalId: null,
+        platform: 'twitter',
+        success: false,
+        url: '',
+      });
+
+      expect(isRetryablePublishError(cause)).toBe(false);
+    });
   });
 
   it('normalizes thrown values to the existing publish error message', () => {
