@@ -6,6 +6,22 @@ export interface CreditCycleWindow {
 }
 
 /**
+ * The date `months` before `date`, with the day clamped to the target month's
+ * last day: a period ending March 31 starts February 28, not March 3.
+ */
+function subtractMonths(date: Date, months: number): Date {
+  const result = new Date(date);
+  const day = result.getUTCDate();
+  result.setUTCDate(1);
+  result.setUTCMonth(result.getUTCMonth() - months);
+  const lastDay = new Date(
+    Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  result.setUTCDate(Math.min(day, lastDay));
+  return result;
+}
+
+/**
  * The billing period a subscription is currently in, derived from its period
  * end and plan. Null when the organization has no subscription period (free,
  * pay-as-you-go, or a subscription that never completed checkout).
@@ -22,16 +38,13 @@ export function getSubscriptionCycleWindow(
   }
 
   const cycleEndAt = new Date(subscription.currentPeriodEnd);
-  const cycleStartAt = new Date(cycleEndAt);
 
   if (subscriptionPlan === SubscriptionPlan.MONTHLY) {
-    cycleStartAt.setMonth(cycleStartAt.getMonth() - 1);
-    return { cycleEndAt, cycleStartAt };
+    return { cycleEndAt, cycleStartAt: subtractMonths(cycleEndAt, 1) };
   }
 
   if (subscriptionPlan === SubscriptionPlan.YEARLY) {
-    cycleStartAt.setFullYear(cycleStartAt.getFullYear() - 1);
-    return { cycleEndAt, cycleStartAt };
+    return { cycleEndAt, cycleStartAt: subtractMonths(cycleEndAt, 12) };
   }
 
   return null;

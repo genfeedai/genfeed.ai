@@ -29,6 +29,24 @@ describe('getSubscriptionCycleWindow', () => {
     });
   });
 
+  it('clamps a month-end period to the previous month, not into the month after', () => {
+    expect(
+      getSubscriptionCycleWindow({
+        currentPeriodEnd: new Date('2026-03-31T00:00:00.000Z'),
+        plan: SubscriptionPlan.MONTHLY,
+      })?.cycleStartAt,
+    ).toEqual(new Date('2026-02-28T00:00:00.000Z'));
+  });
+
+  it('starts a yearly period ending on a leap day on the last day of February', () => {
+    expect(
+      getSubscriptionCycleWindow({
+        currentPeriodEnd: new Date('2028-02-29T00:00:00.000Z'),
+        plan: SubscriptionPlan.YEARLY,
+      })?.cycleStartAt,
+    ).toEqual(new Date('2027-02-28T00:00:00.000Z'));
+  });
+
   it.each([
     ['no subscription', null],
     [

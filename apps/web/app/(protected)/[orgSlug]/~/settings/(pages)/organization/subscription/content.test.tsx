@@ -581,6 +581,42 @@ describe('SettingsSubscriptionPage', () => {
     expect(screen.queryByText('9,000')).not.toBeInTheDocument();
   });
 
+  it('shows no usage figure, not the all-time one, when the credits request fails', () => {
+    useBillingAccountMock.mockReturnValue({
+      account: {
+        budgetPolicy: null,
+        callerRole: null,
+        capabilities: {
+          canCheckout: false,
+          canDetachOrganization: false,
+          canLinkOrganization: false,
+          canManageBudgets: false,
+          canManageMembers: false,
+          canOpenPortal: false,
+        },
+        isLinked: true,
+        id: 'billing-account-123',
+        kind: 'organization',
+        monthlyBudgetCredits: null,
+        organizationId: 'org-123',
+        usage: 9000,
+      },
+      error: null,
+      isLoading: false,
+      refresh: vi.fn(),
+    });
+    useSubscriptionMock.mockReturnValue({
+      ...useSubscriptionMock(),
+      creditsBreakdown: null,
+      error: 'credits failed',
+    });
+
+    render(<SettingsSubscriptionPage />);
+
+    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.queryByText('9,000')).not.toBeInTheDocument();
+  });
+
   it('uses the credits breakdown only for the current organization in the funded list', () => {
     useBillingAccountMock.mockReturnValue({
       account: {

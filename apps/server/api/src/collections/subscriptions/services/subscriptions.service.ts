@@ -1,4 +1,3 @@
-import { getSubscriptionCycleWindow } from '@api/collections/credits/services/credit-cycle-window.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
@@ -18,6 +17,10 @@ import {
 } from '@api/collections/subscriptions/errors/subscription-preview-failure.util';
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import { buildAdminBillingOrderBy } from '@api/collections/subscriptions/utils/admin-billing-order.util';
+import {
+  resolveAdminCycleUsed,
+  resolveAdminPlanLimit,
+} from '@api/collections/subscriptions/utils/admin-billing-plan.util';
 import { buildOrganizationBillingRow } from '@api/collections/subscriptions/utils/organization-billing.util';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -290,19 +293,18 @@ export class SubscriptionsService
           (billingAccountId
             ? wallets.find((row) => row.billingAccountId === billingAccountId)
             : undefined);
-        const planLimit = subscription
-          ? ((await this.creditGrantService.resolveMonthlyCredits(
-              subscription.stripePriceId,
-            )) ?? 0)
-          : 0;
-
+        const planLimit = await resolveAdminPlanLimit(
+          this.creditGrantService,
+          subscription,
+        );
         const balance = wallet ? wallet.balance - wallet.heldAmount : 0;
 
         return buildOrganizationBillingRow({
           balance,
-          cycleUsed: await this.planCycleUsed(
+          cycleUsed: await resolveAdminCycleUsed(
+            this.creditsUtilsService,
             organization.id,
-            subscription ?? null,
+            subscription,
             planLimit,
             balance,
           ),
@@ -341,27 +343,6 @@ export class SubscriptionsService
       totalDocs,
       totalPages: Math.max(1, Math.ceil(totalDocs / options.limit)),
     };
-  }
-
-  /** Only a plan meter reports usage, so only a plan reads the ledger. */
-  private async planCycleUsed(
-    organizationId: string,
-    subscription: Parameters<typeof getSubscriptionCycleWindow>[0],
-    planLimit: number,
-    balance: number,
-  ): Promise<number> {
-    if (planLimit <= 0) {
-      return 0;
-    }
-
-    const { cycleUsed } =
-      await this.creditsUtilsService.getCycleRemainingMetrics(
-        organizationId,
-        getSubscriptionCycleWindow(subscription),
-        balance,
-      );
-
-    return cycleUsed;
   }
 
   private async loadAdminBillingRelations(organizationIds: string[]) {

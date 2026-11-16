@@ -827,6 +827,42 @@ describe('CreditsUtilsService', () => {
       expect(metrics.remainingPercent).toBeCloseTo(28.4, 1);
     });
 
+    it('starts the ledger window at the latest reset, and reads a supplied window as given', async () => {
+      const resetAt = new Date('2026-10-01T00:00:00.000Z');
+      creditTransactionsService.getOrganizationTransactions.mockResolvedValue([
+        { createdAt: resetAt },
+      ]);
+      creditTransactionsService.getLatestTransactionBeforeDate.mockResolvedValue(
+        null,
+      );
+      creditTransactionsService.getOrganizationTransactionsInRange.mockResolvedValue(
+        [],
+      );
+      const service = buildService();
+
+      await service.getCycleRemainingMetrics('org_1', null, 0);
+      await service.getCycleRemainingMetrics(
+        'org_1',
+        {
+          cycleEndAt: new Date('2026-12-01T00:00:00.000Z'),
+          cycleStartAt: new Date('2026-11-01T00:00:00.000Z'),
+        },
+        0,
+      );
+
+      const rangeStarts =
+        creditTransactionsService.getOrganizationTransactionsInRange.mock.calls.map(
+          ([, start]) => start,
+        );
+      expect(rangeStarts).toEqual([
+        resetAt,
+        new Date('2026-11-01T00:00:00.000Z'),
+      ]);
+      expect(
+        creditTransactionsService.getOrganizationTransactions,
+      ).toHaveBeenCalledTimes(1);
+    });
+
     it('counts the whole ledger when the organization never had a reset', async () => {
       creditTransactionsService.getOrganizationTransactions.mockResolvedValue(
         [],
