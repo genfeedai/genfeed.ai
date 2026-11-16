@@ -4,7 +4,7 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ShopifyService } from '@api/services/integrations/shopify/services/shopify.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, PublishErrorKind } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -227,7 +227,7 @@ describe('ShopifyService', () => {
       expect(loggerService.log).toHaveBeenCalled();
     });
 
-    it('returns null on GraphQL user errors', async () => {
+    it('rejects the content on GraphQL user errors', async () => {
       httpService.post.mockReturnValue(
         of({
           data: {
@@ -241,16 +241,60 @@ describe('ShopifyService', () => {
         }),
       );
 
-      const result = await service.createProduct(
-        shop,
-        accessToken,
-        'Title',
-        'Body',
-        [],
+      await expect(
+        service.createProduct(shop, accessToken, 'Title', 'Body', []),
+      ).rejects.toMatchObject({
+        kind: PublishErrorKind.CONTENT_REJECTED,
+        message: 'Shopify rejected the product: title: Too long',
+      });
+    });
+
+    it('reports a throttled response as rate limited with the refill wait', async () => {
+      httpService.post.mockReturnValue(
+        of({
+          data: {
+            errors: [
+              { extensions: { code: 'THROTTLED' }, message: 'Throttled' },
+            ],
+            extensions: {
+              cost: {
+                requestedQueryCost: 10,
+                throttleStatus: {
+                  currentlyAvailable: 0,
+                  maximumAvailable: 1000,
+                  restoreRate: 50,
+                },
+              },
+            },
+          },
+        }),
       );
 
-      expect(result).toBeNull();
-      expect(loggerService.error).toHaveBeenCalled();
+      await expect(
+        service.createProduct(shop, accessToken, 'T', 'B', []),
+      ).rejects.toMatchObject({
+        kind: PublishErrorKind.RATE_LIMITED,
+        retryAfterMs: 200,
+      });
+    });
+
+    it('reports an internal Shopify error on a 200 response as an unknown outcome', async () => {
+      httpService.post.mockReturnValue(
+        of({
+          data: {
+            errors: [
+              {
+                extensions: { code: 'INTERNAL_SERVER_ERROR' },
+                message: 'Internal error',
+              },
+            ],
+          },
+        }),
+      );
+
+      await expect(
+        service.createProduct(shop, accessToken, 'T', 'B', []),
+      ).rejects.toMatchObject({ kind: PublishErrorKind.OUTCOME_UNKNOWN });
     });
 
     it('throws and logs on HTTP error', async () => {
