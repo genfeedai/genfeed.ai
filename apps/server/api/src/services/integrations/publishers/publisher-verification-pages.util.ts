@@ -254,3 +254,51 @@ export function parseMastodonVerificationPage(
     nextCursor,
   };
 }
+
+const BLUESKY_POST_URI_PATTERN =
+  /^at:\/\/([^/]+)\/app\.bsky\.feed\.post\/([^/]+)$/;
+const BLUESKY_RECORD_EMBED_PATTERN = /^app\.bsky\.embed\.record/;
+
+/**
+ * One `com.atproto.repo.listRecords` page of `app.bsky.feed.post` records.
+ * Every record must belong to the connected account; a record that does not is
+ * evidence the lookup went to the wrong repo, so the page is refused.
+ */
+export function parseBlueskyVerificationPage(
+  value: unknown,
+  authorDid: string,
+): ProviderVerificationPage {
+  const root = verificationRecord(value);
+  const cursor = root.cursor;
+  if (cursor !== undefined && typeof cursor !== 'string')
+    throw new Error('Incomplete Bluesky pagination');
+  return {
+    items: verificationArray(root.records).map((node) => {
+      const item = verificationRecord(node);
+      const uri = verificationId(item.uri);
+      const match = BLUESKY_POST_URI_PATTERN.exec(uri);
+      if (!match || match[1] !== authorDid)
+        throw new Error('Bluesky verification author mismatch');
+      const post = verificationRecord(item.value);
+      const embed =
+        post.embed === undefined ? undefined : verificationRecord(post.embed);
+      const embedType =
+        embed === undefined ? undefined : verificationString(embed.$type);
+      return {
+        createdAt: verificationTimestamp(post.createdAt),
+        // Images, video and link cards all make a post differ from plain text.
+        hasMedia:
+          embedType !== undefined &&
+          !BLUESKY_RECORD_EMBED_PATTERN.test(embedType),
+        id: uri,
+        isQuote:
+          embedType !== undefined &&
+          BLUESKY_RECORD_EMBED_PATTERN.test(embedType),
+        isReply: post.reply !== undefined,
+        text: verificationString(post.text),
+        url: `https://bsky.app/profile/${authorDid}/post/${match[2]}`,
+      };
+    }),
+    nextCursor: cursor === undefined || cursor === '' ? null : cursor,
+  };
+}

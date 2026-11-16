@@ -2,6 +2,7 @@ import { CredentialsCoreModule } from '@api/collections/credentials/credentials-
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { SERVER_TOKENS } from '@api/index';
 import { BeehiivModule } from '@api/services/integrations/beehiiv/beehiiv.module';
+import { BlueskyModule } from '@api/services/integrations/bluesky/bluesky.module';
 import { DevtoModule } from '@api/services/integrations/devto/devto.module';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
 import { FanvueModule } from '@api/services/integrations/fanvue/fanvue.module';
@@ -12,6 +13,7 @@ import { MastodonModule } from '@api/services/integrations/mastodon/mastodon.mod
 import { MediumModule } from '@api/services/integrations/medium/medium.module';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
 import { BeehiivPublisherService } from '@api/services/integrations/publishers/beehiiv-publisher.service';
+import { BlueskyPublisherService } from '@api/services/integrations/publishers/bluesky-publisher.service';
 import { DevtoPublisherService } from '@api/services/integrations/publishers/devto-publisher.service';
 import { FacebookPublisherService } from '@api/services/integrations/publishers/facebook-publisher.service';
 import { FanvuePublisherService } from '@api/services/integrations/publishers/fanvue-publisher.service';
@@ -55,6 +57,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
 @Module({
   exports: [
     BeehiivPublisherService,
+    BlueskyPublisherService,
     DevtoPublisherService,
     FacebookPublisherService,
     FanvuePublisherService,
@@ -87,6 +90,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
 
     // Platform integration modules
     BeehiivModule,
+    BlueskyModule,
     DevtoModule,
     FacebookModule,
     FanvueModule,
@@ -112,6 +116,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
   ],
   providers: [
     BeehiivPublisherService,
+    BlueskyPublisherService,
     DevtoPublisherService,
     FacebookPublisherService,
     FanvuePublisherService,

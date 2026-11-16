@@ -30,6 +30,7 @@ describe('platform.enum', () => {
         'GHOST',
         'SHOPIFY',
         'BEEHIIV',
+        'BLUESKY',
         'UNIPILE',
         'DEV_TO',
         'PRODUCT_HUNT',

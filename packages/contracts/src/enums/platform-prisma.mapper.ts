@@ -50,6 +50,7 @@ export const PRISMA_CREDENTIAL_PLATFORM_VALUES = [
   'DEVTO',
   'RESTREAM',
   'GENFEED',
+  'BLUESKY',
 ] as const;
 
 export type PrismaCredentialPlatformValue =

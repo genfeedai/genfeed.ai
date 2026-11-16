@@ -825,6 +825,37 @@ const channelCapabilities = [
     status: 'planned',
   },
   {
+    caption: { maxLength: 300, required: false },
+    description:
+      'Text, image and video posts, and reply threads, on a connected Bluesky account.',
+    helpers: [
+      {
+        key: 'bluesky.accounts',
+        kind: 'account',
+        label: 'Bluesky account',
+        required: true,
+      },
+    ],
+    label: 'Bluesky',
+    media: {
+      // A post carries up to 4 images or one video, never both. Bluesky
+      // rejects an image over 1 MB, so the publisher downscales each one.
+      animated: {
+        consequence:
+          'Animated images publish as a static image; upload a video to keep motion.',
+        supported: false,
+      },
+      images: { maxItems: 4, minItems: 1 },
+      kinds: ['image', 'video', 'short_video', 'carousel', 'link'],
+      maxItems: 4,
+      minItems: 0,
+    },
+    platform: CredentialPlatform.BLUESKY,
+    publishModes: ['draft', 'publish_now', 'scheduled'],
+    settings: [],
+    status: 'supported',
+  },
+  {
     caption: { maxLength: 100_000, required: true },
     description:
       'Long-form HTML story on a connected Medium account. Articles deliver here from the article editor.',
@@ -961,6 +992,10 @@ const channelThreadChildCapabilities: Partial<
     mediaKinds: ['image', 'video', 'carousel'],
   },
   [CredentialPlatform.MASTODON]: {
+    kind: 'reply_chain',
+    mediaKinds: ['image', 'video'],
+  },
+  [CredentialPlatform.BLUESKY]: {
     kind: 'reply_chain',
     mediaKinds: ['image', 'video'],
   },

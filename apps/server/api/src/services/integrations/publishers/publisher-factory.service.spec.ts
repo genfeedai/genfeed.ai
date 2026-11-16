@@ -4,6 +4,7 @@
  */
 
 import { BeehiivPublisherService } from '@api/services/integrations/publishers/beehiiv-publisher.service';
+import { BlueskyPublisherService } from '@api/services/integrations/publishers/bluesky-publisher.service';
 import { DevtoPublisherService } from '@api/services/integrations/publishers/devto-publisher.service';
 import { FacebookPublisherService } from '@api/services/integrations/publishers/facebook-publisher.service';
 import { FanvuePublisherService } from '@api/services/integrations/publishers/fanvue-publisher.service';
@@ -126,6 +127,10 @@ describe('PublisherFactoryService', () => {
         {
           provide: DevtoPublisherService,
           useValue: mockPublisher(CredentialPlatform.DEV_TO),
+        },
+        {
+          provide: BlueskyPublisherService,
+          useValue: mockPublisher(CredentialPlatform.BLUESKY),
         },
         {
           provide: GenfeedPublisherService,
@@ -419,6 +424,7 @@ describe('PublisherFactoryService', () => {
       CredentialPlatform.BEEHIIV,
       CredentialPlatform.MEDIUM,
       CredentialPlatform.DEV_TO,
+      CredentialPlatform.BLUESKY,
     ] as const;
 
     it.each(SUPPORTED)(
@@ -440,8 +446,8 @@ describe('PublisherFactoryService', () => {
       expect(Array.isArray(service.getSupportedPlatforms())).toBe(true);
     });
 
-    it('should include all 20 registered platforms', () => {
-      expect(service.getSupportedPlatforms()).toHaveLength(20);
+    it('should include all 21 registered platforms', () => {
+      expect(service.getSupportedPlatforms()).toHaveLength(21);
     });
 
     it('should include TWITTER', () => {
@@ -453,6 +459,12 @@ describe('PublisherFactoryService', () => {
     it('should include MASTODON', () => {
       expect(service.getSupportedPlatforms()).toContain(
         CredentialPlatform.MASTODON,
+      );
+    });
+
+    it('should include BLUESKY', () => {
+      expect(service.getSupportedPlatforms()).toContain(
+        CredentialPlatform.BLUESKY,
       );
     });
 
