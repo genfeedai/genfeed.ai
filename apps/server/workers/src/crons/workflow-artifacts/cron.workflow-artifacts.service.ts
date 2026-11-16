@@ -20,8 +20,12 @@ export class CronWorkflowArtifactsService {
     private readonly executionPurge: WorkflowExecutionPurgeService,
   ) {}
 
-  /** Bulk-deletes finished runs past their `purgeAt` (#10382). */
+  /**
+   * Closes abandoned runs, then bulk-deletes finished runs past their
+   * `purgeAt` (#10382).
+   */
   async purgeExpiredExecutions(): Promise<void> {
+    await this.executionPurge.failStaleExecutions();
     await this.executionPurge.purgeExpiredExecutions();
   }
 
