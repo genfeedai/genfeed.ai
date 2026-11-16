@@ -3,6 +3,7 @@ import Image from 'next/image';
 interface AppProductScreenshotProps {
   alt: string;
   isPriority?: boolean;
+  isWide?: boolean;
   src: string;
 }
 
@@ -13,16 +14,23 @@ interface AppProductScreenshotProps {
 export default function AppProductScreenshot({
   alt,
   isPriority = false,
+  isWide = false,
   src,
 }: AppProductScreenshotProps): React.ReactElement {
   return (
-    <figure className="w-full max-w-[760px] overflow-hidden rounded-2xl border border-foreground/10 bg-background shadow-[0_32px_100px_rgba(0,0,0,0.35)]">
+    <figure
+      className={`w-full overflow-hidden ${isWide ? 'hidden sm:block' : 'max-w-[760px]'} rounded-2xl border border-foreground/10 bg-background shadow-[0_32px_100px_rgba(0,0,0,0.35)]`}
+    >
       <Image
         alt={alt}
         className="h-auto w-full"
         height={900}
         priority={isPriority}
-        sizes="(max-width: 1024px) 100vw, 760px"
+        sizes={
+          isWide
+            ? '(max-width: 1280px) 100vw, 1232px'
+            : '(max-width: 1024px) 100vw, 760px'
+        }
         src={src}
         width={1440}
       />
