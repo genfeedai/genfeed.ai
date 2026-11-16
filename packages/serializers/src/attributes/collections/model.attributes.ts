@@ -53,7 +53,6 @@ export const modelAttributes = createEntityAttributes([
   'usesOrientation',
   'hasDurationEditing',
   // Lifecycle fields
-  'succeededBy',
   'predecessorOf',
   // Dynamic registry ownership fields
   'organizationId',

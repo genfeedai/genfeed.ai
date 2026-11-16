@@ -13,4 +13,5 @@ export {
   type FormattedAgentError,
   formatAgentError,
   formatAgentFailureMessage,
+  isRetiredModelError,
 } from './utils/format-agent-error.util';

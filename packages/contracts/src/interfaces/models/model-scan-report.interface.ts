@@ -24,7 +24,7 @@ export interface ModelScanPriceChange {
 /**
  * The provider's public price page is gone (404) but its API still serves the
  * model. The approved rate keeps charging; there is no public price left to
- * watch, so an operator names a successor. Reported once.
+ * watch. Reported once.
  */
 export interface ModelScanDelistedModel {
   modelKey: string;
@@ -35,7 +35,7 @@ export interface ModelScanDelistedModel {
 
 /**
  * The provider's API says the model no longer exists (404). Reported once; the
- * scanner never retires a row. An operator retires it and names a successor.
+ * scanner never retires a row. An operator retires it.
  */
 export interface ModelScanRemovedModel {
   modelKey: string;

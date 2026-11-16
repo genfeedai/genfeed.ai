@@ -3,6 +3,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { isModelOnAllowlist } from '@api/collections/models/utils/enabled-model.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { RetiredModelException } from '@api/helpers/exceptions/retired-model/retired-model.exception';
 import type {
   ModelRecommendation,
   ModelResolution,
@@ -131,7 +132,7 @@ export class RouterService {
    *
    * Auto-routing only considers active, reviewed Recommended rows with known
    * non-zero pricing. Available and Legacy rows remain valid explicit choices;
-   * Retired rows only resolve through a declared successor.
+   * An explicit Retired choice stops with a RetiredModelException.
    *
    * Org-private rows (customer trainings, BYO models) are only eligible for
    * their owner. `selectModel` then further restricts to the org allowlist
@@ -172,28 +173,22 @@ export class RouterService {
       const key = this.readString(candidate);
       if (!key) continue;
 
-      const seen = new Set<string>();
-      let current =
-        recommendedModels.find((model) => model.key === key) ??
-        (await this.findVisibleModel(key, organizationId));
-      while (
-        current?.lifecycle === ModelLifecycle.RETIRED &&
-        current.succeededBy &&
-        !seen.has(String(current.key))
+      const model =
+        recommendedModels.find(
+          (candidateModel) => candidateModel.key === key,
+        ) ?? (await this.findVisibleModel(key, organizationId));
+
+      // An explicit choice of a retired model stops here. It is never swapped
+      // for another model; the user picks a new one.
+      if (
+        model?.lifecycle === ModelLifecycle.RETIRED &&
+        model.category === category
       ) {
-        seen.add(String(current.key));
-        current = await this.modelsService.findOne({
-          key: current.succeededBy,
-          organizationId: current.organizationId ?? null,
-        });
+        throw new RetiredModelException(key, model.label);
       }
 
-      if (
-        current?.isActive &&
-        current.category === category &&
-        current.lifecycle !== ModelLifecycle.RETIRED
-      ) {
-        return String(current.key);
+      if (model?.isActive && model.category === category) {
+        return String(model.key);
       }
     }
     return undefined;

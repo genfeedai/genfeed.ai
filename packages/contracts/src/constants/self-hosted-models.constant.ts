@@ -312,7 +312,7 @@ export const SELF_HOSTED_MODELS = [
    * Legacy MiniMax I2V. Replicate bills per clip: $0.19 at 768p/6s (the
    * seeded default), $0.32 at 768p/10s, $0.33 at 1080p/6s. The reviewed
    * sheet prices the selected duration/resolution; this USD is the 6s 768p
-   * band. H3 is the successor.
+   * band.
    */
   {
     category: ModelCategory.VIDEO,
@@ -321,7 +321,7 @@ export const SELF_HOSTED_MODELS = [
     qualityTier: QualityTier.STANDARD,
     speedTier: SpeedTier.FAST,
     description:
-      'MiniMax Hailuo 2.3 Fast — image-to-video from a required first frame. Legacy; MiniMax H3 is the successor.',
+      'MiniMax Hailuo 2.3 Fast — image-to-video from a required first frame. Legacy.',
     isDefault: false,
     isHighlighted: false,
     key: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
@@ -521,7 +521,6 @@ export const SELF_HOSTED_MODELS = [
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'gpt-image-1.5', owner: 'openai' },
     providerCostUsd: 0.053,
-    succeededBy: MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE,
   },
   /**
    * GPT Image 2 — still in the main picker. Seed at `high`, its top quality band.
@@ -895,7 +894,7 @@ export const SELF_HOSTED_MODELS = [
     qualityTier: QualityTier.BASIC,
     speedTier: SpeedTier.FAST,
     description:
-      'Meta MusicGen — legacy, non-commercial weights (CC-BY-NC 4.0). Replaced by Lyria 3 Pro.',
+      'Meta MusicGen — legacy, non-commercial weights (CC-BY-NC 4.0).',
     endpoint:
       'meta/musicgen:671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eedcfb',
     isActive: false,
@@ -907,7 +906,6 @@ export const SELF_HOSTED_MODELS = [
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'musicgen', owner: 'meta' },
     providerCostUsd: 0.05,
-    succeededBy: MODEL_KEYS.FAL_LYRIA3_PRO,
   },
   /**
    * fal.ai — https://fal.ai/models/fal-ai/elevenlabs/music ($0.60 per output

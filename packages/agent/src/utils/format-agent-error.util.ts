@@ -9,6 +9,13 @@ const WHITESPACE_RUNS_PATTERN = /\s+/g;
 const LINE_BREAK_PATTERN = /\r?\n/;
 const FAILED_AT_LINE_PATTERN = /^Failed at:[^\S\r\n]*\S[^\r\n]*$/i;
 const RETRYABLE_STEP_LINE_PATTERN = /^This step can be retried\.$/i;
+/**
+ * The message a run stops with when it names a retired model (the API's
+ * RetiredModelException). A retired model has no successor, so the run never
+ * reroutes: it stops until the user picks a new model.
+ */
+const RETIRED_MODEL_PATTERN =
+  /\bThe model (.+?) was retired\. Pick a new model\b/i;
 const BARE_STATUS_CODE_ERROR_PATTERN =
   /^Request failed with status code (\d{3})$/i;
 
@@ -391,6 +398,20 @@ export function formatAgentError(
     };
   }
 
+  const retiredModel = original.match(RETIRED_MODEL_PATTERN);
+  if (retiredModel) {
+    return {
+      detail: null,
+      isConfigurationError: false,
+      isRetryable: false,
+      reason: AgentFailureReason.MODEL_UNAVAILABLE,
+      recovery:
+        'Pick a new model for this agent, workflow or default, then run it again.',
+      summary: `The model ${retiredModel[1]} was retired, so this run stopped before it started. Nothing was billed.`,
+      title: 'Model retired',
+    };
+  }
+
   // Classify against the raw message so env-var names still match, then scrub
   // any secrets before they could reach the UI detail field.
   for (const pattern of CONFIG_PATTERNS) {
@@ -469,4 +490,9 @@ export function formatAgentFailureMessage(
 ): string {
   const { title, summary, recovery } = formatAgentError(raw);
   return [title, summary, recovery].filter(Boolean).join('\n');
+}
+
+/** True when a run error is the stop raised for a retired model. */
+export function isRetiredModelError(raw: string | null | undefined): boolean {
+  return typeof raw === 'string' && RETIRED_MODEL_PATTERN.test(raw);
 }

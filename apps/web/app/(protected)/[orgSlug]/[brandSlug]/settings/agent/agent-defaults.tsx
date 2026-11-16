@@ -24,7 +24,10 @@ export default function AgentDefaults() {
         brandId={brandId}
         onRefreshBrand={() => handleRefreshBrand()}
       />
-      <BrandDetailDefaultModelsCard brand={brand} />
+      <BrandDetailDefaultModelsCard
+        brand={brand}
+        onRefreshBrand={() => handleRefreshBrand()}
+      />
       <BrandWritingVoiceEditor
         key={brandId}
         brand={brand}

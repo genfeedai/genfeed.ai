@@ -17,13 +17,17 @@ import credentialPostingTimes from '../../messages/en/pages/credentialPostingTim
 import generationReceipts from '../../messages/en/pages/generationReceipts.json';
 import identityDefaults from '../../messages/en/pages/identityDefaults.json';
 import library from '../../messages/en/pages/library.json';
+import models from '../../messages/en/pages/models.json';
 import socialWarmup from '../../messages/en/pages/socialWarmup.json';
+import workflows from '../../messages/en/pages/workflows.json';
 
 const messages = {
   costUsage,
   generationReceipts,
   identityDefaults,
   library: { knowledge: library.knowledge },
+  models: { retired: models.retired },
+  workflows: { modelPicker: workflows.modelPicker },
   brandHarnessSettings,
   brandKitReview,
   brandKitSettings,
