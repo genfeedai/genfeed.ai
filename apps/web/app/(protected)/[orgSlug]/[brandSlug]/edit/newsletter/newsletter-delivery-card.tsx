@@ -248,7 +248,7 @@ export default function NewsletterDeliveryCard({
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
-            <NextLink href={activeHref(APP_ROUTES.CONNECTORS.CHANNELS)}>
+            <NextLink href={activeHref(APP_ROUTES.SETTINGS.PROFILE)}>
               <PlugZap className="size-4" />
               {translate('connectAccounts')}
             </NextLink>

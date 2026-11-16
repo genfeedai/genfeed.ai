@@ -145,6 +145,9 @@ vi.mock('@/hooks/data/analytics/use-analytics/use-analytics', () => ({
 }));
 
 const getAnalyticsServiceMock = async () => ({
+  // The brand sidebar reads these two when a row opens.
+  findBrandAnalyticsTimeSeries: async () => [],
+  findBrandPosts: async () => [],
   getBrandsWithStats: getBrandsWithStatsMock,
   findOrganizationAnalyticsPlatforms: getPlatformComparisonMock,
   getTopAccounts: async () => [],
@@ -369,5 +372,13 @@ describe('AnalyticsOrganizationOverview', () => {
     expect(
       within(sidebar).getByRole('link', { name: 'Open analytics' }),
     ).toHaveAttribute('href', '/analytics/brands/brand-1');
+    // Let the sidebar's own reads settle: a read still in flight when the
+    // test ends notifies React after jsdom is gone (`window is not defined`).
+    expect(
+      await within(sidebar).findByText('No published posts yet'),
+    ).toBeInTheDocument();
+    expect(
+      within(sidebar).getByText('No engagement in this period'),
+    ).toBeInTheDocument();
   });
 });

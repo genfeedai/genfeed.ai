@@ -144,7 +144,7 @@ describe('useSetupCard', () => {
     expect(preferences?.isCompleted).toBe(true);
     expect(preferences?.href).toBe('/acme/~/settings/brands');
     expect(platforms?.isCompleted).toBe(false);
-    expect(platforms?.href).toBe('/acme/coffee/connectors/channels');
+    expect(platforms?.href).toBe('/acme/coffee/settings/profile');
     expect(result.current.completedCount).toBe(1);
   });
 
@@ -168,7 +168,7 @@ describe('useSetupCard', () => {
     const hrefFor = (key: string) =>
       result.current.steps.find((step) => step.key === key)?.href;
 
-    expect(hrefFor('platforms')).toBe('/acme/coffee/connectors/channels');
+    expect(hrefFor('platforms')).toBe('/acme/coffee/settings/profile');
 
     mockScope.brandSlug = '';
     rerender();

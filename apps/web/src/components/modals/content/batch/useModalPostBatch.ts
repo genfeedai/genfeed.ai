@@ -226,13 +226,13 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     }, 300);
   }, [form]);
 
-  // Account connections live on Connectors → Channels, which follows the
+  // Account connections live on the brand's Profile, which follows the
   // brand selected in the top bar. Without an active brand, fall back to the
   // org-level brands list.
   const openCredentials = useCallback(() => {
     push(
       hasActiveBrand
-        ? activeHref(APP_ROUTES.CONNECTORS.CHANNELS)
+        ? activeHref(APP_ROUTES.SETTINGS.PROFILE)
         : orgHref(APP_ROUTES.SETTINGS.BRANDS),
     );
   }, [activeHref, hasActiveBrand, orgHref, push]);

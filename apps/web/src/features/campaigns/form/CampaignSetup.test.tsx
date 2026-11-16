@@ -218,7 +218,7 @@ describe('Campaign setup', () => {
     expect(screen.getByRole('button', { name: 'generate' })).toBeDisabled();
     expect(
       screen.getByRole('link', { name: 'accounts.manage' }),
-    ).toHaveAttribute('href', '/org/brand/connectors/channels');
+    ).toHaveAttribute('href', '/org/brand/settings/profile');
   });
   it('keeps failed generation retryable instead of displaying success', async () => {
     mocks.generate.mockResolvedValue({

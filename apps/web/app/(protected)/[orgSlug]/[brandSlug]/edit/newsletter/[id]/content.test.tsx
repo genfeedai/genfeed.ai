@@ -184,7 +184,7 @@ describe('NewsletterEditorContent', () => {
     expect(mocks.copyToClipboard).toHaveBeenCalledWith('Draft body');
     expect(
       screen.getByRole('link', { name: 'Connect Account' }),
-    ).toHaveAttribute('href', '/acme/brand/connectors/channels');
+    ).toHaveAttribute('href', '/acme/brand/settings/profile');
   });
 
   it('sends the issue through the connected Beehiiv publication', async () => {

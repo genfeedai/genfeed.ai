@@ -55,6 +55,15 @@ export class GoogleBusinessController {
     private readonly credentialsService: CredentialsService,
   ) {}
 
+  /**
+   * Report whether Google Business may be offered for connection. The web
+   * catalog hides the tile until this says `available`.
+   */
+  @Get('connect-readiness')
+  getConnectReadiness(): { status: 'available' | 'unavailable' } {
+    return this.googleBusinessService.getConnectReadiness();
+  }
+
   @Post('connect')
   async connect(
     @Req() request: Request,
@@ -195,7 +204,26 @@ export class GoogleBusinessController {
     const locations = await this.listLocationsOrExplain(
       EncryptionUtil.decrypt(credential.accessToken as string),
     );
-    return { locations };
+    // Locations another live credential of this brand already holds stay
+    // listed (choosing one is a deliberate reconnect), but are flagged.
+    const held = credential.brandId
+      ? await this.credentialsService.findConnectedAccounts(
+          user.organizationId,
+          credential.brandId,
+          CredentialPlatform.GOOGLE_BUSINESS,
+        )
+      : [];
+    const heldIds = new Set(
+      held
+        .filter((account) => account.id !== credential.id)
+        .map((account) => account.externalId),
+    );
+    return {
+      locations: locations.map((location) => ({
+        ...location,
+        isAlreadyConnected: heldIds.has(location.id),
+      })),
+    };
   }
 
   /**

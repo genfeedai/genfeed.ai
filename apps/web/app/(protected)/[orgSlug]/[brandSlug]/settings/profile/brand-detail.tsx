@@ -1,9 +1,13 @@
 'use client';
 
-import { AssetCategory, AssetScope, ModalEnum } from '@genfeedai/contracts';
+import {
+  AssetCategory,
+  AssetScope,
+  ButtonVariant,
+  ModalEnum,
+} from '@genfeedai/contracts';
 import {
   APP_ROUTES,
-  createBrandAppRoute,
   creatorProfilePath,
   GENFEED_BRAND_HANDLE,
   MODEL_KEYS,
@@ -19,7 +23,9 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import { Alert } from '@ui/primitives/alert';
-import { useCallback, useMemo } from 'react';
+import { Button } from '@ui/primitives/button';
+import { useTranslations } from 'next-intl';
+import { useCallback, useMemo, useState } from 'react';
 import {
   LazyModalBrandGenerate,
   LazyModalBrandLink,
@@ -28,15 +34,20 @@ import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import BrandDetailBanner from '@/features/brands/components/banner/BrandDetailBanner';
 import BrandDetailSidebar from '@/features/brands/components/detail-sidebar/BrandDetailSidebar';
 import BrandDetailOverview from '@/features/brands/components/overview/BrandDetailOverview';
+import BrandDetailSocialMediaCard from '@/features/brands/components/sidebar/BrandDetailSocialMediaCard';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 import BrandDetailPublicPosts from './BrandDetailPublicPosts';
 
 /**
- * Brand public profile surface — banner, logo, name/description, visibility,
- * external links (inline + modal), and public posts with their performance.
- * OAuth accounts live on Connectors → Channels.
+ * Brand profile surface — banner, logo, name/description, connected social
+ * accounts (the Connect account modal, status, reconnect and per-account
+ * settings), visibility, external links (inline + modal), and public posts with
+ * their performance.
  */
 export default function BrandDetail() {
+  const translate = useTranslations('pages.brandSocialMedia');
+  const [isConnectAccountModalOpen, setIsConnectAccountModalOpen] =
+    useState(false);
   const {
     brand,
     hasBrandId,
@@ -67,10 +78,6 @@ export default function BrandDetail() {
   const { href } = useOrgUrl();
   const params = useRouteParams();
   const orgSlug = typeof params?.orgSlug === 'string' ? params.orgSlug : '';
-  const manageSocialHref =
-    orgSlug && brand?.slug
-      ? createBrandAppRoute(orgSlug, brand.slug, APP_ROUTES.CONNECTORS.CHANNELS)
-      : APP_ROUTES.CONNECTORS.CHANNELS;
 
   const handleOpenLinkModal = useCallback(
     (link?: ILink) => {
@@ -137,7 +144,17 @@ export default function BrandDetail() {
   }
 
   return (
-    <Container>
+    <Container
+      right={
+        brand ? (
+          <Button
+            label={translate('connectAccount')}
+            onClick={() => setIsConnectAccountModalOpen(true)}
+            variant={ButtonVariant.DEFAULT}
+          />
+        ) : undefined
+      }
+    >
       {isLoading ? (
         <div className="flex flex-col gap-8" data-testid="brand-detail-loading">
           <SkeletonCard showImage />
@@ -180,6 +197,16 @@ export default function BrandDetail() {
                 }
               />
 
+              <BrandDetailSocialMediaCard
+                brandId={brandId}
+                connectedPlatformsCount={connectedPlatformsCount}
+                connections={socialConnections}
+                isConnectAccountModalOpen={isConnectAccountModalOpen}
+                onConnectAccountModalOpenChange={setIsConnectAccountModalOpen}
+                onRefresh={() => handleRefreshBrand()}
+                variant="page"
+              />
+
               <BrandDetailPublicPosts
                 createHref={createPostHref}
                 onRetry={() => void refetchPosts()}
@@ -192,13 +219,8 @@ export default function BrandDetail() {
             <div className="md:col-span-4">
               <BrandDetailSidebar
                 brand={brand}
-                brandId={brandId}
                 links={links}
-                socialConnections={socialConnections}
-                connectedPlatformsCount={connectedPlatformsCount}
-                deletingRefId={null}
                 isUpdatingPublicProfile={isUpdating}
-                manageSocialHref={manageSocialHref}
                 onTogglePublicProfile={(isPublic) => {
                   // Fire-and-forget: the hook already reverts and toasts on failure.
                   void handleUpdateAccount(
@@ -206,18 +228,7 @@ export default function BrandDetail() {
                     isPublic ? AssetScope.PUBLIC : AssetScope.BRAND,
                   ).catch(() => undefined);
                 }}
-                onRefreshBrand={async () => {
-                  await handleRefreshBrand();
-                }}
                 onOpenLinkModal={handleOpenLinkModal}
-                onUploadBanner={() =>
-                  handleOpenUploadModal(AssetCategory.BANNER)
-                }
-                onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
-                onUploadReference={() =>
-                  handleOpenUploadModal(AssetCategory.REFERENCE)
-                }
-                onDeleteReference={() => undefined}
               />
             </div>
           </div>

@@ -62,17 +62,7 @@ function brandDetailQueryKey(brandSlug: string) {
   return ['brand-detail', brandSlug] as const;
 }
 
-interface UseBrandDetailOptions {
-  /**
-   * Brand to read when the route names none, as on organization pages that
-   * follow the brand selected in the top bar (Connectors → Channels).
-   */
-  fallbackBrandSlug?: string;
-}
-
-export function useBrandDetail({
-  fallbackBrandSlug,
-}: UseBrandDetailOptions = {}): UseBrandDetailReturn {
+export function useBrandDetail(): UseBrandDetailReturn {
   const params = useRouteParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -105,8 +95,7 @@ export function useBrandDetail({
       ),
     [brands, routeBrandParam],
   );
-  const brandSlug =
-    matchedRouteBrand?.slug ?? (routeBrandParam || fallbackBrandSlug || '');
+  const brandSlug = matchedRouteBrand?.slug ?? (routeBrandParam || '');
   const hasBrandId = Boolean(brandSlug);
 
   const queryClient = useQueryClient();
@@ -190,9 +179,9 @@ export function useBrandDetail({
     );
     const usesIdAsSlug = matchedRouteBrand.id === routeBrandParam;
 
-    // Only settings routes have a canonical settings path. Connectors →
-    // Channels reads the same brand from `/:org/:brand/connectors/channels`
-    // and must stay there, even when the URL carries the brand id.
+    // Only settings routes have a canonical settings path; any other route
+    // that reads the brand stays where it is, even when the URL carries the
+    // brand id.
     if (!oldRouteMatch && !canonicalRouteMatch) {
       return;
     }

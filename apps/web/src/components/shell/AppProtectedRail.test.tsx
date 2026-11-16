@@ -137,7 +137,7 @@ vi.mock('@genfeedai/contracts/constants', async () => ({
     CONNECTORS: {
       AGENTS: '/connectors/agents',
       API_KEYS: '/connectors/api-keys',
-      CHANNELS: '/connectors/channels',
+      CHANNELS: '/settings/profile',
       PROVIDERS: '/connectors/providers',
       ROOT: '/connectors',
       WEBHOOKS: '/connectors/webhooks',

@@ -1212,7 +1212,7 @@ function createMockAccountAnalytics(credentialId: string): IAccountAnalytics {
       firstTrackedAt: null,
       isConnected: true,
       label: 'Mock account',
-      manageHref: `${APP_ROUTES.CONNECTORS.CHANNELS}?credential=${credentialId}`,
+      manageHref: `${APP_ROUTES.SETTINGS.PROFILE}?credential=${credentialId}`,
       platform:
         credentialId === MOCK_X_ACCOUNT_ID ? Platform.TWITTER : Platform.TIKTOK,
     },

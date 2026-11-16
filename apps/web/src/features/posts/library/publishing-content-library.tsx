@@ -769,7 +769,7 @@ export default function PublishingContentLibrary() {
         release={selectedRelease}
         error={drawerError}
         pendingAction={pendingAction}
-        reconnectHref={activeHref(APP_ROUTES.CONNECTORS.CHANNELS)}
+        reconnectHref={activeHref(APP_ROUTES.SETTINGS.PROFILE)}
         onClose={() => replaceQueryParam('release', '')}
         onRescheduleRelease={(scheduledDate) => {
           if (selectedRelease)

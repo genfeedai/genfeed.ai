@@ -460,7 +460,7 @@ export class AccountAnalyticsService {
       firstTrackedAt: credential.createdAt.toISOString(),
       isConnected: credential.isConnected,
       label: credential.label,
-      manageHref: `${APP_ROUTES.CONNECTORS.CHANNELS}?credential=${credential.id}`,
+      manageHref: `${APP_ROUTES.SETTINGS.PROFILE}?credential=${credential.id}`,
       platform,
     };
   }

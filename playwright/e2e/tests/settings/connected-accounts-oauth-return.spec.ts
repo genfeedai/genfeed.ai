@@ -6,7 +6,7 @@ import { generateMockBrand } from '../../utils/api-interceptor';
 import { brandPath } from '../../utils/app-chrome';
 import { exactUrlPattern } from '../../utils/exact-url';
 
-const CONNECTED_ACCOUNTS_ROUTE = brandPath(APP_ROUTES.CONNECTORS.CHANNELS);
+const CONNECTED_ACCOUNTS_ROUTE = brandPath(APP_ROUTES.SETTINGS.PROFILE);
 
 async function mockBrandWithXAccount(page: Page): Promise<void> {
   const brand = generateMockBrand({
@@ -81,7 +81,7 @@ test.describe('Accounts after the OAuth redirect', () => {
       { timeout: 60000, waitUntil: 'domcontentloaded' },
     );
 
-    // The callback returns to the stored Connectors → Channels route.
+    // The callback returns to the stored brand Profile route.
     await expect(authenticatedPage).toHaveURL(
       exactUrlPattern(CONNECTED_ACCOUNTS_ROUTE, authenticatedPage.url()),
       { timeout: 30000 },

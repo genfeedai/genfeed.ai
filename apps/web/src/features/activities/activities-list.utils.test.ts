@@ -124,7 +124,7 @@ describe('getActivityDescription', () => {
         key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
         value: 'Twitter credential requires reconnection',
       } as IActivity),
-    ).toBe('/connectors/channels');
+    ).toBe('/settings/profile');
     expect(
       getActivityDestinationPath({
         entityId: 'exec-7',

@@ -209,6 +209,7 @@
     "bench:typed-decisions": "bun --tsconfig-override=scripts/typed-decisions/tsconfig.json scripts/typed-decisions/benchmark.ts",
     "build:typed-decision-fixture:model-discovery": "bun --tsconfig-override=scripts/typed-decisions/tsconfig.json scripts/typed-decisions/build-model-discovery-category-fixture.ts",
     "eval:agent": "cd scripts/agent-eval && bun run run.ts",
+    "eval:agent:trials": "cd scripts/agent-eval && bun run run-trials.ts",
     "eval:content": "cd apps/server && bun ../../scripts/content-eval/run.ts",
     "eval:content:smoke": "bun scripts/content-eval/smoke/run-smoke.ts",
     "eval:content:qa": "bun scripts/content-eval/qa/run-qa.ts",

@@ -623,7 +623,7 @@ export default function ReleasePostsList({
           browserTimezone={browserTimezone}
           isLoading={isLoading}
           onSelectRelease={selectRelease}
-          reconnectHref={activeHref(APP_ROUTES.CONNECTORS.CHANNELS)}
+          reconnectHref={activeHref(APP_ROUTES.SETTINGS.PROFILE)}
           releases={data.releases}
           selectedCredentialIds={credentialIds ?? []}
         />
@@ -737,7 +737,7 @@ export default function ReleasePostsList({
         onRetryTarget={handleRetryTarget}
         onSkipManualPost={handleSkipManualPost}
         pendingAction={pendingAction}
-        reconnectHref={activeHref(APP_ROUTES.CONNECTORS.CHANNELS)}
+        reconnectHref={activeHref(APP_ROUTES.SETTINGS.PROFILE)}
         release={selectedRelease}
       />
     </div>

@@ -35,11 +35,11 @@ describe('operator-shell helpers', () => {
     expect(normalizeProtectedPathname('/acme/brand-x/agent/thread-1')).toBe(
       '/agent/thread-1',
     );
-    expect(
-      normalizeProtectedPathname('/acme/brand-x/connectors/channels'),
-    ).toBe('/connectors/channels');
-    expect(normalizeProtectedPathname('/acme/~/connectors/channels')).toBe(
-      '/connectors/channels',
+    expect(normalizeProtectedPathname('/acme/brand-x/settings/profile')).toBe(
+      '/settings/profile',
+    );
+    expect(normalizeProtectedPathname('/acme/~/settings/profile')).toBe(
+      '/settings/profile',
     );
     expect(normalizeProtectedPathname(null)).toBe('');
     expect(normalizeProtectedPathname(undefined)).toBe('');

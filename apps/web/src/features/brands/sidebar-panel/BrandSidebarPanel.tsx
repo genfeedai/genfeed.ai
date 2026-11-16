@@ -40,7 +40,6 @@ export default function BrandSidebarPanel(props: BrandSidebarPanelProps) {
     handleOpenLinkModal,
     handleOpenUploadModal,
     handleRefresh,
-    handleRequestDeleteReference,
     handleUpdateBrandField,
     isLoadingBrand,
     selectedLink,
@@ -88,7 +87,6 @@ export default function BrandSidebarPanel(props: BrandSidebarPanelProps) {
           error={error}
           socialConnections={socialConnections}
           onCopy={handleCopy}
-          onDeleteReference={handleRequestDeleteReference}
           onGenerateBanner={handleGenerateBanner}
           onGenerateLogo={handleGenerateLogo}
           onOpenLinkModal={handleOpenLinkModal}
@@ -102,9 +100,6 @@ export default function BrandSidebarPanel(props: BrandSidebarPanelProps) {
           onUpdateBrand={handleUpdateBrandField}
           onUploadBanner={() => handleOpenUploadModal(AssetCategory.BANNER)}
           onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
-          onUploadReference={() =>
-            handleOpenUploadModal(AssetCategory.REFERENCE)
-          }
         />
       </TableRowSummary>
 
