@@ -57,7 +57,7 @@ const INSTALL_STEPS = [
     step: 'Download',
   },
   {
-    description: 'Open the .dmg and drag GenFeed into Applications.',
+    description: 'Open the .dmg and drag Genfeed into Applications.',
     step: 'Install',
   },
   {

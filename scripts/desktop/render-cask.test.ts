@@ -13,9 +13,9 @@ function manifest(
 ): DesktopReleaseManifest {
   return {
     artifacts: [
-      { name: 'GenFeed-0.2.0-arm64.dmg', sha256: SHA256, sizeBytes: 155_000 },
+      { name: 'Genfeed-0.2.0-arm64.dmg', sha256: SHA256, sizeBytes: 155_000 },
       {
-        name: 'GenFeed-0.2.0-arm64.zip',
+        name: 'Genfeed-0.2.0-arm64.zip',
         sha256: 'a'.repeat(64),
         sizeBytes: 150_000,
       },
@@ -29,7 +29,7 @@ function manifest(
 describe('findMacArm64Artifact', () => {
   it('picks the disk image over the updater zip', () => {
     expect(findMacArm64Artifact(manifest()).name).toBe(
-      'GenFeed-0.2.0-arm64.dmg',
+      'Genfeed-0.2.0-arm64.dmg',
     );
   });
 
@@ -39,14 +39,14 @@ describe('findMacArm64Artifact', () => {
         manifest({
           artifacts: [
             {
-              name: 'GenFeed-0.2.0-arm64.zip',
+              name: 'Genfeed-0.2.0-arm64.zip',
               sha256: SHA256,
               sizeBytes: 1,
             },
           ],
         }),
       ),
-    ).toThrow(/no GenFeed-\*-arm64\.dmg/);
+    ).toThrow(/no Genfeed-\*-arm64\.dmg/);
   });
 });
 
@@ -61,7 +61,7 @@ describe('renderCask', () => {
 
   it('builds the download URL from the desktop tag series', () => {
     expect(renderCask(manifest())).toContain(
-      'releases/download/desktop-v#{version}/GenFeed-#{version}-arm64.dmg',
+      'releases/download/desktop-v#{version}/Genfeed-#{version}-arm64.dmg',
     );
   });
 
@@ -81,7 +81,7 @@ describe('renderCask', () => {
   });
 
   it('installs the app under its packaged name', () => {
-    expect(renderCask(manifest())).toContain('app "GenFeed.app"');
+    expect(renderCask(manifest())).toContain('app "Genfeed.app"');
   });
 
   it('rejects an artifact whose filename disagrees with the release version', () => {
@@ -90,7 +90,7 @@ describe('renderCask', () => {
         manifest({
           artifacts: [
             {
-              name: 'GenFeed-0.1.0-arm64.dmg',
+              name: 'Genfeed-0.1.0-arm64.dmg',
               sha256: SHA256,
               sizeBytes: 155_000,
             },

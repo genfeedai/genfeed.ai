@@ -4,13 +4,13 @@
  * electron-builder reads the version from `apps/desktop/package.json`, and
  * that one field reaches four places at once:
  *
- *   1. the artifact filename  — `GenFeed-${version}-${arch}.dmg`
+ *   1. the artifact filename  — `Genfeed-${version}-${arch}.dmg`
  *   2. the updater feed       — the `version` in `latest-mac.yml`
  *   3. the release manifest   — `genfeed-desktop-release.json`
- *   4. the Homebrew cask URL  — `.../desktop-v#{version}/GenFeed-#{version}-...`
+ *   4. the Homebrew cask URL  — `.../desktop-v#{version}/Genfeed-#{version}-...`
  *
  * The checked-in value is a placeholder that nothing bumps, so tagging
- * `desktop-v0.2.0` would publish `GenFeed-0.1.0-arm64.dmg` under that tag: a
+ * `desktop-v0.2.0` would publish `Genfeed-0.1.0-arm64.dmg` under that tag: a
  * cask URL that 404s, and an updater that compares 0.1.0 against 0.1.0 and
  * concludes there is nothing to install. Running this before the build makes
  * the tag the single source of truth for a desktop release.

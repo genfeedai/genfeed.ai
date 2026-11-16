@@ -63,7 +63,7 @@ describe('Desktop product landing', () => {
 
   it('renders the current validated release with first-paint platform detection', async () => {
     const downloadUrl =
-      'https://github.com/genfeedai/genfeed.ai/releases/download/desktop-v0.2.0/GenFeed-0.2.0-arm64.dmg';
+      'https://github.com/genfeedai/genfeed.ai/releases/download/desktop-v0.2.0/Genfeed-0.2.0-arm64.dmg';
     getBuild.mockResolvedValue({
       downloadUrl,
       fileSizeBytes: 104857600,
