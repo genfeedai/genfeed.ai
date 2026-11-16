@@ -3,6 +3,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { SlackService } from '@api/services/integrations/slack/services/slack.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
@@ -130,17 +131,28 @@ export class SlackController {
    * Channels of a connected workspace, for the channel picker.
    *
    * GET /services/slack/channels?brandId=…&credentialId=…
+   *
+   * The organization is the one the request is pinned to (a verified
+   * superadmin's `?organizationId=` override, otherwise the session's), so the
+   * credential lookup always matches the tenant context of the request.
    */
   @Get('channels')
   async channels(
     @CurrentUser() user: User,
+    @Req() request: Request,
     @Query('brandId') brandId: string,
     @Query('credentialId') credentialId: string,
+    @Query('organizationId') organizationId?: string,
   ) {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      { brandId, organizationId },
+      user,
+      request,
+    );
     const credential = await this.credentialsService.resolveBrandAccount({
       brandId,
       credentialId,
-      organizationId: user.organizationId,
+      organizationId: tenant.organizationId,
       platform: CredentialPlatform.SLACK,
     });
 
