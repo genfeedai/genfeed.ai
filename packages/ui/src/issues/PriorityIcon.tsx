@@ -1,29 +1,36 @@
 import { cn } from '@genfeedai/helpers';
+import {
+  ArrowDown,
+  ArrowUp,
+  type LucideIcon,
+  Minus,
+  TriangleAlert,
+} from 'lucide-react';
 import { priorityColor } from '../tokens/status-colors';
 
 type PriorityLevel = 'critical' | 'high' | 'medium' | 'low';
 
 const priorityConfig: Record<
   PriorityLevel,
-  { symbol: string; color: string; label: string }
+  { Icon: LucideIcon; color: string; label: string }
 > = {
   critical: {
-    symbol: '⚠',
+    Icon: TriangleAlert,
     color: priorityColor.critical,
     label: 'Critical',
   },
   high: {
-    symbol: '↑',
+    Icon: ArrowUp,
     color: priorityColor.high,
     label: 'High',
   },
   low: {
-    symbol: '↓',
+    Icon: ArrowDown,
     color: priorityColor.low,
     label: 'Low',
   },
   medium: {
-    symbol: '—',
+    Icon: Minus,
     color: priorityColor.medium,
     label: 'Medium',
   },
@@ -46,12 +53,13 @@ export function PriorityIcon({
   const icon = (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center justify-center text-sm',
+        'inline-flex shrink-0 items-center justify-center',
         config.color,
         className,
       )}
+      {...(showLabel ? {} : { role: 'img', 'aria-label': config.label })}
     >
-      {config.symbol}
+      <config.Icon aria-hidden="true" className="size-4" />
     </span>
   );
 

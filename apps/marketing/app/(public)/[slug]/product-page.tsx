@@ -69,7 +69,7 @@ export default function ProductPage({ product }: { product: Product }) {
     >
       <section className="max-w-6xl mx-auto pb-20">
         <Heading size="2xl" className="text-center mb-12">
-          Key Features
+          Key features
         </Heading>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {product.features.map((feature) => (
@@ -93,7 +93,7 @@ export default function ProductPage({ product }: { product: Product }) {
 
       <section className="max-w-6xl mx-auto pb-20">
         <Heading size="2xl" className="text-center mb-12">
-          Use Cases
+          Use cases
         </Heading>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {product.useCases.map((useCase) => (
@@ -114,7 +114,7 @@ export default function ProductPage({ product }: { product: Product }) {
       </section>
 
       <section className="max-w-4xl mx-auto pb-20">
-        <Card isHeaderInside label="Perfect For">
+        <Card isHeaderInside label="Perfect for">
           <div className="flex flex-col gap-2">
             {product.targetAudience.map((audience) => (
               <li key={audience} className="flex items-start gap-2 list-none">
@@ -148,7 +148,7 @@ export default function ProductPage({ product }: { product: Product }) {
       {relatedProducts.length > 0 && (
         <section className="max-w-6xl mx-auto pb-20">
           <Heading size="2xl" className="text-center mb-12">
-            You Might Also Like
+            You might also like
           </Heading>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {relatedProducts.map((relatedProduct) => (

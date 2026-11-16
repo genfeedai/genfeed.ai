@@ -12,7 +12,7 @@ export default function ProductBenefits({ benefits }: Props) {
   return (
     <section className="max-w-6xl mx-auto pb-20">
       <Heading size="2xl" className="text-center mb-12">
-        Problems We Solve
+        Problems we solve
       </Heading>
       <div className="flex flex-col gap-6">
         {benefits.map((benefit) => (

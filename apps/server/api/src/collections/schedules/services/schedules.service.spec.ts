@@ -82,6 +82,9 @@ describe('SchedulesService', () => {
         CredentialPlatform.MEDIUM,
         CredentialPlatform.DEV_TO,
         CredentialPlatform.GENFEED,
+        CredentialPlatform.DISCORD,
+        CredentialPlatform.SLACK,
+        CredentialPlatform.TELEGRAM,
       ]);
     });
 

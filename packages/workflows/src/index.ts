@@ -31,7 +31,6 @@ export interface WorkflowMetadata {
   category: 'image-generation' | 'video-generation' | 'full-pipeline';
   tags: string[];
   tier: 'free' | 'paid' | 'premium';
-  icon: string;
   defaultModel: string;
   inputTypes: string[];
   outputTypes: string[];
@@ -47,7 +46,6 @@ export const WORKFLOW_REGISTRY: Record<string, WorkflowMetadata> = {
     defaultModel: 'nano-banana-pro',
     description:
       'Complete end-to-end workflow: concept development to final video production',
-    icon: '⚡',
     inputTypes: ['text'],
     outputTypes: ['video'],
     slug: 'full-pipeline',
@@ -61,7 +59,6 @@ export const WORKFLOW_REGISTRY: Record<string, WorkflowMetadata> = {
     defaultModel: 'nano-banana-pro',
     description:
       'Generate a series of related images from a concept using LLM-powered prompt expansion',
-    icon: '📸',
     inputTypes: ['text'],
     outputTypes: ['image'],
     slug: 'image-series',
@@ -75,7 +72,6 @@ export const WORKFLOW_REGISTRY: Record<string, WorkflowMetadata> = {
     defaultModel: 'nano-banana-pro',
     description:
       'Create smooth interpolated video transitions between two images with easing effects',
-    icon: '🎞️',
     inputTypes: ['image'],
     outputTypes: ['video'],
     slug: 'image-to-video',
@@ -89,7 +85,6 @@ export const WORKFLOW_REGISTRY: Record<string, WorkflowMetadata> = {
     defaultModel: 'nano-banana-pro',
     description:
       'Generate 20 varied training images from 3 reference identity photos across frontal, three-quarter, side profile, and variety shots',
-    icon: '📷',
     inputTypes: ['image', 'text'],
     outputTypes: ['image'],
     slug: 'lora-dataset-generator',
@@ -103,7 +98,6 @@ export const WORKFLOW_REGISTRY: Record<string, WorkflowMetadata> = {
     defaultModel: 'nano-banana-pro',
     description:
       'Generate an AI image from a source image (img2img) with enhanced styling',
-    icon: '🖼️',
     inputTypes: ['image', 'text'],
     outputTypes: ['image'],
     slug: 'single-image',
@@ -117,7 +111,6 @@ export const WORKFLOW_REGISTRY: Record<string, WorkflowMetadata> = {
     defaultModel: 'nano-banana-pro',
     description:
       'Generate an AI video from a source image (img2video) with motion effects',
-    icon: '🎬',
     inputTypes: ['image', 'text'],
     outputTypes: ['video'],
     slug: 'single-video',

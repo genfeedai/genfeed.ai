@@ -73,7 +73,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
 
       <section className="max-w-4xl mx-auto pb-20">
         <Heading as="h2" className="text-3xl font-bold text-center mb-10">
-          How It Works
+          How it works
         </Heading>
         <div className="gen-card-spotlight">
           {useCase.workflow.map((step, index) => (

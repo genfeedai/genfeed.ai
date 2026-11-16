@@ -98,17 +98,13 @@ test.describe('Workflow Execution', () => {
       `automation/runs/${completedExec.id}`,
     );
 
-    // `ExecutionSummaryBar` renders the status as `{getStatusIcon(status)}
-    // {status}` — assert the real displayed status, not just the "Node
-    // Execution Log" section title, which renders identically regardless of
-    // which execution loaded. Icon + `exact: true` avoids a real collision:
-    // the workspace inspector panel also renders a same-named, differently-
-    // cased status badge ("Running"/"Failed") that a bare case-insensitive
-    // text match picks up too (see `status-helpers.ts` for the icon map).
+    // `ExecutionSummaryBar` renders the status as a status Badge ("Completed")
+    // — assert the real displayed status, not just the "Node Execution Log"
+    // section title, which renders identically regardless of which execution
+    // loaded. The workspace inspector panel renders a same-named badge too, so
+    // the first match is the summary bar.
     await expect(
-      authenticatedPage.getByText(`✅ ${completedExec.status}`, {
-        exact: true,
-      }),
+      authenticatedPage.getByText('Completed', { exact: true }).first(),
     ).toBeVisible();
 
     // Expand the last ("publish") node and assert its real output —
@@ -170,7 +166,7 @@ test.describe('Workflow Execution', () => {
       `automation/runs/${failedExec.id}`,
     );
     await expect(
-      authenticatedPage.getByText(`❌ ${failedExec.status}`, { exact: true }),
+      authenticatedPage.getByText('Failed', { exact: true }).first(),
     ).toBeVisible();
 
     // The global "Execution Error" alert (`ExecutionDetailPage.tsx`) is

@@ -10,7 +10,7 @@ export default function SkillsHowItWorks(): React.ReactElement {
     <WebSection maxWidth="lg" bg="bordered" className="gsap-section">
       <div className="text-center mb-16">
         <div className="text-foreground/50 text-xs font-black uppercase tracking-widest mb-6">
-          How It Works
+          How it works
         </div>
         <h2 className="text-5xl font-semibold mb-6">Install, learn, create</h2>
         <p className="text-foreground/70 max-w-xl mx-auto">

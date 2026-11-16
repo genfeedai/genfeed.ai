@@ -38,19 +38,19 @@ const FEATURES = [
     description:
       'Drag and drop drafts onto any day, across every connected channel, from one shared calendar.',
     icon: Calendar,
-    title: 'Visual Calendar View',
+    title: 'Visual calendar view',
   },
   {
     description:
       'Schedule a week or a quarter of posts at once instead of queuing each platform one by one.',
     icon: Clock,
-    title: 'Schedule Every Channel',
+    title: 'Schedule every channel',
   },
   {
     description:
       'Spot gaps and cadence at a glance, then auto-schedule new drafts straight from workflows.',
     icon: RefreshCw,
-    title: 'Cadence & Auto-Schedule',
+    title: 'Cadence & auto-schedule',
   },
 ];
 
@@ -187,7 +187,7 @@ export default function CalendarContent() {
         {/* How It Works */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <Heading as="h3" className="text-2xl font-bold text-center mb-12">
-            How It Works
+            How it works
           </Heading>
           <div className="grid grid-cols-2 gap-1.5 md:grid-cols-4">
             {STEPS.map((step) => {
@@ -229,7 +229,7 @@ export default function CalendarContent() {
               as="h3"
               className="text-2xl font-bold mb-6 text-foreground"
             >
-              Start Planning Today
+              Start planning today
             </Heading>
             <PricingStrip className="mb-6" />
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">

@@ -66,7 +66,7 @@ const USE_CASE_LINKS = [
     group: 'Solo',
     href: '/use-cases/ai-influencers',
     icon: UserRound,
-    label: 'AI Influencers',
+    label: 'AI influencers',
   },
   {
     description: 'Client workspaces, approvals, and bulk output',
@@ -141,7 +141,7 @@ const AGENT_LINKS = [
     group: 'Build on it',
     href: '/mcp',
     icon: Terminal,
-    label: 'MCP Server',
+    label: 'MCP server',
   },
 ];
 
@@ -277,14 +277,14 @@ const SOLUTIONS_LINKS = [
     group: 'Automated',
     href: '/hire-agents',
     icon: Bot,
-    label: 'Hire Agents',
+    label: 'Hire agents',
   },
   {
     description: 'We run the content system for you',
     group: 'Managed',
     href: '/done-for-you',
     icon: HeartHandshake,
-    label: 'Done For You',
+    label: 'Done for you',
   },
 ];
 
@@ -353,7 +353,7 @@ export default function WebsiteTopbar() {
             label: 'Browse all use cases',
           },
           items: USE_CASE_LINKS,
-          label: 'Use Cases',
+          label: 'Use cases',
         },
         {
           footer: {
