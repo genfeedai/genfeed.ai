@@ -10,6 +10,14 @@ import {
 } from '@api/services/integrations/higgsfield/errors/higgsfield-provider.error';
 import {
   HIGGSFIELD_API_BASE,
+  HIGGSFIELD_CINEMA_STUDIO_DEFAULT_DURATION_SECONDS,
+  HIGGSFIELD_CINEMA_STUDIO_DEFAULT_RESOLUTION,
+  HIGGSFIELD_CINEMA_STUDIO_MAX_AUDIO_URLS,
+  HIGGSFIELD_CINEMA_STUDIO_MAX_DURATION_SECONDS,
+  HIGGSFIELD_CINEMA_STUDIO_MAX_IMAGE_URLS,
+  HIGGSFIELD_CINEMA_STUDIO_MAX_VIDEO_URLS,
+  HIGGSFIELD_CINEMA_STUDIO_MIN_DURATION_SECONDS,
+  HIGGSFIELD_CINEMA_STUDIO_RESOLUTIONS,
   HIGGSFIELD_GENJUTSU_DEFAULT_RESOLUTION,
   HIGGSFIELD_GENJUTSU_RESOLUTIONS,
   HIGGSFIELD_SOUL_ENDPOINT,
@@ -19,6 +27,7 @@ import {
   toSoulBatchSize,
 } from '@api/services/integrations/higgsfield/helpers/higgsfield.catalog';
 import {
+  type HiggsFieldCinemaStudioInput,
   type HiggsFieldCredentials,
   type HiggsFieldDopInput,
   type HiggsFieldGenjutsuInput,
@@ -31,7 +40,7 @@ import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { createConcurrencyLimit } from '@api/shared/utils/create-concurrency-limit.util';
 import { AgentFailureReason, ByokProvider } from '@genfeedai/contracts';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { ASPECT_RATIOS, MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -486,6 +495,139 @@ export class HiggsFieldService {
     return {
       status: submitted.status,
       requestId: submitted.request_id,
+      videoUrl: submitted.video?.url,
+    };
+  }
+
+  /**
+   * Cinema Studio 4.0. Text-to-video with no media, reference-to-video with
+   * any. Every value is validated, never coerced: the request is metered in
+   * provider tokens from these parameters, so a silently adjusted duration or
+   * resolution would bill something other than what was quoted. The
+   * idempotency key is fixed before the first attempt so an ambiguous
+   * submission is never blindly resubmitted as a second paid generation.
+   */
+  async generateCinemaStudioVideo(params: {
+    aspectRatio?: string;
+    audioUrls?: readonly string[];
+    duration?: number;
+    expectedCredentialFingerprint?: string;
+    generateAudio?: boolean;
+    idempotencyKey?: string;
+    imageUrls?: readonly string[];
+    onProviderSubmissionStarted?: () => void;
+    organizationId?: string;
+    prompt: string;
+    resolution?: string;
+    videoUrls?: readonly string[];
+  }): Promise<{
+    requestId: string;
+    videoUrl?: string;
+    status: HiggsFieldResponse['status'];
+  }> {
+    const prompt = params.prompt.trim();
+    if (!prompt) {
+      throw new BadRequestException(
+        'Higgsfield Cinema Studio requires a non-empty prompt.',
+      );
+    }
+
+    const duration =
+      params.duration ?? HIGGSFIELD_CINEMA_STUDIO_DEFAULT_DURATION_SECONDS;
+    if (
+      !Number.isInteger(duration) ||
+      duration < HIGGSFIELD_CINEMA_STUDIO_MIN_DURATION_SECONDS ||
+      duration > HIGGSFIELD_CINEMA_STUDIO_MAX_DURATION_SECONDS
+    ) {
+      throw new BadRequestException(
+        `Higgsfield Cinema Studio duration must be a whole number of seconds from ${HIGGSFIELD_CINEMA_STUDIO_MIN_DURATION_SECONDS} to ${HIGGSFIELD_CINEMA_STUDIO_MAX_DURATION_SECONDS}.`,
+      );
+    }
+
+    const resolution =
+      params.resolution ?? HIGGSFIELD_CINEMA_STUDIO_DEFAULT_RESOLUTION;
+    const supportedResolution = HIGGSFIELD_CINEMA_STUDIO_RESOLUTIONS.find(
+      (value) => value === resolution,
+    );
+    if (!supportedResolution) {
+      throw new BadRequestException(
+        `Higgsfield Cinema Studio resolution must be one of ${HIGGSFIELD_CINEMA_STUDIO_RESOLUTIONS.join(', ')}.`,
+      );
+    }
+
+    const aspectRatio = params.aspectRatio ?? '16:9';
+    const supportedAspectRatios: readonly string[] =
+      ASPECT_RATIOS.HIGGSFIELD_CINEMA_STUDIO;
+    if (!supportedAspectRatios.includes(aspectRatio)) {
+      throw new BadRequestException(
+        `Higgsfield Cinema Studio aspect ratio must be one of ${supportedAspectRatios.join(', ')}.`,
+      );
+    }
+
+    const normalizeUrls = (
+      urls: readonly string[] | undefined,
+      label: string,
+      max: number,
+    ): string[] | undefined => {
+      if (!urls || urls.length === 0) {
+        return undefined;
+      }
+      // With a caller-supplied key the payload must stay byte-identical to
+      // the first attempt, so URLs are validated but not trimmed or deduped.
+      const normalized = params.idempotencyKey
+        ? [...urls]
+        : [...new Set(urls.map((url) => url.trim()))];
+      if (
+        normalized.length > max ||
+        normalized.some((url) => !url.startsWith('https://'))
+      ) {
+        throw new BadRequestException(
+          `Higgsfield Cinema Studio accepts at most ${max} https ${label} URLs.`,
+        );
+      }
+      return normalized;
+    };
+
+    const imageUrls = normalizeUrls(
+      params.imageUrls,
+      'image',
+      HIGGSFIELD_CINEMA_STUDIO_MAX_IMAGE_URLS,
+    );
+    const videoUrls = normalizeUrls(
+      params.videoUrls,
+      'video',
+      HIGGSFIELD_CINEMA_STUDIO_MAX_VIDEO_URLS,
+    );
+    const audioUrls = normalizeUrls(
+      params.audioUrls,
+      'audio',
+      HIGGSFIELD_CINEMA_STUDIO_MAX_AUDIO_URLS,
+    );
+    const input: HiggsFieldCinemaStudioInput = {
+      aspect_ratio: aspectRatio,
+      duration,
+      generate_audio: params.generateAudio ?? true,
+      prompt,
+      resolution: supportedResolution,
+      ...(imageUrls ? { image_urls: imageUrls } : {}),
+      ...(videoUrls ? { video_urls: videoUrls } : {}),
+      ...(audioUrls ? { audio_urls: audioUrls } : {}),
+    };
+
+    const submitted = await this.submit(
+      MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
+      input,
+      {
+        expectedCredentialFingerprint: params.expectedCredentialFingerprint,
+        idempotencyKey: params.idempotencyKey ?? randomUUID(),
+        onProviderSubmissionStarted: params.onProviderSubmissionStarted,
+        organizationId: params.organizationId,
+      },
+    );
+
+    return {
+      requestId: submitted.request_id,
+      status: submitted.status,
       videoUrl: submitted.video?.url,
     };
   }

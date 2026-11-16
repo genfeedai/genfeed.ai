@@ -88,3 +88,17 @@ export function isGenjutsuModel(modelKey: string): boolean {
     modelKey === HIGGSFIELD_GENJUTSU_LEGACY_ENDPOINT
   );
 }
+
+/** Cinema Studio 4.0 documented `resolution` values. */
+export const HIGGSFIELD_CINEMA_STUDIO_RESOLUTIONS = ['480p', '720p'] as const;
+export const HIGGSFIELD_CINEMA_STUDIO_DEFAULT_RESOLUTION = '720p';
+export const HIGGSFIELD_CINEMA_STUDIO_MIN_DURATION_SECONDS = 4;
+export const HIGGSFIELD_CINEMA_STUDIO_MAX_DURATION_SECONDS = 30;
+export const HIGGSFIELD_CINEMA_STUDIO_DEFAULT_DURATION_SECONDS = 5;
+export const HIGGSFIELD_CINEMA_STUDIO_MAX_IMAGE_URLS = 30;
+export const HIGGSFIELD_CINEMA_STUDIO_MAX_VIDEO_URLS = 10;
+export const HIGGSFIELD_CINEMA_STUDIO_MAX_AUDIO_URLS = 10;
+
+export function isCinemaStudioModel(modelKey: string): boolean {
+  return modelKey === MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO;
+}

@@ -461,6 +461,111 @@ describe('HiggsFieldService', () => {
     });
   });
 
+  describe('generateCinemaStudioVideo', () => {
+    const okResponse = () =>
+      of({ data: { request_id: 'req-cinema', status: 'queued' }, status: 200 });
+
+    it('posts text-to-video with documented defaults and an idempotency key', async () => {
+      mockHttpService.post.mockReturnValue(okResponse());
+
+      const result = await service.generateCinemaStudioVideo({
+        prompt: ' a slow dolly through a rainy neon street ',
+      });
+
+      expect(result.requestId).toBe('req-cinema');
+      expect(mockHttpService.post).toHaveBeenCalledWith(
+        `${PLATFORM}/${MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO}`,
+        {
+          aspect_ratio: '16:9',
+          duration: 5,
+          generate_audio: true,
+          prompt: 'a slow dolly through a rainy neon street',
+          resolution: '720p',
+        },
+        {
+          headers: expect.objectContaining({
+            Authorization: 'Key test-key:test-secret',
+            'Idempotency-Key': expect.any(String),
+          }),
+        },
+      );
+    });
+
+    it('sends reference media as image_urls, video_urls and audio_urls', async () => {
+      mockHttpService.post.mockReturnValue(okResponse());
+
+      await service.generateCinemaStudioVideo({
+        aspectRatio: '21:9',
+        audioUrls: ['https://cdn.test/score.mp3'],
+        duration: 12,
+        generateAudio: false,
+        imageUrls: ['https://cdn.test/a.png', ' https://cdn.test/a.png '],
+        prompt: 'match <<<image_1>>>',
+        resolution: '480p',
+        videoUrls: ['https://cdn.test/ref.mp4'],
+      });
+
+      expect(mockHttpService.post.mock.calls[0][1]).toEqual({
+        aspect_ratio: '21:9',
+        audio_urls: ['https://cdn.test/score.mp3'],
+        duration: 12,
+        generate_audio: false,
+        image_urls: ['https://cdn.test/a.png'],
+        prompt: 'match <<<image_1>>>',
+        resolution: '480p',
+        video_urls: ['https://cdn.test/ref.mp4'],
+      });
+    });
+
+    it('reuses a caller idempotency key and keeps the payload untouched', async () => {
+      mockHttpService.post.mockReturnValue(okResponse());
+
+      await service.generateCinemaStudioVideo({
+        idempotencyKey: 'durable-key',
+        imageUrls: ['https://cdn.test/a.png', 'https://cdn.test/a.png'],
+        prompt: 'p',
+      });
+
+      expect(
+        mockHttpService.post.mock.calls[0][2].headers['Idempotency-Key'],
+      ).toBe('durable-key');
+      expect(mockHttpService.post.mock.calls[0][1].image_urls).toEqual([
+        'https://cdn.test/a.png',
+        'https://cdn.test/a.png',
+      ]);
+    });
+
+    it.each([
+      [{ prompt: '   ' }, 'non-empty prompt'],
+      [{ duration: 3, prompt: 'p' }, 'duration'],
+      [{ duration: 31, prompt: 'p' }, 'duration'],
+      [{ duration: 5.5, prompt: 'p' }, 'duration'],
+      [{ prompt: 'p', resolution: '1080p' }, 'resolution'],
+      [{ aspectRatio: '2:3', prompt: 'p' }, 'aspect ratio'],
+      [{ imageUrls: ['http://cdn.test/a.png'], prompt: 'p' }, 'https image'],
+      [
+        {
+          imageUrls: Array.from(
+            { length: 31 },
+            (_, index) => `https://cdn.test/${index}.png`,
+          ),
+          prompt: 'p',
+        },
+        'at most 30',
+      ],
+    ])(
+      'rejects invalid input %# before calling Higgsfield',
+      async (input, message) => {
+        await expect(
+          service.generateCinemaStudioVideo(
+            input as Parameters<typeof service.generateCinemaStudioVideo>[0],
+          ),
+        ).rejects.toThrow(message);
+        expect(mockHttpService.post).not.toHaveBeenCalled();
+      },
+    );
+  });
+
   describe('waitForVideoCompletion', () => {
     it('resolves the video URL from a completed envelope', async () => {
       mockPollUntilService.poll.mockResolvedValue({
