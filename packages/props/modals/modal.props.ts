@@ -202,8 +202,8 @@ export interface ModalPostPlatformsTabProps {
 export interface ModalPostChannelListProps {
   platformConfigs: IPostPlatformConfig[];
   credentials: ICredential[];
-  /** Shared caption shown for a channel that has no caption of its own. */
-  globalDescription: string;
+  /** Media attached to the post; a channel that cannot take it is disabled. */
+  media: IIngredient[];
   /** Platform whose editor is open, if any. */
   expandedPlatform: string | null;
   isLoading: boolean;
