@@ -75,6 +75,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   TIKTOK_STATUS: 'tiktok-status',
   TRANSCRIPT_PURGE: 'transcript-purge',
   WORKFLOW_ARTIFACT_CLEANUP: 'workflow-artifact-cleanup',
+  WORKFLOW_EXECUTION_PURGE: 'workflow-execution-purge',
   WORKFLOW_CONTINUATION_RECONCILE: 'workflow-continuation-reconcile',
   WORKSPACE_TASK_ROLLUP_RECOVERY: 'workspace-task-rollup-recovery',
   AGENT_TRANSFER_RECOVERY: 'agent-transfer-recovery',
@@ -317,6 +318,12 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.WORKFLOW_ARTIFACT_CLEANUP]: {
     pattern: '17 * * * *',
+    timezone: 'UTC',
+  },
+  // Bulk-deletes finished background runs past their purgeAt. Each run deletes
+  // up to 50,000 rows, so the 1.2M-row backlog drains in a few hours.
+  [PLATFORM_SCHEDULED_TASKS.WORKFLOW_EXECUTION_PURGE]: {
+    pattern: '*/15 * * * *',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.WORKFLOW_CONTINUATION_RECONCILE]: {

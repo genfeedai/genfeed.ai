@@ -9547,6 +9547,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'readScope',
       'remainingDurationMs',
       'result',
+      'retentionPolicy',
       'scrubAllNodePayloads',
       'source',
       'startedAt',
@@ -9570,6 +9571,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'captions',
       'ingredients',
       'newsletters',
+      'nodeClaims',
       'nodeContinuations',
       'nodeResults',
       'posts',
@@ -9661,6 +9663,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     allFields: [
       'createdAt',
       'error',
+      'execution',
       'executionId',
       'id',
       'leaseExpiresAt',
@@ -9673,7 +9676,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
-    relationIdFields: {},
+    relationIdFields: {
+      execution: 'executionId',
+    },
   },
   WorkflowNodeContinuation: {
     allFields: [

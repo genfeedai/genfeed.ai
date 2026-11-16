@@ -1,6 +1,7 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
 import { createTemplateActionNode } from '@api/collections/workflows/templates/template-action-node';
 import type { WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 
 export const DAILY_PUBLISHING_ACCOUNT_WORKFLOW_ID = 'daily-publishing.account';
 const node = (
@@ -126,6 +127,7 @@ export function dailyPublishingAccountDefinition(): SystemWorkflowGraphDefinitio
       'Claim a daily account slot, select source, generate, evaluate, and schedule or hold for review.',
     version: 1,
     resultNodeId: 'schedule',
+    retention: SystemWorkflowRetention.BACKGROUND,
     definition: {
       inputVariables: [
         {

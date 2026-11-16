@@ -3,6 +3,7 @@ import type {
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const AGENT_RUNTIME_WORKFLOW_IDS = {
@@ -128,6 +129,7 @@ export function buildAgentTurnWorkflowDefinition(): SystemWorkflowGraphDefinitio
       'Executes one durable agent turn through registered preparation, inference, finalization, and failure actions.',
     label: 'Execute Agent Turn',
     resultNodeId: finalize.id,
+    retention: SystemWorkflowRetention.KEPT,
     version: 2,
   };
 }
@@ -162,6 +164,7 @@ function singleActionWorkflow(options: {
     description: options.description,
     label: options.label,
     resultNodeId: execute.id,
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

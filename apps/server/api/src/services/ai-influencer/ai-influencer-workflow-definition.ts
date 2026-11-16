@@ -3,6 +3,7 @@ import type {
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export type AiInfluencerWorkflowRequest = {
@@ -83,6 +84,7 @@ function definition(
 ): SystemWorkflowGraphDefinition {
   return {
     canonicalId,
+    retention: SystemWorkflowRetention.BACKGROUND,
     ...(requiresRequest
       ? {
           organizationModule:

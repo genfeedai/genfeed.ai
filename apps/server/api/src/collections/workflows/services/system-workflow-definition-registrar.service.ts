@@ -19,6 +19,7 @@ import {
 } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
 import { CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-loop-autopilot-workflows.template';
 import type { WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { buildCampaignDispatchWorkflowDefinition } from '@api/services/campaign/campaign-dispatch-workflow-definition';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
@@ -48,6 +49,7 @@ export class SystemWorkflowDefinitionRegistrarService implements OnModuleInit {
           description: template.description,
           label: template.name,
           resultNodeId: nodes[nodes.length - 1].id,
+          retention: SystemWorkflowRetention.BACKGROUND,
           schedule: template.schedule,
           version: template.version ?? 1,
         };

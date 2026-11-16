@@ -9,6 +9,7 @@ import {
   type SystemWorkflowActionRequest,
   type SystemWorkflowProvenance,
   SystemWorkflowTerminalFailures,
+  systemRunMetadata,
   validateDefinition,
 } from '@api/collections/workflows/system-workflow-policy.util';
 import {
@@ -501,12 +502,11 @@ export class SystemWorkflowRunnerService
           ...(input.metadata ?? {}),
           actionType: input.actionType,
           canonicalId: input.canonicalId,
-          // Persisted so `executeForEach` can route a `workflow.for-each`
-          // node's `scheduled`-mode children by the class of the parent that
-          // actually dispatched this run, instead of inferring it from the
-          // workflow's canonical id (#5271) — see `resolveInheritedDispatch`.
+          // Persisted so `executeForEach` routes a `scheduled`-mode child by the
+          // class of the parent that dispatched this run, not by the workflow's
+          // canonical id (#5271) — see `resolveInheritedDispatch`.
           dispatchClass: options.dispatchClass,
-          isSystemAction: true,
+          ...systemRunMetadata(definition.retention, options.dispatchClass),
           source: input.source,
         },
         totalNodes: definition.definition.nodes.length,
@@ -636,7 +636,7 @@ export class SystemWorkflowRunnerService
             ...(input.metadata ?? {}),
             actionType: input.actionType,
             canonicalId: input.canonicalId,
-            isSystemAction: true,
+            ...systemRunMetadata(definition.retention),
             source: input.source,
           },
           input.trigger ?? WorkflowExecutionTrigger.API,

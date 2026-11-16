@@ -66,7 +66,10 @@ describe('PlatformSchedulesProcessor', () => {
     reconcileEditorRenders: handler(),
     reconcileRawCutClips: handler(),
   };
-  const workflowArtifacts = { queueExpiredArtifactCleanup: handler() };
+  const workflowArtifacts = {
+    purgeExpiredExecutions: handler(),
+    queueExpiredArtifactCleanup: handler(),
+  };
   const xReplyWatch = { watchRecentPostReplies: handler() };
   const externalVoiceCatalog = { syncFromProviders: handler() };
   const avatarTwins = { trackWaitingTwins: handler() };
@@ -255,6 +258,10 @@ describe('PlatformSchedulesProcessor', () => {
       [
         PLATFORM_SCHEDULED_TASKS.WORKFLOW_ARTIFACT_CLEANUP,
         workflowArtifacts.queueExpiredArtifactCleanup,
+      ],
+      [
+        PLATFORM_SCHEDULED_TASKS.WORKFLOW_EXECUTION_PURGE,
+        workflowArtifacts.purgeExpiredExecutions,
       ],
       [
         PLATFORM_SCHEDULED_TASKS.WORKFLOW_CONTINUATION_RECONCILE,

@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const AGENT_CAMPAIGN_WORKFLOW_IDS = {
@@ -58,6 +59,7 @@ function definition(
 ): SystemWorkflowGraphDefinition {
   return {
     canonicalId,
+    retention: SystemWorkflowRetention.BACKGROUND,
     ...(requiresRequest ? { organizationModule: 'automation' as const } : {}),
     definition: {
       edges,

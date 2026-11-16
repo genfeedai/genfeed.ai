@@ -1,6 +1,7 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { createTemplateActionNode } from '@api/collections/workflows/templates/template-action-node';
 import type { WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 
 export type AnalyticsSyncWorkflowTemplate = WorkflowTemplate & {
   schedule: string;
@@ -287,6 +288,7 @@ function collectionChildWorkflow(
     description: `${label} for one discovered post.`,
     label,
     resultNodeId: 'collect-post',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 2,
   };
 }
@@ -373,6 +375,7 @@ export const ANALYTICS_GENERIC_CHILD_WORKFLOWS = [
       'Persists one discovered analytics record and updates its learning loop.',
     label: 'Sync analytics record',
     resultNodeId: 'detect-alerts',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   },
 ] satisfies SystemWorkflowGraphDefinition[];

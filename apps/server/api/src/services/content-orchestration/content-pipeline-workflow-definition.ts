@@ -1,5 +1,6 @@
 import type { WorkflowEdge } from '@api/collections/workflows/schemas/workflow.schema';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
 import type {
   PipelineConfigV2,
@@ -110,5 +111,6 @@ export function buildContentPipelineWorkflowDefinition(
       'Generates, persists, and publishes one action-backed content pipeline.',
     label: 'Content Pipeline',
     resultNodeId,
+    retention: SystemWorkflowRetention.BACKGROUND,
   };
 }

@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 const PATTERN_EXTRACTION_WORKFLOW_ID = 'patterns.extract-organization';
@@ -100,6 +101,7 @@ export function buildPatternExtractionWorkflowDefinition(): SystemWorkflowGraphD
       'Extracts one organization’s private pattern candidates and anonymously promotes fingerprints shared by at least five organizations.',
     label: 'Extract Organization Creative Patterns',
     resultNodeId: 'save-checkpoints',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }
@@ -130,6 +132,7 @@ export function buildPatternCandidateWorkflowDefinition(): SystemWorkflowGraphDe
       'Persists one private candidate and atomically applies the five-organization public promotion invariant.',
     label: 'Persist Creative Pattern Candidate',
     resultNodeId: 'persist-candidate',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }

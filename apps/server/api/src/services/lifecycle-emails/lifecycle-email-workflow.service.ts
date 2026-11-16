@@ -3,6 +3,7 @@ import {
   type SystemWorkflowGraphDefinition,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import {
   LifecycleEmailDeliveryService,
   type LifecycleEmailDeliveryState,
@@ -109,6 +110,7 @@ export function buildLifecycleEmailWorkflowDefinition(): SystemWorkflowGraphDefi
       'Loads, checks, renders, delivers, and finalizes one lifecycle email.',
     label: 'Lifecycle Email Delivery',
     resultNodeId: 'finalize-delivery',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }

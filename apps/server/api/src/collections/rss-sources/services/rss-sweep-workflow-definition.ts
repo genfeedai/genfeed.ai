@@ -3,6 +3,7 @@ import {
   conditionNode,
 } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 
 export const RSS_SWEEP_ACTION_IDS = {
   CLAIM_ITEM: 'rss.item.claim',
@@ -61,6 +62,7 @@ export function buildRssSweepWorkflowDefinition(): SystemWorkflowGraphDefinition
       'Discovers enabled RSS sources and processes each through a child workflow.',
     label: 'RSS Source Sweep',
     resultNodeId: 'process-sources',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }
@@ -123,6 +125,7 @@ export function buildRssSourceWorkflowDefinition(): SystemWorkflowGraphDefinitio
       'Fetches one feed, fans out its entries, and finalizes source counters.',
     label: 'Process RSS Source',
     resultNodeId: 'finalize-source',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }
@@ -219,6 +222,7 @@ export function buildRssItemWorkflowDefinition(): SystemWorkflowGraphDefinition 
       'Claims one feed item, creates its release, conditionally publishes, and finalizes the item.',
     label: 'Process RSS Item',
     resultNodeId: 'finalize-item',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }

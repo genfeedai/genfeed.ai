@@ -1,5 +1,6 @@
 import { actionNode as node } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 
 export const TIKTOK_STATUS_ACTION_IDS = {
   DISCOVER: 'tiktok.status.discover',
@@ -46,6 +47,7 @@ export function buildTiktokStatusSweepDefinition(): SystemWorkflowGraphDefinitio
       'Discovers pending TikTok publications and reconciles each status.',
     label: 'TikTok Status Sweep',
     resultNodeId: 'reconcile',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }
@@ -70,6 +72,7 @@ export function buildTiktokStatusReconcileDefinition(): SystemWorkflowGraphDefin
     description: 'Polls and reconciles one pending TikTok publication.',
     label: 'Reconcile TikTok Status',
     resultNodeId: 'reconcile',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }

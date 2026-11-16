@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { conditionNode as buildConditionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const CLIPPER_GENERATION_WORKFLOW_ID = 'clipper.generation';
@@ -163,6 +164,7 @@ export function buildClipperGenerationWorkflowDefinition(): SystemWorkflowGraphD
       'Plans clip generation, gates the hook when required, and runs one immutable child workflow per highlight.',
     label: 'Clip Generation',
     resultNodeId: 'generate-remaining',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
