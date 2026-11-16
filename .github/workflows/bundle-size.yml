@@ -8,9 +8,14 @@ on:
     branches: [master]
   workflow_dispatch:
 
+# Debounced by concurrency, without cancelling: at most one run is in progress
+# and one is pending, and a newer push replaces the pending one before it
+# starts. Cancelling a build part way published no baseline for that commit
+# and threw away the minutes it had used (95 of 262 master runs in the week of
+# 2026-11-10).
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read

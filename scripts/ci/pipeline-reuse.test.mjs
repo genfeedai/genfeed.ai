@@ -152,6 +152,11 @@ test('bundle PR execution belongs to CI while master and manual keep their entry
   assert.match(entrypoint, /^ {2}push:\n {4}branches: \[master\]/m);
   assert.match(entrypoint, /^ {2}workflow_dispatch:/m);
   assert.match(entrypoint, /uses: \.\/\.github\/workflows\/_bundle-size\.yml/);
+  assert.match(
+    entrypoint,
+    /^concurrency:\n {2}group: \$\{\{ github\.workflow \}\}-\$\{\{ github\.ref \}\}\n {2}cancel-in-progress: false$/m,
+    'a master build in progress finishes and publishes its baseline',
+  );
   const ci = read('.github/workflows/_ci-frontend.yml');
   const bundle = ci.match(/^ {2}bundle-size:\n((?: {4}.*(?:\n|$)|\n)+)/m)?.[1];
   assert.ok(bundle, 'CI must call the bundle graph');
