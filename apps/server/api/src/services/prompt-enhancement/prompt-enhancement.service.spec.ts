@@ -77,6 +77,7 @@ describe('PromptEnhancementService', () => {
           characters: 12,
           compilerVersion: 'generation-sections-v1',
           loadedSections: ['Camera movement'],
+          mode: 'generation',
           omittedSections: [],
           slug: 'cinematic-prompting',
         });
@@ -89,6 +90,7 @@ describe('PromptEnhancementService', () => {
         characters: 12,
         compilerVersion: 'generation-sections-v1',
         loadedSections: ['Camera movement'],
+        mode: 'generation',
         omittedSections: [],
         slug: 'cinematic-prompting',
       },
