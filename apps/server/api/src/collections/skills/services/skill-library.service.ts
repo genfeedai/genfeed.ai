@@ -51,6 +51,7 @@ import { withSkillWriteSession } from '@api/collections/skills/services/skill-wr
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { SkillSectionReceipt } from '@genfeedai/contracts/interfaces/ai';
 import type {
   SkillVersionListQueryV1,
   SkillVersionReadPageV1,
@@ -611,10 +612,10 @@ export class SkillLibraryService {
     actor: SkillLibraryActor,
     included: RecordedSkillVersion[],
     excluded: readonly RecordedSkillExclusion[],
-  ): Promise<void> {
+  ): Promise<string | undefined> {
     const items = resolutionItems(included, excluded);
-    if (items.length === 0) return;
-    await this.prisma.skillResolution.create({
+    if (items.length === 0) return undefined;
+    const resolution = await this.prisma.skillResolution.create({
       data: {
         brandId: actor.brandId || null,
         isDeleted: false,
@@ -622,7 +623,49 @@ export class SkillLibraryService {
         organizationId: actor.organizationId,
         userId: actor.userId,
       },
+      select: { id: true },
     });
+    return resolution?.id;
+  }
+
+  /**
+   * Notes on each included resolution item which sections of the skill the
+   * prompt carried: headings and counts, never the instruction text.
+   */
+  async recordSectionReceipts(
+    actor: SkillLibraryActor,
+    resolutionId: string,
+    receipts: readonly SkillSectionReceipt[],
+  ): Promise<void> {
+    const resolution = await this.prisma.skillResolution.findFirst({
+      select: { id: true },
+      where: {
+        id: resolutionId,
+        isDeleted: false,
+        organizationId: actor.organizationId,
+      },
+    });
+    if (!resolution) return;
+    for (const receipt of receipts) {
+      if (!receipt.versionId) continue;
+      await this.prisma.skillResolutionItem.updateMany({
+        data: {
+          sections: {
+            characters: receipt.characters,
+            compilerVersion: receipt.compilerVersion,
+            loadedSections: receipt.loadedSections,
+            modality: receipt.modality ?? null,
+            mode: receipt.mode,
+            omittedSections: receipt.omittedSections,
+          },
+        },
+        where: {
+          inclusion: 'included',
+          resolutionId: resolution.id,
+          skillVersionId: receipt.versionId,
+        },
+      });
+    }
   }
 
   private withoutInstructions(document: SkillDocument): SkillDocument {

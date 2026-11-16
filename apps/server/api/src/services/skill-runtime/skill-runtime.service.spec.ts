@@ -135,6 +135,83 @@ describe('SkillRuntimeService version pins', () => {
   });
 });
 
+describe('SkillRuntimeService.recordSectionReceipts', () => {
+  const receipt = {
+    characters: 40,
+    compilerVersion: 'generation-sections-v1',
+    loadedSections: ['Camera movement'],
+    mode: 'generation' as const,
+    omittedSections: [],
+    slug: 'cinematic-prompting',
+    versionId: 'sv-1',
+  };
+
+  it('hands the receipts to the library for the actor and resolution', async () => {
+    const recordSectionReceipts = vi.fn().mockResolvedValue(undefined);
+    const service = new SkillRuntimeService(
+      {} as never,
+      { error: vi.fn(), warn: vi.fn() } as never,
+      { recordSectionReceipts } as never,
+    );
+
+    await service.recordSectionReceipts({
+      actorUserId: 'user-1',
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      receipts: [receipt],
+      resolutionId: 'resolution-1',
+    });
+
+    expect(recordSectionReceipts).toHaveBeenCalledWith(
+      { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+      'resolution-1',
+      [receipt],
+    );
+  });
+
+  it('does nothing without an actor, a resolution record or receipts', async () => {
+    const recordSectionReceipts = vi.fn();
+    const service = new SkillRuntimeService(
+      {} as never,
+      { error: vi.fn(), warn: vi.fn() } as never,
+      { recordSectionReceipts } as never,
+    );
+    const base = { organizationId: 'org-1', receipts: [receipt] };
+
+    await service.recordSectionReceipts({ ...base, resolutionId: 'r-1' });
+    await service.recordSectionReceipts({ ...base, actorUserId: 'user-1' });
+    await service.recordSectionReceipts({
+      actorUserId: 'user-1',
+      organizationId: 'org-1',
+      receipts: [],
+      resolutionId: 'r-1',
+    });
+
+    expect(recordSectionReceipts).not.toHaveBeenCalled();
+  });
+
+  it('logs a failed write and lets the generation continue', async () => {
+    const logger = { error: vi.fn(), warn: vi.fn() };
+    const service = new SkillRuntimeService(
+      {} as never,
+      logger as never,
+      {
+        recordSectionReceipts: vi.fn().mockRejectedValue(new Error('db down')),
+      } as never,
+    );
+
+    await expect(
+      service.recordSectionReceipts({
+        actorUserId: 'user-1',
+        organizationId: 'org-1',
+        receipts: [receipt],
+        resolutionId: 'resolution-1',
+      }),
+    ).resolves.toBeUndefined();
+    expect(logger.error).toHaveBeenCalled();
+  });
+});
+
 describe('SkillRuntimeService.buildSkillPromptSections', () => {
   it('frames sanitized skill instructions as authorized organization task guidance', () => {
     const sections = createService().buildSkillPromptSections([
@@ -210,28 +287,66 @@ describe('SkillRuntimeService.buildSkillPromptSections', () => {
     expect(sections).toContain('Always mention the product benefit first.');
   });
 
-  it('truncates oversized skill instructions and logs the cap', () => {
+  it('leaves out an optional skill with no section that fits, and logs it', () => {
     const logger = { warn: vi.fn() };
     const service = new SkillRuntimeService({} as never, logger as never);
-    const oversized = 'A'.repeat(MAX_INSTRUCTIONS_PER_SKILL + 50);
+    const receipts: SkillSectionReceipt[] = [];
 
-    const sections = service.buildSkillPromptSections([
-      skill({
-        instructions: oversized,
-        isBuiltIn: true,
-        slug: 'image-prompt-engineer',
-        source: 'built_in',
-      }),
-    ]);
-
-    expect(sections.length).toBeLessThanOrEqual(MAX_TOTAL_SKILL_INSTRUCTIONS);
-    expect(sections).toBe(
-      `## Skill: Brand Voice\n${'A'.repeat(MAX_INSTRUCTIONS_PER_SKILL)}…`,
+    const sections = service.buildSkillPromptSections(
+      [
+        skill({
+          instructions: 'A'.repeat(MAX_INSTRUCTIONS_PER_SKILL + 50),
+          isBuiltIn: true,
+          slug: 'image-prompt-engineer',
+          source: 'built_in',
+        }),
+      ],
+      [],
+      { receipts },
     );
+
+    expect(sections).toBe('');
     expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('truncated at'),
+      expect.stringContaining('left out'),
       'SkillRuntimeService',
     );
+    expect(receipts[0]).toMatchObject({
+      loadedSections: [],
+      mode: 'agent',
+      omittedSections: ['preamble'],
+    });
+  });
+
+  it('keeps whole sections of an optional skill that is over the skill budget', () => {
+    const big = `# Big\n## Keep\n${'k'.repeat(15_000)}\n## Also\n${'a'.repeat(15_000)}`;
+    const receipts: SkillSectionReceipt[] = [];
+
+    const sections = createService().buildSkillPromptSections(
+      [skill({ instructions: big, isBuiltIn: true, source: 'built_in' })],
+      [],
+      { receipts },
+    );
+
+    expect(sections).toBe(
+      `## Skill: Brand Voice\n# Big\n\n## Keep\n${'k'.repeat(15_000)}`,
+    );
+    expect(receipts[0].loadedSections).toEqual(['preamble', 'Keep']);
+    expect(receipts[0].omittedSections).toEqual(['Also']);
+  });
+
+  it('gives a picked skill whole, with every heading in the receipt', () => {
+    const receipts: SkillSectionReceipt[] = [];
+    const text = createService().buildSkillPromptSections(
+      [skill({ instructions: '# T\n## One\na\n## Two\nb' })],
+      ['brand-voice'],
+      { receipts },
+    );
+
+    expect(text).toContain('## One\na\n## Two\nb');
+    expect(receipts[0]).toMatchObject({
+      loadedSections: ['preamble', 'One', 'Two'],
+      omittedSections: [],
+    });
   });
 });
 
