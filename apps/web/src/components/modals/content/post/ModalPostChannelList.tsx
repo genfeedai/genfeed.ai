@@ -9,13 +9,17 @@ import type {
   ICredential,
   IPostPlatformConfig,
 } from '@genfeedai/contracts/interfaces';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ModalPostChannelListProps } from '@genfeedai/props/modals/modal.props';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
-import { Switch } from '@ui/primitives/switch';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import {
+  getUnmetPostMediaRequirements,
+  type PostMediaRequirement,
+} from './post-media.helper';
 
 function getChannelName(
   config: IPostPlatformConfig,
@@ -30,20 +34,40 @@ function getChannelName(
   );
 }
 
-function isSelectable(config: IPostPlatformConfig): boolean {
-  return Boolean(config.credentialId) && config.isCredentialValid !== false;
+/** What the attached media still lacks for this channel, or null when it fits. */
+function getChannelMediaGap(
+  config: IPostPlatformConfig,
+  media: ModalPostChannelListProps['media'],
+): Exclude<PostMediaRequirement, 'none'> | null {
+  return (
+    getUnmetPostMediaRequirements([config.platform], media)[0]?.requirement ??
+    null
+  );
+}
+
+/** A connected channel whose connection is valid and that can take the post. */
+export function isChannelSelectable(
+  config: IPostPlatformConfig,
+  media: ModalPostChannelListProps['media'],
+): boolean {
+  return (
+    Boolean(config.credentialId) &&
+    config.isCredentialValid !== false &&
+    getChannelMediaGap(config, media) === null
+  );
 }
 
 /**
- * Channels step of the publish modal: one row per destination with its
- * avatar and platform badge, the caption it will carry, an Edit disclosure for
- * per-channel overrides and an on/off switch. A channel that is not connected,
- * or whose connection expired, offers Connect / Reconnect instead of a switch.
+ * Channels step of the publish modal: one avatar per destination. Tapping a
+ * connected avatar turns the channel on or off; a channel that cannot take the
+ * attached media is disabled and says what it needs. A channel that is not
+ * connected, or whose connection expired, offers Connect / Reconnect. Edit
+ * opens the per-channel overrides under the grid.
  */
 export default function ModalPostChannelList({
   platformConfigs,
   credentials,
-  globalDescription,
+  media,
   expandedPlatform,
   isLoading,
   onToggle,
@@ -53,10 +77,18 @@ export default function ModalPostChannelList({
   renderEditor,
 }: ModalPostChannelListProps) {
   const translate = useTranslations('ui.postBatch.channels');
-  const selectableCount = platformConfigs.filter(isSelectable).length;
-  const activeCount = platformConfigs.filter(
-    (config) => isSelectable(config) && config.enabled,
+  const selectableCount = platformConfigs.filter((config) =>
+    isChannelSelectable(config, media),
   ).length;
+  const activeCount = platformConfigs.filter(
+    (config) => isChannelSelectable(config, media) && config.enabled,
+  ).length;
+  const expandedConfig = platformConfigs.find(
+    (config) =>
+      config.platform === expandedPlatform &&
+      config.enabled &&
+      isChannelSelectable(config, media),
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -94,7 +126,7 @@ export default function ModalPostChannelList({
 
       <ul
         aria-label={translate('listLabel')}
-        className="divide-y divide-border"
+        className="grid grid-cols-3 gap-x-2 gap-y-4 pt-2 sm:grid-cols-4"
       >
         {platformConfigs.map((config) => {
           const credential = credentials.find(
@@ -103,81 +135,100 @@ export default function ModalPostChannelList({
           const name = getChannelName(config, credential);
           const hasCredential = Boolean(config.credentialId);
           const isCredentialValid = config.isCredentialValid !== false;
-          const canToggle = isSelectable(config);
-          const isExpanded =
-            canToggle && config.enabled && expandedPlatform === config.platform;
-          const caption = config.description || globalDescription;
+          const mediaGap = getChannelMediaGap(config, media);
+          const isConnected = hasCredential && isCredentialValid;
+          const isBlocked = isConnected && mediaGap !== null;
+          const canToggle = isConnected && !isBlocked;
+          const isOn = canToggle && config.enabled;
+          const status = !isConnected
+            ? hasCredential
+              ? translate('reconnect')
+              : translate('connect')
+            : mediaGap
+              ? translate(mediaGap === 'video' ? 'needsVideo' : 'needsMedia')
+              : isOn
+                ? translate('on')
+                : translate('off');
 
           return (
-            <li className="flex flex-col gap-3 py-3" key={config.platform}>
-              <div className="flex items-center gap-3">
-                <Avatar
-                  badge={
-                    <PlatformBadge
-                      platform={config.platform}
-                      showLabel={false}
-                      variant="solid"
-                    />
-                  }
-                  name={name}
-                  size="lg"
-                  src={credential?.externalAvatar}
-                />
-                <div className="flex min-w-0 flex-1 flex-col leading-tight">
-                  <span className="truncate text-sm font-medium">{name}</span>
-                  <span className="truncate text-xs text-foreground/60">
-                    {!hasCredential
-                      ? translate('notConnected')
-                      : !isCredentialValid
-                        ? translate('reconnectToPublish')
-                        : caption || translate('noCaption')}
-                  </span>
-                </div>
-                {canToggle ? (
-                  <>
-                    {config.enabled ? (
-                      <Button
-                        type="button"
-                        ariaLabel={translate('editNamed', { name })}
-                        isDisabled={isLoading}
-                        label={translate('edit')}
-                        onClick={() => onToggleExpanded(config.platform)}
-                        size={ButtonSize.SM}
-                        variant={ButtonVariant.GHOST}
-                      />
-                    ) : null}
-                    <Switch
-                      aria-label={translate('publishTo', { name })}
-                      isChecked={config.enabled}
-                      isDisabled={isLoading}
-                      onCheckedChange={() => onToggle(config.credentialId)}
-                    />
-                  </>
-                ) : (
-                  <Button
-                    type="button"
-                    ariaLabel={
-                      hasCredential
+            <li
+              className="flex min-w-0 flex-col items-center gap-1.5 text-center"
+              key={config.platform}
+            >
+              <div
+                className={cn(
+                  'rounded-full p-0.5 transition',
+                  isOn
+                    ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                    : 'ring-1 ring-transparent',
+                  !isConnected && 'opacity-60',
+                  isBlocked && 'opacity-40 grayscale',
+                  canToggle &&
+                    !isOn &&
+                    'opacity-70 grayscale hover:opacity-100 hover:grayscale-0',
+                )}
+              >
+                <Button
+                  type="button"
+                  aria-pressed={canToggle ? isOn : undefined}
+                  ariaLabel={
+                    !isConnected
+                      ? hasCredential
                         ? translate('reconnectNamed', { name })
                         : translate('connectNamed', { name })
+                      : translate('publishTo', { name })
+                  }
+                  isDisabled={
+                    isBlocked || (isConnected ? isLoading : !onAddChannels)
+                  }
+                  onClick={() =>
+                    isConnected
+                      ? onToggle(config.credentialId)
+                      : onAddChannels?.()
+                  }
+                  tooltip={isBlocked ? status : name}
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                >
+                  <Avatar
+                    badge={
+                      <PlatformBadge
+                        platform={config.platform}
+                        showLabel={false}
+                        variant="solid"
+                      />
                     }
-                    isDisabled={!onAddChannels}
-                    label={
-                      hasCredential
-                        ? translate('reconnect')
-                        : translate('connect')
-                    }
-                    onClick={onAddChannels}
-                    size={ButtonSize.SM}
-                    variant={ButtonVariant.SECONDARY}
+                    name={name}
+                    size="xl"
+                    src={credential?.externalAvatar}
                   />
-                )}
+                </Button>
               </div>
-              {isExpanded ? renderEditor(config) : null}
+              <div className="flex min-w-0 max-w-full flex-col leading-tight">
+                <span className="truncate text-xs font-medium">
+                  {formatPlatformLabel(config.platform)}
+                </span>
+                <span className="truncate text-2xs text-muted-foreground">
+                  {status}
+                </span>
+              </div>
+              {isOn ? (
+                <Button
+                  type="button"
+                  ariaLabel={translate('editNamed', { name })}
+                  isDisabled={isLoading}
+                  label={translate('edit')}
+                  onClick={() => onToggleExpanded(config.platform)}
+                  size={ButtonSize.XS}
+                  variant={ButtonVariant.GHOST}
+                />
+              ) : null}
             </li>
           );
         })}
       </ul>
+
+      {expandedConfig ? renderEditor(expandedConfig) : null}
 
       {onAddChannels ? (
         <Button

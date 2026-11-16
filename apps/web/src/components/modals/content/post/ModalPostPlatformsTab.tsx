@@ -36,7 +36,9 @@ import { resolvePlatformCharLimit } from '@ui-constants/platform-char-limit.cons
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { countCaptionCharacters } from '@/components/posts/character-usage/post-character-usage.util';
-import ModalPostChannelList from './ModalPostChannelList';
+import ModalPostChannelList, {
+  isChannelSelectable,
+} from './ModalPostChannelList';
 import ModalPostPlatformCard from './ModalPostPlatformCard';
 import {
   PLATFORM_TO_CONTENT_CATEGORY,
@@ -85,6 +87,10 @@ export default function ModalPostPlatformsTab({
     sets,
   } = usePostingSets();
   const { signatures } = usePostingSignatures();
+  const media = useMemo(
+    () => ingredients ?? (ingredient ? [ingredient] : []),
+    [ingredient, ingredients],
+  );
   const previewTargets = useMemo(
     () =>
       buildComposerPreviewTargets(
@@ -278,16 +284,30 @@ export default function ModalPostPlatformsTab({
       applyEnabledCredentialIds?.(
         isEnabled
           ? platformConfigs
-              .filter(
-                (config) =>
-                  config.credentialId && config.isCredentialValid !== false,
-              )
+              .filter((config) => isChannelSelectable(config, media))
               .map((config) => config.credentialId)
           : [],
       );
     },
-    [applyEnabledCredentialIds, platformConfigs],
+    [applyEnabledCredentialIds, media, platformConfigs],
   );
+
+  // Removing the media a channel needs turns that channel off, so it never
+  // publishes a post it cannot carry.
+  useEffect(() => {
+    const isBlockedAndOn = (config: IPostPlatformConfig) =>
+      config.enabled &&
+      Boolean(config.credentialId) &&
+      !isChannelSelectable(config, media);
+    if (!platformConfigs.some(isBlockedAndOn)) {
+      return;
+    }
+    applyEnabledCredentialIds?.(
+      platformConfigs
+        .filter((config) => config.enabled && !isBlockedAndOn(config))
+        .map((config) => config.credentialId),
+    );
+  }, [applyEnabledCredentialIds, media, platformConfigs]);
 
   const handleToggleExpanded = useCallback((platform: string) => {
     setExpandedPlatform((current) => (current === platform ? null : platform));
@@ -361,7 +381,7 @@ export default function ModalPostPlatformsTab({
       <ModalPostChannelList
         platformConfigs={platformConfigs}
         credentials={credentials}
-        globalDescription={globalDescription ?? ''}
+        media={media}
         expandedPlatform={expandedPlatform}
         isLoading={isLoading}
         onToggle={togglePlatform}
