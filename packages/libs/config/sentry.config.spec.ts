@@ -2,7 +2,27 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   getSentryConfig,
   PRODUCTION_TRACES_SAMPLE_RATE,
+  redactBreadcrumbUrls,
 } from './sentry.config';
+
+describe('redactBreadcrumbUrls', () => {
+  it('removes webhook and bot tokens from an HTTP breadcrumb URL', () => {
+    expect(
+      redactBreadcrumbUrls({
+        category: 'http',
+        data: { url: 'https://discord.com/api/webhooks/123456789/abc-DEF_ghi' },
+      }).data?.url,
+    ).toBe('https://discord.com/api/webhooks/123456789/[REDACTED]');
+    expect(
+      redactBreadcrumbUrls({
+        category: 'http',
+        data: {
+          url: 'https://api.telegram.org/bot123456:AAH-xyz_123/sendMessage',
+        },
+      }).data?.url,
+    ).toBe('https://api.telegram.org/bot[REDACTED]/sendMessage');
+  });
+});
 
 describe('getSentryConfig', () => {
   afterEach(() => {
@@ -42,6 +62,7 @@ describe('getSentryConfig', () => {
     vi.stubEnv('npm_package_version', '3.2.1');
 
     expect(getSentryConfig({ serviceName: 'my-service' })).toEqual({
+      beforeBreadcrumb: redactBreadcrumbUrls,
       dsn: 'https://service@sentry.io/2',
       environment: 'production',
       release: '3.2.1',
@@ -75,6 +96,7 @@ describe('getSentryConfig', () => {
     vi.stubEnv('npm_package_version', '');
 
     expect(getSentryConfig({ serviceName: 'api' })).toEqual({
+      beforeBreadcrumb: redactBreadcrumbUrls,
       dsn: 'https://shared@sentry.io/1',
       environment: 'development',
       release: '1.0.0',

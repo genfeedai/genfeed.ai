@@ -1,4 +1,5 @@
-import type { NodeOptions } from '@sentry/nestjs';
+import { redactSensitiveString } from '@genfeedai/helpers/security/redact-sensitive-value.helper';
+import type { Breadcrumb, NodeOptions } from '@sentry/nestjs';
 
 const HYPHENS_PATTERN = /-/g;
 
@@ -7,6 +8,27 @@ const HYPHENS_PATTERN = /-/g;
  * without paying span overhead or Sentry quota on every request.
  */
 export const PRODUCTION_TRACES_SAMPLE_RATE = 0.05;
+
+/**
+ * Outbound HTTP breadcrumbs record the full request URL. Some providers carry
+ * a secret in the URL path (Discord webhooks, Telegram bot tokens), so every
+ * URL a breadcrumb holds goes through the shared redactor before it is kept.
+ */
+export function redactBreadcrumbUrls(breadcrumb: Breadcrumb): Breadcrumb {
+  if (typeof breadcrumb.message === 'string') {
+    breadcrumb.message = redactSensitiveString(breadcrumb.message);
+  }
+  const data = breadcrumb.data;
+  if (data) {
+    for (const key of ['url', 'http.url', 'to', 'from']) {
+      const value = data[key];
+      if (typeof value === 'string') {
+        data[key] = redactSensitiveString(value);
+      }
+    }
+  }
+  return breadcrumb;
+}
 
 interface SentryConfigOptions {
   serviceName: string;
@@ -38,6 +60,7 @@ export function getSentryConfig(
   }
 
   return {
+    beforeBreadcrumb: redactBreadcrumbUrls,
     dsn,
     environment: process.env.SENTRY_ENVIRONMENT || 'development',
     // Send W3C `traceparent` beside `sentry-trace` and `baggage` so services

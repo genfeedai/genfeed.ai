@@ -57,7 +57,7 @@ describe('redactSensitiveValue', () => {
         'HTTP POST https://api.telegram.org/bot123456:AAH-xyz_123/sendMessage → 500',
       ),
     ).toBe(
-      `HTTP POST https://api.telegram.org/bot123456:${REDACTED_VALUE}/sendMessage → 500`,
+      `HTTP POST https://api.telegram.org/bot${REDACTED_VALUE}/sendMessage → 500`,
     );
   });
 

@@ -18,7 +18,7 @@ const PROVIDER_TOKEN_PATTERN =
 // Secrets that ride in the URL path, so a logged request URL leaks them:
 // Discord `/webhooks/<id>/<token>` and Telegram `/bot<id>:<token>/<method>`.
 const DISCORD_WEBHOOK_PATH_PATTERN = /(\/webhooks\/\d+\/)[\w-]+/gi;
-const TELEGRAM_BOT_PATH_PATTERN = /(\/bot\d+:)[\w-]+/gi;
+const TELEGRAM_BOT_PATH_PATTERN = /(\/bot)\d+:[\w-]+/gi;
 const PRIVATE_KEY_BEGIN_PREFIX = '-----BEGIN ';
 const PRIVATE_KEY_END_PREFIX = '-----END ';
 const PRIVATE_KEY_MARKER_SUFFIX = 'PRIVATE KEY-----';
