@@ -3,7 +3,30 @@ import {
   getSentryConfig,
   PRODUCTION_TRACES_SAMPLE_RATE,
   redactBreadcrumbUrls,
+  redactSpanUrls,
 } from './sentry.config';
+
+describe('redactSpanUrls', () => {
+  it('removes webhook and bot tokens from a sampled HTTP span', () => {
+    const span = redactSpanUrls({
+      data: {
+        'http.url': 'https://discord.com/api/webhooks/123456789/abc-DEF_ghi',
+        'url.full':
+          'https://api.telegram.org/bot123456:AAH-xyz_123/sendMessage',
+      },
+      description:
+        'POST https://discord.com/api/webhooks/123456789/abc-DEF_ghi',
+    });
+
+    expect(span).toEqual({
+      data: {
+        'http.url': 'https://discord.com/api/webhooks/123456789/[REDACTED]',
+        'url.full': 'https://api.telegram.org/bot[REDACTED]/sendMessage',
+      },
+      description: 'POST https://discord.com/api/webhooks/123456789/[REDACTED]',
+    });
+  });
+});
 
 describe('redactBreadcrumbUrls', () => {
   it('removes webhook and bot tokens from an HTTP breadcrumb URL', () => {
@@ -63,6 +86,7 @@ describe('getSentryConfig', () => {
 
     expect(getSentryConfig({ serviceName: 'my-service' })).toEqual({
       beforeBreadcrumb: redactBreadcrumbUrls,
+      beforeSendSpan: redactSpanUrls,
       dsn: 'https://service@sentry.io/2',
       environment: 'production',
       release: '3.2.1',
@@ -97,6 +121,7 @@ describe('getSentryConfig', () => {
 
     expect(getSentryConfig({ serviceName: 'api' })).toEqual({
       beforeBreadcrumb: redactBreadcrumbUrls,
+      beforeSendSpan: redactSpanUrls,
       dsn: 'https://shared@sentry.io/1',
       environment: 'development',
       release: '1.0.0',
