@@ -67,6 +67,22 @@ export interface HiggsFieldGenjutsuInput {
   video_url: string;
 }
 
+/**
+ * `POST /higgsfield/cinema-studio/4.0`. Text-to-video when every media array
+ * is empty, reference-to-video otherwise. Creative controls are omitted for
+ * automatic selection; the provider rejects a literal "auto".
+ */
+export interface HiggsFieldCinemaStudioInput {
+  prompt: string;
+  duration: number;
+  resolution: '480p' | '720p';
+  aspect_ratio: string;
+  generate_audio: boolean;
+  image_urls?: string[];
+  video_urls?: string[];
+  audio_urls?: string[];
+}
+
 /** `POST /higgsfield-ai/soul/v2/standard` */
 export interface HiggsFieldSoulInput {
   prompt: string;
