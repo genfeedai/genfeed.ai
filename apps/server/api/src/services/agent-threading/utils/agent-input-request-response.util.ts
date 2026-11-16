@@ -55,6 +55,10 @@ export function resolveContinuationIdempotency(
     : {};
 }
 
+/**
+ * The answer continues on a new execution. Returning it lets the client pin
+ * its stream to that run instead of the one that asked.
+ */
 export function toInputRequestResponse(
   inputRequest: Record<string, unknown>,
   continuation: AgentTurnAcknowledgement | null,

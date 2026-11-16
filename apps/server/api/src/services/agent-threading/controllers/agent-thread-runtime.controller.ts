@@ -272,7 +272,6 @@ export class AgentThreadRuntimeController {
           userId,
         });
 
-      // The answer continues on a new run; returning it pins the client stream.
       let continuation: AgentTurnAcknowledgement | null = null;
       const initiatingPrincipal = buildAgentInitiatingPrincipal({
         auth: user,
