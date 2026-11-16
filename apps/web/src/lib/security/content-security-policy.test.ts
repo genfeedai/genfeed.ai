@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import {
-  buildContentSecurityPolicy,
-  buildSecurityHeaders,
-} from './content-security-policy';
+import { buildSecurityHeaders } from './content-security-policy';
+
+function buildContentSecurityPolicy(
+  options: { connectOrigins?: readonly (string | undefined)[] } = {},
+): string {
+  const policy = buildSecurityHeaders({ ...options, isProduction: true }).find(
+    (header) => header.key === 'Content-Security-Policy-Report-Only',
+  );
+  return policy?.value ?? '';
+}
 
 function directive(policy: string, name: string): string[] {
   const entry = policy

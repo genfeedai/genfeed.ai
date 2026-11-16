@@ -19,7 +19,7 @@ const EXTENSION_SCHEMES = [
 
 const MAX_FIELD_LENGTH = 200;
 
-function readString(value: unknown): string {
+function readBoundedField(value: unknown): string {
   return typeof value === 'string' ? value.slice(0, MAX_FIELD_LENGTH) : '';
 }
 
@@ -67,9 +67,9 @@ export function parseCspViolation(payload: unknown): CspViolation | null {
     return null;
   }
 
-  const blocked = readString(report['blocked-uri'] ?? report.blockedURL);
-  const source = readString(report['source-file'] ?? report.sourceFile);
-  const directive = readString(
+  const blocked = readBoundedField(report['blocked-uri'] ?? report.blockedURL);
+  const source = readBoundedField(report['source-file'] ?? report.sourceFile);
+  const directive = readBoundedField(
     report['effective-directive'] ??
       report.effectiveDirective ??
       report['violated-directive'],

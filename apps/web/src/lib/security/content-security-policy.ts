@@ -14,14 +14,14 @@
 
 const HTTP_SCHEME_PATTERN = /^http/;
 
-export const CSP_REPORT_PATH = '/api/csp-report';
+const CSP_REPORT_PATH = '/api/csp-report';
 
-export interface SecurityHeader {
+interface SecurityHeader {
   key: string;
   value: string;
 }
 
-export interface ContentSecurityPolicyOptions {
+interface ContentSecurityPolicyOptions {
   /** Origins the browser may fetch from beyond Genfeed's own hosts. */
   connectOrigins?: readonly (string | undefined)[];
 }
@@ -62,7 +62,7 @@ function unique(values: readonly string[]): string[] {
   return [...new Set(values)];
 }
 
-export function buildContentSecurityPolicy(
+function buildContentSecurityPolicy(
   options: ContentSecurityPolicyOptions = {},
 ): string {
   const configuredOrigins = (options.connectOrigins ?? []).flatMap((value) => {
@@ -113,7 +113,7 @@ export function buildContentSecurityPolicy(
  * the app talks to. Camera and microphone stay available to the app itself
  * (voice and video recording); everything else powerful is off.
  */
-export function buildEnforcedSecurityHeaders(): SecurityHeader[] {
+function buildEnforcedSecurityHeaders(): SecurityHeader[] {
   return [
     { key: 'X-Content-Type-Options', value: 'nosniff' },
     { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

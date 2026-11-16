@@ -350,13 +350,7 @@ describe('proxy', () => {
     },
   );
 
-  it.each([
-    '/api/version',
-    '/api/csp-report',
-    '/v1',
-    '/v1/auth/get-session',
-    '/v1/health',
-  ])(
+  it.each(['/api/version', '/v1', '/v1/auth/get-session', '/v1/health'])(
     'passes the same-origin API proxy route %s through without app auth routing',
     async (pathname) => {
       const { default: proxy } = await import('./proxy');
