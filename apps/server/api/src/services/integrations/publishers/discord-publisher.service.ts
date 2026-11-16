@@ -6,10 +6,13 @@ import {
   DiscordWebhookService,
 } from '@api/services/integrations/discord/services/discord-webhook.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
+import { toChatPublishError } from '@api/services/integrations/publishers/chat-publish-error.util';
 import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { mapUnpublishedRequestFailure } from '@api/services/integrations/publishers/provider-publish-error.mappers';
+import { toPublishError } from '@api/services/integrations/publishers/publish-error.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -115,12 +118,17 @@ export class DiscordPublisherService extends BasePublisherService {
         error: (error as Error)?.message,
         postId: context.postId,
       });
-      if (error instanceof DiscordApiError && error.kind === 'webhook_gone') {
-        await this.credentialsService.patch(credential.id, {
-          isConnected: false,
-        });
+      if (error instanceof DiscordApiError) {
+        if (error.kind === 'webhook_gone') {
+          await this.credentialsService.patch(credential.id, {
+            isConnected: false,
+          });
+        }
+        throw toChatPublishError(error);
       }
-      throw error;
+      // Anything else failed while downloading the media, before the webhook
+      // was called, so nothing was posted.
+      throw toPublishError(error, mapUnpublishedRequestFailure) ?? error;
     }
   }
 
