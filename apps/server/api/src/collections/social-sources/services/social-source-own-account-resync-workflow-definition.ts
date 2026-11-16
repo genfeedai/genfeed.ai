@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const SOCIAL_SOURCE_OWN_ACCOUNT_RESYNC_ACTION_IDS = {
@@ -54,6 +55,7 @@ export function buildSocialSourceOwnAccountResyncSweepWorkflowDefinition(): Syst
       'Discovers own-account social sources due for a metrics re-sync and processes each through a tenant-scoped child workflow.',
     label: 'Social Account Own-Account Resync Sweep',
     resultNodeId: 'resync-sources',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }
@@ -84,6 +86,7 @@ export function buildSocialSourceOwnAccountResyncItemWorkflowDefinition(): Syste
       "Re-collects one connected account's recent posts so imported metrics keep maturing.",
     label: 'Social Account Own-Account Resync',
     resultNodeId: 'run-resync',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }

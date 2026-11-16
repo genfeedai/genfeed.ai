@@ -6,6 +6,7 @@ import {
   YOUTUBE_SOURCE_LIBRARY_WORKFLOW_ID,
 } from '@api/collections/workflows/services/youtube-long-form-workflow.constants';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export function registerYoutubeLongFormWorkflowDefinitions(
@@ -189,6 +190,7 @@ export function registerYoutubeLongFormWorkflowDefinitions(
       'Transforms one public YouTube video into a preview or tenant-owned long-form text output.',
     label: 'YouTube to Long-form Text',
     resultNodeId: 'persist-output',
+    retention: SystemWorkflowRetention.KEPT,
     version: 2,
   });
 
@@ -250,6 +252,7 @@ export function registerYoutubeLongFormWorkflowDefinitions(
       'Promotes one retained YouTube source from a completed long-form execution into the tenant Library.',
     label: 'YouTube Source to Library',
     resultNodeId: 'create-source-asset',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   });
 }

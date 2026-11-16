@@ -21,8 +21,8 @@ import {
   AGENT_RUNTIME_ACTION_IDS,
   buildAgentTurnWorkflowDefinition,
 } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
+import { AUTOMATION_ACTION_IDS } from '@api/collections/workflows/services/automation-action-ids';
 import {
-  AUTOMATION_ACTION_IDS,
   AUTOMATION_CHILD_WORKFLOWS,
   buildAgentProactiveWorkflowDefinition,
 } from '@api/collections/workflows/services/automation-workflow-definitions';

@@ -6,10 +6,8 @@ import {
 } from '@api/collections/workflows/services/ad-bulk-upload-workflow.service';
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
-import {
-  AUTOMATION_ACTION_IDS,
-  AUTOMATION_WORKFLOW_IDS,
-} from '@api/collections/workflows/services/automation-workflow-definitions';
+import { AUTOMATION_ACTION_IDS } from '@api/collections/workflows/services/automation-action-ids';
+import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { ContentLearningWorkflowService } from '@api/collections/workflows/services/content-learning-workflow.service';
 import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
 import { LivestreamBotWorkflowService } from '@api/collections/workflows/services/livestream-bot-workflow.service';

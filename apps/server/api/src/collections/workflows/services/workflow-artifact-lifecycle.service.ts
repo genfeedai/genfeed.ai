@@ -9,7 +9,6 @@ import {
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { redactWorkflowGenerationAdmissionSource } from '@api/collections/workflows/utils/workflow-generation-admission-source.util';
-import { WORKFLOW_EXECUTION_RETENTION_METADATA_KEY } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { scopedWhere } from '@api/index';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -392,7 +391,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
           ],
         },
       }),
-      this.findExecutionsDueForCleanup(now),
+      this.findExecutionsDueForCleanup(),
     ]);
 
     const scopes = new Map<string, CleanupScope>();
@@ -414,7 +413,10 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
   }
 
   /**
-   * Executions whose payload scrub, purge or repair is due, oldest first.
+   * Executions whose payload scrub or repair is due, oldest first. Deleting an
+   * expired run is not per-run work any more: the platform purge task
+   * (`WorkflowExecutionPurgeService`) deletes every run past its `purgeAt` in
+   * bulk, so a scrubbed row is discovered here only for its repair.
    *
    * Two raw queries instead of one three-way OR: a single OR across
    * `payloadScrubbedAt` states cannot use any index, so it read the whole
@@ -425,9 +427,9 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
    * filters because Prisma binds `false`/`true` as parameters and Postgres
    * does not match a partial index to a parameter under a generic plan.
    */
-  private async findExecutionsDueForCleanup(
-    now: Date,
-  ): Promise<Array<{ id: string; organizationId: string; userId: string }>> {
+  private async findExecutionsDueForCleanup(): Promise<
+    Array<{ id: string; organizationId: string; userId: string }>
+  > {
     // tenant-scope-ignore: platform sweep discovers expired executions across tenants; each row carries organizationId for the per-scope cleanup job
     const [scrubbed, pending] = await Promise.all([
       this.prisma.$queryRaw<ExecutionCleanupRow[]>`
@@ -436,10 +438,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
         WHERE "completedAt" IS NOT NULL
           AND "isDeleted" = false
           AND "payloadScrubbedAt" IS NOT NULL
-          AND (
-            "purgeAt" <= ${now}
-            OR ("generationAdmissionSource" #> '{state}'::text[])::jsonb = '"available"'::jsonb
-          )
+          AND ("generationAdmissionSource" #> '{state}'::text[])::jsonb = '"available"'::jsonb
         ORDER BY "completedAt" ASC
         LIMIT ${MAX_CLEANUP_BATCH_SIZE}
       `,
@@ -663,12 +662,6 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
         inputValues: {
           reason,
           targetExecutionId: input.executionId,
-        },
-        metadata: {
-          [WORKFLOW_EXECUTION_RETENTION_METADATA_KEY]: {
-            purgeAfterHours: 1,
-            scrubNodePayloads: 'all',
-          },
         },
         organizationId: input.organizationId,
         source: `workflow_artifact_${reason}_cleanup`,

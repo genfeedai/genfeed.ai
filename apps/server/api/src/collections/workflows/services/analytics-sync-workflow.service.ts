@@ -40,6 +40,7 @@ import {
   ANALYTICS_SYNC_WORKFLOW_TEMPLATES,
   type AnalyticsSyncWorkflowTemplate,
 } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import type { WorkflowDefinitionInput } from '@api/collections/workflows/workflow-version-definition';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { scopedWhere } from '@api/index';
@@ -640,6 +641,7 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
         'Collects due analytics through independent provider action branches.',
       label: 'Organization Analytics Refresh',
       resultNodeId: 'finalize-youtube',
+      retention: SystemWorkflowRetention.BACKGROUND,
       version: 2,
     };
   }
@@ -711,6 +713,7 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
         'Collects fresh analytics for one authorized published post.',
       label: 'Post Analytics Refresh',
       resultNodeId: 'finalize-post',
+      retention: SystemWorkflowRetention.BACKGROUND,
       version: 2,
     };
   }
@@ -747,6 +750,7 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
     return {
       canonicalId: template.id,
       changeSummary: template.changeSummary,
+      retention: SystemWorkflowRetention.BACKGROUND,
       definition: {
         edges: template.edges ?? [],
         inputVariables:

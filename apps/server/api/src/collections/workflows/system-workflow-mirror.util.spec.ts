@@ -6,6 +6,7 @@ import {
 } from '@api/collections/workflows/system-workflow.contract';
 import { ensureHiddenSystemWorkflowMirror } from '@api/collections/workflows/system-workflow-mirror.util';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
@@ -25,6 +26,7 @@ const definition: SystemWorkflowGraphDefinition = {
   description: 'Review one generated hook clip.',
   label: 'Clip Hook Review',
   resultNodeId: 'review-hook',
+  retention: SystemWorkflowRetention.BACKGROUND,
 };
 
 type MirrorRow = Record<string, unknown> & { id: string };

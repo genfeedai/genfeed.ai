@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const CLIPPER_ANALYSIS_WORKFLOW_ID = 'clipper.analysis';
@@ -84,6 +85,7 @@ export function buildClipperAnalysisWorkflowDefinition(): SystemWorkflowGraphDef
       'Prepares, transcribes, analyzes, enriches, and persists one clip source.',
     label: 'Clip Analysis',
     resultNodeId: 'persist-analysis',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -119,6 +121,7 @@ export function buildClipperAnalysisFailureWorkflowDefinition(): SystemWorkflowG
     description: 'Projects terminal failure for one clip analysis.',
     label: 'Fail Clip Analysis',
     resultNodeId: 'fail-analysis',
+    retention: SystemWorkflowRetention.KEPT,
     version: 2,
   };
 }

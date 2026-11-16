@@ -13,6 +13,7 @@ import {
   type SystemWorkflowGraphDefinition,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AgentArtifactReferenceService, scopedWhere } from '@api/index';
@@ -125,6 +126,7 @@ function newsletterTopicsWorkflow(): SystemWorkflowGraphDefinition {
     description: 'Loads brand continuity and generates newsletter topics.',
     label: 'Newsletter Topic Generation',
     resultNodeId: 'generate-topics',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -177,6 +179,7 @@ function newsletterDraftWorkflow(): SystemWorkflowGraphDefinition {
       'Loads context, generates markdown, and persists a newsletter draft.',
     label: 'Newsletter Draft Generation',
     resultNodeId: 'persist-draft',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }

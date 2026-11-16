@@ -6,6 +6,7 @@ import { hasInFlightSceneGeneration } from '@api/collections/content-runs/servic
 import { BrandRemixSceneStoreService } from '@api/collections/content-runs/services/brand-remix-scene-store.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import type { BrandRemixScenePipeline } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
@@ -45,6 +46,7 @@ export class BrandRemixSceneWorkflowService implements OnModuleInit {
       description: 'Reconcile and dispatch one accepted scene stage.',
       version: 1,
       resultNodeId: 'step',
+      retention: SystemWorkflowRetention.KEPT,
       definition: {
         edges: [],
         inputVariables: [

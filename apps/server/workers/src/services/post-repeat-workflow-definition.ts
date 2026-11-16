@@ -1,4 +1,5 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const EVERGREEN_EXPANSION_WORKFLOW_ID = 'evergreen.release.expand';
@@ -42,6 +43,7 @@ export function buildEvergreenExpansionWorkflowDefinition(): SystemWorkflowGraph
     description: 'Materializes the next occurrence of one evergreen release.',
     label: 'Expand Evergreen Release',
     resultNodeId: 'expand',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }

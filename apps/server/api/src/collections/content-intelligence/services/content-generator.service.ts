@@ -9,6 +9,7 @@ import {
   type SystemWorkflowGraphDefinition,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import {
@@ -191,6 +192,7 @@ function contentGenerationDefinition(
     description: label,
     label,
     resultNodeId: 'finalize-generation',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -235,6 +237,7 @@ function contentGenerationChildDefinition(
     description: label,
     label,
     resultNodeId: 'track-pattern',
+    retention: SystemWorkflowRetention.BACKGROUND,
     version: 1,
   };
 }

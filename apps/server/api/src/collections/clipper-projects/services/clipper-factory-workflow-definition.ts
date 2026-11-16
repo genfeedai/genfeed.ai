@@ -8,6 +8,7 @@ import type {
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const CLIPPER_FACTORY_WORKFLOW_ID = 'clipper.factory';
@@ -89,6 +90,7 @@ export function buildClipperGenerationChildWorkflowDefinition(): SystemWorkflowG
     description: 'Creates and dispatches exactly one discovered clip.',
     label: 'Generate One Clip',
     resultNodeId: 'finalize-child',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -161,6 +163,7 @@ export function buildClipperFactoryWorkflowDefinition(): SystemWorkflowGraphDefi
       'Transcribes one clip source, detects highlights, gates the hook when required, and schedules one child workflow per remaining clip.',
     label: 'Clip Factory',
     resultNodeId: 'generate-remaining',
+    retention: SystemWorkflowRetention.KEPT,
     version: 1,
   };
 }
@@ -196,6 +199,7 @@ export function buildClipperFactoryFailureWorkflowDefinition(): SystemWorkflowGr
     description: 'Projects terminal failure for one clip factory run.',
     label: 'Fail Clip Factory',
     resultNodeId: 'fail-factory',
+    retention: SystemWorkflowRetention.KEPT,
     version: 2,
   };
 }
