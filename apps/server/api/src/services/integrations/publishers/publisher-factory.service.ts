@@ -1,5 +1,6 @@
 import type { IPublisher, ServerPublisherFactory } from '@api/index';
 import { BeehiivPublisherService } from '@api/services/integrations/publishers/beehiiv-publisher.service';
+import { BlueskyPublisherService } from '@api/services/integrations/publishers/bluesky-publisher.service';
 import { DevtoPublisherService } from '@api/services/integrations/publishers/devto-publisher.service';
 import { FacebookPublisherService } from '@api/services/integrations/publishers/facebook-publisher.service';
 import { FanvuePublisherService } from '@api/services/integrations/publishers/fanvue-publisher.service';
@@ -61,6 +62,7 @@ export const PUBLISHER_PROVIDERS: ReadonlyArray<
   [CredentialPlatform.MEDIUM, MediumPublisherService],
   [CredentialPlatform.DEV_TO, DevtoPublisherService],
   [CredentialPlatform.GENFEED, GenfeedPublisherService],
+  [CredentialPlatform.BLUESKY, BlueskyPublisherService],
 ];
 
 /**

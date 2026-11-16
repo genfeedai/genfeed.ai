@@ -26,6 +26,7 @@ export enum Platform {
   GHOST = 'ghost',
   SHOPIFY = 'shopify',
   BEEHIIV = 'beehiiv',
+  BLUESKY = 'bluesky',
   UNIPILE = 'unipile',
   DEV_TO = 'devto',
   PRODUCT_HUNT = 'product_hunt',
