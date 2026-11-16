@@ -1,8 +1,8 @@
 {
   "dependencies": {
-    "@aws-sdk/client-s3": "3.1168.0",
-    "@aws-sdk/lib-storage": "3.1168.0",
-    "@aws-sdk/s3-request-presigner": "3.1168.0",
+    "@aws-sdk/client-s3": "3.1169.0",
+    "@aws-sdk/lib-storage": "3.1169.0",
+    "@aws-sdk/s3-request-presigner": "3.1169.0",
     "@genfeedai/libs": "workspace:*",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
@@ -60,7 +60,7 @@
     "test:cov": "vitest run --coverage --config vitest.config.ts",
     "test:e2e": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",
-    "type-check": "bun run ../../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit -p tsconfig.typecheck.json",
+    "type-check": "bun run ../../../scripts/architecture/check-typecheck-prerequisites.ts && bun check --no-script -p tsconfig.typecheck.json",
     "dev:process": "NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" bun run ../../../scripts/dev/run-service.ts files -- bun run ../../../scripts/dev/nest-fast-dev.ts files",
     "dev:debug": "bun run dev:process"
   },

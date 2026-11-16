@@ -304,7 +304,7 @@ test('static checks, source contracts and build can never be skipped past the ga
   }
 });
 
-test('fails when the spec typecheck ratchet fails', () => {
+test('fails when the spec typecheck fails', () => {
   // Spec files sit outside every workspace typecheck config, so the ratchet is
   // the only job that sees them. Left out of the gate it reported green on a
   // red trunk: run 32971423541 had Spec Typecheck failing, Tests Gate passing,

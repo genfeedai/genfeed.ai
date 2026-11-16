@@ -158,13 +158,9 @@ vi.mock('@/features/posts/rail/release-rail-row', () => ({
 }));
 
 vi.mock('@/features/posts/release/release-detail-drawer', () => ({
-  __esModule: true,
-  RELEASE_RESCHEDULE_ACTION: 'release:reschedule',
   default: ({ release: selected }: { release: IReleaseGroup | null }) => (
     <div data-testid="drawer">{selected ? selected.id : 'closed'}</div>
   ),
-  targetRescheduleAction: (targetId: string) => `target:reschedule:${targetId}`,
-  targetRetryAction: (targetId: string) => `target:retry:${targetId}`,
 }));
 
 describe('ReleasePostsList selection from the release URL param', () => {

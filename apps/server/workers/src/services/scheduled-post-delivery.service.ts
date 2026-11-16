@@ -37,6 +37,8 @@ import {
   getPublishErrorCode,
   getPublishErrorMessage,
   isAmbiguousPublishError,
+  isAmbiguousPublishResult,
+  toPublishFailureCause,
 } from '@workers/crons/posts/post-publish-error.util';
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 import {
@@ -544,10 +546,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       return await this.handlePublishError(post, error, workflowExecutionId);
     }
     if (!result.success) {
-      // A pre-publish validation code is deterministic; anything else that
-      // looks like a timeout or 5xx may hide an accepted publish.
-      const isAmbiguous =
-        !result.errorCode && isAmbiguousPublishError(result.error ?? '');
+      const isAmbiguous = isAmbiguousPublishResult(result);
       await this.attempts.settle(
         post,
         attempt,
@@ -947,7 +946,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     const { canRetry, errorMessage, rateLimit } = decideRetry(
       post,
       {
-        error: result.errorCode ? undefined : (result.error ?? ''),
+        error: result.errorCode ? undefined : toPublishFailureCause(result),
         message: result.error || 'Max retries reached',
         retryAfterMs: result.retryAfterMs,
       },
@@ -958,7 +957,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       post,
       canRetry,
       errorMessage,
-      result.errorCode ?? getPublishErrorCode(result.error),
+      result.errorCode ?? getPublishErrorCode(toPublishFailureCause(result)),
       workflowExecutionId,
       undefined,
       rateLimit,

@@ -1376,6 +1376,27 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxVideoReferences: 1,
       requiresFirstFrame: true,
     },
+    /**
+     * Cinema Studio 4.0 (documented 2026-11-15): text-to-video, or
+     * reference-to-video when any image, video or audio list is nonempty.
+     * 4 to 30 seconds, 480p or 720p, native audio. Up to 30 images, 10 videos
+     * and 10 audio files, 50 in all.
+     */
+    [MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO]: {
+      aspectRatios: ASPECT_RATIOS.HIGGSFIELD_CINEMA_STUDIO,
+      category: ModelCategory.VIDEO,
+      defaultAspectRatio: '16:9',
+      defaultDuration: 5,
+      durations: Array.from({ length: 27 }, (_, index) => index + 4),
+      hasDurationEditing: true,
+      hasResolutionOptions: true,
+      hasSpeech: true,
+      hasVideoReferences: true,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 30,
+      maxVideoReferences: 10,
+    },
     /** Soul 2: documented aspect_ratio + resolution, batch 1 or 4, no image ref. */
     [MODEL_KEYS.HIGGSFIELD_SOUL]: {
       aspectRatios: ASPECT_RATIOS.IMAGEN,

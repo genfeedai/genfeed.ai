@@ -11,6 +11,7 @@ import {
   isInstagramAuthorizationError,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { toInstagramTokenGrant } from '@api/services/integrations/instagram/utils/instagram-token-grant.util';
+import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   InstagramConversationThread,
@@ -801,6 +802,25 @@ export class InstagramService {
       mediaId,
       text,
       credentialId,
+    );
+  }
+
+  /** One page of the account's recent media, to confirm an uncertain publish. */
+  public listPublishVerificationPage(
+    organizationId: string,
+    brandId: string,
+    credentialId: string,
+    expectedExternalId: string | null,
+    attemptStartedAt: Date,
+    cursor?: string,
+  ): Promise<ProviderVerificationPage> {
+    return this.publishingService.listPublishVerificationPage(
+      organizationId,
+      brandId,
+      credentialId,
+      expectedExternalId,
+      attemptStartedAt,
+      cursor,
     );
   }
 

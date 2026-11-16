@@ -337,6 +337,7 @@ export * from './publisher/granted-oauth-scopes.interface';
 export * from './publisher/media-assessment.interface';
 export * from './publisher/media-readiness.interface';
 export * from './publisher/publish-approval.interface';
+export * from './publisher/publish-error';
 export * from './publisher/publisher.interface';
 export * from './publisher/publishing-readiness.interface';
 export * from './scheduler/agent-publish-audit.interface';

@@ -19,8 +19,8 @@ describe('getProviderBrands', () => {
     );
 
     expect(higgsfield).toMatchObject({ label: 'Higgsfield' });
-    // Soul, three DoP tiers, and Genjutsu.
-    expect(higgsfield?.modelCount).toBe(5);
+    // Soul, three DoP tiers, Genjutsu, and Cinema Studio.
+    expect(higgsfield?.modelCount).toBe(6);
     expect(higgsfield?.categories).toEqual(['Image', 'Video']);
   });
 

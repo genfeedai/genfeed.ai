@@ -58,7 +58,7 @@ export class WorkflowExecutionProcessor extends WorkerHost {
   protected readonly logContext: string = 'WorkflowExecutionProcessor';
 
   constructor(
-    private readonly logger: LoggerService,
+    protected readonly logger: LoggerService,
     private readonly executorService: WorkflowExecutorService,
     private readonly queueService: WorkflowExecutionQueueService,
     private readonly schedulerService: WorkflowSchedulerService,
