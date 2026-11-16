@@ -21,18 +21,21 @@ import {
   PublishApprovalStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { Prisma } from '@genfeedai/prisma';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { createChannelTargetError } from '@workers/crons/posts/post-publish-error.util';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import {
   SCHEDULED_POST_RETRY_BACKOFF_SECONDS,
   SCHEDULED_POST_UNSETTLED_APPROVAL_MESSAGE,
-  SCHEDULED_POST_UNVERIFIED_BACKOFF_SECONDS,
 } from '@workers/services/scheduled-post.constants';
-import { readPostString } from '@workers/services/scheduled-post.utils';
+import {
+  readPostString,
+  resolveUnverifiedDeferral,
+} from '@workers/services/scheduled-post.utils';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
@@ -228,15 +231,25 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     );
     if (settled.executionState === TargetExecutionState.PUBLISHING) {
       // An earlier provider attempt for this post is still unconfirmed or in
-      // flight, so the post stays PUBLISHING. Date it ahead so the sweep
-      // re-checks it at the slow verification backoff, not every minute.
+      // flight, so the post stays PUBLISHING and this run cannot verify it.
+      // Apply the unverified-outcome policy: the short verification backoff
+      // inside the window, then an operator-visible error and the slow
+      // backoff. Dated ahead because discovery re-queues a PUBLISHING post
+      // once its last attempt is older than the retry backoff.
+      const now = new Date();
+      const deferral = resolveUnverifiedDeferral(
+        post.lastAttemptAt ?? now,
+        now,
+      );
       await this.prisma.post.updateMany({
         data: {
           lastAttemptAt: new Date(
-            Date.now() +
-              (SCHEDULED_POST_UNVERIFIED_BACKOFF_SECONDS -
-                SCHEDULED_POST_RETRY_BACKOFF_SECONDS) *
+            now.getTime() +
+              (deferral.backoffSeconds - SCHEDULED_POST_RETRY_BACKOFF_SECONDS) *
                 1000,
+          ),
+          targetError: toPrismaJson(
+            createChannelTargetError(deferral.code, deferral.message, true),
           ),
         },
         where: {

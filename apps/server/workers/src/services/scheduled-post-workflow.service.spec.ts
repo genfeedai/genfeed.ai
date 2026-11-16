@@ -698,5 +698,6 @@ describe('finalize of a claim that found the approval already published (#10385)
 
     const [update] = h.prisma.post.updateMany.mock.calls[0] ?? [];
     expect(update.data.lastAttemptAt.getTime()).toBeGreaterThan(before);
+    expect(update.data.targetError.code).toBe('publish_outcome_unconfirmed');
   });
 });
