@@ -152,7 +152,7 @@ Select clips with the highest virality scores for the highlights field.`;
                   Authorization: `Bearer ${openRouterApiKey}`,
                   'Content-Type': 'application/json',
                   'HTTP-Referer': 'https://genfeed.ai',
-                  'X-Title': 'GenFeed AI Clip Factory',
+                  'X-Title': 'Genfeed AI Clip Factory',
                 },
                 timeout: 60_000,
               },

@@ -357,9 +357,7 @@ describe('WorkflowTemplatesPage', () => {
 
     render(<WorkflowTemplatesPage />);
 
-    expect(
-      screen.getByPlaceholderText('Search templates...'),
-    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search templates')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /^Filters/ }),
     ).toBeInTheDocument();

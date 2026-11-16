@@ -103,7 +103,7 @@ test.describe('Connect account modal', () => {
     const dialog = authenticatedPage.getByRole('dialog', {
       name: 'Connect account',
     });
-    const search = dialog.getByRole('textbox', { name: 'Search platforms…' });
+    const search = dialog.getByRole('textbox', { name: 'Search platforms' });
 
     await search.fill('youtube');
     await expect(dialog.getByText('YouTube')).toBeVisible();
@@ -145,7 +145,7 @@ test.describe('Connect account modal', () => {
 
     await expect(dialog.getByText('Publishing')).toBeVisible();
     await dialog
-      .getByRole('textbox', { name: 'Search platforms…' })
+      .getByRole('textbox', { name: 'Search platforms' })
       .fill('ghost');
     await dialog.getByRole('button', { name: /Ghost/ }).click();
 

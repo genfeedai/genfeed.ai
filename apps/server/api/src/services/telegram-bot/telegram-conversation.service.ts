@@ -182,7 +182,7 @@ export class TelegramConversationService {
     }
 
     await ctx.reply(
-      '🎬 **GenFeed AI Workflows**\n\nSelect a workflow to run:',
+      '🎬 **Genfeed AI Workflows**\n\nSelect a workflow to run:',
       {
         parse_mode: ParseMode.MARKDOWN,
         reply_markup: keyboard,
