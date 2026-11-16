@@ -223,20 +223,23 @@ describe('FanvuePublisherService', () => {
       [429, PublishErrorKind.RATE_LIMITED],
       [401, PublishErrorKind.TOKEN_MUST_REFRESH],
       [400, PublishErrorKind.CONTENT_REJECTED],
-    ])('should throw a typed error when creating the post answers %i', async (status, kind) => {
-      fanvueService.createPost.mockRejectedValue(
-        Object.assign(new Error('Request failed'), {
-          response: { headers: { 'retry-after': '12' }, status },
-        }),
-      );
+    ])(
+      'should throw a typed error when creating the post answers %i',
+      async (status, kind) => {
+        fanvueService.createPost.mockRejectedValue(
+          Object.assign(new Error('Request failed'), {
+            response: { headers: { 'retry-after': '12' }, status },
+          }),
+        );
 
-      const failure = await service.publish(makeContext()).catch((e) => e);
+        const failure = await service.publish(makeContext()).catch((e) => e);
 
-      expect(failure).toMatchObject({ httpStatus: status, kind });
-      expect(failure.retryAfterMs).toBe(
-        kind === PublishErrorKind.RATE_LIMITED ? 12_000 : undefined,
-      );
-    });
+        expect(failure).toMatchObject({ httpStatus: status, kind });
+        expect(failure.retryAfterMs).toBe(
+          kind === PublishErrorKind.RATE_LIMITED ? 12_000 : undefined,
+        );
+      },
+    );
 
     it('should report a dropped connection while creating the post as outcome unknown', async () => {
       fanvueService.createPost.mockRejectedValue(

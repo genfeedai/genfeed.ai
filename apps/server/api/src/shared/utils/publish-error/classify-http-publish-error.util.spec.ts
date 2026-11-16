@@ -22,15 +22,18 @@ describe('classifyHttpPublishError', () => {
     [503, true, PublishErrorKind.OUTCOME_UNKNOWN],
     [500, false, PublishErrorKind.RETRY_LATER],
     [503, false, PublishErrorKind.RETRY_LATER],
-  ])('reads status %i (publish request: %s) as %s', (status, isPublishRequest, kind) => {
-    const result = classifyHttpPublishError(httpFailure(status), {
-      isPublishRequest,
-    });
+  ])(
+    'reads status %i (publish request: %s) as %s',
+    (status, isPublishRequest, kind) => {
+      const result = classifyHttpPublishError(httpFailure(status), {
+        isPublishRequest,
+      });
 
-    expect(result).toBeInstanceOf(PublishError);
-    expect(result.kind).toBe(kind);
-    expect(result.httpStatus).toBe(status);
-  });
+      expect(result).toBeInstanceOf(PublishError);
+      expect(result.kind).toBe(kind);
+      expect(result.httpStatus).toBe(status);
+    },
+  );
 
   it.each([
     ['ETIMEDOUT', true, PublishErrorKind.OUTCOME_UNKNOWN],
@@ -40,18 +43,24 @@ describe('classifyHttpPublishError', () => {
     ['ENOTFOUND', true, PublishErrorKind.RETRY_LATER],
     ['EAI_AGAIN', true, PublishErrorKind.RETRY_LATER],
     ['ETIMEDOUT', false, PublishErrorKind.RETRY_LATER],
-  ])('reads connection error %s (publish request: %s) as %s', (code, isPublishRequest, kind) => {
-    const error = Object.assign(new Error('network'), { code });
+  ])(
+    'reads connection error %s (publish request: %s) as %s',
+    (code, isPublishRequest, kind) => {
+      const error = Object.assign(new Error('network'), { code });
 
-    expect(classifyHttpPublishError(error, { isPublishRequest }).kind).toBe(
-      kind,
-    );
-  });
+      expect(classifyHttpPublishError(error, { isPublishRequest }).kind).toBe(
+        kind,
+      );
+    },
+  );
 
   it('does not read the message to decide', () => {
-    const error = Object.assign(new Error('rate limit exceeded, 429, timeout'), {
-      response: { headers: {}, status: 400 },
-    });
+    const error = Object.assign(
+      new Error('rate limit exceeded, 429, timeout'),
+      {
+        response: { headers: {}, status: 400 },
+      },
+    );
 
     expect(
       classifyHttpPublishError(error, { isPublishRequest: true }).kind,
@@ -108,10 +117,13 @@ describe('classifyHttpPublishError', () => {
   });
 
   it('passes a failure that already carries a kind through unchanged', () => {
-    const typed = new PublishError(PublishErrorKind.CHANNEL_DISCONNECTED, 'gone');
+    const typed = new PublishError(
+      PublishErrorKind.CHANNEL_DISCONNECTED,
+      'gone',
+    );
 
-    expect(
-      classifyHttpPublishError(typed, { isPublishRequest: true }),
-    ).toBe(typed);
+    expect(classifyHttpPublishError(typed, { isPublishRequest: true })).toBe(
+      typed,
+    );
   });
 });

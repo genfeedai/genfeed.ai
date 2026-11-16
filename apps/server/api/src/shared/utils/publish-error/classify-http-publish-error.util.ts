@@ -86,7 +86,9 @@ export function readRetryAfterMs(
   const seconds = Number(raw);
   if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
   const resetAt = Date.parse(raw);
-  return Number.isNaN(resetAt) ? undefined : Math.max(0, resetAt - now.getTime());
+  return Number.isNaN(resetAt)
+    ? undefined
+    : Math.max(0, resetAt - now.getTime());
 }
 
 function kindForUnsentRequest(

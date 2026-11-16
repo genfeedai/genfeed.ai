@@ -278,17 +278,24 @@ describe('WhatsappPublisherService', () => {
       [429, PublishErrorKind.RATE_LIMITED],
       [401, PublishErrorKind.CHANNEL_DISCONNECTED],
       [400, PublishErrorKind.CONTENT_REJECTED],
-    ])('should throw a typed error when Twilio answers %i', async (status, kind) => {
-      whatsappService.sendTextMessage.mockRejectedValue(
-        Object.assign(new Error('Request failed'), {
-          response: { data: { code: 21211 }, headers: {}, status },
-        }),
-      );
+    ])(
+      'should throw a typed error when Twilio answers %i',
+      async (status, kind) => {
+        whatsappService.sendTextMessage.mockRejectedValue(
+          Object.assign(new Error('Request failed'), {
+            response: { data: { code: 21211 }, headers: {}, status },
+          }),
+        );
 
-      await expect(service.publish(makeContext(makePost()))).rejects.toMatchObject(
-        { httpStatus: status, kind, providerCode: '21211' },
-      );
-    });
+        await expect(
+          service.publish(makeContext(makePost())),
+        ).rejects.toMatchObject({
+          httpStatus: status,
+          kind,
+          providerCode: '21211',
+        });
+      },
+    );
 
     it.each([
       ['ETIMEDOUT', PublishErrorKind.OUTCOME_UNKNOWN],
@@ -300,9 +307,9 @@ describe('WhatsappPublisherService', () => {
         Object.assign(new Error('network'), { code }),
       );
 
-      await expect(service.publish(makeContext(makePost()))).rejects.toMatchObject(
-        { kind },
-      );
+      await expect(
+        service.publish(makeContext(makePost())),
+      ).rejects.toMatchObject({ kind });
     });
 
     it('should throw when the WhatsApp service throws', async () => {

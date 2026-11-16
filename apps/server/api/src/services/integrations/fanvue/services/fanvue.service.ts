@@ -7,8 +7,8 @@ import { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
 import { TLSSocket } from 'node:tls';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { isUnconfiguredSecret } from '@genfeedai/config';
 import { classifyHttpPublishError } from '@api/shared/utils/publish-error/classify-http-publish-error.util';
+import { isUnconfiguredSecret } from '@genfeedai/config';
 import {
   CredentialPlatform,
   OAuthGrantType,
