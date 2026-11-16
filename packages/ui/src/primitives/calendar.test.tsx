@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { Calendar } from './calendar';
@@ -23,9 +23,27 @@ describe('Calendar', () => {
     expect(renderedClasses).toContain('text-muted-foreground');
     expect(renderedClasses).toContain('bg-primary');
     expect(renderedClasses).toContain('text-primary-foreground');
-    expect(renderedClasses).toContain('focus-visible:ring-ring');
     expect(renderedClasses).not.toMatch(
       /\b(?:bg|border|ring|text)-(?:black|white)(?:\b|\/|\[)/,
+    );
+  });
+
+  it('applies the exact focus ring class to the day button', () => {
+    render(
+      <Calendar
+        mode="single"
+        defaultMonth={new Date(2026, 7, 9)}
+        selected={new Date(2026, 7, 9)}
+      />,
+    );
+
+    const dayButton = screen.getByRole('button', {
+      name: /August 9th, 2026/,
+    });
+
+    expect(dayButton).toHaveClass(
+      'focus-visible:ring-2',
+      'focus-visible:ring-ring',
     );
   });
 
