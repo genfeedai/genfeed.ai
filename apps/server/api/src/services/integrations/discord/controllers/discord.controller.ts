@@ -123,30 +123,36 @@ export class DiscordController {
       );
     }
 
-    const userInfo = await this.discordService.getUserInfo(
+    const { webhook } = tokenData;
+    if (!webhook?.id || !webhook.token || !webhook.channel_id) {
+      throw new HttpException(
+        {
+          detail:
+            'Discord did not return a channel webhook. Connect again and choose a channel.',
+          title: 'No channel selected',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const guildName = await this.discordService.getGuildName(
       tokenData.access_token,
+      webhook.guild_id,
     );
 
-    // Tokens and identity in one call: identity decides whether this is a
-    // reconnect of an account the brand already has or an additional one.
+    // One credential per channel: the channel is the identity, so connecting
+    // another channel adds an account and reconnecting a channel refreshes it.
+    // The secret is the webhook's `<id>/<token>` path, which is all that
+    // posting needs; the user's own OAuth tokens are not kept.
     const updatedCredential = await this.credentialsService.connectAccount(
       credential.id,
       credential.organizationId,
       {
-        avatarUrl: userInfo.avatar
-          ? `https://cdn.discordapp.com/avatars/${userInfo.id}/${userInfo.avatar}.png`
-          : undefined,
-        handle: userInfo.username,
-        id: userInfo.id,
-        name: userInfo.global_name || userInfo.username,
+        handle: webhook.channel_id,
+        id: `${webhook.guild_id}:${webhook.channel_id}`,
+        name: `${guildName ?? `Server ${webhook.guild_id}`} · channel ${webhook.channel_id}`,
       },
-      {
-        accessToken: tokenData.access_token,
-        accessTokenExpiry: tokenData.expires_in
-          ? new Date(Date.now() + tokenData.expires_in * 1000)
-          : undefined,
-        refreshToken: tokenData.refresh_token,
-      },
+      { accessToken: `${webhook.id}/${webhook.token}` },
     );
 
     return serializeSingle(request, CredentialSerializer, updatedCredential);

@@ -28,6 +28,7 @@ import {
   validateSettingOptions,
   validateSettingType,
 } from './channel-setting-validation.contract';
+import { communityChannelCapabilities } from './community-channel-capabilities.contract';
 import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
 import {
   TIKTOK_PRIVACY_OPTIONS,
@@ -759,49 +760,6 @@ const channelCapabilities = [
   {
     caption: { maxLength: 500, required: true },
     description:
-      'Backend integration for Mastodon instances; hidden until scheduler publishing is productized.',
-    helpers: [
-      {
-        key: 'mastodon.credential',
-        kind: 'credential',
-        label: 'Mastodon credential',
-        required: true,
-      },
-    ],
-    label: 'Mastodon',
-    media: {
-      animated: { supported: true },
-      kinds: ['image', 'video', 'link'],
-      maxItems: 4,
-      minItems: 0,
-    },
-    platform: CredentialPlatform.MASTODON,
-    publishModes: ['draft', 'publish_now', 'scheduled'],
-    settings: [
-      {
-        description:
-          'Defaults to the instance stored on the credential when left blank.',
-        key: 'instanceUrl',
-        label: 'Instance URL',
-        type: 'url',
-      },
-      {
-        defaultValue: 'public',
-        key: 'visibility',
-        label: 'Visibility',
-        options: [
-          { label: 'Public', value: 'public' },
-          { label: 'Unlisted', value: 'unlisted' },
-          { label: 'Followers only', value: 'private' },
-        ],
-        type: 'select',
-      },
-    ],
-    status: 'hidden',
-  },
-  {
-    caption: { maxLength: 500, required: true },
-    description:
       'Planned scheduler surface for Threads once publishing support is exposed.',
     helpers: [
       {
@@ -901,10 +859,10 @@ const channelCapabilities = [
   },
 ] satisfies ChannelCapability[];
 
-export const CHANNEL_CAPABILITIES: readonly ChannelCapability[] =
-  channelCapabilities.map((capability) =>
-    channelCapabilitySchema.parse(capability),
-  );
+export const CHANNEL_CAPABILITIES: readonly ChannelCapability[] = [
+  ...channelCapabilities,
+  ...communityChannelCapabilities,
+].map((capability) => channelCapabilitySchema.parse(capability));
 
 const channelCapabilitiesByPlatform = new Map<
   CredentialPlatform,

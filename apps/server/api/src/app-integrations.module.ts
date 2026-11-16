@@ -23,6 +23,7 @@ import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.
 import { RedditModule } from '@api/services/integrations/reddit/reddit.module';
 import { RestreamModule } from '@api/services/integrations/restream/restream.module';
 import { ShopifyModule } from '@api/services/integrations/shopify/shopify.module';
+import { SlackModule } from '@api/services/integrations/slack/slack.module';
 import { SnapchatModule } from '@api/services/integrations/snapchat/snapchat.module';
 import { SolanaModule } from '@api/services/integrations/solana/solana.module';
 import { TelegramModule } from '@api/services/integrations/telegram/telegram.module';
@@ -76,6 +77,7 @@ import { Module } from '@nestjs/common';
     RedditModule,
     RestreamModule,
     ShopifyModule,
+    SlackModule,
     SnapchatModule,
     SolanaModule,
     TelegramModule,

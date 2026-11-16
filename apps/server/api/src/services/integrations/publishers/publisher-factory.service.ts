@@ -1,6 +1,7 @@
 import type { IPublisher, ServerPublisherFactory } from '@api/index';
 import { BeehiivPublisherService } from '@api/services/integrations/publishers/beehiiv-publisher.service';
 import { DevtoPublisherService } from '@api/services/integrations/publishers/devto-publisher.service';
+import { DiscordPublisherService } from '@api/services/integrations/publishers/discord-publisher.service';
 import { FacebookPublisherService } from '@api/services/integrations/publishers/facebook-publisher.service';
 import { FanvuePublisherService } from '@api/services/integrations/publishers/fanvue-publisher.service';
 import { GenfeedPublisherService } from '@api/services/integrations/publishers/genfeed-publisher.service';
@@ -18,7 +19,9 @@ import { MediumPublisherService } from '@api/services/integrations/publishers/me
 import { PinterestPublisherService } from '@api/services/integrations/publishers/pinterest-publisher.service';
 import { RedditPublisherService } from '@api/services/integrations/publishers/reddit-publisher.service';
 import { ShopifyPublisherService } from '@api/services/integrations/publishers/shopify-publisher.service';
+import { SlackPublisherService } from '@api/services/integrations/publishers/slack-publisher.service';
 import { SnapchatPublisherService } from '@api/services/integrations/publishers/snapchat-publisher.service';
+import { TelegramPublisherService } from '@api/services/integrations/publishers/telegram-publisher.service';
 import { ThreadsPublisherService } from '@api/services/integrations/publishers/threads-publisher.service';
 import { TikTokPublisherService } from '@api/services/integrations/publishers/tiktok-publisher.service';
 import { TwitterPublisherService } from '@api/services/integrations/publishers/twitter-publisher.service';
@@ -75,6 +78,9 @@ export class PublisherFactoryService
       [CredentialPlatform.MEDIUM, MediumPublisherService],
       [CredentialPlatform.DEV_TO, DevtoPublisherService],
       [CredentialPlatform.GENFEED, GenfeedPublisherService],
+      [CredentialPlatform.DISCORD, DiscordPublisherService],
+      [CredentialPlatform.SLACK, SlackPublisherService],
+      [CredentialPlatform.TELEGRAM, TelegramPublisherService],
     ];
     // All publishers are required providers of this module. Strict lookup
     // keeps a missing registration a boot error instead of a publish failure.
