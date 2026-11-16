@@ -1,4 +1,5 @@
 import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
+import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
@@ -35,6 +36,8 @@ import {
 
 const PURCHASE_REFERENCE_TYPE = 'marketplace_purchase';
 const REFUND_EXPIRY_DAYS = 365;
+const LEDGER_CONFLICT_ATTEMPTS = 5;
+const LEDGER_CONFLICT_BACKOFF_MS = 25;
 const ATTEMPT_ENDED_MESSAGE =
   'This purchase attempt ended and your credits were returned. Start a new purchase to try again.';
 
@@ -271,18 +274,20 @@ export class MarketplaceCreditPurchaseService {
     userId: string;
   }): Promise<void> {
     try {
-      await this.creditsUtilsService.deductCreditsFromOrganization(
-        input.organizationId,
-        input.userId,
-        input.credits,
-        'Marketplace purchase',
-        ActivitySource.WEB,
-        {
-          idempotencyKey: `${input.callKey}:charge`,
-          metadata: { listingId: input.listingId },
-          referenceId: input.callKey,
-          referenceType: PURCHASE_REFERENCE_TYPE,
-        },
+      await this.retryOnLedgerConflict(() =>
+        this.creditsUtilsService.deductCreditsFromOrganization(
+          input.organizationId,
+          input.userId,
+          input.credits,
+          'Marketplace purchase',
+          ActivitySource.WEB,
+          {
+            idempotencyKey: `${input.callKey}:charge`,
+            metadata: { listingId: input.listingId },
+            referenceId: input.callKey,
+            referenceType: PURCHASE_REFERENCE_TYPE,
+          },
+        ),
       );
     } catch (error: unknown) {
       if (
@@ -318,19 +323,50 @@ export class MarketplaceCreditPurchaseService {
   }): Promise<void> {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + REFUND_EXPIRY_DAYS);
-    await this.creditsUtilsService.refundOrganizationCredits(
-      input.organizationId,
-      input.credits,
-      'marketplace-purchase-refund',
-      'Marketplace purchase not completed - credit refund',
-      expiresAt,
-      {
-        actorUserId: input.userId,
-        idempotencyKey: `${input.callKey}:refund`,
-        metadata: { listingId: input.listingId },
-        referenceId: input.callKey,
-        referenceType: PURCHASE_REFERENCE_TYPE,
-      },
+    await this.retryOnLedgerConflict(() =>
+      this.creditsUtilsService.refundOrganizationCredits(
+        input.organizationId,
+        input.credits,
+        'marketplace-purchase-refund',
+        'Marketplace purchase not completed - credit refund',
+        expiresAt,
+        {
+          actorUserId: input.userId,
+          idempotencyKey: `${input.callKey}:refund`,
+          metadata: { listingId: input.listingId },
+          referenceId: input.callKey,
+          referenceType: PURCHASE_REFERENCE_TYPE,
+        },
+      ),
     );
+  }
+
+  /**
+   * The ledger writes are Serializable transactions, and Postgres aborts one
+   * that overlaps another buyer's write (P2034, SQLSTATE 40001) even when they
+   * touch different organizations. The aborted transaction rolled back whole
+   * and both writes carry an idempotency key, so running it again is safe.
+   * A lost refund would leave a buyer without credits for a purchase that was
+   * never recorded.
+   */
+  private async retryOnLedgerConflict(run: () => Promise<void>): Promise<void> {
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        return await run();
+      } catch (error: unknown) {
+        if (
+          !isCreditTransactionConflict(error) ||
+          attempt >= LEDGER_CONFLICT_ATTEMPTS
+        ) {
+          throw error;
+        }
+        await new Promise((resolve) =>
+          setTimeout(
+            resolve,
+            LEDGER_CONFLICT_BACKOFF_MS * attempt * (1 + Math.random()),
+          ),
+        );
+      }
+    }
   }
 }

@@ -377,6 +377,47 @@ describe.skipIf(!connectionString)(
       ]);
     });
 
+    // Postgres aborts a Serializable ledger write that overlaps another
+    // buyer's write; the aborted write rolled back whole, so the purchase
+    // flow runs it again.
+    const abortNextLedgerWrite = (
+      ledgerWrite:
+        | 'deductCreditsFromOrganization'
+        | 'refundOrganizationCredits',
+    ) => {
+      const write = credits[ledgerWrite].bind(credits) as (
+        ...args: unknown[]
+      ) => Promise<void>;
+      const spy = vi.spyOn(credits, ledgerWrite);
+      spy.mockRejectedValueOnce({ code: 'P2034' });
+      spy.mockImplementation(async (...args: unknown[]) => write(...args));
+    };
+
+    it('takes the credits once when the ledger aborts the charge as a serialization conflict', async () => {
+      await seedWallet(5000);
+      abortNextLedgerWrite('deductCreditsFromOrganization');
+
+      const result = await pay();
+
+      expect(result.creditsPaid).toBe(GEN_PRICE);
+      expect(await balance()).toBe(5000 - GEN_PRICE);
+      expect(await ledger()).toEqual([`deduct:${GEN_PRICE}`]);
+    });
+
+    it('still returns the credits when the ledger aborts the refund as a serialization conflict', async () => {
+      await seedWallet(5000);
+      marketplace.recordMode = 'reject-409';
+      abortNextLedgerWrite('refundOrganizationCredits');
+
+      await expect(pay()).rejects.toMatchObject({ status: 409 });
+
+      expect(await balance()).toBe(5000);
+      expect(await ledger()).toEqual([
+        `deduct:${GEN_PRICE}`,
+        `refund:${GEN_PRICE}`,
+      ]);
+    });
+
     it('returns the credits when the marketplace is down and holds no purchase', async () => {
       await seedWallet(5000);
       marketplace.recordMode = 'down';
