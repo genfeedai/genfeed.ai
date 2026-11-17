@@ -4,7 +4,7 @@ import {
   getChannelCapability,
 } from '@genfeedai/contracts/api-types/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -63,7 +63,6 @@ describe('PlatformPreview', () => {
   it('groups the X account and platform without repeating its identity', () => {
     render(
       <PlatformPreview
-        headerPresentation="account"
         target={{
           platform: CredentialPlatform.TWITTER,
           author: { name: 'Genfeed', handle: 'genfeedai' },
@@ -76,7 +75,6 @@ describe('PlatformPreview', () => {
     );
     expect(screen.getAllByText('Genfeed')).toHaveLength(1);
     expect(screen.getAllByText('@genfeedai')).toHaveLength(1);
-    expect(screen.queryByText('X feed preview')).not.toBeInTheDocument();
   });
 
   it.each([CredentialPlatform.INSTAGRAM, CredentialPlatform.TWITTER])(
@@ -84,7 +82,6 @@ describe('PlatformPreview', () => {
     (platform) => {
       render(
         <PlatformPreview
-          headerPresentation="account"
           target={{
             platform,
             caption: 'A saved image',
@@ -112,7 +109,6 @@ describe('PlatformPreview', () => {
   it('lays a multi-slide Instagram post out as one strip, slides in publishing order', () => {
     render(
       <PlatformPreview
-        headerPresentation="account"
         target={{
           platform: CredentialPlatform.INSTAGRAM,
           caption: 'Five slides',
@@ -136,7 +132,6 @@ describe('PlatformPreview', () => {
   it('shows which slide a carousel is on and offers only the way forward from the first', () => {
     render(
       <PlatformPreview
-        headerPresentation="account"
         target={{
           platform: CredentialPlatform.INSTAGRAM,
           caption: 'Five slides',
@@ -300,9 +295,7 @@ describe('PlatformPreview', () => {
       />,
     );
 
-    expect(screen.queryByText('Approximate preview')).not.toBeInTheDocument();
-    expect(screen.getByText('Reddit feed preview')).toBeInTheDocument();
-    expect(screen.getByText('Reddit')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Reddit' })).toBeInTheDocument();
     expect(
       screen.getByText('Reddit is hidden from scheduler publishing.'),
     ).toBeInTheDocument();
@@ -498,7 +491,6 @@ describe('unified completed post previews', () => {
     expect(
       hasDedicatedPlatformPreviewRenderer(CredentialPlatform.THREADS),
     ).toBe(true);
-    expect(screen.queryByText('Approximate preview')).not.toBeInTheDocument();
     expect(screen.getByText('The detail')).toBeInTheDocument();
     expect(screen.getByTestId('preview-first-comment')).toHaveTextContent(
       'A useful link',
@@ -566,4 +558,23 @@ it('keeps same-platform accounts separately selectable and preserves selection w
   expect(screen.getByText('Second account draft')).toBeInTheDocument();
   rerender(<PlatformPreview targets={[first]} activePlatform="twitter" />);
   expect(screen.getByText('First account draft')).toBeInTheDocument();
+});
+
+it('shows the account with the platform logo in its corner and no platform header', () => {
+  render(
+    <PlatformPreview
+      target={{
+        author: { handle: 'itsshaylamonroe', name: 'Shayla Monroe' },
+        caption: 'Snow day in the city',
+        platform: CredentialPlatform.INSTAGRAM,
+      }}
+    />,
+  );
+
+  const header = screen.getByTestId('preview-account-header');
+  expect(header).toHaveTextContent('Shayla Monroe');
+  expect(header).toHaveTextContent('@itsshaylamonroe');
+  expect(within(header).getByRole('img', { name: 'Instagram' })).toBeVisible();
+  expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+  expect(screen.queryByText('Instagram')).not.toBeInTheDocument();
 });

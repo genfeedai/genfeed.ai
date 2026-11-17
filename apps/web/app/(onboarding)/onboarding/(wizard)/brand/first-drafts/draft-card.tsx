@@ -54,7 +54,6 @@ export default function DraftCard({
               }),
             })),
           }}
-          headerPresentation="account"
           statusLabel={verdict === 'up' ? t('verdict.kept') : undefined}
           showValidation={false}
         />

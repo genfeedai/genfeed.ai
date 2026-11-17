@@ -54,7 +54,6 @@ export default function ContentFeed({
       ) : (
         items.map((item) => (
           <PlatformPreview
-            headerPresentation="account"
             key={item.id}
             presentation="full"
             showValidation={false}

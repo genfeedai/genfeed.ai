@@ -855,7 +855,6 @@ function CardPreview({
         )}
         <PlatformPreview
           className="min-w-0"
-          headerPresentation="account"
           target={{
             id: current.id,
             platform: current.platform || 'social',

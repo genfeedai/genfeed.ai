@@ -1,12 +1,7 @@
 'use client';
 
 import type { IEvaluation } from '@genfeedai/client/models';
-import {
-  CredentialPlatform,
-  PostCategory,
-  Status,
-  TargetExecutionState,
-} from '@genfeedai/contracts';
+import { CredentialPlatform, PostCategory, Status } from '@genfeedai/contracts';
 import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
@@ -30,6 +25,7 @@ import SeoScorecard from '@/components/evaluation/seo-scorecard/SeoScorecard';
 import InspectorSection from '@/components/posts/post-detail-sidebar/InspectorSection';
 import TikTokPublishingSettings from '@/features/posts/components/posts/tiktok-publishing/TikTokPublishingSettings';
 import YouTubePublishingSettings from '@/features/posts/components/posts/youtube-publishing/YouTubePublishingSettings';
+import { isPostPublished } from '@/features/posts/detail/post-published.helper';
 import { useEvaluation } from '@/hooks/ui/evaluation/use-evaluation/use-evaluation';
 import type { PostDetailSidebarProps } from '@/props/components/post-detail-sidebar.props';
 import PostSidebarDestination from './PostSidebarDestination';
@@ -96,9 +92,7 @@ export default function PostDetailSidebar({
   const evaluation: IEvaluation | undefined =
     newEvaluation ?? (post.evaluation as IEvaluation | undefined);
 
-  const isPublished =
-    Boolean(post.publicationDate) ||
-    post.targetExecutionState === TargetExecutionState.PUBLISHED;
+  const isPublished = isPostPublished(post);
   const hasReviewLineage =
     Boolean(reviewSummary?.reviewTurboRunId) ||
     Boolean(reviewSummary?.reviewItemId) ||

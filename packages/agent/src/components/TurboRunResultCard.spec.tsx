@@ -143,7 +143,7 @@ describe('TurboRunResultCard', () => {
     );
 
     // Publish-style X feed previews, not plain text rows.
-    expect(screen.getAllByText('X feed preview')).toHaveLength(3);
+    expect(screen.getAllByTestId('preview-account-header')).toHaveLength(3);
     expect(
       screen.getByText('First draft about image content'),
     ).toBeInTheDocument();

@@ -71,7 +71,6 @@ describe('TargetPreview', () => {
       />,
     );
 
-    expect(screen.getByText('Approximate preview')).toBeInTheDocument();
     expect(
       screen.getByText('Untruncated fallback caption'),
     ).toBeInTheDocument();

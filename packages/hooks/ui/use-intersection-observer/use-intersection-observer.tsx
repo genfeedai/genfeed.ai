@@ -31,6 +31,7 @@ export function useIntersectionObserver<T extends HTMLElement = HTMLDivElement>(
 
   const frozen = useRef(false);
 
+  // use-effect-audit: ignore subscribes to a browser IntersectionObserver
   useEffect(() => {
     if (
       !ref.current ||

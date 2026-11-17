@@ -170,4 +170,18 @@ describe('buildPostTargetPreview', () => {
 
     expect(preview?.release.media).toEqual([]);
   });
+
+  it('treats a post with a publication date as published even when no target ran', () => {
+    const preview = buildPostTargetPreview(
+      makePost({
+        platform: Platform.INSTAGRAM,
+        publicationDate: '2026-11-15T11:48:00.000Z',
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+      'Imported carousel',
+      undefined,
+    );
+
+    expect(preview?.target.executionState).toBe(TargetExecutionState.PUBLISHED);
+  });
 });

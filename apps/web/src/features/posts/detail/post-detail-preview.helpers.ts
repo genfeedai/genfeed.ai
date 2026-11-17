@@ -17,6 +17,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import type { TargetPreviewProps } from '@/props/ui/previews.props';
+import { isPostPublished } from './post-published.helper';
 
 function resolveIngredientMediaKind(
   category: IngredientCategory | undefined,
@@ -119,7 +120,9 @@ export function buildPostTargetPreview(
       attachments: [],
       createdAt: post.createdAt,
       credentialId: post.credentialId ?? '',
-      executionState: post.targetExecutionState ?? TargetExecutionState.DRAFT,
+      executionState: isPostPublished(post)
+        ? TargetExecutionState.PUBLISHED
+        : (post.targetExecutionState ?? TargetExecutionState.DRAFT),
       id: `${post.id}-target`,
       isDeleted: post.isDeleted,
       order: 0,

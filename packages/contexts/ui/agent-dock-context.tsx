@@ -129,6 +129,7 @@ export function AgentDockProvider({ children }: AgentDockProviderProps) {
     [],
   );
 
+  // use-effect-audit: ignore subscribes to window keydown for the dock shortcut
   useEffect(() => {
     if (!isAvailable) {
       return;
