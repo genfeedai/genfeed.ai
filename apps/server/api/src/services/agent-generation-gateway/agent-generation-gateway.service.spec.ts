@@ -207,6 +207,8 @@ describe('AgentGenerationGatewayService decorator parity', () => {
   let invoke: ReturnType<typeof vi.fn>;
   let capturedInOrder: AgentEndpoint<object, unknown>[];
 
+  const generateImage = vi.fn();
+  const findImage = vi.fn();
   beforeEach(() => {
     capturedInOrder = [];
     invoke = vi.fn((endpoint: AgentEndpoint<object, unknown>) => {
@@ -219,7 +221,7 @@ describe('AgentGenerationGatewayService decorator parity', () => {
       {} as never,
       {} as never,
       {} as never,
-      {} as never,
+      { generateImage, findDispatchedImage: findImage } as never,
       {} as never,
       {} as never,
       { invoke } as unknown as AgentEndpointInvoker,
@@ -231,6 +233,49 @@ describe('AgentGenerationGatewayService decorator parity', () => {
       {} as never,
       {} as never,
     );
+  });
+
+  it('requires the confirmed image to exist in the Library under this dispatch and brand', async () => {
+    const principal = {
+      userId: USER_ID,
+      organizationId: ORGANIZATION_ID,
+      brandId: testId('brand'),
+    };
+    const dto = {
+      sourceActionId: 'mutation-approval:fixture',
+      brandId: principal.brandId,
+    };
+    await service.generateImage({ principal, body: dto });
+    generateImage.mockResolvedValue({
+      data: {
+        id: 'claimed-id',
+        attributes: { url: 'https://illustrative.invalid/image' },
+      },
+    });
+    findImage.mockResolvedValue(null);
+    await expect(
+      capturedInOrder[0].handle({ user: principal, dto, request: {} } as never),
+    ).rejects.toThrow('no matching Library asset');
+    expect(findImage).toHaveBeenCalledWith({
+      id: 'claimed-id',
+      brandId: principal.brandId,
+      organizationId: ORGANIZATION_ID,
+      sourceActionId: dto.sourceActionId,
+    });
+    findImage.mockResolvedValue({
+      id: 'claimed-id',
+      status: 'GENERATED',
+      s3Key: 'images/persisted.png',
+    });
+    const persisted = await capturedInOrder[0].handle({
+      user: principal,
+      dto,
+      request: {},
+    } as never);
+    expect(persisted).toMatchObject({
+      data: { id: 'claimed-id', attributes: { s3Key: 'images/persisted.png' } },
+    });
+    expect(JSON.stringify(persisted)).not.toContain('illustrative.invalid');
   });
 
   /** Calls all 9 gateway methods in the exact order `ROUTES` declares them. */

@@ -11,6 +11,7 @@ import type {
   AgentChatResult,
   ToolCallSummary,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { approvedImageMessage } from '@api/services/agent-orchestrator/tools/agent-image-generation-result';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import {
@@ -365,6 +366,19 @@ export class AgentOrchestratorUiActionConfirmedToolService {
             `Failed to generate ${request.generationType}.`,
           );
         }
+        const imageMessage =
+          request.generationType === 'image'
+            ? approvedImageMessage(execution.result)
+            : undefined;
+        if (
+          request.generationType === 'image' &&
+          !imageMessage &&
+          execution.result.approvalStatus !== 'pending'
+        )
+          throwFailedUiActionResult(
+            undefined,
+            'The approved image has no verified Library result.',
+          );
         const linkedResult = {
           ...execution.result,
           nextActions: [
@@ -376,7 +390,10 @@ export class AgentOrchestratorUiActionConfirmedToolService {
           ],
         };
         return this.finalizer.finalizeStructuredAssistantTurn({
-          content: `${request.generationType === 'image' ? 'Image' : 'Video'} generation accepted.`,
+          content:
+            execution.result.approvalStatus === 'pending'
+              ? 'Review the quote and approve to continue.'
+              : (imageMessage ?? 'Video generation accepted.'),
           context: params.context,
           eventIdempotencyKey: `agent-media-result:${executionSourceActionId}`,
           model: params.model,
