@@ -35,8 +35,12 @@ function getCaption(ingredient: IIngredient): {
     ingredient.promptText?.trim();
   const duration = metadata?.duration ?? ingredient.metadataDuration;
 
+  // A still image has no length, whatever the import recorded for it.
   return {
-    duration: duration ? formatDuration(duration) : null,
+    duration:
+      duration && isTimedCategory(ingredient.category)
+        ? formatDuration(duration)
+        : null,
     label: label || null,
   };
 }
@@ -49,6 +53,16 @@ const CAPTIONED_CATEGORIES = new Set<string>([
   IngredientCategory.VIDEO,
   IngredientCategory.VIDEO_EDIT,
 ]);
+
+const TIMED_CATEGORIES = new Set<string>([
+  IngredientCategory.GIF,
+  IngredientCategory.VIDEO,
+  IngredientCategory.VIDEO_EDIT,
+]);
+
+function isTimedCategory(category?: string): boolean {
+  return category ? TIMED_CATEGORIES.has(category) : false;
+}
 
 function isCaptionedCategory(category?: string): boolean {
   return category ? CAPTIONED_CATEGORIES.has(category) : true;

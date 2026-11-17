@@ -61,6 +61,7 @@ import IngredientLineageStrip from './IngredientLineageStrip';
 import IngredientMetadataFields from './IngredientMetadataFields';
 import IngredientPromptBlock from './IngredientPromptBlock';
 import IngredientTagsControl from './IngredientTagsControl';
+import IngredientUsedInPosts from './IngredientUsedInPosts';
 import { getIngredientShelf } from './ingredient-shelf.util';
 import { requestLibraryAssetRename } from './library-asset-metadata-event';
 import { useIngredientGenerationCost } from './use-ingredient-generation-cost';
@@ -421,6 +422,8 @@ export default function IngredientInspectorRail({
       />
 
       <IngredientTagsControl ingredient={ingredient} />
+
+      <IngredientUsedInPosts ingredientId={ingredient.id} />
 
       <IngredientLineageStrip
         direction={IngredientLineageDirection.MADE_FROM}
