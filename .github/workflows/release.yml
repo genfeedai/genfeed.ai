@@ -1005,7 +1005,24 @@ jobs:
       RELEASE_SHA: ${{ needs.validate-release.outputs.release_sha }}
       RELEASE_TAG: ${{ needs.validate-release.outputs.release_tag }}
     steps:
+      # Publishing creates the release tag at RELEASE_SHA. GitHub refuses that
+      # ref to GITHUB_TOKEN once master holds newer workflow-file changes than
+      # RELEASE_SHA, because it needs the workflows permission. The Genfeed bot
+      # App token carries it; without the App the step fails closed.
+      - name: Mint release tag token (Genfeed bot App)
+        id: release-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.GENFEED_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.GENFEED_BOT_PRIVATE_KEY }}
+          owner: genfeedai
+          repositories: genfeed.ai
+          permission-contents: write
+          permission-workflows: write
+
       - name: Publish verified release
+        env:
+          GH_TOKEN: ${{ steps.release-token.outputs.token }}
         run: |
           set -euo pipefail
 
