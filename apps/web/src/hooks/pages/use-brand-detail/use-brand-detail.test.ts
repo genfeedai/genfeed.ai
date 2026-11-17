@@ -19,17 +19,12 @@ const mockOpenConfirm = vi.fn();
 const mockOpenModal = vi.fn();
 const mockNotifyError = vi.fn();
 const mockLoggerError = vi.fn();
-const mockFindPublicPosts = vi.fn();
 type AssetStatusHandler = (data: { assetId: string; status: string }) => void;
 const mockSubscribe = vi.fn(
   (_event: string, _handler: AssetStatusHandler): (() => void) => vi.fn(),
 );
 const mockReplace = vi.fn();
 const mockRefreshBrands = vi.fn();
-
-const mockPublicService = {
-  findPublicPostsWithSignal: mockFindPublicPosts,
-};
 
 const mockClipboardService = {
   copyToClipboard: mockCopyToClipboard,
@@ -100,12 +95,6 @@ vi.mock('@helpers/ui/modal/modal.helper', () => ({
   openModal: (...args: unknown[]) => mockOpenModal(...args),
 }));
 
-vi.mock('@genfeedai/services/external/public.service', () => ({
-  PublicService: {
-    getInstance: vi.fn(() => mockPublicService),
-  },
-}));
-
 vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   ClipboardService: {
     getInstance: vi.fn(() => mockClipboardService),
@@ -140,7 +129,6 @@ describe('useBrandDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCopyToClipboard.mockResolvedValue(undefined);
-    mockFindPublicPosts.mockResolvedValue([]);
     mockFindOne.mockResolvedValue(
       createBrand({ id: 'brand-1', scope: AssetScope.BRAND }),
     );
@@ -271,26 +259,6 @@ describe('useBrandDetail', () => {
     await waitFor(() => {
       expect(result.current.brand?.label).toBe('Latest');
     });
-  });
-
-  it('loads the brand public posts the way the public profile does', async () => {
-    mockFindPublicPosts.mockResolvedValue([{ id: 'post-1' }, { id: 'post-2' }]);
-
-    const { result } = renderHook(() => useBrandDetail(), {
-      wrapper: queryClientWrapper(),
-    });
-
-    await waitFor(() => {
-      expect(result.current.posts).toEqual([
-        { id: 'post-1' },
-        { id: 'post-2' },
-      ]);
-    });
-    expect(result.current.postsStatus).toBe('success');
-    expect(mockFindPublicPosts).toHaveBeenCalledWith(
-      { brand: 'brand-1', limit: 6 },
-      expect.any(AbortSignal),
-    );
   });
 
   it('copies text via clipboard service', async () => {
@@ -867,19 +835,6 @@ describe('useBrandDetail', () => {
 
     expect(result.current.connectedPlatformsCount).toBe(1);
     expect(result.current.socialConnections).toHaveLength(2);
-  });
-
-  it('reports an error, not an empty feed, when the public posts request fails', async () => {
-    mockFindPublicPosts.mockRejectedValue(new Error('posts down'));
-
-    const { result } = renderHook(() => useBrandDetail(), {
-      wrapper: queryClientWrapper(),
-    });
-
-    await waitFor(() => {
-      expect(result.current.postsStatus).toBe('error');
-    });
-    expect(result.current.posts).toEqual([]);
   });
 
   describe('brand id in the route', () => {

@@ -370,9 +370,12 @@ export class CronYoutubeStatusService implements OnModuleInit {
         workflowExecutionId: provenance.executionId,
       },
       `YouTube reports ${String(input.providerStatus ?? '')}`,
+      // Guarded by the video ID and the post state, never by workflow
+      // execution: the post holds the id of the run that uploaded it and this
+      // reconcile run is always a new one, so an execution guard refuses every
+      // transition and strands the post in PUBLISHING.
       {
         expectedExternalId: String(input.videoId ?? ''),
-        expectedWorkflowExecutionId: provenance.executionId,
         priorExecutionStates: [
           TargetExecutionState.PUBLISHING,
           TargetExecutionState.PUBLISHED,
