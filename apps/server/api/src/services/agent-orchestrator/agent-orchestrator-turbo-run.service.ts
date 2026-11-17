@@ -26,9 +26,10 @@ import { AgentMessageRole } from '@genfeedai/contracts';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
-const GENERATE_VERB_PATTERN = /\b(generate|create|make|write|draft)\b/;
-const POST_COUNT_PATTERN = /\b\d+\s+(posts?|tweets?|drafts?)\b/;
-const POST_COUNT_CAPTURE_PATTERN = /\b(\d+)\s+(posts?|tweets?|drafts?)\b/;
+// Only an unambiguous leading creation phrase supplies the batch count.
+// Other requests stay in the normal agent loop, which has their full context.
+const POST_COUNT_CAPTURE_PATTERN =
+  /^\s*(?:please\s+)?(?:generate|create|make|write|draft)\s+(\d+)\s+(posts?|tweets?|drafts?)\b/;
 const HANDLE_MENTION_PATTERN = /@\w[\w.]{1,}/;
 const X_PLATFORM_PHRASE_PATTERN = /\b(?:for|on)\s+(?:x|twitter)\b/;
 const LINKEDIN_PLATFORM_PHRASE_PATTERN = /\b(?:for|on)\s+linkedin\b/;
@@ -336,10 +337,10 @@ export class AgentOrchestratorTurboRunService {
   isTurboRunIntent(content: string): boolean {
     const normalized = content.toLowerCase();
 
-    return (
-      GENERATE_VERB_PATTERN.test(normalized) &&
-      POST_COUNT_PATTERN.test(normalized)
-    );
+    const countMatch = normalized.match(POST_COUNT_CAPTURE_PATTERN);
+    const count = Number.parseInt(countMatch?.[1] ?? '', 10);
+
+    return count > 1;
   }
 
   private extractTurboRunDraftFromMessage(

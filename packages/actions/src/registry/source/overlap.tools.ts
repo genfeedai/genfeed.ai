@@ -103,6 +103,11 @@ export const OVERLAP_TOOLS: SourceTool[] = [
             'Genfeed app only: ISO datetime to schedule the post. Not accepted on MCP, which never schedules from create_post; use create_scheduled_release.',
           type: 'string',
         },
+        title: {
+          description:
+            'Optional draft title, saved separately from the post text. When omitted, the first 100 text characters are used.',
+          type: 'string',
+        },
         textContent: {
           description: 'Post text or caption supplied for review.',
           type: 'string',
