@@ -284,11 +284,10 @@ describe('hosted SaaS on-demand seed contract', () => {
     expect(seed).toContain('          - instagram-reconnect-report');
     expect(seed).toContain('          - storyboard-unbilled-report');
     expect(seed).toContain('          - reserved-slug-report');
-    expect(seed).toContain('          - demo-credit-ledger-report');
     expect(seed).toContain('          - linkedin-credential-report');
     expect(seed).toContain('          - demo-agent-run-report');
     expect(seed).toContain(
-      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | reserved-slug-report | demo-credit-ledger-report | linkedin-credential-report | demo-agent-run-report)',
+      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | reserved-slug-report | linkedin-credential-report | demo-agent-run-report)',
     );
     expect(seed).toContain('migrate_task_definition_arn');
     expect(reader).toContain("await client.query('BEGIN READ ONLY');");
@@ -312,6 +311,22 @@ describe('hosted SaaS on-demand seed contract', () => {
     );
   });
 
+  test('the report reader fits the 8192 character ECS container override', async () => {
+    const seed = await workflow('seed-hosted-saas.yml');
+    const start =
+      seed.indexOf('READ_ONLY_REPORT_SCRIPT: |\n') +
+      'READ_ONLY_REPORT_SCRIPT: |\n'.length;
+    const script = seed
+      .slice(start, seed.indexOf('        run: |', start))
+      .split('\n')
+      .map((line) => line.slice(12))
+      .join('\n');
+
+    // The script rides in the run-task override as JSON; leave room for the
+    // other arguments in the same override.
+    expect(JSON.stringify(script).length).toBeLessThan(7800);
+  });
+
   test('every row-listing report query is bounded by a LIMIT', async () => {
     const seed = await workflow('seed-hosted-saas.yml');
     const start = seed.indexOf('const REPORTS = {');
@@ -319,19 +334,19 @@ describe('hosted SaaS on-demand seed contract', () => {
       .slice(start, seed.indexOf('const name = process.argv[1];', start))
       .split('\n')
       .filter((line) =>
-        /^\s+'(storyboard-unbilled|reserved-slug|demo-credit-ledger|linkedin-credential|demo-agent-run|backfill)-report': /.test(
+        /^\s+'(storyboard-unbilled|reserved-slug|linkedin-credential|demo-agent-run|backfill)-report': /.test(
           line,
         ),
       );
 
-    expect(reports).toHaveLength(6);
+    expect(reports).toHaveLength(5);
     for (const line of reports) expect(line).toMatch(/LIMIT \d+[`'],?$/);
   });
 
   test('report seeds select the migrate task and override its command with the reader', async () => {
     const seed = await workflow('seed-hosted-saas.yml');
     const start = seed.indexOf(
-      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | reserved-slug-report | demo-credit-ledger-report | linkedin-credential-report | demo-agent-run-report)\n',
+      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | reserved-slug-report | linkedin-credential-report | demo-agent-run-report)\n',
     );
     const branch = seed.slice(start, seed.indexOf('              ;;', start));
 
