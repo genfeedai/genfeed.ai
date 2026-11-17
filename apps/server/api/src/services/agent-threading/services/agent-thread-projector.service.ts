@@ -521,6 +521,7 @@ export class AgentThreadProjectorService {
         'recommendedOptionId',
       ),
       requestId,
+      runId: event.runId,
       title: this.readString(event.payload, 'title') ?? 'Input requested',
     };
 

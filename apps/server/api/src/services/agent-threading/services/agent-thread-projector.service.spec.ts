@@ -39,6 +39,7 @@ describe('AgentThreadProjectorService', () => {
         prompt: 'Approve this draft?',
         recommendedOptionId: undefined,
         requestId: 'input-1',
+        runId: 'run-1',
         title: 'Approval required',
       },
     ]);

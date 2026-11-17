@@ -294,9 +294,7 @@ export function AgentChatContainer({
         isInterruptingFollowUps={container.followUpQueue.isInterrupting}
         onStop={container.handleStopRun}
         onSubmitInputRequest={container.handleSubmitInputRequest}
-        pendingInputRequest={
-          composerShell ? container.pendingInputRequest : null
-        }
+        pendingInputRequest={container.pendingInputRequest}
         placeholder={container.pendingInputRequest?.prompt ?? placeholder}
         promptBarSuggestions={promptBarSuggestions}
         removeAttachment={container.removeAttachment}
