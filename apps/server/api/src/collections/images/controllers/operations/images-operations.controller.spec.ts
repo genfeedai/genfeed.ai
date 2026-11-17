@@ -1090,7 +1090,15 @@ describe('ImagesOperationsController', () => {
       } as unknown as Request;
       // The row as seeded, not the FAL-defaulted fixture the tests above use
       // with a synthetic tariff: it prices nothing for the Leonardo provider.
-      modelsService.findOne.mockResolvedValue(createModelDocumentFixture(row));
+      modelsService.findOne.mockResolvedValue(
+        createModelDocumentFixture({
+          cost: row.cost,
+          isActive: row.isActive,
+          isPublic: row.isPublic,
+          key: row.key,
+          provider: row.provider,
+        }),
+      );
       creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
         true,
       );
