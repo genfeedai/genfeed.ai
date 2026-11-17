@@ -14,7 +14,6 @@ import type {
   IBrandPromptSeed,
   IClockTime,
   ILink,
-  IPost,
 } from '@genfeedai/contracts/interfaces';
 import type { ReactNode } from 'react';
 
@@ -42,21 +41,6 @@ export interface BrandDetailOverviewProps {
 export interface BrandDetailSystemPromptProps {
   text: string;
   onCopy: (value?: string) => void;
-}
-
-export interface BrandDetailPublicPostsProps {
-  posts: IPost[];
-  /** A failed request must not read as "no posts", so the state is explicit. */
-  status: 'pending' | 'error' | 'success';
-  onRetry: () => void;
-  /**
-   * The genfeed.ai handle the brand's public profile lives at. Without one
-   * (a private brand) the website does not serve the posts, so the "Public
-   * profile" link is not shown.
-   */
-  publicHandle?: string;
-  /** The create action, absent while the organization lacks the app behind it. */
-  createHref?: string;
 }
 
 /**
@@ -91,6 +75,8 @@ export interface BrandDetailSidebarProps {
   isUpdatingPublicProfile?: boolean;
   onTogglePublicProfile: (isPublic: boolean) => void;
   onOpenLinkModal: (link?: ILink) => void;
+  /** The connected social accounts, rendered under the website links. */
+  children?: ReactNode;
 }
 
 export interface BrandDetailAccountSettingsCardProps {
@@ -334,9 +320,6 @@ export interface UseBrandDetailReturn {
   brandId: string;
   hasBrandId: boolean;
   brand: IBrand | null;
-  posts: IPost[];
-  postsStatus: 'pending' | 'error' | 'success';
-  refetchPosts: () => void;
   links: ILink[];
   selectedLink: ILink | null;
   isLoading: boolean;
@@ -364,15 +347,4 @@ export interface UseBrandDetailReturn {
   selectLink: (link: ILink | null) => void;
   generateModalType: 'banner' | 'logo' | null;
   setGenerateModalType: (type: 'banner' | 'logo' | null) => void;
-}
-
-export interface PostMetricProps {
-  icon: ReactNode;
-  label: string;
-  value: number;
-}
-
-export interface PublicPostCardProps {
-  href?: string;
-  post: IPost;
 }

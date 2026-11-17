@@ -4,7 +4,7 @@ import {
   AssetScope,
   CredentialPlatform,
 } from '@genfeedai/contracts';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandDetail from './brand-detail';
@@ -46,9 +46,6 @@ function createBrandDetailState(overrides: Record<string, unknown> = {}) {
     handleRequestDeleteReference: mocks.handleRequestDeleteReference,
     handleUpdateAccount: mocks.handleUpdateAccount,
     hasBrandId: true,
-    posts: [{ id: 'post-1' }, { id: 'post-2' }],
-    postsStatus: 'success',
-    refetchPosts: vi.fn(),
     isGeneratingBanner: false,
     isGeneratingLogo: false,
     isLoading: false,
@@ -216,31 +213,6 @@ vi.mock('@/features/brands/components/overview/BrandDetailOverview', () => ({
   ),
 }));
 
-vi.mock('./BrandDetailPublicPosts', () => ({
-  default: ({
-    createHref,
-    posts,
-    publicHandle,
-  }: {
-    createHref?: string;
-    posts: Array<unknown>;
-    publicHandle?: string;
-  }) => (
-    <div>
-      Public posts {posts.length} at {publicHandle ?? 'no handle'} create{' '}
-      {createHref ?? 'none'}
-    </div>
-  ),
-}));
-
-vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ href: (path: string) => `/acme${path}` }),
-}));
-
-vi.mock('@/components/shell/use-available-rail-apps', () => ({
-  useIsAppAvailable: () => true,
-}));
-
 vi.mock(
   '@/features/brands/components/system-prompt/BrandDetailSystemPrompt',
   () => ({
@@ -262,12 +234,14 @@ vi.mock(
   '@/features/brands/components/detail-sidebar/BrandDetailSidebar',
   () => ({
     default: ({
+      children,
       onTogglePublicProfile,
     }: {
+      children?: ReactNode;
       onTogglePublicProfile: (value: boolean) => void;
     }) => (
-      <section>
-        Sidebar
+      <section aria-label="Sidebar">
+        {children}
         <button type="button" onClick={() => onTogglePublicProfile(false)}>
           Disable Public
         </button>
@@ -330,12 +304,8 @@ describe('BrandDetail', () => {
 
     expect(screen.getByText('Banner')).toBeInTheDocument();
     expect(screen.getByText('Profile')).toBeInTheDocument();
-    expect(screen.getByText('Sidebar')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Public posts 2 at brand-handle create https://app.genfeed.test/acme/agent/new',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Sidebar' })).toBeInTheDocument();
+    expect(screen.queryByText(/Public posts/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Latest (Videos|Images|Articles)/)).toBeNull();
     expect(screen.queryByText('Brand Kit Review')).not.toBeInTheDocument();
     expect(
@@ -382,7 +352,14 @@ describe('BrandDetail', () => {
   it('shows the connected accounts and opens the Connect account modal from the header', () => {
     render(<BrandDetail />);
 
-    expect(screen.getByText('Accounts 1 page')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('region', { name: 'Sidebar' })).getByText(
+        'Accounts 1 page',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Accounts' }),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Connect account modal')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Connect account' }));

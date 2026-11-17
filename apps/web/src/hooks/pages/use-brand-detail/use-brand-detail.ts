@@ -17,14 +17,13 @@ import {
   isValidBrandHandle,
   normalizeBrandHandle,
 } from '@genfeedai/contracts/constants';
-import type { IBrand, ILink, IPost } from '@genfeedai/contracts/interfaces';
+import type { IBrand, ILink } from '@genfeedai/contracts/interfaces';
 import type { UseBrandDetailReturn } from '@genfeedai/props/pages/brand-detail.props';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
-import { PublicService } from '@genfeedai/services/external/public.service';
 import { BrandsService } from '@genfeedai/services/social/brands.service';
 import { ErrorHandler } from '@genfeedai/utils/error/error-handler.util';
 import { openModal } from '@helpers/ui/modal/modal.helper';
@@ -32,7 +31,7 @@ import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useRouteParams } from '@hooks/navigation/use-route-params';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   buildSocialConnections,
   getAccountConnectionStatus,
@@ -53,10 +52,6 @@ interface BrandDetailData {
 }
 
 const EMPTY_LINKS: ILink[] = [];
-const EMPTY_POSTS: IPost[] = [];
-
-/** How many public posts the Profile page previews. */
-const PUBLIC_POSTS_LIMIT = 6;
 
 function brandDetailQueryKey(brandSlug: string) {
   return ['brand-detail', brandSlug] as const;
@@ -69,7 +64,6 @@ export function useBrandDetail(): UseBrandDetailReturn {
   const { brands, refreshBrands } = useBrand();
 
   const notificationsService = NotificationsService.getInstance();
-  const publicService = PublicService.getInstance();
   const clipboardService = ClipboardService.getInstance();
 
   const { openConfirm } = useConfirmModal();
@@ -190,21 +184,6 @@ export function useBrandDetail(): UseBrandDetailReturn {
       router.replace(canonicalPath);
     }
   }, [matchedRouteBrand, params?.orgSlug, pathname, routeBrandParam, router]);
-
-  // The same public posts endpoint the genfeed.ai profile reads, so this page
-  // previews exactly what visitors see there.
-  const publicPostsQuery = useQuery<IPost[]>({
-    enabled: Boolean(brandId),
-    queryFn: ({ signal }) =>
-      publicService.findPublicPostsWithSignal(
-        { brand: brandId, limit: PUBLIC_POSTS_LIMIT },
-        signal,
-      ),
-    queryKey: ['brand-detail-public-posts', brandId],
-  });
-  const posts = publicPostsQuery.data ?? EMPTY_POSTS;
-  const postsStatus = publicPostsQuery.status;
-  const refetchPosts = publicPostsQuery.refetch;
 
   // A refresh keeps the loaded brand on screen; overlapping refreshes are
   // ordered by React Query, so only the latest answer is kept.
@@ -503,9 +482,6 @@ export function useBrandDetail(): UseBrandDetailReturn {
     isLoading,
     isUpdating,
     links,
-    posts,
-    postsStatus,
-    refetchPosts,
     selectedLink,
     selectLink,
     setGenerateModalType,
