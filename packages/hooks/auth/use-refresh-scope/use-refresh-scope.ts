@@ -17,6 +17,7 @@ export function useRefreshScope(scopeKey: QueryKey): () => Promise<void> {
   const queryClient = useQueryClient();
   const scopeKeyRef = useRef(scopeKey);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     scopeKeyRef.current = scopeKey;
   }, [scopeKey]);

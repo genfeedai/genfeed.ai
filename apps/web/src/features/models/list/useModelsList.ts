@@ -22,7 +22,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ErrorHandler } from '@utils/error/error-handler.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   type ModelsListProps,
   resolveAdminModelFilters,
@@ -86,9 +86,6 @@ export function useModelsList({
   const [sortKey, setSortKey] = useState('label');
   const [sortDirection, setSortDirection] = useState<TableSortDirection>('asc');
 
-  // Track if component is mounted to avoid calling callbacks during initial render
-  const isMountedRef = useRef(false);
-
   // Admin-specific state
   const [selectedModel, setSelectedModel] = useState<IModel>();
 
@@ -122,6 +119,7 @@ export function useModelsList({
     queryKey: settingsQueryKey,
   });
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (settingsError instanceof Error) {
       logger.error(
@@ -228,6 +226,7 @@ export function useModelsList({
     queryKey: modelsQueryKey,
   });
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (modelsError instanceof Error) {
       logger.error('GET /models failed', modelsError);
@@ -269,6 +268,7 @@ export function useModelsList({
     queryKey: ['studio-models-catalog-overview', isAdminScope, adminOrg],
   });
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (catalogModelsError instanceof Error) {
       logger.error('Failed to load model catalog overview', catalogModelsError);
@@ -331,14 +331,6 @@ export function useModelsList({
   const refresh = useCallback(async () => {
     await Promise.all([refetchModels(), refetchCatalogModels(), onRefresh?.()]);
   }, [onRefresh, refetchCatalogModels, refetchModels]);
-
-  // Mark component as mounted after first render
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
 
   // Register refresh function with context
   useEffect(() => {

@@ -20,7 +20,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getApiErrorMessage } from '@utils/error/error-handler.util';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
@@ -66,9 +66,6 @@ export function useTrainingsList({
   const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
     allowedKeys: TRAINING_SORT_KEYS,
   });
-
-  // Track if component is mounted to avoid calling callbacks during initial render
-  const isMountedRef = useRef(false);
 
   const queryClient = useQueryClient();
 
@@ -153,14 +150,6 @@ export function useTrainingsList({
   const error = fetchError
     ? getApiErrorMessage(fetchError, 'Failed to load trainings')
     : null;
-
-  // Mark component as mounted after first render
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
 
   const handleRefresh = useCallback(async () => {
     await refreshTrainings();

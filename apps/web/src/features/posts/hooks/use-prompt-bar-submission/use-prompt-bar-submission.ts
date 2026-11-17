@@ -24,10 +24,12 @@ export function usePromptBarSubmission(
   const onSubmitRef = useRef(onSubmit);
   const isEnhancingRef = useRef(isEnhancing);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     onSubmitRef.current = onSubmit;
   }, [onSubmit]);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     isEnhancingRef.current = isEnhancing;
   }, [isEnhancing]);

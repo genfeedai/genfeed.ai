@@ -8,10 +8,11 @@ import {
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { useMountedRef } from '@hooks/utils/use-mounted-ref/use-mounted-ref';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import type { OrganizationModulePreferenceGateProps } from '@/props/guards/organization-module-preference-gate.props';
 
@@ -59,16 +60,10 @@ function OrganizationModulePreferenceBody({
           moduleId,
           platformFlags,
         );
-  const mounted = useRef(true);
+  const mounted = useMountedRef();
   const retrying = useRef(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [hasRetryFailed, setHasRetryFailed] = useState(false);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
   async function retry() {
     if (!organizationId || retrying.current || settingsLoading) return;
     retrying.current = true;

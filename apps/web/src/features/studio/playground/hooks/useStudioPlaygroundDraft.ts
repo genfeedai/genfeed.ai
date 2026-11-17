@@ -126,6 +126,7 @@ export function useStudioPlaygroundDraft({
   // The last committed composer. Updated in an effect, not during render, so
   // a brand-switch cleanup still sees the composer of the brand being left.
   const payloadRef = useRef(payload);
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     payloadRef.current = payload;
   }, [payload]);

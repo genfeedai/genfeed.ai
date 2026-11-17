@@ -4,6 +4,7 @@ import { IngredientFormat } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useMountedRef } from '@hooks/utils/use-mounted-ref/use-mounted-ref';
 import { logger } from '@services/core/logger.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
 import CreativeAppNewPane from '@ui/layout/creative-app-new-pane/CreativeAppNewPane';
@@ -15,7 +16,7 @@ import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolba
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { EditorStarter } from '@/features/studio/props/editor-workspace.props';
 import EditorPromptCards from './EditorPromptCards';
 import { EDITOR_FORMAT_OPTIONS } from './editor-formats';
@@ -46,13 +47,7 @@ export default function EditorNewPane() {
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isSubmitting = useRef(false);
-  const isMounted = useRef(true);
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
+  const isMounted = useMountedRef();
 
   const trimmedName = name.trim();
   const isNameTooLong = trimmedName.length > MAX_NAME_LENGTH;

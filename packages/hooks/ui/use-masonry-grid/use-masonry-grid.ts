@@ -469,6 +469,7 @@ export function useMasonryGrid<T extends MasonryItem>(
     [calculateLayout, cancelScheduledLayout],
   );
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     scheduleLayoutRef.current = scheduleLayout;
   }, [scheduleLayout]);

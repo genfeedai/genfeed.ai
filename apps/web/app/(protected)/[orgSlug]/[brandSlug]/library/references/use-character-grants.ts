@@ -70,6 +70,7 @@ export function useCharacterGrants(
   });
 
   const loadError = grantsQuery.error ?? organizationsQuery.error;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (loadError) {
       logger.error('Failed to load character grants', loadError);

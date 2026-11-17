@@ -43,6 +43,7 @@ export function useSocketManager(
 
   const latestOptionsRef = useRef(options);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     latestOptionsRef.current = options;
   }, [options]);

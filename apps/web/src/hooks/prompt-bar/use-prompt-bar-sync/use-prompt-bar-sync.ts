@@ -49,10 +49,12 @@ export function usePromptBarSync(
   const onDatasetChangeRef = useRef(onDatasetChange);
   const [_textValue, setTextValue] = useState('');
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     onConfigChangeRef.current = onConfigChange;
   }, [onConfigChange]);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     onDatasetChangeRef.current = onDatasetChange;
   }, [onDatasetChange]);

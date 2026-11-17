@@ -19,6 +19,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useMountedRef } from '@hooks/utils/use-mounted-ref/use-mounted-ref';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import Card from '@ui/card/Card';
@@ -73,15 +74,8 @@ export default function OrganizationModulesCard() {
   const [error, setError] = useState<string | null>(null);
   const scope = useRef(organizationId);
   const operation = useRef<symbol | null>(null);
-  const mounted = useRef(true);
+  const mounted = useMountedRef();
   scope.current = organizationId;
-
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
 
   useEffect(() => {
     scope.current = organizationId;

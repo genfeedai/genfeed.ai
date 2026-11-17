@@ -99,10 +99,12 @@ export function useMasonryHover({
   const onHoverStateChangeRef = useRef(onHoverStateChange);
   const prevContainerHoveredRef = useRef(isContainerHovered);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     onHoverChangeRef.current = onHoverChange;
   }, [onHoverChange]);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     onHoverStateChangeRef.current = onHoverStateChange;
   }, [onHoverStateChange]);

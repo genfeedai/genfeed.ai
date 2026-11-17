@@ -322,6 +322,7 @@ function RegisteredTextareaInner<T extends FieldValues = FieldValues>({
   const adjustHeight = useTextareaSizing(stableTextareaRef, maxHeight);
   const registerOnChangeRef = useRef(register.onChange);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     registerOnChangeRef.current = register.onChange;
   }, [register]);

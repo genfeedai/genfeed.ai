@@ -30,11 +30,11 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
 } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { LazyElementCreateModal } from '@/components/lazy/modal/LazyModal';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
+import { useListParentBridge } from '@/hooks/ui/use-list-parent-bridge/use-list-parent-bridge';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 const LIGHTING_SORT_KEYS = ['label', 'key'];
@@ -67,14 +67,6 @@ function LightingsListContent({
   const getLightingsService = useAuthedService(
     useCallback((token: string) => LightingsService.getInstance(token), []),
   );
-
-  const onLoadingChangeRef = useRef(onLoadingChange);
-  const onRefreshingChangeRef = useRef(onRefreshingChange);
-
-  useEffect(() => {
-    onLoadingChangeRef.current = onLoadingChange;
-    onRefreshingChangeRef.current = onRefreshingChange;
-  });
 
   // Cached per page with the signed-in account in the key: coming back paints
   // the rows and footer it already has while they refresh.
@@ -140,15 +132,6 @@ function LightingsListContent({
     }
   }, [errorUpdatedAt, isError, notificationsService]);
 
-  // Notify parent of loading state changes
-  useEffect(() => {
-    onLoadingChangeRef.current?.(isLoading);
-  }, [isLoading]);
-
-  useEffect(() => {
-    onRefreshingChangeRef.current?.(isRefreshing);
-  }, [isRefreshing]);
-
   const scopeTranslate = useTranslations('ui.elementPlatformFields');
   const columns: TableColumn<ElementLighting>[] = [
     {
@@ -175,12 +158,14 @@ function LightingsListContent({
     },
   ];
 
-  // Register refresh callback
-  useEffect(() => {
-    if (onRefresh) {
-      return onRefresh(() => refreshLightings());
-    }
-  }, [onRefresh, refreshLightings]);
+  useListParentBridge({
+    isLoading,
+    isRefreshing,
+    onLoadingChange,
+    onRefresh,
+    onRefreshingChange,
+    refresh: refreshLightings,
+  });
 
   async function handleDelete(
     lighting: IElementLighting | null,

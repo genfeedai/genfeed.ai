@@ -95,6 +95,7 @@ export default function Searchbar({
     undefined,
   );
   const onSearchRef = useRef(onSearch);
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     onSearchRef.current = onSearch;
   }, [onSearch]);

@@ -553,6 +553,7 @@ export default function ReleasePostsList({
     replaceSearchParams,
   ]);
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (error instanceof Error) {
       logger.error('GET /post-groups publish list failed', error);

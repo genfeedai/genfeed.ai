@@ -4,6 +4,7 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { NativeSecondaryAppId } from '@genfeedai/contracts/constants';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useMountedRef } from '@hooks/utils/use-mounted-ref/use-mounted-ref';
 import { MembersService } from '@services/organization/members.service';
 import { type QueryKey, useQueryClient } from '@tanstack/react-query';
 import {
@@ -73,14 +74,7 @@ export function InstalledAppsProvider({
   >([]);
   const scopeRef = useRef(0);
   const writeQueueRef = useRef<Promise<unknown>>(Promise.resolve());
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
+  const isMountedRef = useMountedRef();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: an organization switch retires the previous organization's writes.
   useEffect(() => {

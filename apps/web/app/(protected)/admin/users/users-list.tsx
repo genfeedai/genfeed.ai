@@ -73,6 +73,7 @@ export default function UsersList() {
   const users = usersPage?.items;
   const isRefreshing = isFetching && !isLoading;
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (usersError) {
       logger.error('GET /users failed', usersError);

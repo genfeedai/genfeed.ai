@@ -89,6 +89,7 @@ function CaptionsListContent() {
   const isLoading = !hasCaptions && !loadError;
   const { refetch } = captionsQuery;
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (queryError && !hasCaptions) {
       notificationsService.error('Failed to load captions');

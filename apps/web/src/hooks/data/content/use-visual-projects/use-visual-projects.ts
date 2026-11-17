@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useMountedRef } from '@hooks/utils/use-mounted-ref/use-mounted-ref';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { VisualProjectsService } from '@services/content/visual-projects.service';
 import {
@@ -13,7 +14,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import type { UseVisualProjectsOptions } from '@/props/studio/visual-code.props';
 
 export function useVisualProjects({
@@ -41,13 +42,7 @@ export function useVisualProjects({
       generation: scope.current.generation + 1,
     };
   const generation = scope.current.generation;
-  const isMounted = useRef(true);
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
+  const isMounted = useMountedRef();
   const assertScope = useCallback(() => {
     if (!isMounted.current || scope.current.generation !== generation)
       throw new Error('visual_scope_changed');
