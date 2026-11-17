@@ -23,6 +23,7 @@ import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit
 import { patchBrandWithLearningFenced } from '@api/collections/brands/services/brand-learning-mutation.util';
 import { BrandLifecycleService } from '@api/collections/brands/services/brand-lifecycle.service';
 import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
+import { dropPublicBrandResponses } from '@api/collections/brands/services/brand-public-cache.util';
 import {
   type BrandRelocationActingUser,
   type BrandRelocationPreview,
@@ -447,19 +448,7 @@ export class BrandsService extends BaseService<
       throw new NotFoundException('Brand', id);
     }
 
-    // Public brand and post responses are cached and a hit skips the
-    // visibility query: a brand that leaves PUBLIC (or is deactivated, deleted
-    // or moved) must drop them, and a fill still in flight must not store.
-    if (
-      ['isActive', 'isDeleted', 'organizationId', 'scope'].some(
-        (key) => updateBrandDto[key as keyof UpdateBrandDto] !== undefined,
-      )
-    ) {
-      await this.cacheService?.invalidateGuardedTags([
-        CACHE_TAGS.PUBLIC_BRAND_CONTENT,
-      ]);
-    }
-
+    await dropPublicBrandResponses(this.cacheService, updateBrandDto);
     // Invalidate single-brand cache key; list is busted by BaseService.patch()
     await this.cacheInvalidationService.invalidate(
       CACHE_PATTERNS.BRANDS_SINGLE(id),

@@ -1,0 +1,27 @@
+import { CACHE_TAGS } from '@api/common/constants/cache-patterns.constants';
+import type { CacheService } from '@api/services/cache/cache.service';
+
+/** Brand fields whose change can take a brand out of the public view. */
+const PUBLIC_VISIBILITY_FIELDS = [
+  'isActive',
+  'isDeleted',
+  'organizationId',
+  'scope',
+] as const;
+
+/**
+ * Public brand and post responses are cached and a cache hit skips the
+ * visibility query, so a brand that leaves PUBLIC (or is deactivated, deleted
+ * or moved) must drop them. The invalidation is guarded: a response that was
+ * being built before the change does not get stored afterwards.
+ */
+export async function dropPublicBrandResponses(
+  cacheService: Pick<CacheService, 'invalidateGuardedTags'> | undefined,
+  patch: Partial<Record<(typeof PUBLIC_VISIBILITY_FIELDS)[number], unknown>>,
+): Promise<void> {
+  if (PUBLIC_VISIBILITY_FIELDS.some((field) => patch[field] !== undefined)) {
+    await cacheService?.invalidateGuardedTags([
+      CACHE_TAGS.PUBLIC_BRAND_CONTENT,
+    ]);
+  }
+}
