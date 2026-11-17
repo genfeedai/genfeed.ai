@@ -697,7 +697,7 @@ test('recovery skips proved-green gates and reuses the exact immutable image', (
   assert.match(selfHostedWorkflow, /image_digest:/);
   assert.match(
     selfHostedWorkflow,
-    /overwrite_files: \$\{\{ inputs\.reuse_existing_image != true \}\}/,
+    /REPLACE_EXISTING_ASSETS: \$\{\{ inputs\.reuse_existing_image != true \}\}/,
   );
   assert.match(
     selfHostedWorkflow,
