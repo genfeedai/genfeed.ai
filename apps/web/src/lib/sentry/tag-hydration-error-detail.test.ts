@@ -34,6 +34,28 @@ describe('tagHydrationErrorDetail', () => {
     });
   });
 
+  it.each([418, 419, 422, 423, 425])(
+    'recognizes both production decoder URLs for hydration error %s',
+    (code) => {
+      for (const url of [
+        `https://react.dev/errors/${code}?args[]=fixture`,
+        `https://reactjs.org/docs/error-decoder.html?invariant=${code}&args[]=fixture`,
+      ]) {
+        expect(tagHydrationErrorDetail({ message: url }).tags).toEqual({
+          hydration_message: `Minified React error #${code}`,
+        });
+      }
+    },
+  );
+
+  it.each([4190, 420])(
+    'leaves a different minified error %s untouched',
+    (code) => {
+      const message = `Minified React error #${code}; visit https://react.dev/errors/${code}`;
+      expect(tagHydrationErrorDetail({ message }).tags).toBeUndefined();
+    },
+  );
+
   it('leaves other errors untouched', () => {
     const event = tagHydrationErrorDetail({
       exception: { values: [{ value: 'Network request failed' }] },

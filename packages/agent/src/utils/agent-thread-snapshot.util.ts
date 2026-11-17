@@ -414,6 +414,12 @@ export function mapSnapshotPendingInputRequest(
     options: pendingInputRequest.options,
     prompt: pendingInputRequest.prompt,
     recommendedOptionId: pendingInputRequest.recommendedOptionId,
+    runId:
+      pendingInputRequest.runId ??
+      snapshot.timeline.findLast(
+        (entry) => entry.requestId === pendingInputRequest.requestId,
+      )?.runId ??
+      undefined,
     threadId: snapshot.threadId,
     title: pendingInputRequest.title,
   };
