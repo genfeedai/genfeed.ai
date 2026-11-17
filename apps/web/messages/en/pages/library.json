@@ -91,6 +91,10 @@
     "usedIn": "Used in",
     "usedInPosts": "Used in posts"
   },
+  "stack": {
+    "count": "Carousel of {count} images",
+    "label": "Carousel"
+  },
   "review": {
     "approve": "Approve asset",
     "reject": "Reject asset",

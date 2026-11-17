@@ -38,6 +38,11 @@ export interface LibraryBrowserProps {
    * it the unfiltered browser lists generated output only.
    */
   seededOrigins?: readonly IngredientOrigin[];
+  /**
+   * Folds each carousel into one cover tile with its image count. Search lists
+   * every matching image, so a search shows the slides loose again.
+   */
+  isStacked?: boolean;
   /** Header copy for a seeded route. Ignored when `shelf` is set. */
   preset?: LibraryBrowserPreset;
   scope?: PageScope.BRAND | PageScope.ORGANIZATION | PageScope.SUPERADMIN;

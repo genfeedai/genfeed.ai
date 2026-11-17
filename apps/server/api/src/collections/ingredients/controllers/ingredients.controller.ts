@@ -10,6 +10,7 @@ import {
 } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientReviewStateService } from '@api/collections/ingredients/services/ingredient-review-state.service';
+import { IngredientStackService } from '@api/collections/ingredients/services/ingredient-stack.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import {
   libraryBrandWhere,
@@ -25,7 +26,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import {
@@ -93,6 +93,8 @@ export class IngredientsController {
     private readonly brandAccess?: BrandAccessService,
     @Optional()
     private readonly reviewState?: IngredientReviewStateService,
+    @Optional()
+    private readonly stacks?: IngredientStackService,
   ) {}
 
   /**
@@ -170,15 +172,9 @@ export class IngredientsController {
       ? query.brandId
       : await this.resolveLibraryBrandFilter(query, tenant, user, request);
 
-    // `categories` is the multi-select Library type axis; `category` stays for
-    // single-type callers. Both normalize to Prisma labels.
-    const categories = (query.categories ?? []).map((category) =>
-      CategoryPrismaUtil.toIngredientCategory(category),
-    );
-    const categoryFilter = CollectionFilterUtil.buildCategoryFilter(
-      categories.length > 0
-        ? categories
-        : CategoryPrismaUtil.toIngredientCategory(query.category),
+    const categoryFilter = IngredientFilterUtil.buildLibraryCategoryFilter(
+      query.categories,
+      query.category,
     );
 
     const searchFilter = CollectionFilterUtil.buildSearchFilter(query.search, [
@@ -232,6 +228,7 @@ export class IngredientsController {
           IngredientFilterUtil.buildStoryboardStillExclusion(),
           characterFilter,
           this.reviewState?.buildFilter(query.review) ?? {},
+          this.stacks?.buildFilter(query.stacks) ?? {},
           IngredientFilterUtil.buildTagFilter(query.tags, query.tagMatch),
           searchFilter.where,
         ],
@@ -263,13 +260,19 @@ export class IngredientsController {
       (await this.evaluationProjection?.attachToPage(data, {
         brandId: tenant.isOrganizationOverride ? tenant.brandId : user.brandId,
       })) ?? data;
-    return serializeCollection(
-      request,
-      IngredientSerializer,
+    const reviewed =
       (await this.reviewState?.attachToPage(
         evaluated,
         tenant.organizationId,
-      )) ?? evaluated,
+      )) ?? evaluated;
+    return serializeCollection(
+      request,
+      IngredientSerializer,
+      (await this.stacks?.attachToPage(
+        reviewed,
+        tenant.organizationId,
+        query.stacks,
+      )) ?? reviewed,
     );
   }
 

@@ -1051,6 +1051,10 @@ const UI_TEST_MESSAGES = {
           type: 'Type',
         },
       },
+      stack: {
+        count: 'Carousel of {count} images',
+        label: 'Carousel',
+      },
       inspector: {
         copyPrompt: 'Copy prompt',
         created: 'Created',

@@ -15,6 +15,7 @@ const messages = {
     knowledge: library.knowledge,
     recovery: library.recovery,
     review: library.review,
+    stack: library.stack,
     tags: library.tags,
     teamReview: { state: library.teamReview.state },
   },

@@ -808,6 +808,33 @@ describe('useLibraryBrowser', () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
+  it('folds carousels into one cover tile unless the operator is searching', () => {
+    const { result, rerender } = renderHook(
+      ({ search }: { search: string }) => {
+        state.search = search;
+        return useLibraryBrowser({
+          isStacked: true,
+          place: LibraryPlace.ASSETS,
+        });
+      },
+      { initialProps: { search: '' } },
+    );
+
+    expect(result.current.contextValue.query.stacks).toBe('true');
+
+    rerender({ search: '?search=winter' });
+
+    expect(result.current.contextValue.query.stacks).toBeUndefined();
+  });
+
+  it('lists every image loose when the browser does not stack', () => {
+    const { result } = renderHook(() =>
+      useLibraryBrowser({ place: LibraryPlace.ASSETS }),
+    );
+
+    expect(result.current.contextValue.query.stacks).toBeUndefined();
+  });
+
   it('lets an origin the operator picks narrow the seeded origins', () => {
     state.search = '?origins=UPLOADED';
     const { result } = renderHook(() =>

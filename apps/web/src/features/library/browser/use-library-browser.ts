@@ -108,10 +108,16 @@ export function useLibraryBrowser({
   shelf: defaultShelf,
   seededCategories,
   seededOrigins,
+  isStacked = false,
   scope = PageScope.BRAND,
 }: Pick<
   LibraryBrowserProps,
-  'place' | 'shelf' | 'seededCategories' | 'seededOrigins' | 'scope'
+  | 'place'
+  | 'shelf'
+  | 'seededCategories'
+  | 'seededOrigins'
+  | 'isStacked'
+  | 'scope'
 >) {
   const pathname = usePathname();
   const router = useRouter();
@@ -583,12 +589,17 @@ export function useLibraryBrowser({
       next.isDeleted = 'true';
     }
 
+    if (isStacked && !search && place !== LibraryPlace.TRASH) {
+      next.stacks = 'true';
+    }
+
     return next;
   }, [
     categories,
     characters,
     folderId,
     isAllAssets,
+    isStacked,
     origins,
     place,
     review,

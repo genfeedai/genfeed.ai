@@ -34,7 +34,9 @@ const SECTION_LABEL_KEYS: Record<
   [IngredientLineageDirection.USED_IN]: 'usedIn',
 };
 
-function IngredientLineageItem({ ingredient }: IngredientLineageItemProps) {
+export function IngredientLineageItem({
+  ingredient,
+}: IngredientLineageItemProps) {
   const translate = useTranslations('pages.library.inspector');
   const isTrashed = ingredient.isDeleted === true;
   const grant = useAuthorizedMediaPreview(isTrashed ? null : ingredient);
