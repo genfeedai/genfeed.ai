@@ -39,7 +39,7 @@ import type { CacheService } from '@api/services/cache/cache.service';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ReferenceImageCategory } from '@genfeedai/contracts';
+import { AssetScope, ReferenceImageCategory } from '@genfeedai/contracts';
 import type { TurboIdeaFormat } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -64,6 +64,8 @@ function sqlText(query: unknown): string {
 
 describe('BrandsService', () => {
   let service: BrandsService;
+  // Public responses held in the cache, by the tags they were stored under.
+  let cachedPublicResponses: Map<string, string[]>;
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
   let assetDelegate: Record<string, ReturnType<typeof vi.fn>>;
   let linkDelegate: {
@@ -107,6 +109,11 @@ describe('BrandsService', () => {
   };
 
   beforeEach(() => {
+    cachedPublicResponses = new Map([
+      ['public:brand:brand-1', [CACHE_TAGS.PUBLIC_BRAND_CONTENT, 'brands']],
+      ['public:posts:{}', [CACHE_TAGS.PUBLIC_BRAND_CONTENT, 'posts']],
+      ['public:models', ['models', 'public']],
+    ]);
     brandScraperService = {
       scrapeWebsite: vi.fn(),
       validateUrl: vi.fn(),
@@ -197,7 +204,17 @@ describe('BrandsService', () => {
     service = new BrandsService(
       prisma,
       loggerService,
-      { invalidateByTags: vi.fn() } as unknown as CacheService,
+      {
+        invalidateByTags: vi.fn(),
+        invalidateGuardedTags: async (tags: string[]) => {
+          for (const [key, entryTags] of cachedPublicResponses) {
+            if (entryTags.some((tag) => tags.includes(tag))) {
+              cachedPublicResponses.delete(key);
+            }
+          }
+          return 0;
+        },
+      } as unknown as CacheService,
       cacheInvalidationService as unknown as CacheInvalidationService,
       accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
       {} as unknown as BrandRelocationService,
@@ -632,6 +649,37 @@ describe('BrandsService', () => {
       expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
         SCOPED_CACHE_TAGS.BRAND_CONTEXT('org-1'),
       ]);
+    });
+
+    it('drops the cached public responses when a brand leaves PUBLIC visibility', async () => {
+      const change = { scope: AssetScope.ORGANIZATION };
+      const existing = {
+        id: 'brand-1',
+        label: 'Default Brand',
+        organizationId: 'org-1',
+        slug: 'default',
+      };
+      delegate.findFirst.mockResolvedValue(existing);
+      delegate.update.mockResolvedValue({ ...existing, ...change });
+
+      await service.patch('brand-1', change);
+
+      expect([...cachedPublicResponses.keys()]).toEqual(['public:models']);
+    });
+
+    it('keeps the cached public responses when only the label changes', async () => {
+      const existing = {
+        id: 'brand-1',
+        label: 'Default Brand',
+        organizationId: 'org-1',
+        slug: 'default',
+      };
+      delegate.findFirst.mockResolvedValue(existing);
+      delegate.update.mockResolvedValue({ ...existing, label: 'Renamed' });
+
+      await service.patch('brand-1', { label: 'Renamed' });
+
+      expect(cachedPublicResponses.size).toBe(3);
     });
 
     it('omits undefined DTO fields so Prisma never receives undefined write keys', async () => {
