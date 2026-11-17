@@ -78,9 +78,32 @@ function storyboardSummaries(): PresetSummary[] {
 }
 
 /**
+ * One row per preset key: the caller's own row wins over a platform row with
+ * the same key. `get_preset` and the catalog both resolve through this, so a
+ * preset is advertised the way it is retrieved.
+ */
+function resolveRowsByKey(rows: readonly unknown[]): Record<string, unknown>[] {
+  const byKey = new Map<string, Record<string, unknown>[]>();
+  for (const row of rows) {
+    const attributes = attributesOf(row);
+    const key = text(attributes.key);
+    if (key) byKey.set(key, [...(byKey.get(key) ?? []), attributes]);
+  }
+  return [...byKey.values()].flatMap(
+    (matches) =>
+      matches.find((candidate) => text(candidate.organizationId)) ??
+      matches[0] ??
+      [],
+  );
+}
+
+/**
  * Every preset the caller can use: the catalog rows the API returns for the
- * caller (platform defaults plus their own) and the storyboard starters,
- * which ship in `@genfeedai/contracts` and are not stored rows.
+ * caller (platform defaults plus their own, one per key) and the storyboard
+ * starters, which ship in `@genfeedai/contracts` and are not stored rows.
+ * Filters apply after the override is resolved, so an organization row that
+ * changes a preset's kind or wording is judged as itself, never as the
+ * platform row it replaces.
  */
 export function listPresetSummaries(
   rows: readonly unknown[],
@@ -88,7 +111,7 @@ export function listPresetSummaries(
 ): PresetSummary[] {
   const needle = filter.search?.toLowerCase();
   return [
-    ...rows.flatMap((row) => summarizeRow(row) ?? []),
+    ...resolveRowsByKey(rows).flatMap((row) => summarizeRow(row) ?? []),
     ...storyboardSummaries(),
   ].filter(
     (preset) =>
@@ -123,11 +146,9 @@ export function describePreset(
     slots?: Record<string, unknown>;
   },
 ): Record<string, unknown> {
-  const matches = rows
-    .map((row) => attributesOf(row))
-    .filter((attributes) => attributes.key === input.key);
-  const attributes =
-    matches.find((candidate) => text(candidate.organizationId)) ?? matches[0];
+  const attributes = resolveRowsByKey(rows).find(
+    (candidate) => candidate.key === input.key,
+  );
 
   if (!attributes) {
     const starter = STORYBOARD_STARTER_PRESETS.find(
