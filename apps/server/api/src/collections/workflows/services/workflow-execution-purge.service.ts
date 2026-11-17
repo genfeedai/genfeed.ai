@@ -7,6 +7,14 @@ const DEFAULT_PURGE_BATCH_SIZE = 2_000;
 const DEFAULT_PURGE_MAX_BATCHES = 25;
 const DEFAULT_STALE_BATCH_SIZE = 500;
 /**
+ * Prisma closes an interactive transaction after 5 seconds unless told
+ * otherwise, and rolls the batch back. A batch of 2,000 runs cascades into
+ * many child rows and takes longer, so the transaction outlives the 120 second
+ * statement timeout set inside it instead of the Prisma default.
+ */
+const PURGE_TRANSACTION_TIMEOUT_MS = 130_000;
+const PURGE_TRANSACTION_MAX_WAIT_MS = 10_000;
+/**
  * A run still `PENDING` or `RUNNING` this long after its last write is not
  * waiting for anything: review gates time out after 24 hours and a delayed
  * node resumes from a queued job, so a week of silence means the worker or the
@@ -129,14 +137,15 @@ export class WorkflowExecutionPurgeService {
   }
 
   private async purgeBatch(now: Date, batchSize: number): Promise<number> {
-    return this.prisma.$transaction(async (transaction) => {
-      // sql-risk-audit: ignore raw-sql-review -- fixed session timeout literal, no parameters
-      await transaction.$executeRaw`SET LOCAL lock_timeout = '10s'`;
-      // sql-risk-audit: ignore raw-sql-review -- fixed session timeout literal, no parameters
-      await transaction.$executeRaw`SET LOCAL statement_timeout = '120s'`;
-      // tenant-scope-ignore: platform purge sweeps expired runs across tenants; every row is selected by its own purgeAt, never by caller input
-      // sql-risk-audit: ignore raw-sql-review -- platform-wide bulk delete bound to purgeAt, terminal status and the dependency guards below; no caller-supplied identifiers
-      return transaction.$executeRaw`
+    return this.prisma.$transaction(
+      async (transaction) => {
+        // sql-risk-audit: ignore raw-sql-review -- fixed session timeout literal, no parameters
+        await transaction.$executeRaw`SET LOCAL lock_timeout = '10s'`;
+        // sql-risk-audit: ignore raw-sql-review -- fixed session timeout literal, no parameters
+        await transaction.$executeRaw`SET LOCAL statement_timeout = '120s'`;
+        // tenant-scope-ignore: platform purge sweeps expired runs across tenants; every row is selected by its own purgeAt, never by caller input
+        // sql-risk-audit: ignore raw-sql-review -- platform-wide bulk delete bound to purgeAt, terminal status and the dependency guards below; no caller-supplied identifiers
+        return transaction.$executeRaw`
         WITH due AS (
           SELECT execution."id"
           FROM "workflow_executions" AS execution
@@ -173,6 +182,11 @@ export class WorkflowExecutionPurgeService {
         USING due
         WHERE execution."id" = due."id"
       `;
-    });
+      },
+      {
+        maxWait: PURGE_TRANSACTION_MAX_WAIT_MS,
+        timeout: PURGE_TRANSACTION_TIMEOUT_MS,
+      },
+    );
   }
 }
