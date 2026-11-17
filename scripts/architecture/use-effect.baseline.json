@@ -556,7 +556,7 @@
     "packages/hooks/data/skills/use-surface-skill-commands.ts": 1,
     "packages/hooks/media/use-authorized-media-preview.ts": 1,
     "packages/hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale.ts": 2,
-    "packages/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions.ts": 1,
+    "packages/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions.ts": 3,
     "packages/hooks/ui/use-attachments/use-attachments.ts": 2,
     "packages/hooks/ui/use-masonry-grid/use-masonry-grid.ts": 2,
     "packages/hooks/ui/use-visible-polling/use-visible-polling.ts": 1,
