@@ -17,6 +17,7 @@ import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persi
  * apps/server/api's typecheck program cannot resolve (TS2307 — #5199 CI).
  */
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { BrandedPublishHoldException } from '@api/services/branded-text-generation/branded-publish-hold.service';
 import {
   getErrorStatus,
   getJsonApiErrorStatus,
@@ -87,6 +88,35 @@ describe('HttpExceptionFilter → @genfeedai/utils client contract (real jsonapi
     } as unknown as ArgumentsHost;
 
     filter = new HttpExceptionFilterClass(mockLoggerService, mockConfigService);
+  });
+
+  it('preserves the unavailable Policy check code and sanitized guidance on the wire', () => {
+    filter.catch(
+      new BrandedPublishHoldException({
+        brandId: 'brand-1',
+        reason: 'policy_violation',
+        violations: [
+          {
+            rule: 'policy_judge_unavailable',
+            detail: 'Private provider payload',
+          },
+        ],
+      }),
+      mockArgumentsHost,
+    );
+
+    expect(mockResponse.json.mock.calls[0][0]).toMatchObject({
+      errors: [
+        {
+          code: 'brand_policy_check_unavailable',
+          status: '409',
+          detail: expect.stringContaining('Resume the existing release'),
+        },
+      ],
+    });
+    expect(JSON.stringify(mockResponse.json.mock.calls[0][0])).not.toContain(
+      'Private provider payload',
+    );
   });
 
   it('resolves a coded 404 from the real ErrorResponse.notFound factory to a 404, not 500', () => {

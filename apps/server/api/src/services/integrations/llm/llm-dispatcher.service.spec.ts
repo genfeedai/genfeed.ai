@@ -1,3 +1,4 @@
+import { BrandPolicyJudgeService } from '@api/services/brand-publish-policy/brand-policy-judge.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { AnthropicService } from '@api/services/integrations/anthropic/services/anthropic.service';
 import { OpenAiLlmService } from '@api/services/integrations/openai-llm/services/openai-llm.service';
@@ -8,6 +9,7 @@ import type {
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { ByokProvider } from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -148,6 +150,73 @@ describe('LlmDispatcherService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('settles only the recovered policy check and reuses its cached verdict', async () => {
+    const settlements: Parameters<
+      LlmCompletionTelemetryService['recordCompletion']
+    >[0][] = [];
+    llmCompletionTelemetryService.recordCompletion.mockImplementation(
+      async (event) => {
+        settlements.push(event);
+      },
+    );
+    openRouterService.chatCompletion
+      .mockRejectedValueOnce({
+        response: {
+          status: 404,
+          data: {
+            error: {
+              message:
+                'No endpoints found matching your data policy (Zero data retention).',
+            },
+          },
+        },
+      })
+      .mockResolvedValue({
+        ...mockResponse,
+        model: LLM_DEFAULTS.volumeAgent,
+        choices: [
+          {
+            finish_reason: 'stop',
+            message: { role: 'assistant', content: '{"findings":[]}' },
+          },
+        ],
+        usage: {
+          prompt_tokens: 10,
+          completion_tokens: 5,
+          total_tokens: 15,
+          cost: 0.0001,
+        },
+      });
+    const judge = new BrandPolicyJudgeService(
+      service,
+      loggerService as unknown as LoggerService,
+    );
+    const request = {
+      brandId: 'brand-1',
+      organizationId: orgId,
+      text: 'Launch note',
+      bannedClaims: [],
+      bannedTopics: ['Politics'],
+      guardrails: [],
+      isModerationRequired: false,
+    };
+
+    await expect(judge.judge(request)).resolves.toEqual([
+      { rule: 'policy_judge_unavailable', detail: expect.any(String) },
+    ]);
+    expect(settlements).toEqual([]);
+    await expect(judge.judge(request)).resolves.toEqual([]);
+    await expect(judge.judge(request)).resolves.toEqual([]);
+    expect(settlements).toEqual([
+      expect.objectContaining({
+        model: LLM_DEFAULTS.volumeAgent,
+        vendorCostMicros: 100,
+        promptTokens: 10,
+        completionTokens: 5,
+      }),
+    ]);
   });
 
   describe('chatCompletion — provider routing', () => {

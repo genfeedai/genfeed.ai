@@ -18,6 +18,38 @@ function appUrl(path: string): string {
 }
 
 describe('MCP tool error contract', () => {
+  it.each([
+    [
+      'brand_policy_check_unavailable',
+      'policy_check_unavailable',
+      'Resume the existing release',
+    ],
+    ['brand_policy_held', 'publishing_held', 'member must review'],
+    ['branded_receipt_held', 'publishing_held', 'member must review'],
+  ])('returns sanitized guidance for %s', (domainCode, code, guidance) => {
+    const result = toMcpToolErrorResult(
+      new McpUpstreamError('Internal provider payload', {
+        status: 409,
+        body: {
+          errors: [
+            {
+              detail: 'Internal provider payload',
+              code: domainCode,
+              status: '409',
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(result).toMatchObject({
+      isError: true,
+      structuredContent: { code },
+    });
+    expect(result?.content[0].text).toContain(guidance);
+    expect(JSON.stringify(result)).not.toContain('Internal provider payload');
+  });
+
   it('turns schema validation errors into readable field guidance', () => {
     const parsed = z
       .object({ edits: z.object({ brief: z.string().min(1) }) })

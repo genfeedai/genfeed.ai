@@ -1,6 +1,9 @@
 // React words a mismatch as "Hydration failed…" or, for text and attribute
 // differences, "Text content does not match server-rendered HTML".
 const HYDRATION_PATTERN = /hydrat|does not match server-rendered/i;
+// These are the production hydration codes recognized by Sentry Replay.
+const MINIFIED_HYDRATION_PATTERN =
+  /(?:\bMinified React error #|https?:\/\/(?:react\.dev\/errors\/|reactjs\.org\/docs\/error-decoder\.html\?invariant=))(418|419|422|423|425)\b/;
 const URL_PATTERN = /https?:\/\/\S+/g;
 const ELEMENT_PATTERN = /<([a-z][a-z0-9-]*)/gi;
 const MAX_MESSAGE_LENGTH = 160;
@@ -22,18 +25,23 @@ function readErrorText(event: HydrationSentryEvent): string {
   return event.exception?.values?.[0]?.value ?? event.message ?? '';
 }
 
-/**
- * Sentry scrubs the message of a "Hydration error" Replay issue, so the cause
- * of the root not-found mismatch (APP-GENFEED-AI-Q) cannot be read from the
- * issue. This copies two safe facts from the raw error into tags before it is
- * sent: its first line with URLs removed, and the element names in React's
- * mismatch diff. Text content and attribute values from the diff never leave
- * the browser.
- */
+/** Tag the original error before send so it can be correlated with its Replay. */
 export function tagHydrationErrorDetail<TEvent extends HydrationSentryEvent>(
   event: TEvent,
 ): TEvent & Pick<HydrationSentryEvent, 'tags'> {
   const text = readErrorText(event);
+
+  const code = MINIFIED_HYDRATION_PATTERN.exec(text)?.[1];
+
+  if (code) {
+    // Decoder arguments can contain user content. Only copy the allowlisted code.
+    return Object.assign(event, {
+      tags: {
+        ...event.tags,
+        hydration_message: `Minified React error #${code}`,
+      },
+    });
+  }
 
   if (!HYDRATION_PATTERN.test(text)) {
     return event;

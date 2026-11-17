@@ -91,3 +91,27 @@ export function withinStepBudget(maxSteps: number): TaskConstraint {
     id: 'within-step-budget',
   };
 }
+
+export const SINGLE_UNPUBLISHED_TEXT_DRAFT: TaskConstraint = {
+  check: (trace) => {
+    const writes = trace.toolCalls.filter(
+      (call) => !isReadOnlyToolName(call.name),
+    );
+    const draft = writes[0];
+    return (
+      writes.length === 1 &&
+      draft?.name === 'create_post' &&
+      typeof draft.args.content === 'string' &&
+      draft.args.content.trim().length > 0 &&
+      draft.args.scheduledAt === undefined &&
+      draft.args.contentId === undefined &&
+      draft.args.ingredientId === undefined &&
+      draft.args.mediaUrls === undefined &&
+      draft.args.targets === undefined &&
+      draft.args.confirmed !== true
+    );
+  },
+  description:
+    'Creates exactly one text draft, without media, publishing, scheduling or extra writes.',
+  id: 'single-unpublished-text-draft',
+};

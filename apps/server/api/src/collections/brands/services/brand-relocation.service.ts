@@ -12,6 +12,7 @@ import {
 import {
   assertNoBrandOrgOrphans,
   type CascadeDelegate,
+  moveRevisionContentScope,
   resolveSecondOrderFilters,
   type SecondOrderParentIds,
 } from '@api/collections/brands/utils/brand-relocation-cascade.util';
@@ -777,6 +778,7 @@ export class BrandRelocationService {
 
     await detachReferralCodesFromBrand(tx, brandId);
     await prepareAgentThreadsForRelocation(tx, brandId);
+    await moveRevisionContentScope(tx, brandId, sourceOrgId, destOrgId);
     // 1. The brand row itself (+ any co-patched scalar fields). The workflow
     // composite FK cascades workflow.organizationId with the brand.
     await client.brand.updateMany({

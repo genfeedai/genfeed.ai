@@ -28,6 +28,8 @@ import { HiggsFieldPollQueueService } from '@api/queues/higgsfield-poll/higgsfie
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { toRedactedVideoGenerationBriefProviderData } from '@api/services/generation-brief';
+import { HiggsFieldProviderError } from '@api/services/integrations/higgsfield/errors/higgsfield-provider.error';
+import { isCinemaStudioModel } from '@api/services/integrations/higgsfield/helpers/higgsfield.catalog';
 import {
   isReplicateSubmissionRejected,
   ReplicateProviderError,
@@ -265,7 +267,12 @@ export class VideoGenerationExecutionService {
       const id = documents.ingredientData.id.toString();
       if (index > 0) context.pendingIngredientIds.push(id);
       await this.admitOutput(context, id, outputs);
-      const generation = await this.dispatch(context, index + 1, [id]);
+      const generation = await this.dispatch(
+        context,
+        index + 1,
+        [id],
+        documents.metadataData.id,
+      );
       accepted.add(id);
       await this.persistAcceptedOutput(
         context,
@@ -421,6 +428,7 @@ export class VideoGenerationExecutionService {
     context: VideoGenerationContext,
     output?: number,
     ingredientIds: readonly string[] = [context.ingredientData.id.toString()],
+    metadataId: string = context.metadataData.id,
   ): Promise<StartedVideoGeneration> {
     const quote = (
       context.request as unknown as DeferredCreditsRequest | undefined
@@ -467,6 +475,12 @@ export class VideoGenerationExecutionService {
             'Provider input is incompatible with this quote.',
             HttpStatus.CONFLICT,
           );
+        if (target.provider === 'higgsfield') {
+          await this.metadataService.patch(
+            metadataId,
+            new MetadataEntity({ externalProvider: target.provider }),
+          );
+        }
         try {
           const result = await this.providerDispatchService.dispatch({
             ...this.dispatchParams(context),
@@ -492,6 +506,12 @@ export class VideoGenerationExecutionService {
           return { ...result, externalId: result.externalId };
         } catch (error: unknown) {
           if (
+            (target.provider === 'higgsfield' &&
+              this.hasUncertainCinemaSubmission(
+                context,
+                ingredientIds,
+                error,
+              )) ||
             context.abortSignal?.aborted ||
             index === targets.length - 1 ||
             (error instanceof HttpException && error.getStatus() < 500)
@@ -515,7 +535,7 @@ export class VideoGenerationExecutionService {
     );
     if (externalProvider) {
       await this.metadataService.patch(
-        context.metadataData.id,
+        metadataId,
         new MetadataEntity({ externalProvider }),
       );
     }
@@ -609,6 +629,22 @@ export class VideoGenerationExecutionService {
     );
   }
 
+  private hasUncertainCinemaSubmission(
+    context: VideoGenerationContext,
+    ingredientIds: readonly string[],
+    error: unknown,
+  ): boolean {
+    const isRejected =
+      error instanceof HiggsFieldProviderError &&
+      error.statusCode !== undefined &&
+      [400, 401, 403, 404, 422, 429].includes(error.statusCode);
+    return (
+      isCinemaStudioModel(context.model) &&
+      !isRejected &&
+      ingredientIds.some((id) => this.submissionStarted.get(context)?.has(id))
+    );
+  }
+
   private async failPendingOutputs(
     context: VideoGenerationContext,
     error: unknown,
@@ -616,7 +652,9 @@ export class VideoGenerationExecutionService {
   ): Promise<void> {
     this.loggerService.error('VideoGenerationService create failed', error);
     const failedIds = context.pendingIngredientIds.filter(
-      (id) => !accepted.has(id),
+      (id) =>
+        !accepted.has(id) &&
+        !this.hasUncertainCinemaSubmission(context, [id], error),
     );
     if (
       (context.request as unknown as DeferredCreditsRequest | undefined)
@@ -708,6 +746,9 @@ export class VideoGenerationExecutionService {
     await this.generationBilling.bindOutput(request, {
       credits: amount / Math.max(outputs, 1),
       ingredientId,
+      ...(isCinemaStudioModel(context.model)
+        ? { submissionIntentProvider: 'higgsfield' }
+        : {}),
     });
   }
 

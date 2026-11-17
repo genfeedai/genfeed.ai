@@ -102,6 +102,39 @@ function makeService(input: {
 const scope = { organizationId: 'org-1', postId: 'post-1' };
 
 describe('BrandedPublishHoldService', () => {
+  it('distinguishes an unavailable Policy check from a proven violation', () => {
+    const error = new BrandedPublishHoldException({
+      brandId: 'brand-1',
+      reason: 'policy_violation',
+      violations: [
+        {
+          rule: 'policy_judge_unavailable',
+          detail: 'Provider payload: private text',
+        },
+      ],
+    });
+
+    expect(error.getResponse()).toMatchObject({
+      code: 'brand_policy_check_unavailable',
+      title: 'Policy check unavailable',
+      detail: expect.stringContaining('Resume the existing release'),
+    });
+    expect(JSON.stringify(error.getResponse())).not.toContain('private text');
+  });
+
+  it('preserves a proven Policy violation when another check is unavailable', () => {
+    const error = new BrandedPublishHoldException({
+      brandId: 'brand-1',
+      reason: 'policy_violation',
+      violations: [
+        { rule: 'policy_judge_unavailable', detail: 'Check unavailable' },
+        { rule: 'video_always_reviewed', detail: 'Video requires review' },
+      ],
+    });
+
+    expect(error.getResponse()).toMatchObject({ code: 'brand_policy_held' });
+  });
+
   it('scopes the receipt lookup to the tenant, the brand and the bound post', async () => {
     const { prisma, service } = makeService({
       receipt: { id: 'r-1', mode: 'approved_brand', state: 'ready' },
