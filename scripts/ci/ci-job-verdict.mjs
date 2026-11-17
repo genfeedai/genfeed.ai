@@ -20,8 +20,11 @@ const WORKFLOWS = new Map([
   ],
 ]);
 const DELAYS = [2_000, 5_000];
-const MAX_PAGES = 100;
-const PAGE_SIZE = 100;
+const MAX_PAGES = 500;
+// GitHub builds a jobs page within its 10 second gateway limit only for small
+// pages: 100 jobs per page on a run with about 80 jobs returns HTTP 502 every
+// time, so retrying cannot help.
+const PAGE_SIZE = 20;
 
 function requireValue(condition, message) {
   if (!condition) throw new Error(message);
@@ -287,7 +290,9 @@ export async function qualifyVerdict(
           prefix +
           '/attempts/' +
           expected.attempt +
-          '/jobs?per_page=100&page=' +
+          '/jobs?per_page=' +
+          PAGE_SIZE +
+          '&page=' +
           page;
         const response = await read(route);
         const body = response.body;
@@ -315,7 +320,9 @@ export async function qualifyVerdict(
             prefix +
             '/attempts/' +
             expected.attempt +
-            '/jobs?per_page=100&page=' +
+            '/jobs?per_page=' +
+            PAGE_SIZE +
+            '&page=' +
             (page + 1);
           requireValue(
             page < pages && next === expectedNext,

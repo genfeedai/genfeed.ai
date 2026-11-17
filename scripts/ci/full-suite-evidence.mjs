@@ -1,7 +1,16 @@
 import { pathToFileURL } from 'node:url';
 
 const FINAL_CONNECTED_JOB = 'Final Connected Acceptance';
-const MAX_API_PAGES = 10;
+// Most a collection may hold, whatever its page size.
+const MAX_COLLECTION_ITEMS = 1000;
+// GitHub builds a jobs page within its 10 second gateway limit only for small
+// pages: 100 jobs per page on a run with about 80 jobs returns HTTP 502 every
+// time, so retrying cannot help.
+export const JOBS_PAGE_SIZE = 20;
+const RUNS_PAGE_SIZE = 100;
+// GitHub answers 5xx now and then; the reads are idempotent, so retry them.
+const GH_SERVER_ERROR_ATTEMPTS = 3;
+const GH_SERVER_ERROR_PATTERN = /\(HTTP 5\d\d\)/;
 
 const EXACT_SHA_PATTERN = /^[0-9a-f]{40}$/u;
 const ACTIVE_STATUSES = new Set([
@@ -329,10 +338,19 @@ function parsePositiveInteger(value, fallback, label) {
 }
 
 function ghCliJson(path, { spawnSync, token }) {
-  const result = spawnSync('gh', ['api', path], {
-    encoding: 'utf8',
-    env: { ...process.env, GH_TOKEN: token },
-  });
+  let result;
+  for (let attempt = 1; attempt <= GH_SERVER_ERROR_ATTEMPTS; attempt += 1) {
+    result = spawnSync('gh', ['api', path], {
+      encoding: 'utf8',
+      env: { ...process.env, GH_TOKEN: token },
+    });
+    if (
+      result.status === 0 ||
+      !GH_SERVER_ERROR_PATTERN.test(String(result.stderr ?? ''))
+    ) {
+      break;
+    }
+  }
   if (result.status !== 0) {
     throw new Error(
       String(result.stderr || result.stdout || 'gh api failed').trim(),
@@ -341,13 +359,14 @@ function ghCliJson(path, { spawnSync, token }) {
   return JSON.parse(result.stdout || '{}');
 }
 
-export function paginatedCollection(api, path, key) {
+export function paginatedCollection(api, path, key, pageSize = RUNS_PAGE_SIZE) {
   const rows = [];
   const ids = new Set();
   let total;
-  for (let page = 1; page <= MAX_API_PAGES; page += 1) {
+  const maxPages = Math.ceil(MAX_COLLECTION_ITEMS / pageSize);
+  for (let page = 1; page <= maxPages; page += 1) {
     const response = api(
-      `${path}${path.includes('?') ? '&' : '?'}per_page=100&page=${page}`,
+      `${path}${path.includes('?') ? '&' : '?'}per_page=${pageSize}&page=${page}`,
     );
     const batch = response?.[key];
     if (
@@ -371,7 +390,7 @@ export function paginatedCollection(api, path, key) {
       rows.push(row);
     }
     if (rows.length === total) return rows;
-    if (rows.length > total || batch.length !== 100) {
+    if (rows.length > total || batch.length !== pageSize) {
       throw new Error('Full Suite API pagination is incomplete.');
     }
   }
@@ -416,6 +435,7 @@ export async function runCli({
           api,
           `repos/${repository}/actions/runs/${id}/attempts/${attempt}/jobs`,
           'jobs',
+          JOBS_PAGE_SIZE,
         ),
       sleep,
       discoveryAttempts: parsePositiveInteger(

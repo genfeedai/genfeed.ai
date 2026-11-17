@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  JOBS_PAGE_SIZE,
   paginatedCollection,
   resolveFullSuiteEvidence,
   runCli,
@@ -539,34 +540,46 @@ test('loss of visibility of an in-flight run cannot request a duplicate', async 
   );
 });
 
-test('collects the final connected gate after the first hundred jobs', () => {
-  const first = Array.from({ length: 100 }, (_, index) => ({ id: index + 1 }));
+test('collects the final connected gate after the first page of jobs', () => {
+  const first = Array.from({ length: JOBS_PAGE_SIZE }, (_, index) => ({
+    id: index + 1,
+  }));
   const paths = [];
   const result = paginatedCollection(
     (path) => {
       paths.push(path);
-      return { total_count: 101, jobs: paths.length === 1 ? first : [gate()] };
+      return {
+        total_count: JOBS_PAGE_SIZE + 1,
+        jobs: paths.length === 1 ? first : [gate()],
+      };
     },
     'repos/example/repo/actions/runs/1/attempts/3/jobs',
     'jobs',
+    JOBS_PAGE_SIZE,
   );
-  assert.equal(result.length, 101);
+  assert.equal(result.length, JOBS_PAGE_SIZE + 1);
   assert.equal(result.at(-1).name, 'Final Connected Acceptance');
   assert.deepEqual(paths, [
-    'repos/example/repo/actions/runs/1/attempts/3/jobs?per_page=100&page=1',
-    'repos/example/repo/actions/runs/1/attempts/3/jobs?per_page=100&page=2',
+    'repos/example/repo/actions/runs/1/attempts/3/jobs?per_page=20&page=1',
+    'repos/example/repo/actions/runs/1/attempts/3/jobs?per_page=20&page=2',
   ]);
 });
 
 test('pagination rejects duplicate, truncated, malformed and failed pages', () => {
-  const first = Array.from({ length: 100 }, (_, index) => ({ id: index + 1 }));
+  const first = Array.from({ length: JOBS_PAGE_SIZE }, (_, index) => ({
+    id: index + 1,
+  }));
   let page = 0;
   assert.throws(
     () =>
       paginatedCollection(
-        () => ({ total_count: 101, jobs: ++page === 1 ? first : [{ id: 1 }] }),
+        () => ({
+          total_count: JOBS_PAGE_SIZE + 1,
+          jobs: ++page === 1 ? first : [{ id: 1 }],
+        }),
         'jobs',
         'jobs',
+        JOBS_PAGE_SIZE,
       ),
     /duplicate/,
   );
@@ -576,6 +589,7 @@ test('pagination rejects duplicate, truncated, malformed and failed pages', () =
         () => ({ total_count: 2, jobs: [{ id: 1 }] }),
         'jobs',
         'jobs',
+        JOBS_PAGE_SIZE,
       ),
     /incomplete/,
   );
@@ -634,30 +648,34 @@ test('bounds pagination and rejects changing totals', () => {
     () =>
       paginatedCollection(
         () => {
-          const offset = page++ * 100;
+          const offset = page++ * JOBS_PAGE_SIZE;
           return {
             total_count: 1001,
-            jobs: Array.from({ length: 100 }, (_, index) => ({
+            jobs: Array.from({ length: JOBS_PAGE_SIZE }, (_, index) => ({
               id: offset + index + 1,
             })),
           };
         },
         'jobs',
         'jobs',
+        JOBS_PAGE_SIZE,
       ),
     /bounded page limit/,
   );
-  assert.equal(page, 10);
+  assert.equal(page, 50);
   page = 0;
   assert.throws(
     () =>
       paginatedCollection(
         () => ({
           total_count: ++page === 1 ? 101 : 102,
-          jobs: Array.from({ length: 100 }, (_, index) => ({ id: index + 1 })),
+          jobs: Array.from({ length: JOBS_PAGE_SIZE }, (_, index) => ({
+            id: index + 1,
+          })),
         }),
         'jobs',
         'jobs',
+        JOBS_PAGE_SIZE,
       ),
     /changed during collection/,
   );
@@ -684,7 +702,7 @@ test('CLI reads paginated exact-SHA runs and only the latest attempt jobs', asyn
         body = { total_count: 1, workflow_runs: [run({ run_attempt: 4 })] };
       } else if (path.includes('/workflows/release.yml/runs?')) {
         body = { total_count: 0, workflow_runs: [] };
-      } else if (path.endsWith('/attempts/4/jobs?per_page=100&page=1')) {
+      } else if (path.endsWith('/attempts/4/jobs?per_page=20&page=1')) {
         body = { total_count: 1, jobs: [gate()] };
       } else {
         assert.equal(path, `repos/example/repo/actions/runs/${run().id}`);
@@ -701,10 +719,54 @@ test('CLI reads paginated exact-SHA runs and only the latest attempt jobs', asyn
   assert.deepEqual(requests, [
     `repos/example/repo/actions/workflows/full-suite.yml/runs?head_sha=${RELEASE_SHA}&per_page=100&page=1`,
     `repos/example/repo/actions/workflows/release.yml/runs?head_sha=${RELEASE_SHA}&per_page=100&page=1`,
-    `repos/example/repo/actions/runs/${run().id}/attempts/4/jobs?per_page=100&page=1`,
+    `repos/example/repo/actions/runs/${run().id}/attempts/4/jobs?per_page=20&page=1`,
     `repos/example/repo/actions/runs/${run().id}`,
   ]);
   assert.deepEqual(outputs, [['fixture-output', 'suite_verified=true\n']]);
+});
+
+test('CLI retries a GitHub server error on a read', async () => {
+  const baseEnv = {
+    GITHUB_REPOSITORY: 'example/repo',
+    RELEASE_SHA,
+    GH_TOKEN: 'fixture',
+    GITHUB_OUTPUT: 'fixture-output',
+    GITHUB_RUN_ID: '123',
+  };
+  const cli = (spawnSync, errors) =>
+    runCli({
+      env: baseEnv,
+      spawnSync,
+      appendFileSync: () => {},
+      sleep: async () => {},
+      log: () => {},
+      error: (message) => errors.push(String(message)),
+    });
+  let listCalls = 0;
+  const flaky = (_command, args) => {
+    const path = args[1];
+    if (path.includes('/workflows/full-suite.yml/runs?')) {
+      listCalls += 1;
+      return listCalls === 1
+        ? { status: 1, stderr: 'gh: Bad Gateway (HTTP 502)', stdout: '' }
+        : {
+            status: 0,
+            stdout: JSON.stringify({
+              total_count: 1,
+              workflow_runs: [run({ run_attempt: 4 })],
+            }),
+          };
+    }
+    const body = path.includes('/workflows/release.yml/runs?')
+      ? { total_count: 0, workflow_runs: [] }
+      : path.includes('/jobs?')
+        ? { total_count: 1, jobs: [gate()] }
+        : run({ run_attempt: 4 });
+    return { status: 0, stdout: JSON.stringify(body) };
+  };
+  const errors = [];
+  assert.equal((await cli(flaky, errors)).kind, 'verified');
+  assert.equal(listCalls, 2);
 });
 
 function releaseRun(overrides = {}) {
