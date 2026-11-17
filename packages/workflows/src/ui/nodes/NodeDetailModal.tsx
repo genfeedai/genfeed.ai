@@ -492,6 +492,7 @@ export function NodeDetailModal() {
     }
   });
 
+  // use-effect-audit: ignore subscribes to window keydown for the node detail modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       handleModalKeyDown(e);
