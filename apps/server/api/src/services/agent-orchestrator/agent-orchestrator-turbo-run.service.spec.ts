@@ -111,6 +111,9 @@ describe('AgentOrchestratorTurboRunService', () => {
     "QA 0.3.2 draft test for the selected Genfeed (Review) brand. Use its saved brand context. Write one short social post explaining how reviewing a draft before publishing prevents mistakes, then save it as an unpublished draft titled 'QA 0.3.2 — draft review'. Do not publish, schedule, connect accounts, change brand context or settings, or generate media. Report the draft link and the brand context or receipt used.",
     'Write 1 post and save it as an unpublished text draft. Do not generate media or schedule it.',
     'Draft one post about our 2.5 release.',
+    "Write one post titled '5 posts to review before publishing'.",
+    "Write one post titled 'Generate 5 posts with care'.",
+    'Do not generate 2 posts; just explain the review process.',
     'Create a post about 3.2 posts per second.',
   ])('keeps a single draft out of Turbo: %s', async (requestContent) => {
     expect(service.isTurboRunIntent(requestContent)).toBe(false);
@@ -122,13 +125,16 @@ describe('AgentOrchestratorTurboRunService', () => {
     expect(events).toEqual([]);
   });
 
-  it('keeps explicit bulk requests on Turbo with their requested count', async () => {
-    await service.tryHandleTurboRunTurnStream(
-      turn({}, 'Generate 12 posts for twitter about our release'),
-      host,
-    );
-    expect(toolRuns[0]?.params).toMatchObject({ count: 12 });
-  });
+  it.each(['Generate', 'Please generate'])(
+    'keeps %s bulk requests on Turbo with their requested count',
+    async (verb) => {
+      await service.tryHandleTurboRunTurnStream(
+        turn({}, `${verb} 12 posts for twitter about our release`),
+        host,
+      );
+      expect(toolRuns[0]?.params).toMatchObject({ count: 12 });
+    },
+  );
 
   it.each([undefined, true])(
     'background user turns with approval capability %s return a pending card',
