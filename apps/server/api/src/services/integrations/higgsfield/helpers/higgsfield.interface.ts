@@ -38,6 +38,12 @@ export interface HiggsFieldResponse {
   error?: string;
 }
 
+/** One status read of an accepted video request, for a durable poller. */
+export type HiggsFieldVideoRequestState =
+  | { state: 'pending' }
+  | { state: 'completed'; videoUrl: string }
+  | { reason: string; state: 'failed' };
+
 export interface HiggsFieldCredentials {
   apiKey: string;
   apiSecret: string;

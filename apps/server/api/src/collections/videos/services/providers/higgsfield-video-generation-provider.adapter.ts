@@ -14,8 +14,6 @@ import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfi
 import { BadRequestException } from '@nestjs/common';
 
 const GENJUTSU_POLL_TIMEOUT_MS = 600_000;
-// Up to 30s of 720p video with reference media renders slower than DoP.
-const CINEMA_STUDIO_POLL_TIMEOUT_MS = 900_000;
 
 function httpsUrls(value: unknown): string[] {
   const entries = Array.isArray(value) ? value : [value];
@@ -44,8 +42,8 @@ function strictHttpsUrls(field: string, value: unknown): string[] {
 
 /**
  * Higgsfield video is DoP image-to-video, Genjutsu motion transfer or
- * Cinema Studio 4.0 text/reference-to-video. All paths poll to a video URL and return `remote-output`, matching Fal:
- * execution only consumes `externalId`.
+ * Cinema Studio 4.0 text/reference-to-video. DoP and Genjutsu poll to a video URL and return
+ * `remote-output`, matching Fal; Cinema Studio returns `polling` with the accepted request id.
  */
 export class HiggsFieldVideoGenerationProviderAdapter
   implements VideoGenerationProviderAdapter
@@ -229,6 +227,9 @@ export class HiggsFieldVideoGenerationProviderAdapter
         ...(typeof promptParams.generate_audio === 'boolean'
           ? { generateAudio: promptParams.generate_audio }
           : {}),
+        ...(params.idempotencyKey
+          ? { idempotencyKey: params.idempotencyKey }
+          : {}),
         ...(imageUrls.length > 0 ? { imageUrls } : {}),
         onProviderSubmissionStarted: params.onProviderSubmissionStarted,
         organizationId: params.organizationId,
@@ -236,17 +237,13 @@ export class HiggsFieldVideoGenerationProviderAdapter
         ...(typeof resolution === 'string' ? { resolution } : {}),
         ...(videoUrls.length > 0 ? { videoUrls } : {}),
       });
-    const completed = await this.higgsFieldService.waitForVideoCompletion(
-      requestId,
-      {
-        organizationId: params.organizationId,
-        timeoutMs: CINEMA_STUDIO_POLL_TIMEOUT_MS,
-      },
-    );
 
+    // Return as soon as the provider accepts the job. Waiting here would lose
+    // the request id, and the paid job with it, if this process stops first;
+    // the caller persists the id and a durable poll job finishes the wait.
     return {
-      completion: 'remote-output',
-      externalId: completed.videoUrl,
+      completion: 'polling',
+      externalId: requestId,
       provider: this.provider,
     };
   }

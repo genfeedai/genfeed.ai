@@ -61,6 +61,8 @@ export interface BrandVideoFramePreviewProps {
 export interface BrandVideoRevisionDiffProps {
   approved: IBrandKitDraft | null;
   draft: IBrandKitDraft;
+  /** The brand's current finishing, the baseline for a revision that predates finishing. */
+  finishingBaseline?: BrandVideoFinishingV1;
 }
 
 export type BrandVideoKitValue = string | number | boolean | string[] | null;

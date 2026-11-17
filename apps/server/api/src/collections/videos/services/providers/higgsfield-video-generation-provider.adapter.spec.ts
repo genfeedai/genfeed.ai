@@ -157,7 +157,7 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
       ).toBe(true);
     });
 
-    it('submits text-to-video without a source image and returns remote output', async () => {
+    it('submits text-to-video without a source image and returns the accepted request id to poll', async () => {
       const generateImageToVideo = vi.fn();
       const generateCinemaStudioVideo = vi
         .fn()
@@ -173,6 +173,7 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
 
       const result = await adapter.generate(
         buildParams({
+          idempotencyKey: 'video-generation-ingredient-1',
           model: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
           organizationId: 'org-1',
           prompt: 'rain on neon',
@@ -191,6 +192,7 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
       expect(generateCinemaStudioVideo).toHaveBeenCalledWith({
         aspectRatio: '21:9',
         duration: 8,
+        idempotencyKey: 'video-generation-ingredient-1',
         imageUrls: ['https://cdn.test/a.png'],
         onProviderSubmissionStarted: undefined,
         organizationId: 'org-1',
@@ -198,13 +200,12 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
         resolution: '480p',
         videoUrls: ['https://cdn.test/ref.mp4'],
       });
-      expect(waitForVideoCompletion).toHaveBeenCalledWith('req-cinema', {
-        organizationId: 'org-1',
-        timeoutMs: 900_000,
-      });
+      // The wait moves to a durable poll job so the accepted id is never held
+      // only in this process.
+      expect(waitForVideoCompletion).not.toHaveBeenCalled();
       expect(result).toEqual({
-        completion: 'remote-output',
-        externalId: 'https://cdn.test/cinema.mp4',
+        completion: 'polling',
+        externalId: 'req-cinema',
         provider: 'higgsfield',
       });
     });
