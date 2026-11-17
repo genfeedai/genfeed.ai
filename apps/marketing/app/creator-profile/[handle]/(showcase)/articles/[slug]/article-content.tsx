@@ -49,6 +49,7 @@ function CodeBlockActions({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+  // use-effect-audit: ignore clears the copy-reset timer on unmount
   useEffect(() => {
     return () => clearTimeout(resetTimer.current);
   }, []);
@@ -133,6 +134,7 @@ export default function ArticleContent({
     [sanitizedHtml],
   );
 
+  // use-effect-audit: ignore wraps rendered code blocks in the DOM and unwraps on cleanup
   useEffect(() => {
     const container = containerRef.current;
 

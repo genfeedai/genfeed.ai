@@ -64,6 +64,7 @@ export function KnowledgeCapturePage({
     }
   }, []);
 
+  // use-effect-audit: ignore abortable load from the extension background
   useEffect(() => {
     const abortController = new AbortController();
     void refresh();
@@ -78,6 +79,7 @@ export function KnowledgeCapturePage({
       abortController.abort();
     };
   }, [refresh]);
+  // use-effect-audit: ignore polls capture receipts on an interval
   useEffect(() => {
     if (
       !receipts.some(
@@ -89,6 +91,7 @@ export function KnowledgeCapturePage({
     return () => clearInterval(timer);
   }, [receipts, refresh]);
 
+  // use-effect-audit: ignore abortable Spaces fetch through the extension background
   useEffect(() => {
     const abortController = new AbortController();
     setSpaceId('inbox');
@@ -108,6 +111,7 @@ export function KnowledgeCapturePage({
     };
   }, [brandId]);
 
+  // use-effect-audit: ignore abortable page snapshot through the extension background
   useEffect(() => {
     const abortController = new AbortController();
     draftRevision.current += 1;

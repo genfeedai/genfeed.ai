@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { useRouter } from 'expo-router';
 import { describe, expect, it, vi } from 'vitest';
 import ProtectedLayout from '@/app/(protected)/_layout';
@@ -48,13 +48,7 @@ describe('Auth route behavior', () => {
     );
   });
 
-  it('redirects signed-out users away from protected routes', async () => {
-    const router = {
-      back: vi.fn(),
-      push: vi.fn(),
-      replace: vi.fn(),
-    };
-
+  it('redirects signed-out users away from protected routes', () => {
     vi.mocked(useMobileAuth).mockReturnValue({
       getToken: vi.fn(),
       isLoaded: true,
@@ -64,17 +58,28 @@ describe('Auth route behavior', () => {
       signOut: vi.fn(),
       user: null,
     } as unknown as ReturnType<typeof useMobileAuth>);
-    vi.mocked(useRouter).mockReturnValue(
-      router as unknown as ReturnType<typeof useRouter>,
+
+    render(<ProtectedLayout />);
+
+    expect(screen.getByTestId('redirect').getAttribute('data-href')).toBe(
+      '/login',
     );
+  });
+
+  it('renders nothing while the session is still loading', () => {
+    vi.mocked(useMobileAuth).mockReturnValue({
+      getToken: vi.fn(),
+      isLoaded: false,
+      isSignedIn: false,
+      refreshSession: vi.fn(),
+      signInWithEmail: vi.fn(),
+      signOut: vi.fn(),
+      user: null,
+    } as unknown as ReturnType<typeof useMobileAuth>);
 
     const { container } = render(<ProtectedLayout />);
 
     expect(container.firstChild).toBeNull();
-
-    await waitFor(() => {
-      expect(router.replace).toHaveBeenCalledWith('/login');
-    });
   });
 
   it('renders the protected tabs and sign-out action for signed-in users', () => {

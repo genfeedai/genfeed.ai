@@ -83,6 +83,7 @@ function useSurfaceProgress(
   headerRef: React.RefObject<HTMLElement | null>,
   isForcedOpaque: boolean,
 ): void {
+  // use-effect-audit: ignore scroll listener that writes header styles in the DOM
   useEffect(() => {
     const header = headerRef.current;
     if (!header) return;
@@ -142,6 +143,7 @@ export default function TopbarPublic({
   // The open mobile menu sits under the bar, so the bar needs its ground too.
   useSurfaceProgress(headerRef, Boolean(openDropdown) || isMobileMenuOpen);
 
+  // use-effect-audit: ignore locks body scroll while the mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -157,6 +159,7 @@ export default function TopbarPublic({
     setIsMobileMenuOpen(false);
   }, []);
 
+  // use-effect-audit: ignore registers an Escape key listener while the menu is open
   useEffect(() => {
     if (!isMobileMenuOpen) return;
 
@@ -207,6 +210,7 @@ export default function TopbarPublic({
     setOpenDropdown(null);
   }, []);
 
+  // use-effect-audit: ignore clears the close timer on unmount
   useEffect(
     () => () => {
       if (closeTimeoutRef.current) {

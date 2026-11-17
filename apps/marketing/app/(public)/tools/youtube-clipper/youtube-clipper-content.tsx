@@ -120,6 +120,7 @@ export default function YoutubeClipperContent(): React.ReactElement {
   const previewOutcomeRef = useRef<'failed' | 'ready' | null>(null);
   const authCapturedRef = useRef(new Set<'sign_in' | 'sign_up'>());
 
+  // use-effect-audit: ignore sends one analytics event when the tool is first viewed
   useEffect(() => {
     if (viewedRef.current) {
       return;
@@ -133,6 +134,7 @@ export default function YoutubeClipperContent(): React.ReactElement {
     );
   }, []);
 
+  // use-effect-audit: ignore abortable poll of the public clipper session
   useEffect(() => {
     if (!session?.previewToken) {
       return;
@@ -170,6 +172,7 @@ export default function YoutubeClipperContent(): React.ReactElement {
     };
   }, [session]);
 
+  // use-effect-audit: ignore sends one analytics event per analysis outcome
   useEffect(() => {
     if (!session || !['failed', 'ready'].includes(session.status)) {
       return;
@@ -185,6 +188,7 @@ export default function YoutubeClipperContent(): React.ReactElement {
     );
   }, [session]);
 
+  // use-effect-audit: ignore sends one analytics event per preview outcome
   useEffect(() => {
     if (!session || !['failed', 'ready'].includes(session.preview.status)) {
       return;

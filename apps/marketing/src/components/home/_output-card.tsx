@@ -37,6 +37,7 @@ export default function HomeOutputCard({
   const videoRef = useRef<HTMLVideoElement>(null);
   const hasClip = Boolean(asset.mp4 && asset.webm);
 
+  // use-effect-audit: ignore IntersectionObserver that plays the clip while visible
   useEffect(() => {
     const figure = figureRef.current;
     if (!figure || !hasClip) return;

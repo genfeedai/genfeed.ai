@@ -90,6 +90,7 @@ export default function SupportCreatorModal({
     globalThis.crypto.randomUUID(),
   );
 
+  // use-effect-audit: ignore abortable tip target fetch
   useEffect(() => {
     const controller = new AbortController();
     async function loadTarget(): Promise<void> {

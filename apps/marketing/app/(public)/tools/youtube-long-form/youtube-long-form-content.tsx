@@ -78,6 +78,7 @@ export default function YoutubeLongFormContent(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const viewedRef = useRef(false);
 
+  // use-effect-audit: ignore sends one analytics event when the tool is first viewed
   useEffect(() => {
     if (viewedRef.current) {
       return;

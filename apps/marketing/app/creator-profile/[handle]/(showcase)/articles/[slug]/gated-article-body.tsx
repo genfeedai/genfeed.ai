@@ -43,6 +43,7 @@ export default function GatedArticleBody({
 }: GatedArticleBodyProps): React.ReactElement {
   const [view, setView] = useState<ArticleAccessView | null>(null);
 
+  // use-effect-audit: ignore abortable article access check
   useEffect(() => {
     const controller = new AbortController();
     const load = async () => {

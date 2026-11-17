@@ -60,6 +60,7 @@ export function useWebSocket(): UseWebSocketReturn {
     websocketService.send(type, data);
   }, []);
 
+  // use-effect-audit: ignore subscribes to app state changes
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (
@@ -74,6 +75,7 @@ export function useWebSocket(): UseWebSocketReturn {
     return subscribeToAppStateChange(handleAppStateChange);
   }, [connect]);
 
+  // use-effect-audit: ignore subscribes to websocket events
   useEffect(() => {
     const handleConnectionStateChanged = (state: ConnectionState) => {
       setConnectionState(state);
@@ -95,6 +97,7 @@ export function useWebSocket(): UseWebSocketReturn {
     };
   }, []);
 
+  // use-effect-audit: ignore connects while signed in and disconnects on cleanup
   useEffect(() => {
     if (isSignedIn) {
       connect();

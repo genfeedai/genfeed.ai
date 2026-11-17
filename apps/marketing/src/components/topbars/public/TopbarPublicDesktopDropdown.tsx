@@ -82,6 +82,7 @@ export default function TopbarPublicDesktopDropdown({
   const isExpanded = Boolean(openDropdown && currentDropdown);
   const [lastPanel, setLastPanel] = useState<RenderedPanel | undefined>();
 
+  // use-effect-audit: ignore delays unmounting the panel until the close animation ends
   useEffect(() => {
     if (currentDropdown) {
       setLastPanel({ dropdown: currentDropdown, footer: megaMenuFooter });

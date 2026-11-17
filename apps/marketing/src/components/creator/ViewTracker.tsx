@@ -11,6 +11,7 @@ import { useEffect } from 'react';
  * visitor counts once a day.
  */
 export default function ViewTracker({ id, target }: ViewTrackerProps): null {
+  // use-effect-audit: ignore abortable best-effort view count
   useEffect(() => {
     const controller = new AbortController();
     async function countVisit(): Promise<void> {

@@ -83,6 +83,7 @@ function createNavigationTool(): WebMcpTool {
 }
 
 export default function WebMcpProvider() {
+  // use-effect-audit: ignore registers the WebMCP navigation tool with the browser
   useEffect(() => {
     const tool = createNavigationTool();
     const abortController = new AbortController();
