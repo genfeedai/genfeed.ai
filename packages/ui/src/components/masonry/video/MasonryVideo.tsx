@@ -105,9 +105,8 @@ function MasonryVideoTile({
     isUnavailable,
     isFleetNsfwLocked,
     isInteractionBlocked,
-    placeholderImageUrl,
     hasPosterThumbnail,
-    thumbnailImageUrl,
+    posterImageUrl,
     ingredientUrl,
     metadata,
     metadataLabel,
@@ -163,9 +162,8 @@ function MasonryVideoTile({
           isFleetNsfwLocked={isFleetNsfwLocked}
           isDragEnabled={isDragEnabled}
           hasUpdateParent={!!onUpdateParent}
-          placeholderImageUrl={placeholderImageUrl}
           hasPosterThumbnail={hasPosterThumbnail}
-          thumbnailImageUrl={thumbnailImageUrl}
+          posterImageUrl={posterImageUrl}
           ingredientUrl={ingredientUrl}
           metadataLabel={metadataLabel}
           videoRef={videoRef}
