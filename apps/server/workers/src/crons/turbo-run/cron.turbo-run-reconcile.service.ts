@@ -1,3 +1,4 @@
+import { StoryboardJournalSweepService } from '@api/collections/content-runs/services/storyboard-journal-sweep.service';
 import { TurboProjectReconcileService } from '@api/collections/turbo-projects/services/turbo-project-reconcile.service';
 import { TurboRunReconcileService } from '@api/services/turbo-run/turbo-run-reconcile.service';
 import { TurboRunWorkflowService } from '@api/services/turbo-run/turbo-run-workflow.service';
@@ -27,6 +28,7 @@ export class CronTurboRunReconcileService {
     private readonly reconcileService: TurboRunReconcileService,
     private readonly workflowService: TurboRunWorkflowService,
     private readonly turboProjectReconcileService: TurboProjectReconcileService,
+    private readonly storyboardJournalSweep: StoryboardJournalSweepService,
   ) {}
 
   /**
@@ -44,7 +46,19 @@ export class CronTurboRunReconcileService {
     }
   }
 
+  /**
+   * Settles or releases the paid storyboard journals first, so a render that
+   * finished while its creator was away is charged before the generic sweep
+   * below expires the hold (#9651). A failed storyboard sweep must not skip it.
+   */
   async reconcileSettlementShortfalls(): Promise<void> {
+    try {
+      await this.storyboardJournalSweep.sweep();
+    } catch (error: unknown) {
+      this.logger.error('Storyboard journal sweep failed', error, {
+        context: this.context,
+      });
+    }
     await this.reconcileService.reconcileSettlementShortfalls();
   }
 
