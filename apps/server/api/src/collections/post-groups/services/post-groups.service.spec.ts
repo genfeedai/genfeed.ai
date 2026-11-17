@@ -907,7 +907,10 @@ describe('PostGroupsService', () => {
 
   it('waits for sibling approval checks before returning a release failure', async () => {
     vi.useRealTimers();
-    const sibling = Promise.withResolvers<void>();
+    let finishSibling = () => {};
+    const sibling = new Promise<void>((resolve) => {
+      finishSibling = resolve;
+    });
     const unavailable = new Error('Policy check unavailable');
     prisma.postGroup.findFirst.mockResolvedValue(makeGroup());
     prisma.credential.findMany.mockResolvedValue([
@@ -922,7 +925,7 @@ describe('PostGroupsService', () => {
     publishApprovalsService.createForCurrentPost
       .mockRejectedValueOnce(unavailable)
       .mockImplementationOnce(async () => {
-        await sibling.promise;
+        await sibling;
         return { id: 'approval-2' };
       });
     let hasReturned = false;
@@ -953,7 +956,7 @@ describe('PostGroupsService', () => {
 
     await new Promise<void>((resolve) => setImmediate(resolve));
     expect(hasReturned).toBe(false);
-    sibling.resolve();
+    finishSibling();
     await expect(result).resolves.toBe(unavailable);
   });
 
