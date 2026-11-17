@@ -538,7 +538,10 @@ export class BrandScraperService {
     );
     try {
       if (!response.ok)
-        throw new Error(`Failed to fetch ${label}: ${response.status}`);
+        throw Object.assign(
+          new Error(`Failed to fetch ${label}: ${response.status}`),
+          { status: response.status },
+        );
       return await this.readWebsiteBody(
         response,
         budget,

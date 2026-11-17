@@ -260,7 +260,10 @@ describe('BrandScraperService', () => {
       const controlled = openResponse(403);
       fetchMock.mockResolvedValue(controlled.response);
       try {
-        await expect(service[method](url)).rejects.toThrow('403');
+        await expect(service[method](url)).rejects.toMatchObject({
+          message: expect.stringContaining('403'),
+          status: 403,
+        });
         expect(controlled.cancel).toHaveBeenCalledOnce();
         expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
         expect(vi.getTimerCount()).toBe(0);
