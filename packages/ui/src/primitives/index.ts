@@ -37,6 +37,15 @@ export {
   type ButtonProps,
 } from './button';
 export { buttonVariants } from './button.variants';
+export {
+  Carousel,
+  type CarouselApi,
+  CarouselContent,
+  CarouselCounter,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from './carousel';
 export { Checkbox } from './checkbox';
 export { Code, type CodeProps } from './code';
 export { codeVariants } from './code.variants';

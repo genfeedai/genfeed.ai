@@ -56,4 +56,67 @@ describe('PublicPostSerializer', () => {
     expect(document.data.relationships).toBeUndefined();
     expect(document.included).toBeUndefined();
   });
+
+  it("carries a post's media in order and keeps its generation inputs private", () => {
+    const document = PublicPostSerializer.serialize({
+      id: 'post_2',
+      ingredients: [
+        {
+          category: 'IMAGE',
+          cdnUrl: 'https://cdn.example/slide-1.jpg',
+          height: 1350,
+          id: 'media_1',
+          promptText: 'private generation prompt',
+          status: 'generated',
+          width: 1080,
+        },
+        {
+          category: 'IMAGE',
+          cdnUrl: 'https://cdn.example/slide-2.jpg',
+          id: 'media_2',
+          status: 'generated',
+        },
+      ],
+      label: 'Winter carousel',
+    }) as {
+      data: {
+        relationships: { ingredients: { data: { id: string }[] } };
+      };
+      included: { attributes: Record<string, unknown>; id: string }[];
+    };
+
+    expect(
+      document.data.relationships.ingredients.data.map((media) => media.id),
+    ).toEqual(['media_1', 'media_2']);
+    expect(document.included).toEqual([
+      expect.objectContaining({
+        attributes: {
+          category: 'IMAGE',
+          cdnUrl: 'https://cdn.example/slide-1.jpg',
+          height: 1350,
+          status: 'generated',
+          width: 1080,
+        },
+        id: 'media_1',
+      }),
+      expect.objectContaining({ id: 'media_2' }),
+    ]);
+  });
+
+  it('links a post to its creator profile', () => {
+    const document = PublicPostSerializer.serialize({
+      brand: { id: 'brand_1', label: 'Shayla', slug: 'shayla' },
+      id: 'post_3',
+      label: 'With a brand',
+    }) as {
+      included: { attributes: Record<string, unknown>; id: string }[];
+    };
+
+    expect(document.included).toEqual([
+      expect.objectContaining({
+        attributes: { label: 'Shayla', slug: 'shayla' },
+        id: 'brand_1',
+      }),
+    ]);
+  });
 });
