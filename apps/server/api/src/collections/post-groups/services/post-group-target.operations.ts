@@ -56,6 +56,7 @@ import type {
   PostGroupCreateProvenance,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { traced } from '@libs/tracing/traced';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
 export type PostGroupTargetOperationDependencies = {
@@ -86,30 +87,33 @@ export const GROUP_ACTION_STATES = new Set<string>([
   TargetExecutionState.FAILED,
 ]);
 
-export async function approveScheduledReleaseTargets(
-  release: IReleaseGroup,
-  userId: string,
-  mode: 'immediate' | 'scheduled',
-  approvals: Pick<PublishApprovalsService, 'createForCurrentPost'>,
-): Promise<void> {
-  const results = await Promise.allSettled(
-    (release.targets ?? [])
-      .filter(
-        (target) => target.executionState === TargetExecutionState.SCHEDULED,
-      )
-      .map((target) =>
-        approvals.createForCurrentPost({
-          actorUserId: userId,
-          mode,
-          organizationId: release.organizationId,
-          postId: target.id,
-          provenance: { releaseId: release.id, surface: 'post-groups' },
-        }),
-      ),
-  );
-  const failure = results.find((result) => result.status === 'rejected');
-  if (failure?.status === 'rejected') throw failure.reason;
-}
+export const approveScheduledReleaseTargets = traced(
+  'approveScheduledReleaseTargets',
+  async (
+    release: IReleaseGroup,
+    userId: string,
+    mode: 'immediate' | 'scheduled',
+    approvals: Pick<PublishApprovalsService, 'createForCurrentPost'>,
+  ): Promise<void> => {
+    const results = await Promise.allSettled(
+      (release.targets ?? [])
+        .filter(
+          (target) => target.executionState === TargetExecutionState.SCHEDULED,
+        )
+        .map((target) =>
+          approvals.createForCurrentPost({
+            actorUserId: userId,
+            mode,
+            organizationId: release.organizationId,
+            postId: target.id,
+            provenance: { releaseId: release.id, surface: 'post-groups' },
+          }),
+        ),
+    );
+    const failure = results.find((result) => result.status === 'rejected');
+    if (failure?.status === 'rejected') throw failure.reason;
+  },
+);
 
 export type ReleaseTargetUpdateContext = {
   currentTargets: readonly SchedulerPostTarget[];
