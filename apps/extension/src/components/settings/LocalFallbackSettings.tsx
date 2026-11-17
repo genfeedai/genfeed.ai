@@ -57,6 +57,7 @@ export function LocalFallbackSettings(): ReactElement {
     }
   }, []);
 
+  // use-effect-audit: ignore abortable local fallback health check
   useEffect(() => {
     const controller = new AbortController();
     void check(controller.signal);

@@ -66,6 +66,7 @@ export function BrandOsFunnel(): React.ReactElement {
   const handoffCapturedRef = useRef(new Set<'sign_in' | 'sign_up'>());
   const previewInFlightRef = useRef(false);
 
+  // use-effect-audit: ignore sends one analytics event when the funnel is first viewed
   useEffect(() => {
     if (viewedRef.current) {
       return;

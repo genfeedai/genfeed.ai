@@ -17,6 +17,7 @@ export default function CopyCommandButton({
 }: CopyCommandButtonProps): React.ReactElement {
   const [isCopied, setIsCopied] = useState(false);
 
+  // use-effect-audit: ignore copied-label reset timer outside React
   useEffect(() => {
     if (!isCopied) return;
     const timeout = setTimeout(() => setIsCopied(false), COPIED_RESET_MS);

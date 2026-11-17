@@ -49,6 +49,7 @@ function isAbortError(err: unknown): boolean {
 function useRequestSignal() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // use-effect-audit: ignore aborts the in-flight request on unmount
   useEffect(() => () => abortControllerRef.current?.abort(), []);
 
   return useCallback((): AbortSignal => {
@@ -124,6 +125,7 @@ export function useAsyncList<TData, TOptions = Record<string, unknown>>(
     [createSignal, enabled, fetchFn, getToken, resourceName],
   );
 
+  // use-effect-audit: ignore loads the list on mount
   useEffect(() => void loadList(), [loadList]);
 
   const refresh = useCallback(() => loadList(true), [loadList]);
@@ -189,6 +191,7 @@ export function useAsyncItem<TData>(
     }
   }, [createSignal, fetchFn, getToken, id, resourceName]);
 
+  // use-effect-audit: ignore loads the item on mount
   useEffect(() => void loadItem(), [loadItem]);
 
   return {

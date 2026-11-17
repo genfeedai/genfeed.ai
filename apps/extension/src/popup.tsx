@@ -151,6 +151,7 @@ function PopupContent() {
 export default function IndexPopup() {
   const isThemeReady = useExtensionTheme();
 
+  // use-effect-audit: ignore registers a beforeunload listener
   useEffect(() => {
     function handleBeforeUnload(e: BeforeUnloadEvent) {
       e.preventDefault();

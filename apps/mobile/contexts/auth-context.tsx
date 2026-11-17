@@ -47,6 +47,7 @@ export function MobileAuthProvider({ children }: { children: ReactNode }) {
     setUser(refreshedUser);
   }, [cookieHeader]);
 
+  // use-effect-audit: ignore abortable restore of the stored session
   useEffect(() => {
     const abortController = new AbortController();
 

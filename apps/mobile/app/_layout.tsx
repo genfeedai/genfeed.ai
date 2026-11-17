@@ -19,6 +19,7 @@ void SplashScreen.preventAutoHideAsync();
 function AppInitializer() {
   const { getToken, isSignedIn, user } = useMobileAuth();
 
+  // use-effect-audit: ignore syncs the signed-in user to Sentry
   useEffect(() => {
     if (isSignedIn && user) {
       sentryService.setUser({
@@ -31,6 +32,7 @@ function AppInitializer() {
     }
   }, [isSignedIn, user]);
 
+  // use-effect-audit: ignore abortable push token registration
   useEffect(() => {
     if (!isSignedIn) {
       return;
@@ -88,6 +90,7 @@ function ThemedApplication() {
     };
   }, [colors, resolvedTheme]);
 
+  // use-effect-audit: ignore sets the system UI color and hides the splash screen
   useEffect(() => {
     const abortController = new AbortController();
 

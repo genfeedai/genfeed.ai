@@ -49,6 +49,7 @@ export default function AgentConnectDialog({
   );
   const trigger = useRef<HTMLElement | null>(null);
 
+  // use-effect-audit: ignore subscribes to the connect event and hashchange
   useEffect(() => {
     const show = (restoreTo?: HTMLElement | null) => {
       trigger.current =

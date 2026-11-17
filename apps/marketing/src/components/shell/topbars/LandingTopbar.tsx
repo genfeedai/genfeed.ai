@@ -43,6 +43,7 @@ export default function LandingTopbar({
     Boolean(hideActionWhileVisible),
   );
 
+  // use-effect-audit: ignore IntersectionObserver over the in-page call to action
   useEffect(() => {
     if (!hideActionWhileVisible) return;
     if (typeof IntersectionObserver === 'undefined') {

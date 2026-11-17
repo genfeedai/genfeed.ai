@@ -10,6 +10,7 @@ export default function TerminalDemo({
   const [currentLine, setCurrentLine] = useState(0);
   const isTyping = currentLine < lines.length;
 
+  // use-effect-audit: ignore typing animation timer outside React
   useEffect(() => {
     if (!isTyping) {
       return;

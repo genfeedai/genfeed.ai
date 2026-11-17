@@ -16,6 +16,7 @@ export function useNetworkStatus(): UseNetworkStatusReturn {
     networkService.getNetworkType(),
   );
 
+  // use-effect-audit: ignore subscribes to network connection changes
   useEffect(() => {
     networkService.init();
 

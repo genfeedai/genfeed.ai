@@ -7,6 +7,7 @@ import { useWorkspaceStore } from '~store/use-workspace-store';
 export function useWorkspace() {
   const state = useWorkspaceStore();
   const appliedRevision = useRef<number | null>(null);
+  // use-effect-audit: ignore subscribes to window focus and chrome.storage changes
   useEffect(() => {
     const controller = new AbortController();
     const reload = () => {

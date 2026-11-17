@@ -28,6 +28,7 @@ export function useOfflineQueue() {
   );
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // use-effect-audit: ignore subscribes to offline queue events
   useEffect(() => {
     offlineQueueService.init();
 

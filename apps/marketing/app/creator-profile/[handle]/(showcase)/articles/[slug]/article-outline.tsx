@@ -19,6 +19,7 @@ export default function ArticleOutline({
 }: ArticleOutlineProps): React.ReactElement | null {
   const [activeId, setActiveId] = useState<string | null>(null);
 
+  // use-effect-audit: ignore IntersectionObserver over the article headings
   useEffect(() => {
     if (sections.length === 0 || typeof IntersectionObserver === 'undefined') {
       return;

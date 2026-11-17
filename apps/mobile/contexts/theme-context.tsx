@@ -53,6 +53,7 @@ export function MobileThemeProvider({ children }: { children: ReactNode }) {
   const [isLocalPreferenceLoaded, setIsLocalPreferenceLoaded] = useState(false);
   const preferenceRevision = useRef(0);
 
+  // use-effect-audit: ignore abortable load of the stored theme
   useEffect(() => {
     const abortController = new AbortController();
     const startedAtRevision = preferenceRevision.current;
@@ -95,6 +96,7 @@ export function MobileThemeProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // use-effect-audit: ignore abortable account theme sync
   useEffect(() => {
     if (!isLocalPreferenceLoaded || !isLoaded || !isSignedIn || !user) {
       return;
