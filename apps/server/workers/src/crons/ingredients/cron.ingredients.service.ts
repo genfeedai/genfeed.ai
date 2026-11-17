@@ -23,6 +23,16 @@ import { ConfigService } from '@workers/config/config.service';
 
 const PREDICTION_ID_WITH_INDEX_PATTERN = /^(.+)_(\d+)$/;
 
+const CINEMA_STUDIO_REQUEST_FILTER = {
+  category: IngredientCategory.VIDEO,
+  metadata: {
+    is: {
+      externalProvider: 'higgsfield',
+      model: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
+    },
+  },
+};
+
 /**
  * Type for ingredient results loaded with metadata.
  */
@@ -130,30 +140,7 @@ export class CronIngredientsService {
     try {
       this.logger.log('Checking for stuck processing ingredients', context);
 
-      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-
-      const stuckIngredients = await this.ingredientsService.findAll(
-        {
-          where: {
-            NOT: {
-              category: IngredientCategory.VIDEO,
-              metadata: {
-                is: {
-                  externalProvider: 'higgsfield',
-                  model: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
-                },
-              },
-            },
-            createdAt: { lt: thirtyMinutesAgo },
-            isDeleted: false,
-            status: IngredientStatus.PROCESSING,
-          },
-        },
-        {
-          limit: 100, // Process max 100 ingredients per cycle to avoid overload
-          pagination: false,
-        },
-      );
+      const stuckIngredients = await this.findStuckIngredients();
 
       const stuckCount = stuckIngredients.docs?.length || 0;
 
@@ -274,6 +261,20 @@ export class CronIngredientsService {
     }
   }
 
+  private findStuckIngredients() {
+    return this.ingredientsService.findAll(
+      {
+        where: {
+          NOT: CINEMA_STUDIO_REQUEST_FILTER,
+          createdAt: { lt: new Date(Date.now() - 30 * 60 * 1000) },
+          isDeleted: false,
+          status: IngredientStatus.PROCESSING,
+        },
+      },
+      { limit: 100, pagination: false },
+    );
+  }
+
   /** Saved provider identities survive the API process and a failed first enqueue. */
   private async recoverHiggsfieldRequests(context: string): Promise<void> {
     try {
@@ -284,14 +285,8 @@ export class CronIngredientsService {
             ...(this.higgsfieldRecoveryCursor
               ? { id: { gt: this.higgsfieldRecoveryCursor } }
               : {}),
-            category: IngredientCategory.VIDEO,
+            ...CINEMA_STUDIO_REQUEST_FILTER,
             isDeleted: false,
-            metadata: {
-              is: {
-                externalProvider: 'higgsfield',
-                model: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
-              },
-            },
             organizationId: { not: null },
             status: IngredientStatus.PROCESSING,
           },
@@ -420,30 +415,7 @@ export class CronIngredientsService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} triggered manually`);
 
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-
-    const stuckIngredients = await this.ingredientsService.findAll(
-      {
-        where: {
-          NOT: {
-            category: IngredientCategory.VIDEO,
-            metadata: {
-              is: {
-                externalProvider: 'higgsfield',
-                model: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
-              },
-            },
-          },
-          createdAt: { lt: thirtyMinutesAgo },
-          isDeleted: false,
-          status: IngredientStatus.PROCESSING,
-        },
-      },
-      {
-        limit: 100,
-        pagination: false,
-      },
-    );
+    const stuckIngredients = await this.findStuckIngredients();
 
     const stuckCount = stuckIngredients.docs?.length || 0;
 
