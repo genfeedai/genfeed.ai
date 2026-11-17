@@ -63,17 +63,17 @@ export default function MediaLightbox({
   useEffect(() => {
     // Dynamically import ESM plugins on the client side. Abort on unmount so a
     // late resolution cannot setState after teardown (React root races).
-    let isCancelled = false;
+    const abortController = new AbortController();
     import('yet-another-react-lightbox/plugins/thumbnails').then(
       (ThumbnailsModule) => {
-        if (isCancelled) {
+        if (abortController.signal.aborted) {
           return;
         }
         setPlugins([ThumbnailsModule.default]);
       },
     );
     return () => {
-      isCancelled = true;
+      abortController.abort();
     };
   }, []);
 

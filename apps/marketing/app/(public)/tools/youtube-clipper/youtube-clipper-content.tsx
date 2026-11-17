@@ -144,19 +144,19 @@ export default function YoutubeClipperContent(): React.ReactElement {
       return;
     }
 
-    let cancelled = false;
+    const abortController = new AbortController();
     const timeout = window.setTimeout(() => {
       loadPublicService()
         .then((publicService) =>
           publicService.getPublicYoutubeClipper(session.previewToken),
         )
         .then((nextSession) => {
-          if (!cancelled) {
+          if (!abortController.signal.aborted) {
             setSession(nextSession);
           }
         })
         .catch(() => {
-          if (!cancelled) {
+          if (!abortController.signal.aborted) {
             setError(
               'We could not refresh this result. Retrying automatically.',
             );
@@ -165,7 +165,7 @@ export default function YoutubeClipperContent(): React.ReactElement {
     }, POLL_INTERVAL_MS);
 
     return () => {
-      cancelled = true;
+      abortController.abort();
       window.clearTimeout(timeout);
     };
   }, [session]);

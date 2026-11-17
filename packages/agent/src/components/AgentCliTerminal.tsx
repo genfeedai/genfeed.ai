@@ -320,7 +320,7 @@ export function useAgentCliTerminal(
       return undefined;
     }
 
-    let disposed = false;
+    const abortController = new AbortController();
     let detachSocketHandlers: (() => void) | null = null;
     let detachConnectHandler: (() => void) | null = null;
     // Declared in effect scope so cleanup can always disconnect (async boot).
@@ -339,7 +339,7 @@ export function useAgentCliTerminal(
           import('@xterm/addon-web-links'),
         ]);
 
-      if (disposed || !containerRef.current) {
+      if (abortController.signal.aborted || !containerRef.current) {
         return;
       }
 
@@ -457,7 +457,7 @@ export function useAgentCliTerminal(
         return;
       }
 
-      if (disposed) {
+      if (abortController.signal.aborted) {
         return;
       }
 
@@ -539,7 +539,7 @@ export function useAgentCliTerminal(
     });
 
     return () => {
-      disposed = true;
+      abortController.abort();
 
       if (sessionIdRef.current) {
         transportRef.current?.kill(sessionIdRef.current);
