@@ -240,6 +240,7 @@ export default function IngredientsList({
   // The inspector, the bulk bar and tag management publish tag changes on
   // `window`; applying them here updates cards, rows and the inspector without
   // a refetch.
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleTagsChange = (event: Event) => {
       const change = (event as CustomEvent<ILibraryAssetTagsChange>).detail;
@@ -269,6 +270,7 @@ export default function IngredientsList({
   // the renamed asset may belong elsewhere in the list, so the list reloads
   // in the server's order.
   const isSortedByName = String(query?.sort ?? '').startsWith('label');
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleMetadataChange = (event: Event) => {
       const change = (event as CustomEvent<ILibraryAssetMetadataChange>).detail;

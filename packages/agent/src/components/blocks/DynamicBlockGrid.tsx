@@ -113,6 +113,7 @@ function MetricValue({
   );
   const [displayValue, setDisplayValue] = useState(value);
 
+  // use-effect-audit: ignore animates the displayed value on a frame loop
   useEffect(() => {
     if (!canAnimate) {
       setDisplayValue(value);

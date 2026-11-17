@@ -34,6 +34,7 @@ export default function InfiniteScroll({
 }: InfiniteScrollProps) {
   const observerTarget = useRef<HTMLDivElement>(null);
 
+  // use-effect-audit: ignore observes DOM elements with a browser observer
   useEffect(() => {
     const target = observerTarget.current;
 

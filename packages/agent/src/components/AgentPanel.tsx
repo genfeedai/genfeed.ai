@@ -93,6 +93,7 @@ export function AgentPanel({
 
   const threadLabel = activeThread?.title || activeThreadId || 'new-session';
 
+  // use-effect-audit: ignore abortable panel data fetch
   useEffect(() => {
     if (!isActive) {
       return;

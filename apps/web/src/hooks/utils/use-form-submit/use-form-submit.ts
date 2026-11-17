@@ -13,6 +13,7 @@ export function useFormSubmitWithState(handler: () => void | Promise<void>) {
     setIsSubmitting(nextValue);
   }, []);
 
+  // use-effect-audit: ignore frame loop outside React
   useEffect(() => {
     const hasPathChanged = pathname !== prevPathRef.current;
     prevPathRef.current = pathname;

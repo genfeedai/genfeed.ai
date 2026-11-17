@@ -27,6 +27,7 @@ export function useHomeApp() {
   const { apps, isReady } = useAvailableRailApps();
   const [hasTimedOut, setHasTimedOut] = useState(false);
 
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     const timeout = window.setTimeout(
       () => setHasTimedOut(true),

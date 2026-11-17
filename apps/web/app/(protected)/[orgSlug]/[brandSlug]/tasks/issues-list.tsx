@@ -330,6 +330,7 @@ export default function IssuesList() {
 
   // `?taskId=` is the source of truth for the inspector: resolve it from the
   // loaded list first, and only fetch when the task is outside the current page.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!taskId) {
       selectTask?.(null);

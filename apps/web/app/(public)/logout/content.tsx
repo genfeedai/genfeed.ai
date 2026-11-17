@@ -9,6 +9,7 @@ import { resetAnalytics } from '@/lib/analytics';
 export default function LogoutPage() {
   const { push } = useRouter();
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const abortController = new AbortController();
 

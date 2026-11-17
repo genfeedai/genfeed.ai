@@ -69,6 +69,7 @@ export function useAgentRuntimeSelection(params: {
   const [installReadiness, setInstallReadiness] =
     useState<AgentInstallReadiness | null>(null);
 
+  // use-effect-audit: ignore abortable install readiness fetch
   useEffect(() => {
     if (!isActive) {
       return;
@@ -133,6 +134,7 @@ export function useAgentRuntimeSelection(params: {
   // A failed application waits for an explicit runtime choice, even if the
   // thread list refreshes while the deleted conversation remains selected.
   // A runtime picked before the thread existed applies once it is created.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!activeThreadId || draftKeyToPersist === undefined || updateFailure) {
       return;

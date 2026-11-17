@@ -305,6 +305,7 @@ export default function BrandDetailSocialMediaCard({
     [brandId, connections.length, getToken],
   );
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     const controller = new AbortController();
     void loadAccountHealth(controller.signal);

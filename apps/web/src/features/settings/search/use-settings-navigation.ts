@@ -31,6 +31,7 @@ export function useSettingsNavigation() {
     [router],
   );
 
+  // use-effect-audit: ignore observes DOM elements with a browser observer
   useEffect(() => {
     if (!pending) return;
     const [destination, sourcePath, deadline] = pending;

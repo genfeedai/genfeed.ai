@@ -115,6 +115,7 @@ function ConnectionDropMenuComponent() {
   }, [filteredNodes]);
 
   // Auto-focus input when opened
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     if (isOpen) {
       setSearch('');

@@ -706,6 +706,7 @@ export function useIngredientsLoading({
     }
   }, [findAllIngredientsByCategory, onRefresh]);
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleLibraryAssetsRefresh = (event: Event) => {
       if (libraryAssetsRefreshIncludesList(event)) {
@@ -733,6 +734,7 @@ export function useIngredientsLoading({
   }, [parsedSearchParams]);
 
   // Cleanup socket subscriptions on unmount
+  // use-effect-audit: ignore subscribes to an external event source
   useEffect(() => {
     return () => {
       socketSubscriptionsRef.current.forEach((unsubscribe) => {

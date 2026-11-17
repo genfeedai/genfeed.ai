@@ -132,6 +132,7 @@ export function ExecutionPanel({
     [currentRunId, runId, getService, onTerminalExecution, updateNodeData],
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;

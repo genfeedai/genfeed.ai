@@ -35,6 +35,7 @@ export function useTurboBrandIdeas(
   );
   const [record, setRecord] = useState<BrandIdeasRecord | null>(null);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!brandId) return;
     const controller = new AbortController();

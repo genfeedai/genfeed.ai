@@ -17,6 +17,7 @@ export function useReleaseTargetPost(
   const { getToken } = useAuthIdentity();
   const [post, setPost] = useState<IPost | null>(null);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!targetId) {
       setPost(null);

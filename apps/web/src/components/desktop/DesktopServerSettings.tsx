@@ -60,6 +60,7 @@ export default function DesktopServerSettings() {
   const [status, setStatus] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const bridge = getDesktopBridge();
     if (!bridge?.server) {

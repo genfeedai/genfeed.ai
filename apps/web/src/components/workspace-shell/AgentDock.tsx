@@ -124,6 +124,7 @@ export default function AgentDock({
 
   // Opening moves focus into the composer and remembers where it came from;
   // any close (header, Esc, ⌘J, topbar) hands focus back if it was inside.
+  // use-effect-audit: ignore frame loop outside React
   useEffect(() => {
     if (!isPresented) {
       const returnFocus = returnFocusRef.current;

@@ -122,6 +122,7 @@ export function useWorkspaceTaskComposer({
     setFacecamVoiceProvider(voice?.provider ?? '');
   }, [selectedBrand]);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
     if (taskOutputType === 'facecam' && organizationId) {

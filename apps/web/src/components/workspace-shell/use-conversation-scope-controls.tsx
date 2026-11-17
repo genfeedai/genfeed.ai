@@ -311,6 +311,7 @@ export function useConversationScopeControls({
     }
   }, [activeThread, apiService]);
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (!activeThread) {
       return;

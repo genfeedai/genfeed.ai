@@ -17,6 +17,7 @@ export function useTurboRunProgress(
 ): ITurboRunSummary | null {
   const [run, setRun] = useState<ITurboRunSummary | null>(null);
 
+  // use-effect-audit: ignore abortable poll of the turbo run
   useEffect(() => {
     if (!apiService || !turboRunId) {
       return;

@@ -7,7 +7,6 @@ import { Button } from '@ui/primitives/button';
 import {
   type ReactElement,
   type Ref,
-  useEffect,
   useImperativeHandle,
   useState,
 } from 'react';
@@ -28,10 +27,6 @@ export function TeamMentionList({
   ref,
 }: TeamMentionListProps): ReactElement {
   const [selectedIndex, setSelectedIndex] = useState(0);
-
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, []);
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }: { event: KeyboardEvent }) => {

@@ -55,6 +55,7 @@ export default function AgentAuthClaimContent() {
     [],
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isSignedIn || !hasValidRequest || !claimAttemptToken) {
       return;

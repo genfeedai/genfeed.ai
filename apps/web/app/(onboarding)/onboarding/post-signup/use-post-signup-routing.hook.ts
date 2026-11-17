@@ -204,6 +204,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     }
   }, [requestedAccountType]);
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (isLoading || !currentUser || !hasAuthUser || calledRef.current) {
       return;

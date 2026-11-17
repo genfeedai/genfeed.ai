@@ -28,6 +28,7 @@ export function useDeskKeyboard({
   onToggleSelect,
   selectedItem,
 }: UseDeskKeyboardOptions): void {
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (hasModifier(event) || isEditableTarget(event.target)) {

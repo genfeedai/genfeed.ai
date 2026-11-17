@@ -18,6 +18,7 @@ export function useStableSocketConnectionState(
   const [stableState, setStableState] =
     useState<AgentSocketConnectionState>(connectionState);
 
+  // use-effect-audit: ignore grace timer for socket outages
   useEffect(() => {
     if (connectionState === 'connected') {
       setStableState('connected');

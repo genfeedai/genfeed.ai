@@ -58,6 +58,7 @@ export default function PostDetailNeedsYou({
     : Number.NaN;
   const [now, setNow] = useState(() => Date.now());
 
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     if (
       isPublished ||

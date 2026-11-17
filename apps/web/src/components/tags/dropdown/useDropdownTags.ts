@@ -121,6 +121,7 @@ export function useDropdownTags({
   }, [isOpen]);
 
   // Close dropdown when clicking outside
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (

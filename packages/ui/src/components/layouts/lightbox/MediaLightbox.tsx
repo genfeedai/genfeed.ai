@@ -60,6 +60,7 @@ export default function MediaLightbox({
     };
   }, [dominant]);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     // Dynamically import ESM plugins on the client side. Abort on unmount so a
     // late resolution cannot setState after teardown (React root races).

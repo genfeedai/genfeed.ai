@@ -51,6 +51,7 @@ export function useStudioPlaygroundHandoff(): UseStudioPlaygroundHandoffResult {
     [],
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!handoffId) {
       setIsLoading(false);

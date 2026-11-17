@@ -81,6 +81,7 @@ function ManagedCreditsSuccessContentInner() {
   });
   const [copiedTarget, setCopiedTarget] = useState<CopyTarget | null>(null);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!sessionId) {
       setState({

@@ -46,6 +46,7 @@ export function useMessagesRealtime({
     });
   }, [connectionState]);
 
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     if (!organizationId || !isReady) {
       return;

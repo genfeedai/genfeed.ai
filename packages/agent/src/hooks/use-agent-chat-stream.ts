@@ -66,6 +66,7 @@ export function useAgentChatStream(
       controller(createAgentStreamEntry(state.activeThreadId, requestId()));
     }
   };
+  // use-effect-audit: ignore reference-counts the module-level stream runtime
   useEffect(() => {
     runtime.mountCount += 1;
     return () => {
@@ -73,11 +74,13 @@ export function useAgentChatStream(
     };
   }, [runtime]);
 
+  // use-effect-audit: ignore binds the module-level stream transport
   useEffect(() => {
     if (isReady)
       bindAgentStreamTransport(subscribe, getSocketManager?.() ?? subscribe);
   });
 
+  // use-effect-audit: ignore mirrors the socket state into the module-level stream runtime
   useEffect(() => {
     const previous = runtime.connectionState;
     runtime.connectionState = connectionState;
@@ -100,6 +103,7 @@ export function useAgentChatStream(
     }
   }, [connectionState, runtime]);
 
+  // use-effect-audit: ignore projects the module-level stream entry into the store
   useEffect(() => {
     if (!isReady || !activeThreadId) return;
     let entry = findAgentStreamEntry(activeThreadId);

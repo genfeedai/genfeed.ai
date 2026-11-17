@@ -95,6 +95,7 @@ export default function TrialCardClaimCard({
     [queryClient],
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!returnedSessionId) {
       return;

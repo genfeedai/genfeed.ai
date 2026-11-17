@@ -114,6 +114,7 @@ export function useTurboRewriteJob({
   );
 
   // A reloaded page, or a switch back to this batch, resumes its running job.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     setJob(null);
     setIsCancelling(false);
@@ -142,6 +143,7 @@ export function useTurboRewriteJob({
   const jobId = job?.id ?? null;
   const jobTurboRunId = job?.turboRunId ?? null;
 
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     if (!isReady || !jobId || !jobTurboRunId) return;
     const controller = new AbortController();

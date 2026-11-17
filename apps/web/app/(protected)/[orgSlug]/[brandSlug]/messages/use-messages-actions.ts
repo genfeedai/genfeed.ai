@@ -68,6 +68,7 @@ export function useMessagesActions({
     }
   }, [canAttachReferences]);
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     if (!canWrite || !selectedId) {
       suggestionAbortRef.current = null;

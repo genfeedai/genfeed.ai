@@ -57,6 +57,7 @@ export function useStudioPlaygroundProposals(
   const [record, setRecord] = useState<ProposalsRecord | null>(null);
   const cached = key ? proposalsCache.get(key) : undefined;
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!brandId || !surface || !key || proposalsCache.has(key)) return;
     const controller = new AbortController();

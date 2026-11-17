@@ -231,6 +231,7 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
     ],
   );
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleRefresh = () => {
       if (isEnabled && isCurrentScope()) void refetch();

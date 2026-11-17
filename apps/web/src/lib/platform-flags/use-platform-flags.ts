@@ -45,6 +45,7 @@ export function usePlatformFlags(
     isUnavailable: false,
   }));
 
+  // use-effect-audit: ignore interval timer outside React
   useEffect(() => {
     let controller: AbortController | undefined;
 

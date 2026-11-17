@@ -169,6 +169,7 @@ export function useVideoTrim({
   /**
    * Update current time as video plays
    */
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const video = videoRef.current;
     if (!video) {
@@ -189,6 +190,7 @@ export function useVideoTrim({
   /**
    * Generate thumbnails when video loads
    */
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const video = videoRef.current;
     if (!video) {

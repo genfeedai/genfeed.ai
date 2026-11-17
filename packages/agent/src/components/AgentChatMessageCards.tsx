@@ -209,6 +209,7 @@ export function ContentPreviewCard({
   const [reconciledStatus, setReconciledStatus] = useState(action.status);
   const [reconciliationError, setReconciliationError] = useState<string>();
 
+  // use-effect-audit: ignore abortable asset reconciliation polling
   useEffect(() => {
     if (!apiService || !action.assetId || reconciledUrl) {
       return;

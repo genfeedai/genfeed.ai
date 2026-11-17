@@ -75,6 +75,7 @@ export default function StudioPlaygroundFocusedPreview({
   useEffect(() => {
     closeRef.current?.focus();
   }, []);
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       // Preserve Escape ownership for an active menu, dialog or text editor.

@@ -68,6 +68,7 @@ export function useAgentDockThreads(
   // The record whose conversation the dock currently holds.
   const openedThreadKey = useRef<string | null>(null);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isEnabled || typeof apiService.getThreads !== 'function') {
       return;
@@ -249,6 +250,7 @@ export function useAgentDockThreads(
 
   // The dock opens on the master conversation unless a thread is already open,
   // the operator asked for a blank one, or the page holds a record's thread.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isEnabled) {
       hasStartedFreshThread.current = false;

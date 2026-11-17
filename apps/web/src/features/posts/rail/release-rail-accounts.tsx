@@ -26,6 +26,7 @@ export default function ReleaseRailAccounts({
   const { getToken } = useAuthIdentity();
   const [accounts, setAccounts] = useState<AccountHealthSummary[]>([]);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
 

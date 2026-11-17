@@ -299,6 +299,7 @@ export function useWorkspacePageContent({
     setSelectedTaskId(requestedTaskId);
   }, [requestedTaskId]);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -359,6 +360,7 @@ export function useWorkspacePageContent({
     section,
   ]);
 
+  // use-effect-audit: ignore subscribes to an external event source
   useEffect(() => {
     if (!organizationId) {
       return;
@@ -380,6 +382,7 @@ export function useWorkspacePageContent({
     };
   }, [organizationId, subscribe]);
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;

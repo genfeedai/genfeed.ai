@@ -88,6 +88,7 @@ export default function VoiceStudioRecorder({
     URL.revokeObjectURL(playback.url);
   };
 
+  // use-effect-audit: ignore interval timer outside React
   useEffect(() => {
     if (!isRecording) return;
     const startedAt = Date.now();

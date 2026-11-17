@@ -29,6 +29,7 @@ function demoteSwaggerDocumentTitle(root: HTMLElement): void {
 export default function SwaggerUI() {
   const rootRef = useRef<HTMLDivElement>(null);
 
+  // use-effect-audit: ignore observes DOM elements with a browser observer
   useEffect(() => {
     const root = rootRef.current;
     if (!root) {

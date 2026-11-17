@@ -49,6 +49,7 @@ export default function StreaksPage() {
     return () => setToolbarNode(null);
   }, [createHref, isAgentAvailable, setToolbarNode]);
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleCelebration = (_event: Event) => {
       setIsCelebrating(true);

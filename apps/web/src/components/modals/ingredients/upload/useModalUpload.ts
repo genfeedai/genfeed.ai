@@ -369,6 +369,7 @@ export function useModalUpload({
     enqueueFiles(normalizedInitialFiles);
   }, [enqueueFiles, isOpen, normalizedInitialFiles]);
 
+  // use-effect-audit: ignore frame loop outside React
   useEffect(() => {
     if (
       !autoSubmit ||

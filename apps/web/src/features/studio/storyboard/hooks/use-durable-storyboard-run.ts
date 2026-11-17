@@ -192,6 +192,7 @@ export function useDurableStoryboardRun(runId: string) {
 
   // The draft transport is bound to the scope the run was read in. It is
   // built once a run of this scope is on screen, cached or fresh.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     setTransport(undefined);
     if (!brandId || !hasRun || !userId || !organizationId) return;
@@ -797,6 +798,7 @@ export function useDurableStoryboardRun(runId: string) {
       (shot) => shot.stillFreshness === 'generating',
     ),
   );
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!brandId || !isGeneratingStills) return;
     const controller = new AbortController();
@@ -837,6 +839,7 @@ export function useDurableStoryboardRun(runId: string) {
           (!render.qa || render.qa.state === 'checking')),
     ),
   );
+  // use-effect-audit: ignore interval timer outside React
   useEffect(() => {
     if (!brandId || !isRenderingShots) return;
     const controller = new AbortController();
@@ -864,6 +867,7 @@ export function useDurableStoryboardRun(runId: string) {
       (item) => item.state === 'pending' || item.state === 'submitted',
     ),
   );
+  // use-effect-audit: ignore interval timer outside React
   useEffect(() => {
     if (!brandId || !isGeneratingAssets) return;
     const controller = new AbortController();
@@ -883,6 +887,7 @@ export function useDurableStoryboardRun(runId: string) {
     };
   }, [brandId, runId, isGeneratingAssets, getService, adopt]);
   const isRenderingPresenter = hasLiveChunks(currentRun);
+  // use-effect-audit: ignore interval timer outside React
   useEffect(() => {
     if (!brandId || !isRenderingPresenter) return;
     const controller = new AbortController();
@@ -915,6 +920,7 @@ export function useDurableStoryboardRun(runId: string) {
   const isDrawingCutaways = Boolean(
     pendingCutaways?.ids.some((id) => !attachedCutaways.has(id)),
   );
+  // use-effect-audit: ignore interval timer outside React
   useEffect(() => {
     if (!brandId || !isDrawingCutaways || !pendingCutaways) return;
     const controller = new AbortController();

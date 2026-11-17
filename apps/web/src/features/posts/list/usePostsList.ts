@@ -739,6 +739,7 @@ export function usePostsList({
     [posts],
   );
 
+  // use-effect-audit: ignore subscribes to an external event source
   useEffect(() => {
     if (!isSocketReady || processingPostIds.length === 0) {
       return;

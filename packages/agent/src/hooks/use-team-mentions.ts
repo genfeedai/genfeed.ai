@@ -13,6 +13,7 @@ export function useTeamMentions(
   const [mentions, setMentions] = useState<TeamMentionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // use-effect-audit: ignore abortable team mentions fetch
   useEffect(() => {
     if (!apiService || typeof apiService.getTeamMentions !== 'function') {
       setIsLoading(false);

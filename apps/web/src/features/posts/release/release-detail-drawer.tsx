@@ -72,6 +72,7 @@ export default function ReleaseDetailDrawer({
 
   // The drawer owns its own account-health lookup so every caller (calendar,
   // rail) can hand it a brandId without also wiring a credentials fetch.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
 
