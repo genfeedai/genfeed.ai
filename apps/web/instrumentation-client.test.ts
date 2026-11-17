@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+type SentryInitOptions = Parameters<typeof import('@sentry/nextjs').init>[0];
+
 // What the module handed to Sentry and to analytics, in the order it did so.
 const recorded = vi.hoisted(() => ({
   analyticsInits: 0,
   hydrationRecords: 0,
   integrations: [] as unknown[],
   replayOptions: [] as unknown[],
-  sentryInitOptions: [] as unknown[],
+  sentryInitOptions: [] as SentryInitOptions[],
 }));
 
 vi.mock('@sentry/nextjs', () => ({
@@ -14,7 +16,7 @@ vi.mock('@sentry/nextjs', () => ({
     recorded.integrations.push(integration);
   },
   captureRouterTransitionStart: vi.fn(),
-  init: (options: unknown) => {
+  init: (options: SentryInitOptions) => {
     recorded.sentryInitOptions.push(options);
   },
   replayIntegration: (options: unknown) => {
@@ -82,6 +84,31 @@ describe('app Sentry instrumentation', () => {
     ]);
     expect(recorded.analyticsInits).toBe(1);
     expect(recorded.hydrationRecords).toBe(1);
+  });
+
+  it('tags the original production hydration event with only its React error code', async () => {
+    await import('./instrumentation-client');
+
+    const [options] = recorded.sentryInitOptions;
+    const event = await options.beforeSend?.(
+      {
+        exception: {
+          values: [
+            {
+              value:
+                'Minified React error #418; visit https://react.dev/errors/418?args[]=fixture for the full message. <private-fixture>',
+            },
+          ],
+        },
+        tags: { existing: 'kept' },
+      },
+      {},
+    );
+
+    expect(event?.tags).toEqual({
+      existing: 'kept',
+      hydration_message: 'Minified React error #418',
+    });
   });
 
   it('attaches error replay with masked text and inputs once the page is idle', async () => {
