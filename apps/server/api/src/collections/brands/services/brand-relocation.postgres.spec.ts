@@ -9,6 +9,7 @@ import { BrandRelocationJobsService } from '@api/collections/brands/services/bra
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { PersonaGrantReadService } from '@api/collections/personas/services/persona-grant-read.service';
 import { WorkflowExecutorDocumentService } from '@api/collections/workflows/services/workflow-executor-document.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/contracts';
@@ -301,7 +302,7 @@ describe.skipIf(!connectionString)(
         shotRules: [],
         thumbnailRules: [],
       };
-      await revisions.update(
+      const saved = await revisions.update(
         s.destination,
         s.brand,
         draft.id,
@@ -311,18 +312,18 @@ describe.skipIf(!connectionString)(
       expect(
         (await revisions.get(s.destination, s.brand, draft.id)).content.video,
       ).toEqual(video);
-      await expect(
-        revisions.get(s.source, s.brand, draft.id),
-      ).rejects.toThrow();
+      await expect(revisions.get(s.source, s.brand, draft.id)).rejects.toThrow(
+        NotFoundException,
+      );
       await expect(
         revisions.update(
           s.source,
           s.brand,
           draft.id,
           draft.content,
-          draft.updatedAt,
+          saved.updatedAt,
         ),
-      ).rejects.toThrow();
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('moves every org-only child with its parent and commits with the breakout and exposure foreign keys in place', async () => {
