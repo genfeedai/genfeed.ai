@@ -48,6 +48,17 @@ describe('zod jitless', () => {
     expect(functionCalls).toEqual([]);
   });
 
+  it('also works when zod loaded before the module', async () => {
+    const { z } = await import('zod');
+    await import('./zod-jitless');
+    countFunctionConstructions();
+
+    const result = z.object({ count: z.number() }).safeParse({ count: 1 });
+
+    expect(result.success).toBe(true);
+    expect(functionCalls).toEqual([]);
+  });
+
   it('still rejects invalid input', async () => {
     await import('./zod-jitless');
     const { z } = await import('zod');
