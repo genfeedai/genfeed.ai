@@ -1,9 +1,40 @@
 import '@testing-library/jest-dom/vitest';
+import './tests/restore-worker-globals';
 import { cleanup } from '@testing-library/react';
 import { preloadButtonTooltip } from '@ui/primitives/button-tooltip';
-import { afterEach, beforeAll } from 'vitest';
+import { afterEach, beforeAll, vi } from 'vitest';
 import './tests/image-loading.stub';
 import './tests/server-only.stub';
+
+// Per-file reset for `isolate: false` (vitest.config.mts). Vitest runs the setup
+// files again before every spec file, so each file starts with a fresh module
+// registry, real timers and no stub or spy left by the file that ran before it
+// in the same worker. `vi.hoisted` lifts it above the imports of this file: the
+// registry is cleared before they load, so they are evaluated again per file.
+// Keep it at the top level, not in a hook: a reset between the tests of one
+// file would undo stubs that file set up on purpose.
+vi.hoisted(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+  vi.resetModules();
+
+  // `vi.unstubAllEnvs()` only restores keys set through `vi.stubEnv()`. Specs
+  // also assign and delete `process.env` keys directly. The environment the
+  // worker started with is kept on `globalThis`, which outlives the module
+  // registry, and put back here.
+  const workerScope = globalThis as typeof globalThis & {
+    webTestEnvBaseline?: Record<string, string | undefined>;
+  };
+  workerScope.webTestEnvBaseline ??= { ...process.env };
+  for (const key of Object.keys(process.env)) {
+    if (!(key in workerScope.webTestEnvBaseline)) {
+      delete process.env[key];
+    }
+  }
+  Object.assign(process.env, workerScope.webTestEnvBaseline);
+});
 
 // The preload is a cold dynamic import of Radix Tooltip through Vite's
 // transform pipeline, once per test file in a fresh module graph. On a loaded CI
