@@ -19,6 +19,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { MediaDerivativePreparationService } from '@api/services/media-urls/media-derivative-preparation.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   AssetScope,
@@ -136,6 +137,7 @@ export class PublicPostsController {
   constructor(
     private readonly postsService: PostsService,
     private readonly ingredientsService: IngredientsService,
+    private readonly mediaPreparation: MediaDerivativePreparationService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -208,6 +210,7 @@ export class PublicPostsController {
     };
 
     const data = await this.postsService.findAll(aggregate, options);
+    await this.prepareMedia(data.docs);
     return serializeCollection(
       request,
       PublicPostSerializer,
@@ -323,6 +326,8 @@ export class PublicPostsController {
       return returnNotFound(this.constructorName, postId);
     }
 
+    await this.prepareMedia([post]);
+
     const crossPosts =
       post.platform === CredentialPlatform.GENFEED
         ? await this.findCrossPosts(post)
@@ -332,6 +337,36 @@ export class PublicPostsController {
       ...post,
       crossPosts,
     });
+  }
+
+  /**
+   * A public post's media is delivered through a prepared public copy. Media
+   * that has none yet is queued here, so the next read of the post (after the
+   * cache expires) carries its URL instead of leaving the post without images.
+   */
+  private async prepareMedia(posts: readonly object[]): Promise<void> {
+    const ids = [
+      ...new Set(
+        posts.flatMap((post) => {
+          const { ingredients } = post as {
+            ingredients?: readonly { id?: string }[];
+          };
+          return (ingredients ?? []).flatMap((media) =>
+            media.id ? [media.id] : [],
+          );
+        }),
+      ),
+    ];
+    if (ids.length === 0) {
+      return;
+    }
+    try {
+      await this.mediaPreparation.enqueuePublicMissing(ids, 'public-share');
+    } catch (error: unknown) {
+      this.logger.warn(`${this.constructorName} could not queue public media`, {
+        error,
+      });
+    }
   }
 
   /** Public network posts of a brand that copy one of its native posts. */

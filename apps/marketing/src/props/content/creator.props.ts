@@ -111,6 +111,10 @@ export interface CreatorPostMetricProps {
   value: number;
 }
 
+export interface CreatorPostCoverProps {
+  images: CreatorPostMediaItem[];
+}
+
 export interface CreatorPostMediaProps {
   /** Alternative text for every item: the post's title. */
   alt: string;
