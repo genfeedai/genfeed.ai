@@ -24,6 +24,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type { EditImageDto } from '@api/collections/images/dto/edit-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
+import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { UnsettleableReservationException } from '@api/exceptions/business-logic.exception';
@@ -59,6 +60,9 @@ import {
 } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import type { ZodType } from 'zod';
+
+/** Set when the dispatch threw before any provider call was made. */
+const NEVER_SUBMITTED_ERROR = 'Asset was never submitted to the image provider';
 
 const MUTATION_ATTEMPTS = 5;
 type AssetOutcome = Pick<
@@ -574,6 +578,7 @@ export class StoryboardAssetBibleService {
     organizationId: string,
     brandId: string,
     assetId: string,
+    generationError = NEVER_SUBMITTED_ERROR,
   ) {
     await this.prisma.ingredient.updateMany({
       where: scopedWhere(organizationId, {
@@ -582,7 +587,7 @@ export class StoryboardAssetBibleService {
         status: 'PROCESSING' as const,
       }),
       data: {
-        generationError: 'Asset was never submitted to the image provider',
+        generationError,
         status: 'FAILED' as const,
       },
     });
@@ -645,7 +650,12 @@ export class StoryboardAssetBibleService {
       status === 'PROCESSING' && isAbandoned && !asset?.metadata?.externalId;
     if (status !== 'FAILED' && !isUndispatched) return undefined;
     if (isUndispatched)
-      await this.failPlaceholder(organizationId, brandId, operation.assetId);
+      await this.failPlaceholder(
+        organizationId,
+        brandId,
+        operation.assetId,
+        INGREDIENT_PROCESSING_TIMEOUT_ERROR,
+      );
     const isReleased = await this.releaseHeld(organizationId, runId, operation);
     this.report(
       new Error('Storyboard asset failed'),
