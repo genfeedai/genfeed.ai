@@ -12,6 +12,7 @@ import {
 import {
   assertNoBrandOrgOrphans,
   type CascadeDelegate,
+  moveRevisionContentScope,
   resolveSecondOrderFilters,
   type SecondOrderParentIds,
 } from '@api/collections/brands/utils/brand-relocation-cascade.util';
@@ -777,15 +778,7 @@ export class BrandRelocationService {
 
     await detachReferralCodesFromBrand(tx, brandId);
     await prepareAgentThreadsForRelocation(tx, brandId);
-    // The editor validates the embedded tenant against the revision row on reopen.
-    // Bind both old keys before any FK cascade can rewrite the row's organization.
-    // sql-risk-audit: ignore raw-sql-review -- static JSON path, bound relocation scope.
-    await tx.$executeRaw`
-      UPDATE brand_os_revisions
-      SET content = jsonb_set(content, '{organizationId}', to_jsonb(${destOrgId}::text))
-      WHERE "brandId" = ${brandId} AND "organizationId" = ${sourceOrgId}
-        AND content->>'organizationId' = ${sourceOrgId}
-        AND (content->>'brandId' IS NULL OR content->>'brandId' = ${brandId})`;
+    await moveRevisionContentScope(tx, brandId, sourceOrgId, destOrgId);
     // 1. The brand row itself (+ any co-patched scalar fields). The workflow
     // composite FK cascades workflow.organizationId with the brand.
     await client.brand.updateMany({
