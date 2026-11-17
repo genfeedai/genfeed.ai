@@ -268,6 +268,58 @@ describe('mapSnapshotPendingInputRequest', () => {
     expect(mapSnapshotPendingInputRequest(makeSnapshot())).toBeNull();
   });
 
+  it('does not revive a resolved request from its timeline', () => {
+    const snapshot = makeSnapshot({
+      timeline: [
+        {
+          createdAt: '2026-11-17T10:00:00.000Z',
+          id: 'event-quote',
+          sequence: 1,
+          kind: 'input',
+          label: 'Confirm image quote',
+          requestId: 'quote-1',
+          runId: 'run-quote',
+          status: 'pending',
+        },
+      ],
+    });
+    expect(mapSnapshotPendingInputRequest(snapshot)).toBeNull();
+  });
+
+  it('recovers the original run binding from the persisted input timeline', () => {
+    const snapshot = makeSnapshot({
+      activeRun: { runId: 'run-other', status: 'completed' },
+      pendingInputRequests: [
+        {
+          createdAt: '2026-11-17T10:00:00.000Z',
+          requestId: 'quote-1',
+          title: 'Confirm image quote',
+          prompt: 'One image for 12 credits?',
+          options: [{ id: 'approve', label: 'Approve image' }],
+        },
+      ],
+      timeline: [
+        {
+          createdAt: '2026-11-17T10:00:00.000Z',
+          id: 'event-quote',
+          sequence: 1,
+          kind: 'input',
+          label: 'Confirm image quote',
+          requestId: 'quote-1',
+          runId: 'run-quote',
+          status: 'pending',
+        },
+      ],
+    });
+    expect(mapSnapshotPendingInputRequest(snapshot)).toMatchObject({
+      inputRequestId: 'quote-1',
+      runId: 'run-quote',
+      threadId: 'thread-1',
+      options: [{ id: 'approve', label: 'Approve image' }],
+      prompt: 'One image for 12 credits?',
+    });
+  });
+
   it('maps the newest pending request', () => {
     const snapshot = makeSnapshot({
       pendingInputRequests: [
@@ -289,6 +341,7 @@ describe('mapSnapshotPendingInputRequest', () => {
           prompt: 'Pick one',
           recommendedOptionId: 'opt-1',
           requestId: 'req-2',
+          runId: 'run-quote',
           title: 'New request',
         },
       ],
@@ -300,6 +353,7 @@ describe('mapSnapshotPendingInputRequest', () => {
       maxSelections: 2,
       fieldId: 'field-1',
       inputRequestId: 'req-2',
+      runId: 'run-quote',
       metadata: { source: 'test' },
       options: [{ id: 'opt-1', label: 'Option 1' }],
       prompt: 'Pick one',
