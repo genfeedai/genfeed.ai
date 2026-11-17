@@ -288,6 +288,55 @@ describe.skipIf(!connectionString)(
       expect(second).toEqual({ batches: 1, executions: 1 });
     });
 
+    it('commits a batch that runs past the five second transaction default', async () => {
+      // A trigger slows each cascaded claim delete, so the one batch takes
+      // about 6 s. Prisma closes an interactive transaction after 5 s unless
+      // the call sets its own timeout, and the batch then rolls back.
+      const slowFunction = `purge_slow_claim_${suffix.replaceAll('-', '')}`;
+      const slowTrigger = `${slowFunction}_trigger`;
+      const ids = await Promise.all(
+        Array.from({ length: 20 }, (_, n) =>
+          insertRun(`slow-${n}`, {
+            purgeAt: past,
+            retentionPolicy: 'background',
+            status: 'COMPLETED',
+          }),
+        ),
+      );
+      await db().$executeRawUnsafe(`
+        CREATE FUNCTION ${slowFunction}() RETURNS trigger AS $$
+        BEGIN
+          IF OLD.id LIKE 'slow-%' THEN
+            PERFORM pg_sleep(0.3);
+          END IF;
+          RETURN OLD;
+        END
+        $$ LANGUAGE plpgsql`);
+      await db().$executeRawUnsafe(`
+        CREATE TRIGGER ${slowTrigger}
+        BEFORE DELETE ON workflow_node_claims
+        FOR EACH ROW EXECUTE FUNCTION ${slowFunction}()`);
+
+      try {
+        const result = await service().purgeExpiredExecutions({
+          batchSize: 100,
+          maxBatches: 1,
+          now,
+        });
+        expect(result.executions).toBeGreaterThanOrEqual(20);
+      } finally {
+        await db().$executeRawUnsafe(
+          `DROP TRIGGER IF EXISTS ${slowTrigger} ON workflow_node_claims`,
+        );
+        await db().$executeRawUnsafe(
+          `DROP FUNCTION IF EXISTS ${slowFunction}()`,
+        );
+      }
+
+      const left = await Promise.all(ids.map((id) => remains(id)));
+      expect(left).toEqual(ids.map(() => gone));
+    }, 30_000);
+
     async function readRun(id: string) {
       const rows = await db().$queryRawUnsafe<
         Array<{ error: string | null; purgeAt: Date | null; status: string }>
