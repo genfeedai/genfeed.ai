@@ -20,8 +20,11 @@ const WORKFLOWS = new Map([
   ],
 ]);
 const DELAYS = [2_000, 5_000];
-const MAX_PAGES = 100;
-const PAGE_SIZE = 100;
+const MAX_PAGES = 500;
+// GitHub builds a jobs page within its 10 second gateway limit only for small
+// pages: 100 jobs per page on a run with about 80 jobs returns HTTP 502 every
+// time, so retrying cannot help.
+const PAGE_SIZE = 20;
 
 function requireValue(condition, message) {
   if (!condition) throw new Error(message);
@@ -238,6 +241,30 @@ function nextLink(headers) {
   return next[0]?.[1] ?? null;
 }
 
+// GitHub writes pagination links with either the owner/name path or the
+// numeric repository id, so accept both forms of the same jobs route.
+function isExpectedNextJobsLink(link, { attempt, nextPage, prefix, runId }) {
+  let url;
+  try {
+    url = new URL(link);
+  } catch {
+    return false;
+  }
+  const jobsPath = '/attempts/' + attempt + '/jobs';
+  const isRepositoryPath =
+    url.pathname === prefix + jobsPath ||
+    new RegExp(
+      '^/repositories/\\d+/actions/runs/' + runId + jobsPath + '$',
+      'u',
+    ).test(url.pathname);
+  return (
+    url.origin === 'https://api.github.com' &&
+    isRepositoryPath &&
+    url.hash === '' &&
+    url.search === '?per_page=' + PAGE_SIZE + '&page=' + nextPage
+  );
+}
+
 export async function qualifyVerdict(
   expected,
   {
@@ -287,7 +314,9 @@ export async function qualifyVerdict(
           prefix +
           '/attempts/' +
           expected.attempt +
-          '/jobs?per_page=100&page=' +
+          '/jobs?per_page=' +
+          PAGE_SIZE +
+          '&page=' +
           page;
         const response = await read(route);
         const body = response.body;
@@ -310,15 +339,14 @@ export async function qualifyVerdict(
         );
         const next = nextLink(response.headers);
         if (next !== null) {
-          const expectedNext =
-            'https://api.github.com' +
-            prefix +
-            '/attempts/' +
-            expected.attempt +
-            '/jobs?per_page=100&page=' +
-            (page + 1);
           requireValue(
-            page < pages && next === expectedNext,
+            page < pages &&
+              isExpectedNextJobsLink(next, {
+                attempt: expected.attempt,
+                nextPage: page + 1,
+                prefix,
+                runId: expected.runId,
+              }),
             'Unexpected next-page route',
           );
         }

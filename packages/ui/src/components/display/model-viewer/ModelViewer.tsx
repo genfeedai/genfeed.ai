@@ -30,12 +30,12 @@ export default function ModelViewer({
       return undefined;
     }
 
-    let isCancelled = false;
+    const abortController = new AbortController();
     let viewer: HTMLElement | null = null;
     setHasError(false);
 
     const handleError = () => {
-      if (!isCancelled) {
+      if (!abortController.signal.aborted) {
         setHasError(true);
       }
     };
@@ -48,7 +48,7 @@ export default function ModelViewer({
         handleError();
         return;
       }
-      if (isCancelled) {
+      if (abortController.signal.aborted) {
         return;
       }
 
@@ -72,7 +72,7 @@ export default function ModelViewer({
     void mount();
 
     return () => {
-      isCancelled = true;
+      abortController.abort();
       viewer?.removeEventListener('error', handleError);
       viewer?.remove();
     };

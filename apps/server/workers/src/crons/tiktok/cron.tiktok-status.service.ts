@@ -589,7 +589,6 @@ export class CronTiktokStatusService implements OnModuleInit {
       String(input.detail ?? 'TikTok Inbox delivery'),
       {
         expectedExternalId: publishId,
-        expectedWorkflowExecutionId: provenance.executionId,
         priorExecutionStates: [TargetExecutionState.PUBLISHING],
       },
     );
@@ -653,9 +652,12 @@ export class CronTiktokStatusService implements OnModuleInit {
             workflowExecutionId: provenance.executionId,
           },
       detail,
+      // Guarded by the publish ID and the PUBLISHING state, never by workflow
+      // execution: the post holds the id of the run that submitted it to
+      // TikTok and this reconcile run is always a new one, so an execution
+      // guard refuses every transition and strands the post in PUBLISHING.
       {
         expectedExternalId: String(input.publishId ?? ''),
-        expectedWorkflowExecutionId: provenance.executionId,
         priorExecutionStates: [TargetExecutionState.PUBLISHING],
       },
       isPublished

@@ -27,7 +27,7 @@ export function usePlatformDetection(): void {
   );
 
   useEffect(() => {
-    let isDisposed = false;
+    const abortController = new AbortController();
 
     function applyPage(payload: PlatformDetectedPayload): void {
       setPlatform(payload.platform ?? null);
@@ -60,13 +60,13 @@ export function usePlatformDetection(): void {
         if (!tab?.id) return;
         const response: PlatformDetectedPayload | undefined =
           await chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_CONTEXT' });
-        if (!isDisposed && response?.pageContext) {
+        if (!abortController.signal.aborted && response?.pageContext) {
           applyPage(response);
         }
       } catch {
         // A page without the content script (a new tab, the web store) has no
         // post and no platform; the panel keeps working without them.
-        if (!isDisposed) {
+        if (!abortController.signal.aborted) {
           setPlatform(null);
           setPageContext({});
           setComposeBoxAvailable(false);
@@ -82,7 +82,7 @@ export function usePlatformDetection(): void {
     chrome.tabs.onActivated?.addListener(handleActivated);
     void readActiveTab();
     return () => {
-      isDisposed = true;
+      abortController.abort();
       chrome.runtime.onMessage.removeListener(handleMessage);
       chrome.tabs.onActivated?.removeListener(handleActivated);
     };

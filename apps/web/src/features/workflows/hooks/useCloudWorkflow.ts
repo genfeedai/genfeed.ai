@@ -201,20 +201,20 @@ export function useCloudWorkflow({
       return;
     }
 
-    let cancelled = false;
+    const abortController = new AbortController();
     hasRequestedBrandsRef.current = true;
 
     const ensureBrandsLoaded = async () => {
       try {
         const service = serviceRef.current ?? (await getService());
-        if (cancelled || !mountedRef.current) {
+        if (abortController.signal.aborted || !mountedRef.current) {
           return;
         }
 
         serviceRef.current = service;
         await useCloudWorkflowStore.getState().loadBrands(service);
       } catch (error) {
-        if (!cancelled && mountedRef.current) {
+        if (!abortController.signal.aborted && mountedRef.current) {
           logger.error('Failed to load workflow brands', { error });
         }
       }
@@ -223,7 +223,7 @@ export function useCloudWorkflow({
     void ensureBrandsLoaded();
 
     return () => {
-      cancelled = true;
+      abortController.abort();
     };
   }, [brands.length, getService, isBrandsLoading]);
 
@@ -232,13 +232,13 @@ export function useCloudWorkflow({
       return;
     }
 
-    let cancelled = false;
+    const abortController = new AbortController();
 
     const scheduleAutoSave = async () => {
       try {
         const service = serviceRef.current ?? (await getService());
         if (
-          cancelled ||
+          abortController.signal.aborted ||
           selectCloudWorkflowEditKey(useWorkflowStore.getState()) !==
             durableEditKey
         ) {
@@ -258,7 +258,7 @@ export function useCloudWorkflow({
     void scheduleAutoSave();
 
     return () => {
-      cancelled = true;
+      abortController.abort();
       useCloudWorkflowStore.getState().cancelAutoSave();
     };
   }, [autoSave, brandId, durableEditKey, getService, isDirty]);

@@ -498,12 +498,12 @@ function usePendingCard(item: McpCard, bridge: PreviewBridge) {
   const [current, setCurrent] = useState(item);
   const [exhausted, setExhausted] = useState(false);
   useEffect(() => {
-    let cancelled = false;
+    const abortController = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     setCurrent(item);
     setExhausted(false);
     function poll(next: McpCard, attempt: number) {
-      if (cancelled || !next.isPending) return;
+      if (abortController.signal.aborted || !next.isPending) return;
       if (!next.id || attempt >= 60) {
         setExhausted(true);
         return;
@@ -515,7 +515,7 @@ function usePendingCard(item: McpCard, bridge: PreviewBridge) {
             arguments: { jobId: next.id },
           })
           .then((result) => {
-            if (cancelled) return;
+            if (abortController.signal.aborted) return;
             const fresh = readView(result)?.cards[0];
             if (!fresh) {
               poll(next, attempt + 1);
@@ -527,13 +527,13 @@ function usePendingCard(item: McpCard, bridge: PreviewBridge) {
             poll(updated, attempt + 1);
           })
           .catch(() => {
-            if (!cancelled) poll(next, attempt + 1);
+            if (!abortController.signal.aborted) poll(next, attempt + 1);
           });
       }, 5000);
     }
     poll(item, 0);
     return () => {
-      cancelled = true;
+      abortController.abort();
       clearTimeout(timer);
     };
   }, [item, bridge]);

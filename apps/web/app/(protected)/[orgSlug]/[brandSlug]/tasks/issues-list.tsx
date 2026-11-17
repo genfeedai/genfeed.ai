@@ -335,7 +335,7 @@ export default function IssuesList() {
       selectTask?.(null);
       return;
     }
-    let cancelled = false;
+    const abortController = new AbortController();
     const issue = issues.find((item) => item.id === taskId);
     if (issue) {
       selectTask?.(issue);
@@ -343,15 +343,15 @@ export default function IssuesList() {
       void getTasksService()
         .then((service) => service.findOne(taskId))
         .then((task) => {
-          if (!cancelled) selectTask?.(task);
+          if (!abortController.signal.aborted) selectTask?.(task);
         })
         .catch(() => {
-          if (!cancelled)
+          if (!abortController.signal.aborted)
             notificationsService.error(translate('openTaskError'));
         });
     }
     return () => {
-      cancelled = true;
+      abortController.abort();
     };
   }, [
     taskId,
