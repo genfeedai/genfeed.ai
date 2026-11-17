@@ -83,18 +83,20 @@ function storyboardSummaries(): PresetSummary[] {
  * preset is advertised the way it is retrieved.
  */
 function resolveRowsByKey(rows: readonly unknown[]): Record<string, unknown>[] {
-  const byKey = new Map<string, Record<string, unknown>[]>();
+  const resolved = new Map<string, Record<string, unknown>>();
   for (const row of rows) {
     const attributes = attributesOf(row);
     const key = text(attributes.key);
-    if (key) byKey.set(key, [...(byKey.get(key) ?? []), attributes]);
+    if (!key) continue;
+    const current = resolved.get(key);
+    // The first row of a key stands until a caller-owned row replaces it.
+    if (
+      !current ||
+      (!text(current.organizationId) && text(attributes.organizationId))
+    )
+      resolved.set(key, attributes);
   }
-  return [...byKey.values()].flatMap(
-    (matches) =>
-      matches.find((candidate) => text(candidate.organizationId)) ??
-      matches[0] ??
-      [],
-  );
+  return [...resolved.values()];
 }
 
 /**
