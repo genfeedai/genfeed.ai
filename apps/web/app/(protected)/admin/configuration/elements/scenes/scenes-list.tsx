@@ -101,6 +101,7 @@ function ScenesListContent({
   const refreshScenes = useRefreshScope(scopeKey);
   const isRefreshing = isFetching && !isLoading;
 
+  // use-effect-audit: ignore reports a load failure to the logger and notifications
   useEffect(() => {
     if (!loadError) {
       return;

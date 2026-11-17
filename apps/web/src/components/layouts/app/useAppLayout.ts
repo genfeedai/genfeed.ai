@@ -99,6 +99,7 @@ export function useAppLayout({
   }, [sidebarExpandedWidth]);
 
   // Drop mid-drag listeners if the shell unmounts.
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => {
       sidebarDragCleanupRef.current?.();

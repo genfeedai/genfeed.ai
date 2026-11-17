@@ -374,6 +374,7 @@ export default function ContentCalendarPage({
     setScheduleActionsNode,
   ]);
 
+  // use-effect-audit: ignore clears the layout slots it registered when the page unmounts
   useEffect(() => {
     return () => {
       setLeadingNode(null);

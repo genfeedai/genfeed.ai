@@ -168,6 +168,7 @@ export default function SettingsWebhooksPage() {
     [form.webhookEventTypes],
   );
 
+  // use-effect-audit: ignore reports a load failure to the logger and notifications
   useEffect(() => {
     if (!loadError) {
       return;

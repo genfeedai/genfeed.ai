@@ -104,6 +104,7 @@ export default function VoiceStudioRecorder({
       stopRecording();
   }, [elapsedSeconds, isRecording, stopRecording]);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(
     () => () => {
       const playback = playbackRef.current;

@@ -432,6 +432,7 @@ export default function OAuthConsentContent() {
     return () => controller.abort();
   }, [getToken, selectedOrganizationId]);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(
     () => () => {
       controllerRef.current?.abort();

@@ -59,6 +59,7 @@ export function usePromptBarSync(
     onDatasetChangeRef.current = onDatasetChange;
   }, [onDatasetChange]);
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {

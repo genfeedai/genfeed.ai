@@ -58,6 +58,7 @@ export default function RepliesWarmupQueue() {
   const [openedIds, setOpenedIds] = useState<string[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  // use-effect-audit: ignore reports a load failure to the logger and notifications
   useEffect(() => {
     if (!loadError) {
       return;

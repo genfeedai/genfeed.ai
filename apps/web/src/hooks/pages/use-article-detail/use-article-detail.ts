@@ -119,6 +119,7 @@ export function useArticleDetail({
   const articleError = resolvedId ? articleQuery.error : null;
   const error = articleError && !article ? 'Failed to load article' : null;
 
+  // use-effect-audit: ignore reports a load failure to the logger and notifications
   useEffect(() => {
     if (!articleError) {
       return;

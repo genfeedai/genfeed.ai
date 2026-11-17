@@ -88,6 +88,7 @@ export function useGenerationListener(options: UseGenerationListenerOptions) {
   }, [onBatchComplete]);
 
   // Cleanup on unmount
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => {
       cleanupAllGenerations();

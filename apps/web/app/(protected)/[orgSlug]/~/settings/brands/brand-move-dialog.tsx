@@ -80,6 +80,7 @@ export default function BrandMoveDialog({
   // the results of a newer one.
   const runIdRef = useRef(0);
   const moveControllerRef = useRef<AbortController | null>(null);
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(
     () => () => {
       moveControllerRef.current?.abort();

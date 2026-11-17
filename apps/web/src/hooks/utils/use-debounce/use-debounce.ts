@@ -54,6 +54,7 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   );
 
   // Cleanup on unmount
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -119,6 +120,7 @@ export function useDebouncedAPI<
   );
 
   // Cleanup on unmount
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => {
       cancel();

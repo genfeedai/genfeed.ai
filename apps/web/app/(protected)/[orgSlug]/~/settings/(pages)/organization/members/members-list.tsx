@@ -199,6 +199,7 @@ function MembersListContent() {
     : EMPTY_INVITATIONS;
 
   const membersError = membersQuery.error ?? invitationsQuery.error;
+  // use-effect-audit: ignore reports a load failure to the logger and notifications
   useEffect(() => {
     if (!membersError) {
       return;

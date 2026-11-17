@@ -102,6 +102,7 @@ export default function ModalPreset({ onConfirm, onClose }: ModalCreateProps) {
     }
   };
 
+  // use-effect-audit: ignore releases timers, requests or subscriptions on unmount
   useEffect(() => {
     return () => {
       if (undoTimeoutRef.current) {
