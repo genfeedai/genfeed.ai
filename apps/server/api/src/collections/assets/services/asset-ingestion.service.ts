@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BRAND_ASSET_CACHE_TAGS } from '@api/collections/assets/constants/asset-cache-tags.constant';
+import { ASSET_ORIGIN_GENERATION_PENDING } from '@api/collections/assets/constants/asset-origin.constant';
 import type { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
 import type { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
 import type { ILogoUploadIntake } from '@api/collections/assets/interfaces/logo-upload-intake.interface';
@@ -13,6 +14,7 @@ import {
   resolveBrandKitSlot,
 } from '@api/collections/assets/utils/brand-kit-slot.util';
 import { readLogoUploadIntake } from '@api/collections/assets/utils/logo-upload-intake.util';
+import { resolveParentOrganizationId } from '@api/collections/assets/utils/parent-organization.util';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -37,7 +39,6 @@ import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -61,43 +62,6 @@ export class AssetIngestionService {
     private readonly websocketService: NotificationsPublisherService,
     private readonly prisma: PrismaService,
   ) {}
-
-  /**
-   * A logo or banner may only be attached to a parent in the caller's own
-   * organization. Returns that organization so the asset is stamped with it
-   * (`parentOrgId`), which org-scoped readers such as the brand kit require.
-   */
-  private async resolveParentOrganizationId(
-    user: User,
-    parentType: AssetParent,
-    parentId: string,
-  ): Promise<string> {
-    const organizationId = user.organizationId;
-
-    if (!organizationId || !isEntityId(organizationId)) {
-      throw new ForbiddenException('Organization not found in session');
-    }
-
-    if (parentType === AssetParent.ORGANIZATION) {
-      if (parentId !== organizationId) {
-        throw new ForbiddenException('Access denied to this organization');
-      }
-      return organizationId;
-    }
-
-    if (parentType === AssetParent.BRAND) {
-      const brand = await this.prisma.brand.findFirst({
-        select: { id: true },
-        where: { id: parentId, isDeleted: false, organizationId },
-      });
-      if (!brand) {
-        return returnNotFound('Brand', parentId);
-      }
-      return organizationId;
-    }
-
-    throw new BadRequestException('Unsupported asset parent');
-  }
 
   async createUpload(
     user: User,
@@ -124,7 +88,8 @@ export class AssetIngestionService {
           ? uploadDto.parentId
           : undefined;
       const organizationId = parentId
-        ? await this.resolveParentOrganizationId(
+        ? await resolveParentOrganizationId(
+            this.prisma,
             user,
             uploadDto.parentType,
             parentId,
@@ -144,9 +109,18 @@ export class AssetIngestionService {
           uploadDto.parentType === AssetParent.BRAND &&
           Boolean(parentId && organizationId),
       );
+      const isBrandSlotUpload =
+        uploadDto.parentType === AssetParent.BRAND &&
+        isBrandKitSlotCategory(uploadDto.category) &&
+        Boolean(parentId && organizationId);
       const entityData = {
         category: uploadDto.category,
         ...(kitSlot ? { kitSlot } : {}),
+        // Pending until its file is stored, so no brand read picks the row
+        // while the slot's previous image is still the usable one.
+        ...(isBrandSlotUpload
+          ? { origin: ASSET_ORIGIN_GENERATION_PENDING }
+          : {}),
         ...(intake.originalFormat
           ? {
               originalFormat: intake.originalFormat,
@@ -168,22 +142,7 @@ export class AssetIngestionService {
         },
       });
 
-      // One logo per organization: the new upload replaces the previous one.
-      if (
-        uploadDto.category === AssetCategory.LOGO &&
-        entityData.parentId &&
-        uploadDto.parentType === AssetParent.ORGANIZATION
-      ) {
-        await this.assetsService.patchAll(
-          {
-            category: AssetCategory.LOGO,
-            parentOrgId: entityData.parentId,
-            parentType: AssetParent.ORGANIZATION,
-          },
-          { isDeleted: true },
-        );
-        await this.cacheService.invalidateByTags(['organizations']);
-      }
+      await this.replaceOrganizationLogo(uploadDto, entityData.parentId);
 
       const assetData = await this.assetsService.create(entityData);
 
@@ -201,6 +160,7 @@ export class AssetIngestionService {
         kitSlot,
         entityData.parentId,
         organizationId,
+        isBrandSlotUpload,
       );
 
       const brandParentId =
@@ -245,6 +205,29 @@ export class AssetIngestionService {
     }
   }
 
+  /** One logo per organization: the new upload replaces the previous one. */
+  private async replaceOrganizationLogo(
+    uploadDto: CreateAssetDto,
+    parentId: string | undefined,
+  ): Promise<void> {
+    if (
+      uploadDto.category !== AssetCategory.LOGO ||
+      !parentId ||
+      uploadDto.parentType !== AssetParent.ORGANIZATION
+    ) {
+      return;
+    }
+    await this.assetsService.patchAll(
+      {
+        category: AssetCategory.LOGO,
+        parentOrgId: parentId,
+        parentType: AssetParent.ORGANIZATION,
+      },
+      { isDeleted: true },
+    );
+    await this.cacheService.invalidateByTags(['organizations']);
+  }
+
   /**
    * Store the uploaded file for a new asset. When the upload fails the new row
    * is removed, so the slot keeps its current image. Once stored, a brand logo
@@ -258,6 +241,7 @@ export class AssetIngestionService {
     kitSlot: BrandKitSlot | undefined,
     parentId: string | undefined,
     organizationId: string | undefined,
+    isPending: boolean,
   ): Promise<void> {
     try {
       await this.filesClientService.uploadToS3(
@@ -280,6 +264,10 @@ export class AssetIngestionService {
     } catch (error: unknown) {
       await this.assetsService.remove(assetId);
       throw error;
+    }
+
+    if (isPending && organizationId) {
+      await this.publishStoredAsset(assetId, organizationId);
     }
 
     if (
@@ -352,7 +340,8 @@ export class AssetIngestionService {
       createFromIngredientDto.parentId,
       'parentId',
     );
-    const organizationId = await this.resolveParentOrganizationId(
+    const organizationId = await resolveParentOrganizationId(
+      this.prisma,
       user,
       AssetParent.BRAND,
       validatedParent,
@@ -394,6 +383,9 @@ export class AssetIngestionService {
     const assetData = await this.assetsService.create({
       category: validatedCategory,
       kitSlot,
+      // Pending until the copy is stored, so no brand read picks the row
+      // while the slot's previous image is still the usable one.
+      origin: ASSET_ORIGIN_GENERATION_PENDING,
       parentId: validatedParent,
       parentOrgId: organizationId,
       parentType: AssetParent.BRAND,
@@ -428,7 +420,9 @@ export class AssetIngestionService {
       );
     }
 
-    // Retire the slot's previous image only once the copy is stored.
+    // Retire the slot's previous image only once the copy is stored and the
+    // replacement is readable.
+    await this.publishStoredAsset(assetData.id, organizationId);
     if (isBrandKitSlotCategory(validatedCategory) && kitSlot) {
       await this.assetsService.patchAll(
         {
@@ -463,6 +457,17 @@ export class AssetIngestionService {
     });
 
     return assetData;
+  }
+
+  /** The file is stored: clear the pending marker so brand reads can pick the row. */
+  private async publishStoredAsset(
+    assetId: string,
+    organizationId: string,
+  ): Promise<void> {
+    await this.prisma.asset.updateMany({
+      data: { origin: null },
+      where: { id: assetId, isDeleted: false, parentOrgId: organizationId },
+    });
   }
 
   private async invalidateBrandAssets(parentId: string): Promise<void> {

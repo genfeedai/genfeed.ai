@@ -58,6 +58,11 @@ export const CACHE_TAGS = {
   EDITOR_PROJECTS: 'editorProjects',
   INGREDIENTS: 'ingredients',
   LISTENING_TOPICS: 'listeningTopics',
+  /**
+   * Every public response that shows a brand or its posts. Invalidated
+   * (guarded) when a brand is deleted or leaves PUBLIC visibility.
+   */
+  PUBLIC_BRAND_CONTENT: 'public-brand-content',
   INSTAGRAM_AUTHORIZED_SIGNALS: 'instagramAuthorizedSignals',
   TIKTOK_AUTHORIZED_SIGNALS: 'tiktokAuthorizedSignals',
   TWITTER_AUTHORIZED_SIGNALS: 'twitterAuthorizedSignals',

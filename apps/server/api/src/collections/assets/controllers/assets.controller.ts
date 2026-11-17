@@ -11,6 +11,7 @@ import {
   brandKitSlotWhere,
   isBrandKitSlotCategory,
   resolveBrandKitSlot,
+  resolveUpdatedKitSlot,
 } from '@api/collections/assets/utils/brand-kit-slot.util';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -169,7 +170,7 @@ export class AssetsController {
 
     const existingAsset = await this.assetsService.findOneSelect(
       { id: validatedId, userId: user.userId ?? user.id },
-      { category: true },
+      { category: true, kitSlot: true },
     );
 
     if (!existingAsset) {
@@ -181,6 +182,8 @@ export class AssetsController {
       updateAssetDto.category === AssetCategory.FONT
     )
       throw new BadRequestException('font_asset_dedicated_route_required');
+
+    const resultingSlot = resolveUpdatedKitSlot(updateAssetDto, existingAsset);
 
     const sanitizedUpdate: MutableAssetUpdate = {};
 
@@ -234,7 +237,7 @@ export class AssetsController {
     ) {
       const kitSlot = resolveBrandKitSlot(
         updateAssetDto.category,
-        updateAssetDto.kitSlot,
+        resultingSlot,
       );
       if (kitSlot) {
         sanitizedUpdate.kitSlot = kitSlot;

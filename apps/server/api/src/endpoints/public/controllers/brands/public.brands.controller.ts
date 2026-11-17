@@ -6,6 +6,7 @@ import { ImagesService } from '@api/collections/images/services/images.service';
 import { LinksService } from '@api/collections/links/services/links.service';
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { CACHE_TAGS } from '@api/common/constants/cache-patterns.constants';
 import { PublicBrandSocialsService } from '@api/endpoints/public/services/public-brand-socials.service';
 import { PublicViewsService } from '@api/endpoints/public/services/public-views.service';
 import { publicBrandListing } from '@api/endpoints/public/utils/public-brand-listing.util';
@@ -104,7 +105,8 @@ export class PublicBrandsController {
   @Cache({
     keyGenerator: (req) =>
       `public:brands:highlighted:${req.query.isHighlighted ?? 'false'}:limit:${req.query.limit ?? '10'}:page:${req.query.page ?? '1'}:sort:${req.query.sortBy === 'highlighted' ? 'highlighted' : 'newest'}`,
-    tags: ['brands', 'public'],
+    isInvalidationGuarded: true,
+    tags: ['brands', 'public', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 1800, // 30 minutes
   })
   async findPublicBrands(
@@ -132,7 +134,8 @@ export class PublicBrandsController {
   @Get('slug')
   @Cache({
     keyGenerator: (req) => `brand:slug:${req.query.slug ?? ''}`,
-    tags: ['brands', 'slugs'],
+    isInvalidationGuarded: true,
+    tags: ['brands', 'slugs', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 3600, // 1 hour
   })
   async findOneBySlug(
@@ -170,7 +173,8 @@ export class PublicBrandsController {
   @Get(':brandId')
   @Cache({
     keyGenerator: (req) => `public:brand:${req.params?.brandId ?? 'unknown'}`,
-    tags: ['brands'],
+    isInvalidationGuarded: true,
+    tags: ['brands', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 1800, // 30 minutes
   })
   async findOne(
@@ -206,7 +210,8 @@ export class PublicBrandsController {
   @Cache({
     keyGenerator: (req) =>
       `public:brand:${req.params?.brandId ?? 'unknown'}:referral`,
-    tags: ['brands', 'referral'],
+    isInvalidationGuarded: true,
+    tags: ['brands', 'referral', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 300, // 5 minutes: a newly created code should reach the profile soon
   })
   async findBrandReferral(
@@ -241,7 +246,8 @@ export class PublicBrandsController {
   @Cache({
     keyGenerator: (req) =>
       `public:brand:${req.params?.brandId ?? 'unknown'}:links:${req.query.sort ?? '-createdAt'}`,
-    tags: ['brands', 'links'],
+    isInvalidationGuarded: true,
+    tags: ['brands', 'links', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 1800, // 30 minutes
   })
   async findBrandLinks(
@@ -279,7 +285,8 @@ export class PublicBrandsController {
   @Cache({
     keyGenerator: (req) =>
       `public:brand:${req.params?.brandId ?? 'unknown'}:videos:${req.query.page ?? 1}:${req.query.limit ?? 20}:${req.query.sort ?? '-createdAt'}`,
-    tags: ['brands', 'videos'],
+    isInvalidationGuarded: true,
+    tags: ['brands', 'videos', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 900, // 15 minutes
   })
   async findBrandVideos(
@@ -322,7 +329,8 @@ export class PublicBrandsController {
   @Cache({
     keyGenerator: (req) =>
       `public:brand:${req.params?.brandId ?? 'unknown'}:images:${req.query.page ?? 1}:${req.query.limit ?? 20}:${req.query.sort ?? '-createdAt'}`,
-    tags: ['brands', 'images'],
+    isInvalidationGuarded: true,
+    tags: ['brands', 'images', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 900, // 15 minutes
   })
   async findBrandImages(
@@ -365,7 +373,8 @@ export class PublicBrandsController {
   @Cache({
     keyGenerator: (req) =>
       `public:brand:${req.params?.brandId ?? 'unknown'}:articles:${req.query.page ?? 1}:${req.query.limit ?? 20}:${req.query.sort ?? '-createdAt'}`,
-    tags: ['brands', 'articles'],
+    isInvalidationGuarded: true,
+    tags: ['brands', 'articles', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 900, // 15 minutes
   })
   async findBrandArticles(
