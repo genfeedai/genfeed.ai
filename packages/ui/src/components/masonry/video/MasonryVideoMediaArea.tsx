@@ -20,9 +20,9 @@ type MasonryVideoMediaAreaProps = {
   isFleetNsfwLocked: boolean;
   isDragEnabled: boolean;
   hasUpdateParent: boolean;
-  placeholderImageUrl: string;
   hasPosterThumbnail: boolean;
-  thumbnailImageUrl: string;
+  /** The video's own poster, or null: a tile never borrows a generic picture. */
+  posterImageUrl: string | null;
   ingredientUrl: string;
   metadataLabel: string | undefined;
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -54,9 +54,8 @@ export default function MasonryVideoMediaArea({
   isFleetNsfwLocked,
   isDragEnabled,
   hasUpdateParent,
-  placeholderImageUrl,
   hasPosterThumbnail,
-  thumbnailImageUrl,
+  posterImageUrl,
   ingredientUrl,
   metadataLabel,
   videoRef,
@@ -129,18 +128,26 @@ export default function MasonryVideoMediaArea({
             />
           )}
 
-          <Image
-            src={isUnavailable ? placeholderImageUrl : thumbnailImageUrl}
-            alt={accessibleLabel || metadataLabel || 'Video'}
-            fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className={cn(
-              'object-cover object-center outline-media',
-              (isFailed || isFleetNsfwLocked) && 'blur-sm',
-            )}
-            loading="lazy"
-            onLoad={() => onImageLoad?.()}
-          />
+          {posterImageUrl ? (
+            <Image
+              src={posterImageUrl}
+              alt={accessibleLabel || metadataLabel || 'Video'}
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className={cn(
+                'object-cover object-center outline-media',
+                (isFailed || isFleetNsfwLocked) && 'blur-sm',
+              )}
+              loading="lazy"
+              onLoad={() => onImageLoad?.()}
+            />
+          ) : (
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 bg-tertiary"
+              data-testid={`masonry-video-no-poster-${video.id}`}
+            />
+          )}
         </div>
       ) : (
         <div {...sharedWrapperProps}>
@@ -152,7 +159,7 @@ export default function MasonryVideoMediaArea({
             <VideoPlayer
               mediaProps={{ onError: onMediaError }}
               src={ingredientUrl}
-              thumbnail={thumbnailImageUrl}
+              thumbnail={posterImageUrl ?? undefined}
               videoRef={videoRef}
               className="pointer-events-none select-none"
               config={{
