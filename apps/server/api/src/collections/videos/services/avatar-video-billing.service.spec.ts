@@ -7,6 +7,7 @@ import { AvatarVideoBillingService } from '@api/collections/videos/services/avat
 import type { AvatarVideoModelService } from '@api/collections/videos/services/avatar-video-model.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
+  avatar6Snapshot,
   avatarEngineSnapshot,
   photoAnimationProfile,
   photoAnimationSnapshot,
@@ -275,6 +276,39 @@ describe('AvatarVideoBillingService.quoteRender', () => {
       estimatedSeconds: 10,
       snapshot: { costSource: 'reviewed-provider', credits: 228 },
     });
+  });
+
+  it.each([
+    ['heygen/heygen-avatar-6', MODEL_KEYS.HEYGEN_AVATAR_6, 'heygen-avatar-6'],
+    [
+      'heygen/heygen-avatar-6-turbo',
+      MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
+      'heygen-avatar-6-turbo',
+    ],
+  ] as const)(
+    'quotes %s by 1080p resolution for a look of any type',
+    async (endpoint, modelKey, engine) => {
+      const snapshot = avatar6Snapshot(endpoint, 10);
+      modelCreditQuote.quoteSnapshotByKey.mockResolvedValue(snapshot);
+
+      const quote = await service.quoteRender({ engine, modelKey }, 10);
+
+      expect(modelCreditQuote.quoteSnapshotByKey).toHaveBeenCalledWith(
+        modelKey,
+        { duration: 10, selectors: { resolution: '1080p' } },
+      );
+      expect(quote.credits).toBe(snapshot.credits);
+      expect(quote.durationQuote).toMatchObject({
+        estimatedSeconds: 10,
+        snapshot: { costSource: 'reviewed-provider' },
+      });
+    },
+  );
+
+  it('prices Avatar 6 Turbo below Avatar 6 for the same clip', () => {
+    expect(
+      avatar6Snapshot('heygen/heygen-avatar-6-turbo', 10).credits,
+    ).toBeLessThan(avatar6Snapshot('heygen/heygen-avatar-6', 10).credits);
   });
 
   it('refuses an engine row that would price from a flat reading', async () => {

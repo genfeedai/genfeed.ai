@@ -738,6 +738,87 @@ describe('direct-provider (HeyGen, ElevenLabs) rate sheet entries', () => {
       ).toMatchObject({ status: 'unresolved' });
     });
 
+    it.each(['heygen/heygen-avatar-6', 'heygen/heygen-avatar-6-turbo'])(
+      'seeds %s with a 1080p resolution selector and no avatar type',
+      async (endpoint) => {
+        const { create, profile } = await seededProfile(endpoint);
+        expect(create).toMatchObject({
+          endpoint,
+          provider: 'heygen',
+          reviewStatus: 'approved',
+          schemaFamily: 'heygen-avatar-v3',
+        });
+        expect(create.inputSchema).toHaveProperty('properties.resolution');
+        expect(create.inputSchema).not.toHaveProperty('properties.avatar_type');
+        expect(profile.requiredSelectorKeys).not.toContain('avatar_type');
+      },
+    );
+
+    it.each([
+      ['heygen/heygen-avatar-6', 0.1],
+      ['heygen/heygen-avatar-6-turbo', 0.05],
+    ])(
+      'prices %s at $%s per second at 1080p',
+      async (endpoint, usdPerSecond) => {
+        const { profile } = await seededProfile(endpoint);
+        const result = quoteModelBillablePricing(
+          profile,
+          {
+            duration: 10,
+            modelKey: endpoint,
+            provider: 'heygen',
+            selectors: { resolution: '1080p' },
+          },
+          3.33,
+          NOW,
+        );
+
+        expect(result).toMatchObject({
+          snapshot: { costSource: 'reviewed-provider' },
+          status: 'priced',
+        });
+        expect(
+          result.status === 'priced' && result.snapshot.providerCostUsd,
+        ).toBeCloseTo(usdPerSecond * 10, 6);
+      },
+    );
+
+    it('refuses an Avatar 6 quote that names no resolution', async () => {
+      const { profile } = await seededProfile('heygen/heygen-avatar-6');
+      expect(
+        quoteModelBillablePricing(
+          profile,
+          {
+            duration: 5,
+            modelKey: 'heygen/heygen-avatar-6',
+            provider: 'heygen',
+          },
+          3.33,
+          NOW,
+        ),
+      ).toMatchObject({ status: 'unresolved' });
+    });
+
+    it.each(['720p', '2k'])(
+      'refuses Avatar 6 at the unpriced %s resolution',
+      async (resolution) => {
+        const { profile } = await seededProfile('heygen/heygen-avatar-6');
+        expect(
+          quoteModelBillablePricing(
+            profile,
+            {
+              duration: 5,
+              modelKey: 'heygen/heygen-avatar-6',
+              provider: 'heygen',
+              selectors: { resolution },
+            },
+            3.33,
+            NOW,
+          ),
+        ).toMatchObject({ status: 'unresolved' });
+      },
+    );
+
     it.each(['image', 'prompt'])(
       'refuses the unpriced %s avatar type instead of guessing',
       async (avatarType) => {

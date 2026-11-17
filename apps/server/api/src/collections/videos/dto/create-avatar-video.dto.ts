@@ -130,7 +130,7 @@ export class CreateAvatarVideoDto {
   @IsOptional()
   @ApiProperty({
     description:
-      'Avatar engine model (`heygen/avatar-iv` or `heygen/avatar-v`). Ignored when autoSelectModel is true.',
+      'Avatar engine model (`heygen/avatar-iv`, `heygen/avatar-v`, `heygen/heygen-avatar-6` or `heygen/heygen-avatar-6-turbo`). Ignored when autoSelectModel is true.',
     required: false,
   })
   readonly model?: string;

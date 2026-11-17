@@ -50,6 +50,13 @@ export class AvatarVideoModelService {
         throw new BadRequestException(
           'Avatar V needs a trained digital-twin look, not a photo.',
         );
+      if (
+        explicit === MODEL_KEYS.HEYGEN_AVATAR_6 ||
+        explicit === MODEL_KEYS.HEYGEN_AVATAR_6_TURBO
+      )
+        throw new BadRequestException(
+          'Avatar 6 needs a trained avatar look, not a photo.',
+        );
       return { modelKey: MODEL_KEYS.HEYGEN_AVATAR };
     }
 

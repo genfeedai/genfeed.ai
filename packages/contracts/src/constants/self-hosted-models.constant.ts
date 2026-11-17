@@ -786,6 +786,53 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.12,
   },
   /**
+   * HeyGen Avatar 6 (`engine: { type: 'heygen-avatar-6' }`) at $0.10 per output
+   * second at 1080p (HeyGen API pricing, 2026-11-17). Any look whose
+   * `supported_api_engines` list it; the price does not vary by look type.
+   */
+  {
+    category: ModelCategory.AVATAR,
+    cost: 170,
+    costPerUnit: 34,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'HeyGen Avatar 6 — HeyGen’s newest avatar engine for trained looks, rendered at 1080p. 170 credits for a 5 s clip.',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.HEYGEN_AVATAR_6,
+    label: 'HeyGen Avatar 6',
+    lifecycle: ModelLifecycle.RECOMMENDED,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.HEYGEN,
+    providerConfig: { name: 'heygen-avatar-6', owner: 'heygen' },
+    providerCostUsd: 0.1,
+  },
+  /**
+   * HeyGen Avatar 6 Turbo (`engine: { type: 'heygen-avatar-6-turbo' }`) at
+   * $0.05 per output second at 1080p (HeyGen API pricing, 2026-11-17).
+   */
+  {
+    category: ModelCategory.AVATAR,
+    cost: 85,
+    costPerUnit: 17,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
+    description:
+      'HeyGen Avatar 6 Turbo — the lower-cost Avatar 6 engine for trained looks, rendered at 1080p. 85 credits for a 5 s clip.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
+    label: 'HeyGen Avatar 6 Turbo',
+    lifecycle: ModelLifecycle.RECOMMENDED,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.HEYGEN,
+    providerConfig: { name: 'heygen-avatar-6-turbo', owner: 'heygen' },
+    providerCostUsd: 0.05,
+  },
+  /**
    * HeyGen Voice (`heygen-voice-1`) on the synchronous
    * `POST /v3/models/audio/tts`. Unlike every other row, `providerCostUsd` is
    * USD per **1,000 characters** ($30 per 1M at HeyGen's list price), so

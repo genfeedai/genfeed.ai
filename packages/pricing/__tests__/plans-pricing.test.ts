@@ -376,6 +376,8 @@ describe('pricing constants', () => {
       MODEL_KEYS.HEYGEN_AVATAR,
       MODEL_KEYS.HEYGEN_AVATAR_IV,
       MODEL_KEYS.HEYGEN_AVATAR_V,
+      MODEL_KEYS.HEYGEN_AVATAR_6,
+      MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
     ];
     const avatarRates = REVIEWED_RATE_SHEET_ENTRIES.filter(
       (entry) =>

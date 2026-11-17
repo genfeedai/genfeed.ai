@@ -1216,6 +1216,27 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 0,
     },
     /**
+     * HeyGen Avatar 6 and Avatar 6 Turbo (`engine: { type: 'heygen-avatar-6' }`
+     * or `'heygen-avatar-6-turbo'`). Any look whose `supported_api_engines`
+     * list the engine; HeyGen does not accept a raw image for either.
+     */
+    [MODEL_KEYS.HEYGEN_AVATAR_6]: {
+      aspectRatios: ASPECT_RATIOS.HEYGEN,
+      category: ModelCategory.AVATAR,
+      defaultAspectRatio: '9:16',
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
+    },
+    [MODEL_KEYS.HEYGEN_AVATAR_6_TURBO]: {
+      aspectRatios: ASPECT_RATIOS.HEYGEN,
+      category: ModelCategory.AVATAR,
+      defaultAspectRatio: '9:16',
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
+    },
+    /**
      * HeyGen Voice (`heygen-voice-1`) on the synchronous
      * `POST /v3/models/audio/tts`. It speaks only with a HeyGen Voice clone
      * (`voice_id`) that the API key's workspace owns; text is 1–5,000 characters.
