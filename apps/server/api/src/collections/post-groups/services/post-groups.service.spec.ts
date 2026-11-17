@@ -9,6 +9,7 @@ import { PublishApprovalsService } from '@api/collections/publish-approvals/serv
 import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PostLifecycleService } from '@api/index';
+import { BrandedPublishHoldException } from '@api/services/branded-text-generation/branded-publish-hold.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ApiKeyScope,
@@ -902,6 +903,135 @@ describe('PostGroupsService', () => {
     expect(result.id).toBe('existing-group');
     expect(prisma.postGroup.create).not.toHaveBeenCalled();
     expect(prisma.post.create).not.toHaveBeenCalled();
+  });
+
+  it('waits for sibling approval checks before returning a release failure', async () => {
+    vi.useRealTimers();
+    const sibling = Promise.withResolvers<void>();
+    const unavailable = new Error('Policy check unavailable');
+    prisma.postGroup.findFirst.mockResolvedValue(makeGroup());
+    prisma.credential.findMany.mockResolvedValue([
+      makeCredential({
+        accessTokenExpiry: new Date('2099-09-01T00:00:00.000Z'),
+      }),
+      makeCredential({
+        id: 'cred-y',
+        accessTokenExpiry: new Date('2099-09-01T00:00:00.000Z'),
+      }),
+    ]);
+    publishApprovalsService.createForCurrentPost
+      .mockRejectedValueOnce(unavailable)
+      .mockImplementationOnce(async () => {
+        await sibling.promise;
+        return { id: 'approval-2' };
+      });
+    let hasReturned = false;
+    const result = service
+      .create('org-1', 'user-1', {
+        baseContent: 'Launch note',
+        brandId: 'brand-1',
+        status: ReleaseStatus.SCHEDULED,
+        targets: [
+          {
+            credentialId: 'cred-x',
+            platform: CredentialPlatform.TWITTER,
+            scheduledDate: '2099-07-09T12:00:00.000Z',
+          },
+          {
+            credentialId: 'cred-y',
+            platform: CredentialPlatform.TWITTER,
+            scheduledDate: '2099-07-09T12:00:00.000Z',
+          },
+        ],
+        timezone: 'UTC',
+        title: 'Launch',
+      })
+      .catch((error: unknown) => {
+        hasReturned = true;
+        return error;
+      });
+
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(hasReturned).toBe(false);
+    sibling.resolve();
+    await expect(result).resolves.toBe(unavailable);
+  });
+
+  it('keeps one paused release after a failed check, then rechecks it on resume', async () => {
+    const groups: MockPostGroup[] = [];
+    const targets: ReturnType<typeof makeTarget>[] = [];
+    prisma.postGroup.create.mockImplementation(async ({ data }) => {
+      const group = makeGroup({ ...data, id: 'group-1' });
+      groups.push(group);
+      return group;
+    });
+    prisma.postGroup.findFirst.mockImplementation(
+      async () => groups[0] ?? null,
+    );
+    prisma.post.create.mockImplementation(async ({ data }) => {
+      const target = makeTarget({ ...data, id: 'target-1' });
+      targets.push(target);
+      return target;
+    });
+    prisma.post.findMany.mockImplementation(async () => targets);
+    postLifecycleService.transition.mockImplementation(
+      async ({ nextState }) => {
+        targets[0].targetExecutionState = nextState;
+        return { kind: 'transitioned', target: targets[0] };
+      },
+    );
+    const unavailable = new BrandedPublishHoldException({
+      brandId: 'brand-1',
+      reason: 'policy_violation',
+      violations: [
+        { rule: 'policy_judge_unavailable', detail: 'Check unavailable' },
+      ],
+    });
+    publishApprovalsService.createForCurrentPost.mockRejectedValue(unavailable);
+    const body = {
+      baseContent: 'Launch note',
+      brandId: 'brand-1',
+      status: ReleaseStatus.SCHEDULED,
+      targets: [
+        {
+          credentialId: 'cred-x',
+          platform: CredentialPlatform.TWITTER,
+          scheduledDate: '2026-07-09T12:00:00.000Z',
+        },
+      ],
+      timezone: 'UTC',
+      title: 'Launch',
+    };
+
+    await expect(
+      service.create('org-1', 'user-1', body, 'same-request'),
+    ).rejects.toBe(unavailable);
+    await expect(
+      service.create('org-1', 'user-1', body, 'same-request'),
+    ).resolves.toMatchObject({
+      id: 'group-1',
+      status: ReleaseStatus.PAUSED,
+      targets: [{ executionState: TargetExecutionState.PAUSED }],
+    });
+    await expect(service.resume('org-1', 'user-1', 'group-1')).rejects.toBe(
+      unavailable,
+    );
+    await expect(service.getOne('org-1', 'group-1')).resolves.toMatchObject({
+      status: ReleaseStatus.PAUSED,
+    });
+
+    publishApprovalsService.createForCurrentPost.mockResolvedValue({
+      id: 'approval-1',
+    });
+    await expect(
+      service.resume('org-1', 'user-1', 'group-1'),
+    ).resolves.toMatchObject({
+      id: 'group-1',
+      status: ReleaseStatus.SCHEDULED,
+      targets: [{ executionState: TargetExecutionState.SCHEDULED }],
+    });
+    expect(groups.map(({ id }) => id)).toEqual(['group-1']);
+    expect(targets.map(({ id }) => id)).toEqual(['target-1']);
   });
 
   it('rejects a posts:draft API key before scheduled writes', async () => {

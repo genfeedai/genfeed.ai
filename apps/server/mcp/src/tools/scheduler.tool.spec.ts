@@ -70,6 +70,41 @@ describe('SCHEDULER_TOOL_NAMES', () => {
 });
 
 describe('handleSchedulerTool', () => {
+  it('reuses the approval key after a single release was persisted but its response failed', async () => {
+    const client = buildClient();
+    const releases = new Map<string, { id: string; status: string }>();
+    client.createScheduledRelease.mockImplementation(async (_release, key) => {
+      const storageKey = key ?? `unkeyed:${releases.size}`;
+      const existing = releases.get(storageKey);
+      if (existing) return existing;
+      releases.set(storageKey, { id: 'release-1', status: 'paused' });
+      throw new Error('Policy check unavailable after persistence');
+    });
+    const args = {
+      release: {
+        baseContent: 'Hello',
+        targets: [{ credentialId: 'credential-1', platform: 'linkedin' }],
+        timezone: 'UTC',
+        title: 'Launch',
+      },
+    };
+    const execute = () =>
+      handleSchedulerTool(
+        client as unknown as ClientService,
+        'create_scheduled_release',
+        args,
+        'approval-1',
+      );
+
+    await expect(execute()).rejects.toThrow('Policy check unavailable');
+    await expect(execute()).resolves.toMatchObject({
+      structuredContent: { data: { id: 'release-1', status: 'paused' } },
+    });
+    expect([...releases.entries()]).toEqual([
+      ['mcp-release:approval-1', { id: 'release-1', status: 'paused' }],
+    ]);
+  });
+
   it('creates a release and forwards the idempotency key separately', async () => {
     const client = buildClient();
     const release = {

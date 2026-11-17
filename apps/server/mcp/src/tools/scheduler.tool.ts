@@ -48,7 +48,7 @@ export function handleSchedulerTool(
   client: ClientService,
   name: string,
   args: Record<string, unknown>,
-  /** The approval this call runs under; its id keys a batch so a retry never doubles it. */
+  /** The approval this call runs under; its id keys releases so retries reuse them. */
   approvalId?: string,
 ) {
   const handlers: Record<
@@ -74,7 +74,8 @@ export function handleSchedulerTool(
       const release = createReleasePayload(a);
       const result = await client.createScheduledRelease(
         release,
-        optionalString(a, 'idempotencyKey'),
+        optionalString(a, 'idempotencyKey') ??
+          (approvalId ? `mcp-release:${approvalId}` : undefined),
       );
       return textDataResult('Scheduled release created', result);
     },
