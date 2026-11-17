@@ -11,7 +11,7 @@ jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe update-a-release on throwaway drafts
+      - name: Probe tag creation and asset upload around a non-tip commit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -19,25 +19,25 @@ jobs:
           repo="repos/${GITHUB_REPOSITORY}"
           old=12edcae57400547ffe336d6756e5c0da4ac29508
           head="$(gh api ${repo}/commits/master --jq .sha)"
-          echo "master head ${head}"
-          parent="$(gh api ${repo}/commits/${old} --jq '.parents[0].sha')"
-          v031="$(gh api ${repo}/commits/v0.3.1 --jq .sha)"
-          echo "v0.3.1 ${v031}"
-          try() {
-            local label="$1" create_target="$2" patch_target="$3"
-            local id
-            id="$(gh api -X POST ${repo}/releases -f tag_name="diag-tmp-${label}" -f name="diag ${label}" -f target_commitish="${create_target}" -F draft=true --jq .id 2>&1)"
-            echo "-- ${label}: create@${create_target} -> ${id:0:120}"
-            case "${id}" in [0-9]*) ;; *) return ;; esac
-            out="$(gh api -X PATCH ${repo}/releases/${id} -f tag_name="diag-tmp-${label}" -f target_commitish="${patch_target}" 2>&1 | head -c 200 | tr '\n' ' ')"
-            echo "   patch target=${patch_target} -> ${out:0:160}"
-            gh api -X DELETE ${repo}/releases/${id} 2>&1 | head -c 100
-          }
-          try old-same "${old}" "${old}"
-          try head-same "${head}" "${head}"
-          try parent-same "${parent}" "${parent}"
-          try v031-same "${v031}" "${v031}"
-          try master-same master master
-          try old-to-head "${old}" "${head}"
-          # sanity: is the old commit even on master?
-          gh api "${repo}/compare/${old}...master" --jq '{status,ahead_by,behind_by}'
+          show() { echo "$1" | head -c 220 | tr '\n' ' '; echo; }
+          echo "== A: create tag ref at non-tip commit"
+          show "$(gh api -X POST ${repo}/git/refs -f ref=refs/tags/diag-tmp-nontip -f sha=${old} 2>&1)"
+          echo "== B: create draft at tag that exists (no target_commitish)"
+          out="$(gh api -X POST ${repo}/releases -f tag_name=diag-tmp-nontip -f name=diag-nontip -F draft=true 2>&1)"
+          show "$out"
+          idb="$(jq -r '.id // empty' <<<"$out" 2>/dev/null)"
+          if [ -n "$idb" ]; then
+            echo "== C: PATCH name only on it"; show "$(gh api -X PATCH ${repo}/releases/${idb} -f name=diag-nontip2 2>&1)"
+            echo "== D: PATCH tag_name+name"; show "$(gh api -X PATCH ${repo}/releases/${idb} -f tag_name=diag-tmp-nontip -f name=diag-nontip3 2>&1)"
+            gh api -X DELETE ${repo}/releases/${idb} 2>&1 | head -c 100
+          fi
+          gh api -X DELETE ${repo}/git/refs/tags/diag-tmp-nontip 2>&1 | head -c 100
+          echo "== E: asset upload on a tip-targeted draft via uploads API"
+          out="$(gh api -X POST ${repo}/releases -f tag_name=diag-tmp-upload -f name=diag-upload -f target_commitish=${head} -F draft=true 2>&1)"
+          ide="$(jq -r '.id // empty' <<<"$out" 2>/dev/null)"; echo "id=${ide}"
+          if [ -n "$ide" ]; then
+            printf 'probe' > probe.bin
+            show "$(gh api -X POST "https://uploads.github.com/${repo}/releases/${ide}/assets?name=probe.bin" -H 'Content-Type: application/octet-stream' --input probe.bin 2>&1)"
+            gh api ${repo}/releases/${ide} --jq '[.assets[]|{name,state,size,digest}]'
+            gh api -X DELETE ${repo}/releases/${ide} 2>&1 | head -c 100
+          fi
