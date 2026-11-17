@@ -27,6 +27,20 @@ run-name: Seed hosted SaaS | ${{ inputs.seed }} | ${{ inputs.live && 'live' || '
 #                        externalBusinessId column exists, every one of them is
 #                        disconnected by the #9608 hard-cut migration and must
 #                        reconnect.
+#   storyboard-unbilled-report
+#                        Read-only: storyboard journal operations that rendered
+#                        (ready) but whose hold was released, so the render was
+#                        never charged (#10419), per organization, journal and
+#                        reservation status.
+#   reserved-slug-report
+#                        Read-only: organizations and brands whose slug equals a
+#                        reserved app root segment (#8117).
+#   demo-credit-ledger-report
+#                        Read-only: credit ledger rows and holds of the Demo
+#                        organization on 2026-10-27 07:00-08:30 UTC (#8374).
+#   linkedin-credential-report
+#                        Read-only: scoped trend credential counts per platform
+#                        and every live LinkedIn credential row (#9023).
 #
 # The *-report entries run a fixed query from READ_ONLY_REPORT_SCRIPT in a READ
 # ONLY transaction in the migrate task; `live` is ignored and they never write.
@@ -47,6 +61,10 @@ on:
           - backfill-report
           - webhook-id-report
           - instagram-reconnect-report
+          - storyboard-unbilled-report
+          - reserved-slug-report
+          - demo-credit-ledger-report
+          - linkedin-credential-report
       live:
         description: "apply the seed; unchecked is a dry run"
         required: false
@@ -181,10 +199,17 @@ jobs:
           READ_ONLY_REPORT_SCRIPT: |
             const { readFileSync, existsSync } = require('node:fs');
             const { Client } = require('pg');
+            // Snapshot of RESERVED_APP_ROOT_SEGMENTS (packages/contracts, routes.constant.ts).
+            const RESERVED_APP_ROOT_SEGMENTS = ['admin', 'agent', 'agent-auth', 'analytics', 'api', 'automation', 'clipper', 'connectors', 'desktop', 'discovery', 'edit', 'editor', 'forgot-password', 'ingest', 'library', 'login', 'logout', 'managed-credits', 'messages', 'monitoring', 'motion', 'oauth', 'onboarding', 'overview', 'platforms', 'playground', 'publishing', 'request-access', 'reset-password', 'serwist', 'settings', 'sign-in', 'sign-up', 'storyboard', 'support', 'trpc', 'turbo', 'v1', 'workspace'];
+            const REPORT_PARAMS = { 'reserved-slug-report': [RESERVED_APP_ROOT_SEGMENTS] };
             const REPORTS = {
               'backfill-report': 'SELECT id, "completedAt", report FROM data_backfills ORDER BY "completedAt" DESC LIMIT 100',
               'instagram-reconnect-report': `SELECT count(*)::int AS "connected", count(DISTINCT c."brandId")::int AS "brands", count(DISTINCT COALESCE(c."organizationId", b."organizationId"))::int AS "organizations" FROM credentials c LEFT JOIN brands b ON b.id = c."brandId" WHERE c."platform" = 'INSTAGRAM' AND c."isConnected" = true AND c."isDeleted" = false`,
               'webhook-id-report': `SELECT count(*) FILTER (WHERE config->>'webhookId' IS NOT NULL)::int AS "withWebhookId", count(*) FILTER (WHERE config->>'webhookId' IS NOT NULL AND config->>'webhookId' NOT LIKE 'wh\\_%')::int AS "withoutPrefix" FROM workflows WHERE "isDeleted" = false`,
+              'storyboard-unbilled-report': `WITH ops AS (SELECT r."organizationId" AS org, j.kind, op FROM content_runs r CROSS JOIN (VALUES ('still', 'stillOperations'), ('shotRender', 'shotRenderOperations'), ('asset', 'assetOperations')) AS j(kind, key) CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(r.config -> j.key) = 'array' THEN r.config -> j.key ELSE '[]'::jsonb END) AS op WHERE r."contract" = 'storyboard-run' AND r."isDeleted" = false AND op ->> 'state' = 'ready' AND op ->> 'billing' = 'released' AND op ->> 'billingMode' = 'platform') SELECT o.org AS "organizationId", o.kind, COALESCE(cr.status::text, 'none') AS "reservationStatus", count(*)::int AS "operations", COALESCE(sum((o.op ->> 'credits')::numeric), 0)::float AS "credits", min(left(o.op ->> 'updatedAt', 10)) AS "firstDate", max(left(o.op ->> 'updatedAt', 10)) AS "lastDate" FROM ops o LEFT JOIN credit_reservations cr ON cr.id = o.op ->> 'reservationId' GROUP BY o.org, o.kind, COALESCE(cr.status::text, 'none') ORDER BY "credits" DESC, o.org, o.kind LIMIT 200`,
+              'reserved-slug-report': `SELECT 'organization' AS kind, id, slug, "isDeleted", NULL::text AS "organizationId" FROM organizations WHERE lower(trim(slug)) = ANY($1) UNION ALL SELECT 'brand', id, slug, "isDeleted", "organizationId" FROM brands WHERE lower(trim(slug)) = ANY($1) ORDER BY kind, slug, id LIMIT 200`,
+              'demo-credit-ledger-report': `WITH demo AS (SELECT id FROM organizations WHERE lower(label) = 'demo' AND "isDeleted" = false) SELECT * FROM (SELECT 'ledger' AS kind, t."organizationId", t."createdAt"::text AS "at", t.amount::float AS amount, t."balanceAfter"::float AS "balanceOrSettled", t.source, t.category, t."referenceType", split_part(t."idempotencyKey", ':', 1) AS "keyPrefix", t."reservationId", NULL::text AS "status", NULL::text AS "workloadType", t."isDeleted", (SELECT array_agg(k ORDER BY k) FROM jsonb_object_keys(CASE WHEN jsonb_typeof(t.metadata) = 'object' THEN t.metadata ELSE '{}'::jsonb END) AS k) AS "metadataKeys" FROM credit_transactions t WHERE t."organizationId" IN (SELECT id FROM demo) AND t."createdAt" >= '2026-10-27 07:00:00' AND t."createdAt" < '2026-10-27 08:30:00' UNION ALL SELECT 'hold', r."organizationId", r."createdAt"::text, r.amount::float, r."settledAmount"::float, r.source, NULL, NULL, split_part(r."idempotencyKey", ':', 1), r.id, r.status::text, r."workloadType", r."isDeleted", NULL FROM credit_reservations r WHERE r."organizationId" IN (SELECT id FROM demo) AND r."createdAt" < '2026-10-27 08:30:00' AND r."updatedAt" >= '2026-10-27 07:00:00') q ORDER BY "at", kind LIMIT 300`,
+              'linkedin-credential-report': `SELECT * FROM (SELECT 'summary' AS kind, c."platform"::text AS platform, NULL::text AS "organizationId", NULL::text AS "brandId", c."isConnected", c."isDeleted", (c."brandId" IS NOT NULL) AS "hasBrand", (c."organizationId" IS NOT NULL) AS "hasOrganization", NULL::boolean AS "brandDeleted", NULL::boolean AS "hasTrendPreferences", count(*)::int AS credentials, count(DISTINCT c."brandId")::int AS brands, max(left(c."updatedAt"::text, 10)) AS "lastUpdated" FROM credentials c WHERE c."platform" IN ('INSTAGRAM', 'LINKEDIN', 'PINTEREST', 'REDDIT', 'TIKTOK', 'TWITTER', 'YOUTUBE') GROUP BY c."platform", c."isConnected", c."isDeleted", (c."brandId" IS NOT NULL), (c."organizationId" IS NOT NULL) UNION ALL SELECT 'linkedin', 'LINKEDIN', c."organizationId", c."brandId", c."isConnected", c."isDeleted", (c."brandId" IS NOT NULL), (c."organizationId" IS NOT NULL), b."isDeleted", EXISTS (SELECT 1 FROM trend_preferences p WHERE p."brandId" = c."brandId" AND p."isDeleted" = false), 1, 1, left(c."updatedAt"::text, 10) FROM credentials c LEFT JOIN brands b ON b.id = c."brandId" WHERE c."platform" = 'LINKEDIN' AND c."isDeleted" = false) q ORDER BY kind DESC, platform, "isConnected" DESC, "organizationId", "brandId" LIMIT 200`,
             };
             const name = process.argv[1];
             const sql = REPORTS[name];
@@ -200,7 +225,7 @@ jobs:
             (async () => {
               await client.connect();
               await client.query('BEGIN READ ONLY');
-              const { rows } = await client.query(sql);
+              const { rows } = await client.query(sql, REPORT_PARAMS[name] ?? []);
               for (const row of rows) console.log(`${name} ${JSON.stringify(row)}`);
               console.log(`${name} rows=${rows.length}`);
               await client.query('ROLLBACK');
@@ -253,7 +278,7 @@ jobs:
                 done
               fi
               ;;
-            backfill-report | webhook-id-report | instagram-reconnect-report)
+            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | reserved-slug-report | demo-credit-ledger-report | linkedin-credential-report)
               TASK_DEFINITION=$(tofu output -raw migrate_task_definition_arn)
               CONTAINER=migrate
               LOG_GROUP="/ecs/${PROJECT}-production/migrate"
