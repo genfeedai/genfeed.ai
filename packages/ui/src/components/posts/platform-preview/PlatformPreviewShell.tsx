@@ -2,10 +2,10 @@
 
 import type {
   PlatformPreviewAuthorRowProps,
-  PlatformPreviewRendererProps,
   PlatformPreviewShellProps,
 } from '@genfeedai/props/components/platform-preview.props';
 import Card from '@ui/card/Card';
+import AccountIdentity from '@ui/posts/account-identity/AccountIdentity';
 import { PreviewPresentation } from '@ui/posts/platform-preview/PlatformPreview.context';
 import { renderCaptionEntities } from '@ui/posts/platform-preview/PlatformPreviewCaption';
 import {
@@ -14,68 +14,41 @@ import {
   getPreviewStatus,
 } from '@ui/posts/platform-preview/platform-preview.helpers';
 import { getPlatformPreviewIcon } from '@ui/posts/platform-preview/platform-preview-icons';
-import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
-import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { useTranslations } from 'next-intl';
 import { useContext } from 'react';
 
 export default function PreviewShell({
   target,
-  eyebrow,
-  isApproximate = false,
+  accountMeta,
   children,
   className,
 }: PlatformPreviewShellProps) {
   const translate = useTranslations('ui.platformPreview');
-  const { statusLabel, headerAction, headerPresentation } =
-    useContext(PreviewPresentation);
-  const isAccountHeader = headerPresentation === 'account';
+  const { statusLabel, headerAction } = useContext(PreviewPresentation);
   const status = getPreviewStatus(target);
-  const Icon = getPlatformPreviewIcon(target.platform);
-  const statusRow = (
-    <div className="flex shrink-0 items-center gap-1.5">
-      <Badge
-        variant="outline"
-        className={statusLabel ? 'status' : status.className}
-      >
-        {statusLabel || translate(status.messageKey)}
-      </Badge>
-      {headerAction}
-    </div>
-  );
   return (
     <article
       aria-label={translate('platformLabel', {
         platform: target.platformLabel,
       })}
     >
-      <Card
-        data-testid="preview-card"
-        label={isAccountHeader ? undefined : target.platformLabel}
-        labelAs="h2"
-        isLabelWrapped
-        isHeaderInside
-        icon={isAccountHeader ? undefined : <Icon className="size-4" />}
-        description={
-          isAccountHeader
-            ? undefined
-            : isApproximate
-              ? translate('approximate')
-              : eyebrow
-        }
-        className={className}
-        headerAction={isAccountHeader ? undefined : statusRow}
-      >
-        {isAccountHeader ? (
-          <div
-            className="flex items-center justify-between gap-3"
-            data-testid="preview-account-header"
-          >
-            <AuthorRow target={target} showPlatformBadge />
-            {statusRow}
+      <Card data-testid="preview-card" isHeaderInside className={className}>
+        <div
+          className="flex items-center justify-between gap-3"
+          data-testid="preview-account-header"
+        >
+          <AuthorRow meta={accountMeta} target={target} />
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Badge
+              variant="outline"
+              className={statusLabel ? 'status' : status.className}
+            >
+              {statusLabel || translate(status.messageKey)}
+            </Badge>
+            {headerAction}
           </div>
-        ) : null}
+        </div>
         {children}
         {target.firstComment?.trim() ? (
           <div
@@ -95,58 +68,19 @@ export default function PreviewShell({
   );
 }
 
-export function AuthorAvatar({ target }: PlatformPreviewRendererProps) {
+export function AuthorRow({ target, meta }: PlatformPreviewAuthorRowProps) {
   const translate = useTranslations('ui.platformPreview');
-  return (
-    <Avatar
-      alt={translate('avatarAlt', { name: getAuthorName(target) })}
-      name={getAuthorName(target)}
-      referrerPolicy="no-referrer"
-      size="lg"
-      src={target.author?.avatarUrl}
-    />
-  );
-}
-
-export function AuthorRow({
-  target,
-  meta,
-  showPlatformBadge = false,
-}: PlatformPreviewAuthorRowProps) {
-  const { headerPresentation } = useContext(PreviewPresentation);
-  if (headerPresentation === 'account' && !showPlatformBadge) return null;
-  const Icon = getPlatformPreviewIcon(target.platform);
   const authorName = getAuthorName(target);
-  const handle = formatHandle(target.author?.handle);
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="relative shrink-0">
-        <AuthorAvatar target={target} />
-        {showPlatformBadge ? (
-          <SimpleTooltip label={target.platformLabel}>
-            <span
-              className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full border border-border bg-card text-foreground"
-              role="img"
-              aria-label={target.platformLabel}
-            >
-              <Icon className="size-3" />
-            </span>
-          </SimpleTooltip>
-        ) : null}
-      </span>
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-foreground">
-          {authorName}
-        </p>
-        {handle || meta ? (
-          <p className="truncate text-xs text-muted-foreground">
-            {handle}
-            {handle && meta ? <> · </> : null}
-            {meta}
-          </p>
-        ) : null}
-      </div>
-    </div>
+    <AccountIdentity
+      avatarAlt={translate('avatarAlt', { name: authorName })}
+      avatarUrl={target.author?.avatarUrl}
+      handle={formatHandle(target.author?.handle)}
+      meta={meta}
+      name={authorName}
+      PlatformIcon={getPlatformPreviewIcon(target.platform)}
+      platformLabel={target.platformLabel}
+    />
   );
 }

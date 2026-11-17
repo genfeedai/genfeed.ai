@@ -6,7 +6,6 @@ import {
   PageScope,
   Platform,
   PostCategory,
-  TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { ICredential, IPost } from '@genfeedai/contracts/interfaces';
 import type { AnalyticsStat } from '@genfeedai/contracts/interfaces/analytics/analytics-ui.interface';
@@ -27,6 +26,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Eye, Heart, MessageSquare, TrendingUp, Zap } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { isPostPublished } from '@/features/posts/detail/post-published.helper';
 import {
   isPostDetailPublishBlocked,
   type PostDetailOperation,
@@ -276,12 +276,8 @@ export function usePostDetailState({
   const hasChildren = sortedChildren.length > 0;
 
   const isPublished = useMemo(
-    () =>
-      !!(
-        post?.publicationDate ||
-        post?.targetExecutionState === TargetExecutionState.PUBLISHED
-      ),
-    [post?.publicationDate, post?.targetExecutionState],
+    () => (post ? isPostPublished(post) : false),
+    [post],
   );
 
   const isEditable = useMemo(
@@ -439,10 +435,7 @@ export function usePostDetailState({
       return;
     }
 
-    const isPostPublished =
-      post.publicationDate ||
-      post.targetExecutionState === TargetExecutionState.PUBLISHED;
-    if (isPostPublished && viewMode !== 'preview') {
+    if (isPostPublished(post) && viewMode !== 'preview') {
       setViewMode('preview');
     }
   }, [

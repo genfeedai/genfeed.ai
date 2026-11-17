@@ -105,7 +105,6 @@ export default function PlatformPreview({
   headerAction,
   showValidation,
   presentation = 'full',
-  headerPresentation = 'platform',
 }: PlatformPreviewProps) {
   const translate = useTranslations('ui.platformPreview');
   const resolvedTargets = useMemo(() => {
@@ -210,7 +209,6 @@ export default function PlatformPreview({
           headerAction,
           showValidation,
           presentation,
-          headerPresentation,
         }}
       >
         {presentation === 'compact' ? (

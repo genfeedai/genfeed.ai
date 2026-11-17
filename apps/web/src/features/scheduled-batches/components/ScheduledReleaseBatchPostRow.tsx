@@ -131,7 +131,6 @@ export default function ScheduledReleaseBatchPostRow({
         {isRemoved ? null : (
           <PlatformPreview
             className="min-w-0"
-            headerPresentation="account"
             showValidation={false}
             target={toBatchPreviewTarget(post)}
           />

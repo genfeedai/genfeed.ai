@@ -10,9 +10,7 @@ import CaptionText, {
   ValidationIssues,
 } from '@ui/posts/platform-preview/PlatformPreviewCaption';
 import MediaGrid from '@ui/posts/platform-preview/PlatformPreviewMedia';
-import PreviewShell, {
-  AuthorRow,
-} from '@ui/posts/platform-preview/PlatformPreviewShell';
+import PreviewShell from '@ui/posts/platform-preview/PlatformPreviewShell';
 import {
   formatHandle,
   getAuthorName,
@@ -25,8 +23,7 @@ export default function InstagramPreviewRenderer({
 }: PlatformPreviewRendererProps) {
   const translate = useTranslations('ui.platformPreview');
   return (
-    <PreviewShell eyebrow={translate('eyebrow.instagram')} target={target}>
-      <AuthorRow target={target} />
+    <PreviewShell target={target}>
       <MediaGrid target={target} variant="square" />
       <div className="mt-3 flex items-center gap-4 text-foreground/70">
         <Heart className="size-5" />
@@ -53,8 +50,7 @@ export function TikTokPreviewRenderer({
 }: PlatformPreviewRendererProps) {
   const translate = useTranslations('ui.platformPreview');
   return (
-    <PreviewShell eyebrow={translate('eyebrow.tiktok')} target={target}>
-      <AuthorRow target={target} />
+    <PreviewShell target={target}>
       <div
         className={
           'relative mx-auto max-w-72 overflow-hidden rounded-lg border border-border bg-black' /* design-system-allow-content-color -- platform preview */
@@ -98,8 +94,7 @@ export function YouTubePreviewRenderer({
 }: PlatformPreviewRendererProps) {
   const translate = useTranslations('ui.platformPreview');
   return (
-    <PreviewShell eyebrow={translate('eyebrow.youtube')} target={target}>
-      <AuthorRow target={target} />
+    <PreviewShell target={target}>
       <MediaGrid target={target} variant="video" />
       <div className="mt-3">
         <h3 className="line-clamp-2 text-base font-semibold text-foreground">
@@ -128,14 +123,12 @@ export function YouTubePreviewRenderer({
 export function PinterestPreviewRenderer({
   target,
 }: PlatformPreviewRendererProps) {
-  const translate = useTranslations('ui.platformPreview');
   return (
-    <PreviewShell eyebrow={translate('eyebrow.pinterest')} target={target}>
+    <PreviewShell target={target}>
       <MediaGrid target={target} variant="square" />
       {target.title ? (
         <h3 className="text-base font-semibold">{target.title}</h3>
       ) : null}
-      <AuthorRow target={target} />
       <CaptionText target={target} />
       <LinkPreviewCard target={target} />
       <ValidationIssues target={target} />

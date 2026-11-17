@@ -56,7 +56,6 @@ export type PlatformPreviewTarget = {
 };
 
 export type PlatformPreviewProps = {
-  headerPresentation?: 'platform' | 'account';
   presentation?: 'full' | 'compact';
   post?: IPost;
   target?: PlatformPreviewTarget;
@@ -107,7 +106,6 @@ export type PlatformPreviewPresentation = Pick<
   | 'headerAction'
   | 'showValidation'
   | 'presentation'
-  | 'headerPresentation'
 >;
 export type PlatformPreviewStatus = { messageKey: string; className: string };
 export type PlatformPreviewCharacterCounterProps = {
@@ -127,12 +125,11 @@ export type PlatformPreviewMediaGridProps = PlatformPreviewRendererProps & {
   variant?: 'grid' | 'square' | 'video' | 'vertical';
 };
 export type PlatformPreviewShellProps = PlatformPreviewRendererProps & {
-  eyebrow: string;
-  isApproximate?: boolean;
+  /** Shown under the account handle, for example "Public". */
+  accountMeta?: ReactNode;
   children: ReactNode;
   className?: string;
 };
 export type PlatformPreviewAuthorRowProps = PlatformPreviewRendererProps & {
   meta?: ReactNode;
-  showPlatformBadge?: boolean;
 };
