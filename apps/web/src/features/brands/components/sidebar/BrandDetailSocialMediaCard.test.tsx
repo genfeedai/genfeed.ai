@@ -398,7 +398,9 @@ describe('BrandDetailSocialMediaCard', () => {
     );
 
     expect(screen.getByText('Connected')).toBeInTheDocument();
-    expect(screen.getByText('Needs reconnect')).toBeInTheDocument();
+    expect(
+      screen.getByText('Reconnect', { selector: 'span' }),
+    ).toBeInTheDocument();
   });
 
   it('passes fetched account health down to the accounts table on the page variant', async () => {

@@ -322,6 +322,26 @@ export class InstagramConnectionResolverService {
       }
     }
 
+    // Reconnecting a lapsed credential reuses that very row (see
+    // `CredentialsService.beginOAuthForBrand`), so no separate intent is stored
+    // and the row already carries the account it stands for. Settle onto that
+    // account. Asking the operator to pick again would end with a row that
+    // keeps its identity, so it never reads as "needs selection", and stays
+    // disconnected after a callback page that reported success.
+    if (!chosen && !reconnectCredentialId && credential.externalId) {
+      chosen = accounts.find((account) => account.id === credential.externalId);
+      if (!chosen) {
+        throw new HttpException(
+          {
+            detail:
+              'This connection does not include the Instagram account being reconnected. Share that account with Genfeed in the Instagram dialog and try again.',
+            title: 'Instagram account not shared',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    }
+
     if (!chosen && !hadUnmatchedReconnectIntent) {
       if (accounts.length === 1) {
         chosen = accounts[0];
