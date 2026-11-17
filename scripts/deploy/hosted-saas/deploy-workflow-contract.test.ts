@@ -123,7 +123,10 @@ describe('hosted SaaS Vercel deployment contract', () => {
     const turbo = await turboConfig();
 
     expect(vercel).toContain(`DOMAIN: \${{ vars.DOMAIN }}`);
-    expect(vercel).toContain(`awk '!/^(API_URL|NEXT_PUBLIC_GENFEED_CLOUD|`);
+    const appEnvFilter = vercel.match(
+      /awk '!\/\^\(([^)]+)\)=\/' "\$\{env_file\}\.tmp" > "\$\{env_file\}\.app"/,
+    );
+    expect(appEnvFilter?.[1]?.split('|')).toContain('API_URL');
     expect(vercel).toContain(`printf 'API_URL=https://api.%s\\n' "$DOMAIN"`);
     expect(turbo).toContain(
       `"env": ["API_URL", "E2E_COVERAGE", "NEXT_PUBLIC_*", "NODE_ENV"]`,
