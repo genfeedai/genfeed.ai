@@ -184,6 +184,13 @@ function thumbnailTile(
   return `${wrapLink(href, visual)}${caption}`;
 }
 
+export interface EmailThumbnailGridOptions {
+  /** Tiles shown before the rest fold into the "more" line. Defaults to 6. */
+  maxItems?: number;
+  /** Pieces the caller left out; added to those past `maxItems`. */
+  moreCount?: number;
+}
+
 /**
  * A grid of content previews, three across. A tile without an image shows its
  * kind as text, so an article or audio piece still takes a place in the grid.
@@ -192,7 +199,7 @@ function thumbnailTile(
  */
 export function buildEmailThumbnailGrid(
   items: readonly EmailThumbnail[],
-  options: { maxItems?: number; moreCount?: number } = {},
+  options: EmailThumbnailGridOptions = {},
 ): string {
   const visible = items.slice(0, options.maxItems ?? 6);
   if (visible.length === 0) {
@@ -249,12 +256,14 @@ export function buildEmailHero(input: EmailHeroInput): string {
   return `<div style="margin:0 0 24px;">${wrapLink(href, visual)}${caption}</div>`;
 }
 
-/** A tinted panel with a bold lead line and a sentence of detail. */
-export function buildEmailCallout(input: {
+export interface EmailCalloutInput {
   title: string;
   body?: string;
   tone?: EmailTone;
-}): string {
+}
+
+/** A tinted panel with a bold lead line and a sentence of detail. */
+export function buildEmailCallout(input: EmailCalloutInput): string {
   const tone = TONE_STYLES[input.tone ?? 'neutral'];
   const body = input.body
     ? `<div style="color:${EMAIL_BLOCK_COLORS.secondary};font-size:14px;line-height:21px;margin-top:4px;">${esc(input.body)}</div>`
