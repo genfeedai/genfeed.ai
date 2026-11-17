@@ -6,7 +6,8 @@ For the desktop app's local database see [`../desktop-prisma`](../desktop-prisma
 
 ## Layout
 
-- `prisma/schema.prisma`: the schema (PostgreSQL with the `vector` extension). The client is generated into `generated/prisma/` (git-ignored, rebuilt on `postinstall`).
+- `prisma/schema.prisma`: the schema (PostgreSQL with the `vector` extension). The client is generated into `generated/prisma/` (git-ignored).
+- `prisma/generate-client.mjs`: the `postinstall`. It generates the client unless the one on disk is current, which it checks against a stamp (`generated/prisma/client-stamp.json`) of the schema, `prisma.config.mjs`, the pinned Prisma versions and the generated files. Generating takes 30 to 40 seconds, so an install with nothing changed skips it.
 - `prisma/migrations/`: the migration history, one folder per migration. Many migrations have a `*.test.ts` beside them under `prisma/`.
 - `src/`: the package entry (`index.ts`, `client.ts`, `testing.ts`), the enum and model metadata map (`enum-field-map.ts`, generated) and the `toPrismaJson` helper.
 - `scripts/`: the model metadata generator and release and index verification scripts.
@@ -20,7 +21,7 @@ bun run db:validate   # validate the schema
 bun run db:migrate    # apply migrations (prisma migrate deploy)
 ```
 
-Run `db:generate` after any schema change and commit the resulting `src/enum-field-map.ts`.
+Run `db:generate` after any schema change and commit the resulting `src/enum-field-map.ts`. It always generates, whatever the stamp says.
 
 ## Tests
 

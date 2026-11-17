@@ -166,6 +166,8 @@ jobs:
       - name: Setup Bun environment
         if: steps.tier.outputs.heavy != 'true'
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       # Vitest supplies the exact affected app/API files; Turbo supplies the
       # affected workspace tasks. Lockfile, turbo, vitest config, bun-setup, and
       # the planner itself escalate to the full sharded path.
@@ -488,6 +490,8 @@ jobs:
             --redact --verbose --no-banner --exit-code 1
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       - name: Guard destructive migration release compatibility
         env:
           GH_TOKEN: ${{ github.token }}
@@ -647,6 +651,8 @@ jobs:
           persist-credentials: false
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       # Real workspace imports resolve the contracts package dist exports.
       - name: Build contracts for executable imports
         run: bun run --cwd packages/contracts build
@@ -673,6 +679,8 @@ jobs:
           persist-credentials: false
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       # The typecheck base config resolves @genfeedai/contracts to its dist
       # output, so the package graph has to exist before any program is
       # created. A packages-only scope builds just the turbo-affected packages.
@@ -760,6 +768,8 @@ jobs:
           filter: blob:none
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       - name: Run workspace tests
         env:
           FORCE_FULL: ${{ needs.plan.outputs.force_full }}
@@ -837,6 +847,8 @@ jobs:
           filter: blob:none
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       - name: Build app workspace
         run: bunx turbo run build --filter='@genfeedai/web^...'
       - name: Run app tests
@@ -919,6 +931,8 @@ jobs:
           filter: blob:none
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       # `working-directory: packages/prisma` + `bun x` (not root `bunx`): the
       # pinned `prisma` is workspace-local and Prisma 7 reads the datasource URL
       # only from packages/prisma/prisma.config.mjs. Migrate once, then copy the
@@ -1011,6 +1025,8 @@ jobs:
         run: git fetch origin "$CLOUD_SWEEP_BASE_SHA" --depth=1
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       # Build uploads only OpenAPI, not API dist. Keep this job independent:
       # waiting for all of Build would serialize unrelated package/docs work.
       # Workflow-level TURBO_TOKEN/TURBO_TEAM apply here; cache hits are expected.
@@ -1125,6 +1141,8 @@ jobs:
           filter: blob:none
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       - name: Run build
         run: |
           if [ "$CI_IS_CHANGE_RUN" = "true" ]; then
@@ -1179,6 +1197,8 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       - name: Build real API and MCP packages
         run: bunx turbo run build --filter=@genfeedai/api --filter=@genfeedai/mcp --concurrency=2
       - name: Select owned report path

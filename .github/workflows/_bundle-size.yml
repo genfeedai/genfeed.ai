@@ -77,6 +77,8 @@ jobs:
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
 
       - name: Build ${{ matrix.app }}
         env:
