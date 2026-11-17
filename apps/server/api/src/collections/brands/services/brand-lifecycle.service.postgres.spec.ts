@@ -70,7 +70,10 @@ describe.skipIf(!connectionString)(
       new BrandLifecycleService(
         prisma as unknown as PrismaService,
         logger as never,
-        { invalidateByTags: vi.fn() } as never,
+        {
+          invalidateByTags: vi.fn(),
+          invalidateGuardedTags: vi.fn().mockResolvedValue(0),
+        } as never,
         cacheInvalidationService as never,
         accessBootstrapCacheService as never,
         userAccessCacheService as never,
