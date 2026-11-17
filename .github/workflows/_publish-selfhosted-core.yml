@@ -54,9 +54,8 @@ on:
         value: ${{ jobs.publish-install-artifact.outputs.image_digest }}
 
 # Reusable-workflow GITHUB_TOKEN is the intersection of caller + this
-# file. A workflow-level `contents: read` caps every job at read, so
-# `softprops/action-gh-release` can GET the draft but cannot PATCH
-# assets (Resource not accessible by integration / update-a-release).
+# file. A workflow-level `contents: read` caps every job at read, so the
+# install-asset upload to the draft release needs `contents: write` here.
 permissions:
   contents: write
   packages: write
@@ -303,17 +302,65 @@ jobs:
             exit 1
           fi
 
+      # Upload through the release-assets endpoint and never PATCH the draft.
+      # Updating a release sends its target_commitish, and GitHub refuses that
+      # to GITHUB_TOKEN once master holds workflow-file changes newer than the
+      # release SHA: pointing a ref there then needs the workflows permission,
+      # which this token never has (v0.3.2, run 44063532740).
       - name: Attach install bundle to draft GitHub release
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
-        with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          target_commitish: ${{ inputs.checkout_ref }}
-          draft: true
-          fail_on_unmatched_files: true
-          overwrite_files: ${{ inputs.reuse_existing_image != true }}
-          files: |
-            ${{ steps.bundle.outputs.archive }}
-            ${{ steps.bundle.outputs.checksum }}
+        env:
+          ARCHIVE_PATH: ${{ steps.bundle.outputs.archive }}
+          CHECKSUM_PATH: ${{ steps.bundle.outputs.checksum }}
+          EXPECTED_RELEASE_SHA: ${{ inputs.checkout_ref }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPLACE_EXISTING_ASSETS: ${{ inputs.reuse_existing_image != true }}
+        run: |
+          set -euo pipefail
+
+          release_pages="$(gh api --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/releases?per_page=100")"
+          release_matches="$(jq -c --arg tag "${RELEASE_TAG}" \
+            '[.[][] | select(.tag_name == $tag)]' <<<"${release_pages}")"
+          if [ "$(jq 'length' <<<"${release_matches}")" -ne 1 ]; then
+            echo "::error::Expected exactly one draft release for ${RELEASE_TAG} before asset attachment."
+            exit 1
+          fi
+          release_json="$(jq -c '.[0]' <<<"${release_matches}")"
+          if [ "$(jq -r '.draft' <<<"${release_json}")" != 'true' ] || \
+             [ "$(jq -r '.target_commitish // ""' <<<"${release_json}")" != "${EXPECTED_RELEASE_SHA}" ]; then
+            echo "::error::Release ${RELEASE_TAG} is not the expected draft at ${EXPECTED_RELEASE_SHA}."
+            exit 1
+          fi
+          release_id="$(jq -r '.id' <<<"${release_json}")"
+
+          attach_asset() {
+            local local_path="$1"
+            local content_type="$2"
+            local asset_name existing_ids asset_id
+
+            asset_name="$(basename "${local_path}")"
+            test -s "${local_path}"
+            existing_ids="$(jq -r --arg name "${asset_name}" \
+              '.assets[] | select(.name == $name) | .id' <<<"${release_json}")"
+            if [ -n "${existing_ids}" ]; then
+              if [ "${REPLACE_EXISTING_ASSETS}" != 'true' ]; then
+                echo "::error::${asset_name} already exists on ${RELEASE_TAG}; immutable release assets are never replaced."
+                exit 1
+              fi
+              for asset_id in ${existing_ids}; do
+                gh api --method DELETE \
+                  "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"
+              done
+            fi
+            gh api --method POST \
+              "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?name=${asset_name}" \
+              --header "Content-Type: ${content_type}" \
+              --input "${local_path}" >/dev/null
+            echo "Attached ${asset_name} to draft ${RELEASE_TAG} (release ${release_id})."
+          }
+
+          attach_asset "${ARCHIVE_PATH}" 'application/gzip'
+          attach_asset "${CHECKSUM_PATH}" 'text/plain'
 
       - name: Verify immutable install asset identities
         id: verify-assets

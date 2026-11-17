@@ -76,40 +76,55 @@ const RECOVERY_SHA = '87fd8fff5bd429ae224c7501fc7c772b838365a4';
 const RECOVERY_RUN_ID = '32272857631';
 const RECOVERY_TAG = 'v0.1.66';
 const REQUIRED_SUITE_JOBS = [
-  'Full Suite / CI Gate / Trust Check',
-  'Full Suite / CI Gate / Executable Contracts',
-  'Full Suite / CI Gate / Secretlint (changed files)',
-  'Full Suite / CI Gate / Format',
-  'Full Suite / CI Gate / Lint',
-  'Full Suite / CI Gate / Gitleaks',
-  'Full Suite / CI Gate / Test Plan',
-  'Full Suite / CI Gate / Typecheck',
-  'Full Suite / CI Gate / Spec Typecheck',
-  'Full Suite / CI Gate / Test Web and Mobile',
-  'Full Suite / CI Gate / Test Packages',
-  'Full Suite / CI Gate / Test Server Services',
-  'Full Suite / CI Gate / OpenAPI Spec Drift',
-  ...Array.from(
-    { length: 4 },
-    (_, index) => `Full Suite / CI Gate / Test API (Shard ${index + 1}/4)`,
-  ),
-  ...Array.from(
-    { length: 4 },
-    (_, index) => `Full Suite / CI Gate / Test App (Shard ${index + 1}/4)`,
-  ),
-  'Full Suite / CI Gate / Build',
+  'Full Suite / CI Gate / Core Validation / Plan',
+  'Full Suite / CI Gate / Core Validation / Static Checks',
+  'Full Suite / CI Gate / Core Validation / Source Contracts',
+  'Full Suite / CI Gate / Core Validation / Spec Typecheck',
+  'Full Suite / CI Gate / Core Validation / Build',
+  'Full Suite / CI Gate / Core Validation / Cloud Tenant Guard Sweep',
+  'Full Suite / CI Gate / Core Validation / MCP Auth Runtime',
+  'Full Suite / CI Gate / Core Validation / Test API (shard 1/8)',
+  'Full Suite / CI Gate / Core Validation / Test API (shard 2/8)',
+  'Full Suite / CI Gate / Core Validation / Test API (shard 3/8)',
+  'Full Suite / CI Gate / Core Validation / Test API (shard 4/8)',
+  'Full Suite / CI Gate / Core Validation / Test API (shard 5/8)',
+  'Full Suite / CI Gate / Core Validation / Test API (shard 6/8)',
+  'Full Suite / CI Gate / Core Validation / Test API (shard 7/8)',
+  'Full Suite / CI Gate / Core Validation / Test API (shard 8/8)',
+  'Full Suite / CI Gate / Core Validation / Test App (shard 1/4)',
+  'Full Suite / CI Gate / Core Validation / Test App (shard 2/4)',
+  'Full Suite / CI Gate / Core Validation / Test App (shard 3/4)',
+  'Full Suite / CI Gate / Core Validation / Test App (shard 4/4)',
+  'Full Suite / CI Gate / Core Validation / Test Workspaces (workspaces-1/4)',
+  'Full Suite / CI Gate / Core Validation / Test Workspaces (workspaces-2/4)',
+  'Full Suite / CI Gate / Core Validation / Test Workspaces (workspaces-3/4)',
+  'Full Suite / CI Gate / Core Validation / Test Workspaces (workspaces-4/4)',
+  'Full Suite / CI Gate / Core Validation / Test Workspaces (server)',
+  'Full Suite / CI Gate / Tests Gate',
   'Full Suite / E2E Suite / Frontend Authed E2E (real Better Auth)',
   'Full Suite / E2E Suite / E2E Route Reference Inventory',
   'Full Suite / E2E Suite / API E2E Tests',
-  ...Array.from(
-    { length: 4 },
-    (_, index) =>
-      `Full Suite / E2E Suite / Frontend E2E (Shard ${index + 1}/4)`,
-  ),
+  'Full Suite / E2E Suite / API E2E Full',
+  'Full Suite / E2E Suite / API E2E Full Gate',
+  'Full Suite / E2E Suite / Frontend E2E (Shard 1/4)',
+  'Full Suite / E2E Suite / Frontend E2E (Shard 2/4)',
+  'Full Suite / E2E Suite / Frontend E2E (Shard 3/4)',
+  'Full Suite / E2E Suite / Frontend E2E (Shard 4/4)',
   'Full Suite / E2E Suite / E2E Gate (all shards)',
   'Full Suite / E2E Suite / Merge E2E Reports',
+  'Full Suite / E2E Suite / Isolated Publish E2E',
+  'Full Suite / E2E Suite / Serial Runtime Acceptance',
+  'Full Suite / E2E Suite / Proactive Production Turn Acceptance',
+  'Full Suite / E2E Suite / BRAND Receipt and Relocation Acceptance',
+  'Full Suite / E2E Suite / Context Embedding Acceptance',
   'Full Suite / Build & Boot Check / Build & Boot Check',
   'Full Suite / Build & Boot Check / Server Bundle Boot Check',
+  'Full Suite / Build & Boot Check / Server Image / Resolve server image inputs',
+  'Full Suite / Build & Boot Check / Server Image / Build & Push Server Image',
+  'Full Suite / Connected Visual Acceptance / Actual runsc rendering and isolation',
+  'Full Suite / Connected Visual Acceptance / Connected runsc rendering and Library acceptance',
+  'Full Suite / Final Connected Acceptance',
+  'Full Suite / Master SHA Verdict',
 ];
 const PUBLIC_SAAS_JOBS = [
   'Deploy hosted SaaS / Validate public source',
@@ -129,11 +144,21 @@ const ARTIFACT_STEPS = [
   'Build version-pinned release bundle',
   'Smoke create against the release bundle',
   'Anonymous exact-image pull and metadata check',
+  'Refuse pre-existing versioned install assets',
   'Attach install bundle to draft GitHub release',
+  'Verify immutable install asset identities',
   'Post Setup create package',
   'Post Checkout release source',
   'Complete job',
 ];
+
+// The attach step fails; the asset guard before it only runs for a reused
+// image and the identity check after it is skipped once the attach fails.
+const ARTIFACT_STEP_CONCLUSIONS = {
+  'Attach install bundle to draft GitHub release': 'failure',
+  'Refuse pre-existing versioned install assets': 'skipped',
+  'Verify immutable install asset identities': 'skipped',
+};
 
 function recoveryJob(name, conclusion = 'success', steps) {
   return {
@@ -155,10 +180,7 @@ function recoveryJob(name, conclusion = 'success', steps) {
 
 function releaseRecoveryFixture() {
   const artifactSteps = ARTIFACT_STEPS.map((name, index) => ({
-    conclusion:
-      name === 'Attach install bundle to draft GitHub release'
-        ? 'failure'
-        : 'success',
+    conclusion: ARTIFACT_STEP_CONCLUSIONS[name] ?? 'success',
     name,
     number: index + 1,
     status: 'completed',
@@ -173,7 +195,7 @@ function releaseRecoveryFixture() {
       recoveryJob(
         'Publish Community / Self-Hosted Build Verify / Build & Boot Check (Self-Hosted)',
       ),
-      recoveryJob('Publish Community / Build & Push Self-Hosted Image'),
+      recoveryJob('Publish Community / Tag Verified Self-Hosted Image'),
       recoveryJob(ARTIFACT_JOB_NAME, 'failure', artifactSteps),
       recoveryJob('Publish npm Packages', 'skipped'),
       recoveryJob('Promote Community release channels', 'skipped'),
@@ -345,7 +367,7 @@ test('rejects mismatched run identity and wrong-SHA gate evidence', () => {
 
   const wrongSha = releaseRecoveryFixture();
   wrongSha.jobs.find(
-    (job) => job.name === 'Full Suite / CI Gate / Build',
+    (job) => job.name === 'Full Suite / CI Gate / Core Validation / Build',
   ).head_sha = 'a'.repeat(40);
   assert.throws(
     () => validateReleaseRecoveryEvidence(wrongSha),
@@ -918,31 +940,43 @@ test('recovery accepts the historical route inventory display name and rejects d
   );
 });
 
-test('attachment recovery still rejects skipped artifact steps and install assets', () => {
+test('attachment recovery rejects a skipped build step but accepts the skipped asset guards', () => {
   const skippedStep = releaseRecoveryFixture();
   skippedStep.jobs
     .find((job) => job.name === ARTIFACT_JOB_NAME)
-    .steps.push({
-      conclusion: 'skipped',
-      name: 'Refuse pre-existing versioned install assets',
-      status: 'completed',
-    });
+    .steps.find(
+      (step) => step.name === 'Build version-pinned release bundle',
+    ).conclusion = 'skipped';
   assert.throws(
     () => validateReleaseRecoveryEvidence(skippedStep),
-    /Only Attach install bundle to draft GitHub release may fail/,
+    /Build version-pinned release bundle.*expected success/,
   );
 
-  const extraSuccess = releaseRecoveryFixture();
-  extraSuccess.jobs
-    .find((job) => job.name === ARTIFACT_JOB_NAME)
-    .steps.push({
-      conclusion: 'success',
-      name: 'Verify immutable install asset identities',
-      status: 'completed',
-    });
+  const guardsSkipped = releaseRecoveryFixture();
+  assert.deepEqual(
+    guardsSkipped.jobs
+      .find((job) => job.name === ARTIFACT_JOB_NAME)
+      .steps.filter((step) => step.conclusion === 'skipped')
+      .map((step) => step.name),
+    [
+      'Refuse pre-existing versioned install assets',
+      'Verify immutable install asset identities',
+    ],
+  );
   assert.equal(
-    validateReleaseRecoveryEvidence(extraSuccess).recoveryKind,
+    validateReleaseRecoveryEvidence(guardsSkipped).recoveryKind,
     RECOVERY_KIND_ATTACHMENT_FAILURE,
+  );
+
+  const guardFailed = releaseRecoveryFixture();
+  guardFailed.jobs
+    .find((job) => job.name === ARTIFACT_JOB_NAME)
+    .steps.find(
+      (step) => step.name === 'Verify immutable install asset identities',
+    ).conclusion = 'failure';
+  assert.throws(
+    () => validateReleaseRecoveryEvidence(guardFailed),
+    /Only Attach install bundle to draft GitHub release may fail/,
   );
 });
 

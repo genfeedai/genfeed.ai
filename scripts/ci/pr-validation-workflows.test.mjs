@@ -1095,19 +1095,26 @@ test('server image keeps exact build inputs and fail-closed scope with bounded p
   }
 });
 
-test('self-hosted publisher can PATCH the draft GitHub release', () => {
+test('self-hosted publisher uploads install assets without updating the draft release', () => {
   const workflow = readWorkflow('_publish-selfhosted-core.yml');
 
   assert.match(
     workflow,
     /^permissions:\n {2}contents: write\n {2}packages: write$/m,
   );
+  // An update sends target_commitish, which GITHUB_TOKEN may not set once
+  // master holds newer workflow-file changes than the release SHA.
+  assert.doesNotMatch(workflow, /uses: softprops\/action-gh-release/);
+  assert.doesNotMatch(workflow, /--method PATCH[^\n]*releases/);
   assert.match(
     workflow,
-    /uses: softprops\/action-gh-release@[0-9a-f]{40} # v3\.\d+\.\d+/,
+    /https:\/\/uploads\.github\.com\/repos\/\$\{GITHUB_REPOSITORY\}\/releases\/\$\{release_id\}\/assets\?name=\$\{asset_name\}/,
   );
-  assert.ok(workflow.includes('tag_name: ${{ env.RELEASE_TAG }}'));
-  assert.ok(workflow.includes('target_commitish: ${{ inputs.checkout_ref }}'));
+  assert.ok(
+    workflow.includes(
+      'REPLACE_EXISTING_ASSETS: ${{ inputs.reuse_existing_image != true }}',
+    ),
+  );
 });
 
 test('weekly dependency updates preserve one tracked pull request', () => {
