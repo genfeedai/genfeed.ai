@@ -319,9 +319,7 @@ export function useIngredientsActions({
         onClose: () => {
           clearUpscaleConfirm();
         },
-        onConfirm: async () => {
-          await executeUpscale(videoUpscaleSelectionRef.current);
-        },
+        onConfirm: () => executeUpscale(videoUpscaleSelectionRef.current),
       });
     }
   }, [clearUpscaleConfirm, executeUpscale, openConfirm, upscaleConfirmData]);

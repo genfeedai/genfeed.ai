@@ -76,10 +76,10 @@ export function useStudioEditEntry({
     editEntryRef.current = `${brandId}:${sourceId}`;
     const epoch = crunRestoreEpochRef.current;
     const scope = crunRestoreScopeRef.current;
-    let cancelled = false;
+    const abortController = new AbortController();
     let isOffered = false;
     const isCurrent = () =>
-      !cancelled &&
+      !abortController.signal.aborted &&
       isMountedRef.current &&
       epoch === crunRestoreEpochRef.current &&
       scope === crunRestoreScopeRef.current;
@@ -137,7 +137,7 @@ export function useStudioEditEntry({
           );
       });
     return () => {
-      cancelled = true;
+      abortController.abort();
       // Re-offering after the source is applied would find a non-empty
       // composer and ask "Replace your draft?" about the entry itself.
       if (!isOffered) editEntryRef.current = null;

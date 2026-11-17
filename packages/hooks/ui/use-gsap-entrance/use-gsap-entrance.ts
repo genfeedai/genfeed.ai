@@ -150,7 +150,7 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
     }
 
     let ctx: GsapContextHandle | null = null;
-    let isCancelled = false;
+    const abortController = new AbortController();
 
     const initGsap = async () => {
       let gsap: typeof import('gsap').default;
@@ -168,7 +168,7 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
       }
 
       const container = containerRef.current;
-      if (isCancelled || !isMountedHost(container)) {
+      if (abortController.signal.aborted || !isMountedHost(container)) {
         return;
       }
 
@@ -282,7 +282,7 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
     void initGsap();
 
     return () => {
-      isCancelled = true;
+      abortController.abort();
       revertGsapContext(ctx);
     };
   }, [animations, enabled]);
@@ -329,7 +329,7 @@ export function useGsapTimeline<T extends HTMLElement = HTMLDivElement>(
     }
 
     let ctx: GsapContextHandle | null = null;
-    let isCancelled = false;
+    const abortController = new AbortController();
 
     const initGsap = async () => {
       let gsap: typeof import('gsap').default;
@@ -342,7 +342,7 @@ export function useGsapTimeline<T extends HTMLElement = HTMLDivElement>(
       }
 
       const container = containerRef.current;
-      if (isCancelled || !isMountedHost(container)) {
+      if (abortController.signal.aborted || !isMountedHost(container)) {
         return;
       }
 
@@ -388,7 +388,7 @@ export function useGsapTimeline<T extends HTMLElement = HTMLDivElement>(
     void initGsap();
 
     return () => {
-      isCancelled = true;
+      abortController.abort();
       revertGsapContext(ctx);
     };
   }, [steps, enabled]);

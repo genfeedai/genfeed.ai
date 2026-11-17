@@ -638,6 +638,10 @@ export default function PublishingContentLibrary() {
     type,
   ]);
 
+  const refreshCapturedList = useCallback(async (): Promise<void> => {
+    await refetch();
+  }, [refetch]);
+
   useEffect(() => {
     setViewToggleNode(
       <PublishingViewToggle
@@ -652,10 +656,7 @@ export default function PublishingContentLibrary() {
       />,
     );
     // The captured list owns the refresh action.
-    if (!isCapturedView)
-      setRefresh(() => async () => {
-        await refetch();
-      });
+    if (!isCapturedView) setRefresh(() => refreshCapturedList);
     return () => {
       setViewToggleNode(null);
       if (!isCapturedView) setRefresh(() => () => {});
@@ -664,7 +665,7 @@ export default function PublishingContentLibrary() {
     isCapturedView,
     view,
     replaceQueryParam,
-    refetch,
+    refreshCapturedList,
     setRefresh,
     setViewToggleNode,
   ]);
