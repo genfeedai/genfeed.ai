@@ -45,6 +45,7 @@ import type {
   CharacterAvailabilityDraft,
   CharactersPageState,
 } from '@/props/characters/characters-page.props';
+import { canBrandManageCharacter } from './character-brand-context';
 import {
   characterSheetWizardReducer,
   INITIAL_CHARACTER_SHEET_WIZARD,
@@ -88,6 +89,15 @@ export function useCharactersPage(
   const role = useUserRole();
   const canManageSharing =
     role === MemberRole.OWNER || role === MemberRole.ADMIN;
+  // The organization page lists every brand's characters, but the API acts as
+  // the selected brand: manage only what that brand owns or was given.
+  const canManageCharacter = useCallback(
+    (character: BrandCharacterListItem) =>
+      isOrganizationScope
+        ? canBrandManageCharacter(character, brandId)
+        : !character.isGranted,
+    [brandId, isOrganizationScope],
+  );
   const brandOptions = useMemo(
     () => brands.map((brand) => ({ id: brand.id, label: brand.label })),
     [brands],
@@ -514,6 +524,7 @@ export function useCharactersPage(
     brandId,
     brands: brandOptions,
     candidate,
+    canManageCharacter,
     canManageSharing,
     characters,
     pageTotals: charactersPage

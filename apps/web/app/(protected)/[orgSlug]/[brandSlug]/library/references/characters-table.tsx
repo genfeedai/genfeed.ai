@@ -22,7 +22,12 @@ import type { CharactersTableProps } from '@/props/characters/characters-page.pr
 
 const VISIBLE_REFERENCE_THUMBNAILS = 4;
 
+function isNotGranted(character: BrandCharacterListItem): boolean {
+  return !character.isGranted;
+}
+
 export default function CharactersTable({
+  canManageCharacter = isNotGranted,
   canManageSharing,
   characters,
   isLoading,
@@ -158,7 +163,7 @@ export default function CharactersTable({
     () => [
       {
         icon: <Images />,
-        isVisible: (character) => !character.isGranted,
+        isVisible: canManageCharacter,
         onClick: onManageReferences,
         ariaLabel: (character) =>
           translate('references.manageFor', { name: character.label }),
@@ -166,7 +171,8 @@ export default function CharactersTable({
       },
       {
         icon: <Share2 />,
-        isVisible: (character) => canManageSharing && !character.isGranted,
+        isVisible: (character) =>
+          canManageSharing && canManageCharacter(character),
         onClick: onManageAvailability,
         ariaLabel: (character) =>
           translate('availability.manageFor', { name: character.label }),
@@ -186,6 +192,7 @@ export default function CharactersTable({
       },
     ],
     [
+      canManageCharacter,
       canManageSharing,
       href,
       onManageAvailability,
@@ -237,7 +244,7 @@ export default function CharactersTable({
         kind: 'record',
         renderExtra: (character) => (
           <div className="flex flex-col items-start gap-2">
-            {!character.isGranted ? (
+            {canManageCharacter(character) ? (
               <Button
                 icon={<Images className="size-3.5" />}
                 label={translate('references.manageFor', {
@@ -248,7 +255,7 @@ export default function CharactersTable({
                 variant={ButtonVariant.SECONDARY}
               />
             ) : null}
-            {canManageSharing && !character.isGranted ? (
+            {canManageSharing && canManageCharacter(character) ? (
               <Button
                 icon={<Share2 className="size-3.5" />}
                 label={translate('availability.manageFor', {
@@ -279,6 +286,7 @@ export default function CharactersTable({
         ),
       }),
     [
+      canManageCharacter,
       canManageSharing,
       href,
       onManageAvailability,

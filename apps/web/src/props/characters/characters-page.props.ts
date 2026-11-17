@@ -64,6 +64,7 @@ export interface CharactersPageState {
   brandId: string;
   brands: CharacterBrandOption[];
   candidate: BrandCharacterCandidate | null;
+  canManageCharacter: (character: BrandCharacterListItem) => boolean;
   canManageSharing: boolean;
   characters: BrandCharacterListItem[];
   create: {
@@ -88,6 +89,8 @@ export interface CharactersPageState {
 }
 
 export interface CharactersTableProps {
+  /** Whether the selected brand may manage the character; defaults to every non-granted one. */
+  canManageCharacter?: (character: BrandCharacterListItem) => boolean;
   canManageSharing: boolean;
   characters: BrandCharacterListItem[];
   isLoading: boolean;
