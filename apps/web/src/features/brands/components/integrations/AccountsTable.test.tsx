@@ -102,7 +102,9 @@ describe('AccountsTable', () => {
       />,
     );
 
-    expect(screen.getByText('Needs reconnect')).toBeInTheDocument();
+    expect(
+      screen.getByText('Reconnect', { selector: 'span' }),
+    ).toBeInTheDocument();
   });
 
   it('derives Needs reconnect from a connected credential missing its externalId identity', () => {
@@ -119,7 +121,9 @@ describe('AccountsTable', () => {
       />,
     );
 
-    expect(screen.getByText('Needs reconnect')).toBeInTheDocument();
+    expect(
+      screen.getByText('Reconnect', { selector: 'span' }),
+    ).toBeInTheDocument();
   });
 
   it('derives Needs reconnect from an expired access token', () => {
@@ -138,7 +142,34 @@ describe('AccountsTable', () => {
       />,
     );
 
-    expect(screen.getByText('Needs reconnect')).toBeInTheDocument();
+    expect(
+      screen.getByText('Reconnect', { selector: 'span' }),
+    ).toBeInTheDocument();
+  });
+
+  it('spins only the Reconnect icon of the account that is reconnecting', () => {
+    render(
+      <AccountsTable
+        accountHealth={[]}
+        connections={[
+          buildConnection({ credentialId: 'c1', name: 'Alpha' }),
+          buildConnection({ credentialId: 'c2', name: 'Bravo' }),
+        ]}
+        onConnectAccount={noop}
+        onDisconnect={noop}
+        onOpenSettings={noop}
+        onReconnect={noop}
+        reconnectingCredentialId="c2"
+        unavailablePlatforms={new Set()}
+      />,
+    );
+
+    const [alphaReconnect, bravoReconnect] = screen.getAllByRole('button', {
+      name: 'Reconnect',
+    });
+
+    expect(alphaReconnect.querySelector('svg')).not.toHaveClass('animate-spin');
+    expect(bravoReconnect.querySelector('svg')).toHaveClass('animate-spin');
   });
 
   it('shows Connected for a fully linked account with no health data', () => {

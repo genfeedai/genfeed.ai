@@ -809,6 +809,63 @@ describe('InstagramController', () => {
       );
     });
 
+    it('reconnects a lapsed credential onto its own account instead of asking again', async () => {
+      mockSuccessfulTokenExchange();
+      instagramServiceMock.listAuthorizedInstagramAccounts.mockResolvedValue([
+        igAccount({ id: 'ig-account-a' }),
+        igAccount({ id: 'ig-account-b' }),
+        igAccount({ id: 'ig-account-c' }),
+        igAccount({ id: 'ig-account-d' }),
+      ]);
+      // beginOAuthForBrand re-arms the lapsed row itself, so it carries its
+      // identity and no separate reconnect intent.
+      credentialsPatchMock.mockResolvedValue({
+        brandId,
+        externalId: 'ig-account-c',
+        id: 'test-object-id',
+        isConnected: false,
+      });
+      credentialsUpdateExternalProfileMock.mockResolvedValue({
+        brandId,
+        externalId: 'ig-account-c',
+        id: 'test-object-id',
+        isConnected: true,
+      });
+
+      const result = await controller.verify(mockRequest, {
+        code: 'auth-code',
+        state,
+      });
+
+      expect(credentialsUpdateExternalProfileMock).toHaveBeenCalledWith(
+        'test-object-id',
+        orgId,
+        expect.objectContaining({ id: 'ig-account-c' }),
+      );
+      expect(result.data).toEqual(
+        expect.objectContaining({ id: 'test-object-id', isConnected: true }),
+      );
+    });
+
+    it('refuses a reconnect whose grant leaves out the credential account, writing no identity', async () => {
+      mockSuccessfulTokenExchange();
+      instagramServiceMock.listAuthorizedInstagramAccounts.mockResolvedValue([
+        igAccount({ id: 'ig-account-a' }),
+        igAccount({ id: 'ig-account-b' }),
+      ]);
+      credentialsPatchMock.mockResolvedValue({
+        brandId,
+        externalId: 'ig-account-gone',
+        id: 'test-object-id',
+        isConnected: false,
+      });
+
+      await expect(
+        controller.verify(mockRequest, { code: 'auth-code', state }),
+      ).rejects.toThrow();
+      expect(credentialsUpdateExternalProfileMock).not.toHaveBeenCalled();
+    });
+
     it('never embeds the reconnect credential id in the OAuth state', async () => {
       const mockBrand = {
         id: brandId,
