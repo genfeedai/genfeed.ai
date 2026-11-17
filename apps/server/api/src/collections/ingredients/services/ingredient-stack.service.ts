@@ -3,6 +3,12 @@ import type { Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+/** Most slides one carousel lists; platforms cap a carousel at 20 or fewer. */
+const MAX_STACK_SLIDES = 100;
+
+/** Most posts one asset is checked against when looking for its carousel. */
+const MAX_POSTS_PER_ASSET = 50;
+
 /** A carousel as the Library shows it: one cover tile and the count behind it. */
 export interface IngredientStackSummary {
   /** The post whose ordered media is the stack. */
@@ -77,6 +83,8 @@ export class IngredientStackService {
     const covers = await this.prisma.postIngredient.findMany({
       orderBy: { post: { createdAt: 'asc' } },
       select: { ingredientId: true, postId: true },
+      // A list page is bounded, and an asset covers a handful of posts at most.
+      take: ingredientIds.length * MAX_POSTS_PER_ASSET,
       where: {
         ingredientId: { in: [...ingredientIds] },
         organizationId,
@@ -117,6 +125,7 @@ export class IngredientStackService {
     const links = await this.prisma.postIngredient.findMany({
       orderBy: { post: { createdAt: 'asc' } },
       select: { postId: true },
+      take: MAX_POSTS_PER_ASSET,
       where: {
         ingredientId,
         organizationId,
@@ -127,6 +136,7 @@ export class IngredientStackService {
       const slides = await this.prisma.postIngredient.findMany({
         orderBy: { position: 'asc' },
         select: { ingredientId: true },
+        take: MAX_STACK_SLIDES,
         where: { organizationId, postId },
       });
       if (slides.length > 1) {
