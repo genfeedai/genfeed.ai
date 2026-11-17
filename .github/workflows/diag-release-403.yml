@@ -11,25 +11,33 @@ jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe update-a-release variants on the v0.3.2 draft
+      - name: Probe update-a-release on throwaway drafts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set +e
-          api() { gh api "$@" 2>&1 | head -c 600; echo; }
-          echo "== rulesets"; api "repos/${GITHUB_REPOSITORY}/rulesets"
-          echo "== workflow permissions"; api "repos/${GITHUB_REPOSITORY}/actions/permissions/workflow"
-          echo "== release"
-          rel="$(gh api "repos/${GITHUB_REPOSITORY}/releases/448455195")"
-          jq '{id,tag_name,target_commitish,draft,prerelease,name,assets:[.assets[].name],immutable}' <<<"$rel"
-          sha=12edcae57400547ffe336d6756e5c0da4ac29508
-          probe() { echo "-- PATCH $1"; shift; gh api -X PATCH "repos/${GITHUB_REPOSITORY}/releases/448455195" "$@" 2>&1 | head -c 400 | tr '\n' ' '; echo; }
-          probe "draft=true" -F draft=true
-          probe "name" -f name=v0.3.2
-          probe "tag_name" -f tag_name=v0.3.2
-          probe "target_commitish" -f target_commitish=$sha
-          probe "prerelease=false" -F prerelease=false
-          jq -r .body <<<"$rel" > body.txt
-          probe "body" -F body=@body.txt
-          probe "tag_name+target_commitish" -f tag_name=v0.3.2 -f target_commitish=$sha
-          probe "all" -f tag_name=v0.3.2 -f target_commitish=$sha -f name=v0.3.2 -F body=@body.txt -F draft=true -F prerelease=false
+          repo="repos/${GITHUB_REPOSITORY}"
+          old=12edcae57400547ffe336d6756e5c0da4ac29508
+          head="$(gh api ${repo}/commits/master --jq .sha)"
+          echo "master head ${head}"
+          parent="$(gh api ${repo}/commits/${old} --jq '.parents[0].sha')"
+          v031="$(gh api ${repo}/commits/v0.3.1 --jq .sha)"
+          echo "v0.3.1 ${v031}"
+          try() {
+            local label="$1" create_target="$2" patch_target="$3"
+            local id
+            id="$(gh api -X POST ${repo}/releases -f tag_name="diag-tmp-${label}" -f name="diag ${label}" -f target_commitish="${create_target}" -F draft=true --jq .id 2>&1)"
+            echo "-- ${label}: create@${create_target} -> ${id:0:120}"
+            case "${id}" in [0-9]*) ;; *) return ;; esac
+            out="$(gh api -X PATCH ${repo}/releases/${id} -f tag_name="diag-tmp-${label}" -f target_commitish="${patch_target}" 2>&1 | head -c 200 | tr '\n' ' ')"
+            echo "   patch target=${patch_target} -> ${out:0:160}"
+            gh api -X DELETE ${repo}/releases/${id} 2>&1 | head -c 100
+          }
+          try old-same "${old}" "${old}"
+          try head-same "${head}" "${head}"
+          try parent-same "${parent}" "${parent}"
+          try v031-same "${v031}" "${v031}"
+          try master-same master master
+          try old-to-head "${old}" "${head}"
+          # sanity: is the old commit even on master?
+          gh api "${repo}/compare/${old}...master" --jq '{status,ahead_by,behind_by}'
