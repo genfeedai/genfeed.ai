@@ -48,6 +48,35 @@ describe('findEffectFindings', () => {
     ).toEqual(['use_effect@3', 'use_effect@4']);
   });
 
+  it('counts a namespace import of react', () => {
+    expect(
+      kinds(
+        [
+          "import * as R from 'react';",
+          'export default function Example() {',
+          '  R.useEffect(() => undefined, []);',
+          '  return null;',
+          '}',
+        ].join('\n'),
+      ),
+    ).toEqual(['use_effect@3']);
+  });
+
+  it('does not count a useEffect method on an unrelated object', () => {
+    expect(
+      kinds(
+        [
+          "import React from 'react';",
+          'const lifecycle = { useEffect() {} };',
+          'export default function Example() {',
+          '  lifecycle.useEffect();',
+          '  return React.createElement("div");',
+          '}',
+        ].join('\n'),
+      ),
+    ).toEqual([]);
+  });
+
   it('does not count useLayoutEffect or a mention in a comment or string', () => {
     expect(
       kinds(

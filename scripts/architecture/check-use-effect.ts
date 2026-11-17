@@ -90,22 +90,18 @@ const IGNORE_GLOBS = [
 const AUDIT_IGNORE_PATTERN = /^\s*\/\/\s*use-effect-audit:\s*ignore\s+\S+/;
 const ABORT_IDENTIFIERS = new Set(['AbortController', 'AbortSignal', 'signal']);
 
-function isUseEffectCallee(
-  expression: ts.Expression,
-  reactNames: ReadonlySet<string>,
-): boolean {
-  if (ts.isIdentifier(expression)) {
-    return expression.text === 'useEffect' || reactNames.has(expression.text);
-  }
-  return (
-    ts.isPropertyAccessExpression(expression) &&
-    expression.name.text === 'useEffect'
-  );
-}
+type ReactBindings = {
+  /** Local names bound to react's `useEffect`, so `import { useEffect as run }` is seen. */
+  effectNames: Set<string>;
+  /** Local names bound to the whole react module: `import React` and `import * as React`. */
+  namespaceNames: Set<string>;
+};
 
-/** Local names bound to react's `useEffect`, so `import { useEffect as run }` is seen. */
-function reactUseEffectAliases(sourceFile: ts.SourceFile): Set<string> {
-  const aliases = new Set<string>();
+function readReactBindings(sourceFile: ts.SourceFile): ReactBindings {
+  const bindings: ReactBindings = {
+    effectNames: new Set(),
+    namespaceNames: new Set(),
+  };
   for (const statement of sourceFile.statements) {
     if (
       !ts.isImportDeclaration(statement) ||
@@ -114,17 +110,44 @@ function reactUseEffectAliases(sourceFile: ts.SourceFile): Set<string> {
     ) {
       continue;
     }
-    const bindings = statement.importClause?.namedBindings;
-    if (!bindings || !ts.isNamedImports(bindings)) {
-      continue;
+    const clause = statement.importClause;
+    if (clause?.name) {
+      bindings.namespaceNames.add(clause.name.text);
     }
-    for (const element of bindings.elements) {
-      if ((element.propertyName ?? element.name).text === 'useEffect') {
-        aliases.add(element.name.text);
+    const named = clause?.namedBindings;
+    if (named && ts.isNamespaceImport(named)) {
+      bindings.namespaceNames.add(named.name.text);
+    } else if (named) {
+      for (const element of named.elements) {
+        if ((element.propertyName ?? element.name).text === 'useEffect') {
+          bindings.effectNames.add(element.name.text);
+        }
       }
     }
   }
-  return aliases;
+  return bindings;
+}
+
+/**
+ * `useEffect(` and `run(` for an aliased import are React effects. A member call
+ * counts only on a react namespace binding, so `lifecycle.useEffect()` on an
+ * unrelated object is not one.
+ */
+function isUseEffectCallee(
+  expression: ts.Expression,
+  react: ReactBindings,
+): boolean {
+  if (ts.isIdentifier(expression)) {
+    return (
+      expression.text === 'useEffect' || react.effectNames.has(expression.text)
+    );
+  }
+  return (
+    ts.isPropertyAccessExpression(expression) &&
+    expression.name.text === 'useEffect' &&
+    ts.isIdentifier(expression.expression) &&
+    react.namespaceNames.has(expression.expression.text)
+  );
 }
 
 function isAsyncWork(node: ts.Node): boolean {
@@ -165,14 +188,14 @@ export function findEffectFindings(
   source: string,
 ): EffectFinding[] {
   const sourceFile = parseSourceFile(file, source, true, scriptKindFor(file));
-  const reactNames = reactUseEffectAliases(sourceFile);
+  const react = readReactBindings(sourceFile);
   const lines = source.split('\n');
   const findings: EffectFinding[] = [];
 
   const visit = (node: ts.Node): void => {
     if (
       ts.isCallExpression(node) &&
-      isUseEffectCallee(node.expression, reactNames)
+      isUseEffectCallee(node.expression, react)
     ) {
       const line =
         sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
