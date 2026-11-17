@@ -4,11 +4,33 @@ import { describe, expect, it, vi } from 'vitest';
 
 type CheckoutParams = StripeConstructor.Checkout.SessionCreateParams;
 
+interface PromotionCodeFixture {
+  active?: boolean;
+  code?: string;
+  customer: string | null;
+  id: string;
+}
+
+/** Answers `promotionCodes.list` the way Stripe does: by code, active only. */
 function stripeWithCodes(
-  data: Array<{ customer: string | null; id: string }>,
+  fixtures: PromotionCodeFixture[],
 ): InstanceType<typeof StripeConstructor> {
   return {
-    promotionCodes: { list: vi.fn().mockResolvedValue({ data }) },
+    promotionCodes: {
+      list: vi.fn(
+        async (params: {
+          active?: boolean;
+          code?: string;
+          limit?: number;
+        }) => ({
+          data: fixtures.filter(
+            (fixture) =>
+              (fixture.code ?? 'EARLYGENFEED') === params.code &&
+              (params.active !== true || fixture.active !== false),
+          ),
+        }),
+      ),
+    },
   } as unknown as InstanceType<typeof StripeConstructor>;
 }
 
@@ -40,6 +62,35 @@ describe('applyCheckoutPromotion launch code', () => {
     expect(config.allow_promotion_codes).toBe(true);
     expect(config.discounts).toBeUndefined();
     expect(logger.error).toHaveBeenCalledTimes(1);
+  });
+
+  it('logs an error and opens the entry box when the launch code is inactive', async () => {
+    const config: CheckoutParams = {};
+    const logger = createLogger();
+
+    await applyCheckoutPromotion(
+      stripeWithCodes([{ active: false, customer: null, id: 'promo_off' }]),
+      logger,
+      config,
+      true,
+    );
+
+    expect(config.allow_promotion_codes).toBe(true);
+    expect(config.discounts).toBeUndefined();
+    expect(logger.error).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the entry box without a lookup or an error once the promotion is retired', async () => {
+    const config: CheckoutParams = {};
+    const logger = createLogger();
+    const stripe = stripeWithCodes([{ customer: null, id: 'promo_open' }]);
+
+    await applyCheckoutPromotion(stripe, logger, config, true, null);
+
+    expect(config.allow_promotion_codes).toBe(true);
+    expect(config.discounts).toBeUndefined();
+    expect(logger.error).not.toHaveBeenCalled();
+    expect(stripe.promotionCodes.list).not.toHaveBeenCalled();
   });
 
   it('logs an error when the only launch code is restricted to a customer', async () => {

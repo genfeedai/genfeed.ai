@@ -3,15 +3,28 @@ import {
   avatarClipCreditRange,
   formatOutputs,
   formatPrice,
+  getLaunchPrice,
+  getLaunchPriceTerm,
   getPlanByTier,
   getScalePlan,
   IMAGE_CREDIT_COSTS,
 } from '@genfeedai/pricing';
 import { withSimulatedNumberLocale } from '@shared/localeTestUtils';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import PricingContent, { getPriceQualifier } from './pricing-content';
+
+// Wraps the real launch helpers so one test can retire the promotion.
+vi.mock('@genfeedai/pricing', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/pricing')>();
+
+  return {
+    ...actual,
+    getLaunchPrice: vi.fn(actual.getLaunchPrice),
+    getLaunchPriceTerm: vi.fn(actual.getLaunchPriceTerm),
+  };
+});
 
 vi.mock('next/link', () => ({
   default: ({ children, href, ...props }: ComponentProps<'a'>) => (
@@ -193,17 +206,52 @@ describe('PricingContent', () => {
     expect(pro.queryByText(/EARLYGENFEED/)).not.toBeInTheDocument();
   });
 
+  it('states the 12-month term of the Pro launch price in a tooltip on $39', async () => {
+    render(<PricingContent />);
+    const pro = within(screen.getByLabelText('Pro'));
+
+    // Keyboard focus always follows a key press (Tab).
+    fireEvent.keyDown(document.body, { key: 'Tab' });
+    fireEvent.focus(pro.getByText('$39'));
+
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      '12 months at $39, then $49',
+    );
+  });
+
+  it('adds no line under the Pro price for the term', () => {
+    render(<PricingContent />);
+    const pro = within(screen.getByLabelText('Pro'));
+
+    expect(pro.queryByText(/12 months/)).not.toBeInTheDocument();
+  });
+
   it('states the 12-month term of the Pro launch price in the FAQ', () => {
     render(<PricingContent />);
 
     expect(
       screen.getByText('How long does the Pro launch price last?'),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Pro is $39 a month for your first 12 months, then $49 a month.',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText('12 months at $39, then $49.')).toBeInTheDocument();
+  });
+
+  describe('once the launch promotion is retired', () => {
+    afterEach(() => {
+      vi.mocked(getLaunchPrice).mockRestore();
+      vi.mocked(getLaunchPriceTerm).mockRestore();
+    });
+
+    it('shows Pro at the full price with no term anywhere', () => {
+      vi.mocked(getLaunchPrice).mockReturnValue(null);
+      vi.mocked(getLaunchPriceTerm).mockReturnValue(null);
+      render(<PricingContent />);
+      const pro = within(screen.getByLabelText('Pro'));
+
+      expect(pro.getByText('$49').tagName).not.toBe('DEL');
+      expect(pro.queryByText('$39')).not.toBeInTheDocument();
+      expect(screen.queryByText(/launch price/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/12 months/)).not.toBeInTheDocument();
+    });
   });
 
   it('does not strike through the Scale price', () => {

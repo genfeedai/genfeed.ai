@@ -1,4 +1,5 @@
 import { getAppSignUpUrl } from '@data/app-links';
+import { PLAN_COPY } from '@genfeedai/pricing';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import {
   CtaSection,
@@ -68,7 +69,7 @@ export default function CloudContent() {
       <PageLayout
         compact
         title="One workspace for your team’s agents"
-        description="Every teammate connects their own agent to the same brand library, roles, approvals and credit pool. The dashboard is where the team reviews, publishes and measures."
+        description={`Every teammate connects their own agent to the same brand library, roles, approvals and credit pool. Shared seats start on ${PLAN_COPY.scale.name}; ${PLAN_COPY.payg.name} and ${PLAN_COPY.pro.name} are one seat. The dashboard is where the team reviews, publishes and measures.`}
       >
         {/* Benefits */}
         <WebSection maxWidth="xl">
@@ -161,7 +162,7 @@ export default function CloudContent() {
         {/* Pricing CTA */}
         <CtaSection
           title="Connect your team’s agents"
-          description="Every teammate connects their own agent to the same workspace, brand library, and approvals."
+          description={`On ${PLAN_COPY.scale.name} and ${PLAN_COPY.enterprise.name}, every teammate connects their own agent to the same workspace, brand library, and approvals.`}
         >
           <AgentFirstActions
             signUpHref={signUpHref}

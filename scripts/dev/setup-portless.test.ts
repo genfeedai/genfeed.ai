@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest';
 import {
   buildNodeRepinCommands,
   buildPortlessCommand,
+  describeLoadedDaemonMismatch,
   evaluateServiceCommand,
+  isLaunchDaemonPlistPresent,
   isPortlessServiceReady,
   isServiceDisabled,
   needsNodeRepin,
   PORTLESS_LAUNCH_DAEMON_PATH,
   PORTLESS_SERVICE_INSTALL_ARGS,
+  parseLoadedNodePath,
   planPortlessSetup,
   resolveStableNodePath,
   shouldInstallPortlessService,
@@ -147,11 +150,13 @@ describe('Portless startup-service Node path', () => {
     expect(planPortlessSetup(healthyStatus, stableNodePath, true)).toEqual({
       enable: true,
       install: false,
+      reload: false,
       repinTo: null,
     });
     expect(planPortlessSetup(healthyStatus, stableNodePath, false)).toEqual({
       enable: false,
       install: false,
+      reload: false,
       repinTo: null,
     });
     expect(
@@ -161,6 +166,135 @@ describe('Portless startup-service Node path', () => {
         false,
       ).repinTo,
     ).toBe(stableNodePath);
+  });
+});
+
+const LOADED_SERVICE = (nodePath: string) => `system/sh.portless.proxy = {
+	active count = 1
+	path = ${PORTLESS_LAUNCH_DAEMON_PATH}
+	state = running
+
+	program = ${nodePath}
+	arguments = {
+		${nodePath}
+		/repo/node_modules/portless/dist/cli.js
+		proxy
+		start
+	}
+}`;
+
+describe('Portless repair of the daemon being repaired', () => {
+  const healthyStatus = `
+        Manager state: running
+        Installed: yes
+        Proxy on 443: responding
+        HTTPS: yes
+        TLDs: .localhost
+        LAN mode: no
+        Wildcard: no
+      `;
+
+  it('keeps a stable daemon path whatever Node the shell runs', () => {
+    // The plan has no shell input: a daemon already on a stable Node from
+    // another installation is not rewritten to the shell's Node.
+    const nvmDaemon = '/Users/dev/.nvm/versions/node/v24.1.0/bin/node';
+
+    expect(
+      planPortlessSetup(healthyStatus, nvmDaemon, false).repinTo,
+    ).toBeNull();
+    expect(
+      planPortlessSetup(healthyStatus, '/usr/local/opt/node@24/bin/node', false)
+        .repinTo,
+    ).toBeNull();
+    expect(
+      planPortlessSetup(
+        healthyStatus,
+        '/usr/local/Cellar/node@24/24.11.0/bin/node',
+        false,
+      ).repinTo,
+    ).toBe('/usr/local/opt/node@24/bin/node');
+  });
+
+  it('reports an unreadable plist instead of treating the daemon as absent', () => {
+    const failWith = (code: string) => () => {
+      throw Object.assign(new Error(code), { code });
+    };
+
+    expect(isLaunchDaemonPlistPresent('/plist', () => ({}))).toBe(true);
+    expect(isLaunchDaemonPlistPresent('/plist', failWith('ENOENT'))).toBe(
+      false,
+    );
+    expect(() =>
+      isLaunchDaemonPlistPresent('/plist', failWith('EACCES')),
+    ).toThrow(/Could not read \/plist \(EACCES\).*dev:setup/u);
+    expect(() => isLaunchDaemonPlistPresent('/plist', failWith('EIO'))).toThrow(
+      /EIO/u,
+    );
+  });
+
+  it('reads the loaded daemon Node from launchctl print', () => {
+    expect(
+      parseLoadedNodePath(LOADED_SERVICE('/opt/homebrew/opt/node/bin/node')),
+    ).toBe('/opt/homebrew/opt/node/bin/node');
+    expect(
+      parseLoadedNodePath(
+        'system/sh.portless.proxy = {\n\tprogram = /opt/homebrew/Cellar/node/26.12.1/bin/node\n}',
+      ),
+    ).toBe('/opt/homebrew/Cellar/node/26.12.1/bin/node');
+    expect(parseLoadedNodePath('system/sh.portless.proxy = {\n}')).toBeNull();
+  });
+
+  it('flags a loaded daemon that disagrees with the persisted plist for reload', () => {
+    const stable = '/opt/homebrew/opt/node/bin/node';
+    const old = '/opt/homebrew/Cellar/node/26.12.1/bin/node';
+
+    // A repin edited the plist but the reload never took effect.
+    expect(planPortlessSetup(healthyStatus, stable, false, old)).toEqual({
+      enable: false,
+      install: false,
+      reload: true,
+      repinTo: null,
+    });
+    expect(planPortlessSetup(healthyStatus, stable, false, stable).reload).toBe(
+      false,
+    );
+    // Not loaded at all is the install path's job: the status is not ready.
+    expect(planPortlessSetup(null, stable, false, null)).toEqual({
+      enable: false,
+      install: true,
+      reload: false,
+      repinTo: null,
+    });
+  });
+
+  it('reports what disagrees without a success message', () => {
+    const stable = '/opt/homebrew/opt/node/bin/node';
+
+    expect(describeLoadedDaemonMismatch(stable, stable)).toBeNull();
+    expect(describeLoadedDaemonMismatch(null, null)).toBeNull();
+    expect(
+      describeLoadedDaemonMismatch(
+        stable,
+        '/opt/homebrew/Cellar/node/26.12.1/bin/node',
+      ),
+    ).toBe(
+      `launchd runs /opt/homebrew/Cellar/node/26.12.1/bin/node, but ${PORTLESS_LAUNCH_DAEMON_PATH} runs ${stable}.`,
+    );
+    expect(describeLoadedDaemonMismatch(stable, null)).toMatch(
+      /not loaded in launchd/u,
+    );
+  });
+
+  it('reloads the persisted configuration without editing the plist', () => {
+    const commands = buildNodeRepinCommands(null);
+
+    expect(commands.map(({ args }) => args.join(' '))).toEqual([
+      `sudo launchctl bootout system ${PORTLESS_LAUNCH_DAEMON_PATH}`,
+      'launchctl print system/sh.portless.proxy',
+      `sudo launchctl bootstrap system ${PORTLESS_LAUNCH_DAEMON_PATH}`,
+      'sudo launchctl enable system/sh.portless.proxy',
+      'sudo launchctl kickstart -k system/sh.portless.proxy',
+    ]);
   });
 });
 

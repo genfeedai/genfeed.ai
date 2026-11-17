@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  classifyMembership,
   expectedIdentity,
   main,
   qualifyVerdict,
@@ -59,8 +60,20 @@ function job(overrides = {}) {
     ...overrides,
   };
 }
+function pullRequest(overrides = {}) {
+  return {
+    number: 42,
+    state: 'closed',
+    merged: true,
+    head: { sha: head },
+    base: { repo: { full_name: repository } },
+    ...overrides,
+  };
+}
+const mergedMidRun = () => run({ pull_requests: [] });
 function reader({
   metadata = run(),
+  pull = pullRequest(),
   jobs = [job()],
   replies = [],
   finalRun = metadata,
@@ -71,6 +84,7 @@ function reader({
   const get = async (route, timeout) => {
     calls.push({ route, timeout });
     if (replies.length) return replies.shift();
+    if (route.includes('/pulls/')) return { status: 200, body: pull };
     if (!route.includes('/jobs?')) {
       return { status: 200, body: runReads++ === 0 ? metadata : finalRun };
     }
@@ -273,6 +287,196 @@ for (const event of ['merge_group', 'push']) {
     assert.throws(() => validateRun(run({ event }), identity));
   });
 }
+test('a pull request that merges mid-run still qualifies from its exact pull request evidence', async () => {
+  const api = reader({ metadata: mergedMidRun() });
+  assert.equal((await qualifyVerdict(expected, api)).id, 11);
+  assert.deepEqual(
+    api.calls.map((call) => call.route),
+    [
+      `/repos/${repository}/actions/runs/123`,
+      `/repos/${repository}/pulls/42`,
+      '/repos/' +
+        repository +
+        '/actions/runs/123/attempts/2/jobs?per_page=100&page=1',
+      `/repos/${repository}/actions/runs/123`,
+      `/repos/${repository}/pulls/42`,
+    ],
+  );
+});
+
+test('an open pull request missing from the run list qualifies from pull request evidence', async () => {
+  const api = reader({
+    metadata: mergedMidRun(),
+    pull: pullRequest({ state: 'open', merged: false }),
+  });
+  assert.equal((await qualifyVerdict(expected, api)).id, 11);
+});
+
+test('classifies membership as listed, open or merged', () => {
+  assert.equal(classifyMembership(run(), expected), 'listed');
+  assert.equal(
+    classifyMembership(mergedMidRun(), expected, pullRequest()),
+    'merged',
+  );
+  assert.equal(
+    classifyMembership(
+      mergedMidRun(),
+      expected,
+      pullRequest({ state: 'open', merged: false }),
+    ),
+    'open',
+  );
+});
+
+test('a listed foreign pull request is never rescued by pull request evidence', () => {
+  assert.throws(
+    () =>
+      validateRun(
+        run({
+          pull_requests: [
+            {
+              number: 43,
+              head: { sha: head },
+              base: {
+                repo: { url: `https://api.github.com/repos/${repository}` },
+              },
+            },
+          ],
+        }),
+        expected,
+        pullRequest(),
+      ),
+    /expected #42@bbbbbbbbbbbb, run lists #43@bbbbbbbbbbbb/,
+  );
+});
+
+for (const [label, pull, message] of [
+  [
+    'another pull request number',
+    pullRequest({ number: 43 }),
+    /reports #43@bbbbbbbbbbbb/,
+  ],
+  [
+    'a moved head',
+    pullRequest({ head: { sha: 'c'.repeat(40) } }),
+    /expected #42@bbbbbbbbbbbb, pull request reports #42@cccccccccccc/,
+  ],
+  [
+    'another base repository',
+    pullRequest({ base: { repo: { full_name: 'other/repo' } } }),
+    /does not match/,
+  ],
+  [
+    'closed without merging',
+    pullRequest({ state: 'closed', merged: false }),
+    /closed without merging/,
+  ],
+  ['no pull request body', null, /Invalid metadata response/],
+  ['a non-object body', 'merged', /Invalid metadata response/],
+]) {
+  test(`fails closed for an empty membership list with ${label}`, async () => {
+    const delays = [];
+    await assert.rejects(
+      qualifyVerdict(expected, {
+        ...reader({ metadata: mergedMidRun(), pull }),
+        sleep: async (ms) => delays.push(ms),
+      }),
+      message,
+    );
+    assert.deepEqual(delays, []);
+  });
+}
+
+test('mismatch reports contain only numbers and short heads', async () => {
+  await assert.rejects(
+    qualifyVerdict(expected, {
+      ...reader({
+        metadata: mergedMidRun(),
+        pull: pullRequest({
+          head: { sha: 'c'.repeat(40) },
+          title: 'fixture-secret',
+        }),
+      }),
+      get: async (route) => ({
+        status: 200,
+        body: route.includes('/pulls/')
+          ? pullRequest({
+              head: { sha: 'c'.repeat(40) },
+              title: 'fixture-secret',
+            })
+          : mergedMidRun(),
+      }),
+    }),
+    (error) => {
+      assert.doesNotMatch(error.message, /fixture-secret|c{13}/);
+      return true;
+    },
+  );
+});
+
+test('pull request read retries transient responses like run reads', async () => {
+  const api = reader({ metadata: mergedMidRun() });
+  const delays = [];
+  let failed = false;
+  const get = async (...args) => {
+    if (args[0].includes('/pulls/') && !failed) {
+      failed = true;
+      return { status: 404, body: {} };
+    }
+    return api.get(...args);
+  };
+  assert.equal(
+    (
+      await qualifyVerdict(expected, {
+        get,
+        sleep: async (ms) => delays.push(ms),
+      })
+    ).id,
+    11,
+  );
+  assert.deepEqual(delays, [2_000]);
+});
+
+test('CLI sends the token only to the current run and the named pull request', async () => {
+  const original = globalThis.fetch;
+  const urls = [];
+  globalThis.fetch = async (url) => {
+    urls.push(url);
+    const body = url.includes('/jobs?')
+      ? { total_count: 1, jobs: [job()] }
+      : url.includes('/pulls/')
+        ? pullRequest()
+        : mergedMidRun();
+    return new Response(JSON.stringify(body), { status: 200 });
+  };
+  try {
+    await main({ ...env, GH_TOKEN: 'fixture-token' });
+  } finally {
+    globalThis.fetch = original;
+  }
+  assert.ok(
+    urls.includes(`https://api.github.com/repos/${repository}/pulls/42`),
+  );
+  assert.ok(
+    urls.every(
+      (url) =>
+        url.startsWith(
+          `https://api.github.com/repos/${repository}/actions/runs/123`,
+        ) || url === `https://api.github.com/repos/${repository}/pulls/42`,
+    ),
+  );
+});
+
+test('non-PR events never read a pull request route', async () => {
+  const identity = expectedIdentity({ ...env, EXPECTED_EVENT: 'push' });
+  const api = reader({
+    metadata: run({ event: 'push', head_sha: source, pull_requests: [] }),
+    jobs: [job({ head_sha: source })],
+  });
+  assert.equal((await qualifyVerdict(identity, api)).id, 11);
+  assert.ok(api.calls.every((call) => !call.route.includes('/pulls/')));
+});
+
 test('reads all numbered pages including a real match after page one', async () => {
   const jobs = Array.from({ length: 201 }, (_, i) =>
     job({ id: i + 100, name: `Worker ${i}` }),
@@ -471,7 +675,6 @@ test('pending verdicts cannot retry before complete run and job identity validat
       { workflow_id: 1 },
       { repository: { full_name: 'other/repo' } },
       { head_sha: 'c'.repeat(40) },
-      { pull_requests: [] },
       { referenced_workflows: [] },
     ].map((override) => ({
       metadata: run(override),

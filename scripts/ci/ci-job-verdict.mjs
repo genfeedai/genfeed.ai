@@ -80,7 +80,75 @@ export function expectedIdentity(env) {
   };
 }
 
-export function validateRun(run, expected) {
+function shortSha(sha) {
+  return typeof sha === 'string' && SHA.test(sha)
+    ? sha.slice(0, 12)
+    : 'invalid';
+}
+
+function describePull(number, sha) {
+  return `#${Number.isSafeInteger(number) ? number : 'invalid'}@${shortSha(sha)}`;
+}
+
+export function pullRoute(expected) {
+  return `/repos/${expected.repository}/pulls/${expected.prNumber}`;
+}
+
+// GitHub drops a pull request from a run's `pull_requests` list once it merges
+// or closes, so an empty list is not evidence of a foreign run. Only then is the
+// pull request itself read, and only for the exact number the trusted event named.
+export function needsPullEvidence(run, expected) {
+  return (
+    expected.event === 'pull_request' &&
+    Array.isArray(run?.pull_requests) &&
+    run.pull_requests.length === 0
+  );
+}
+
+// Returns how membership was established: `listed` (run evidence), `open` or
+// `merged` (pull request evidence). Anything else throws with the mismatched
+// number and head, never with a token or a response body.
+export function classifyMembership(run, expected, pull) {
+  requireValue(
+    Array.isArray(run.pull_requests),
+    'Pull request membership or head does not match: run lists no membership evidence',
+  );
+  const wanted = describePull(expected.prNumber, expected.prHead);
+  if (run.pull_requests.length > 0) {
+    const matching = run.pull_requests.filter(
+      (pr) =>
+        pr?.number === expected.prNumber &&
+        pr.head?.sha === expected.prHead &&
+        pr.base?.repo?.url ===
+          `https://api.github.com/repos/${expected.repository}`,
+    );
+    requireValue(
+      matching.length === 1,
+      `Pull request membership or head does not match: expected ${wanted}, run lists ${run.pull_requests
+        .map((pr) => describePull(pr?.number, pr?.head?.sha))
+        .join(', ')}`,
+    );
+    return 'listed';
+  }
+  requireValue(
+    pull && typeof pull === 'object',
+    `Pull request membership or head does not match: run lists no pull request and ${wanted} was not read`,
+  );
+  requireValue(
+    pull.number === expected.prNumber &&
+      pull.base?.repo?.full_name === expected.repository &&
+      pull.head?.sha === expected.prHead,
+    `Pull request membership or head does not match: expected ${wanted}, pull request reports ${describePull(pull.number, pull.head?.sha)}`,
+  );
+  if (pull.state === 'closed' && pull.merged === true) return 'merged';
+  requireValue(
+    pull.state === 'open' && pull.merged !== true,
+    `Pull request ${wanted} was closed without merging`,
+  );
+  return 'open';
+}
+
+export function validateRun(run, expected, pull) {
   requireValue(
     run?.id === expected.runId &&
       run.run_attempt === expected.attempt &&
@@ -93,18 +161,10 @@ export function validateRun(run, expected) {
   );
   if (expected.event === 'pull_request') {
     requireValue(
-      (run.head_sha === expected.prHead ||
-        run.head_sha === expected.sourceSha) &&
-        Array.isArray(run.pull_requests) &&
-        run.pull_requests.filter(
-          (pr) =>
-            pr?.number === expected.prNumber &&
-            pr.head?.sha === expected.prHead &&
-            pr.base?.repo?.url ===
-              `https://api.github.com/repos/${expected.repository}`,
-        ).length === 1,
-      'Pull request membership or head does not match',
+      run.head_sha === expected.prHead || run.head_sha === expected.sourceSha,
+      `Pull request membership or head does not match: run head ${shortSha(run.head_sha)}, expected PR head ${shortSha(expected.prHead)}`,
     );
+    classifyMembership(run, expected, pull);
   } else {
     requireValue(
       run.head_sha === expected.sourceSha,
@@ -133,8 +193,8 @@ export function validateRun(run, expected) {
 class PropagationError extends Error {}
 class TransientError extends Error {}
 
-export function validateVerdict(run, jobs, expected) {
-  validateRun(run, expected);
+export function validateVerdict(run, jobs, expected, pull) {
+  validateRun(run, expected, pull);
   requireValue(Array.isArray(jobs), 'Invalid jobs');
   const ids = new Set();
   for (const job of jobs) {
@@ -209,9 +269,16 @@ export async function qualifyVerdict(
     );
     return response;
   };
+  const readRun = async () => {
+    const body = (await read(prefix)).body;
+    const pull = needsPullEvidence(body, expected)
+      ? (await read(pullRoute(expected))).body
+      : undefined;
+    return { run: validateRun(body, expected, pull), pull };
+  };
   for (let snapshot = 0; snapshot < 3; snapshot++) {
     try {
-      const run = validateRun((await read(prefix)).body, expected);
+      const { run, pull } = await readRun();
       const jobs = [];
       let total;
       let pages = 1;
@@ -258,8 +325,8 @@ export async function qualifyVerdict(
         jobs.push(...body.jobs);
       }
       requireValue(jobs.length === total, 'Incomplete job count');
-      const verdict = validateVerdict(run, jobs, expected);
-      const latest = validateRun((await read(prefix)).body, expected);
+      const verdict = validateVerdict(run, jobs, expected, pull);
+      const { run: latest } = await readRun();
       requireValue(
         latest.head_sha === run.head_sha,
         'Run head changed during qualification',
@@ -292,11 +359,13 @@ export async function main(env = process.env) {
   );
   const deadline = performance.now() + 240_000;
   const get = async (route, timeout) => {
-    // Only these locally constructed, current-run GET routes reach the token.
+    // Only these locally constructed GET routes reach the token: the current run
+    // and, for a pull request event, that one pull request.
     requireValue(
       route.startsWith(
         `/repos/${expected.repository}/actions/runs/${expected.runId}`,
-      ),
+      ) ||
+        (expected.event === 'pull_request' && route === pullRoute(expected)),
       'Invalid metadata route',
     );
     let response;
