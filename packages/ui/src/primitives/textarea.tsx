@@ -257,10 +257,6 @@ function ControlledTextareaInner<T extends FieldValues = FieldValues>({
     previousValueRef.current = currentValue;
   }, [adjustHeight, currentValue, stableTextareaRef]);
 
-  useEffect(() => {
-    adjustHeight();
-  }, [adjustHeight]);
-
   return (
     <textarea
       {...props}

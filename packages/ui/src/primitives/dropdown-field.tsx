@@ -124,6 +124,7 @@ export default function DropdownField({
     }
   }, []);
 
+  // use-effect-audit: ignore subscribes to document mousedown to close the dropdown
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);

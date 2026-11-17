@@ -114,6 +114,7 @@ export function scheduleModalGlobalSideEffectCleanup(
 }
 
 export function useModalContentGlobalSideEffectCleanup(): void {
+  // use-effect-audit: ignore cleans up global DOM side effects left by a modal
   useEffect(
     () => () => {
       scheduleModalGlobalSideEffectCleanup();
@@ -124,8 +125,10 @@ export function useModalContentGlobalSideEffectCleanup(): void {
 
 export function useRouteModalGlobalSideEffectCleanup(routeKey: string): void {
   // biome-ignore lint/correctness/useExhaustiveDependencies: routeKey is the deliberate route-change trigger for stale modal cleanup
+  // use-effect-audit: ignore cleans up global DOM side effects when the route changes
   useEffect(() => scheduleModalGlobalSideEffectCleanup(), [routeKey]);
 
+  // use-effect-audit: ignore force cleans up global DOM side effects on unmount
   useEffect(
     () => () => {
       scheduleModalGlobalSideEffectCleanup({ force: true });

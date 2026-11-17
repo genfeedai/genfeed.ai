@@ -121,6 +121,7 @@ export function useMediaPlayback({
 }: UseMediaPlaybackParams) {
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
+  // use-effect-audit: ignore pauses the shared audio element on unmount
   useEffect(
     () => () => {
       if (

@@ -104,6 +104,7 @@ function SimpleTooltip({
   const [isOpen, setIsOpen] = useState(false);
   const isHoveredRef = useRef(false);
 
+  // use-effect-audit: ignore registers the global input modality listeners
   useEffect(() => {
     trackInputModality();
   }, []);

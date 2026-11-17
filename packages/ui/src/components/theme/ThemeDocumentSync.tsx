@@ -13,6 +13,7 @@ import { useEffect } from 'react';
  * next-themes provider and bootstrap script are unavailable.
  */
 export default function ThemeDocumentSync() {
+  // use-effect-audit: ignore syncs the document theme with matchMedia and storage events
   useEffect(() => {
     let mediaQuery: MediaQueryList | null = null;
 
