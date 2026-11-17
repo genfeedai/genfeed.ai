@@ -10,6 +10,7 @@ import {
 } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientReviewStateService } from '@api/collections/ingredients/services/ingredient-review-state.service';
+import { IngredientStackService } from '@api/collections/ingredients/services/ingredient-stack.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import {
   libraryBrandWhere,
@@ -93,6 +94,8 @@ export class IngredientsController {
     private readonly brandAccess?: BrandAccessService,
     @Optional()
     private readonly reviewState?: IngredientReviewStateService,
+    @Optional()
+    private readonly stacks?: IngredientStackService,
   ) {}
 
   /**
@@ -232,6 +235,7 @@ export class IngredientsController {
           IngredientFilterUtil.buildStoryboardStillExclusion(),
           characterFilter,
           this.reviewState?.buildFilter(query.review) ?? {},
+          this.stacks?.buildFilter(query.stacks) ?? {},
           IngredientFilterUtil.buildTagFilter(query.tags, query.tagMatch),
           searchFilter.where,
         ],
@@ -263,13 +267,16 @@ export class IngredientsController {
       (await this.evaluationProjection?.attachToPage(data, {
         brandId: tenant.isOrganizationOverride ? tenant.brandId : user.brandId,
       })) ?? data;
+    const reviewed =
+      (await this.reviewState?.attachToPage(evaluated, tenant.organizationId)) ??
+      evaluated;
     return serializeCollection(
       request,
       IngredientSerializer,
-      (await this.reviewState?.attachToPage(
-        evaluated,
-        tenant.organizationId,
-      )) ?? evaluated,
+      query.stacks
+        ? ((await this.stacks?.attachToPage(reviewed, tenant.organizationId)) ??
+            reviewed)
+        : reviewed,
     );
   }
 

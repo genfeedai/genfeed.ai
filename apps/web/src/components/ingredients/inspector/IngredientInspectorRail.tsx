@@ -58,6 +58,7 @@ import { useIsAppAvailable } from '@/components/shell/use-available-rail-apps';
 import IngredientReviewPanel from '@/features/library/review/ingredient-review-panel';
 import type { IngredientInspectorRailProps } from '@/props/content/ingredient.props';
 import IngredientLineageStrip from './IngredientLineageStrip';
+import IngredientStackStrip from './IngredientStackStrip';
 import IngredientMetadataFields from './IngredientMetadataFields';
 import IngredientPromptBlock from './IngredientPromptBlock';
 import IngredientTagsControl from './IngredientTagsControl';
@@ -425,6 +426,7 @@ export default function IngredientInspectorRail({
 
       <IngredientUsedInPosts ingredientId={ingredient.id} />
 
+      <IngredientStackStrip ingredientId={ingredient.id} />
       <IngredientLineageStrip
         direction={IngredientLineageDirection.MADE_FROM}
         ingredientId={ingredient.id}

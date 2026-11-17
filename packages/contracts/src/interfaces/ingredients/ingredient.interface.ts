@@ -29,6 +29,12 @@ import type {
 } from '../index';
 import type { ImageEditingRecipe } from '../studio/image-editing.interface';
 
+/** A carousel as the Library shows it: one cover tile and the count behind it. */
+export interface IIngredientStack {
+  postId: string;
+  count: number;
+}
+
 export interface IIngredient extends IBaseEntity {
   generationEntry?: GenerationEntry;
   imageEdit?: ImageEditingRecipe;
@@ -124,6 +130,11 @@ export interface IIngredient extends IBaseEntity {
   evaluation?: IEvaluation | null;
   /** Summed teammate-review state; null when no review was requested. */
   reviewState?: LibraryReviewState | null;
+  /**
+   * Set on the cover of a multi-image post when the Library list is stacked
+   * (`stacks=true`): the post whose ordered media it covers and the slide count.
+   */
+  stack?: IIngredientStack | null;
   /**
    * Generation ledger, serialized from the row that produced the asset. A
    * FAILED asset carries the provider's reason in `generationError`; the

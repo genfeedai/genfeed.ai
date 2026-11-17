@@ -47,6 +47,7 @@ export default function LibraryBrowser({
   shelf: defaultShelf,
   seededCategories,
   seededOrigins,
+  isStacked,
   preset,
   scope = PageScope.BRAND,
   children,
@@ -84,6 +85,7 @@ export default function LibraryBrowser({
     scope,
     seededCategories,
     seededOrigins,
+    isStacked,
     shelf: defaultShelf,
   });
 

@@ -8,6 +8,7 @@ import { isFailedIngredient } from '@genfeedai/utils/media/ingredient-ledger.uti
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import IngredientReviewActions from '@/components/ingredients/IngredientReviewActions';
 import IngredientOriginBadge from '@/components/ingredients/ingredient-origin-badge';
+import IngredientStackBadge from '@/components/ingredients/ingredient-stack-badge';
 import IngredientTagChips from '@/components/ingredients/ingredient-tag-chips';
 import LibraryReviewBadge from '@/features/library/review/library-review-badge';
 import type { IngredientTileOverlaysProps } from '@/props/content/ingredient.props';
@@ -78,6 +79,9 @@ const ORIGIN_BADGE_CLASS = cn(
 const TAG_CHIPS_CLASS =
   'pointer-events-none absolute bottom-8 left-1.5 right-1.5 z-10';
 
+/** A carousel cover's image count, always visible in the top-left corner. */
+const STACK_BADGE_CLASS = 'pointer-events-none absolute left-2 top-2 z-10';
+
 /** The teammate-review state, always visible; the open-details button covers it on hover. */
 const REVIEW_BADGE_CLASS = 'pointer-events-none absolute right-2 top-2 z-10';
 
@@ -133,6 +137,10 @@ export default function IngredientTileOverlays({
           ) : null}
         </div>
       ) : null}
+      <IngredientStackBadge
+        className={STACK_BADGE_CLASS}
+        stack={ingredient.stack}
+      />
       <LibraryReviewBadge
         className={REVIEW_BADGE_CLASS}
         state={ingredient.reviewState}

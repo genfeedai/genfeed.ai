@@ -83,6 +83,8 @@
     "showFullPrompt": "Show full prompt",
     "showLess": "Show less",
     "showMore": "Show more",
+    "stack": "Carousel",
+    "stackCount": "Carousel of {count} images",
     "style": "Style",
     "surface": "Library",
     "type": "Type",

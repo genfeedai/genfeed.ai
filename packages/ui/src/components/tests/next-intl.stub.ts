@@ -1075,6 +1075,8 @@ const UI_TEST_MESSAGES = {
         showFullPrompt: 'Show full prompt',
         showLess: 'Show less',
         showMore: 'Show more',
+        stack: 'Carousel',
+        stackCount: 'Carousel of {count} images',
         style: 'Style',
         type: 'Type',
         untitled: 'Untitled asset',
