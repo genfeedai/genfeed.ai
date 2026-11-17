@@ -122,36 +122,66 @@ const PLAN_PRICES = {
   scale: 499,
 } as const satisfies Record<PlanTier, number | null>;
 
+export interface LaunchPromotionProps {
+  /** Stripe promotion code Checkout applies for the customer. */
+  code: string;
+  /** Dollars the code takes off the Pro monthly price. */
+  discountDollars: number;
+  /** Months the code applies before the full price returns. */
+  discountMonths: number;
+}
+
 /**
- * Stripe promotion code that takes $10 off Pro for 12 months. Checkout applies
- * it for the customer on the Pro price, and the pricing page shows the price
- * with it taken off, so the page and the charge always agree.
+ * The Pro launch promotion: a Stripe promotion code that takes $10 off Pro for
+ * 12 months. Checkout applies it for the customer on the Pro price, and the
+ * pricing page shows the price with it taken off, so the page and the charge
+ * agree.
  *
- * Retire the code in Stripe in the same change that removes the `PRO_LAUNCH_*`
- * constants and `getLaunchPrice`: Checkout falls back to the promo box at the
- * full price when the code is gone, while a card still reading the launch price
- * would disagree with the charge.
+ * This one value feeds the pricing card, the term disclosure and Checkout.
+ * Retire the promotion by setting it to `null` in the same change that
+ * deactivates the code in Stripe: the discounted price and its term leave the
+ * page, and Checkout stops looking the code up, together.
  */
-export const PRO_LAUNCH_PROMOTION_CODE = 'EARLYGENFEED';
-
-/** Dollars the launch promotion code takes off the Pro monthly price. */
-export const PRO_LAUNCH_DISCOUNT_DOLLARS = 10;
-
-/** Months the launch promotion code applies before the full price returns. */
-export const PRO_LAUNCH_DISCOUNT_MONTHS = 12;
+export const PRO_LAUNCH_PROMOTION: LaunchPromotionProps | null = {
+  code: 'EARLYGENFEED',
+  discountDollars: 10,
+  discountMonths: 12,
+};
 
 /**
  * Monthly price a new customer pays with the launch promotion applied, or null
- * when the tier has no launch promotion.
+ * when the tier has no launch promotion or the promotion is retired.
  */
-export function getLaunchPrice(tier: PlanTier): number | null {
+export function getLaunchPrice(
+  tier: PlanTier,
+  promotion: LaunchPromotionProps | null = PRO_LAUNCH_PROMOTION,
+): number | null {
   const price = PLAN_PRICES[tier];
 
-  if (tier !== 'pro' || price == null) {
+  if (promotion === null || tier !== 'pro' || price == null) {
     return null;
   }
 
-  return price - PRO_LAUNCH_DISCOUNT_DOLLARS;
+  return price - promotion.discountDollars;
+}
+
+/**
+ * The launch price term in one sentence ("12 months at $39, then $49"), or null
+ * whenever `getLaunchPrice` has no launch price, so the disclosure never
+ * outlives the discount it explains.
+ */
+export function getLaunchPriceTerm(
+  tier: PlanTier,
+  promotion: LaunchPromotionProps | null = PRO_LAUNCH_PROMOTION,
+): string | null {
+  const launchPrice = getLaunchPrice(tier, promotion);
+  const price = PLAN_PRICES[tier];
+
+  if (promotion === null || launchPrice === null || price == null) {
+    return null;
+  }
+
+  return `${promotion.discountMonths} months at ${formatPrice(launchPrice)}, then ${formatPrice(price)}`;
 }
 
 /**
