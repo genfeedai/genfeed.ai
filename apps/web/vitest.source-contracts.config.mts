@@ -10,6 +10,9 @@ export default {
   test: {
     ...webConfig.test,
     environment: 'node',
+    // The per-file reset lives in the DOM setup file this config drops, so
+    // these files keep a worker each, as before `vitest.config.mts` shared one.
+    isolate: true,
     setupFiles: [],
   },
 };
