@@ -1,5 +1,7 @@
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
 import { recordTrendProviderOutcome } from '@api/collections/trends/utils/trend-refresh-evidence.util';
+import { LinkedInTrendResolverService } from '@api/services/integrations/linkedin/services/linkedin-trend-resolver.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('TrendFetchService', () => {
@@ -332,6 +334,83 @@ describe('TrendFetchService', () => {
         topic: '#ai',
       },
     ]);
+  });
+
+  describe('LinkedIn public scrape evidence', () => {
+    const mockBrandScraper = { scrapeLinkedIn: vi.fn() };
+
+    beforeEach(() => {
+      const resolver = new LinkedInTrendResolverService(
+        mockBrandScraper as never,
+        runtimeSettingsMock({ get: vi.fn() }),
+        mockLoggerService as never,
+      );
+      mockLinkedInService.getTrends.mockImplementation(
+        (organizationId?: string, brandId?: string) =>
+          resolver.resolve(organizationId, brandId),
+      );
+    });
+
+    it('records a failed refresh when every public source is blocked', async () => {
+      mockBrandScraper.scrapeLinkedIn.mockRejectedValue(
+        Object.assign(new Error('Failed to fetch LinkedIn page: 403'), {
+          status: 403,
+        }),
+      );
+
+      const trends = await service.fetchAndCacheTrends(
+        'org-1',
+        'brand-1',
+        undefined,
+        { allowApifyFallback: false, platforms: ['linkedin'] },
+      );
+
+      expect(trends).toEqual([]);
+      expect(refreshHealth.record).toHaveBeenCalledWith('org-1', [
+        expect.objectContaining({
+          lastSuccessfulRefreshAt: null,
+          outcome: 'native_failed',
+          platform: 'linkedin',
+          reason: 'access_required',
+        }),
+      ]);
+    });
+
+    it('still records a successful refresh when only some public sources fail', async () => {
+      mockBrandScraper.scrapeLinkedIn
+        .mockResolvedValueOnce({
+          recentPosts: [
+            'We are seeing strong momentum around #AI and enterprise adoption.',
+            'Builders are shipping new workflows for #AI teams.',
+          ],
+          sourceUrl: 'https://www.linkedin.com/company/openai/',
+        })
+        .mockRejectedValue(
+          Object.assign(new Error('Failed to fetch LinkedIn page: 403'), {
+            status: 403,
+          }),
+        );
+      mockPrisma.trend.create.mockImplementation(
+        async ({ data }: { data: { topic: string } }) => ({
+          ...data,
+          data: {},
+          id: 'trend-1',
+        }),
+      );
+
+      await service.fetchAndCacheTrends('org-1', 'brand-1', undefined, {
+        allowApifyFallback: false,
+        platforms: ['linkedin'],
+      });
+
+      expect(refreshHealth.record).toHaveBeenCalledWith('org-1', [
+        expect.objectContaining({
+          lastSuccessfulRefreshAt: expect.any(String),
+          outcome: 'native_available',
+          platform: 'linkedin',
+        }),
+      ]);
+    });
   });
 
   describe('native-first platform discovery', () => {

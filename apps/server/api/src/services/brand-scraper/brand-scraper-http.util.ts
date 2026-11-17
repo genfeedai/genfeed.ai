@@ -260,7 +260,10 @@ export class BrandScraperHttp {
             void response.body?.cancel().catch(() => undefined);
             clearTimeout(timeout);
             if (backoffMs >= this.remainingBudget(budget))
-              throw new Error('Retry delay exceeds remaining budget');
+              throw Object.assign(
+                new Error('Retry delay exceeds remaining budget'),
+                { status: response.status },
+              );
           }
           this.options.logger.warn(
             `${caller} rate-limited (429), retrying in ${backoffMs}ms (attempt ${attempt + 1}/${MAX_RETRY_ATTEMPTS})`,
