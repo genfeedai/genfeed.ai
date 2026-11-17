@@ -80,6 +80,7 @@ describe('VideoGenerationExecutionService', () => {
       open: vi.fn().mockResolvedValue(undefined),
       recordAccepted: vi.fn().mockResolvedValue(undefined),
     };
+    const higgsFieldPollQueueService = { schedule: vi.fn() };
     const service = new VideoGenerationExecutionService(
       activitiesService as never,
       failedGenerationService as never,
@@ -93,9 +94,11 @@ describe('VideoGenerationExecutionService', () => {
       websocketService as never,
       webhooksService as never,
       mediaReceipts as never,
+      higgsFieldPollQueueService as never,
     );
 
     return {
+      higgsFieldPollQueueService,
       mediaReceipts,
       generationBilling,
       metadataService,
@@ -841,5 +844,71 @@ describe('VideoGenerationExecutionService', () => {
     expect(replicatePollQueueService.schedule).toHaveBeenCalledWith(
       expect.not.objectContaining({ isByok: true }),
     );
+  });
+
+  describe('Higgsfield accepted request', () => {
+    const accepted = {
+      completion: 'polling',
+      externalId: 'hf-request-1',
+      provider: 'higgsfield',
+    };
+
+    it('saves the request id before the durable poll job exists', async () => {
+      const {
+        higgsFieldPollQueueService,
+        metadataService,
+        providerDispatchService,
+        service,
+      } = createHarness();
+      providerDispatchService.dispatch.mockResolvedValue(accepted);
+
+      await service.execute(buildContext());
+
+      expect(metadataService.patch).toHaveBeenCalledWith(
+        'metadata-1',
+        expect.objectContaining({
+          externalId: 'hf-request-1',
+          externalProvider: 'higgsfield',
+        }),
+      );
+      expect(higgsFieldPollQueueService.schedule).toHaveBeenCalledWith({
+        externalId: 'hf-request-1',
+        ingredientId: 'ingredient-1',
+        organizationId: 'org-1',
+      });
+      expect(metadataService.patch.mock.invocationCallOrder[0]).toBeLessThan(
+        higgsFieldPollQueueService.schedule.mock.invocationCallOrder[0] ?? 0,
+      );
+    });
+
+    it('sends the same idempotency key every time the same generation is dispatched', async () => {
+      const { providerDispatchService, service } = createHarness();
+      providerDispatchService.dispatch.mockResolvedValue(accepted);
+
+      await service.execute(buildContext());
+      await service.execute(buildContext());
+
+      const keys = providerDispatchService.dispatch.mock.calls.map(
+        ([params]) => params.idempotencyKey,
+      );
+      expect(keys).toEqual([
+        'video-generation-ingredient-1',
+        'video-generation-ingredient-1',
+      ]);
+    });
+
+    it('does not start a poll job for a provider that returns its output', async () => {
+      const { higgsFieldPollQueueService, providerDispatchService, service } =
+        createHarness();
+      providerDispatchService.dispatch.mockResolvedValue({
+        completion: 'remote-output',
+        externalId: 'https://cdn.test/video.mp4',
+        provider: 'higgsfield',
+      });
+
+      await service.execute(buildContext());
+
+      expect(higgsFieldPollQueueService.schedule).not.toHaveBeenCalled();
+    });
   });
 });
