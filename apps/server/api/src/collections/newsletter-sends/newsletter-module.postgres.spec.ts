@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
+import type { CreatorDirectoryService } from '@api/collections/creator-payments/services/creator-directory.service';
 import type { CreatorSubscriptionsService } from '@api/collections/creator-payments/services/creator-subscriptions.service';
 import {
   type NewsletterBrandLook,
@@ -94,6 +95,9 @@ describe.skipIf(!connectionString)(
           `CREATE TABLE "brands" ("id" text PRIMARY KEY, "organizationId" text NOT NULL, "label" text NOT NULL, "slug" text NOT NULL, "scope" "AssetScope" NOT NULL DEFAULT 'PUBLIC', "isDeleted" boolean NOT NULL DEFAULT false)`,
         );
         await client.query(
+          `CREATE TABLE "users" ("id" text PRIMARY KEY, "email" text, "emailVerified" boolean NOT NULL DEFAULT false, "isDeleted" boolean NOT NULL DEFAULT false)`,
+        );
+        await client.query(
           `CREATE TABLE "newsletters" ("id" text PRIMARY KEY, "organizationId" text NOT NULL, "brandId" text, "label" text NOT NULL, "content" text, "summary" text, "status" text NOT NULL DEFAULT 'draft', "publishedAt" timestamp(3), "isDeleted" boolean NOT NULL DEFAULT false)`,
         );
         await client.query(
@@ -168,11 +172,30 @@ describe.skipIf(!connectionString)(
       const brandAccess = {
         assert: async () => undefined,
       } as unknown as BrandAccessService;
+      // The profile's owner organization is looked up across tenants by the
+      // real directory; here the handle resolves from the disposable table.
+      const creators = {
+        findPublicCreator: async (handle: string) => {
+          const found = await pool.query<{
+            id: string;
+            label: string;
+            organizationId: string;
+            slug: string;
+          }>(
+            `SELECT "id","label","organizationId","slug" FROM "${schema}"."brands" WHERE "slug"=$1 AND "isDeleted"=false`,
+            [handle],
+          );
+          const creator = found.rows[0];
+          if (!creator) throw new Error('Creator not found');
+          return creator;
+        },
+      } as unknown as CreatorDirectoryService;
       subscribers = new BrandSubscribersService(
         db,
         brandAccess,
         emails,
         usage,
+        creators,
         logger,
       );
       publicNewsletter = new NewsletterPublicService(
@@ -209,11 +232,11 @@ describe.skipIf(!connectionString)(
       outbox = [];
     });
 
-    async function seedBrand(): Promise<string> {
+    async function seedBrand(slug = 'field-notes'): Promise<string> {
       const brandId = randomUUID();
       await pool.query(
-        `INSERT INTO "${schema}"."brands" ("id","organizationId","label","slug") VALUES ($1,$2,'Field Notes','field-notes')`,
-        [brandId, organizationId],
+        `INSERT INTO "${schema}"."brands" ("id","organizationId","label","slug") VALUES ($1,$2,'Field Notes',$3)`,
+        [brandId, organizationId, slug],
       );
       return brandId;
     }
@@ -248,6 +271,18 @@ describe.skipIf(!connectionString)(
       return Object.fromEntries(
         rows.rows.map((row) => [row.email, row.status]),
       );
+    }
+
+    async function seedAccount(
+      email: string,
+      isVerified: boolean,
+    ): Promise<AuthenticatedUser> {
+      const id = randomUUID();
+      await pool.query(
+        `INSERT INTO "${schema}"."users" ("id","email","emailVerified") VALUES ($1,$2,$3)`,
+        [id, email, isVerified],
+      );
+      return { organizationId: 'org-reader', userId: id } as AuthenticatedUser;
     }
 
     async function seedSend(brandId: string): Promise<string> {
@@ -298,6 +333,87 @@ describe.skipIf(!connectionString)(
         'new@example.com': 'active',
       });
       expect(outbox).toEqual([]);
+    });
+
+    it('subscribes a signed-in reader with a verified email at once', async () => {
+      const brandId = await seedBrand('verified-profile');
+      const reader = await seedAccount('reader@example.com', true);
+
+      expect(
+        await subscribers.subscribeAccount(
+          reader,
+          { handle: 'verified-profile', source: 'profile' },
+          '203.0.113.9',
+        ),
+      ).toEqual({ status: 'subscribed' });
+      expect(await statusesOf(brandId)).toEqual({
+        'reader@example.com': 'active',
+      });
+      const row = await pool.query<{
+        consentMethod: string;
+        userId: string;
+      }>(
+        `SELECT "consentMethod","userId" FROM "${schema}"."brand_subscribers" WHERE "brandId"=$1`,
+        [brandId],
+      );
+      expect(row.rows).toEqual([
+        { consentMethod: 'account', userId: reader.userId },
+      ]);
+      // No confirmation email, and pressing Subscribe again changes nothing.
+      expect(outbox).toEqual([]);
+      expect(
+        await subscribers.subscribeAccount(
+          reader,
+          { handle: 'verified-profile' },
+          null,
+        ),
+      ).toEqual({ status: 'subscribed' });
+    });
+
+    it('asks a reader with an unverified email to confirm it', async () => {
+      const brandId = await seedBrand('unverified-profile');
+      const reader = await seedAccount('unverified@example.com', false);
+
+      expect(
+        await subscribers.subscribeAccount(
+          reader,
+          { handle: 'unverified-profile' },
+          null,
+        ),
+      ).toEqual({ status: 'confirmation_sent' });
+      expect(await statusesOf(brandId)).toEqual({
+        'unverified@example.com': 'pending',
+      });
+      expect(outbox.map((message) => message.to)).toEqual([
+        'unverified@example.com',
+      ]);
+    });
+
+    it('lets a reader who unsubscribed subscribe again, but never a bounced address', async () => {
+      const brandId = await seedBrand('returning-profile');
+      const returning = await seedAccount('returning@example.com', true);
+      const bounced = await seedAccount('bounced@example.com', true);
+      await seedSubscriber(brandId, 'returning@example.com', 'unsubscribed');
+      await seedSubscriber(brandId, 'bounced@example.com', 'bounced');
+
+      expect(
+        await subscribers.subscribeAccount(
+          returning,
+          { handle: 'returning-profile' },
+          null,
+        ),
+      ).toEqual({ status: 'subscribed' });
+      await expect(
+        subscribers.subscribeAccount(
+          bounced,
+          { handle: 'returning-profile' },
+          null,
+        ),
+      ).rejects.toThrow('cannot send to this email address');
+      expect(await statusesOf(brandId)).toEqual({
+        'bounced@example.com': 'bounced',
+        'returning@example.com': 'active',
+      });
     });
 
     it('activates a public sign-up only after the emailed confirmation', async () => {

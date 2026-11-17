@@ -241,12 +241,7 @@ export default async function CreatorPostPage({
       </div>
 
       <div className="mt-10">
-        <ProfileSubscribe
-          brandId={brand.id}
-          brandLabel={name}
-          source="post"
-          sourceRef={post.id}
-        />
+        <ProfileSubscribe handle={handle} source="post" sourceRef={post.id} />
       </div>
     </article>
   );

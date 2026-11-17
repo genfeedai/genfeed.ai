@@ -73,17 +73,6 @@ export default function CreatorRail({
         <CopyLinkButton className="ml-auto" url={profileUrl} />
       </div>
 
-      <div className="space-y-3">
-        <ProfileSubscribe
-          brandId={brand.id}
-          brandLabel={label}
-          source="profile"
-        />
-        {handle === GENFEED_BRAND_HANDLE ? null : (
-          <SupportCreatorButton className="w-full" handle={handle} />
-        )}
-      </div>
-
       {links.length > 0 ? (
         <ul className="space-y-2">
           {links.map((link) => (
@@ -108,6 +97,12 @@ export default function CreatorRail({
       ) : null}
 
       <ProfileSignupCta handle={handle} referralCode={referralCode} />
+
+      {handle === GENFEED_BRAND_HANDLE ? null : (
+        <SupportCreatorButton className="w-full" handle={handle} />
+      )}
+
+      <ProfileSubscribe handle={handle} source="profile" />
     </div>
   );
 }

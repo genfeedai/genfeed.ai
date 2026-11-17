@@ -37,6 +37,7 @@ export {
   type ButtonProps,
 } from './button';
 export { buttonVariants } from './button.variants';
+export { ButtonGroup, ButtonGroupText } from './button-group';
 export {
   Carousel,
   type CarouselApi,

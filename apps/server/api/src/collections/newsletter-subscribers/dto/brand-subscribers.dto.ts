@@ -166,3 +166,23 @@ export class PublicSubscribeDto {
   })
   readonly sourceRef?: string;
 }
+
+export class AccountSubscribeDto {
+  @IsString()
+  @MaxLength(64)
+  @ApiProperty({ description: 'The creator handle, without the @.' })
+  readonly handle!: string;
+
+  @IsOptional()
+  @IsIn(BRAND_SUBSCRIBER_PUBLIC_SOURCES)
+  @ApiPropertyOptional({ enum: BRAND_SUBSCRIBER_PUBLIC_SOURCES })
+  readonly source?: BrandSubscriberPublicSource;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  @ApiPropertyOptional({
+    description: 'The article, post or issue the button sat on.',
+  })
+  readonly sourceRef?: string;
+}

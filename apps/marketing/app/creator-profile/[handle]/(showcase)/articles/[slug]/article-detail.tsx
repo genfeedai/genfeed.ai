@@ -369,8 +369,7 @@ export default function ArticleDetail({
               )}
               {brand ? (
                 <ProfileSubscribe
-                  brandId={brand.id}
-                  brandLabel={brand.label?.trim() || `@${handle}`}
+                  handle={handle}
                   source="article"
                   sourceRef={article.id}
                 />
