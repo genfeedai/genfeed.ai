@@ -29,3 +29,11 @@ export function getSupportCreatorHref(
 ): string {
   return getAppUrl(creatorSupportAppPath(handle, articleId));
 }
+
+/**
+ * Where a signed-out reader's Subscribe goes: Genfeed sign-up, carrying the
+ * creator's handle so the app subscribes the new account once it exists.
+ */
+export function getFollowSignUpHref(handle: string): string {
+  return getAppSignUpUrl(`?${new URLSearchParams({ follow: handle })}`);
+}

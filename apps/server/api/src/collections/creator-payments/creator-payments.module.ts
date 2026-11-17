@@ -24,6 +24,7 @@ import { Module } from '@nestjs/common';
   ],
   exports: [
     CreatorArticleAccessService,
+    CreatorDirectoryService,
     CreatorEarningsService,
     CreatorSubscriptionsService,
     CreatorTipsService,

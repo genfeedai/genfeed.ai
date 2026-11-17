@@ -29,6 +29,7 @@ import { ManagedCreditsService } from '@services/billing/managed-credits.service
 import { ReferralsService } from '@services/billing/referrals.service';
 import { StripeService } from '@services/billing/stripe.service';
 import { ClipperProjectsService } from '@services/content/clipper-projects.service';
+import { NewsletterAccountService } from '@services/content/newsletter-account.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -46,6 +47,7 @@ import {
   captureBrandOsFunnelStage,
 } from '@/lib/analytics';
 import { claimHandleAfterSignup } from '@/lib/onboarding/claim-handle.util';
+import { followCreatorAfterSignup } from '@/lib/onboarding/follow-creator.util';
 import {
   extractBrandDomain,
   ONBOARDING_STORAGE_KEYS,
@@ -58,6 +60,7 @@ export type { PostSignupRoutingState } from '@/features/onboarding/props/post-si
 
 const REFERRAL_CLAIM_TIMEOUT_MS = 2_000;
 const SIGNUP_ATTRIBUTION_TIMEOUT_MS = 2_000;
+const FOLLOW_CREATOR_TIMEOUT_MS = 2_000;
 
 export function usePostSignupRouting(): PostSignupRoutingState {
   const { getToken } = useAuthIdentity();
@@ -72,6 +75,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const requestedClipToolTokenParam = searchParams.get('clipToolToken');
   const requestedReferralCodeParam = searchParams.get('ref');
   const requestedHandleParam = searchParams.get('handle');
+  const requestedFollowParam = searchParams.get('follow');
   const searchQuery = searchParams.toString();
   const requestedAccountType = parseOnboardingAccountType(
     searchParams.get('accountType'),
@@ -364,6 +368,25 @@ export function usePostSignupRouting(): PostSignupRoutingState {
             resumeAfterSkippedHandleRef.current = null;
             setSkippedHandle(null);
           }
+        }
+      }
+
+      // A Subscribe pressed on a creator's profile while signed out is applied
+      // to the new account; it never holds up onboarding.
+      const followHandle =
+        parseClaimHandle(requestedFollowParam) ??
+        parseClaimHandle(
+          localStorage.getItem(ONBOARDING_STORAGE_KEYS.followHandle),
+        );
+      if (followHandle) {
+        const token = await resolveAuthToken(getToken);
+        if (token) {
+          await followCreatorAfterSignup(
+            NewsletterAccountService.getInstance(token),
+            followHandle,
+            FOLLOW_CREATOR_TIMEOUT_MS,
+          );
+          localStorage.removeItem(ONBOARDING_STORAGE_KEYS.followHandle);
         }
       }
 
@@ -719,6 +742,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     requestedCreditsParam,
     requestedPlanParam,
     requestedHandleParam,
+    requestedFollowParam,
     requestedReferralCodeParam,
     routingAttempt,
     searchQuery,

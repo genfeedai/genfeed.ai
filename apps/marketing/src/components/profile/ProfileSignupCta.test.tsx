@@ -15,6 +15,22 @@ describe('ProfileSignupCta', () => {
     expect(url.searchParams.get('ref')).toBe('frend2345xyz');
   });
 
+  it('clips a long referral label inside the button', () => {
+    render(
+      <ProfileSignupCta
+        handle="a-creator-with-a-very-long-handle"
+        referralCode="frend2345xyz"
+      />,
+    );
+
+    const link = screen.getByRole('link', {
+      name: "Join Genfeed with @a-creator-with-a-very-long-handle's referral",
+    });
+
+    expect(link).toHaveClass('overflow-hidden');
+    expect(link.querySelector('span')).toHaveClass('truncate');
+  });
+
   it('still offers plain sign-up when the owner has no code', () => {
     render(<ProfileSignupCta handle="acme" referralCode={null} />);
 

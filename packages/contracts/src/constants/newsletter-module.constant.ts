@@ -48,6 +48,8 @@ export type BrandSubscriberPublicSource =
 export const BRAND_SUBSCRIBER_CONSENT_METHODS = [
   'double_opt_in',
   'owner_attested',
+  /** A signed-in reader subscribed with their own verified account email. */
+  'account',
 ] as const;
 
 export type BrandSubscriberConsentMethod =

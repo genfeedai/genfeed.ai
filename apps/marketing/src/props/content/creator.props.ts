@@ -123,8 +123,8 @@ export interface CreatorPostGridProps {
 }
 
 export interface ProfileSubscribeProps {
-  brandId: string;
-  brandLabel?: string;
+  /** The creator's handle, without the `@`. */
+  handle: string;
   source: Extract<BrandSubscriberPublicSource, 'profile' | 'article' | 'post'>;
   sourceRef?: string;
 }
