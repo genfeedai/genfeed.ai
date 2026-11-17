@@ -39,6 +39,7 @@ import {
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import { useBrandOsDirtyNavigation } from '@/features/brands/hooks/use-brand-os-dirty-navigation';
 import type { BrandOsSettingsCardProps } from '@/features/brands/props/brand-os-settings.props';
 import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
 import BrandOsGenerationRulesReview from './BrandOsGenerationRulesReview';
@@ -53,44 +54,6 @@ const AUTO_SAVE_DELAY_MS = 1500;
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
-}
-
-function useBrandOsDirtyNavigation(
-  brandId: string,
-  dirty: boolean,
-  t: (key: 'confirmLeave') => string,
-) {
-  useEffect(() => {
-    if (!dirty) return;
-    function preventUnload(event: BeforeUnloadEvent) {
-      event.preventDefault();
-      event.returnValue = '';
-    }
-    function confirmNavigation(event: MouseEvent) {
-      const target = event.target;
-      if (!(target instanceof Element)) return;
-      const link = target.closest('a[href]');
-      const button = target.closest('button[data-brand-os-navigation]');
-      const navigation =
-        (link &&
-          link.getAttribute('target') !== '_blank' &&
-          !link.hasAttribute('download')) ||
-        (button instanceof HTMLButtonElement &&
-          !button.disabled &&
-          button.getAttribute('data-brand-os-navigation') === brandId);
-      if (navigation && !window.confirm(t('confirmLeave'))) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-      }
-    }
-    window.addEventListener('beforeunload', preventUnload);
-    document.addEventListener('click', confirmNavigation, true);
-    return () => {
-      window.removeEventListener('beforeunload', preventUnload);
-      document.removeEventListener('click', confirmNavigation, true);
-    };
-  }, [brandId, dirty, t]);
 }
 
 export default function BrandOsSettingsCard({
