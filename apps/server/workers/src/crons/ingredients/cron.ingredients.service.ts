@@ -13,6 +13,7 @@ import {
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { REPLICATE_POLL_MAX_ATTEMPTS } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -136,7 +137,12 @@ export class CronIngredientsService {
           where: {
             NOT: {
               category: IngredientCategory.VIDEO,
-              metadata: { is: { externalProvider: 'higgsfield' } },
+              metadata: {
+                is: {
+                  externalProvider: 'higgsfield',
+                  model: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
+                },
+              },
             },
             createdAt: { lt: thirtyMinutesAgo },
             isDeleted: false,
@@ -280,7 +286,12 @@ export class CronIngredientsService {
               : {}),
             category: IngredientCategory.VIDEO,
             isDeleted: false,
-            metadata: { is: { externalProvider: 'higgsfield' } },
+            metadata: {
+              is: {
+                externalProvider: 'higgsfield',
+                model: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
+              },
+            },
             organizationId: { not: null },
             status: IngredientStatus.PROCESSING,
           },
@@ -416,7 +427,12 @@ export class CronIngredientsService {
         where: {
           NOT: {
             category: IngredientCategory.VIDEO,
-            metadata: { is: { externalProvider: 'higgsfield' } },
+            metadata: {
+              is: {
+                externalProvider: 'higgsfield',
+                model: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
+              },
+            },
           },
           createdAt: { lt: thirtyMinutesAgo },
           isDeleted: false,

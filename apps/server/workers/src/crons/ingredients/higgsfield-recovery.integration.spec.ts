@@ -47,6 +47,7 @@ const persistedIngredientSchema = z.object({
   status: z.string(),
   isDeleted: z.boolean(),
   metadata: z.object({
+    model: z.string(),
     externalProvider: z.string().optional(),
     externalId: z.string().optional(),
   }),
@@ -70,7 +71,7 @@ async function recoveryHarness(
       organizationId: 'fixture-org',
       status: IngredientStatus.PROCESSING,
       isDeleted: false,
-      metadata: {},
+      metadata: { model: 'higgsfield/cinema-studio/4.0' },
       videoUrl: null,
     }),
   );
