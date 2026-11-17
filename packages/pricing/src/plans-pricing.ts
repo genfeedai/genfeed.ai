@@ -8,7 +8,6 @@ import {
   PRO_API_RATE_LIMIT,
   SCALE_API_RATE_LIMIT,
 } from './tier-entitlements';
-
 /**
  * Genfeed.ai Pricing Configuration
  *
