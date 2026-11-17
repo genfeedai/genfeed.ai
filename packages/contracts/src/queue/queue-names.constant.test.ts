@@ -7,6 +7,7 @@ import {
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
+  HIGGSFIELD_POLL_QUEUE,
   MEDIA_MODERATION_QUEUE,
   MEDIA_PERCEPTION_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
@@ -29,6 +30,7 @@ describe('queue-names.constant', () => {
     expect(HEYGEN_POLL_QUEUE).toBe('heygen-poll');
     expect(NOTIFICATION_DELIVERY_QUEUE).toBe('notification-delivery');
     expect(REPLICATE_POLL_QUEUE).toBe('replicate-poll');
+    expect(HIGGSFIELD_POLL_QUEUE).toBe('higgsfield-poll');
     expect(CREDIT_DEDUCTION_QUEUE).toBe('credit-deduction');
     expect(WORKFLOW_EXECUTION_QUEUE).toBe('workflow-execution');
     expect(PLATFORM_SYSTEM_WORKFLOW_QUEUE).toBe('platform-system-workflow');

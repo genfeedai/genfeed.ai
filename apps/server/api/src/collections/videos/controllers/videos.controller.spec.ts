@@ -11,6 +11,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
+import { HiggsFieldPollQueueService } from '@api/queues/higgsfield-poll/higgsfield-poll-queue.service';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import {
   type MediaPromptEnhancementInput,
@@ -455,6 +456,10 @@ describe('VideosController', () => {
           },
         },
         { provide: PollUntilService, useValue: { poll: vi.fn() } },
+        {
+          provide: HiggsFieldPollQueueService,
+          useValue: { schedule: vi.fn() },
+        },
         {
           provide: ReplicatePollQueueService,
           useValue: { schedule: vi.fn().mockResolvedValue('poll-job-1') },
@@ -2055,6 +2060,10 @@ beforeAll(async () => {
         useValue: { generateTextToVideo: vi.fn() },
       },
       { provide: PollUntilService, useValue: { poll: vi.fn() } },
+      {
+        provide: HiggsFieldPollQueueService,
+        useValue: { schedule: vi.fn() },
+      },
       {
         provide: ReplicatePollQueueService,
         useValue: { schedule: vi.fn().mockResolvedValue('poll-job-1') },
