@@ -1,6 +1,7 @@
 import type { VideoGenerationContext } from '@api/collections/videos/services/video-generation.types';
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
+import { HiggsFieldProviderError } from '@api/services/integrations/higgsfield/errors/higgsfield-provider.error';
 import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import { AgentFailureReason, IngredientCategory } from '@genfeedai/contracts';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
@@ -895,6 +896,128 @@ describe('VideoGenerationExecutionService', () => {
         'video-generation-ingredient-1',
         'video-generation-ingredient-1',
       ]);
+    });
+
+    it('keeps a lost Higgsfield submission response recoverable without releasing its output', async () => {
+      const state = createHarness();
+      const output = { status: 'processing', released: false };
+      state.providerDispatchService.providerFor.mockReturnValue('higgsfield');
+      state.providerDispatchService.dispatch.mockImplementation(
+        async (params) => {
+          params.onProviderSubmissionStarted();
+          throw new Error('response connection lost');
+        },
+      );
+      state.failedGenerationService.handleFailedVideoGeneration.mockImplementation(
+        async () => {
+          output.status = 'failed';
+        },
+      );
+      state.generationBilling.releaseOutput.mockImplementation(async () => {
+        output.released = true;
+        return 'released';
+      });
+
+      await expect(
+        state.service.execute(
+          buildContext({
+            model: 'higgsfield/cinema-studio/4.0',
+            pendingIngredientIds: ['ingredient-1'],
+          }),
+        ),
+      ).rejects.toThrow('response connection lost');
+
+      expect(output).toEqual({ status: 'processing', released: false });
+    });
+
+    it.each([400, 401, 403, 404, 422, 429])(
+      'retains normal failure handling for a confirmed HTTP %s rejection',
+      async (statusCode) => {
+        const state = createHarness();
+        const released: string[] = [];
+        state.providerDispatchService.dispatch.mockImplementation(
+          async (params) => {
+            params.onProviderSubmissionStarted();
+            throw new HiggsFieldProviderError(
+              AgentFailureReason.ACTION_NOT_ALLOWED,
+              'request rejected',
+              { isRetryable: false, statusCode },
+            );
+          },
+        );
+        state.generationBilling.releaseOutput.mockImplementation(
+          async (id: string) => {
+            released.push(id);
+            return 'released';
+          },
+        );
+        await expect(
+          state.service.execute(
+            buildContext({
+              model: 'higgsfield/cinema-studio/4.0',
+              pendingIngredientIds: ['ingredient-1'],
+            }),
+          ),
+        ).rejects.toThrow('request rejected');
+        expect(released).toEqual(['ingredient-1']);
+      },
+    );
+
+    it('does not dispatch a fallback after an uncertain routed Cinema Studio submission', async () => {
+      const state = createHarness();
+      const submissions: string[] = [];
+      const model = 'higgsfield/cinema-studio/4.0';
+      state.metadataService.prisma.modelProviderOffer.findFirst.mockResolvedValue(
+        {
+          model: { pinnedProvider: null },
+          executionModel: {
+            provider: 'higgsfield',
+            reviewedProviderContractVersion: 'fixture-v1',
+            endpoint: model,
+            providerInputSchema: {
+              type: 'object',
+              properties: { prompt: { type: 'string' } },
+              required: ['prompt'],
+            },
+          },
+        },
+      );
+      state.providerDispatchService.dispatch.mockImplementation(
+        async (params) => {
+          params.onProviderSubmissionStarted();
+          submissions.push(params.modelProvider);
+          throw new Error('response connection lost');
+        },
+      );
+      await expect(
+        state.service.execute(
+          buildContext({
+            model,
+            pendingIngredientIds: ['ingredient-1'],
+            request: {
+              creditsConfig: {
+                modelQuote: {
+                  credits: 1,
+                  rateVersion: 'fixture-v1',
+                  routedDispatch: {
+                    offerId: 'fixture-offer',
+                    provider: 'higgsfield',
+                    executionModelKey: model,
+                    endpoint: model,
+                    fallback: {
+                      offerId: 'fallback',
+                      provider: 'fal',
+                      executionModelKey: 'fal/model',
+                      endpoint: 'fal/model',
+                    },
+                  },
+                },
+              },
+            } as unknown as VideoGenerationContext['request'],
+          }),
+        ),
+      ).rejects.toThrow('response connection lost');
+      expect(submissions).toEqual(['higgsfield']);
     });
 
     it('does not start a poll job for a provider that returns its output', async () => {

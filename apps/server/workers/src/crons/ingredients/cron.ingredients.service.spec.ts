@@ -4,6 +4,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import type { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type { AggregatePaginateResult } from '@api/helpers/types/aggregate-paginate-result';
+import { HiggsFieldPollQueueService } from '@api/queues/higgsfield-poll/higgsfield-poll-queue.service';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -72,6 +73,10 @@ describe('CronIngredientsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CronIngredientsService,
+        {
+          provide: HiggsFieldPollQueueService,
+          useValue: { schedule: vi.fn() },
+        },
         {
           provide: ActivitiesService,
           useValue: {

@@ -2,6 +2,7 @@ import { ActivitiesService } from '@api/collections/activities/services/activiti
 import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { HiggsFieldPollQueueService } from '@api/queues/higgsfield-poll/higgsfield-poll-queue.service';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -50,6 +51,7 @@ interface TimedOutPredictionDoc {
  */
 @Injectable()
 export class CronIngredientsService {
+  private higgsfieldRecoveryCursor: string | undefined;
   private readonly constructorName: string = String(this.constructor.name);
 
   // Lock keys for distributed locking (prevents race conditions across instances)
@@ -96,6 +98,7 @@ export class CronIngredientsService {
     private readonly cacheService: CacheService,
     private readonly logger: LoggerService,
     private readonly replicatePollQueue: ReplicatePollQueueService,
+    private readonly higgsfieldPollQueue: HiggsFieldPollQueueService,
   ) {}
 
   /**
@@ -131,6 +134,10 @@ export class CronIngredientsService {
       const stuckIngredients = await this.ingredientsService.findAll(
         {
           where: {
+            NOT: {
+              category: IngredientCategory.VIDEO,
+              metadata: { is: { externalProvider: 'higgsfield' } },
+            },
             createdAt: { lt: thirtyMinutesAgo },
             isDeleted: false,
             status: IngredientStatus.PROCESSING,
@@ -254,8 +261,49 @@ export class CronIngredientsService {
       );
     } finally {
       await this.recoverTimedOutPredictions(context);
+      await this.recoverHiggsfieldRequests(context);
       await this.cacheService.releaseLock(
         CronIngredientsService.LOCK_KEY_STUCK_INGREDIENTS,
+      );
+    }
+  }
+
+  /** Saved provider identities survive the API process and a failed first enqueue. */
+  private async recoverHiggsfieldRequests(context: string): Promise<void> {
+    try {
+      const candidates = await this.ingredientsService.findAll(
+        {
+          include: { metadata: true },
+          where: {
+            ...(this.higgsfieldRecoveryCursor
+              ? { id: { gt: this.higgsfieldRecoveryCursor } }
+              : {}),
+            category: IngredientCategory.VIDEO,
+            isDeleted: false,
+            metadata: { is: { externalProvider: 'higgsfield' } },
+            organizationId: { not: null },
+            status: IngredientStatus.PROCESSING,
+          },
+        },
+        { limit: 100, pagination: false, sort: { id: 1 } },
+      );
+      const docs = candidates.docs as unknown as TimedOutPredictionDoc[];
+      for (const ingredient of docs) {
+        const externalId = ingredient.metadata?.externalId;
+        if (!externalId || !ingredient.organizationId) continue;
+        await this.higgsfieldPollQueue.schedule({
+          externalId,
+          ingredientId: String(ingredient.id),
+          organizationId: ingredient.organizationId,
+        });
+      }
+      this.higgsfieldRecoveryCursor =
+        docs.length === 100 ? String(docs[docs.length - 1].id) : undefined;
+    } catch (error: unknown) {
+      this.logger.error(
+        'Higgsfield first-poll recovery failed',
+        error,
+        context,
       );
     }
   }
@@ -366,6 +414,10 @@ export class CronIngredientsService {
     const stuckIngredients = await this.ingredientsService.findAll(
       {
         where: {
+          NOT: {
+            category: IngredientCategory.VIDEO,
+            metadata: { is: { externalProvider: 'higgsfield' } },
+          },
           createdAt: { lt: thirtyMinutesAgo },
           isDeleted: false,
           status: IngredientStatus.PROCESSING,
