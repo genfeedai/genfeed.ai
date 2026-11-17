@@ -1,3 +1,6 @@
+// Must stay the first import: it sets zod's jitless flag before any module
+// that builds a schema runs. See the file for why.
+import '@/lib/security/zod-jitless';
 import * as Sentry from '@sentry/nextjs';
 import { initAnalytics } from '@/lib/analytics';
 import {
