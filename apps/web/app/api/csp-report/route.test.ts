@@ -2,7 +2,10 @@ import * as Sentry from '@sentry/nextjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from './route';
 
-vi.mock('@sentry/nextjs', () => ({ captureMessage: vi.fn() }));
+vi.mock('@sentry/nextjs', () => ({
+  captureMessage: vi.fn(),
+  flush: vi.fn().mockResolvedValue(true),
+}));
 
 function post(body: string): Request {
   return new Request('https://app.genfeed.ai/api/csp-report', {
@@ -24,6 +27,7 @@ function report(blocked: string): string {
 describe('POST /api/csp-report', () => {
   beforeEach(() => {
     vi.mocked(Sentry.captureMessage).mockClear();
+    vi.mocked(Sentry.flush).mockClear();
   });
 
   it('records one warning per directive and blocked origin', async () => {
@@ -42,6 +46,28 @@ describe('POST /api/csp-report', () => {
       { csp_blocked_origin: 'https://a.test', csp_directive: 'img-src' },
       { csp_blocked_origin: 'https://b.test', csp_directive: 'img-src' },
     ]);
+  });
+
+  it('answers only after Sentry has sent the warning', async () => {
+    let finishFlush: (isFlushed: boolean) => void = () => {};
+    vi.mocked(Sentry.flush).mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        finishFlush = resolve;
+      }),
+    );
+    let isAnswered = false;
+    const answer = POST(post(report('https://flush.test/x.png'))).then(
+      (response) => {
+        isAnswered = true;
+        return response;
+      },
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(isAnswered).toBe(false);
+
+    finishFlush(true);
+    expect((await answer).status).toBe(204);
   });
 
   it('answers 204 and records nothing for extension noise', async () => {

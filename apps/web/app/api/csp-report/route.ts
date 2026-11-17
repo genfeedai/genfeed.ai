@@ -3,6 +3,10 @@ import { NextResponse } from 'next/server';
 import { parseCspViolation } from '@/lib/security/csp-report';
 
 const MAX_BODY_BYTES = 16_384;
+// A serverless instance can freeze the moment this route answers, before the
+// SDK has sent a queued event. Wait for the send, but never hold the browser's
+// report request for long.
+const FLUSH_TIMEOUT_MS = 2_000;
 const MAX_REMEMBERED_VIOLATIONS = 500;
 
 // Every page view can repeat the same violation. Report each distinct
@@ -51,6 +55,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         csp_directive: violation.effectiveDirective,
       },
     });
+    await Sentry.flush(FLUSH_TIMEOUT_MS);
   }
 
   return new NextResponse(null, { status: 204 });
