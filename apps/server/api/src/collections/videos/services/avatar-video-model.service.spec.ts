@@ -137,6 +137,64 @@ describe('AvatarVideoModelService', () => {
     expect(validated).toEqual([]);
   });
 
+  it.each([
+    [MODEL_KEYS.HEYGEN_AVATAR_6, 'heygen-avatar-6'],
+    [MODEL_KEYS.HEYGEN_AVATAR_6_TURBO, 'heygen-avatar-6-turbo'],
+  ])(
+    'accepts an explicit %s for a look that lists it',
+    async (modelKey, engine) => {
+      await expect(
+        service.resolve(
+          { model: modelKey, text: 'Hi' },
+          look('digital_twin', [
+            'avatar_iv',
+            'avatar_v',
+            'heygen-avatar-6',
+            'heygen-avatar-6-turbo',
+          ]),
+          'org',
+        ),
+      ).resolves.toEqual({ avatarType: 'digital_twin', engine, modelKey });
+      expect(validated).toEqual([[modelKey, 'org']]);
+    },
+  );
+
+  it('offers Auto the Avatar 6 engines a look lists', async () => {
+    await service.resolve(
+      { text: 'Hi' },
+      look('digital_twin', ['avatar_iv', 'heygen-avatar-6']),
+      'org',
+    );
+    expect(routed[0]?.eligibleModelKeys).toEqual([
+      MODEL_KEYS.HEYGEN_AVATAR_IV,
+      MODEL_KEYS.HEYGEN_AVATAR_6,
+    ]);
+  });
+
+  it.each([
+    ['a look that does not list it', look('digital_twin')],
+    ['a look with no engines', look('digital_twin', [])],
+  ])('refuses an explicit Avatar 6 for %s', async (_name, avatarRef) => {
+    await expect(
+      service.resolve(
+        { model: MODEL_KEYS.HEYGEN_AVATAR_6, text: 'Hi' },
+        avatarRef,
+        'org',
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(validated).toEqual([]);
+  });
+
+  it.each([MODEL_KEYS.HEYGEN_AVATAR_6, MODEL_KEYS.HEYGEN_AVATAR_6_TURBO])(
+    'refuses %s for a photo animation',
+    async (model) => {
+      await expect(
+        service.resolve({ model, text: 'Hi' }, undefined, 'org'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(routed).toEqual([]);
+    },
+  );
+
   it('surfaces an engine the workspace has switched off', async () => {
     disabledModels.add(MODEL_KEYS.HEYGEN_AVATAR_V);
 

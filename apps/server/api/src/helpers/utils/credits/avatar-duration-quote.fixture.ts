@@ -9,11 +9,16 @@ import {
   REVIEWED_RATE_SHEET_ENTRIES,
 } from '@genfeedai/pricing';
 
-const AVATAR_QUOTED_AT = '2026-10-14T00:00:00.000Z';
+const AVATAR_QUOTED_AT = '2026-11-18T00:00:00.000Z';
+
+type AvatarEngineEndpoint = 'heygen/avatar-iv' | 'heygen/avatar-v';
+type AvatarSixEndpoint =
+  | 'heygen/heygen-avatar-6'
+  | 'heygen/heygen-avatar-6-turbo';
 
 /** The reviewed HeyGen avatar engine tariff exactly as the rate sheet seeds it. */
 function avatarEngineProfile(
-  endpoint: 'heygen/avatar-iv' | 'heygen/avatar-v',
+  endpoint: AvatarEngineEndpoint | AvatarSixEndpoint,
 ): ModelBillablePricingProfile {
   const entry = REVIEWED_RATE_SHEET_ENTRIES.find(
     (candidate) => candidate.endpoint === endpoint,
@@ -38,7 +43,7 @@ function avatarEngineProfile(
 
 /** A priced admission snapshot for one avatar render at the given seconds. */
 export function avatarEngineSnapshot(
-  endpoint: 'heygen/avatar-iv' | 'heygen/avatar-v',
+  endpoint: AvatarEngineEndpoint,
   avatarType: string,
   seconds: number,
   marginMultiplier = 3.33,
@@ -50,6 +55,27 @@ export function avatarEngineSnapshot(
       modelKey: endpoint,
       provider: 'heygen',
       selectors: { avatar_type: avatarType },
+    },
+    marginMultiplier,
+    AVATAR_QUOTED_AT,
+  );
+  if (quote.status !== 'priced') throw new Error(quote.reason);
+  return quote.snapshot;
+}
+
+/** A priced admission snapshot for an Avatar 6 render at 1080p. */
+export function avatar6Snapshot(
+  endpoint: AvatarSixEndpoint,
+  seconds: number,
+  marginMultiplier = 3.33,
+): ModelBillableQuoteSnapshot {
+  const quote = quoteModelBillablePricing(
+    avatarEngineProfile(endpoint),
+    {
+      duration: seconds,
+      modelKey: endpoint,
+      provider: 'heygen',
+      selectors: { resolution: '1080p' },
     },
     marginMultiplier,
     AVATAR_QUOTED_AT,

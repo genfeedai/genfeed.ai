@@ -172,6 +172,8 @@ describe('getStudioPlaygroundTypeConfig', () => {
     const engines = [
       { key: MODEL_KEYS.HEYGEN_AVATAR_IV },
       { key: MODEL_KEYS.HEYGEN_AVATAR_V },
+      { key: MODEL_KEYS.HEYGEN_AVATAR_6 },
+      { key: MODEL_KEYS.HEYGEN_AVATAR_6_TURBO },
     ];
     const look = (avatarType: string, supportedEngines: string[]) => ({
       avatarType,
@@ -219,6 +221,26 @@ describe('getStudioPlaygroundTypeConfig', () => {
           ),
         ),
       ).toEqual([MODEL_KEYS.HEYGEN_AVATAR_IV]);
+    });
+
+    it('offers Avatar 6 and Turbo for any look that lists them', () => {
+      expect(
+        keys(
+          filterStudioPlaygroundModels(
+            'avatar',
+            engines,
+            look('photo_avatar', [
+              'avatar_iv',
+              'heygen-avatar-6',
+              'heygen-avatar-6-turbo',
+            ]),
+          ),
+        ),
+      ).toEqual([
+        MODEL_KEYS.HEYGEN_AVATAR_IV,
+        MODEL_KEYS.HEYGEN_AVATAR_6,
+        MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
+      ]);
     });
 
     it('offers photo animation Avatar IV alone', () => {

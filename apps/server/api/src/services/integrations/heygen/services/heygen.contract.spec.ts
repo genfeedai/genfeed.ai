@@ -701,6 +701,44 @@ describe('HeyGen v3 contracts', () => {
     });
   });
 
+  it.each(['heygen-avatar-6', 'heygen-avatar-6-turbo'] as const)(
+    'sends %s with a 1080p resolution, never the 720p default',
+    async (engine) => {
+      await service.generateNativeAvatarVideo(
+        'meta',
+        nativeLook('photo_avatar', [engine]),
+        { inputText: 'Hello', voiceId: 'voice' },
+        'tenant-key',
+        '16:9',
+        engine,
+      );
+      expect(http.post.mock.calls[0][1]).toEqual({
+        type: 'avatar',
+        avatar_id: 'look',
+        script: 'Hello',
+        voice_id: 'voice',
+        engine: { type: engine },
+        aspect_ratio: '16:9',
+        resolution: '1080p',
+        callback_id: 'meta',
+      });
+    },
+  );
+
+  it('refuses Avatar 6 for a look that does not list it before the paid submission', async () => {
+    await expect(
+      service.generateNativeAvatarVideo(
+        'meta',
+        nativeLook('digital_twin', ['avatar_iv', 'avatar_v']),
+        { inputText: 'Hello', voiceId: 'voice' },
+        'tenant-key',
+        '9:16',
+        'heygen-avatar-6',
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(http.post).not.toHaveBeenCalled();
+  });
+
   it('sends no engine for Avatar IV, the default', async () => {
     await service.generateNativeAvatarVideo(
       'meta',

@@ -132,6 +132,41 @@ function avatarOpenapi(
   };
 }
 
+/**
+ * Avatar 6 and Avatar 6 Turbo. HeyGen bills both per output second by output
+ * `resolution` and not by look type, so `resolution` is the one pricing
+ * selector and `avatar_type` is not declared. Genfeed renders them at 1080p
+ * only; HeyGen rejects 720p for these engines.
+ */
+function avatar6Openapi(): SchemaFixture['openapi'] {
+  return {
+    components: {
+      schemas: {
+        Input: {
+          properties: {
+            aspect_ratio: { enum: ['16:9', '9:16', '1:1'], type: 'string' },
+            audio_url: { format: 'uri', type: 'string' },
+            avatar_id: { type: 'string' },
+            duration: {
+              description: 'Output seconds HeyGen bills for the clip.',
+              minimum: 0,
+              type: 'number',
+            },
+            resolution: { enum: ['1080p'], type: 'string' },
+            script: { type: 'string' },
+            voice_id: { type: 'string' },
+          },
+          required: ['avatar_id', 'resolution'],
+          title: 'Input',
+          type: 'object',
+        },
+        Output: AVATAR_VIDEO_OUTPUT,
+      },
+    },
+    openapi: '3.1.0',
+  };
+}
+
 export const HEYGEN_SCHEMA_FIXTURES: Readonly<Record<string, SchemaFixture>> = {
   'heygen/avatar': {
     openapi: PHOTO_ANIMATION_OPENAPI,
@@ -143,6 +178,14 @@ export const HEYGEN_SCHEMA_FIXTURES: Readonly<Record<string, SchemaFixture>> = {
   },
   'heygen/avatar-v': {
     openapi: avatarOpenapi(['digital_twin']),
+    schemaFamily: 'heygen-avatar-v3',
+  },
+  'heygen/heygen-avatar-6': {
+    openapi: avatar6Openapi(),
+    schemaFamily: 'heygen-avatar-v3',
+  },
+  'heygen/heygen-avatar-6-turbo': {
+    openapi: avatar6Openapi(),
     schemaFamily: 'heygen-avatar-v3',
   },
   'heygen/heygen-voice-1': {

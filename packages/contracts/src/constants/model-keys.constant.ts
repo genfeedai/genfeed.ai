@@ -102,6 +102,8 @@ export const MODEL_KEYS = {
   HEYGEN_AVATAR: 'heygen/avatar',
   HEYGEN_AVATAR_IV: 'heygen/avatar-iv',
   HEYGEN_AVATAR_V: 'heygen/avatar-v',
+  HEYGEN_AVATAR_6: 'heygen/heygen-avatar-6',
+  HEYGEN_AVATAR_6_TURBO: 'heygen/heygen-avatar-6-turbo',
   HEYGEN_VIDEO: 'heygen/heygen-video-1',
   HEYGEN_VOICE: 'heygen/heygen-voice-1',
   ELEVENLABS_V4: 'elevenlabs/eleven_v4',

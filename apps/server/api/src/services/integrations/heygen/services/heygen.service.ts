@@ -204,9 +204,10 @@ export class HeyGenService {
       ...(speech.audioUrl
         ? { audio_url: speech.audioUrl }
         : { script: speech.inputText, voice_id: speech.voiceId }),
-      ...engineFields,
       aspect_ratio: aspectRatio,
       resolution: aspectRatio === '1:1' ? '1080p' : '720p',
+      // An engine that fixes the resolution (Avatar 6) overrides the default.
+      ...engineFields,
       callback_id: metadataId,
     });
   }

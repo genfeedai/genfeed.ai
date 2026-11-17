@@ -450,6 +450,8 @@ const AVATAR_RATE_ENDPOINTS: readonly string[] = [
   MODEL_KEYS.HEYGEN_AVATAR,
   MODEL_KEYS.HEYGEN_AVATAR_IV,
   MODEL_KEYS.HEYGEN_AVATAR_V,
+  MODEL_KEYS.HEYGEN_AVATAR_6,
+  MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
 ];
 
 /** The cheapest and dearest credit price of one output. */

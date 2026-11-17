@@ -33,6 +33,8 @@ import {
 } from '@genfeedai/contracts';
 import {
   countSpeechCharacters,
+  HEYGEN_AVATAR_6_RENDER_RESOLUTION,
+  isHeyGenAvatar6Engine,
   MODEL_KEYS,
   VOICE_SPEECH_MODELS,
 } from '@genfeedai/contracts/constants';
@@ -289,8 +291,8 @@ export class AvatarVideoBillingService {
   /**
    * Admission price for a render at its estimated clip length. Photo animation
    * is priced on the per-second `heygen/avatar` row; an engine row from the
-   * reviewed `avatar_type` rate, and an avatar type the sheet does not price is
-   * refused, never guessed. The frozen quote rides on the hold so settlement
+   * reviewed `avatar_type` rate (Avatar 6: the 1080p rate), and an avatar type the
+   * sheet does not price is refused, never guessed. The frozen quote rides on the hold so settlement
    * re-prices it at the duration HeyGen returns.
    */
   async quoteRender(
@@ -298,7 +300,15 @@ export class AvatarVideoBillingService {
     estimatedSeconds: number | undefined,
   ): Promise<AvatarRenderQuote> {
     const { avatarType, engine } = selection;
-    if (engine && !avatarType)
+    // Avatar 6 is billed by output resolution, the other engines by look type.
+    const selectors: Record<string, string> | undefined = isHeyGenAvatar6Engine(
+      engine,
+    )
+      ? { resolution: HEYGEN_AVATAR_6_RENDER_RESOLUTION }
+      : avatarType
+        ? { avatar_type: avatarType }
+        : undefined;
+    if (engine && !selectors)
       throw new BadRequestException(
         'The avatar type could not be verified, so the render cannot be priced.',
       );
@@ -306,14 +316,11 @@ export class AvatarVideoBillingService {
       throw new BadRequestException(
         'Add a script or a saved narration with a known length to price this avatar.',
       );
-    if (!engine || !avatarType)
+    if (!engine || !selectors)
       return this.quotePhotoAnimation(estimatedSeconds);
     const snapshot = await this.modelCreditQuote.quoteSnapshotByKey(
       selection.modelKey,
-      {
-        duration: estimatedSeconds,
-        selectors: { avatar_type: avatarType },
-      },
+      { duration: estimatedSeconds, selectors },
     );
     // A flat reading of the per-second row would bill one second as a clip.
     if (snapshot.costSource !== 'reviewed-provider' || !(snapshot.credits > 0))

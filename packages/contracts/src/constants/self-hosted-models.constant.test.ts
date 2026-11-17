@@ -89,6 +89,38 @@ describe('SELF_HOSTED_MODELS', () => {
     expect(avatarV?.cost).toBe(200);
   });
 
+  it('carries Avatar 6 and Turbo at the 1080p API rates', () => {
+    const avatar6 = SELF_HOSTED_MODELS.find(
+      (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR_6,
+    );
+    const turbo = SELF_HOSTED_MODELS.find(
+      (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
+    );
+
+    expect(avatar6).toMatchObject({
+      category: ModelCategory.AVATAR,
+      cost: 170,
+      costPerUnit: 34,
+      isDefault: false,
+      lifecycle: ModelLifecycle.RECOMMENDED,
+      pricingType: PricingType.PER_SECOND,
+      provider: ModelProvider.HEYGEN,
+      // $0.10/s: 5 s at 3.33x is 170 credits, 34 per second.
+      providerCostUsd: 0.1,
+    });
+    expect(turbo).toMatchObject({
+      category: ModelCategory.AVATAR,
+      cost: 85,
+      costPerUnit: 17,
+      isDefault: false,
+      lifecycle: ModelLifecycle.RECOMMENDED,
+      pricingType: PricingType.PER_SECOND,
+      provider: ModelProvider.HEYGEN,
+      // $0.05/s: 5 s at 3.33x is 85 credits, 17 per second.
+      providerCostUsd: 0.05,
+    });
+  });
+
   it('prices photo animation per second at the Avatar IV photo-avatar rate', () => {
     const photoAvatar = SELF_HOSTED_MODELS.find(
       (model) => model.key === MODEL_KEYS.HEYGEN_AVATAR,
