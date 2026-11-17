@@ -7,7 +7,6 @@ import { SettingsPage } from '../../pages/settings.page';
 import { brandPath, orgPath, orgSettingsRoute } from '../../utils/app-chrome';
 import { chooseFilterOption, openFilterFacet } from '../../utils/filter-menu';
 import { assertRouteRenders } from '../../utils/route-assertions';
-import { chooseView } from '../../utils/view-menu';
 
 /**
  * E2E Tests for Organization Settings, API Keys, Models, Scenes and Brands
@@ -256,14 +255,17 @@ test.describe('Settings Connections & Sub-Pages', () => {
       ]);
     });
 
-    test('is reachable from the Connectors section menu', async ({
+    test('is reachable from the Connectors sidebar', async ({
       authenticatedPage,
     }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
       await mockApiKeyList(authenticatedPage, { keys: [], status: 200 });
 
       await settingsPage.open(CONNECTORS_ROUTE);
-      await chooseView(authenticatedPage, 'API keys');
+      await authenticatedPage
+        .getByRole('link', { exact: true, name: 'API keys' })
+        .first()
+        .click();
 
       await expect(authenticatedPage).toHaveURL(
         new RegExp(`${API_KEYS_ROUTE}$`),
