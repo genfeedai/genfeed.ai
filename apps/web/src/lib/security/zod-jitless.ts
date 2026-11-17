@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { config } from 'zod/v4/core';
 
 /**
  * Zod 4 compiles each object schema into a specialised parser with
@@ -8,8 +8,11 @@ import { z } from 'zod';
  * the throw and falls back to its interpreted parser.
  *
  * Turning the compiler off skips the probe. Parsing is unchanged and the CSP
- * stays as strict as it is. `instrumentation-client.ts` imports this module
- * first, because schemas read the setting when they are constructed, so it has
- * to be set before any module that builds one runs.
+ * stays as strict as it is.
+ *
+ * `instrumentation-client.ts` imports this module first, because schemas read
+ * the setting when they are constructed. `config` comes from the core entry,
+ * not the `z` namespace, so the schema classes stay out of the first-load
+ * bundle that every route shares.
  */
-z.config({ jitless: true });
+config({ jitless: true });
