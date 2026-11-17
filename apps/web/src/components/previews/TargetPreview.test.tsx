@@ -5,6 +5,7 @@ import '@testing-library/jest-dom/vitest';
 import {
   CredentialPlatform,
   ReleaseAttachmentKind,
+  TargetExecutionState,
 } from '@genfeedai/contracts';
 import {
   makeAttachment,
@@ -15,7 +16,7 @@ import {
 import TargetPreview from './TargetPreview';
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
 
@@ -31,6 +32,34 @@ describe('TargetPreview', () => {
 
     // X truncates at 280 chars — proof the dedicated XPreview rendered.
     expect(screen.getByText(`${'x'.repeat(280)}...`)).toBeInTheDocument();
+  });
+
+  it('shows the recorded publication outcome for a historical Instagram target', () => {
+    const preview = (executionState: TargetExecutionState) => (
+      <TargetPreview
+        credential={makeCredential()}
+        release={makeRelease({
+          media: [{ assetId: 'slide-1', kind: 'image', order: 0 }],
+        })}
+        target={makeTarget({ executionState })}
+      />
+    );
+
+    const { rerender } = render(preview(TargetExecutionState.DRAFT));
+    expect(screen.getByText('Blocked')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Instagram requires Placement/),
+    ).toBeInTheDocument();
+
+    rerender(preview(TargetExecutionState.PUBLISHED));
+    expect(screen.getByText('Published')).toBeInTheDocument();
+    expect(screen.queryByText('Blocked')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Instagram requires Placement/),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('platform-preview-media-slide-1'),
+    ).toBeInTheDocument();
   });
 
   it('falls back to a neutral card for a platform with no dedicated renderer', () => {
