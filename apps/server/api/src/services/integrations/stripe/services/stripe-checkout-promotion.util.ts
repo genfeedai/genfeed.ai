@@ -1,4 +1,7 @@
-import { PRO_LAUNCH_PROMOTION_CODE } from '@genfeedai/pricing';
+import {
+  type LaunchPromotionProps,
+  PRO_LAUNCH_PROMOTION,
+} from '@genfeedai/pricing';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type StripeConstructor from 'stripe';
 
@@ -12,19 +15,22 @@ import type StripeConstructor from 'stripe';
  * to a customer, or the lookup fails, the launch price falls back to the entry
  * box rather than failing the checkout. A missing or unusable code is logged at
  * error level: the pricing page still shows the launch price, so the card and
- * the charge disagree until the code is restored or the card is retired.
+ * the charge disagree until the code is restored or the promotion is retired.
+ * A retired promotion (`null`) is not looked up and logs nothing: the pricing
+ * page no longer shows it either.
  */
 export async function applyCheckoutPromotion(
   stripe: InstanceType<typeof StripeConstructor>,
   loggerService: Pick<LoggerService, 'error' | 'warn'>,
   sessionConfig: StripeConstructor.Checkout.SessionCreateParams,
   isLaunchPrice: boolean,
+  promotion: LaunchPromotionProps | null = PRO_LAUNCH_PROMOTION,
 ): Promise<void> {
-  if (isLaunchPrice) {
+  if (isLaunchPrice && promotion !== null) {
     try {
       const promotionCodes = await stripe.promotionCodes.list({
         active: true,
-        code: PRO_LAUNCH_PROMOTION_CODE,
+        code: promotion.code,
         limit: 10,
       });
       // A code restricted to one customer cannot be applied for anyone else.
@@ -40,11 +46,11 @@ export async function applyCheckoutPromotion(
 
       loggerService.error(
         'Launch promotion code is not redeemable; Checkout opens at the full Pro price while the pricing page shows the launch price',
-        { code: PRO_LAUNCH_PROMOTION_CODE },
+        { code: promotion.code },
       );
     } catch (error: unknown) {
       loggerService.warn('Launch promotion code lookup failed', {
-        code: PRO_LAUNCH_PROMOTION_CODE,
+        code: promotion.code,
         error: error instanceof Error ? error.message : String(error),
       });
     }

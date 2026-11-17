@@ -1,6 +1,7 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { orderedPostIngredientLinks } from '@api/collections/posts/services/post-ingredient-links.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { CACHE_TAGS } from '@api/common/constants/cache-patterns.constants';
 import {
   type CrossPostCandidate,
   findCrossPostIds,
@@ -141,7 +142,8 @@ export class PublicPostsController {
   @Get()
   @Cache({
     keyGenerator: (req) => `public:posts:${JSON.stringify(req.query)}`,
-    tags: ['posts', 'public'],
+    isInvalidationGuarded: true,
+    tags: ['posts', 'public', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 600, // 10 minutes
   })
   async findPublicPosts(
@@ -217,7 +219,8 @@ export class PublicPostsController {
   @Cache({
     keyGenerator: (req) =>
       `public:posts:ingredients:${JSON.stringify(req.query)}`,
-    tags: ['ingredients', 'posts', 'public'],
+    isInvalidationGuarded: true,
+    tags: ['ingredients', 'posts', 'public', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 600, // 10 minutes
   })
   async findPublicIngredients(
@@ -283,7 +286,8 @@ export class PublicPostsController {
   @Cache({
     keyGenerator: (req) =>
       `public:post:${req.params?.postId ?? 'unknown'}:brand:${req.query?.brand ?? ''}`,
-    tags: ['posts'],
+    isInvalidationGuarded: true,
+    tags: ['posts', CACHE_TAGS.PUBLIC_BRAND_CONTENT],
     ttl: 1800, // 30 minutes
   })
   async getPostMetadata(

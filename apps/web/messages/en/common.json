@@ -455,6 +455,11 @@
     "error": {
       "title": "Onboarding Error",
       "description": "Something went wrong during setup. Please try again."
+    },
+    "skippedHandle": {
+      "title": "@{handle} was not applied",
+      "description": "Your organization has several brands, so Genfeed did not choose one for you and none of your brand handles changed. Once setup is done, choose which brand takes @{handle} in Settings, then Brands.",
+      "continue": "Continue"
     }
   },
   "agentCampaign": {

@@ -53,9 +53,23 @@ export type CompiledCinematicShort = {
 };
 
 /**
- * Style is described by feel. A studio, artist or film name pulls the model
- * toward copying existing work, so the compiler refuses it instead of passing
- * it through.
+ * Style is described by feel. A studio, artist, director or film name pulls
+ * the model toward copying existing work, so the compiler refuses it instead
+ * of passing it through. The contract is deliberately narrow and testable; it
+ * does not promise to find every proper name:
+ *
+ * 1. A fixed list of studios and "in the style of" phrases, matched anywhere,
+ *    in any case.
+ * 2. A credit cue ("inspired by", "directed by", ...) followed by a capitalized
+ *    word: "inspired by Kubrick".
+ * 3. A run of two or more consecutive capitalized words, which is how a person
+ *    or studio is written: "Wes Anderson". Style text is sentence case, so one
+ *    capitalized word at the start of a sentence is fine ("Soft light"), and
+ *    Title Case phrases are treated as names.
+ *
+ * Not detected: lowercase names ("wes anderson"), single unlisted names that
+ * follow no cue, and names in scripts without capital letters. Callers who
+ * need a stricter rule review the style text themselves.
  */
 const NAMED_STYLE_REFERENCES = [
   'ghibli',
@@ -73,12 +87,38 @@ const NAMED_STYLE_REFERENCES = [
   'à la',
 ] as const;
 
+const CREDIT_CUE_PATTERN =
+  /\b(?:inspired by|reminiscent of|directed by|shot by|painted by|drawn by|a film by|the work of|the look of)\s+(?:the\s+)?(\p{L}[\p{L}'’-]*)/giu;
+
+const CAPITALIZED_RUN_PATTERN =
+  /\p{Lu}\p{Ll}[\p{L}'’-]*(?:\s+\p{Lu}\p{Ll}[\p{L}'’-]*)+/gu;
+
+/** The longest excerpt an error message quotes back. */
+const MAX_QUOTED_REFERENCE_LENGTH = 40;
+
 const TEMPLATE_VARIABLE_PATTERN =
   /\{\{(subject|setting|brand|titleText|tagline)\}\}/g;
 
+function isCapitalized(word: string): boolean {
+  return word !== word.toLowerCase();
+}
+
+/** The first named reference in `text` under the policy above, if any. */
 function findNamedStyleReference(text: string): string | undefined {
   const lowered = text.toLowerCase();
-  return NAMED_STYLE_REFERENCES.find((name) => lowered.includes(name));
+  const listed = NAMED_STYLE_REFERENCES.find((name) => lowered.includes(name));
+  if (listed) return listed;
+  for (const match of text.matchAll(CREDIT_CUE_PATTERN)) {
+    if (isCapitalized(match[1] ?? '')) return match[0];
+  }
+  return text.match(CAPITALIZED_RUN_PATTERN)?.[0];
+}
+
+function quoteReference(reference: string): string {
+  const flat = reference.replace(/\s+/g, ' ');
+  return flat.length > MAX_QUOTED_REFERENCE_LENGTH
+    ? `${flat.slice(0, MAX_QUOTED_REFERENCE_LENGTH)}...`
+    : flat;
 }
 
 function toFrames(seconds: number, fps: number): number {
@@ -122,7 +162,7 @@ export function compileCinematicShort(
   if (named)
     throw new CinematicShortCompileError(
       'NAMED_STYLE_REFERENCE',
-      `Describe the style by feel; do not name "${named}".`,
+      `Describe the style by feel; "${quoteReference(named)}" reads as a named reference. Write sentence case without studio, artist, director or film names.`,
     );
   const qaPassLimit = values.qaPassLimit ?? definition.qaPassLimit;
   if (qaPassLimit > definition.qaPassLimit)

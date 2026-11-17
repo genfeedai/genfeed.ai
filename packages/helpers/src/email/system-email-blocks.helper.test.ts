@@ -90,6 +90,42 @@ describe('system email blocks', () => {
     expect(html).toContain('Video');
   });
 
+  it.each([
+    [
+      'a grid tile',
+      (href: string) =>
+        buildEmailThumbnailGrid([
+          {
+            href,
+            imageUrl: 'https://cdn.genfeed.ai/ingredients/images/abc',
+            kind: 'image',
+          },
+        ]),
+    ],
+    [
+      'the hero',
+      (href: string) =>
+        buildEmailHero({
+          href,
+          imageUrl: 'https://cdn.genfeed.ai/ingredients/images/abc',
+          kind: 'image',
+        }),
+    ],
+  ])(
+    'renders the hosted image of %s without a link when its destination is unsafe',
+    (_label, build) => {
+      for (const href of ['javascript:alert(1)', '/library']) {
+        const html = build(href);
+
+        expect(html).toContain(
+          'src="https://cdn.genfeed.ai/ingredients/images/abc"',
+        );
+        expect(html).not.toContain('<a ');
+        expect(html).not.toContain(href);
+      }
+    },
+  );
+
   it('reports how many pieces are not shown', () => {
     expect(
       buildEmailThumbnailGrid([{ kind: 'image' }], { moreCount: 6 }),

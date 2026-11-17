@@ -9,12 +9,12 @@ import {
   creditPackTotalCredits,
   formatPrice,
   getLaunchPrice,
+  getLaunchPriceTerm,
   getPlanByTier,
   getPlanLabel,
   IMAGE_CREDIT_COSTS,
   INTERNAL_CREDIT_COSTS,
   PLAN_COPY,
-  PRO_LAUNCH_DISCOUNT_MONTHS,
   VIDEO_CREDIT_COSTS,
   WEBSITE_CREDIT_PACKS,
   type websitePlans,
@@ -30,6 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import FaqGrid from '@web-components/content/FaqGrid';
 import {
@@ -59,21 +60,22 @@ import {
 const PLAN_ORDER: PlanTier[] = ['pro', 'scale'];
 const FEATURED_TIER: PlanTier = 'scale';
 
-const PRO_LAUNCH_PRICE = getLaunchPrice('pro');
-
 // Only offered while the launch price is on the card, so the term never
 // outlives the discount it explains.
-const LAUNCH_PRICE_FAQ_ITEMS =
-  PRO_LAUNCH_PRICE === null
+function getLaunchPriceFaqItems(): Array<{ answer: string; question: string }> {
+  const term = getLaunchPriceTerm('pro');
+
+  return term === null
     ? []
     : [
         {
-          answer: `${PLAN_COPY.pro.name} is ${formatPrice(PRO_LAUNCH_PRICE)} a month for your first ${PRO_LAUNCH_DISCOUNT_MONTHS} months, then ${formatPrice(getPlanByTier('pro').price)} a month.`,
+          answer: `${term}.`,
           question: `How long does the ${PLAN_COPY.pro.name} launch price last?`,
         },
       ];
+}
 
-const FAQ_ITEMS = [
+const FAQ_ITEMS_BEFORE_LAUNCH = [
   {
     answer: `You get ${ONBOARDING_STARTER_CREDITS} free credits when you finish onboarding.`,
     question: 'Is there a free trial?',
@@ -83,7 +85,9 @@ const FAQ_ITEMS = [
       'You see the price of every job in credits before it runs. Credits come with your plan or from a pay-as-you-go top-up.',
     question: 'How do credits work?',
   },
-  ...LAUNCH_PRICE_FAQ_ITEMS,
+];
+
+const FAQ_ITEMS_AFTER_LAUNCH = [
   {
     answer:
       'You can choose a model in the app, let your agent pick one, or leave it to automatic routing where supported.',
@@ -99,6 +103,14 @@ const FAQ_ITEMS = [
     question: 'Is there an API?',
   },
 ];
+
+function getFaqItems() {
+  return [
+    ...FAQ_ITEMS_BEFORE_LAUNCH,
+    ...getLaunchPriceFaqItems(),
+    ...FAQ_ITEMS_AFTER_LAUNCH,
+  ];
+}
 
 interface OutputCostRow {
   credits: number;
@@ -182,6 +194,7 @@ export default function PricingContent() {
               const isFeatured = plan.tier === FEATURED_TIER;
               const ctaHref = plan.ctaHref || BOOKING_HREF;
               const launchPrice = getLaunchPrice(plan.tier);
+              const launchTerm = getLaunchPriceTerm(plan.tier);
 
               return (
                 <NeuralGridItem
@@ -208,9 +221,17 @@ export default function PricingContent() {
                         {formatPrice(plan.price)}
                       </del>
                     ) : null}
-                    <span className="text-4xl font-semibold tracking-[-0.02em] xl:text-5xl">
-                      {formatPrice(launchPrice ?? plan.price)}
-                    </span>
+                    <SimpleTooltip
+                      isDisabled={launchTerm === null}
+                      label={launchTerm ?? undefined}
+                    >
+                      <span
+                        className="text-4xl font-semibold tracking-[-0.02em] xl:text-5xl"
+                        tabIndex={launchTerm === null ? undefined : 0}
+                      >
+                        {formatPrice(launchPrice ?? plan.price)}
+                      </span>
+                    </SimpleTooltip>
                     <span className="text-sm font-medium text-foreground/60">
                       /mo
                     </span>
@@ -433,7 +454,7 @@ export default function PricingContent() {
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
-          <FaqGrid items={FAQ_ITEMS} />
+          <FaqGrid items={getFaqItems()} />
         </WebSection>
 
         <CtaSection bg="subtle" title="Start free">

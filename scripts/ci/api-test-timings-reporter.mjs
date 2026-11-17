@@ -4,6 +4,7 @@ import { performance } from 'node:perf_hooks';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const TABLE_UNSAFE_CHARS_PATTERN = /[|`<>\r\n]/g;
+const SHARD_POSITION_PATTERN = /^[1-9]\d*$/u;
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
@@ -44,6 +45,20 @@ export function collectModuleTimings(module, root) {
   };
 }
 
+// A shard that runs the file list the plan gave it has no Vitest shard, so the
+// job's own position in the matrix names the record.
+export function resolveShard(vitestShard, env) {
+  if (vitestShard) return vitestShard;
+  const { SHARD: index = '', SHARD_TOTAL: count = '' } = env;
+  if (
+    SHARD_POSITION_PATTERN.test(index) &&
+    SHARD_POSITION_PATTERN.test(count)
+  ) {
+    return { index: Number(index), count: Number(count) };
+  }
+  return { index: 1, count: 1 };
+}
+
 export default class ApiTestTimingsReporter {
   constructor({
     env = process.env,
@@ -72,7 +87,7 @@ export default class ApiTestTimingsReporter {
       pool: vitest.config.pool,
       isIsolated: vitest.config.isolate,
     };
-    this.shard = vitest.config.shard || { index: 1, count: 1 };
+    this.shard = resolveShard(vitest.config.shard, this.env);
   }
 
   onTestRunStart(specifications) {

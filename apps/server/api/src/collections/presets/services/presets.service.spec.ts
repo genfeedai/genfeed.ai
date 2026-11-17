@@ -12,6 +12,7 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelCategory } from '@genfeedai/contracts';
 import { AD_PRESETS } from '@genfeedai/contracts/constants/ad-presets.constant';
 import { B2B_PLAYBOOKS } from '@genfeedai/contracts/constants/b2b-playbooks.constant';
+import { CINEMATIC_SHORTS } from '@genfeedai/contracts/constants/cinematic-shorts.constant';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -348,6 +349,66 @@ describe('PresetsService', () => {
       expect(row('preset-1')?.config).toEqual({
         key: B2B_PLAYBOOKS[0].key,
         playbook: edited,
+      });
+    });
+  });
+
+  describe('cinematic short', () => {
+    const [cinematic] = CINEMATIC_SHORTS;
+
+    it('stores a cinematic short whose defaults and example both compile', async () => {
+      const created = await service.create(
+        dto({ cinematicShort: cinematic, key: cinematic.key }),
+      );
+
+      expect(row(created.id)?.config).toMatchObject({
+        cinematicShort: cinematic,
+        key: cinematic.key,
+      });
+    });
+
+    it('rejects broken defaults that the example hides by overriding them', async () => {
+      const hidden = {
+        ...cinematic,
+        example: {
+          ...cinematic.example,
+          styleByFeel: 'Soft hand-drawn light, quiet and warm',
+        },
+        styleByFeel: 'Soft backgrounds like Studio Ponoc',
+      };
+
+      await expect(
+        service.create(dto({ cinematicShort: hidden, key: 'hidden-default' })),
+      ).rejects.toThrow(/its defaults do not compile.*named reference/);
+      expect(rows).toEqual([]);
+    });
+
+    it('rejects an example that does not compile and writes nothing', async () => {
+      const broken = {
+        ...cinematic,
+        example: { ...cinematic.example, runtimeSeconds: 500 },
+      };
+
+      await expect(
+        service.create(dto({ cinematicShort: broken, key: 'broken-example' })),
+      ).rejects.toThrow(/its example does not compile/);
+      expect(rows).toEqual([]);
+    });
+
+    it('rejects an edit that introduces a named reference and leaves the row alone', async () => {
+      seed('preset-1', ORG, { cinematicShort: cinematic, key: cinematic.key });
+
+      await expect(
+        service.patch('preset-1', {
+          cinematicShort: {
+            ...cinematic,
+            styleByFeel: 'Symmetric Wes Anderson pastels',
+          },
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(row('preset-1')?.config).toEqual({
+        cinematicShort: cinematic,
+        key: cinematic.key,
       });
     });
   });

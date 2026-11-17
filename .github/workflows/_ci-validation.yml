@@ -53,8 +53,8 @@ jobs:
       force_full: ${{ steps.plan.outputs.force_full }}
       workspace_tests: ${{ steps.plan.outputs.workspace_tests }}
       workspace_matrix: ${{ steps.plan.outputs.workspace_matrix }}
-      spec_run: ${{ steps.spec-matrix.outputs.run }}
-      spec_matrix: ${{ steps.spec-matrix.outputs.matrix }}
+      spec_run: ${{ steps.spec-selection.outputs.run }}
+      spec_workspaces: ${{ steps.spec-selection.outputs.workspaces }}
       spec_build_filters: ${{ steps.turbo-scope.outputs.build_filters }}
     steps:
       - name: Check contributor trust
@@ -166,6 +166,8 @@ jobs:
       - name: Setup Bun environment
         if: steps.tier.outputs.heavy != 'true'
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       # Vitest supplies the exact affected app/API files; Turbo supplies the
       # affected workspace tasks. Lockfile, turbo, vitest config, bun-setup, and
       # the planner itself escalate to the full sharded path.
@@ -302,14 +304,15 @@ jobs:
         env:
           APPS_AFFECTED: ${{ steps.scope.outputs.apps_affected }}
         run: bun run scripts/ci/spec-typecheck-scope.ts
-      # Three balanced pools preserve the selected union while reducing runner
-      # startup/build repetition and queue pressure. Weights affect scheduling only.
-      - name: Build spec typecheck matrix
-        id: spec-matrix
+      # One job checks the whole scope. `bun check` covers all 33 spec configs
+      # in under a minute, so the three pools this step used to build spent 219
+      # of their 304 runner-seconds on three installs (median of 49 runs,
+      # 2026-11-16, #10276).
+      - name: Select spec typecheck workspaces
+        id: spec-selection
         env:
           SCOPED_WORKSPACES: ${{ steps.turbo-scope.outputs.workspaces || steps.scope.outputs.workspaces }}
-          SOLO_WORKSPACES: app agent hooks props ui
-        run: node scripts/ci/spec-typecheck-matrix.mjs
+        run: node scripts/ci/spec-typecheck-selection.mjs
 
   # Measurements only when the shared action changes. Two isolated Linux
   # runners compare complete frozen installs; no node_modules reuse or skipped
@@ -488,6 +491,8 @@ jobs:
             --redact --verbose --no-banner --exit-code 1
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       - name: Guard destructive migration release compatibility
         env:
           GH_TOKEN: ${{ github.token }}
@@ -647,6 +652,8 @@ jobs:
           persist-credentials: false
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       # Real workspace imports resolve the contracts package dist exports.
       - name: Build contracts for executable imports
         run: bun run --cwd packages/contracts build
@@ -654,25 +661,24 @@ jobs:
         run: bun run test:repository-contracts
 
   # Typechecks spec/test files against each workspace's compiler options; the
-  # pass condition is zero errors. The Plan job decides the scope and splits
-  # it into legs (see "Build spec typecheck matrix"). Each workspace is checked
-  # in its own process, and every workspace in a leg runs even after one fails
-  # so one fix never costs a CI round-trip per workspace.
+  # pass condition is zero errors. The Plan job decides the scope (see "Select
+  # spec typecheck workspaces") and this one job checks all of it. Each
+  # workspace is checked in its own process, and every workspace runs even
+  # after one fails so one fix never costs a CI round-trip per workspace.
   spec-typecheck:
-    name: Spec Typecheck (${{ matrix.name }})
+    name: Spec Typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 40
     needs: plan
     if: needs.plan.outputs.spec_run == 'true'
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.spec_matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       # The typecheck base config resolves @genfeedai/contracts to its dist
       # output, so the package graph has to exist before any program is
       # created. A packages-only scope builds just the turbo-affected packages.
@@ -694,7 +700,7 @@ jobs:
       # errors; the ratchet baseline that allowed known errors is empty.
       - name: Spec Typecheck
         env:
-          SCOPED_WORKSPACES: ${{ matrix.workspaces }}
+          SCOPED_WORKSPACES: ${{ needs.plan.outputs.spec_workspaces }}
         run: bun run check:spec-typecheck ${SCOPED_WORKSPACES}
 
   # Packages, server services (everything under apps/server except the API),
@@ -760,6 +766,8 @@ jobs:
           filter: blob:none
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       - name: Run workspace tests
         env:
           FORCE_FULL: ${{ needs.plan.outputs.force_full }}
@@ -815,8 +823,9 @@ jobs:
           fi
 
   # App tests. The planner emits the shard matrix: on the affected tier it
-  # counts the exact Vitest changed graph and picks one, two, or four shards;
-  # on the full tier it emits four shards over the whole suite.
+  # resolves the exact Vitest changed graph, picks one, two, or four shards and
+  # gives each shard its files; on the full tier it emits four shards over the
+  # whole suite.
   test-app:
     name: Test App (shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
@@ -837,27 +846,33 @@ jobs:
           filter: blob:none
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       - name: Build app workspace
         run: bunx turbo run build --filter='@genfeedai/web^...'
+      # The shard runs the files Plan assigned to it; the full tier runs the
+      # whole suite split by Vitest (scripts/ci/test-shard-selection.mjs).
       - name: Run app tests
         env:
           FORCE_FULL: ${{ needs.plan.outputs.force_full }}
           NODE_ENV: test
+          SHARD: ${{ matrix.shard }}
+          SHARD_TOTAL: ${{ matrix.total }}
+          SHARD_ROOT: apps/web
+          SHARD_FILE_COUNT: ${{ matrix.count }}
+          SHARD_FILES: ${{ matrix.files }}
         run: |
           set -euo pipefail
-          SELECTION=()
-          if [ "${FORCE_FULL}" != "true" ] && [ -n "${CI_BASE_SHA}" ]; then
-            echo "Running app tests changed since ${CI_BASE_SHA}"
-            SELECTION=(--passWithNoTests --changed "${CI_BASE_SHA}")
-          fi
+          node scripts/ci/test-shard-selection.mjs > "${RUNNER_TEMP}/shard-selection.txt"
+          mapfile -t SELECTION < "${RUNNER_TEMP}/shard-selection.txt"
           cd apps/web && bunx vitest run --config ./vitest.config.mts \
-            --maxWorkers=2 "${SELECTION[@]}" \
-            --shard=${{ matrix.shard }}/${{ matrix.total }}
+            --maxWorkers=2 "${SELECTION[@]}"
 
-  # API tests mirror the app job: the planner's matrix, changed selection on
-  # the affected tier, the whole suite on the full tier. The full tier uses
-  # eight shards (the affected tier never exceeds four), so max-parallel
-  # must cover all eight or the extra shards just queue behind the first four.
+  # API tests mirror the app job: the planner's matrix, the files the plan
+  # gave the shard on the affected tier, the whole suite on the full tier.
+  # The full tier uses eight shards (the affected tier never exceeds four), so
+  # max-parallel must cover all eight or the extra shards just queue behind
+  # the first four.
   test-api:
     name: Test API (shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
@@ -919,6 +934,8 @@ jobs:
           filter: blob:none
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       # `working-directory: packages/prisma` + `bun x` (not root `bunx`): the
       # pinned `prisma` is workspace-local and Prisma 7 reads the datasource URL
       # only from packages/prisma/prisma.config.mjs. Migrate once, then copy the
@@ -945,16 +962,17 @@ jobs:
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
           FORCE_FULL: ${{ needs.plan.outputs.force_full }}
           NODE_ENV: test
+          SHARD: ${{ matrix.shard }}
+          SHARD_TOTAL: ${{ matrix.total }}
+          SHARD_ROOT: apps/server/api
+          SHARD_FILE_COUNT: ${{ matrix.count }}
+          SHARD_FILES: ${{ matrix.files }}
         run: |
           set -euo pipefail
-          SELECTION=()
-          if [ "${FORCE_FULL}" != "true" ] && [ -n "${CI_BASE_SHA}" ]; then
-            echo "Running API tests changed since ${CI_BASE_SHA}"
-            SELECTION=(--passWithNoTests --changed "${CI_BASE_SHA}")
-          fi
+          node scripts/ci/test-shard-selection.mjs > "${RUNNER_TEMP}/shard-selection.txt"
+          mapfile -t SELECTION < "${RUNNER_TEMP}/shard-selection.txt"
           cd apps/server/api && bunx vitest run --config vitest.config.ts \
             --maxWorkers=2 "${SELECTION[@]}" \
-            --shard=${{ matrix.shard }}/${{ matrix.total }} \
             --reporter=default \
             --reporter=github-actions \
             --reporter="$GITHUB_WORKSPACE/scripts/ci/api-test-timings-reporter.mjs"
@@ -1011,6 +1029,8 @@ jobs:
         run: git fetch origin "$CLOUD_SWEEP_BASE_SHA" --depth=1
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       # Build uploads only OpenAPI, not API dist. Keep this job independent:
       # waiting for all of Build would serialize unrelated package/docs work.
       # Workflow-level TURBO_TOKEN/TURBO_TEAM apply here; cache hits are expected.
@@ -1125,6 +1145,8 @@ jobs:
           filter: blob:none
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       - name: Run build
         run: |
           if [ "$CI_IS_CHANGE_RUN" = "true" ]; then
@@ -1179,6 +1201,8 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+        with:
+          cache-prisma-client: 'true'
       - name: Build real API and MCP packages
         run: bunx turbo run build --filter=@genfeedai/api --filter=@genfeedai/mcp --concurrency=2
       - name: Select owned report path

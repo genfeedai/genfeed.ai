@@ -6,7 +6,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/web/app/(onboarding)/onboarding/(wizard)/_expert/use-complete-onboarding.hook.test.tsx',
   'apps/web/app/(onboarding)/onboarding/(wizard)/brand/brand-content.behavior.test.tsx',
   'apps/web/app/(onboarding)/onboarding/(wizard)/page.test.tsx',
-  'apps/web/app/(onboarding)/onboarding/post-signup/page.behavior.test.tsx',
   'apps/web/app/(protected)/[orgSlug]/[brandSlug]/library/assets/asset-deep-link.test.tsx',
   'apps/web/app/(protected)/[orgSlug]/[brandSlug]/library/voices/library-voices-page.test.tsx',
   'apps/web/app/(protected)/[orgSlug]/[brandSlug]/messages/use-messages-realtime.test.ts',

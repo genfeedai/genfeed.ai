@@ -37,6 +37,11 @@ on:
         required: false
         default: ''
         type: string
+      pinned_release:
+        description: 'True when Release ships a master commit earlier than the dispatched head; the npm plan must then be empty'
+        required: false
+        default: false
+        type: boolean
       packages_json:
         description: 'Optional explicit release set; empty means detect registry drift'
         required: false
@@ -109,6 +114,7 @@ jobs:
         env:
           CHECKOUT_REF: ${{ inputs.checkout_ref }}
           DRY_RUN: ${{ inputs.dry_run }}
+          PINNED_RELEASE: ${{ inputs.pinned_release }}
           RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
           TRUSTED_RELEASE_CALL: ${{ inputs.trusted_release_call }}
           VALIDATED_HISTORICAL_RECOVERY: ${{ inputs.validated_historical_recovery }}
@@ -117,6 +123,10 @@ jobs:
 
           if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
             echo "::error::Package releases are only allowed from master. Current ref: ${GITHUB_REF}"
+            exit 1
+          fi
+          if [ "${PINNED_RELEASE}" = 'true' ] && { [ "${TRUSTED_RELEASE_CALL}" != 'true' ] || [ "${DRY_RUN}" != 'false' ] || [ "${VALIDATED_HISTORICAL_RECOVERY}" = 'true' ]; }; then
+            echo "::error::A pinned release is a trusted real Release workflow call and never a historical recovery."
             exit 1
           fi
           if ! [[ "${CHECKOUT_REF}" =~ ^[0-9a-f]{40}$ ]]; then
@@ -155,8 +165,10 @@ jobs:
               exit 1
             fi
             # npm provenance attests the dispatched commit, so a real publish
-            # must build exactly that commit.
-            if [ "${HEAD_SHA}" != "${GITHUB_SHA}" ]; then
+            # must build exactly that commit. A pinned release checks out an
+            # earlier master commit; it may only plan, and the step after the
+            # plan requires that plan to be empty.
+            if [ "${HEAD_SHA}" != "${GITHUB_SHA}" ] && [ "${PINNED_RELEASE}" != 'true' ]; then
               echo "::error::Real package publishes require the dispatched release SHA ${GITHUB_SHA}; checked out ${HEAD_SHA}."
               exit 1
             fi
@@ -185,6 +197,17 @@ jobs:
             } >>"${GITHUB_OUTPUT}"
           else
             node scripts/npm-release-plan.mjs --lane "${LANE}"
+          fi
+
+      - name: Require an empty npm plan for a pinned release
+        if: ${{ inputs.pinned_release == true }}
+        env:
+          HAS_PACKAGES: ${{ steps.plan.outputs.has_packages }}
+        run: |
+          set -euo pipefail
+          if [ "${HAS_PACKAGES}" != 'false' ]; then
+            echo "::error::A pinned release cannot publish pending npm packages (has_packages=${HAS_PACKAGES:-<empty>}). Cut a release from current master so npm provenance remains truthful."
+            exit 1
           fi
 
       - name: Checkout current release controller

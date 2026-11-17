@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ASSET_ORIGIN_GENERATION_PENDING } from '@api/collections/assets/constants/asset-origin.constant';
 import type { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
 import type { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
 import { AssetIngestionService } from '@api/collections/assets/services/asset-ingestion.service';
@@ -219,6 +220,14 @@ describe('AssetIngestionService', () => {
             parentOrgId: user.organizationId,
           },
         },
+        {
+          data: { origin: null },
+          where: {
+            id: assetId,
+            isDeleted: false,
+            parentOrgId: user.organizationId,
+          },
+        },
       ]);
     });
 
@@ -232,6 +241,110 @@ describe('AssetIngestionService', () => {
 
       expect(assetsService.create).not.toHaveBeenCalled();
       expect(storedObjects).toEqual([]);
+    });
+  });
+
+  describe('a replacement that is still being stored (#9858)', () => {
+    interface SlotRow {
+      id: string;
+      isDeleted: boolean;
+      origin: string | null;
+    }
+    const previousId = testId('previous');
+    let rows: SlotRow[];
+    let visibleDuringStore: string[];
+    let visibleWhenRetired: string[];
+
+    /** What a brand read sees: live rows that are not pending. */
+    function visibleIds(): string[] {
+      return rows
+        .filter(
+          (row) =>
+            !row.isDeleted && row.origin !== ASSET_ORIGIN_GENERATION_PENDING,
+        )
+        .map((row) => row.id);
+    }
+
+    beforeEach(() => {
+      rows = [{ id: previousId, isDeleted: false, origin: null }];
+      visibleDuringStore = [];
+      visibleWhenRetired = [];
+      assetsService.create.mockImplementation(
+        async (data: { origin?: string }) => {
+          rows.push({
+            id: assetId,
+            isDeleted: false,
+            origin: data.origin ?? null,
+          });
+          return asset;
+        },
+      );
+      assetsService.remove.mockImplementation(async (id: string) => {
+        for (const row of rows) if (row.id === id) row.isDeleted = true;
+        return asset;
+      });
+      assetsService.patchAll.mockImplementation(async () => {
+        visibleWhenRetired = visibleIds();
+        for (const row of rows) if (row.id !== assetId) row.isDeleted = true;
+        return { modifiedCount: 1 };
+      });
+      prisma.asset.updateMany.mockImplementation(
+        async (args: {
+          data: { origin?: string | null };
+          where: { id: string };
+        }) => {
+          for (const row of rows)
+            if (row.id === args.where.id && 'origin' in args.data)
+              row.origin = args.data.origin ?? null;
+          return { count: 1 };
+        },
+      );
+    });
+
+    it('keeps the previous image readable while an upload is stored, then swaps', async () => {
+      filesClientService.uploadToS3.mockImplementation(async () => {
+        visibleDuringStore = visibleIds();
+        return {};
+      });
+
+      await service.createUpload(user, file, uploadDto);
+
+      expect(visibleDuringStore).toEqual([previousId]);
+      expect(visibleWhenRetired).toEqual([previousId, assetId]);
+      expect(visibleIds()).toEqual([assetId]);
+    });
+
+    it('keeps the previous image readable and hides the new row when the upload fails', async () => {
+      filesClientService.uploadToS3.mockRejectedValue(new Error('s3 down'));
+
+      await expect(service.createUpload(user, file, uploadDto)).rejects.toThrow(
+        's3 down',
+      );
+
+      expect(visibleIds()).toEqual([previousId]);
+    });
+
+    it('keeps the previous image readable while an ingredient copy runs, then swaps', async () => {
+      filesClientService.copyInS3.mockImplementation(async () => {
+        visibleDuringStore = visibleIds();
+        return {};
+      });
+
+      await service.createFromIngredient(user, ingredientDto);
+
+      expect(visibleDuringStore).toEqual([previousId]);
+      expect(visibleWhenRetired).toEqual([previousId, assetId]);
+      expect(visibleIds()).toEqual([assetId]);
+    });
+
+    it('keeps the previous image readable when an ingredient copy fails', async () => {
+      filesClientService.copyInS3.mockRejectedValue(new Error('s3 down'));
+
+      await expect(
+        service.createFromIngredient(user, ingredientDto),
+      ).rejects.toThrow(ValidationException);
+
+      expect(visibleIds()).toEqual([previousId]);
     });
   });
 
@@ -290,6 +403,7 @@ describe('AssetIngestionService', () => {
     expect(assetsService.create).toHaveBeenCalledWith({
       category: AssetCategory.LOGO,
       kitSlot: BrandKitSlot.LOGO_PRIMARY,
+      origin: ASSET_ORIGIN_GENERATION_PENDING,
       parentId: brandId,
       parentOrgId: user.organizationId,
       parentType: AssetParent.BRAND,
@@ -467,6 +581,7 @@ describe('AssetIngestionService', () => {
     expect(assetsService.create).toHaveBeenCalledWith({
       category: AssetCategory.LOGO,
       kitSlot: BrandKitSlot.LOGO_PRIMARY,
+      origin: ASSET_ORIGIN_GENERATION_PENDING,
       parentId: brandId,
       parentOrgId: user.organizationId,
       parentType: AssetParent.BRAND,

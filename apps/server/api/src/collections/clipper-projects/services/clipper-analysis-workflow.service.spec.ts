@@ -314,6 +314,24 @@ describe('ClipperAnalysisWorkflowService', () => {
     } as never);
 
     expect(prepared).toMatchObject({ audioUrl });
+    if (storageKey) {
+      // The stored file is read by its own key, for its own ingredient.
+      expect(http.post).toHaveBeenCalledTimes(1);
+      expect(http.post).toHaveBeenCalledWith(
+        expect.stringContaining('/v1/files/process/video'),
+        expect.objectContaining({
+          ingredientId: 'upload-1',
+          organizationId: 'org-1',
+          params: { s3Key: 'voices/upload-1' },
+          type: 'video-to-audio',
+          userId: 'user-1',
+        }),
+        expect.anything(),
+      );
+    } else {
+      // Remote audio without a stored copy is transcribed from its URL.
+      expect(http.post).not.toHaveBeenCalled();
+    }
   });
   it('keeps the files service reason when audio extraction fails', async () => {
     http.post.mockReturnValue(of({ data: { jobId: 'job-7' } }));

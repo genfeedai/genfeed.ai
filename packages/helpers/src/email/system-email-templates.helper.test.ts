@@ -155,6 +155,16 @@ describe('other system email bodies', () => {
     expect(html).toContain('npx @genfeedai/skills-pro install rcpt_1');
     expect(html).toContain('Receipt id');
   });
+
+  it('lists the receipt id in its own row even when the command does not carry it', () => {
+    const html = buildSkillsProReceiptEmailBody({
+      command: 'npx @genfeedai/skills-pro install',
+      receiptId: 'rcpt_unique_42',
+    });
+
+    expect(html).toContain('>Receipt id</td>');
+    expect(html).toContain('>rcpt_unique_42</td>');
+  });
 });
 
 describe('collaboration email', () => {

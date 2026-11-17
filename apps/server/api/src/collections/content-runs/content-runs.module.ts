@@ -39,6 +39,7 @@ import { StoryboardARollService } from '@api/collections/content-runs/services/s
 import { StoryboardAnimaticVoiceService } from '@api/collections/content-runs/services/storyboard-animatic-voice.service';
 import { StoryboardAssetBibleService } from '@api/collections/content-runs/services/storyboard-asset-bible.service';
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
+import { StoryboardJournalSweepService } from '@api/collections/content-runs/services/storyboard-journal-sweep.service';
 import { StoryboardLongFormAssemblyService } from '@api/collections/content-runs/services/storyboard-long-form-assembly.service';
 import { StoryboardLongFormEstimateService } from '@api/collections/content-runs/services/storyboard-long-form-estimate.service';
 import { StoryboardLongFormTranslationService } from '@api/collections/content-runs/services/storyboard-long-form-translation.service';
@@ -100,6 +101,7 @@ import { Module } from '@nestjs/common';
     StoryboardStillsService,
     StoryboardShotRendersService,
     StoryboardAssetBibleService,
+    StoryboardJournalSweepService,
     StoryboardShotQaService,
     StoryboardARollService,
     StoryboardLongFormAssemblyService,
@@ -157,6 +159,7 @@ import { Module } from '@nestjs/common';
     StoryboardStillsService,
     StoryboardShotRendersService,
     StoryboardAssetBibleService,
+    StoryboardJournalSweepService,
     StoryboardShotQaService,
     VideoQaContinuityResolverService,
     StoryboardARollService,

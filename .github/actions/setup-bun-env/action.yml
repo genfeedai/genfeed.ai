@@ -16,6 +16,10 @@ inputs:
     description: Opt into the Bun download cache (cold installs measured faster on Linux)
     required: false
     default: 'false'
+  cache-prisma-client:
+    description: Reuse the generated Prisma client while its schema, config and pinned Prisma version are unchanged
+    required: false
+    default: 'false'
   cache-playwright:
     description: |
       Whether to cache Playwright browser binaries (chromium) and install
@@ -108,6 +112,22 @@ runs:
         test -f "$ffmpeg_stub"
         echo "FFMPEG_BIN=$ffmpeg_stub" >> "$GITHUB_ENV"
 
+    # @genfeedai/prisma's postinstall generates the client during the install
+    # below: 30 to 40 s for this schema, in every job, while the packages
+    # themselves install in a few seconds. The postinstall
+    # (packages/prisma/prisma/generate-client.mjs) skips generation when the
+    # stamp beside the client matches the schema, the config, the pinned Prisma
+    # version and the generated files themselves, so a restored client is used
+    # only when it is the one this checkout would generate. Anything else
+    # generates as before. The key hashes the same inputs as the stamp.
+    - name: Restore generated Prisma client
+      id: prisma-client-cache
+      if: ${{ inputs.cache-prisma-client == 'true' }}
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: packages/prisma/generated
+        key: ${{ runner.os }}-prisma-client-${{ hashFiles('packages/prisma/package.json', 'packages/prisma/prisma.config.mjs', 'packages/prisma/prisma/schema.prisma', 'packages/prisma/prisma/generate-client.mjs') }}
+
     # Retry with exponential backoff as defense against generic registry/CDN
     # transients (the supported ffmpeg-static download is neutralized above via
     # FFMPEG_BIN; ffprobe-static@3.1.0 has no install-time CDN download).
@@ -135,6 +155,15 @@ runs:
         done
         echo "::error::install failed after ${MAX_ATTEMPTS} attempts"
         exit 1
+
+    # Saved straight after the install, not at the end of the job, so the cache
+    # holds exactly what the postinstall wrote and later steps cannot change it.
+    - name: Save generated Prisma client
+      if: ${{ inputs.cache-prisma-client == 'true' && steps.prisma-client-cache.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: packages/prisma/generated
+        key: ${{ steps.prisma-client-cache.outputs.cache-primary-key }}
 
     # Playwright browser binaries — key matches the strategy used by the inline
     # e2e jobs so warm cache entries are reused when jobs migrate here.

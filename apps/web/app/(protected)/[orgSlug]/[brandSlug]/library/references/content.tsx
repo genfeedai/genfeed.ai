@@ -35,6 +35,7 @@ export default function LibraryCharactersPage({
     availabilityControls,
     brands,
     candidate,
+    canManageCharacter,
     canManageSharing,
     characters,
     pageTotals,
@@ -84,6 +85,7 @@ export default function LibraryCharactersPage({
         }
       >
         <CharactersTable
+          canManageCharacter={canManageCharacter}
           canManageSharing={canManageSharing}
           characters={characters}
           isLoading={isLoading}

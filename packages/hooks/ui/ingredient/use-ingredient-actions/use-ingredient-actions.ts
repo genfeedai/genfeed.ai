@@ -12,7 +12,7 @@ import {
   createLibraryAssetRoute,
   hasNativeExtend,
 } from '@genfeedai/contracts/constants';
-import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { MasonryActionStates } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 import { getModelCapability } from '@genfeedai/helpers/model-capability.helper';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
@@ -1094,10 +1094,12 @@ export function useIngredientActions({
         return await onUpdateMetadata(ingredient, field, value);
       }
 
-      if (!ingredient?.metadata) {
-        return;
-      }
-      if (typeof ingredient.metadata !== 'object') {
+      const isEditable = field === 'label' || field === 'description';
+      if (
+        !isEditable ||
+        !ingredient?.metadata ||
+        typeof ingredient.metadata !== 'object'
+      ) {
         return;
       }
 
@@ -1106,11 +1108,9 @@ export function useIngredientActions({
         onSuccess: onRefresh,
         operation: async () => {
           const service = await getIngredientsService();
-          const updatedMetadata: IMetadata = {
-            ...(ingredient.metadata as IMetadata),
-            [field]: value,
-          };
-          return service.patchMetadata(ingredient.id, updatedMetadata);
+          const patch =
+            field === 'label' ? { label: value } : { description: value };
+          return service.patchMetadata(ingredient.id, patch);
         },
         successMessage: 'Metadata updated successfully',
         url: `PATCH /ingredients/${ingredient.id}/metadata [${field}]`,
