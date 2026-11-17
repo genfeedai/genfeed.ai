@@ -268,8 +268,10 @@ export class IngredientsController {
         brandId: tenant.isOrganizationOverride ? tenant.brandId : user.brandId,
       })) ?? data;
     const reviewed =
-      (await this.reviewState?.attachToPage(evaluated, tenant.organizationId)) ??
-      evaluated;
+      (await this.reviewState?.attachToPage(
+        evaluated,
+        tenant.organizationId,
+      )) ?? evaluated;
     return serializeCollection(
       request,
       IngredientSerializer,

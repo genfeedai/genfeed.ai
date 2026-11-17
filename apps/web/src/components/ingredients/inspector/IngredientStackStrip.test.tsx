@@ -42,7 +42,11 @@ describe('IngredientStackStrip', () => {
   });
 
   it('lists every slide of the carousel in order under its image count', () => {
-    stack.data = [slide('a', 'Cover'), slide('b', 'Middle'), slide('c', 'Last')];
+    stack.data = [
+      slide('a', 'Cover'),
+      slide('b', 'Middle'),
+      slide('c', 'Last'),
+    ];
 
     render(<IngredientStackStrip ingredientId="b" />);
 

@@ -159,7 +159,7 @@ export class IngredientsQueryDto extends LibraryFilterQueryDto {
   @ApiProperty({
     description:
       'Show each carousel once: assets that are later slides of a post are ' +
-      'hidden behind that post\'s first slide, and the cover carries `stack` ' +
+      "hidden behind that post's first slide, and the cover carries `stack` " +
       'with the post and slide count. Composes with every other Library filter.',
     required: false,
   })

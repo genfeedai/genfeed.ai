@@ -47,7 +47,10 @@ describe('IngredientTileOverlays', () => {
     render(
       <IngredientTileOverlays
         ingredient={{
-          ...makeIngredient(IngredientStatus.UPLOADED, IngredientOrigin.IMPORTED),
+          ...makeIngredient(
+            IngredientStatus.UPLOADED,
+            IngredientOrigin.IMPORTED,
+          ),
           stack: { count: 6, postId: 'post-1' },
         }}
         isReviewEnabled={false}

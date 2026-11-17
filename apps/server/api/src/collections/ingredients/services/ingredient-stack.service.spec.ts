@@ -27,7 +27,9 @@ function matches(value: string, filter?: string | { in: string[] }): boolean {
   if (filter === undefined) {
     return true;
   }
-  return typeof filter === 'string' ? value === filter : filter.in.includes(value);
+  return typeof filter === 'string'
+    ? value === filter
+    : filter.in.includes(value);
 }
 
 function rowsFor(where: LinkWhere): LinkRow[] {

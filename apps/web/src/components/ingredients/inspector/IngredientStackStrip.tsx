@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useTranslations } from 'next-intl';

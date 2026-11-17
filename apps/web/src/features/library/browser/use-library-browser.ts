@@ -112,7 +112,12 @@ export function useLibraryBrowser({
   scope = PageScope.BRAND,
 }: Pick<
   LibraryBrowserProps,
-  'place' | 'shelf' | 'seededCategories' | 'seededOrigins' | 'isStacked' | 'scope'
+  | 'place'
+  | 'shelf'
+  | 'seededCategories'
+  | 'seededOrigins'
+  | 'isStacked'
+  | 'scope'
 >) {
   const pathname = usePathname();
   const router = useRouter();

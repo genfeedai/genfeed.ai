@@ -176,10 +176,9 @@ describe('IngredientsRelationshipsController', () => {
         total: 3,
       });
 
-      const result = (await controller.findStack(
-        mockRequest,
-        'slide-b',
-      )) as { data: { id: string }[] };
+      const result = (await controller.findStack(mockRequest, 'slide-b')) as {
+        data: { id: string }[];
+      };
 
       expect(result.data.map((slide) => slide.id)).toEqual(slides);
     });

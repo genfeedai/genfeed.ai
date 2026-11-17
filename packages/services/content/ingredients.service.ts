@@ -601,7 +601,10 @@ export class IngredientsService<
    * The slides of the carousel an asset belongs to, cover first. Empty for an
    * asset that is in no carousel.
    */
-  public async getStack(id: string, signal?: AbortSignal): Promise<IIngredient[]> {
+  public async getStack(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IIngredient[]> {
     const response = await this.instance.get<JsonApiResponseDocument>(
       `${encodeURIComponent(id)}/stack`,
       { signal },
