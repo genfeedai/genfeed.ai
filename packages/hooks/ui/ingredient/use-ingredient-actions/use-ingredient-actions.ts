@@ -12,7 +12,10 @@ import {
   createLibraryAssetRoute,
   hasNativeExtend,
 } from '@genfeedai/contracts/constants';
-import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
+import type {
+  IIngredient,
+  IIngredientMetadataPatch,
+} from '@genfeedai/contracts/interfaces';
 import type { MasonryActionStates } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 import { getModelCapability } from '@genfeedai/helpers/model-capability.helper';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
@@ -1100,17 +1103,22 @@ export function useIngredientActions({
       if (typeof ingredient.metadata !== 'object') {
         return;
       }
+      // The endpoint edits a label and a description; anything else is not
+      // editable metadata.
+      if (field !== 'label' && field !== 'description') {
+        return;
+      }
 
       await withServiceOperation({
         errorMessage: 'Failed to update metadata',
         onSuccess: onRefresh,
         operation: async () => {
           const service = await getIngredientsService();
-          const updatedMetadata: IMetadata = {
-            ...(ingredient.metadata as IMetadata),
-            [field]: value,
-          };
-          return service.patchMetadata(ingredient.id, updatedMetadata);
+          // Only the edited field goes out: the rest of the metadata is
+          // server-owned and the endpoint accepts a label and a description.
+          const patch: IIngredientMetadataPatch =
+            field === 'label' ? { label: value } : { description: value };
+          return service.patchMetadata(ingredient.id, patch);
         },
         successMessage: 'Metadata updated successfully',
         url: `PATCH /ingredients/${ingredient.id}/metadata [${field}]`,

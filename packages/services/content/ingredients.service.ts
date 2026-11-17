@@ -15,7 +15,7 @@ import type {
   IIngredient,
   IIngredientGenerationCost,
   IIngredientLineagePage,
-  IMetadata,
+  IIngredientMetadataPatch,
   IPaginatedResponse,
   IPost,
   MediaDeliveryGrant,
@@ -487,7 +487,10 @@ export class IngredientsService<
       .then((res) => this.mapOne(res.data));
   }
 
-  public async patchMetadata(id: string, data: Partial<IMetadata>): Promise<T> {
+  public async patchMetadata(
+    id: string,
+    data: IIngredientMetadataPatch,
+  ): Promise<T> {
     const body = await serializeRequest('MetadataSerializer', data);
 
     return await this.instance
