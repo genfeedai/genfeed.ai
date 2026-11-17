@@ -569,7 +569,7 @@ test('failed stable releases recover only from exact historical run evidence', (
   assert.match(recoveryEvidenceScript, /actions\/runs\/\$\{runId\}/);
   assert.match(
     recoveryEvidenceScript,
-    /actions\/runs\/\$\{runId\}\/jobs\?filter=latest&per_page=100/,
+    /actions\/runs\/\$\{runId\}\/jobs\?filter=latest&per_page=\$\{RECOVERY_JOBS_PAGE_SIZE\}/,
   );
 
   for (const evidence of [
@@ -1456,6 +1456,14 @@ function runNpmRecoveryCli(fixture) {
           };
         }
         if (joined.includes('/jobs')) {
+          if ((fixture.jobsServerErrors ?? 0) > 0) {
+            fixture.jobsServerErrors -= 1;
+            return {
+              status: 1,
+              stderr: 'gh: Server Error (HTTP 502)',
+              stdout: '',
+            };
+          }
           return {
             status: 0,
             stderr: '',
@@ -1487,6 +1495,33 @@ function runNpmRecoveryCli(fixture) {
     process.exitCode = previousExitCode;
   }
 }
+
+test('recovery evidence retries a GitHub 502 on the jobs lookup', () => {
+  const recovered = runNpmRecoveryCli({
+    ...npmSourceNoopFixture(),
+    jobsServerErrors: 2,
+  });
+  assert.equal(recovered.exitCode, undefined);
+  assert.equal(recovered.errors.length, 0);
+  assert.equal(
+    recovered.calls.filter(({ args }) =>
+      args.join(' ').includes('/jobs?filter=latest'),
+    ).length,
+    3,
+  );
+});
+
+test('recovery evidence stops after three GitHub 502s on the jobs lookup', () => {
+  const failed = runNpmRecoveryCli({
+    ...npmSourceNoopFixture(),
+    jobsServerErrors: 3,
+  });
+  assert.equal(failed.exitCode, 1);
+  assert.match(
+    failed.errors.join('\n'),
+    /GitHub recovery evidence lookup failed: gh: Server Error \(HTTP 502\)/,
+  );
+});
 
 test('npm-source-noop CLI emits the reviewed image digest and rejects drift before capture', () => {
   const accepted = runNpmRecoveryCli(npmSourceNoopFixture());

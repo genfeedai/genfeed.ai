@@ -66,6 +66,15 @@ const REFUSE_EXISTING_ASSETS_STEP =
 const VERIFY_ASSET_IDENTITIES_STEP =
   'Verify immutable install asset identities';
 
+/**
+ * A release run has about 80 jobs with many steps each. GitHub builds the jobs
+ * page within its 10 second gateway limit only for small pages: 100 jobs per
+ * page returns HTTP 502 every time, 50 takes about 8 seconds.
+ */
+export const RECOVERY_JOBS_PAGE_SIZE = 20;
+/** GitHub answers 5xx now and then; a lookup is read-only, so retry it. */
+const GH_SERVER_ERROR_ATTEMPTS = 3;
+const GH_SERVER_ERROR_PATTERN = /\(HTTP 5\d\d\)/;
 export const RECOVERY_KIND_ATTACHMENT_FAILURE = 'attachment-failure';
 export const RECOVERY_KIND_NPM_SOURCE_NOOP = 'npm-source-noop';
 export const NPM_MASTER_ADVANCED_ERROR =
@@ -1240,11 +1249,20 @@ export function validateReleaseRecoveryEvidence({
 }
 
 function runGh(args, { env, spawnSync, encoding }) {
-  const result = spawnSync('gh', args, {
-    encoding,
-    env,
-    maxBuffer: 10 * 1024 * 1024,
-  });
+  let result;
+  for (let attempt = 1; attempt <= GH_SERVER_ERROR_ATTEMPTS; attempt += 1) {
+    result = spawnSync('gh', args, {
+      encoding,
+      env,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    if (
+      result.status === 0 ||
+      !GH_SERVER_ERROR_PATTERN.test(String(result.stderr ?? ''))
+    ) {
+      break;
+    }
+  }
   if (result.status !== 0) {
     throw new Error(
       `GitHub recovery evidence lookup failed: ${String(result.stderr ?? '').trim() || 'unknown gh error'}`,
@@ -1335,7 +1353,7 @@ export function runReleaseRecoveryCli({
         'api',
         '--paginate',
         '--slurp',
-        `repos/${repository}/actions/runs/${runId}/jobs?filter=latest&per_page=100`,
+        `repos/${repository}/actions/runs/${runId}/jobs?filter=latest&per_page=${RECOVERY_JOBS_PAGE_SIZE}`,
       ],
       { env, spawnSync },
     );
