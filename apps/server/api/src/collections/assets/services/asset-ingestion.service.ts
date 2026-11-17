@@ -142,22 +142,7 @@ export class AssetIngestionService {
         },
       });
 
-      // One logo per organization: the new upload replaces the previous one.
-      if (
-        uploadDto.category === AssetCategory.LOGO &&
-        entityData.parentId &&
-        uploadDto.parentType === AssetParent.ORGANIZATION
-      ) {
-        await this.assetsService.patchAll(
-          {
-            category: AssetCategory.LOGO,
-            parentOrgId: entityData.parentId,
-            parentType: AssetParent.ORGANIZATION,
-          },
-          { isDeleted: true },
-        );
-        await this.cacheService.invalidateByTags(['organizations']);
-      }
+      await this.replaceOrganizationLogo(uploadDto, entityData.parentId);
 
       const assetData = await this.assetsService.create(entityData);
 
@@ -218,6 +203,29 @@ export class AssetIngestionService {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  /** One logo per organization: the new upload replaces the previous one. */
+  private async replaceOrganizationLogo(
+    uploadDto: CreateAssetDto,
+    parentId: string | undefined,
+  ): Promise<void> {
+    if (
+      uploadDto.category !== AssetCategory.LOGO ||
+      !parentId ||
+      uploadDto.parentType !== AssetParent.ORGANIZATION
+    ) {
+      return;
+    }
+    await this.assetsService.patchAll(
+      {
+        category: AssetCategory.LOGO,
+        parentOrgId: parentId,
+        parentType: AssetParent.ORGANIZATION,
+      },
+      { isDeleted: true },
+    );
+    await this.cacheService.invalidateByTags(['organizations']);
   }
 
   /**

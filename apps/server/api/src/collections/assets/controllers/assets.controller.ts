@@ -11,7 +11,7 @@ import {
   brandKitSlotWhere,
   isBrandKitSlotCategory,
   resolveBrandKitSlot,
-  toBrandKitSlot,
+  resolveUpdatedKitSlot,
 } from '@api/collections/assets/utils/brand-kit-slot.util';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -183,23 +183,7 @@ export class AssetsController {
     )
       throw new BadRequestException('font_asset_dedicated_route_required');
 
-    // The slot the asset will hold: the requested one, else the one it already
-    // has. Checked against the resulting category before anything is written,
-    // so a category-only change cannot strand an incompatible slot and no
-    // usable asset is retired for a change that is then refused.
-    const resultingSlot =
-      updateAssetDto.kitSlot ?? toBrandKitSlot(existingAsset.kitSlot);
-    if (
-      updateAssetDto.category ||
-      updateAssetDto.kitSlot ||
-      updateAssetDto.parentType ||
-      updateAssetDto.parentId
-    ) {
-      resolveBrandKitSlot(
-        updateAssetDto.category ?? existingAsset.category,
-        resultingSlot,
-      );
-    }
+    const resultingSlot = resolveUpdatedKitSlot(updateAssetDto, existingAsset);
 
     const sanitizedUpdate: MutableAssetUpdate = {};
 

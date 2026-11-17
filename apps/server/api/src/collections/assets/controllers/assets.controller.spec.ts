@@ -287,14 +287,24 @@ describe('AssetsController', () => {
       ...mockAsset,
       kitSlot: BrandKitSlot.LOGO_DARK,
     } as unknown as Asset;
+    let patches: Record<string, unknown>[];
+    let retirements: Record<string, unknown>[];
 
     beforeEach(() => {
+      patches = [];
+      retirements = [];
       mockBrandsService.findOne.mockResolvedValue({ id: mockBrandId });
       mockAssetsService.patch.mockImplementation(
-        async (_id: string, data: Record<string, unknown>) => ({
-          ...slottedLogo,
-          ...data,
-        }),
+        async (_id: string, data: Record<string, unknown>) => {
+          patches.push(data);
+          return { ...slottedLogo, ...data };
+        },
+      );
+      mockAssetsService.patchAll.mockImplementation(
+        async (filter: Record<string, unknown>) => {
+          retirements.push(filter);
+          return { modifiedCount: 1 };
+        },
       );
     });
 
@@ -307,11 +317,13 @@ describe('AssetsController', () => {
         }),
       ).rejects.toThrow(BadRequestException);
 
-      expect(mockAssetsService.patch).not.toHaveBeenCalled();
-      expect(mockAssetsService.patchAll).not.toHaveBeenCalled();
+      expect({ patches, retirements }).toEqual({
+        patches: [],
+        retirements: [],
+      });
     });
 
-    it('refuses a logo slot on a banner without retiring the banner slot holder', async () => {
+    it('refuses a logo slot on a banner without retiring anything', async () => {
       mockAssetsService.findOne.mockResolvedValue(slottedLogo);
 
       await expect(
@@ -322,8 +334,10 @@ describe('AssetsController', () => {
         }),
       ).rejects.toThrow(BadRequestException);
 
-      expect(mockAssetsService.patchAll).not.toHaveBeenCalled();
-      expect(mockAssetsService.patch).not.toHaveBeenCalled();
+      expect({ patches, retirements }).toEqual({
+        patches: [],
+        retirements: [],
+      });
     });
 
     it('lets a slotless asset change category', async () => {
@@ -333,34 +347,24 @@ describe('AssetsController', () => {
         category: AssetCategory.REFERENCE,
       });
 
-      expect(mockAssetsService.patch).toHaveBeenCalledWith(mockAssetId, {
-        category: AssetCategory.REFERENCE,
-      });
+      expect(patches).toEqual([{ category: AssetCategory.REFERENCE }]);
     });
 
     it('keeps the persisted slot when the asset is set as a logo again', async () => {
       mockAssetsService.findOne.mockResolvedValue(slottedLogo);
 
-      const result = await controller.update(
-        mockRequest,
-        mockAssetId,
-        mockUser,
-        {
-          category: AssetCategory.LOGO,
-          parentId: mockBrandId,
-          parentType: AssetParent.BRAND,
-        },
-      );
+      await controller.update(mockRequest, mockAssetId, mockUser, {
+        category: AssetCategory.LOGO,
+        parentId: mockBrandId,
+        parentType: AssetParent.BRAND,
+      });
 
-      expect(mockAssetsService.patch).toHaveBeenCalledWith(
-        mockAssetId,
+      expect(patches).toEqual([
         expect.objectContaining({ kitSlot: BrandKitSlot.LOGO_DARK }),
-      );
-      expect(mockAssetsService.patchAll).toHaveBeenCalledWith(
+      ]);
+      expect(retirements).toEqual([
         expect.objectContaining({ kitSlot: BrandKitSlot.LOGO_DARK }),
-        { isDeleted: true },
-      );
-      expect(result).toBeDefined();
+      ]);
     });
 
     it('takes the requested slot over the persisted one', async () => {
@@ -373,10 +377,9 @@ describe('AssetsController', () => {
         parentType: AssetParent.BRAND,
       });
 
-      expect(mockAssetsService.patch).toHaveBeenCalledWith(
-        mockAssetId,
+      expect(patches).toEqual([
         expect.objectContaining({ kitSlot: BrandKitSlot.LOGO_ICON }),
-      );
+      ]);
     });
   });
 

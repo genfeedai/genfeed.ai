@@ -52,3 +52,31 @@ export function brandKitSlotWhere(
 export function toBrandKitSlot(value: unknown): BrandKitSlot | undefined {
   return Object.values(BrandKitSlot).find((slot) => slot === value);
 }
+
+/**
+ * The slot an asset update leaves the asset holding: the requested one, else
+ * the one it already has. A change to category, parent or slot is checked
+ * against the resulting category before anything is written, so a
+ * category-only change cannot strand an incompatible slot, and no usable
+ * asset is retired for a change that is then refused.
+ */
+export function resolveUpdatedKitSlot(
+  update: {
+    category?: AssetCategory | string;
+    kitSlot?: BrandKitSlot | null;
+    parentId?: string;
+    parentType?: string;
+  },
+  existing: { category: AssetCategory | string; kitSlot?: unknown },
+): BrandKitSlot | undefined {
+  const slot = update.kitSlot ?? toBrandKitSlot(existing.kitSlot);
+  if (
+    update.category ||
+    update.kitSlot ||
+    update.parentType ||
+    update.parentId
+  ) {
+    resolveBrandKitSlot(update.category ?? existing.category, slot);
+  }
+  return slot;
+}
