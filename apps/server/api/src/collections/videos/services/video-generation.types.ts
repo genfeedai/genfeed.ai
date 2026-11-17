@@ -20,6 +20,12 @@ export interface DispatchVideoGenerationParams {
   abortSignal?: AbortSignal;
   preparedFalDispatch?: PreparedFalVideoDispatch;
   onProviderSubmissionStarted?: () => void;
+  /**
+   * Stable identity of this logical generation. A provider that supports
+   * idempotent submission reuses it, so retrying the same generation cannot
+   * start a second paid job.
+   */
+  idempotencyKey?: string;
   duration?: number;
   height: number;
   imageUrl?: string;

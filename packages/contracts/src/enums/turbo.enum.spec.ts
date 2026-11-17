@@ -31,9 +31,9 @@ describe('TURBO_RUN_STATE_MACHINE', () => {
         TurboRunStatus.CANCELLED,
       ],
     ],
-    [TurboRunStatus.COMPLETED, []],
-    [TurboRunStatus.PARTIAL, []],
-    [TurboRunStatus.FAILED, []],
+    [TurboRunStatus.COMPLETED, [TurboRunStatus.CANCELLED]],
+    [TurboRunStatus.PARTIAL, [TurboRunStatus.CANCELLED]],
+    [TurboRunStatus.FAILED, [TurboRunStatus.CANCELLED]],
     [TurboRunStatus.CANCELLED, []],
   ])('%s moves to %j', (from, expected) => {
     expect(TURBO_RUN_STATE_MACHINE.next(from)).toEqual(expected);
@@ -46,7 +46,13 @@ describe('TURBO_RUN_STATE_MACHINE', () => {
     ],
     [
       TurboRunStatus.CANCELLED,
-      [TurboRunStatus.PENDING, TurboRunStatus.PROCESSING],
+      [
+        TurboRunStatus.PENDING,
+        TurboRunStatus.PROCESSING,
+        TurboRunStatus.COMPLETED,
+        TurboRunStatus.PARTIAL,
+        TurboRunStatus.FAILED,
+      ],
     ],
     [TurboRunStatus.PARTIAL, [TurboRunStatus.PROCESSING]],
   ])('%s is reached from %j', (to, expected) => {

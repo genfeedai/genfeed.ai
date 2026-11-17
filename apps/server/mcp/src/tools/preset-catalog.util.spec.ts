@@ -63,6 +63,65 @@ describe('describePreset precedence', () => {
   );
 });
 
+describe('listPresetSummaries with an organization override', () => {
+  const platform = {
+    attributes: {
+      category: 'image',
+      description: 'Platform banner',
+      key: 'shared',
+      label: 'Platform',
+    },
+  };
+  const organization = {
+    attributes: {
+      category: 'video',
+      description: 'Organization reel',
+      key: 'shared',
+      label: 'Organization',
+      organizationId: 'org-1',
+    },
+  };
+  const keys = (filter: { kind?: 'image' | 'video'; search?: string }) =>
+    listPresetSummaries([platform, organization], filter)
+      .filter((preset) => preset.key === 'shared')
+      .map((preset) => [preset.kind, preset.label]);
+
+  it.each([
+    ['platform first', [platform, organization]],
+    ['organization first', [organization, platform]],
+  ])('lists one entry per key, the override (%s)', (_name, candidates) => {
+    expect(
+      listPresetSummaries(candidates, {})
+        .filter((preset) => preset.key === 'shared')
+        .map((preset) => [preset.kind, preset.label]),
+    ).toEqual([['video', 'Organization']]);
+  });
+
+  it('filters by the override kind, not the platform kind', () => {
+    expect(keys({ kind: 'video' })).toEqual([['video', 'Organization']]);
+    expect(keys({ kind: 'image' })).toEqual([]);
+  });
+
+  it('searches the override wording, not the platform wording', () => {
+    expect(keys({ search: 'reel' })).toEqual([['video', 'Organization']]);
+    expect(keys({ search: 'banner' })).toEqual([]);
+  });
+
+  it('advertises the same preset that get_preset retrieves', () => {
+    const [advertised] = listPresetSummaries([platform, organization], {
+      search: 'reel',
+    });
+
+    expect(
+      describePreset([platform, organization], { key: 'shared' }),
+    ).toMatchObject({
+      key: advertised?.key,
+      kind: advertised?.kind,
+      label: advertised?.label,
+    });
+  });
+});
+
 describe('listPresetSummaries', () => {
   it('lists image, video and storyboard presets and skips malformed rows', () => {
     expect(

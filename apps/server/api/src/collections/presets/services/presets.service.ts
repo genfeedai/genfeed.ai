@@ -91,15 +91,24 @@ function assertValidCinematicShort(cinematicShort: unknown): void {
         .join('; ')}`,
     );
   }
-  // The defaults and the advertised example must compile, or callers hit the
-  // error later when they read the preset and fill its slots.
-  try {
-    compileCinematicShort({ preset: parsed.data, slots: parsed.data.example });
-  } catch (error) {
-    if (!(error instanceof CinematicShortCompileError)) throw error;
-    throw new BadRequestException(
-      `Invalid cinematic short: its example does not compile (${error.message})`,
-    );
+  // The preset's own defaults and its advertised example must each compile, or
+  // callers hit the error later when they read the preset and fill its slots.
+  // The defaults are compiled with the required slots alone, so an example
+  // that overrides the style, shots or runtime cannot hide a broken default.
+  const { subject, setting, titleText } = parsed.data.example;
+  const compilations = [
+    ['its defaults do', { setting, subject, titleText }],
+    ['its example does', parsed.data.example],
+  ] as const;
+  for (const [subjectOfFailure, slots] of compilations) {
+    try {
+      compileCinematicShort({ preset: parsed.data, slots });
+    } catch (error) {
+      if (!(error instanceof CinematicShortCompileError)) throw error;
+      throw new BadRequestException(
+        `Invalid cinematic short: ${subjectOfFailure} not compile (${error.message})`,
+      );
+    }
   }
 }
 

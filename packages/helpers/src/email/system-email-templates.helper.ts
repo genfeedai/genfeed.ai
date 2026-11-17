@@ -364,11 +364,15 @@ export function buildAlertEmailBody(input: AlertEmailInput): string {
   return `<p style="margin:0 0 16px;">${pill}<span style="color:#949494;font-size:12px;padding-left:10px;">${escapeSystemEmailHtml(input.area)}</span></p><p style="color:#EDEDED;font-size:18px;font-weight:600;line-height:26px;margin:0 0 16px;">${escapeSystemEmailHtml(input.label)}</p>${buildSystemEmailParagraph(input.summary)}`;
 }
 
-/** The receipt id and the command that uses it, ready to copy. */
-export function buildSkillsProReceiptEmailBody(input: {
+export interface SkillsProReceiptEmailInput {
   receiptId: string;
   command: string;
-}): string {
+}
+
+/** The receipt id and the command that uses it, ready to copy. */
+export function buildSkillsProReceiptEmailBody(
+  input: SkillsProReceiptEmailInput,
+): string {
   return [
     buildSystemEmailParagraph(
       'Your Skills Pro purchase is ready. Run this command to install the skills. You do not need a Genfeed account.',

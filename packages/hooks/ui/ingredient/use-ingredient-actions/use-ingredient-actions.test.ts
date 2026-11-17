@@ -1378,6 +1378,32 @@ describe('useIngredientActions', () => {
       });
     });
 
+    it('sends only the edited field and ignores fields that are not editable metadata', async () => {
+      const patchMetadata = vi.fn().mockResolvedValue(undefined);
+      mockGetIngredientsService.mockResolvedValue({
+        ...mockIngredientsService,
+        patchMetadata,
+      });
+      const { result } = renderHook(() => useIngredientActions());
+
+      await act(async () => {
+        await result.current.handlers.handleUpdateMetadata(
+          mockVideoIngredient,
+          'description',
+          'Notes',
+        );
+        await result.current.handlers.handleUpdateMetadata(
+          mockVideoIngredient,
+          'width',
+          '1280',
+        );
+      });
+
+      expect(patchMetadata.mock.calls).toEqual([
+        ['ingredient-1', { description: 'Notes' }],
+      ]);
+    });
+
     it('skips metadata updates for ingredients without metadata', async () => {
       const bareIngredient = {
         ...mockVideoIngredient,

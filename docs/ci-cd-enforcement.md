@@ -154,8 +154,9 @@ The changes:
    verdict; merges that land meanwhile collapse into one pending run. (An
    hourly cron was tried first and dropped: scheduled workflows here start
    hours late.)
-2. Spec typecheck runs as a matrix: each ~10-minute workspace gets its own leg
-   (`scripts/ci/spec-typecheck-matrix.mjs`).
+2. Spec typecheck runs in one job for the whole scope. It was a matrix while a
+   workspace took about 10 minutes; `bun check` now covers every workspace in
+   under a minute (`scripts/ci/spec-typecheck-selection.mjs`).
 3. `ci.yml` went from 20 job definitions to 9: trust, test plan, and spec scope
    share the Plan job; gitleaks lives in Static Checks; OpenAPI drift lives in
    Build; packages, server-service, and web/mobile tests share one matrix job

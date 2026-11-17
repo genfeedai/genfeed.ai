@@ -43,6 +43,7 @@ import {
   type HiggsFieldResponse,
   type HiggsFieldRestylePreset,
   type HiggsFieldSoulInput,
+  type HiggsFieldVideoRequestState,
   type HiggsFieldWebhook,
   isTerminalStatus,
 } from '@api/services/integrations/higgsfield/helpers/higgsfield.interface';
@@ -189,6 +190,39 @@ export class HiggsFieldService {
         'CHARACTER_REPLACEMENT_CREDENTIALS_CHANGED',
       );
   }
+  /**
+   * One status read of an accepted video request, classified for a durable
+   * poller that reschedules itself instead of waiting. A failed read of a
+   * running job is `pending`, as in {@link getRequestStatus}.
+   */
+  async readVideoRequest(
+    requestId: string,
+    organizationId: string,
+  ): Promise<HiggsFieldVideoRequestState> {
+    const credentials = await this.resolveCredentials(organizationId);
+    const response = await this.getRequestStatus(requestId, credentials, true);
+    if (!isTerminalStatus(response.status)) {
+      return { state: 'pending' };
+    }
+    if (response.status === 'completed') {
+      return response.video?.url
+        ? { state: 'completed', videoUrl: response.video.url }
+        : {
+            reason: `Higgsfield job ${requestId} completed without a video.`,
+            state: 'failed',
+          };
+    }
+    const reasons: Record<string, string> = {
+      canceled: `Higgsfield job ${requestId} was canceled.`,
+      failed: `Higgsfield job ${requestId} failed.`,
+      nsfw: `Higgsfield job ${requestId} was rejected by the safety filter.`,
+    };
+    return {
+      reason: reasons[response.status] ?? `Higgsfield job ${requestId} ended.`,
+      state: 'failed',
+    };
+  }
+
   async getBoundRequestStatus(
     requestId: string,
     organizationId: string,

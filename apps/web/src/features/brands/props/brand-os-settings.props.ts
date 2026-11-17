@@ -38,6 +38,8 @@ export interface BrandOsSettingsCardProps {
   isAutoSaveEnabled?: boolean;
   onRevisionSaved?: (revision: IBrandOsRevision) => void;
   onReadinessChange?: (readiness: BrandOsGuideReadiness) => void;
+  /** The brand's current finishing: what a revision that predates finishing is reviewed against. */
+  finishingBaseline?: BrandVideoFinishingV1;
   onRefreshBrand: () => Promise<void>;
 }
 

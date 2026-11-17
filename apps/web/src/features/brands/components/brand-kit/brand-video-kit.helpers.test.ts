@@ -143,7 +143,59 @@ describe('diffVideoKit', () => {
     ).toEqual([{ after, key }]);
   });
 
-  it('skips finishing when the approved revision predates it', () => {
-    expect(diffVideoKit(draft(), draft({ finishing: FINISHING }))).toEqual([]);
+  describe('when the approved revision predates finishing', () => {
+    const baseline = {
+      ...FINISHING,
+      endCard: { durationSeconds: 5, isEnabled: true },
+      watermark: { ...FINISHING.watermark, text: 'acme.coffee' },
+    };
+
+    it('lists nothing while the draft keeps the baseline finishing', () => {
+      expect(
+        diffVideoKit(draft(), draft({ finishing: baseline }), baseline),
+      ).toEqual([]);
+    });
+
+    it('lists only the finishing values changed from the baseline', () => {
+      const changed = draft({
+        finishing: {
+          ...baseline,
+          endCard: { durationSeconds: 8, isEnabled: true },
+          watermark: { ...baseline.watermark, text: 'acme.tea' },
+        },
+      });
+      expect(
+        diffVideoKit(draft(), changed, baseline).map(
+          ({ after, before, group, key }) => ({ after, before, group, key }),
+        ),
+      ).toEqual([
+        {
+          after: 8,
+          before: 5,
+          group: 'finishing',
+          key: 'endCardSeconds',
+        },
+        {
+          after: 'acme.tea',
+          before: 'acme.coffee',
+          group: 'finishing',
+          key: 'watermarkText',
+        },
+      ]);
+    });
+
+    it('compares nothing without a baseline', () => {
+      expect(diffVideoKit(draft(), draft({ finishing: baseline }))).toEqual([]);
+    });
+
+    it('prefers the approved revision finishing over the baseline', () => {
+      expect(
+        diffVideoKit(
+          draft({ finishing: FINISHING }),
+          draft({ finishing: baseline }),
+          { ...FINISHING, endCard: { durationSeconds: 9, isEnabled: true } },
+        ).map((change) => change.key),
+      ).toEqual(['endCardEnabled', 'endCardSeconds', 'watermarkText']);
+    });
   });
 });

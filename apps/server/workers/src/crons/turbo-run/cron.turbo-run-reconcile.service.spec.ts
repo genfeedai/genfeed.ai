@@ -1,3 +1,4 @@
+import type { StoryboardJournalSweepService } from '@api/collections/content-runs/services/storyboard-journal-sweep.service';
 import type { TurboProjectReconcileService } from '@api/collections/turbo-projects/services/turbo-project-reconcile.service';
 import type { TurboRunReconcileService } from '@api/services/turbo-run/turbo-run-reconcile.service';
 import type { TurboRunWorkflowService } from '@api/services/turbo-run/turbo-run-workflow.service';
@@ -26,6 +27,8 @@ describe('CronTurboRunReconcileService', () => {
   let unqueueableRuns: Set<string>;
   let queued: Array<{ dispatchClass: unknown; job: Record<string, unknown> }>;
   let shortfallSweeps: number;
+  let sweepOrder: string[];
+  let isStoryboardSweepFailing: boolean;
   let generatingProjects: number;
   let logs: Array<{ context: Record<string, unknown>; message: string }>;
   let errors: string[];
@@ -36,6 +39,8 @@ describe('CronTurboRunReconcileService', () => {
     unqueueableRuns = new Set();
     queued = [];
     shortfallSweeps = 0;
+    sweepOrder = [];
+    isStoryboardSweepFailing = false;
     generatingProjects = 0;
     logs = [];
     errors = [];
@@ -54,6 +59,7 @@ describe('CronTurboRunReconcileService', () => {
         findStrandedTurboRuns: async () => stranded,
         reconcileSettlementShortfalls: async () => {
           shortfallSweeps += 1;
+          sweepOrder.push('shortfalls');
         },
       } as unknown as TurboRunReconcileService,
       {
@@ -71,6 +77,13 @@ describe('CronTurboRunReconcileService', () => {
       {
         reconcileGeneratingProjects: async () => generatingProjects,
       } as unknown as TurboProjectReconcileService,
+      {
+        sweep: async () => {
+          sweepOrder.push('storyboard');
+          if (isStoryboardSweepFailing) throw new Error('database unavailable');
+          return { failedCount: 0, runCount: 0 };
+        },
+      } as unknown as StoryboardJournalSweepService,
     );
   });
 
@@ -129,6 +142,21 @@ describe('CronTurboRunReconcileService', () => {
     await service.reconcileSettlementShortfalls();
 
     expect(shortfallSweeps).toBe(1);
+  });
+
+  it('settles storyboard journals before the sweep that expires holds', async () => {
+    await service.reconcileSettlementShortfalls();
+
+    expect(sweepOrder).toEqual(['storyboard', 'shortfalls']);
+  });
+
+  it('still runs the settlement sweep when the storyboard sweep fails', async () => {
+    isStoryboardSweepFailing = true;
+
+    await service.reconcileSettlementShortfalls();
+
+    expect(sweepOrder).toEqual(['storyboard', 'shortfalls']);
+    expect(errors).toEqual(['Storyboard journal sweep failed']);
   });
 
   it.each([
