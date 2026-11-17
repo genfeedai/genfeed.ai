@@ -11,8 +11,8 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 161 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(161);
+    it('should have 163 members', () => {
+      expect(Object.values(MODEL_KEYS)).toHaveLength(163);
     });
 
     it('should have correct values', () => {
@@ -306,6 +306,10 @@ describe('model.enum', () => {
       expect(MODEL_KEYS.HEYGEN_VOICE).toBe('heygen/heygen-voice-1');
       expect(MODEL_KEYS.HEYGEN_AVATAR_IV).toBe('heygen/avatar-iv');
       expect(MODEL_KEYS.HEYGEN_AVATAR_V).toBe('heygen/avatar-v');
+      expect(MODEL_KEYS.HEYGEN_AVATAR_6).toBe('heygen/heygen-avatar-6');
+      expect(MODEL_KEYS.HEYGEN_AVATAR_6_TURBO).toBe(
+        'heygen/heygen-avatar-6-turbo',
+      );
       expect(MODEL_KEYS.ELEVENLABS_V4).toBe('elevenlabs/eleven_v4');
       expect(MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2).toBe(
         'elevenlabs/eleven_multilingual_v2',
