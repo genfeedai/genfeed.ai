@@ -1,5 +1,8 @@
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
-import { recordTrendProviderOutcome } from '@api/collections/trends/utils/trend-refresh-evidence.util';
+import {
+  classifyTrendProviderError,
+  recordTrendProviderOutcome,
+} from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type {
   ServerLinkedInTrend,
@@ -10,6 +13,7 @@ import {
   type LinkedInTrendTopic,
   resolveLinkedInTrendSourceUrls,
 } from '@api/services/integrations/linkedin/utils/linkedin-trend.util';
+import type { TrendRefreshReason } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
@@ -21,6 +25,27 @@ function toServerTrends(
     ...topic,
     metadata: { ...topic.metadata },
   }));
+}
+
+/**
+ * Why a scrape with no usable topics counts as a failed refresh. When every
+ * source was rejected the first specific provider reason wins (a blocked page
+ * is `access_required`). The result is never `provider_failed`: the fetch
+ * service reads that reason as "no native failure" and would overwrite the
+ * outcome with an empty success.
+ */
+function resolveScrapeFailureReason(
+  scrapedSources: readonly PromiseSettledResult<unknown>[],
+): TrendRefreshReason {
+  const rejected = scrapedSources.filter(
+    (result): result is PromiseRejectedResult => result.status === 'rejected',
+  );
+  if (rejected.length !== scrapedSources.length) return 'native_failed';
+  return (
+    rejected
+      .map((result) => classifyTrendProviderError(result.reason))
+      .find((reason) => reason !== 'provider_failed') ?? 'native_failed'
+  );
 }
 
 @Traced()
@@ -80,10 +105,14 @@ export class LinkedInTrendResolverService
       ).length;
       // Pages that load but yield no posts mean the extraction is broken, not
       // that LinkedIn is quiet, so refresh health must not read it as empty.
-      if (failedSourceCount > 0 || sourcesWithPosts === 0)
-        recordTrendProviderOutcome('native_failed', 'native_failed');
+      const isFailure = failedSourceCount > 0 || sourcesWithPosts === 0;
+      if (isFailure)
+        recordTrendProviderOutcome(
+          'native_failed',
+          resolveScrapeFailureReason(scrapedSources),
+        );
       this.loggerService.warn(
-        `${url} - public LinkedIn scrape returned no usable topics, returning no observed trends`,
+        `${url} - public LinkedIn scrape returned no usable topics, recording ${isFailure ? 'a failed' : 'an empty'} refresh`,
         {
           failedSourceCount,
           sourceCount: sourceUrls.length,
