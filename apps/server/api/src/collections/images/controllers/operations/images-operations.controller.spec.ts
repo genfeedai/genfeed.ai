@@ -108,7 +108,10 @@ import {
   TagCategory,
   TagKey,
 } from '@genfeedai/contracts';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  MODEL_KEYS,
+  UNIFIED_MODEL_CATALOG,
+} from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -1065,6 +1068,45 @@ describe('ImagesOperationsController', () => {
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
       ).not.toHaveBeenCalled();
+    });
+
+    it('rejects the seeded Leonardo catalog row before charging or dispatching', async () => {
+      const row = UNIFIED_MODEL_CATALOG.find(
+        (entry) => entry.key === MODEL_KEYS.LEONARDOAI,
+      );
+      if (!row) throw new Error('The catalog must seed the Leonardo row');
+      const dto: CreateImageDto = {
+        ...baseCreateDto,
+        autoSelectModel: true,
+        model: undefined,
+      };
+      const requestWithDeferred = {
+        ...mockRequest,
+        creditsConfig: {
+          amount: 0,
+          deferred: true,
+          description: 'Image generation',
+        },
+      } as unknown as Request;
+      // The row as seeded, not the FAL-defaulted fixture the tests above use
+      // with a synthetic tariff: it prices nothing for the Leonardo provider.
+      modelsService.findOne.mockResolvedValue(createModelDocumentFixture(row));
+      creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+        true,
+      );
+
+      await expect(
+        controller.create(requestWithDeferred, dto, mockUser),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'PRICING_UNAVAILABLE',
+          modelKey: MODEL_KEYS.LEONARDOAI,
+        }),
+      });
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).not.toHaveBeenCalled();
+      expect(leonardoaiService.generateImage).not.toHaveBeenCalled();
     });
   });
 
