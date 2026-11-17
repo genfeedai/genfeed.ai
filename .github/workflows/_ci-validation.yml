@@ -53,8 +53,8 @@ jobs:
       force_full: ${{ steps.plan.outputs.force_full }}
       workspace_tests: ${{ steps.plan.outputs.workspace_tests }}
       workspace_matrix: ${{ steps.plan.outputs.workspace_matrix }}
-      spec_run: ${{ steps.spec-matrix.outputs.run }}
-      spec_matrix: ${{ steps.spec-matrix.outputs.matrix }}
+      spec_run: ${{ steps.spec-selection.outputs.run }}
+      spec_workspaces: ${{ steps.spec-selection.outputs.workspaces }}
       spec_build_filters: ${{ steps.turbo-scope.outputs.build_filters }}
     steps:
       - name: Check contributor trust
@@ -304,14 +304,15 @@ jobs:
         env:
           APPS_AFFECTED: ${{ steps.scope.outputs.apps_affected }}
         run: bun run scripts/ci/spec-typecheck-scope.ts
-      # Three balanced pools preserve the selected union while reducing runner
-      # startup/build repetition and queue pressure. Weights affect scheduling only.
-      - name: Build spec typecheck matrix
-        id: spec-matrix
+      # One job checks the whole scope. `bun check` covers all 33 spec configs
+      # in under a minute, so the three pools this step used to build spent 219
+      # of their 304 runner-seconds on three installs (median of 49 runs,
+      # 2026-11-16, #10276).
+      - name: Select spec typecheck workspaces
+        id: spec-selection
         env:
           SCOPED_WORKSPACES: ${{ steps.turbo-scope.outputs.workspaces || steps.scope.outputs.workspaces }}
-          SOLO_WORKSPACES: app agent hooks props ui
-        run: node scripts/ci/spec-typecheck-matrix.mjs
+        run: node scripts/ci/spec-typecheck-selection.mjs
 
   # Measurements only when the shared action changes. Two isolated Linux
   # runners compare complete frozen installs; no node_modules reuse or skipped
@@ -660,19 +661,16 @@ jobs:
         run: bun run test:repository-contracts
 
   # Typechecks spec/test files against each workspace's compiler options; the
-  # pass condition is zero errors. The Plan job decides the scope and splits
-  # it into legs (see "Build spec typecheck matrix"). Each workspace is checked
-  # in its own process, and every workspace in a leg runs even after one fails
-  # so one fix never costs a CI round-trip per workspace.
+  # pass condition is zero errors. The Plan job decides the scope (see "Select
+  # spec typecheck workspaces") and this one job checks all of it. Each
+  # workspace is checked in its own process, and every workspace runs even
+  # after one fails so one fix never costs a CI round-trip per workspace.
   spec-typecheck:
-    name: Spec Typecheck (${{ matrix.name }})
+    name: Spec Typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 40
     needs: plan
     if: needs.plan.outputs.spec_run == 'true'
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.spec_matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -702,7 +700,7 @@ jobs:
       # errors; the ratchet baseline that allowed known errors is empty.
       - name: Spec Typecheck
         env:
-          SCOPED_WORKSPACES: ${{ matrix.workspaces }}
+          SCOPED_WORKSPACES: ${{ needs.plan.outputs.spec_workspaces }}
         run: bun run check:spec-typecheck ${SCOPED_WORKSPACES}
 
   # Packages, server services (everything under apps/server except the API),
