@@ -2,6 +2,7 @@ import { ActivitiesService } from '@api/collections/activities/services/activiti
 import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { HiggsFieldPollQueueService } from '@api/queues/higgsfield-poll/higgsfield-poll-queue.service';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -12,6 +13,7 @@ import {
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { REPLICATE_POLL_MAX_ATTEMPTS } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -20,6 +22,16 @@ import * as Sentry from '@sentry/nestjs';
 import { ConfigService } from '@workers/config/config.service';
 
 const PREDICTION_ID_WITH_INDEX_PATTERN = /^(.+)_(\d+)$/;
+
+const CINEMA_STUDIO_REQUEST_FILTER = {
+  category: IngredientCategory.VIDEO,
+  metadata: {
+    is: {
+      externalProvider: 'higgsfield',
+      model: MODEL_KEYS.HIGGSFIELD_CINEMA_STUDIO,
+    },
+  },
+};
 
 /**
  * Type for ingredient results loaded with metadata.
@@ -50,6 +62,7 @@ interface TimedOutPredictionDoc {
  */
 @Injectable()
 export class CronIngredientsService {
+  private higgsfieldRecoveryCursor: string | undefined;
   private readonly constructorName: string = String(this.constructor.name);
 
   // Lock keys for distributed locking (prevents race conditions across instances)
@@ -96,6 +109,7 @@ export class CronIngredientsService {
     private readonly cacheService: CacheService,
     private readonly logger: LoggerService,
     private readonly replicatePollQueue: ReplicatePollQueueService,
+    private readonly higgsfieldPollQueue: HiggsFieldPollQueueService,
   ) {}
 
   /**
@@ -126,21 +140,7 @@ export class CronIngredientsService {
     try {
       this.logger.log('Checking for stuck processing ingredients', context);
 
-      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-
-      const stuckIngredients = await this.ingredientsService.findAll(
-        {
-          where: {
-            createdAt: { lt: thirtyMinutesAgo },
-            isDeleted: false,
-            status: IngredientStatus.PROCESSING,
-          },
-        },
-        {
-          limit: 100, // Process max 100 ingredients per cycle to avoid overload
-          pagination: false,
-        },
-      );
+      const stuckIngredients = await this.findStuckIngredients();
 
       const stuckCount = stuckIngredients.docs?.length || 0;
 
@@ -254,8 +254,62 @@ export class CronIngredientsService {
       );
     } finally {
       await this.recoverTimedOutPredictions(context);
+      await this.recoverHiggsfieldRequests(context);
       await this.cacheService.releaseLock(
         CronIngredientsService.LOCK_KEY_STUCK_INGREDIENTS,
+      );
+    }
+  }
+
+  private findStuckIngredients() {
+    return this.ingredientsService.findAll(
+      {
+        where: {
+          NOT: CINEMA_STUDIO_REQUEST_FILTER,
+          createdAt: { lt: new Date(Date.now() - 30 * 60 * 1000) },
+          isDeleted: false,
+          status: IngredientStatus.PROCESSING,
+        },
+      },
+      { limit: 100, pagination: false },
+    );
+  }
+
+  /** Saved provider identities survive the API process and a failed first enqueue. */
+  private async recoverHiggsfieldRequests(context: string): Promise<void> {
+    try {
+      const candidates = await this.ingredientsService.findAll(
+        {
+          include: { metadata: true },
+          where: {
+            ...(this.higgsfieldRecoveryCursor
+              ? { id: { gt: this.higgsfieldRecoveryCursor } }
+              : {}),
+            ...CINEMA_STUDIO_REQUEST_FILTER,
+            isDeleted: false,
+            organizationId: { not: null },
+            status: IngredientStatus.PROCESSING,
+          },
+        },
+        { limit: 100, pagination: false, sort: { id: 1 } },
+      );
+      const docs = candidates.docs as unknown as TimedOutPredictionDoc[];
+      for (const ingredient of docs) {
+        const externalId = ingredient.metadata?.externalId;
+        if (!externalId || !ingredient.organizationId) continue;
+        await this.higgsfieldPollQueue.schedule({
+          externalId,
+          ingredientId: String(ingredient.id),
+          organizationId: ingredient.organizationId,
+        });
+      }
+      this.higgsfieldRecoveryCursor =
+        docs.length === 100 ? String(docs[docs.length - 1].id) : undefined;
+    } catch (error: unknown) {
+      this.logger.error(
+        'Higgsfield first-poll recovery failed',
+        error,
+        context,
       );
     }
   }
@@ -361,21 +415,7 @@ export class CronIngredientsService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} triggered manually`);
 
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-
-    const stuckIngredients = await this.ingredientsService.findAll(
-      {
-        where: {
-          createdAt: { lt: thirtyMinutesAgo },
-          isDeleted: false,
-          status: IngredientStatus.PROCESSING,
-        },
-      },
-      {
-        limit: 100,
-        pagination: false,
-      },
-    );
+    const stuckIngredients = await this.findStuckIngredients();
 
     const stuckCount = stuckIngredients.docs?.length || 0;
 
