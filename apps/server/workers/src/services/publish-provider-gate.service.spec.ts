@@ -3,9 +3,14 @@ import Redis from 'ioredis';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 // The ceilings live in a Lua script, so they are proven against a real Redis.
-// CI provides one through REDIS_URL; without it the suite skips, as the other
-// Redis-backed suites do.
-const redisUrl = process.env.REDIS_URL;
+// The suite clears `genfeed:publish-gate:*`, so on a developer machine it runs
+// only when REDIS_URL names a Redis for it and skips otherwise. In CI it always
+// runs, against the job's Redis service: Turbo hands the `test` task only the
+// variables `turbo.json` declares, so REDIS_URL from the workflow never arrives
+// here, and a suite that waited for it skipped on every run.
+const CI_REDIS_URL = 'redis://127.0.0.1:6379';
+const redisUrl =
+  process.env.REDIS_URL ?? (process.env.CI ? CI_REDIS_URL : undefined);
 
 describe.skipIf(!redisUrl)('PublishProviderGateService', () => {
   let redis: Redis;
