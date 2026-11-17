@@ -17,7 +17,7 @@ export default function IngredientStackBadge({
   className?: string;
   stack: IIngredientStack | null | undefined;
 }) {
-  const translate = useTranslations('pages.library.inspector');
+  const translate = useTranslations('pages.library.stack');
 
   if (!stack) {
     return null;
@@ -25,7 +25,7 @@ export default function IngredientStackBadge({
 
   return (
     <Badge
-      aria-label={translate('stackCount', { count: stack.count })}
+      aria-label={translate('count', { count: stack.count })}
       className={className}
       icon={<Layers aria-hidden="true" className="size-3" />}
       value={stack.count}

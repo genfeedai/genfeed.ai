@@ -83,8 +83,6 @@
     "showFullPrompt": "Show full prompt",
     "showLess": "Show less",
     "showMore": "Show more",
-    "stack": "Carousel",
-    "stackCount": "Carousel of {count} images",
     "style": "Style",
     "surface": "Library",
     "type": "Type",
@@ -92,6 +90,10 @@
     "untitledPost": "Untitled post",
     "usedIn": "Used in",
     "usedInPosts": "Used in posts"
+  },
+  "stack": {
+    "count": "Carousel of {count} images",
+    "label": "Carousel"
   },
   "review": {
     "approve": "Approve asset",

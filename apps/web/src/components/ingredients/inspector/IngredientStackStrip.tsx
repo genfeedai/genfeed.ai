@@ -24,7 +24,7 @@ export default function IngredientStackStrip({
   className,
   ingredientId,
 }: IngredientStackStripProps) {
-  const translate = useTranslations('pages.library.inspector');
+  const translate = useTranslations('pages.library.stack');
   const { data } = useAuthedQuery({
     queryFn: (service, signal) => service.getStack(ingredientId, signal),
     queryKey: ['ingredient-stack', ingredientId],
@@ -38,11 +38,11 @@ export default function IngredientStackStrip({
 
   return (
     <section
-      aria-label={translate('stack')}
+      aria-label={translate('label')}
       className={cn('flex min-w-0 flex-col gap-2', className)}
     >
       <h4 className="text-2xs uppercase tracking-label text-muted-foreground">
-        {translate('stackCount', { count: slides.length })}
+        {translate('count', { count: slides.length })}
       </h4>
       <ul className="flex min-w-0 gap-2 overflow-x-auto pb-1 scrollbar-thin">
         {slides.map((slide) => (
