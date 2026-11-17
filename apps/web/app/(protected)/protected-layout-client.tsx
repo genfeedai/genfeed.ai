@@ -1,7 +1,8 @@
 'use client';
 
-import { SessionKeepAlive } from '@genfeedai/auth-client';
+import { SessionKeepAlive, SignedOutRedirect } from '@genfeedai/auth-client';
 import { RoutedOrganizationProvider } from '@genfeedai/contexts/user/organization-context/organization-context';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ProtectedBootstrapProps } from '@props/layout/protected-bootstrap.props';
 import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
@@ -94,6 +95,8 @@ export default function ProtectedLayoutClient({
         SessionKeepAlive for the nanostores STORE_UNMOUNT_DELAY details.
       */}
       <SessionKeepAlive />
+      {/* A sign-out in this or any other tab sends the whole shell to sign-in. */}
+      <SignedOutRedirect href={APP_ROUTES.LOGIN} />
       {/* Same contract for the desktop runtime store: read the bridge once. */}
       <DesktopRuntimeKeepAlive />
       <ApiAuthBridge />

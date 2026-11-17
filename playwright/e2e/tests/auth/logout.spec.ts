@@ -83,6 +83,34 @@ test.describe('Logout Flow', () => {
     });
   });
 
+  test.describe('Cross-tab sign-out', () => {
+    test('should send an open protected tab to login when another tab signs out', async ({
+      authenticatedPage,
+    }) => {
+      await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
+
+      // The /logout page posts this message from the tab that signed out. A
+      // channel opened here is a different object, so the shell receives it.
+      // Post until the shell has mounted and reacts; a repeat is harmless.
+      await expect
+        .poll(
+          async () => {
+            await authenticatedPage
+              .evaluate(() => {
+                const channel = new BroadcastChannel('genfeed:auth:signed-out');
+                channel.postMessage('signed-out');
+                channel.close();
+              })
+              // The page may already be navigating to login.
+              .catch(() => undefined);
+            return new URL(authenticatedPage.url()).pathname;
+          },
+          { timeout: 15_000 },
+        )
+        .toBe(APP_ROUTES.LOGIN);
+    });
+  });
+
   test.describe('Session Expiration', () => {
     test('should handle expired session gracefully', async ({
       authenticatedPage,

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const fetchMock = vi.hoisted(() => vi.fn());
 
@@ -20,11 +20,13 @@ vi.mock('better-auth/react', () => ({
 }));
 
 import {
+  authClient,
   clearBetterAuthTokenCache,
   getBetterAuthToken,
   getBetterAuthTokenContextKey,
   signOut,
 } from './client';
+import { subscribeSignedOut } from './signed-out-sync';
 
 function createDeferred<T>(): {
   promise: Promise<T>;
@@ -258,5 +260,58 @@ describe('getBetterAuthToken', () => {
       'shared-token',
     );
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('signOut across tabs', () => {
+  let signedOutMessages = 0;
+  let unsubscribe: () => void = () => {};
+
+  beforeEach(() => {
+    signedOutMessages = 0;
+    unsubscribe = subscribeSignedOut(() => {
+      signedOutMessages += 1;
+    });
+  });
+
+  afterEach(() => {
+    unsubscribe();
+  });
+
+  async function settleBroadcast(): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+
+  it('tells the other tabs once the server ended the session', async () => {
+    vi.mocked(authClient.signOut).mockResolvedValueOnce({
+      data: { success: true },
+      error: null,
+    });
+
+    await signOut();
+    await settleBroadcast();
+
+    expect(signedOutMessages).toBe(1);
+  });
+
+  it('keeps the other tabs signed in when the server refused the sign-out', async () => {
+    vi.mocked(authClient.signOut).mockResolvedValueOnce({
+      data: null,
+      error: { message: 'unavailable', status: 503, statusText: 'Unavailable' },
+    });
+
+    await signOut();
+    await settleBroadcast();
+
+    expect(signedOutMessages).toBe(0);
+  });
+
+  it('keeps the other tabs signed in when the request throws', async () => {
+    vi.mocked(authClient.signOut).mockRejectedValueOnce(new Error('offline'));
+
+    await expect(signOut()).rejects.toThrow('offline');
+    await settleBroadcast();
+
+    expect(signedOutMessages).toBe(0);
   });
 });
