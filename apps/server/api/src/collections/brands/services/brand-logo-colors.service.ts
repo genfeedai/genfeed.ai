@@ -1,3 +1,4 @@
+import { ASSET_ORIGIN_GENERATION_PENDING } from '@api/collections/assets/constants/asset-origin.constant';
 import { extractBrandLogoColors } from '@api/collections/brands/utils/brand-logo-colors.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { decodeBrandImage } from '@api/services/brand-validation/brand-validation-pixels.util';
@@ -31,6 +32,15 @@ export class BrandLogoColorsService {
       orderBy: { updatedAt: 'desc' },
       select: { cloudObjectKey: true, id: true },
       where: {
+        // A logo still being stored has no readable file yet.
+        AND: [
+          {
+            OR: [
+              { origin: null },
+              { origin: { not: ASSET_ORIGIN_GENERATION_PENDING } },
+            ],
+          },
+        ],
         category: AssetCategory.LOGO,
         isDeleted: false,
         OR: [{ kitSlot: BrandKitSlot.LOGO_PRIMARY }, { kitSlot: null }],

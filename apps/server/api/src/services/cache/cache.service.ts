@@ -27,6 +27,31 @@ export type CounterReservationReconciliationResult =
   | 'duplicate'
   | 'unavailable';
 
+/** Lifetime of a tag epoch: longer than any response fill it has to outlive. */
+const TAG_EPOCH_TTL_SECONDS = 24 * 60 * 60;
+
+const tagEpochKey = (tag: string): string => `tag-epoch:${tag}`;
+
+/**
+ * Stores a cache entry and registers its tags only while every tag still has
+ * the epoch the caller read before computing the value.
+ * KEYS: entry key, then one epoch key per tag, then one tag-set key per tag.
+ * ARGV: ttl, serialized value, tag count, then the expected epoch per tag.
+ */
+const SET_UNLESS_TAGS_INVALIDATED_SCRIPT = `
+local count = tonumber(ARGV[3])
+for i = 1, count do
+  local current = redis.call('GET', KEYS[1 + i])
+  if not current then current = '0' end
+  if current ~= ARGV[3 + i] then return 0 end
+end
+redis.call('SETEX', KEYS[1], ARGV[1], ARGV[2])
+for i = 1, count do
+  redis.call('SADD', KEYS[1 + count + i], KEYS[1])
+end
+return 1
+`;
+
 const COUNTER_INTEGER_SCRIPT = `
 local MAX = 9007199254740991
 local function integer(value)
@@ -547,6 +572,87 @@ export class CacheService {
     }
 
     return this.cacheTagsService.invalidateByTags(tags);
+  }
+
+  /**
+   * Invalidate `tags` and mark them as changed for responses that are being
+   * computed right now. Pair it with `readTagEpochs` and
+   * `setUnlessTagsInvalidated`: a fill that started before this call no longer
+   * stores its value afterwards, even when no entry existed to delete yet.
+   */
+  async invalidateGuardedTags(tags: string[]): Promise<number> {
+    if (!this.isAvailable) {
+      return 0;
+    }
+
+    try {
+      const pipeline = this.client.multi();
+      for (const tag of tags) {
+        pipeline.incr(tagEpochKey(tag));
+        pipeline.expire(tagEpochKey(tag), TAG_EPOCH_TTL_SECONDS);
+      }
+      await pipeline.exec();
+    } catch (error: unknown) {
+      this.logOperationError('invalidateGuardedTags', { error, tags });
+    }
+
+    return this.cacheTagsService.invalidateByTags(tags);
+  }
+
+  /**
+   * The current epoch of each tag, in order, or `null` when the cache cannot
+   * answer. Read it before computing a value that will be stored with
+   * `setUnlessTagsInvalidated`.
+   */
+  async readTagEpochs(tags: string[]): Promise<string[] | null> {
+    if (!this.isAvailable || tags.length === 0) {
+      return null;
+    }
+
+    try {
+      const epochs = await this.client.mget(...tags.map(tagEpochKey));
+      return epochs.map((epoch) => epoch ?? '0');
+    } catch (error: unknown) {
+      this.logOperationError('readTagEpochs', { error, tags });
+      return null;
+    }
+  }
+
+  /**
+   * `set` that is skipped when any of `tags` was invalidated after `epochs`
+   * were read. The check and the write are one atomic step.
+   */
+  async setUnlessTagsInvalidated(
+    key: string,
+    value: unknown,
+    options: { tags: string[]; ttl?: number },
+    epochs: string[],
+  ): Promise<boolean> {
+    if (
+      !this.isAvailable ||
+      options.tags.length === 0 ||
+      epochs.length !== options.tags.length
+    ) {
+      return false;
+    }
+
+    try {
+      const stored = await this.client.eval(
+        SET_UNLESS_TAGS_INVALIDATED_SCRIPT,
+        1 + options.tags.length * 2,
+        key,
+        ...options.tags.map(tagEpochKey),
+        ...options.tags.map((tag) => `tag:${tag}`),
+        String(options.ttl || this.defaultTtl),
+        JSON.stringify(value),
+        String(options.tags.length),
+        ...epochs,
+      );
+      return stored === 1;
+    } catch (error: unknown) {
+      this.logOperationError('setUnlessTagsInvalidated', { error, key });
+      return false;
+    }
   }
 
   async getOrSet<T>(
