@@ -73,6 +73,7 @@ export function useAttachments(
   );
 
   // Cleanup blob URLs on unmount
+  // use-effect-audit: ignore revokes blob URLs on unmount, a browser resource outside React
   useEffect(() => {
     return () => {
       for (const url of previewUrlsRef.current) {

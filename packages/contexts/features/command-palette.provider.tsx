@@ -23,6 +23,7 @@ export function CommandPaletteProvider({
     selectedIndex: 0,
   }));
 
+  // use-effect-audit: ignore subscribes to the command registry service
   useEffect(() => {
     const refreshCommands = (): void => {
       setState((prev) => ({
@@ -101,6 +102,7 @@ export function CommandPaletteProvider({
     [getClosedState],
   );
 
+  // use-effect-audit: ignore subscribes to window keydown for the palette shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
       if ((event.metaKey || event.ctrlKey) && event.key === 'k') {

@@ -232,6 +232,7 @@ export function useIngredientActions({
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
 
   // Cleanup on unmount
+  // use-effect-audit: ignore aborts in-flight requests when the host unmounts
   useEffect(() => {
     extendOwner.current.isMounted = true;
     return () => {
@@ -413,6 +414,7 @@ export function useIngredientActions({
   );
 
   // Listen for asset status updates via websocket (for set as logo/banner)
+  // use-effect-audit: ignore subscribes to the asset-status socket event
   useEffect(() => {
     if (!pendingAssetId || !pendingAssetCategory) {
       return;
