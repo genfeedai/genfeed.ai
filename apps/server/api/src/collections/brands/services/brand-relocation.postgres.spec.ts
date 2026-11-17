@@ -1,11 +1,15 @@
 import { randomUUID } from 'node:crypto';
+import type { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
+import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import {
   type BrandRelocationActingUser,
   BrandRelocationService,
 } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandRelocationJobsService } from '@api/collections/brands/services/brand-relocation-jobs.service';
+import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { PersonaGrantReadService } from '@api/collections/personas/services/persona-grant-read.service';
 import { WorkflowExecutorDocumentService } from '@api/collections/workflows/services/workflow-executor-document.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/contracts';
@@ -270,6 +274,56 @@ describe.skipIf(!connectionString)(
         ORDER BY 1, 2`;
 
       expect(notDeferrable).toEqual([]);
+    });
+
+    it('reopens and saves the relocated Video draft exclusively in its new organization', async () => {
+      const s = await seed(prisma);
+      const db = prisma as unknown as PrismaService;
+      const revisions = new BrandOsRevisionsService(
+        db,
+        {
+          resolveBrandKitAssets: async () => ({}),
+        } as unknown as BrandKitAssetsService,
+        new BrandWatermarkLogoService(db),
+      );
+      const draft = await revisions.ensureBaselineDraft(s.source, s.brand);
+      await move(s, s.destination);
+      const reopened = await revisions.get(s.destination, s.brand, draft.id);
+      expect(reopened.content).toEqual({
+        ...draft.content,
+        organizationId: s.destination,
+      });
+      expect(reopened.organizationId).toBe(s.destination);
+      const video = {
+        motionStyle: {
+          evidenceIds: ['owner-video'],
+          style: 'cinematic' as const,
+        },
+        shotRules: [],
+        thumbnailRules: [],
+      };
+      const saved = await revisions.update(
+        s.destination,
+        s.brand,
+        draft.id,
+        { ...reopened.content, video },
+        reopened.updatedAt,
+      );
+      expect(
+        (await revisions.get(s.destination, s.brand, draft.id)).content.video,
+      ).toEqual(video);
+      await expect(revisions.get(s.source, s.brand, draft.id)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(
+        revisions.update(
+          s.source,
+          s.brand,
+          draft.id,
+          draft.content,
+          saved.updatedAt,
+        ),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('moves every org-only child with its parent and commits with the breakout and exposure foreign keys in place', async () => {
