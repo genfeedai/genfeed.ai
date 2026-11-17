@@ -285,9 +285,9 @@ describe('hosted SaaS on-demand seed contract', () => {
     expect(seed).toContain('          - storyboard-unbilled-report');
     expect(seed).toContain('          - reserved-slug-report');
     expect(seed).toContain('          - linkedin-credential-report');
-    expect(seed).toContain('          - demo-agent-run-report');
+    expect(seed).toContain('          - release-health-report');
     expect(seed).toContain(
-      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | reserved-slug-report | linkedin-credential-report | demo-agent-run-report)',
+      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | reserved-slug-report | linkedin-credential-report | release-health-report)',
     );
     expect(seed).toContain('migrate_task_definition_arn');
     expect(reader).toContain("await client.query('BEGIN READ ONLY');");
@@ -299,13 +299,9 @@ describe('hosted SaaS on-demand seed contract', () => {
     expect(reader).toContain("op ->> 'state' = 'ready'");
     expect(reader).toContain("op ->> 'billing' = 'released'");
     expect(reader).toContain('lower(trim(slug)) = ANY($1)');
-    expect(reader).toContain("'2026-10-27 07:00:00'");
-    expect(reader).toContain("'2026-10-27 08:30:00'");
     expect(reader).toContain(`c."platform" = 'LINKEDIN'`);
-    expect(reader).toContain(`r."workloadType" = 'agent-llm-round'`);
-    expect(reader).toMatch(
-      /r\."organizationId" = '[a-z0-9]{24}' AND r\."workloadType"/,
-    );
+    expect(reader).toContain(`"canonicalId" = 'scheduled-post.publish'`);
+    expect(reader).toContain(`"purgeAt" <= (now() AT TIME ZONE 'UTC')`);
     expect(reader).not.toMatch(
       /\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|COMMIT)\b/,
     );
@@ -334,7 +330,7 @@ describe('hosted SaaS on-demand seed contract', () => {
       .slice(start, seed.indexOf('const name = process.argv[1];', start))
       .split('\n')
       .filter((line) =>
-        /^\s+'(storyboard-unbilled|reserved-slug|linkedin-credential|demo-agent-run|backfill)-report': /.test(
+        /^\s+'(storyboard-unbilled|reserved-slug|linkedin-credential|release-health|backfill)-report': /.test(
           line,
         ),
       );
@@ -346,7 +342,7 @@ describe('hosted SaaS on-demand seed contract', () => {
   test('report seeds select the migrate task and override its command with the reader', async () => {
     const seed = await workflow('seed-hosted-saas.yml');
     const start = seed.indexOf(
-      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | reserved-slug-report | linkedin-credential-report | demo-agent-run-report)\n',
+      '            backfill-report | webhook-id-report | instagram-reconnect-report | storyboard-unbilled-report | reserved-slug-report | linkedin-credential-report | release-health-report)\n',
     );
     const branch = seed.slice(start, seed.indexOf('              ;;', start));
 
