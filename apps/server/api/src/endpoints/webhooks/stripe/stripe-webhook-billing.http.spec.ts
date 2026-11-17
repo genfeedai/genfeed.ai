@@ -18,6 +18,7 @@ import { selectSoftwareSubscriptionItem } from '@api/services/integrations/strip
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { SystemEventsService } from '@api/services/system-events/system-events.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { SubscriptionTier } from '@genfeedai/contracts';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -51,7 +52,7 @@ const CUSTOMER: Row = {
   organizationId: 'org_1',
   stripeCustomerId: 'cus_1',
 };
-// The identity fields the persist guard pins; relation filters are not modelled.
+// The identity fields the persist guard pins on the subscription row itself.
 const GUARDED = [
   'billingAccountId',
   'customerId',
@@ -85,10 +86,13 @@ const scalarMatch = (row: Row, where: Row, keys = Object.keys(where)) =>
 describe('Stripe billing HTTP composition', () => {
   // Stored rows, the delivered event and every effect a delivery can leave.
   let subscription: Row;
+  let customer: Row;
   let event: Row;
   let isAccountMissing: boolean;
   let forcedUpdateCounts: number[];
   let concurrentMove: Row | undefined;
+  let concurrentCustomerMove: Row | undefined;
+  let resolvableTier: SubscriptionTier | null;
   let reconciled: Row[];
   let synced: unknown[];
   let tierUpdates: unknown[];
@@ -103,6 +107,7 @@ describe('Stripe billing HTTP composition', () => {
 
   beforeEach(async () => {
     subscription = { ...SUBSCRIPTION };
+    customer = { ...CUSTOMER };
     event = {
       data: { object: created },
       id: 'evt_1',
@@ -111,6 +116,8 @@ describe('Stripe billing HTTP composition', () => {
     isAccountMissing = false;
     forcedUpdateCounts = [];
     concurrentMove = undefined;
+    concurrentCustomerMove = undefined;
+    resolvableTier = null;
     reconciled = [];
     synced = [];
     tierUpdates = [];
@@ -131,9 +138,9 @@ describe('Stripe billing HTTP composition', () => {
     const prisma = {
       customer: {
         findFirst: async ({ where }: { where: Row }) =>
-          scalarMatch(CUSTOMER, where) ? CUSTOMER : null,
+          scalarMatch(customer, where) ? { ...customer } : null,
         findMany: async ({ where }: { where: Row }) =>
-          scalarMatch(CUSTOMER, where) ? [CUSTOMER] : [],
+          scalarMatch(customer, where) ? [{ ...customer }] : [],
       },
       subscription: {
         findMany: async ({ where }: { where: Row }) =>
@@ -143,9 +150,17 @@ describe('Stripe billing HTTP composition', () => {
             Object.assign(subscription, concurrentMove);
             concurrentMove = undefined;
           }
+          if (concurrentCustomerMove) {
+            Object.assign(customer, concurrentCustomerMove);
+            concurrentCustomerMove = undefined;
+          }
           const forced = forcedUpdateCounts.shift();
           if (forced !== undefined) return { count: forced };
           if (!scalarMatch(subscription, where, GUARDED)) return { count: 0 };
+          // The related customer row must still be the one `resolve` read.
+          if (!scalarMatch(customer, (where.customer as { is: Row }).is)) {
+            return { count: 0 };
+          }
           Object.assign(subscription, data);
           return { count: 1 };
         },
@@ -168,7 +183,7 @@ describe('Stripe billing HTTP composition', () => {
       recordProcessingFee: async () => undefined,
       recordRevenueEvent: async () => undefined,
       resolveSubscriptionPlan: () => 'monthly',
-      resolveTierFromPriceId: () => null,
+      resolveTierFromPriceId: () => resolvableTier,
       softwareItem: selectSoftwareSubscriptionItem,
       updateOrganizationTierAndModels: async (...args: unknown[]) => {
         tierUpdates.push(args);
@@ -325,13 +340,22 @@ describe('Stripe billing HTTP composition', () => {
     [
       'a concurrent delivery moved the identity between resolve and persist',
       { stripeSubscriptionId: 'sub_1' },
+      undefined,
       [],
     ],
-    ['the guard matched more than one row', undefined, [2]],
+    [
+      'the related customer moved to a billing account between resolve and persist',
+      undefined,
+      { billingAccountId: 'ba_1' },
+      [],
+    ],
+    ['the guard matched more than one row', undefined, undefined, [2]],
   ])(
     'stops every dependent write, returns 503 and completes on redelivery when %s',
-    async (_case, move, counts) => {
+    async (_case, move, customerMove, counts) => {
+      resolvableTier = SubscriptionTier.PRO;
       concurrentMove = move;
+      concurrentCustomerMove = customerMove;
       forcedUpdateCounts = counts;
 
       const response = await deliver();
@@ -360,8 +384,23 @@ describe('Stripe billing HTTP composition', () => {
 
       expect(subscription.stripeSubscriptionId).toBe('sub_1');
       expect(reconciled).toHaveLength(1);
+      // The tier is written once, on the delivery that persisted the identity.
+      expect(tierUpdates).toEqual([
+        ['org_1', SubscriptionTier.PRO, expect.any(String)],
+      ]);
     },
   );
+
+  it('writes the resolvable tier once when a duplicate delivery is acknowledged', async () => {
+    resolvableTier = SubscriptionTier.PRO;
+
+    await deliver().expect(200);
+    await deliver().expect(200);
+
+    expect(tierUpdates).toEqual([
+      ['org_1', SubscriptionTier.PRO, expect.any(String)],
+    ]);
+  });
 
   it.each([undefined, '', ' '])(
     'acknowledges invalid renewal invoice id %j without writes or a retry loop',

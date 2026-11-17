@@ -297,6 +297,35 @@ describe('hosted SaaS on-demand seed contract', () => {
     );
   });
 
+  test('report seeds select the migrate task and override its command with the reader', async () => {
+    const seed = await workflow('seed-hosted-saas.yml');
+    const start = seed.indexOf(
+      '            backfill-report | webhook-id-report | instagram-reconnect-report)\n',
+    );
+    const branch = seed.slice(start, seed.indexOf('              ;;', start));
+
+    expect(start).toBeGreaterThan(-1);
+    expect(branch).toContain(
+      'TASK_DEFINITION=$(tofu output -raw migrate_task_definition_arn)',
+    );
+    expect(branch).toContain('CONTAINER=migrate');
+    // Without this override the task would run the migration command itself.
+    expect(branch).toContain(
+      'override=(--container-name "${CONTAINER}" --command-arg node --command-arg=-e --command-arg "${READ_ONLY_REPORT_SCRIPT}" --command-arg "${SEED}")',
+    );
+    expect(branch).not.toContain('articles_seed_task_definition_arn');
+  });
+
+  test('the backfill report keeps deterministic ordering and a 100 row limit', async () => {
+    const seed = await workflow('seed-hosted-saas.yml');
+    const start = seed.indexOf("'backfill-report': '");
+    const query = seed.slice(start, seed.indexOf('\n', start));
+
+    expect(start).toBeGreaterThan(-1);
+    expect(query).toContain('FROM data_backfills');
+    expect(query).toContain('ORDER BY "completedAt" DESC LIMIT 100');
+  });
+
   test('passes user input through env, never into the script text', async () => {
     const seed = await workflow('seed-hosted-saas.yml');
 
