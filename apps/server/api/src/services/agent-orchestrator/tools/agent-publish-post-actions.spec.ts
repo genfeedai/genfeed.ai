@@ -230,7 +230,7 @@ describe('createAgentTextDraft', () => {
         PostVisibility.PRIVATE,
       );
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         creditsUsed: 0,
         data: { executionState: 'draft', id: 'post-1', visibility: 'private' },
         success: true,
@@ -240,6 +240,49 @@ describe('createAgentTextDraft', () => {
       ]);
     },
   );
+
+  it('preserves the separate title and returns the saved draft identity and brand context', async () => {
+    const world = draftWorld();
+    const result = await createAgentTextDraft(
+      world.postsService,
+      {
+        content: 'Review a draft before publishing.',
+        title: 'QA 0.3.2 — draft review',
+      },
+      context({
+        validatedScope: {
+          brandId: 'brand-1',
+          contextVersion: 2,
+          isLegacyFallback: false,
+          isVersionExplicit: true,
+          organizationId: 'org-1',
+          source: 'explicit',
+          threadId: 'thread-1',
+          userId: 'user-1',
+        },
+      }),
+      PostVisibility.PRIVATE,
+    );
+    expect(world.saved).toEqual([
+      {
+        description: 'Review a draft before publishing.',
+        label: 'QA 0.3.2 — draft review',
+      },
+    ]);
+    expect(result.data).toMatchObject({
+      id: 'post-1',
+      title: 'QA 0.3.2 — draft review',
+      href: '/publishing/posts/post-1',
+      brandId: 'brand-1',
+      agentContextSource: 'explicit',
+      agentContextVersion: 2,
+      executionState: 'draft',
+    });
+    expect(result.nextActions?.[0]).toMatchObject({
+      type: 'content_preview_card',
+      ctas: [{ href: '/publishing/posts/post-1', label: 'Open draft' }],
+    });
+  });
 
   it('refuses a draft with no text and no media instead of failing in the database', async () => {
     const world = draftWorld();
