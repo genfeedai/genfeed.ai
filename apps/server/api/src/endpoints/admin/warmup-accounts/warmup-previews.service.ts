@@ -7,6 +7,7 @@ import {
   ExtendContentPreviewDto,
   MintContentPreviewDto,
 } from '@api/endpoints/admin/warmup-accounts/dto/content-preview.dto';
+import { buildPreviewInviteUrl } from '@api/endpoints/admin/warmup-accounts/warmup-preview-url.util';
 import {
   assertWarmupMutable,
   lockWarmup,
@@ -16,7 +17,6 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { creatorInvitePath } from '@genfeedai/contracts/constants';
 import type { IContentPreview } from '@genfeedai/contracts/interfaces';
 import type { WarmupAccount } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
@@ -24,10 +24,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
-const TRAILING_SLASH_PATTERN = /\/$/;
-
 const DAY_MS = 24 * 60 * 60 * 1000;
-const DEFAULT_WEBSITE_URL = 'https://genfeed.ai';
 
 /**
  * Operator actions on a workspace's shareable previews. The class-level
@@ -181,11 +178,10 @@ export class WarmupPreviewsService {
    * 404 while the brand is private; only this key opens the locked view.
    */
   private buildUrl(handle: string, token: string): string {
-    const configured = this.config.get('GENFEEDAI_PUBLIC_URL');
-    const base =
-      typeof configured === 'string' && configured.length > 0
-        ? configured.replace(TRAILING_SLASH_PATTERN, '')
-        : DEFAULT_WEBSITE_URL;
-    return `${base}${creatorInvitePath(handle, token)}`;
+    return buildPreviewInviteUrl(
+      this.config.get('GENFEEDAI_PUBLIC_URL'),
+      handle,
+      token,
+    );
   }
 }
