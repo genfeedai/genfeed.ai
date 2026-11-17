@@ -41,7 +41,7 @@ const APP_WORKSPACE_ROOTS = new Set<string>(['apps/server', 'apps']);
 
 /**
  * Package workspaces whose spec programs reach most of the frontend graph
- * through source-pointing path aliases (the SOLO_WORKSPACES legs in ci.yml).
+ * through source-pointing path aliases.
  * Their imports resolve other packages' dist output (`@genfeedai/ui`,
  * `@genfeedai/auth-client`, `@genfeedai/client`, ...) that is not in their
  * turbo build graph, so building only the affected packages leaves those

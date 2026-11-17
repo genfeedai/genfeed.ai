@@ -343,10 +343,6 @@ test('keeps the workflow wired to the planner matrices and outputs', () => {
     workflow,
     /matrix: \$\{\{ fromJSON\(needs\.plan\.outputs\.api_matrix\) \}\}/,
   );
-  assert.match(
-    workflow,
-    /matrix: \$\{\{ fromJSON\(needs\.plan\.outputs\.spec_matrix\) \}\}/,
-  );
   // Changed selection on the affected tier, the whole suite on the full tier.
   const changedSelections = workflow.match(
     /SELECTION=\(--passWithNoTests --changed "\$\{CI_BASE_SHA\}"\)/g,
