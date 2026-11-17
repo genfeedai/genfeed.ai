@@ -106,6 +106,7 @@ export function Dropdown({
     updatePortalPosition();
   }, [isOpen, updatePortalPosition, useManualPortal]);
 
+  // use-effect-audit: ignore subscribes to document and window events for the manual portal
   useEffect(() => {
     if (!useManualPortal || !isOpen) {
       return;

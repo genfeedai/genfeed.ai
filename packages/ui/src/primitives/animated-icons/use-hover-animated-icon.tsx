@@ -93,6 +93,7 @@ export function useHoverAnimatedIcon(
     handleRef.current?.stopAnimation();
   }, []);
 
+  // use-effect-audit: ignore preloads the animated icon module when the browser is idle
   useEffect(() => {
     if (!iconType || !Animated || prefersReducedMotion()) {
       return;

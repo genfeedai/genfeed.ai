@@ -128,6 +128,7 @@ export default function Searchbar({
     }
   }, [committedValue, cancelPending]);
 
+  // use-effect-audit: ignore cancels the pending search timer on unmount
   useEffect(() => cancelPending, [cancelPending]);
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {

@@ -60,6 +60,7 @@ export default function DropdownPrompt({
   }, [isOpen]);
 
   // Close dropdown when clicking outside
+  // use-effect-audit: ignore subscribes to document mousedown to close the dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (

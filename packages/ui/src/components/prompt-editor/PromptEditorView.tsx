@@ -89,6 +89,7 @@ function PromptEditorView({
     editor.setEditable(!isDisabled);
   }, [editor, injectedEditor, isDisabled]);
 
+  // use-effect-audit: ignore subscribes to the editor update event
   useEffect(() => {
     if (!editor || injectedEditor) {
       return;
@@ -147,6 +148,7 @@ function PromptEditorView({
     onDocumentChangeRef.current?.(editor.getJSON());
   }, [documentSeed, editor, injectedEditor]);
 
+  // use-effect-audit: ignore subscribes to editor events and schedules animation frames
   useEffect(() => {
     if (!editor) return;
     let frame = 0;

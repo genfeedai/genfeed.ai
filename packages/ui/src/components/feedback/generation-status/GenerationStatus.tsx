@@ -31,6 +31,7 @@ export default function GenerationStatus({
   const start =
     typeof startedAt === 'number' ? startedAt : Date.parse(startedAt ?? '');
   const [now, setNow] = useState(() => Date.now());
+  // use-effect-audit: ignore runs a setInterval clock for the elapsed time
   useEffect(() => {
     if (!isActive || !Number.isFinite(start)) return;
     setNow(Date.now());
