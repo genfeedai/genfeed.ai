@@ -113,16 +113,22 @@ export class ActivitiesService extends BaseService<
    * row, so the read rows are the ones that can be matched directly.
    */
   async countUnread(where: Record<string, unknown>): Promise<number> {
-    const options = { limit: 1, page: 1 } as AggregationOptions;
+    const countRows = (filter: Record<string, unknown>): Promise<number> => {
+      const scoped = this.withSoftDeleteFilter(
+        this.normalizeWhere(filter),
+        filter,
+      );
+      this.auditUnknownFilterFields(scoped);
+      // tenant-scope-ignore: `scoped` is the controller's list scope (brand, organization or owner) run through the BaseService tenant and soft-delete filter, the same where the list reads
+      return this.prisma.activity.count({
+        where: scoped as Prisma.ActivityWhereInput,
+      });
+    };
     const [all, read] = await Promise.all([
-      this.findAll({ where }, options, false),
-      this.findAll(
-        { where: { ...where, data: { equals: true, path: ['isRead'] } } },
-        options,
-        false,
-      ),
+      countRows(where),
+      countRows({ ...where, data: { equals: true, path: ['isRead'] } }),
     ]);
-    return Math.max(0, all.totalDocs - read.totalDocs);
+    return Math.max(0, all - read);
   }
 
   async hydrateGenerationActivities(
