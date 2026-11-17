@@ -823,8 +823,9 @@ jobs:
           fi
 
   # App tests. The planner emits the shard matrix: on the affected tier it
-  # counts the exact Vitest changed graph and picks one, two, or four shards;
-  # on the full tier it emits four shards over the whole suite.
+  # resolves the exact Vitest changed graph, picks one, two, or four shards and
+  # gives each shard its files; on the full tier it emits four shards over the
+  # whole suite.
   test-app:
     name: Test App (shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
@@ -849,25 +850,29 @@ jobs:
           cache-prisma-client: 'true'
       - name: Build app workspace
         run: bunx turbo run build --filter='@genfeedai/web^...'
+      # The shard runs the files Plan assigned to it; the full tier runs the
+      # whole suite split by Vitest (scripts/ci/test-shard-selection.mjs).
       - name: Run app tests
         env:
           FORCE_FULL: ${{ needs.plan.outputs.force_full }}
           NODE_ENV: test
+          SHARD: ${{ matrix.shard }}
+          SHARD_TOTAL: ${{ matrix.total }}
+          SHARD_ROOT: apps/web
+          SHARD_FILE_COUNT: ${{ matrix.count }}
+          SHARD_FILES: ${{ matrix.files }}
         run: |
           set -euo pipefail
-          SELECTION=()
-          if [ "${FORCE_FULL}" != "true" ] && [ -n "${CI_BASE_SHA}" ]; then
-            echo "Running app tests changed since ${CI_BASE_SHA}"
-            SELECTION=(--passWithNoTests --changed "${CI_BASE_SHA}")
-          fi
+          node scripts/ci/test-shard-selection.mjs > "${RUNNER_TEMP}/shard-selection.txt"
+          mapfile -t SELECTION < "${RUNNER_TEMP}/shard-selection.txt"
           cd apps/web && bunx vitest run --config ./vitest.config.mts \
-            --maxWorkers=2 "${SELECTION[@]}" \
-            --shard=${{ matrix.shard }}/${{ matrix.total }}
+            --maxWorkers=2 "${SELECTION[@]}"
 
-  # API tests mirror the app job: the planner's matrix, changed selection on
-  # the affected tier, the whole suite on the full tier. The full tier uses
-  # eight shards (the affected tier never exceeds four), so max-parallel
-  # must cover all eight or the extra shards just queue behind the first four.
+  # API tests mirror the app job: the planner's matrix, the files the plan
+  # gave the shard on the affected tier, the whole suite on the full tier.
+  # The full tier uses eight shards (the affected tier never exceeds four), so
+  # max-parallel must cover all eight or the extra shards just queue behind
+  # the first four.
   test-api:
     name: Test API (shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
@@ -957,16 +962,17 @@ jobs:
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
           FORCE_FULL: ${{ needs.plan.outputs.force_full }}
           NODE_ENV: test
+          SHARD: ${{ matrix.shard }}
+          SHARD_TOTAL: ${{ matrix.total }}
+          SHARD_ROOT: apps/server/api
+          SHARD_FILE_COUNT: ${{ matrix.count }}
+          SHARD_FILES: ${{ matrix.files }}
         run: |
           set -euo pipefail
-          SELECTION=()
-          if [ "${FORCE_FULL}" != "true" ] && [ -n "${CI_BASE_SHA}" ]; then
-            echo "Running API tests changed since ${CI_BASE_SHA}"
-            SELECTION=(--passWithNoTests --changed "${CI_BASE_SHA}")
-          fi
+          node scripts/ci/test-shard-selection.mjs > "${RUNNER_TEMP}/shard-selection.txt"
+          mapfile -t SELECTION < "${RUNNER_TEMP}/shard-selection.txt"
           cd apps/server/api && bunx vitest run --config vitest.config.ts \
             --maxWorkers=2 "${SELECTION[@]}" \
-            --shard=${{ matrix.shard }}/${{ matrix.total }} \
             --reporter=default \
             --reporter=github-actions \
             --reporter="$GITHUB_WORKSPACE/scripts/ci/api-test-timings-reporter.mjs"
