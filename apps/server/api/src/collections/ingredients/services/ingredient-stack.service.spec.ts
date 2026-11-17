@@ -76,6 +76,7 @@ describe('IngredientStackService', () => {
     const page = await createService().attachToPage(
       { docs: [{ id: 'a' }, { id: 'd' }, { id: 'z' }] },
       ORG,
+      true,
     );
 
     expect(page.docs).toEqual([
@@ -83,6 +84,14 @@ describe('IngredientStackService', () => {
       { id: 'd', stack: null },
       { id: 'z', stack: null },
     ]);
+  });
+
+  it('leaves the page as it is when stacking was not asked for', async () => {
+    const page = { docs: [{ id: 'a' }] };
+
+    const result = await createService().attachToPage(page, ORG, undefined);
+
+    expect(result).toEqual({ docs: [{ id: 'a' }] });
   });
 
   it('returns no stacks without an organization', async () => {

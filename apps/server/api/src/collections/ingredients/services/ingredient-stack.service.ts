@@ -40,11 +40,15 @@ export class IngredientStackService {
     return isStacked ? { postLinks: { none: SLIDE_LINK } } : {};
   }
 
-  /** Puts `stack` on every cover of a list page. */
+  /** Puts `stack` on every cover of a list page; the page is untouched unless stacking was asked for. */
   async attachToPage<T extends { id: string }>(
     page: { docs: T[] },
     organizationId: string | undefined,
-  ): Promise<{ docs: (T & { stack: IngredientStackSummary | null })[] }> {
+    isStacked: boolean | undefined,
+  ): Promise<{ docs: (T & { stack?: IngredientStackSummary | null })[] }> {
+    if (!isStacked) {
+      return page;
+    }
     const stacks = await this.summarize(
       organizationId,
       page.docs.map((doc) => doc.id),
@@ -77,7 +81,7 @@ export class IngredientStackService {
         ingredientId: { in: [...ingredientIds] },
         organizationId,
         position: 0,
-        post: { isDeleted: false },
+        post: { is: { isDeleted: false } },
       },
     });
     const postIds = [...new Set(covers.map((cover) => cover.postId))];
@@ -113,7 +117,11 @@ export class IngredientStackService {
     const links = await this.prisma.postIngredient.findMany({
       orderBy: { post: { createdAt: 'asc' } },
       select: { postId: true },
-      where: { ingredientId, organizationId, post: { isDeleted: false } },
+      where: {
+        ingredientId,
+        organizationId,
+        post: { is: { isDeleted: false } },
+      },
     });
     for (const { postId } of links) {
       const slides = await this.prisma.postIngredient.findMany({

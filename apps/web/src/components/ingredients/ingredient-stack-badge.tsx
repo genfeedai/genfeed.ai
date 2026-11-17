@@ -27,7 +27,7 @@ export default function IngredientStackBadge({
     <Badge
       aria-label={translate('count', { count: stack.count })}
       className={className}
-      icon={<Layers aria-hidden="true" className="size-3" />}
+      icon={<Layers aria-hidden="true" className="size-3.5" />}
       value={stack.count}
       variant="secondary"
     />

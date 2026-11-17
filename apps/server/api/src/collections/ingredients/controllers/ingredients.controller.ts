@@ -26,7 +26,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import {
@@ -173,15 +172,9 @@ export class IngredientsController {
       ? query.brandId
       : await this.resolveLibraryBrandFilter(query, tenant, user, request);
 
-    // `categories` is the multi-select Library type axis; `category` stays for
-    // single-type callers. Both normalize to Prisma labels.
-    const categories = (query.categories ?? []).map((category) =>
-      CategoryPrismaUtil.toIngredientCategory(category),
-    );
-    const categoryFilter = CollectionFilterUtil.buildCategoryFilter(
-      categories.length > 0
-        ? categories
-        : CategoryPrismaUtil.toIngredientCategory(query.category),
+    const categoryFilter = IngredientFilterUtil.buildLibraryCategoryFilter(
+      query.categories,
+      query.category,
     );
 
     const searchFilter = CollectionFilterUtil.buildSearchFilter(query.search, [
@@ -275,10 +268,11 @@ export class IngredientsController {
     return serializeCollection(
       request,
       IngredientSerializer,
-      query.stacks
-        ? ((await this.stacks?.attachToPage(reviewed, tenant.organizationId)) ??
-            reviewed)
-        : reviewed,
+      (await this.stacks?.attachToPage(
+        reviewed,
+        tenant.organizationId,
+        query.stacks,
+      )) ?? reviewed,
     );
   }
 
