@@ -68,6 +68,7 @@ export function avatar6Snapshot(
   endpoint: AvatarSixEndpoint,
   seconds: number,
   marginMultiplier = 3.33,
+  resolution: '1080p' | '2k' = '1080p',
 ): ModelBillableQuoteSnapshot {
   const quote = quoteModelBillablePricing(
     avatarEngineProfile(endpoint),
@@ -75,7 +76,7 @@ export function avatar6Snapshot(
       duration: seconds,
       modelKey: endpoint,
       provider: 'heygen',
-      selectors: { resolution: '1080p' },
+      selectors: { resolution },
     },
     marginMultiplier,
     AVATAR_QUOTED_AT,

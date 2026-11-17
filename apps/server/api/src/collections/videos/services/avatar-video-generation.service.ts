@@ -340,6 +340,7 @@ export class AvatarVideoGenerationService {
           apiKey,
           params.aspectRatio ?? '9:16',
           funding.engine,
+          funding.resolution,
         )
       : this.heygenService.generatePhotoAvatarVideo(
           ingredientId,

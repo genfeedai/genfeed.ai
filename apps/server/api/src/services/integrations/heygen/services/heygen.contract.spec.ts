@@ -725,6 +725,43 @@ describe('HeyGen v3 contracts', () => {
     },
   );
 
+  it.each(['heygen-avatar-6', 'heygen-avatar-6-turbo'] as const)(
+    'sends %s at 2K when asked for it',
+    async (engine) => {
+      await service.generateNativeAvatarVideo(
+        'meta',
+        nativeLook('photo_avatar', [engine]),
+        { inputText: 'Hello', voiceId: 'voice' },
+        'tenant-key',
+        '16:9',
+        engine,
+        '2k',
+      );
+      expect(http.post.mock.calls[0][1]).toMatchObject({
+        engine: { type: engine },
+        resolution: '2k',
+      });
+    },
+  );
+
+  it.each(['avatar_iv', 'avatar_v'] as const)(
+    'refuses 2K for %s before the paid submission',
+    async (engine) => {
+      await expect(
+        service.generateNativeAvatarVideo(
+          'meta',
+          nativeLook('digital_twin', ['avatar_iv', 'avatar_v']),
+          { inputText: 'Hello', voiceId: 'voice' },
+          'tenant-key',
+          '16:9',
+          engine,
+          '2k',
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(http.post).not.toHaveBeenCalled();
+    },
+  );
+
   it('refuses Avatar 6 for a look that does not list it before the paid submission', async () => {
     await expect(
       service.generateNativeAvatarVideo(

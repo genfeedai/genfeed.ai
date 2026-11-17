@@ -304,8 +304,8 @@ describe('PricingContent', () => {
 
     expect(AVATAR_CREDIT_COSTS.avatar4s).toEqual({ maxCredits, minCredits });
     expect(row).toHaveTextContent(`${minCredits}–${maxCredits} credits`);
-    // Photo animation to Avatar V: 52–160 credits, not the old 400.
-    expect(row).toHaveTextContent('52–160 credits');
+    // Photo animation to Avatar 6 at 2K: 52–183 credits, not the old 400.
+    expect(row).toHaveTextContent('52–183 credits');
     expect(row).not.toHaveTextContent('400 credits');
   });
 

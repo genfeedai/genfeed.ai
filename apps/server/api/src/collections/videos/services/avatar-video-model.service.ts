@@ -8,6 +8,8 @@ import { ModelCategory } from '@genfeedai/contracts';
 import {
   getEligibleHeyGenAvatarModelKeys,
   getHeyGenAvatarEngine,
+  HEYGEN_AVATAR_6_DEFAULT_RESOLUTION,
+  isHeyGenAvatar6Engine,
   MODEL_KEYS,
 } from '@genfeedai/contracts/constants';
 import type { HeyGenAvatarRef } from '@genfeedai/contracts/interfaces';
@@ -32,7 +34,7 @@ export class AvatarVideoModelService {
   async resolve(
     params: Pick<
       AvatarVideoGenerationParams,
-      'autoSelectModel' | 'model' | 'prioritize' | 'text'
+      'autoSelectModel' | 'model' | 'prioritize' | 'resolution' | 'text'
     >,
     avatarRef: HeyGenAvatarRef | undefined,
     organizationId: string,
@@ -45,7 +47,14 @@ export class AvatarVideoModelService {
         ? undefined
         : params.model;
 
+    const resolution = params.resolution ?? HEYGEN_AVATAR_6_DEFAULT_RESOLUTION;
+    const needs2k = resolution !== HEYGEN_AVATAR_6_DEFAULT_RESOLUTION;
+
     if (!avatarRef) {
+      if (needs2k)
+        throw new BadRequestException(
+          '2K output needs a trained avatar look on Avatar 6, not a photo.',
+        );
       if (explicit === MODEL_KEYS.HEYGEN_AVATAR_V)
         throw new BadRequestException(
           'Avatar V needs a trained digital-twin look, not a photo.',
@@ -60,7 +69,16 @@ export class AvatarVideoModelService {
       return { modelKey: MODEL_KEYS.HEYGEN_AVATAR };
     }
 
-    const eligibleModelKeys = getEligibleHeyGenAvatarModelKeys(avatarRef);
+    // 2K is an Avatar 6 and Turbo output; the other engines render at 1080p.
+    const eligibleModelKeys = getEligibleHeyGenAvatarModelKeys(
+      avatarRef,
+    ).filter(
+      (key) => !needs2k || isHeyGenAvatar6Engine(getHeyGenAvatarEngine(key)),
+    );
+    if (needs2k && eligibleModelKeys.length === 0)
+      throw new BadRequestException(
+        'This look does not support Avatar 6, which 2K output needs.',
+      );
     if (eligibleModelKeys.length === 0)
       throw new BadRequestException(
         'This look supports no HeyGen avatar engine Genfeed can price.',
@@ -70,9 +88,11 @@ export class AvatarVideoModelService {
     if (explicit) {
       if (!eligibleModelKeys.includes(explicit))
         throw new BadRequestException(
-          explicit === MODEL_KEYS.HEYGEN_AVATAR_V
-            ? 'Avatar V needs a digital-twin look that supports the Avatar V engine.'
-            : `${explicit} is not available for this avatar look.`,
+          needs2k
+            ? '2K output needs Avatar 6 or Avatar 6 Turbo on a look that supports it.'
+            : explicit === MODEL_KEYS.HEYGEN_AVATAR_V
+              ? 'Avatar V needs a digital-twin look that supports the Avatar V engine.'
+              : `${explicit} is not available for this avatar look.`,
         );
       modelKey = String(
         (
@@ -103,6 +123,7 @@ export class AvatarVideoModelService {
       avatarType: avatarRef.avatarType ?? undefined,
       engine,
       modelKey,
+      ...(isHeyGenAvatar6Engine(engine) ? { resolution } : {}),
     };
   }
 }

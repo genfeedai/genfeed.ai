@@ -305,6 +305,35 @@ describe('AvatarVideoBillingService.quoteRender', () => {
     },
   );
 
+  it.each([
+    ['heygen/heygen-avatar-6', MODEL_KEYS.HEYGEN_AVATAR_6, 'heygen-avatar-6'],
+    [
+      'heygen/heygen-avatar-6-turbo',
+      MODEL_KEYS.HEYGEN_AVATAR_6_TURBO,
+      'heygen-avatar-6-turbo',
+    ],
+  ] as const)(
+    'quotes %s at its 2K rate when the render is 2K',
+    async (endpoint, modelKey, engine) => {
+      const snapshot = avatar6Snapshot(endpoint, 10, 3.33, '2k');
+      modelCreditQuote.quoteSnapshotByKey.mockResolvedValue(snapshot);
+
+      const quote = await service.quoteRender(
+        { engine, modelKey, resolution: '2k' },
+        10,
+      );
+
+      expect(modelCreditQuote.quoteSnapshotByKey).toHaveBeenCalledWith(
+        modelKey,
+        { duration: 10, selectors: { resolution: '2k' } },
+      );
+      expect(quote.credits).toBe(snapshot.credits);
+      expect(quote.credits).toBeGreaterThan(
+        avatar6Snapshot(endpoint, 10).credits,
+      );
+    },
+  );
+
   it('prices Avatar 6 Turbo below Avatar 6 for the same clip', () => {
     expect(
       avatar6Snapshot('heygen/heygen-avatar-6-turbo', 10).credits,

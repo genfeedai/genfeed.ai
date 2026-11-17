@@ -739,7 +739,7 @@ describe('direct-provider (HeyGen, ElevenLabs) rate sheet entries', () => {
     });
 
     it.each(['heygen/heygen-avatar-6', 'heygen/heygen-avatar-6-turbo'])(
-      'seeds %s with a 1080p resolution selector and no avatar type',
+      'seeds %s with a resolution selector and no avatar type',
       async (endpoint) => {
         const { create, profile } = await seededProfile(endpoint);
         expect(create).toMatchObject({
@@ -755,11 +755,13 @@ describe('direct-provider (HeyGen, ElevenLabs) rate sheet entries', () => {
     );
 
     it.each([
-      ['heygen/heygen-avatar-6', 0.1],
-      ['heygen/heygen-avatar-6-turbo', 0.05],
+      ['heygen/heygen-avatar-6', '1080p', 0.1],
+      ['heygen/heygen-avatar-6', '2k', 0.145],
+      ['heygen/heygen-avatar-6-turbo', '1080p', 0.05],
+      ['heygen/heygen-avatar-6-turbo', '2k', 0.0875],
     ])(
-      'prices %s at $%s per second at 1080p',
-      async (endpoint, usdPerSecond) => {
+      'prices %s at %s for $%s per second',
+      async (endpoint, resolution, usdPerSecond) => {
         const { profile } = await seededProfile(endpoint);
         const result = quoteModelBillablePricing(
           profile,
@@ -767,7 +769,7 @@ describe('direct-provider (HeyGen, ElevenLabs) rate sheet entries', () => {
             duration: 10,
             modelKey: endpoint,
             provider: 'heygen',
-            selectors: { resolution: '1080p' },
+            selectors: { resolution },
           },
           3.33,
           NOW,
@@ -799,7 +801,7 @@ describe('direct-provider (HeyGen, ElevenLabs) rate sheet entries', () => {
       ).toMatchObject({ status: 'unresolved' });
     });
 
-    it.each(['720p', '2k'])(
+    it.each(['720p', '4k'])(
       'refuses Avatar 6 at the unpriced %s resolution',
       async (resolution) => {
         const { profile } = await seededProfile('heygen/heygen-avatar-6');
