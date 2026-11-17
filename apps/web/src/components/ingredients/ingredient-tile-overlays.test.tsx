@@ -1,4 +1,8 @@
-import { IngredientOrigin, IngredientStatus } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  IngredientOrigin,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -86,6 +90,7 @@ describe('IngredientTileOverlays', () => {
         ingredient={
           {
             ...makeIngredient(IngredientStatus.GENERATED),
+            category: IngredientCategory.VIDEO,
             metadata: { duration: 24, label: 'Founder intro' },
           } as IIngredient
         }
@@ -96,6 +101,25 @@ describe('IngredientTileOverlays', () => {
 
     expect(screen.getByText('Founder intro')).toBeInTheDocument();
     expect(screen.getByText('0:24')).toBeInTheDocument();
+  });
+
+  it('shows no duration on an image even when one was recorded for it', () => {
+    render(
+      <IngredientTileOverlays
+        ingredient={
+          {
+            ...makeIngredient(IngredientStatus.GENERATED),
+            category: IngredientCategory.IMAGE,
+            metadata: { duration: 8, label: 'Winter look' },
+          } as IIngredient
+        }
+        isReviewEnabled={false}
+        onReviewUpdated={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Winter look')).toBeInTheDocument();
+    expect(screen.queryByText('0:08')).not.toBeInTheDocument();
   });
 
   it('leaves a still-generating tile uncaptioned', () => {

@@ -128,6 +128,11 @@ export interface IngredientLineageStripProps {
   className?: string;
 }
 
+export interface IngredientUsedInPostsProps {
+  ingredientId: string;
+  className?: string;
+}
+
 export interface IngredientLineageItemProps {
   ingredient: IIngredient;
 }

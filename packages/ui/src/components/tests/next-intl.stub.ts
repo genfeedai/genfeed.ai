@@ -1078,7 +1078,9 @@ const UI_TEST_MESSAGES = {
         style: 'Style',
         type: 'Type',
         untitled: 'Untitled asset',
+        untitledPost: 'Untitled post',
         usedIn: 'Used in',
+        usedInPosts: 'Used in posts',
       },
       otherAssets: 'Other assets',
       tags: {

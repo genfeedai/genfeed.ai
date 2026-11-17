@@ -87,7 +87,9 @@
     "surface": "Library",
     "type": "Type",
     "untitled": "Untitled asset",
-    "usedIn": "Used in"
+    "untitledPost": "Untitled post",
+    "usedIn": "Used in",
+    "usedInPosts": "Used in posts"
   },
   "review": {
     "approve": "Approve asset",
