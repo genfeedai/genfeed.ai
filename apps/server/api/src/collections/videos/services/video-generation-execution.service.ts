@@ -24,6 +24,7 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { HiggsFieldPollQueueService } from '@api/queues/higgsfield-poll/higgsfield-poll-queue.service';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { toRedactedVideoGenerationBriefProviderData } from '@api/services/generation-brief';
@@ -90,6 +91,7 @@ export class VideoGenerationExecutionService {
     private readonly websocketService: NotificationsPublisherService,
     private readonly webhooksService: WebhooksService,
     private readonly mediaReceipts: MediaGenerationReceiptsService,
+    private readonly higgsFieldPollQueueService: HiggsFieldPollQueueService,
   ) {}
 
   async execute(context: VideoGenerationContext): Promise<void> {
@@ -406,6 +408,15 @@ export class VideoGenerationExecutionService {
     };
   }
 
+  /**
+   * One key per logical generation, from the placeholder ingredient ids the
+   * generation fills. Those ids exist before any provider call and do not
+   * change on a retry.
+   */
+  private idempotencyKey(ingredientIds: readonly string[]): string {
+    return `video-generation-${[...ingredientIds].sort().join('-')}`;
+  }
+
   private async dispatch(
     context: VideoGenerationContext,
     output?: number,
@@ -459,6 +470,7 @@ export class VideoGenerationExecutionService {
         try {
           const result = await this.providerDispatchService.dispatch({
             ...this.dispatchParams(context),
+            idempotencyKey: this.idempotencyKey(ingredientIds),
             isRoutedOffer: true,
             model: target.executionModelKey,
             modelEndpoint: target.endpoint,
@@ -509,6 +521,7 @@ export class VideoGenerationExecutionService {
     }
     const result = await this.providerDispatchService.dispatch({
       ...this.dispatchParams(context),
+      idempotencyKey: this.idempotencyKey(ingredientIds),
       onProviderSubmissionStarted: () =>
         this.beginSubmission(context, ingredientIds),
     });
@@ -550,6 +563,17 @@ export class VideoGenerationExecutionService {
         generation.externalId,
         generation.externalId,
       );
+      return;
+    }
+    if (
+      generation.completion === 'polling' &&
+      generation.provider === 'higgsfield'
+    ) {
+      await this.higgsFieldPollQueueService.schedule({
+        externalId: generation.externalId,
+        ingredientId,
+        organizationId: context.user.organizationId,
+      });
       return;
     }
     if (
