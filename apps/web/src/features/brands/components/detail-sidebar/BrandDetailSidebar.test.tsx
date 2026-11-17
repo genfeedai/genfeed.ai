@@ -1,5 +1,5 @@
 import type { BrandDetailSidebarProps } from '@props/pages/brand-detail.props';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import BrandDetailSidebar from '@/features/brands/components/detail-sidebar/BrandDetailSidebar';
 
@@ -65,11 +65,19 @@ describe('BrandDetailSidebar', () => {
     onTogglePublicProfile: vi.fn(),
   };
 
-  it('renders the visibility and website links cards, and no social accounts', () => {
-    render(<BrandDetailSidebar {...props} />);
+  it('renders the visibility card, the website links, then the children', () => {
+    render(
+      <BrandDetailSidebar {...props}>
+        <div>Connected Accounts</div>
+      </BrandDetailSidebar>,
+    );
 
-    expect(screen.getByText('Account Settings Card')).toBeInTheDocument();
-    expect(screen.getByText('External Links Card')).toBeInTheDocument();
-    expect(screen.queryByText('Social Media Card')).not.toBeInTheDocument();
+    const text = document.body.textContent ?? '';
+    expect(text.indexOf('Account Settings Card')).toBeLessThan(
+      text.indexOf('External Links Card'),
+    );
+    expect(text.indexOf('External Links Card')).toBeLessThan(
+      text.indexOf('Connected Accounts'),
+    );
   });
 });
