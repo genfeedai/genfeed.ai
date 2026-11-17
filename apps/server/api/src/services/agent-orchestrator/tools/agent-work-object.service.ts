@@ -3,6 +3,7 @@ import { WorkflowExecutionsService } from '@api/collections/workflow-executions/
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentBrandContextAskService } from '@api/services/agent-orchestrator/tools/agent-brand-context-ask.service';
+import { isImageApprovalQuestion } from '@api/services/agent-orchestrator/tools/agent-image-approval-question';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type {
   AgentWorkObjectScope,
@@ -341,6 +342,16 @@ export class AgentWorkObjectService {
       throw new BadRequestException(
         'Use one to five uniquely identified choices.',
       );
+    // A model-authored choice has no stored price, dispatch identity or approval record.
+    // Redirect a quoted image to the paid tool before publishing a non-redeemable card.
+    const question = [params.title, params.prompt]
+      .filter((text) => typeof text === 'string')
+      .join(' ');
+    if (isImageApprovalQuestion(question, options)) {
+      throw new BadRequestException(
+        'Use generate with type image and the requested brief to obtain the priced approval card. request_input can collect missing brief details.',
+      );
+    }
     const recommendedOptionId =
       typeof params.recommendedOptionId === 'string'
         ? params.recommendedOptionId

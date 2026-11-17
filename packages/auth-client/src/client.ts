@@ -8,6 +8,7 @@ import {
 import { createAuthClient, type ReactAuthClient } from 'better-auth/react';
 
 import { BETTER_AUTH_BASE_PATH, getApiOrigin } from './config';
+import { broadcastSignedOut } from './signed-out-sync';
 
 const HYPHENS_PATTERN = /-/g;
 const UNDERSCORES_PATTERN = /_/g;
@@ -346,7 +347,15 @@ export async function signOut(
   ...args: Parameters<typeof authClient.signOut>
 ): Promise<Awaited<ReturnType<typeof authClient.signOut>>> {
   try {
-    return await authClient.signOut(...args);
+    const result = await authClient.signOut(...args);
+
+    // Better Auth only announces the sign-out while its session atom is
+    // mounted, which the /logout page never does; tell the other tabs here.
+    if (!result?.error) {
+      broadcastSignedOut();
+    }
+
+    return result;
   } finally {
     clearBetterAuthTokenCache();
   }

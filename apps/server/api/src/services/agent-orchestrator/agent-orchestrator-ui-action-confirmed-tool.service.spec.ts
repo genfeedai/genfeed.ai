@@ -2,6 +2,7 @@ import type { FinalizeStructuredAssistantTurnParams } from '@api/services/agent-
 import { AgentOrchestratorUiActionConfirmedToolService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-confirmed-tool.service';
 import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
 import type { AgentChatResult } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { buildImageGenerationResult } from '@api/services/agent-orchestrator/tools/agent-image-generation-result';
 import type { AgentUiAction } from '@genfeedai/contracts/interfaces';
 
 import { describe, expect, it, vi } from 'vitest';
@@ -66,13 +67,16 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
       const finalize = vi.spyOn(finalizer, 'finalizeStructuredAssistantTurn');
       const service = new AgentOrchestratorUiActionConfirmedToolService(
         {
-          executeTool: vi.fn().mockResolvedValue({
-            success: true,
-            creditsUsed: 1,
-            nextActions: [
-              { id: 'output', type: 'media_gallery', title: 'Image' },
-            ],
-          }),
+          executeTool: vi
+            .fn()
+            .mockResolvedValue(
+              buildImageGenerationResult(
+                'output',
+                undefined,
+                'A coast',
+                undefined,
+              ),
+            ),
         } as never,
         events as never,
         finalizer,
@@ -315,11 +319,16 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
     expect(finalizeStructuredAssistantTurn).not.toHaveBeenCalled();
   });
   it('passes only image-supported parameters into the generate action for type image', async () => {
-    const executeTool = vi.fn().mockResolvedValue({
-      creditsUsed: 0,
-      nextActions: [],
-      success: true,
-    });
+    const executeTool = vi
+      .fn()
+      .mockResolvedValue(
+        buildImageGenerationResult(
+          'image-1',
+          undefined,
+          'A red apple',
+          undefined,
+        ),
+      );
     const finalizeStructuredAssistantTurn = vi.fn(finalizedResponse);
     const service = new AgentOrchestratorUiActionConfirmedToolService(
       { executeTool } as never,

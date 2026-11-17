@@ -326,14 +326,33 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
           source: ActivitySource.IMAGE_GENERATION,
         },
         dto: CreateImageDto,
-        handle: ({ dto, request, user }) => {
+        handle: async ({ dto, request, user }) => {
           request.generationOriginalPrompt = input.originalPrompt;
-          return this.imageGenerationService.generateImage(
+          const response = await this.imageGenerationService.generateImage(
             user,
             dto,
             request,
             input.onPlaceholderCreated,
           );
+          if (!dto.sourceActionId) return response;
+          const id = response.data?.id;
+          const brandId = dto.brandId || user.brandId;
+          const ingredient =
+            id &&
+            brandId &&
+            (await this.imageGenerationService.findDispatchedImage({
+              id,
+              brandId,
+              organizationId: user.organizationId,
+              sourceActionId: dto.sourceActionId,
+            }));
+          if (!ingredient) {
+            throw new HttpException(
+              'The approved image has no matching Library asset.',
+              HttpStatus.CONFLICT,
+            );
+          }
+          return serializeSingle(request, IngredientSerializer, ingredient);
         },
         organizationModule: { moduleId: 'playground' },
         isSubscriptionCheckSkipped: true,
