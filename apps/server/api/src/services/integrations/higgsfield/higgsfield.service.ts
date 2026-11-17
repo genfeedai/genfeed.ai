@@ -327,14 +327,11 @@ export class HiggsFieldService {
       );
       return response.data;
     } catch (error: unknown) {
-      // Only a server-side fault is worth another attempt: a 4xx (bad
-      // credentials, unknown request id) will read the same way forever.
-      const statusCode = readHttpStatusCode(error);
-      if (statusCode !== undefined && statusCode < 500) {
-        throw toHiggsFieldProviderError(error);
-      }
-
       const mapped = toHiggsFieldProviderError(error);
+      if (mapped instanceof HiggsFieldProviderError && !mapped.isRetryable) {
+        throw mapped;
+      }
+      const statusCode = readHttpStatusCode(error);
       this.loggerService.warn(
         `${this.constructorName} status poll for ${requestId} retried`,
         safeErrorLogging ? { statusCode } : { message: mapped.message },

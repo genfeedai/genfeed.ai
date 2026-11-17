@@ -371,6 +371,25 @@ describe('HiggsFieldService', () => {
       },
     );
 
+    it('keeps an accepted video pending through a rate limit and reads its result', async () => {
+      mockHttpService.get.mockReturnValueOnce(
+        throwError(() => ({ response: { status: 429 } })),
+      );
+      statusResponse({
+        status: 'completed',
+        video: { url: 'https://cdn.test/out.mp4' },
+      });
+
+      expect(await service.readVideoRequest('req-1', 'org-1')).toEqual({
+        state: 'pending',
+      });
+      expect(await service.readVideoRequest('req-1', 'org-1')).toEqual({
+        state: 'completed',
+        videoUrl: 'https://cdn.test/out.mp4',
+      });
+      expect(mockHttpService.post).not.toHaveBeenCalled();
+    });
+
     it('returns the video of a completed request', async () => {
       statusResponse({
         status: 'completed',
