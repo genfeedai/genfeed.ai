@@ -1,6 +1,7 @@
 import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
 import {
   type AgentChatMessage as AgentChatMessageType,
+  type AgentInputRequest,
   type AgentWorkEvent,
   AgentWorkEventStatus,
   AgentWorkEventType,
@@ -301,22 +302,34 @@ vi.mock('./AgentToolCallDisplay', () => ({
   TOOL_LABELS: {},
 }));
 
-vi.mock('@genfeedai/agent/components/AgentInputRequestOverlay', () => ({
-  AgentInputRequestOverlay: function MockAgentInputRequestOverlay(props: {
-    onSubmit: (answer: string) => Promise<void>;
-  }) {
-    return (
-      <button
-        type="button"
-        onClick={() => {
-          void props.onSubmit('Use the hybrid prompt bar');
-        }}
-      >
-        Submit requested input
-      </button>
-    );
+vi.mock(
+  '@genfeedai/agent/components/AgentInputRequestOverlay',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@genfeedai/agent/components/AgentInputRequestOverlay')
+      >();
+    return {
+      AgentInputRequestOverlay: function MockAgentInputRequestOverlay(props: {
+        onSubmit: (answer: string, optionIds?: string[]) => Promise<void>;
+        request: AgentInputRequest;
+      }) {
+        if (props.request.options?.length)
+          return <actual.AgentInputRequestOverlay {...props} />;
+        return (
+          <button
+            type="button"
+            onClick={() => {
+              void props.onSubmit('Use the hybrid prompt bar');
+            }}
+          >
+            Submit requested input
+          </button>
+        );
+      },
+    };
   },
-}));
+);
 
 type StoreState = {
   threadEventSequenceById: Record<string, number>;
@@ -356,15 +369,7 @@ type StoreState = {
   messages: AgentChatMessageType[];
   messagesCursor: string | null;
   prependOlderMessages: ReturnType<typeof vi.fn>;
-  pendingInputRequest: {
-    allowFreeText: boolean;
-    threadId: string;
-    inputRequestId: string;
-    options: Array<{ id: string; label: string }>;
-    prompt: string;
-    runId: string;
-    title: string;
-  } | null;
+  pendingInputRequest: AgentInputRequest | null;
   runsByThread: Record<string, AgentRunRecord>;
   socketConnectionState: 'connected' | 'offline';
   setActiveThread: ReturnType<typeof vi.fn>;
@@ -811,6 +816,73 @@ describe('AgentChatContainer', () => {
     expect(storeState.clearStaleActiveRun).not.toHaveBeenCalled();
   });
 
+  it('restores actionable quote details in standalone History and removes resolved choices', async () => {
+    storeState.pendingInputRequest = {
+      allowFreeText: false,
+      inputRequestId: 'quote-1',
+      options: [
+        {
+          id: 'approve',
+          label: 'Approve image',
+          description: 'One image for 12 credits',
+        },
+        { id: 'cancel', label: 'Cancel image' },
+      ],
+      prompt: 'Generate one square image with the quoted model for 12 credits?',
+      runId: 'run-quote',
+      threadId: 'thread-1',
+      title: 'Confirm image quote',
+    };
+    storeState.messages = [
+      buildAssistantMessage({ content: 'Choose an option to continue.' }),
+    ];
+    storeState.threads = [
+      { brandId: 'brand-1', contextVersion: 7, id: 'thread-1' },
+    ];
+    const apiService = createApiService({
+      respondToInputRequest: vi.fn().mockResolvedValue({ status: 'resolved' }),
+    });
+    const { rerender } = render(
+      <AgentChatContainer apiService={apiService as never} isStreaming />,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: 'Confirm image quote' }),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        'Generate one square image with the quoted model for 12 credits?',
+      ),
+    ).toBeVisible();
+    expect(screen.getByText('One image for 12 credits')).toBeVisible();
+    expect(
+      screen.getAllByRole('button', { name: /Approve image/ }),
+    ).toHaveLength(1);
+    expect(screen.getByRole('button', { name: /Cancel image/ })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: /Approve image/ }));
+    await waitFor(() =>
+      expect(apiService.respondToInputRequest).toHaveBeenCalledWith(
+        'thread-1',
+        'quote-1',
+        'Approve image',
+        undefined,
+        { brandId: 'brand-1', expectedContextVersion: 7 },
+        ['approve'],
+      ),
+    );
+    expect(apiService.respondToInputRequest).toHaveBeenCalledTimes(1);
+    storeState.pendingInputRequest = null;
+    rerender(
+      <AgentChatContainer apiService={apiService as never} isStreaming />,
+    );
+    expect(
+      screen.queryByRole('button', { name: /Approve image/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Cancel image/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it('submits pending input through the response endpoint instead of chat send', async () => {
     const apiService = createApiService({
       respondToInputRequest: vi.fn().mockResolvedValue({
@@ -824,8 +896,7 @@ describe('AgentChatContainer', () => {
     });
     storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];
 
-    // Production always mounts the container under the workspace shell's
-    // composer provider; input requests render in the composer status stack.
+    // Workspace entry points render requests in the composer status stack.
     render(
       <ConversationComposerShellProvider
         contextLabel="Workspace"

@@ -326,6 +326,7 @@ export interface AgentThreadSnapshot {
   pendingApprovals: Record<string, unknown>[];
   pendingInputRequests: Array<{
     requestId: string;
+    runId?: string;
     title: string;
     prompt: string;
     allowFreeText?: boolean;

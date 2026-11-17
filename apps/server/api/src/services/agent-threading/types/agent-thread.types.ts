@@ -70,6 +70,7 @@ interface AgentInputOption {
 
 export interface AgentPendingInputRequest {
   requestId: string;
+  runId?: string;
   title: string;
   prompt: string;
   allowFreeText?: boolean;
