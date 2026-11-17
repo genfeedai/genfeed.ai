@@ -50,6 +50,7 @@ export function useLibrarySummary({
     setReloadToken((token) => token + 1);
   }, []);
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refresh);
     return () =>

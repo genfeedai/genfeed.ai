@@ -10,6 +10,7 @@ export function useAgentModePersistence(apiService: AgentApiService) {
   const confirmed = useRef(new Map<string | null, AgentThreadMode>());
   const latestByThread = useRef(new Map<string | null, number>());
   const pendingByThread = useRef(new Map<string | null, number>());
+  // use-effect-audit: ignore abortable load of the saved agent mode
   useEffect(() => {
     const controller = new AbortController();
     const initialSelection = selection.current;

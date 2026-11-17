@@ -81,6 +81,7 @@ export function useIngredientDeepLink({
     }
   }, [assetId]);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!assetId || handledAssetIdRef.current === assetId) {
       return;

@@ -47,6 +47,7 @@ export function useRailKeys({
     setActiveIndex((current) => Math.min(current, itemCount - 1));
   }, [itemCount]);
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (!enabled) return;
     function handleKeyDown(event: KeyboardEvent) {

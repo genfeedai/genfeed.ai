@@ -77,6 +77,7 @@ export default function LocalDesktopContent() {
     [isLocalWorkspaceEnabled, translate],
   );
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     if (isLocalWorkspaceHydrating) {
       return;

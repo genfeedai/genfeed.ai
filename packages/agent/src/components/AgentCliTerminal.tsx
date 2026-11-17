@@ -310,6 +310,7 @@ export function useAgentCliTerminal(
   // Cleanup owns ResizeObserver, socket, terminal, rAF, and socket handlers
   // via effect-scoped locals (async boot cannot return cleanup itself).
   // react-doctor-disable-next-line react-doctor/effect-needs-cleanup,react-doctor/no-set-state-after-await-in-effect
+  // use-effect-audit: ignore observes DOM elements with a browser observer
   useEffect(() => {
     if (hostedCloud) {
       return undefined;
@@ -577,6 +578,7 @@ export function useAgentCliTerminal(
   ]);
 
   // T7: Cmd/Ctrl+F → open search bar
+  // use-effect-audit: ignore keydown listener on the document
   useEffect(() => {
     function handleKeyDown(event: globalThis.KeyboardEvent): void {
       const modifier = event.metaKey || event.ctrlKey;

@@ -104,6 +104,7 @@ export default function NavigationProgress() {
     setPending(null);
   }, [pathname, search]);
 
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     if (pending === null) {
       setIsVisible(false);

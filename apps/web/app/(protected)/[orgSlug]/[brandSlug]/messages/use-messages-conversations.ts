@@ -133,6 +133,7 @@ export function useMessagesConversations({
     ],
   );
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     const controller = new AbortController();
     void loadConversations(controller.signal);
@@ -145,6 +146,7 @@ export function useMessagesConversations({
     setMessagePage(1);
   }, [selectedId]);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!selectedId) {
       setMessages([]);
@@ -254,6 +256,7 @@ export function useMessagesConversations({
   // Opening a thread reads it through the transcript actually loaded: a
   // receipt response may report newer replies, but those stay unread until a
   // transcript that contains them has been fetched.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (
       !selectedId ||

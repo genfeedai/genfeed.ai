@@ -143,6 +143,7 @@ export default function IngredientDetailVideo({
   }, [video]);
 
   // Subscribe to video events (captions, merge, resize, etc.)
+  // use-effect-audit: ignore subscribes to an external event source
   useEffect(() => {
     if (!currentVideo?.id || !isReady) {
       return;

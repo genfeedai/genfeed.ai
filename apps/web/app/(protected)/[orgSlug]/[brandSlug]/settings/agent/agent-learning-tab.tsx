@@ -165,6 +165,7 @@ function LearningStatus({
     [brandId, organizationId, getService, isCurrent],
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     isMounted.current = true;
     if (!isReady || refresh < 0)

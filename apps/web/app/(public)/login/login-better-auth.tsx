@@ -176,6 +176,7 @@ export default function LoginBetterAuth({
   const signUpHref = getAuthFlowHref('/sign-up', callbackURL);
   const invitationNotice = getInvitationNotice(searchParams.get('invitation'));
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isDesktop) {
       return;

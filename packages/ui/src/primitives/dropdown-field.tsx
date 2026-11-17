@@ -145,6 +145,7 @@ export default function DropdownField({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [handleClickOutside, isOpen, isSearchEnabled, preserveFocus]);
 
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     if (isSearchEnabled && onSearch) {
       const timer = setTimeout(() => {

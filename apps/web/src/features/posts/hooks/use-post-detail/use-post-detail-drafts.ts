@@ -354,6 +354,7 @@ export function usePostDetailDrafts({
   );
 
   // Auto-save effect for parent post (only in Publishing scope)
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     if (!postId || !post || scope !== PageScope.PUBLISHING) {
       return;

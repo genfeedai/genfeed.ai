@@ -141,6 +141,7 @@ export default function AnnouncementsPage({
     [currentPage, getAnnouncementsService, notificationsService, search],
   );
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     if (activeTab !== 'history') {
       return;

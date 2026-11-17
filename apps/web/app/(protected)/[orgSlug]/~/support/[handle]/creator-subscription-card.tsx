@@ -71,6 +71,7 @@ export default function CreatorSubscriptionCard() {
   const [isBusy, setIsBusy] = useState(false);
   const [problem, setProblem] = useState<Problem>(null);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!handle) {
       return;

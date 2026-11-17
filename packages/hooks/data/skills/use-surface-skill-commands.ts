@@ -110,6 +110,7 @@ export function useSurfaceSkillCommands({
     [surface],
   );
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     if (!isEnabled) {
       // Aborting below skips the `finally`, so clear the request state here or

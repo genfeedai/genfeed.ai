@@ -86,6 +86,7 @@ export function useBrandFonts(brandId: string): UseBrandFontsResult {
 
   // Every list of this brand's fonts on the page reloads after an upload or
   // removal, so the role pickers offer a font as soon as it is uploaded.
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     function onChanged(event: Event) {
       if ((event as CustomEvent<string>).detail === brandId)

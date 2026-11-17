@@ -94,6 +94,7 @@ export function useEvaluationReadScopeKey(): string | null {
   const [serverIdentity, setServerIdentity] = useState<string | null>(
     desktop ? null : 'web',
   );
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!desktop) {
       setServerIdentity('web');

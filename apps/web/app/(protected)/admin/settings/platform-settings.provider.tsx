@@ -197,6 +197,7 @@ export default function PlatformSettingsProvider({
     [applyMargins, getPlatformSettingsService, notificationsService],
   );
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     const controller = new AbortController();
     loadSettings(controller.signal);

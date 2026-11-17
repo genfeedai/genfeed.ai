@@ -15,6 +15,7 @@ export function useCredentialMentions(
   const [mentions, setMentions] = useState<CredentialMentionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // use-effect-audit: ignore abortable credential mentions fetch
   useEffect(() => {
     if (!apiService || typeof apiService.getMentions !== 'function') {
       setIsLoading(false);

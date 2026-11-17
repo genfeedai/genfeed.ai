@@ -52,6 +52,7 @@ export function useThreadResolution(
     });
   }, []);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isEnabled || !apiService) {
       return;

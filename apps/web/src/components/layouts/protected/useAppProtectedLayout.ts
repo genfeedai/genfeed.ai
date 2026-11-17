@@ -262,6 +262,7 @@ export function useAppProtectedLayout(
     [push],
   );
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (

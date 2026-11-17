@@ -47,6 +47,7 @@ export default function CreatorArticleUnlockCard() {
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [problem, setProblem] = useState<Problem>(null);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!articleId) {
       return;

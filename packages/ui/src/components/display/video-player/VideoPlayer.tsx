@@ -156,6 +156,7 @@ export default function VideoPlayer({
   }, [isActive, resolvedVideoRef]);
 
   // Hide loader faster when thumbnail is available
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     if (thumbnail) {
       const timer = setTimeout(() => {

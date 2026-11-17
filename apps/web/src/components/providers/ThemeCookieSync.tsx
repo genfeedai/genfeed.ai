@@ -34,6 +34,7 @@ export default function ThemeCookieSync({
 }: ThemeCookieSyncProps = {}) {
   const { setTheme, theme } = useTheme();
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const normalizeInvalidTheme = (candidate?: string | null) => {
       let storedTheme = candidate;

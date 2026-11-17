@@ -154,6 +154,7 @@ export function useAppLayout({
   }, [isSidebarPreferenceLoaded, sidebarExpandedWidth]);
 
   // Cmd+B toggles sidebar
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -178,6 +179,7 @@ export function useAppLayout({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleToggleDesktopSidebar]);
 
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     const timeout = setTimeout(() => {
       handleCloseSidebar();
@@ -190,6 +192,7 @@ export function useAppLayout({
 
   // The drawer is phone-only: close it when the viewport grows to the desktop
   // layout, where the rail and sidebar render inline.
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (
       !hasMobileNavigation ||

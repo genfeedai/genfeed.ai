@@ -171,6 +171,7 @@ export function useFirstDrafts(): FirstDraftsState {
   // run but never starts a generation: that is the free allowance, and the
   // trial credits are not a replay's to grant.
   const isReplay = currentUser?.isOnboardingCompleted === true;
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!brandId || !currentUser?.id || isLoading || !isBrandScopeResolved)
       return;
@@ -274,6 +275,7 @@ export function useFirstDrafts(): FirstDraftsState {
     phase,
   ]);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isGenerating || !brandId) return;
     const controller = new AbortController();

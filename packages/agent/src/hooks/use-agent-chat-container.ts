@@ -1208,11 +1208,6 @@ export function useAgentChatContainer({
     return () => window.clearInterval(interval);
   }, [isRunActive, runStartedAt]);
 
-  // Clear follow-up task message on mount
-  useEffect(() => {
-    setFollowUpTaskMessage(null);
-  }, []);
-
   // Restore the active workflow execution when the user returns to a thread.
   useEffect(() => {
     if (!activeThreadId) return;

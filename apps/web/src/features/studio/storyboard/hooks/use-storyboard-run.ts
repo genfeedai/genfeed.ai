@@ -211,6 +211,7 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
   );
   const socketResource = run ? getSocketResource(run) : null;
 
+  // use-effect-audit: ignore subscribes to an external event source
   useEffect(() => {
     if (!socketResource || !isSocketReady || !socketAssetIds.length) {
       return;

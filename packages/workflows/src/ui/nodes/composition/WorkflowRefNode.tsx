@@ -304,6 +304,7 @@ function WorkflowRefNodeComponent(props: NodeProps) {
   );
 
   // Fetch referencable workflows on mount
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     const controller = new AbortController();
     void loadReferencableWorkflows(controller.signal);

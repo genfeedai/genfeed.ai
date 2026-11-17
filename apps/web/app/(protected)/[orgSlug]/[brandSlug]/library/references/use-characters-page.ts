@@ -139,6 +139,7 @@ export function useCharactersPage(
     unsubscribeRef.current = null;
   }, []);
 
+  // use-effect-audit: ignore subscribes to an external event source
   useEffect(() => {
     return () => cleanupSocket();
   }, [cleanupSocket]);

@@ -120,6 +120,7 @@ export function useWorkflowExecutions(
   options: UseWorkflowExecutionsOptions = {},
 ): UseWorkflowExecutionsReturn {
   const [dayWindow, setDayWindow] = useState(() => getLocalDayWindow());
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     const timer = setTimeout(
       () => setDayWindow(getLocalDayWindow()),

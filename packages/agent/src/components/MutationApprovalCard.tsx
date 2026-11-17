@@ -133,6 +133,7 @@ export function MutationApprovalCard({
         request.getError('send_prompt', reviewPayload));
   const detail = rawError ? formatAgentError(rawError).detail : null;
 
+  // use-effect-audit: ignore expiry timer outside React
   useEffect(() => {
     const refresh = () => setNow(Date.now());
     refresh();

@@ -331,6 +331,7 @@ export default function OAuthConsentContent() {
     Boolean(searchParams.get(key)),
   );
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !hasRequiredParams) {
       return;
@@ -389,6 +390,7 @@ export default function OAuthConsentContent() {
 
   // Offer the selected organization's brands. The choice starts on "All
   // brands"; picking one limits the connection to it.
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (
       !selectedOrganizationId ||
@@ -439,6 +441,7 @@ export default function OAuthConsentContent() {
 
   // Returning from a native app via the back/forward cache restores this page
   // frozen in its last state; unlock it so the request can be reviewed again.
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     function handlePageShow(event: PageTransitionEvent): void {
       if (event.persisted) {

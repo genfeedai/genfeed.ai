@@ -36,6 +36,7 @@ export default function ModalPostPlatformSlack({
   const [isLoadingChannels, setIsLoadingChannels] = useState(false);
   const [hasLoadFailed, setHasLoadFailed] = useState(false);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (!brandId || !credentialId) {
       return;

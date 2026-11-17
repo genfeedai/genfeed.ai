@@ -344,6 +344,7 @@ export function useStudioPlaygroundDraft({
 
   // A reload or tab close inside the quiet period would otherwise lose the
   // last keystrokes; keepalive lets that final write outlive the page.
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const flushOnHide = () => {
       if (document.visibilityState === 'hidden') {

@@ -226,6 +226,7 @@ export function useAgentFullPage({
   }, [hasThreadOutputs]);
 
   // Fetch credits info on mount
+  // use-effect-audit: ignore abortable thread list load
   useEffect(() => {
     if (!authReady) {
       return;
@@ -301,6 +302,7 @@ export function useAgentFullPage({
     setLatestProposedPlan,
   ]);
 
+  // use-effect-audit: ignore abortable thread load
   useEffect(() => {
     if (!authReady || !threadId) {
       return;

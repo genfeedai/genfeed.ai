@@ -9,6 +9,7 @@ import { isAbortError } from '@/hooks/utils/use-abort-controller/use-abort-contr
 export function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
+  // use-effect-audit: ignore timer outside React
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedValue(value);

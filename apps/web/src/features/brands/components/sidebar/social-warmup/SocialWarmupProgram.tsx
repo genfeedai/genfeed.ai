@@ -97,6 +97,7 @@ export default function SocialWarmupProgram({
     : null;
   const blueprint = enrolledBlueprint ?? currentBlueprint;
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     if (
       !connection.credentialId ||

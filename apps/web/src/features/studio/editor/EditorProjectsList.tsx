@@ -142,6 +142,7 @@ export default function EditorProjectsList() {
     [currentPage, getEditorService, search],
   );
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     const controller = new AbortController();
     void loadProjects(controller.signal);

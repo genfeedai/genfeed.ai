@@ -139,6 +139,7 @@ export function useAgentThreadList({
   );
   const getNewThreadHref = useCallback(() => APP_ROUTES.AGENT.NEW, []);
 
+  // use-effect-audit: ignore focuses the rename input in the DOM
   useEffect(() => {
     if (renamingThreadId) {
       renameInputRef.current?.focus();
@@ -297,6 +298,7 @@ export function useAgentThreadList({
 
   // Retry uses effect-scoped setTimeout; cleanup clears it + aborts in-flight fetch.
   // react-doctor-disable-next-line react-doctor/effect-needs-cleanup
+  // use-effect-audit: ignore abortable thread list fetch
   useEffect(() => {
     if (!isActive) {
       abortRef.current?.abort();

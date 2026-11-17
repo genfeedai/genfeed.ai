@@ -179,6 +179,7 @@ export function useAgentThreadPrefetch({
   );
 
   // Never let a prefetch outlive the component that requested it.
+  // use-effect-audit: ignore cancels the prefetch on unmount
   useEffect(() => {
     return () => {
       cancelPrefetch();

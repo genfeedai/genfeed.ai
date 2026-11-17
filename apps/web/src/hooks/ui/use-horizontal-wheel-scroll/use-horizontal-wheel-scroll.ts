@@ -31,6 +31,7 @@ export function useHorizontalWheelScroll<
 >(): RefObject<T | null> {
   const ref = useRef<T>(null);
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const strip = ref.current;
     if (!strip) {

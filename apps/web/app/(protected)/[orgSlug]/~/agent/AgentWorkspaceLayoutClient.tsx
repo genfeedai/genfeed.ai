@@ -107,6 +107,7 @@ function AgentWorkspaceLayoutClientContent({
   const handleOAuthConnect = useAgentOAuthConnect();
 
   // Bootstrap the prefilled prompt only on unthreaded entry routes.
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     const controller = new AbortController();
     const bootstrapKey =

@@ -107,6 +107,7 @@ export function useMasonryVideo({
   }, []);
 
   // Stop video when leaving container
+  // use-effect-audit: ignore frame loop outside React
   useEffect(() => {
     if (isContainerHovered) {
       return;

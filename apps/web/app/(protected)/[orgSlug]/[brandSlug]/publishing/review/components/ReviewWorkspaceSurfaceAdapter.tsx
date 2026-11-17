@@ -64,6 +64,7 @@ export default function ReviewWorkspaceSurfaceAdapter({
   }, [isDismissed, isRevealPending, reveal]);
 
   // Explicit "Open in Context" row action.
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const handleForceOpen = (): void => {
       requestDetails();

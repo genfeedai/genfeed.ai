@@ -165,6 +165,7 @@ export function useLibraryRemixSource(
     ],
   );
 
+  // use-effect-audit: ignore abortable work
   useEffect(() => {
     void reloadVersion;
     const abortController = new AbortController();

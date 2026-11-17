@@ -20,6 +20,7 @@ export function useAgentThreadUpdate() {
   const scopeKey = JSON.stringify([activeThreadId, organizationKey]);
   const scopeRef = useRef(scopeKey);
 
+  // use-effect-audit: ignore aborts pending thread updates on scope change and unmount
   useEffect(() => {
     if (scopeRef.current !== scopeKey) {
       scopeRef.current = scopeKey;

@@ -102,6 +102,7 @@ export function useGenerationToasts(): void {
     [organizationId, userId],
   );
 
+  // use-effect-audit: ignore interval timer outside React
   useEffect(() => {
     if (!isActivityScopeReady) return;
     let timer: ReturnType<typeof setTimeout> | undefined;

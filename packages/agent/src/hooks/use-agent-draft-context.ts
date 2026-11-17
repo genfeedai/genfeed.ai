@@ -96,6 +96,7 @@ export function useAgentDraftContext({
     undefined,
   );
 
+  // use-effect-audit: ignore subscribes to document selectionchange
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
@@ -162,6 +163,7 @@ export function useAgentDraftContext({
     ],
   );
 
+  // use-effect-audit: ignore writes the page context into the agent store
   useEffect(() => {
     if (!isEnabled) {
       return;
@@ -172,6 +174,7 @@ export function useAgentDraftContext({
     setPageContext(context);
   }, [context, isEnabled, setPageContext]);
 
+  // use-effect-audit: ignore restores the agent store page context on cleanup
   useEffect(() => {
     if (!isEnabled) {
       return;
@@ -187,6 +190,7 @@ export function useAgentDraftContext({
     };
   }, [draftType, isEnabled, pathname]);
 
+  // use-effect-audit: ignore subscribes to draft suggestion events
   useEffect(() => {
     if (typeof window === 'undefined' || !isEnabled || !onApplySuggestion) {
       return;

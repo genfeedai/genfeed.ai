@@ -32,6 +32,7 @@ export default function AboutContent() {
   const [update, setUpdate] = useState<ReleaseUpdateState>({ status: 'idle' });
   const updateRequest = useRef<AbortController | null>(null);
 
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
     if (surface === 'desktop') {

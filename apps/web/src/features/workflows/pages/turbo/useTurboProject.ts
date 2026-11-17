@@ -44,6 +44,7 @@ export function useTurboProject(id: string, brandId: string) {
     }),
     [id, brandId, getService],
   );
+  // use-effect-audit: ignore interval timer outside React
   useEffect(() => {
     scope.alive = true;
     setProject(null);

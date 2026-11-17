@@ -178,6 +178,7 @@ export default function TurboNewPane() {
     isWorkflowListEnabled && workflowsQuery.error && !workflowsQuery.data
       ? getJsonApiErrorMessage(workflowsQuery.error, t('loadFailed'))
       : null;
+  // use-effect-audit: ignore abortable request
   useEffect(() => {
     const controller = new AbortController();
     setProjects(null);

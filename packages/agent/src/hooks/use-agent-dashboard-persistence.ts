@@ -108,6 +108,7 @@ export function useAgentDashboardPersistence({
     hasResolvedPersistenceRef.current = true;
   }, [currentUser, disabled, getLocalSnapshot, hydrateState, scope]);
 
+  // use-effect-audit: ignore debounced save to the API
   useEffect(() => {
     if (disabled || !hasResolvedPersistenceRef.current || !currentUser) {
       return;

@@ -66,6 +66,7 @@ export function AgentStrategyConfig({
     setMaxEngagementsPerDay(s.maxEngagementsPerDay);
   }, []);
 
+  // use-effect-audit: ignore abortable strategy fetch
   useEffect(() => {
     const controller = new AbortController();
 

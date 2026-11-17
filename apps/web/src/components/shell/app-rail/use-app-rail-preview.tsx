@@ -248,6 +248,7 @@ export function useAppRailPreview({
   useEffect(() => {
     if (!isEnabled) cancelTimers();
   }, [cancelTimers, isEnabled]);
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     if (!position) return;
     const onKeyDown = (event: KeyboardEvent) => {

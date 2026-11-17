@@ -759,6 +759,7 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
     [clearSwitchConfirmation, getOrganizationsService, invalidateTenantState],
   );
 
+  // use-effect-audit: ignore subscribes to browser events
   useEffect(() => {
     const synchronizeOnce = async (generation: number): Promise<void> => {
       await invalidateTenantState();
