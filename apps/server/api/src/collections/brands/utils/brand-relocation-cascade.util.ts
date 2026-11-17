@@ -5,6 +5,7 @@ import {
   type SecondOrderCascadeTarget,
 } from '@api/collections/brands/constants/brand-org-cascade.constants';
 import { Prisma } from '@genfeedai/prisma';
+import { traced } from '@libs/tracing/traced';
 import { InternalServerErrorException } from '@nestjs/common';
 
 /**
@@ -311,19 +312,22 @@ export async function assertNoBrandOrgOrphans(
   await assertNoOrgOnlyChildOrphans(tx, brandId, destOrgId);
 }
 
-export async function moveRevisionContentScope(
-  tx: Prisma.TransactionClient,
-  brandId: string,
-  sourceOrgId: string,
-  destOrgId: string,
-): Promise<void> {
-  // The editor validates the embedded tenant against the revision row on reopen.
-  // Bind both old keys before any FK cascade can rewrite the row's organization.
-  // sql-risk-audit: ignore raw-sql-review -- static JSON path, bound relocation scope.
-  await tx.$executeRaw`
+export const moveRevisionContentScope = traced(
+  'moveRevisionContentScope',
+  async (
+    tx: Prisma.TransactionClient,
+    brandId: string,
+    sourceOrgId: string,
+    destOrgId: string,
+  ): Promise<void> => {
+    // The editor validates the embedded tenant against the revision row on reopen.
+    // Bind both old keys before any FK cascade can rewrite the row's organization.
+    // sql-risk-audit: ignore raw-sql-review -- static JSON path, bound relocation scope.
+    await tx.$executeRaw`
       UPDATE brand_os_revisions
       SET content = jsonb_set(content, '{organizationId}', to_jsonb(${destOrgId}::text))
       WHERE "brandId" = ${brandId} AND "organizationId" = ${sourceOrgId}
         AND content->>'organizationId' = ${sourceOrgId}
         AND (content->>'brandId' IS NULL OR content->>'brandId' = ${brandId})`;
-}
+  },
+);
