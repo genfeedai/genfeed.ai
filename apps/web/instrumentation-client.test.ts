@@ -101,6 +101,7 @@ describe('app Sentry instrumentation', () => {
           ],
         },
         tags: { existing: 'kept' },
+        type: undefined,
       },
       {},
     );
