@@ -3,6 +3,7 @@ export * from './brand-vision-job.interface';
 export * from './context-embedding-job.interface';
 export * from './credit-deduction-job.interface';
 export * from './heygen-poll-job.interface';
+export * from './higgsfield-poll-job.interface';
 export * from './llm-cost-settlement-job.interface';
 export * from './media-moderation-job.interface';
 export * from './media-perception-job.interface';

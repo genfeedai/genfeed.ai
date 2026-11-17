@@ -42,6 +42,7 @@ import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/w
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { Models3dBuildService } from '@api/endpoints/v1/models3d/services/models3d-build.service';
 import { HeygenPollModule } from '@api/queues/heygen-poll/heygen-poll.module';
+import { HiggsFieldPollModule } from '@api/queues/higgsfield-poll/higgsfield-poll.module';
 import { ReplicatePollModule } from '@api/queues/replicate-poll/replicate-poll.module';
 import { AgentCampaignOrchestratorModule } from '@api/services/agent-campaign/agent-campaign-orchestrator.module';
 import { AgentOrchestratorModule } from '@api/services/agent-orchestrator/agent-orchestrator.module';
@@ -83,6 +84,7 @@ import { WorkflowExecutionProcessor as CollectionsWorkflowExecutionProcessor } f
 import { BrandVisionProcessor } from '@workers/processors/api/queues/brand-vision/brand-vision.processor';
 import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-deduction/credit-deduction.processor';
 import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/heygen-poll.processor';
+import { HiggsFieldPollProcessor } from '@workers/processors/api/queues/higgsfield-poll/higgsfield-poll.processor';
 import { MediaDeliveryProcessor } from '@workers/processors/api/queues/media-delivery.processor';
 import { MediaModerationProcessor } from '@workers/processors/api/queues/media-moderation/media-moderation.processor';
 import { MediaPerceptionProcessor } from '@workers/processors/api/queues/media-perception/media-perception.processor';
@@ -162,6 +164,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => SkillWorkflowModule),
     forwardRef(() => TaskOrchestrationModule),
     forwardRef(() => HeygenPollModule),
+    HiggsFieldPollModule,
     ReplicatePollModule,
     // The GLB build step of a 3D render chains off the replicate poll worker.
     FilesClientModule,
@@ -178,6 +181,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     CreditDeductionProcessor,
     LlmCostSettlementProcessor,
     HeygenPollProcessor,
+    HiggsFieldPollProcessor,
     ReplicatePollProcessor,
     Models3dBuildService,
     NotificationDeliveryProcessor,
