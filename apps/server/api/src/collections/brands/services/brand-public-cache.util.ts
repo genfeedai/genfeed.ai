@@ -15,13 +15,14 @@ const PUBLIC_VISIBILITY_FIELDS = [
  * or moved) must drop them. The invalidation is guarded: a response that was
  * being built before the change does not get stored afterwards.
  */
-export async function dropPublicBrandResponses(
+export function dropPublicBrandResponses(
   cacheService: Pick<CacheService, 'invalidateGuardedTags'> | undefined,
   patch: Partial<Record<(typeof PUBLIC_VISIBILITY_FIELDS)[number], unknown>>,
-): Promise<void> {
-  if (PUBLIC_VISIBILITY_FIELDS.some((field) => patch[field] !== undefined)) {
-    await cacheService?.invalidateGuardedTags([
-      CACHE_TAGS.PUBLIC_BRAND_CONTENT,
-    ]);
-  }
+): Promise<unknown> {
+  const isVisibilityChange = PUBLIC_VISIBILITY_FIELDS.some(
+    (field) => patch[field] !== undefined,
+  );
+  return isVisibilityChange && cacheService
+    ? cacheService.invalidateGuardedTags([CACHE_TAGS.PUBLIC_BRAND_CONTENT])
+    : Promise.resolve();
 }
