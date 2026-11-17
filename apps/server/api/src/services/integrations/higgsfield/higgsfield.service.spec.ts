@@ -354,6 +354,63 @@ describe('HiggsFieldService', () => {
     });
   });
 
+  describe('readVideoRequest', () => {
+    const statusResponse = (data: Record<string, unknown>) =>
+      mockHttpService.get.mockReturnValue(
+        of({ data: { request_id: 'req-1', ...data } }),
+      );
+
+    it.each(['queued', 'in_progress'])(
+      'reports %s as pending',
+      async (status) => {
+        statusResponse({ status });
+
+        expect(await service.readVideoRequest('req-1', 'org-1')).toEqual({
+          state: 'pending',
+        });
+      },
+    );
+
+    it('returns the video of a completed request', async () => {
+      statusResponse({
+        status: 'completed',
+        video: { url: 'https://cdn.test/out.mp4' },
+      });
+
+      expect(await service.readVideoRequest('req-1', 'org-1')).toEqual({
+        state: 'completed',
+        videoUrl: 'https://cdn.test/out.mp4',
+      });
+    });
+
+    it.each([
+      ['completed', 'Higgsfield job req-1 completed without a video.'],
+      ['failed', 'Higgsfield job req-1 failed.'],
+      ['canceled', 'Higgsfield job req-1 was canceled.'],
+      ['nsfw', 'Higgsfield job req-1 was rejected by the safety filter.'],
+    ])(
+      'reports a %s request as failed with its reason',
+      async (status, reason) => {
+        statusResponse({ status });
+
+        expect(await service.readVideoRequest('req-1', 'org-1')).toEqual({
+          reason,
+          state: 'failed',
+        });
+      },
+    );
+
+    it('keeps a request pending when the status read hits a server error', async () => {
+      mockHttpService.get.mockReturnValue(
+        throwError(() => ({ response: { status: 503 } })),
+      );
+
+      expect(await service.readVideoRequest('req-1', 'org-1')).toEqual({
+        state: 'pending',
+      });
+    });
+  });
+
   describe('generateMotionTransfer', () => {
     it('posts Genjutsu with the source clip, character stills, and an idempotency key', async () => {
       mockHttpService.post.mockReturnValue(

@@ -318,6 +318,7 @@ describe('VideoGenerationService', () => {
         open: vi.fn().mockResolvedValue(undefined),
         recordAccepted: vi.fn().mockResolvedValue(undefined),
       } as never,
+      { schedule: vi.fn() } as never,
     );
     const completionService = new VideoGenerationCompletionService(
       bookmarksService as never,

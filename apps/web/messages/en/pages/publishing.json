@@ -690,7 +690,11 @@
         "added": "New",
         "duplicate": "Already on the list",
         "suppressed": "Unsubscribed, bounced or blocked",
-        "invalid": "Not an email address"
+        "invalid": "Not an email address",
+        "invalidRowsTitle": "Rows to fix",
+        "invalidRow": "Row {row}: {value}",
+        "invalidRowEmpty": "Row {row}: empty value",
+        "invalidRowsMore": "Showing the first {shown} of {total} rows that are not an email address."
       },
       "addTitle": "Add subscribers",
       "addDescription": "Paste addresses, one per line or separated by commas.",
