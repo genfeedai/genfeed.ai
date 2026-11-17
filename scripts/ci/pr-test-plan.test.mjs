@@ -386,6 +386,41 @@ test('a shard resolves its planned list back to the planned files', () => {
   );
 });
 
+test('the shards of a plan run every planned file between them, and a damaged list fails its shard', () => {
+  const planned = Array.from(
+    { length: 76 },
+    (_, index) => `apps/web/src/app-${String(index).padStart(2, '0')}.test.tsx`,
+  );
+  const plan = createPrTestPlan({
+    base: 'base-sha',
+    changedFiles: ['packages/contracts/src/interfaces/index.ts'],
+    appTests: planned,
+  });
+  const select = (entry, count = entry.count) =>
+    selectShardArguments({
+      base: 'base-sha',
+      count: String(count),
+      fileExists: () => true,
+      files: entry.files,
+      repositoryRoot: '/repo',
+      shard: String(entry.shard),
+      suiteRoot: 'apps/web',
+      total: String(entry.total),
+    });
+  const [first, second] = plan.appTests.matrix.include;
+
+  assert.deepEqual(
+    [...select(first).args, ...select(second).args].sort(),
+    planned.map((file) => `/repo/${file}`),
+  );
+  // A shard never trades a damaged list for Vitest's own split: the other
+  // shard still runs its dealt files, so the two halves would not add up.
+  assert.throws(
+    () => select(second, 37),
+    /The plan counted 37 files and the list holds 38/,
+  );
+});
+
 test('full-tier and non-change runs leave file selection to Vitest', () => {
   const tests = {
     appTests: ['apps/web/a.test.ts'],

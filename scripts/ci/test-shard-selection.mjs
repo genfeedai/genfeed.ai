@@ -5,8 +5,12 @@
 // files through the job matrix (scripts/ci/pr-test-plan.mjs). A shard runs
 // exactly those files. It selects for itself in two cases: the full tier, which
 // runs the whole suite split by Vitest, and a change run whose plan carried no
-// usable list, which falls back to resolving the changed graph in the shard as
-// every shard did before #10273.
+// lists for the suite, where every shard resolves the changed graph and takes
+// Vitest's own split of it, as every shard did before #10273.
+//
+// A list that was carried but cannot be used fails the shard. The other shards
+// run the files the plan dealt them, so a shard that switched to Vitest's split
+// on its own would leave some of its planned files to no shard at all.
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -35,7 +39,7 @@ function isInside(directory, target) {
  *   suiteRoot: string,
  *   total: string,
  * }} options
- * @returns {{ args: string[], mode: 'full' | 'files' | 'changed', problem?: string }}
+ * @returns {{ args: string[], mode: 'full' | 'files' | 'changed' }}
  */
 export function selectShardArguments({
   base = '',
@@ -59,17 +63,21 @@ export function selectShardArguments({
   const vitestShard = `--shard=${shard}/${total}`;
   if (forceFull || !base) return { args: [vitestShard], mode: 'full' };
 
-  const changed = (problem) => ({
-    args: ['--passWithNoTests', '--changed', base, vitestShard],
-    mode: 'changed',
-    problem,
-  });
+  // The plan carries lists for every shard of a suite or for none of them.
+  if (count === '' && files === '') {
+    return {
+      args: ['--passWithNoTests', '--changed', base, vitestShard],
+      mode: 'changed',
+    };
+  }
 
   const listed = files.split(LINE_BREAK_PATTERN).filter(Boolean);
-  if (listed.length === 0) return changed('the plan listed no files');
+  if (listed.length === 0) {
+    throw new Error(`The plan counted ${count} files and listed none`);
+  }
   if (String(listed.length) !== count) {
-    return changed(
-      `the plan counted ${count || 'no'} files and the list holds ${listed.length}`,
+    throw new Error(
+      `The plan counted ${count || 'no'} files and the list holds ${listed.length}`,
     );
   }
 
@@ -78,10 +86,10 @@ export function selectShardArguments({
   for (const file of listed) {
     const absolute = path.resolve(suiteDirectory, file);
     if (!isInside(repositoryRoot, absolute)) {
-      return changed(`${file} is outside the repository`);
+      throw new Error(`Planned file ${file} is outside the repository`);
     }
     if (!fileExists(absolute)) {
-      return changed(`${file} is not in this checkout`);
+      throw new Error(`Planned file ${file} is not in this checkout`);
     }
     resolved.push(absolute);
   }
@@ -105,7 +113,7 @@ function runCli(env = process.env) {
     );
   } else if (selection.mode === 'changed') {
     process.stderr.write(
-      `::warning::Shard file list not used (${selection.problem}); resolving the changed graph in the shard instead\n`,
+      'The plan carried no file list; resolving the changed graph in the shard\n',
     );
   } else {
     process.stderr.write('Running the whole suite, split by Vitest\n');
@@ -121,7 +129,7 @@ if (
     runCli();
   } catch (error) {
     process.stderr.write(
-      `${error instanceof Error ? error.message : String(error)}\n`,
+      `::error::${error instanceof Error ? error.message : String(error)}\n`,
     );
     process.exitCode = 1;
   }

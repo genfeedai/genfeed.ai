@@ -63,53 +63,57 @@ test('runs the whole suite split by Vitest on the full tier and without a base',
   });
 });
 
-test('falls back to the changed graph when the plan carried no usable list', () => {
-  const changed = ['--passWithNoTests', '--changed', 'base-sha', '--shard=2/4'];
-
+test('resolves the changed graph itself only when the plan carried no list', () => {
   assert.deepEqual(selectShardArguments({ ...shard, base: 'base-sha' }), {
-    args: changed,
+    args: ['--passWithNoTests', '--changed', 'base-sha', '--shard=2/4'],
     mode: 'changed',
-    problem: 'the plan listed no files',
   });
-  assert.deepEqual(
-    selectShardArguments({
-      ...shard,
-      base: 'base-sha',
-      count: '3',
-      files: 'src/a.test.tsx\nsrc/b.test.tsx',
-    }),
-    {
-      args: changed,
-      mode: 'changed',
-      problem: 'the plan counted 3 files and the list holds 2',
-    },
+});
+
+test('fails the shard when a carried list cannot be used', () => {
+  assert.throws(
+    () =>
+      selectShardArguments({
+        ...shard,
+        base: 'base-sha',
+        count: '3',
+        files: 'src/a.test.tsx\nsrc/b.test.tsx',
+      }),
+    /The plan counted 3 files and the list holds 2/,
   );
-  assert.deepEqual(
-    selectShardArguments({
-      ...shard,
-      base: 'base-sha',
-      count: '1',
-      files: '../../../outside.test.ts',
-    }),
-    {
-      args: changed,
-      mode: 'changed',
-      problem: '../../../outside.test.ts is outside the repository',
-    },
+  assert.throws(
+    () =>
+      selectShardArguments({
+        ...shard,
+        base: 'base-sha',
+        files: 'src/a.test.tsx',
+      }),
+    /The plan counted no files and the list holds 1/,
   );
-  assert.deepEqual(
-    selectShardArguments({
-      ...shard,
-      base: 'base-sha',
-      count: '1',
-      fileExists: () => false,
-      files: 'src/gone.test.tsx',
-    }),
-    {
-      args: changed,
-      mode: 'changed',
-      problem: 'src/gone.test.tsx is not in this checkout',
-    },
+  assert.throws(
+    () => selectShardArguments({ ...shard, base: 'base-sha', count: '2' }),
+    /The plan counted 2 files and listed none/,
+  );
+  assert.throws(
+    () =>
+      selectShardArguments({
+        ...shard,
+        base: 'base-sha',
+        count: '1',
+        files: '../../../outside.test.ts',
+      }),
+    /Planned file \.\.\/\.\.\/\.\.\/outside\.test\.ts is outside the repository/,
+  );
+  assert.throws(
+    () =>
+      selectShardArguments({
+        ...shard,
+        base: 'base-sha',
+        count: '1',
+        fileExists: () => false,
+        files: 'src/gone.test.tsx',
+      }),
+    /Planned file src\/gone\.test\.tsx is not in this checkout/,
   );
 });
 
@@ -181,14 +185,22 @@ test('the command prints one argument per line and explains its choice', () => {
       SHARD_FILE_COUNT: '1',
       SHARD_FILES: 'src/missing.test.tsx',
     });
-    assert.equal(stale.status, 0);
+    assert.equal(stale.status, 1);
+    assert.equal(stale.stdout, '');
     assert.equal(
-      stale.stdout,
+      stale.stderr,
+      '::error::Planned file src/missing.test.tsx is not in this checkout\n',
+    );
+
+    const unlisted = run({ CI_BASE_SHA: 'base-sha' });
+    assert.equal(unlisted.status, 0);
+    assert.equal(
+      unlisted.stdout,
       '--passWithNoTests\n--changed\nbase-sha\n--shard=1/2\n',
     );
     assert.equal(
-      stale.stderr,
-      '::warning::Shard file list not used (src/missing.test.tsx is not in this checkout); resolving the changed graph in the shard instead\n',
+      unlisted.stderr,
+      'The plan carried no file list; resolving the changed graph in the shard\n',
     );
 
     const full = run({ CI_BASE_SHA: 'base-sha', FORCE_FULL: 'true' });
@@ -199,7 +211,10 @@ test('the command prints one argument per line and explains its choice', () => {
     const invalid = run({ SHARD: '3' });
     assert.equal(invalid.status, 1);
     assert.equal(invalid.stdout, '');
-    assert.equal(invalid.stderr, 'SHARD must not exceed SHARD_TOTAL\n');
+    assert.equal(
+      invalid.stderr,
+      '::error::SHARD must not exceed SHARD_TOTAL\n',
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
