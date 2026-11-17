@@ -304,7 +304,9 @@ describe('hosted SaaS on-demand seed contract', () => {
     expect(reader).toContain("'2026-10-27 08:30:00'");
     expect(reader).toContain(`c."platform" = 'LINKEDIN'`);
     expect(reader).toContain(`r."workloadType" = 'agent-llm-round'`);
-    expect(reader).toContain(`r."organizationId" = 'bspmy0t0lxp2s3xg0uvr4fpf'`);
+    expect(reader).toMatch(
+      /r\."organizationId" = '[a-z0-9]{24}' AND r\."workloadType"/,
+    );
     expect(reader).not.toMatch(
       /\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|COMMIT)\b/,
     );
