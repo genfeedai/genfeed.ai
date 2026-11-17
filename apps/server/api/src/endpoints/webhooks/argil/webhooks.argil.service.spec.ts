@@ -159,13 +159,35 @@ describe('ArgilWebhookService', () => {
     expect(reconciledProjects).toEqual([['project-1', 'org-1']]);
   });
 
-  it('lets only one concurrent terminal callback reconcile the project', async () => {
-    await Promise.all([
-      service.handleCallback(success()),
-      service.handleCallback(failure('Late failure')),
-    ]);
+  it.each([
+    ['success first', 'success-first'],
+    ['failure first', 'failure-first'],
+  ])(
+    'persists one terminal outcome and reconciles once when callbacks race (%s)',
+    async (_label, order) => {
+      const callbacks = [
+        () => service.handleCallback(success()),
+        () => service.handleCallback(failure('Late failure')),
+      ];
+      if (order === 'failure-first') {
+        callbacks.reverse();
+      }
 
-    expect(clips.get('clip-1')?.status).toBe('completed');
-    expect(reconciledProjects).toEqual([['project-1', 'org-1']]);
-  });
+      await Promise.all(callbacks.map((callback) => callback()));
+
+      const clip = clips.get('clip-1');
+      // Either terminal callback may win; the loser must leave no trace.
+      if (clip?.status === 'completed') {
+        expect(clip.videoUrl).toBe('https://cdn.argil.ai/video-1.mp4');
+        expect(clip.error).toBeUndefined();
+      } else {
+        expect(clip).toMatchObject({
+          error: 'Late failure',
+          status: 'failed',
+        });
+        expect(clip?.videoUrl).toBeUndefined();
+      }
+      expect(reconciledProjects).toEqual([['project-1', 'org-1']]);
+    },
+  );
 });
