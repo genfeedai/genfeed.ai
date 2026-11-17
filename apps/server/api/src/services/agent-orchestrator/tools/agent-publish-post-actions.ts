@@ -207,7 +207,7 @@ export async function createProactiveAgentTextPost(
     {
       brandId,
       baseContent: caption,
-      title: caption.slice(0, 100),
+      title: readOptionalString(params.title) ?? caption.slice(0, 100),
       media: [],
       idempotencyKey,
       status: scheduledAt ? ReleaseStatus.SCHEDULED : ReleaseStatus.DRAFT,
@@ -482,6 +482,7 @@ export async function createAgentTextDraft(
     };
   }
 
+  const title = readOptionalString(params.title) ?? text.substring(0, 100);
   const post = await postsService.create({
     ...(ctx.runId ? { workflowExecutionId: ctx.runId } : {}),
     ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
@@ -492,7 +493,7 @@ export async function createAgentTextDraft(
     description: text,
     ingredients: media.ingredientIds,
     ...(media.category ? { category: media.category } : {}),
-    label: text.substring(0, 100),
+    label: title,
     organizationId: ctx.organizationId,
     source: 'agent',
     targetExecutionState: TargetExecutionState.DRAFT,
@@ -500,10 +501,22 @@ export async function createAgentTextDraft(
     visibility,
   } as unknown as CreatePostDto);
 
+  const postId = String(post.id);
+  const href = `${APP_ROUTES.PUBLISHING.POSTS}/${encodeURIComponent(postId)}`;
+  const savedTitle = typeof post.label === 'string' ? post.label : title;
   return {
     creditsUsed: 0,
     data: {
-      id: String(post.id),
+      id: postId,
+      href,
+      title: savedTitle,
+      ...(brandId ? { brandId } : {}),
+      ...(ctx.validatedScope
+        ? {
+            agentContextSource: ctx.validatedScope.source,
+            agentContextVersion: ctx.validatedScope.contextVersion,
+          }
+        : {}),
       executionState: TargetExecutionState.DRAFT,
       ...(media.ingredientIds.length > 0
         ? {
@@ -515,6 +528,17 @@ export async function createAgentTextDraft(
         : {}),
       visibility,
     },
+    nextActions: [
+      {
+        id: `saved-post-${postId}`,
+        type: 'content_preview_card',
+        contentFormat: 'social_post',
+        textContent: text,
+        title: savedTitle || 'Draft saved',
+        description: 'Saved as an unpublished draft.',
+        ctas: [{ href, label: 'Open draft' }],
+      },
+    ],
     success: true,
   };
 }

@@ -36,6 +36,31 @@ describe('buildApprovedMutationOutcome', () => {
     ]);
   });
 
+  it('reports the saved draft with its title, canonical link and available brand context', () => {
+    const outcome = buildApprovedMutationOutcome(
+      'create_post',
+      { title: 'Do not echo unpersisted args' },
+      {
+        creditsUsed: 0,
+        success: true,
+        data: {
+          id: 'post-1',
+          title: 'QA draft',
+          href: '/org/brand/publishing/posts/post-1',
+          executionState: 'draft',
+          brandId: 'brand-1',
+          agentContextVersion: 2,
+        },
+      },
+    );
+    expect(outcome?.content).toContain(
+      'Saved unpublished draft [QA draft](/org/brand/publishing/posts/post-1).',
+    );
+    expect(outcome?.content).toContain('brand-1');
+    expect(outcome?.content).toContain('2');
+    expect(outcome?.content).not.toContain('unpersisted');
+  });
+
   it('uses the requested count when the run did not report a total', () => {
     const outcome = buildApprovedMutationOutcome(
       'generate_turbo_content',
