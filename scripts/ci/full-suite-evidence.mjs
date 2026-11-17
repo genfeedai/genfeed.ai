@@ -10,7 +10,7 @@ export const JOBS_PAGE_SIZE = 20;
 const RUNS_PAGE_SIZE = 100;
 // GitHub answers 5xx now and then; the reads are idempotent, so retry them.
 const GH_SERVER_ERROR_ATTEMPTS = 3;
-const GH_SERVER_ERROR_PATTERN = /\(HTTP 5\d\d\)/;
+const GH_SERVER_ERROR_PATTERN = /\bHTTP 5\d\d\b/;
 
 const EXACT_SHA_PATTERN = /^[0-9a-f]{40}$/u;
 const ACTIVE_STATUSES = new Set([

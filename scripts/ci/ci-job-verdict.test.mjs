@@ -814,6 +814,55 @@ test('CLI rejects hostile context and permanent transport errors without token d
   }
 });
 
+for (const jobsPath of [
+  `/repos/${repository}/actions/runs/123/attempts/2/jobs`,
+  '/repositories/987654321/actions/runs/123/attempts/2/jobs',
+]) {
+  test(`follows a next link written as ${jobsPath}`, async () => {
+    const jobs = Array.from({ length: 41 }, (_, i) =>
+      job({ id: i + 1, name: i === 40 ? expected.jobName : `Worker ${i}` }),
+    );
+    const api = reader({ jobs });
+    const get = async (...args) => {
+      const response = await api.get(...args);
+      const page = Number(
+        new URL(`https://api.github.com${args[0]}`).searchParams.get('page'),
+      );
+      if (args[0].includes('/jobs?') && page < 3)
+        response.headers = new Headers({
+          link: `<https://api.github.com${jobsPath}?per_page=20&page=${page + 1}>; rel="next"`,
+        });
+      return response;
+    };
+    assert.equal((await qualifyVerdict(expected, { get })).id, 41);
+  });
+}
+
+for (const link of [
+  '<https://api.github.com/repositories/987654321/actions/runs/999/attempts/2/jobs?per_page=20&page=2>; rel="next"',
+  '<https://api.github.com/repositories/987654321/actions/runs/123/attempts/2/jobs?per_page=20&page=3>; rel="next"',
+  '<https://api.github.com/repositories/987654321/actions/runs/123/attempts/2/jobs?per_page=100&page=2>; rel="next"',
+  '<https://evil.example/repositories/987654321/actions/runs/123/attempts/2/jobs?per_page=20&page=2>; rel="next"',
+]) {
+  test(`rejects a next link that is not the next jobs page ${link}`, async () => {
+    const jobs = Array.from({ length: 41 }, (_, i) =>
+      job({ id: i + 1, name: i === 40 ? expected.jobName : `Worker ${i}` }),
+    );
+    const api = reader({ jobs });
+    await assert.rejects(
+      qualifyVerdict(expected, {
+        get: async (...args) => {
+          const response = await api.get(...args);
+          if (args[0].endsWith('page=1'))
+            response.headers = new Headers({ link });
+          return response;
+        },
+      }),
+      /next-page/,
+    );
+  });
+}
+
 for (const link of [
   '<https://api.github.com/repos/genfeedai/genfeed.ai/actions/runs/123/attempts/2/jobs?per_page=20&page=2>; rel=next',
   '<https://evil.example/token>; rel="NEXT"',

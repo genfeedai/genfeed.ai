@@ -743,12 +743,13 @@ test('CLI retries a GitHub server error on a read', async () => {
       error: (message) => errors.push(String(message)),
     });
   let listCalls = 0;
+  let stderr = 'gh: Bad Gateway (HTTP 502)';
   const flaky = (_command, args) => {
     const path = args[1];
     if (path.includes('/workflows/full-suite.yml/runs?')) {
       listCalls += 1;
       return listCalls === 1
-        ? { status: 1, stderr: 'gh: Bad Gateway (HTTP 502)', stdout: '' }
+        ? { status: 1, stderr, stdout: '' }
         : {
             status: 0,
             stdout: JSON.stringify({
@@ -765,6 +766,12 @@ test('CLI retries a GitHub server error on a read', async () => {
     return { status: 0, stdout: JSON.stringify(body) };
   };
   const errors = [];
+  assert.equal((await cli(flaky, errors)).kind, 'verified');
+  assert.equal(listCalls, 2);
+
+  // `gh` prints the bare form when the gateway answers with a non-JSON body.
+  listCalls = 0;
+  stderr = 'gh: HTTP 502\n';
   assert.equal((await cli(flaky, errors)).kind, 'verified');
   assert.equal(listCalls, 2);
 });
