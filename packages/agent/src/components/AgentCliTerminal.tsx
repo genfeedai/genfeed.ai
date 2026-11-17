@@ -121,12 +121,14 @@ export function useAgentCliTerminal(
   );
 
   // Keep thread ref in sync for use inside callbacks
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     activeThreadIdRef.current = activeThreadId;
   }, [activeThreadId]);
 
   // The boot effect reads the selection through a ref: selecting a session
   // must not re-run it, because its cleanup kills the active session.
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     activeTerminalSessionByThreadRef.current = activeTerminalSessionByThread;
   }, [activeTerminalSessionByThread]);

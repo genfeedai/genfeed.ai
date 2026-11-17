@@ -303,6 +303,7 @@ export function usePostsList({
   });
   const { pagination, posts } = postsResult;
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (postsError instanceof Error) {
       logger.error('GET /posts failed', postsError);
@@ -331,6 +332,7 @@ export function usePostsList({
     );
   }, [brandId, isSocketReady, subscribeToSocket, findAllPosts]);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     postsRef.current = posts;
   }, [posts]);

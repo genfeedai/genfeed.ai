@@ -265,6 +265,7 @@ export default function IssuesList() {
   const isLoading = tasksQuery.isPending;
 
   const { error: loadError } = tasksQuery;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (loadError) {
       logger.error('Failed to load tasks', loadError);

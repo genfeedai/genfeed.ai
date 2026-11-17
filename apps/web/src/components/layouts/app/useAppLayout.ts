@@ -93,6 +93,7 @@ export function useAppLayout({
   const sidebarDragWidthRef = useRef(sidebarExpandedWidth);
   const sidebarDragCleanupRef = useRef<(() => void) | null>(null);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     sidebarDragWidthRef.current = sidebarExpandedWidth;
   }, [sidebarExpandedWidth]);

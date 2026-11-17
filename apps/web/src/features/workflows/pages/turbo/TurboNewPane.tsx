@@ -14,6 +14,7 @@ import type {
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useMountedRef } from '@hooks/utils/use-mounted-ref/use-mounted-ref';
 import {
   getJsonApiErrorMember,
   getJsonApiErrorMessage,
@@ -129,13 +130,7 @@ export default function TurboNewPane() {
     workflowId,
   };
   const submitting = useRef(false);
-  const mounted = useRef(true);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
+  const mounted = useMountedRef();
   // A new brand, source or Automation access starts the workflow choice over.
   const workflowScope = `${brandId}:${kind}:${isWorkflowEnabled}`;
   const [seenWorkflowScope, setSeenWorkflowScope] = useState(workflowScope);

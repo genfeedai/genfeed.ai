@@ -177,6 +177,7 @@ export function useAgentFullPage({
   // right pane / mobile drawer when the active thread has produced nothing yet.
   const showSetupPanel = agentSetup.showSetupPanel && !hasThreadOutputs;
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     activeThreadRef.current = activeStoreThreadId;
   }, [activeStoreThreadId]);
@@ -189,6 +190,7 @@ export function useAgentFullPage({
     setMobileSetupOpen(false);
   }, [showSetupPanel]);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     messageCountRef.current = existingMessages.length;
   }, [existingMessages.length]);

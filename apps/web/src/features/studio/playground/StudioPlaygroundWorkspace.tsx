@@ -11,6 +11,7 @@ import type { CreativeAppAgentContext } from '@genfeedai/contracts/interfaces';
 import type { AttachmentItem } from '@genfeedai/props/ui/attachments.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
+import { useMountedRef } from '@hooks/utils/use-mounted-ref/use-mounted-ref';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import type { JSONContent } from '@tiptap/core';
@@ -42,7 +43,6 @@ import { useStudioGalleryView } from '@/features/studio/playground/hooks/useStud
 import { useStudioGeneration } from '@/features/studio/playground/hooks/useStudioGeneration';
 import { useStudioHandoffPrefill } from '@/features/studio/playground/hooks/useStudioHandoffPrefill';
 import { useStudioModelFallbacks } from '@/features/studio/playground/hooks/useStudioModelFallbacks';
-import { useStudioMountedRef } from '@/features/studio/playground/hooks/useStudioMountedRef';
 import { useStudioPlaygroundGallery } from '@/features/studio/playground/hooks/useStudioPlaygroundGallery';
 import { useStudioPlaygroundModels } from '@/features/studio/playground/hooks/useStudioPlaygroundModels';
 import { useStudioPlaygroundSettings } from '@/features/studio/playground/hooks/useStudioPlaygroundSettings';
@@ -233,7 +233,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       brandId,
       filter: 'all',
     });
-  const isMountedRef = useStudioMountedRef();
+  const isMountedRef = useMountedRef();
 
   const {
     handleAttachGeneratedReference,

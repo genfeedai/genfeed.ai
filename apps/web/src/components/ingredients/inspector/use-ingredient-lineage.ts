@@ -148,6 +148,7 @@ export function useIngredientLineage(
 
   const firstPageError = firstPage.error;
   const hasFirstPage = firstPage.data !== undefined;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (firstPageError && !hasFirstPage) {
       logger.error(

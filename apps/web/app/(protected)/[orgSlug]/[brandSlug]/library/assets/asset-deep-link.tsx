@@ -92,6 +92,7 @@ export default function AssetDeepLink() {
   }, [closeIngredientSidebar, ingredient, isInScope, openKey, openedKey]);
 
   const lookupError = isLookupEnabled ? assetQuery.error : null;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (!lookupError) return;
     logger.warn('Could not open linked library asset', {

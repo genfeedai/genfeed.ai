@@ -48,6 +48,7 @@ export function useIngredientDeepLink({
   const handledAssetIdRef = useRef<string | null>(null);
 
   const onOpenRef = useRef(onOpen);
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     onOpenRef.current = onOpen;
   }, [onOpen]);

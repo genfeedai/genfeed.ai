@@ -157,6 +157,7 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
   const folders = foldersPage?.items ?? [];
   const isRefreshing = isFetching && !isLoading;
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (foldersError) {
       logger.error('GET /folders failed', foldersError);

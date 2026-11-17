@@ -35,6 +35,7 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   const callbackRef = useRef(callback);
 
   // Update callback if it changes
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     callbackRef.current = callback;
   }, [callback]);

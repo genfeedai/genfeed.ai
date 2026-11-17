@@ -200,6 +200,7 @@ export function useAppProtectedLayout(
   );
 
   const getTokenRef = useRef(getToken);
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     getTokenRef.current = getToken;
   }, [getToken]);

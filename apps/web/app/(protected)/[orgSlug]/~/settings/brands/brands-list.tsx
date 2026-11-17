@@ -155,6 +155,7 @@ function BrandsListContent() {
   const canMoveBrands =
     isSuperAdmin || (hasElevatedRole && destinations.length > 0);
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (brandsError) {
       logger.error('Failed to load brands', brandsError);

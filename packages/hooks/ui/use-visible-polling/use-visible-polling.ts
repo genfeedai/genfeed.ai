@@ -23,6 +23,7 @@ export function useVisiblePolling(
   const pollRef = useRef(poll);
   const wasHiddenRef = useRef(false);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     pollRef.current = poll;
   }, [poll]);

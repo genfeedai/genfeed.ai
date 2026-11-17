@@ -166,6 +166,7 @@ export function useBrandKitReviewCard({
     onBrandOsDraftLoaded?.();
   }, [appliedHandoff, onBrandOsDraftLoaded]);
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (claimedError && !hasClaimedHandoff) {
       logger.error('Failed to read claimed Brand OS draft', claimedError);

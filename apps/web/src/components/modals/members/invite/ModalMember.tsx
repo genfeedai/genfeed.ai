@@ -98,6 +98,7 @@ export default function ModalMember({
   };
 
   const { error: rolesLoadError } = rolesQuery;
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (rolesLoadError) {
       logger.error('GET /roles failed', rolesLoadError);

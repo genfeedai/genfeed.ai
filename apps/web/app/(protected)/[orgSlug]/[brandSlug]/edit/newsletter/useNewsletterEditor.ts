@@ -124,6 +124,7 @@ export function useNewsletterEditor(
     notificationsService.error('Failed to load newsletter');
   }, [hasNewsletter, loadError, notificationsService]);
 
+  // use-effect-audit: ignore reports a failed load to the logger or a notification
   useEffect(() => {
     if (contextError) {
       logger.error('Failed to load newsletter context', contextError);

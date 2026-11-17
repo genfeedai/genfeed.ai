@@ -32,6 +32,7 @@ function PromptEditorView({
   const placeholderRef = useRef(placeholder);
   const isApplyingExternalRef = useRef(false);
 
+  // use-effect-audit: ignore keeps refs to the latest callbacks and values
   useEffect(() => {
     onSubmitRef.current = onSubmit;
     onValueChangeRef.current = onValueChange;
