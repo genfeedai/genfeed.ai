@@ -313,6 +313,7 @@ describe.skipIf(!connectionString)(
       assetId: string;
       reservationId: string;
       updatedMinutesAgo?: number;
+      runId?: string;
     }) {
       const runPlan = plan();
       const operationId = randomUUID();
@@ -354,7 +355,7 @@ describe.skipIf(!connectionString)(
       });
       const row = await database().contentRun.create({
         data: {
-          id: randomUUID(),
+          id: input.runId ?? randomUUID(),
           organizationId,
           brandId,
           config: storyboardJson(config),
@@ -715,31 +716,67 @@ describe.skipIf(!connectionString)(
       });
     });
 
-    it('works through a backlog across ticks instead of revisiting the same runs', async () => {
-      const first = await placeholder(IngredientCategory.IMAGE, {
+    it('moves past a run the provider is still working on instead of revisiting it', async () => {
+      // `a` stays live and sorts first: without the cursor every page of one
+      // run would return it again and `b` would never be reached.
+      const working = await placeholder(IngredientCategory.IMAGE, {
+        status: IngredientStatus.PROCESSING,
+        isAccepted: true,
+      });
+      const finished = await placeholder(IngredientCategory.IMAGE, {
         status: IngredientStatus.GENERATED,
         isAccepted: true,
       });
-      const second = await placeholder(IngredientCategory.IMAGE, {
-        status: IngredientStatus.GENERATED,
-        isAccepted: true,
+      const workingHold = await hold(`still-${randomUUID()}`);
+      const finishedHold = await hold(`still-${randomUUID()}`);
+      await stillRun({
+        assetId: working,
+        reservationId: workingHold.id,
+        runId: `${organizationId}-run-a`,
       });
-      const firstHold = await hold(`still-${randomUUID()}`);
-      const secondHold = await hold(`still-${randomUUID()}`);
-      await stillRun({ assetId: first, reservationId: firstHold.id });
-      await stillRun({ assetId: second, reservationId: secondHold.id });
+      await stillRun({
+        assetId: finished,
+        reservationId: finishedHold.id,
+        runId: `${organizationId}-run-b`,
+      });
 
-      await sweep.sweep(1);
-      await sweep.sweep(1);
+      await sweep.sweep(1, 1);
+      expect((await hold_(finishedHold.id)).status).toBe(
+        CreditReservationStatus.RESERVED,
+      );
+      await sweep.sweep(1, 1);
 
-      expect((await hold_(firstHold.id)).status).toBe(
+      expect((await hold_(finishedHold.id)).status).toBe(
         CreditReservationStatus.SETTLED,
       );
-      expect((await hold_(secondHold.id)).status).toBe(
-        CreditReservationStatus.SETTLED,
+      expect((await hold_(workingHold.id)).status).toBe(
+        CreditReservationStatus.RESERVED,
       );
+    });
+
+    it('settles every run of a backlog longer than a page before expiry releases the due holds', async () => {
+      const holds = [];
+      for (let index = 0; index < 3; index += 1) {
+        const assetId = await placeholder(IngredientCategory.IMAGE, {
+          status: IngredientStatus.GENERATED,
+          isAccepted: true,
+        });
+        const due = await hold(
+          `still-${randomUUID()}`,
+          new Date(Date.now() - 60_000),
+        );
+        holds.push(due.id);
+        await stillRun({ assetId, reservationId: due.id });
+      }
+
+      // One run per page, three pages: the same drain the cron runs before expiry.
+      await sweep.sweep(1, 3);
+      await reservations.expireDue();
+
+      for (const id of holds)
+        expect((await hold_(id)).status).toBe(CreditReservationStatus.SETTLED);
       expect(await wallet()).toEqual({
-        balance: STARTING_BALANCE - 2 * HELD_CREDITS,
+        balance: STARTING_BALANCE - 3 * HELD_CREDITS,
         held: 0,
       });
     });

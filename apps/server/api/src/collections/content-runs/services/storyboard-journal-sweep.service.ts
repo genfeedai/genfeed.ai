@@ -12,8 +12,11 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
-/** Upper bound on runs reconciled per sweep, so one tick stays bounded. */
+/** Runs reconciled per page. */
 const STORYBOARD_JOURNAL_SWEEP_LIMIT = 25;
+
+/** Pages drained per tick: 100 runs, so one tick stays bounded. */
+const STORYBOARD_JOURNAL_SWEEP_MAX_PAGES = 4;
 
 /**
  * Only runs touched in this window are swept. A paid hold lives two hours, so
@@ -79,13 +82,39 @@ export class StoryboardJournalSweepService {
     private readonly logger: LoggerService,
   ) {}
 
+  /**
+   * Visits up to `maxPages` pages of `limit` runs, stopping early once the
+   * backlog is drained. The cron runs this just before the generic expiry
+   * sweep, which releases every due hold, so a backlog longer than one page
+   * is drained here rather than left for the next tick.
+   */
   async sweep(
     limit: number = STORYBOARD_JOURNAL_SWEEP_LIMIT,
+    maxPages: number = STORYBOARD_JOURNAL_SWEEP_MAX_PAGES,
   ): Promise<StoryboardJournalSweepResult> {
+    let runCount = 0;
+    let failedCount = 0;
+    for (let page = 0; page < maxPages; page += 1) {
+      const result = await this.sweepPage(limit);
+      runCount += result.runCount;
+      failedCount += result.failedCount;
+      if (result.isDrained) break;
+      if (page === maxPages - 1)
+        this.logger.warn('Storyboard journal sweep left a backlog', {
+          pageCount: maxPages,
+          limit,
+        });
+    }
+    return { runCount, failedCount };
+  }
+
+  private async sweepPage(
+    limit: number,
+  ): Promise<StoryboardJournalSweepResult & { isDrained: boolean }> {
     const candidates = await this.findCandidates(limit);
     // A short page means the backlog is drained; start from the top next time.
-    this.cursor =
-      candidates.length === limit ? candidates.at(-1)?.id : undefined;
+    const isDrained = candidates.length < limit;
+    this.cursor = isDrained ? undefined : candidates.at(-1)?.id;
     let runCount = 0;
     let failedCount = 0;
     for (const candidate of candidates) {
@@ -144,7 +173,7 @@ export class StoryboardJournalSweepService {
         runCount,
         failedCount,
       });
-    return { runCount, failedCount };
+    return { runCount, failedCount, isDrained };
   }
 
   private async findCandidates(limit: number) {
