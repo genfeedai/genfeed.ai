@@ -34,6 +34,8 @@ const MCP_TOOL_ERROR_CODES = [
   'validation_failed',
   'approval_pending',
   'brand_required',
+  'policy_check_unavailable',
+  'publishing_held',
 ] as const;
 
 type McpToolErrorCode = (typeof MCP_TOOL_ERROR_CODES)[number];
@@ -404,9 +406,15 @@ function readBodySignals(body: unknown): Partial<McpToolFailureSignals> {
   const members = Array.isArray(body.errors) ? body.errors : [];
   const first = members.find(isRecord);
   const memberCode =
-    first && isRecord(first.meta) && typeof first.meta.domainCode === 'string'
-      ? first.meta.domainCode
-      : undefined;
+    first &&
+    typeof first.code === 'string' &&
+    !DIGITS_ONLY_PATTERN.test(first.code)
+      ? first.code
+      : first &&
+          isRecord(first.meta) &&
+          typeof first.meta.domainCode === 'string'
+        ? first.meta.domainCode
+        : undefined;
   const memberTitle =
     first && typeof first.title === 'string' ? first.title : undefined;
   const memberDetail =
@@ -502,6 +510,25 @@ export function classifyMcpToolFailure(
   const domainCode = signals.domainCode;
   const validationErrors = signals.validationErrors ?? [];
   const status = signals.status;
+
+  if (domainCode === 'brand_policy_check_unavailable') {
+    return compactToolError({
+      code: 'policy_check_unavailable',
+      message:
+        'The brand Policy check is unavailable and publishing is held. Resume the existing release to check again; do not create another release. A member can also review it in Genfeed.',
+    });
+  }
+
+  if (
+    domainCode === 'brand_policy_held' ||
+    domainCode === 'branded_receipt_held'
+  ) {
+    return compactToolError({
+      code: 'publishing_held',
+      message:
+        'Publishing is held by the brand Policy or generation review. A member must review the existing release in Genfeed before it can publish.',
+    });
+  }
 
   if (
     validationErrors.length > 0 ||

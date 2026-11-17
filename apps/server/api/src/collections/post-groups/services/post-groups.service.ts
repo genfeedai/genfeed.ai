@@ -12,6 +12,7 @@ import {
 import { deriveReleaseTitle } from '@api/collections/post-groups/services/post-group-release-projection.util';
 import {
   applyReleaseTargetUpdates,
+  approveScheduledReleaseTargets,
   GROUP_ACTION_STATES,
   type PostGroupTargetOperationDependencies,
   resolvePublishNowReleaseId,
@@ -654,18 +655,20 @@ export class PostGroupsService {
     );
   }
 
-  resume(
+  async resume(
     organizationId: string,
     userId: string,
     groupId: string,
   ): Promise<IReleaseGroup> {
-    return this.transitionGroupTargets(
+    const release = await this.transitionGroupTargets(
       organizationId,
       userId,
       groupId,
       TargetExecutionState.SCHEDULED,
       [TargetExecutionState.PAUSED],
     );
+    await this.approveReleaseTargets(release, userId, 'scheduled');
+    return release;
   }
 
   async publishNow(
@@ -854,19 +857,11 @@ export class PostGroupsService {
     mode: 'immediate' | 'scheduled',
   ): Promise<void> {
     try {
-      await Promise.all(
-        (release.targets ?? []).map((target) =>
-          this.publishApprovalsService.createForCurrentPost({
-            actorUserId: userId,
-            mode,
-            organizationId: release.organizationId,
-            postId: target.id,
-            provenance: {
-              releaseId: release.id,
-              surface: 'post-groups',
-            },
-          }),
-        ),
+      await approveScheduledReleaseTargets(
+        release,
+        userId,
+        mode,
+        this.publishApprovalsService,
       );
     } catch (error: unknown) {
       await this.transitionGroupTargets(
