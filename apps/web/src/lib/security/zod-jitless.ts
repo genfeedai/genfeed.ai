@@ -27,3 +27,5 @@ const zodGlobal = globalThis as typeof globalThis & ZodGlobalScope;
 
 zodGlobal.__zod_globalConfig ??= {};
 zodGlobal.__zod_globalConfig.jitless = true;
+
+export {};
