@@ -43,7 +43,7 @@ as a one-line index, not restated in full.
 - **Serializers live only in `packages/serializers/`, never in API modules; never return a raw DB record**
   — see `context/system-patterns.md` (Serializer triplet); cross-checked by `bun run check:serializer-drift`.
 - **Soft delete is `isDeleted: boolean`; there is no `deletedAt`.**
-- **AbortController in every async `useEffect`** — not currently guard-checked; see `AGENTS.md`.
+- **No new `useEffect`; AbortController in every async effect** — ratcheted by `bun run check:use-effect` (baseline only shrinks); see `AGENTS.md`.
 - **No dynamic `import('...')` inline in type definitions; no backward-compatibility wrappers/aliases/re-exports**
   — not guard-checked; green-field policy, fix at the source (`AGENTS.md` Project Overview).
 - **Compound indexes live in Prisma schema `@@index` or explicit migrations**, close to the owning model.

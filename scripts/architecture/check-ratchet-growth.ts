@@ -17,6 +17,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
+import { useEffectBaselineEntryKeys } from './check-use-effect';
 
 const MISSING_AT_REF_ERROR_PATTERN =
   /exists on disk, but not in|does not exist in/;
@@ -198,6 +199,13 @@ export const RATCHET_SOURCES: readonly RatchetSource[] = [
     instead:
       'bound the read (take/cursor or an id: { in } lookup) or justify it with a sql-risk-audit: ignore comment instead of baselining it',
     name: 'SQL risk findings',
+  },
+  {
+    entryKeys: useEffectBaselineEntryKeys,
+    file: 'scripts/architecture/use-effect.baseline.json',
+    instead:
+      'derive the value during render, run it in the event handler, or use a data hook instead of a new useEffect; give async effects an AbortController',
+    name: 'useEffect calls',
   },
 ];
 
