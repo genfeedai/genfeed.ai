@@ -67,7 +67,9 @@ describe.skipIf(!connectionString)(
     let publicNewsletter: NewsletterPublicService;
     /** Every email handed to the notifications app, in order. */
     let outbox: IEmailDeliveryRequest[];
+    let rejectNextDelivery = false;
     let hasSubscriberCapacity = true;
+    const checkCapacity = vi.fn(async () => hasSubscriberCapacity);
     /** Emails left this month; null is a plan without a cap. */
     let remainingEmails: number | null = null;
 
@@ -118,6 +120,10 @@ describe.skipIf(!connectionString)(
       const db = prisma as unknown as PrismaService;
       const notifications = {
         deliverEmail: async (request: IEmailDeliveryRequest) => {
+          if (rejectNextDelivery) {
+            rejectNextDelivery = false;
+            throw new Error('Delivery unavailable');
+          }
           outbox.push(request);
           return `msg-${outbox.length}-${randomUUID()}`;
         },
@@ -165,7 +171,7 @@ describe.skipIf(!connectionString)(
       const usage = {
         assertSendCapacity: async () => undefined,
         assertSubscriberCapacity: async () => undefined,
-        hasSubscriberCapacity: async () => hasSubscriberCapacity,
+        hasSubscriberCapacity: checkCapacity,
         remainingEmails: async () => remainingEmails,
       } as unknown as NewsletterUsageService;
       const logger = { warn: () => undefined } as unknown as LoggerService;
@@ -230,6 +236,7 @@ describe.skipIf(!connectionString)(
       hasSubscriberCapacity = true;
       remainingEmails = null;
       outbox = [];
+      rejectNextDelivery = false;
     });
 
     async function seedBrand(slug = 'field-notes'): Promise<string> {
@@ -387,6 +394,56 @@ describe.skipIf(!connectionString)(
       expect(outbox.map((message) => message.to)).toEqual([
         'unverified@example.com',
       ]);
+    });
+
+    it('lets an unverified reader retry a failed confirmation delivery immediately', async () => {
+      const handle = 'retry-confirmation';
+      const brandId = await seedBrand(handle);
+      const reader = await seedAccount('retry@example.com', false);
+      rejectNextDelivery = true;
+
+      await expect(
+        subscribers.subscribeAccount(reader, { handle }, null),
+      ).rejects.toThrow();
+      expect(outbox).toHaveLength(0);
+      const retry = () =>
+        subscribers.subscribeAccount(reader, { handle }, null);
+      await expect(Promise.all([retry(), retry()])).resolves.toEqual([
+        { status: 'confirmation_sent' },
+        { status: 'confirmation_sent' },
+      ]);
+      await expect(retry()).resolves.toEqual({ status: 'confirmation_sent' });
+      expect(outbox).toHaveLength(1);
+      const token = /public\/newsletter\/confirm\/([A-Za-z0-9_-]{43})/.exec(
+        outbox[0]?.html ?? '',
+      )?.[1];
+      expect(await subscribers.confirm(token ?? '')).toMatchObject({
+        brandSlug: handle,
+      });
+      expect(await statusesOf(brandId)).toEqual({
+        'retry@example.com': 'active',
+      });
+    });
+
+    it('preserves a bounce recorded while an account is subscribing', async () => {
+      const handle = 'concurrent-bounce';
+      const brandId = await seedBrand(handle);
+      const email = 'concurrent-bounce@example.com';
+      const reader = await seedAccount(email, true);
+      const id = await seedSubscriber(brandId, email, 'pending');
+      checkCapacity.mockImplementationOnce(async () => {
+        await pool.query(
+          `UPDATE "${schema}"."brand_subscribers" SET status='bounced' WHERE id=$1`,
+          [id],
+        );
+        return true;
+      });
+
+      await expect(
+        subscribers.subscribeAccount(reader, { handle }, null),
+      ).rejects.toThrow();
+      expect(await statusesOf(brandId)).toEqual({ [email]: 'bounced' });
+      expect(outbox).toHaveLength(0);
     });
 
     it('lets a reader who unsubscribed subscribe again, but never a bounced address', async () => {
