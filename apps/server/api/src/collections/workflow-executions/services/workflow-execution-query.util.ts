@@ -167,6 +167,20 @@ export function buildCancellableAgentRunWhere(
 }
 
 /**
+ * What the caller may read by id: any run in their customer activity, plus
+ * their own live agent conversation runs. The agent chat looks its run up by id
+ * to restore or reconcile it, and without the second arm every lookup got a 404
+ * for a run that exists.
+ */
+export function buildReadableExecutionWhere(
+  organizationId: string,
+  userId: string,
+  id: string,
+): Prisma.WorkflowExecutionWhereInput {
+  return buildCancellableExecutionWhere(organizationId, userId, id);
+}
+
+/**
  * What the caller may stop: any run in their customer activity, plus their own
  * agent conversation runs. Without the second arm the chat's Stop button got a
  * 404 and the turn ran on, spending credits.

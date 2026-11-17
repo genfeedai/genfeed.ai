@@ -2,6 +2,7 @@ import { WorkflowExecutionQueryDto } from '@api/collections/workflow-executions/
 import {
   buildCancellableExecutionWhere,
   buildCustomerExecutionWhere,
+  buildReadableExecutionWhere,
 } from '@api/collections/workflow-executions/services/workflow-execution-query.util';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 
@@ -262,10 +263,9 @@ describe('WorkflowExecutionsController', () => {
 
       await expect(result).rejects.toBeInstanceOf(NotFoundException);
       await expect(result).rejects.toMatchObject({ status: 404 });
-      expect(mockService.findOneWithAccounting).toHaveBeenCalledWith({
-        ...buildCustomerExecutionWhere(organizationId),
-        id: 'missing-exec',
-      });
+      expect(mockService.findOneWithAccounting).toHaveBeenCalledWith(
+        buildReadableExecutionWhere(organizationId, 'user-123', 'missing-exec'),
+      );
       expect(vi.mocked(serializeSingle).mock.calls).toHaveLength(
         serializedBefore,
       );
@@ -281,10 +281,9 @@ describe('WorkflowExecutionsController', () => {
 
       const result = await controller.findOne(mockRequest, mockUser, 'exec-1');
 
-      expect(mockService.findOneWithAccounting).toHaveBeenCalledWith({
-        ...buildCustomerExecutionWhere(organizationId),
-        id: 'exec-1',
-      });
+      expect(mockService.findOneWithAccounting).toHaveBeenCalledWith(
+        buildReadableExecutionWhere(organizationId, 'user-123', 'exec-1'),
+      );
       expect(result).toEqual({ ...mockExecution, accounting: null });
     });
   });
