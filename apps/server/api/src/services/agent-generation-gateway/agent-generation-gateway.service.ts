@@ -11,6 +11,7 @@ import { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImageReframeService } from '@api/collections/images/services/image-reframe.service';
 import { ImageUpscaleService } from '@api/collections/images/services/image-upscale.service';
+import { ImagesService } from '@api/collections/images/services/images.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
@@ -37,10 +38,12 @@ import type {
   IAgentGenerationGateway,
 } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
+  IngredientCategory,
   MemberRole,
   ModelCategory,
 } from '@genfeedai/contracts';
@@ -99,6 +102,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
     private readonly videosService: VideosService,
     private readonly voiceGenerationService: VoiceGenerationService,
     private readonly websocketService: NotificationsPublisherService,
+    private readonly imagesService: ImagesService,
   ) {}
 
   /** Mirrors `ArticlesOperationsController.generateArticles` — `POST /v1/articles/generations`. */
@@ -326,14 +330,42 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
           source: ActivitySource.IMAGE_GENERATION,
         },
         dto: CreateImageDto,
-        handle: ({ dto, request, user }) => {
+        handle: async ({ dto, request, user }) => {
           request.generationOriginalPrompt = input.originalPrompt;
-          return this.imageGenerationService.generateImage(
+          const response = await this.imageGenerationService.generateImage(
             user,
             dto,
             request,
             input.onPlaceholderCreated,
           );
+          if (!dto.sourceActionId) return response;
+          const id = response.data?.id;
+          const brandId = dto.brandId || user.brandId;
+          const ingredient =
+            id &&
+            brandId &&
+            (await this.imagesService.findOne(
+              {
+                id,
+                brandId,
+                organizationId: user.organizationId,
+                category: IngredientCategory.IMAGE,
+                sourceActionId: dto.sourceActionId,
+                isDeleted: false,
+              },
+              [
+                PopulatePatterns.promptFull,
+                PopulatePatterns.metadataFull,
+                PopulatePatterns.brandMinimal,
+              ],
+            ));
+          if (!ingredient) {
+            throw new HttpException(
+              'The approved image has no matching Library asset.',
+              HttpStatus.CONFLICT,
+            );
+          }
+          return serializeSingle(request, IngredientSerializer, ingredient);
         },
         organizationModule: { moduleId: 'playground' },
         isSubscriptionCheckSkipped: true,

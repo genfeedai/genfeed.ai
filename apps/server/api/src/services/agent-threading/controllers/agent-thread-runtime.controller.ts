@@ -298,6 +298,7 @@ export class AgentThreadRuntimeController {
             content: resolveInputContinuationContent(
               inputRequest.fieldId,
               body,
+              inputRequest.prompt,
             ),
             clientRequestId: `input-response:${requestId}`,
             brandId: scope.brandId,

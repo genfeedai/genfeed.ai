@@ -207,6 +207,8 @@ describe('AgentGenerationGatewayService decorator parity', () => {
   let invoke: ReturnType<typeof vi.fn>;
   let capturedInOrder: AgentEndpoint<object, unknown>[];
 
+  const generateImage = vi.fn();
+  const findImage = vi.fn();
   beforeEach(() => {
     capturedInOrder = [];
     invoke = vi.fn((endpoint: AgentEndpoint<object, unknown>) => {
@@ -219,7 +221,7 @@ describe('AgentGenerationGatewayService decorator parity', () => {
       {} as never,
       {} as never,
       {} as never,
-      {} as never,
+      { generateImage } as never,
       {} as never,
       {} as never,
       { invoke } as unknown as AgentEndpointInvoker,
@@ -230,10 +232,45 @@ describe('AgentGenerationGatewayService decorator parity', () => {
       {} as never,
       {} as never,
       {} as never,
+      { findOne: findImage } as never,
     );
   });
 
   /** Calls all 9 gateway methods in the exact order `ROUTES` declares them. */
+  it('requires the confirmed image to exist in the Library under this dispatch and brand', async () => {
+    const principal = {
+      userId: USER_ID,
+      organizationId: ORGANIZATION_ID,
+      brandId: testId('brand'),
+    };
+    const dto = {
+      sourceActionId: 'mutation-approval:fixture',
+      brandId: principal.brandId,
+    };
+    await service.generateImage({ principal, body: dto });
+    generateImage.mockResolvedValue({
+      data: {
+        id: 'claimed-id',
+        attributes: { url: 'https://illustrative.invalid/image' },
+      },
+    });
+    findImage.mockResolvedValue(null);
+    await expect(
+      capturedInOrder[0].handle({ user: principal, dto, request: {} } as never),
+    ).rejects.toThrow('no matching Library asset');
+    expect(findImage).toHaveBeenCalledWith(
+      {
+        id: 'claimed-id',
+        brandId: principal.brandId,
+        organizationId: ORGANIZATION_ID,
+        category: 'IMAGE',
+        sourceActionId: dto.sourceActionId,
+        isDeleted: false,
+      },
+      expect.any(Array),
+    );
+  });
+
   async function runAllRoutes(): Promise<
     Map<string, AgentEndpoint<object, unknown>>
   > {
@@ -378,6 +415,7 @@ describe('AgentGenerationGatewayService decorator parity', () => {
       {} as never,
       {} as never,
       { findOne: vi.fn().mockResolvedValue({ id: 'ingredient-1' }) } as never,
+      {} as never,
       {} as never,
       {} as never,
     );
