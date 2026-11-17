@@ -8,7 +8,7 @@ import {
 } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
 import {
   buildCancellableExecutionWhere,
-  buildCustomerExecutionWhere,
+  buildReadableExecutionWhere,
 } from '@api/collections/workflow-executions/services/workflow-execution-query.util';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { AGENT_CONVERSATION_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
@@ -355,18 +355,17 @@ export class WorkflowExecutionsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
+    const organizationId = resolveTenantReadScope(user).organizationId;
     const execution =
-      await this.workflowExecutionsService.findOneWithAccounting({
-        ...(getIsSuperAdmin(user, req)
-          ? {
-              organizationId: resolveTenantReadScope(user).organizationId,
-              isDeleted: false,
-            }
-          : buildCustomerExecutionWhere(
-              resolveTenantReadScope(user).organizationId,
-            )),
-        id,
-      });
+      await this.workflowExecutionsService.findOneWithAccounting(
+        getIsSuperAdmin(user, req)
+          ? { organizationId, isDeleted: false, id }
+          : buildReadableExecutionWhere(
+              organizationId,
+              user.userId ?? user.id,
+              id,
+            ),
+      );
     if (!execution) {
       throw new NotFoundException('Execution');
     }
