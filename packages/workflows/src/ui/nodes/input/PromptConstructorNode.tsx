@@ -62,6 +62,7 @@ function PromptConstructorNodeComponent(props: NodeProps) {
     null,
   );
 
+  // use-effect-audit: ignore clears the autocomplete and paste timers on unmount
   useEffect(() => {
     return () => {
       if (closeAutocompleteTimeoutRef.current) {

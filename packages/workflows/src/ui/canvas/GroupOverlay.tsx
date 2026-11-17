@@ -147,6 +147,7 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
   }, [isEditing]);
 
   // Close color picker when clicking outside
+  // use-effect-audit: ignore subscribes to document mousedown to close the colour picker
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -218,6 +219,7 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
     dragStartRef.current = null;
   });
 
+  // use-effect-audit: ignore subscribes to window mouse events while a group drag is active
   useEffect(() => {
     if (!isDragging) return;
 

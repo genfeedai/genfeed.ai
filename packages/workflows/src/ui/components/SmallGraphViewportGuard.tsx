@@ -14,6 +14,7 @@ export function SmallGraphViewportGuard() {
   const reactFlow = useReactFlow();
   const previousNodeCountRef = useRef<number | null>(null);
 
+  // use-effect-audit: ignore schedules an animation frame that fits the React Flow viewport
   useEffect(() => {
     const previousNodeCount = previousNodeCountRef.current;
     previousNodeCountRef.current = nodes.length;

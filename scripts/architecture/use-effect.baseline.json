@@ -602,19 +602,14 @@
     "packages/ui/src/primitives/tooltip.tsx": 1,
     "packages/ui/src/utils/modal-global-side-effects.ts": 3,
     "packages/workflows/src/ui/canvas/ConnectionDropMenu.tsx": 2,
-    "packages/workflows/src/ui/canvas/GroupOverlay.tsx": 3,
+    "packages/workflows/src/ui/canvas/GroupOverlay.tsx": 1,
     "packages/workflows/src/ui/canvas/NodeSearch.tsx": 1,
-    "packages/workflows/src/ui/canvas/WorkflowCanvas.tsx": 2,
-    "packages/workflows/src/ui/components/GlobalImageHistory.tsx": 4,
-    "packages/workflows/src/ui/components/SmallGraphViewportGuard.tsx": 1,
-    "packages/workflows/src/ui/hooks/useCanvasKeyboardShortcuts.ts": 1,
-    "packages/workflows/src/ui/nodes/BaseNode.tsx": 2,
+    "packages/workflows/src/ui/canvas/WorkflowCanvas.tsx": 1,
     "packages/workflows/src/ui/nodes/composition/WorkflowRefNode.tsx": 1,
-    "packages/workflows/src/ui/nodes/input/PromptConstructorNode.tsx": 3,
-    "packages/workflows/src/ui/nodes/NodeDetailModal.tsx": 3,
+    "packages/workflows/src/ui/nodes/input/PromptConstructorNode.tsx": 2,
+    "packages/workflows/src/ui/nodes/NodeDetailModal.tsx": 2,
     "packages/workflows/src/ui/nodes/saas/ActionSchemaFields.tsx": 1,
     "packages/workflows/src/ui/nodes/SchemaInputs.tsx": 1,
-    "packages/workflows/src/ui/provider/WorkflowUIProvider.tsx": 8,
-    "packages/workflows/src/ui/toolbar/Toolbar.tsx": 3
+    "packages/workflows/src/ui/toolbar/Toolbar.tsx": 1
   }
 }

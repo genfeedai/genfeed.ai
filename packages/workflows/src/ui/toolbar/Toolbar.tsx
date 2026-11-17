@@ -182,6 +182,7 @@ function useValidationErrorToast(
     };
   }, []);
 
+  // use-effect-audit: ignore shows and dismisses a toast in the toast service
   useEffect(() => {
     if (messages.length === 0) {
       toast.dismiss(VALIDATION_TOAST_ID);
@@ -239,6 +240,7 @@ export function Toolbar({
   useValidationErrorToast(uniqueErrorMessages, clearValidationErrors);
 
   // Subscribe to temporal state changes for undo/redo button states
+  // use-effect-audit: ignore subscribes to the workflow store temporal history
   useEffect(() => {
     const unsubscribe = useWorkflowStore.temporal.subscribe((state) => {
       setHistoryState({
