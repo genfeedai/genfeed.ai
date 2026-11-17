@@ -12,10 +12,7 @@ import {
   createLibraryAssetRoute,
   hasNativeExtend,
 } from '@genfeedai/contracts/constants';
-import type {
-  IIngredient,
-  IIngredientMetadataPatch,
-} from '@genfeedai/contracts/interfaces';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { MasonryActionStates } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 import { getModelCapability } from '@genfeedai/helpers/model-capability.helper';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
@@ -1097,15 +1094,12 @@ export function useIngredientActions({
         return await onUpdateMetadata(ingredient, field, value);
       }
 
-      if (!ingredient?.metadata) {
-        return;
-      }
-      if (typeof ingredient.metadata !== 'object') {
-        return;
-      }
-      // The endpoint edits a label and a description; anything else is not
-      // editable metadata.
-      if (field !== 'label' && field !== 'description') {
+      const isEditable = field === 'label' || field === 'description';
+      if (
+        !isEditable ||
+        !ingredient?.metadata ||
+        typeof ingredient.metadata !== 'object'
+      ) {
         return;
       }
 
@@ -1114,9 +1108,7 @@ export function useIngredientActions({
         onSuccess: onRefresh,
         operation: async () => {
           const service = await getIngredientsService();
-          // Only the edited field goes out: the rest of the metadata is
-          // server-owned and the endpoint accepts a label and a description.
-          const patch: IIngredientMetadataPatch =
+          const patch =
             field === 'label' ? { label: value } : { description: value };
           return service.patchMetadata(ingredient.id, patch);
         },
