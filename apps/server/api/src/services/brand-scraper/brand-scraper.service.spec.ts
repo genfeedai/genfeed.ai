@@ -331,8 +331,9 @@ describe('BrandScraperService', () => {
         () => {
           settled = true;
         },
-        () => {
+        (error: unknown) => {
           settled = true;
+          expect(error).toMatchObject({ status: 429 });
         },
       );
       try {
